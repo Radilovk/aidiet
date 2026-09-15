@@ -50,7 +50,7 @@ export function validateDayCoherence(dayPlan, dayNum = null) {
   const seen = new Map();
   for (const meal of meals) {
     if (SKIP_SLOTS.has(meal.type)) continue;
-    const key = String(meal.name || '').trim().toLowerCase();
+    const key = String(meal.dishId || meal.name || '').trim().toLowerCase();
     if (key) seen.set(key, (seen.get(key) || 0) + 1);
   }
   for (const [name, count] of seen) {

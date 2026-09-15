@@ -1,6 +1,10 @@
 import { MAX_LATE_SNACK_CALORIES } from '../constants.mjs';
-import { isWithinSlotCap } from '../../../plan-normalize.js';
-import { parseMealDescription } from '../../../food-nutrition.js';
+import {
+  breakfastRequiredForIntake,
+  effectiveSkipsBreakfast,
+  isWithinSlotCap,
+  resolveMealsPerDayFromHabits,
+} from '../../../plan-normalize.js';
 
 export function userSkipsBreakfast(profile) {
   const habits = profile.eatingHabits;
@@ -22,15 +26,32 @@ export function validateH5SchemeSlot(slotCalories) {
   return null;
 }
 
+function resolvePlanDailyKcal(plan, profile) {
+  const raw = plan.analysis?.Final_Calories
+    ?? plan.strategy?.weeklyScheme?.monday?.calories
+    ?? profile?.targetKcal;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+}
+
 export function validateProfileRules(plan, profile) {
   const issues = [];
   const wp = plan.weekPlan;
   const strategy = plan.strategy || {};
+  const dailyKcal = resolvePlanDailyKcal(plan, profile);
+  const mealsPerDay = resolveMealsPerDayFromHabits(profile);
 
   if (userSkipsBreakfast(profile)) {
+    const breakfastRequired = breakfastRequiredForIntake(dailyKcal, mealsPerDay, profile);
     for (let d = 1; d <= 7; d++) {
       const types = (wp[`day${d}`]?.meals || []).map(m => m.type);
-      if (types.includes('Хранене 1')) issues.push(`day${d}: Хранене 1 при „Не закусвам“`);
+      if (types.includes('Хранене 1')) {
+        if (!breakfastRequired && effectiveSkipsBreakfast(profile, dailyKcal, mealsPerDay)) {
+          issues.push(`day${d}: Хранене 1 при „Не закусвам“`);
+        }
+      } else if (breakfastRequired) {
+        issues.push(`day${d}: липсва задължителна закуска при ${dailyKcal} kcal`);
+      }
     }
   }
 
@@ -54,8 +75,8 @@ export function validateProfileRules(plan, profile) {
 
   for (let d = 1; d <= 7; d++) {
     for (const meal of wp[`day${d}`]?.meals || []) {
-      const names = parseMealDescription(meal.description || '').map(i => i.name.toLowerCase());
-      if (names.some(n => /ориз с пиле|омлет|пилешка салата|риба с картофи/.test(n))) {
+      const raw = `${meal.description || ''} ${meal.name || ''}`.toLowerCase();
+      if (/ориз с пиле|омлет|пилешка салата|риба с картофи/.test(raw)) {
         issues.push(`day${d} ${meal.type}: ready_meal в description (${meal.name})`);
       }
     }

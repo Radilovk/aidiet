@@ -14,13 +14,15 @@
 
 2. ПСИХОПРОФИЛ — стегнат текст: темперамент + goal, lossKg, dietHistory, eatingHabits, foodCravings, drinksSweet, drinksAlcohol, waterIntake, socialComparison, dietPreference, dietDislike, dietLove, weightChange, compensationMethods, additionalNotes.
 
-3. TDEE КОРЕКЦИИ (само %):
-• clinical [-15..+5] — medicalConditions, medications. ЛАКТАЦИЯ: +round(350/tdee×100)%, без горна граница +5%.
-• metabolic [-10..+5] — sportActivity, сън, стрес, психопрофил, темперамент.
-• goal [-20..+15] — goal, lossKg, bmi, dietHistory, психопрофил. ЛАКТАЦИЯ+ОТСЛАБВАНЕ: max -5%.
-• Сбор < -25% → ограничи goal до total = -25%.
+3. TDEE КОРЕКЦИИ (review върху backend baseline — НЕ пълен преизчислен TDEE):
+• Backend вече дава baseline intake (deficit/surplus по цел). Твоите % са ФИНА корекция върху него.
+• clinical [-12..+5] — medicalConditions, medications, endocrine/metabolic details.
+• metabolic [-8..+5] — sportActivity, сън, стрес, психопрофил, chronotype.
+• goalAdjustmentPercent = 0 (целта вече е в backend). Не прилагай goal % повторно.
+• ЛАКТАЦИЯ+ОТСЛАБВАНЕ: общ review max -5%. ЛАКТАЦИЯ без отслабване: clinical до +8% сумарно.
+• Сбор clinical+metabolic: max -15% / +8% (мускулна маса: max +5%).
 
-4. Final_Calories = round(tdee × (1 + total%/100)); мин. {MIN_RECOMMENDED_CALORIES} → correction описва повдигането. realBMR=bmr. Final_Calories = дневен ПРИЕМ (цел); backend tdee = maintenance — не ги смесвай.
+4. Final_Calories в JSON = твоята оценка (за narrative); backend baseline + review % определят реалния прием. realBMR=bmr, realTDEE=tdee (maintenance). Не смесвай TDEE с дневен прием.
 
 5. МАКРОСИ — изчисли САМО от Final_Calories:
 macroRatios (%) по goal, lossKg, темперамент, eatingHabits, foodCravings, medicalConditions, medications. protein+carbs+fats = 100 (само числа).

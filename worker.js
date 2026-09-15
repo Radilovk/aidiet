@@ -8037,596 +8037,4705 @@ function snapToStepWithinBounds(grams, step, min, max) {
   return inRange.reduce((best, c) => Math.abs(c - g) < Math.abs(best - g) ? c : best);
 }
 
+// diet-registry.js
+var REGISTRY_VERSION = "diet_v2";
+var ANIMAL_MEAT_TERMS = [
+  "\u043F\u0438\u043B\u0435\u0448\u043A\u043E",
+  "\u043F\u0438\u043B\u0435",
+  "\u043F\u0438\u043B\u0435\u0448\u043A\u0438",
+  "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+  "\u0442\u0435\u043B\u0435\u0448\u043A\u043E",
+  "\u0442\u0435\u043B\u0435\u0448\u043A\u0438",
+  "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+  "\u0441\u0432\u0438\u043D\u0441\u043A\u0438",
+  "\u0430\u0433\u043D\u0435\u0448\u043A\u043E",
+  "\u0430\u0433\u043D\u0435\u0448\u043A\u0438",
+  "\u043F\u0430\u0442\u0435\u0448\u043A\u043E",
+  "\u0433\u044A\u0448\u0438",
+  "\u043F\u0443\u0435\u0448\u043A\u043E",
+  "\u043A\u0430\u0439\u043C\u0430",
+  "\u0448\u0443\u043D\u043A\u0430",
+  "\u0431\u0435\u043A\u043E\u043D",
+  "\u043A\u043E\u043B\u0431\u0430\u0441",
+  "\u0441\u0430\u043B\u0430\u043C",
+  "\u043D\u0430\u0434\u0435\u043D\u0438\u0446\u0430",
+  "\u043A\u0435\u0431\u0430\u043F"
+];
+var FISH_TERMS = [
+  "\u0440\u0438\u0431\u0430",
+  "\u0441\u044C\u043E\u043C\u0433\u0430",
+  "\u0441\u043A\u0443\u043C\u0440\u0438\u044F",
+  "\u0442\u0440\u0435\u0441\u043A\u0430",
+  "\u0442\u043E\u043D",
+  "\u0442\u0438\u043B\u0430\u043F\u0438\u044F",
+  "\u0441\u043A\u0430\u0440\u0438\u0434",
+  "\u043C\u0438\u0434\u0438"
+];
+var DAIRY_EGG_TERMS = [
+  "\u043C\u043B\u044F\u043A\u043E",
+  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+  "\u0441\u0438\u0440\u0435\u043D\u0435",
+  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+  "\u0438\u0437\u0432\u0430\u0440\u0430",
+  "\u0441\u043A\u0438\u0440",
+  "\u043A\u0435\u0444\u0438\u0440",
+  "\u0441\u043C\u0435\u0442\u0430\u043D\u0430",
+  "\u043C\u0430\u0441\u043B\u043E",
+  "\u0439\u043E\u0433\u0443\u0440\u0442",
+  "ricotta",
+  "\u0440\u0438\u043A\u043E\u0442\u0430",
+  "\u044F\u0439\u0446\u0435",
+  "\u044F\u0439\u0446\u0430",
+  "\u043E\u043C\u043B\u0435\u0442",
+  "\u0441\u0443\u0440\u043E\u0432\u0430"
+];
+var DIET_NARROWING_RULES = {
+  \u043A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u0430: { maxCarbShare: 0.12 },
+  keto: { maxCarbShare: 0.12 },
+  \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442: { maxCarbShare: 0.22 },
+  "\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438": { blockedTerms: DAIRY_EGG_TERMS.filter((t) => !t.includes("\u044F\u0439")) },
+  \u0432\u0435\u0433\u0430\u043D: { blockedTerms: [...ANIMAL_MEAT_TERMS, ...FISH_TERMS, ...DAIRY_EGG_TERMS] },
+  vegan: { blockedTerms: [...ANIMAL_MEAT_TERMS, ...FISH_TERMS, ...DAIRY_EGG_TERMS] },
+  \u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D: { blockedTerms: [...ANIMAL_MEAT_TERMS, ...FISH_TERMS] },
+  vegetarian: { blockedTerms: [...ANIMAL_MEAT_TERMS, ...FISH_TERMS] },
+  \u043F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D: { blockedTerms: ANIMAL_MEAT_TERMS },
+  pescatarian: { blockedTerms: ANIMAL_MEAT_TERMS }
+};
+function asPreferenceList(dietPreference) {
+  if (Array.isArray(dietPreference)) return dietPreference.map(String).filter(Boolean);
+  if (dietPreference) return [String(dietPreference)];
+  return [];
+}
+function resolveDietConstraintText({
+  dietaryModifier = "",
+  dietPreference = null,
+  dietDislike = ""
+} = {}) {
+  return [
+    dietaryModifier,
+    ...asPreferenceList(dietPreference),
+    dietDislike
+  ].filter(Boolean).join(" | ");
+}
+function resolveCatalogDietProfile(ctx = {}) {
+  const text = resolveDietConstraintText(ctx).toLowerCase();
+  const prefs = asPreferenceList(ctx.dietPreference).map((p) => p.toLowerCase());
+  const combined = [text, ...prefs].join(" ");
+  return {
+    vegan: combined.includes("\u0432\u0435\u0433\u0430\u043D") || combined.includes("vegan"),
+    vegetarian: combined.includes("\u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D") || combined.includes("vegetarian"),
+    pescatarian: combined.includes("\u043F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D") || combined.includes("pescatarian"),
+    keto: /кето|нисковъглехидрат|keto|low carb/.test(combined),
+    glutenFree: combined.includes("\u0431\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D") || combined.includes("\u0433\u043Buten free")
+  };
+}
+function getDietRegistryVersion() {
+  return REGISTRY_VERSION;
+}
+function normalizeDietKey(modifier = "") {
+  return normalizeFoodKey(String(modifier).replace(/\([^)]*\)/g, ""));
+}
+function rulesForText(text = "") {
+  const key = normalizeDietKey(text);
+  if (!key) return [];
+  const matched = [];
+  for (const [ruleKey, rule] of Object.entries(DIET_NARROWING_RULES)) {
+    if (key.includes(normalizeFoodKey(ruleKey))) matched.push(rule);
+  }
+  return matched;
+}
+function collectMatchingRules(ctx) {
+  const rules = [];
+  const seen = /* @__PURE__ */ new Set();
+  const push = (rule) => {
+    if (!rule || seen.has(rule)) return;
+    seen.add(rule);
+    rules.push(rule);
+  };
+  if (typeof ctx === "string") {
+    for (const r of rulesForText(ctx)) push(r);
+    return rules;
+  }
+  for (const r of rulesForText(resolveDietConstraintText(ctx))) push(r);
+  for (const pref of asPreferenceList(ctx?.dietPreference)) {
+    for (const r of rulesForText(pref)) push(r);
+  }
+  if (ctx?.dietaryModifier) {
+    for (const r of rulesForText(ctx.dietaryModifier)) push(r);
+  }
+  return rules;
+}
+function shareOfKcal(nutritionKey, macroIdx) {
+  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
+  if (!a) return 0;
+  const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
+  if (kcal <= 0) return 0;
+  const macroKcal = macroIdx === 3 ? a[3] * 9 : a[macroIdx] * 4;
+  return macroKcal / kcal;
+}
+function isCarbDominantEntry(entry) {
+  const slots = entry.slots || [];
+  const group = entry.group || "";
+  return slots.includes("ENG") || group === "carb" || group === "fruit" || group === "ready_meal" && !entry.fixedNutrition;
+}
+function isFatDominantEntry(entry) {
+  const slots = entry.slots || [];
+  const group = entry.group || "";
+  return slots.includes("FAT") || group === "fat";
+}
+function mergedRuleLimits(rules) {
+  let maxCarbShare = 1;
+  let maxFatShare = 1;
+  const blockedTerms = /* @__PURE__ */ new Set();
+  for (const rule of rules) {
+    if (rule.maxCarbShare != null) maxCarbShare = Math.min(maxCarbShare, rule.maxCarbShare);
+    if (rule.maxFatShare != null) maxFatShare = Math.min(maxFatShare, rule.maxFatShare);
+    for (const term of rule.blockedTerms || []) blockedTerms.add(term);
+  }
+  return { maxCarbShare, maxFatShare, blockedTerms: [...blockedTerms] };
+}
+function passesDietRegistry(entry, modifierOrCtx = "") {
+  const rules = collectMatchingRules(modifierOrCtx);
+  if (!rules.length) return true;
+  const { maxCarbShare, maxFatShare, blockedTerms } = mergedRuleLimits(rules);
+  const nKey = entry.nutritionKey || entry.name;
+  if (maxFatShare < 1 && isFatDominantEntry(entry) && shareOfKcal(nKey, 3) > maxFatShare) {
+    return false;
+  }
+  if (maxCarbShare < 1 && isCarbDominantEntry(entry) && shareOfKcal(nKey, 2) > maxCarbShare) {
+    return false;
+  }
+  if (blockedTerms.length) {
+    const nameLower = entry.name.toLowerCase();
+    const keyLower = String(nKey).toLowerCase();
+    for (const term of blockedTerms) {
+      const t = String(term).toLowerCase();
+      if (t.length < 3) continue;
+      if (nameLower.includes(t) || keyLower.includes(t)) return false;
+    }
+  }
+  return true;
+}
+
+// questionnaire-engine-map.js
+var QUESTIONNAIRE_FOOD_BLOCK_FIELD_IDS = [
+  "dietDislike",
+  "medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438",
+  "foodTriggers",
+  "triggerFoods",
+  "giTriggers",
+  "foodSensitivities"
+];
+var DQ_FOOD_KEY_PATTERN = /food|trigger|allerg|intoler|хран|избяг|алерг|не\s*тoler/i;
+var CONDITION_DETAIL_FIELD_IDS = [
+  "medicalConditions_\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u043E-\u0441\u043A\u0435\u043B\u0435\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
+  "medicalConditions_\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u043E",
+  "medicalConditions_other"
+];
+var LONG_TERM_PHASE_HINTS = {
+  1: "\u043D\u0430\u0447\u0430\u043B\u043D\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u043E\u0441\u0442 \u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F",
+  2: "\u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u044F \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435 \u0440\u043E\u0442\u0430\u0446\u0438\u044F",
+  3: "\u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u043D\u0430 \u043F\u043E\u0434\u0434\u0440\u044A\u0436\u043A\u0430 maintenance"
+};
+var CLINICAL_PROTOCOL_DIET_HINTS = {
+  gi_issues: "fodmap ibs \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438",
+  autoimmune_aip: "\u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u0430 aip autoimun",
+  insulin_resistance: "\u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430"
+};
+function pushTermsFromValue(terms, seen, val) {
+  if (val == null || val === "") return;
+  const parts = Array.isArray(val) ? val : String(val).split(/[,;|\n]/);
+  for (const part of parts) {
+    const t = String(part).trim();
+    if (t.length < 2) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    terms.push(t);
+  }
+}
+function extractQuestionnaireBlockedTerms(userData = {}) {
+  const terms = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const fieldId of QUESTIONNAIRE_FOOD_BLOCK_FIELD_IDS) {
+    pushTermsFromValue(terms, seen, userData[fieldId]);
+  }
+  if (Array.isArray(userData.planModifications)) {
+    for (const mod of userData.planModifications) {
+      if (typeof mod === "string" && mod.startsWith("exclude_food:")) {
+        pushTermsFromValue(terms, seen, mod.slice("exclude_food:".length));
+      }
+    }
+  }
+  if (Array.isArray(userData.userFoodExclude)) {
+    for (const entry of userData.userFoodExclude) {
+      pushTermsFromValue(terms, seen, entry);
+    }
+  }
+  if (Array.isArray(userData.forbidden)) {
+    for (const entry of userData.forbidden) {
+      pushTermsFromValue(terms, seen, entry);
+    }
+  }
+  const textMap = userData._dq_text_map || {};
+  for (const key of Object.keys(userData)) {
+    if (!key.startsWith("dq_")) continue;
+    const label = String(textMap[key] || "");
+    if (!DQ_FOOD_KEY_PATTERN.test(key) && !DQ_FOOD_KEY_PATTERN.test(label)) continue;
+    pushTermsFromValue(terms, seen, userData[key]);
+  }
+  return terms;
+}
+function resolveLongTermPhase({ cycleNumber = 1, daysSinceStart = null } = {}) {
+  const cycle = Math.max(1, Number(cycleNumber) || 1);
+  let days = daysSinceStart != null && !Number.isNaN(Number(daysSinceStart)) ? Number(daysSinceStart) : null;
+  if (days == null) days = (cycle - 1) * 7;
+  let phaseNumber = 1;
+  if (days >= 84 || cycle >= 13) phaseNumber = 3;
+  else if (days >= 28 || cycle >= 5) phaseNumber = 2;
+  return {
+    phaseNumber,
+    phaseHint: LONG_TERM_PHASE_HINTS[phaseNumber] || LONG_TERM_PHASE_HINTS[1],
+    cycleNumber: cycle,
+    daysSinceStart: days
+  };
+}
+function buildAdaptPhaseContext({ cycleNumber = 1, dietStartDate = "" } = {}) {
+  let daysSinceStart = null;
+  if (dietStartDate) {
+    const startMs = new Date(dietStartDate).getTime();
+    if (!Number.isNaN(startMs)) {
+      daysSinceStart = Math.floor((Date.now() - startMs) / 864e5);
+    }
+  }
+  return resolveLongTermPhase({ cycleNumber, daysSinceStart });
+}
+function buildQuestionnaireDietHints(userData = {}) {
+  const parts = [];
+  const phase = userData._adaptPhase;
+  if (phase?.phaseHint) parts.push(phase.phaseHint);
+  const cp = userData.clinicalProtocol;
+  if (cp && CLINICAL_PROTOCOL_DIET_HINTS[cp]) {
+    parts.push(CLINICAL_PROTOCOL_DIET_HINTS[cp]);
+  }
+  const textChunks = [];
+  if (Array.isArray(userData.medicalConditions)) {
+    textChunks.push(userData.medicalConditions.join(" "));
+  }
+  for (const key of CONDITION_DETAIL_FIELD_IDS) {
+    if (userData[key]) textChunks.push(String(userData[key]));
+  }
+  const blob = textChunks.join(" ").toLowerCase();
+  if (/fodmap|ibs|подуване|сърбеж|храносмилател/i.test(blob)) parts.push("fodmap ibs");
+  if (/целиак|глутен|gluten/i.test(blob)) parts.push("\u0431\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D gluten");
+  if (/лактоз|млеч|dairy/i.test(blob)) parts.push("\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438 dairy");
+  if (/хипертон|кръвно/i.test(blob)) parts.push("dash \u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F");
+  if (/пaleo|палео/i.test(blob)) parts.push("paleo");
+  return [...new Set(parts.join(" ").split(/\s+/).filter(Boolean))].join(" ");
+}
+function enrichUserDataEngineContext(userData) {
+  if (!userData || typeof userData !== "object") return userData;
+  const blockedTerms = extractQuestionnaireBlockedTerms(userData);
+  userData._engineBlockedTerms = blockedTerms;
+  userData._engineDietHints = buildQuestionnaireDietHints(userData);
+  return userData;
+}
+function summarizeWeekPlanSkeleton(weekPlan) {
+  if (!weekPlan) return "";
+  const lines = [];
+  for (let d = 1; d <= 7; d++) {
+    const day = weekPlan[`day${d}`];
+    if (!day?.meals?.length) continue;
+    const slots = day.meals.map((m) => {
+      const kcal = m.calories != null ? `${m.calories}kcal` : "";
+      return `${m.type}:${m.name || "?"}${kcal ? `(${kcal})` : ""}`;
+    }).join(" | ");
+    lines.push(`D${d}: ${slots}`);
+  }
+  return lines.join("\n");
+}
+function summarizeWeeklyScheme(strategy) {
+  const scheme = strategy?.weeklyScheme;
+  if (!scheme) return "";
+  const mon = scheme.monday;
+  if (!mon?.mealBreakdown?.length) return "";
+  const slots = mon.mealBreakdown.map((s) => `${s.type}=${s.calories}kcal`).join(", ");
+  return `slots(${slots}) freeDay=${strategy.freeDayNumber ?? "?"} dessert=${strategy.includeDessert}`;
+}
+function buildFinalAuditPacket({ plan = null, userData = null, codeValidation = null } = {}) {
+  const analysis = plan?.analysis || {};
+  const strategy = plan?.strategy || {};
+  const mg = analysis.macroGrams || {};
+  const sections = [
+    "=== ENGINE AUDIT ===",
+    `profile: goal=${JSON.stringify(userData?.goal || "")} clinical=${userData?.clinicalProtocol || "none"} phase=${userData?._adaptPhase?.phaseNumber ?? "\u2014"}`,
+    `engine: dietHints="${userData?._engineDietHints || buildQuestionnaireDietHints(userData)}" blocked=${(userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData)).slice(0, 12).join("; ")}`,
+    `step1: intake=${analysis.Final_Calories || "?"}kcal P${mg.protein || "?"}/C${mg.carbs || "?"}/F${mg.fats || "?"} deterministic=${analysis._deterministicEnergy ? "yes" : "no"}`,
+    `step2: profile=${strategy.libraryDietProfile || "?"} modifier=${strategy.dietaryModifier || "?"} ${summarizeWeeklyScheme(strategy)}`,
+    `step3 skeleton:
+${summarizeWeekPlanSkeleton(plan?.weekPlan)}`
+  ];
+  const warnings = [
+    ...plan?.generationWarnings || [],
+    ...codeValidation?.warnings || [],
+    ...codeValidation?.errors || []
+  ].filter(Boolean);
+  if (warnings.length) {
+    sections.push(`code_warnings (${warnings.length}): ${warnings.slice(0, 8).join(" | ")}`);
+  }
+  const problems = (analysis.keyProblems || []).slice(0, 4).map((p) => p.title).filter(Boolean);
+  if (problems.length) sections.push(`keyProblems: ${problems.join("; ")}`);
+  const notes = userData?.additionalNotes ? String(userData.additionalNotes).slice(0, 400) : "";
+  if (notes) sections.push(`notes: ${notes}`);
+  return sections.join("\n");
+}
+
+// dish-tags.js
+var GLUTEN_PRODUCT_TERMS = [
+  "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+  "\u0445\u043B\u044F\u0431",
+  "\u043F\u0430\u0441\u0442\u0430",
+  "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+  "\u043E\u0432\u0435\u0441"
+];
+var LIQUID_PRODUCT_TERMS = [
+  "\u043C\u043B\u044F\u043A\u043E",
+  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+  "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+  "\u043A\u0435\u0444\u0438\u0440",
+  "\u0441\u043A\u0438\u0440",
+  "\u0439\u043E\u0433\u0443\u0440\u0442"
+];
+var SWEET_PRODUCT_TERMS = [
+  "\u043C\u0435\u0434",
+  "\u043C\u0430\u043B\u0438\u043D\u0438",
+  "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+  "\u0431\u0430\u043D\u0430\u043D",
+  "\u044F\u0431\u044A\u043B\u043A\u0430",
+  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+  "\u043F\u043B\u043E\u0434\u043E\u0432\u0435"
+];
+var CARB_PRODUCT_TERMS = [
+  "\u043E\u0440\u0438\u0437",
+  "\u043F\u0430\u0441\u0442\u0430",
+  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+  "\u0445\u043B\u044F\u0431",
+  "\u043E\u0432\u0435\u0441\u0435\u043D\u0438",
+  "\u0431\u043E\u0431",
+  "\u043B\u0435\u0449\u0430",
+  "\u043D\u0430\u0445\u0443\u0442"
+];
+function productNameHasAny(name, terms) {
+  const key = normalizeFoodKey(name);
+  return terms.some((t) => key.includes(normalizeFoodKey(t)));
+}
+function inferDishTags(dish) {
+  const tags = new Set(dish.tags || []);
+  if (dish.vegan) tags.add("vegan");
+  if (dish.vegetarian) tags.add("vegetarian");
+  const products = dish.products || [];
+  const names = products.map((p) => p.name);
+  const totalGrams = products.reduce((s, p) => s + (p.grams || 0), 0) || 1;
+  if (!names.some((n) => productNameHasAny(n, GLUTEN_PRODUCT_TERMS))) {
+    tags.add("gluten_free");
+  }
+  const liquidGrams = products.filter((p) => productNameHasAny(p.name, LIQUID_PRODUCT_TERMS)).reduce((s, p) => s + (p.grams || 0), 0);
+  if (dish.timing?.includes("breakfast") && liquidGrams / totalGrams >= 0.45) {
+    tags.add("liquid_breakfast");
+  }
+  if (names.some((n) => productNameHasAny(n, SWEET_PRODUCT_TERMS))) {
+    tags.add("sweet_slot");
+  }
+  if (!tags.has("low_carb")) {
+    const carbParts = products.filter((p) => CARB_PRODUCT_TERMS.some(
+      (t) => normalizeFoodKey(p.name).includes(normalizeFoodKey(t))
+    ));
+    const carbGrams = carbParts.reduce((s, p) => s + (p.grams || 0), 0);
+    const hasMajorStarch = carbParts.some((p) => (p.grams || 0) >= 40);
+    if (!hasMajorStarch && carbGrams / totalGrams <= 0.2) tags.add("low_carb");
+  }
+  return [...tags];
+}
+function dishTagList(entry) {
+  if (entry?.dishTags?.length) return entry.dishTags;
+  return inferDishTags({
+    tags: entry?.tags,
+    vegan: entry?.vegan,
+    vegetarian: entry?.vegetarian,
+    timing: entry?.timing,
+    products: entry?.products
+  });
+}
+function dishMatchesTagFilter(entry, filter) {
+  if (!filter) return true;
+  const tags = new Set(dishTagList(entry));
+  for (const t of filter.requireAll || []) {
+    if (!tags.has(t)) return false;
+  }
+  for (const t of filter.exclude || []) {
+    if (tags.has(t)) return false;
+  }
+  return true;
+}
+function preferTagScore(entry, prefer = []) {
+  if (!prefer?.length) return 0;
+  const tags = new Set(dishTagList(entry));
+  return prefer.filter((t) => tags.has(t)).length;
+}
+function resolveDishTagFilter(userData, strategy, slotType) {
+  const filter = { requireAll: [], prefer: [], exclude: [] };
+  const dietCtx = {
+    dietaryModifier: strategy?.dietaryModifier || "",
+    dietPreference: userData?.dietPreference ?? null,
+    dietDislike: userData?.dietDislike || ""
+  };
+  const profile = resolveCatalogDietProfile(dietCtx);
+  const hints = String(userData?._engineDietHints || buildQuestionnaireDietHints(userData)).toLowerCase();
+  const modifier = String(strategy?.dietaryModifier || "").toLowerCase();
+  if (profile.glutenFree || /без глутен|gluten/.test(hints)) {
+    filter.requireAll.push("gluten_free");
+  }
+  const wantsLowCarb = profile.keto || /кето|нисковъглехидрат|keto|low carb|инсулин|диабет/.test(hints) || userData?.clinicalProtocol === "insulin_resistance";
+  const mainSlot = slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4";
+  if (wantsLowCarb && mainSlot) filter.prefer.push("low_carb");
+  if (/кетоген|keto/.test(modifier) && (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4")) {
+    filter.requireAll.push("low_carb");
+  }
+  if (profile.vegan) filter.requireAll.push("vegan");
+  else if (profile.vegetarian) filter.requireAll.push("vegetarian");
+  const habits = Array.isArray(userData?.eatingHabits) ? userData.eatingHabits.join(" ").toLowerCase() : "";
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && /течна|смути|шейк/.test(habits)) {
+    filter.prefer.push("liquid_breakfast");
+  }
+  const cravings = Array.isArray(userData?.foodCravings) ? userData.foodCravings.join(" ").toLowerCase() : "";
+  if ((slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") && /сладко|sweet|десерт/.test(cravings)) {
+    filter.prefer.push("sweet_slot");
+  }
+  const hasRules = filter.requireAll.length || filter.prefer.length || filter.exclude.length;
+  return hasRules ? filter : null;
+}
+
+// data/meal-dishes.json
+var meal_dishes_default = {
+  updatedAt: "2026-09-01T02:58:04.349Z",
+  count: 171,
+  dishes: [
+    {
+      id: "meal_omelet",
+      name: "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_omelet_veg",
+      name: "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_boiled_egg",
+      name: "\u0412\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_egg_bread_cheese",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_avocado_egg",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0445\u043B\u044F\u0431",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_avocado_toast",
+      name: "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0432\u044A\u0440\u0445\u0443 \u043F\u0440\u0435\u043F\u0435\u0447\u0435\u043D \u0445\u043B\u044F\u0431",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_oatmeal",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_porridge_berries",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043F\u043B\u043E\u0434\u043E\u0432\u0435",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u043C\u0430\u043B\u0438\u043D\u0438",
+          grams: 50
+        },
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_oat_plant_milk",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_yogurt_oats",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_yogurt_oats_banana",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 40
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_yogurt_oats_nuts",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 40
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 20
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cottage_bowl",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cottage_honey",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043C\u0435\u0434 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043C\u0435\u0434",
+          grams: 15
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 20
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cheese_sandwich",
+      name: "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_tofu_scramble",
+      name: "\u0422\u043E\u0444\u0443 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0442\u043E\u0444\u0443",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_eggs_bread_cheese_tomato",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431, \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_eggs_potato_tomato",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "bf_liquid_yogurt_banana",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "bf_liquid_skyr_berries",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+      products: [
+        {
+          name: "\u0441\u043A\u0438\u0440",
+          grams: 200
+        },
+        {
+          name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "liquid_breakfast",
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "bf_liquid_kefir_nuts",
+      name: "\u041A\u0435\u0444\u0438\u0440 \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u043A\u0435\u0444\u0438\u0440",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "bf_liquid_yogurt_protein",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0438 \u043C\u0430\u043B\u0438\u043D\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430",
+          grams: 25
+        },
+        {
+          name: "\u043C\u0430\u043B\u0438\u043D\u0438",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 3,
+      tags: [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "bf_liquid_oats_banana",
+      name: "\u041E\u0432\u0435\u0441 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "meal_cheese_omelet",
+      name: "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 50
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_eggs_mushrooms",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0433\u044A\u0431\u0438 \u0438 \u0437\u0435\u0445\u0442\u0438\u043D",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_porridge_apple",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u044F\u0431\u044A\u043B\u043A\u0430",
+      products: [
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 50
+        },
+        {
+          name: "\u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_skryr_banana_oats",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u043D\u0430\u043D \u0438 \u043E\u0432\u0435\u0441",
+      products: [
+        {
+          name: "\u0441\u043A\u0438\u0440",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_rye_cheese_cucumber",
+      name: "\u0420\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 50
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_greek_yogurt_honey_nuts",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u043C\u0435\u0434",
+          grams: 15
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_buckwheat_milk_apple",
+      name: "\u0415\u043B\u0434\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E \u0438 \u044F\u0431\u044A\u043B\u043A\u0430",
+      products: [
+        {
+          name: "\u0435\u043B\u0434\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043C\u043B\u044F\u043A\u043E",
+          grams: 200
+        },
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cottage_peach",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_bread_peanut_banana",
+      name: "\u0425\u043B\u044F\u0431 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E \u0438 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+          grams: 20
+        },
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_eggs_peppers_tomato",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0447\u0443\u0448\u043A\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_rice_chicken",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_rice_broccoli",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_grilled_chicken",
+      name: "\u041F\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_potato",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_pasta_chicken",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_salad",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_sandwich",
+      name: "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441 \u043F\u0438\u043B\u0435",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 50
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 20
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_soup",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0443\u043F\u0430",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 100
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chicken_bulgur",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0443\u043B\u0433\u0443\u0440",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_chicken_spinach",
+      name: "\u041F\u0438\u043B\u0435 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_rice",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_potato",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_quinoa",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0438\u043D\u043E\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_sweet_potato",
+      name: "\u041F\u0438\u043B\u0435 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_thigh_potato",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_pasta",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043F\u0430\u0441\u0442\u0430 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pork_rice_peppers",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_rice_carrots",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_kebab_rice",
+      name: "\u041A\u0430\u0439\u043C\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043A\u0430\u0439\u043C\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pasta_beef",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0433\u043E\u0432\u0435\u0436\u0434\u043E \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_salmon_rice",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_chicken",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_buckwheat",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u0435\u043B\u0434\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0435\u043B\u0434\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_corn_peppers",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chicken_eggplant_tomato",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_lentil",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_turkey_beans",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0431\u043E\u0431 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u0431\u044F\u043B \u0431\u043E\u0431",
+          grams: 150
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_potato",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_beef_broccoli",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_mushrooms",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u044A\u0431\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pork_potato",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_pork_beans",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u0431\u043E\u0431",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 100
+        },
+        {
+          name: "\u0431\u044F\u043B \u0431\u043E\u0431",
+          grams: 200
+        },
+        {
+          name: "\u043B\u0443\u043A",
+          grams: 30
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_moussaka_style",
+      name: "\u041A\u0430\u0439\u043C\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+      products: [
+        {
+          name: "\u043A\u0430\u0439\u043C\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_spinach_potato",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_beef_peas_green_beans",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u0440\u0430\u0445 \u0438 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0433\u0440\u0430\u0445",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pork_cabbage",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435",
+          grams: 100
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_baked_fish",
+      name: "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_grilled_fish_veg",
+      name: "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_fish_rice",
+      name: "\u0420\u0438\u0431\u0430 \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_salmon_potato",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_salmon_salad",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tuna_salad",
+      name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+          grams: 100
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_mackerel_potato",
+      name: "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_shrimp_pasta",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441\u044A\u0441 \u0441\u043A\u0430\u0440\u0438\u0434\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043A\u0430\u0440\u0438\u0434\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_cod_potato",
+      name: "\u0422\u0440\u0435\u0441\u043A\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0442\u0440\u0435\u0441\u043A\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tilapia_rice",
+      name: "\u0422\u0438\u043B\u0430\u043F\u0438\u044F \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u0442\u0438\u043B\u0430\u043F\u0438\u044F",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tuna_pasta",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+      products: [
+        {
+          name: "\u043F\u0430\u0441\u0442\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lavrak_potato",
+      name: "\u041B\u0430\u0432\u0440\u0430\u043A \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u043B\u0430\u0432\u0440\u0430\u043A",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_salmon_sweet_potato_broccoli",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_mackerel_rice",
+      name: "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_fish_quinoa",
+      name: "\u0420\u0438\u0431\u0430 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0438\u043D\u043E\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_shrimp_rice_veg",
+      name: "\u0421\u043A\u0430\u0440\u0438\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0441\u043A\u0430\u0440\u0438\u0434\u0438",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tuna_rice_salad",
+      name: "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u0430\u0440\u0443\u043B\u044F",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_stew",
+      name: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u043B\u0435\u0449\u0430",
+      products: [
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 200
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_bean_stew",
+      name: "\u0411\u043E\u0431 \u044F\u0445\u043D\u0438\u044F",
+      products: [
+        {
+          name: "\u0431\u043E\u0431",
+          grams: 200
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_bean_salad",
+      name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0431\u043E\u0431",
+      products: [
+        {
+          name: "\u0431\u044F\u043B \u0431\u043E\u0431",
+          grams: 200
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chickpea_salad",
+      name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u043D\u0430\u0445\u0443\u0442",
+      products: [
+        {
+          name: "\u043D\u0430\u0445\u0443\u0442",
+          grams: 200
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_hummus_bread",
+      name: "\u0425\u0443\u043C\u0443\u0441 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 100
+        },
+        {
+          name: "\u0445\u0443\u043C\u0443\u0441",
+          grams: 50
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_veg_soup",
+      name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0430 \u0441\u0443\u043F\u0430",
+      products: [
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_green_salad",
+      name: "\u0417\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+      products: [
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_egg_potato",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_cottage_veg",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tofu_rice",
+      name: "\u0422\u043E\u0444\u0443 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0442\u043E\u0444\u0443",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_stuffed_peppers",
+      name: "\u041F\u044A\u043B\u043D\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438 \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_spinach_rice",
+      name: "\u0421\u043F\u0430\u043D\u0430\u043A \u0441 \u043E\u0440\u0438\u0437",
+      products: [
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 200
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_potato_stew",
+      name: "\u041A\u0430\u0440\u0442\u043E\u0444\u0435\u043D\u0430 \u044F\u0445\u043D\u0438\u044F",
+      products: [
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 250
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_green_bean_stew",
+      name: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+      products: [
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 200
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_zucchini_tomato",
+      name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_roasted_veg_bread",
+      name: "\u041F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0441 \u0445\u043B\u044F\u0431",
+      products: [
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_soup",
+      name: "\u0421\u0443\u043F\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430",
+      products: [
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 200
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_mushrooms_potato",
+      name: "\u0413\u044A\u0431\u0438 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_quinoa_veg_bowl",
+      name: "\u041A\u0438\u043D\u043E\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u043D\u043E\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tempeh_rice_broccoli",
+      name: "\u0422\u0435\u043C\u043F\u0435 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0442\u0435\u043C\u043F\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_black_bean_stew",
+      name: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+      products: [
+        {
+          name: "\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+          grams: 200
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_sweet_potato_lentil",
+      name: "\u0421\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0441 \u043B\u0435\u0449\u0430",
+      products: [
+        {
+          name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_rice",
+      name: "\u041B\u0435\u0449\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chickpea_spinach",
+      name: "\u041D\u0430\u0445\u0443\u0442 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u043D\u0430\u0445\u0443\u0442",
+          grams: 200
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_bulgur_veg",
+      name: "\u0411\u0443\u043B\u0433\u0443\u0440 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        {
+          name: "\u0431\u0443\u043B\u0433\u0443\u0440",
+          grams: 150
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tofu_sweet_potato",
+      name: "\u0422\u043E\u0444\u0443 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      products: [
+        {
+          name: "\u0442\u043E\u0444\u0443",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "meal_bean_potato",
+      name: "\u0411\u043E\u0431 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0431\u043E\u0431",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 200
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_chickpea_rice",
+      name: "\u041D\u0430\u0445\u0443\u0442 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      products: [
+        {
+          name: "\u043D\u0430\u0445\u0443\u0442",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_chickpea_quinoa_bowl",
+      name: "\u041D\u0430\u0445\u0443\u0442 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u043D\u0430\u0445\u0443\u0442",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0438\u043D\u043E\u0430",
+          grams: 100
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_black_bean_rice",
+      name: "\u0427\u0435\u0440\u0435\u043D \u0431\u043E\u0431 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0438\u0437",
+          grams: 100
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_tofu_bulgur_peppers",
+      name: "\u0422\u043E\u0444\u0443 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        {
+          name: "\u0442\u043E\u0444\u0443",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0443\u043B\u0433\u0443\u0440",
+          grams: 150
+        },
+        {
+          name: "\u0427\u0443\u0448\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pumpkin_lentil",
+      name: "\u0422\u0438\u043A\u0432\u0430 \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0442\u0438\u043A\u0432\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 100
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_pea_potato_stew",
+      name: "\u0413\u0440\u0430\u0445 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0433\u0440\u0430\u0445",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "meal_lentil_bread",
+      name: "\u041B\u0435\u0449\u0430 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438 \u0438 \u0445\u043B\u044F\u0431",
+      products: [
+        {
+          name: "\u043B\u0435\u0449\u0430",
+          grams: 150
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "meal_egg_avocado_spinach",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_keto_eggs_zucchini",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_salmon_avocado",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 50
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_chicken_cheese_salad",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        },
+        {
+          name: "\u043C\u0430\u0440\u0443\u043B\u044F",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_cottage_nuts_veg",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 20
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "meal_eggplant_turkey",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 3,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_omelet_mushrooms",
+      name: "\u041E\u043C\u043B\u0435\u0442 \u0441 \u0433\u044A\u0431\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_chicken_zucchini",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_turkey_broccoli",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_cottage_avocado",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_tuna_cucumber",
+      name: "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+          grams: 100
+        },
+        {
+          name: "\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main",
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_eggs_spinach_cheese",
+      name: "\u042F\u0439\u0446\u0430 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u0441\u0438\u0440\u0435\u043D\u0435",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0441\u043F\u0430\u043D\u0430\u043A",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_salmon_broccoli",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        {
+          name: "\u0441\u044C\u043E\u043C\u0433\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u0445\u0442\u0438\u043D",
+          grams: 10
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_pork_zucchini",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+      products: [
+        {
+          name: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_beef_green_beans",
+      name: "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+      products: [
+        {
+          name: "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_eggs_asparagus",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0441\u043F\u0435\u0440\u0436\u0438",
+      products: [
+        {
+          name: "\u044F\u0439\u0446\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0410\u0441\u043F\u0435\u0440\u0436\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "breakfast",
+        "main"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_chicken_cauliflower",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+      products: [
+        {
+          name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+          grams: 150
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "ir_turkey_mushrooms",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u0433\u044A\u0431\u0438",
+      products: [
+        {
+          name: "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          grams: 150
+        },
+        {
+          name: "\u0433\u044A\u0431\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "main"
+      ],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: [
+        "low_carb"
+      ]
+    },
+    {
+      id: "snack_yogurt_almonds",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_apple_almonds",
+      name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 150
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_banana_walnuts",
+      name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_cottage_walnuts",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_orange_cashew",
+      name: "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B \u0441 \u043A\u0430\u0448\u0443",
+      products: [
+        {
+          name: "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+          grams: 150
+        },
+        {
+          name: "\u043A\u0430\u0448\u0443",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_hummus_carrot",
+      name: "\u0425\u0443\u043C\u0443\u0441 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+      products: [
+        {
+          name: "\u0445\u0443\u043C\u0443\u0441",
+          grams: 50
+        },
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "snack_fruit_yogurt",
+      name: "\u041F\u043B\u043E\u0434\u043E\u0432\u0435 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "snack_avocado_walnuts",
+      name: "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          grams: 50
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "snack_pear_walnuts",
+      name: "\u041A\u0440\u0443\u0448\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u043A\u0440\u0443\u0448\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_kiwi_cashew",
+      name: "\u041A\u0438\u0432\u0438 \u0441 \u043A\u0430\u0448\u0443",
+      products: [
+        {
+          name: "\u043A\u0438\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0430\u0448\u0443",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_cottage_berries",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u044F\u0433\u043E\u0434\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u044F\u0433\u043E\u0434\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_tomato_cheese",
+      name: "\u0414\u043E\u043C\u0430\u0442\u0438 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
+      products: [
+        {
+          name: "\u0414\u043E\u043C\u0430\u0442\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0441\u0438\u0440\u0435\u043D\u0435",
+          grams: 40
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_grape_almonds",
+      name: "\u0413\u0440\u043E\u0437\u0434\u0435 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u0433\u0440\u043E\u0437\u0434\u0435",
+          grams: 100
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_celery_hummus",
+      name: "\u0426\u0435\u043B\u0438\u043D\u0430 \u0441 \u0445\u0443\u043C\u0443\u0441",
+      products: [
+        {
+          name: "\u0446\u0435\u043B\u0438\u043D\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0445\u0443\u043C\u0443\u0441",
+          grams: 50
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "snack_greek_yogurt_honey",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434",
+      products: [
+        {
+          name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u043C\u0435\u0434",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "snack_mandarin_almonds",
+      name: "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_peach_cottage",
+      name: "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430 \u0441 \u0438\u0437\u0432\u0430\u0440\u0430",
+      products: [
+        {
+          name: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "snack_peanut_banana",
+      name: "\u0411\u0430\u043D\u0430\u043D \u0441 \u0444\u044A\u0441\u0442\u044A\u0446\u0438",
+      products: [
+        {
+          name: "\u0431\u0430\u043D\u0430\u043D",
+          grams: 100
+        },
+        {
+          name: "\u0444\u044A\u0441\u0442\u044A\u0446\u0438",
+          grams: 20
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "snack_tahini_carrots",
+      name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438 \u0441 \u0442\u0430\u0445\u0430\u043D",
+      products: [
+        {
+          name: "\u041C\u043E\u0440\u043A\u043E\u0432\u0438",
+          grams: 100
+        },
+        {
+          name: "\u0442\u0430\u0445\u0430\u043D",
+          grams: 20
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "sweet_yogurt_berries",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        },
+        {
+          name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "sweet_cottage_honey",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043C\u0435\u0434",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 150
+        },
+        {
+          name: "\u043C\u0435\u0434",
+          grams: 15
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "sweet_apple_yogurt",
+      name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+      products: [
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 150
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: [
+        "sweet_slot"
+      ]
+    },
+    {
+      id: "sweet_kefir_berries",
+      name: "\u041A\u0435\u0444\u0438\u0440 \u0441 \u043C\u0430\u043B\u0438\u043D\u0438",
+      products: [
+        {
+          name: "\u043A\u0435\u0444\u0438\u0440",
+          grams: 200
+        },
+        {
+          name: "\u043C\u0430\u043B\u0438\u043D\u0438",
+          grams: 50
+        }
+      ],
+      timing: [
+        "snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: [
+        "sweet_slot",
+        "liquid_breakfast"
+      ]
+    },
+    {
+      id: "late_yogurt_walnuts",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 10
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "late_cottage_almonds",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 10
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "late_nuts_mix",
+      name: "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "late_cashew_almonds",
+      name: "\u041A\u0430\u0448\u0443 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u043A\u0430\u0448\u0443",
+          grams: 15
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "late_seeds_hazelnuts",
+      name: "\u0422\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438 \u0441 \u043B\u0435\u0448\u043D\u0438\u0446\u0438",
+      products: [
+        {
+          name: "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+          grams: 15
+        },
+        {
+          name: "\u043B\u0435\u0448\u043D\u0438\u0446\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 3,
+      tags: []
+    },
+    {
+      id: "late_nuts_berries",
+      name: "\u042F\u0434\u043A\u0438 \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+      products: [
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        },
+        {
+          name: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+          grams: 100
+        }
+      ],
+      timing: [
+        "snack",
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "late_skryr_almonds",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        {
+          name: "\u0441\u043A\u0438\u0440",
+          grams: 100
+        },
+        {
+          name: "\u0431\u0430\u0434\u0435\u043C\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "late_cottage_walnuts",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0438\u0437\u0432\u0430\u0440\u0430",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: []
+    },
+    {
+      id: "late_greek_yogurt_walnuts",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        {
+          name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+          grams: 100
+        },
+        {
+          name: "\u043E\u0440\u0435\u0445\u0438",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    },
+    {
+      id: "late_peanut_butter_apple",
+      name: "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+      products: [
+        {
+          name: "\u044F\u0431\u044A\u043B\u043A\u0430",
+          grams: 100
+        },
+        {
+          name: "\u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E",
+          grams: 15
+        }
+      ],
+      timing: [
+        "late_snack"
+      ],
+      vegan: true,
+      vegetarian: true,
+      universality: 4,
+      tags: []
+    }
+  ]
+};
+
 // meal-dishes.js
-function dish(id, name, products, timing, opts = {}) {
-  const snapped = products.map(([product, grams]) => ({ name: product, grams: snapGrams(grams) }));
+function normalizeDish(raw) {
+  const snapped = (raw.products || []).map((p) => ({
+    name: p.name,
+    grams: snapGrams(Number(p.grams) || 0)
+  }));
   const totalGrams = snapped.reduce((sum, p) => sum + p.grams, 0) || 1;
   return {
-    id,
-    name,
+    id: raw.id,
+    name: raw.name,
     products: snapped.map((p) => ({
       name: p.name,
       grams: p.grams,
-      // Делът се извежда от грамажите — един източник на истина за формата.
       share: p.grams / totalGrams
     })),
     referenceGrams: totalGrams,
-    timing,
-    vegan: !!opts.vegan,
-    vegetarian: opts.vegetarian !== void 0 ? !!opts.vegetarian : !!opts.vegan,
-    universality: opts.universality ?? 4
+    timing: [...raw.timing || []],
+    vegan: !!raw.vegan,
+    vegetarian: raw.vegetarian !== void 0 ? !!raw.vegetarian : !!raw.vegan,
+    universality: raw.universality ?? 4,
+    tags: Array.isArray(raw.tags) ? [...raw.tags] : []
   };
 }
-var MEAL_DISHES = [
-  // ── Закуски ──────────────────────────────────────────────────────────
-  dish(
-    "meal_omelet",
-    "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["breakfast", "main"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_omelet_veg",
-    "\u041E\u043C\u043B\u0435\u0442 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0441\u043F\u0430\u043D\u0430\u043A", 60], ["\u0414\u043E\u043C\u0430\u0442\u0438", 60], ["\u0437\u0435\u0445\u0442\u0438\u043D", 8]],
-    ["breakfast", "main"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_boiled_egg",
-    "\u0412\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 120], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60], ["\u0414\u043E\u043C\u0430\u0442\u0438", 60]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_egg_bread_cheese",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435",
-    [["\u044F\u0439\u0446\u0430", 120], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_avocado_egg",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0445\u043B\u044F\u0431",
-    [["\u044F\u0439\u0446\u0430", 120], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 60], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_avocado_toast",
-    "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0432\u044A\u0440\u0445\u0443 \u043F\u0440\u0435\u043F\u0435\u0447\u0435\u043D \u0445\u043B\u044F\u0431",
-    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 70], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 70], ["\u0414\u043E\u043C\u0430\u0442\u0438", 40]],
-    ["breakfast"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_oatmeal",
-    "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E",
-    [["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 60], ["\u043C\u043B\u044F\u043A\u043E", 200], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_porridge_berries",
-    "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043F\u043B\u043E\u0434\u043E\u0432\u0435",
-    [["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 60], ["\u043C\u0430\u043B\u0438\u043D\u0438", 60], ["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_oat_plant_milk",
-    "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
-    [["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 60], ["\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", 50]],
-    ["breakfast"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_yogurt_oats",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 50]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_yogurt_oats_banana",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u0431\u0430\u043D\u0430\u043D",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 40], ["\u0431\u0430\u043D\u0430\u043D", 80]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_yogurt_oats_nuts",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0432\u0435\u0441 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 200], ["\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", 40], ["\u043E\u0440\u0435\u0445\u0438", 20]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_cottage_bowl",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["breakfast", "snack"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_cottage_honey",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043C\u0435\u0434 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u043C\u0435\u0434", 15], ["\u043E\u0440\u0435\u0445\u0438", 20]],
-    ["breakfast", "snack"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_cheese_sandwich",
-    "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 80], ["\u0441\u0438\u0440\u0435\u043D\u0435", 50], ["\u0414\u043E\u043C\u0430\u0442\u0438", 40]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_tofu_scramble",
-    "\u0422\u043E\u0444\u0443 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u0442\u043E\u0444\u0443", 150], ["\u0427\u0443\u0448\u043A\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["breakfast", "main"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_eggs_bread_cheese_tomato",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0445\u043B\u044F\u0431, \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 80], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40], ["\u0414\u043E\u043C\u0430\u0442\u0438", 60]],
-    ["breakfast"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "meal_eggs_potato_tomato",
-    "\u042F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["breakfast", "main"],
-    { vegetarian: true }
-  ),
-  // ── Пиле и пуешко ────────────────────────────────────────────────────
-  dish(
-    "meal_rice_chicken",
-    "\u041F\u0438\u043B\u0435 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_rice_broccoli",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_grilled_chicken",
-    "\u041F\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_potato",
-    "\u041F\u0438\u043B\u0435 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_pasta_chicken",
-    "\u041F\u0430\u0441\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u0430\u0441\u0442\u0430", 150], ["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 120], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_salad",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_sandwich",
-    "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441 \u043F\u0438\u043B\u0435",
-    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 80], ["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 70], ["\u043C\u0430\u0440\u0443\u043B\u044F", 20]],
-    ["breakfast", "main", "snack"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_soup",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0443\u043F\u0430",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 100], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u043E\u0440\u0438\u0437", 50], ["\u0437\u0435\u0445\u0442\u0438\u043D", 8]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_chicken_bulgur",
-    "\u041F\u0438\u043B\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0431\u0443\u043B\u0433\u0443\u0440", 150], ["\u0427\u0443\u0448\u043A\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 3 }
-  ),
-  dish(
-    "meal_chicken_spinach",
-    "\u041F\u0438\u043B\u0435 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 130], ["\u0441\u043F\u0430\u043D\u0430\u043A", 100], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"]
-  ),
-  dish(
-    "meal_turkey_rice",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043E\u0440\u0438\u0437",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043E\u0440\u0438\u0437", 150], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"]
-  ),
-  dish(
-    "meal_turkey_potato",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"]
-  ),
-  // ── Червено месо ─────────────────────────────────────────────────────
-  dish(
-    "meal_beef_potato",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 60], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_beef_broccoli",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"]
-  ),
-  dish(
-    "meal_beef_mushrooms",
-    "\u0413\u043E\u0432\u0435\u0436\u0434\u043E \u0441 \u0433\u044A\u0431\u0438",
-    [["\u0433\u043E\u0432\u0435\u0436\u0434\u043E", 130], ["\u0433\u044A\u0431\u0438", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"]
-  ),
-  dish(
-    "meal_pork_potato",
-    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0437\u0435\u043B\u0435", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_pork_beans",
-    "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u0431\u043E\u0431",
-    [["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", 100], ["\u0431\u044F\u043B \u0431\u043E\u0431", 200], ["\u043B\u0443\u043A", 30], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 3 }
-  ),
-  // ── Риба ─────────────────────────────────────────────────────────────
-  dish(
-    "meal_baked_fish",
-    "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0440\u0438\u0431\u0430", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_grilled_fish_veg",
-    "\u0420\u0438\u0431\u0430 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u0440\u0438\u0431\u0430", 150], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_fish_rice",
-    "\u0420\u0438\u0431\u0430 \u0441 \u043E\u0440\u0438\u0437",
-    [["\u0440\u0438\u0431\u0430", 150], ["\u043E\u0440\u0438\u0437", 150], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_salmon_potato",
-    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 8]],
-    ["main"]
-  ),
-  dish(
-    "meal_salmon_salad",
-    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u043C\u0430\u0440\u0443\u043B\u044F", 80], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 60], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"]
-  ),
-  dish(
-    "meal_tuna_salad",
-    "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
-    [["\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", 120], ["\u043C\u0430\u0440\u0443\u043B\u044F", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main", "snack"],
-    { universality: 5 }
-  ),
-  dish(
-    "meal_mackerel_potato",
-    "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0441\u043A\u0443\u043C\u0440\u0438\u044F", 120], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 200], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 8]],
-    ["main"],
-    { universality: 3 }
-  ),
-  dish(
-    "meal_shrimp_pasta",
-    "\u041F\u0430\u0441\u0442\u0430 \u0441\u044A\u0441 \u0441\u043A\u0430\u0440\u0438\u0434\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u043F\u0430\u0441\u0442\u0430", 150], ["\u0441\u043A\u0430\u0440\u0438\u0434\u0438", 120], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 3 }
-  ),
-  // ── Вегетариански и веган ────────────────────────────────────────────
-  dish(
-    "meal_lentil_stew",
-    "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u043B\u0435\u0449\u0430",
-    [["\u043B\u0435\u0449\u0430", 200], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_bean_stew",
-    "\u0411\u043E\u0431 \u044F\u0445\u043D\u0438\u044F",
-    [["\u0431\u043E\u0431", 200], ["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_bean_salad",
-    "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0431\u043E\u0431",
-    [["\u0431\u044F\u043B \u0431\u043E\u0431", 180], ["\u043C\u0430\u0440\u0443\u043B\u044F", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_chickpea_salad",
-    "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u043D\u0430\u0445\u0443\u0442",
-    [["\u043D\u0430\u0445\u0443\u0442", 180], ["\u043C\u0430\u0440\u0443\u043B\u044F", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main", "snack"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_hummus_bread",
-    "\u0425\u0443\u043C\u0443\u0441 \u0441 \u0445\u043B\u044F\u0431 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
-    [["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 80], ["\u0445\u0443\u043C\u0443\u0441", 60], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 60]],
-    ["main", "snack"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_veg_soup",
-    "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0430 \u0441\u0443\u043F\u0430",
-    [["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 200], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_green_salad",
-    "\u0417\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
-    [["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 150], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_egg_potato",
-    "\u042F\u0439\u0446\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0447\u0443\u0448\u043A\u0438",
-    [["\u044F\u0439\u0446\u0430", 120], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u0427\u0443\u0448\u043A\u0438", 60], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["breakfast", "main"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_cottage_veg",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 80], ["\u0414\u043E\u043C\u0430\u0442\u0438", 80]],
-    ["main", "snack"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_tofu_rice",
-    "\u0422\u043E\u0444\u0443 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
-    [["\u0442\u043E\u0444\u0443", 150], ["\u043E\u0440\u0438\u0437", 150], ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_stuffed_peppers",
-    "\u041F\u044A\u043B\u043D\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438 \u0441 \u043E\u0440\u0438\u0437",
-    [["\u0427\u0443\u0448\u043A\u0438", 180], ["\u043E\u0440\u0438\u0437", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "meal_spinach_rice",
-    "\u0421\u043F\u0430\u043D\u0430\u043A \u0441 \u043E\u0440\u0438\u0437",
-    [["\u0441\u043F\u0430\u043D\u0430\u043A", 180], ["\u043E\u0440\u0438\u0437", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_potato_stew",
-    "\u041A\u0430\u0440\u0442\u043E\u0444\u0435\u043D\u0430 \u044F\u0445\u043D\u0438\u044F",
-    [["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 250], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_green_bean_stew",
-    "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
-    [["\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B", 200], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_zucchini_tomato",
-    "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438",
-    [["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 180], ["\u0414\u043E\u043C\u0430\u0442\u0438", 100], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_roasted_veg_bread",
-    "\u041F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0441 \u0445\u043B\u044F\u0431",
-    [["\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", 200], ["\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", 70], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true }
-  ),
-  dish(
-    "meal_lentil_soup",
-    "\u0421\u0443\u043F\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430",
-    [["\u043B\u0435\u0449\u0430", 180], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 80], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "meal_mushrooms_potato",
-    "\u0413\u044A\u0431\u0438 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
-    [["\u0433\u044A\u0431\u0438", 150], ["\u043A\u0430\u0440\u0442\u043E\u0444\u0438", 180], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { vegan: true }
-  ),
-  // ── Кето / нисковъглехидратни ────────────────────────────────────────
-  dish(
-    "meal_egg_avocado_spinach",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 70], ["\u0441\u043F\u0430\u043D\u0430\u043A", 80]],
-    ["breakfast"],
-    { vegetarian: true }
-  ),
-  dish(
-    "meal_keto_eggs_zucchini",
-    "\u042F\u0439\u0446\u0430 \u0441 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
-    [["\u044F\u0439\u0446\u0430", 150], ["\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438", 120], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["breakfast", "main"],
-    { vegetarian: true, universality: 3 }
-  ),
-  dish(
-    "meal_salmon_avocado",
-    "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
-    [["\u0441\u044C\u043E\u043C\u0433\u0430", 130], ["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 60], ["\u043C\u0430\u0440\u0443\u043B\u044F", 60]],
-    ["main"],
-    { universality: 3 }
-  ),
-  dish(
-    "meal_chicken_cheese_salad",
-    "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
-    [["\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", 120], ["\u0441\u0438\u0440\u0435\u043D\u0435", 40], ["\u043C\u0430\u0440\u0443\u043B\u044F", 100]],
-    ["main"],
-    { universality: 3 }
-  ),
-  dish(
-    "meal_cottage_nuts_veg",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 150], ["\u043E\u0440\u0435\u0445\u0438", 20], ["\u041A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", 80]],
-    ["breakfast", "snack"],
-    { vegetarian: true, universality: 3 }
-  ),
-  dish(
-    "meal_eggplant_turkey",
-    "\u041F\u0443\u0435\u0448\u043A\u043E \u0441 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
-    [["\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", 130], ["\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D", 150], ["\u0437\u0435\u0445\u0442\u0438\u043D", 10]],
-    ["main"],
-    { universality: 3 }
-  ),
-  // ── Междинни хранения (Хранене 3) ────────────────────────────────────
-  dish(
-    "snack_yogurt_almonds",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "snack_apple_almonds",
-    "\u042F\u0431\u044A\u043B\u043A\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u044F\u0431\u044A\u043B\u043A\u0430", 150], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["snack"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "snack_banana_walnuts",
-    "\u0411\u0430\u043D\u0430\u043D \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0431\u0430\u043D\u0430\u043D", 120], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["snack"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "snack_cottage_walnuts",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 120], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["snack"],
-    { vegetarian: true }
-  ),
-  dish(
-    "snack_orange_cashew",
-    "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B \u0441 \u043A\u0430\u0448\u0443",
-    [["\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B", 150], ["\u043A\u0430\u0448\u0443", 15]],
-    ["snack"],
-    { vegan: true }
-  ),
-  dish(
-    "snack_hummus_carrot",
-    "\u0425\u0443\u043C\u0443\u0441 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
-    [["\u0445\u0443\u043C\u0443\u0441", 60], ["\u041C\u043E\u0440\u043A\u043E\u0432\u0438", 100]],
-    ["snack"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "snack_fruit_yogurt",
-    "\u041F\u043B\u043E\u0434\u043E\u0432\u0435 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 150], ["\u044F\u0431\u044A\u043B\u043A\u0430", 100]],
-    ["snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "snack_avocado_walnuts",
-    "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0430\u0432\u043E\u043A\u0430\u0434\u043E", 70], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["snack"],
-    { vegan: true, universality: 3 }
-  ),
-  // ── Късна закуска (Хранене 5) — само протеин и мазнини ───────────────
-  dish(
-    "late_yogurt_walnuts",
-    "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043E\u0440\u0435\u0445\u0438",
-    [["\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", 120], ["\u043E\u0440\u0435\u0445\u0438", 10]],
-    ["late_snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "late_cottage_almonds",
-    "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u0438\u0437\u0432\u0430\u0440\u0430", 100], ["\u0431\u0430\u0434\u0435\u043C\u0438", 10]],
-    ["late_snack"],
-    { vegetarian: true, universality: 5 }
-  ),
-  dish(
-    "late_nuts_mix",
-    "\u0411\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
-    [["\u0431\u0430\u0434\u0435\u043C\u0438", 15], ["\u043E\u0440\u0435\u0445\u0438", 15]],
-    ["late_snack"],
-    { vegan: true, universality: 5 }
-  ),
-  dish(
-    "late_cashew_almonds",
-    "\u041A\u0430\u0448\u0443 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
-    [["\u043A\u0430\u0448\u0443", 15], ["\u0431\u0430\u0434\u0435\u043C\u0438", 15]],
-    ["late_snack"],
-    { vegan: true }
-  ),
-  dish(
-    "late_seeds_hazelnuts",
-    "\u0422\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438 \u0441 \u043B\u0435\u0448\u043D\u0438\u0446\u0438",
-    [["\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438", 15], ["\u043B\u0435\u0448\u043D\u0438\u0446\u0438", 15]],
-    ["late_snack"],
-    { vegan: true, universality: 3 }
-  ),
-  dish(
-    "late_nuts_berries",
-    "\u042F\u0434\u043A\u0438 \u0441 \u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
-    [["\u0431\u0430\u0434\u0435\u043C\u0438", 15], ["\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", 80]],
-    ["snack", "late_snack"],
-    { vegan: true }
-  )
-];
+var MEAL_DISHES = (meal_dishes_default.dishes || []).map(normalizeDish);
 var MEAL_DISHES_BY_ID = new Map(MEAL_DISHES.map((d) => [d.id, d]));
 function dishToCatalogEntry(d, groupOfProduct2) {
   const groups = d.products.map((p) => groupOfProduct2(p.name));
@@ -8646,6 +12755,8 @@ function dishToCatalogEntry(d, groupOfProduct2) {
     universality: d.universality,
     vegan: d.vegan,
     vegetarian: d.vegetarian,
+    tags: d.tags?.length ? [...d.tags] : [],
+    dishTags: inferDishTags(d),
     genericOf: null,
     aliases: [],
     scalingMode: null,
@@ -15112,9 +19223,9 @@ function dishCatalogEntries() {
     ...MEAL_DISHES.filter((d) => !disabledDishIds.has(d.id)),
     ...dishOverlay.filter((d) => !disabledDishIds.has(d.id))
   ];
-  return dishes.map((d) => dishToCatalogEntry(normalizeDish(d), groupOf));
+  return dishes.map((d) => dishToCatalogEntry(normalizeDish2(d), groupOf));
 }
-function normalizeDish(d) {
+function normalizeDish2(d) {
   return {
     id: d.id,
     name: d.name,
@@ -15122,7 +19233,8 @@ function normalizeDish(d) {
     timing: Array.isArray(d.timing) && d.timing.length ? d.timing : ["main"],
     vegan: !!d.vegan,
     vegetarian: d.vegetarian !== void 0 ? !!d.vegetarian : !!d.vegan,
-    universality: Number(d.universality) || 4
+    universality: Number(d.universality) || 4,
+    tags: Array.isArray(d.tags) ? [...d.tags] : []
   };
 }
 function getCatalogEntries() {
@@ -15209,186 +19321,6 @@ function resolveAtomicEntryFromDescription(description) {
   const { entry } = resolveRegistryEntry(name);
   if (!entry || getEntryScalingMode(entry) !== SCALING_ATOMIC) return null;
   return entry;
-}
-
-// diet-registry.js
-var REGISTRY_VERSION = "diet_v2";
-var ANIMAL_MEAT_TERMS = [
-  "\u043F\u0438\u043B\u0435\u0448\u043A\u043E",
-  "\u043F\u0438\u043B\u0435",
-  "\u043F\u0438\u043B\u0435\u0448\u043A\u0438",
-  "\u0433\u043E\u0432\u0435\u0436\u0434\u043E",
-  "\u0442\u0435\u043B\u0435\u0448\u043A\u043E",
-  "\u0442\u0435\u043B\u0435\u0448\u043A\u0438",
-  "\u0441\u0432\u0438\u043D\u0441\u043A\u043E",
-  "\u0441\u0432\u0438\u043D\u0441\u043A\u0438",
-  "\u0430\u0433\u043D\u0435\u0448\u043A\u043E",
-  "\u0430\u0433\u043D\u0435\u0448\u043A\u0438",
-  "\u043F\u0430\u0442\u0435\u0448\u043A\u043E",
-  "\u0433\u044A\u0448\u0438",
-  "\u043F\u0443\u0435\u0448\u043A\u043E",
-  "\u043A\u0430\u0439\u043C\u0430",
-  "\u0448\u0443\u043D\u043A\u0430",
-  "\u0431\u0435\u043A\u043E\u043D",
-  "\u043A\u043E\u043B\u0431\u0430\u0441",
-  "\u0441\u0430\u043B\u0430\u043C",
-  "\u043D\u0430\u0434\u0435\u043D\u0438\u0446\u0430",
-  "\u043A\u0435\u0431\u0430\u043F"
-];
-var FISH_TERMS = [
-  "\u0440\u0438\u0431\u0430",
-  "\u0441\u044C\u043E\u043C\u0433\u0430",
-  "\u0441\u043A\u0443\u043C\u0440\u0438\u044F",
-  "\u0442\u0440\u0435\u0441\u043A\u0430",
-  "\u0442\u043E\u043D",
-  "\u0442\u0438\u043B\u0430\u043F\u0438\u044F",
-  "\u0441\u043A\u0430\u0440\u0438\u0434",
-  "\u043C\u0438\u0434\u0438"
-];
-var DAIRY_EGG_TERMS = [
-  "\u043C\u043B\u044F\u043A\u043E",
-  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
-  "\u0441\u0438\u0440\u0435\u043D\u0435",
-  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
-  "\u0438\u0437\u0432\u0430\u0440\u0430",
-  "\u0441\u043A\u0438\u0440",
-  "\u043A\u0435\u0444\u0438\u0440",
-  "\u0441\u043C\u0435\u0442\u0430\u043D\u0430",
-  "\u043C\u0430\u0441\u043B\u043E",
-  "\u0439\u043E\u0433\u0443\u0440\u0442",
-  "ricotta",
-  "\u0440\u0438\u043A\u043E\u0442\u0430",
-  "\u044F\u0439\u0446\u0435",
-  "\u044F\u0439\u0446\u0430",
-  "\u043E\u043C\u043B\u0435\u0442",
-  "\u0441\u0443\u0440\u043E\u0432\u0430"
-];
-var DIET_NARROWING_RULES = {
-  \u043A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u0430: { maxCarbShare: 0.12 },
-  keto: { maxCarbShare: 0.12 },
-  \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442: { maxCarbShare: 0.22 },
-  "\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438": { blockedTerms: DAIRY_EGG_TERMS.filter((t) => !t.includes("\u044F\u0439")) },
-  \u0432\u0435\u0433\u0430\u043D: { blockedTerms: [...ANIMAL_MEAT_TERMS, ...FISH_TERMS, ...DAIRY_EGG_TERMS] },
-  vegan: { blockedTerms: [...ANIMAL_MEAT_TERMS, ...FISH_TERMS, ...DAIRY_EGG_TERMS] },
-  \u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D: { blockedTerms: [...ANIMAL_MEAT_TERMS, ...FISH_TERMS] },
-  vegetarian: { blockedTerms: [...ANIMAL_MEAT_TERMS, ...FISH_TERMS] },
-  \u043F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D: { blockedTerms: ANIMAL_MEAT_TERMS },
-  pescatarian: { blockedTerms: ANIMAL_MEAT_TERMS }
-};
-function asPreferenceList(dietPreference) {
-  if (Array.isArray(dietPreference)) return dietPreference.map(String).filter(Boolean);
-  if (dietPreference) return [String(dietPreference)];
-  return [];
-}
-function resolveDietConstraintText({
-  dietaryModifier = "",
-  dietPreference = null,
-  dietDislike = ""
-} = {}) {
-  return [
-    dietaryModifier,
-    ...asPreferenceList(dietPreference),
-    dietDislike
-  ].filter(Boolean).join(" | ");
-}
-function resolveCatalogDietProfile(ctx = {}) {
-  const text = resolveDietConstraintText(ctx).toLowerCase();
-  const prefs = asPreferenceList(ctx.dietPreference).map((p) => p.toLowerCase());
-  const combined = [text, ...prefs].join(" ");
-  return {
-    vegan: combined.includes("\u0432\u0435\u0433\u0430\u043D") || combined.includes("vegan"),
-    vegetarian: combined.includes("\u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D") || combined.includes("vegetarian"),
-    pescatarian: combined.includes("\u043F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D") || combined.includes("pescatarian"),
-    keto: /кето|нисковъглехидрат|keto|low carb/.test(combined),
-    glutenFree: combined.includes("\u0431\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D") || combined.includes("\u0433\u043Buten free")
-  };
-}
-function getDietRegistryVersion() {
-  return REGISTRY_VERSION;
-}
-function normalizeDietKey(modifier = "") {
-  return normalizeFoodKey(String(modifier).replace(/\([^)]*\)/g, ""));
-}
-function rulesForText(text = "") {
-  const key = normalizeDietKey(text);
-  if (!key) return [];
-  const matched = [];
-  for (const [ruleKey, rule] of Object.entries(DIET_NARROWING_RULES)) {
-    if (key.includes(normalizeFoodKey(ruleKey))) matched.push(rule);
-  }
-  return matched;
-}
-function collectMatchingRules(ctx) {
-  const rules = [];
-  const seen = /* @__PURE__ */ new Set();
-  const push = (rule) => {
-    if (!rule || seen.has(rule)) return;
-    seen.add(rule);
-    rules.push(rule);
-  };
-  if (typeof ctx === "string") {
-    for (const r of rulesForText(ctx)) push(r);
-    return rules;
-  }
-  for (const r of rulesForText(resolveDietConstraintText(ctx))) push(r);
-  for (const pref of asPreferenceList(ctx?.dietPreference)) {
-    for (const r of rulesForText(pref)) push(r);
-  }
-  if (ctx?.dietaryModifier) {
-    for (const r of rulesForText(ctx.dietaryModifier)) push(r);
-  }
-  return rules;
-}
-function shareOfKcal(nutritionKey, macroIdx) {
-  const a = FOOD_NUTRITION_PER_100G[nutritionKey];
-  if (!a) return 0;
-  const kcal = a[1] * 4 + a[2] * 4 + a[3] * 9;
-  if (kcal <= 0) return 0;
-  const macroKcal = macroIdx === 3 ? a[3] * 9 : a[macroIdx] * 4;
-  return macroKcal / kcal;
-}
-function isCarbDominantEntry(entry) {
-  const slots = entry.slots || [];
-  const group = entry.group || "";
-  return slots.includes("ENG") || group === "carb" || group === "fruit" || group === "ready_meal" && !entry.fixedNutrition;
-}
-function isFatDominantEntry(entry) {
-  const slots = entry.slots || [];
-  const group = entry.group || "";
-  return slots.includes("FAT") || group === "fat";
-}
-function mergedRuleLimits(rules) {
-  let maxCarbShare = 1;
-  let maxFatShare = 1;
-  const blockedTerms = /* @__PURE__ */ new Set();
-  for (const rule of rules) {
-    if (rule.maxCarbShare != null) maxCarbShare = Math.min(maxCarbShare, rule.maxCarbShare);
-    if (rule.maxFatShare != null) maxFatShare = Math.min(maxFatShare, rule.maxFatShare);
-    for (const term of rule.blockedTerms || []) blockedTerms.add(term);
-  }
-  return { maxCarbShare, maxFatShare, blockedTerms: [...blockedTerms] };
-}
-function passesDietRegistry(entry, modifierOrCtx = "") {
-  const rules = collectMatchingRules(modifierOrCtx);
-  if (!rules.length) return true;
-  const { maxCarbShare, maxFatShare, blockedTerms } = mergedRuleLimits(rules);
-  const nKey = entry.nutritionKey || entry.name;
-  if (maxFatShare < 1 && isFatDominantEntry(entry) && shareOfKcal(nKey, 3) > maxFatShare) {
-    return false;
-  }
-  if (maxCarbShare < 1 && isCarbDominantEntry(entry) && shareOfKcal(nKey, 2) > maxCarbShare) {
-    return false;
-  }
-  if (blockedTerms.length) {
-    const nameLower = entry.name.toLowerCase();
-    const keyLower = String(nKey).toLowerCase();
-    for (const term of blockedTerms) {
-      const t = String(term).toLowerCase();
-      if (t.length < 3) continue;
-      if (nameLower.includes(t) || keyLower.includes(t)) return false;
-    }
-  }
-  return true;
 }
 
 // candidate-ranking.js
@@ -16910,6 +20842,19 @@ var GROUP_MIN_PORTION_G = {
 };
 var DEFAULT_MAX_PORTION_G = 300;
 var DEFAULT_MIN_PORTION_G = 20;
+var COOKING_FAT_KEYS = /* @__PURE__ */ new Set([
+  "\u0437\u0435\u0445\u0442\u0438\u043D",
+  "\u043E\u043B\u0438\u043E",
+  "\u043C\u0430\u0441\u043B\u043E",
+  "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E",
+  "\u0433\u0445\u0438"
+]);
+var COOKING_FAT_MAX_PORTION_G = 10;
+function isCookingFat(name, nutritionKey) {
+  if (nutritionKey && COOKING_FAT_KEYS.has(normalizeFoodKey(nutritionKey))) return true;
+  return !!name && COOKING_FAT_KEYS.has(normalizeFoodKey(name));
+}
 var ITEM_MAX_PORTION_G = {
   // Pure fats — a serving is a spoon, not a bowl.
   "\u0437\u0435\u0445\u0442\u0438\u043D": 30,
@@ -16948,6 +20893,14 @@ var ITEM_MAX_PORTION_G = {
   "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430": 80,
   "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D": 40,
   "\u043A\u043E\u0437\u0435 \u0441\u0438\u0440\u0435\u043D\u0435": 60,
+  // Starchy sides — a plate, not a sack of potatoes.
+  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438": 300,
+  "\u043A\u0430\u0440\u0442\u043E\u0444": 300,
+  "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438": 300,
+  "\u043E\u0440\u0438\u0437": 250,
+  "\u043A\u0438\u043D\u043E\u0430": 200,
+  "\u043F\u0430\u0441\u0442\u0430": 250,
+  "\u0431\u0443\u043B\u0433\u0443\u0440": 250,
   // Dry weights (uncooked grains keep small servings).
   "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438": 100,
   "\u043E\u0432\u0435\u0441": 100,
@@ -16964,6 +20917,9 @@ var ITEM_MAX_PORTION_G = {
   "\u043F\u0435\u0441\u0442\u043E": 30,
   "\u043C\u0430\u0441\u043B\u0438\u043D\u0438": 60,
   "\u0430\u0432\u043E\u043A\u0430\u0434\u043E": 150,
+  // Хлябът в сандвич е 2–3 филии; мащабиран до 350 г изглеждаше като торта.
+  "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431": 120,
+  "\u0445\u043B\u044F\u0431": 120,
   // Листните зеленчуци са обем без тегло: 300 г маруля не е чиния, а купа
   // листа. Без този таван salad-ът ставаше пълнител, с който solver-ът
   // догонваше калориите.
@@ -17052,7 +21008,7 @@ function expandReadyMealItems(items, extraDb = {}) {
   }
   return out;
 }
-var GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i;
+var GRAM_LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:g|гр|г)(?![\p{L}\p{N}])(?:\s*[—\-]\s*(.+))?$/iu;
 function arrayToProfile(arr) {
   return { kcal: arr[0], p: arr[1], c: arr[2], f: arr[3] };
 }
@@ -17206,31 +21162,41 @@ function macroShareForItem(group, slots = []) {
   if (group === "vegetable" || group === "fruit" || slots.includes("VOL")) return 0.06;
   return 0.1;
 }
+function macroCost(achieved, target, kcalPerGram2, slotKcal) {
+  if (!(target > 0) || !(slotKcal > 0)) return 0;
+  const scale = Math.max(target * kcalPerGram2, slotKcal * 0.1);
+  return Math.abs(achieved - target) * kcalPerGram2 / scale;
+}
 function solveDishScale(items, target, maxTotalGrams) {
   const refs = items.map((i) => Number(i.referenceGrams) || 0);
   if (refs.some((r) => r <= 0)) return null;
   const targetKcal = Number(target?.kcal) || 0;
   if (!(targetKcal > 0)) return null;
   const windows = items.map((item2) => portionWindow(item2));
-  const minScale = Math.max(0.35, ...refs.map((ref, i) => windows[i].min / ref));
+  const cooking = items.map((it) => isCookingFat(it.name, getCatalogMeta(it.name).nutritionKey));
+  const carriers = refs.map((_, i) => !cooking[i]);
+  if (!carriers.some(Boolean)) carriers.fill(true);
+  const bound = (pick) => refs.map((ref, i) => carriers[i] ? pick(i) / ref : Infinity);
+  const minScale = Math.max(0.35, ...bound((i) => windows[i].min).filter(Number.isFinite));
   const maxScale = Math.min(
-    ...refs.map((ref, i) => windows[i].max / ref),
+    ...bound((i) => windows[i].max),
     maxTotalGrams / refs.reduce((a, b) => a + b, 0)
   );
   if (maxScale < minScale) return null;
+  const cookingFatGrams = (ref, scale) => snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5)));
   let best = null;
   const seen = /* @__PURE__ */ new Set();
   for (let scale = minScale; scale <= maxScale + 1e-9; scale += 0.02) {
-    const grams = refs.map((ref) => snapGrams(ref * scale));
+    const grams = refs.map((ref, i) => cooking[i] && carriers.some((c, j) => c && j !== i) ? cookingFatGrams(ref, scale) : snapGrams(ref * scale));
     const key = grams.join(",");
     if (seen.has(key)) continue;
     seen.add(key);
     const totals = totalsFor(items, grams);
     if (totals.grams > maxTotalGrams) continue;
     let cost2 = 3 * Math.abs(totals.kcal - targetKcal) / targetKcal;
-    if (target.p > 0) cost2 += 0.5 * Math.abs(totals.p - target.p) * 4 / targetKcal;
-    if (target.c > 0) cost2 += 0.3 * Math.abs(totals.c - target.c) * 4 / targetKcal;
-    if (target.f > 0) cost2 += 0.3 * Math.abs(totals.f - target.f) * 9 / targetKcal;
+    cost2 += 0.5 * macroCost(totals.p, target.p, 4, targetKcal);
+    cost2 += 0.3 * macroCost(totals.c, target.c, 4, targetKcal);
+    cost2 += 0.5 * macroCost(totals.f, target.f, 9, targetKcal);
     const shape = grams.reduce((sum, g, i) => sum + Math.abs(g / refs[i] - scale), 0) / (grams.length * scale);
     cost2 += 0.8 * shape;
     if (!best || cost2 < best.cost) best = { grams, totals, cost: cost2 };
@@ -17454,6 +21420,30 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
     feasible: solved.feasible && !unreachable,
     reason: unreachable ? unreachableReason : solved.reason || ""
   };
+}
+function enforceGramGrid(meal, extraDb = {}) {
+  if (!meal?.description || meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") return false;
+  const parsed = parseMealDescription(meal.description);
+  if (!parsed.length) return false;
+  let changed = false;
+  const items = parsed.map((item2) => {
+    const grams = item2.grams > 0 ? snapGrams(item2.grams) : item2.grams;
+    if (grams !== item2.grams) changed = true;
+    return { ...item2, grams, profile: lookupFoodProfile(item2.name, extraDb).profile };
+  });
+  if (!changed) return false;
+  meal.description = formatMealDescription(items);
+  const totals = sumItemNutrition(items.filter((it) => it.profile));
+  if (totals.kcal > 0) {
+    const dessert = meal.dessert && typeof meal.dessert === "object" ? macrosToNutritionProfile(meal.dessert.macros) : null;
+    const p = Math.round(totals.p) + Math.round(dessert?.p || 0);
+    const c = Math.round(totals.c) + Math.round(dessert?.c || 0);
+    const f = Math.round(totals.f) + Math.round(dessert?.f || 0);
+    meal.macros = { protein: p, carbs: c, fats: f };
+    meal.calories = Math.round(p * 4 + c * 4 + f * 9);
+    meal.weight = formatMealWeight(totals.grams, 0);
+  }
+  return true;
 }
 function profileToKvArray(profile) {
   return [profile.kcal, profile.p, profile.c, profile.f];
@@ -17938,7 +21928,7 @@ function validateDayCoherence(dayPlan, dayNum = null) {
   const seen = /* @__PURE__ */ new Map();
   for (const meal of meals) {
     if (SKIP_SLOTS.has(meal.type)) continue;
-    const key = String(meal.name || "").trim().toLowerCase();
+    const key = String(meal.dishId || meal.name || "").trim().toLowerCase();
     if (key) seen.set(key, (seen.get(key) || 0) + 1);
   }
   for (const [name, count] of seen) {
@@ -18150,6 +22140,60 @@ function validateWeeklyVariety(weekPlan, options = {}) {
   };
 }
 
+// step3-slot-repair.js
+var SLOT_REPAIR_CANDIDATE_COUNT = 5;
+function buildSlotRepairPrompt({
+  dayNum,
+  slotType,
+  slotTarget,
+  candidates = [],
+  dietaryModifier = "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E"
+}) {
+  const kcal = slotTarget?.calories ?? "?";
+  const lines = [
+    "\u0418\u0437\u0431\u0435\u0440\u0438 \u0415\u0414\u041D\u041E \u044F\u0441\u0442\u0438\u0435 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430. \u0412\u044A\u0440\u043D\u0438 \u0441\u0430\u043C\u043E JSON \u0441 dishId \u043E\u0442 \u043A\u0430\u043D\u0434\u0438\u0434\u0430\u0442\u0438\u0442\u0435.",
+    `\u0414\u0435\u043D ${dayNum}, \u0441\u043B\u043E\u0442: ${slotType}, \u0446\u0435\u043B: ${kcal} kcal`,
+    `\u0414\u0438\u0435\u0442\u0430: ${dietaryModifier}`,
+    "",
+    "\u041A\u0430\u043D\u0434\u0438\u0434\u0430\u0442\u0438:",
+    ...candidates.map((c, i) => `${i + 1}. dishId="${c.id}" \u2014 ${c.name}`),
+    "",
+    '\u041E\u0442\u0433\u043E\u0432\u043E\u0440: {"dishId":"<id \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430>"}'
+  ];
+  return lines.join("\n");
+}
+function extractJsonObject(text) {
+  if (text == null) return null;
+  if (typeof text === "object") return text;
+  const raw = String(text).trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    try {
+      return JSON.parse(m[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+function parseSlotRepairResponse(response, candidates = []) {
+  if (!candidates.length) return null;
+  const byId = new Map(candidates.map((c) => [c.id, c]));
+  const byName = new Map(candidates.map((c) => [normalizeFoodKey(c.name), c]));
+  const parsed = extractJsonObject(response);
+  if (!parsed) return null;
+  const dishId = parsed.dishId || parsed.id || parsed.pick;
+  if (dishId && byId.has(dishId)) return byId.get(dishId);
+  const name = parsed.name || parsed.dishName || parsed.mealName;
+  if (name) {
+    const hit = byName.get(normalizeFoodKey(name));
+    if (hit) return hit;
+  }
+  return null;
+}
+
 // step3-deterministic.js
 var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var PLATED_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
@@ -18194,43 +22238,83 @@ function collectUsedProducts(previousDays = []) {
   }
   return counts;
 }
+function collectUsedDishes(previousDays = []) {
+  const counts = /* @__PURE__ */ new Map();
+  for (const day of previousDays) {
+    for (const meal of day.meals || []) {
+      const key = meal.dishId || (meal.name ? normalizeFoodKey(meal.name) : null);
+      if (!key) continue;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  }
+  return counts;
+}
+function slotDishUseMaps() {
+  return /* @__PURE__ */ new Map();
+}
+function recordSlotDishUse(slotDishUses, slotType, dishKey) {
+  if (!slotType || !dishKey) return;
+  if (!slotDishUses.has(slotType)) slotDishUses.set(slotType, /* @__PURE__ */ new Map());
+  const slotMap = slotDishUses.get(slotType);
+  slotMap.set(dishKey, (slotMap.get(dishKey) || 0) + 1);
+}
 function parsePreferLove(userData) {
   return new Set(
     String(userData?.dietLove || "").split(/[,;]/).map((s) => normalizeFoodKey(s.trim())).filter(Boolean)
   );
 }
-function pickFromPool(pool, ctx, roleKey, { exclude = null } = {}) {
+function scorePoolEntry(entry, ctx, slotType) {
+  const key = normalizeFoodKey(entry.name);
+  const dishKey = entry.id || key;
+  const productUses = ctx.usedProducts.get(key) || 0;
+  const dishUses = ctx.usedDishes?.get(dishKey) || 0;
+  const slotUses = slotType ? ctx.slotDishUses?.get(slotType)?.get(dishKey) || 0 : 0;
+  const tagBoost = preferTagScore(entry, ctx.tagFilter?.prefer) * 0.5;
+  return dishUses * 3 + slotUses * 2 + productUses - (ctx.loveSet?.has(key) ? 1 : 0) - tagBoost;
+}
+function rankPoolEntries(pool, ctx, roleKey, slotType) {
+  let filtered = filterDiet(pool, ctx.dietCtx);
+  if (!filtered.length) return [];
+  const { seed, dayNum, slotIndex } = ctx;
+  const ranked = rankCatalogCandidates(filtered, {
+    role: roleKey === "READY" ? void 0 : roleKey,
+    slotTarget: ctx.slotTarget,
+    maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
+    loveSet: ctx.loveSet,
+    adherenceRatio: ctx.adherenceRatio,
+    limit: Math.min(filtered.length, 32)
+  });
+  if (!ranked.length) return [];
+  const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
+  const scored = [];
+  for (let i = 0; i < ranked.length; i++) {
+    const idx = (start + i) % ranked.length;
+    const entry = ranked[idx];
+    scored.push({
+      entry,
+      score: scorePoolEntry(entry, ctx, slotType) + idx / ranked.length * 0.9
+    });
+  }
+  scored.sort((a, b) => a.score - b.score);
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const { entry } of scored) {
+    const id = entry.id || normalizeFoodKey(entry.name);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(entry);
+  }
+  return out;
+}
+function pickFromPool(pool, ctx, roleKey, { exclude = null, slotType = null } = {}) {
   let filtered = filterDiet(pool, ctx.dietCtx);
   if (exclude?.size) {
     const withoutExcluded = filtered.filter((e) => !exclude.has(normalizeFoodKey(e.name)));
     if (withoutExcluded.length) filtered = withoutExcluded;
   }
   if (!filtered.length) return null;
-  const { usedProducts, seed, dayNum, slotIndex, loveSet } = ctx;
-  const ranked = rankCatalogCandidates(filtered, {
-    role: roleKey === "READY" ? void 0 : roleKey,
-    slotTarget: ctx.slotTarget,
-    maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
-    loveSet,
-    adherenceRatio: ctx.adherenceRatio,
-    limit: Math.min(filtered.length, 32)
-  });
-  if (!ranked.length) return null;
-  const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
-  let best = null;
-  let bestScore = Infinity;
-  for (let i = 0; i < ranked.length; i++) {
-    const entry = ranked[(start + i) % ranked.length];
-    const key = normalizeFoodKey(entry.name);
-    const uses = usedProducts.get(key) || 0;
-    const score = uses - (loveSet?.has(key) ? 1 : 0);
-    if (score < bestScore) {
-      bestScore = score;
-      best = entry;
-      if (bestScore <= 0) break;
-    }
-  }
-  return best;
+  const ordered = rankPoolEntries(filtered, { ...ctx, slotType: slotType || ctx.slotType }, roleKey, slotType || ctx.slotType);
+  return ordered[0] || null;
 }
 function descriptionFromReadyMeal(entry) {
   const parts = READY_MEAL_PARTS[entry.id];
@@ -18247,7 +22331,7 @@ function descriptionFromReadyMeal(entry) {
 function readyMealFitsSlot(entry, slotType) {
   const slots = entry.slots || [];
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") {
-    return slots.includes("PRO") || slots.includes("ENG");
+    return entry.timing?.includes("main") && (slots.includes("PRO") || slots.includes("ENG"));
   }
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") return !!entry.timing?.includes("breakfast");
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return !!entry.timing?.includes("snack");
@@ -18258,7 +22342,19 @@ function readyMealProducts(entry) {
   const parts = READY_MEAL_PARTS[entry.id] || [];
   return parts.length ? parts.map((part) => ({ name: part.name, grams: part.grams })) : [{ name: entry.name }];
 }
-function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
+function dishDayKey(entry) {
+  return entry.id || normalizeFoodKey(entry.name);
+}
+function excludeDishesToday(pool, ctx) {
+  if (ctx.relaxed || !ctx.dishesToday?.size) return pool;
+  return pool.filter((e) => !ctx.dishesToday.has(dishDayKey(e)));
+}
+function preferVegetableOnPlated(pool, slotType) {
+  if (!PLATED_MEAL_SLOTS.has(slotType) || !pool.length) return pool;
+  const withVeg = pool.filter((e) => readyMealProducts(e).some((x) => isVegetableName(x.name)));
+  return withVeg.length ? withVeg : pool;
+}
+function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRepair = false } = {}) {
   const ready = candidatesBySlot.get("READY") || [];
   let pool = ready.filter((e) => readyMealFitsSlot(e, slotType));
   if (!pool.length && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") {
@@ -18268,17 +22364,30 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
   if (ctx.blockedTerms?.length) {
     pool = pool.filter((e) => !readyMealBlocked(e, ctx.blockedTerms));
   }
-  if (!pool.length) return null;
-  const preferred = ctx.relaxed ? [] : [
-    (p) => narrowByEnergyFit(p, slotTarget, ctx.achievableCache),
-    (p) => PLATED_MEAL_SLOTS.has(slotType) ? p.filter((e) => readyMealProducts(e).some((x) => isVegetableName(x.name))) : p,
-    (p) => p.filter((e) => !ctx.dishesToday.has(normalizeFoodKey(e.name)))
-  ];
-  for (const narrow of preferred) {
-    const next = narrow(pool);
-    if (next.length) pool = next;
+  if (!forRepair && ctx.tagFilter) {
+    const tagged = pool.filter((e) => dishMatchesTagFilter(e, ctx.tagFilter));
+    if (tagged.length) pool = tagged;
   }
-  return pickFromPool(pool, ctx, "READY");
+  if (!pool.length) return pool;
+  pool = excludeDishesToday(pool, ctx);
+  if (!pool.length) return pool;
+  if (ctx.relaxed || forRepair) return pool;
+  const energyFit = narrowByEnergyFit(pool, slotTarget, ctx.achievableCache);
+  if (energyFit.length) return preferVegetableOnPlated(energyFit, slotType);
+  return preferVegetableOnPlated(pool, slotType);
+}
+function listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx, limit = SLOT_REPAIR_CANDIDATE_COUNT) {
+  let pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!pool.length) {
+    pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRepair: true });
+  }
+  if (!pool.length) return [];
+  return rankPoolEntries(pool, { ...ctx, slotType, slotTarget }, "READY", slotType).slice(0, limit);
+}
+function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
+  const pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!pool.length) return null;
+  return pickFromPool(pool, { ...ctx, slotType, slotTarget }, "READY", { slotType });
 }
 function narrowByEnergyFit(pool, slotTarget, cache) {
   const targetKcal = Number(slotTarget?.calories) || 0;
@@ -18309,16 +22418,18 @@ function readyMealBlocked(entry, blockedTerms) {
 function isVegetableName(name) {
   return resolveCatalogEntry(name).entry?.group === "vegetable";
 }
-function recordReadyMealUse(entry, ctx) {
-  const dishKey = normalizeFoodKey(entry.name);
-  ctx.usedProducts.set(dishKey, (ctx.usedProducts.get(dishKey) || 0) + 1);
+function recordReadyMealUse(entry, ctx, slotType) {
+  const dishKey = entry.id || normalizeFoodKey(entry.name);
+  ctx.usedProducts.set(normalizeFoodKey(entry.name), (ctx.usedProducts.get(normalizeFoodKey(entry.name)) || 0) + 1);
+  ctx.usedDishes.set(dishKey, (ctx.usedDishes.get(dishKey) || 0) + 1);
+  recordSlotDishUse(ctx.slotDishUses, slotType, dishKey);
   for (const part of READY_MEAL_PARTS[entry.id] || []) {
     const k = normalizeFoodKey(catalogName(part.name) || part.name);
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
-  ctx.dishesToday.add(dishKey);
+  ctx.dishesToday.add(dishDayKey(entry));
 }
-function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
+async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
   if (slotType === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
     return { type: slotType, name: "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" };
   }
@@ -18326,21 +22437,34 @@ function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, i
     const drink = catalogName("\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439") || "\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439";
     return { type: slotType, name: drink, description: `\u2022 ${drink}` };
   }
-  const dish2 = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
-  if (!dish2) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${slotType}`);
-  recordReadyMealUse(dish2, ctx);
+  let dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  if (!dish && ctx.repairSlot) {
+    const candidates = listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx);
+    if (candidates.length) {
+      dish = await ctx.repairSlot({
+        dayNum: ctx.dayNum,
+        slotType,
+        slotTarget,
+        candidates,
+        ctx
+      });
+      if (dish && !candidates.some((c) => c.id === dish.id)) dish = null;
+    }
+  }
+  if (!dish) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${slotType}`);
+  recordReadyMealUse(dish, ctx, slotType);
   const meal = {
     type: slotType,
-    name: dish2.name,
+    name: dish.name,
     // Кое ястие е това: описанието е разгънато на продукти, а бекендът има
     // нужда от декларираната порция, за да мащабира ястието като цяло.
-    dishId: dish2.id,
-    description: descriptionFromReadyMeal(dish2)
+    dishId: dish.id,
+    description: descriptionFromReadyMeal(dish)
   };
   if (includeDessert && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2") meal.dessert = true;
   return meal;
 }
-function buildDeterministicWeekPlanChunk({
+async function buildDeterministicWeekPlanChunk({
   strategy,
   userData = null,
   startDay = 1,
@@ -18351,7 +22475,9 @@ function buildDeterministicWeekPlanChunk({
   clinicalProtocolId = null,
   blockedTerms = [],
   /** Softer dish filters when strict pick leaves catalog gaps (plan engine v2). */
-  relaxed = false
+  relaxed = false,
+  /** Async callback: pick 1 dish from repair candidates when deterministic pick fails. */
+  repairSlot = null
 }) {
   if (!strategy?.weeklyScheme) {
     throw new Error("Missing strategy.weeklyScheme");
@@ -18372,6 +22498,8 @@ function buildDeterministicWeekPlanChunk({
     adherenceRatio
   });
   const usedProducts = collectUsedProducts(previousDays);
+  const usedDishes = collectUsedDishes(previousDays);
+  const slotDishUses = slotDishUseMaps();
   const achievableCache = /* @__PURE__ */ new Map();
   const out = {};
   for (let dayNum = startDay; dayNum <= endDay; dayNum++) {
@@ -18391,15 +22519,19 @@ function buildDeterministicWeekPlanChunk({
         slotIndex,
         slotTarget: slot,
         usedProducts,
+        usedDishes,
+        slotDishUses,
         dishesToday,
         achievableCache,
         dietCtx,
         blockedTerms,
         loveSet,
         adherenceRatio,
-        relaxed: !!relaxed
+        relaxed: !!relaxed,
+        tagFilter: resolveDishTagFilter(userData, strategy, slot.type),
+        repairSlot
       };
-      meals.push(buildMealForSchemeSlot({
+      meals.push(await buildMealForSchemeSlot({
         slotType: slot.type,
         slotTarget: slot,
         candidatesBySlot,
@@ -18418,16 +22550,44 @@ function buildDeterministicWeekPlanChunk({
 }
 
 // plan-engine.js
+var PLAN_ENGINE_VERSION = "2.5";
+var DEFAULT_PLAN_ENGINE = "v2";
 function resolvePlanEngine(env = {}) {
-  const raw = String(env.PLAN_ENGINE ?? env.plan_engine ?? "v1").trim().toLowerCase();
+  const raw = String(env.PLAN_ENGINE ?? env.plan_engine ?? DEFAULT_PLAN_ENGINE).trim().toLowerCase();
+  if (raw === "v1" || raw === "legacy") return "v1";
   if (raw === "v2" || raw === "dish" || raw === "dish-first") return "v2";
-  return "v1";
+  return DEFAULT_PLAN_ENGINE;
 }
 function isPlanEngineV2(env = {}) {
   return resolvePlanEngine(env) === "v2";
 }
 function step3AllowsFullChunkAiFallback(env = {}) {
   return !isPlanEngineV2(env);
+}
+var SLOT_REPAIR_MAX_CALLS_PER_PLAN = 2;
+function step3SlotRepairEnabled(env = {}) {
+  return isPlanEngineV2(env);
+}
+function buildPlanEngineMeta(analysis, strategy, mealPlan, metrics = {}) {
+  const warnings = mealPlan?.generationWarnings;
+  const slotRepairCalls = Number(
+    metrics.slotRepairCalls ?? mealPlan?.slotRepairCalls ?? 0
+  );
+  const step3Engine = mealPlan?.step3Engine || "unknown";
+  return {
+    planEngine: mealPlan?.planEngine || resolvePlanEngine({}),
+    step3Engine,
+    step1Deterministic: Boolean(analysis?._deterministicEnergy),
+    step2Deterministic: Boolean(strategy?._deterministicCore),
+    slotRepairCalls,
+    step3UsedAiFallback: step3Engine === "ai_fallback",
+    step3DurationMs: metrics.step3DurationMs ?? mealPlan?.step3DurationMs ?? null,
+    generationWarningsCount: Array.isArray(warnings) ? warnings.length : 0,
+    dishCatalogCount: MEAL_DISHES.length,
+    planEngineVersion: PLAN_ENGINE_VERSION,
+    pipelineVersion: 2,
+    generatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
 }
 
 // meal-template-engine.js
@@ -18524,7 +22684,13 @@ function validateProtocolStrategy(strategy, analysis = null, userData = null) {
       }
     }
     if (userSkipsBreakfast(userData) && day.mealBreakdown.some((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1")) {
-      blocking.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u043F\u0440\u0438 \u043A\u043B\u0438\u0435\u043D\u0442 \u0431\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430`);
+      const withoutH1 = day.mealBreakdown.filter((m) => m.type !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1").map((m) => m.type);
+      const needsRestoredH1 = targetKcal > 0 && dayCapacityKcal(withoutH1, targetKcal) < targetKcal;
+      if (needsRestoredH1) {
+        warnings.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u0435\u043D\u043E \u2014 \u0434\u0435\u043D\u044F\u0442 \u043D\u0435 \u0441\u0435 \u0441\u044A\u0431\u0438\u0440\u0430 \u0431\u0435\u0437 \u043D\u0435\u0433\u043E \u043F\u0440\u0438 ${targetKcal} kcal`);
+      } else {
+        blocking.push(`${dayKey}: \u0425\u0440\u0430\u043D\u0435\u043D\u0435 1 \u043F\u0440\u0438 \u043A\u043B\u0438\u0435\u043D\u0442 \u0431\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430`);
+      }
     }
     const dayKcal = sumField2(day.mealBreakdown, "calories");
     if (targetKcal > 0 && dayKcal > 0) {
@@ -18552,183 +22718,6 @@ function validateProtocolStrategy(strategy, analysis = null, userData = null) {
   }
   const status = blocking.length ? "REJECT" : warnings.length ? "REVIEW" : "VALID";
   return { status, blocking, warnings, dietProfile };
-}
-
-// questionnaire-engine-map.js
-var QUESTIONNAIRE_FOOD_BLOCK_FIELD_IDS = [
-  "dietDislike",
-  "medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438",
-  "foodTriggers",
-  "triggerFoods",
-  "giTriggers",
-  "foodSensitivities"
-];
-var DQ_FOOD_KEY_PATTERN = /food|trigger|allerg|intoler|хран|избяг|алерг|не\s*тoler/i;
-var CONDITION_DETAIL_FIELD_IDS = [
-  "medicalConditions_\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
-  "medicalConditions_\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
-  "medicalConditions_\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
-  "medicalConditions_\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
-  "medicalConditions_\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u043E-\u0441\u043A\u0435\u043B\u0435\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B",
-  "medicalConditions_\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u043E",
-  "medicalConditions_other"
-];
-var LONG_TERM_PHASE_HINTS = {
-  1: "\u043D\u0430\u0447\u0430\u043B\u043D\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u043E\u0441\u0442 \u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F",
-  2: "\u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0438\u044F \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435 \u0440\u043E\u0442\u0430\u0446\u0438\u044F",
-  3: "\u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u043D\u0430 \u043F\u043E\u0434\u0434\u0440\u044A\u0436\u043A\u0430 maintenance"
-};
-var CLINICAL_PROTOCOL_DIET_HINTS = {
-  gi_issues: "fodmap ibs \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438",
-  autoimmune_aip: "\u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u0430 aip autoimun",
-  insulin_resistance: "\u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430"
-};
-function pushTermsFromValue(terms, seen, val) {
-  if (val == null || val === "") return;
-  const parts = Array.isArray(val) ? val : String(val).split(/[,;|\n]/);
-  for (const part of parts) {
-    const t = String(part).trim();
-    if (t.length < 2) continue;
-    const key = t.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    terms.push(t);
-  }
-}
-function extractQuestionnaireBlockedTerms(userData = {}) {
-  const terms = [];
-  const seen = /* @__PURE__ */ new Set();
-  for (const fieldId of QUESTIONNAIRE_FOOD_BLOCK_FIELD_IDS) {
-    pushTermsFromValue(terms, seen, userData[fieldId]);
-  }
-  if (Array.isArray(userData.planModifications)) {
-    for (const mod of userData.planModifications) {
-      if (typeof mod === "string" && mod.startsWith("exclude_food:")) {
-        pushTermsFromValue(terms, seen, mod.slice("exclude_food:".length));
-      }
-    }
-  }
-  if (Array.isArray(userData.userFoodExclude)) {
-    for (const entry of userData.userFoodExclude) {
-      pushTermsFromValue(terms, seen, entry);
-    }
-  }
-  if (Array.isArray(userData.forbidden)) {
-    for (const entry of userData.forbidden) {
-      pushTermsFromValue(terms, seen, entry);
-    }
-  }
-  const textMap = userData._dq_text_map || {};
-  for (const key of Object.keys(userData)) {
-    if (!key.startsWith("dq_")) continue;
-    const label = String(textMap[key] || "");
-    if (!DQ_FOOD_KEY_PATTERN.test(key) && !DQ_FOOD_KEY_PATTERN.test(label)) continue;
-    pushTermsFromValue(terms, seen, userData[key]);
-  }
-  return terms;
-}
-function resolveLongTermPhase({ cycleNumber = 1, daysSinceStart = null } = {}) {
-  const cycle = Math.max(1, Number(cycleNumber) || 1);
-  let days = daysSinceStart != null && !Number.isNaN(Number(daysSinceStart)) ? Number(daysSinceStart) : null;
-  if (days == null) days = (cycle - 1) * 7;
-  let phaseNumber = 1;
-  if (days >= 84 || cycle >= 13) phaseNumber = 3;
-  else if (days >= 28 || cycle >= 5) phaseNumber = 2;
-  return {
-    phaseNumber,
-    phaseHint: LONG_TERM_PHASE_HINTS[phaseNumber] || LONG_TERM_PHASE_HINTS[1],
-    cycleNumber: cycle,
-    daysSinceStart: days
-  };
-}
-function buildAdaptPhaseContext({ cycleNumber = 1, dietStartDate = "" } = {}) {
-  let daysSinceStart = null;
-  if (dietStartDate) {
-    const startMs = new Date(dietStartDate).getTime();
-    if (!Number.isNaN(startMs)) {
-      daysSinceStart = Math.floor((Date.now() - startMs) / 864e5);
-    }
-  }
-  return resolveLongTermPhase({ cycleNumber, daysSinceStart });
-}
-function buildQuestionnaireDietHints(userData = {}) {
-  const parts = [];
-  const phase = userData._adaptPhase;
-  if (phase?.phaseHint) parts.push(phase.phaseHint);
-  const cp = userData.clinicalProtocol;
-  if (cp && CLINICAL_PROTOCOL_DIET_HINTS[cp]) {
-    parts.push(CLINICAL_PROTOCOL_DIET_HINTS[cp]);
-  }
-  const textChunks = [];
-  if (Array.isArray(userData.medicalConditions)) {
-    textChunks.push(userData.medicalConditions.join(" "));
-  }
-  for (const key of CONDITION_DETAIL_FIELD_IDS) {
-    if (userData[key]) textChunks.push(String(userData[key]));
-  }
-  const blob = textChunks.join(" ").toLowerCase();
-  if (/fodmap|ibs|подуване|сърбеж|храносмилател/i.test(blob)) parts.push("fodmap ibs");
-  if (/целиак|глутен|gluten/i.test(blob)) parts.push("\u0431\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D gluten");
-  if (/лактоз|млеч|dairy/i.test(blob)) parts.push("\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438 dairy");
-  if (/хипертон|кръвно/i.test(blob)) parts.push("dash \u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F");
-  if (/пaleo|палео/i.test(blob)) parts.push("paleo");
-  return [...new Set(parts.join(" ").split(/\s+/).filter(Boolean))].join(" ");
-}
-function enrichUserDataEngineContext(userData) {
-  if (!userData || typeof userData !== "object") return userData;
-  const blockedTerms = extractQuestionnaireBlockedTerms(userData);
-  userData._engineBlockedTerms = blockedTerms;
-  userData._engineDietHints = buildQuestionnaireDietHints(userData);
-  return userData;
-}
-function summarizeWeekPlanSkeleton(weekPlan) {
-  if (!weekPlan) return "";
-  const lines = [];
-  for (let d = 1; d <= 7; d++) {
-    const day = weekPlan[`day${d}`];
-    if (!day?.meals?.length) continue;
-    const slots = day.meals.map((m) => {
-      const kcal = m.calories != null ? `${m.calories}kcal` : "";
-      return `${m.type}:${m.name || "?"}${kcal ? `(${kcal})` : ""}`;
-    }).join(" | ");
-    lines.push(`D${d}: ${slots}`);
-  }
-  return lines.join("\n");
-}
-function summarizeWeeklyScheme(strategy) {
-  const scheme = strategy?.weeklyScheme;
-  if (!scheme) return "";
-  const mon = scheme.monday;
-  if (!mon?.mealBreakdown?.length) return "";
-  const slots = mon.mealBreakdown.map((s) => `${s.type}=${s.calories}kcal`).join(", ");
-  return `slots(${slots}) freeDay=${strategy.freeDayNumber ?? "?"} dessert=${strategy.includeDessert}`;
-}
-function buildFinalAuditPacket({ plan = null, userData = null, codeValidation = null } = {}) {
-  const analysis = plan?.analysis || {};
-  const strategy = plan?.strategy || {};
-  const mg = analysis.macroGrams || {};
-  const sections = [
-    "=== ENGINE AUDIT ===",
-    `profile: goal=${JSON.stringify(userData?.goal || "")} clinical=${userData?.clinicalProtocol || "none"} phase=${userData?._adaptPhase?.phaseNumber ?? "\u2014"}`,
-    `engine: dietHints="${userData?._engineDietHints || buildQuestionnaireDietHints(userData)}" blocked=${(userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData)).slice(0, 12).join("; ")}`,
-    `step1: intake=${analysis.Final_Calories || "?"}kcal P${mg.protein || "?"}/C${mg.carbs || "?"}/F${mg.fats || "?"} deterministic=${analysis._deterministicEnergy ? "yes" : "no"}`,
-    `step2: profile=${strategy.libraryDietProfile || "?"} modifier=${strategy.dietaryModifier || "?"} ${summarizeWeeklyScheme(strategy)}`,
-    `step3 skeleton:
-${summarizeWeekPlanSkeleton(plan?.weekPlan)}`
-  ];
-  const warnings = [
-    ...plan?.generationWarnings || [],
-    ...codeValidation?.warnings || [],
-    ...codeValidation?.errors || []
-  ].filter(Boolean);
-  if (warnings.length) {
-    sections.push(`code_warnings (${warnings.length}): ${warnings.slice(0, 8).join(" | ")}`);
-  }
-  const problems = (analysis.keyProblems || []).slice(0, 4).map((p) => p.title).filter(Boolean);
-  if (problems.length) sections.push(`keyProblems: ${problems.join("; ")}`);
-  const notes = userData?.additionalNotes ? String(userData.additionalNotes).slice(0, 400) : "";
-  if (notes) sections.push(`notes: ${notes}`);
-  return sections.join("\n");
 }
 
 // step2-deterministic.js
@@ -18991,7 +22980,7 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restored
 }
 function buildDeterministicStrategy({ userData = null, analysis = null, options = {} } = {}) {
   const weightKg = Number(userData?.weight) || 70;
-  const dietProfile = resolveLibraryDietProfile({
+  const dietProfile = options.libraryDietProfile || resolveLibraryDietProfile({
     dietaryModifier: options.dietaryModifier,
     dietPreference: userData?.dietPreference,
     dietDislike: userData?.dietDislike || "",
@@ -19034,11 +23023,133 @@ function deterministicStep1Enabled(env = {}) {
   if (v === "0" || v === "false" || v === false) return false;
   return true;
 }
+function metabolicReviewEnabled(env = {}) {
+  const v = env?.METABOLIC_REVIEW;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+var METABOLIC_REVIEW_BOUNDS = {
+  clinical: { min: -12, max: 5 },
+  metabolic: { min: -8, max: 5 }
+};
 function goalIncludes(goal, keyword) {
   if (!goal || !keyword) return false;
   const kw = String(keyword).toLowerCase();
   if (Array.isArray(goal)) return goal.some((g) => String(g).toLowerCase().includes(kw));
   return String(goal).toLowerCase().includes(kw);
+}
+function clampPercent(value, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  const rounded = Math.round(n * 10) / 10;
+  return Math.max(min, Math.min(max, rounded));
+}
+function combinedReviewBounds(ctx = {}) {
+  if (ctx.isLactation) return { min: -5, max: 8 };
+  if (goalIncludes(ctx.goal, "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430")) return { min: -10, max: 5 };
+  return { min: -15, max: 8 };
+}
+function mergeAdjustmentPercent(aiValue, structuredValue) {
+  const ai = Number(aiValue) || 0;
+  const st = Number(structuredValue) || 0;
+  if (st < 0) return Math.min(ai, st);
+  if (st > 0) return Math.max(ai, st);
+  return ai;
+}
+function deriveStructuredMetabolicHints(data = {}) {
+  const blob = [
+    ...Array.isArray(data.medicalConditions) ? data.medicalConditions : [],
+    data["medicalConditions_\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
+    data["medicalConditions_\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438_\u0434\u0435\u0442\u0430\u0439\u043B"] || "",
+    ...Array.isArray(data.medications) ? data.medications : []
+  ].join(" ").toLowerCase();
+  let clinical = 0;
+  let metabolic = 0;
+  if (/хипотирео|hypothyroid|щитовидн.*(недост|ниска|hypo)/i.test(blob)) {
+    clinical = Math.min(clinical, -5);
+  }
+  if (/хипертирео|hyperthyroid|щитовидн.*(висок|hyper)/i.test(blob)) {
+    clinical = Math.max(clinical, 3);
+  }
+  const sleep = Number(data.sleepHours);
+  if (sleep > 0 && sleep < 6) metabolic = Math.min(metabolic, sleep < 5 ? -5 : -3);
+  const stress = String(data.stressLevel || "").toLowerCase();
+  if (/много висок|висок|high|severe/i.test(stress)) {
+    metabolic = Math.min(metabolic, -2);
+  }
+  return { clinical, metabolic };
+}
+function computeBoundedReviewPercent(cm = {}, ctx = {}, structured = {}) {
+  const { clinical: cBounds, metabolic: mBounds } = METABOLIC_REVIEW_BOUNDS;
+  const combined = combinedReviewBounds(ctx);
+  const aiClinical = clampPercent(cm.clinicalAdjustmentPercent, cBounds.min, cBounds.max);
+  const aiMetabolic = clampPercent(cm.metabolicAdjustmentPercent, mBounds.min, mBounds.max);
+  const clinical = clampPercent(
+    mergeAdjustmentPercent(aiClinical, structured.clinical),
+    cBounds.min,
+    cBounds.max
+  );
+  const metabolic = clampPercent(
+    mergeAdjustmentPercent(aiMetabolic, structured.metabolic),
+    mBounds.min,
+    mBounds.max
+  );
+  let total = clinical + metabolic;
+  if (ctx.isLactation && goalIncludes(ctx.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && total < -5) {
+    total = -5;
+  }
+  return {
+    clinical,
+    metabolic,
+    total: clampPercent(total, combined.min, combined.max),
+    goalIgnored: true
+  };
+}
+function applyBoundedMetabolicReview(analysis, options = {}) {
+  if (!analysis?._deterministicEnergy || options.enabled === false) return analysis;
+  const userData = options.userData || {};
+  const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
+  const baseline = Math.round(Number(analysis.Final_Calories) || 0);
+  if (baseline <= 0) return analysis;
+  const structured = deriveStructuredMetabolicHints(userData);
+  const review = computeBoundedReviewPercent(cm, {
+    goal: userData.goal,
+    isLactation: userData.clinicalProtocol === "postpartum_lactation"
+  }, structured);
+  cm.clinicalAdjustmentPercent = review.clinical;
+  cm.metabolicAdjustmentPercent = review.metabolic;
+  if (review.goalIgnored) {
+    cm._goalAdjustmentIgnored = true;
+    if (Number(cm.goalAdjustmentPercent)) {
+      cm._aiGoalAdjustmentPercent = cm.goalAdjustmentPercent;
+    }
+    cm.goalAdjustmentPercent = 0;
+  }
+  if (review.total === 0) {
+    cm.appliedReviewPercent = 0;
+    cm.baselineIntake = baseline;
+    cm.reviewSource = structured.clinical || structured.metabolic ? "structured_only_zero_net" : "deterministic_baseline";
+    return analysis;
+  }
+  const adjusted = Math.round(baseline * (1 + review.total / 100));
+  analysis.Final_Calories = adjusted;
+  analysis.recommendedCalories = adjusted;
+  if (analysis.macroRatios) {
+    analysis.macroGrams = macroGramsFromIntake(
+      adjusted,
+      analysis.macroRatios,
+      options.minFatG || 0
+    );
+  }
+  cm.appliedReviewPercent = review.total;
+  cm.baselineIntake = baseline;
+  cm.reviewSource = "bounded_metabolic_review";
+  cm.correctionPercent = `${review.total >= 0 ? "+" : ""}${review.total}%`;
+  const parts = [];
+  if (review.clinical) parts.push(`\u043A\u043B\u0438\u043D\u0438\u0447\u043D\u043E ${review.clinical}%`);
+  if (review.metabolic) parts.push(`\u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0447\u043D\u043E ${review.metabolic}%`);
+  cm.correction = `\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u0432\u044A\u0440\u0445\u0443 backend baseline (${baseline} kcal): ${parts.join(", ")}.`;
+  return analysis;
 }
 function computeIntakeTarget(tdee, goal, deficitData = {}) {
   const maintenance = Math.round(Number(tdee) || 0);
@@ -19214,6 +23325,213 @@ function buildFinalDirectorPrompt(auditPacket, customTemplate = null) {
   return tpl.replace(/\{auditPacket\}/g, auditPacket || "");
 }
 
+// step2-strategy-reviewer.js
+var ALLOWED_DIET_PROFILES = [
+  "balanced",
+  "mediterranean",
+  "keto",
+  "low_carb",
+  "vegan",
+  "vegetarian",
+  "pescatarian",
+  "high_protein",
+  "low_fodmap",
+  "dash",
+  "paleo",
+  "gluten_free",
+  "dairy_free",
+  "anti_inflammatory"
+];
+var DIET_PROFILE_LABELS2 = {
+  balanced: "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
+  mediterranean: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0430",
+  keto: "\u041A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u0430 \u0434\u0438\u0435\u0442\u0430",
+  low_carb: "\u041D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430",
+  vegan: "\u0412\u0435\u0433\u0430\u043D",
+  vegetarian: "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430",
+  pescatarian: "\u041F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430",
+  high_protein: "\u0412\u0438\u0441\u043E\u043A\u043E\u043F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432\u0430",
+  low_fodmap: "Low-FODMAP",
+  dash: "DASH",
+  paleo: "Paleo",
+  gluten_free: "\u0411\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D",
+  dairy_free: "\u0411\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438",
+  anti_inflammatory: "\u041F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u0430"
+};
+function strategyReviewerEnabled(env = {}) {
+  const v = env?.STRATEGY_REVIEWER;
+  if (v === "0" || v === "false" || v === false) return false;
+  return true;
+}
+function uniqueTerms(list = []) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const item2 of list) {
+    const t = String(item2 || "").trim();
+    if (t.length < 2) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
+}
+function summarizeWeeklyScheme2(strategy) {
+  const mon = strategy?.weeklyScheme?.monday;
+  if (!mon?.mealBreakdown?.length) return "\u2014";
+  const slots = mon.mealBreakdown.map((s) => `${s.type}=${s.calories}kcal`).join(", ");
+  return `${slots}; freeDay=${strategy.freeDayNumber ?? "?"}; dessert=${strategy.includeDessert}`;
+}
+function buildStrategyReviewPacket({ strategy = null, analysis = null, userData = null } = {}) {
+  const mg = analysis?.macroGrams || {};
+  const blocked = userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData);
+  const hints = userData?._engineDietHints || buildQuestionnaireDietHints(userData);
+  const dqNotes = [];
+  const textMap = userData?._dq_text_map || {};
+  for (const key of Object.keys(userData || {})) {
+    if (!key.startsWith("dq_")) continue;
+    const val = userData[key];
+    if (val == null || val === "") continue;
+    const label = textMap[key] || key;
+    dqNotes.push(`${label}: ${String(val).slice(0, 200)}`);
+  }
+  const sections = [
+    "=== ALGORITHM PROPOSAL (do not change weeklyScheme slots/kcal) ===",
+    `libraryDietProfile: ${strategy?.libraryDietProfile || "?"}`,
+    `dietaryModifier: ${strategy?.dietaryModifier || "?"}`,
+    `modifierReasoning: ${(strategy?.modifierReasoning || "").slice(0, 300)}`,
+    `includeDessert: ${strategy?.includeDessert}`,
+    `weeklyScheme: ${summarizeWeeklyScheme2(strategy)}`,
+    `foodsToInclude: ${(strategy?.foodsToInclude || strategy?.preferredFoodCategories || []).join("; ")}`,
+    `foodsToAvoid: ${(strategy?.foodsToAvoid || strategy?.avoidFoodCategories || []).join("; ")}`,
+    "",
+    "=== STEP 1 CONTRACT (fixed \u2014 do not change calories/macros) ===",
+    `intake: ${analysis?.Final_Calories || "?"} kcal/day`,
+    `macros: P${mg.protein || "?"}/C${mg.carbs || "?"}/F${mg.fats || "?"} g`,
+    "",
+    "=== CLIENT PROFILE ===",
+    `goal: ${JSON.stringify(userData?.goal || "")}`,
+    `preferences: ${JSON.stringify(userData?.dietPreference || "")}`,
+    `dislikes: ${userData?.dietDislike || "\u2014"}`,
+    `favorites: ${userData?.dietLove || "\u2014"}`,
+    `medical: ${JSON.stringify(userData?.medicalConditions || [])}`,
+    `clinicalProtocol: ${userData?.clinicalProtocol || "none"}`,
+    `habits: ${JSON.stringify(userData?.eatingHabits || [])}`,
+    `cravings: ${JSON.stringify(userData?.foodCravings || [])}`,
+    `engineDietHints: ${hints || "\u2014"}`,
+    `engineBlockedTerms: ${blocked.join("; ") || "\u2014"}`
+  ];
+  const notes = userData?.additionalNotes ? String(userData.additionalNotes).trim() : "";
+  if (notes) sections.push("", `additionalNotes:
+${notes.slice(0, 1200)}`);
+  if (dqNotes.length) sections.push("", `questionnaireDetails:
+${dqNotes.slice(0, 12).join("\n")}`);
+  return sections.join("\n");
+}
+var DEFAULT_STRATEGY_REVIEWER_PROMPT = `\u0422\u0438 \u0441\u0438 \u0441\u0442\u0430\u0440\u0448\u0438 \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433-\u0440\u0435\u0432\u0438\u0437\u043E\u0440. \u041F\u043E\u043B\u0443\u0447\u0430\u0432\u0430\u0448 \u0413\u041E\u0422\u041E\u0412\u041E \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u0438\u0447\u043D\u043E \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0437\u0430 Step 2 (\u0434\u0438\u0435\u0442\u0430, \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F, \u0440\u0430\u043C\u043A\u0430).
+
+\u2550\u2550\u2550 \u041A\u041E\u041D\u0422\u0415\u041A\u0421\u0422 \u2550\u2550\u2550
+{reviewPacket}
+
+\u2550\u2550\u2550 \u0420\u041E\u041B\u042F \u2550\u2550\u2550
+\u041E\u0434\u0438\u0442\u0438\u0440\u0430\u0439 \u0434\u0430\u043B\u0438 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C\u044A\u0442 \u0435 \u0438\u0437\u0431\u0440\u0430\u043B \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u0430\u0442\u0430 \u0434\u0438\u0435\u0442\u0430 \u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0440\u0430\u043C\u043A\u0430 \u0437\u0430 \u0442\u043E\u0437\u0438 \u043A\u043B\u0438\u0435\u043D\u0442.
+\u0427\u0435\u0442\u0438 \u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u043D\u043E additionalNotes \u0438 questionnaireDetails \u2014 \u0442\u0435 \u0438\u043C\u0430\u0442 \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u043D\u0430\u0434 \u043E\u0431\u0449\u0438 \u043F\u0440\u0435\u0434\u043F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u044F.
+
+\u041D\u0415 \u0441\u044A\u0437\u0434\u0430\u0432\u0430\u0439 \u043D\u043E\u0432 \u043F\u043B\u0430\u043D \u043E\u0442 \u043D\u0443\u043B\u0430\u0442\u0430. \u041D\u0415 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439 weeklyScheme (\u0441\u043B\u043E\u0442\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043C\u0430\u043A\u0440\u043E\u0441\u0438 \u043F\u043E \u0434\u0435\u043D).
+\u041C\u043E\u0436\u0435\u0448 \u0434\u0430 \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u0448: libraryDietProfile, dietaryModifier, foodsToInclude, foodsToAvoid, includeDessert, \u043A\u043B\u0438\u0435\u043D\u0442\u0441\u043A\u0438 \u0442\u0435\u043A\u0441\u0442.
+
+\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:
+{
+  "verdict": "APPROVE" | "ADJUST" | "REJECT",
+  "libraryDietProfile": "balanced|mediterranean|keto|low_carb|vegan|vegetarian|pescatarian|high_protein|low_fodmap|dash|paleo|gluten_free|dairy_free|anti_inflammatory",
+  "dietaryModifier": "\u043A\u0440\u0430\u0442\u043A\u043E \u0438\u043C\u0435 \u043D\u0430 \u0434\u0438\u0435\u0442\u0430\u0442\u0430 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430",
+  "modifierReasoning": "\u0437\u0430\u0449\u043E \u0442\u0430\u0437\u0438 \u0440\u0430\u043C\u043A\u0430 \u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0430 (\u043C\u0438\u043D. 40 \u0437\u043D\u0430\u043A\u0430)",
+  "foodsToInclude": ["3-8 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438/\u0442\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0438 \u0437\u0430 \u0440\u0430\u043C\u043A\u0430\u0442\u0430"],
+  "foodsToAvoid": ["3-10 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438/\u0442\u0438\u043F\u043E\u0432\u0435 \u2014 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0447\u043D\u043E \u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0438"],
+  "includeDessert": true | false,
+  "reviewNotes": ["\u0431\u0435\u043B\u0435\u0436\u043A\u0438 \u0437\u0430 \u043E\u0434\u0438\u0442\u0430, max 4"],
+  "welcomeMessage": "\u043F\u043E \u0438\u0437\u0431\u043E\u0440 \u2014 80-200 \u0434\u0443\u043C\u0438",
+  "planJustification": "\u043F\u043E \u0438\u0437\u0431\u043E\u0440 \u2014 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u043A\u0430 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430"
+}
+
+\u041F\u0440\u0430\u0432\u0438\u043B\u0430:
+- APPROVE: \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C\u044A\u0442 \u0435 \u043A\u043E\u0440\u0435\u043A\u0442\u0435\u043D; \u043C\u043E\u0436\u0435\u0448 \u0434\u0430 \u0432\u044A\u0440\u043D\u0435\u0448 \u0441\u044A\u0449\u0438\u0442\u0435 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438
+- ADJUST: \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u0439 \u0434\u0438\u0435\u0442\u0430/\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F/\u0434\u0435\u0441\u0435\u0440\u0442; \u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E \u043F\u043E\u043F\u044A\u043B\u043D\u0438 modifierReasoning
+- REJECT: \u0441\u0430\u043C\u043E \u043F\u0440\u0438 \u044F\u0432\u043D\u0430 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0430 \u043D\u0435\u0441\u044A\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u043E\u0441\u0442 (engine scheme \u043D\u0435 \u0441\u0435 \u043F\u0438\u043F\u0430)
+- foodsToAvoid: \u0432\u043A\u043B\u044E\u0447\u0438 \u0412\u0421\u0418\u0427\u041A\u041E \u043E\u0442 engineBlockedTerms + \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043E\u0442 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u0442\u0435\u043A\u0441\u0442
+- foodsToInclude/foodsToAvoid: \u0442\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0438, \u043D\u0435 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u044F\u0441\u0442\u0438\u044F
+- includeDessert=false \u043F\u0440\u0438 \u0434\u0438\u0430\u0431\u0435\u0442/\u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0438\u043B\u0438 \u0430\u043A\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0438\u0441\u043A\u0430 \u0441\u043B\u0430\u0434\u043A\u043E
+- \u041F\u0440\u043E\u043C\u044F\u043D\u0430 \u043D\u0430 libraryDietProfile \u0421\u0410\u041C\u041E \u043F\u0440\u0438 \u044F\u0441\u043D\u0430 \u043A\u043B\u0438\u043D\u0438\u0447\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 (IBS\u2192low_fodmap, \u0432\u0435\u0433\u0430\u043D\u2192vegan). \u041F\u0440\u0438 \u0434\u0438\u0430\u0431\u0435\u0442/IR \u2014 \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u0439 foodsToAvoid \u0438 includeDessert, \u043D\u0435 \u0441\u043C\u0435\u043D\u044F\u0439 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0431\u0435\u0437 \u043D\u0443\u0436\u0434\u0430`;
+function parseStrategyReviewerResponse(raw) {
+  const base = {
+    verdict: "APPROVE",
+    libraryDietProfile: null,
+    dietaryModifier: "",
+    modifierReasoning: "",
+    foodsToInclude: [],
+    foodsToAvoid: [],
+    includeDessert: null,
+    reviewNotes: [],
+    welcomeMessage: "",
+    planJustification: ""
+  };
+  if (!raw || typeof raw !== "object" || raw.error) return base;
+  const verdict = ["APPROVE", "ADJUST", "REJECT"].includes(raw.verdict) ? raw.verdict : "APPROVE";
+  const profile = ALLOWED_DIET_PROFILES.includes(raw.libraryDietProfile) ? raw.libraryDietProfile : null;
+  return {
+    verdict,
+    libraryDietProfile: profile,
+    dietaryModifier: String(raw.dietaryModifier || "").slice(0, 80),
+    modifierReasoning: String(raw.modifierReasoning || "").slice(0, 800),
+    foodsToInclude: Array.isArray(raw.foodsToInclude) ? raw.foodsToInclude.map(String).slice(0, 12) : [],
+    foodsToAvoid: Array.isArray(raw.foodsToAvoid) ? raw.foodsToAvoid.map(String).slice(0, 16) : [],
+    includeDessert: typeof raw.includeDessert === "boolean" ? raw.includeDessert : null,
+    reviewNotes: Array.isArray(raw.reviewNotes) ? raw.reviewNotes.map(String).slice(0, 5) : [],
+    welcomeMessage: String(raw.welcomeMessage || "").slice(0, 2e3),
+    planJustification: String(raw.planJustification || "").slice(0, 1200)
+  };
+}
+function applyStrategyReviewAdjustments(strategy, review, guardrails = {}) {
+  if (!strategy || !review) return strategy;
+  const mandatoryBlocked = uniqueTerms([
+    ...guardrails.mandatoryBlocked || [],
+    ...strategy.foodsToAvoid || [],
+    ...strategy.avoidFoodCategories || []
+  ]);
+  if (review.libraryDietProfile) {
+    strategy.libraryDietProfile = review.libraryDietProfile;
+  }
+  if (review.dietaryModifier) {
+    strategy.dietaryModifier = review.dietaryModifier;
+    strategy.dietType = review.dietaryModifier;
+  } else if (review.libraryDietProfile && DIET_PROFILE_LABELS2[review.libraryDietProfile]) {
+    strategy.dietaryModifier = DIET_PROFILE_LABELS2[review.libraryDietProfile];
+    strategy.dietType = strategy.dietaryModifier;
+  }
+  if (review.modifierReasoning) strategy.modifierReasoning = review.modifierReasoning;
+  if (review.foodsToInclude?.length) {
+    strategy.foodsToInclude = uniqueTerms(review.foodsToInclude);
+    strategy.preferredFoodCategories = [...strategy.foodsToInclude];
+  }
+  if (review.foodsToAvoid?.length || mandatoryBlocked.length) {
+    strategy.foodsToAvoid = uniqueTerms([...mandatoryBlocked, ...review.foodsToAvoid || []]);
+    strategy.avoidFoodCategories = [...strategy.foodsToAvoid];
+  }
+  if (review.includeDessert != null) strategy.includeDessert = review.includeDessert;
+  if (review.welcomeMessage) strategy.welcomeMessage = review.welcomeMessage;
+  if (review.planJustification) strategy.planJustification = review.planJustification;
+  strategy._strategyReview = {
+    verdict: review.verdict,
+    at: (/* @__PURE__ */ new Date()).toISOString(),
+    notes: review.reviewNotes || []
+  };
+  return strategy;
+}
+function buildStrategyReviewerPrompt(reviewPacket, customTemplate = null) {
+  const tpl = customTemplate || DEFAULT_STRATEGY_REVIEWER_PROMPT;
+  return tpl.replace(/\{reviewPacket\}/g, reviewPacket || "");
+}
+
 // admin-food-catalog.js
 var FOOD_CATALOG_OVERLAY_KV_KEY = "food_catalog_overlay";
 var BASE_IDS = new Set(FOOD_CATALOG.map((e) => e.id));
@@ -19237,12 +23555,12 @@ function parseOverlayDocument(raw) {
     updatedAt: parsed?.updatedAt || null
   };
 }
-function validateDishEntry(dish2) {
+function validateDishEntry(dish) {
   const errors = [];
-  if (!dish2 || typeof dish2 !== "object") return ["invalid dish"];
-  if (!String(dish2.id || "").trim()) errors.push("id required");
-  if (!String(dish2.name || "").trim()) errors.push("name required");
-  const products = Array.isArray(dish2.products) ? dish2.products : [];
+  if (!dish || typeof dish !== "object") return ["invalid dish"];
+  if (!String(dish.id || "").trim()) errors.push("id required");
+  if (!String(dish.name || "").trim()) errors.push("name required");
+  const products = Array.isArray(dish.products) ? dish.products : [];
   if (products.length < 2 || products.length > 4) errors.push("2\u20134 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0430");
   for (const p of products) {
     if (!String(p?.name || "").trim()) errors.push("\u0432\u0441\u0435\u043A\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442 \u0438\u0441\u043A\u0430 \u0438\u043C\u0435");
@@ -19253,24 +23571,25 @@ function validateDishEntry(dish2) {
   if (products.length && Math.abs(sum - 1) > 0.05) {
     errors.push(`\u0434\u044F\u043B\u043E\u0432\u0435\u0442\u0435 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u0443\u043C\u0438\u0440\u0430\u0442 ~1 (\u0441\u0435\u0433\u0430 ${sum.toFixed(2)})`);
   }
-  const timing = Array.isArray(dish2.timing) ? dish2.timing : [];
+  const timing = Array.isArray(dish.timing) ? dish.timing : [];
   if (!timing.length || timing.some((t) => !TIMINGS.has(t))) {
     errors.push(`timing must include ${[...TIMINGS].join("|")}`);
   }
   return errors;
 }
-function normalizeDishEntry(dish2) {
+function normalizeDishEntry(dish) {
   return {
-    id: String(dish2.id || "").trim(),
-    name: String(dish2.name || "").trim(),
-    products: (dish2.products || []).map((p) => ({
+    id: String(dish.id || "").trim(),
+    name: String(dish.name || "").trim(),
+    products: (dish.products || []).map((p) => ({
       name: String(p.name || "").trim(),
       share: Number(p.share) || 0
     })),
-    timing: [...new Set((dish2.timing || ["main"]).map(String))],
-    vegan: !!dish2.vegan,
-    vegetarian: dish2.vegetarian !== void 0 ? !!dish2.vegetarian : !!dish2.vegan,
-    universality: Math.max(1, Math.min(5, Number(dish2.universality) || 4))
+    timing: [...new Set((dish.timing || ["main"]).map(String))],
+    vegan: !!dish.vegan,
+    vegetarian: dish.vegetarian !== void 0 ? !!dish.vegetarian : !!dish.vegan,
+    universality: Math.max(1, Math.min(5, Number(dish.universality) || 4)),
+    tags: Array.isArray(dish.tags) ? [...dish.tags] : []
   };
 }
 function serializeOverlayDocument(entries, label = "", dishes = [], disabledDishes = []) {
@@ -19356,9 +23675,9 @@ async function writeOverlayToKv(env, entries, label = "", dishes = [], disabledD
   invalidateRegistryIndex();
   return doc;
 }
-async function upsertDish(env, dish2) {
+async function upsertDish(env, dish) {
   const doc = await readOverlayFromKv(env);
-  const normalized = normalizeDishEntry(dish2);
+  const normalized = normalizeDishEntry(dish);
   const errs = validateDishEntry(normalized);
   if (errs.length) throw new Error(errs.join("; "));
   const dishes = [...doc.dishes];
@@ -20343,6 +24662,7 @@ ${dietHistorySection}`;
   }
 }
 function normalizeQuestionnaireData(data) {
+  if (!data || typeof data !== "object") return data;
   if (Array.isArray(data.goal)) {
     data.goal = String(data.goal[0] || "");
   }
@@ -20359,6 +24679,7 @@ function normalizeQuestionnaireData(data) {
       data[field] = typeof data[field] === "string" ? [data[field]] : [];
     }
   }
+  ensureProfileMetricsOnData(data);
   return data;
 }
 async function handleValidateQuestionnaire(request, env) {
@@ -21373,7 +25694,30 @@ function normalizeStrategyDessertFlag(strategy, userData) {
   });
   strategy.includeDessert = !blocked;
 }
+function ensureProfileMetricsOnData(data) {
+  if (!data || typeof data !== "object") return data;
+  const answers = data.answers;
+  if (answers && typeof answers === "object") {
+    for (const key of ["weight", "height", "age", "gender", "goal", "name", "email"]) {
+      if ((data[key] == null || data[key] === "") && answers[key] != null && answers[key] !== "") {
+        data[key] = answers[key];
+      }
+    }
+  }
+  for (const key of ["weight", "height", "age"]) {
+    if (data[key] == null || data[key] === "") continue;
+    const parsed = parseFloat(String(data[key]).replace(",", ".").match(/[\d.]+/)?.[0] || "");
+    if (!Number.isNaN(parsed) && parsed > 0) data[key] = String(parsed);
+  }
+  return data;
+}
+function parseProfileWeightKg(data) {
+  ensureProfileMetricsOnData(data);
+  const w = parseFloat(data?.weight);
+  return !Number.isNaN(w) && w > 0 ? w : 0;
+}
 function computeBackendEnergyInputs(data) {
+  ensureProfileMetricsOnData(data);
   const activityData = calculateUnifiedActivityScore(data);
   const bmr = calculateBMR(data);
   const tdee = calculateTDEE(bmr, activityData.combinedScore);
@@ -21381,11 +25725,12 @@ function computeBackendEnergyInputs(data) {
   const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
   return { activityData, bmr, tdee, deficitData, macros };
 }
-function finalizeStep1Analysis(env, data, analysis) {
-  normalizeAnalysisOutput(analysis, data);
+function refreshAnalysisEnergyFromProfile(env, data, analysis) {
+  if (!analysis) return { bmr: 0, tdee: 0, previousIntake: 0, intake: 0, intakeDrift: 0 };
+  const previousIntake = parseFinalCalories(analysis.Final_Calories);
   const { activityData, bmr, tdee, deficitData, macros } = computeBackendEnergyInputs(data);
   if (deterministicStep1Enabled(env)) {
-    const minFatG = Math.round((parseFloat(data.weight) || 70) * MIN_FAT_GRAMS_PER_KG2);
+    const minFatG = Math.round(parseProfileWeightKg(data) * MIN_FAT_GRAMS_PER_KG2) || Math.round(70 * MIN_FAT_GRAMS_PER_KG2);
     const contract = buildEnergyContract({
       bmr,
       tdee,
@@ -21396,10 +25741,19 @@ function finalizeStep1Analysis(env, data, analysis) {
       minFatG
     });
     applyDeterministicEnergyContract(analysis, contract);
+    if (metabolicReviewEnabled(env)) {
+      applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
+    }
     console.log("Step 1: deterministic energy contract applied");
   }
   enforceCalorieGuardrails(analysis, data, tdee);
-  return { bmr, tdee, activityData };
+  const intake = parseFinalCalories(analysis.Final_Calories);
+  const intakeDrift = previousIntake > 0 && intake > 0 ? Math.abs(intake - previousIntake) / previousIntake : previousIntake !== intake ? 1 : 0;
+  return { bmr, tdee, activityData, previousIntake, intake, intakeDrift };
+}
+function finalizeStep1Analysis(env, data, analysis) {
+  normalizeAnalysisOutput(analysis, data);
+  return refreshAnalysisEnergyFromProfile(env, data, analysis);
 }
 function finalizeStrategyObject(strategy, analysis, userData) {
   if (!strategy) return strategy;
@@ -21423,8 +25777,25 @@ async function resolveStep2Strategy(env, data, analysis, sessionId, options = {}
         if (validation.warnings?.length) {
           console.warn(`Step 2 deterministic ${validation.status}:`, validation.warnings.join("; "));
         }
+        let strategy2 = detStrategy;
+        let strategyReview = null;
+        if (strategyReviewerEnabled(env)) {
+          try {
+            const reviewed = await runStrategyReviewerReview(
+              env,
+              strategy2,
+              analysis,
+              data,
+              sessionId
+            );
+            strategy2 = reviewed.strategy;
+            strategyReview = reviewed.review;
+          } catch (reviewErr) {
+            console.warn("Step 2 strategy reviewer skipped:", reviewErr.message);
+          }
+        }
         console.log(`Step 2: deterministic build (${validation.status})`);
-        return { strategy: detStrategy, usedDeterministic: true, validation };
+        return { strategy: strategy2, usedDeterministic: true, validation, strategyReview };
       }
       console.warn(
         "Step 2 deterministic REJECT:",
@@ -21484,17 +25855,6 @@ function overlayDeterministicPresentation(mealPlan, strategy) {
   }
   if (strategy.hydrationStrategy) mealPlan.waterIntake = strategy.hydrationStrategy;
   return mealPlan;
-}
-function buildEngineMeta(analysis, strategy, mealPlan) {
-  const step3 = mealPlan?.step3Engine || "unknown";
-  return {
-    step1Deterministic: Boolean(analysis?._deterministicEnergy),
-    step2Deterministic: Boolean(strategy?._deterministicCore),
-    step3Engine: step3,
-    planEngine: mealPlan?.planEngine || "v1",
-    pipelineVersion: 2,
-    generatedAt: (/* @__PURE__ */ new Date()).toISOString()
-  };
 }
 async function isAILoggingEnabled(env) {
   const now = Date.now();
@@ -22290,6 +26650,47 @@ async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = "
   }
 }
 var FINAL_DIRECTOR_TOKEN_LIMIT = 3500;
+var STRATEGY_REVIEWER_TOKEN_LIMIT = 3e3;
+async function runStrategyReviewerReview(env, strategy, analysis, userData, sessionId) {
+  const reviewPacket = buildStrategyReviewPacket({ strategy, analysis, userData });
+  let customPrompt = null;
+  try {
+    customPrompt = await getCustomPrompt(env, "admin_strategy_reviewer_prompt");
+  } catch (_) {
+    customPrompt = null;
+  }
+  const prompt = buildStrategyReviewerPrompt(reviewPacket, customPrompt || DEFAULT_STRATEGY_REVIEWER_PROMPT);
+  const response = await callAIModel(
+    env,
+    prompt,
+    STRATEGY_REVIEWER_TOKEN_LIMIT,
+    "step2_strategy_reviewer",
+    sessionId,
+    userData,
+    buildCompactAnalysis(analysis)
+  );
+  const parsed = parseAIResponse(response);
+  const review = parseStrategyReviewerResponse(parsed);
+  const mandatoryBlocked = extractQuestionnaireBlockedTerms(userData);
+  const previousProfile = strategy.libraryDietProfile;
+  if (review.libraryDietProfile && review.libraryDietProfile !== previousProfile && review.verdict !== "REJECT") {
+    const rebuilt = buildDeterministicStrategy({
+      userData,
+      analysis,
+      options: {
+        libraryDietProfile: review.libraryDietProfile,
+        dietaryModifier: review.dietaryModifier || strategy.dietaryModifier,
+        freeDayNumber: strategy.freeDayNumber
+      }
+    });
+    strategy.weeklyScheme = rebuilt.weeklyScheme;
+    strategy.libraryDietProfile = rebuilt.libraryDietProfile;
+  }
+  applyStrategyReviewAdjustments(strategy, review, { mandatoryBlocked });
+  strategy._deterministicCore = true;
+  console.log(`Step 2 Strategy Reviewer: ${review.verdict}`);
+  return { strategy, review };
+}
 async function runFinalDirectorReview(env, plan, userData, codeValidation = null) {
   const auditPacket = buildFinalAuditPacket({ plan, userData, codeValidation });
   let customPrompt = null;
@@ -23907,6 +28308,10 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
 }
 async function reconcilePlanStructure(plan, userData = null, env = null) {
   if (!plan?.weekPlan) return plan;
+  if (plan.analysis && userData) {
+    normalizeQuestionnaireData(userData);
+    refreshAnalysisEnergyFromProfile(env || {}, userData, plan.analysis);
+  }
   const intakeTarget = parseFinalCalories(plan.analysis?.Final_Calories);
   if (plan.strategy) {
     normalizeStrategyDessertFlag(plan.strategy, userData);
@@ -24640,15 +29045,16 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       newPlan = await generatePlanMultiStep(env, enrichedData);
     } else {
       const calorieAdjust = Number(decision.strategyChanges?.calorieAdjust) || 0;
-      if (calorieAdjust && regenStep === "step3_mealplan" && plan.strategy) {
-        applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
-      } else if (calorieAdjust && regenStep === "step2_strategy" && plan.analysis) {
-        const current = parseFinalCalories(plan.analysis.Final_Calories) || 0;
-        if (current > 0) {
-          plan.analysis.Final_Calories = current + calorieAdjust;
-          enforceCalorieGuardrails(plan.analysis, enrichedData, null);
+      refreshAnalysisEnergyFromProfile(env, enrichedData, plan.analysis);
+      if (calorieAdjust && plan.analysis) {
+        const { tdee } = computeBackendEnergyInputs(enrichedData);
+        plan.analysis.Final_Calories = parseFinalCalories(plan.analysis.Final_Calories) + calorieAdjust;
+        enforceCalorieGuardrails(plan.analysis, enrichedData, tdee);
+        if (regenStep === "step3_mealplan" && plan.strategy) {
+          applyWeeklyCalorieAdjust(plan.strategy, calorieAdjust);
         }
       }
+      enrichedData._energyPresynced = true;
       newPlan = await regenerateFromStep(
         env,
         enrichedData,
@@ -25357,6 +29763,13 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
     fc = minCal;
     corrections.push("\u041F\u043E\u0432\u0434\u0438\u0433\u043D\u0430\u0442\u043E \u0434\u043E \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u043D\u0438\u044F \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u0435\u043D \u043F\u0440\u0430\u0433.");
   }
+  if (fc > 0 && tdee > 0 && goalIncludes2(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && !isLactation && fc <= minCal + 75) {
+    const safeLossFloor = Math.round(tdee * (1 - maxDeficitRatio));
+    if (safeLossFloor > minCal + 200) {
+      fc = safeLossFloor;
+      corrections.push("\u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u043D\u0438 \u0441\u043F\u0440\u044F\u043C\u043E \u0440\u0435\u0430\u043B\u043D\u0438\u044F TDEE \u2014 \u043D\u0435 \u043C\u043E\u0433\u0430\u0442 \u0434\u0430 \u043E\u0441\u0442\u0430\u043D\u0430\u0442 \u043D\u0430 \u043E\u0431\u0449\u0438\u044F \u043C\u0438\u043D\u0438\u043C\u0443\u043C.");
+    }
+  }
   if (fc > 0) {
     analysis.Final_Calories = fc;
     analysis.recommendedCalories = fc;
@@ -25565,6 +29978,12 @@ async function fetchFoodNutritionViaAI(env, productName) {
     console.warn("[food-nutrition] AI lookup failed for", productName, e.message);
   }
   return null;
+}
+function isCriticalStep3Blocking(errors = []) {
+  return (errors || []).some((err) => {
+    const e = String(err);
+    return /дневни \d+ kcal ≠ схема/i.test(e) || /калории \d+ ≠ цел \d+ — смени/i.test(e) || /липсва подходящо ястие/i.test(e) || /липсват продукти/i.test(e);
+  });
 }
 async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data = null) {
   const extraDb = CATALOG_STRICT_MODE ? {} : await loadFoodNutritionExtraDb(env);
@@ -25787,6 +30206,7 @@ function finalizeWeekPlanDays(weekPlan, strategy, startDay, endDay, userData = n
     const day = weekPlan[`day${d}`];
     if (!day?.meals) continue;
     for (const meal of day.meals) {
+      enforceGramGrid(meal);
       if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
         meal.name = meal.name || "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435";
         delete meal.description;
@@ -25929,7 +30349,10 @@ var PLAN_VALIDATION_BLOCKING = [
   /под минималната нужда.*мазнини/i,
   /твърде малко \(минимум/i,
   /^План липсва или е в невалиден формат$/,
-  /^Липсва седмичен план$/
+  /^Липсва седмичен план$/,
+  // Day must match frozen scheme — shipping 1569 kcal when scheme says 3025 is not acceptable.
+  /дневни \d+ kcal ≠ схема \d+/i,
+  /калории \d+ ≠ цел \d+ — смени продуктите/i
 ];
 function splitPlanValidationErrors(allErrors) {
   const blockingErrors = [];
@@ -26365,6 +30788,7 @@ function validatePlan(plan, userData, substitutions = []) {
 }
 async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, stepErrors, correctionAttempt) {
   console.log(`Regenerating from ${earliestErrorStep}, attempt ${correctionAttempt}`);
+  normalizeQuestionnaireData(data);
   const sessionId = generateUniqueId("regen");
   console.log(`Regeneration session ID: ${sessionId}`);
   const errorPreventionComment = generateErrorPreventionComment(stepErrors[earliestErrorStep], earliestErrorStep, correctionAttempt);
@@ -26374,6 +30798,7 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
     total: 0
   };
   let analysis, strategy, mealPlan;
+  let energyDrift = 0;
   try {
     if (earliestErrorStep === "step1_analysis") {
       console.log("Regenerating Step 1 (Analysis) with error prevention");
@@ -26394,9 +30819,23 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
       finalizeStep1Analysis(env, data, analysis);
     } else {
       analysis = existingPlan.analysis;
-      console.log("Reusing existing analysis");
+      if (data._energyPresynced) {
+        delete data._energyPresynced;
+        console.log("Reusing presynced analysis energy (weekly adaptation)");
+      } else {
+        const energySync = refreshAnalysisEnergyFromProfile(env, data, analysis);
+        energyDrift = energySync.intakeDrift;
+        if (energyDrift > 0.05) {
+          console.warn(
+            `Regen: intake resynced ${energySync.previousIntake} \u2192 ${energySync.intake} kcal from profile (weight=${data.weight})`
+          );
+        } else {
+          console.log("Reusing existing analysis (energy already in sync)");
+        }
+      }
     }
-    if (earliestErrorStep === "step1_analysis" || earliestErrorStep === "step2_strategy") {
+    const mustRebuildStrategy = energyDrift > 0.05;
+    if (earliestErrorStep === "step1_analysis" || earliestErrorStep === "step2_strategy" || mustRebuildStrategy) {
       const stepErrorComment = earliestErrorStep === "step2_strategy" ? errorPreventionComment : null;
       console.log(`Regenerating Step 2 (Strategy)${stepErrorComment ? " with error prevention" : ""}`);
       const step2Result = await resolveStep2Strategy(env, data, analysis, sessionId, {
@@ -26527,7 +30966,12 @@ async function regenerateFromStep(env, data, existingPlan, earliestErrorStep, st
         tokenUsage: cumulativeTokens,
         regeneratedFrom: earliestErrorStep,
         correctionAttempt,
-        generatedAt: (/* @__PURE__ */ new Date()).toISOString()
+        generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+        engine: buildPlanEngineMeta(analysis, strategy, {
+          ...mealPlan,
+          planEngine: mealPlan?.planEngine || resolvePlanEngine(env),
+          step3Engine: mealPlan?.step3Engine || existingPlan?.step3Engine
+        })
       }
     };
     syncPlanTargets(result, analysis);
@@ -26665,7 +31109,10 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       _meta: {
         tokenUsage: cumulativeTokens,
         generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        engine: buildEngineMeta(analysis, strategy, mealPlan)
+        engine: buildPlanEngineMeta(analysis, strategy, mealPlan, {
+          slotRepairCalls: mealPlan?.slotRepairCalls,
+          step3DurationMs: mealPlan?.step3DurationMs
+        })
       }
     };
     syncPlanTargets(result, analysis);
@@ -27027,6 +31474,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   }
   const generationWarnings = [];
   let step3Engine = "deterministic";
+  let slotRepairCalls = 0;
+  const step3StartedAt = Date.now();
   const planEngine = resolvePlanEngine(env);
   if (isPlanEngineV2(env)) {
     console.log("Plan engine v2: dish-first Step 3, no full-chunk AI fallback");
@@ -27085,11 +31534,37 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         lastInfeasible = syncMeta?.infeasible || [];
       };
       try {
-        if (deterministicStep3Enabled(env) && attempt === 0) {
-          const detSeedBase = Number(data?.id || data?.userId || 0) + (sessionId ? sessionId.length * 17 : 0) + chunkIndex * 31;
-          const runDeterministicChunk = async (relaxed = false) => {
+        if (deterministicStep3Enabled(env)) {
+          const detSeedBase = Number(data?.id || data?.userId || 0) + (sessionId ? sessionId.length * 17 : 0) + chunkIndex * 31 + attempt * 131;
+          const makeRepairSlot = () => {
+            if (!step3SlotRepairEnabled(env)) return null;
+            return async ({ dayNum, slotType, slotTarget, candidates }) => {
+              if (slotRepairCalls >= SLOT_REPAIR_MAX_CALLS_PER_PLAN) return null;
+              const prompt = buildSlotRepairPrompt({
+                dayNum,
+                slotType,
+                slotTarget,
+                candidates,
+                dietaryModifier: strategy?.dietaryModifier || "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E"
+              });
+              const response = await callAIModel(
+                env,
+                prompt,
+                256,
+                `step3_slot_repair_d${dayNum}_${slotType}`,
+                sessionId,
+                data,
+                null
+              );
+              const pick = parseSlotRepairResponse(response, candidates);
+              if (!pick) return null;
+              slotRepairCalls += 1;
+              return pick;
+            };
+          };
+          const runDeterministicChunk = async (relaxed = false, withSlotRepair = false) => {
             clearChunkDays();
-            const chunkData = buildDeterministicWeekPlanChunk({
+            const chunkData = await buildDeterministicWeekPlanChunk({
               strategy,
               userData: data,
               startDay,
@@ -27099,7 +31574,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
               includeDessert: userHasSweetsCraving2(data?.foodCravings) && strategy?.includeDessert !== false,
               clinicalProtocolId: data.clinicalProtocol || null,
               blockedTerms: collectUserBlockedFoodTerms(data),
-              relaxed
+              relaxed,
+              repairSlot: withSlotRepair ? makeRepairSlot() : null
             });
             applyChunkData(chunkData);
             chunkBuilt = true;
@@ -27107,34 +31583,58 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
             return Array.isArray(blockingErrors) ? blockingErrors : [];
           };
           try {
-            console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
-            let detBlocking = await runDeterministicChunk(false);
-            lastAiFailure = null;
-            step3Engine = "deterministic";
-            if (detBlocking.length) {
-              if (isPlanEngineV2(env)) {
-                console.warn(
-                  `Chunk ${chunkIndex + 1}: validation notices (${detBlocking.length}), relaxed dish retry (v2)`
-                );
-                detBlocking = await runDeterministicChunk(true);
-                step3Engine = "deterministic_relaxed";
-                if (detBlocking.length) {
-                  generationWarnings.push(
-                    `Step 3 (v2): ${detBlocking.length} validation notice(s) \u2014 kept dish plan`
+            if (attempt === 0) {
+              console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
+              let detBlocking = await runDeterministicChunk(false);
+              lastAiFailure = null;
+              step3Engine = "deterministic";
+              if (detBlocking.length) {
+                if (isPlanEngineV2(env)) {
+                  console.warn(
+                    `Chunk ${chunkIndex + 1}: validation notices (${detBlocking.length}), relaxed dish retry (v2)`
                   );
-                  blockingErrors = [];
+                  detBlocking = await runDeterministicChunk(true);
+                  step3Engine = "deterministic_relaxed";
+                  if (detBlocking.length) {
+                    if (isCriticalStep3Blocking(detBlocking)) {
+                      blockingErrors = detBlocking;
+                    } else {
+                      generationWarnings.push(
+                        `Step 3 (v2): ${detBlocking.length} validation notice(s) \u2014 kept dish plan`
+                      );
+                      blockingErrors = [];
+                    }
+                  }
+                } else {
+                  console.warn(
+                    `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`
+                  );
+                  step3Engine = "ai_fallback";
+                  generationWarnings.push(
+                    "Step 3: deterministic build \u043D\u0435 \u043C\u0438\u043D\u0430 \u0432\u0430\u043B\u0438\u0434\u0430\u0446\u0438\u044F \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D AI fallback \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430"
+                  );
+                  clearChunkDays();
+                  chunkBuilt = false;
+                  blockingErrors = null;
                 }
+              }
+            } else {
+              const useRepair = attempt >= 2;
+              console.log(
+                `Chunk ${chunkIndex + 1}: deterministic Step 3 retry ${attempt + 1} (relaxed${useRepair ? " + slot repair" : ""})`
+              );
+              const detBlocking = await runDeterministicChunk(true, useRepair);
+              lastAiFailure = null;
+              step3Engine = useRepair ? "deterministic_slot_repair" : "deterministic_relaxed";
+              if (detBlocking.length && isCriticalStep3Blocking(detBlocking)) {
+                blockingErrors = detBlocking;
+              } else if (!detBlocking.length) {
+                blockingErrors = [];
               } else {
-                console.warn(
-                  `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`
-                );
-                step3Engine = "ai_fallback";
                 generationWarnings.push(
-                  "Step 3: deterministic build \u043D\u0435 \u043C\u0438\u043D\u0430 \u0432\u0430\u043B\u0438\u0434\u0430\u0446\u0438\u044F \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D AI fallback \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430"
+                  `Step 3 (v2): ${detBlocking.length} validation notice(s) after retry`
                 );
-                clearChunkDays();
-                chunkBuilt = false;
-                blockingErrors = null;
+                blockingErrors = [];
               }
             }
           } catch (detErr) {
@@ -27145,17 +31645,43 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
                 step3Engine = "deterministic_relaxed";
                 generationWarnings.push(`Step 3 (v2): relaxed dish pick (${detErr.message.slice(0, 80)})`);
                 if (relaxedBlocking.length) {
-                  generationWarnings.push(
-                    `Step 3 (v2): ${relaxedBlocking.length} validation notice(s) after relaxed pick`
-                  );
-                  blockingErrors = [];
+                  if (isCriticalStep3Blocking(relaxedBlocking)) {
+                    blockingErrors = relaxedBlocking;
+                  } else {
+                    generationWarnings.push(
+                      `Step 3 (v2): ${relaxedBlocking.length} validation notice(s) after relaxed pick`
+                    );
+                    blockingErrors = [];
+                  }
                 }
               } catch (relaxedErr) {
-                clearChunkDays();
-                chunkBuilt = false;
-                throw new Error(
-                  `Plan engine v2: \u043B\u0438\u043F\u0441\u0432\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u0437\u0430 \u0434\u043D\u0438 ${startDay}-${endDay} (${relaxedErr.message})`
-                );
+                try {
+                  console.warn(
+                    `Chunk ${chunkIndex + 1}: relaxed pick failed, slot repair retry (v2):`,
+                    relaxedErr.message
+                  );
+                  const repairBlocking = await runDeterministicChunk(true, true);
+                  step3Engine = slotRepairCalls > 0 ? "deterministic_slot_repair" : "deterministic_relaxed";
+                  generationWarnings.push(
+                    `Step 3 (v2): slot repair (${slotRepairCalls} AI call(s), ${relaxedErr.message.slice(0, 60)})`
+                  );
+                  if (repairBlocking.length) {
+                    if (isCriticalStep3Blocking(repairBlocking)) {
+                      blockingErrors = repairBlocking;
+                    } else {
+                      generationWarnings.push(
+                        `Step 3 (v2): ${repairBlocking.length} validation notice(s) after slot repair`
+                      );
+                      blockingErrors = [];
+                    }
+                  }
+                } catch (repairErr) {
+                  clearChunkDays();
+                  chunkBuilt = false;
+                  throw new Error(
+                    `Plan engine v2: \u043B\u0438\u043F\u0441\u0432\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u0437\u0430 \u0434\u043D\u0438 ${startDay}-${endDay} (${repairErr.message})`
+                  );
+                }
               }
             } else {
               console.warn(`Chunk ${chunkIndex + 1}: deterministic error, AI fallback:`, detErr.message);
@@ -27253,6 +31779,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
   if (varietyResult.warnings.length) {
     generationWarnings.push(...varietyResult.warnings);
   }
+  const step3DurationMs = Date.now() - step3StartedAt;
+  const engineMetrics = { slotRepairCalls, step3DurationMs };
   try {
     const summaryPrompt = await generateMealPlanSummaryPrompt(data, analysis, strategy, bmr, recommendedCalories, weekPlan, env);
     const summaryResponse = await callAIModel(env, summaryPrompt, SUMMARY_TOKEN_LIMIT, "step4_summary", sessionId, data, buildCompactAnalysisForStep4(analysis));
@@ -27278,7 +31806,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         supplements: strategy.supplementRecommendations || [],
         generationWarnings,
         step3Engine,
-        planEngine
+        planEngine,
+        slotRepairCalls,
+        step3DurationMs
       }, strategy);
       return fallbackPlan;
     }
@@ -27296,7 +31826,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       supplements: summaryData.supplements || strategy.supplementRecommendations || [],
       generationWarnings,
       step3Engine,
-      planEngine
+      planEngine,
+      slotRepairCalls,
+      step3DurationMs
     }, strategy);
   } catch (error) {
     console.error("Summary generation failed:", error);
@@ -27319,14 +31851,21 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
       supplements: strategy.supplementRecommendations || [],
       generationWarnings,
       step3Engine,
-      planEngine
+      planEngine,
+      slotRepairCalls,
+      step3DurationMs
     }, strategy);
   }
 }
 function parseThinkingBudget(raw) {
   if (raw === null || raw === void 0 || raw === "") return void 0;
-  const n = parseInt(raw, 10);
+  const n = parseInt(String(raw).trim(), 10);
   return isNaN(n) ? void 0 : n;
+}
+function trimKv(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s || null;
 }
 async function getAdminConfig(env) {
   const now = Date.now();
@@ -27394,17 +31933,21 @@ async function getAdminConfig(env) {
       env.page_content.get("admin_chat_ai_top_p"),
       env.page_content.get("admin_chat_ai_top_k")
     ]);
-    if (savedProvider) config.provider = savedProvider;
-    if (savedModelName) config.modelName = savedModelName;
-    else if (env.GEMINI_MODEL) config.modelName = env.GEMINI_MODEL;
-    if (!savedProvider && env.GEMINI_API_KEY && !env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
+    const provider = trimKv(savedProvider);
+    const modelName = trimKv(savedModelName);
+    if (provider) config.provider = provider;
+    if (modelName) config.modelName = modelName;
+    else if (env.GEMINI_MODEL) config.modelName = trimKv(env.GEMINI_MODEL);
+    if (!provider && env.GEMINI_API_KEY && !env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
       config.provider = "google";
       if (!config.modelName || config.modelName === "gpt-4o-mini") {
-        config.modelName = env.GEMINI_MODEL || DEFAULT_GEMINI_PLAN_MODEL;
+        config.modelName = trimKv(env.GEMINI_MODEL) || DEFAULT_GEMINI_PLAN_MODEL;
       }
     }
-    if (savedVisionProvider) config.visionProvider = savedVisionProvider;
-    if (savedVisionModelName) config.visionModelName = savedVisionModelName;
+    const visionProvider = trimKv(savedVisionProvider);
+    const visionModelName = trimKv(savedVisionModelName);
+    if (visionProvider) config.visionProvider = visionProvider;
+    if (visionModelName) config.visionModelName = visionModelName;
     config.thinkingBudget = parseThinkingBudget(savedThinkingBudget);
     config.visionThinkingBudget = parseThinkingBudget(savedVisionThinkingBudget);
     config.planThinkingBudget = parseThinkingBudget(savedPlanThinkingBudget);
@@ -27426,8 +31969,10 @@ async function getAdminConfig(env) {
       const k = parseInt(savedTopK, 10);
       if (!isNaN(k)) config.topK = k;
     }
-    if (savedChatProvider) config.chatProvider = savedChatProvider;
-    if (savedChatModelName) config.chatModelName = savedChatModelName;
+    const chatProvider = trimKv(savedChatProvider);
+    const chatModelName = trimKv(savedChatModelName);
+    if (chatProvider) config.chatProvider = chatProvider;
+    if (chatModelName) config.chatModelName = chatModelName;
     config.chatThinkingBudget = parseThinkingBudget(savedChatThinkingBudget);
     if (savedChatTemperature != null && savedChatTemperature !== "") {
       const t = parseFloat(savedChatTemperature);

@@ -43,6 +43,26 @@ export const DEFAULT_MAX_PORTION_G = 300;
 export const DEFAULT_MIN_PORTION_G = 20;
 
 /**
+ * Чисти мазнини за готвене — лъжицата в тигана, не съставка на ястието.
+ *
+ * Различават се от ядките и авокадото, които са храна: олиото се слага по
+ * лъжица и не расте заедно с порцията. Когато го мащабирахме като носеща
+ * съставка, голямото хранене стигаше 20 г зехтин, а денят — 45 г само от
+ * олио (405 kcal) и мазнините излизаха 58% над целта.
+ */
+export const COOKING_FAT_KEYS = new Set([
+  'зехтин', 'олио', 'масло', 'кокосово масло', 'слънчогледово масло', 'гхи',
+]);
+
+/** Лъжица зехтин на готвено ястие — три готвени хранения на ден са 30 г, не 45. */
+export const COOKING_FAT_MAX_PORTION_G = 10;
+
+export function isCookingFat(name, nutritionKey) {
+  if (nutritionKey && COOKING_FAT_KEYS.has(normalizeFoodKey(nutritionKey))) return true;
+  return !!name && COOKING_FAT_KEYS.has(normalizeFoodKey(name));
+}
+
+/**
  * Per-food overrides, by normalised nutrition key or name.
  * Pure fats and eggs are the cases where the group ceiling is unrealistic.
  */
@@ -84,6 +104,14 @@ export const ITEM_MAX_PORTION_G = {
   'моцарела': 80,
   'пармезан': 40,
   'козе сирене': 60,
+  // Starchy sides — a plate, not a sack of potatoes.
+  'картофи': 300,
+  'картоф': 300,
+  'сладки картофи': 300,
+  'ориз': 250,
+  'киноа': 200,
+  'паста': 250,
+  'булгур': 250,
   // Dry weights (uncooked grains keep small servings).
   'овесени ядки': 100,
   'овес': 100,
@@ -100,6 +128,9 @@ export const ITEM_MAX_PORTION_G = {
   'песто': 30,
   'маслини': 60,
   'авокадо': 150,
+  // Хлябът в сандвич е 2–3 филии; мащабиран до 350 г изглеждаше като торта.
+  'пълнозърнест хляб': 120,
+  'хляб': 120,
   // Листните зеленчуци са обем без тегло: 300 г маруля не е чиния, а купа
   // листа. Без този таван salad-ът ставаше пълнител, с който solver-ът
   // догонваше калориите.

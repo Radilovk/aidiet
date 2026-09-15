@@ -5,7 +5,7 @@
 
 import { LIBRARY_PROTOCOL_RULES } from './nutrition-library-bridge.js';
 import { calorieTolerance } from './food-nutrition.js';
-import { isKetoUser, userSkipsBreakfast } from './plan-normalize.js';
+import { breakfastRequiredForIntake, isKetoUser, userSkipsBreakfast, resolveMealsPerDayFromHabits } from './plan-normalize.js';
 import { resolveLibraryDietProfile } from './protocol-engine.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -77,7 +77,13 @@ export function validateProtocolStrategy(strategy, analysis = null, userData = n
     }
 
     if (userSkipsBreakfast(userData) && day.mealBreakdown.some(m => m.type === 'Хранене 1')) {
-      blocking.push(`${dayKey}: Хранене 1 при клиент без закуска`);
+      const mealsPerDay = resolveMealsPerDayFromHabits(userData);
+      const needsRestoredH1 = breakfastRequiredForIntake(targetKcal, mealsPerDay, userData);
+      if (needsRestoredH1) {
+        warnings.push(`${dayKey}: Хранене 1 задължително — денят не се събира без него при ${targetKcal} kcal`);
+      } else {
+        blocking.push(`${dayKey}: Хранене 1 при клиент без закуска`);
+      }
     }
 
     const dayKcal = sumField(day.mealBreakdown, 'calories');

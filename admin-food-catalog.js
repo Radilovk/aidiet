@@ -73,6 +73,7 @@ export function normalizeDishEntry(dish) {
     vegan: !!dish.vegan,
     vegetarian: dish.vegetarian !== undefined ? !!dish.vegetarian : !!dish.vegan,
     universality: Math.max(1, Math.min(5, Number(dish.universality) || 4)),
+    tags: Array.isArray(dish.tags) ? [...dish.tags] : [],
   };
 }
 

@@ -194,6 +194,86 @@ export function dayCapacityKcal(slotTypes, dailyKcal) {
   return (slotTypes || []).reduce((sum, type) => sum + slotCeilingKcal(type, dailyKcal), 0);
 }
 
+/** Слотове при навик „без закуска“, преди проверка за капацитет. */
+export function preferredSlotsWithoutBreakfast(mealsPerDay) {
+  const n = Number(mealsPerDay) || 5;
+  if (n <= 3) return ['Хранене 2', 'Хранене 4'];
+  if (n === 4) return ['Хранене 2', 'Хранене 3', 'Хранене 4'];
+  return ['Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5'];
+}
+
+export function preferredSlotsWithBreakfast(mealsPerDay) {
+  const n = Number(mealsPerDay) || 5;
+  if (n <= 3) return ['Хранене 1', 'Хранене 2', 'Хранене 4'];
+  if (n === 4) return ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4'];
+  return ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5'];
+}
+
+/** Брой хранения от навиците в анкетата (default 5). */
+export function resolveMealsPerDayFromHabits(userData) {
+  const text = (userData?.eatingHabits || []).join(' ').toLowerCase();
+  if (/5\s*хран|пет\s*хран|5\s*meal/i.test(text)) return 5;
+  if (/4\s*хран|четири\s*хран|4\s*meal/i.test(text)) return 4;
+  if (/3\s*хран|три\s*хран|3\s*meal|без\s*междин/i.test(text)) return 3;
+  if (/2\s*хран|две\s*хран/i.test(text)) return 3;
+  return 5;
+}
+
+/**
+ * Задължителна закуска при висок калораж: без H1 денят не се събира в реалистични тавани.
+ *
+ * Прагът не е фиксирано число — зависи от mealsPerDay и от H3 тавана (расте с деня).
+ * При 5 хранения без H1: ~2350 kcal (H2+H3+H4+H5 ≈ 900+350..450+900+200).
+ */
+export function breakfastRequiredForIntake(dailyKcal, mealsPerDay, userData = null) {
+  const daily = Number(dailyKcal) || 0;
+  if (daily <= 0) return false;
+  if (userData && !userSkipsBreakfast(userData)) return false;
+  const withoutBreakfast = preferredSlotsWithoutBreakfast(mealsPerDay);
+  return dayCapacityKcal(withoutBreakfast, daily) < daily;
+}
+
+/** Навик „без закуска“, който структурно е възможен при дадения калораж. */
+export function effectiveSkipsBreakfast(userData, dailyKcal, mealsPerDay) {
+  if (!userSkipsBreakfast(userData)) return false;
+  return !breakfastRequiredForIntake(dailyKcal, mealsPerDay, userData);
+}
+
+/** Най-ниският дневен калораж, при който закуската става задължителна (skip habit). */
+export function approximateBreakfastMandatoryThresholdKcal(mealsPerDay = 5) {
+  let lo = 1200;
+  let hi = 5000;
+  const probe = { eatingHabits: ['Не закусвам'] };
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (breakfastRequiredForIntake(mid, mealsPerDay, probe)) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
+}
+
+/**
+ * Единна структура на деня: навик + капацитет.
+ * @returns {{ slotTypes: string[], breakfastRequired: boolean, restoredBreakfast: boolean }}
+ */
+export function resolveMealSlotTypes(mealsPerDay, userData, dailyKcal) {
+  const skipHabit = userSkipsBreakfast(userData);
+  const breakfastRequired = breakfastRequiredForIntake(dailyKcal, mealsPerDay, userData);
+  if (!skipHabit || breakfastRequired) {
+    const slotTypes = preferredSlotsWithBreakfast(mealsPerDay);
+    return {
+      slotTypes,
+      breakfastRequired: breakfastRequired && skipHabit,
+      restoredBreakfast: breakfastRequired && skipHabit,
+    };
+  }
+  return {
+    slotTypes: preferredSlotsWithoutBreakfast(mealsPerDay),
+    breakfastRequired: false,
+    restoredBreakfast: false,
+  };
+}
+
 function maxSlotKcal(slotType, mealBreakdown, dailyKcal) {
   if (slotType === 'Хранене 5') return MAX_LATE_SNACK_CALORIES;
   if (slotType === 'Хранене 3') return maxAfternoonSnackKcal(dailyKcal);
@@ -755,18 +835,15 @@ export function userSkipsBreakfast(userData) {
  *
  * Освен когато денят не се събира без него: при висок калораж обядът и
  * вечерята биха получили цел над 1000 kcal, каквато никое ястие не носи.
- * Тогава лекото първо хранене остава — виж `restoredFirstMeal` в Step 2.
+ * Тогава лекото първо хранене остава — виж `breakfastRequiredForIntake`.
  */
-export function removeBreakfastSlotFromDay(day) {
+export function removeBreakfastSlotFromDay(day, mealsPerDay = 5) {
   if (!day?.mealBreakdown?.length) return;
   const idx = day.mealBreakdown.findIndex(m => m.type === FIRST_MEAL_SLOT);
   if (idx < 0) return;
 
   const daily = Number(day.calories) || sumField(day.mealBreakdown, 'calories');
-  const withoutBreakfast = day.mealBreakdown
-    .filter((_, i) => i !== idx)
-    .map(m => m.type);
-  if (daily > 0 && dayCapacityKcal(withoutBreakfast, daily) < daily) return;
+  if (daily > 0 && breakfastRequiredForIntake(daily, mealsPerDay, { eatingHabits: ['Не закусвам'] })) return;
 
   const h1 = day.mealBreakdown.splice(idx, 1)[0];
   const surplus = Number(h1.calories) || 0;

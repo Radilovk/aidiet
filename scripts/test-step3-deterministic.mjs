@@ -62,7 +62,7 @@ function makeStrategy({ meals = 5, dailyKcal = 2200 } = {}) {
 const strategy = makeStrategy({ meals: 5, dailyKcal: 2100 });
 const userData = { dietPreference: ['Балансирано'], eatingHabits: [] };
 
-const chunk = buildDeterministicWeekPlanChunk({
+const chunk = await buildDeterministicWeekPlanChunk({
   strategy,
   userData,
   startDay: 1,
@@ -106,7 +106,7 @@ const skipStrategy = makeStrategy({ meals: 4, dailyKcal: 2000 });
 for (const key of Object.keys(skipStrategy.weeklyScheme)) {
   removeBreakfastSlotFromDay(skipStrategy.weeklyScheme[key]);
 }
-const skipChunk = buildDeterministicWeekPlanChunk({
+const skipChunk = await buildDeterministicWeekPlanChunk({
   strategy: skipStrategy,
   userData: skipUser,
   startDay: 1,
@@ -131,13 +131,32 @@ ok(firstMeal ? firstMeal.calories < 600 : false,
   `restored first meal stays light (${firstMeal?.calories} kcal)`);
 ok(bigDay.mealBreakdown.every(m => m.calories <= 950),
   `no slot above what a real dish carries (${bigDay.mealBreakdown.map(m => m.calories).join('/')})`);
-const bigChunk = buildDeterministicWeekPlanChunk({
+const bigChunk = await buildDeterministicWeekPlanChunk({
   strategy: bigSkipStrategy, userData: bigSkipUser, startDay: 1, endDay: 1, seed: 7,
 });
 ok(bigChunk.day1.meals.some(m => m.type === 'Хранене 1'),
   'restored first meal reaches the plan');
 
-const veganChunk = buildDeterministicWeekPlanChunk({
+// Plated mains must not use snack-tier dishes (banana + nuts cannot scale to 800+ kcal).
+const kamenStrategy = buildDeterministicStrategy({
+  userData: { eatingHabits: ['Не закусвам'], dietPreference: ['Сезонна'] },
+  analysis: { Final_Calories: 3088, recommendedCalories: 3088, macroGrams: { protein: 204, carbs: 334, fats: 97 } },
+});
+const kamenChunk = await buildDeterministicWeekPlanChunk({
+  strategy: kamenStrategy,
+  userData: { eatingHabits: ['Не закусвам'] },
+  startDay: 1,
+  endDay: 1,
+  seed: 11,
+});
+syncWeekPlanNutritionFromDatabase(kamenChunk, kamenStrategy, 1, 1);
+const lunch = kamenChunk.day1.meals.find(m => m.type === 'Хранене 2');
+ok(lunch && !String(lunch.dishId || '').startsWith('snack_'),
+  `lunch is a main dish, not snack (${lunch?.dishId})`);
+const dayKcal = kamenChunk.day1.meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+ok(dayKcal >= 2600, `high-kcal day1 sums to ${dayKcal} kcal`);
+
+const veganChunk = await buildDeterministicWeekPlanChunk({
   strategy: makeStrategy({ meals: 5, dailyKcal: 1900 }),
   userData: { dietPreference: ['Веган'] },
   startDay: 1,
