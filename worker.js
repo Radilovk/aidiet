@@ -31818,8 +31818,13 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
 }
 function parseThinkingBudget(raw) {
   if (raw === null || raw === void 0 || raw === "") return void 0;
-  const n = parseInt(raw, 10);
+  const n = parseInt(String(raw).trim(), 10);
   return isNaN(n) ? void 0 : n;
+}
+function trimKv(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s || null;
 }
 async function getAdminConfig(env) {
   const now = Date.now();
@@ -31887,17 +31892,21 @@ async function getAdminConfig(env) {
       env.page_content.get("admin_chat_ai_top_p"),
       env.page_content.get("admin_chat_ai_top_k")
     ]);
-    if (savedProvider) config.provider = savedProvider;
-    if (savedModelName) config.modelName = savedModelName;
-    else if (env.GEMINI_MODEL) config.modelName = env.GEMINI_MODEL;
-    if (!savedProvider && env.GEMINI_API_KEY && !env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
+    const provider = trimKv(savedProvider);
+    const modelName = trimKv(savedModelName);
+    if (provider) config.provider = provider;
+    if (modelName) config.modelName = modelName;
+    else if (env.GEMINI_MODEL) config.modelName = trimKv(env.GEMINI_MODEL);
+    if (!provider && env.GEMINI_API_KEY && !env.OPENAI_API_KEY && !env.ANTHROPIC_API_KEY) {
       config.provider = "google";
       if (!config.modelName || config.modelName === "gpt-4o-mini") {
-        config.modelName = env.GEMINI_MODEL || DEFAULT_GEMINI_PLAN_MODEL;
+        config.modelName = trimKv(env.GEMINI_MODEL) || DEFAULT_GEMINI_PLAN_MODEL;
       }
     }
-    if (savedVisionProvider) config.visionProvider = savedVisionProvider;
-    if (savedVisionModelName) config.visionModelName = savedVisionModelName;
+    const visionProvider = trimKv(savedVisionProvider);
+    const visionModelName = trimKv(savedVisionModelName);
+    if (visionProvider) config.visionProvider = visionProvider;
+    if (visionModelName) config.visionModelName = visionModelName;
     config.thinkingBudget = parseThinkingBudget(savedThinkingBudget);
     config.visionThinkingBudget = parseThinkingBudget(savedVisionThinkingBudget);
     config.planThinkingBudget = parseThinkingBudget(savedPlanThinkingBudget);
@@ -31919,8 +31928,10 @@ async function getAdminConfig(env) {
       const k = parseInt(savedTopK, 10);
       if (!isNaN(k)) config.topK = k;
     }
-    if (savedChatProvider) config.chatProvider = savedChatProvider;
-    if (savedChatModelName) config.chatModelName = savedChatModelName;
+    const chatProvider = trimKv(savedChatProvider);
+    const chatModelName = trimKv(savedChatModelName);
+    if (chatProvider) config.chatProvider = chatProvider;
+    if (chatModelName) config.chatModelName = chatModelName;
     config.chatThinkingBudget = parseThinkingBudget(savedChatThinkingBudget);
     if (savedChatTemperature != null && savedChatTemperature !== "") {
       const t = parseFloat(savedChatTemperature);
