@@ -29979,6 +29979,12 @@ async function fetchFoodNutritionViaAI(env, productName) {
   }
   return null;
 }
+function isCriticalStep3Blocking(errors = []) {
+  return (errors || []).some((err) => {
+    const e = String(err);
+    return /дневни \d+ kcal ≠ схема/i.test(e) || /калории \d+ ≠ цел \d+ — смени/i.test(e) || /липсва подходящо ястие/i.test(e) || /липсват продукти/i.test(e);
+  });
+}
 async function resolveAndSyncWeekPlanNutrition(env, weekPlan, strategy, startDay, endDay, data = null) {
   const extraDb = CATALOG_STRICT_MODE ? {} : await loadFoodNutritionExtraDb(env);
   let syncResult = syncWeekPlanNutritionFromDatabase(weekPlan, strategy, startDay, endDay, extraDb);
@@ -31589,10 +31595,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
                 detBlocking = await runDeterministicChunk(true);
                 step3Engine = "deterministic_relaxed";
                 if (detBlocking.length) {
-                  generationWarnings.push(
-                    `Step 3 (v2): ${detBlocking.length} validation notice(s) \u2014 kept dish plan`
-                  );
-                  blockingErrors = [];
+                  if (isCriticalStep3Blocking(detBlocking)) {
+                    blockingErrors = detBlocking;
+                  } else {
+                    generationWarnings.push(
+                      `Step 3 (v2): ${detBlocking.length} validation notice(s) \u2014 kept dish plan`
+                    );
+                    blockingErrors = [];
+                  }
                 }
               } else {
                 console.warn(
@@ -31615,10 +31625,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
                 step3Engine = "deterministic_relaxed";
                 generationWarnings.push(`Step 3 (v2): relaxed dish pick (${detErr.message.slice(0, 80)})`);
                 if (relaxedBlocking.length) {
-                  generationWarnings.push(
-                    `Step 3 (v2): ${relaxedBlocking.length} validation notice(s) after relaxed pick`
-                  );
-                  blockingErrors = [];
+                  if (isCriticalStep3Blocking(relaxedBlocking)) {
+                    blockingErrors = relaxedBlocking;
+                  } else {
+                    generationWarnings.push(
+                      `Step 3 (v2): ${relaxedBlocking.length} validation notice(s) after relaxed pick`
+                    );
+                    blockingErrors = [];
+                  }
                 }
               } catch (relaxedErr) {
                 try {
@@ -31632,10 +31646,14 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
                     `Step 3 (v2): slot repair (${slotRepairCalls} AI call(s), ${relaxedErr.message.slice(0, 60)})`
                   );
                   if (repairBlocking.length) {
-                    generationWarnings.push(
-                      `Step 3 (v2): ${repairBlocking.length} validation notice(s) after slot repair`
-                    );
-                    blockingErrors = [];
+                    if (isCriticalStep3Blocking(repairBlocking)) {
+                      blockingErrors = repairBlocking;
+                    } else {
+                      generationWarnings.push(
+                        `Step 3 (v2): ${repairBlocking.length} validation notice(s) after slot repair`
+                      );
+                      blockingErrors = [];
+                    }
                   }
                 } catch (repairErr) {
                   clearChunkDays();
