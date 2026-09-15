@@ -30343,7 +30343,10 @@ var PLAN_VALIDATION_BLOCKING = [
   /под минималната нужда.*мазнини/i,
   /твърде малко \(минимум/i,
   /^План липсва или е в невалиден формат$/,
-  /^Липсва седмичен план$/
+  /^Липсва седмичен план$/,
+  // Day must match frozen scheme — shipping 1569 kcal when scheme says 3025 is not acceptable.
+  /дневни \d+ kcal ≠ схема \d+/i,
+  /калории \d+ ≠ цел \d+ — смени продуктите/i
 ];
 function splitPlanValidationErrors(allErrors) {
   const blockingErrors = [];
