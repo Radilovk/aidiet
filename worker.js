@@ -31534,8 +31534,8 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         lastInfeasible = syncMeta?.infeasible || [];
       };
       try {
-        if (deterministicStep3Enabled(env) && attempt === 0) {
-          const detSeedBase = Number(data?.id || data?.userId || 0) + (sessionId ? sessionId.length * 17 : 0) + chunkIndex * 31;
+        if (deterministicStep3Enabled(env)) {
+          const detSeedBase = Number(data?.id || data?.userId || 0) + (sessionId ? sessionId.length * 17 : 0) + chunkIndex * 31 + attempt * 131;
           const makeRepairSlot = () => {
             if (!step3SlotRepairEnabled(env)) return null;
             return async ({ dayNum, slotType, slotTarget, candidates }) => {
@@ -31583,38 +31583,58 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
             return Array.isArray(blockingErrors) ? blockingErrors : [];
           };
           try {
-            console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
-            let detBlocking = await runDeterministicChunk(false);
-            lastAiFailure = null;
-            step3Engine = "deterministic";
-            if (detBlocking.length) {
-              if (isPlanEngineV2(env)) {
-                console.warn(
-                  `Chunk ${chunkIndex + 1}: validation notices (${detBlocking.length}), relaxed dish retry (v2)`
-                );
-                detBlocking = await runDeterministicChunk(true);
-                step3Engine = "deterministic_relaxed";
-                if (detBlocking.length) {
-                  if (isCriticalStep3Blocking(detBlocking)) {
-                    blockingErrors = detBlocking;
-                  } else {
-                    generationWarnings.push(
-                      `Step 3 (v2): ${detBlocking.length} validation notice(s) \u2014 kept dish plan`
-                    );
-                    blockingErrors = [];
+            if (attempt === 0) {
+              console.log(`Chunk ${chunkIndex + 1}: deterministic Step 3 build`);
+              let detBlocking = await runDeterministicChunk(false);
+              lastAiFailure = null;
+              step3Engine = "deterministic";
+              if (detBlocking.length) {
+                if (isPlanEngineV2(env)) {
+                  console.warn(
+                    `Chunk ${chunkIndex + 1}: validation notices (${detBlocking.length}), relaxed dish retry (v2)`
+                  );
+                  detBlocking = await runDeterministicChunk(true);
+                  step3Engine = "deterministic_relaxed";
+                  if (detBlocking.length) {
+                    if (isCriticalStep3Blocking(detBlocking)) {
+                      blockingErrors = detBlocking;
+                    } else {
+                      generationWarnings.push(
+                        `Step 3 (v2): ${detBlocking.length} validation notice(s) \u2014 kept dish plan`
+                      );
+                      blockingErrors = [];
+                    }
                   }
+                } else {
+                  console.warn(
+                    `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`
+                  );
+                  step3Engine = "ai_fallback";
+                  generationWarnings.push(
+                    "Step 3: deterministic build \u043D\u0435 \u043C\u0438\u043D\u0430 \u0432\u0430\u043B\u0438\u0434\u0430\u0446\u0438\u044F \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D AI fallback \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430"
+                  );
+                  clearChunkDays();
+                  chunkBuilt = false;
+                  blockingErrors = null;
                 }
+              }
+            } else {
+              const useRepair = attempt >= 2;
+              console.log(
+                `Chunk ${chunkIndex + 1}: deterministic Step 3 retry ${attempt + 1} (relaxed${useRepair ? " + slot repair" : ""})`
+              );
+              const detBlocking = await runDeterministicChunk(true, useRepair);
+              lastAiFailure = null;
+              step3Engine = useRepair ? "deterministic_slot_repair" : "deterministic_relaxed";
+              if (detBlocking.length && isCriticalStep3Blocking(detBlocking)) {
+                blockingErrors = detBlocking;
+              } else if (!detBlocking.length) {
+                blockingErrors = [];
               } else {
-                console.warn(
-                  `Chunk ${chunkIndex + 1}: deterministic validation failed (${detBlocking.length}), AI fallback`
-                );
-                step3Engine = "ai_fallback";
                 generationWarnings.push(
-                  "Step 3: deterministic build \u043D\u0435 \u043C\u0438\u043D\u0430 \u0432\u0430\u043B\u0438\u0434\u0430\u0446\u0438\u044F \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D AI fallback \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430"
+                  `Step 3 (v2): ${detBlocking.length} validation notice(s) after retry`
                 );
-                clearChunkDays();
-                chunkBuilt = false;
-                blockingErrors = null;
+                blockingErrors = [];
               }
             }
           } catch (detErr) {
