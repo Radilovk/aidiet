@@ -137,6 +137,25 @@ const bigChunk = await buildDeterministicWeekPlanChunk({
 ok(bigChunk.day1.meals.some(m => m.type === 'Хранене 1'),
   'restored first meal reaches the plan');
 
+// Plated mains must not use snack-tier dishes (banana + nuts cannot scale to 800+ kcal).
+const kamenStrategy = buildDeterministicStrategy({
+  userData: { eatingHabits: ['Не закусвам'], dietPreference: ['Сезонна'] },
+  analysis: { Final_Calories: 3088, recommendedCalories: 3088, macroGrams: { protein: 204, carbs: 334, fats: 97 } },
+});
+const kamenChunk = await buildDeterministicWeekPlanChunk({
+  strategy: kamenStrategy,
+  userData: { eatingHabits: ['Не закусвам'] },
+  startDay: 1,
+  endDay: 1,
+  seed: 11,
+});
+syncWeekPlanNutritionFromDatabase(kamenChunk, kamenStrategy, 1, 1);
+const lunch = kamenChunk.day1.meals.find(m => m.type === 'Хранене 2');
+ok(lunch && !String(lunch.dishId || '').startsWith('snack_'),
+  `lunch is a main dish, not snack (${lunch?.dishId})`);
+const dayKcal = kamenChunk.day1.meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+ok(dayKcal >= 2600, `high-kcal day1 sums to ${dayKcal} kcal`);
+
 const veganChunk = await buildDeterministicWeekPlanChunk({
   strategy: makeStrategy({ meals: 5, dailyKcal: 1900 }),
   userData: { dietPreference: ['Веган'] },

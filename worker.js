@@ -22331,7 +22331,7 @@ function descriptionFromReadyMeal(entry) {
 function readyMealFitsSlot(entry, slotType) {
   const slots = entry.slots || [];
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") {
-    return slots.includes("PRO") || slots.includes("ENG");
+    return entry.timing?.includes("main") && (slots.includes("PRO") || slots.includes("ENG"));
   }
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") return !!entry.timing?.includes("breakfast");
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return !!entry.timing?.includes("snack");

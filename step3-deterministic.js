@@ -194,7 +194,8 @@ function descriptionFromReadyMeal(entry) {
 function readyMealFitsSlot(entry, slotType) {
   const slots = entry.slots || [];
   if (slotType === 'Хранене 2' || slotType === 'Хранене 4') {
-    return slots.includes('PRO') || slots.includes('ENG');
+    // ENG-only snacks (banana + nuts) must not land in plated mains — they cannot scale to 800+ kcal.
+    return entry.timing?.includes('main') && (slots.includes('PRO') || slots.includes('ENG'));
   }
   if (slotType === 'Хранене 1') return !!entry.timing?.includes('breakfast');
   if (slotType === 'Хранене 3') return !!entry.timing?.includes('snack');
