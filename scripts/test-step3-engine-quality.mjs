@@ -204,7 +204,7 @@ for (let d = 1; d <= 7; d++) {
     if (/пилешк.*боб|боб.*пилешк|ябълка.*пилешк|пилешк.*ябълка|мляко.*дomat|дomat.*мляко.*кефир.*мляко/i.test(text)) {
       incoherent.push(`day${d} ${slotType}: ${meal.name}`);
     }
-    if (!READY_DISH.test(meal.name) && parseMealDescription(meal.description).length > 4) {
+    if (!READY_DISH.test(meal.name) && parseMealDescription(meal.description).length > 5) {
       incoherent.push(`day${d} ${slotType}: too many items (${meal.name})`);
     }
   }

@@ -44,7 +44,7 @@ for (let d = 1; d <= 6; d++) {
   if (families.length === 2 && families[0] === families[1] && families[0] !== 'other') dupProteinDays++;
 }
 ok(dupProteinDays === 0, 'no duplicate protein family at lunch+dinner', String(dupProteinDays));
-ok(underDays <= 4, 'majority of days within 8% of 3088 kcal', `${underDays}/6 under 92%`);
+ok(underDays <= 1, 'days within 8% of 3088 kcal', `${underDays}/6 under 92%`);
 ok(validateWeekPlanDayCoherence(chunk).length === 0, 'day coherence');
 
 console.log(`\n=== dietitian engine: ${pass} pass, ${fail} fail ===`);
