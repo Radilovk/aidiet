@@ -21952,131 +21952,10 @@ function checkProductCompatibility(productNames, options = {}) {
   return issues;
 }
 
-// dish-menu-rules.js
-var MAIN_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
-var PROTEIN_PATTERNS = [
-  ["beef", ["\u0433\u043E\u0432\u0435\u0436\u0434", "\u0442\u0435\u043B\u0435\u0448\u043A", "\u0442\u0435\u043B\u0435"]],
-  ["pork", ["\u0441\u0432\u0438\u043D\u0441\u043A", "\u0441\u0432\u0438\u043D\u0441\u043A\u043E"]],
-  ["poultry", ["\u043F\u0438\u043B\u0435\u0448\u043A", "\u043F\u0438\u043B\u0435", "\u043F\u0443\u0435\u0448\u043A", "\u043F\u0443\u0439\u043A\u0430"]],
-  ["fish", ["\u0440\u0438\u0431\u0430", "\u0441\u044C\u043E\u043C\u0433\u0430", "\u0442\u043E\u043D", "\u0442\u0440\u0435\u0441\u043A\u0430", "\u0441\u043A\u0443\u043C\u0440\u0438", "\u0442\u0438\u043B\u0430\u043F\u0438", "\u043B\u0430\u0432\u0440\u0430\u043A", "\u0441\u043A\u0430\u0440\u0438\u0434"]],
-  ["lamb", ["\u0430\u0433\u043D\u0435\u0448\u043A"]],
-  ["legume", ["\u043B\u0435\u0449\u0430", "\u0431\u043E\u0431", "\u043D\u0430\u0445\u0443\u0442", "\u0441\u043E\u0435\u0432", "\u0442\u0435\u043C\u043F\u0435", "\u0442\u043E\u0444\u0443", "\u0444\u0430\u0441\u0443\u043B"]],
-  ["eggs", ["\u044F\u0439\u0446", "\u043E\u043C\u043B\u0435\u0442"]]
-];
-var STAPLE_PATTERNS = [
-  ["rice", ["\u043E\u0440\u0438\u0437"]],
-  ["pasta", ["\u043F\u0430\u0441\u0442\u0430", "\u043C\u0430\u043A\u0430\u0440\u043E\u043D", "\u0441\u043F\u0430\u0433\u0435\u0442\u0438", "\u0444\u0438\u0434\u0435"]],
-  ["potato", ["\u043A\u0430\u0440\u0442\u043E\u0444"]],
-  ["bread", ["\u0445\u043B\u044F\u0431"]],
-  ["oats", ["\u043E\u0432\u0435\u0441"]],
-  ["bulgur", ["\u0435\u043B\u0434\u0430", "\u0431\u0443\u043B\u0433\u0443\u0440", "\u043A\u0438\u043D\u043E\u0430"]]
-];
-var FRUIT_PATTERNS = [
-  "\u0431\u0430\u043D\u0430\u043D",
-  "\u044F\u0431\u044A\u043B\u043A",
-  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
-  "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D",
-  "\u043A\u0440\u0443\u0448\u0430",
-  "\u0433\u0440\u043E\u0437\u0434\u0435",
-  "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
-  "\u0434\u0438\u043D\u044F",
-  "\u043F\u044A\u043F\u0435\u0448",
-  "\u0430\u043D\u0430\u043D\u0430\u0441",
-  "\u043C\u0430\u043D\u0433\u043E",
-  "\u043A\u0430\u0439\u0441\u0438",
-  "\u0441\u043B\u0438\u0432",
-  "\u043C\u0430\u043B\u0438\u043D",
-  "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A",
-  "\u044F\u0433\u043E\u0434"
-];
-function namesForDish(entry) {
-  const parts = READY_MEAL_PARTS[entry?.id] || entry?.products || [];
-  return parts.map((p) => String(p.name || "").toLowerCase()).filter(Boolean);
-}
-function matchFamily(names, patterns) {
-  for (const [family, stems] of patterns) {
-    if (names.some((n) => stems.some((s) => n.includes(s)))) return family;
-  }
-  return null;
-}
-function hasFruit(names) {
-  return names.some((n) => FRUIT_PATTERNS.some((f) => n.includes(f)));
-}
-function classifyDish(entry) {
-  const names = namesForDish(entry);
-  return {
-    protein: matchFamily(names, PROTEIN_PATTERNS),
-    staple: matchFamily(names, STAPLE_PATTERNS),
-    fruit: hasFruit(names)
-  };
-}
-function createDayMenuState() {
-  return {
-    proteins: /* @__PURE__ */ new Set(),
-    staples: /* @__PURE__ */ new Set(),
-    fruitUsed: false
-  };
-}
-function recordDishOnDay(state, entry) {
-  if (!state || !entry) return;
-  const c = classifyDish(entry);
-  if (c.protein) state.proteins.add(c.protein);
-  if (c.staple) state.staples.add(c.staple);
-  if (c.fruit) state.fruitUsed = true;
-}
-function dishAllowedOnDay(state, entry, slotType, mode = "strict") {
-  if (!state || !entry) return true;
-  const c = classifyDish(entry);
-  const main = MAIN_SLOTS.has(slotType);
-  if (main && c.protein && state.proteins.has(c.protein)) return false;
-  if (mode === "strict") {
-    if (main && c.staple && state.staples.has(c.staple)) return false;
-    if (c.fruit && state.fruitUsed) return false;
-  }
-  return true;
-}
-function filterPoolByDayMenu(pool, state, slotType, mode = "strict") {
-  if (!pool?.length || !state) return pool || [];
-  const filtered = pool.filter((e) => dishAllowedOnDay(state, e, slotType, mode));
-  if (filtered.length) return filtered;
-  if (mode === "strict") {
-    return pool.filter((e) => dishAllowedOnDay(state, e, slotType, "protein_only"));
-  }
-  return pool;
-}
-function validateDayMenuRules(dayPlan, dayNum = null) {
-  const issues = [];
-  const prefix = dayNum ? `\u0414\u0435\u043D ${dayNum}: ` : "";
-  const state = createDayMenuState();
-  for (const meal of dayPlan?.meals || []) {
-    if (!meal?.dishId) continue;
-    const real = classifyDish({ id: meal.dishId });
-    if (MAIN_SLOTS.has(meal.type) && real.protein) {
-      if (state.proteins.has(real.protein)) {
-        issues.push(`${prefix}${meal.type}: \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u201E${real.protein}\u201C \u0432 \u0435\u0434\u0438\u043D \u0434\u0435\u043D (${meal.name})`);
-      }
-      state.proteins.add(real.protein);
-    }
-    if (MAIN_SLOTS.has(meal.type) && real.staple) {
-      if (state.staples.has(real.staple)) {
-        issues.push(`${prefix}${meal.type}: \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E \u043D\u0438\u0448\u0435\u0441\u0442\u0435 \u201E${real.staple}\u201C \u043D\u0430 \u043E\u0431\u044F\u0434 \u0438 \u0432\u0435\u0447\u0435\u0440\u044F (${meal.name})`);
-      }
-      state.staples.add(real.staple);
-    }
-    if (real.fruit) {
-      if (state.fruitUsed) {
-        issues.push(`${prefix}${meal.type}: \u043F\u043B\u043E\u0434 \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D \u0432 \u0441\u044A\u0449\u0438\u044F \u0434\u0435\u043D (${meal.name})`);
-      }
-      state.fruitUsed = true;
-    }
-  }
-  return issues;
-}
-
 // meal-combinations.js
 var PLATED_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
 var SKIP_SLOTS = /* @__PURE__ */ new Set(["\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "\u041D\u0430\u043F\u0438\u0442\u043A\u0430"]);
-var MAIN_SLOTS2 = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
+var MAIN_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
 function productNamesOf(meal) {
   return parseMealDescription(meal?.description || "").map((item2) => item2.name);
 }
@@ -22107,7 +21986,6 @@ function validateDayCoherence(dayPlan, dayNum = null) {
       issues.push(`${prefix}"${meal.name || meal.type}": \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0431\u0435\u0437 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A`);
     }
   }
-  issues.push(...validateDayMenuRules(dayPlan, dayNum));
   return issues;
 }
 function validateWeekPlanDayCoherence(weekPlan) {
@@ -22122,7 +22000,7 @@ function validateWeeklyDishVariety(weekPlan, minUniqueRatio = 0.5) {
   const dishes = [];
   for (let d = 1; d <= 7; d++) {
     for (const meal of weekPlan?.[`day${d}`]?.meals || []) {
-      if (MAIN_SLOTS2.has(meal.type) && meal.name) dishes.push(meal.name.trim().toLowerCase());
+      if (MAIN_SLOTS.has(meal.type) && meal.name) dishes.push(meal.name.trim().toLowerCase());
     }
   }
   const unique = new Set(dishes).size;
@@ -22538,8 +22416,6 @@ function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRe
   if (!pool.length) return pool;
   pool = excludeDishesToday(pool, ctx);
   if (!pool.length) return pool;
-  pool = filterPoolByDayMenu(pool, ctx.dayMenu, slotType, ctx.relaxed ? "protein_only" : "strict");
-  if (!pool.length) return pool;
   if (ctx.relaxed || forRepair) return pool;
   const energyFit = narrowByEnergyFit(pool, slotTarget, ctx.achievableCache);
   if (energyFit.length) return preferVegetableOnPlated(energyFit, slotType);
@@ -22597,7 +22473,6 @@ function recordReadyMealUse(entry, ctx, slotType) {
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
   ctx.dishesToday.add(dishDayKey(entry));
-  recordDishOnDay(ctx.dayMenu, entry);
 }
 async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
   if (slotType === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
@@ -22681,7 +22556,6 @@ async function buildDeterministicWeekPlanChunk({
     const meals = [];
     let slotIndex = 0;
     const dishesToday = /* @__PURE__ */ new Set();
-    const dayMenu = createDayMenuState();
     for (const slot of dayScheme.mealBreakdown) {
       if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && dayScheme.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) continue;
       const ctx = {
@@ -22693,7 +22567,6 @@ async function buildDeterministicWeekPlanChunk({
         usedDishes,
         slotDishUses,
         dishesToday,
-        dayMenu,
         achievableCache,
         dietCtx,
         blockedTerms,

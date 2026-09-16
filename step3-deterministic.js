@@ -22,11 +22,6 @@ import {
   resolveDishTagFilter,
 } from './dish-tags.js';
 import { SLOT_REPAIR_CANDIDATE_COUNT } from './step3-slot-repair.js';
-import {
-  createDayMenuState,
-  recordDishOnDay,
-  filterPoolByDayMenu,
-} from './dish-menu-rules.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const MAIN_MEAL_SLOTS = new Set(['Хранене 1', 'Хранене 2', 'Хранене 4']);
@@ -259,9 +254,6 @@ function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRe
   pool = excludeDishesToday(pool, ctx);
   if (!pool.length) return pool;
 
-  pool = filterPoolByDayMenu(pool, ctx.dayMenu, slotType, ctx.relaxed ? 'protein_only' : 'strict');
-  if (!pool.length) return pool;
-
   if (ctx.relaxed || forRepair) return pool;
 
   const energyFit = narrowByEnergyFit(pool, slotTarget, ctx.achievableCache);
@@ -368,7 +360,6 @@ function recordReadyMealUse(entry, ctx, slotType) {
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
   ctx.dishesToday.add(dishDayKey(entry));
-  recordDishOnDay(ctx.dayMenu, entry);
 }
 
 
@@ -477,7 +468,6 @@ export async function buildDeterministicWeekPlanChunk({
     let slotIndex = 0;
     // Reset per day so a dish can recur across the week but never within a day.
     const dishesToday = new Set();
-    const dayMenu = createDayMenuState();
     for (const slot of dayScheme.mealBreakdown) {
       // Схемата е договорът: тя вече е махнала закуската на клиент, който не
       // закусва. Второ, сляпо махане тук изтриваше и лекото първо хранене,
@@ -493,7 +483,6 @@ export async function buildDeterministicWeekPlanChunk({
         usedDishes,
         slotDishUses,
         dishesToday,
-        dayMenu,
         achievableCache,
         dietCtx,
         blockedTerms,
