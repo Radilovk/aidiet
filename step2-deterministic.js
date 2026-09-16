@@ -241,21 +241,82 @@ function feasibleSlotKcal(slotTypes, dailyKcal, restoredSlot) {
       surplus -= room;
     }
   }
+  const sum = kcal.reduce((a, b) => a + b, 0);
+  if (sum > 0 && Math.abs(sum - daily) > 1) {
+    const scale = daily / sum;
+    for (let i = 0; i < kcal.length; i++) {
+      kcal[i] = Math.min(ceilings[i], kcal[i] * scale);
+    }
+    let leftover = daily - kcal.reduce((a, b) => a + b, 0);
+    const snackIdx = slotTypes
+      .map((t, i) => ({ t, i }))
+      .filter(({ t }) => t === 'Хранене 3' || t === 'Хранене 5')
+      .map(({ i }) => i);
+    for (const i of snackIdx) {
+      if (leftover <= 0) break;
+      const room = ceilings[i] - kcal[i];
+      const add = Math.min(leftover, room);
+      kcal[i] += add;
+      leftover -= add;
+    }
+  }
   return kcal;
+}
+
+function normalizeBreakdownCalories(breakdown, dailyKcal, slotTypes) {
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  if (!breakdown.length || !daily) return breakdown;
+  let drift = daily - breakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  if (!drift) return breakdown;
+
+  const adjustOrder = ['Хранене 3', 'Хранене 5', 'Хранене 1', 'Хранене 2', 'Хранене 4', 'Свободно хранене'];
+  for (const type of adjustOrder) {
+    if (!drift) break;
+    const slot = breakdown.find(m => m.type === type);
+    if (!slot) continue;
+    const ceiling = slotCeilingKcal(type, daily);
+    const room = drift > 0 ? ceiling - (Number(slot.calories) || 0) : (Number(slot.calories) || 0) - 50;
+    if (room <= 0) continue;
+    const step = Math.min(Math.abs(drift), room) * Math.sign(drift);
+    const oldCal = Number(slot.calories) || 0;
+    const newCal = oldCal + step;
+    if (oldCal > 0 && newCal > 0) {
+      const ratio = newCal / oldCal;
+      slot.protein = Math.round((Number(slot.protein) || 0) * ratio);
+      slot.carbs = Math.round((Number(slot.carbs) || 0) * ratio);
+      slot.fats = Math.round((Number(slot.fats) || 0) * ratio);
+    }
+    slot.calories = Math.round(newCal);
+    drift -= step;
+  }
+  if (drift !== 0) {
+    for (const type of adjustOrder) {
+      const slot = breakdown.find(m => m.type === type);
+      if (!slot) continue;
+      const ceiling = slotCeilingKcal(type, daily);
+      const room = drift > 0 ? ceiling - (Number(slot.calories) || 0) : (Number(slot.calories) || 0) - 50;
+      if (room <= 0) continue;
+      const step = Math.min(Math.abs(drift), room) * Math.sign(drift);
+      slot.calories = Math.round((Number(slot.calories) || 0) + step);
+      drift -= step;
+      if (!drift) break;
+    }
+  }
+  return breakdown;
 }
 
 function buildSlotBreakdown(slotTypes, dailyKcal, macros, restoredSlot = null) {
   const slotKcal = feasibleSlotKcal(slotTypes, dailyKcal, restoredSlot);
   const { protein, carbs, fats } = fitMacrosToSlotKcal(slotTypes, slotKcal, macros);
 
-  return slotTypes.map((type, i) => ({
+  const breakdown = slotTypes.map((type, i) => ({
     type,
-    // kcal derives from this slot's own macros, so the two can never disagree.
     calories: Math.round(protein[i] * 4 + carbs[i] * 4 + fats[i] * 9),
     protein: protein[i],
     carbs: carbs[i],
     fats: fats[i],
   }));
+  return normalizeBreakdownCalories(breakdown, dailyKcal, slotTypes);
 }
 
 function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay, restoredSlot = null) {

@@ -9,8 +9,9 @@
  *  4. Analysis severity labels must match severityValue bands.
  */
 
-export const MAX_PLATED_SLOT_KCAL_ABSOLUTE = 900;
-export const MAX_PLATED_SLOT_KCAL_BASE = 800;
+/** Реалистичен таван на една чиния — диетолог не слага 900+ kcal в едно хранене. */
+export const MAX_PLATED_SLOT_KCAL_ABSOLUTE = 800;
+export const MAX_PLATED_SLOT_KCAL_BASE = 720;
 export const FREE_MEAL_MAX_DAILY_RATIO = 0.45;
 /** After free meal — dinner stays light (strategy rule). */
 export const FREE_DAY_DINNER_MAX_RATIO = 0.28;
@@ -22,8 +23,9 @@ export const MAX_LATE_SNACK_CALORIES = 200;
 /** Afternoon snack (H3) floor ceiling — fruit/nuts/yogurt cannot reach main-meal targets. */
 export const MAX_AFTERNOON_SNACK_CALORIES = 350;
 /** Колкото и да е денят, следобедната закуска си остава закуска. */
-export const MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE = 450;
-export const AFTERNOON_SNACK_DAILY_RATIO = 0.15;
+/** Реалистичен таван за кисело мляко + плод + ядки — не 500 kcal закуска. */
+export const MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE = 420;
+export const AFTERNOON_SNACK_DAILY_RATIO = 0.13;
 
 /**
  * Таванът на следобедната закуска расте с деня.
@@ -183,8 +185,19 @@ export const FIRST_MEAL_SLOT = 'Хранене 1';
  * това е физическата граница, по която се проверява дали денят изобщо се събира
  * в дадена структура.
  */
+/**
+ * Късната закуска расте леко при висок TDEE — диетолог добавя извара/скир, не надува обяд.
+ */
+export function maxLateSnackKcal(dailyKcal) {
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  if (daily >= 3000) return 280;
+  if (daily >= 2600) return 250;
+  if (daily >= 2200) return 220;
+  return MAX_LATE_SNACK_CALORIES;
+}
+
 export function slotCeilingKcal(slotType, dailyKcal) {
-  if (slotType === 'Хранене 5') return MAX_LATE_SNACK_CALORIES;
+  if (slotType === 'Хранене 5') return maxLateSnackKcal(dailyKcal);
   if (slotType === 'Хранене 3') return maxAfternoonSnackKcal(dailyKcal);
   return MAX_PLATED_SLOT_KCAL_ABSOLUTE;
 }
@@ -275,7 +288,7 @@ export function resolveMealSlotTypes(mealsPerDay, userData, dailyKcal) {
 }
 
 function maxSlotKcal(slotType, mealBreakdown, dailyKcal) {
-  if (slotType === 'Хранене 5') return MAX_LATE_SNACK_CALORIES;
+  if (slotType === 'Хранене 5') return maxLateSnackKcal(dailyKcal);
   if (slotType === 'Хранене 3') return maxAfternoonSnackKcal(dailyKcal);
   return maxPlatedSlotKcal(mealBreakdown, dailyKcal);
 }
@@ -289,7 +302,7 @@ function redistributeMacros(slot, ratio) {
 
 /**
  * Per-slot kcal ceiling from daily budget and plated meal count.
- * High-TDEE clients with few meals need a higher ceiling than 800 — but never above 900.
+ * High-TDEE surplus goes to snacks and extra meals — mains stay at dietitian plate size.
  */
 export function maxPlatedSlotKcal(mealBreakdown, dailyKcal) {
   const breakdown = mealBreakdown || [];
@@ -921,8 +934,10 @@ export function validateLateSnackSlotContent(meal, dayNum = null) {
     errors.push(`${prefix}Хранене 5 не е късна закуска — "${meal.name}"`);
   } else {
     const cal = Number(meal.calories) || 0;
-    if (!isWithinSlotCap(cal, MAX_LATE_SNACK_CALORIES)) {
-      errors.push(`${prefix}Хранене 5: ${cal} kcal > ${MAX_LATE_SNACK_CALORIES} (±${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
+    const cap = Math.max(MAX_LATE_SNACK_CALORIES, Number(meal.targetCalories) || 0);
+    const effectiveCap = Math.min(cap, 280);
+    if (!isWithinSlotCap(cal, effectiveCap)) {
+      errors.push(`${prefix}Хранене 5: ${cal} kcal > ${effectiveCap} (±${slotCalorieTolerance(effectiveCap)})`);
     }
   }
   return errors;
