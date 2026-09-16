@@ -8,6 +8,7 @@
 
 import { checkProductCompatibility, isVegetableProduct } from './meal-compatibility.js';
 import { parseMealDescription } from './food-nutrition.js';
+import { validateDayMenuRules } from './dish-menu-rules.js';
 
 /**
  * Lunch and dinner are the plated meals: they need a vegetable and no sweetener.
@@ -64,6 +65,8 @@ export function validateDayCoherence(dayPlan, dayNum = null) {
       issues.push(`${prefix}"${meal.name || meal.type}": основно хранене без зеленчук`);
     }
   }
+
+  issues.push(...validateDayMenuRules(dayPlan, dayNum));
 
   return issues;
 }
