@@ -72,6 +72,48 @@ export function isMealCaloriesAdequate(achievedKcal, targetKcal) {
   return Math.abs(achieved - target) <= slotCalorieTolerance(target);
 }
 
+/** Дневният сбор — основният договор (диетолог гледа деня, не всеки грам в слот). */
+export function dayCalorieTolerance(dailyKcal) {
+  return Math.max(
+    SLOT_CALORIE_TOLERANCE_MIN_KCAL * 2,
+    Math.round((Number(dailyKcal) || 0) * DAY_CALORIE_TOLERANCE_PERCENT),
+  );
+}
+
+export function isDayCaloriesAdequate(achievedKcal, targetKcal) {
+  const achieved = Number(achievedKcal) || 0;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0 || achieved <= 0) return true;
+  return Math.abs(achieved - target) <= dayCalorieTolerance(target);
+}
+
+/**
+ * Слот е неосъществим, но денят е ОК — диетолог приема пренос между хранения.
+ * @returns {{ blocking: string[], warnings: string[] }}
+ */
+export function classifyInfeasibleSlots(weekPlan, strategy, infeasible = []) {
+  const blocking = [];
+  const warnings = [];
+  const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  for (const slot of infeasible || []) {
+    const d = Number(slot.day) || 0;
+    if (!d) continue;
+    const dayPlan = weekPlan?.[`day${d}`];
+    const dayTarget = strategy?.weeklyScheme?.[dayKeys[d - 1]];
+    const schemeKcal = (dayTarget?.mealBreakdown || [])
+      .reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget?.calories) || 0;
+    const dayKcal = Number(dayPlan?.dailyTotals?.calories)
+      || (dayPlan?.meals || []).reduce((s, m) => s + (Number(m.calories) || 0), 0);
+    const msg = `Ден ${d} ${slot.type}: ${slot.reason}`;
+    if (isDayCaloriesAdequate(dayKcal, schemeKcal)) {
+      warnings.push(`${msg} (денят е в допуск — пренос между хранения)`);
+    } else {
+      blocking.push(`${msg} — смени продуктите`);
+    }
+  }
+  return { blocking, warnings };
+}
+
 /**
  * Таванът е таван, не цел.
  *

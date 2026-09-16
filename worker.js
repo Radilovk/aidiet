@@ -8521,8 +8521,8 @@ function resolveDishTagFilter(userData, strategy, slotType) {
 
 // data/meal-dishes.json
 var meal_dishes_default = {
-  updatedAt: "2026-09-01T02:58:04.349Z",
-  count: 171,
+  updatedAt: "2026-09-16T01:10:00.000Z",
+  count: 186,
   dishes: [
     {
       id: "meal_omelet",
@@ -12708,6 +12708,229 @@ var meal_dishes_default = {
       vegetarian: true,
       universality: 4,
       tags: []
+    },
+    {
+      id: "meal_med_morning_plate",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u044F\u0439\u0446\u0430 \u0438 \u0445\u043B\u044F\u0431",
+      products: [
+        { name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", grams: 200 },
+        { name: "\u044F\u0439\u0446\u0430", grams: 150 },
+        { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", grams: 70 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 },
+        { name: "\u0414\u043E\u043C\u0430\u0442\u0438", grams: 80 }
+      ],
+      timing: ["breakfast"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_oats_athlete_bowl",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E, \u0431\u0430\u043D\u0430\u043D \u0438 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        { name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", grams: 70 },
+        { name: "\u043C\u043B\u044F\u043A\u043E", grams: 250 },
+        { name: "\u0431\u0430\u043D\u0430\u043D", grams: 120 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 25 }
+      ],
+      timing: ["breakfast"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_eggs_avocado_toast",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+      products: [
+        { name: "\u044F\u0439\u0446\u0430", grams: 150 },
+        { name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", grams: 80 },
+        { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", grams: 80 },
+        { name: "\u0414\u043E\u043C\u0430\u0442\u0438", grams: 60 }
+      ],
+      timing: ["breakfast"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_feta_eggs_bread",
+      name: "\u042F\u0439\u0446\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435, \u0445\u043B\u044F\u0431 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        { name: "\u044F\u0439\u0446\u0430", grams: 150 },
+        { name: "\u0441\u0438\u0440\u0435\u043D\u0435", grams: 60 },
+        { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", grams: 70 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 },
+        { name: "\u0427\u0443\u0448\u043A\u0438", grams: 80 }
+      ],
+      timing: ["breakfast"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "snack_greek_fruit_nuts_large",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u043D\u0430\u043D \u0438 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        { name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", grams: 250 },
+        { name: "\u0431\u0430\u043D\u0430\u043D", grams: 120 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 30 }
+      ],
+      timing: ["snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "snack_cottage_pear_walnuts",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043A\u0440\u0443\u0448\u0430 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        { name: "\u0438\u0437\u0432\u0430\u0440\u0430", grams: 200 },
+        { name: "\u043A\u0440\u0443\u0448\u0430", grams: 150 },
+        { name: "\u043E\u0440\u0435\u0445\u0438", grams: 25 }
+      ],
+      timing: ["snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "snack_skyr_oats_banana",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u043E\u0432\u0435\u0441 \u0438 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        { name: "\u0441\u043A\u0438\u0440", grams: 250 },
+        { name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", grams: 50 },
+        { name: "\u0431\u0430\u043D\u0430\u043D", grams: 100 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 20 }
+      ],
+      timing: ["snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "snack_yogurt_honey_nuts",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434, \u044F\u0431\u044A\u043B\u043A\u0430 \u0438 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        { name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", grams: 250 },
+        { name: "\u043C\u0435\u0434", grams: 15 },
+        { name: "\u044F\u0431\u044A\u043B\u043A\u0430", grams: 120 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 25 }
+      ],
+      timing: ["snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: ["mediterranean", "high_energy", "sweet_slot"]
+    },
+    {
+      id: "meal_salmon_potato_plate",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        { name: "\u0441\u044C\u043E\u043C\u0433\u0430", grams: 180 },
+        { name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", grams: 200 },
+        { name: "\u0441\u043F\u0430\u043D\u0430\u043A", grams: 100 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 15 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_cod_rice_salad",
+      name: "\u0422\u0440\u0435\u0441\u043A\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u0430\u043B\u0430\u0442\u0430",
+      products: [
+        { name: "\u0442\u0440\u0435\u0441\u043A\u0430", grams: 180 },
+        { name: "\u043E\u0440\u0438\u0437", grams: 180 },
+        { name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", grams: 120 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_chicken_quinoa_bowl",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438", grams: 180 },
+        { name: "\u043A\u0438\u043D\u043E\u0430", grams: 150 },
+        { name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", grams: 120 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_chicken_sweet_potato",
+      name: "\u041F\u0438\u043B\u0435 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", grams: 180 },
+        { name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", grams: 200 },
+        { name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438", grams: 100 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_mackerel_potato",
+      name: "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        { name: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F", grams: 180 },
+        { name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", grams: 200 },
+        { name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", grams: 100 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "late_skir_nuts_large",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        { name: "\u0441\u043A\u0438\u0440", grams: 200 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 25 },
+        { name: "\u043E\u0440\u0435\u0445\u0438", grams: 15 }
+      ],
+      timing: ["late_snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "late_cottage_pear_nuts",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043A\u0440\u0443\u0448\u0430 \u0438 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        { name: "\u0438\u0437\u0432\u0430\u0440\u0430", grams: 180 },
+        { name: "\u043A\u0440\u0443\u0448\u0430", grams: 100 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 20 }
+      ],
+      timing: ["late_snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
     }
   ]
 };
@@ -19912,6 +20135,38 @@ function isMealCaloriesAdequate(achievedKcal, targetKcal) {
   if (target <= 0 || achieved <= 0) return true;
   return Math.abs(achieved - target) <= slotCalorieTolerance(target);
 }
+function dayCalorieTolerance(dailyKcal) {
+  return Math.max(
+    SLOT_CALORIE_TOLERANCE_MIN_KCAL * 2,
+    Math.round((Number(dailyKcal) || 0) * DAY_CALORIE_TOLERANCE_PERCENT)
+  );
+}
+function isDayCaloriesAdequate(achievedKcal, targetKcal) {
+  const achieved = Number(achievedKcal) || 0;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0 || achieved <= 0) return true;
+  return Math.abs(achieved - target) <= dayCalorieTolerance(target);
+}
+function classifyInfeasibleSlots(weekPlan, strategy, infeasible = []) {
+  const blocking = [];
+  const warnings = [];
+  const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  for (const slot of infeasible || []) {
+    const d = Number(slot.day) || 0;
+    if (!d) continue;
+    const dayPlan = weekPlan?.[`day${d}`];
+    const dayTarget = strategy?.weeklyScheme?.[dayKeys[d - 1]];
+    const schemeKcal = (dayTarget?.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget?.calories) || 0;
+    const dayKcal = Number(dayPlan?.dailyTotals?.calories) || (dayPlan?.meals || []).reduce((s, m) => s + (Number(m.calories) || 0), 0);
+    const msg = `\u0414\u0435\u043D ${d} ${slot.type}: ${slot.reason}`;
+    if (isDayCaloriesAdequate(dayKcal, schemeKcal)) {
+      warnings.push(`${msg} (\u0434\u0435\u043D\u044F\u0442 \u0435 \u0432 \u0434\u043E\u043F\u0443\u0441\u043A \u2014 \u043F\u0440\u0435\u043D\u043E\u0441 \u043C\u0435\u0436\u0434\u0443 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F)`);
+    } else {
+      blocking.push(`${msg} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435`);
+    }
+  }
+  return { blocking, warnings };
+}
 var SLOT_CAP_TOLERANCE_KCAL = 15;
 function isWithinSlotCap(achievedKcal, capKcal) {
   const achieved = Number(achievedKcal) || 0;
@@ -21400,7 +21655,7 @@ function nutritionFromGrams(profile, grams) {
     kcal: Math.round(p * 4 + c * 4 + f * 9)
   };
 }
-var MAIN_SLOTS_FOR_ADDONS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
+var ADDON_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
 var MEAL_SIDE_ADDONS = [
   { name: "\u0431\u0430\u043D\u0430\u043D", defaultGrams: 100, maxGrams: 120, slots: /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]) },
   { name: "\u0431\u0430\u0434\u0435\u043C\u0438", defaultGrams: 20, maxGrams: 30, slots: /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]) },
@@ -21409,7 +21664,7 @@ var MEAL_SIDE_ADDONS = [
   { name: "\u043E\u0440\u0438\u0437", defaultGrams: 80, maxGrams: 100, slots: /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]) }
 ];
 function applyMealSideAddons(items, slotTarget, slotType, extraDb = {}) {
-  if (!MAIN_SLOTS_FOR_ADDONS.has(slotType)) return items;
+  if (!ADDON_SLOTS.has(slotType)) return items;
   const targetKcal = Number(slotTarget?.calories ?? slotTarget?.kcal) || 0;
   if (targetKcal <= 0) return items;
   const tol = Math.max(
@@ -30467,7 +30722,7 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
   errors.push(...validateRequiredMealSlots(dayPlan, dayTarget, dayNum, userData));
   return errors;
 }
-function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null, userData = null, strategy = null) {
+function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null, userData = null, strategy = null, { dayKcalOk = false } = {}) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
   const dietCtx = buildCatalogDietContext(strategy, userData);
@@ -30483,7 +30738,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     const solvedCal = Number(meal.targetCalories) || 0;
     const targetCal = solvedCal > 0 && Math.abs(solvedCal - schemeCal) <= schemeCal * MEAL_CARRY_MAX_DISTORTION + 1 ? solvedCal : schemeCal;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
+    if (!dayKcalOk && targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
       errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438\u043B\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u0430`);
     }
     const weightGrams = mealWeightGramsFromDescription(meal);
@@ -30531,21 +30786,25 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
+      const dayKcal = Number(dayPlan.dailyTotals?.calories) || (dayPlan.meals || []).reduce((s, m) => s + (Number(m.calories) || 0), 0);
+      const schemeKcal = (dayTarget.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
+      const dayKcalOk = isDayCaloriesAdequate(dayKcal, schemeKcal);
       blocking.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
-      blocking.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId, userData, strategy));
+      blocking.push(...validateMealsAgainstScheme(
+        dayPlan,
+        dayTarget,
+        d,
+        clinicalProtocolId,
+        userData,
+        strategy,
+        { dayKcalOk }
+      ));
       for (const meal of dayPlan.meals || []) {
         blocking.push(...validateLightMealSlotContent(meal, d));
         blocking.push(...validateLateSnackSlotContent(meal, d));
       }
-      const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
-      const schemeKcal = (dayTarget.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
-      let dayKcalOk = false;
-      if (dayKcal > 0 && schemeKcal > 0) {
-        const tol = calorieTolerance(schemeKcal);
-        dayKcalOk = Math.abs(dayKcal - schemeKcal) <= schemeKcal * DAY_CALORIE_TOLERANCE_PERCENT;
-        if (!dayKcalOk) {
-          blocking.push(`\u0414\u0435\u043D ${d}: \u0434\u043D\u0435\u0432\u043D\u0438 ${dayKcal} kcal \u2260 \u0441\u0445\u0435\u043C\u0430 ${schemeKcal}`);
-        }
+      if (dayKcal > 0 && schemeKcal > 0 && !dayKcalOk) {
+        blocking.push(`\u0414\u0435\u043D ${d}: \u0434\u043D\u0435\u0432\u043D\u0438 ${dayKcal} kcal \u2260 \u0441\u0445\u0435\u043C\u0430 ${schemeKcal}`);
       }
       const dayTotals = dayPlan.dailyTotals || {};
       const schemeMacros = (dayTarget.mealBreakdown || []).reduce((a, m) => ({
@@ -31915,12 +32174,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     let attempt = 0;
     let lastAiFailure = null;
     let lastInfeasible = [];
-    const appendInfeasibleSlots = (blocking, infeasible = []) => {
-      const out = [...blocking];
-      for (const slot of infeasible) {
-        out.push(`\u0414\u0435\u043D ${slot.day} ${slot.type}: ${slot.reason} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435`);
-      }
-      return out;
+    const appendInfeasibleSlots = (blocking, warnings, infeasible = []) => {
+      const split = classifyInfeasibleSlots(weekPlan, strategy, infeasible);
+      return {
+        blocking: [...blocking, ...split.blocking],
+        warnings: [...warnings, ...split.warnings]
+      };
     };
     while (true) {
       let blockingErrors = null;
@@ -31956,8 +32215,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           data.clinicalProtocol || null,
           data
         );
-        blockingErrors = appendInfeasibleSlots(validation.blocking, syncMeta?.infeasible);
-        chunkWarnings = validation.warnings;
+        const merged = appendInfeasibleSlots(validation.blocking, validation.warnings, syncMeta?.infeasible);
+        blockingErrors = merged.blocking;
+        chunkWarnings = merged.warnings;
         lastInfeasible = syncMeta?.infeasible || [];
       };
       try {
