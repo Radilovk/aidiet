@@ -13,7 +13,7 @@ import { getCatalogCandidatesForChunk, resolveCatalogEntry } from './food-catalo
 import { rankCatalogCandidates } from './candidate-ranking.js';
 import { passesDietRegistry } from './diet-registry.js';
 import { normalizeFoodKey } from './food-utils.js';
-import { parseMealDescription, achievableKcal } from './food-nutrition.js';
+import { parseMealDescription, achievableKcal, dishFitsSlotInNormalRange } from './food-nutrition.js';
 import { isMealCaloriesAdequate } from './plan-normalize.js';
 import { READY_MEAL_PARTS } from './ready-meal-parts.js';
 import {
@@ -22,6 +22,8 @@ import {
   resolveDishTagFilter,
 } from './dish-tags.js';
 import { SLOT_REPAIR_CANDIDATE_COUNT } from './step3-slot-repair.js';
+import { buildWeeklyMenuPlan } from './week-menu-planner.js';
+import { inferDishProteinFamily } from './dish-protein-family.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const MAIN_MEAL_SLOTS = new Set(['Хранене 1', 'Хранене 2', 'Хранене 4']);
@@ -165,12 +167,19 @@ function rankPoolEntries(pool, ctx, roleKey, slotType) {
   return out;
 }
 
+function excludeProteinFamiliesToday(pool, ctx, slotType) {
+  if (!PLATED_MEAL_SLOTS.has(slotType) || !ctx.proteinFamiliesToday?.size) return pool;
+  const alt = pool.filter(e => !ctx.proteinFamiliesToday.has(inferDishProteinFamily(e)));
+  return alt.length ? alt : pool;
+}
+
 function pickFromPool(pool, ctx, roleKey, { exclude = null, slotType = null } = {}) {
   let filtered = filterDiet(pool, ctx.dietCtx);
   if (exclude?.size) {
     const withoutExcluded = filtered.filter(e => !exclude.has(normalizeFoodKey(e.name)));
     if (withoutExcluded.length) filtered = withoutExcluded;
   }
+  filtered = excludeProteinFamiliesToday(filtered, ctx, slotType || ctx.slotType);
   if (!filtered.length) return null;
   const ordered = rankPoolEntries(filtered, { ...ctx, slotType: slotType || ctx.slotType }, roleKey, slotType || ctx.slotType);
   return ordered[0] || null;
@@ -274,9 +283,31 @@ export function listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, 
   return rankPoolEntries(pool, { ...ctx, slotType, slotTarget }, 'READY', slotType).slice(0, limit);
 }
 
-function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
-  const pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx, weeklyMenuPlan) {
+  const plannedId = weeklyMenuPlan?.get(`${ctx.dayNum}:${slotType}`);
+  const ready = candidatesBySlot.get('READY') || [];
+  let pool = ready.filter(e => readyMealFitsSlot(e, slotType));
+  pool = filterDiet(pool, ctx.dietCtx);
+  if (ctx.blockedTerms?.length) {
+    pool = pool.filter(e => !readyMealBlocked(e, ctx.blockedTerms));
+  }
+  pool = excludeDishesToday(pool, ctx);
+  pool = excludeProteinFamiliesToday(pool, ctx, slotType);
+
+  if (!pool.length) {
+    pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+    pool = excludeProteinFamiliesToday(pool, ctx, slotType);
+  }
+  if (!pool.length) {
+    pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, { ...ctx, relaxed: true });
+  }
   if (!pool.length) return null;
+
+  if (plannedId) {
+    const planned = pool.find(e => e.id === plannedId);
+    if (planned) return planned;
+  }
+
   return pickFromPool(pool, { ...ctx, slotType, slotTarget }, 'READY', { slotType });
 }
 
@@ -294,8 +325,12 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
 function narrowByEnergyFit(pool, slotTarget, cache) {
   const targetKcal = Number(slotTarget?.calories) || 0;
   if (targetKcal <= 0) return pool;
-  const scored = pool.map(e => ({ e, kcal: dishAchievableKcal(e, targetKcal, cache) }));
-  const fits = scored.filter(x => isMealCaloriesAdequate(x.kcal, targetKcal));
+  const scored = pool.map(e => ({
+    e,
+    kcal: dishAchievableKcal(e, targetKcal, cache),
+    inRange: dishFitsSlotInNormalRange(e, targetKcal),
+  }));
+  const fits = scored.filter(x => x.inRange && isMealCaloriesAdequate(x.kcal, targetKcal));
   // Първо ястията, които стигат целта. Допускът от 18% значи, че ястие с
   // таван 600 kcal „пасва“ на слот от 722 — три такива слота в един ден и
   // денят излиза 320 kcal по-малко, без нито един слот да е сгрешил.
@@ -304,6 +339,13 @@ function narrowByEnergyFit(pool, slotTarget, cache) {
   const carries = fits.filter(x => x.kcal >= targetKcal);
   if (carries.length >= MIN_DISHES_FOR_ENERGY_PREFERENCE) return carries.map(x => x.e);
   if (fits.length) return fits.map(x => x.e);
+  const inRange = scored.filter(x => x.inRange);
+  if (inRange.length) {
+    return inRange
+      .sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal))
+      .slice(0, CLOSEST_DISH_FALLBACK)
+      .map(x => x.e);
+  }
   return scored
     .sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal))
     .slice(0, CLOSEST_DISH_FALLBACK)
@@ -360,6 +402,10 @@ function recordReadyMealUse(entry, ctx, slotType) {
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
   ctx.dishesToday.add(dishDayKey(entry));
+  if (PLATED_MEAL_SLOTS.has(slotType)) {
+    if (!ctx.proteinFamiliesToday) ctx.proteinFamiliesToday = new Set();
+    ctx.proteinFamiliesToday.add(inferDishProteinFamily(entry));
+  }
 }
 
 
@@ -370,7 +416,9 @@ function recordReadyMealUse(entry, ctx, slotType) {
  * подходящо ястие, това е дупка в списъка — тя се съобщава, вместо да се
  * запълва с произволна комбинация продукти.
  */
-async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
+async function buildMealForSchemeSlot({
+  slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false, weeklyMenuPlan = null,
+}) {
   if (slotType === 'Свободно хранене') {
     return { type: slotType, name: 'Свободно хранене' };
   }
@@ -379,7 +427,7 @@ async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, 
     return { type: slotType, name: drink, description: `• ${drink}` };
   }
 
-  let dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  let dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx, weeklyMenuPlan);
   if (!dish && ctx.repairSlot) {
     const candidates = listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx);
     if (candidates.length) {
@@ -454,6 +502,16 @@ export async function buildDeterministicWeekPlanChunk({
   const usedDishes = collectUsedDishes(previousDays);
   const slotDishUses = slotDishUseMaps();
   const achievableCache = new Map();
+  const weeklyMenuPlan = buildWeeklyMenuPlan({
+    strategy,
+    candidatesBySlot,
+    userData,
+    startDay,
+    endDay,
+    seed,
+    dietCtx,
+    tagFilterForSlot: (slotType, ud, strat) => resolveDishTagFilter(ud, strat, slotType),
+  });
   /** @type {Record<string, { meals: object[] }>} */
   const out = {};
 
@@ -468,6 +526,7 @@ export async function buildDeterministicWeekPlanChunk({
     let slotIndex = 0;
     // Reset per day so a dish can recur across the week but never within a day.
     const dishesToday = new Set();
+    const proteinFamiliesToday = new Set();
     for (const slot of dayScheme.mealBreakdown) {
       // Схемата е договорът: тя вече е махнала закуската на клиент, който не
       // закусва. Второ, сляпо махане тук изтриваше и лекото първо хранене,
@@ -483,6 +542,7 @@ export async function buildDeterministicWeekPlanChunk({
         usedDishes,
         slotDishUses,
         dishesToday,
+        proteinFamiliesToday,
         achievableCache,
         dietCtx,
         blockedTerms,
@@ -499,6 +559,7 @@ export async function buildDeterministicWeekPlanChunk({
         candidatesBySlot,
         ctx,
         includeDessert,
+        weeklyMenuPlan,
       }));
       slotIndex++;
     }

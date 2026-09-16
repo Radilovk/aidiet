@@ -8521,8 +8521,8 @@ function resolveDishTagFilter(userData, strategy, slotType) {
 
 // data/meal-dishes.json
 var meal_dishes_default = {
-  updatedAt: "2026-09-01T02:58:04.349Z",
-  count: 171,
+  updatedAt: "2026-09-16T01:10:00.000Z",
+  count: 186,
   dishes: [
     {
       id: "meal_omelet",
@@ -12708,6 +12708,229 @@ var meal_dishes_default = {
       vegetarian: true,
       universality: 4,
       tags: []
+    },
+    {
+      id: "meal_med_morning_plate",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u044F\u0439\u0446\u0430 \u0438 \u0445\u043B\u044F\u0431",
+      products: [
+        { name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", grams: 200 },
+        { name: "\u044F\u0439\u0446\u0430", grams: 150 },
+        { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", grams: 70 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 },
+        { name: "\u0414\u043E\u043C\u0430\u0442\u0438", grams: 80 }
+      ],
+      timing: ["breakfast"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_oats_athlete_bowl",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u043C\u043B\u044F\u043A\u043E, \u0431\u0430\u043D\u0430\u043D \u0438 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        { name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", grams: 70 },
+        { name: "\u043C\u043B\u044F\u043A\u043E", grams: 250 },
+        { name: "\u0431\u0430\u043D\u0430\u043D", grams: 120 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 25 }
+      ],
+      timing: ["breakfast"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_eggs_avocado_toast",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+      products: [
+        { name: "\u044F\u0439\u0446\u0430", grams: 150 },
+        { name: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", grams: 80 },
+        { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", grams: 80 },
+        { name: "\u0414\u043E\u043C\u0430\u0442\u0438", grams: 60 }
+      ],
+      timing: ["breakfast"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_feta_eggs_bread",
+      name: "\u042F\u0439\u0446\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435, \u0445\u043B\u044F\u0431 \u0438 \u0447\u0443\u0448\u043A\u0438",
+      products: [
+        { name: "\u044F\u0439\u0446\u0430", grams: 150 },
+        { name: "\u0441\u0438\u0440\u0435\u043D\u0435", grams: 60 },
+        { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", grams: 70 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 },
+        { name: "\u0427\u0443\u0448\u043A\u0438", grams: 80 }
+      ],
+      timing: ["breakfast"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "snack_greek_fruit_nuts_large",
+      name: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0431\u0430\u043D\u0430\u043D \u0438 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        { name: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", grams: 250 },
+        { name: "\u0431\u0430\u043D\u0430\u043D", grams: 120 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 30 }
+      ],
+      timing: ["snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "snack_cottage_pear_walnuts",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043A\u0440\u0443\u0448\u0430 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        { name: "\u0438\u0437\u0432\u0430\u0440\u0430", grams: 200 },
+        { name: "\u043A\u0440\u0443\u0448\u0430", grams: 150 },
+        { name: "\u043E\u0440\u0435\u0445\u0438", grams: 25 }
+      ],
+      timing: ["snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "snack_skyr_oats_banana",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u043E\u0432\u0435\u0441 \u0438 \u0431\u0430\u043D\u0430\u043D",
+      products: [
+        { name: "\u0441\u043A\u0438\u0440", grams: 250 },
+        { name: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438", grams: 50 },
+        { name: "\u0431\u0430\u043D\u0430\u043D", grams: 100 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 20 }
+      ],
+      timing: ["snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "snack_yogurt_honey_nuts",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0435\u0434, \u044F\u0431\u044A\u043B\u043A\u0430 \u0438 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        { name: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", grams: 250 },
+        { name: "\u043C\u0435\u0434", grams: 15 },
+        { name: "\u044F\u0431\u044A\u043B\u043A\u0430", grams: 120 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 25 }
+      ],
+      timing: ["snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 4,
+      tags: ["mediterranean", "high_energy", "sweet_slot"]
+    },
+    {
+      id: "meal_salmon_potato_plate",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      products: [
+        { name: "\u0441\u044C\u043E\u043C\u0433\u0430", grams: 180 },
+        { name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", grams: 200 },
+        { name: "\u0441\u043F\u0430\u043D\u0430\u043A", grams: 100 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 15 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_cod_rice_salad",
+      name: "\u0422\u0440\u0435\u0441\u043A\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u0441\u0430\u043B\u0430\u0442\u0430",
+      products: [
+        { name: "\u0442\u0440\u0435\u0441\u043A\u0430", grams: 180 },
+        { name: "\u043E\u0440\u0438\u0437", grams: 180 },
+        { name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", grams: 120 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_chicken_quinoa_bowl",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438", grams: 180 },
+        { name: "\u043A\u0438\u043D\u043E\u0430", grams: 150 },
+        { name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", grams: 120 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_chicken_sweet_potato",
+      name: "\u041F\u0438\u043B\u0435 \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+      products: [
+        { name: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E", grams: 180 },
+        { name: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", grams: 200 },
+        { name: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438", grams: 100 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "meal_mackerel_potato",
+      name: "\u0421\u043A\u0443\u043C\u0440\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      products: [
+        { name: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F", grams: 180 },
+        { name: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438", grams: 200 },
+        { name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", grams: 100 },
+        { name: "\u0437\u0435\u0445\u0442\u0438\u043D", grams: 10 }
+      ],
+      timing: ["main"],
+      vegan: false,
+      vegetarian: false,
+      universality: 4,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "late_skir_nuts_large",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438 \u0438 \u043E\u0440\u0435\u0445\u0438",
+      products: [
+        { name: "\u0441\u043A\u0438\u0440", grams: 200 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 25 },
+        { name: "\u043E\u0440\u0435\u0445\u0438", grams: 15 }
+      ],
+      timing: ["late_snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
+    },
+    {
+      id: "late_cottage_pear_nuts",
+      name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043A\u0440\u0443\u0448\u0430 \u0438 \u0431\u0430\u0434\u0435\u043C\u0438",
+      products: [
+        { name: "\u0438\u0437\u0432\u0430\u0440\u0430", grams: 180 },
+        { name: "\u043A\u0440\u0443\u0448\u0430", grams: 100 },
+        { name: "\u0431\u0430\u0434\u0435\u043C\u0438", grams: 20 }
+      ],
+      timing: ["late_snack"],
+      vegan: false,
+      vegetarian: true,
+      universality: 5,
+      tags: ["mediterranean", "high_energy"]
     }
   ]
 };
@@ -19878,8 +20101,8 @@ function validateProductNamesAgainstProtocol(names, clinicalProtocolId) {
 }
 
 // plan-normalize.js
-var MAX_PLATED_SLOT_KCAL_ABSOLUTE = 900;
-var MAX_PLATED_SLOT_KCAL_BASE = 800;
+var MAX_PLATED_SLOT_KCAL_ABSOLUTE = 800;
+var MAX_PLATED_SLOT_KCAL_BASE = 720;
 var FREE_MEAL_MAX_DAILY_RATIO = 0.45;
 var FREE_DAY_DINNER_MAX_RATIO = 0.28;
 var FREE_DAY_DINNER_MAX_KCAL = 600;
@@ -19887,8 +20110,8 @@ var MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 var MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 var MAX_LATE_SNACK_CALORIES = 200;
 var MAX_AFTERNOON_SNACK_CALORIES = 350;
-var MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE = 450;
-var AFTERNOON_SNACK_DAILY_RATIO = 0.15;
+var MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE = 420;
+var AFTERNOON_SNACK_DAILY_RATIO = 0.13;
 function maxAfternoonSnackKcal(dailyKcal) {
   const daily = Math.max(0, Number(dailyKcal) || 0);
   if (!daily) return MAX_AFTERNOON_SNACK_CALORIES;
@@ -19911,6 +20134,38 @@ function isMealCaloriesAdequate(achievedKcal, targetKcal) {
   const target = Number(targetKcal) || 0;
   if (target <= 0 || achieved <= 0) return true;
   return Math.abs(achieved - target) <= slotCalorieTolerance(target);
+}
+function dayCalorieTolerance(dailyKcal) {
+  return Math.max(
+    SLOT_CALORIE_TOLERANCE_MIN_KCAL * 2,
+    Math.round((Number(dailyKcal) || 0) * DAY_CALORIE_TOLERANCE_PERCENT)
+  );
+}
+function isDayCaloriesAdequate(achievedKcal, targetKcal) {
+  const achieved = Number(achievedKcal) || 0;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0 || achieved <= 0) return true;
+  return Math.abs(achieved - target) <= dayCalorieTolerance(target);
+}
+function classifyInfeasibleSlots(weekPlan, strategy, infeasible = []) {
+  const blocking = [];
+  const warnings = [];
+  const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  for (const slot of infeasible || []) {
+    const d = Number(slot.day) || 0;
+    if (!d) continue;
+    const dayPlan = weekPlan?.[`day${d}`];
+    const dayTarget = strategy?.weeklyScheme?.[dayKeys[d - 1]];
+    const schemeKcal = (dayTarget?.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget?.calories) || 0;
+    const dayKcal = Number(dayPlan?.dailyTotals?.calories) || (dayPlan?.meals || []).reduce((s, m) => s + (Number(m.calories) || 0), 0);
+    const msg = `\u0414\u0435\u043D ${d} ${slot.type}: ${slot.reason}`;
+    if (isDayCaloriesAdequate(dayKcal, schemeKcal)) {
+      warnings.push(`${msg} (\u0434\u0435\u043D\u044F\u0442 \u0435 \u0432 \u0434\u043E\u043F\u0443\u0441\u043A \u2014 \u043F\u0440\u0435\u043D\u043E\u0441 \u043C\u0435\u0436\u0434\u0443 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F)`);
+    } else {
+      blocking.push(`${msg} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435`);
+    }
+  }
+  return { blocking, warnings };
 }
 var SLOT_CAP_TOLERANCE_KCAL = 15;
 function isWithinSlotCap(achievedKcal, capKcal) {
@@ -20025,8 +20280,15 @@ function mainMealRecipients(day) {
   return free ? [free] : [];
 }
 var FIRST_MEAL_SLOT = "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1";
+function maxLateSnackKcal(dailyKcal) {
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  if (daily >= 3e3) return 280;
+  if (daily >= 2600) return 250;
+  if (daily >= 2200) return 220;
+  return MAX_LATE_SNACK_CALORIES;
+}
 function slotCeilingKcal(slotType, dailyKcal) {
-  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return MAX_LATE_SNACK_CALORIES;
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return maxLateSnackKcal(dailyKcal);
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return maxAfternoonSnackKcal(dailyKcal);
   return MAX_PLATED_SLOT_KCAL_ABSOLUTE;
 }
@@ -20082,7 +20344,7 @@ function resolveMealSlotTypes(mealsPerDay, userData, dailyKcal) {
   };
 }
 function maxSlotKcal(slotType, mealBreakdown, dailyKcal) {
-  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return MAX_LATE_SNACK_CALORIES;
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return maxLateSnackKcal(dailyKcal);
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return maxAfternoonSnackKcal(dailyKcal);
   return maxPlatedSlotKcal(mealBreakdown, dailyKcal);
 }
@@ -20613,8 +20875,10 @@ function validateLateSnackSlotContent(meal, dayNum = null) {
     errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5 \u043D\u0435 \u0435 \u043A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 "${meal.name}"`);
   } else {
     const cal = Number(meal.calories) || 0;
-    if (!isWithinSlotCap(cal, MAX_LATE_SNACK_CALORIES)) {
-      errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${cal} kcal > ${MAX_LATE_SNACK_CALORIES} (\xB1${slotCalorieTolerance(MAX_LATE_SNACK_CALORIES)})`);
+    const cap = Math.max(MAX_LATE_SNACK_CALORIES, Number(meal.targetCalories) || 0);
+    const effectiveCap = Math.min(cap, 280);
+    if (!isWithinSlotCap(cal, effectiveCap)) {
+      errors.push(`${prefix}\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5: ${cal} kcal > ${effectiveCap} (\xB1${slotCalorieTolerance(effectiveCap)})`);
     }
   }
   return errors;
@@ -21011,6 +21275,8 @@ function calorieTolerance(targetKcal) {
 }
 var BOUNDS_HEADROOM = 1.35;
 var MAX_MEAL_WEIGHT_GRAMS = 900;
+var DISH_SCALE_MIN = 0.65;
+var DISH_SCALE_MAX = 1.55;
 function expandReadyMealItems(items, extraDb = {}) {
   const out = [];
   const index = buildRegistryIndex();
@@ -21212,27 +21478,71 @@ function macroCost(achieved, target, kcalPerGram2, slotKcal) {
   const scale = Math.max(target * kcalPerGram2, slotKcal * 0.1);
   return Math.abs(achieved - target) * kcalPerGram2 / scale;
 }
-function solveDishScale(items, target, maxTotalGrams) {
+function dishSolverItemsFromParts(parts, extraDb = {}) {
+  return (parts || []).map((p) => {
+    const grams = Number(p.grams) || 0;
+    if (grams <= 0) return null;
+    const { profile } = lookupFoodProfile(p.name, extraDb);
+    return profile ? { name: p.name, referenceGrams: grams, profile } : null;
+  }).filter(Boolean);
+}
+function dishScaleLimits(items, maxTotalGrams) {
   const refs = items.map((i) => Number(i.referenceGrams) || 0);
-  if (refs.some((r) => r <= 0)) return null;
-  const targetKcal = Number(target?.kcal) || 0;
-  if (!(targetKcal > 0)) return null;
   const windows = items.map((item2) => portionWindow(item2));
   const cooking = items.map((it) => isCookingFat(it.name, getCatalogMeta(it.name).nutritionKey));
   const carriers = refs.map((_, i) => !cooking[i]);
   if (!carriers.some(Boolean)) carriers.fill(true);
   const bound = (pick) => refs.map((ref, i) => carriers[i] ? pick(i) / ref : Infinity);
-  const minScale = Math.max(0.35, ...bound((i) => windows[i].min).filter(Number.isFinite));
+  const minScale = Math.max(
+    DISH_SCALE_MIN,
+    Math.max(0.35, ...bound((i) => windows[i].min).filter(Number.isFinite))
+  );
   const maxScale = Math.min(
+    DISH_SCALE_MAX,
     ...bound((i) => windows[i].max),
     maxTotalGrams / refs.reduce((a, b) => a + b, 0)
   );
+  return { minScale, maxScale, cooking, refs };
+}
+function kcalAtDishScale(items, scale, cooking) {
+  const refs = items.map((i) => Number(i.referenceGrams) || 0);
+  const grams = refs.map((ref, i) => cooking[i] ? snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5))) : snapGrams(ref * scale));
+  return totalsFor(items.map((i) => ({ profile: i.profile })), grams).kcal;
+}
+function dishNormalKcalRange(parts, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
+  const items = dishSolverItemsFromParts(parts);
+  if (!items.length) return { min: 0, max: 0, reference: 0 };
+  const { minScale, maxScale, cooking } = dishScaleLimits(items, maxTotalGrams);
+  const reference = kcalAtDishScale(items, 1, cooking);
+  if (maxScale < minScale) return { min: 0, max: 0, reference };
+  return {
+    min: kcalAtDishScale(items, minScale, cooking),
+    max: kcalAtDishScale(items, maxScale, cooking),
+    reference
+  };
+}
+function dishFitsSlotInNormalRange(entry, targetKcal) {
+  const parts = entry?.id ? READY_MEAL_PARTS[entry.id] : null;
+  if (!parts?.length) return true;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0) return true;
+  const range = dishNormalKcalRange(parts);
+  const tol = calorieTolerance(target);
+  if (target < range.min - tol || target > range.max + tol) return false;
+  const achieved = achievableKcal(parts.map((p) => ({ name: p.name, grams: p.grams })), target);
+  return achieved > 0 && Math.abs(achieved - target) <= tol;
+}
+function solveDishScale(items, target, maxTotalGrams) {
+  const refs = items.map((i) => Number(i.referenceGrams) || 0);
+  if (refs.some((r) => r <= 0)) return null;
+  const targetKcal = Number(target?.kcal) || 0;
+  if (!(targetKcal > 0)) return null;
+  const { minScale, maxScale, cooking } = dishScaleLimits(items, maxTotalGrams);
   if (maxScale < minScale) return null;
-  const cookingFatGrams = (ref, scale) => snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5)));
   let best = null;
   const seen = /* @__PURE__ */ new Set();
   for (let scale = minScale; scale <= maxScale + 1e-9; scale += 0.02) {
-    const grams = refs.map((ref, i) => cooking[i] && carriers.some((c, j) => c && j !== i) ? cookingFatGrams(ref, scale) : snapGrams(ref * scale));
+    const grams = refs.map((ref, i) => cooking[i] ? snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5))) : snapGrams(ref * scale));
     const key = grams.join(",");
     if (seen.has(key)) continue;
     seen.add(key);
@@ -21345,6 +21655,52 @@ function nutritionFromGrams(profile, grams) {
     kcal: Math.round(p * 4 + c * 4 + f * 9)
   };
 }
+var ADDON_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
+var MEAL_SIDE_ADDONS = [
+  { name: "\u0431\u0430\u043D\u0430\u043D", defaultGrams: 100, maxGrams: 120, slots: /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]) },
+  { name: "\u0431\u0430\u0434\u0435\u043C\u0438", defaultGrams: 20, maxGrams: 30, slots: /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]) },
+  { name: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", defaultGrams: 50, maxGrams: 70, slots: /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]) },
+  { name: "\u043E\u0440\u0435\u0445\u0438", defaultGrams: 20, maxGrams: 25, slots: /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]) },
+  { name: "\u043E\u0440\u0438\u0437", defaultGrams: 80, maxGrams: 100, slots: /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]) }
+];
+function applyMealSideAddons(items, slotTarget, slotType, extraDb = {}) {
+  if (!ADDON_SLOTS.has(slotType)) return items;
+  const targetKcal = Number(slotTarget?.calories ?? slotTarget?.kcal) || 0;
+  if (targetKcal <= 0) return items;
+  const tol = Math.max(
+    SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+    Math.round(targetKcal * SLOT_CALORIE_TOLERANCE_PERCENT)
+  );
+  let out = items.map((it) => ({ ...it }));
+  const names = new Set(out.map((it) => normalizeFoodKey(it.name)));
+  for (let pass = 0; pass < 6; pass++) {
+    const current = out.reduce((sum, it) => {
+      if (!it.profile || !(it.grams > 0)) return sum;
+      return sum + nutritionFromGrams(it.profile, it.grams).kcal;
+    }, 0);
+    const gap = targetKcal - current;
+    if (gap <= tol || gap < 40) break;
+    let best = null;
+    for (const addon of MEAL_SIDE_ADDONS) {
+      if (!addon.slots.has(slotType)) continue;
+      if (names.has(normalizeFoodKey(addon.name))) continue;
+      const { profile } = lookupFoodProfile(addon.name, extraDb);
+      if (!profile) continue;
+      for (const grams of [addon.defaultGrams, addon.maxGrams]) {
+        const g = snapGrams(grams);
+        const kcal = nutritionFromGrams(profile, g).kcal;
+        if (kcal <= 0) continue;
+        const overshoot = current + kcal - targetKcal;
+        const cost2 = Math.abs(gap - kcal) + (overshoot > tol ? overshoot * 2 : 0);
+        if (!best || cost2 < best.cost) best = { name: addon.name, grams: g, profile, cost: cost2 };
+      }
+    }
+    if (!best) break;
+    out.push({ name: best.name, grams: best.grams, profile: best.profile });
+    names.add(normalizeFoodKey(best.name));
+  }
+  return out;
+}
 function sumItemNutrition(items) {
   return items.reduce(
     (acc, item2) => {
@@ -21433,8 +21789,35 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
     ...item2,
     grams: capItemGrams(item2, seedGramsForItem(item2, bounds[i], slotTarget, items.length))
   }));
-  const solved = solveDishScale(items, slotTarget, plateBudget) || solveMealGrams(items, slotTarget, bounds, plateBudget);
+  let solved = solveDishScale(items, slotTarget, plateBudget);
+  if (!solved && dishParts?.length) {
+    return {
+      ok: false,
+      unknowns: [],
+      feasible: false,
+      reason: "\u043F\u043E\u0440\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435\u0442\u043E \u043D\u0435 \u0441\u0442\u0438\u0433\u0430 \u0446\u0435\u043B\u0442\u0430 \u0432 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438 \u0433\u0440\u0430\u043D\u0438\u0446\u0438 \u2014 \u0438\u0437\u0431\u0435\u0440\u0438 \u0434\u0440\u0443\u0433\u043E \u044F\u0441\u0442\u0438\u0435"
+    };
+  }
+  if (!solved) solved = solveMealGrams(items, slotTarget, bounds, plateBudget);
   items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i]) }));
+  if (dishParts?.length) {
+    const beforeAddons = sumItemNutrition(items.filter((it) => it.profile));
+    const addonTol = Math.max(
+      SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+      slotTarget.kcal * SLOT_CALORIE_TOLERANCE_PERCENT
+    );
+    if (beforeAddons.kcal < slotTarget.kcal - Math.min(addonTol, 50)) {
+      items = applyMealSideAddons(items, { calories: slotTarget.kcal }, meal.type, extraDb).map((it) => ({
+        ...it,
+        profile: it.profile || lookupFoodProfile(it.name, extraDb).profile
+      }));
+      const addonTotals = sumItemNutrition(items.filter((it) => it.profile));
+      solved = {
+        ...solved,
+        feasible: Math.abs(addonTotals.kcal - slotTarget.kcal) <= addonTol
+      };
+    }
+  }
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
   let c = Math.round(totals.c);
@@ -21449,7 +21832,8 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
   meal.macros = { protein: p, carbs: c, fats: f };
   meal.calories = Math.round(p * 4 + c * 4 + f * 9);
   if (meal.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") {
-    const cap = Math.min(MAX_LATE_SNACK_CALORIES, Number(target?.calories) || MAX_LATE_SNACK_CALORIES);
+    const schemeCap = Number(target?.calories) || MAX_LATE_SNACK_CALORIES;
+    const cap = Math.min(280, Math.max(MAX_LATE_SNACK_CALORIES, schemeCap));
     if (meal.calories > cap) {
       const ratio = cap / meal.calories;
       p = Math.round(p * ratio);
@@ -21496,7 +21880,7 @@ function profileToKvArray(profile) {
 
 // meal-day-sync.js
 var SKIP_TYPES = /* @__PURE__ */ new Set(["\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "\u041D\u0430\u043F\u0438\u0442\u043A\u0430"]);
-var MEAL_CARRY_MAX_DISTORTION = 0.25;
+var MEAL_CARRY_MAX_DISTORTION = 0.3;
 function applyAtomicMealNutrition(meal, schemeTarget) {
   const entry = resolveAtomicEntryFromDescription(meal.description);
   if (!entry?.fixedNutrition) {
@@ -22239,8 +22623,163 @@ function parseSlotRepairResponse(response, candidates = []) {
   return null;
 }
 
-// step3-deterministic.js
+// dish-protein-family.js
+var FAMILY_RULES = [
+  { family: "chicken", terms: ["\u043F\u0438\u043B\u0435\u0448\u043A", "\u043F\u0438\u043B\u0435 ", "\u043F\u0438\u043B\u0435\u0448\u043A\u043E"] },
+  { family: "beef", terms: ["\u0433\u043E\u0432\u0435\u0436\u0434", "\u0442\u0435\u043B\u0435\u0448\u043A", "\u043A\u0430\u0439\u043C\u0430"] },
+  { family: "pork", terms: ["\u0441\u0432\u0438\u043D\u0441\u043A"] },
+  { family: "fish", terms: ["\u0440\u0438\u0431\u0430", "\u0441\u044C\u043E\u043C\u0433\u0430", "\u0441\u043A\u0443\u043C\u0440\u0438", "\u0442\u0440\u0435\u0441\u043A\u0430", "\u0442\u043E\u043D", "\u0445\u0435\u0440\u0438\u043D\u0433\u0430", "\u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430"] },
+  { family: "eggs", terms: ["\u044F\u0439\u0446\u0430", "\u044F\u0439\u0446\u0435", "\u043E\u043C\u043B\u0435\u0442"] },
+  { family: "dairy", terms: ["\u0438\u0437\u0432\u0430\u0440\u0430", "\u0441\u043A\u0438\u0440", "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "\u043A\u0435\u0444\u0438\u0440", "\u0441\u0438\u0440\u0435\u043D\u0435", "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430"] },
+  { family: "legume", terms: ["\u0431\u043E\u0431", "\u043B\u0435\u0449\u0430", "\u043D\u0430\u0445\u0443\u0442", "\u0441\u043E\u044F", "\u0442\u0435\u043C\u043F\u0435", "\u0442\u043E\u0444\u0443"] },
+  { family: "turkey", terms: ["\u043F\u0443\u0435\u0448\u043A", "\u043F\u0443\u0439\u043A\u0430"] }
+];
+function textFromDish(entry) {
+  const parts = entry?.id ? READY_MEAL_PARTS[entry.id] : entry?.products;
+  const names = (parts || []).map((p) => p.name).join(" ");
+  return normalizeFoodKey(`${entry?.name || ""} ${names}`);
+}
+function inferDishProteinFamily(entry) {
+  const text = textFromDish(entry);
+  for (const { family, terms } of FAMILY_RULES) {
+    if (terms.some((t) => text.includes(normalizeFoodKey(t)))) return family;
+  }
+  return "other";
+}
+function dishHasFruit(entry) {
+  const text = textFromDish(entry);
+  return /банан|ябълк|круш|портокал|ягод|боровинк|малин|плод/.test(text);
+}
+function dishHasMajorStarch(entry) {
+  const parts = entry?.id ? READY_MEAL_PARTS[entry.id] : entry?.products;
+  if (!parts?.length) return false;
+  return parts.some((p) => {
+    const g = Number(p.grams) || 0;
+    const n = normalizeFoodKey(p.name);
+    return g >= 80 && /ориз|паста|картоф|хляб|макарон|киноа|овес/.test(n);
+  });
+}
+
+// week-menu-planner.js
 var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var PLATED_SLOTS2 = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
+function readyMealFitsSlot(entry, slotType) {
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") {
+    return entry.timing?.includes("main") && (entry.slots?.includes("PRO") || entry.slots?.includes("ENG"));
+  }
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") return !!entry.timing?.includes("breakfast");
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return !!entry.timing?.includes("snack");
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return !!entry.timing?.includes("late_snack");
+  return true;
+}
+function dishAchievableKcal(entry, targetKcal) {
+  const parts = READY_MEAL_PARTS[entry.id];
+  if (!parts?.length) return 0;
+  return achievableKcal(parts.map((p) => ({ name: p.name, grams: p.grams })), targetKcal);
+}
+function scoreDishForSlot(entry, slotTarget, ctx) {
+  const targetKcal = Number(slotTarget?.calories) || 0;
+  const dishKey = entry.id;
+  const weekUses = ctx.weekDishUses.get(dishKey) || 0;
+  const dayUses = ctx.dayDishUses.has(dishKey) ? 1 : 0;
+  const family = inferDishProteinFamily(entry);
+  const familyPenalty = PLATED_SLOTS2.has(ctx.slotType) && ctx.dayProteinFamilies.has(family) ? 8 : 0;
+  const fruitPenalty = dishHasFruit(entry) && ctx.dayHasFruit ? 6 : 0;
+  const starchPenalty = dishHasMajorStarch(entry) && ctx.dayStarchCount >= 2 ? 4 : 0;
+  const kcal = dishAchievableKcal(entry, targetKcal);
+  const energyCost = targetKcal > 0 ? Math.abs(kcal - targetKcal) / targetKcal : 0;
+  const inRange = dishFitsSlotInNormalRange(entry, targetKcal);
+  const fitsBonus = inRange && isMealCaloriesAdequate(kcal, targetKcal) ? -2 : 0;
+  const seedBias = (ctx.seed + ctx.dayNum * 17 + ctx.slotIndex * 11 + dishKey.length) % 100 / 500;
+  return weekUses * 3 + dayUses * 10 + familyPenalty + fruitPenalty + starchPenalty + energyCost * 2 + fitsBonus + seedBias;
+}
+function filterPool(pool, slotType, slotTarget, ctx) {
+  let filtered = pool.filter((e) => readyMealFitsSlot(e, slotType));
+  filtered = filtered.filter((e) => passesDietRegistry(e, ctx.dietCtx));
+  if (ctx.tagFilter) {
+    const tagged = filtered.filter((e) => dishMatchesTagFilter(e, ctx.tagFilter));
+    if (tagged.length) filtered = tagged;
+  }
+  filtered = filtered.filter((e) => !ctx.dayDishUses.has(e.id));
+  if (PLATED_SLOTS2.has(slotType) && ctx.dayProteinFamilies.size) {
+    const alt = filtered.filter((e) => !ctx.dayProteinFamilies.has(inferDishProteinFamily(e)));
+    if (alt.length) filtered = alt;
+  }
+  if (ctx.dayHasFruit) {
+    const noFruit = filtered.filter((e) => !dishHasFruit(e));
+    if (noFruit.length) filtered = noFruit;
+  }
+  return filtered;
+}
+function pickBestDish(pool, slotType, slotTarget, ctx) {
+  if (!pool.length) return null;
+  const scored = pool.map((entry) => ({ entry, score: scoreDishForSlot(entry, slotTarget, { ...ctx, slotType }) })).sort((a, b) => a.score - b.score);
+  return scored[0]?.entry || null;
+}
+function recordPick(entry, slotType, ctx) {
+  const id = entry.id;
+  ctx.weekDishUses.set(id, (ctx.weekDishUses.get(id) || 0) + 1);
+  ctx.dayDishUses.add(id);
+  if (PLATED_SLOTS2.has(slotType)) {
+    ctx.dayProteinFamilies.add(inferDishProteinFamily(entry));
+  }
+  if (dishHasFruit(entry)) ctx.dayHasFruit = true;
+  if (dishHasMajorStarch(entry)) ctx.dayStarchCount += 1;
+}
+function buildWeeklyMenuPlan({
+  strategy,
+  candidatesBySlot,
+  userData = null,
+  startDay = 1,
+  endDay = 7,
+  seed = 0,
+  tagFilterForSlot = () => null,
+  dietCtx = {}
+}) {
+  const plan = /* @__PURE__ */ new Map();
+  const ready = candidatesBySlot.get("READY") || [];
+  const weekDishUses = /* @__PURE__ */ new Map();
+  for (let dayNum = startDay; dayNum <= endDay; dayNum++) {
+    const schemeKey = DAY_KEYS[dayNum - 1];
+    const dayScheme = strategy?.weeklyScheme?.[schemeKey];
+    if (!dayScheme?.mealBreakdown?.length) continue;
+    const dayDishUses = /* @__PURE__ */ new Set();
+    const dayProteinFamilies = /* @__PURE__ */ new Set();
+    let dayHasFruit = false;
+    let dayStarchCount = 0;
+    let slotIndex = 0;
+    for (const slot of dayScheme.mealBreakdown) {
+      if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && dayScheme.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) {
+        continue;
+      }
+      const ctx = {
+        seed: Number(seed) || 0,
+        dayNum,
+        slotIndex,
+        weekDishUses,
+        dayDishUses,
+        dayProteinFamilies,
+        dayHasFruit,
+        dayStarchCount,
+        dietCtx,
+        tagFilter: tagFilterForSlot(slot.type, userData, strategy)
+      };
+      const pool = filterPool(ready, slot.type, slot, ctx);
+      const dish = pickBestDish(pool, slot.type, slot, ctx);
+      if (dish) {
+        plan.set(`${dayNum}:${slot.type}`, dish.id);
+        recordPick(dish, slot.type, ctx);
+        dayHasFruit = ctx.dayHasFruit;
+        dayStarchCount = ctx.dayStarchCount;
+      }
+      slotIndex++;
+    }
+  }
+  return plan;
+}
+
+// step3-deterministic.js
+var DAY_KEYS2 = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var PLATED_MEAL_SLOTS = /* @__PURE__ */ new Set(["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"]);
 function deterministicStep3Enabled(env = {}) {
   const v = env?.DETERMINISTIC_STEP3;
@@ -22351,12 +22890,18 @@ function rankPoolEntries(pool, ctx, roleKey, slotType) {
   }
   return out;
 }
+function excludeProteinFamiliesToday(pool, ctx, slotType) {
+  if (!PLATED_MEAL_SLOTS.has(slotType) || !ctx.proteinFamiliesToday?.size) return pool;
+  const alt = pool.filter((e) => !ctx.proteinFamiliesToday.has(inferDishProteinFamily(e)));
+  return alt.length ? alt : pool;
+}
 function pickFromPool(pool, ctx, roleKey, { exclude = null, slotType = null } = {}) {
   let filtered = filterDiet(pool, ctx.dietCtx);
   if (exclude?.size) {
     const withoutExcluded = filtered.filter((e) => !exclude.has(normalizeFoodKey(e.name)));
     if (withoutExcluded.length) filtered = withoutExcluded;
   }
+  filtered = excludeProteinFamiliesToday(filtered, ctx, slotType || ctx.slotType);
   if (!filtered.length) return null;
   const ordered = rankPoolEntries(filtered, { ...ctx, slotType: slotType || ctx.slotType }, roleKey, slotType || ctx.slotType);
   return ordered[0] || null;
@@ -22373,7 +22918,7 @@ function descriptionFromReadyMeal(entry) {
   const single = catalogName(entry.name);
   return single ? `\u2022 ${single}` : `\u2022 ${entry.name}`;
 }
-function readyMealFitsSlot(entry, slotType) {
+function readyMealFitsSlot2(entry, slotType) {
   const slots = entry.slots || [];
   if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4") {
     return entry.timing?.includes("main") && (slots.includes("PRO") || slots.includes("ENG"));
@@ -22401,7 +22946,7 @@ function preferVegetableOnPlated(pool, slotType) {
 }
 function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRepair = false } = {}) {
   const ready = candidatesBySlot.get("READY") || [];
-  let pool = ready.filter((e) => readyMealFitsSlot(e, slotType));
+  let pool = ready.filter((e) => readyMealFitsSlot2(e, slotType));
   if (!pool.length && slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") {
     pool = ready.filter((e) => e.timing?.includes("main"));
   }
@@ -22429,24 +22974,51 @@ function listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx, li
   if (!pool.length) return [];
   return rankPoolEntries(pool, { ...ctx, slotType, slotTarget }, "READY", slotType).slice(0, limit);
 }
-function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
-  const pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx, weeklyMenuPlan) {
+  const plannedId = weeklyMenuPlan?.get(`${ctx.dayNum}:${slotType}`);
+  const ready = candidatesBySlot.get("READY") || [];
+  let pool = ready.filter((e) => readyMealFitsSlot2(e, slotType));
+  pool = filterDiet(pool, ctx.dietCtx);
+  if (ctx.blockedTerms?.length) {
+    pool = pool.filter((e) => !readyMealBlocked(e, ctx.blockedTerms));
+  }
+  pool = excludeDishesToday(pool, ctx);
+  pool = excludeProteinFamiliesToday(pool, ctx, slotType);
+  if (!pool.length) {
+    pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
+    pool = excludeProteinFamiliesToday(pool, ctx, slotType);
+  }
+  if (!pool.length) {
+    pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, { ...ctx, relaxed: true });
+  }
   if (!pool.length) return null;
+  if (plannedId) {
+    const planned = pool.find((e) => e.id === plannedId);
+    if (planned) return planned;
+  }
   return pickFromPool(pool, { ...ctx, slotType, slotTarget }, "READY", { slotType });
 }
 function narrowByEnergyFit(pool, slotTarget, cache) {
   const targetKcal = Number(slotTarget?.calories) || 0;
   if (targetKcal <= 0) return pool;
-  const scored = pool.map((e) => ({ e, kcal: dishAchievableKcal(e, targetKcal, cache) }));
-  const fits = scored.filter((x) => isMealCaloriesAdequate(x.kcal, targetKcal));
+  const scored = pool.map((e) => ({
+    e,
+    kcal: dishAchievableKcal2(e, targetKcal, cache),
+    inRange: dishFitsSlotInNormalRange(e, targetKcal)
+  }));
+  const fits = scored.filter((x) => x.inRange && isMealCaloriesAdequate(x.kcal, targetKcal));
   const carries = fits.filter((x) => x.kcal >= targetKcal);
   if (carries.length >= MIN_DISHES_FOR_ENERGY_PREFERENCE) return carries.map((x) => x.e);
   if (fits.length) return fits.map((x) => x.e);
+  const inRange = scored.filter((x) => x.inRange);
+  if (inRange.length) {
+    return inRange.sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal)).slice(0, CLOSEST_DISH_FALLBACK).map((x) => x.e);
+  }
   return scored.sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal)).slice(0, CLOSEST_DISH_FALLBACK).map((x) => x.e);
 }
 var CLOSEST_DISH_FALLBACK = 5;
 var MIN_DISHES_FOR_ENERGY_PREFERENCE = 4;
-function dishAchievableKcal(entry, targetKcal, cache) {
+function dishAchievableKcal2(entry, targetKcal, cache) {
   const key = `${entry.id || entry.name}|${targetKcal}`;
   let kcal = cache?.get(key);
   if (kcal === void 0) {
@@ -22473,8 +23045,19 @@ function recordReadyMealUse(entry, ctx, slotType) {
     ctx.usedProducts.set(k, (ctx.usedProducts.get(k) || 0) + 1);
   }
   ctx.dishesToday.add(dishDayKey(entry));
+  if (PLATED_MEAL_SLOTS.has(slotType)) {
+    if (!ctx.proteinFamiliesToday) ctx.proteinFamiliesToday = /* @__PURE__ */ new Set();
+    ctx.proteinFamiliesToday.add(inferDishProteinFamily(entry));
+  }
 }
-async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
+async function buildMealForSchemeSlot({
+  slotType,
+  slotTarget,
+  candidatesBySlot,
+  ctx,
+  includeDessert = false,
+  weeklyMenuPlan = null
+}) {
   if (slotType === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
     return { type: slotType, name: "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" };
   }
@@ -22482,7 +23065,7 @@ async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, 
     const drink = catalogName("\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439") || "\u0417\u0435\u043B\u0435\u043D \u0447\u0430\u0439";
     return { type: slotType, name: drink, description: `\u2022 ${drink}` };
   }
-  let dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
+  let dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx, weeklyMenuPlan);
   if (!dish && ctx.repairSlot) {
     const candidates = listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx);
     if (candidates.length) {
@@ -22546,9 +23129,19 @@ async function buildDeterministicWeekPlanChunk({
   const usedDishes = collectUsedDishes(previousDays);
   const slotDishUses = slotDishUseMaps();
   const achievableCache = /* @__PURE__ */ new Map();
+  const weeklyMenuPlan = buildWeeklyMenuPlan({
+    strategy,
+    candidatesBySlot,
+    userData,
+    startDay,
+    endDay,
+    seed,
+    dietCtx,
+    tagFilterForSlot: (slotType, ud, strat) => resolveDishTagFilter(ud, strat, slotType)
+  });
   const out = {};
   for (let dayNum = startDay; dayNum <= endDay; dayNum++) {
-    const schemeKey = DAY_KEYS[dayNum - 1];
+    const schemeKey = DAY_KEYS2[dayNum - 1];
     const dayScheme = strategy.weeklyScheme[schemeKey];
     if (!dayScheme?.mealBreakdown?.length) {
       throw new Error(`Missing mealBreakdown for ${schemeKey}`);
@@ -22556,6 +23149,7 @@ async function buildDeterministicWeekPlanChunk({
     const meals = [];
     let slotIndex = 0;
     const dishesToday = /* @__PURE__ */ new Set();
+    const proteinFamiliesToday = /* @__PURE__ */ new Set();
     for (const slot of dayScheme.mealBreakdown) {
       if (slot.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && dayScheme.mealBreakdown.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) continue;
       const ctx = {
@@ -22567,6 +23161,7 @@ async function buildDeterministicWeekPlanChunk({
         usedDishes,
         slotDishUses,
         dishesToday,
+        proteinFamiliesToday,
         achievableCache,
         dietCtx,
         blockedTerms,
@@ -22581,7 +23176,8 @@ async function buildDeterministicWeekPlanChunk({
         slotTarget: slot,
         candidatesBySlot,
         ctx,
-        includeDessert
+        includeDessert,
+        weeklyMenuPlan
       }));
       slotIndex++;
     }
@@ -22669,7 +23265,7 @@ function resolveLibraryDietProfile(ctx = {}) {
 }
 
 // protocol-validate.js
-var DAY_KEYS2 = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var DAY_KEYS3 = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var CANONICAL_MEAL_TYPES2 = [
   "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1",
   "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2",
@@ -22710,7 +23306,7 @@ function validateProtocolStrategy(strategy, analysis = null, userData = null) {
   if (strategy.mealCountJustification && strategy.mealCountJustification.length < 20) {
     blocking.push("mealCountJustification \u0442\u0432\u044A\u0440\u0434\u0435 \u043A\u0440\u0430\u0442\u043A\u043E");
   }
-  for (const dayKey of DAY_KEYS2) {
+  for (const dayKey of DAY_KEYS3) {
     const day = strategy.weeklyScheme[dayKey];
     if (!day) {
       blocking.push(`weeklyScheme.${dayKey} \u043B\u0438\u043F\u0441\u0432\u0430`);
@@ -22755,7 +23351,7 @@ function validateProtocolStrategy(strategy, analysis = null, userData = null) {
   }
   const freeDay = Number(strategy.freeDayNumber);
   if (freeDay >= 1 && freeDay <= 7) {
-    const freeScheme = strategy.weeklyScheme[DAY_KEYS2[freeDay - 1]];
+    const freeScheme = strategy.weeklyScheme[DAY_KEYS3[freeDay - 1]];
     const hasFree = freeScheme?.mealBreakdown?.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
     if (!hasFree) {
       warnings.push(`freeDayNumber=${freeDay} \u043D\u043E \u043B\u0438\u043F\u0441\u0432\u0430 \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 mealBreakdown`);
@@ -22766,7 +23362,7 @@ function validateProtocolStrategy(strategy, analysis = null, userData = null) {
 }
 
 // step2-deterministic.js
-var DAY_KEYS3 = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+var DAY_KEYS4 = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var DIET_PROFILE_LABELS = {
   balanced: "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E",
   mediterranean: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0430",
@@ -22906,10 +23502,10 @@ function feasibleSlotKcal(slotTypes, dailyKcal, restoredSlot) {
   if (!daily) return kcal;
   const restoredIdx = restoredSlot ? slotTypes.indexOf(restoredSlot) : -1;
   if (restoredIdx >= 0) {
-    const othersCeiling = ceilings.reduce((sum, c, i) => i === restoredIdx ? sum : sum + c, 0);
+    const othersCeiling = ceilings.reduce((sum2, c, i) => i === restoredIdx ? sum2 : sum2 + c, 0);
     kcal[restoredIdx] = Math.max(0, daily - othersCeiling);
     const rest = daily - kcal[restoredIdx];
-    const restRaw = raw.reduce((sum, w, i) => i === restoredIdx ? sum : sum + w, 0) || 1;
+    const restRaw = raw.reduce((sum2, w, i) => i === restoredIdx ? sum2 : sum2 + w, 0) || 1;
     for (let i = 0; i < kcal.length; i++) {
       if (i !== restoredIdx) kcal[i] = raw[i] / restRaw * rest;
     }
@@ -22930,19 +23526,75 @@ function feasibleSlotKcal(slotTypes, dailyKcal, restoredSlot) {
       surplus -= room;
     }
   }
+  const sum = kcal.reduce((a, b) => a + b, 0);
+  if (sum > 0 && Math.abs(sum - daily) > 1) {
+    const scale = daily / sum;
+    for (let i = 0; i < kcal.length; i++) {
+      kcal[i] = Math.min(ceilings[i], kcal[i] * scale);
+    }
+    let leftover = daily - kcal.reduce((a, b) => a + b, 0);
+    const snackIdx = slotTypes.map((t, i) => ({ t, i })).filter(({ t }) => t === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" || t === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5").map(({ i }) => i);
+    for (const i of snackIdx) {
+      if (leftover <= 0) break;
+      const room = ceilings[i] - kcal[i];
+      const add = Math.min(leftover, room);
+      kcal[i] += add;
+      leftover -= add;
+    }
+  }
   return kcal;
+}
+function normalizeBreakdownCalories(breakdown, dailyKcal, slotTypes) {
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  if (!breakdown.length || !daily) return breakdown;
+  let drift = daily - breakdown.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+  if (!drift) return breakdown;
+  const adjustOrder = ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"];
+  for (const type of adjustOrder) {
+    if (!drift) break;
+    const slot = breakdown.find((m) => m.type === type);
+    if (!slot) continue;
+    const ceiling = slotCeilingKcal(type, daily);
+    const room = drift > 0 ? ceiling - (Number(slot.calories) || 0) : (Number(slot.calories) || 0) - 50;
+    if (room <= 0) continue;
+    const step = Math.min(Math.abs(drift), room) * Math.sign(drift);
+    const oldCal = Number(slot.calories) || 0;
+    const newCal = oldCal + step;
+    if (oldCal > 0 && newCal > 0) {
+      const ratio = newCal / oldCal;
+      slot.protein = Math.round((Number(slot.protein) || 0) * ratio);
+      slot.carbs = Math.round((Number(slot.carbs) || 0) * ratio);
+      slot.fats = Math.round((Number(slot.fats) || 0) * ratio);
+    }
+    slot.calories = Math.round(newCal);
+    drift -= step;
+  }
+  if (drift !== 0) {
+    for (const type of adjustOrder) {
+      const slot = breakdown.find((m) => m.type === type);
+      if (!slot) continue;
+      const ceiling = slotCeilingKcal(type, daily);
+      const room = drift > 0 ? ceiling - (Number(slot.calories) || 0) : (Number(slot.calories) || 0) - 50;
+      if (room <= 0) continue;
+      const step = Math.min(Math.abs(drift), room) * Math.sign(drift);
+      slot.calories = Math.round((Number(slot.calories) || 0) + step);
+      drift -= step;
+      if (!drift) break;
+    }
+  }
+  return breakdown;
 }
 function buildSlotBreakdown(slotTypes, dailyKcal, macros, restoredSlot = null) {
   const slotKcal = feasibleSlotKcal(slotTypes, dailyKcal, restoredSlot);
   const { protein, carbs, fats } = fitMacrosToSlotKcal(slotTypes, slotKcal, macros);
-  return slotTypes.map((type, i) => ({
+  const breakdown = slotTypes.map((type, i) => ({
     type,
-    // kcal derives from this slot's own macros, so the two can never disagree.
     calories: Math.round(protein[i] * 4 + carbs[i] * 4 + fats[i] * 9),
     protein: protein[i],
     carbs: carbs[i],
     fats: fats[i]
   }));
+  return normalizeBreakdownCalories(breakdown, dailyKcal, slotTypes);
 }
 function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay, restoredSlot = null) {
   let types = [...slotTypes];
@@ -23027,7 +23679,7 @@ function buildDeterministicStrategy({ userData = null, analysis = null, options 
   const weeklyScheme = {};
   for (let i = 0; i < 7; i++) {
     const isFreeDay = i + 1 === freeDayNumber;
-    weeklyScheme[DAY_KEYS3[i]] = buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay, restoredSlot);
+    weeklyScheme[DAY_KEYS4[i]] = buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay, restoredSlot);
   }
   const copy = buildCopyFields(dietProfile, slotTypes.length, slotTypes, userData, restoredSlot);
   return {
@@ -30070,7 +30722,7 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
   errors.push(...validateRequiredMealSlots(dayPlan, dayTarget, dayNum, userData));
   return errors;
 }
-function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null, userData = null, strategy = null) {
+function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null, userData = null, strategy = null, { dayKcalOk = false } = {}) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
   const dietCtx = buildCatalogDietContext(strategy, userData);
@@ -30086,7 +30738,7 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     const solvedCal = Number(meal.targetCalories) || 0;
     const targetCal = solvedCal > 0 && Math.abs(solvedCal - schemeCal) <= schemeCal * MEAL_CARRY_MAX_DISTORTION + 1 ? solvedCal : schemeCal;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
+    if (!dayKcalOk && targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
       errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438\u043B\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u0430`);
     }
     const weightGrams = mealWeightGramsFromDescription(meal);
@@ -30134,21 +30786,25 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
+      const dayKcal = Number(dayPlan.dailyTotals?.calories) || (dayPlan.meals || []).reduce((s, m) => s + (Number(m.calories) || 0), 0);
+      const schemeKcal = (dayTarget.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
+      const dayKcalOk = isDayCaloriesAdequate(dayKcal, schemeKcal);
       blocking.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
-      blocking.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId, userData, strategy));
+      blocking.push(...validateMealsAgainstScheme(
+        dayPlan,
+        dayTarget,
+        d,
+        clinicalProtocolId,
+        userData,
+        strategy,
+        { dayKcalOk }
+      ));
       for (const meal of dayPlan.meals || []) {
         blocking.push(...validateLightMealSlotContent(meal, d));
         blocking.push(...validateLateSnackSlotContent(meal, d));
       }
-      const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
-      const schemeKcal = (dayTarget.mealBreakdown || []).reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
-      let dayKcalOk = false;
-      if (dayKcal > 0 && schemeKcal > 0) {
-        const tol = calorieTolerance(schemeKcal);
-        dayKcalOk = Math.abs(dayKcal - schemeKcal) <= schemeKcal * DAY_CALORIE_TOLERANCE_PERCENT;
-        if (!dayKcalOk) {
-          blocking.push(`\u0414\u0435\u043D ${d}: \u0434\u043D\u0435\u0432\u043D\u0438 ${dayKcal} kcal \u2260 \u0441\u0445\u0435\u043C\u0430 ${schemeKcal}`);
-        }
+      if (dayKcal > 0 && schemeKcal > 0 && !dayKcalOk) {
+        blocking.push(`\u0414\u0435\u043D ${d}: \u0434\u043D\u0435\u0432\u043D\u0438 ${dayKcal} kcal \u2260 \u0441\u0445\u0435\u043C\u0430 ${schemeKcal}`);
       }
       const dayTotals = dayPlan.dailyTotals || {};
       const schemeMacros = (dayTarget.mealBreakdown || []).reduce((a, m) => ({
@@ -31518,12 +32174,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     let attempt = 0;
     let lastAiFailure = null;
     let lastInfeasible = [];
-    const appendInfeasibleSlots = (blocking, infeasible = []) => {
-      const out = [...blocking];
-      for (const slot of infeasible) {
-        out.push(`\u0414\u0435\u043D ${slot.day} ${slot.type}: ${slot.reason} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435`);
-      }
-      return out;
+    const appendInfeasibleSlots = (blocking, warnings, infeasible = []) => {
+      const split = classifyInfeasibleSlots(weekPlan, strategy, infeasible);
+      return {
+        blocking: [...blocking, ...split.blocking],
+        warnings: [...warnings, ...split.warnings]
+      };
     };
     while (true) {
       let blockingErrors = null;
@@ -31559,8 +32215,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
           data.clinicalProtocol || null,
           data
         );
-        blockingErrors = appendInfeasibleSlots(validation.blocking, syncMeta?.infeasible);
-        chunkWarnings = validation.warnings;
+        const merged = appendInfeasibleSlots(validation.blocking, validation.warnings, syncMeta?.infeasible);
+        blockingErrors = merged.blocking;
+        chunkWarnings = merged.warnings;
         lastInfeasible = syncMeta?.infeasible || [];
       };
       try {

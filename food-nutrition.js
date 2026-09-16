@@ -1,10 +1,10 @@
 /**
- * Food nutrition engine — parse meal descriptions, lookup per-100g values, calculate macros.
+ * Food nutrition engine — grams and macros for catalog dishes.
  *
  * Division of labor:
- *   - The AI composes each meal: catalog products only (no grams/kcal/macros).
- *   - The backend solves grams deterministically (meal-solver.js) toward slot targets.
- *   - Structural infeasibility (wrong products for the macro profile) → AI retry/repair.
+ *   - Step 3 picks a ready dish from meal-dishes.json (no product assembly).
+ *   - This module scales the dish proportionally (×DISH_SCALE_MIN–×DISH_SCALE_MAX).
+ *   - If the slot target is outside that band → another dish, not inflated grams.
  */
 
 import {
@@ -16,7 +16,12 @@ import { normalizeFoodKey } from './food-utils.js';
 import { resolveCatalogEntry } from './food-catalog.js';
 import { buildRegistryIndex } from './food-registry.js';
 import { READY_MEAL_PARTS, getEntryScalingMode, SCALING_ATOMIC } from './ready-meal-parts.js';
-import { MAX_LATE_SNACK_CALORIES, SLOT_CALORIE_TOLERANCE_PERCENT, SLOT_CALORIE_TOLERANCE_MIN_KCAL } from './plan-normalize.js';
+import {
+  MAX_LATE_SNACK_CALORIES,
+  maxLateSnackKcal,
+  SLOT_CALORIE_TOLERANCE_PERCENT,
+  SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+} from './plan-normalize.js';
 import { solveMealGrams, totalsFor } from './meal-solver.js';
 import { GRAM_STEP_SMALL, GRAM_STEP_LARGE, GRAM_LARGE_MIN, gramRoundStep, snapGrams } from './gram-rounding.js';
 import {
@@ -48,6 +53,14 @@ const BOUNDS_HEADROOM = 1.35;
 
 /** Max realistic single-meal plate weight — aligns with max plated slot (~900 kcal). */
 export const MAX_MEAL_WEIGHT_GRAMS = 900;
+
+/**
+ * Нормална вариация около рецептата в каталога (една порция → по-голям/по-малък клиент).
+ * Грамажите на продуктите в ястието се мащабират заедно — не се сглобяват наново.
+ */
+export const DISH_SCALE_MIN = 0.65;
+/** Athlete portions — whole-dish scale, not single-ingredient inflation. */
+export const DISH_SCALE_MAX = 1.55;
 
 export { READY_MEAL_PARTS } from './ready-meal-parts.js';
 
@@ -325,43 +338,91 @@ function macroCost(achieved, target, kcalPerGram, slotKcal) {
   return Math.abs(achieved - target) * kcalPerGram / scale;
 }
 
+function dishSolverItemsFromParts(parts, extraDb = {}) {
+  return (parts || [])
+    .map(p => {
+      const grams = Number(p.grams) || 0;
+      if (grams <= 0) return null;
+      const { profile } = lookupFoodProfile(p.name, extraDb);
+      return profile ? { name: p.name, referenceGrams: grams, profile } : null;
+    })
+    .filter(Boolean);
+}
+
+function dishScaleLimits(items, maxTotalGrams) {
+  const refs = items.map(i => Number(i.referenceGrams) || 0);
+  const windows = items.map(item => portionWindow(item));
+  const cooking = items.map(it => isCookingFat(it.name, getCatalogMeta(it.name).nutritionKey));
+  const carriers = refs.map((_, i) => !cooking[i]);
+  if (!carriers.some(Boolean)) carriers.fill(true);
+  const bound = pick => refs.map((ref, i) => (carriers[i] ? pick(i) / ref : Infinity));
+  const minScale = Math.max(
+    DISH_SCALE_MIN,
+    Math.max(0.35, ...bound(i => windows[i].min).filter(Number.isFinite)),
+  );
+  const maxScale = Math.min(
+    DISH_SCALE_MAX,
+    ...bound(i => windows[i].max),
+    maxTotalGrams / refs.reduce((a, b) => a + b, 0),
+  );
+  return { minScale, maxScale, cooking, refs };
+}
+
+function kcalAtDishScale(items, scale, cooking) {
+  const refs = items.map(i => Number(i.referenceGrams) || 0);
+  const grams = refs.map((ref, i) =>
+    cooking[i]
+      ? snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5)))
+      : snapGrams(ref * scale));
+  return totalsFor(items.map(i => ({ profile: i.profile })), grams).kcal;
+}
+
+/**
+ * Колко kcal носи ястието при нормална вариация около рецептата в каталога.
+ * @returns {{ min: number, max: number, reference: number }}
+ */
+export function dishNormalKcalRange(parts, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
+  const items = dishSolverItemsFromParts(parts);
+  if (!items.length) return { min: 0, max: 0, reference: 0 };
+  const { minScale, maxScale, cooking } = dishScaleLimits(items, maxTotalGrams);
+  const reference = kcalAtDishScale(items, 1, cooking);
+  if (maxScale < minScale) return { min: 0, max: 0, reference };
+  return {
+    min: kcalAtDishScale(items, minScale, cooking),
+    max: kcalAtDishScale(items, maxScale, cooking),
+    reference,
+  };
+}
+
+/** Дали целта на слота е постижима с нормална порция на това ястие (не раздуто). */
+export function dishFitsSlotInNormalRange(entry, targetKcal) {
+  const parts = entry?.id ? READY_MEAL_PARTS[entry.id] : null;
+  if (!parts?.length) return true;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0) return true;
+  const range = dishNormalKcalRange(parts);
+  const tol = calorieTolerance(target);
+  if (target < range.min - tol || target > range.max + tol) return false;
+  const achieved = achievableKcal(parts.map(p => ({ name: p.name, grams: p.grams })), target);
+  return achieved > 0 && Math.abs(achieved - target) <= tol;
+}
+
 function solveDishScale(items, target, maxTotalGrams) {
   const refs = items.map(i => Number(i.referenceGrams) || 0);
   if (refs.some(r => r <= 0)) return null;
   const targetKcal = Number(target?.kcal) || 0;
   if (!(targetKcal > 0)) return null;
 
-  const windows = items.map(item => portionWindow(item));
-  // Готварската мазнина е лъжицата в тигана, не носеща съставка: тя не расте
-  // заедно с порцията и не ограничава мащаба на ястието. Мащабирана като
-  // всичко останало, тя стигаше 20 г на хранене и 45 г на ден само от олио —
-  // мазнините излизаха с 58% над целта.
-  const cooking = items.map(it => isCookingFat(it.name, getCatalogMeta(it.name).nutritionKey));
-  const carriers = refs.map((_, i) => !cooking[i]);
-  if (!carriers.some(Boolean)) carriers.fill(true);
-
-  const bound = (pick) => refs.map((ref, i) => (carriers[i] ? pick(i) / ref : Infinity));
-  // Мащабът е един за цялото ястие и се ограничава от най-стегнатия продукт.
-  // Ако вместо това всеки продукт се клампваше поотделно, ястието се
-  // разтягаше през хляба, докато яйцата опират в тавана си — и спираше да
-  // бъде същото ястие. Ястие, което не стига слота, просто не се избира.
-  const minScale = Math.max(0.35, ...bound(i => windows[i].min).filter(Number.isFinite));
-  const maxScale = Math.min(
-    ...bound(i => windows[i].max),
-    maxTotalGrams / refs.reduce((a, b) => a + b, 0),
-  );
+  const { minScale, maxScale, cooking } = dishScaleLimits(items, maxTotalGrams);
   if (maxScale < minScale) return null;
-
-  const cookingFatGrams = (ref, scale) =>
-    snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5)));
 
   let best = null;
   const seen = new Set();
   for (let scale = minScale; scale <= maxScale + 1e-9; scale += 0.02) {
     const grams = refs.map((ref, i) =>
-      (cooking[i] && carriers.some((c, j) => c && j !== i)
-        ? cookingFatGrams(ref, scale)
-        : snapGrams(ref * scale)));
+      cooking[i]
+        ? snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5)))
+        : snapGrams(ref * scale));
     const key = grams.join(',');
     if (seen.has(key)) continue;
     seen.add(key);
@@ -522,6 +583,58 @@ export function nutritionFromGrams(profile, grams) {
   };
 }
 
+const ADDON_SLOTS = new Set(['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4']);
+
+const MEAL_SIDE_ADDONS = [
+  { name: 'банан', defaultGrams: 100, maxGrams: 120, slots: new Set(['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4']) },
+  { name: 'бадеми', defaultGrams: 20, maxGrams: 30, slots: new Set(['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5']) },
+  { name: 'пълнозърнест хляб', defaultGrams: 50, maxGrams: 70, slots: new Set(['Хранене 1', 'Хранене 2', 'Хранене 4']) },
+  { name: 'орехи', defaultGrams: 20, maxGrams: 25, slots: new Set(['Хранене 1', 'Хранене 3', 'Хранене 5']) },
+  { name: 'ориз', defaultGrams: 80, maxGrams: 100, slots: new Set(['Хранене 2', 'Хранене 4']) },
+];
+
+function applyMealSideAddons(items, slotTarget, slotType, extraDb = {}) {
+  if (!ADDON_SLOTS.has(slotType)) return items;
+  const targetKcal = Number(slotTarget?.calories ?? slotTarget?.kcal) || 0;
+  if (targetKcal <= 0) return items;
+
+  const tol = Math.max(
+    SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+    Math.round(targetKcal * SLOT_CALORIE_TOLERANCE_PERCENT),
+  );
+  let out = items.map(it => ({ ...it }));
+  const names = new Set(out.map(it => normalizeFoodKey(it.name)));
+
+  for (let pass = 0; pass < 6; pass++) {
+    const current = out.reduce((sum, it) => {
+      if (!it.profile || !(it.grams > 0)) return sum;
+      return sum + nutritionFromGrams(it.profile, it.grams).kcal;
+    }, 0);
+    const gap = targetKcal - current;
+    if (gap <= tol || gap < 40) break;
+
+    let best = null;
+    for (const addon of MEAL_SIDE_ADDONS) {
+      if (!addon.slots.has(slotType)) continue;
+      if (names.has(normalizeFoodKey(addon.name))) continue;
+      const { profile } = lookupFoodProfile(addon.name, extraDb);
+      if (!profile) continue;
+      for (const grams of [addon.defaultGrams, addon.maxGrams]) {
+        const g = snapGrams(grams);
+        const kcal = nutritionFromGrams(profile, g).kcal;
+        if (kcal <= 0) continue;
+        const overshoot = current + kcal - targetKcal;
+        const cost = Math.abs(gap - kcal) + (overshoot > tol ? overshoot * 2 : 0);
+        if (!best || cost < best.cost) best = { name: addon.name, grams: g, profile, cost };
+      }
+    }
+    if (!best) break;
+    out.push({ name: best.name, grams: best.grams, profile: best.profile });
+    names.add(normalizeFoodKey(best.name));
+  }
+  return out;
+}
+
 export function sumItemNutrition(items) {
   return items.reduce(
     (acc, item) => {
@@ -643,9 +756,36 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     grams: capItemGrams(item, seedGramsForItem(item, bounds[i], slotTarget, items.length)),
   }));
 
-  const solved = solveDishScale(items, slotTarget, plateBudget)
-    || solveMealGrams(items, slotTarget, bounds, plateBudget);
+  let solved = solveDishScale(items, slotTarget, plateBudget);
+  if (!solved && dishParts?.length) {
+    return {
+      ok: false,
+      unknowns: [],
+      feasible: false,
+      reason: 'порцията на ястието не стига целта в нормални граници — избери друго ястие',
+    };
+  }
+  if (!solved) solved = solveMealGrams(items, slotTarget, bounds, plateBudget);
   items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i]) }));
+
+  if (dishParts?.length) {
+    const beforeAddons = sumItemNutrition(items.filter(it => it.profile));
+    const addonTol = Math.max(
+      SLOT_CALORIE_TOLERANCE_MIN_KCAL,
+      slotTarget.kcal * SLOT_CALORIE_TOLERANCE_PERCENT,
+    );
+    if (beforeAddons.kcal < slotTarget.kcal - Math.min(addonTol, 50)) {
+      items = applyMealSideAddons(items, { calories: slotTarget.kcal }, meal.type, extraDb).map(it => ({
+        ...it,
+        profile: it.profile || lookupFoodProfile(it.name, extraDb).profile,
+      }));
+      const addonTotals = sumItemNutrition(items.filter(it => it.profile));
+      solved = {
+        ...solved,
+        feasible: Math.abs(addonTotals.kcal - slotTarget.kcal) <= addonTol,
+      };
+    }
+  }
 
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
@@ -664,7 +804,8 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
   meal.calories = Math.round(p * 4 + c * 4 + f * 9);
 
   if (meal.type === 'Хранене 5') {
-    const cap = Math.min(MAX_LATE_SNACK_CALORIES, Number(target?.calories) || MAX_LATE_SNACK_CALORIES);
+    const schemeCap = Number(target?.calories) || MAX_LATE_SNACK_CALORIES;
+    const cap = Math.min(280, Math.max(MAX_LATE_SNACK_CALORIES, schemeCap));
     if (meal.calories > cap) {
       const ratio = cap / meal.calories;
       p = Math.round(p * ratio);

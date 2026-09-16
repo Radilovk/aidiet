@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-09-01T02:58:04.349Z",
-  "count": 171,
+  "updatedAt": "2026-09-16T01:10:00.000Z",
+  "count": 186,
   "dishes": [
     {
       "id": "meal_omelet",
@@ -4186,6 +4186,229 @@
       "vegetarian": true,
       "universality": 4,
       "tags": []
+    },
+    {
+      "id": "meal_med_morning_plate",
+      "name": "Гръцко кисело мляко с яйца и хляб",
+      "products": [
+        { "name": "гръцко кисело мляко", "grams": 200 },
+        { "name": "яйца", "grams": 150 },
+        { "name": "пълнозърнест хляб", "grams": 70 },
+        { "name": "зехтин", "grams": 10 },
+        { "name": "Домати", "grams": 80 }
+      ],
+      "timing": ["breakfast"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "meal_oats_athlete_bowl",
+      "name": "Овесена каша с мляко, банан и бадеми",
+      "products": [
+        { "name": "овесени ядки", "grams": 70 },
+        { "name": "мляко", "grams": 250 },
+        { "name": "банан", "grams": 120 },
+        { "name": "бадеми", "grams": 25 }
+      ],
+      "timing": ["breakfast"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "meal_eggs_avocado_toast",
+      "name": "Яйца с авокадо и пълнозърнест хляб",
+      "products": [
+        { "name": "яйца", "grams": 150 },
+        { "name": "авокадо", "grams": 80 },
+        { "name": "пълнозърнест хляб", "grams": 80 },
+        { "name": "Домати", "grams": 60 }
+      ],
+      "timing": ["breakfast"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "meal_feta_eggs_bread",
+      "name": "Яйца със сирене, хляб и чушки",
+      "products": [
+        { "name": "яйца", "grams": 150 },
+        { "name": "сирене", "grams": 60 },
+        { "name": "пълнозърнест хляб", "grams": 70 },
+        { "name": "зехтин", "grams": 10 },
+        { "name": "Чушки", "grams": 80 }
+      ],
+      "timing": ["breakfast"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "snack_greek_fruit_nuts_large",
+      "name": "Гръцко кисело мляко с банан и бадеми",
+      "products": [
+        { "name": "гръцко кисело мляко", "grams": 250 },
+        { "name": "банан", "grams": 120 },
+        { "name": "бадеми", "grams": 30 }
+      ],
+      "timing": ["snack"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "snack_cottage_pear_walnuts",
+      "name": "Извара с круша и орехи",
+      "products": [
+        { "name": "извара", "grams": 200 },
+        { "name": "круша", "grams": 150 },
+        { "name": "орехи", "grams": 25 }
+      ],
+      "timing": ["snack"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "snack_skyr_oats_banana",
+      "name": "Скир с овес и банан",
+      "products": [
+        { "name": "скир", "grams": 250 },
+        { "name": "овесени ядки", "grams": 50 },
+        { "name": "банан", "grams": 100 },
+        { "name": "бадеми", "grams": 20 }
+      ],
+      "timing": ["snack"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "snack_yogurt_honey_nuts",
+      "name": "Кисело мляко с мед, ябълка и бадеми",
+      "products": [
+        { "name": "кисело мляко", "grams": 250 },
+        { "name": "мед", "grams": 15 },
+        { "name": "ябълка", "grams": 120 },
+        { "name": "бадеми", "grams": 25 }
+      ],
+      "timing": ["snack"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": ["mediterranean", "high_energy", "sweet_slot"]
+    },
+    {
+      "id": "meal_salmon_potato_plate",
+      "name": "Сьомга с картофи и спанак",
+      "products": [
+        { "name": "сьомга", "grams": 180 },
+        { "name": "картофи", "grams": 200 },
+        { "name": "спанак", "grams": 100 },
+        { "name": "зехтин", "grams": 15 }
+      ],
+      "timing": ["main"],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "meal_cod_rice_salad",
+      "name": "Треска с ориз и салата",
+      "products": [
+        { "name": "треска", "grams": 180 },
+        { "name": "ориз", "grams": 180 },
+        { "name": "Зеленчуци", "grams": 120 },
+        { "name": "зехтин", "grams": 10 }
+      ],
+      "timing": ["main"],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "meal_chicken_quinoa_bowl",
+      "name": "Пилешки гърди с киноа и зеленчуци",
+      "products": [
+        { "name": "пилешки гърди", "grams": 180 },
+        { "name": "киноа", "grams": 150 },
+        { "name": "Зеленчуци", "grams": 120 },
+        { "name": "зехтин", "grams": 10 }
+      ],
+      "timing": ["main"],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "meal_chicken_sweet_potato",
+      "name": "Пиле със сладки картофи и броколи",
+      "products": [
+        { "name": "пилешко месо", "grams": 180 },
+        { "name": "сладки картофи", "grams": 200 },
+        { "name": "броколи", "grams": 100 },
+        { "name": "зехтин", "grams": 10 }
+      ],
+      "timing": ["main"],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "meal_mackerel_potato",
+      "name": "Скумрия с картофи и зеленчуци",
+      "products": [
+        { "name": "скумрия", "grams": 180 },
+        { "name": "картофи", "grams": 200 },
+        { "name": "Зеленчуци", "grams": 100 },
+        { "name": "зехтин", "grams": 10 }
+      ],
+      "timing": ["main"],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "late_skir_nuts_large",
+      "name": "Скир с бадеми и орехи",
+      "products": [
+        { "name": "скир", "grams": 200 },
+        { "name": "бадеми", "grams": 25 },
+        { "name": "орехи", "grams": 15 }
+      ],
+      "timing": ["late_snack"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
+    },
+    {
+      "id": "late_cottage_pear_nuts",
+      "name": "Извара с круша и бадеми",
+      "products": [
+        { "name": "извара", "grams": 180 },
+        { "name": "круша", "grams": 100 },
+        { "name": "бадеми", "grams": 20 }
+      ],
+      "timing": ["late_snack"],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 5,
+      "tags": ["mediterranean", "high_energy"]
     }
   ]
 }

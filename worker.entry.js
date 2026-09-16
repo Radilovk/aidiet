@@ -67,9 +67,10 @@ import {
   breakfastRequiredForIntake,
   resolveMealsPerDayFromHabits,
   isMealCaloriesAdequate,
+  isDayCaloriesAdequate,
+  classifyInfeasibleSlots,
   enforceFixedSlotCaps,
   MAX_LATE_SNACK_CALORIES,
-  DAY_CALORIE_TOLERANCE_PERCENT,
 } from './plan-normalize.js';
 import {
   buildCatalogPromptSection,
@@ -8447,7 +8448,7 @@ function validateMealTypesAgainstBreakdown(dayPlan, dayTarget, dayNum, userData 
  * missing products, unknown catalog entries, forbidden foods, bad combinations,
  * or composition that cannot reach slot/daily macro targets.
  */
-function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null, userData = null, strategy = null) {
+function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocolId = null, userData = null, strategy = null, { dayKcalOk = false } = {}) {
   const errors = [];
   if (!dayPlan?.meals?.length || !dayTarget?.mealBreakdown?.length) return errors;
   const dietCtx = buildCatalogDietContext(strategy, userData);
@@ -8473,7 +8474,8 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
       ? solvedCal
       : schemeCal;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
-    if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
+    // Диетолог: денят е договорът. Слот извън цел е ОК, ако дневният сбор е в допуск.
+    if (!dayKcalOk && targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
       errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — смени продуктите или състава`);
     }
 
@@ -8528,23 +8530,22 @@ function validateWeekPlanChunkAgainstScheme(weekPlan, strategy, startDay, endDay
     const schemeKey = DAY_NUMBER_TO_KEY[d - 1];
     const dayTarget = strategy.weeklyScheme[schemeKey];
     if (dayPlan && dayTarget) {
+      const dayKcal = Number(dayPlan.dailyTotals?.calories)
+        || (dayPlan.meals || []).reduce((s, m) => s + (Number(m.calories) || 0), 0);
+      const schemeKcal = (dayTarget.mealBreakdown || [])
+        .reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
+      const dayKcalOk = isDayCaloriesAdequate(dayKcal, schemeKcal);
+
       blocking.push(...validateMealTypesAgainstBreakdown(dayPlan, dayTarget, d, userData));
-      blocking.push(...validateMealsAgainstScheme(dayPlan, dayTarget, d, clinicalProtocolId, userData, strategy));
+      blocking.push(...validateMealsAgainstScheme(
+        dayPlan, dayTarget, d, clinicalProtocolId, userData, strategy, { dayKcalOk },
+      ));
       for (const meal of dayPlan.meals || []) {
         blocking.push(...validateLightMealSlotContent(meal, d));
         blocking.push(...validateLateSnackSlotContent(meal, d));
       }
-      const dayKcal = Number(dayPlan.dailyTotals?.calories) || 0;
-      const schemeKcal = (dayTarget.mealBreakdown || [])
-        .reduce((s, m) => s + (Number(m.calories) || 0), 0) || Number(dayTarget.calories) || 0;
-      let dayKcalOk = false;
-      if (dayKcal > 0 && schemeKcal > 0) {
-        const tol = calorieTolerance(schemeKcal);
-        // Денят е договорът: тук е стегнато, за сметка на свободата в слота.
-        dayKcalOk = Math.abs(dayKcal - schemeKcal) <= schemeKcal * DAY_CALORIE_TOLERANCE_PERCENT;
-        if (!dayKcalOk) {
-          blocking.push(`Ден ${d}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`);
-        }
+      if (dayKcal > 0 && schemeKcal > 0 && !dayKcalOk) {
+        blocking.push(`Ден ${d}: дневни ${dayKcal} kcal ≠ схема ${schemeKcal}`);
       }
 
       const dayTotals = dayPlan.dailyTotals || {};
@@ -10290,12 +10291,12 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
     let lastAiFailure = null;
     let lastInfeasible = [];
 
-    const appendInfeasibleSlots = (blocking, infeasible = []) => {
-      const out = [...blocking];
-      for (const slot of infeasible) {
-        out.push(`Ден ${slot.day} ${slot.type}: ${slot.reason} — смени продуктите`);
-      }
-      return out;
+    const appendInfeasibleSlots = (blocking, warnings, infeasible = []) => {
+      const split = classifyInfeasibleSlots(weekPlan, strategy, infeasible);
+      return {
+        blocking: [...blocking, ...split.blocking],
+        warnings: [...warnings, ...split.warnings],
+      };
     };
 
     while (true) {
@@ -10330,8 +10331,9 @@ async function generateMealPlanProgressive(env, data, analysis, strategy, errorP
         const validation = validateWeekPlanChunkAgainstScheme(
           weekPlan, strategy, startDay, endDay, data.clinicalProtocol || null, data,
         );
-        blockingErrors = appendInfeasibleSlots(validation.blocking, syncMeta?.infeasible);
-        chunkWarnings = validation.warnings;
+        const merged = appendInfeasibleSlots(validation.blocking, validation.warnings, syncMeta?.infeasible);
+        blockingErrors = merged.blocking;
+        chunkWarnings = merged.warnings;
         lastInfeasible = syncMeta?.infeasible || [];
       };
 

@@ -23,7 +23,7 @@ const SKIP_TYPES = new Set(['Свободно хранене', 'Напитка']
  * число калории; разликата се пренася към следващите основни хранения. Това е
  * договорът, по който слотът се решава — и по който трябва да се проверява.
  */
-export const MEAL_CARRY_MAX_DISTORTION = 0.25;
+export const MEAL_CARRY_MAX_DISTORTION = 0.30;
 
 function dessertNutrition(meal) {
   if (!meal?.dessert || typeof meal.dessert !== 'object') return null;
