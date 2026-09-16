@@ -13,7 +13,7 @@ import { getCatalogCandidatesForChunk, resolveCatalogEntry } from './food-catalo
 import { rankCatalogCandidates } from './candidate-ranking.js';
 import { passesDietRegistry } from './diet-registry.js';
 import { normalizeFoodKey } from './food-utils.js';
-import { parseMealDescription, achievableKcal } from './food-nutrition.js';
+import { parseMealDescription, achievableKcal, dishFitsSlotInNormalRange } from './food-nutrition.js';
 import { isMealCaloriesAdequate } from './plan-normalize.js';
 import { READY_MEAL_PARTS } from './ready-meal-parts.js';
 import {
@@ -294,8 +294,12 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
 function narrowByEnergyFit(pool, slotTarget, cache) {
   const targetKcal = Number(slotTarget?.calories) || 0;
   if (targetKcal <= 0) return pool;
-  const scored = pool.map(e => ({ e, kcal: dishAchievableKcal(e, targetKcal, cache) }));
-  const fits = scored.filter(x => isMealCaloriesAdequate(x.kcal, targetKcal));
+  const scored = pool.map(e => ({
+    e,
+    kcal: dishAchievableKcal(e, targetKcal, cache),
+    inRange: dishFitsSlotInNormalRange(e, targetKcal),
+  }));
+  const fits = scored.filter(x => x.inRange && isMealCaloriesAdequate(x.kcal, targetKcal));
   // Първо ястията, които стигат целта. Допускът от 18% значи, че ястие с
   // таван 600 kcal „пасва“ на слот от 722 — три такива слота в един ден и
   // денят излиза 320 kcal по-малко, без нито един слот да е сгрешил.
@@ -304,6 +308,13 @@ function narrowByEnergyFit(pool, slotTarget, cache) {
   const carries = fits.filter(x => x.kcal >= targetKcal);
   if (carries.length >= MIN_DISHES_FOR_ENERGY_PREFERENCE) return carries.map(x => x.e);
   if (fits.length) return fits.map(x => x.e);
+  const inRange = scored.filter(x => x.inRange);
+  if (inRange.length) {
+    return inRange
+      .sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal))
+      .slice(0, CLOSEST_DISH_FALLBACK)
+      .map(x => x.e);
+  }
   return scored
     .sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal))
     .slice(0, CLOSEST_DISH_FALLBACK)

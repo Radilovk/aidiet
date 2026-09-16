@@ -21011,6 +21011,8 @@ function calorieTolerance(targetKcal) {
 }
 var BOUNDS_HEADROOM = 1.35;
 var MAX_MEAL_WEIGHT_GRAMS = 900;
+var DISH_SCALE_MIN = 0.65;
+var DISH_SCALE_MAX = 1.45;
 function expandReadyMealItems(items, extraDb = {}) {
   const out = [];
   const index = buildRegistryIndex();
@@ -21212,27 +21214,71 @@ function macroCost(achieved, target, kcalPerGram2, slotKcal) {
   const scale = Math.max(target * kcalPerGram2, slotKcal * 0.1);
   return Math.abs(achieved - target) * kcalPerGram2 / scale;
 }
-function solveDishScale(items, target, maxTotalGrams) {
+function dishSolverItemsFromParts(parts, extraDb = {}) {
+  return (parts || []).map((p) => {
+    const grams = Number(p.grams) || 0;
+    if (grams <= 0) return null;
+    const { profile } = lookupFoodProfile(p.name, extraDb);
+    return profile ? { name: p.name, referenceGrams: grams, profile } : null;
+  }).filter(Boolean);
+}
+function dishScaleLimits(items, maxTotalGrams) {
   const refs = items.map((i) => Number(i.referenceGrams) || 0);
-  if (refs.some((r) => r <= 0)) return null;
-  const targetKcal = Number(target?.kcal) || 0;
-  if (!(targetKcal > 0)) return null;
   const windows = items.map((item2) => portionWindow(item2));
   const cooking = items.map((it) => isCookingFat(it.name, getCatalogMeta(it.name).nutritionKey));
   const carriers = refs.map((_, i) => !cooking[i]);
   if (!carriers.some(Boolean)) carriers.fill(true);
   const bound = (pick) => refs.map((ref, i) => carriers[i] ? pick(i) / ref : Infinity);
-  const minScale = Math.max(0.35, ...bound((i) => windows[i].min).filter(Number.isFinite));
+  const minScale = Math.max(
+    DISH_SCALE_MIN,
+    Math.max(0.35, ...bound((i) => windows[i].min).filter(Number.isFinite))
+  );
   const maxScale = Math.min(
+    DISH_SCALE_MAX,
     ...bound((i) => windows[i].max),
     maxTotalGrams / refs.reduce((a, b) => a + b, 0)
   );
+  return { minScale, maxScale, cooking, refs };
+}
+function kcalAtDishScale(items, scale, cooking) {
+  const refs = items.map((i) => Number(i.referenceGrams) || 0);
+  const grams = refs.map((ref, i) => cooking[i] ? snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5))) : snapGrams(ref * scale));
+  return totalsFor(items.map((i) => ({ profile: i.profile })), grams).kcal;
+}
+function dishNormalKcalRange(parts, maxTotalGrams = MAX_MEAL_WEIGHT_GRAMS) {
+  const items = dishSolverItemsFromParts(parts);
+  if (!items.length) return { min: 0, max: 0, reference: 0 };
+  const { minScale, maxScale, cooking } = dishScaleLimits(items, maxTotalGrams);
+  const reference = kcalAtDishScale(items, 1, cooking);
+  if (maxScale < minScale) return { min: 0, max: 0, reference };
+  return {
+    min: kcalAtDishScale(items, minScale, cooking),
+    max: kcalAtDishScale(items, maxScale, cooking),
+    reference
+  };
+}
+function dishFitsSlotInNormalRange(entry, targetKcal) {
+  const parts = entry?.id ? READY_MEAL_PARTS[entry.id] : null;
+  if (!parts?.length) return true;
+  const target = Number(targetKcal) || 0;
+  if (target <= 0) return true;
+  const range = dishNormalKcalRange(parts);
+  const tol = calorieTolerance(target);
+  if (target < range.min - tol || target > range.max + tol) return false;
+  const achieved = achievableKcal(parts.map((p) => ({ name: p.name, grams: p.grams })), target);
+  return achieved > 0 && Math.abs(achieved - target) <= tol;
+}
+function solveDishScale(items, target, maxTotalGrams) {
+  const refs = items.map((i) => Number(i.referenceGrams) || 0);
+  if (refs.some((r) => r <= 0)) return null;
+  const targetKcal = Number(target?.kcal) || 0;
+  if (!(targetKcal > 0)) return null;
+  const { minScale, maxScale, cooking } = dishScaleLimits(items, maxTotalGrams);
   if (maxScale < minScale) return null;
-  const cookingFatGrams = (ref, scale) => snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5)));
   let best = null;
   const seen = /* @__PURE__ */ new Set();
   for (let scale = minScale; scale <= maxScale + 1e-9; scale += 0.02) {
-    const grams = refs.map((ref, i) => cooking[i] && carriers.some((c, j) => c && j !== i) ? cookingFatGrams(ref, scale) : snapGrams(ref * scale));
+    const grams = refs.map((ref, i) => cooking[i] ? snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5))) : snapGrams(ref * scale));
     const key = grams.join(",");
     if (seen.has(key)) continue;
     seen.add(key);
@@ -21433,7 +21479,16 @@ function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}) {
     ...item2,
     grams: capItemGrams(item2, seedGramsForItem(item2, bounds[i], slotTarget, items.length))
   }));
-  const solved = solveDishScale(items, slotTarget, plateBudget) || solveMealGrams(items, slotTarget, bounds, plateBudget);
+  let solved = solveDishScale(items, slotTarget, plateBudget);
+  if (!solved && dishParts?.length) {
+    return {
+      ok: false,
+      unknowns: [],
+      feasible: false,
+      reason: "\u043F\u043E\u0440\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435\u0442\u043E \u043D\u0435 \u0441\u0442\u0438\u0433\u0430 \u0446\u0435\u043B\u0442\u0430 \u0432 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438 \u0433\u0440\u0430\u043D\u0438\u0446\u0438 \u2014 \u0438\u0437\u0431\u0435\u0440\u0438 \u0434\u0440\u0443\u0433\u043E \u044F\u0441\u0442\u0438\u0435"
+    };
+  }
+  if (!solved) solved = solveMealGrams(items, slotTarget, bounds, plateBudget);
   items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i]) }));
   const totals = sumItemNutrition(items);
   let p = Math.round(totals.p);
@@ -22437,11 +22492,19 @@ function pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx) {
 function narrowByEnergyFit(pool, slotTarget, cache) {
   const targetKcal = Number(slotTarget?.calories) || 0;
   if (targetKcal <= 0) return pool;
-  const scored = pool.map((e) => ({ e, kcal: dishAchievableKcal(e, targetKcal, cache) }));
-  const fits = scored.filter((x) => isMealCaloriesAdequate(x.kcal, targetKcal));
+  const scored = pool.map((e) => ({
+    e,
+    kcal: dishAchievableKcal(e, targetKcal, cache),
+    inRange: dishFitsSlotInNormalRange(e, targetKcal)
+  }));
+  const fits = scored.filter((x) => x.inRange && isMealCaloriesAdequate(x.kcal, targetKcal));
   const carries = fits.filter((x) => x.kcal >= targetKcal);
   if (carries.length >= MIN_DISHES_FOR_ENERGY_PREFERENCE) return carries.map((x) => x.e);
   if (fits.length) return fits.map((x) => x.e);
+  const inRange = scored.filter((x) => x.inRange);
+  if (inRange.length) {
+    return inRange.sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal)).slice(0, CLOSEST_DISH_FALLBACK).map((x) => x.e);
+  }
   return scored.sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal)).slice(0, CLOSEST_DISH_FALLBACK).map((x) => x.e);
 }
 var CLOSEST_DISH_FALLBACK = 5;
