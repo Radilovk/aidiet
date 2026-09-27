@@ -264,6 +264,13 @@
         .xems-intro { margin: 18px 0 2px; }
         .xems-intro h3 { margin: 0; font-size: 1.02rem; color: #0f172a; }
         .xems-intro p { margin: 4px 0 0; color: #64748b; font-size: .86rem; line-height: 1.45; }
+        .xems-meter { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .xems-meter i { flex: 1; height: 6px; border-radius: 999px; background: #f1f5f9; overflow: hidden; font-style: normal; }
+        .xems-meter i b { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #f87171, #b91c1c);
+            transition: width .35s cubic-bezier(.16, 1, .3, 1); }
+        .xems-meter span { color: #64748b; font-size: .78rem; white-space: nowrap; }
+        .xems-reveal { animation: xemsReveal .25s ease; }
+        @keyframes xemsReveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
         .xems-block { margin-top: 18px; }
         .xems-label {
             display: flex;
@@ -287,8 +294,10 @@
             line-height: 1.2;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
-            transition: background .15s ease, border-color .15s ease, color .15s ease;
+            transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
         }
+        .xems-chip:active { transform: scale(0.95); }
+        .xems-chip[data-m][aria-pressed="true"]::before { content: "✓ "; }
         .xems-chip[aria-pressed="true"] {
             background: #fef2f2;
             border-color: #f87171;
@@ -2033,7 +2042,10 @@
                         st = Object.assign({ focus: [], cond: [], contra: [] }, saved());
                         health = st.contra && st.contra.length ? true : (st.healthNo ? false : null);
                     }
-                    html += '<div class="xems-intro"><h3>За треньора</h3><p>Отнема минута. Така тренировката е нагласена за теб още от първия път. Всичко е по желание.</p></div>' +
+                    const done = filled();
+                    html += '<div class="xems-intro"><h3>За треньора</h3><p>Отнема минута. Така тренировката е нагласена за теб още от първия път. Всичко е по желание.</p>' +
+                        '<div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
+                        (done >= 5 ? 'Готово за треньора' : done + ' от 5') + '</span></div></div>' +
                         block('За теб', '', chips('sex', [['F', 'Жена'], ['M', 'Мъж']], false) +
                             '<div class="xems-nums">' + num('xems-by', 'Година на раждане', '', st.by, 1920, 2016) +
                             num('xems-h', 'Ръст', 'см', st.h, 100, 230) + num('xems-w', 'Тегло', 'кг', st.w, 30, 250) + '</div>') +
@@ -2045,7 +2057,7 @@
                         '<div class="xems-chips"><button type="button" class="xems-chip" data-h="0" aria-pressed="' + (health === false) + '">Не</button>' +
                         '<button type="button" class="xems-chip" data-h="1" aria-pressed="' + (health === true) + '">Да или не знам</button></div>' +
                         (health === true
-                            ? '<div style="margin-top:10px">' + chips('contra', CONTRA, true, true) + '</div><p class="xems-sub">Треньорът ще го обсъди с теб преди тренировката.</p>'
+                            ? '<div class="xems-reveal" style="margin-top:10px">' + chips('contra', CONTRA, true, true) + '<p class="xems-sub">Треньорът ще го обсъди с теб преди тренировката.</p></div>'
                             : '') + '</div>' +
                         block('Бележка за треньора', 'по желание',
                             '<textarea class="xems-note" id="xems-note" rows="2" maxlength="300" placeholder="Например: предпочитам по-лек старт">' + esc(st.note || '') + '</textarea>');
@@ -2055,6 +2067,17 @@
                 const open = document.getElementById('xems-open-card');
                 if (open) open.addEventListener('click', function () { window.open(cardUrl, '_blank', 'noopener'); });
                 refreshSend();
+            }
+
+            /* five parts: about you, goal, activity, zones, the health answer ("what to mind" may stay empty) */
+            function filled() {
+                let n = 0;
+                if (st.sex && (st.by || st.h || st.w)) n++;
+                if (st.goal) n++;
+                if (st.fit) n++;
+                if ((st.focus || []).length) n++;
+                if (health !== null) n++;
+                return n;
             }
 
             function collect() {
