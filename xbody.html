@@ -235,6 +235,48 @@
             font-size: 15px;
         }
 
+        .xbody-appt-panel.xems-panel {
+            max-height: min(88vh, 760px);
+        }
+        .xems-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 10px;
+        }
+        .xems-grid .xbody-form-group {
+            margin-bottom: 12px;
+        }
+        .xems-grid .xbody-form-input {
+            padding: 11px 12px;
+        }
+        .xems-contra {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .xbody-form-group .xems-chip {
+            display: inline-flex;
+            margin: 0;
+            font-weight: 500;
+            line-height: 1.2;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 11px;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            font-size: .82rem;
+            color: #334155;
+            cursor: pointer;
+        }
+        .xems-chip input {
+            accent-color: #dc2626;
+            margin: 0;
+        }
+        .xems-chip:has(input:checked) {
+            border-color: #fca5a5;
+            background: #fef2f2;
+        }
+
         /* ── Appointments sheet ── */
         .xbody-appt-overlay {
             position: fixed;
@@ -716,6 +758,19 @@
         <i class="fas fa-calendar-check"></i>
         <span>Моите часове</span>
     </button>
+
+    <div class="xbody-appt-overlay hidden" id="xems-overlay" aria-hidden="true">
+        <div class="xbody-appt-panel xems-panel" role="dialog" aria-modal="true" aria-labelledby="xems-title">
+            <div class="xbody-appt-handle" aria-hidden="true"></div>
+            <div class="xbody-appt-header">
+                <h2 class="xbody-appt-title" id="xems-title">Моят XEMS</h2>
+                <div class="xbody-appt-actions">
+                    <button class="xbody-appt-icon-btn" id="xems-close" type="button" aria-label="Затвори">✕</button>
+                </div>
+            </div>
+            <div class="xbody-appt-body" id="xems-body"></div>
+        </div>
+    </div>
 
     <div class="xbody-appt-overlay hidden" id="appointments-overlay" aria-hidden="true">
         <div class="xbody-appt-panel" role="dialog" aria-modal="true" aria-labelledby="appointments-title">
@@ -1740,20 +1795,40 @@
             }
         })();
 
-        /* ── My progress: the client's XEMS card from the studio tablet ──
-           The tablet uploads SHA-256("xems-card:" + e-mail) and SHA-256("xems-card:" + last 9 phone digits)
-           with the card; here the same hashes find it. The e-mail and phone never leave the browser.
-           The button shows only when a card exists, next to "Моите часове". */
+        /* ── Моят XEMS: the client's card (progress) and profile for the studio tablet ──
+           Costs: the card is looked up at most once per 12 h (browser cache); the profile is sent only when
+           the client presses "Запази" and something changed. The e-mail / phone go to the server only inside
+           the profile the client chose to send; the card lookup uses SHA-256 hashes of them.
+           XEMS_STUDIO = the studio code shown on the tablet (План → Приложение за клиентите); it can also come
+           once as ?studio=<code> in the link and is then remembered. */
         (function () {
-            const FIND_URL = 'https://license.biocode-bg.com/v1/card/find';
+            const XEMS_STUDIO = '';
+            const API = 'https://license.biocode-bg.com';
             const CACHE_KEY = 'xbody_progress_card';
+            const PROFILE_KEY = 'xbody_xems_profile';
+            const SENT_KEY = 'xbody_xems_profile_sent';
+            const STUDIO_KEY = 'xbody_xems_studio';
             const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
             const MISS_TTL_MS = 60 * 60 * 1000;
+            const GOALS = [['tone', 'Тонус и сила'], ['fat', 'Отслабване'], ['cellulite', 'Целулит'], ['drain', 'Дренаж'], ['massage', 'Масаж']];
+            const FITNESS = [['low', 'Начинаещ'], ['mid', 'Среден'], ['high', 'Напреднал']];
+            const CONTRA = [['pregnancy', 'Бременност'], ['implant', 'Пейсмейкър / метален имплант'], ['cardiovascular', 'Сърдечно-съдово заболяване'],
+                ['circulation', 'Нарушено кръвообращение / тромбоза'], ['hernia', 'Херния'], ['cancer', 'Онкологично заболяване'],
+                ['bleeding', 'Склонност към кървене'], ['epilepsy', 'Епилепсия'], ['neurological', 'Неврологично заболяване'],
+                ['recent_surgery', 'Скорошна операция'], ['skin_lesion', 'Рани / кожни проблеми'], ['kidney', 'Бъбречно заболяване'],
+                ['tuberculosis', 'Туберкулоза']];
             const btn = document.getElementById('progress-btn');
             const apptBtn = document.getElementById('appointments-btn');
-            if (!btn || !apptBtn || !window.crypto || !crypto.subtle || !window.TextEncoder) {
+            const overlay = document.getElementById('xems-overlay');
+            const bodyEl = document.getElementById('xems-body');
+            const closeBtn = document.getElementById('xems-close');
+            if (!btn || !apptBtn || !overlay || !bodyEl || !closeBtn || !window.crypto || !crypto.subtle || !window.TextEncoder) {
                 return;
             }
+            try {
+                const q = new URLSearchParams(location.search).get('studio');
+                if (q && /^[2-9a-km-z]{8}$/.test(q)) localStorage.setItem(STUDIO_KEY, q);
+            } catch (e) { /* no storage */ }
             let cardUrl = null;
             let lookedUpFor = null;
 
@@ -1761,16 +1836,22 @@
                 return (sessionStorage.getItem(key) || localStorage.getItem(key) || '').trim();
             }
 
+            function studio() {
+                return XEMS_STUDIO || localStorage.getItem(STUDIO_KEY) || '';
+            }
+
             function contact() {
                 const email = read('xbody_booking_email').toLowerCase();
-                let phone = read('xbody_booking_phone').replace(/\D/g, '');
-                if (phone.length > 9) {
-                    phone = phone.slice(-9);
-                }
-                if (!email && phone.length < 7) {
-                    return null;
-                }
-                return { email: email.indexOf('@') > 0 ? email : '', phone: phone.length >= 7 ? phone : '' };
+                const phoneRaw = read('xbody_booking_phone');
+                let phone = phoneRaw.replace(/\D/g, '');
+                if (phone.length > 9) phone = phone.slice(-9);
+                if (!email && phone.length < 7) return null;
+                return {
+                    name: read('xbody_booking_full_name'),
+                    email: email.indexOf('@') > 0 ? email : '',
+                    phone: phone.length >= 7 ? phone : '',
+                    phoneRaw: phoneRaw
+                };
             }
 
             async function sha(value) {
@@ -1781,26 +1862,22 @@
             }
 
             function update() {
-                btn.classList.toggle('visible', Boolean(cardUrl) && apptBtn.classList.contains('visible'));
+                btn.classList.toggle('visible', Boolean(contact()) && apptBtn.classList.contains('visible'));
             }
 
-            async function lookup() {
+            async function lookup(force) {
                 const c = contact();
                 const who = c ? c.email + '|' + c.phone : null;
-                if (!who || who === lookedUpFor) {
-                    if (!who) {
-                        cardUrl = null;
-                        update();
-                    }
+                if (!who) {
+                    cardUrl = null;
                     return;
                 }
+                if (who === lookedUpFor && !force) return;
                 lookedUpFor = who;
-                cardUrl = null;
                 try {
                     const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-                    if (cached && cached.who === who && Date.now() - cached.at < (cached.url ? CACHE_TTL_MS : MISS_TTL_MS)) {
+                    if (!force && cached && cached.who === who && Date.now() - cached.at < (cached.url ? CACHE_TTL_MS : MISS_TTL_MS)) {
                         cardUrl = cached.url;
-                        update();
                         return;
                     }
                 } catch (e) { /* no cache */ }
@@ -1808,36 +1885,149 @@
                     const body = {};
                     if (c.email) body.ek = await sha(c.email);
                     if (c.phone) body.pk = await sha(c.phone);
-                    const res = await fetch(FIND_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
+                    const res = await fetch(API + '/v1/card/find', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
                     });
                     const data = await res.json().catch(function () { return null; });
                     const url = data && data.ok && typeof data.url === 'string' && data.url.indexOf('https://') === 0 ? data.url : null;
                     if (res.ok || res.status === 404) {
                         localStorage.setItem(CACHE_KEY, JSON.stringify({ who: who, url: url, at: Date.now() }));
                     }
-                    if (lookedUpFor === who) {
-                        cardUrl = url;
-                    }
+                    if (lookedUpFor === who) cardUrl = url;
                 } catch (e) {
-                    lookedUpFor = null;       // offline: try again later
+                    lookedUpFor = null;
                 }
-                update();
             }
 
-            btn.addEventListener('click', function () {
+            function esc(v) {
+                return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            function saved() {
+                try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') || {}; } catch (e) { return {}; }
+            }
+
+            function options(list, sel) {
+                return '<option value="">—</option>' + list.map(function (o) {
+                    return '<option value="' + o[0] + '"' + (o[0] === sel ? ' selected' : '') + '>' + o[1] + '</option>';
+                }).join('');
+            }
+
+            function render() {
+                const c = contact() || {};
+                const p = saved();
+                const contra = p.contra || [];
+                const hasStudio = Boolean(studio());
+                let html = '<div class="xbody-appt-section">';
                 if (cardUrl) {
-                    window.open(cardUrl, '_blank', 'noopener');
+                    html += '<button type="button" class="xbody-submit-btn" id="xems-open-card"><i class="fas fa-chart-line"></i> Виж прогреса си</button>';
+                } else {
+                    html += '<div class="xbody-appt-state" style="padding:12px 4px">Картонът с прогреса ти ще се появи тук, след като студиото го активира след тренировка.</div>';
                 }
-            });
-            new MutationObserver(function () {
-                lookup();
-                update();
-            }).observe(apptBtn, { attributes: true, attributeFilter: ['class'] });
-            window.addEventListener('focus', lookup);
-            lookup();
+                html += '</div>';
+                if (hasStudio) {
+                    html += '<div class="xbody-appt-section"><p class="xbody-appt-section-label">ПРОФИЛ ЗА ТРЕНЬОРА · ПО ЖЕЛАНИЕ</p>' +
+                        '<p style="margin:0 0 12px;color:#64748b;font-size:.85rem;line-height:1.45">' + esc(c.name) + ' · ' + esc(c.email || '') + ' ' + esc(c.phoneRaw || '') +
+                        '<br>Така треньорът настройва тренировката безопасно още от първия път.</p>' +
+                        '<div class="xems-grid">' +
+                        '<div class="xbody-form-group"><label for="xems-sex">Пол</label><select id="xems-sex" class="xbody-form-input">' + options([['F', 'Жена'], ['M', 'Мъж']], p.sex) + '</select></div>' +
+                        '<div class="xbody-form-group"><label for="xems-by">Година на раждане</label><input id="xems-by" class="xbody-form-input" type="number" inputmode="numeric" min="1920" max="2016" value="' + esc(p.by || '') + '"></div>' +
+                        '<div class="xbody-form-group"><label for="xems-h">Ръст (см)</label><input id="xems-h" class="xbody-form-input" type="number" inputmode="numeric" min="100" max="230" value="' + esc(p.h || '') + '"></div>' +
+                        '<div class="xbody-form-group"><label for="xems-w">Тегло (кг)</label><input id="xems-w" class="xbody-form-input" type="number" inputmode="numeric" min="30" max="250" value="' + esc(p.w || '') + '"></div>' +
+                        '<div class="xbody-form-group"><label for="xems-goal">Цел</label><select id="xems-goal" class="xbody-form-input">' + options(GOALS, p.goal) + '</select></div>' +
+                        '<div class="xbody-form-group"><label for="xems-fit">Форма</label><select id="xems-fit" class="xbody-form-input">' + options(FITNESS, p.fit) + '</select></div>' +
+                        '</div>' +
+                        '<div class="xbody-form-group"><label>Имам / имала съм</label><div class="xems-contra">' +
+                        CONTRA.map(function (o) {
+                            return '<label class="xems-chip"><input type="checkbox" value="' + o[0] + '"' + (contra.indexOf(o[0]) >= 0 ? ' checked' : '') + '><span>' + o[1] + '</span></label>';
+                        }).join('') + '</div></div>' +
+                        '<div class="xbody-form-group"><label for="xems-note">Нещо друго за треньора</label><textarea id="xems-note" class="xbody-form-input" rows="2" maxlength="300">' + esc(p.note || '') + '</textarea></div>' +
+                        '<label class="xbody-checkbox-row" style="margin:6px 0 14px"><input id="xems-consent" type="checkbox"' + (p.consent ? ' checked' : '') + '><span>Съгласен/на съм тези данни да се изпратят на студиото за безопасна тренировка.</span></label>' +
+                        '<p class="xbody-form-error" id="xems-status"></p>' +
+                        '<button type="button" class="xbody-submit-btn" id="xems-save">Запази и изпрати</button></div>';
+                }
+                bodyEl.innerHTML = html;
+                const open = document.getElementById('xems-open-card');
+                if (open) open.addEventListener('click', function () { window.open(cardUrl, '_blank', 'noopener'); });
+                const save = document.getElementById('xems-save');
+                if (save) save.addEventListener('click', send);
+            }
+
+            function num(id) {
+                const v = parseInt(document.getElementById(id).value, 10);
+                return Number.isFinite(v) ? v : null;
+            }
+
+            async function send() {
+                const status = document.getElementById('xems-status');
+                const btnSave = document.getElementById('xems-save');
+                const c = contact();
+                if (!c) return;
+                const p = {
+                    consent: document.getElementById('xems-consent').checked,
+                    name: c.name, email: c.email, phone: c.phoneRaw,
+                    sex: document.getElementById('xems-sex').value,
+                    by: num('xems-by'), h: num('xems-h'), w: num('xems-w'),
+                    goal: document.getElementById('xems-goal').value,
+                    fit: document.getElementById('xems-fit').value,
+                    contra: Array.from(bodyEl.querySelectorAll('.xems-contra input:checked')).map(function (i) { return i.value; }),
+                    note: document.getElementById('xems-note').value.trim()
+                };
+                if (!p.consent) {
+                    status.style.color = '#dc2626';
+                    status.textContent = 'Отбележи съгласието, за да изпратим данните на студиото.';
+                    return;
+                }
+                localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+                const sig = JSON.stringify(p);
+                if (sig === localStorage.getItem(SENT_KEY)) {
+                    status.style.color = '#16a34a';
+                    status.textContent = 'Няма промени — студиото вече има тези данни.';
+                    return;
+                }
+                btnSave.disabled = true;
+                status.style.color = '#64748b';
+                status.textContent = 'Изпращане…';
+                try {
+                    const key = await sha(c.email || c.phone);
+                    const res = await fetch(API + '/v1/profile', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ studio: studio(), key: key, profile: Object.assign({ t: Math.floor(Date.now() / 1000) }, p) })
+                    });
+                    const data = await res.json().catch(function () { return null; });
+                    if (data && data.ok) {
+                        localStorage.setItem(SENT_KEY, sig);
+                        status.style.color = '#16a34a';
+                        status.textContent = 'Изпратено. Треньорът ще го види на таблета преди тренировката.';
+                    } else {
+                        status.style.color = '#dc2626';
+                        status.textContent = 'Не се изпрати (' + ((data && data.error) || res.status) + '). Опитай пак по-късно.';
+                    }
+                } catch (e) {
+                    status.style.color = '#dc2626';
+                    status.textContent = 'Няма връзка. Данните са запазени на телефона — натисни пак, когато има интернет.';
+                } finally {
+                    btnSave.disabled = false;
+                }
+            }
+
+            function openSheet() {
+                render();
+                overlay.classList.remove('hidden');
+                overlay.setAttribute('aria-hidden', 'false');
+                lookup(false).then(function () { if (!overlay.classList.contains('hidden')) render(); });
+            }
+
+            function closeSheet() {
+                overlay.classList.add('hidden');
+                overlay.setAttribute('aria-hidden', 'true');
+            }
+
+            btn.addEventListener('click', openSheet);
+            closeBtn.addEventListener('click', closeSheet);
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSheet(); });
+            new MutationObserver(update).observe(apptBtn, { attributes: true, attributeFilter: ['class'] });
+            update();
         })();
     </script>
 </body>
