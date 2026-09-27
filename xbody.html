@@ -196,6 +196,45 @@
             font-size: 15px;
         }
 
+        /* ── My progress (XEMS client card) ── */
+        #progress-btn {
+            position: fixed;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+            left: 16px;
+            z-index: 500;
+            height: 44px;
+            padding: 0 16px 0 14px;
+            border: none;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #374151;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.12s ease;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #progress-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #progress-btn:active {
+            transform: scale(0.96);
+        }
+        #progress-btn i {
+            color: #b91c1c;
+            font-size: 15px;
+        }
+
         /* ── Appointments sheet ── */
         .xbody-appt-overlay {
             position: fixed;
@@ -666,6 +705,11 @@
          shown on all subsequent booking steps (JS controls visibility) -->
     <button id="back-btn" aria-label="Назад">
         <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <button id="progress-btn" type="button" aria-label="Моят прогрес">
+        <i class="fas fa-chart-line"></i>
+        <span>Моят прогрес</span>
     </button>
 
     <button id="appointments-btn" type="button" aria-label="Моите часове">
@@ -1694,6 +1738,106 @@
                     attributeFilter: ['class']
                 });
             }
+        })();
+
+        /* ── My progress: the client's XEMS card from the studio tablet ──
+           The tablet uploads SHA-256("xems-card:" + e-mail) and SHA-256("xems-card:" + last 9 phone digits)
+           with the card; here the same hashes find it. The e-mail and phone never leave the browser.
+           The button shows only when a card exists, next to "Моите часове". */
+        (function () {
+            const FIND_URL = 'https://license.biocode-bg.com/v1/card/find';
+            const CACHE_KEY = 'xbody_progress_card';
+            const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+            const MISS_TTL_MS = 60 * 60 * 1000;
+            const btn = document.getElementById('progress-btn');
+            const apptBtn = document.getElementById('appointments-btn');
+            if (!btn || !apptBtn || !window.crypto || !crypto.subtle || !window.TextEncoder) {
+                return;
+            }
+            let cardUrl = null;
+            let lookedUpFor = null;
+
+            function read(key) {
+                return (sessionStorage.getItem(key) || localStorage.getItem(key) || '').trim();
+            }
+
+            function contact() {
+                const email = read('xbody_booking_email').toLowerCase();
+                let phone = read('xbody_booking_phone').replace(/\D/g, '');
+                if (phone.length > 9) {
+                    phone = phone.slice(-9);
+                }
+                if (!email && phone.length < 7) {
+                    return null;
+                }
+                return { email: email.indexOf('@') > 0 ? email : '', phone: phone.length >= 7 ? phone : '' };
+            }
+
+            async function sha(value) {
+                const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('xems-card:' + value));
+                return Array.from(new Uint8Array(buf)).map(function (b) {
+                    return b.toString(16).padStart(2, '0');
+                }).join('');
+            }
+
+            function update() {
+                btn.classList.toggle('visible', Boolean(cardUrl) && apptBtn.classList.contains('visible'));
+            }
+
+            async function lookup() {
+                const c = contact();
+                const who = c ? c.email + '|' + c.phone : null;
+                if (!who || who === lookedUpFor) {
+                    if (!who) {
+                        cardUrl = null;
+                        update();
+                    }
+                    return;
+                }
+                lookedUpFor = who;
+                cardUrl = null;
+                try {
+                    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+                    if (cached && cached.who === who && Date.now() - cached.at < (cached.url ? CACHE_TTL_MS : MISS_TTL_MS)) {
+                        cardUrl = cached.url;
+                        update();
+                        return;
+                    }
+                } catch (e) { /* no cache */ }
+                try {
+                    const body = {};
+                    if (c.email) body.ek = await sha(c.email);
+                    if (c.phone) body.pk = await sha(c.phone);
+                    const res = await fetch(FIND_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    const data = await res.json().catch(function () { return null; });
+                    const url = data && data.ok && typeof data.url === 'string' && data.url.indexOf('https://') === 0 ? data.url : null;
+                    if (res.ok || res.status === 404) {
+                        localStorage.setItem(CACHE_KEY, JSON.stringify({ who: who, url: url, at: Date.now() }));
+                    }
+                    if (lookedUpFor === who) {
+                        cardUrl = url;
+                    }
+                } catch (e) {
+                    lookedUpFor = null;       // offline: try again later
+                }
+                update();
+            }
+
+            btn.addEventListener('click', function () {
+                if (cardUrl) {
+                    window.open(cardUrl, '_blank', 'noopener');
+                }
+            });
+            new MutationObserver(function () {
+                lookup();
+                update();
+            }).observe(apptBtn, { attributes: true, attributeFilter: ['class'] });
+            window.addEventListener('focus', lookup);
+            lookup();
         })();
     </script>
 </body>
