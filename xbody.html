@@ -236,46 +236,129 @@
         }
 
         .xbody-appt-panel.xems-panel {
-            max-height: min(88vh, 760px);
+            max-height: min(90vh, 780px);
         }
-        .xems-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            column-gap: 10px;
-        }
-        .xems-grid .xbody-form-group {
-            margin-bottom: 12px;
-        }
-        .xems-grid .xbody-form-input {
-            padding: 11px 12px;
-        }
-        .xems-contra {
+        .xems-progress {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .xbody-form-group .xems-chip {
-            display: inline-flex;
-            margin: 0;
-            font-weight: 500;
-            line-height: 1.2;
             align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+            color: #fff;
+            text-align: left;
+            cursor: pointer;
+            font: inherit;
+        }
+        .xems-progress i { font-size: 20px; }
+        .xems-progress b { display: block; font-size: 1rem; }
+        .xems-progress small { display: block; opacity: .85; font-size: .8rem; margin-top: 2px; }
+        .xems-progress .xems-go { margin-left: auto; font-size: 18px; opacity: .9; }
+        .xems-progress.off {
+            background: #f8fafc;
+            color: #64748b;
+            cursor: default;
+        }
+        .xems-intro { margin: 18px 0 2px; }
+        .xems-intro h3 { margin: 0; font-size: 1.02rem; color: #0f172a; }
+        .xems-intro p { margin: 4px 0 0; color: #64748b; font-size: .86rem; line-height: 1.45; }
+        .xems-block { margin-top: 18px; }
+        .xems-label {
+            display: flex;
+            align-items: baseline;
             gap: 6px;
-            padding: 7px 11px;
+            margin: 0 0 8px;
+            font-size: .86rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .xems-label span { font-weight: 500; color: #94a3b8; font-size: .78rem; }
+        .xems-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .xems-chip {
+            padding: 9px 14px;
             border: 1px solid #e2e8f0;
             border-radius: 999px;
-            font-size: .82rem;
+            background: #fff;
             color: #334155;
+            font: inherit;
+            font-size: .88rem;
+            line-height: 1.2;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: background .15s ease, border-color .15s ease, color .15s ease;
+        }
+        .xems-chip[aria-pressed="true"] {
+            background: #fef2f2;
+            border-color: #f87171;
+            color: #991b1b;
+            font-weight: 600;
+        }
+        .xems-chips.small .xems-chip { padding: 7px 11px; font-size: .8rem; }
+        .xems-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        .xems-num {
+            display: flex;
+            align-items: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0 10px;
+            background: #fff;
+        }
+        .xems-num:focus-within { border-color: #f87171; }
+        .xems-num input {
+            width: 100%;
+            min-width: 0;
+            border: none;
+            outline: none;
+            padding: 10px 0;
+            font: inherit;
+            font-size: 1rem;
+            color: #0f172a;
+            background: transparent;
+        }
+        .xems-num em { font-style: normal; color: #94a3b8; font-size: .78rem; margin-left: 4px; white-space: nowrap; }
+        .xems-cap { display: block; color: #94a3b8; font-size: .72rem; margin: 0 0 4px 2px; }
+        .xems-health {
+            margin-top: 18px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: #f8fafc;
+        }
+        .xems-health p { margin: 0 0 8px; color: #334155; font-size: .86rem; }
+        .xems-health .xems-sub { margin: 10px 0 0; color: #64748b; font-size: .78rem; }
+        .xems-note {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            font: inherit;
+            font-size: .92rem;
+            resize: none;
+        }
+        .xems-note:focus { outline: none; border-color: #f87171; }
+        .xems-foot {
+            padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+            border-top: 1px solid #f1f5f9;
+            background: #fff;
+        }
+        .xems-foot.hidden { display: none; }
+        .xems-send {
+            width: 100%;
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            background: #b91c1c;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
             cursor: pointer;
         }
-        .xems-chip input {
-            accent-color: #dc2626;
-            margin: 0;
-        }
-        .xems-chip:has(input:checked) {
-            border-color: #fca5a5;
-            background: #fef2f2;
-        }
+        .xems-send:disabled { background: #e2e8f0; color: #64748b; cursor: default; }
+        .xems-msg { margin: 8px 0 0; text-align: center; color: #94a3b8; font-size: .76rem; }
+        .xems-msg.ok { color: #15803d; }
+        .xems-msg.err { color: #dc2626; }
 
         /* ── Appointments sheet ── */
         .xbody-appt-overlay {
@@ -769,6 +852,10 @@
                 </div>
             </div>
             <div class="xbody-appt-body" id="xems-body"></div>
+            <div class="xems-foot hidden" id="xems-foot">
+                <button type="button" class="xems-send" id="xems-send">Изпрати на треньора</button>
+                <p class="xems-msg" id="xems-msg">Данните отиват само в твоето студио.</p>
+            </div>
         </div>
     </div>
 
@@ -1810,19 +1897,27 @@
             const STUDIO_KEY = 'xbody_xems_studio';
             const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
             const MISS_TTL_MS = 60 * 60 * 1000;
-            const GOALS = [['tone', 'Тонус и сила'], ['fat', 'Отслабване'], ['cellulite', 'Целулит'], ['drain', 'Дренаж'], ['massage', 'Масаж']];
-            const FITNESS = [['low', 'Начинаещ'], ['mid', 'Среден'], ['high', 'Напреднал']];
-            const CONTRA = [['pregnancy', 'Бременност'], ['implant', 'Пейсмейкър / метален имплант'], ['cardiovascular', 'Сърдечно-съдово заболяване'],
-                ['circulation', 'Нарушено кръвообращение / тромбоза'], ['hernia', 'Херния'], ['cancer', 'Онкологично заболяване'],
+            const GOALS = [['tone', 'Стягане и тонус'], ['fat', 'Отслабване'], ['cellulite', 'Целулит'], ['drain', 'Отводняване'], ['massage', 'Възстановяване']];
+            const FITNESS = [['low', 'Рядко'], ['mid', '1–2 пъти седмично'], ['high', 'Тренирам редовно']];
+            const FOCUS = [['abs', 'Корем'], ['glutes', 'Седалище'], ['legs', 'Бедра'], ['arms', 'Ръце'], ['back', 'Гръб'], ['chest', 'Гърди']];
+            const COND = [['back', 'Болки в кръста'], ['neck', 'Врат и рамене'], ['knees', 'Колене'], ['injury', 'Стара травма'],
+                ['desk', 'Седяща работа'], ['stress', 'Стрес или лош сън'], ['sensitive', 'Чувствителност към тока'],
+                ['postpartum', 'Раждане през последната година']];
+            const CONTRA = [['pregnancy', 'Бременност'], ['implant', 'Пейсмейкър или метален имплант'], ['cardiovascular', 'Сърдечно заболяване'],
+                ['circulation', 'Тромбоза или разширени вени'], ['hernia', 'Херния'], ['cancer', 'Онкологично заболяване'],
                 ['bleeding', 'Склонност към кървене'], ['epilepsy', 'Епилепсия'], ['neurological', 'Неврологично заболяване'],
-                ['recent_surgery', 'Скорошна операция'], ['skin_lesion', 'Рани / кожни проблеми'], ['kidney', 'Бъбречно заболяване'],
+                ['recent_surgery', 'Операция скоро'], ['skin_lesion', 'Рани по кожата'], ['kidney', 'Бъбречно заболяване'],
                 ['tuberculosis', 'Туберкулоза']];
             const btn = document.getElementById('progress-btn');
             const apptBtn = document.getElementById('appointments-btn');
             const overlay = document.getElementById('xems-overlay');
             const bodyEl = document.getElementById('xems-body');
             const closeBtn = document.getElementById('xems-close');
-            if (!btn || !apptBtn || !overlay || !bodyEl || !closeBtn || !window.crypto || !crypto.subtle || !window.TextEncoder) {
+            const foot = document.getElementById('xems-foot');
+            const sendBtn = document.getElementById('xems-send');
+            const msg = document.getElementById('xems-msg');
+            if (!btn || !apptBtn || !overlay || !bodyEl || !closeBtn || !foot || !sendBtn || !msg
+                    || !window.crypto || !crypto.subtle || !window.TextEncoder) {
                 return;
             }
             try {
@@ -1831,6 +1926,8 @@
             } catch (e) { /* no storage */ }
             let cardUrl = null;
             let lookedUpFor = null;
+            let st = null;          // the profile being edited
+            let health = null;      // null not answered, false no, true yes
 
             function read(key) {
                 return (sessionStorage.getItem(key) || localStorage.getItem(key) || '').trim();
@@ -1907,87 +2004,117 @@
                 try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') || {}; } catch (e) { return {}; }
             }
 
-            function options(list, sel) {
-                return '<option value="">—</option>' + list.map(function (o) {
-                    return '<option value="' + o[0] + '"' + (o[0] === sel ? ' selected' : '') + '>' + o[1] + '</option>';
-                }).join('');
+            /* one-tap choices: single (a value) or multi (a list) */
+            function chips(key, list, multi, small) {
+                return '<div class="xems-chips' + (small ? ' small' : '') + '">' + list.map(function (o) {
+                    const on = multi ? (st[key] || []).indexOf(o[0]) >= 0 : st[key] === o[0];
+                    return '<button type="button" class="xems-chip" data-k="' + key + '" data-v="' + o[0] + '"' + (multi ? ' data-m="1"' : '') +
+                        ' aria-pressed="' + on + '">' + o[1] + '</button>';
+                }).join('') + '</div>';
+            }
+
+            function num(id, cap, unit, value, min, max) {
+                return '<label><span class="xems-cap">' + cap + '</span><span class="xems-num"><input id="' + id + '" type="number" inputmode="numeric" min="' + min +
+                    '" max="' + max + '" value="' + esc(value || '') + '" placeholder="—"><em>' + unit + '</em></span></label>';
+            }
+
+            function block(label, hint, inner) {
+                return '<div class="xems-block"><p class="xems-label">' + label + (hint ? ' <span>' + hint + '</span>' : '') + '</p>' + inner + '</div>';
             }
 
             function render() {
-                const c = contact() || {};
-                const p = saved();
-                const contra = p.contra || [];
+                if (st && document.getElementById('xems-by')) collect();   // keep what was typed
                 const hasStudio = Boolean(studio());
-                let html = '<div class="xbody-appt-section">';
-                if (cardUrl) {
-                    html += '<button type="button" class="xbody-submit-btn" id="xems-open-card"><i class="fas fa-chart-line"></i> Виж прогреса си</button>';
-                } else {
-                    html += '<div class="xbody-appt-state" style="padding:12px 4px">Картонът с прогреса ти ще се появи тук, след като студиото го активира след тренировка.</div>';
-                }
-                html += '</div>';
+                let html = cardUrl
+                    ? '<button type="button" class="xems-progress" id="xems-open-card"><i class="fas fa-chart-line"></i><span><b>Твоят прогрес</b><small>Тренировки, мускули и напредък</small></span><span class="xems-go">›</span></button>'
+                    : '<div class="xems-progress off"><i class="fas fa-chart-line"></i><span><b>Твоят прогрес</b><small>Ще се появи тук след първата ти тренировка.</small></span></div>';
                 if (hasStudio) {
-                    html += '<div class="xbody-appt-section"><p class="xbody-appt-section-label">ПРОФИЛ ЗА ТРЕНЬОРА · ПО ЖЕЛАНИЕ</p>' +
-                        '<p style="margin:0 0 12px;color:#64748b;font-size:.85rem;line-height:1.45">' + esc(c.name) + ' · ' + esc(c.email || '') + ' ' + esc(c.phoneRaw || '') +
-                        '<br>Така треньорът настройва тренировката безопасно още от първия път.</p>' +
-                        '<div class="xems-grid">' +
-                        '<div class="xbody-form-group"><label for="xems-sex">Пол</label><select id="xems-sex" class="xbody-form-input">' + options([['F', 'Жена'], ['M', 'Мъж']], p.sex) + '</select></div>' +
-                        '<div class="xbody-form-group"><label for="xems-by">Година на раждане</label><input id="xems-by" class="xbody-form-input" type="number" inputmode="numeric" min="1920" max="2016" value="' + esc(p.by || '') + '"></div>' +
-                        '<div class="xbody-form-group"><label for="xems-h">Ръст (см)</label><input id="xems-h" class="xbody-form-input" type="number" inputmode="numeric" min="100" max="230" value="' + esc(p.h || '') + '"></div>' +
-                        '<div class="xbody-form-group"><label for="xems-w">Тегло (кг)</label><input id="xems-w" class="xbody-form-input" type="number" inputmode="numeric" min="30" max="250" value="' + esc(p.w || '') + '"></div>' +
-                        '<div class="xbody-form-group"><label for="xems-goal">Цел</label><select id="xems-goal" class="xbody-form-input">' + options(GOALS, p.goal) + '</select></div>' +
-                        '<div class="xbody-form-group"><label for="xems-fit">Форма</label><select id="xems-fit" class="xbody-form-input">' + options(FITNESS, p.fit) + '</select></div>' +
-                        '</div>' +
-                        '<div class="xbody-form-group"><label>Имам / имала съм</label><div class="xems-contra">' +
-                        CONTRA.map(function (o) {
-                            return '<label class="xems-chip"><input type="checkbox" value="' + o[0] + '"' + (contra.indexOf(o[0]) >= 0 ? ' checked' : '') + '><span>' + o[1] + '</span></label>';
-                        }).join('') + '</div></div>' +
-                        '<div class="xbody-form-group"><label for="xems-note">Нещо друго за треньора</label><textarea id="xems-note" class="xbody-form-input" rows="2" maxlength="300">' + esc(p.note || '') + '</textarea></div>' +
-                        '<label class="xbody-checkbox-row" style="margin:6px 0 14px"><input id="xems-consent" type="checkbox"' + (p.consent ? ' checked' : '') + '><span>Съгласен/на съм тези данни да се изпратят на студиото за безопасна тренировка.</span></label>' +
-                        '<p class="xbody-form-error" id="xems-status"></p>' +
-                        '<button type="button" class="xbody-submit-btn" id="xems-save">Запази и изпрати</button></div>';
+                    if (!st) {
+                        st = Object.assign({ focus: [], cond: [], contra: [] }, saved());
+                        health = st.contra && st.contra.length ? true : (st.healthNo ? false : null);
+                    }
+                    html += '<div class="xems-intro"><h3>За треньора</h3><p>Отнема минута. Така тренировката е нагласена за теб още от първия път. Всичко е по желание.</p></div>' +
+                        block('За теб', '', chips('sex', [['F', 'Жена'], ['M', 'Мъж']], false) +
+                            '<div class="xems-nums">' + num('xems-by', 'Година на раждане', '', st.by, 1920, 2016) +
+                            num('xems-h', 'Ръст', 'см', st.h, 100, 230) + num('xems-w', 'Тегло', 'кг', st.w, 30, 250) + '</div>') +
+                        block('Какво искаш да постигнеш', '', chips('goal', GOALS, false)) +
+                        block('Колко често спортуваш', '', chips('fit', FITNESS, false)) +
+                        block('Върху кои зони да наблегнем', 'може няколко', chips('focus', FOCUS, true)) +
+                        block('Какво да имаме предвид', 'може няколко', chips('cond', COND, true)) +
+                        '<div class="xems-health"><p>Има ли медицинска причина да не тренираш с EMS?</p>' +
+                        '<div class="xems-chips"><button type="button" class="xems-chip" data-h="0" aria-pressed="' + (health === false) + '">Не</button>' +
+                        '<button type="button" class="xems-chip" data-h="1" aria-pressed="' + (health === true) + '">Да или не знам</button></div>' +
+                        (health === true
+                            ? '<div style="margin-top:10px">' + chips('contra', CONTRA, true, true) + '</div><p class="xems-sub">Треньорът ще го обсъди с теб преди тренировката.</p>'
+                            : '') + '</div>' +
+                        block('Бележка за треньора', 'по желание',
+                            '<textarea class="xems-note" id="xems-note" rows="2" maxlength="300" placeholder="Например: предпочитам по-лек старт">' + esc(st.note || '') + '</textarea>');
                 }
                 bodyEl.innerHTML = html;
+                foot.classList.toggle('hidden', !hasStudio);
                 const open = document.getElementById('xems-open-card');
                 if (open) open.addEventListener('click', function () { window.open(cardUrl, '_blank', 'noopener'); });
-                const save = document.getElementById('xems-save');
-                if (save) save.addEventListener('click', send);
+                refreshSend();
             }
 
-            function num(id) {
-                const v = parseInt(document.getElementById(id).value, 10);
-                return Number.isFinite(v) ? v : null;
-            }
-
-            async function send() {
-                const status = document.getElementById('xems-status');
-                const btnSave = document.getElementById('xems-save');
-                const c = contact();
-                if (!c) return;
-                const p = {
-                    consent: document.getElementById('xems-consent').checked,
-                    name: c.name, email: c.email, phone: c.phoneRaw,
-                    sex: document.getElementById('xems-sex').value,
-                    by: num('xems-by'), h: num('xems-h'), w: num('xems-w'),
-                    goal: document.getElementById('xems-goal').value,
-                    fit: document.getElementById('xems-fit').value,
-                    contra: Array.from(bodyEl.querySelectorAll('.xems-contra input:checked')).map(function (i) { return i.value; }),
-                    note: document.getElementById('xems-note').value.trim()
+            function collect() {
+                const c = contact() || {};
+                const n = function (id, key) {
+                    const el = document.getElementById(id);
+                    if (!el) return st[key] == null ? null : st[key];
+                    const v = parseInt(el.value, 10);
+                    return Number.isFinite(v) ? v : null;
                 };
-                if (!p.consent) {
-                    status.style.color = '#dc2626';
-                    status.textContent = 'Отбележи съгласието, за да изпратим данните на студиото.';
-                    return;
+                const note = document.getElementById('xems-note');
+                st.by = n('xems-by', 'by');
+                st.h = n('xems-h', 'h');
+                st.w = n('xems-w', 'w');
+                st.note = note ? note.value.trim() : (st.note || '');
+                st.healthNo = health === false;
+                if (health !== true) st.contra = [];
+                return {
+                    consent: true, name: c.name, email: c.email, phone: c.phoneRaw,
+                    sex: st.sex || '', by: st.by, h: st.h, w: st.w, goal: st.goal || '', fit: st.fit || '',
+                    focus: st.focus || [], cond: st.cond || [], contra: st.contra || [], note: st.note
+                };
+            }
+
+            function refreshSend() {
+                if (!st || foot.classList.contains('hidden')) return;
+                const same = JSON.stringify(collect()) === localStorage.getItem(SENT_KEY);
+                sendBtn.disabled = same;
+                sendBtn.textContent = same ? 'Изпратено ✓' : (localStorage.getItem(SENT_KEY) ? 'Изпрати промените' : 'Изпрати на треньора');
+            }
+
+            bodyEl.addEventListener('click', function (e) {
+                const chip = e.target.closest('.xems-chip');
+                if (!chip || !st) return;
+                collect();
+                if (chip.dataset.h !== undefined) {
+                    health = chip.dataset.h === '1';
+                } else if (chip.dataset.m) {
+                    const list = st[chip.dataset.k] || [];
+                    const i = list.indexOf(chip.dataset.v);
+                    if (i >= 0) list.splice(i, 1); else list.push(chip.dataset.v);
+                    st[chip.dataset.k] = list;
+                } else {
+                    st[chip.dataset.k] = st[chip.dataset.k] === chip.dataset.v ? '' : chip.dataset.v;
                 }
-                localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+                const y = bodyEl.scrollTop;
+                render();
+                bodyEl.scrollTop = y;
+            });
+            bodyEl.addEventListener('input', refreshSend);
+
+            sendBtn.addEventListener('click', async function () {
+                const c = contact();
+                if (!c || !st) return;
+                const p = collect();
+                localStorage.setItem(PROFILE_KEY, JSON.stringify(st));
                 const sig = JSON.stringify(p);
-                if (sig === localStorage.getItem(SENT_KEY)) {
-                    status.style.color = '#16a34a';
-                    status.textContent = 'Няма промени — студиото вече има тези данни.';
-                    return;
-                }
-                btnSave.disabled = true;
-                status.style.color = '#64748b';
-                status.textContent = 'Изпращане…';
+                sendBtn.disabled = true;
+                sendBtn.textContent = 'Изпращане…';
+                msg.className = 'xems-msg';
                 try {
                     const key = await sha(c.email || c.phone);
                     const res = await fetch(API + '/v1/profile', {
@@ -1997,19 +2124,18 @@
                     const data = await res.json().catch(function () { return null; });
                     if (data && data.ok) {
                         localStorage.setItem(SENT_KEY, sig);
-                        status.style.color = '#16a34a';
-                        status.textContent = 'Изпратено. Треньорът ще го види на таблета преди тренировката.';
+                        msg.className = 'xems-msg ok';
+                        msg.textContent = 'Готово — треньорът ще го види преди следващата ти тренировка.';
                     } else {
-                        status.style.color = '#dc2626';
-                        status.textContent = 'Не се изпрати (' + ((data && data.error) || res.status) + '). Опитай пак по-късно.';
+                        msg.className = 'xems-msg err';
+                        msg.textContent = 'Не успяхме да изпратим. Опитай пак след малко.';
                     }
                 } catch (e) {
-                    status.style.color = '#dc2626';
-                    status.textContent = 'Няма връзка. Данните са запазени на телефона — натисни пак, когато има интернет.';
-                } finally {
-                    btnSave.disabled = false;
+                    msg.className = 'xems-msg err';
+                    msg.textContent = 'Няма интернет. Запазихме го на телефона — изпрати, когато има връзка.';
                 }
-            }
+                refreshSend();
+            });
 
             function openSheet() {
                 render();
