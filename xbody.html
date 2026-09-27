@@ -841,9 +841,9 @@
         <i class="fas fa-chevron-left"></i>
     </button>
 
-    <button id="progress-btn" type="button" aria-label="Моят прогрес">
+    <button id="progress-btn" type="button" aria-label="Моят EMS профил">
         <i class="fas fa-chart-line"></i>
-        <span>Моят прогрес</span>
+        <span>Моят EMS профил</span>
     </button>
 
     <button id="appointments-btn" type="button" aria-label="Моите часове">
@@ -855,7 +855,7 @@
         <div class="xbody-appt-panel xems-panel" role="dialog" aria-modal="true" aria-labelledby="xems-title">
             <div class="xbody-appt-handle" aria-hidden="true"></div>
             <div class="xbody-appt-header">
-                <h2 class="xbody-appt-title" id="xems-title">Моят XEMS</h2>
+                <h2 class="xbody-appt-title" id="xems-title">Моят EMS профил</h2>
                 <div class="xbody-appt-actions">
                     <button class="xbody-appt-icon-btn" id="xems-close" type="button" aria-label="Затвори">✕</button>
                 </div>
@@ -1891,7 +1891,7 @@
             }
         })();
 
-        /* ── Моят XEMS: the client's card (progress) and profile for the studio tablet ──
+        /* ── Моят EMS профил: the client's card (progress) and profile for the studio tablet ──
            Costs: the card is looked up at most once per 12 h (browser cache); the profile is sent only when
            the client presses "Запази" and something changed. The e-mail / phone go to the server only inside
            the profile the client chose to send; the card lookup uses SHA-256 hashes of them.
