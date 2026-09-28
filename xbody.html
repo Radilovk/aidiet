@@ -2526,14 +2526,14 @@
                 refreshSend();
             }
 
-            const CTA = '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-plus"></i><span><b>Попълни профила си</b>' +
-                '<small>Една минута — и тренировката ти е нагласена точно за теб.</small></span><span class="xems-go">›</span></button>';
+            const CTA = '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-plus"></i><span><b>Попълнете профила си</b>' +
+                '<small>Отнема около минута и ни помага да персонализираме тренировките Ви.</small></span><span class="xems-go">›</span></button>';
 
-            const REPORT_CTA = '<button type="button" class="xems-cta xems-news" data-go="card"><i class="fas fa-chart-line"></i><span><b>Анализът от тренировката ти е готов</b>' +
-                '<small>Ефективност, калории и напредък — виж какво постигна.</small></span><span class="xems-go">›</span></button>';
+            const REPORT_CTA = '<button type="button" class="xems-cta xems-news" data-go="card"><i class="fas fa-chart-line"></i><span><b>Анализът от тренировката Ви е готов</b>' +
+                '<small>Ефективност, калории и напредък — вижте резултатите си.</small></span><span class="xems-go">›</span></button>';
 
             function finishCta(miss) {
-                return '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-edit"></i><span><b>Довърши профила си</b>' +
+                return '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-edit"></i><span><b>Довършете профила си</b>' +
                     '<small>Остава: ' + esc(miss.join(', ')) + '</small></span><span class="xems-go">›</span></button>';
             }
 
@@ -2545,14 +2545,14 @@
                 const unsent = miss.length === 0 && incomplete();   // filled in, but not in the studio yet
                 const c = contact() || {};
                 const first = (c.name || '').split(/\s+/)[0];
-                titleEl.textContent = hasNews ? 'Анализът ти е готов' : reg ? 'Довърши профила си' : 'Попълни профила си';
-                let html = '<p class="xems-hello">Здравей' + (first ? ', ' + esc(first) : '') + '!</p>';
+                titleEl.textContent = hasNews ? 'Анализът Ви е готов' : reg ? 'Довършете профила си' : 'Попълнете профила си';
+                let html = '<p class="xems-hello">Здравейте' + (first ? ', ' + esc(first) : '') + '!</p>';
                 if (hasNews) html += REPORT_CTA;
                 if (miss.length || unsent) {
                     if (!hasNews) {
                         if (!st) loadProfile();
                         const done = filled();
-                        html += '<div class="xems-intro"><p>С пълен профил треньорът нагласява силата, зоните и паузите точно за теб.' +
+                        html += '<div class="xems-intro"><p>Пълният профил позволява на треньора да персонализира интензитета, зоните и почивките спрямо Вас.' +
                             '</p><div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
                             done + ' от 5</span></div></div>' +
                             '<div class="xems-sep-cta">' + (reg ? finishCta(miss) : CTA) + '</div>';
@@ -2570,10 +2570,10 @@
                 const reg = registered();
                 const first = (c.name || '').split(/\s+/)[0];
                 titleEl.textContent = 'Моят профил';
-                let html = '<p class="xems-hello">Здравей' + (first ? ', ' + esc(first) : '') + '!</p>';
+                let html = '<p class="xems-hello">Здравейте' + (first ? ', ' + esc(first) : '') + '!</p>';
                 if (justSaved) {
-                    html += '<div class="xems-done"><i class="fas fa-check-circle"></i><span><b>Профилът ти е готов</b>' +
-                        '<small>Студиото ще го види преди следващата ти тренировка.</small></span></div>';
+                    html += '<div class="xems-done"><i class="fas fa-check-circle"></i><span><b>Профилът Ви е готов</b>' +
+                        '<small>Студиото ще се запознае с него преди следващата Ви тренировка.</small></span></div>';
                 } else if (studio() && !reg) {
                     html += CTA;
                 } else if (incomplete()) {
@@ -2581,10 +2581,10 @@
                 }
                 if (news()) html = html.replace('</p>', '</p>' + REPORT_CTA);
                 const nx = window.XBodyAppointments && window.XBodyAppointments.next ? window.XBodyAppointments.next() : null;
-                const apptSub = !nx ? 'Предстоящи и минали часове' : nx.none ? 'Нямаш предстоящ час' : 'Следващ: ' + nx.date + ' · ' + nx.time;
+                const apptSub = !nx ? 'Предстоящи и минали часове' : nx.none ? 'Нямате предстоящ час' : 'Следващ: ' + nx.date + ' · ' + nx.time;
                 html += '<div class="xems-menu">' +
                     item('appts', 'fa-calendar-check', 'Моите часове', apptSub) +
-                    item('card', 'fa-chart-line', 'Моят прогрес', cardUrl ? (news() ? 'Нов анализ от тренировката' : 'Анализ, мускули и напредък') : 'Ще се появи след първата ти тренировка', !cardUrl) +
+                    item('card', 'fa-chart-line', 'Моят прогрес', cardUrl ? (news() ? 'Нов анализ от тренировката' : 'Анализ, мускули и напредък') : 'Ще се появи след първата Ви тренировка', !cardUrl) +
                     item('data', 'fa-id-card', 'Моите данни', [c.name, c.email || c.phoneRaw].filter(Boolean).join(' · ')) +
                     '</div>';
                 bodyEl.innerHTML = html;
@@ -2603,7 +2603,7 @@
                     if (reg) {
                         const contra = labels(CONTRA, st.contra);
                         html += '<p class="xems-label xems-sep">Моят профил</p>' +
-                            '<div class="xems-card">' + row('За теб', aboutYou()) + row('Цел', label(GOALS, st.goal)) +
+                            '<div class="xems-card">' + row('За Вас', aboutYou()) + row('Цел', label(GOALS, st.goal)) +
                             row('Спорт', label(FITNESS, st.fit)) + row('Зони', labels(FOCUS, st.focus).join(', ')) +
                             row('Да имаме предвид', labels(COND, st.cond).join(', ')) +
                             row('Здраве', contra.length ? contra.join(', ') : (st.healthNo ? 'Няма медицинска причина' : '')) +
@@ -2614,8 +2614,8 @@
                 } else {
                     if (studio() && (!reg || filled() < 5)) {
                         const done = filled();
-                        html += '<div class="xems-intro"><p>С тези данни треньорът нагласява тренировката точно за теб още от първия път. ' +
-                            (reg ? 'Попълни и останалото — отнема минута.' : 'Всичко освен контакта е по желание.') + '</p><div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
+                        html += '<div class="xems-intro"><p>Вашите данни позволяват по-добра персонализация на подхода и проследяване на прогреса Ви. ' +
+                            (reg ? 'Попълването отнема около минута.' : 'Задължителни са само данните за контакт.') + '</p><div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
                             (done >= 5 ? 'Профилът е пълен' : done + ' от 5') + '</span></div></div>';
                     }
                     if (reg || contactOpen || !c.name || !c.email || !c.phone) {
@@ -2627,18 +2627,18 @@
                             [c.name, c.email, c.phoneRaw].map(function (v) { return '<em>' + esc(v) + '</em>'; }).join(' · ') + '</span><button type="button" class="xems-link" data-go="contact">Промени</button></div>';
                     }
                     if (studio()) {
-                        html += block('За теб', '', chips('sex', [['F', 'Жена'], ['M', 'Мъж']], false) +
+                        html += block('За Вас', '', chips('sex', [['F', 'Жена'], ['M', 'Мъж']], false) +
                                 '<div class="xems-nums">' + num('xems-by', 'Година на раждане', '', st.by, 1920, 2016) +
                                 num('xems-h', 'Ръст', 'см', st.h, 100, 230) + num('xems-w', 'Тегло', 'кг', st.w, 30, 250) + '</div>') +
-                            block('Какво искаш да постигнеш', '', chips('goal', GOALS, false)) +
-                            block('Колко често спортуваш', '', chips('fit', FITNESS, false)) +
-                            block('Върху кои зони да наблегнем', 'може няколко', chips('focus', FOCUS, true)) +
-                            block('Какво да имаме предвид', 'може няколко', chips('cond', COND, true)) +
-                            '<div class="xems-health"><p>Има ли медицинска причина да не тренираш с EMS?</p>' +
+                            block('Каква е целта Ви', '', chips('goal', GOALS, false)) +
+                            block('Колко често спортувате', '', chips('fit', FITNESS, false)) +
+                            block('Върху кои зони да наблегнем', 'възможни са няколко отговора', chips('focus', FOCUS, true)) +
+                            block('Какво да имаме предвид', 'възможни са няколко отговора', chips('cond', COND, true)) +
+                            '<div class="xems-health"><p>Има ли медицинска причина да не тренирате с EMS?</p>' +
                             '<div class="xems-chips"><button type="button" class="xems-chip" data-h="0" aria-pressed="' + (health === false) + '">Не</button>' +
                             '<button type="button" class="xems-chip" data-h="1" aria-pressed="' + (health === true) + '">Да или не знам</button></div>' +
                             (health === true
-                                ? '<div class="xems-reveal" style="margin-top:10px">' + chips('contra', CONTRA, true, true) + '<p class="xems-sub">Ще го обсъдим с теб преди тренировката.</p></div>'
+                                ? '<div class="xems-reveal" style="margin-top:10px">' + chips('contra', CONTRA, true, true) + '<p class="xems-sub">Ще го обсъдим с Вас преди тренировката.</p></div>'
                                 : '') + '</div>' +
                             block('Нещо друго, което да знаем', 'по желание',
                                 '<textarea class="xems-note" id="xems-note" rows="2" maxlength="300" placeholder="Например: предпочитам по-лек старт">' + esc(st.note || '') + '</textarea>');
@@ -2664,7 +2664,7 @@
                     .filter(function (f) { return !p[f[0]]; }).map(function (f) { return f[1]; });
                 if (about.length) out.push(about.join(', '));
                 if (!p.goal) out.push('цел');
-                if (!p.fit) out.push('колко спортуваш');
+                if (!p.fit) out.push('колко често спортувате');
                 if (!(p.focus || []).length) out.push('зони за акцент');
                 if (hl === null) out.push('въпросът за здравето');
                 return out;
@@ -2719,7 +2719,7 @@
                 if (foot.classList.contains('hidden')) return;
                 if (!editing) {
                     sendBtn.disabled = false;
-                    sendBtn.textContent = 'Редактирай';
+                    sendBtn.textContent = 'Редактиране';
                     return;
                 }
                 const reg = registered();
@@ -2828,7 +2828,7 @@
                     });
                     bad[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
                     bad[0].focus({ preventScroll: true });
-                    say('Попълни име, имейл и телефон — по тях студиото те познава.', 'err');
+                    say('Моля, попълнете име, имейл и телефон — нужни са на студиото за връзка с Вас.', 'err');
                     return;
                 }
                 const c = contact() || {};
@@ -2866,14 +2866,14 @@
                             view = 'menu';
                             justSaved = true;
                         } else {
-                            say(first ? 'Готово — профилът ти е в студиото ✓' : 'Запазено ✓', 'ok');
+                            say(first ? 'Готово — профилът Ви е изпратен до студиото ✓' : 'Запазено ✓', 'ok');
                         }
                         render('bwd');
                         return;
                     }
-                    say('Не успяхме да запазим. Опитай пак след малко.', 'err');
+                    say('Не успяхме да запазим. Моля, опитайте отново след малко.', 'err');
                 } catch (e) {
-                    say('Няма интернет. Запазихме го на телефона — опитай пак, когато има връзка.', 'err');
+                    say('Няма връзка с интернет. Данните са запазени на телефона — опитайте отново, когато има връзка.', 'err');
                 }
                 sendBtn.classList.remove('busy');
                 refreshSend();
@@ -3056,7 +3056,7 @@
                 const dy = e.touches[0].clientY - startY;
                 if (dy <= 0) { pulled = 0; hide(0); return; }
                 pulled = Math.min(dy, 120);
-                say(pulled >= PULL_PX ? 'Пусни, за да обновиш' : 'Дръпни надолу', Math.round(pulled * 0.35) - 8);
+                say(pulled >= PULL_PX ? 'Пуснете, за да обновите' : 'Дръпнете надолу', Math.round(pulled * 0.35) - 8);
             }, { passive: true });
             zone.addEventListener('touchend', function () {
                 if (startY === null) return;
