@@ -2206,7 +2206,7 @@
             const SENT_KEY = 'xbody_xems_profile_sent';
             const STUDIO_KEY = 'xbody_xems_studio';
             const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
-            const MISS_TTL_MS = 60 * 60 * 1000;
+            const MISS_TTL_MS = 0;   // no card yet: ask again on every opening (the tablet uploads it right after a training)
             const GOALS = [['tone', 'Стягане и тонус'], ['fat', 'Отслабване'], ['cellulite', 'Целулит'], ['drain', 'Отводняване'], ['massage', 'Възстановяване']];
             const FITNESS = [['low', 'Рядко'], ['mid', '1–2 пъти седмично'], ['high', 'Тренирам редовно']];
             const FOCUS = [['abs', 'Корем'], ['glutes', 'Седалище'], ['legs', 'Бедра'], ['arms', 'Ръце'], ['back', 'Гръб'], ['chest', 'Гърди']];
@@ -2310,7 +2310,7 @@
                     cardUrl = null;
                     return;
                 }
-                if (who === lookedUpFor && !force) return;
+                if (who === lookedUpFor && !force && cardUrl) return;   // no card yet: look again
                 lookedUpFor = who;
                 try {
                     const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
