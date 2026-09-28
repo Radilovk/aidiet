@@ -272,6 +272,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            box-sizing: border-box;
             width: 100%;
             padding: 14px 16px;
             border: none;
@@ -291,7 +292,49 @@
             color: #64748b;
             cursor: default;
         }
+        .xems-done {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            padding: 12px 12px 12px 14px;
+            border-radius: 14px;
+            background: #f0fdf4;
+            color: #166534;
+        }
+        .xems-done > i { font-size: 20px; color: #16a34a; }
+        .xems-done b { display: block; font-size: .92rem; }
+        .xems-done small { display: block; color: #4b5563; font-size: .78rem; margin-top: 2px; line-height: 1.35; }
+        .xems-done .xems-edit {
+            margin-left: auto;
+            flex-shrink: 0;
+            padding: 8px 14px;
+            border: 1px solid #bbf7d0;
+            border-radius: 999px;
+            background: #fff;
+            color: #166534;
+            font: inherit;
+            font-size: .8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform .12s ease;
+        }
+        .xems-done .xems-edit:active { transform: scale(0.95); }
         .xems-intro { margin: 18px 0 2px; }
+        .xems-intro:first-child { margin-top: 0; }
+        .xems-intro .xems-who {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 8px;
+            padding: 9px 12px;
+            border-radius: 12px;
+            background: #f8fafc;
+            color: #334155;
+            font-size: .82rem;
+            overflow-wrap: anywhere;
+        }
+        .xems-intro .xems-who i { color: #94a3b8; font-size: 13px; }
         .xems-intro h3 { margin: 0; font-size: 1.02rem; color: #0f172a; }
         .xems-intro p { margin: 4px 0 0; color: #64748b; font-size: .86rem; line-height: 1.45; }
         .xems-meter { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
@@ -868,6 +911,11 @@
         html[data-theme="dark"] .xbody-appt-card,
         html[data-theme="dark"] .xems-health,
         html[data-theme="dark"] .xems-progress.off { background: #26232a; color: #a8a2ab; }
+        html[data-theme="dark"] .xems-done { background: rgba(34, 197, 94, 0.1); color: #86efac; }
+        html[data-theme="dark"] .xems-done > i { color: #4ade80; }
+        html[data-theme="dark"] .xems-intro .xems-who { background: #26232a; color: #e7e3e9; }
+        html[data-theme="dark"] .xems-done small { color: #a8a2ab; }
+        html[data-theme="dark"] .xems-done .xems-edit { background: transparent; border-color: rgba(74, 222, 128, 0.4); color: #86efac; }
         html[data-theme="dark"] .xbody-appt-status { color: #f87171; }
         html[data-theme="dark"] .xbody-appt-change-btn { background: transparent; color: #f87171; border-color: rgba(248, 113, 113, 0.45); }
         html[data-theme="dark"] .xems-chip,
@@ -1130,6 +1178,7 @@
             function showBooking(userData) {
                 const bookingUrl = buildAcuityUrl(userData);
                 try {
+                    sessionStorage.setItem(STORAGE_KEYS.fullName, userData.fullName);
                     sessionStorage.setItem(STORAGE_KEYS.email, userData.email);
                     sessionStorage.setItem(STORAGE_KEYS.phone, userData.phone);
                 } catch (_) {}
@@ -1148,7 +1197,7 @@
                 const email = (localStorage.getItem(STORAGE_KEYS.email) || '').trim();
                 const phone = (localStorage.getItem(STORAGE_KEYS.phone) || '').trim();
                 if (!fullName || !email || !phone) {
-                    return null;
+                    return registeredUserData();
                 }
                 return {
                     fullName: fullName,
@@ -1156,6 +1205,17 @@
                     phone: phone,
                     consented: localStorage.getItem(STORAGE_KEYS.consent) === 'yes'
                 };
+            }
+
+            /* a device registered in XEMS ("Моят профил") books without typing the data again */
+            function registeredUserData() {
+                try {
+                    const p = JSON.parse(localStorage.getItem('xbody_xems_profile_sent') || 'null');
+                    if (!p || !p.name || !p.email || !p.phone) return null;
+                    return { fullName: p.name, email: p.email, phone: p.phone, consented: true };
+                } catch (_) {
+                    return null;
+                }
             }
 
             function saveUserData(userData) {
@@ -2032,6 +2092,11 @@
             let lookedUpFor = null;
             let st = null;          // the profile being edited
             let health = null;      // null not answered, false no, true yes
+            let editing = false;    // a registered client opened the form again
+            let justSaved = false;  // show the "done" line once, right after sending
+            const titleEl = document.getElementById('xems-title');
+            const btnIcon = btn.querySelector('i');
+            const btnLabel = btn.querySelector('span');
 
             function read(key) {
                 return (sessionStorage.getItem(key) || localStorage.getItem(key) || '').trim();
@@ -2041,14 +2106,27 @@
                 return XEMS_STUDIO || localStorage.getItem(STUDIO_KEY) || '';
             }
 
+            /* the profile this device already sent (the registration lives on the device) */
+            function sent() {
+                try { return JSON.parse(localStorage.getItem(SENT_KEY) || 'null'); } catch (e) { return null; }
+            }
+
+            /* who the client is: the booking data, else the registration on this device (no new sign-in) */
             function contact() {
-                const email = read('xbody_booking_email').toLowerCase();
-                const phoneRaw = read('xbody_booking_phone');
+                const s = sent() || {};
+                let email = read('xbody_booking_email').toLowerCase();
+                let phoneRaw = read('xbody_booking_phone');
+                let name = read('xbody_booking_full_name');
+                if (!email && !phoneRaw) {
+                    email = String(s.email || '').toLowerCase();
+                    phoneRaw = String(s.phone || '');
+                    name = name || String(s.name || '');
+                }
                 let phone = phoneRaw.replace(/\D/g, '');
                 if (phone.length > 9) phone = phone.slice(-9);
                 if (!email && phone.length < 7) return null;
                 return {
-                    name: read('xbody_booking_full_name'),
+                    name: name,
                     email: email.indexOf('@') > 0 ? email : '',
                     phone: phone.length >= 7 ? phone : '',
                     phoneRaw: phoneRaw
@@ -2063,8 +2141,12 @@
             }
 
             function update() {
-                btn.classList.toggle('visible', Boolean(contact()) && apptBtn.classList.contains('visible'));
-                btn.classList.toggle('todo', Boolean(studio()) && !localStorage.getItem(SENT_KEY));
+                btn.classList.toggle('visible', registered() || (Boolean(contact()) && apptBtn.classList.contains('visible')));
+                const todo = Boolean(studio()) && Boolean(contact()) && !registered();
+                btn.classList.toggle('todo', todo);
+                btnLabel.textContent = todo ? 'Моят профил' : 'Моят прогрес';
+                btnIcon.className = todo ? 'fas fa-user-circle' : 'fas fa-chart-line';
+                btn.setAttribute('aria-label', todo ? 'Регистрация в XEMS' : 'Моят прогрес');
             }
 
             async function lookup(force) {
@@ -2109,6 +2191,26 @@
                 try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') || {}; } catch (e) { return {}; }
             }
 
+            /* registered = the profile was sent from this device */
+            function registered() {
+                return Boolean(studio() && sent());
+            }
+
+            /* the booking data the registration uses (typed once, at the start) */
+            function whoLine() {
+                const c = contact() || {};
+                return [c.name, c.email, c.phoneRaw].filter(Boolean).join(' · ');
+            }
+
+            function summary() {
+                const parts = [];
+                if (st.sex) parts.push(st.sex === 'F' ? 'Жена' : 'Мъж');
+                if (st.by) parts.push((new Date().getFullYear() - st.by) + ' г.');
+                const g = GOALS.filter(function (o) { return o[0] === st.goal; })[0];
+                if (g) parts.push(g[1]);
+                return parts.length ? parts.join(' · ') : 'Профилът ти е в студиото.';
+            }
+
             /* one-tap choices: single (a value) or multi (a list) */
             function chips(key, list, multi, small) {
                 return '<div class="xems-chips' + (small ? ' small' : '') + '">' + list.map(function (o) {
@@ -2130,16 +2232,29 @@
             function render() {
                 if (st && document.getElementById('xems-by')) collect();   // keep what was typed
                 const hasStudio = Boolean(studio());
-                let html = cardUrl
-                    ? '<button type="button" class="xems-progress" id="xems-open-card"><i class="fas fa-chart-line"></i><span><b>Твоят прогрес</b><small>Тренировки, мускули и напредък</small></span><span class="xems-go">›</span></button>'
-                    : '<div class="xems-progress off"><i class="fas fa-chart-line"></i><span><b>Твоят прогрес</b><small>Ще се появи тук след първата ти тренировка.</small></span></div>';
-                if (hasStudio) {
-                    if (!st) {
-                        st = Object.assign({ focus: [], cond: [], contra: [] }, saved());
-                        health = st.contra && st.contra.length ? true : (st.healthNo ? false : null);
-                    }
+                const reg = registered();
+                const showForm = hasStudio && (!reg || editing);
+                if (hasStudio && !st) {
+                    st = Object.assign({ focus: [], cond: [], contra: [] }, saved());
+                    health = st.contra && st.contra.length ? true : (st.healthNo ? false : null);
+                }
+                titleEl.textContent = hasStudio && !reg ? 'Регистрация в XEMS' : 'Моят прогрес';
+                let html = '';
+                /* progress first once registered (or when a card already exists); before that the form leads */
+                if (cardUrl) {
+                    html += '<button type="button" class="xems-progress" id="xems-open-card"><i class="fas fa-chart-line"></i><span><b>Твоят прогрес</b><small>Тренировки, мускули и напредък</small></span><span class="xems-go">›</span></button>';
+                } else if (reg || !hasStudio) {
+                    html += '<div class="xems-progress off"><i class="fas fa-chart-line"></i><span><b>Твоят прогрес</b><small>Ще се появи тук след първата ти тренировка.</small></span></div>';
+                }
+                if (reg) {
+                    html += '<div class="xems-done' + (justSaved ? ' xems-reveal' : '') + '"><i class="fas fa-check-circle"></i><span><b>Регистриран в XEMS</b><small>' +
+                        (justSaved ? 'Готово — студиото ще види профила ти преди следващата тренировка.' : esc(summary())) + '</small></span>' +
+                        '<button type="button" class="xems-edit" id="xems-edit">' + (editing ? 'Отказ' : 'Промени') + '</button></div>';
+                }
+                if (showForm) {
                     const done = filled();
-                    html += '<div class="xems-intro"><h3>' + (localStorage.getItem(SENT_KEY) ? 'Регистриран си в XEMS ✓' : 'Регистрация в XEMS') + '</h3>' +
+                    html += '<div class="xems-intro' + (editing ? ' xems-reveal' : '') + '">' + (reg ? '<h3>Твоят профил</h3>' : '') +
+                        (reg ? '' : '<p class="xems-who"><i class="fas fa-user"></i> ' + esc(whoLine()) + '</p>') +
                         '<p>Отнема минута. Системата нагласява тренировката за теб още от първия път. Всичко е по желание.</p>' +
                         '<div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
                         (done >= 5 ? 'Профилът е пълен' : done + ' от 5') + '</span></div></div>' +
@@ -2160,7 +2275,17 @@
                             '<textarea class="xems-note" id="xems-note" rows="2" maxlength="300" placeholder="Например: предпочитам по-лек старт">' + esc(st.note || '') + '</textarea>');
                 }
                 bodyEl.innerHTML = html;
-                foot.classList.toggle('hidden', !hasStudio);
+                foot.classList.toggle('hidden', !showForm);
+                const edit = document.getElementById('xems-edit');
+                if (edit) edit.addEventListener('click', function () {
+                    if (editing) st = null;   // cancel: back to what was sent
+                    editing = !editing;
+                    justSaved = false;
+                    msg.className = 'xems-msg';
+                    msg.textContent = 'Данните отиват само в твоето студио.';
+                    render();
+                    bodyEl.scrollTop = 0;
+                });
                 const open = document.getElementById('xems-open-card');
                 if (open) open.addEventListener('click', function () {
                     const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
@@ -2206,7 +2331,7 @@
                 if (!st || foot.classList.contains('hidden')) return;
                 const same = JSON.stringify(collect()) === localStorage.getItem(SENT_KEY);
                 sendBtn.disabled = same;
-                sendBtn.textContent = same ? 'Регистриран ✓' : (localStorage.getItem(SENT_KEY) ? 'Запази промените' : 'Регистрирай ме');
+                sendBtn.textContent = same ? 'Няма промени' : (registered() ? 'Запази промените' : 'Регистрирай ме');
             }
 
             bodyEl.addEventListener('click', function (e) {
@@ -2247,9 +2372,14 @@
                     const data = await res.json().catch(function () { return null; });
                     if (data && data.ok) {
                         localStorage.setItem(SENT_KEY, sig);
+                        editing = false;
+                        justSaved = true;
+                        msg.className = 'xems-msg';
+                        msg.textContent = 'Данните отиват само в твоето студио.';
                         update();
-                        msg.className = 'xems-msg ok';
-                        msg.textContent = 'Готово — вече си в XEMS. Студиото ще види профила ти преди следващата тренировка.';
+                        render();
+                        bodyEl.scrollTop = 0;
+                        return;
                     } else {
                         msg.className = 'xems-msg err';
                         msg.textContent = 'Не успяхме да те регистрираме. Опитай пак след малко.';
@@ -2262,6 +2392,9 @@
             });
 
             function openSheet() {
+                editing = false;
+                justSaved = false;
+                if (registered()) st = null;   // show what was sent
                 render();
                 overlay.classList.remove('hidden');
                 overlay.setAttribute('aria-hidden', 'false');
