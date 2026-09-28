@@ -253,6 +253,17 @@
             color: #b91c1c;
             font-size: 15px;
         }
+        #progress-btn.todo::after {
+            content: "";
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #ef4444;
+            box-shadow: 0 0 0 2px #fff;
+        }
 
         .xbody-appt-panel.xems-panel {
             max-height: min(90vh, 780px);
@@ -834,6 +845,7 @@
         }
         html[data-theme="dark"] #appointments-btn i,
         html[data-theme="dark"] #progress-btn i { color: #f87171; }
+        html[data-theme="dark"] #progress-btn.todo::after { box-shadow: 0 0 0 2px #26232a; }
         html[data-theme="dark"] .xbody-appt-overlay { background: rgba(0, 0, 0, 0.55); }
         html[data-theme="dark"] .xbody-appt-panel { background: #1c1a1f; box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5); }
         html[data-theme="dark"] .xbody-appt-handle { background: #3a353f; }
@@ -924,9 +936,9 @@
         <i class="fas fa-chevron-left"></i>
     </button>
 
-    <button id="progress-btn" type="button" aria-label="Моят прогрес">
-        <i class="fas fa-chart-line"></i>
-        <span>Моят прогрес</span>
+    <button id="progress-btn" type="button" aria-label="Моят XEMS профил">
+        <i class="fas fa-user-circle"></i>
+        <span>Моят профил</span>
     </button>
 
     <button id="appointments-btn" type="button" aria-label="Моите часове">
@@ -938,14 +950,14 @@
         <div class="xbody-appt-panel xems-panel" role="dialog" aria-modal="true" aria-labelledby="xems-title">
             <div class="xbody-appt-handle" aria-hidden="true"></div>
             <div class="xbody-appt-header">
-                <h2 class="xbody-appt-title" id="xems-title">Моят EMS профил</h2>
+                <h2 class="xbody-appt-title" id="xems-title">Моят XEMS профил</h2>
                 <div class="xbody-appt-actions">
                     <button class="xbody-appt-icon-btn" id="xems-close" type="button" aria-label="Затвори">✕</button>
                 </div>
             </div>
             <div class="xbody-appt-body" id="xems-body"></div>
             <div class="xems-foot hidden" id="xems-foot">
-                <button type="button" class="xems-send" id="xems-send">Изпрати на треньора</button>
+                <button type="button" class="xems-send" id="xems-send">Регистрирай ме</button>
                 <p class="xems-msg" id="xems-msg">Данните отиват само в твоето студио.</p>
             </div>
         </div>
@@ -1981,7 +1993,7 @@
            XEMS_STUDIO = the studio code shown on the tablet (План → Приложение за клиентите); it can also come
            once as ?studio=<code> in the link and is then remembered. */
         (function () {
-            const XEMS_STUDIO = '';
+            const XEMS_STUDIO = 'xbody';
             const API = 'https://license.biocode-bg.com';
             const CACHE_KEY = 'xbody_progress_card';
             const PROFILE_KEY = 'xbody_xems_profile';
@@ -2014,7 +2026,7 @@
             }
             try {
                 const q = new URLSearchParams(location.search).get('studio');
-                if (q && /^[2-9a-km-z]{8}$/.test(q)) localStorage.setItem(STUDIO_KEY, q);
+                if (q && /^[a-z0-9][a-z0-9-]{3,23}$/.test(q)) localStorage.setItem(STUDIO_KEY, q);
             } catch (e) { /* no storage */ }
             let cardUrl = null;
             let lookedUpFor = null;
@@ -2052,6 +2064,7 @@
 
             function update() {
                 btn.classList.toggle('visible', Boolean(contact()) && apptBtn.classList.contains('visible'));
+                btn.classList.toggle('todo', Boolean(studio()) && !localStorage.getItem(SENT_KEY));
             }
 
             async function lookup(force) {
@@ -2126,9 +2139,10 @@
                         health = st.contra && st.contra.length ? true : (st.healthNo ? false : null);
                     }
                     const done = filled();
-                    html += '<div class="xems-intro"><h3>За треньора</h3><p>Отнема минута. Така тренировката е нагласена за теб още от първия път. Всичко е по желание.</p>' +
+                    html += '<div class="xems-intro"><h3>' + (localStorage.getItem(SENT_KEY) ? 'Регистриран си в XEMS ✓' : 'Регистрация в XEMS') + '</h3>' +
+                        '<p>Отнема минута. Системата нагласява тренировката за теб още от първия път. Всичко е по желание.</p>' +
                         '<div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
-                        (done >= 5 ? 'Готово за треньора' : done + ' от 5') + '</span></div></div>' +
+                        (done >= 5 ? 'Профилът е пълен' : done + ' от 5') + '</span></div></div>' +
                         block('За теб', '', chips('sex', [['F', 'Жена'], ['M', 'Мъж']], false) +
                             '<div class="xems-nums">' + num('xems-by', 'Година на раждане', '', st.by, 1920, 2016) +
                             num('xems-h', 'Ръст', 'см', st.h, 100, 230) + num('xems-w', 'Тегло', 'кг', st.w, 30, 250) + '</div>') +
@@ -2140,9 +2154,9 @@
                         '<div class="xems-chips"><button type="button" class="xems-chip" data-h="0" aria-pressed="' + (health === false) + '">Не</button>' +
                         '<button type="button" class="xems-chip" data-h="1" aria-pressed="' + (health === true) + '">Да или не знам</button></div>' +
                         (health === true
-                            ? '<div class="xems-reveal" style="margin-top:10px">' + chips('contra', CONTRA, true, true) + '<p class="xems-sub">Треньорът ще го обсъди с теб преди тренировката.</p></div>'
+                            ? '<div class="xems-reveal" style="margin-top:10px">' + chips('contra', CONTRA, true, true) + '<p class="xems-sub">Ще го обсъдим с теб преди тренировката.</p></div>'
                             : '') + '</div>' +
-                        block('Бележка за треньора', 'по желание',
+                        block('Нещо друго, което да знаем', 'по желание',
                             '<textarea class="xems-note" id="xems-note" rows="2" maxlength="300" placeholder="Например: предпочитам по-лек старт">' + esc(st.note || '') + '</textarea>');
                 }
                 bodyEl.innerHTML = html;
@@ -2192,7 +2206,7 @@
                 if (!st || foot.classList.contains('hidden')) return;
                 const same = JSON.stringify(collect()) === localStorage.getItem(SENT_KEY);
                 sendBtn.disabled = same;
-                sendBtn.textContent = same ? 'Изпратено ✓' : (localStorage.getItem(SENT_KEY) ? 'Изпрати промените' : 'Изпрати на треньора');
+                sendBtn.textContent = same ? 'Регистриран ✓' : (localStorage.getItem(SENT_KEY) ? 'Запази промените' : 'Регистрирай ме');
             }
 
             bodyEl.addEventListener('click', function (e) {
@@ -2222,7 +2236,7 @@
                 localStorage.setItem(PROFILE_KEY, JSON.stringify(st));
                 const sig = JSON.stringify(p);
                 sendBtn.disabled = true;
-                sendBtn.textContent = 'Изпращане…';
+                sendBtn.textContent = 'Регистриране…';
                 msg.className = 'xems-msg';
                 try {
                     const key = await sha(c.email || c.phone);
@@ -2233,15 +2247,16 @@
                     const data = await res.json().catch(function () { return null; });
                     if (data && data.ok) {
                         localStorage.setItem(SENT_KEY, sig);
+                        update();
                         msg.className = 'xems-msg ok';
-                        msg.textContent = 'Готово — треньорът ще го види преди следващата ти тренировка.';
+                        msg.textContent = 'Готово — вече си в XEMS. Студиото ще види профила ти преди следващата тренировка.';
                     } else {
                         msg.className = 'xems-msg err';
-                        msg.textContent = 'Не успяхме да изпратим. Опитай пак след малко.';
+                        msg.textContent = 'Не успяхме да те регистрираме. Опитай пак след малко.';
                     }
                 } catch (e) {
                     msg.className = 'xems-msg err';
-                    msg.textContent = 'Няма интернет. Запазихме го на телефона — изпрати, когато има връзка.';
+                    msg.textContent = 'Няма интернет. Запазихме го на телефона — опитай пак, когато има връзка.';
                 }
                 refreshSend();
             });
