@@ -17045,6 +17045,54 @@ async function handleXbodyAppointmentsVersion(request, env) {
   }
 }
 
+/**
+ * POST /api/xbody/acuity-webhook — Acuity webhook "appointment scheduled" (Acuity → Integrations → API →
+ * Webhooks). The studio chose that SMS reminders are always on: the booking page says that booking means
+ * SMS reminders (the opt-in checkbox is hidden there), and this marks the new appointment's smsOptIn.
+ * Signed by Acuity: X-Acuity-Signature = base64(HMAC-SHA256(raw body, API key)); anything else is refused.
+ */
+async function handleXbodyAcuityWebhook(request, env) {
+  const userId = env.ACUITY_USER_ID;
+  const apiKey = env.ACUITY_API_KEY;
+  if (!userId || !apiKey) return new Response('not configured', { status: 503 });
+  const raw = await request.text();
+  if (raw.length > 4096) return new Response('too large', { status: 413 });
+  const ok = await verifyAcuitySignature(raw, request.headers.get('X-Acuity-Signature') || '', apiKey);
+  if (!ok) return new Response('bad signature', { status: 401 });
+  const form = new URLSearchParams(raw);
+  const action = String(form.get('action') || '');
+  const id = String(form.get('id') || '');
+  if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled)$/.test(action)) {
+    return new Response('ignored', { status: 200 });
+  }
+  const auth = btoa(`${userId}:${apiKey}`);
+  const resp = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}?admin=true`, {
+    method: 'PUT',
+    headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ smsOptIn: true }),
+  }).catch((err) => ({ ok: false, status: 0, text: async () => err.message }));
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    console.error('[xbody-acuity-webhook] smsOptIn update failed:', resp.status, String(body).slice(0, 200));
+    return new Response('acuity ' + resp.status, { status: 502 });
+  }
+  return new Response('ok', { status: 200 });
+}
+
+/** Acuity webhook signature: base64(HMAC-SHA256(body, apiKey)), compared in constant time. */
+export async function verifyAcuitySignature(body, signature, apiKey) {
+  if (!signature || !apiKey) return false;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(apiKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body)));
+  let bin = '';
+  for (const b of mac) bin += String.fromCharCode(b);
+  const expected = btoa(bin);
+  if (expected.length !== signature.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
+  return diff === 0;
+}
+
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
   const apiKey = env.ACUITY_API_KEY;
@@ -17503,6 +17551,8 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'CHAT');
         if (rlErr) return rlErr;
         return await handleAIXChat(request, env);
+      } else if (url.pathname === '/api/xbody/acuity-webhook' && request.method === 'POST') {
+        return await handleXbodyAcuityWebhook(request, env);
       } else if (url.pathname === '/api/xbody/appointments/version' && request.method === 'GET') {
         const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
         if (rlErr) return rlErr;

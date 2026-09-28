@@ -35,26 +35,13 @@ img.business-logo { display: none !important; }
 /* Бутонът „Вашият индивидуален хранителен план“ — скрит */
 .business-description-container p:has(a[href*="biocode.website"]) { display: none !important; }
 
-/* Съгласие за SMS: кратък текст; пълният текст (с условията) се показва при докосване или отметка */
-[data-checkbox-root]:has(input[name="client.smsOptIn"]) [data-checkbox-label] span { display: none !important; }
-[data-checkbox-root]:has(input[name="client.smsOptIn"]) [data-checkbox-label]::before {
-    content: "Искам SMS напомняния за часовете си"; display: block; font-size: 14px !important; font-weight: 500; line-height: 1.35;
+/* SMS напомняния: винаги включени (по решение на студиото). Квадратчето е скрито, на негово място е
+   ясен текст; съгласието на всеки нов час се отбелязва от worker-а на aidiet (Acuity webhook → smsOptIn). */
+[data-checkbox-root]:has(input[name="client.smsOptIn"]) { display: none !important; }
+div[role="group"]:has(input[name="client.smsOptIn"])::after {
+    content: "С записването на час се съгласявате да получавате SMS напомняния за часовете си.";
+    display: block; font-family: Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 12.5px !important; line-height: 1.45; opacity: .75; margin: 4px 0 2px;
 }
-[data-checkbox-root]:has(input[name="client.smsOptIn"]):focus-within [data-checkbox-label] span,
-[data-checkbox-root]:has(input[name="client.smsOptIn"]:checked) [data-checkbox-label] span {
-    display: inline !important; font-size: 11.5px !important; line-height: 1.45; opacity: .8;
-}
-
-/* Менюто при избор на час */
-div[role="menu"] li[role="menuitem"] { font-size: 0 !important; }
-div[role="menu"] li[role="menuitem"] { line-height: 0 !important; }
-div[role="menu"] li[role="menuitem"]::after {
-    font-size: 14px !important; font-weight: 500; line-height: 1.35 !important; display: block !important;
-    position: static !important; inset: auto !important; border: none !important; box-shadow: none !important; background: none !important;
-}   /* Acuity рисува рамката на фокуса в ::after (absolute) — тук е преводът */
-div[role="menu"] li[role="menuitem"]:nth-child(1)::after { content: "Избери и продължи"; }
-div[role="menu"] li[role="menuitem"]:nth-child(2)::after { content: "Избери и добави още един час"; }
-div[role="menu"] li[role="menuitem"]:nth-child(3)::after { content: "Избери като повтарящ се"; }
 
 /* Заглавия на стъпките */
 h3:has(+ #your-information-form-container) { font-size: 0 !important; }
