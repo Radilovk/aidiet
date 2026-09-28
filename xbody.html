@@ -2173,9 +2173,27 @@
                 return { date: labels.dateValue, time: labels.timeValue };
             }
 
+            /* when the latest past appointment was over (start + 90 min: training and massage; ms, from the cache,
+               0 = none known) — the moment a new progress card can exist */
+            function lastStartedAt() {
+                const contact = getUserContact();
+                const local = contact ? readLocalCache(contact.email) : null;
+                const data = memoryCache || (local && local.data);
+                if (!data) return 0;
+                const now = Date.now();
+                let best = 0;
+                [].concat(data.upcoming || [], data.past || []).forEach(function (item) {
+                    const dt = item && !item.canceled ? parseApptDate(item) : null;
+                    const t = dt ? dt.getTime() + 90 * 60 * 1000 : 0;
+                    if (t && t <= now && t > best) best = t;
+                });
+                return best;
+            }
+
             window.XBodyAppointments = {
                 open: openModal,
                 next: nextAppointment,
+                lastStartedAt: lastStartedAt,
                 markDirty: function (email) {
                     markDirty((email || '').trim().toLowerCase() || (getUserContact() && getUserContact().email));
                 }
@@ -2205,8 +2223,8 @@
             const PROFILE_KEY = 'xbody_xems_profile';
             const SENT_KEY = 'xbody_xems_profile_sent';
             const STUDIO_KEY = 'xbody_xems_studio';
-            const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
-            const MISS_TTL_MS = 0;   // no card yet: ask again on every opening (the tablet uploads it right after a training)
+            const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // the card link does not change
+            const MISS_TTL_MS = 24 * 60 * 60 * 1000;   // no card yet: ask again only after a new appointment (or a day)
             const GOALS = [['tone', 'Стягане и тонус'], ['fat', 'Отслабване'], ['cellulite', 'Целулит'], ['drain', 'Отводняване'], ['massage', 'Възстановяване']];
             const FITNESS = [['low', 'Рядко'], ['mid', '1–2 пъти седмично'], ['high', 'Тренирам редовно']];
             const FOCUS = [['abs', 'Корем'], ['glutes', 'Седалище'], ['legs', 'Бедра'], ['arms', 'Ръце'], ['back', 'Гръб'], ['chest', 'Гърди']];
@@ -2314,7 +2332,12 @@
                 lookedUpFor = who;
                 try {
                     const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-                    if (!force && cached && cached.who === who && Date.now() - cached.at < (cached.url ? CACHE_TTL_MS : MISS_TTL_MS)) {
+                    const trained = window.XBodyAppointments && window.XBodyAppointments.lastStartedAt
+                        ? window.XBodyAppointments.lastStartedAt() : 0;
+                    // a card appears only after a training: a miss is asked again once an appointment has begun since
+                    const fresh = cached && (cached.url ? Date.now() - cached.at < CACHE_TTL_MS
+                        : Date.now() - cached.at < MISS_TTL_MS && !(trained > cached.at));
+                    if (!force && cached && cached.who === who && fresh) {
                         cardUrl = cached.url;
                         return;
                     }
