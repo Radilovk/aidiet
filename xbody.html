@@ -2614,8 +2614,7 @@
                 } else {
                     if (studio() && (!reg || filled() < 5)) {
                         const done = filled();
-                        html += '<div class="xems-intro"><p>Вашите данни позволяват по-добра персонализация на подхода и проследяване на прогреса Ви. ' +
-                            (reg ? 'Попълването отнема около минута.' : 'Задължителни са само данните за контакт.') + '</p><div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
+                        html += '<div class="xems-intro"><p>Вашите данни позволяват по-добра персонализация на подхода и проследяване на прогреса Ви.</p><div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
                             (done >= 5 ? 'Профилът е пълен' : done + ' от 5') + '</span></div></div>';
                     }
                     if (reg || contactOpen || !c.name || !c.email || !c.phone) {
