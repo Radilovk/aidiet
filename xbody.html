@@ -1993,7 +1993,7 @@
            XEMS_STUDIO = the studio code shown on the tablet (План → Приложение за клиентите); it can also come
            once as ?studio=<code> in the link and is then remembered. */
         (function () {
-            const XEMS_STUDIO = '';
+            const XEMS_STUDIO = 'xbody';
             const API = 'https://license.biocode-bg.com';
             const CACHE_KEY = 'xbody_progress_card';
             const PROFILE_KEY = 'xbody_xems_profile';
@@ -2026,7 +2026,7 @@
             }
             try {
                 const q = new URLSearchParams(location.search).get('studio');
-                if (q && /^[2-9a-km-z]{8}$/.test(q)) localStorage.setItem(STUDIO_KEY, q);
+                if (q && /^[a-z0-9][a-z0-9-]{3,23}$/.test(q)) localStorage.setItem(STUDIO_KEY, q);
             } catch (e) { /* no storage */ }
             let cardUrl = null;
             let lookedUpFor = null;
