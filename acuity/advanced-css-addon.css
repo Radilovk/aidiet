@@ -1,0 +1,195 @@
+/* =========================================================
+   XEMS · ДОБАВКА (поставя се НАЙ-ОТДОЛУ, след всичко останало)
+   Не променя нищо над нея. Селекторите са по устойчиви белези
+   (id, role, for, aria-label, ред), не по css-xxxx класове,
+   които Acuity сменя при нови версии.
+   ========================================================= */
+
+/* ---------- 8. ПРЕВОДИ, КОИТО БЯХА СПРЕЛИ ДА РАБОТЯТ ---------- */
+
+/* Горе: Sign Up / Login — скрити (вече са бутони, не линкове, затова старото скриване не хващаше) */
+#pylon header ul { display: none !important; }
+
+/* Лого и снимка: новите (прозрачен фон — стоят еднакво на светло и на тъмно), ~35 KB всяко */
+img.business-logo {
+    content: url("https://cdn.jsdelivr.net/gh/Radilovk/aidiet@c0b841aca562e172eff95cb92ec0998d453d513a/acuity/xbody-logo.webp");
+    width: min(80%, 300px) !important; max-width: none !important; height: auto !important; max-height: none !important; object-fit: contain;
+}
+.business-description-container img[alt="Main Image"] {
+    content: url("https://cdn.jsdelivr.net/gh/Radilovk/aidiet@c0b841aca562e172eff95cb92ec0998d453d513a/acuity/xbody-hero.webp");
+    width: 100% !important; height: auto !important;
+}
+
+/* Бутонът „Вашият индивидуален хранителен план“ — скрит */
+.business-description-container p:has(> a[href*="biocode.website"]) { display: none !important; }
+
+/* Съгласие за SMS: кратък текст; пълният текст (с условията) се показва при докосване или отметка */
+[data-checkbox-root]:has(input[name="client.smsOptIn"]) [data-checkbox-label] > span { display: none !important; }
+[data-checkbox-root]:has(input[name="client.smsOptIn"]) [data-checkbox-label]::before {
+    content: "Искам SMS напомняния за часовете си"; display: block; font-size: 14px !important; font-weight: 500; line-height: 1.35;
+}
+[data-checkbox-root]:has(input[name="client.smsOptIn"]):focus-within [data-checkbox-label] > span,
+[data-checkbox-root]:has(input[name="client.smsOptIn"]:checked) [data-checkbox-label] > span {
+    display: block !important; margin-top: 6px; font-size: 11.5px !important; line-height: 1.45; opacity: .75;
+}
+
+/* Менюто при избор на час */
+div[role="menu"] > li[role="menuitem"] { font-size: 0 !important; }
+div[role="menu"] > li[role="menuitem"] { line-height: 0 !important; }
+div[role="menu"] > li[role="menuitem"]::after {
+    font-size: 14px !important; font-weight: 500; line-height: 1.35 !important; display: block !important;
+    position: static !important; inset: auto !important; border: none !important; box-shadow: none !important; background: none !important;
+}   /* Acuity рисува рамката на фокуса в ::after (absolute) — тук е преводът */
+div[role="menu"] > li[role="menuitem"]:nth-child(1)::after { content: "Избери и продължи"; }
+div[role="menu"] > li[role="menuitem"]:nth-child(2)::after { content: "Избери и добави още един час"; }
+div[role="menu"] > li[role="menuitem"]:nth-child(3)::after { content: "Избери като повтарящ се"; }
+
+/* Заглавия на стъпките */
+h3:has(+ #your-information-form-container) { font-size: 0 !important; }
+h3:has(+ #your-information-form-container)::after {
+    content: "Вашите данни"; font-size: 13px !important; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+h3:has(+ #payment-form-container) { font-size: 0 !important; }
+h3:has(+ #payment-form-container)::after {
+    content: "Плащане"; font-size: 13px !important; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+
+/* Имейл: подсказката под етикета */
+label[for="client.email"] + p { font-size: 0 !important; }
+label[for="client.email"] + p::after {
+    content: "За няколко имейла: запетая или Enter"; font-size: 12px !important; line-height: 1.4;
+}
+
+/* Бутонът под данните: "Reserve Without Paying" → "Следваща стъпка" */
+form:has(#your-information-form-container) button.btn { font-size: 0 !important; }
+form:has(#your-information-form-container) button.btn::after {
+    content: "Следваща стъпка"; font-size: 16px !important; font-weight: 800; line-height: 1.2;
+    display: inline-block !important;   /* Acuity скрива ::after, щом бутонът е на фокус */
+}
+
+/* Плащане: име / фамилия на картодържателя */
+label[for="billingInformation.firstName"] > p,
+label[for="billingInformation.lastName"] > p { font-size: 0 !important; }
+label[for="billingInformation.firstName"] > p::after { content: "Име"; font-size: 14px !important; }
+label[for="billingInformation.lastName"] > p::after { content: "Фамилия"; font-size: 14px !important; }
+
+/* Плащане: ваучер */
+button[aria-label="Remove applied certificate code"] { font-size: 0 !important; }
+button[aria-label="Remove applied certificate code"]::after { content: "Премахни"; font-size: 13px !important; text-decoration: underline; }
+div:has(> div > button[aria-label="Remove applied certificate code"]) > div:first-child > p:first-child { font-size: 0 !important; }
+div:has(> div > button[aria-label="Remove applied certificate code"]) > div:first-child > p:first-child::after { content: "Ваучер"; font-size: 15px !important; }
+#certificate-code { font-size: 0 !important; }
+#certificate-code::after { content: "Ваучер"; font-size: 14px !important; }
+
+/* Плащане: "Confirm" → "Потвърди" */
+form:has(#payment-form-container) button.btn[type="submit"] > span { font-size: 0 !important; }
+form:has(#payment-form-container) button.btn[type="submit"] > span::after {
+    content: "Потвърди"; font-size: 16px !important; font-weight: 800; color: inherit;
+    display: inline-block !important;
+}
+
+
+/* ---------- 9. ТЪМНА ТЕМА (само когато телефонът е в тъмен режим) ----------
+   Цветове: фон #121014 · повърхност #1c1a1f · поле #26232a · линия #3a353f
+            текст #f3f1f4 · вторичен #a8a2ab · червено #d32f2f / #f87171 */
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+        --scheduler-background: #121014;
+        --color-text-primary: #f3f1f4;
+        --color-text-primary-muted: #5b5560;
+        --color-button-accent-muted: #3a353f;
+    }
+    html, body, #root, #pylon, main, header, footer, nav, form { background-color: #121014 !important; color: #f3f1f4 !important; }
+
+    /* всички обвивки: прозрачни (фонът отдолу е тъмен) */
+    #pylon div, #pylon ul, #pylon li, #pylon section, #pylon fieldset { background-color: transparent !important; }
+
+    /* текст: светъл; ::after (вашите преводи) взема цвета на елемента */
+    #pylon :is(p, span, h1, h2, h3, h4, h5, h6, label, legend, abbr, li, small, strong, b, em, td, th, dt, dd) { color: #f3f1f4 !important; }
+    html #pylon#pylon *::after { color: inherit !important; }
+    #pylon a { color: #f87171 !important; }
+    #pylon p[role="alert"], #pylon [role="alert"] * { color: #f87171 !important; }
+
+    /* прозорците Вход / Регистрация */
+    #pylon div[role="dialog"], div[role="dialog"] { background-color: #1c1a1f !important; color: #f3f1f4 !important; }
+    #pylon div[role="dialog"] form, div[role="dialog"] form { background-color: transparent !important; }
+    div[role="dialog"] button[aria-label] svg { color: #f3f1f4 !important; fill: #f3f1f4 !important; }
+    #pylon div[role="dialog"] hr, #pylon div[role="dialog"] [role="separator"] { border-color: #2c2830 !important; }
+
+    /* карти */
+    #pylon .css-1w9jtr9, #pylon .react-calendar,
+    #pylon #your-information-form-container, #pylon #payment-form-container {
+        background-color: #1c1a1f !important; border: 1px solid #2c2830 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .35) !important; border-radius: 14px !important;
+    }
+    #pylon .css-qfhj2e p, #pylon .css-qfhj2e p * { color: #a8a2ab !important; border-color: #2c2830 !important; }
+    #pylon .css-cumhrw p.css-mx7jua { color: #f3f1f4 !important; }
+
+    /* календар */
+    #pylon .react-calendar__tile { background: transparent !important; }
+    #pylon .react-calendar__tile:disabled abbr { color: #5b5560 !important; }
+    #pylon .react-calendar__navigation__arrow { background-color: transparent !important; color: #f3f1f4 !important; }
+    /* стрелката пред месеца е тъмна картинка: обръщаме само нея (текстът е тъмен, за да стане светъл) */
+    #pylon .react-calendar__navigation__label { background-color: transparent !important; filter: invert(1); }
+    #pylon .react-calendar__navigation__label, #pylon .react-calendar__navigation__label * { color: #0c0b0e !important; }
+    #pylon .react-calendar__navigation svg, #pylon .react-calendar__navigation path { fill: #f3f1f4 !important; stroke: #f3f1f4 !important; }
+    html #pylon#pylon .react-calendar__month-view__weekdays__weekday::after { color: #a8a2ab !important; }
+    html #pylon#pylon .react-calendar__month-view__weekdays__weekday:nth-child(6)::after,
+    html #pylon#pylon .react-calendar__month-view__weekdays__weekday:nth-child(7)::after { color: #f87171 !important; }
+    #pylon .react-calendar__tile--active abbr, #pylon .selectedday abbr { color: #fff !important; }
+
+    /* часове */
+    #pylon .time-selection { background: #26232a !important; border: 1px solid #3a353f !important; color: #f3f1f4 !important; }
+    #pylon .time-selection * { color: #f3f1f4 !important; }
+    #pylon .time-selection:hover { border-color: #d32f2f !important; }
+    #pylon .time-selection.selected-time, #pylon .time-selection.selected { background: #d32f2f !important; border-color: #d32f2f !important; }
+
+    /* менюто при избор на час */
+    /* менюто е извън #pylon (отделен слой): тъмната кутия е 3 нива над role="menu" */
+    div:has(> div > div > div[role="menu"]) {
+        background: #26232a !important; border: 1px solid #3a353f !important; border-radius: 12px !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, .5) !important;
+    }
+    div[role="menu"] > li[role="menuitem"] { color: #f3f1f4 !important; background: transparent !important; }
+    div[role="menu"] > li[role="menuitem"]:hover, div[role="menu"] > li[role="menuitem"]:focus { background: #332f37 !important; }
+    #pylon div[role="menu"] {
+        background: #26232a !important; border: 1px solid #3a353f !important; border-radius: 12px !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, .5) !important; overflow: hidden;
+    }
+    #pylon div[role="menu"] > li[role="menuitem"]:hover, #pylon div[role="menu"] > li[role="menuitem"]:focus { background: #332f37 !important; }
+
+    /* полета */
+    #pylon [data-textinput-root], #pylon [data-textarea-root], #pylon .PhoneInput {
+        background-color: #26232a !important; border-color: #3a353f !important; border-radius: 10px;
+    }
+    #pylon input, #pylon textarea, #pylon select {
+        background-color: transparent !important; color: #f3f1f4 !important; caret-color: #f87171;
+    }
+    #pylon input::placeholder, #pylon textarea::placeholder { color: #7a747d !important; }
+    /* квадратчетата: Acuity ги рисува в ::before */
+    #pylon [data-checkbox-indicator] { background-color: transparent !important; }
+    #pylon [data-checkbox-indicator]::before { background-color: #26232a !important; border: 1px solid #7a747d !important; border-radius: 4px; }
+    #pylon [data-checkbox-root]:hover [data-checkbox-indicator]::before { border-color: #f87171 !important; }
+    #pylon [data-checkbox-hidden-control]:checked ~ [data-checkbox-indicator]::before { background-color: #d32f2f !important; border-color: #d32f2f !important; }
+    #pylon [data-checkbox-indicator] svg { color: #fff !important; fill: #fff !important; }
+    #pylon button[aria-label="Remove Appointment"], #pylon button[aria-label="Remove Appointment"] svg { color: #f3f1f4 !important; fill: #f3f1f4 !important; }
+
+    /* бутони */
+    #pylon button.btn { background-color: #d32f2f !important; border-color: #d32f2f !important; color: #fff !important; }
+    #pylon button.btn * { color: #fff !important; }
+
+    /* вашите бутони във футъра */
+    #custom-app-footer a { background: #1c1a1f !important; border-color: #3a353f !important; color: #f3f1f4 !important; box-shadow: none !important; }
+
+    #pylon button[aria-label="Remove applied certificate code"] { color: #f87171 !important; background: transparent !important; }
+
+    /* данните за карта са в рамка на Stripe (не може да се оцвети отвътре): светла подложка, за да се четат */
+    #pylon .StripeElement { background-color: #f3f1f4 !important; border-radius: 12px !important; padding: 16px 12px 8px !important; }
+
+    /* менюто: еднакъв отстъп и на реда под пръста / на фокус */
+    div[role="menu"] > li[role="menuitem"] { padding: 12px 16px !important; outline: none !important; }
+
+    /* линии */
+    #pylon [role="separator"] > div, #pylon hr { background-color: #2c2830 !important; border-color: #2c2830 !important; }
+}
