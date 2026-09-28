@@ -348,6 +348,21 @@
         .xems-cta b, .xems-item b { display: block; font-size: .98rem; }
         .xems-cta small { display: block; opacity: .85; font-size: .8rem; margin-top: 2px; }
         .xems-cta .xems-go, .xems-item .xems-go { margin-left: auto; font-size: 20px; opacity: .6; }
+.xems-banner {
+            position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 9999;
+            transform: translateX(-50%); width: min(92vw, 460px); box-sizing: border-box;
+            display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: none; border-radius: 18px;
+            background: linear-gradient(135deg, #16a34a, #166534); color: #fff; font: inherit; text-align: left;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .28); cursor: pointer; animation: xemsBannerIn .35s ease both;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .xems-banner:active { transform: translateX(-50%) scale(0.98); }
+        .xems-banner > i { font-size: 20px; }
+        .xems-banner b { display: block; font-size: .98rem; }
+        .xems-banner small { display: block; opacity: .88; font-size: .8rem; margin-top: 2px; }
+        .xems-banner .xems-go { margin-left: auto; font-size: 20px; opacity: .8; }
+        .xems-banner .xems-x { padding: 6px 4px 6px 10px; font-size: 18px; opacity: .8; }
+        @keyframes xemsBannerIn { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
         .xems-menu { display: flex; flex-direction: column; gap: 8px; }
         .xems-cta.xems-news { background: linear-gradient(135deg, #16a34a, #166534); }
         .xems-later {
@@ -2936,6 +2951,46 @@
                 }, 1200);
             }
 
+
+            /* while the app stays open around a training: look again on its own (every 30 s; lookup() itself never
+               asks the server more than once a minute) and offer the fresh analysis as a banner that can be tapped */
+            const LIVE_MS = 30 * 1000;
+            const BANNER_KEY = 'xbody_progress_banner';
+            let bannerEl = null;
+
+            function hideBanner() {
+                if (bannerEl) { bannerEl.remove(); bannerEl = null; }
+            }
+
+            function showBanner() {
+                if (!news() || document.hidden || !overlay.classList.contains('hidden')) { hideBanner(); return; }
+                try { if (sessionStorage.getItem(BANNER_KEY) === String(cardUpd)) return; } catch (e) { /* no storage */ }
+                if (bannerEl) return;
+                bannerEl = document.createElement('div');
+                bannerEl.className = 'xems-banner';
+                bannerEl.setAttribute('role', 'button');
+                bannerEl.tabIndex = 0;
+                bannerEl.innerHTML = '<i class="fas fa-chart-line"></i><span><b>Анализът от тренировката ти е готов</b>' +
+                    '<small>Натисни, за да го видиш.</small></span><span class="xems-go">›</span>' +
+                    '<span class="xems-x" data-x="1" aria-label="Затвори">×</span>';
+                bannerEl.addEventListener('click', function (e) {
+                    try { sessionStorage.setItem(BANNER_KEY, String(cardUpd)); } catch (err) { /* no storage */ }
+                    const closing = e.target && e.target.dataset && e.target.dataset.x;
+                    hideBanner();
+                    if (!closing) go('card');
+                });
+                document.body.appendChild(bannerEl);
+            }
+
+            setInterval(function () {
+                if (document.hidden || busy()) return;
+                const start = window.XBodyAppointments && window.XBodyAppointments.lastStart
+                    ? window.XBodyAppointments.lastStart() : -1;
+                const around = start > 0 && Date.now() - start < AROUND_MS;
+                if (!around && !news()) { hideBanner(); return; }
+                lookup(false).catch(function () {}).then(function () { update(); showBanner(); });
+            }, LIVE_MS);
+
             let hiddenAt = 0;
             document.addEventListener('visibilitychange', function () {
                 if (document.hidden) {
@@ -2944,6 +2999,7 @@
                 }
                 const away = hiddenAt ? Date.now() - hiddenAt : 0;
                 if (away >= 2 * 60 * 1000) onOpen(away >= NUDGE_AWAY_MS);
+                else lookup(false).catch(function () {}).then(function () { update(); showBanner(); });
             });
             onOpen(true);
         })();
