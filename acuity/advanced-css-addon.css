@@ -15,10 +15,20 @@ img.business-logo {
     content: url("https://cdn.jsdelivr.net/gh/Radilovk/aidiet@c0b841aca562e172eff95cb92ec0998d453d513a/acuity/xbody-logo.webp");
     width: min(80%, 300px) !important; max-width: none !important; height: auto !important; max-height: none !important; object-fit: contain;
 }
-.business-description-container img[alt="Main Image"] {
-    content: url("https://cdn.jsdelivr.net/gh/Radilovk/aidiet@c0b841aca562e172eff95cb92ec0998d453d513a/acuity/xbody-hero.webp");
-    width: 100% !important; height: auto !important;
+/* Описанието (Scheduling Page → описание): снимка + два бутона един до друг, за телефон */
+.business-description-container p:has(> a[href*="storage/faq"]) {
+    display: flex !important; gap: 10px; justify-content: space-between; margin: 12px 0 4px !important;
 }
+.business-description-container a[href*="storage/faq"],
+.business-description-container a[href*="storage/effects"] {
+    flex: 1 1 0; display: flex !important; align-items: center; justify-content: center; min-height: 46px;
+    margin: 0 !important; padding: 10px 8px !important; border-radius: 12px !important;
+    background: linear-gradient(180deg, #e53935, #b71c1c) !important; color: #fff !important;
+    font-size: 15px !important; font-weight: 700 !important; letter-spacing: .01em; text-decoration: none !important;
+    box-shadow: 0 6px 16px rgba(183, 28, 28, .28);
+}
+.business-description-container a[href*="storage/faq"]:active,
+.business-description-container a[href*="storage/effects"]:active { transform: scale(.97); }
 
 /* Бутонът „Вашият индивидуален хранителен план“ — скрит */
 .business-description-container p:has(> a[href*="biocode.website"]) { display: none !important; }
@@ -109,6 +119,7 @@ form:has(#payment-form-container) button.btn[type="submit"] > span::after {
     #pylon :is(p, span, h1, h2, h3, h4, h5, h6, label, legend, abbr, li, small, strong, b, em, td, th, dt, dd) { color: #f3f1f4 !important; }
     html #pylon#pylon *::after { color: inherit !important; }
     #pylon a { color: #f87171 !important; }
+    #pylon .business-description-container a[href*="storage/"] { color: #fff !important; box-shadow: 0 6px 16px rgba(0, 0, 0, .45); }
     #pylon p[role="alert"], #pylon [role="alert"] * { color: #f87171 !important; }
 
     /* прозорците Вход / Регистрация */
