@@ -130,6 +130,11 @@
                Android WebViews. */
             touch-action: pan-y;
         }
+        /* Acuity's top bar ("Регистрация" / "Вход") stays on xbody.as.me itself but is out of view here:
+           the first 72 px of the page (the bar ends at 67 px, the logo starts at 97 px at 360–768 px width). */
+        #acuity-scroll-container iframe {
+            margin-top: -72px;
+        }
 
         /* ── Back navigation button ── */
         #back-btn {
