@@ -349,6 +349,15 @@
         .xems-cta small { display: block; opacity: .85; font-size: .8rem; margin-top: 2px; }
         .xems-cta .xems-go, .xems-item .xems-go { margin-left: auto; font-size: 20px; opacity: .6; }
         .xems-menu { display: flex; flex-direction: column; gap: 8px; }
+        .xems-hist { display: flex; flex-direction: column; gap: 8px; }
+        .xems-hist .xems-item.open { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+        .xems-hist .xems-item.open .xems-go { transform: rotate(90deg); }
+        .xems-detail { margin: -4px 0 4px; }
+        .xems-spark { display: block; width: 100%; height: 72px; margin: 8px 0 4px; }
+        .xems-spark path { fill: none; stroke: #dc2626; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+        .xems-spark-cap { color: #64748b; font-size: .74rem; }
+        .xems-note-line { color: #64748b; font-size: .84rem; line-height: 1.4; padding: 6px 2px; }
+        html[data-theme="dark"] .xems-note-line, html[data-theme="dark"] .xems-spark-cap { color: #a8a2ab; }
         .xems-cta.xems-news { background: linear-gradient(135deg, #16a34a, #166534); }
         .xems-later {
             display: block;
@@ -2427,6 +2436,150 @@
                 update();
             }
 
+            /* ── Моите тренировки: every training's full record from the studio tablet (kept on the server) ── */
+            const HIST_KEY = 'xbody_history_list';
+            let hist = { id: '', list: null, state: 'idle', open: '', detail: {} };
+
+            function cardId() {
+                const m = /\/c\/([A-Za-z0-9]+)/.exec(cardUrl || '');
+                return m ? m[1] : '';
+            }
+
+            function loadHistory(force) {
+                const id = cardId();
+                if (!id) return Promise.resolve();
+                if (hist.id !== id) {
+                    hist = { id: id, list: null, state: 'idle', open: '', detail: {} };
+                    try {
+                        const c = JSON.parse(localStorage.getItem(HIST_KEY) || 'null');
+                        if (c && c.id === id && Array.isArray(c.sessions)) hist.list = c.sessions;
+                    } catch (e) { /* no storage */ }
+                }
+                if (hist.state === 'loading' || (!force && hist.state === 'ready' && Date.now() - (hist.at || 0) < 30000)) return Promise.resolve();
+                hist.state = 'loading';
+                return fetch(API + '/v1/history/' + id).then(function (res) {
+                    return res.json().catch(function () { return null; }).then(function (data) {
+                        if (data && data.ok && Array.isArray(data.sessions)) {
+                            hist.list = data.sessions.slice().sort(function (a, b) { return Number(b.id) - Number(a.id); });
+                            hist.state = 'ready';
+                            hist.at = Date.now();
+                            try { localStorage.setItem(HIST_KEY, JSON.stringify({ id: id, sessions: hist.list })); } catch (e) { /* full */ }
+                        } else {
+                            hist.state = res.status === 404 ? 'ready' : 'error';
+                            if (res.status === 404 && !hist.list) hist.list = [];
+                        }
+                    });
+                }).catch(function () {
+                    hist.state = 'error';
+                }).then(function () {
+                    if (!overlay.classList.contains('hidden') && view === 'history') render();
+                });
+            }
+
+            function loadDetail(sid) {
+                if (hist.detail[sid]) return;
+                hist.detail[sid] = { state: 'loading' };
+                fetch(API + '/v1/history/' + hist.id + '/' + sid).then(function (res) {
+                    return res.ok ? res.json() : null;
+                }).then(function (data) {
+                    hist.detail[sid] = data ? { state: 'ready', data: data } : { state: 'error' };
+                }).catch(function () {
+                    hist.detail[sid] = { state: 'error' };
+                }).then(function () {
+                    if (!overlay.classList.contains('hidden') && view === 'history') {
+                        const y = bodyEl.scrollTop;
+                        render();
+                        bodyEl.scrollTop = y;
+                    }
+                });
+            }
+
+            function fmtWhen(ms) {
+                const d = new Date(ms);
+                if (isNaN(d.getTime())) return '';
+                return d.toLocaleDateString('bg-BG', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' +
+                    String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+            }
+
+            function mins(sec) {
+                return Math.max(1, Math.round((sec || 0) / 60)) + ' мин';
+            }
+
+            function spark(series, cap) {
+                const pts = series.filter(function (v) { return v > 0; });
+                if (pts.length < 3) return '';
+                const n = Math.min(120, series.length);
+                const out = [];
+                for (let i = 0; i < n; i++) {
+                    const a = Math.floor(i * series.length / n);
+                    const b = Math.max(a + 1, Math.floor((i + 1) * series.length / n));
+                    let sum = 0, cnt = 0;
+                    for (let j = a; j < b && j < series.length; j++) if (series[j] > 0) { sum += series[j]; cnt++; }
+                    out.push(cnt ? sum / cnt : null);
+                }
+                const lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts);
+                const span = Math.max(1, hi - lo);
+                let d = '', pen = false;
+                out.forEach(function (v, i) {
+                    if (v == null) { pen = false; return; }
+                    const x = (i / Math.max(1, n - 1) * 240).toFixed(1);
+                    const y = (60 - (v - lo) / span * 54).toFixed(1);
+                    d += (pen ? 'L' : 'M') + x + ' ' + y;
+                    pen = true;
+                });
+                return '<svg class="xems-spark" viewBox="0 0 240 64" preserveAspectRatio="none" aria-hidden="true"><path d="' + d + '"/></svg>' +
+                    '<div class="xems-spark-cap">' + cap + ' · ' + Math.round(lo) + '–' + Math.round(hi) + '</div>';
+            }
+
+            function detailHtml(sum) {
+                const dt = hist.detail[String(sum.id)];
+                if (!dt || dt.state === 'loading') return '<div class="xems-note-line">Зареждам тренировката…</div>';
+                if (dt.state === 'error') return '<div class="xems-note-line">Не успяхме да заредим тренировката.</div>';
+                const d = dt.data || {};
+                const sc = sum.scores || {};
+                let html = '';
+                if (Array.isArray(d.hr)) html += spark(d.hr, 'Пулс, уд/мин');
+                if (!html && Array.isArray(d.st)) html += spark(d.st, 'Сила');
+                const hrs = (Array.isArray(d.hr) ? d.hr : []).filter(function (v) { return v > 0; });
+                html += row('Активно време', sum.activeS ? mins(sum.activeS) : '') +
+                    row('Среден пулс', sum.hrAvg > 0 ? Math.round(sum.hrAvg) + ' уд/мин' : '') +
+                    row('Най-висок пулс', hrs.length ? Math.max.apply(null, hrs) + ' уд/мин' : '') +
+                    row('Калории', sc.kcal > 0 ? Math.round(sc.kcal) + ' ккал' : '') +
+                    row('Програма', sum.program || '');
+                return html;
+            }
+
+            function renderHistory() {
+                titleEl.textContent = 'Моите тренировки';
+                let html = '';
+                if (!cardUrl) {
+                    html = '<div class="xems-note-line">Тук ще се появят тренировките ти веднага след като студиото ги запише.</div>';
+                } else if (!hist.list && hist.state === 'error') {
+                    html = '<div class="xems-note-line">Не успяхме да заредим тренировките.</div>' +
+                        '<button type="button" class="xems-later" data-go="histretry">Опитай пак</button>';
+                } else if (!hist.list) {
+                    html = '<div class="xems-note-line">Зареждам тренировките…</div>';
+                } else if (!hist.list.length) {
+                    html = '<div class="xems-note-line">Все още няма записани тренировки. Появяват се тук веднага след като студиото ги запише; ' +
+                        'по-старите се добавят постепенно.</div>';
+                } else {
+                    html = '<div class="xems-hist">' + hist.list.map(function (sum) {
+                        const sid = String(sum.id);
+                        const open = hist.open === sid;
+                        const sc = sum.scores || {};
+                        const bits = [mins(sum.durS)];
+                        if (sum.hrAvg > 0) bits.push('Ø ' + Math.round(sum.hrAvg) + ' уд/мин');
+                        if (sc.kcal > 0) bits.push(Math.round(sc.kcal) + ' ккал');
+                        return '<button type="button" class="xems-item' + (open ? ' open' : '') + '" data-go="sess" data-sess="' + esc(sid) + '">' +
+                            '<i class="fas fa-heartbeat"></i><span><b>' + esc(fmtWhen(Number(sum.start || sum.id))) + '</b><small>' + esc(bits.join(' · ')) +
+                            '</small></span><span class="xems-go">›</span></button>' +
+                            (open ? '<div class="xems-card xems-detail">' + detailHtml(sum) + '</div>' : '');
+                    }).join('') + '</div>';
+                }
+                bodyEl.innerHTML = html;
+                foot.classList.add('hidden');
+            }
+
             function esc(v) {
                 return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             }
@@ -2494,9 +2647,9 @@
             /* anim: 'fwd' (deeper), 'bwd' (back), 'stagger' (sheet opens), none (in-place update) */
             function render(anim) {
                 if (editing && document.getElementById('xems-name')) collect();   // keep what was typed
-                backBtn.classList.toggle('hidden', view !== 'data');
+                backBtn.classList.toggle('hidden', view !== 'data' && view !== 'history');
                 const oldTitle = titleEl.textContent;
-                if (view === 'menu') renderMenu(); else if (view === 'nudge') renderNudge(); else renderData();
+                if (view === 'menu') renderMenu(); else if (view === 'nudge') renderNudge(); else if (view === 'history') renderHistory(); else renderData();
                 bodyEl.classList.remove('fwd', 'bwd', 'stagger');
                 if (anim) {
                     void bodyEl.offsetWidth;   // restart the animation
@@ -2571,6 +2724,7 @@
                 html += '<div class="xems-menu">' +
                     item('appts', 'fa-calendar-check', 'Моите часове', apptSub) +
                     item('card', 'fa-chart-line', 'Моят прогрес', cardUrl ? (news() ? 'Нов отчет от тренировката' : 'Тренировки, мускули и напредък') : 'Ще се появи след първата ти тренировка', !cardUrl) +
+                    item('history', 'fa-heartbeat', 'Моите тренировки', cardUrl ? 'Всяка тренировка — пулс и напредък' : 'Ще се появят след първата ти тренировка', !cardUrl) +
                     item('data', 'fa-id-card', 'Моите данни', [c.name, c.email || c.phoneRaw].filter(Boolean).join(' · ')) +
                     '</div>';
                 bodyEl.innerHTML = html;
@@ -2719,7 +2873,7 @@
                 msg.textContent = text;
             }
 
-            function go(where) {
+            function go(where, el) {
                 if (where === 'appts') {
                     closeSheet();
                     if (window.XBodyAppointments && window.XBodyAppointments.open) window.XBodyAppointments.open();
@@ -2727,6 +2881,27 @@
                 }
                 if (where === 'later') {
                     closeSheet();
+                    return;
+                }
+                if (where === 'history') {
+                    if (!cardUrl) return;
+                    view = 'history';
+                    render('fwd');
+                    loadHistory(false);
+                    return;
+                }
+                if (where === 'histretry') {
+                    loadHistory(true);
+                    return;
+                }
+                if (where === 'sess') {
+                    const sid = el && el.dataset ? el.dataset.sess : '';
+                    if (!sid) return;
+                    hist.open = hist.open === sid ? '' : sid;
+                    if (hist.open) loadDetail(sid);
+                    const y = bodyEl.scrollTop;
+                    render();
+                    bodyEl.scrollTop = y;
                     return;
                 }
                 if (where === 'card') {
@@ -2768,7 +2943,7 @@
             bodyEl.addEventListener('click', function (e) {
                 const nav = e.target.closest('[data-go]');
                 if (nav) {
-                    go(nav.dataset.go);
+                    go(nav.dataset.go, nav);
                     return;
                 }
                 const chip = e.target.closest('.xems-chip');
@@ -2893,7 +3068,7 @@
 
             document.addEventListener('keydown', function (e) {
                 if (e.key !== 'Escape' || overlay.classList.contains('hidden')) return;
-                if (view === 'data') back(); else closeSheet();
+                if (view === 'data' || view === 'history') back(); else closeSheet();
             });
 
             btn.addEventListener('click', function () { openSheet('menu'); });
