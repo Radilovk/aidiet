@@ -2020,7 +2020,7 @@
 
                 const localVersion = getLocalVersion(contact.email);
                 if (!localVersion) {
-                    await fetchFromNetwork(true);
+                    await fetchFromNetwork(false);   // the server's cache if it has one (kept fresh by the webhook), else Acuity
                     return;
                 }
 
