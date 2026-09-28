@@ -113,6 +113,17 @@
             padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
             box-sizing: border-box;
         }
+        /* pull down on the first page = one full refresh (the page itself is a cross-origin iframe, so a thin strip
+           at the very top catches the gesture; it exists only while the first page is at the top) */
+        #xbody-ptr-zone { position: fixed; top: 0; left: 0; right: 0; height: 40px; z-index: 30; touch-action: none; display: none; }
+        #xbody-ptr-zone.on { display: block; }
+        #xbody-ptr {
+            position: fixed; top: calc(env(safe-area-inset-top, 0px) + 8px); left: 50%; z-index: 31;
+            transform: translate(-50%, -80px); opacity: 0; pointer-events: none;
+            padding: 8px 16px; border-radius: 999px; background: #0f172a; color: #fff; font-size: .82rem; font-weight: 600;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, .25); transition: transform .18s ease, opacity .18s ease; white-space: nowrap;
+        }
+        #xbody-ptr.show { opacity: 1; }
         iframe {
             width: 100%;
             /* Do NOT set height:100% here – inside a scroll container that
@@ -2933,6 +2944,19 @@
             }
 
 
+            /* one full refresh on demand (pull down on the first page): the card from the server + the appointments */
+            window.XBodyProfile = {
+                refreshAll: function () {
+                    const parts = [lookup(true).catch(function () {}).then(function () { update(); })];
+                    if (window.XBodyAppointments && window.XBodyAppointments.refresh) {
+                        parts.push(Promise.resolve(window.XBodyAppointments.refresh()).catch(function () {}));
+                    }
+                    return Promise.all(parts).then(function () {
+                        if (news() && !busy() && overlay.classList.contains('hidden')) openSheet('nudge');
+                    });
+                }
+            };
+
             let hiddenAt = 0;
             document.addEventListener('visibilitychange', function () {
                 if (document.hidden) {
@@ -2946,6 +2970,101 @@
                 if (away >= 2 * 60 * 1000) onOpen(away >= NUDGE_AWAY_MS, away >= NUDGE_AWAY_MS);
             });
             onOpen(true, true);       // started from closed: refresh everything once
+        })();
+
+        /* ── Pull down on the FIRST page only = one full refresh (30 s apart at most) ── */
+        (function () {
+            const sc = document.getElementById('acuity-scroll-container');
+            const back = document.getElementById('back-btn');
+            if (!sc || !back) return;
+            const zone = document.createElement('div');
+            zone.id = 'xbody-ptr-zone';
+            const pill = document.createElement('div');
+            pill.id = 'xbody-ptr';
+            pill.setAttribute('aria-live', 'polite');
+            document.body.appendChild(zone);
+            document.body.appendChild(pill);
+            const PULL_PX = 70;
+            const COOLDOWN_MS = 30 * 1000;
+            let last = 0;
+            let startY = null;
+            let pulled = 0;
+            let busyNow = false;
+
+            function overlayOpen() {
+                return Boolean(document.querySelector('.xbody-appt-overlay:not(.hidden), .pwa-modal-overlay:not(.hidden), #xems-overlay:not(.hidden), #xbody-onboarding:not(.hidden), #xbody-splash:not(.hidden)'));
+            }
+
+            /* the first page: the booking screen is up, at the very top, not inside the booking steps, nothing on top of it */
+            function eligible() {
+                return !sc.classList.contains('hidden') && sc.scrollTop <= 0 &&
+                    !back.classList.contains('visible') && !overlayOpen();
+            }
+
+            function sync() { zone.classList.toggle('on', eligible()); }
+
+            function say(text, offset) {
+                pill.textContent = text;
+                pill.classList.add('show');
+                pill.style.transform = 'translate(-50%, ' + offset + 'px)';
+            }
+
+            function hide(delay) {
+                setTimeout(function () {
+                    pill.classList.remove('show');
+                    pill.style.transform = 'translate(-50%, -80px)';
+                }, delay || 0);
+            }
+
+            function run() {
+                const now = Date.now();
+                if (busyNow) return;
+                if (now - last < COOLDOWN_MS) {
+                    say('Вече е обновено', 0);
+                    hide(1200);
+                    return;
+                }
+                last = now;
+                busyNow = true;
+                say('Обновявам…', 0);
+                const done = window.XBodyProfile && window.XBodyProfile.refreshAll ? window.XBodyProfile.refreshAll() : Promise.resolve();
+                Promise.resolve(done).catch(function () {}).then(function () {
+                    busyNow = false;
+                    say('Готово ✓', 0);
+                    hide(900);
+                });
+            }
+
+            zone.addEventListener('touchstart', function (e) {
+                if (!eligible() || busyNow) { startY = null; return; }
+                startY = e.touches[0].clientY;
+                pulled = 0;
+            }, { passive: true });
+            zone.addEventListener('touchmove', function (e) {
+                if (startY === null) return;
+                const dy = e.touches[0].clientY - startY;
+                if (dy <= 0) { pulled = 0; hide(0); return; }
+                pulled = Math.min(dy, 120);
+                say(pulled >= PULL_PX ? 'Пусни, за да обновиш' : 'Дръпни надолу', Math.round(pulled * 0.35) - 8);
+            }, { passive: true });
+            zone.addEventListener('touchend', function () {
+                if (startY === null) return;
+                const ok = pulled >= PULL_PX && eligible();
+                startY = null;
+                pulled = 0;
+                if (ok) run(); else hide(0);
+            });
+            zone.addEventListener('touchcancel', function () { startY = null; hide(0); });
+
+            sc.addEventListener('scroll', sync, { passive: true });
+            const mo = new MutationObserver(sync);
+            mo.observe(back, { attributes: true, attributeFilter: ['class'] });
+            mo.observe(sc, { attributes: true, attributeFilter: ['class'] });
+            ['xbody-onboarding', 'xbody-splash', 'xems-overlay', 'appointments-overlay'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) mo.observe(el, { attributes: true, attributeFilter: ['class'] });
+            });
+            sync();
         })();
     </script>
 </body>
