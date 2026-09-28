@@ -322,6 +322,19 @@
         .xems-done .xems-edit:active { transform: scale(0.95); }
         .xems-intro { margin: 18px 0 2px; }
         .xems-intro:first-child { margin-top: 0; }
+        .xems-intro .xems-who {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 8px;
+            padding: 9px 12px;
+            border-radius: 12px;
+            background: #f8fafc;
+            color: #334155;
+            font-size: .82rem;
+            overflow-wrap: anywhere;
+        }
+        .xems-intro .xems-who i { color: #94a3b8; font-size: 13px; }
         .xems-intro h3 { margin: 0; font-size: 1.02rem; color: #0f172a; }
         .xems-intro p { margin: 4px 0 0; color: #64748b; font-size: .86rem; line-height: 1.45; }
         .xems-meter { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
@@ -900,6 +913,7 @@
         html[data-theme="dark"] .xems-progress.off { background: #26232a; color: #a8a2ab; }
         html[data-theme="dark"] .xems-done { background: rgba(34, 197, 94, 0.1); color: #86efac; }
         html[data-theme="dark"] .xems-done > i { color: #4ade80; }
+        html[data-theme="dark"] .xems-intro .xems-who { background: #26232a; color: #e7e3e9; }
         html[data-theme="dark"] .xems-done small { color: #a8a2ab; }
         html[data-theme="dark"] .xems-done .xems-edit { background: transparent; border-color: rgba(74, 222, 128, 0.4); color: #86efac; }
         html[data-theme="dark"] .xbody-appt-status { color: #f87171; }
@@ -1164,6 +1178,7 @@
             function showBooking(userData) {
                 const bookingUrl = buildAcuityUrl(userData);
                 try {
+                    sessionStorage.setItem(STORAGE_KEYS.fullName, userData.fullName);
                     sessionStorage.setItem(STORAGE_KEYS.email, userData.email);
                     sessionStorage.setItem(STORAGE_KEYS.phone, userData.phone);
                 } catch (_) {}
@@ -2181,6 +2196,12 @@
                 return Boolean(studio() && sent());
             }
 
+            /* the booking data the registration uses (typed once, at the start) */
+            function whoLine() {
+                const c = contact() || {};
+                return [c.name, c.email, c.phoneRaw].filter(Boolean).join(' · ');
+            }
+
             function summary() {
                 const parts = [];
                 if (st.sex) parts.push(st.sex === 'F' ? 'Жена' : 'Мъж');
@@ -2233,6 +2254,7 @@
                 if (showForm) {
                     const done = filled();
                     html += '<div class="xems-intro' + (editing ? ' xems-reveal' : '') + '">' + (reg ? '<h3>Твоят профил</h3>' : '') +
+                        (reg ? '' : '<p class="xems-who"><i class="fas fa-user"></i> ' + esc(whoLine()) + '</p>') +
                         '<p>Отнема минута. Системата нагласява тренировката за теб още от първия път. Всичко е по желание.</p>' +
                         '<div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
                         (done >= 5 ? 'Профилът е пълен' : done + ' от 5') + '</span></div></div>' +
