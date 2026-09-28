@@ -2012,11 +2012,14 @@
                 return data.version || null;
             }
 
+            /* one check at most every 30 s, whoever asks (opening the list, the profile, the pull-down, an opening of the app) */
+            let lastSync = 0;
             async function syncIfChanged() {
                 const contact = getUserContact();
-                if (!contact || loading) {
+                if (!contact || loading || Date.now() - lastSync < 30000) {
                     return;
                 }
+                lastSync = Date.now();
 
                 const localVersion = getLocalVersion(contact.email);
                 if (!localVersion) {
@@ -2105,9 +2108,9 @@
                     return;
                 }
 
-                if (isDirty(contact.email)) {
-                    syncIfChanged();
-                }
+                /* a booking is made inside Acuity's page, which does not tell this app: the Acuity webhook drops the
+                   server's cached list instead, so this cheap version check (a cache read, no Acuity) sees it */
+                syncIfChanged();
             }
 
             function closeModal() {
@@ -2884,7 +2887,9 @@
                 overlay.setAttribute('aria-hidden', 'false');
                 render('stagger');
                 if (view === 'menu') {
-                    lookup(false).then(function () {
+                    const appts = window.XBodyAppointments && window.XBodyAppointments.refresh
+                        ? Promise.resolve(window.XBodyAppointments.refresh()).catch(function () {}) : Promise.resolve();
+                    Promise.all([lookup(false), appts]).then(function () {
                         update();
                         if (!overlay.classList.contains('hidden') && view === 'menu') render();
                     });
