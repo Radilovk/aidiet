@@ -8,11 +8,25 @@
     <link rel="manifest" href="xbody-manifest.json">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#FEE2E2" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#1A0A0A" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#121014" media="(prefers-color-scheme: dark)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="XBody">
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#1A0A0A':'#FEE2E2';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){
+        /* The phone's theme, live; a theme chosen in the app (localStorage "theme") wins. */
+        var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+        function apply() {
+            var t = localStorage.getItem('theme') || (mq && mq.matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', t);
+            var c = t === 'dark' ? '#121014' : '#FEE2E2';
+            document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', c); });
+        }
+        apply();
+        if (mq) {
+            if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply);
+        }
+        window.addEventListener('storage', function (e) { if (e.key === 'theme') apply(); });
+    })();</script>
     <link rel="apple-touch-icon" href="xbody-icon-192.png">
     <link rel="apple-touch-startup-image" href="xbody-icon-512.png">
     <link rel="preload" as="image" href="xbody-icon-512.png">
@@ -802,6 +816,70 @@
             vertical-align: middle;
             margin: 0 2px;
         }
+        /* ── Dark theme (the phone's, or the one chosen in the app) ── */
+        html[data-theme="dark"] { color-scheme: dark; }
+        html[data-theme="dark"] body, html[data-theme="dark"] { background-color: #121014; }
+        html[data-theme="dark"] #xbody-splash { background: #121014; }
+        html[data-theme="dark"] #back-btn,
+        html[data-theme="dark"] #appointments-btn,
+        html[data-theme="dark"] #progress-btn {
+            background: rgba(38, 35, 42, 0.92);
+            color: #f3f1f4;
+            box-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+        }
+        html[data-theme="dark"] #appointments-btn i,
+        html[data-theme="dark"] #progress-btn i { color: #f87171; }
+        html[data-theme="dark"] .xbody-appt-overlay { background: rgba(0, 0, 0, 0.55); }
+        html[data-theme="dark"] .xbody-appt-panel { background: #1c1a1f; box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5); }
+        html[data-theme="dark"] .xbody-appt-handle { background: #3a353f; }
+        html[data-theme="dark"] .xbody-appt-title,
+        html[data-theme="dark"] .xbody-appt-v,
+        html[data-theme="dark"] .xems-intro h3,
+        html[data-theme="dark"] .xems-label { color: #f3f1f4; }
+        html[data-theme="dark"] .xbody-appt-icon-btn { background: #26232a; color: #a8a2ab; }
+        html[data-theme="dark"] .xbody-appt-footer { border-top-color: #2a262e; color: #7a747d; }
+        html[data-theme="dark"] .xbody-appt-state,
+        html[data-theme="dark"] .xems-intro p,
+        html[data-theme="dark"] .xems-meter span,
+        html[data-theme="dark"] .xems-health .xems-sub { color: #a8a2ab; }
+        html[data-theme="dark"] .xbody-appt-section-label,
+        html[data-theme="dark"] .xbody-appt-k,
+        html[data-theme="dark"] .xems-label span,
+        html[data-theme="dark"] .xems-cap,
+        html[data-theme="dark"] .xems-num em,
+        html[data-theme="dark"] .xems-msg { color: #7a747d; }
+        html[data-theme="dark"] .xbody-appt-card,
+        html[data-theme="dark"] .xems-health,
+        html[data-theme="dark"] .xems-progress.off { background: #26232a; color: #a8a2ab; }
+        html[data-theme="dark"] .xbody-appt-status { color: #f87171; }
+        html[data-theme="dark"] .xbody-appt-change-btn { background: transparent; color: #f87171; border-color: rgba(248, 113, 113, 0.45); }
+        html[data-theme="dark"] .xems-chip,
+        html[data-theme="dark"] .xems-num,
+        html[data-theme="dark"] .xems-note { background: #26232a; border-color: #3a353f; color: #e7e3e9; }
+        html[data-theme="dark"] .xems-num input { color: #f3f1f4; }
+        html[data-theme="dark"] .xems-chip[aria-pressed="true"] { background: rgba(239, 68, 68, 0.16); border-color: #ef4444; color: #fecaca; }
+        html[data-theme="dark"] .xems-health p { color: #e7e3e9; }
+        html[data-theme="dark"] .xems-meter i { background: #2a262e; }
+        html[data-theme="dark"] .xems-foot { background: #1c1a1f; border-top-color: #2a262e; }
+        html[data-theme="dark"] .xems-send:disabled { background: #2a262e; color: #7a747d; }
+        html[data-theme="dark"] .xems-msg.ok { color: #4ade80; }
+        html[data-theme="dark"] .xems-msg.err { color: #f87171; }
+        html[data-theme="dark"] #xbody-onboarding { background: linear-gradient(180deg, #221418 0%, #121014 52%); }
+        html[data-theme="dark"] .xbody-onboarding-card { background: rgba(28, 26, 31, 0.96); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45); }
+        html[data-theme="dark"] .xbody-onboarding-title,
+        html[data-theme="dark"] .xbody-form-group label,
+        html[data-theme="dark"] .xbody-checkbox-label { color: #f3f1f4; }
+        html[data-theme="dark"] .xbody-onboarding-subtitle,
+        html[data-theme="dark"] .xbody-checkbox-row { color: #a8a2ab; }
+        html[data-theme="dark"] .xbody-form-input { background: #26232a; border-color: #3a353f; color: #f3f1f4; }
+        html[data-theme="dark"] .xbody-form-error { color: #f87171; }
+        html[data-theme="dark"] .pwa-modal { background: #1c1a1f; }
+        html[data-theme="dark"] .pwa-modal-title { color: #f3f1f4; }
+        html[data-theme="dark"] .pwa-modal-subtitle,
+        html[data-theme="dark"] .pwa-modal-close,
+        html[data-theme="dark"] .pwa-ios-steps ol { color: #a8a2ab; }
+        html[data-theme="dark"] .pwa-ios-steps { background: #26232a; }
+        html[data-theme="dark"] .pwa-install-btn { background: #f3f1f4; color: #121014; }
     </style>
 </head>
 <body>
@@ -2065,7 +2143,10 @@
                 bodyEl.innerHTML = html;
                 foot.classList.toggle('hidden', !hasStudio);
                 const open = document.getElementById('xems-open-card');
-                if (open) open.addEventListener('click', function () { window.open(cardUrl, '_blank', 'noopener'); });
+                if (open) open.addEventListener('click', function () {
+                    const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                    window.open(cardUrl + (cardUrl.indexOf('?') < 0 ? '?' : '&') + 'theme=' + t, '_blank', 'noopener');
+                });
                 refreshSend();
             }
 
