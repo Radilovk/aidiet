@@ -1964,7 +1964,10 @@
                 } else {
                     bodyEl.innerHTML =
                         renderSection('Предстоящи часове', upcoming, false) +
-                        renderSection('Минали часове', past, true);
+                        renderSection('Минали часове', past.slice().sort(function (a, b) {   // the last 10, newest first
+                            const x = parseApptDate(a), y = parseApptDate(b);
+                            return (y ? y.getTime() : 0) - (x ? x.getTime() : 0);
+                        }).slice(0, 10), true);
                 }
                 setFooter(fetchedAt, fromCache, stale);
             }
