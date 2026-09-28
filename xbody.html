@@ -269,6 +269,47 @@
 
         .xbody-appt-panel.xems-panel {
             max-height: min(90vh, 780px);
+            transition: max-height .3s ease;
+        }
+        .xems-body.fwd > * { animation: xemsFwd .28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .xems-body.bwd > * { animation: xemsBwd .28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .xems-body.stagger > * { animation: xemsRise .36s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .xems-body.stagger > .xems-menu { animation: none; }
+        .xems-body.stagger .xems-menu > * { animation: xemsRise .36s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .xems-body.stagger > :nth-child(2) { animation-delay: .04s; }
+        .xems-body.stagger > :nth-child(3) { animation-delay: .08s; }
+        .xems-body.stagger .xems-menu > :nth-child(1) { animation-delay: .1s; }
+        .xems-body.stagger .xems-menu > :nth-child(2) { animation-delay: .15s; }
+        .xems-body.stagger .xems-menu > :nth-child(3) { animation-delay: .2s; }
+        @keyframes xemsFwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+        @keyframes xemsBwd { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+        @keyframes xemsRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        #xems-title { transition: opacity .18s ease; }
+        #xems-title.swap { opacity: 0; }
+        .xems-foot:not(.hidden) { animation: xemsRise .3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .xems-send { transition: background-color .2s ease, transform .12s ease; }
+        .xems-send:not(:disabled):active { transform: scale(0.98); }
+        .xems-send.busy::after {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-left: 10px;
+            vertical-align: -2px;
+            border: 2px solid rgba(255, 255, 255, .5);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: xemsSpin .7s linear infinite;
+        }
+        @keyframes xemsSpin { to { transform: rotate(360deg); } }
+        .xems-input.bad { border-color: #ef4444; animation: xemsShake .32s ease; }
+        @keyframes xemsShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+        #progress-btn.todo i { animation: xemsPulse 2.4s ease-in-out 1s 2; }
+        @keyframes xemsPulse { 50% { transform: scale(1.18); } }
+        @media (prefers-reduced-motion: reduce) {
+            .xems-body > *, .xems-body .xems-menu > *, .xems-foot, .xbody-appt-panel, .xbody-appt-overlay,
+            .xems-input.bad, #progress-btn.todo i, .xems-reveal { animation: none !important; }
+            .xbody-appt-overlay.closing { display: none; }
         }
         .xems-done {
             display: flex;
@@ -331,10 +372,38 @@
         .xems-row:first-child { border-top: none; }
         .xems-row span { color: #64748b; flex-shrink: 0; }
         .xems-row b { color: #0f172a; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
-        .xems-label.xems-sep { margin: 18px 0 8px; }
+        .xems-label.xems-sep { margin: 20px 0 8px; }
+        .xems-label.xems-first { margin: 2px 0 8px; }
+        .xems-sep-cta { margin-top: 16px; }
         .xems-hello + .xems-done { margin: 0 0 12px; }
-        .xems-ok { color: #15803d !important; font-weight: 600 !important; }
         .xems-fields { display: flex; flex-direction: column; gap: 8px; }
+        .xems-who {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 14px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #f8fafc;
+            color: #334155;
+            font-size: .84rem;
+        }
+        .xems-who i { color: #94a3b8; font-size: 13px; }
+        .xems-who span { flex: 1; min-width: 0; line-height: 1.45; }
+        .xems-who em { font-style: normal; white-space: nowrap; }
+        .xems-link {
+            flex-shrink: 0;
+            border: none;
+            background: none;
+            padding: 4px 2px;
+            color: #b91c1c;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .xems-num input::-webkit-outer-spin-button,
+        .xems-num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .xems-num input { -moz-appearance: textfield; appearance: textfield; }
         .xems-field { display: block; }
         .xems-input {
             box-sizing: border-box;
@@ -483,8 +552,13 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            animation: scaleInModal 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: sheetUp 0.34s cubic-bezier(0.16, 1, 0.3, 1);
         }
+        @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+        .xbody-appt-overlay.closing { animation: fadeOutOverlay 0.2s ease forwards; }
+        .xbody-appt-overlay.closing .xbody-appt-panel { animation: sheetDown 0.22s cubic-bezier(0.4, 0, 1, 1) forwards; }
+        @keyframes fadeOutOverlay { to { opacity: 0; } }
+        @keyframes sheetDown { to { transform: translateY(100%); } }
         .xbody-appt-handle {
             width: 36px;
             height: 4px;
@@ -937,8 +1011,10 @@
         html[data-theme="dark"] .xems-item.off b { color: #a8a2ab; }
         html[data-theme="dark"] .xems-row { border-top-color: #34303a; }
         html[data-theme="dark"] .xems-row b { color: #f3f1f4; }
-        html[data-theme="dark"] .xems-ok { color: #4ade80 !important; }
+        html[data-theme="dark"] .xems-who { background: #26232a; color: #e7e3e9; }
+        html[data-theme="dark"] .xems-link { color: #f87171; }
         html[data-theme="dark"] .xems-input { background: #26232a; border-color: #3a353f; color: #f3f1f4; }
+        html[data-theme="dark"] .xems-input.bad { border-color: #ef4444; }
         html[data-theme="dark"] .xems-done small { color: #a8a2ab; }
         html[data-theme="dark"] .xbody-appt-status { color: #f87171; }
         html[data-theme="dark"] .xbody-appt-change-btn { background: transparent; color: #f87171; border-color: rgba(248, 113, 113, 0.45); }
@@ -1030,7 +1106,7 @@
                     <button class="xbody-appt-icon-btn" id="xems-close" type="button" aria-label="Затвори">✕</button>
                 </div>
             </div>
-            <div class="xbody-appt-body" id="xems-body"></div>
+            <div class="xbody-appt-body xems-body" id="xems-body"></div>
             <div class="xems-foot hidden" id="xems-foot">
                 <button type="button" class="xems-send" id="xems-send">Регистрирай ме</button>
                 <p class="xems-msg" id="xems-msg">Данните отиват само в твоето студио.</p>
@@ -1994,7 +2070,7 @@
             }
 
             function openModal() {
-                overlay.classList.remove('hidden');
+                overlay.classList.remove('hidden', 'closing');
                 overlay.setAttribute('aria-hidden', 'false');
                 showCachedAppointments();
 
@@ -2015,8 +2091,13 @@
             }
 
             function closeModal() {
-                overlay.classList.add('hidden');
+                if (overlay.classList.contains('hidden') || overlay.classList.contains('closing')) return;
+                overlay.classList.add('closing');
                 overlay.setAttribute('aria-hidden', 'true');
+                setTimeout(function () {
+                    overlay.classList.remove('closing');
+                    overlay.classList.add('hidden');
+                }, 200);
             }
 
             btn.addEventListener('click', openModal);
@@ -2073,8 +2154,28 @@
                 });
             }
 
+            /* the next upcoming appointment from what is already cached (no network): for the profile menu */
+            function nextAppointment() {
+                const contact = getUserContact();
+                const local = contact ? readLocalCache(contact.email) : null;
+                const data = memoryCache || (local && local.data);
+                if (!data) return null;
+                const now = Date.now();
+                const next = (Array.isArray(data.upcoming) ? data.upcoming : []).filter(function (item) {
+                    const dt = parseApptDate(item);
+                    return !item.canceled && (!dt || dt.getTime() > now - 60 * 60 * 1000);
+                }).sort(function (a, b) {
+                    const x = parseApptDate(a), y = parseApptDate(b);
+                    return (x ? x.getTime() : 0) - (y ? y.getTime() : 0);
+                })[0];
+                if (!next) return { none: true };
+                const labels = formatAppointmentBg(next);
+                return { date: labels.dateValue, time: labels.timeValue };
+            }
+
             window.XBodyAppointments = {
                 open: openModal,
+                next: nextAppointment,
                 markDirty: function (email) {
                     markDirty((email || '').trim().toLowerCase() || (getUserContact() && getUserContact().email));
                 }
@@ -2140,6 +2241,7 @@
             let lookedUpFor = null;
             let view = 'menu';      // 'menu' | 'data'
             let editing = false;    // Моите данни: the form is open
+            let contactOpen = false; // first filling: the contact (already typed at the start) stays one line until "Промени"
             let fromMenuCta = false; // the first registration started from the menu → back to the menu when done
             let justSaved = false;  // the menu shows "registered" once, right after the first registration
             let st = null;          // the profile being edited
@@ -2299,12 +2401,29 @@
                 return v ? '<div class="xems-row"><span>' + k + '</span><b>' + esc(v) + '</b></div>' : '';
             }
 
-            function render() {
+            /* anim: 'fwd' (deeper), 'bwd' (back), 'stagger' (sheet opens), none (in-place update) */
+            function render(anim) {
                 if (editing && document.getElementById('xems-name')) collect();   // keep what was typed
                 backBtn.classList.toggle('hidden', view === 'menu');
+                const oldTitle = titleEl.textContent;
                 if (view === 'menu') renderMenu(); else renderData();
+                bodyEl.classList.remove('fwd', 'bwd', 'stagger');
+                if (anim) {
+                    void bodyEl.offsetWidth;   // restart the animation
+                    bodyEl.classList.add(anim);
+                    bodyEl.scrollTop = 0;
+                }
+                if (anim && titleEl.textContent !== oldTitle) {
+                    const t = titleEl.textContent;
+                    titleEl.textContent = oldTitle;
+                    titleEl.classList.add('swap');
+                    setTimeout(function () { titleEl.textContent = t; titleEl.classList.remove('swap'); }, 140);
+                }
                 refreshSend();
             }
+
+            const CTA = '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-plus"></i><span><b>Попълни профила си</b>' +
+                '<small>Една минута — и тренировката ти е нагласена точно за теб.</small></span><span class="xems-go">›</span></button>';
 
             function renderMenu() {
                 const c = contact() || {};
@@ -2313,14 +2432,15 @@
                 titleEl.textContent = 'Моят профил';
                 let html = '<p class="xems-hello">Здравей' + (first ? ', ' + esc(first) : '') + '!</p>';
                 if (justSaved) {
-                    html += '<div class="xems-done xems-reveal"><i class="fas fa-check-circle"></i><span><b>Регистриран си в XEMS</b>' +
-                        '<small>Студиото ще види профила ти преди следващата тренировка.</small></span></div>';
+                    html += '<div class="xems-done"><i class="fas fa-check-circle"></i><span><b>Профилът ти е готов</b>' +
+                        '<small>Студиото ще го види преди следващата ти тренировка.</small></span></div>';
                 } else if (studio() && !reg) {
-                    html += '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-plus"></i><span><b>Регистрирай се в XEMS</b>' +
-                        '<small>Отнема минута — тренировката ще е нагласена за теб.</small></span><span class="xems-go">›</span></button>';
+                    html += CTA;
                 }
+                const nx = window.XBodyAppointments && window.XBodyAppointments.next ? window.XBodyAppointments.next() : null;
+                const apptSub = !nx ? 'Предстоящи и минали часове' : nx.none ? 'Нямаш предстоящ час' : 'Следващ: ' + nx.date + ' · ' + nx.time;
                 html += '<div class="xems-menu">' +
-                    item('appts', 'fa-calendar-check', 'Моите часове', 'Предстоящи и минали часове') +
+                    item('appts', 'fa-calendar-check', 'Моите часове', apptSub) +
                     item('card', 'fa-chart-line', 'Моят прогрес', cardUrl ? 'Тренировки, мускули и напредък' : 'Ще се появи след първата ти тренировка', !cardUrl) +
                     item('data', 'fa-id-card', 'Моите данни', [c.name, c.email || c.phoneRaw].filter(Boolean).join(' · ')) +
                     '</div>';
@@ -2332,31 +2452,37 @@
                 const c = contact() || {};
                 const reg = registered();
                 if (!st) loadProfile();
-                titleEl.textContent = editing && !reg && studio() ? 'Регистрация в XEMS' : 'Моите данни';
+                titleEl.textContent = editing && !reg && studio() ? 'Моят профил' : 'Моите данни';
                 let html = '';
                 if (!editing) {
-                    html += '<div class="xems-card">' + row('Име', c.name) + row('Имейл', c.email) + row('Телефон', c.phoneRaw) + '</div>';
+                    html += '<p class="xems-label xems-first">Контакт</p>' +
+                        '<div class="xems-card">' + row('Име', c.name) + row('Имейл', c.email) + row('Телефон', c.phoneRaw) + '</div>';
                     if (reg) {
                         const contra = labels(CONTRA, st.contra);
-                        html += '<p class="xems-label xems-sep">Профил в XEMS <span class="xems-ok">✓ регистриран</span></p>' +
+                        html += '<p class="xems-label xems-sep">Моят профил</p>' +
                             '<div class="xems-card">' + row('За теб', aboutYou()) + row('Цел', label(GOALS, st.goal)) +
                             row('Спорт', label(FITNESS, st.fit)) + row('Зони', labels(FOCUS, st.focus).join(', ')) +
                             row('Да имаме предвид', labels(COND, st.cond).join(', ')) +
                             row('Здраве', contra.length ? contra.join(', ') : (st.healthNo ? 'Няма медицинска причина' : '')) +
                             row('Бележка', st.note) + '</div>';
                     } else if (studio()) {
-                        html += '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-plus"></i><span><b>Регистрирай се в XEMS</b>' +
-                            '<small>Отнема минута — тренировката ще е нагласена за теб.</small></span><span class="xems-go">›</span></button>';
+                        html += '<div class="xems-sep-cta">' + CTA + '</div>';
                     }
                 } else {
                     if (studio() && !reg) {
                         const done = filled();
-                        html += '<div class="xems-intro"><p>Отнема минута. Системата нагласява тренировката за теб още от първия път. ' +
+                        html += '<div class="xems-intro"><p>С тези данни треньорът нагласява тренировката точно за теб още от първия път. ' +
                             'Всичко освен контакта е по желание.</p><div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
                             (done >= 5 ? 'Профилът е пълен' : done + ' от 5') + '</span></div></div>';
                     }
-                    html += block('Контакт', '', '<div class="xems-fields">' + field('xems-name', 'Име и фамилия', c.name, 'text', 'name') +
-                        field('xems-email', 'Имейл', c.email, 'email', 'email') + field('xems-phone', 'Телефон', c.phoneRaw, 'tel', 'tel') + '</div>');
+                    if (reg || contactOpen || !c.name || !c.email || !c.phone) {
+                        html += block('Контакт', '', '<div class="xems-fields' + (contactOpen ? ' xems-reveal' : '') + '">' +
+                            field('xems-name', 'Име и фамилия', c.name, 'text', 'name') +
+                            field('xems-email', 'Имейл', c.email, 'email', 'email') + field('xems-phone', 'Телефон', c.phoneRaw, 'tel', 'tel') + '</div>');
+                    } else {
+                        html += '<div class="xems-who"><i class="fas fa-user"></i><span>' +
+                            [c.name, c.email, c.phoneRaw].map(function (v) { return '<em>' + esc(v) + '</em>'; }).join(' · ') + '</span><button type="button" class="xems-link" data-go="contact">Промени</button></div>';
+                    }
                     if (studio()) {
                         html += block('За теб', '', chips('sex', [['F', 'Жена'], ['M', 'Мъж']], false) +
                                 '<div class="xems-nums">' + num('xems-by', 'Година на раждане', '', st.by, 1920, 2016) +
@@ -2430,7 +2556,7 @@
                 const reg = registered();
                 const same = reg && JSON.stringify(collect()) === localStorage.getItem(SENT_KEY);
                 sendBtn.disabled = same;
-                sendBtn.textContent = same ? 'Няма промени' : (reg || !studio() ? 'Запази' : 'Регистрирай ме');
+                sendBtn.textContent = same ? 'Няма промени' : (reg || !studio() ? 'Запази промените' : 'Запази профила');
             }
 
             function say(text, kind) {
@@ -2450,14 +2576,20 @@
                     window.open(cardUrl + (cardUrl.indexOf('?') < 0 ? '?' : '&') + 'theme=' + t, '_blank', 'noopener');
                     return;
                 }
+                if (where === 'contact') {
+                    contactOpen = true;
+                    render();
+                    const el = document.getElementById('xems-name');
+                    if (el) el.focus();
+                    return;
+                }
                 fromMenuCta = where === 'register' && view === 'menu';
                 view = 'data';
                 editing = where === 'register';
                 justSaved = false;
                 if (!registered() || !editing) st = null;
                 say(MSG_DEFAULT);
-                render();
-                bodyEl.scrollTop = 0;
+                render('fwd');
             }
 
             function back() {
@@ -2469,8 +2601,7 @@
                     editing = false;
                 }
                 say(MSG_DEFAULT);
-                render();
-                bodyEl.scrollTop = 0;
+                render('bwd');
             }
 
             bodyEl.addEventListener('click', function (e) {
@@ -2496,19 +2627,30 @@
                 render();
                 bodyEl.scrollTop = y;
             });
-            bodyEl.addEventListener('input', refreshSend);
+            bodyEl.addEventListener('input', function (e) {
+                if (e.target.classList) e.target.classList.remove('bad');
+                refreshSend();
+            });
 
             sendBtn.addEventListener('click', async function () {
                 if (!editing) {
                     editing = true;
                     fromMenuCta = false;
                     say(MSG_DEFAULT);
-                    render();
-                    bodyEl.scrollTop = 0;
+                    render('fwd');
                     return;
                 }
                 const p = collect();
-                if (!p.name || p.email.indexOf('@') < 1 || !digits(p.phone)) {
+                const bad = [['xems-name', !p.name], ['xems-email', p.email.indexOf('@') < 1], ['xems-phone', !digits(p.phone)]]
+                    .filter(function (f) { return f[1]; }).map(function (f) { return document.getElementById(f[0]); }).filter(Boolean);
+                if (bad.length) {
+                    bad.forEach(function (el) {
+                        el.classList.remove('bad');
+                        void el.offsetWidth;
+                        el.classList.add('bad');
+                    });
+                    bad[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    bad[0].focus({ preventScroll: true });
                     say('Попълни име, имейл и телефон — по тях студиото те познава.', 'err');
                     return;
                 }
@@ -2521,13 +2663,14 @@
                 if (!studio()) {
                     editing = false;
                     say('Запазено ✓', 'ok');
-                    render();
+                    render('bwd');
                     return;
                 }
                 localStorage.setItem(PROFILE_KEY, JSON.stringify(st));
                 const sig = JSON.stringify(p);
                 sendBtn.disabled = true;
-                sendBtn.textContent = first ? 'Регистриране…' : 'Запазване…';
+                sendBtn.classList.add('busy');
+                sendBtn.textContent = 'Запазване';
                 say(MSG_DEFAULT);
                 try {
                     const key = await sha(p.email || digits(p.phone));
@@ -2541,41 +2684,53 @@
                         editing = false;
                         st = null;
                         update();
+                        sendBtn.classList.remove('busy');
                         if (first && fromMenuCta) {
                             view = 'menu';
                             justSaved = true;
                         } else {
-                            say(first ? 'Готово — регистриран си в XEMS.' : 'Запазено ✓', 'ok');
+                            say(first ? 'Готово — профилът ти е в студиото ✓' : 'Запазено ✓', 'ok');
                         }
-                        render();
-                        bodyEl.scrollTop = 0;
+                        render('bwd');
                         return;
                     }
                     say('Не успяхме да запазим. Опитай пак след малко.', 'err');
                 } catch (e) {
                     say('Няма интернет. Запазихме го на телефона — опитай пак, когато има връзка.', 'err');
                 }
+                sendBtn.classList.remove('busy');
                 refreshSend();
             });
 
             function openSheet() {
+                contactOpen = false;
                 view = 'menu';
                 editing = false;
                 justSaved = false;
                 st = null;
                 say(MSG_DEFAULT);
-                render();
-                overlay.classList.remove('hidden');
+                overlay.classList.remove('hidden', 'closing');
                 overlay.setAttribute('aria-hidden', 'false');
+                render('stagger');
                 lookup(false).then(function () {
                     if (!overlay.classList.contains('hidden') && view === 'menu') render();
                 });
             }
 
             function closeSheet() {
-                overlay.classList.add('hidden');
+                if (overlay.classList.contains('hidden') || overlay.classList.contains('closing')) return;
+                overlay.classList.add('closing');
                 overlay.setAttribute('aria-hidden', 'true');
+                setTimeout(function () {
+                    overlay.classList.remove('closing');
+                    overlay.classList.add('hidden');
+                }, 200);
             }
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key !== 'Escape' || overlay.classList.contains('hidden')) return;
+                if (view === 'data') back(); else closeSheet();
+            });
 
             btn.addEventListener('click', openSheet);
             closeBtn.addEventListener('click', closeSheet);
