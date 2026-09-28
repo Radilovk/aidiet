@@ -2065,10 +2065,7 @@
                 bodyEl.innerHTML = html;
                 foot.classList.toggle('hidden', !hasStudio);
                 const open = document.getElementById('xems-open-card');
-                // xbody is light (the Acuity calendar inside it is light): the card opens in the same theme
-                if (open) open.addEventListener('click', function () {
-                    window.open(cardUrl + (cardUrl.indexOf('?') < 0 ? '?' : '&') + 'theme=light', '_blank', 'noopener');
-                });
+                if (open) open.addEventListener('click', function () { window.open(cardUrl, '_blank', 'noopener'); });
                 refreshSend();
             }
 
