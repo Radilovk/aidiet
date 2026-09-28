@@ -2515,8 +2515,8 @@
             const CTA = '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-plus"></i><span><b>Попълни профила си</b>' +
                 '<small>Една минута — и тренировката ти е нагласена точно за теб.</small></span><span class="xems-go">›</span></button>';
 
-            const REPORT_CTA = '<button type="button" class="xems-cta xems-news" data-go="card"><i class="fas fa-chart-line"></i><span><b>Отчетът от тренировката ти е готов</b>' +
-                '<small>Мускули, калории и напредък — виж какво постигна.</small></span><span class="xems-go">›</span></button>';
+            const REPORT_CTA = '<button type="button" class="xems-cta xems-news" data-go="card"><i class="fas fa-chart-line"></i><span><b>Анализът от тренировката ти е готов</b>' +
+                '<small>Ефективност, калории и напредък — виж какво постигна.</small></span><span class="xems-go">›</span></button>';
 
             function finishCta(miss) {
                 return '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-edit"></i><span><b>Довърши профила си</b>' +
@@ -2570,7 +2570,7 @@
                 const apptSub = !nx ? 'Предстоящи и минали часове' : nx.none ? 'Нямаш предстоящ час' : 'Следващ: ' + nx.date + ' · ' + nx.time;
                 html += '<div class="xems-menu">' +
                     item('appts', 'fa-calendar-check', 'Моите часове', apptSub) +
-                    item('card', 'fa-chart-line', 'Моят прогрес', cardUrl ? (news() ? 'Нов отчет от тренировката' : 'Тренировки, мускули и напредък') : 'Ще се появи след първата ти тренировка', !cardUrl) +
+                    item('card', 'fa-chart-line', 'Моят прогрес', cardUrl ? (news() ? 'Нов анализ от тренировката' : 'Анализ, мускули и напредък') : 'Ще се появи след първата ти тренировка', !cardUrl) +
                     item('data', 'fa-id-card', 'Моите данни', [c.name, c.email || c.phoneRaw].filter(Boolean).join(' · ')) +
                     '</div>';
                 bodyEl.innerHTML = html;
@@ -2731,10 +2731,12 @@
                 }
                 if (where === 'card') {
                     if (!cardUrl) return;
+                    /* a fresh report opens the analysis of the training itself (/r/); the card (/c/) links to it too */
+                    const target = news() ? cardUrl.replace('/c/', '/r/') : cardUrl;
                     markSeen();
                     if (view === 'nudge') closeSheet(); else render();
                     const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-                    window.open(cardUrl + (cardUrl.indexOf('?') < 0 ? '?' : '&') + 'theme=' + t, '_blank', 'noopener');
+                    window.open(target + (target.indexOf('?') < 0 ? '?' : '&') + 'theme=' + t, '_blank', 'noopener');
                     return;
                 }
                 if (where === 'contact') {
