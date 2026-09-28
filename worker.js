@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -36503,7 +36508,7 @@ async function handleAIXChat(request, env) {
   const content = data.choices?.[0]?.message?.content || "";
   return jsonResponse2({ content, usage: data.usage });
 }
-var XBODY_APPT_CACHE_TTL_SEC = 3600;
+var XBODY_APPT_CACHE_TTL_SEC = 12 * 3600;
 function computeXbodyApptVersion(upcoming, past) {
   const parts = [];
   for (const item2 of [...upcoming || [], ...past || []]) {
@@ -36553,10 +36558,18 @@ async function handleXbodyAcuityWebhook(request, env) {
   const form = new URLSearchParams(raw);
   const action = String(form.get("action") || "");
   const id = String(form.get("id") || "");
-  if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled)$/.test(action)) {
+  if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled|canceled|changed)$/.test(action)) {
     return new Response("ignored", { status: 200 });
   }
   const auth = btoa(`${userId}:${apiKey}`);
+  if (!/(^|\.)(scheduled|rescheduled)$/.test(action)) {
+    const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
+      headers: { Authorization: `Basic ${auth}` }
+    }).catch(() => null);
+    const appt2 = got && got.ok ? await got.json().catch(() => null) : null;
+    await dropXbodyApptCache(env, appt2 && appt2.email);
+    return new Response("ok", { status: 200 });
+  }
   const resp = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}?admin=true`, {
     method: "PUT",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
@@ -36567,7 +36580,18 @@ async function handleXbodyAcuityWebhook(request, env) {
     console.error("[xbody-acuity-webhook] smsOptIn update failed:", resp.status, String(body).slice(0, 200));
     return new Response("acuity " + resp.status, { status: 502 });
   }
+  const appt = await resp.json().catch(() => null);
+  await dropXbodyApptCache(env, appt && appt.email);
   return new Response("ok", { status: 200 });
+}
+async function dropXbodyApptCache(env, email) {
+  const e = String(email || "").trim().toLowerCase();
+  if (!env.page_content || !e.includes("@")) return;
+  try {
+    await env.page_content.delete(`xbody:appt:${e}`);
+  } catch (err) {
+    console.warn("[xbody-acuity-webhook] cache drop failed:", err.message);
+  }
 }
 async function verifyAcuitySignature(body, signature, apiKey) {
   if (!signature || !apiKey) return false;

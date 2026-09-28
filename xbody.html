@@ -2025,6 +2025,7 @@
                 }
 
                 try {
+                    /* KV-only check: the server's cached list is dropped by the Acuity webhook on every booking change */
                     const serverVersion = await fetchServerVersion(contact);
                     if (serverVersion && serverVersion === localVersion) {
                         clearDirty(contact.email);
@@ -2033,7 +2034,9 @@
                         }
                         return;
                     }
-                    await fetchFromNetwork(true);
+                    // a newer list is already cached on the server (another device) → take it, no Acuity call;
+                    // none cached (a booking changed / expired) → ask Acuity
+                    await fetchFromNetwork(!serverVersion);
                 } catch (_) {
                     if (memoryCache) {
                         applyCache(memoryCache, memoryFetchedAt, true, true, localVersion);
@@ -2147,7 +2150,7 @@
                 const email = (event.detail && event.detail.email) || (getUserContact() && getUserContact().email);
                 if (email) {
                     markDirty(email);
-                    setTimeout(syncIfChanged, 2500);
+                    setTimeout(function () { fetchFromNetwork(true); }, 2500);   // the new hour straight from Acuity
                 }
             });
 
