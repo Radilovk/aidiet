@@ -348,21 +348,6 @@
         .xems-cta b, .xems-item b { display: block; font-size: .98rem; }
         .xems-cta small { display: block; opacity: .85; font-size: .8rem; margin-top: 2px; }
         .xems-cta .xems-go, .xems-item .xems-go { margin-left: auto; font-size: 20px; opacity: .6; }
-.xems-banner {
-            position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 9999;
-            transform: translateX(-50%); width: min(92vw, 460px); box-sizing: border-box;
-            display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: none; border-radius: 18px;
-            background: linear-gradient(135deg, #16a34a, #166534); color: #fff; font: inherit; text-align: left;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .28); cursor: pointer; animation: xemsBannerIn .35s ease both;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .xems-banner:active { transform: translateX(-50%) scale(0.98); }
-        .xems-banner > i { font-size: 20px; }
-        .xems-banner b { display: block; font-size: .98rem; }
-        .xems-banner small { display: block; opacity: .88; font-size: .8rem; margin-top: 2px; }
-        .xems-banner .xems-go { margin-left: auto; font-size: 20px; opacity: .8; }
-        .xems-banner .xems-x { padding: 6px 4px 6px 10px; font-size: 18px; opacity: .8; }
-        @keyframes xemsBannerIn { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
         .xems-menu { display: flex; flex-direction: column; gap: 8px; }
         .xems-cta.xems-news { background: linear-gradient(135deg, #16a34a, #166534); }
         .xems-later {
@@ -2382,6 +2367,27 @@
                 return age > (start < 0 ? MISS_UNKNOWN_TTL_MS : MISS_TTL_MS);
             }
 
+            /* the manual check: one request per press, never more often than every 15 s */
+            const REFRESH_GAP_MS = 15 * 1000;
+            let refreshing = false;
+            let refreshAt = 0;
+            let refreshNote = '';
+
+            function refreshNow() {
+                if (refreshing || Date.now() - refreshAt < REFRESH_GAP_MS) return;
+                refreshing = true;
+                refreshNote = '';
+                const before = cardUpd;
+                if (view === 'menu') render();
+                lookup(true).catch(function () {}).then(function () {
+                    refreshing = false;
+                    refreshAt = Date.now();
+                    update();
+                    refreshNote = !cardUrl ? 'Още няма анализ — ще се появи след тренировка.' : (cardUpd > before || news()) ? '' : 'Няма нов анализ.';
+                    if (!overlay.classList.contains('hidden') && view === 'menu') render();
+                });
+            }
+
             let inflight = null;
             function lookup(force) {
                 if (!inflight) inflight = find(force).finally(function () { inflight = null; });
@@ -2587,7 +2593,10 @@
                     item('appts', 'fa-calendar-check', 'Моите часове', apptSub) +
                     item('card', 'fa-chart-line', 'Моят прогрес', cardUrl ? (news() ? 'Нов анализ от тренировката' : 'Анализ, мускули и напредък') : 'Ще се появи след първата ти тренировка', !cardUrl) +
                     item('data', 'fa-id-card', 'Моите данни', [c.name, c.email || c.phoneRaw].filter(Boolean).join(' · ')) +
-                    '</div>';
+                    '</div>' +
+                    '<button type="button" class="xems-later" data-go="refresh"' + (refreshing ? ' disabled' : '') + '>' +
+                    (refreshing ? 'Проверявам…' : 'Провери за нов анализ') + '</button>' +
+                    (refreshNote ? '<p class="xems-hello" style="text-align:center;margin:8px 0 0">' + esc(refreshNote) + '</p>' : '');
                 bodyEl.innerHTML = html;
                 foot.classList.add('hidden');
             }
@@ -2742,6 +2751,10 @@
                 }
                 if (where === 'later') {
                     closeSheet();
+                    return;
+                }
+                if (where === 'refresh') {
+                    refreshNow();
                     return;
                 }
                 if (where === 'card') {
@@ -2952,45 +2965,6 @@
             }
 
 
-            /* while the app stays open around a training: look again on its own (every 30 s; lookup() itself never
-               asks the server more than once a minute) and offer the fresh analysis as a banner that can be tapped */
-            const LIVE_MS = 30 * 1000;
-            const BANNER_KEY = 'xbody_progress_banner';
-            let bannerEl = null;
-
-            function hideBanner() {
-                if (bannerEl) { bannerEl.remove(); bannerEl = null; }
-            }
-
-            function showBanner() {
-                if (!news() || document.hidden || !overlay.classList.contains('hidden')) { hideBanner(); return; }
-                try { if (sessionStorage.getItem(BANNER_KEY) === String(cardUpd)) return; } catch (e) { /* no storage */ }
-                if (bannerEl) return;
-                bannerEl = document.createElement('div');
-                bannerEl.className = 'xems-banner';
-                bannerEl.setAttribute('role', 'button');
-                bannerEl.tabIndex = 0;
-                bannerEl.innerHTML = '<i class="fas fa-chart-line"></i><span><b>Анализът от тренировката ти е готов</b>' +
-                    '<small>Натисни, за да го видиш.</small></span><span class="xems-go">›</span>' +
-                    '<span class="xems-x" data-x="1" aria-label="Затвори">×</span>';
-                bannerEl.addEventListener('click', function (e) {
-                    try { sessionStorage.setItem(BANNER_KEY, String(cardUpd)); } catch (err) { /* no storage */ }
-                    const closing = e.target && e.target.dataset && e.target.dataset.x;
-                    hideBanner();
-                    if (!closing) go('card');
-                });
-                document.body.appendChild(bannerEl);
-            }
-
-            setInterval(function () {
-                if (document.hidden || busy()) return;
-                const start = window.XBodyAppointments && window.XBodyAppointments.lastStart
-                    ? window.XBodyAppointments.lastStart() : -1;
-                const around = start > 0 && Date.now() - start < AROUND_MS;
-                if (!around && !news()) { hideBanner(); return; }
-                lookup(false).catch(function () {}).then(function () { update(); showBanner(); });
-            }, LIVE_MS);
-
             let hiddenAt = 0;
             document.addEventListener('visibilitychange', function () {
                 if (document.hidden) {
@@ -2999,7 +2973,6 @@
                 }
                 const away = hiddenAt ? Date.now() - hiddenAt : 0;
                 if (away >= 2 * 60 * 1000) onOpen(away >= NUDGE_AWAY_MS);
-                else lookup(false).catch(function () {}).then(function () { update(); showBanner(); });
             });
             onOpen(true);
         })();
