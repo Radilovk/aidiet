@@ -2205,6 +2205,7 @@
 
             window.XBodyAppointments = {
                 open: openModal,
+                refresh: syncIfChanged,
                 next: nextAppointment,
                 lastStart: lastStart,
                 markDirty: function (email) {
@@ -2524,7 +2525,7 @@
                 const unsent = miss.length === 0 && incomplete();   // filled in, but not in the studio yet
                 const c = contact() || {};
                 const first = (c.name || '').split(/\s+/)[0];
-                titleEl.textContent = hasNews ? 'Отчетът ти е готов' : reg ? 'Довърши профила си' : 'Попълни профила си';
+                titleEl.textContent = hasNews ? 'Анализът ти е готов' : reg ? 'Довърши профила си' : 'Попълни профила си';
                 let html = '<p class="xems-hello">Здравей' + (first ? ', ' + esc(first) : '') + '!</p>';
                 if (hasNews) html += REPORT_CTA;
                 if (miss.length || unsent) {
@@ -2908,13 +2909,15 @@
                     });
             }
 
-            /* opening = the app starts, or it comes back after NUDGE_AWAY_MS; a report is looked for on every return */
+            /* opening = the app starts, or it comes back after NUDGE_AWAY_MS; a report is looked for on every return.
+               A real opening (started from closed / away long) refreshes everything once: the appointments (their own
+               light version check) and the card straight from the server, not from the 7-day cache. */
             let nudgeTimer = 0;
-            function onOpen(remind) {
+            function onOpen(remind, full) {
                 clearTimeout(nudgeTimer);
                 nudgeTimer = setTimeout(function () {
                     const wait = new Promise(function (r) { setTimeout(r, 4000); });
-                    Promise.race([lookup(false).catch(function () {}), wait]).then(function () {
+                    Promise.race([lookup(Boolean(full)).catch(function () {}), wait]).then(function () {
                         update();
                         let tries = 0;
                         (function show() {
@@ -2937,9 +2940,12 @@
                     return;
                 }
                 const away = hiddenAt ? Date.now() - hiddenAt : 0;
-                if (away >= 2 * 60 * 1000) onOpen(away >= NUDGE_AWAY_MS);
+                if (away >= NUDGE_AWAY_MS && window.XBodyAppointments && window.XBodyAppointments.refresh) {
+                    window.XBodyAppointments.refresh();
+                }
+                if (away >= 2 * 60 * 1000) onOpen(away >= NUDGE_AWAY_MS, away >= NUDGE_AWAY_MS);
             });
-            onOpen(true);
+            onOpen(true, true);       // started from closed: refresh everything once
         })();
     </script>
 </body>
