@@ -10,25 +10,23 @@
 /* Горе: Sign Up / Login — скрити (вече са бутони, не линкове, затова старото скриване не хващаше) */
 #pylon header ul { display: none !important; }
 
-/* Лого и снимка: новите (прозрачен фон — стоят еднакво на светло и на тъмно), ~35 KB всяко */
-img.business-logo {
-    content: url("https://cdn.jsdelivr.net/gh/Radilovk/aidiet@c0b841aca562e172eff95cb92ec0998d453d513a/acuity/xbody-logo.webp");
-    width: min(80%, 300px) !important; max-width: none !important; height: auto !important; max-height: none !important; object-fit: contain;
-}
-/* Описанието (Scheduling Page → описание): снимка + два бутона един до друг, за телефон */
-.business-description-container p:has(> a[href*="storage/faq"]) {
-    display: flex !important; gap: 10px; justify-content: space-between; margin: 12px 0 4px !important;
+/* Логото е в описанието (обикновена картинка, работи във всеки браузър); това на Acuity е сплескано върху бяло */
+img.business-logo { display: none !important; }
+
+/* Описанието: лого, снимка, два леки бутона един до друг (като чиповете в xbody) */
+.business-description-container div:has(> a[href*="storage/faq"]) {
+    display: flex !important; gap: 10px; justify-content: center; margin: 12px 0 2px !important;
 }
 .business-description-container a[href*="storage/faq"],
 .business-description-container a[href*="storage/effects"] {
-    flex: 1 1 0; display: flex !important; align-items: center; justify-content: center; min-height: 46px;
-    margin: 0 !important; padding: 10px 8px !important; border-radius: 12px !important;
-    background: linear-gradient(180deg, #e53935, #b71c1c) !important; color: #fff !important;
-    font-size: 15px !important; font-weight: 700 !important; letter-spacing: .01em; text-decoration: none !important;
-    box-shadow: 0 6px 16px rgba(183, 28, 28, .28);
+    flex: 1 1 0; max-width: 190px; display: flex !important; align-items: center; justify-content: center;
+    min-height: 38px; margin: 0 !important; padding: 6px 12px !important; border-radius: 999px !important;
+    font-family: Roboto, "Helvetica Neue", Arial, sans-serif !important; line-height: 1.2 !important;
+    background: #fef2f2 !important; border: 1px solid #fecaca !important; color: #b91c1c !important;
+    font-size: 14px !important; font-weight: 500 !important; letter-spacing: .01em; text-decoration: none !important; box-shadow: none !important;
+    transition: transform .12s ease, background-color .15s ease;
 }
-.business-description-container a[href*="storage/faq"]:active,
-.business-description-container a[href*="storage/effects"]:active { transform: scale(.97); }
+.business-description-container a[href*="storage/"]:active { transform: scale(.96); background: #fee2e2 !important; }
 
 /* Бутонът „Вашият индивидуален хранителен план“ — скрит */
 .business-description-container p:has(> a[href*="biocode.website"]) { display: none !important; }
@@ -119,7 +117,9 @@ form:has(#payment-form-container) button.btn[type="submit"] > span::after {
     #pylon :is(p, span, h1, h2, h3, h4, h5, h6, label, legend, abbr, li, small, strong, b, em, td, th, dt, dd) { color: #f3f1f4 !important; }
     html #pylon#pylon *::after { color: inherit !important; }
     #pylon a { color: #f87171 !important; }
-    #pylon .business-description-container a[href*="storage/"] { color: #fff !important; box-shadow: 0 6px 16px rgba(0, 0, 0, .45); }
+    #pylon .business-description-container a[href*="storage/"] {
+        background: rgba(239, 68, 68, .12) !important; border-color: rgba(239, 68, 68, .38) !important; color: #fca5a5 !important;
+    }
     #pylon p[role="alert"], #pylon [role="alert"] * { color: #f87171 !important; }
 
     /* прозорците Вход / Регистрация */
