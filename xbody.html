@@ -13,10 +13,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="XBody">
     <script>(function(){
-        /* The phone's theme, live; a theme chosen in the app (localStorage "theme") wins. */
+        /* The phone's theme, live. Only the phone's: the Acuity calendar inside follows the phone too
+           (its Advanced CSS has a prefers-color-scheme: dark block), so the frame and the calendar always match. */
         var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
         function apply() {
-            var t = localStorage.getItem('theme') || (mq && mq.matches ? 'dark' : 'light');
+            var t = mq && mq.matches ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', t);
             var c = t === 'dark' ? '#121014' : '#FEE2E2';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', c); });
@@ -25,7 +26,6 @@
         if (mq) {
             if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply);
         }
-        window.addEventListener('storage', function (e) { if (e.key === 'theme') apply(); });
     })();</script>
     <link rel="apple-touch-icon" href="xbody-icon-192.png">
     <link rel="apple-touch-startup-image" href="xbody-icon-512.png">
