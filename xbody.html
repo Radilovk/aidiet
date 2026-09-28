@@ -113,6 +113,17 @@
             padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
             box-sizing: border-box;
         }
+        /* pull down on the first page = one full refresh (the page itself is a cross-origin iframe, so a thin strip
+           at the very top catches the gesture; it exists only while the first page is at the top) */
+        #xbody-ptr-zone { position: fixed; top: 0; left: 0; right: 0; height: 40px; z-index: 30; touch-action: none; display: none; }
+        #xbody-ptr-zone.on { display: block; }
+        #xbody-ptr {
+            position: fixed; top: calc(env(safe-area-inset-top, 0px) + 8px); left: 50%; z-index: 31;
+            transform: translate(-50%, -80px); opacity: 0; pointer-events: none;
+            padding: 8px 16px; border-radius: 999px; background: #0f172a; color: #fff; font-size: .82rem; font-weight: 600;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, .25); transition: transform .18s ease, opacity .18s ease; white-space: nowrap;
+        }
+        #xbody-ptr.show { opacity: 1; }
         iframe {
             width: 100%;
             /* Do NOT set height:100% here – inside a scroll container that
@@ -349,6 +360,24 @@
         .xems-cta small { display: block; opacity: .85; font-size: .8rem; margin-top: 2px; }
         .xems-cta .xems-go, .xems-item .xems-go { margin-left: auto; font-size: 20px; opacity: .6; }
         .xems-menu { display: flex; flex-direction: column; gap: 8px; }
+        .xems-cta.xems-news { background: linear-gradient(135deg, #16a34a, #166534); }
+        .xems-later {
+            display: block;
+            width: 100%;
+            margin-top: 4px;
+            padding: 13px;
+            border: none;
+            border-radius: 14px;
+            background: none;
+            color: #64748b;
+            font: inherit;
+            font-size: .92rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color .15s ease, transform .12s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .xems-later:active { background: #f1f5f9; transform: scale(0.98); }
         .xems-item { background: #f8fafc; color: #0f172a; }
         .xems-item > i {
             flex-shrink: 0;
@@ -978,6 +1007,8 @@
         html[data-theme="dark"] #appointments-btn i,
         html[data-theme="dark"] #progress-btn i { color: #f87171; }
         html[data-theme="dark"] #progress-btn.todo::after { box-shadow: 0 0 0 2px #26232a; }
+        html[data-theme="dark"] .xems-later { color: #a8a2ab; }
+        html[data-theme="dark"] .xems-later:active { background: #26232a; }
         html[data-theme="dark"] .xbody-appt-overlay { background: rgba(0, 0, 0, 0.55); }
         html[data-theme="dark"] .xbody-appt-panel { background: #1c1a1f; box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5); }
         html[data-theme="dark"] .xbody-appt-handle { background: #3a353f; }
@@ -1120,9 +1151,6 @@
             <div class="xbody-appt-header">
                 <h2 class="xbody-appt-title" id="appointments-title">Моите часове</h2>
                 <div class="xbody-appt-actions">
-                    <button class="xbody-appt-icon-btn" id="appointments-refresh" type="button" aria-label="Обнови" title="Обнови">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
                     <button class="xbody-appt-icon-btn" id="appointments-close" type="button" aria-label="Затвори">✕</button>
                 </div>
             </div>
@@ -1679,11 +1707,10 @@
             const btn = document.getElementById('appointments-btn');
             const overlay = document.getElementById('appointments-overlay');
             const closeBtn = document.getElementById('appointments-close');
-            const refreshBtn = document.getElementById('appointments-refresh');
             const bodyEl = document.getElementById('appointments-body');
             const footerEl = document.getElementById('appointments-footer');
             const scrollContainer = document.getElementById('acuity-scroll-container');
-            if (!btn || !overlay || !closeBtn || !refreshBtn || !bodyEl || !footerEl) {
+            if (!btn || !overlay || !closeBtn || !bodyEl || !footerEl) {
                 return;
             }
 
@@ -1870,10 +1897,14 @@
                 };
             }
 
-            function renderRow(item) {
+            function renderRow(item, isPast) {
                 const labels = formatAppointmentBg(item);
+                const dt = parseApptDate(item);
+                const over = isPast || Boolean(dt && dt.getTime() < Date.now());
                 const canChange = Boolean(item.confirmationPage) && !item.canceled;
-                const changeBtn = canChange
+                const changeBtn = over
+                    ? ''
+                    : canChange
                     ? '<a class="xbody-appt-change-btn" href="' + escapeHtml(item.confirmationPage) +
                         '" target="_blank" rel="noopener noreferrer">Промяна</a>'
                     : '<span class="xbody-appt-change-btn disabled">Промяна</span>';
@@ -1894,19 +1925,19 @@
                         '</div>' +
                         '<div class="xbody-appt-footer-row">' +
                             status +
-                            '<div class="xbody-appt-action">' + changeBtn + '</div>' +
+                            (changeBtn ? '<div class="xbody-appt-action">' + changeBtn + '</div>' : '') +
                         '</div>' +
                     '</div>' +
                 '</article>';
             }
 
-            function renderSection(title, items) {
+            function renderSection(title, items, isPast) {
                 if (!items.length) {
                     return '';
                 }
                 return '<section class="xbody-appt-section">' +
                     '<h3 class="xbody-appt-section-label">' + escapeHtml(title) + '</h3>' +
-                    items.map(renderRow).join('') +
+                    items.map(function (it) { return renderRow(it, isPast); }).join('') +
                 '</section>';
             }
 
@@ -1921,7 +1952,6 @@
                 if (stale) {
                     note += ' · данните може да са остарели';
                 }
-                note += ' · натисни ↻ за обновяване';
                 footerEl.textContent = note;
             }
 
@@ -1933,8 +1963,11 @@
                     bodyEl.innerHTML = '<div class="xbody-appt-state">Нямаш запазени часове.</div>';
                 } else {
                     bodyEl.innerHTML =
-                        renderSection('Предстоящи часове', upcoming) +
-                        renderSection('Минали часове', past);
+                        renderSection('Предстоящи часове', upcoming, false) +
+                        renderSection('Минали часове', past.slice().sort(function (a, b) {   // the last 10, newest first
+                            const x = parseApptDate(a), y = parseApptDate(b);
+                            return (y ? y.getTime() : 0) - (x ? x.getTime() : 0);
+                        }).slice(0, 10), true);
                 }
                 setFooter(fetchedAt, fromCache, stale);
             }
@@ -1949,11 +1982,6 @@
             function setLoadingState(message) {
                 bodyEl.innerHTML = '<div class="xbody-appt-state">' + escapeHtml(message) + '</div>';
                 footerEl.classList.add('hidden');
-            }
-
-            function setRefreshBusy(busy) {
-                refreshBtn.disabled = busy;
-                refreshBtn.querySelector('i').classList.toggle('fa-spin', busy);
             }
 
             async function fetchFromServer(contact, force) {
@@ -1987,19 +2015,23 @@
                 return data.version || null;
             }
 
+            /* one check at most every 30 s, whoever asks (opening the list, the profile, the pull-down, an opening of the app) */
+            let lastSync = 0;
             async function syncIfChanged() {
                 const contact = getUserContact();
-                if (!contact || loading) {
+                if (!contact || loading || Date.now() - lastSync < 30000) {
                     return;
                 }
+                lastSync = Date.now();
 
                 const localVersion = getLocalVersion(contact.email);
                 if (!localVersion) {
-                    await fetchFromNetwork(true);
+                    await fetchFromNetwork(false);   // the server's cache if it has one (kept fresh by the webhook), else Acuity
                     return;
                 }
 
                 try {
+                    /* KV-only check: the server's cached list is dropped by the Acuity webhook on every booking change */
                     const serverVersion = await fetchServerVersion(contact);
                     if (serverVersion && serverVersion === localVersion) {
                         clearDirty(contact.email);
@@ -2008,7 +2040,9 @@
                         }
                         return;
                     }
-                    await fetchFromNetwork(true);
+                    // a newer list is already cached on the server (another device) → take it, no Acuity call;
+                    // none cached (a booking changed / expired) → ask Acuity
+                    await fetchFromNetwork(!serverVersion);
                 } catch (_) {
                     if (memoryCache) {
                         applyCache(memoryCache, memoryFetchedAt, true, true, localVersion);
@@ -2048,7 +2082,6 @@
                 }
 
                 loading = true;
-                setRefreshBusy(true);
                 if (!memoryCache) {
                     setLoadingState('Зареждане...');
                 }
@@ -2065,7 +2098,6 @@
                     }
                 } finally {
                     loading = false;
-                    setRefreshBusy(false);
                 }
             }
 
@@ -2079,15 +2111,9 @@
                     return;
                 }
 
-                if (!hasOpenedThisSession(contact.email)) {
-                    markOpenedThisSession(contact.email);
-                    fetchFromNetwork(true);
-                    return;
-                }
-
-                if (isDirty(contact.email)) {
-                    syncIfChanged();
-                }
+                /* a booking is made inside Acuity's page, which does not tell this app: the Acuity webhook drops the
+                   server's cached list instead, so this cheap version check (a cache read, no Acuity) sees it */
+                syncIfChanged();
             }
 
             function closeModal() {
@@ -2102,9 +2128,6 @@
 
             btn.addEventListener('click', openModal);
             closeBtn.addEventListener('click', closeModal);
-            refreshBtn.addEventListener('click', function () {
-                fetchFromNetwork(true);
-            });
             overlay.addEventListener('click', function (event) {
                 if (event.target === overlay) {
                     closeModal();
@@ -2128,12 +2151,22 @@
                 }
             });
 
+            /* a booking was made: mark the list stale and look once, so the new hour is in the list */
             window.addEventListener('xbody-appt-invalidate', function (event) {
                 const email = (event.detail && event.detail.email) || (getUserContact() && getUserContact().email);
                 if (email) {
                     markDirty(email);
+                    setTimeout(function () { fetchFromNetwork(true); }, 2500);   // the new hour straight from Acuity
                 }
             });
+
+            /* entering the PWA: one cheap version check (a full load only when something changed) */
+            (function entry() {
+                const contact = getUserContact();
+                if (!contact || hasOpenedThisSession(contact.email)) return;
+                markOpenedThisSession(contact.email);
+                setTimeout(syncIfChanged, 800);
+            })();
 
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.addEventListener('message', function (event) {
@@ -2173,18 +2206,18 @@
                 return { date: labels.dateValue, time: labels.timeValue };
             }
 
-            /* when the latest past appointment was over (start + 90 min: training and massage; ms, from the cache,
-               0 = none known) — the moment a new progress card can exist */
-            function lastStartedAt() {
+            /* when the latest appointment began (ms, from the cache): 0 = none yet, -1 = the appointments are not known
+               — a new progress report can exist from then on (the tablet sends it the moment the training is saved) */
+            function lastStart() {
                 const contact = getUserContact();
                 const local = contact ? readLocalCache(contact.email) : null;
                 const data = memoryCache || (local && local.data);
-                if (!data) return 0;
+                if (!data) return -1;
                 const now = Date.now();
                 let best = 0;
                 [].concat(data.upcoming || [], data.past || []).forEach(function (item) {
                     const dt = item && !item.canceled ? parseApptDate(item) : null;
-                    const t = dt ? dt.getTime() + 90 * 60 * 1000 : 0;
+                    const t = dt ? dt.getTime() : 0;
                     if (t && t <= now && t > best) best = t;
                 });
                 return best;
@@ -2192,8 +2225,9 @@
 
             window.XBodyAppointments = {
                 open: openModal,
+                refresh: syncIfChanged,
                 next: nextAppointment,
-                lastStartedAt: lastStartedAt,
+                lastStart: lastStart,
                 markDirty: function (email) {
                     markDirty((email || '').trim().toLowerCase() || (getUserContact() && getUserContact().email));
                 }
@@ -2225,6 +2259,12 @@
             const STUDIO_KEY = 'xbody_xems_studio';
             const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // the card link does not change
             const MISS_TTL_MS = 24 * 60 * 60 * 1000;   // no card yet: ask again only after a new appointment (or a day)
+            const MISS_UNKNOWN_TTL_MS = 10 * 60 * 1000; // no card and the appointments are not known
+            const RECHECK_MS = 60 * 1000;              // never more than once a minute
+            const AROUND_MS = 4 * 60 * 60 * 1000;      // a training began this recently: look until its report is there
+            const NEWS_MS = 3 * 24 * 60 * 60 * 1000;   // a report this fresh and not opened yet is shown as news
+            const SEEN_KEY = 'xbody_progress_seen';
+            const NUDGE_AWAY_MS = 30 * 60 * 1000;      // back in the app after this long = a new opening
             const GOALS = [['tone', 'Стягане и тонус'], ['fat', 'Отслабване'], ['cellulite', 'Целулит'], ['drain', 'Отводняване'], ['massage', 'Възстановяване']];
             const FITNESS = [['low', 'Рядко'], ['mid', '1–2 пъти седмично'], ['high', 'Тренирам редовно']];
             const FOCUS = [['abs', 'Корем'], ['glutes', 'Седалище'], ['legs', 'Бедра'], ['arms', 'Ръце'], ['back', 'Гръб'], ['chest', 'Гърди']];
@@ -2256,8 +2296,8 @@
             } catch (e) { /* no storage */ }
             const MSG_DEFAULT = 'Данните отиват само в твоето студио.';
             let cardUrl = null;
-            let lookedUpFor = null;
-            let view = 'menu';      // 'menu' | 'data'
+            let cardUpd = 0;        // the card's last update (ms)
+            let view = 'menu';      // 'menu' | 'nudge' (the reminder on opening) | 'data'
             let editing = false;    // Моите данни: the form is open
             let contactOpen = false; // first filling: the contact (already typed at the start) stays one line until "Промени"
             let fromMenuCta = false; // the first registration started from the menu → back to the menu when done
@@ -2318,30 +2358,49 @@
 
             function update() {
                 btn.classList.toggle('visible', registered() || (Boolean(contact()) && apptBtn.classList.contains('visible')));
-                btn.classList.toggle('todo', Boolean(studio()) && !registered());
+                btn.classList.toggle('todo', (Boolean(studio()) && !registered()) || incomplete() || news());
             }
 
-            async function lookup(force) {
+            function readCard() {
+                try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch (e) { return null; }
+            }
+
+            /* ask the server again? Around a training (it began ≤ 4 h ago) until the card carries it — the tablet
+               sends the report the moment the training is saved; otherwise a found link holds 7 days, a miss a day
+               (10 min when the appointments are not known: then a training cannot be seen coming) */
+            function stale(cached, who) {
+                if (!cached || cached.who !== who) return true;
+                const now = Date.now();
+                const age = now - (cached.at || 0);
+                if (age < RECHECK_MS) return false;
+                const start = window.XBodyAppointments && window.XBodyAppointments.lastStart
+                    ? window.XBodyAppointments.lastStart() : -1;
+                if (start > 0 && now - start < AROUND_MS && !((cached.upd || 0) >= start)) return true;
+                if (start > (cached.at || 0)) return true;
+                if (cached.url) return age > CACHE_TTL_MS;
+                return age > (start < 0 ? MISS_UNKNOWN_TTL_MS : MISS_TTL_MS);
+            }
+
+            let inflight = null;
+            function lookup(force) {
+                if (!inflight) inflight = find(force).finally(function () { inflight = null; });
+                return inflight;
+            }
+
+            async function find(force) {
                 const c = contact();
                 const who = c ? c.email + '|' + c.phone : null;
                 if (!who) {
                     cardUrl = null;
+                    cardUpd = 0;
                     return;
                 }
-                if (who === lookedUpFor && !force && cardUrl) return;   // no card yet: look again
-                lookedUpFor = who;
-                try {
-                    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-                    const trained = window.XBodyAppointments && window.XBodyAppointments.lastStartedAt
-                        ? window.XBodyAppointments.lastStartedAt() : 0;
-                    // a card appears only after a training: a miss is asked again once an appointment has begun since
-                    const fresh = cached && (cached.url ? Date.now() - cached.at < CACHE_TTL_MS
-                        : Date.now() - cached.at < MISS_TTL_MS && !(trained > cached.at));
-                    if (!force && cached && cached.who === who && fresh) {
-                        cardUrl = cached.url;
-                        return;
-                    }
-                } catch (e) { /* no cache */ }
+                const cached = readCard();
+                if (!force && !stale(cached, who)) {
+                    cardUrl = cached.url;
+                    cardUpd = cached.upd || 0;
+                    return;
+                }
                 try {
                     const body = {};
                     if (c.email) body.ek = await sha(c.email);
@@ -2351,13 +2410,35 @@
                     });
                     const data = await res.json().catch(function () { return null; });
                     const url = data && data.ok && typeof data.url === 'string' && data.url.indexOf('https://') === 0 ? data.url : null;
+                    const same = cached && cached.who === who;
+                    // the card's last update (the server sends it); an older server: "new" = the link was just found
+                    const upd = !url ? 0 : data.at > 0 ? data.at * 1000
+                        : same && cached.url ? (cached.upd || 0) : Date.now();
                     if (res.ok || res.status === 404) {
-                        localStorage.setItem(CACHE_KEY, JSON.stringify({ who: who, url: url, at: Date.now() }));
+                        localStorage.setItem(CACHE_KEY, JSON.stringify({ who: who, url: url, upd: upd, at: Date.now() }));
+                        cardUrl = url;
+                        cardUpd = upd;
+                    } else if (same) {
+                        cardUrl = cached.url;
+                        cardUpd = cached.upd || 0;
                     }
-                    if (lookedUpFor === who) cardUrl = url;
                 } catch (e) {
-                    lookedUpFor = null;
+                    if (cached && cached.who === who) {
+                        cardUrl = cached.url;
+                        cardUpd = cached.upd || 0;
+                    }
                 }
+            }
+
+            /* a report the client has not opened yet (only a recent one: an old card is no news) */
+            function news() {
+                if (!cardUrl || !cardUpd || Date.now() - cardUpd > NEWS_MS) return false;
+                return cardUpd > (parseInt(localStorage.getItem(SEEN_KEY) || '0', 10) || 0);
+            }
+
+            function markSeen() {
+                try { localStorage.setItem(SEEN_KEY, String(cardUpd || Date.now())); } catch (e) { /* no storage */ }
+                update();
             }
 
             function esc(v) {
@@ -2427,9 +2508,9 @@
             /* anim: 'fwd' (deeper), 'bwd' (back), 'stagger' (sheet opens), none (in-place update) */
             function render(anim) {
                 if (editing && document.getElementById('xems-name')) collect();   // keep what was typed
-                backBtn.classList.toggle('hidden', view === 'menu');
+                backBtn.classList.toggle('hidden', view !== 'data');
                 const oldTitle = titleEl.textContent;
-                if (view === 'menu') renderMenu(); else renderData();
+                if (view === 'menu') renderMenu(); else if (view === 'nudge') renderNudge(); else renderData();
                 bodyEl.classList.remove('fwd', 'bwd', 'stagger');
                 if (anim) {
                     void bodyEl.offsetWidth;   // restart the animation
@@ -2448,6 +2529,42 @@
             const CTA = '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-plus"></i><span><b>Попълни профила си</b>' +
                 '<small>Една минута — и тренировката ти е нагласена точно за теб.</small></span><span class="xems-go">›</span></button>';
 
+            const REPORT_CTA = '<button type="button" class="xems-cta xems-news" data-go="card"><i class="fas fa-chart-line"></i><span><b>Анализът от тренировката ти е готов</b>' +
+                '<small>Ефективност, калории и напредък — виж какво постигна.</small></span><span class="xems-go">›</span></button>';
+
+            function finishCta(miss) {
+                return '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-user-edit"></i><span><b>Довърши профила си</b>' +
+                    '<small>Остава: ' + esc(miss.join(', ')) + '</small></span><span class="xems-go">›</span></button>';
+            }
+
+            /* the reminder on opening: a new report first, then an unfinished profile; "По-късно" = until the next opening */
+            function renderNudge() {
+                const hasNews = news();
+                const reg = registered();
+                const miss = incomplete() ? missing() : [];
+                const unsent = miss.length === 0 && incomplete();   // filled in, but not in the studio yet
+                const c = contact() || {};
+                const first = (c.name || '').split(/\s+/)[0];
+                titleEl.textContent = hasNews ? 'Анализът ти е готов' : reg ? 'Довърши профила си' : 'Попълни профила си';
+                let html = '<p class="xems-hello">Здравей' + (first ? ', ' + esc(first) : '') + '!</p>';
+                if (hasNews) html += REPORT_CTA;
+                if (miss.length || unsent) {
+                    if (!hasNews) {
+                        if (!st) loadProfile();
+                        const done = filled();
+                        html += '<div class="xems-intro"><p>С пълен профил треньорът нагласява силата, зоните и паузите точно за теб.' +
+                            '</p><div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
+                            done + ' от 5</span></div></div>' +
+                            '<div class="xems-sep-cta">' + (reg ? finishCta(miss) : CTA) + '</div>';
+                    } else {
+                        html += reg ? finishCta(miss) : CTA;
+                    }
+                }
+                html += '<button type="button" class="xems-later" data-go="later">По-късно</button>';
+                bodyEl.innerHTML = html;
+                foot.classList.add('hidden');
+            }
+
             function renderMenu() {
                 const c = contact() || {};
                 const reg = registered();
@@ -2459,12 +2576,15 @@
                         '<small>Студиото ще го види преди следващата ти тренировка.</small></span></div>';
                 } else if (studio() && !reg) {
                     html += CTA;
+                } else if (incomplete()) {
+                    html += finishCta(missing());
                 }
+                if (news()) html = html.replace('</p>', '</p>' + REPORT_CTA);
                 const nx = window.XBodyAppointments && window.XBodyAppointments.next ? window.XBodyAppointments.next() : null;
                 const apptSub = !nx ? 'Предстоящи и минали часове' : nx.none ? 'Нямаш предстоящ час' : 'Следващ: ' + nx.date + ' · ' + nx.time;
                 html += '<div class="xems-menu">' +
                     item('appts', 'fa-calendar-check', 'Моите часове', apptSub) +
-                    item('card', 'fa-chart-line', 'Моят прогрес', cardUrl ? 'Тренировки, мускули и напредък' : 'Ще се появи след първата ти тренировка', !cardUrl) +
+                    item('card', 'fa-chart-line', 'Моят прогрес', cardUrl ? (news() ? 'Нов анализ от тренировката' : 'Анализ, мускули и напредък') : 'Ще се появи след първата ти тренировка', !cardUrl) +
                     item('data', 'fa-id-card', 'Моите данни', [c.name, c.email || c.phoneRaw].filter(Boolean).join(' · ')) +
                     '</div>';
                 bodyEl.innerHTML = html;
@@ -2492,10 +2612,10 @@
                         html += '<div class="xems-sep-cta">' + CTA + '</div>';
                     }
                 } else {
-                    if (studio() && !reg) {
+                    if (studio() && (!reg || filled() < 5)) {
                         const done = filled();
                         html += '<div class="xems-intro"><p>С тези данни треньорът нагласява тренировката точно за теб още от първия път. ' +
-                            'Всичко освен контакта е по желание.</p><div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
+                            (reg ? 'Попълни и останалото — отнема минута.' : 'Всичко освен контакта е по желание.') + '</p><div class="xems-meter"><i><b style="width:' + Math.round(done / 5 * 100) + '%"></b></i><span>' +
                             (done >= 5 ? 'Профилът е пълен' : done + ' от 5') + '</span></div></div>';
                     }
                     if (reg || contactOpen || !c.name || !c.email || !c.phone) {
@@ -2528,15 +2648,41 @@
                 foot.classList.remove('hidden');
             }
 
-            /* five parts: about you, goal, activity, zones, the health answer ("what to mind" may stay empty) */
+            /* five parts: about you, goal, activity, zones, the health answer ("what to mind" and the note may stay empty) */
             function filled() {
-                let n = 0;
-                if (st.sex && (st.by || st.h || st.w)) n++;
-                if (st.goal) n++;
-                if (st.fit) n++;
-                if ((st.focus || []).length) n++;
-                if (health !== null) n++;
-                return n;
+                return 5 - parts(st, health).length;
+            }
+
+            function healthOf(p) {
+                return p.contra && p.contra.length ? true : (p.healthNo ? false : null);
+            }
+
+            /* the parts still empty: [part, what is missing] */
+            function parts(p, hl) {
+                const out = [];
+                const about = [['sex', 'пол'], ['by', 'година на раждане'], ['h', 'ръст'], ['w', 'тегло']]
+                    .filter(function (f) { return !p[f[0]]; }).map(function (f) { return f[1]; });
+                if (about.length) out.push(about.join(', '));
+                if (!p.goal) out.push('цел');
+                if (!p.fit) out.push('колко спортуваш');
+                if (!(p.focus || []).length) out.push('зони за акцент');
+                if (hl === null) out.push('въпросът за здравето');
+                return out;
+            }
+
+            /* what is still missing in the profile the studio has (empty = complete) */
+            function missing() {
+                const c = contact() || {};
+                const out = [];
+                if (!c.name) out.push('име');
+                if (!c.email) out.push('имейл');
+                if (!c.phone) out.push('телефон');
+                const p = saved();
+                return out.concat(parts(p, healthOf(p)));
+            }
+
+            function incomplete() {
+                return Boolean(studio() && contact()) && (!registered() || missing().length > 0);
             }
 
             /* what would be sent: the contact (the form's, else the booking's) + the profile */
@@ -2593,10 +2739,18 @@
                     if (window.XBodyAppointments && window.XBodyAppointments.open) window.XBodyAppointments.open();
                     return;
                 }
+                if (where === 'later') {
+                    closeSheet();
+                    return;
+                }
                 if (where === 'card') {
                     if (!cardUrl) return;
+                    /* a fresh report opens the analysis of the training itself (/r/); the card (/c/) links to it too */
+                    const target = news() ? cardUrl.replace('/c/', '/r/') : cardUrl;
+                    markSeen();
+                    if (view === 'nudge') closeSheet(); else render();
                     const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-                    window.open(cardUrl + (cardUrl.indexOf('?') < 0 ? '?' : '&') + 'theme=' + t, '_blank', 'noopener');
+                    window.open(target + (target.indexOf('?') < 0 ? '?' : '&') + 'theme=' + t, '_blank', 'noopener');
                     return;
                 }
                 if (where === 'contact') {
@@ -2606,7 +2760,7 @@
                     if (el) el.focus();
                     return;
                 }
-                fromMenuCta = where === 'register' && view === 'menu';
+                fromMenuCta = where === 'register' && view !== 'data';
                 view = 'data';
                 editing = where === 'register';
                 justSaved = false;
@@ -2725,9 +2879,9 @@
                 refreshSend();
             });
 
-            function openSheet() {
+            function openSheet(which) {
                 contactOpen = false;
-                view = 'menu';
+                view = which === 'nudge' ? 'nudge' : 'menu';
                 editing = false;
                 justSaved = false;
                 st = null;
@@ -2735,9 +2889,14 @@
                 overlay.classList.remove('hidden', 'closing');
                 overlay.setAttribute('aria-hidden', 'false');
                 render('stagger');
-                lookup(false).then(function () {
-                    if (!overlay.classList.contains('hidden') && view === 'menu') render();
-                });
+                if (view === 'menu') {
+                    const appts = window.XBodyAppointments && window.XBodyAppointments.refresh
+                        ? Promise.resolve(window.XBodyAppointments.refresh()).catch(function () {}) : Promise.resolve();
+                    Promise.all([lookup(false), appts]).then(function () {
+                        update();
+                        if (!overlay.classList.contains('hidden') && view === 'menu') render();
+                    });
+                }
             }
 
             function closeSheet() {
@@ -2755,12 +2914,168 @@
                 if (view === 'data') back(); else closeSheet();
             });
 
-            btn.addEventListener('click', openSheet);
+            btn.addEventListener('click', function () { openSheet('menu'); });
             closeBtn.addEventListener('click', closeSheet);
             backBtn.addEventListener('click', back);
             overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSheet(); });
             new MutationObserver(update).observe(apptBtn, { attributes: true, attributeFilter: ['class'] });
             update();
+
+            function busy() {
+                const splash = document.getElementById('xbody-splash');
+                const onboarding = document.getElementById('xbody-onboarding');
+                return (splash && !splash.classList.contains('hidden')) ||
+                    (onboarding && !onboarding.classList.contains('hidden') && onboarding.offsetParent !== null) ||
+                    Array.prototype.some.call(document.querySelectorAll('.xbody-appt-overlay, .pwa-modal-overlay'), function (o) {
+                        return !o.classList.contains('hidden');
+                    });
+            }
+
+            /* opening = the app starts, or it comes back after NUDGE_AWAY_MS; a report is looked for on every return.
+               A real opening (started from closed / away long) refreshes everything once: the appointments (their own
+               light version check) and the card straight from the server, not from the 7-day cache. */
+            let nudgeTimer = 0;
+            function onOpen(remind, full) {
+                clearTimeout(nudgeTimer);
+                nudgeTimer = setTimeout(function () {
+                    const wait = new Promise(function (r) { setTimeout(r, 4000); });
+                    Promise.race([lookup(Boolean(full)).catch(function () {}), wait]).then(function () {
+                        update();
+                        let tries = 0;
+                        (function show() {
+                            if (document.hidden) return;
+                            if (busy()) {
+                                if (++tries < 20) nudgeTimer = setTimeout(show, 1500);
+                                return;
+                            }
+                            if (news() || (remind && incomplete())) openSheet('nudge');
+                        })();
+                    });
+                }, 1200);
+            }
+
+
+            /* one full refresh on demand (pull down on the first page): the card from the server + the appointments */
+            window.XBodyProfile = {
+                refreshAll: function () {
+                    const parts = [lookup(true).catch(function () {}).then(function () { update(); })];
+                    if (window.XBodyAppointments && window.XBodyAppointments.refresh) {
+                        parts.push(Promise.resolve(window.XBodyAppointments.refresh()).catch(function () {}));
+                    }
+                    return Promise.all(parts).then(function () {
+                        if (news() && !busy() && overlay.classList.contains('hidden')) openSheet('nudge');
+                    });
+                }
+            };
+
+            let hiddenAt = 0;
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    hiddenAt = Date.now();
+                    return;
+                }
+                const away = hiddenAt ? Date.now() - hiddenAt : 0;
+                if (away >= NUDGE_AWAY_MS && window.XBodyAppointments && window.XBodyAppointments.refresh) {
+                    window.XBodyAppointments.refresh();
+                }
+                if (away >= 2 * 60 * 1000) onOpen(away >= NUDGE_AWAY_MS, away >= NUDGE_AWAY_MS);
+            });
+            onOpen(true, true);       // started from closed: refresh everything once
+        })();
+
+        /* ── Pull down on the FIRST page only = one full refresh (30 s apart at most) ── */
+        (function () {
+            const sc = document.getElementById('acuity-scroll-container');
+            const back = document.getElementById('back-btn');
+            if (!sc || !back) return;
+            const zone = document.createElement('div');
+            zone.id = 'xbody-ptr-zone';
+            const pill = document.createElement('div');
+            pill.id = 'xbody-ptr';
+            pill.setAttribute('aria-live', 'polite');
+            document.body.appendChild(zone);
+            document.body.appendChild(pill);
+            const PULL_PX = 70;
+            const COOLDOWN_MS = 30 * 1000;
+            let last = 0;
+            let startY = null;
+            let pulled = 0;
+            let busyNow = false;
+
+            function overlayOpen() {
+                return Boolean(document.querySelector('.xbody-appt-overlay:not(.hidden), .pwa-modal-overlay:not(.hidden), #xems-overlay:not(.hidden), #xbody-onboarding:not(.hidden), #xbody-splash:not(.hidden)'));
+            }
+
+            /* the first page: the booking screen is up, at the very top, not inside the booking steps, nothing on top of it */
+            function eligible() {
+                return !sc.classList.contains('hidden') && sc.scrollTop <= 0 &&
+                    !back.classList.contains('visible') && !overlayOpen();
+            }
+
+            function sync() { zone.classList.toggle('on', eligible()); }
+
+            function say(text, offset) {
+                pill.textContent = text;
+                pill.classList.add('show');
+                pill.style.transform = 'translate(-50%, ' + offset + 'px)';
+            }
+
+            function hide(delay) {
+                setTimeout(function () {
+                    pill.classList.remove('show');
+                    pill.style.transform = 'translate(-50%, -80px)';
+                }, delay || 0);
+            }
+
+            function run() {
+                const now = Date.now();
+                if (busyNow) return;
+                if (now - last < COOLDOWN_MS) {
+                    say('Вече е обновено', 0);
+                    hide(1200);
+                    return;
+                }
+                last = now;
+                busyNow = true;
+                say('Обновявам…', 0);
+                const done = window.XBodyProfile && window.XBodyProfile.refreshAll ? window.XBodyProfile.refreshAll() : Promise.resolve();
+                Promise.resolve(done).catch(function () {}).then(function () {
+                    busyNow = false;
+                    say('Готово ✓', 0);
+                    hide(900);
+                });
+            }
+
+            zone.addEventListener('touchstart', function (e) {
+                if (!eligible() || busyNow) { startY = null; return; }
+                startY = e.touches[0].clientY;
+                pulled = 0;
+            }, { passive: true });
+            zone.addEventListener('touchmove', function (e) {
+                if (startY === null) return;
+                const dy = e.touches[0].clientY - startY;
+                if (dy <= 0) { pulled = 0; hide(0); return; }
+                pulled = Math.min(dy, 120);
+                say(pulled >= PULL_PX ? 'Пусни, за да обновиш' : 'Дръпни надолу', Math.round(pulled * 0.35) - 8);
+            }, { passive: true });
+            zone.addEventListener('touchend', function () {
+                if (startY === null) return;
+                const ok = pulled >= PULL_PX && eligible();
+                startY = null;
+                pulled = 0;
+                if (ok) run(); else hide(0);
+            });
+            zone.addEventListener('touchcancel', function () { startY = null; hide(0); });
+
+            sc.addEventListener('scroll', sync, { passive: true });
+            const mo = new MutationObserver(sync);
+            mo.observe(back, { attributes: true, attributeFilter: ['class'] });
+            mo.observe(sc, { attributes: true, attributeFilter: ['class'] });
+            ['xbody-onboarding', 'xbody-splash', 'xems-overlay', 'appointments-overlay'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) mo.observe(el, { attributes: true, attributeFilter: ['class'] });
+            });
+            sync();
         })();
     </script>
 </body>

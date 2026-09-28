@@ -17001,7 +17001,10 @@ async function handleAIXChat(request, env) {
  * GET /api/xbody/appointments/version?email=...
  * Lightweight KV-only check – returns version + fetchedAt without calling Acuity.
  */
-const XBODY_APPT_CACHE_TTL_SEC = 3600;
+// The Acuity webhook drops a client's cached list on every booking change (scheduled / rescheduled / canceled /
+// changed), so the cache can live long: the PWA's cheap version check (KV read only) then sees every change,
+// and Acuity is asked (+ 1 KV write) only when the list really changed.
+const XBODY_APPT_CACHE_TTL_SEC = 12 * 3600;
 
 function computeXbodyApptVersion(upcoming, past) {
   const parts = [];
@@ -17062,10 +17065,19 @@ async function handleXbodyAcuityWebhook(request, env) {
   const form = new URLSearchParams(raw);
   const action = String(form.get('action') || '');
   const id = String(form.get('id') || '');
-  if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled)$/.test(action)) {
+  if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled|canceled|changed)$/.test(action)) {
     return new Response('ignored', { status: 200 });
   }
   const auth = btoa(`${userId}:${apiKey}`);
+  if (!/(^|\.)(scheduled|rescheduled)$/.test(action)) {
+    // canceled / changed: only the client's cached list goes (one Acuity read for the e-mail, one KV delete)
+    const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
+      headers: { Authorization: `Basic ${auth}` },
+    }).catch(() => null);
+    const appt = got && got.ok ? await got.json().catch(() => null) : null;
+    await dropXbodyApptCache(env, appt && appt.email);
+    return new Response('ok', { status: 200 });
+  }
   const resp = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}?admin=true`, {
     method: 'PUT',
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
@@ -17076,7 +17088,20 @@ async function handleXbodyAcuityWebhook(request, env) {
     console.error('[xbody-acuity-webhook] smsOptIn update failed:', resp.status, String(body).slice(0, 200));
     return new Response('acuity ' + resp.status, { status: 502 });
   }
+  const appt = await resp.json().catch(() => null);
+  await dropXbodyApptCache(env, appt && appt.email);
   return new Response('ok', { status: 200 });
+}
+
+/** A booking changed: the client's cached list is stale (their next opening loads it fresh). */
+async function dropXbodyApptCache(env, email) {
+  const e = String(email || '').trim().toLowerCase();
+  if (!env.page_content || !e.includes('@')) return;
+  try {
+    await env.page_content.delete(`xbody:appt:${e}`);
+  } catch (err) {
+    console.warn('[xbody-acuity-webhook] cache drop failed:', err.message);
+  }
 }
 
 /** Acuity webhook signature: base64(HMAC-SHA256(body, apiKey)), compared in constant time. */
