@@ -700,3 +700,6 @@ div[aria-labelledby^="type-label-"]:not(:has(button[data-action])) svg + div p::
 
 /* ---------- 15. v13: без точка под свободните дни (те и без това са единствените светли, активни дни) ---------- */
 html .react-calendar__month-view__days__day abbr::after { content: none !important; display: none !important; }
+
+/* ---------- 16. v14: без „уголемяване на текст“ от браузъра (Chrome / Samsung Internet) — шрифтовете са такива, каквито са зададени, както в приложението ---------- */
+html { -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important; }

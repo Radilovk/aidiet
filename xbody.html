@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>XBody Ability</title>
+    <script>
+        /* This app opened INSIDE the booking frame (a link on Acuity's page, e.g. "Инсталирай приложението"):
+           tell the real app (it goes back to its calendar) and stop here — no app inside the app. */
+        if (window.self !== window.top) {
+            try { window.top.postMessage({ type: 'xbody-nested' }, '*'); } catch (_) {}
+            try { window.stop(); } catch (_) {}
+            document.documentElement.style.display = 'none';
+        }
+    </script>
     
     <link rel="manifest" href="xbody-manifest.json">
     <meta name="color-scheme" content="light dark">
@@ -1076,6 +1085,33 @@
         html[data-theme="dark"] .pwa-ios-steps ol { color: #a8a2ab; }
         html[data-theme="dark"] .pwa-ios-steps { background: #26232a; }
         html[data-theme="dark"] .pwa-install-btn { background: #f3f1f4; color: #121014; }
+        /* ── Always a phone in portrait ──
+           No text inflation (Chrome / Samsung Internet "font boosting" enlarges some blocks and not others);
+           on wide screens the app stays one phone-width column; a phone turned sideways is asked to turn back;
+           "Desktop site" mode (a ~980 px layout that shrinks everything) is pointed out. */
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        @media (min-width: 560px) {
+            #acuity-scroll-container, #xbody-onboarding { left: 0; right: 0; width: auto; max-width: 480px; margin: 0 auto; }
+            #back-btn { left: max(12px, calc(50vw - 228px)); }
+            #progress-btn, #appointments-btn { right: max(16px, calc(50vw - 224px)); }
+            html, body { background-color: #efedf1; }
+            html[data-theme="dark"], html[data-theme="dark"] body { background-color: #09080a; }
+        }
+        #xb-rotate, #xb-desktop { display: none; }
+        #xb-rotate {
+            position: fixed; inset: 0; z-index: 2000; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+            padding: 24px; text-align: center; background: #121014; color: #f3f1f4;
+            font: 600 17px/1.45 Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        #xb-rotate i { font-size: 44px; color: #ef4444; transform: rotate(90deg); }
+        @media (orientation: landscape) and (pointer: coarse) and (max-height: 520px) {
+            #xb-rotate { display: flex; }
+        }
+        #xb-desktop.on {
+            display: block; position: fixed; left: 0; right: 0; top: 0; z-index: 1900; padding: 14px 16px;
+            background: #d32f2f; color: #fff; text-align: center; font: 600 15px/1.4 Roboto, -apple-system, sans-serif;
+        }
+
 
         /* ── Own booking calendar (the first step; the form and payment stay on Acuity's page) ── */
         #xb-book {
@@ -1315,6 +1351,8 @@
         </div>
     </div>
 
+    <div id="xb-rotate" role="alert"><i class="fas fa-mobile-alt"></i>Моля, завъртете телефона вертикално.</div>
+    <div id="xb-desktop" role="alert">Включен е режим „Сайт за компютър“ и всичко е ситно.<br>Изключете го от менюто на браузъра (⋮).</div>
     <!-- Back navigation button: hidden on the Acuity home/initial page,
          shown on all subsequent booking steps (JS controls visibility) -->
     <button id="back-btn" aria-label="Назад">
@@ -1433,7 +1471,7 @@
             <p class="xb-note">Изберете час — следващата стъпка е потвърждение на данните.</p>
         </section>
         <iframe allow="payment"
-                sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts allow-popups align-top-navigation-by-user-activation"
+                sandbox="allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
                 frameborder="0">
         </iframe>
     </div>
@@ -1469,6 +1507,24 @@
             window.setTimeout(hideSplash, MAX_MS);
         })();
 
+
+        /* ── Portrait lock (the installed app; a browser tab cannot lock) + "Desktop site" mode notice ── */
+        (function () {
+            try {
+                const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+                if (standalone && screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(function () {});
+            } catch (_) {}
+            function checkDesktopMode() {
+                const el = document.getElementById('xb-desktop');
+                if (!el) return;
+                const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+                const phoneWidth = Math.min(screen.width || 0, screen.height || 0);
+                // a phone (short side under 600) laid out as a ~980 px page = "Desktop site" is on
+                el.classList.toggle('on', Boolean(touch && phoneWidth && phoneWidth < 600 && window.innerWidth > phoneWidth * 1.6));
+            }
+            checkDesktopMode();
+            window.addEventListener('resize', checkDesktopMode);
+        })();
         /* ── Service Worker (deferred – not on critical path) ── */
         if ('serviceWorker' in navigator) {
             const registerSw = function () {
@@ -1786,8 +1842,10 @@
                ones replace the page too, so the back history is only Acuity's own steps) */
             function openAcuityAt(iso) {
                 const q = bookingUrl.indexOf('?');
-                const url = !iso ? bookingUrl : (q < 0 ? bookingUrl : bookingUrl.slice(0, q)) + '/datetime/' +
-                    encodeURIComponent(String(iso).replace(/([+-]\d{2})(\d{2})$/, '$1:$2')) + (q < 0 ? '' : bookingUrl.slice(q));
+                openInFrame(!iso ? bookingUrl : (q < 0 ? bookingUrl : bookingUrl.slice(0, q)) + '/datetime/' +
+                    encodeURIComponent(String(iso).replace(/([+-]\d{2})(\d{2})$/, '$1:$2')) + (q < 0 ? '' : bookingUrl.slice(q)));
+            }
+            function openInFrame(url) {
                 inFrame = true;
                 root.classList.add('hidden');
                 frame.classList.remove('xb-off');
@@ -2173,7 +2231,21 @@
                 ensureMonth(monthKey(view.y, view.m)).catch(function () {});
             });
 
+            /* the app loaded inside its own frame (see the guard in <head>): back to the calendar */
+            window.addEventListener('message', function (e) {
+                if (e.origin !== window.location.origin || !e.data || e.data.type !== 'xbody-nested') return;
+                if (active && inFrame) backToCalendar();
+                else if (frame.dataset.originalSrc) frame.src = frame.dataset.originalSrc;
+            });
+
             window.XBodyCal = {
+                /* an appointment's own page (Промяна / отказ) inside the app, Назад returns here; false = not possible */
+                openPage: function (url) {
+                    if (!active || !/^https:\/\/([\w-]+\.)*(acuityscheduling\.com|as\.me)\//.test(String(url))) return false;
+                    if (sheet) sheet.classList.add('hidden');
+                    openInFrame(url);
+                    return true;
+                },
                 /* the booking screen: this calendar; false = not possible (the caller loads Acuity's page) */
                 start: function (url, loadFrame) {
                     if (failed) return false;
@@ -2212,6 +2284,18 @@
            data-start (ms); inside 12 h it first shows the booking terms, then opens the page if the client goes on. */
         (function () {
             const LATE_MS = 12 * 3600 * 1000;
+            /* the appointment's page inside the app (the list is closed first); a new tab if that is not possible */
+            function openPage(href) {
+                const list = document.getElementById('appointments-overlay');
+                if (window.XBodyCal && window.XBodyCal.openPage && window.XBodyCal.openPage(href)) {
+                    if (list && !list.classList.contains('hidden')) {
+                        const x = document.getElementById('appointments-close');
+                        if (x) x.click();
+                    }
+                    return;
+                }
+                window.open(href, '_blank', 'noopener');
+            }
             let back = null;
             function close() { if (back) back.classList.add('hidden'); }
             function warn(href, start) {
@@ -2221,7 +2305,7 @@
                     back.addEventListener('click', function (e) {
                         if (e.target === back || e.target.closest('[data-close]')) { close(); return; }
                         const go = e.target.closest('[data-go]');
-                        if (go) { close(); window.open(go.dataset.go, '_blank', 'noopener'); }
+                        if (go) { close(); openPage(go.dataset.go); }
                     });
                     document.body.appendChild(back);
                 }
@@ -2241,10 +2325,11 @@
                 const a = e.target.closest && e.target.closest('a[data-start]');
                 if (!a) return;
                 const start = Number(a.dataset.start);
-                if (!start || start - Date.now() >= LATE_MS || start < Date.now() - 3600000) return;
+                const late = start && start - Date.now() < LATE_MS && start > Date.now() - 3600000;
+                if (!late && !(window.XBodyCal && window.XBodyCal.openPage)) return;   // a new tab, as a plain link
                 e.preventDefault();
                 e.stopPropagation();
-                warn(a.href, start);
+                if (late) warn(a.href, start); else openPage(a.href);
             }, true);
         })();
 
