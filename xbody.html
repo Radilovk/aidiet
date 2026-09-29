@@ -1863,7 +1863,20 @@
                     if (rm) { toggleCart(rm.dataset.rm); if (cart.length) openCartSheet(); else sheet.classList.add('hidden'); return; }
                     if (!go) return;
                     const what = go.dataset.go;
-                    if (what === 'continue') { sheet.classList.add('hidden'); openAcuityAt(sheetIso); return; }
+                    if (what === 'continue') {
+                        // hours already chosen: this one joins them and all go on together (as Запази)
+                        if (cart.length) {
+                            let note = '';
+                            if (cart.indexOf(sheetIso) < 0) {
+                                if (cart.length < 8) toggleCart(sheetIso); else note = 'Най-много 8 часа наведнъж — последният не е добавен.';
+                            }
+                            openCartSheet(note);
+                            return;
+                        }
+                        sheet.classList.add('hidden');
+                        openAcuityAt(sheetIso);
+                        return;
+                    }
                     if (what === 'more') { sheet.classList.add('hidden'); toggleCart(sheetIso); return; }
                     if (what === 'book') { bookCart(); return; }
                     if (what === 'card') { if (cardStep) cardStep(); return; }
@@ -1883,7 +1896,8 @@
                 sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Избран час">' +
                     '<div class="xb-sheet-handle"></div><h3>Избран час</h3>' +
                     '<p>' + esc(dayLabel(iso.slice(0, 10))) + ' · ' + esc(iso.slice(11, 16)) + '</p>' +
-                    '<button type="button" class="xb-primary" data-go="continue"><i class="fas fa-check"></i>Избери и продължи</button>' +
+                    '<button type="button" class="xb-primary" data-go="continue"><i class="fas fa-check"></i>Избери и продължи' +
+                        (cart.length && cart.indexOf(iso) < 0 ? ' (' + (cart.length + 1) + ' часа)' : '') + '</button>' +
                     '<button type="button" class="xb-secondary" data-go="more"><i class="fas fa-plus"></i>Избери и добави още един час</button>' +
                     '<button type="button" class="xb-secondary xb-quiet" data-close="1">Затвори</button></div>';
                 sheet.classList.remove('hidden');
