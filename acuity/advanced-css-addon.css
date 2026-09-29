@@ -661,3 +661,39 @@ button[aria-label="More Times"] { border-radius: 50% !important; }
     div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]):last-child,
     div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]):last-child * { background-color: #d32f2f !important; color: #fff !important; }
 }
+
+/* ---------- 13. v11: СТРАНИЦАТА СЛЕД ОТКАЗ (същата страница на часа; тогава има и втори ред под заглавието) ---------- */
+#confirmation-line:has(+ #confirmation-subline) span::after { content: "часът Ви е отменен."; }
+#confirmation-subline span { font-size: 0 !important; }
+#confirmation-subline span::after { content: "Ако желаете, запазете нов час от графика за записване."; font-size: 15px; line-height: 1.5; }
+/* знакът „Canceled“ на картата на часа */
+div[aria-labelledby^="type-label-"]:not(:has(button)) span[data-rosetta-component="text"] span { font-size: 0 !important; }
+div[aria-labelledby^="type-label-"]:not(:has(button)) span[data-rosetta-component="text"] span::after { content: "Отменен"; font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+@media (prefers-color-scheme: dark) {
+    #pylon div[aria-labelledby^="type-label-"]:not(:has(button)) span[data-rosetta-component="text"] {
+        background: rgba(239, 68, 68, .16) !important; border-radius: 999px; padding: 2px 10px;
+    }
+    #pylon div[aria-labelledby^="type-label-"]:not(:has(button)) span[data-rosetta-component="text"] span { color: #fca5a5 !important; }
+}
+
+/* ---------- 14. v12: УСЛОВИЕТО ЗА ОТМЯНА ПОД 12 ЧАСА (Acuity не казва колко време остава — текстът е винаги видим) ---------- */
+/* прозорец „Отказ от час“ */
+div[role="dialog"][aria-label="Cancel Appointment"] p span::after {
+    content: "Сигурни ли сте, че искате да откажете този час?\A\AВажно: според условията за резервация при отмяна, промяна или неявяване по-малко от 12 часа преди тренировката тя се заплаща от картата, без възможност за възстановяване на сумата.";
+    white-space: pre-line;
+}
+/* прозорец „Промяна на часа“: същото условие над календара */
+div[role="dialog"][aria-label^="Rescheduling"] #weekly-calendar-region::before {
+    content: "Промяна по-малко от 12 часа преди тренировката се заплаща от картата, без възможност за възстановяване на сумата.";
+    display: block; margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.45;
+    background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;
+}
+/* часът вече не може да се мести / отказва онлайн */
+div[aria-labelledby^="type-label-"]:not(:has(button[data-action])) svg + div p::after {
+    content: "Този час вече не може да се мести или отказва онлайн. Според условията за резервация при отмяна, промяна или неявяване по-малко от 12 часа преди тренировката тя се заплаща от картата, без възможност за възстановяване на сумата. За въпроси се обадете на студиото.";
+}
+@media (prefers-color-scheme: dark) {
+    div[role="dialog"][aria-label^="Rescheduling"] #weekly-calendar-region::before {
+        background: rgba(239, 68, 68, .12) !important; color: #fca5a5 !important; border-color: rgba(239, 68, 68, .38) !important;
+    }
+}
