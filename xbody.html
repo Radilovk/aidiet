@@ -1220,14 +1220,39 @@
         .xb-sheet .xb-secondary { border: 1px solid #dcd9df; background: transparent; color: inherit; }
         html[data-theme="dark"] .xb-sheet .xb-secondary { border-color: #3a353f; }
         .xb-sheet .xb-quiet { border-color: transparent !important; font-weight: 500; opacity: .75; }
-        /* the word shown over Acuity's calendar (several hours / repeating) */
-        .xb-hint {
-            position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); z-index: 600; width: calc(100% - 32px); max-width: 440px;
-            transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease;
-            padding: 12px 16px; border-radius: 14px; background: #1c1a1f; color: #f3f1f4; border: 1px solid #d32f2f;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .35); font: 600 14px/1.45 Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; text-align: center;
+        /* the chosen hours: marks, the bar at the bottom, the list in the sheet */
+        .xb-slot.picked { border: 2px solid var(--xb-red) !important; background: var(--xb-soft) !important; }
+        .xb-slot.picked small { color: var(--xb-red); }
+        .xb-slot.picked::after {
+            content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; top: 7px; right: 9px;
+            width: 18px; height: 18px; border-radius: 50%; background: var(--xb-red); color: #fff; font-size: 10px;
+            display: flex; align-items: center; justify-content: center;
         }
-        .xb-hint.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+        .xb-day.cart::after { width: 7px !important; height: 7px !important; margin-left: -3.5px !important; bottom: 3px !important; background: var(--xb-red) !important; box-shadow: 0 0 0 2px var(--xb-card); }
+        .xb-cart {
+            position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); z-index: 450;
+            max-width: 456px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px;
+            border-radius: 18px; background: #1c1a1f; color: #f3f1f4; border: 1px solid rgba(239, 68, 68, .5);
+            box-shadow: 0 12px 34px rgba(0, 0, 0, .35); font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .xb-cart.hidden { display: none; }
+        .xb-cart-text { flex: 1; min-width: 0; }
+        .xb-cart-text b { display: block; font-size: 15px; }
+        .xb-cart-text small { display: block; font-size: 12px; color: #a8a2ab; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .xb-cart-go {
+            flex: none; min-height: 44px; padding: 0 20px; border: 0; border-radius: 12px; color: #fff; font: 700 15px Roboto, sans-serif;
+            background: linear-gradient(145deg, #e53935, #b71c1c); box-shadow: 0 6px 16px rgba(211, 47, 47, .35); cursor: pointer;
+        }
+        body.xb-cart-on #acuity-scroll-container { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); }
+        .xb-cart-list { list-style: none; margin: 0 0 8px; padding: 0; }
+        .xb-cart-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 2px; border-bottom: 1px solid rgba(128, 128, 128, .18); font-size: 15px; }
+        .xb-cart-list li:last-child { border-bottom: 0; }
+        .xb-cart-list button { width: 34px; height: 34px; min-height: 0 !important; margin: 0 !important; border: 0; border-radius: 50%; background: rgba(128, 128, 128, .14); color: inherit; }
+        .xb-cart-list.ok li b { color: #16a34a; }
+        .xb-cart-list.bad li { opacity: .7; text-decoration: line-through; }
+        .xb-sheet .xb-cart-who, .xb-sheet .xb-cart-note, .xb-sheet .xb-cart-msg { margin: 4px 0 6px; font-size: 13px; font-weight: 400; color: #8a8590; }
+        .xb-sheet .xb-cart-note { color: #d32f2f; font-weight: 600; }
+        .xb-sheet .xb-cart-msg { font-size: 14px; line-height: 1.5; }
 
         @media (prefers-reduced-motion: no-preference) {
             @keyframes xbRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
@@ -1644,6 +1669,7 @@
                 const data = off >= 0 ? monthData(key) : { days: {} };
                 const free = (data && data.days) || {};
                 const own = ownByDay();
+                tidyCart(own);
                 const n = new Date(view.y, view.m + 1, 0).getDate();
                 const lead = (new Date(view.y, view.m, 1).getDay() + 6) % 7;
                 const today = todayKey();
@@ -1665,6 +1691,7 @@
                     if (s.hasFree) cls.push('free');
                     if (s.mine) cls.push('mine');
                     if (s.done) cls.push('done');
+                    if (cart.some(function (t) { return t.slice(0, 10) === k; })) cls.push('cart');
                     if (k === today) cls.push('today');
                     if (k === selected) cls.push('sel');
                     html += '<button type="button" class="' + cls.join(' ') + '" data-day="' + k + '"' +
@@ -1691,6 +1718,7 @@
                 }
 
                 renderSlots(key, off, data, free, own);
+                renderBar();
             }
 
             function renderSlots(key, off, data, free, own) {
@@ -1731,7 +1759,9 @@
                             ? '<button type="button" class="xb-slot done" disabled><b>' + esc(x.hm) + '</b><small>проведена ✓</small></button>'
                             : '<button type="button" class="xb-slot mine" data-own="' + esc(x.own.iso) + '"><b>' + esc(x.hm) + '</b><small>вашият час</small></button>';
                     }
-                    return '<button type="button" class="xb-slot" data-iso="' + esc(x.iso) + '"><b>' + esc(x.hm) + '</b></button>';
+                    const chosen = cart.indexOf(x.iso) >= 0;
+                    return '<button type="button" class="xb-slot' + (chosen ? ' picked' : '') + '" data-iso="' + esc(x.iso) + '"' +
+                        (chosen ? ' aria-pressed="true"' : '') + '><b>' + esc(x.hm) + '</b>' + (chosen ? '<small>избран</small>' : '') + '</button>';
                 }).join('') || '<div class="xb-empty">Няма свободни часове в този ден.</div>';
             }
 
@@ -1748,8 +1778,6 @@
 
             /* a free hour: Acuity's page straight at its form (its first navigation replaces the empty frame; later
                ones replace the page too, so the back history is only Acuity's own steps) */
-            /* iso = null: Acuity's own calendar (several hours / a repeating hour are chosen there — Acuity keeps
-               that list inside its page, a link cannot carry it) */
             function openAcuityAt(iso) {
                 const q = bookingUrl.indexOf('?');
                 const url = !iso ? bookingUrl : (q < 0 ? bookingUrl : bookingUrl.slice(0, q)) + '/datetime/' +
@@ -1765,11 +1793,11 @@
                 }
                 if (!done) frame.src = url;
                 syncBack();
+                renderBar();
             }
 
             function backToCalendar() {
                 inFrame = false;
-                if (hintEl) hintEl.classList.remove('show');
                 frame.classList.add('xb-off');
                 root.classList.remove('hidden');
                 sc.scrollTop = 0;
@@ -1804,32 +1832,40 @@
                 inFrame = false;
                 root.classList.add('hidden');
                 frame.classList.remove('xb-off');
+                renderBar();
                 if (fallback) fallback();
             }
 
-            /* the sheet: a free hour (the same three choices as Acuity's menu) or the client's own hour
-               (Промяна — Acuity's page for that booking / Моите часове) */
+            /* the sheet: a free hour (Избери и продължи / Избери и добави още един час), the chosen hours
+               (confirm → booked one by one, as separate bookings) or the client's own hour (Промяна / Моите часове) */
             let sheet = null;
             let sheetIso = '';
+            let booking = false;
             function ensureSheet() {
                 if (sheet) return;
                 sheet = document.createElement('div');
                 sheet.className = 'xb-sheet-back hidden';
                 sheet.addEventListener('click', function (e) {
+                    if (booking) return;
                     const go = e.target.closest('[data-go]');
                     if (e.target === sheet || e.target.closest('[data-close]')) sheet.classList.add('hidden');
                     if (e.target.closest('[data-list]')) {
                         sheet.classList.add('hidden');
                         if (window.XBodyAppointments && window.XBodyAppointments.open) window.XBodyAppointments.open();
                     }
+                    const rm = e.target.closest('[data-rm]');
+                    if (rm) { toggleCart(rm.dataset.rm); if (cart.length) openCartSheet(); else sheet.classList.add('hidden'); return; }
                     if (!go) return;
-                    sheet.classList.add('hidden');
-                    if (go.dataset.go === 'continue') { openAcuityAt(sheetIso); return; }
-                    // several hours / repeating: Acuity's calendar, with a word on what to tap there
-                    const hm = sheetIso.slice(11, 16);
-                    openAcuityAt(null);
-                    showHint('В календара изберете ' + dayLabel(sheetIso.slice(0, 10)) + ' · ' + hm + ' и „' +
-                        (go.dataset.go === 'more' ? 'Избери и добави още един час' : 'Избери като повтарящ се') + '“');
+                    const what = go.dataset.go;
+                    if (what === 'continue') { sheet.classList.add('hidden'); openAcuityAt(sheetIso); return; }
+                    if (what === 'more') { sheet.classList.add('hidden'); toggleCart(sheetIso); return; }
+                    if (what === 'book') { bookCart(); return; }
+                    if (what === 'first') {   // a first booking: Acuity's form for the first hour, the rest stay chosen
+                        sheet.classList.add('hidden');
+                        const first = cart[0];
+                        toggleCart(first);
+                        openAcuityAt(first);
+                    }
                 });
                 document.body.appendChild(sheet);
             }
@@ -1841,24 +1877,126 @@
                     '<p>' + esc(dayLabel(iso.slice(0, 10))) + ' · ' + esc(iso.slice(11, 16)) + '</p>' +
                     '<button type="button" class="xb-primary" data-go="continue"><i class="fas fa-check"></i>Избери и продължи</button>' +
                     '<button type="button" class="xb-secondary" data-go="more"><i class="fas fa-plus"></i>Избери и добави още един час</button>' +
-                    '<button type="button" class="xb-secondary" data-go="repeat"><i class="fas fa-redo"></i>Избери като повтарящ се</button>' +
                     '<button type="button" class="xb-secondary xb-quiet" data-close="1">Затвори</button></div>';
                 sheet.classList.remove('hidden');
             }
-            let hintEl = null;
-            let hintTimer = 0;
-            function showHint(text) {
-                if (!hintEl) {
-                    hintEl = document.createElement('div');
-                    hintEl.className = 'xb-hint';
-                    hintEl.setAttribute('role', 'status');
-                    hintEl.addEventListener('click', function () { hintEl.classList.remove('show'); });
-                    document.body.appendChild(hintEl);
-                }
-                hintEl.textContent = text;
-                hintEl.classList.add('show');
-                clearTimeout(hintTimer);
-                hintTimer = setTimeout(function () { hintEl.classList.remove('show'); }, 9000);
+
+            /* ── several hours: chosen here, kept on the phone, booked one by one after the client confirms ── */
+            const CART_KEY = 'xbody_cart';
+            let cart = [];
+            try {
+                const kept = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+                if (Array.isArray(kept)) cart = kept.filter(function (t) { return typeof t === 'string' && isoTime(t) > Date.now(); });
+            } catch (_) {}
+            function saveCart() {
+                try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (_) {}
+            }
+            function toggleCart(iso) {
+                const i = cart.indexOf(iso);
+                if (i >= 0) cart.splice(i, 1);
+                else if (cart.length < 8) cart.push(iso);
+                cart.sort();
+                saveCart();
+                render();
+            }
+            /* hours no longer bookable (gone, taken by someone, or now the client's own) leave the list */
+            function tidyCart(own) {
+                const now = Date.now();
+                const before = cart.length;
+                cart = cart.filter(function (iso) {
+                    if (!(isoTime(iso) > now)) return false;
+                    const day = iso.slice(0, 10);
+                    if ((own[day] || []).some(function (o) { return o.hm === iso.slice(11, 16); })) return false;
+                    const m = avail[day.slice(0, 7)];
+                    return !m || (m.days[day] || []).indexOf(iso) >= 0;
+                });
+                if (cart.length !== before) saveCart();
+            }
+            const bar = document.createElement('div');
+            bar.className = 'xb-cart hidden';
+            bar.innerHTML = '<div class="xb-cart-text"><b></b><small></small></div><button type="button" class="xb-cart-go">Запази</button>';
+            document.body.appendChild(bar);
+            bar.querySelector('.xb-cart-go').addEventListener('click', function () { openCartSheet(); });
+            function renderBar() {
+                const show = active && !inFrame && cart.length > 0;
+                bar.classList.toggle('hidden', !show);
+                document.body.classList.toggle('xb-cart-on', show);
+                if (!show) return;
+                bar.querySelector('b').textContent = cart.length === 1 ? 'Избран 1 час' : 'Избрани ' + cart.length + ' часа';
+                bar.querySelector('small').textContent = cart.map(function (iso) {
+                    return iso.slice(8, 10) + '.' + iso.slice(5, 7) + ' ' + iso.slice(11, 16);
+                }).join(' · ');
+            }
+            function contact() {
+                const get = function (k) { return (sessionStorage.getItem(k) || localStorage.getItem(k) || '').trim(); };
+                return { email: get('xbody_booking_email').toLowerCase(), phone: get('xbody_booking_phone'), name: get('xbody_booking_full_name') };
+            }
+            function openCartSheet(note) {
+                ensureSheet();
+                const c = contact();
+                sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Избрани часове">' +
+                    '<div class="xb-sheet-handle"></div><h3>' + (cart.length === 1 ? 'Избран час' : 'Избрани часове') + '</h3>' +
+                    '<ul class="xb-cart-list">' + cart.map(function (iso) {
+                        return '<li><span>' + esc(dayLabel(iso.slice(0, 10))) + ' · <b>' + esc(iso.slice(11, 16)) + '</b></span>' +
+                            '<button type="button" data-rm="' + esc(iso) + '" aria-label="Премахни"><i class="fas fa-times"></i></button></li>';
+                    }).join('') + '</ul>' +
+                    '<p class="xb-cart-who">' + esc([c.name, c.phone].filter(Boolean).join(' · ')) + '</p>' +
+                    (note ? '<p class="xb-cart-note">' + note + '</p>' : '') +
+                    '<button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Потвърди записването' +
+                        (cart.length > 1 ? ' (' + cart.length + ')' : '') + '</button>' +
+                    '<button type="button" class="xb-secondary" data-close="1"><i class="fas fa-plus"></i>Добави още часове</button></div>';
+                sheet.classList.remove('hidden');
+            }
+            function bookCart() {
+                const c = contact();
+                const times = cart.slice();
+                if (!times.length) return;
+                const btn = sheet.querySelector('[data-go="book"]');
+                booking = true;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Записване…'; }
+                fetch(WORKER_URL + '/api/xbody/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: c.email, phone: c.phone, times: times })
+                }).then(function (r) {
+                    return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, d: d }; });
+                }).then(function (res) {
+                    booking = false;
+                    if (res.status === 403 && res.d.error === 'first_booking') {
+                        sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
+                            '<h3>Първо записване</h3><p class="xb-cart-msg">Първият Ви час се потвърждава във формата на студиото. ' +
+                            'След това останалите избрани часове се записват с едно натискане.</p>' +
+                            '<button type="button" class="xb-primary" data-go="first"><i class="fas fa-arrow-right"></i>Към формата за ' +
+                            esc(dayLabel(cart[0].slice(0, 10)) + ' · ' + cart[0].slice(11, 16)) + '</button>' +
+                            '<button type="button" class="xb-secondary" data-close="1">Затвори</button></div>';
+                        return;
+                    }
+                    const booked = (res.d.booked || []).map(function (b) { return b.time; });
+                    const failed = (res.d.failed || []).map(function (f) { return f.time; });
+                    if (!booked.length && !failed.length) {
+                        openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.' : 'Записването не успя. Опитайте отново.');
+                        return;
+                    }
+                    cart = cart.filter(function (t) { return booked.indexOf(t) < 0 && failed.indexOf(t) < 0; });
+                    saveCart();
+                    const line = function (t) { return '<li><span>' + esc(dayLabel(t.slice(0, 10))) + ' · <b>' + esc(t.slice(11, 16)) + '</b></span></li>'; };
+                    sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
+                        (booked.length ? '<h3>Записани ✓</h3><ul class="xb-cart-list ok">' + booked.map(line).join('') + '</ul>' +
+                            '<p class="xb-cart-msg">Потвърждение за всеки час идва на имейла Ви, както при отделно записване.</p>' : '') +
+                        (failed.length ? '<h3>Не бяха записани</h3><ul class="xb-cart-list bad">' + failed.map(line).join('') + '</ul>' +
+                            '<p class="xb-cart-msg">Тези часове вече са заети — изберете други.</p>' : '') +
+                        '<button type="button" class="xb-primary" data-close="1">Готово</button></div>';
+                    if (booked.length) {
+                        window.dispatchEvent(new CustomEvent('xbody-appt-invalidate', { detail: { email: c.email } }));
+                    }
+                    const months = {};
+                    booked.concat(failed).forEach(function (t) { months[t.slice(0, 7)] = true; });
+                    Object.keys(months).forEach(function (m) { ensureMonth(m, true).catch(function () {}); });
+                    render();
+                }).catch(function () {
+                    booking = false;
+                    openCartSheet('Няма връзка. Опитайте отново.');
+                });
             }
             function openSheet(o) {
                 ensureSheet();
@@ -1882,7 +2020,10 @@
             slotsEl.addEventListener('click', function (e) {
                 const b = e.target.closest('button');
                 if (!b) return;
-                if (b.dataset.iso) { openSlotMenu(b.dataset.iso); return; }
+                if (b.dataset.iso) {
+                    if (cart.indexOf(b.dataset.iso) >= 0) toggleCart(b.dataset.iso); else openSlotMenu(b.dataset.iso);
+                    return;
+                }
                 if (b.dataset.retry) { ensureMonth(monthKey(view.y, view.m), true).catch(function () {}); delete failedMonths[monthKey(view.y, view.m)]; render(); return; }
                 if (b.dataset.acuity) { giveUp(); return; }
                 if (b.dataset.own) {
