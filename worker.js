@@ -36570,7 +36570,8 @@ async function handleXbodyAcuityWebhook(request, env) {
     headers: { Authorization: `Basic ${auth}` }
   }).catch(() => null);
   const current = got && got.ok ? await got.json().catch(() => null) : null;
-  if (!current || String(current.calendarID || "") !== XBODY_ACUITY_BOOKING.calendarID) {
+  if (!current) return new Response("acuity read failed", { status: 502 });
+  if (String(current.calendarID || "") !== XBODY_ACUITY_BOOKING.calendarID) {
     return new Response("ignored", { status: 200 });
   }
   if (!/(^|\.)(scheduled|rescheduled)$/.test(action)) {
