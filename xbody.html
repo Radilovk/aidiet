@@ -1252,6 +1252,12 @@
         .xb-cart-list.bad li { opacity: .7; text-decoration: line-through; }
         .xb-sheet .xb-cart-who, .xb-sheet .xb-cart-note, .xb-sheet .xb-cart-msg { margin: 4px 0 6px; font-size: 13px; font-weight: 400; color: #8a8590; }
         .xb-sheet .xb-cart-note { color: #d32f2f; font-weight: 600; }
+        .xb-sum { width: 100%; border-collapse: collapse; margin: 2px 0 6px; font-size: 15px; }
+        .xb-sum td { padding: 6px 2px; border-bottom: 1px solid rgba(128, 128, 128, .18); }
+        .xb-sum td:last-child { text-align: right; font-weight: 700; white-space: nowrap; }
+        .xb-sum tr.now td { color: #16a34a; font-weight: 700; }
+        .xb-card-field { margin: 10px 0 4px; padding: 14px 12px; border-radius: 12px; border: 1px solid #dcd9df; background: #fff; }
+        html[data-theme="dark"] .xb-card-field { background: #26232a; border-color: #3a353f; }
         .xb-sheet .xb-cart-msg { font-size: 14px; line-height: 1.5; }
 
         @media (prefers-reduced-motion: no-preference) {
@@ -1860,6 +1866,8 @@
                     if (what === 'continue') { sheet.classList.add('hidden'); openAcuityAt(sheetIso); return; }
                     if (what === 'more') { sheet.classList.add('hidden'); toggleCart(sheetIso); return; }
                     if (what === 'book') { bookCart(); return; }
+                    if (what === 'card') { if (cardStep) cardStep(); return; }
+                    if (what === 'cancel-card') { cardStep = null; openCartSheet(); return; }
                     if (what === 'first') {   // a first booking: Acuity's form for the first hour, the rest stay chosen
                         sheet.classList.add('hidden');
                         const first = cart[0];
@@ -1942,25 +1950,118 @@
                     }).join('') + '</ul>' +
                     '<p class="xb-cart-who">' + esc([c.name, c.phone].filter(Boolean).join(' · ')) + '</p>' +
                     (note ? '<p class="xb-cart-note">' + note + '</p>' : '') +
-                    '<button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Потвърди записването' +
+                    '<button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Продължи' +
                         (cart.length > 1 ? ' (' + cart.length + ')' : '') + '</button>' +
                     '<button type="button" class="xb-secondary" data-close="1"><i class="fas fa-plus"></i>Добави още часове</button></div>';
                 sheet.classList.remove('hidden');
             }
+            function postJson(path, payload) {
+                return fetch(WORKER_URL + path, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).then(function (r) {
+                    return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, d: d }; });
+                });
+            }
+            function busyButton(sel, text) {
+                const btn = sheet.querySelector(sel);
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>' + text; }
+            }
+            function money(n) { return '€' + Number(n).toFixed(2); }
+
+            /* Потвърди: the card guarantee first (once, for all the hours; nothing is charged), then the booking */
             function bookCart() {
                 const c = contact();
                 const times = cart.slice();
                 if (!times.length) return;
-                const btn = sheet.querySelector('[data-go="book"]');
                 booking = true;
-                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Записване…'; }
-                fetch(WORKER_URL + '/api/xbody/book', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: c.email, phone: c.phone, times: times })
-                }).then(function (r) {
-                    return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, d: d }; });
-                }).then(function (res) {
+                busyButton('[data-go="book"]', 'Момент…');
+                postJson('/api/xbody/guarantee', { email: c.email, phone: c.phone, name: c.name, times: times }).then(function (res) {
+                    if (res.status === 503 && res.d.error === 'no_stripe') return sendBooking(c, times, '');   // no card step set up yet
+                    if (res.status !== 200 || !res.d.clientSecret) {
+                        booking = false;
+                        openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.' : 'Записването не успя. Опитайте отново.');
+                        return;
+                    }
+                    return openCardSheet(c, times, res.d);
+                }).catch(function () {
+                    booking = false;
+                    openCartSheet('Няма връзка. Опитайте отново.');
+                });
+            }
+
+            /* Stripe.js is loaded only when a card is asked for */
+            let stripeLoad = null;
+            function loadStripe() {
+                if (window.Stripe) return Promise.resolve(window.Stripe);
+                if (!stripeLoad) {
+                    stripeLoad = new Promise(function (resolve, reject) {
+                        const s = document.createElement('script');
+                        s.src = 'https://js.stripe.com/v3/';
+                        s.onload = function () { window.Stripe ? resolve(window.Stripe) : reject(new Error('stripe')); };
+                        s.onerror = function () { stripeLoad = null; reject(new Error('stripe')); };
+                        document.head.appendChild(s);
+                    });
+                }
+                return stripeLoad;
+            }
+            function openCardSheet(c, times, g) {
+                const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Гаранция с карта">' +
+                    '<div class="xb-sheet-handle"></div><h3>Гаранция с карта</h3>' +
+                    '<table class="xb-sum">' +
+                        (g.price !== null && g.price !== undefined
+                            ? '<tr><td>' + times.length + (times.length === 1 ? ' час' : ' часа') + ' × ' + money(g.price) + '</td><td>' + money(g.total) + '</td></tr>'
+                            : '<tr><td>' + times.length + (times.length === 1 ? ' час' : ' часа') + '</td><td></td></tr>') +
+                        '<tr class="now"><td>Дължимо сега</td><td>' + money(0) + '</td></tr>' +
+                        (g.total !== null && g.total !== undefined ? '<tr><td>Плащане на място</td><td>' + money(g.total) + '</td></tr>' : '') +
+                    '</table>' +
+                    '<p class="xb-cart-msg">Картата е гаранция за всички избрани часове — сега не се тегли нищо. ' +
+                        'Студиото може да я таксува само при неявяване, според условията за резервация.</p>' +
+                    '<div class="xb-card-field" id="xb-card-field"></div>' +
+                    '<p class="xb-cart-note" id="xb-card-err" role="alert"></p>' +
+                    '<button type="button" class="xb-primary" data-go="card"><i class="fas fa-lock"></i>Запази ' +
+                        (times.length === 1 ? '1 час' : times.length + ' часа') + '</button>' +
+                    '<button type="button" class="xb-secondary xb-quiet" data-go="cancel-card">Назад</button></div>';
+                const errEl = sheet.querySelector('#xb-card-err');
+                return loadStripe().then(function (StripeJs) {
+                    const stripe = StripeJs(g.publishableKey, { locale: 'bg' });
+                    const card = stripe.elements().create('card', {
+                        hidePostalCode: true,
+                        style: { base: { fontSize: '16px', color: dark ? '#f3f1f4' : '#16141a', '::placeholder': { color: dark ? '#7a747d' : '#9a95a0' } },
+                            invalid: { color: '#ef4444' } }
+                    });
+                    card.mount('#xb-card-field');
+                    booking = false;
+                    cardStep = function () {
+                        booking = true;
+                        errEl.textContent = '';
+                        busyButton('[data-go="card"]', 'Проверка на картата…');
+                        stripe.confirmCardSetup(g.clientSecret, {
+                            payment_method: { card: card, billing_details: { name: c.name || undefined, email: c.email, phone: c.phone || undefined } }
+                        }).then(function (r) {
+                            if (r.error || !r.setupIntent || r.setupIntent.status !== 'succeeded') {
+                                booking = false;
+                                errEl.textContent = (r.error && r.error.message) || 'Картата не беше потвърдена.';
+                                const btn = sheet.querySelector('[data-go="card"]');
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock"></i>Опитай отново'; }
+                                return;
+                            }
+                            busyButton('[data-go="card"]', 'Записване…');
+                            sendBooking(c, times, r.setupIntent.id);
+                        });
+                    };
+                }).catch(function () {
+                    booking = false;
+                    errEl.textContent = 'Формата за карта не се зареди. Проверете връзката и опитайте отново.';
+                });
+            }
+            let cardStep = null;
+
+            function sendBooking(c, times, setupIntent) {
+                booking = true;
+                return postJson('/api/xbody/book', { email: c.email, phone: c.phone, name: c.name, times: times, setupIntent: setupIntent || undefined }).then(function (res) {
                     booking = false;
                     if (res.status === 403 && res.d.error === 'first_booking') {
                         sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
@@ -1974,7 +2075,8 @@
                     const booked = (res.d.booked || []).map(function (b) { return b.time; });
                     const failed = (res.d.failed || []).map(function (f) { return f.time; });
                     if (!booked.length && !failed.length) {
-                        openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.' : 'Записването не успя. Опитайте отново.');
+                        openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
+                            : res.status === 402 ? 'Картата не беше потвърдена. Опитайте отново.' : 'Записването не успя. Опитайте отново.');
                         return;
                     }
                     cart = cart.filter(function (t) { return booked.indexOf(t) < 0 && failed.indexOf(t) < 0; });
@@ -1982,7 +2084,8 @@
                     const line = function (t) { return '<li><span>' + esc(dayLabel(t.slice(0, 10))) + ' · <b>' + esc(t.slice(11, 16)) + '</b></span></li>'; };
                     sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
                         (booked.length ? '<h3>Записани ✓</h3><ul class="xb-cart-list ok">' + booked.map(line).join('') + '</ul>' +
-                            '<p class="xb-cart-msg">Потвърждение за всеки час идва на имейла Ви, както при отделно записване.</p>' : '') +
+                            '<p class="xb-cart-msg">Потвърждение за всеки час идва на имейла Ви, както при отделно записване.' +
+                            (setupIntent ? ' Картата е запазена като гаранция — нищо не е изтеглено.' : '') + '</p>' : '') +
                         (failed.length ? '<h3>Не бяха записани</h3><ul class="xb-cart-list bad">' + failed.map(line).join('') + '</ul>' +
                             '<p class="xb-cart-msg">Тези часове вече са заети — изберете други.</p>' : '') +
                         '<button type="button" class="xb-primary" data-close="1">Готово</button></div>';

@@ -1617,7 +1617,7 @@ const RATE_LIMIT = {
   SOCIAL_AUTH:    { maxRequests: 10, windowSec: 60 },   // 10 auth attempts/min per IP
   FORGOT_PASSWORD:{ maxRequests: 5,  windowSec: 900 },  // 5 reset requests per 15 min per IP
   XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 }, // 15 lookups/min per IP
-  XBODY_BOOK: { maxRequests: 4, windowSec: 600 }, // several hours booked at once: 4 tries / 10 min per IP
+  XBODY_BOOK: { maxRequests: 8, windowSec: 600 }, // several hours at once (card guarantee + booking): 8 calls / 10 min per IP
   ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 }, // debounced client sync burst
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
   WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 },
@@ -17215,46 +17215,164 @@ async function handleXbodyAvailability(request, env, ctx) {
 }
 
 /**
- * POST /api/xbody/book { email, phone, times: [iso…] } — several hours chosen in the app's calendar, booked in
- * Acuity one by one, exactly as if the client had booked each separately (Acuity's own confirmation e-mail,
- * the webhook, the SMS reminders): same client, same answers to the booking form as their last booking.
- * Only for a client who already booked XBODY Burgas through Acuity's page (e-mail and phone must match that
- * booking) — a first booking always goes through Acuity's page. Acuity itself refuses an hour that is taken.
- * Costs: 1 KV write (rate limit) + 1 Acuity read + 1 Acuity write per hour; nothing when unused.
+ * Several hours chosen in the app's calendar, booked in Acuity one by one, exactly as if the client had booked
+ * each separately (Acuity's own confirmation e-mails, the webhook, the SMS reminders).
+ *
+ * The card guarantee (as Acuity's own form asks: nothing is charged now, the studio may charge a no-show) is
+ * taken once for all the chosen hours, in the app, on the studio's Stripe account:
+ *   POST /api/xbody/guarantee { email, phone, name, times } → a Stripe SetupIntent for the client (the card is
+ *        saved for later, off-session) + the total shown to the client
+ *   the app confirms it with Stripe.js (the card never reaches this worker)
+ *   POST /api/xbody/book { email, phone, name, times, setupIntent } → the SetupIntent is checked with Stripe
+ *        (succeeded, this client, these hours, not used yet) and the hours are booked; each Acuity booking notes
+ *        the Stripe customer and card, the SetupIntent keeps the Acuity ids (so it cannot book twice).
+ * Without Stripe keys (STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY) the guarantee answers "no_stripe" and a
+ * booking needs a known client instead (e-mail and phone of an earlier booking made on Acuity's page).
+ * Costs: 1 KV write per call (rate limit) + Stripe/Acuity calls only when a client books; Stripe charges nothing
+ * for saving a card.
  */
 const XBODY_BOOK_MAX = 8;
+let xbodyPriceMemo = null;   // { at, price } — the appointment type's price, from Acuity (kept 6 h)
 
 function xbodyPhoneKey(phone) {
   return String(phone || '').replace(/\D/g, '').slice(-9);
 }
 
+async function xbodyReadBooking(request) {
+  let body;
+  try {
+    const raw = await request.text();
+    if (raw.length > 4096) return { error: jsonResponse({ error: 'Твърде голяма заявка.' }, 413) };
+    body = JSON.parse(raw);
+  } catch (_) {
+    return { error: jsonResponse({ error: 'Невалидна заявка.' }, 400) };
+  }
+  const now = Date.now();
+  const out = {
+    email: String((body && body.email) || '').trim().toLowerCase(),
+    phone: String((body && body.phone) || '').trim().slice(0, 40),
+    name: String((body && body.name) || '').trim().replace(/\s+/g, ' ').slice(0, 80),
+    setupIntent: String((body && body.setupIntent) || ''),
+    times: [...new Set((Array.isArray(body && body.times) ? body.times : []).map(String))]
+      .filter((t) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2}$/.test(t))
+      .filter((t) => {
+        const ms = new Date(t.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).getTime();
+        return Number.isFinite(ms) && ms > now && ms < now + 120 * 86400000;
+      })
+      .sort(),
+  };
+  if (!out.email.includes('@') || xbodyPhoneKey(out.phone).length < 6 || !out.times.length || out.times.length > XBODY_BOOK_MAX) {
+    return { error: jsonResponse({ error: 'Невалидни данни за записване.' }, 400) };
+  }
+  return out;
+}
+
+async function xbodyStripe(env, method, path, params) {
+  const init = { method, headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } };
+  let url = `https://api.stripe.com/v1/${path}`;
+  if (params) {
+    const form = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== null && v !== '') form.append(k, String(v));
+    if (method === 'GET') url += (url.includes('?') ? '&' : '?') + form.toString();
+    else {
+      init.body = form.toString();
+      init.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    }
+  }
+  const resp = await fetch(url, init);
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(`stripe ${path.split('/')[0]} ${resp.status} ${(data.error && data.error.code) || ''}`);
+  return data;
+}
+
+async function xbodyPrice(env) {
+  if (xbodyPriceMemo && Date.now() - xbodyPriceMemo.at < 6 * 3600 * 1000) return xbodyPriceMemo.price;
+  let price = null;
+  try {
+    const resp = await fetch('https://acuityscheduling.com/api/v1/appointment-types', {
+      headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` },
+    });
+    const list = resp.ok ? await resp.json() : [];
+    const type = (Array.isArray(list) ? list : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
+    const n = type ? Number(type.price) : NaN;
+    if (Number.isFinite(n)) price = n;
+  } catch (err) {
+    console.warn('[xbody-book] price lookup failed:', err.message);
+  }
+  xbodyPriceMemo = { at: Date.now(), price };
+  return price;
+}
+
+/** POST /api/xbody/guarantee — the card guarantee for the chosen hours (a Stripe SetupIntent). */
+async function handleXbodyGuarantee(request, env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return jsonResponse({ error: 'Acuity API не е конфигуриран.' }, 503);
+  if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PUBLISHABLE_KEY) return jsonResponse({ error: 'no_stripe' }, 503);
+  const b = await xbodyReadBooking(request);
+  if (b.error) return b.error;
+  try {
+    const found = await xbodyStripe(env, 'GET', 'customers', { email: b.email, limit: 1 });
+    let customer = found && Array.isArray(found.data) && found.data[0] ? found.data[0].id : '';
+    if (!customer) {
+      const created = await xbodyStripe(env, 'POST', 'customers', {
+        email: b.email, name: b.name, phone: b.phone, 'metadata[source]': 'xbody-app',
+      });
+      customer = created.id;
+    }
+    const si = await xbodyStripe(env, 'POST', 'setup_intents', {
+      customer,
+      usage: 'off_session',
+      'payment_method_types[]': 'card',
+      description: `XBODY Burgas — гаранция за ${b.times.length} ч.`,
+      'metadata[email]': b.email,
+      'metadata[times]': b.times.join(','),
+    });
+    const price = await xbodyPrice(env);
+    return jsonResponse({
+      clientSecret: si.client_secret,
+      publishableKey: env.STRIPE_PUBLISHABLE_KEY,
+      price,
+      total: price === null ? null : Math.round(price * b.times.length * 100) / 100,
+    });
+  } catch (err) {
+    console.error('[xbody-guarantee] failed:', err.message);
+    return jsonResponse({ error: 'Гаранцията с карта не може да се започне в момента.' }, 502);
+  }
+}
+
+/** POST /api/xbody/book — the chosen hours, booked one by one (see above). */
 async function handleXbodyBook(request, env) {
   const userId = env.ACUITY_USER_ID;
   const apiKey = env.ACUITY_API_KEY;
   if (!userId || !apiKey) return jsonResponse({ error: 'Acuity API не е конфигуриран.' }, 503);
-  let body;
-  try {
-    const raw = await request.text();
-    if (raw.length > 4096) return jsonResponse({ error: 'Твърде голяма заявка.' }, 413);
-    body = JSON.parse(raw);
-  } catch (_) {
-    return jsonResponse({ error: 'Невалидна заявка.' }, 400);
-  }
-  const email = String((body && body.email) || '').trim().toLowerCase();
-  const phoneKey = xbodyPhoneKey(body && body.phone);
-  const now = Date.now();
-  const times = [...new Set((Array.isArray(body && body.times) ? body.times : []).map(String))]
-    .filter((t) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2}$/.test(t))
-    .filter((t) => {
-      const ms = new Date(t.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).getTime();
-      return Number.isFinite(ms) && ms > now && ms < now + 120 * 86400000;
-    })
-    .sort();
-  if (!email.includes('@') || phoneKey.length < 6 || !times.length || times.length > XBODY_BOOK_MAX) {
-    return jsonResponse({ error: 'Невалидни данни за записване.' }, 400);
+  const b = await xbodyReadBooking(request);
+  if (b.error) return b.error;
+  const { email, times } = b;
+  const phoneKey = xbodyPhoneKey(b.phone);
+  const auth = btoa(`${userId}:${apiKey}`);
+  const stripeOn = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
+
+  // the card guarantee: a SetupIntent of this client, for these hours, confirmed, not used yet
+  let guarantee = null;
+  if (stripeOn) {
+    if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse({ error: 'card_required' }, 402);
+    try {
+      const si = await xbodyStripe(env, 'GET', `setup_intents/${b.setupIntent}`, { 'expand[]': 'payment_method' });
+      const chosen = String((si.metadata && si.metadata.times) || '').split(',');
+      const ok = si.status === 'succeeded' && si.metadata && si.metadata.email === email && !si.metadata.acuity &&
+        times.every((t) => chosen.includes(t)) && Date.now() / 1000 - (si.created || 0) < 3600;
+      if (!ok) return jsonResponse({ error: 'card_required' }, 402);
+      const card = si.payment_method && si.payment_method.card;
+      guarantee = {
+        id: si.id,
+        note: `Гаранция с карта (приложение XBODY): Stripe ${si.customer}` +
+          (card ? `, ${card.brand} •••• ${card.last4}` : '') + '. Нищо не е изтеглено.',
+      };
+    } catch (err) {
+      console.error('[xbody-book] setup intent check failed:', err.message);
+      return jsonResponse({ error: 'Картата не може да се провери в момента.' }, 502);
+    }
   }
 
-  const auth = btoa(`${userId}:${apiKey}`);
   // the client's last XBODY Burgas booking (with its form answers): who they are and what they answered
   let previous = null;
   try {
@@ -17272,19 +17390,21 @@ async function handleXbodyBook(request, env) {
     console.error('[xbody-book] lookup failed:', err.message);
     return jsonResponse({ error: 'Записването не е възможно в момента.' }, 502);
   }
-  if (!previous) {
-    // not a known client (or the phone differs): the first booking goes through Acuity's page
+  if (!previous && !guarantee) {
+    // no card and not a known client: the first booking goes through Acuity's page
     return jsonResponse({ error: 'first_booking' }, 403);
   }
 
   const fields = [];
-  for (const form of Array.isArray(previous.forms) ? previous.forms : []) {
+  for (const form of Array.isArray(previous && previous.forms) ? previous.forms : []) {
     for (const v of Array.isArray(form && form.values) ? form.values : []) {
       if (v && v.fieldID && v.value !== undefined && v.value !== null && v.value !== '') {
         fields.push({ id: v.fieldID, value: v.value });
       }
     }
   }
+  if (!previous) fields.push({ id: 3583430, value: 'yes' });   // the terms, accepted in the app (as the ?field:3583430=yes link)
+  const names = b.name.split(' ');
   const booked = [];
   const failed = [];
   for (const time of times) {   // one by one, as separate bookings
@@ -17296,13 +17416,14 @@ async function handleXbodyBook(request, env) {
           datetime: time,
           appointmentTypeID: Number(XBODY_ACUITY_BOOKING.appointmentTypeID),
           calendarID: Number(XBODY_ACUITY_BOOKING.calendarID),
-          firstName: previous.firstName || '',
-          lastName: previous.lastName || '',
-          email: previous.email || email,
-          phone: previous.phone || '',
+          firstName: (previous && previous.firstName) || names[0] || '',
+          lastName: (previous && previous.lastName) || names.slice(1).join(' '),
+          email: (previous && previous.email) || email,
+          phone: (previous && previous.phone) || b.phone,
           timezone: XBODY_ACUITY_BOOKING.timezone,
           smsOptIn: true,
           fields,
+          notes: guarantee ? guarantee.note : undefined,
         }),
       });
       const data = await resp.json().catch(() => ({}));
@@ -17315,6 +17436,11 @@ async function handleXbodyBook(request, env) {
     } catch (err) {
       failed.push({ time, error: 'error' });
     }
+  }
+  if (guarantee) {   // the guarantee is used: it names its bookings and cannot book again
+    await xbodyStripe(env, 'POST', `setup_intents/${guarantee.id}`, {
+      'metadata[acuity]': booked.map((x) => x.id).join(',') || 'none',
+    }).catch((err) => console.warn('[xbody-book] setup intent mark failed:', err.message));
   }
   if (booked.length) {
     await dropXbodyApptCache(env, email);
@@ -17788,6 +17914,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
         if (rlErr) return rlErr;
         return await handleXbodyAppointmentsVersion(request, env);
+      } else if (url.pathname === '/api/xbody/guarantee' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'XBODY_BOOK');
+        if (rlErr) return rlErr;
+        return await handleXbodyGuarantee(request, env);
       } else if (url.pathname === '/api/xbody/book' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'XBODY_BOOK');
         if (rlErr) return rlErr;
