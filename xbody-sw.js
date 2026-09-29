@@ -1,6 +1,6 @@
 // Service Worker for XBody Ability PWA
 // Minimal, isolated from the NutriPlan service worker
-const CACHE_NAME = 'xbody-v15';
+const CACHE_NAME = 'xbody-v16';
 // Core files that MUST be cached for the PWA shell to work offline.
 const STATIC_CACHE = [
   'xbody.html',
