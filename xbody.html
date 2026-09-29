@@ -1295,6 +1295,22 @@
         .xb-card-field { margin: 10px 0 4px; padding: 14px 12px; border-radius: 12px; border: 1px solid #dcd9df; background: #fff; }
         html[data-theme="dark"] .xb-card-field { background: #26232a; border-color: #3a353f; }
         .xb-sheet .xb-cart-msg { font-size: 14px; line-height: 1.5; }
+        /* changing an hour: the bar above the calendar while a new hour is chosen */
+        .xb-move {
+            display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 12px 12px 12px 14px; border-radius: 14px;
+            border: 2px solid var(--xb-red); background: var(--xb-soft); color: var(--xb-text); font-size: 14px; line-height: 1.4;
+        }
+        .xb-move.hidden { display: none; }
+        .xb-move i { color: var(--xb-red); font-size: 18px; }
+        .xb-move span { flex: 1; min-width: 0; }
+        .xb-move small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--xb-muted); }
+        .xb-move button {
+            flex: none; min-height: 40px; padding: 0 14px; border: 1px solid var(--xb-slot-line); border-radius: 12px;
+            background: var(--xb-slot); color: var(--xb-text); font: 600 13px Roboto, sans-serif; cursor: pointer;
+        }
+        .xb-slot.moving { border: 2px dashed var(--xb-red) !important; }
+        .xb-sheet .xb-danger { border: 1px solid #d32f2f; background: transparent; color: #d32f2f; }
+        html[data-theme="dark"] .xb-sheet .xb-danger { border-color: #ef4444; color: #fca5a5; }
 
         @media (prefers-reduced-motion: no-preference) {
             @keyframes xbRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
@@ -1452,6 +1468,7 @@
                 <p class="xb-info-addr">📍 Ability Fitness &amp; SPA, Хотел България, ул. „Александровска“ 21, Център, Бургас</p>
                 <button type="button" class="xb-next hidden" id="xb-next"></button>
             </div>
+            <div class="xb-move hidden" id="xb-move" role="status"></div>
             <div class="xb-card xb-cal">
                 <div class="xb-cal-head">
                     <button type="button" class="xb-nav" id="xb-prev" aria-label="Предишен месец"><i class="fas fa-chevron-left"></i></button>
@@ -1589,12 +1606,15 @@
             const slotsEl = document.getElementById('xb-slots');
             const titleEl = document.getElementById('xb-slots-title');
             const nextEl = document.getElementById('xb-next');
+            const moveEl = document.getElementById('xb-move');
+            const LATE_MS = 12 * 3600 * 1000;
 
             let bookingUrl = '';
             let fallback = null;
             let active = false;      // this calendar is the booking screen
             let inFrame = false;     // Acuity's page is up (a free hour was chosen)
             let failed = false;      // gave up once: the Acuity page from then on
+            let moving = null;       // { id, iso }: the client's own hour, being moved to a free one chosen here
             let view = null;         // { y, m }
             let selected = '';       // 'YYYY-MM-DD'
             let picked = false;      // chosen by the client (else it follows the first free day)
@@ -1779,8 +1799,19 @@
                     nextEl.classList.add('hidden');
                 }
 
+                renderMove();
                 renderSlots(key, off, data, free, own);
                 renderBar();
+            }
+
+            /* changing an hour: a bar above the calendar until a free hour is chosen (or Откажи) */
+            function renderMove() {
+                if (!moveEl) return;
+                moveEl.classList.toggle('hidden', !moving);
+                if (!moving) return;
+                moveEl.innerHTML = '<i class="fas fa-exchange-alt"></i><span><small>Промяна на час</small>' +
+                    'Изберете нов свободен час за <b>' + esc(dayLabel(moving.iso.slice(0, 10)) + ' · ' + moving.iso.slice(11, 16)) + '</b></span>' +
+                    '<button type="button" data-stop="1">Откажи</button>';
             }
 
             function renderSlots(key, off, data, free, own) {
@@ -1819,6 +1850,8 @@
                     if (x.own) {
                         return x.own.past
                             ? '<button type="button" class="xb-slot done" disabled><b>' + esc(x.hm) + '</b><small>проведена ✓</small></button>'
+                            : moving && moving.iso === x.own.iso
+                            ? '<button type="button" class="xb-slot mine moving" data-own="' + esc(x.own.iso) + '"><b>' + esc(x.hm) + '</b><small>премества се</small></button>'
                             : '<button type="button" class="xb-slot mine" data-own="' + esc(x.own.iso) + '"><b>' + esc(x.hm) + '</b><small>вашият час</small></button>';
                     }
                     const chosen = cart.indexOf(x.iso) >= 0;
@@ -1939,6 +1972,36 @@
                     if (what === 'book') { bookCart(); return; }
                     if (what === 'card') { if (cardStep) cardStep(); return; }
                     if (what === 'cancel-card') { cardStep = null; openCartSheet(); return; }
+                    if (what === 'move') {   // Промени часа: a free hour is chosen in the calendar
+                        sheet.classList.add('hidden');
+                        moving = { id: sheetOwn.item.id, iso: sheetOwn.iso };
+                        render();
+                        if (moveEl) moveEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        return;
+                    }
+                    if (what === 'move-no') { sheet.classList.add('hidden'); return; }
+                    if (what === 'move-yes') {
+                        const from = moving.iso, to = sheetMoveTo;
+                        manageCall('/api/xbody/reschedule', { id: moving.id, time: to }, 'move-yes', function () {
+                            moving = null;
+                            afterManage([from, to], 'Часът е променен ✓',
+                                '<li><span>' + esc(dayLabel(to.slice(0, 10))) + ' · <b>' + esc(to.slice(11, 16)) + '</b></span></li>',
+                                'Потвърждение идва на имейла Ви.');
+                        });
+                        return;
+                    }
+                    if (what === 'cancel-ask') { openCancelAsk(); return; }
+                    if (what === 'cancel-no') { openSheet(sheetOwn); return; }
+                    if (what === 'cancel-yes') {
+                        const o = sheetOwn;
+                        manageCall('/api/xbody/cancel', { id: o.item.id }, 'cancel-yes', function () {
+                            if (moving && moving.id === o.item.id) moving = null;
+                            afterManage([o.iso], 'Часът е отказан ✓',
+                                '<li><span>' + esc(dayLabel(o.iso.slice(0, 10))) + ' · <b>' + esc(o.hm) + '</b></span></li>',
+                                'Часът е освободен. Потвърждение идва на имейла Ви.');
+                        });
+                        return;
+                    }
                     if (what === 'first') {   // a first booking: Acuity's form for the first hour, the rest stay chosen
                         sheet.classList.add('hidden');
                         const first = cart[0];
@@ -1998,7 +2061,7 @@
             document.body.appendChild(bar);
             bar.querySelector('.xb-cart-go').addEventListener('click', function () { openCartSheet(); });
             function renderBar() {
-                const show = active && !inFrame && cart.length > 0;
+                const show = active && !inFrame && !moving && cart.length > 0;
                 bar.classList.toggle('hidden', !show);
                 document.body.classList.toggle('xb-cart-on', show);
                 if (!show) return;
@@ -2173,17 +2236,126 @@
                     openCartSheet('Няма връзка. Опитайте отново.');
                 });
             }
+            /* the client's own hour: change or cancel it here (the worker → Acuity's API, Acuity's own client rules) */
+            let sheetOwn = null;
+            let sheetMoveTo = '';
+            function isLate(iso) { return isoTime(iso) - Date.now() < LATE_MS; }
+            function lateText(iso) {
+                const hours = Math.max(0, (isoTime(iso) - Date.now()) / 3600000);
+                const left = hours < 1 ? 'по-малко от час' : 'около ' + Math.round(hours) + (Math.round(hours) === 1 ? ' час' : ' часа');
+                return '<p class="xb-late-text"><b>До тренировката остава ' + left + '.</b> Според условията за резервация при ' +
+                    '<b>отмяна, промяна или неявяване</b> по-малко от 12 часа преди тренировката тя се заплаща от картата Ви, ' +
+                    '<b>без възможност за възстановяване на сумата</b>.</p>';
+            }
+            /* an XBODY Burgas hour the app can change (the other studio's hours keep their own Acuity page) */
+            function manageable(item) {
+                return Boolean(item && item.id && !item.canceled && (!item.calendarID || String(item.calendarID) === CALENDAR_ID) &&
+                    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(item.datetime || ''));
+            }
             function openSheet(o) {
                 ensureSheet();
-                const link = o.item && o.item.confirmationPage;
+                sheetOwn = o;
+                const item = o.item || {};
+                const can = manageable(item);
+                const canMove = can && item.canClientReschedule !== false;
+                const canCancel = can && item.canClientCancel !== false;
+                const link = !can && item.confirmationPage;
                 sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Вашият час">' +
                     '<div class="xb-sheet-handle"></div><h3>Вашият час</h3>' +
                     '<p>' + esc(dayLabel(o.iso.slice(0, 10))) + ' · ' + esc(o.hm) + '</p>' +
+                    ((canMove || canCancel) && isLate(o.iso) ? lateText(o.iso) : '') +
+                    (canMove ? '<button type="button" class="xb-primary" data-go="move"><i class="fas fa-pen"></i>Промени часа</button>' : '') +
+                    (canCancel ? '<button type="button" class="xb-danger" data-go="cancel-ask"><i class="fas fa-times"></i>Откажи часа</button>' : '') +
+                    (can && !canMove && !canCancel ? '<p class="xb-cart-msg">Този час вече не може да се мести или отказва онлайн. ' +
+                        'За промяна се обадете на студиото.</p>' : '') +
                     (link ? '<a class="xb-primary" href="' + esc(link) + '" data-start="' + isoTime(o.iso) + '" target="_blank" rel="noopener noreferrer"><i class="fas fa-pen"></i>Промяна или отказ</a>' : '') +
                     '<button type="button" class="xb-secondary" data-list="1"><i class="fas fa-list"></i>Моите часове</button>' +
-                    '<button type="button" class="xb-secondary" data-close="1">Затвори</button></div>';
+                    '<button type="button" class="xb-secondary xb-quiet" data-close="1">Затвори</button></div>';
                 sheet.classList.remove('hidden');
             }
+            function openCancelAsk() {
+                const o = sheetOwn;
+                sheet.innerHTML = '<div class="xb-sheet' + (isLate(o.iso) ? ' xb-late' : '') + '" role="alertdialog" aria-modal="true" aria-label="Отказ от час">' +
+                    '<div class="xb-sheet-handle"></div><h3>Отказ от час</h3>' +
+                    '<p>' + esc(dayLabel(o.iso.slice(0, 10))) + ' · ' + esc(o.hm) + '</p>' +
+                    (isLate(o.iso) ? lateText(o.iso) : '<p class="xb-cart-msg">Сигурни ли сте? След отказа часът се освобождава за други клиенти.</p>') +
+                    '<button type="button" class="xb-danger" data-go="cancel-yes"><i class="fas fa-times"></i>Да, откажи часа</button>' +
+                    '<button type="button" class="xb-secondary" data-go="cancel-no">Назад — запазвам часа</button></div>';
+                sheet.classList.remove('hidden');
+            }
+            function openMoveConfirm(iso) {
+                ensureSheet();
+                sheetMoveTo = iso;
+                const line = function (label, t) {
+                    return '<li><span>' + label + '</span><span>' + esc(dayLabel(t.slice(0, 10))) + ' · <b>' + esc(t.slice(11, 16)) + '</b></span></li>';
+                };
+                sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Промяна на час">' +
+                    '<div class="xb-sheet-handle"></div><h3>Промяна на час</h3>' +
+                    '<ul class="xb-cart-list">' + line('От', moving.iso) + line('На', iso) + '</ul>' +
+                    (isLate(moving.iso) ? lateText(moving.iso) : '') +
+                    '<button type="button" class="xb-primary" data-go="move-yes"><i class="fas fa-check"></i>Потвърди промяната</button>' +
+                    '<button type="button" class="xb-secondary" data-go="move-no">Избери друг час</button></div>';
+                sheet.classList.remove('hidden');
+            }
+            function manageCall(path, payload, btn, done) {
+                const c = contact();
+                booking = true;
+                busyButton('[data-go="' + btn + '"]', 'Момент…');
+                postJson(path, { email: c.email, phone: c.phone, id: payload.id, time: payload.time }).then(function (res) {
+                    booking = false;
+                    if (res.status === 200 && res.d && res.d.ok) { done(res.d); return; }
+                    const e = res.d && res.d.error;
+                    manageError(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
+                        : e === 'too_late' ? 'Този час вече не може да се мести или отказва онлайн. За промяна се обадете на студиото.'
+                        : e === 'taken' ? 'Новият час не може да бъде зает (току-що е записан от друг или е извън правилата) — изберете друг.'
+                        : e === 'not_found' ? 'Часът не беше намерен с имейла и телефона от приложението.'
+                        : e === 'already_canceled' ? 'Този час вече е отменен.'
+                        : 'Промяната не успя. Опитайте отново.');
+                }).catch(function () {
+                    booking = false;
+                    manageError('Няма връзка. Опитайте отново.');
+                });
+            }
+            function manageError(msg) {
+                sheet.innerHTML = '<div class="xb-sheet" role="alertdialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
+                    '<h3>Не стана</h3><p class="xb-cart-msg">' + esc(msg) + '</p>' +
+                    '<button type="button" class="xb-primary" data-close="1">Добре</button></div>';
+                sheet.classList.remove('hidden');
+            }
+            function afterManage(times, title, lines, msg) {
+                const c = contact();
+                window.dispatchEvent(new CustomEvent('xbody-appt-invalidate', { detail: { email: c.email } }));
+                const months = {};
+                times.forEach(function (t) { months[String(t).slice(0, 7)] = true; });
+                Object.keys(months).forEach(function (m) { ensureMonth(m, true).catch(function () {}); });
+                sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
+                    '<h3>' + title + '</h3><ul class="xb-cart-list ok">' + lines + '</ul>' +
+                    '<p class="xb-cart-msg">' + msg + '</p>' +
+                    '<button type="button" class="xb-primary" data-close="1">Готово</button></div>';
+                sheet.classList.remove('hidden');
+                render();
+            }
+            if (moveEl) moveEl.addEventListener('click', function (e) {
+                if (e.target.closest('[data-stop]')) { moving = null; render(); }
+            });
+            /* Промяна in Моите часове: an XBODY Burgas hour is changed here too (not on Acuity's page) */
+            document.addEventListener('click', function (e) {
+                const a = e.target.closest && e.target.closest('a[data-appt-id]');
+                if (!a || !active) return;
+                const A = window.XBodyAppointments;
+                const data = A && A.data ? A.data() : null;
+                const item = data ? [].concat(data.upcoming || [], data.past || []).filter(function (x) {
+                    return x && String(x.id) === a.dataset.apptId;
+                })[0] : null;
+                if (!manageable(item)) return;   // e.g. the other studio's hour: its own page, as before
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                const list = document.getElementById('appointments-overlay');
+                const x = document.getElementById('appointments-close');
+                if (list && !list.classList.contains('hidden') && x) x.click();
+                if (inFrame) backToCalendar();
+                openSheet({ iso: item.datetime, hm: item.datetime.slice(11, 16), item: item });
+            }, true);
 
             daysEl.addEventListener('click', function (e) {
                 const b = e.target.closest('button[data-day]');
@@ -2196,6 +2368,7 @@
                 const b = e.target.closest('button');
                 if (!b) return;
                 if (b.dataset.iso) {
+                    if (moving) { openMoveConfirm(b.dataset.iso); return; }
                     if (cart.indexOf(b.dataset.iso) >= 0) toggleCart(b.dataset.iso); else openSlotMenu(b.dataset.iso);
                     return;
                 }
@@ -2989,7 +3162,8 @@
                     ? ''
                     : canChange
                     ? '<a class="xbody-appt-change-btn" href="' + escapeHtml(item.confirmationPage) +
-                        '" data-start="' + apptStart(item, dt) + '" target="_blank" rel="noopener noreferrer">Промяна</a>'
+                        '" data-start="' + apptStart(item, dt) + '"' + (item.id ? ' data-appt-id="' + escapeHtml(String(item.id)) + '"' : '') +
+                        ' target="_blank" rel="noopener noreferrer">Промяна</a>'
                     : '<span class="xbody-appt-change-btn disabled">Промяна</span>';
                 const status = item.canceled
                     ? '<p class="xbody-appt-status">Отменен час</p>'

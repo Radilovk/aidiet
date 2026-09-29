@@ -1618,6 +1618,7 @@ const RATE_LIMIT = {
   FORGOT_PASSWORD:{ maxRequests: 5,  windowSec: 900 },  // 5 reset requests per 15 min per IP
   XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 }, // 15 lookups/min per IP
   XBODY_BOOK: { maxRequests: 8, windowSec: 600 }, // several hours at once (card guarantee + booking): 8 calls / 10 min per IP
+  XBODY_MANAGE: { maxRequests: 10, windowSec: 600 }, // change / cancel an hour in the app: 10 calls / 10 min per IP
   ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 }, // debounced client sync burst
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
   WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 },
@@ -17463,6 +17464,104 @@ async function handleXbodyBook(request, env) {
   return jsonResponse({ booked, failed }, booked.length || !failed.length ? 200 : 409);
 }
 
+/**
+ * Change / cancel a client's own XBODY Burgas hour inside the app (no Acuity page, so nothing of the app has to
+ * live in the Acuity account, which is shared with the other studio):
+ *   POST /api/xbody/cancel     { email, phone, id }        → PUT /appointments/:id/cancel
+ *   POST /api/xbody/reschedule { email, phone, id, time }  → PUT /appointments/:id/reschedule
+ * The same proof as for booking: the appointment's e-mail and phone. Only calendar 4715375; the calls go without
+ * admin=true, so Acuity applies its own rules for clients (how late a change / cancellation is allowed, free hours).
+ */
+async function xbodyReadManage(request, withTime) {
+  let body;
+  try {
+    const raw = await request.text();
+    if (raw.length > 2048) return { error: jsonResponse({ error: 'Твърде голяма заявка.' }, 413) };
+    body = JSON.parse(raw);
+  } catch (_) {
+    return { error: jsonResponse({ error: 'Невалидна заявка.' }, 400) };
+  }
+  const out = {
+    email: String((body && body.email) || '').trim().toLowerCase(),
+    phone: String((body && body.phone) || '').trim().slice(0, 40),
+    id: String((body && body.id) || ''),
+    time: String((body && body.time) || ''),
+  };
+  let ok = out.email.includes('@') && xbodyPhoneKey(out.phone).length >= 6 && /^\d{1,15}$/.test(out.id);
+  if (ok && withTime) {
+    const ms = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2}$/.test(out.time)
+      ? new Date(out.time.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).getTime() : NaN;
+    ok = Number.isFinite(ms) && ms > Date.now() && ms < Date.now() + 120 * 86400000;
+  }
+  if (!ok) return { error: jsonResponse({ error: 'Невалидни данни.' }, 400) };
+  return out;
+}
+
+/** The appointment, if it is this client's XBODY Burgas hour; else an answer to send back. */
+async function xbodyOwnAppointment(env, b) {
+  const auth = btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`);
+  const resp = await fetch(`https://acuityscheduling.com/api/v1/appointments/${b.id}`, {
+    headers: { Authorization: `Basic ${auth}` },
+  }).catch(() => null);
+  if (!resp || (!resp.ok && resp.status !== 404)) return { error: jsonResponse({ error: 'Няма връзка със системата за записване.' }, 502) };
+  const appt = resp.ok ? await resp.json().catch(() => null) : null;
+  const mine = appt && String(appt.calendarID || '') === XBODY_ACUITY_BOOKING.calendarID &&
+    String(appt.email || '').trim().toLowerCase() === b.email && xbodyPhoneKey(appt.phone) === xbodyPhoneKey(b.phone);
+  if (!mine) return { error: jsonResponse({ error: 'not_found' }, 404) };
+  if (appt.canceled) return { error: jsonResponse({ error: 'already_canceled' }, 409) };
+  return { appt, auth };
+}
+
+/** Acuity's answer to a change: ok, or a short reason for the app. */
+async function xbodyAcuityChange(url, auth, body) {
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).catch(() => null);
+  if (!resp) return { status: 502, error: 'network' };
+  const data = await resp.json().catch(() => ({}));
+  if (resp.ok) return { status: 200, data };
+  console.warn('[xbody-manage] Acuity refused', resp.status, JSON.stringify(data).slice(0, 200));
+  return { status: resp.status === 400 || resp.status === 403 ? 409 : 502, error: String((data && data.error) || 'refused') };
+}
+
+async function xbodyAfterChange(env, email, times) {
+  await dropXbodyApptCache(env, email);
+  for (const t of times) if (t) xbodyAvailMemo.delete(String(t).slice(0, 7));
+}
+
+async function handleXbodyCancel(request, env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return jsonResponse({ error: 'Acuity API не е конфигуриран.' }, 503);
+  const b = await xbodyReadManage(request, false);
+  if (b.error) return b.error;
+  const own = await xbodyOwnAppointment(env, b);
+  if (own.error) return own.error;
+  if (own.appt.canClientCancel === false) return jsonResponse({ error: 'too_late' }, 409);
+  const r = await xbodyAcuityChange(`https://acuityscheduling.com/api/v1/appointments/${b.id}/cancel`, own.auth,
+    { cancelNote: 'Отказан от клиента в приложението XBODY' });
+  if (r.error) return jsonResponse({ error: r.error }, r.status);
+  await xbodyAfterChange(env, b.email, [own.appt.datetime]);
+  return jsonResponse({ ok: true, id: Number(b.id) });
+}
+
+async function handleXbodyReschedule(request, env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return jsonResponse({ error: 'Acuity API не е конфигуриран.' }, 503);
+  const b = await xbodyReadManage(request, true);
+  if (b.error) return b.error;
+  const own = await xbodyOwnAppointment(env, b);
+  if (own.error) return own.error;
+  if (own.appt.canClientReschedule === false) return jsonResponse({ error: 'too_late' }, 409);
+  const r = await xbodyAcuityChange(`https://acuityscheduling.com/api/v1/appointments/${b.id}/reschedule`, own.auth, {
+    datetime: b.time,
+    calendarID: Number(XBODY_ACUITY_BOOKING.calendarID),
+    timezone: XBODY_ACUITY_BOOKING.timezone,
+  });
+  if (r.error) return jsonResponse({ error: r.error === 'network' ? r.error : 'taken' }, r.status);
+  await xbodyAfterChange(env, b.email, [own.appt.datetime, b.time]);
+  return jsonResponse({ ok: true, id: Number(b.id), time: (r.data && r.data.datetime) || b.time });
+}
+
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
   const apiKey = env.ACUITY_API_KEY;
@@ -17936,6 +18035,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'XBODY_BOOK');
         if (rlErr) return rlErr;
         return await handleXbodyBook(request, env);
+      } else if ((url.pathname === '/api/xbody/cancel' || url.pathname === '/api/xbody/reschedule') && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'XBODY_MANAGE');
+        if (rlErr) return rlErr;
+        return url.pathname === '/api/xbody/cancel' ? await handleXbodyCancel(request, env) : await handleXbodyReschedule(request, env);
       } else if (url.pathname === '/api/xbody/availability' && request.method === 'GET') {
         // no KV rate limit (that is a KV write per call): the answer is shared and cached, the month is bounded
         return await handleXbodyAvailability(request, env, ctx);
