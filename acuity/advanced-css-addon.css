@@ -697,3 +697,6 @@ div[aria-labelledby^="type-label-"]:not(:has(button[data-action])) svg + div p::
         background: rgba(239, 68, 68, .12) !important; color: #fca5a5 !important; border-color: rgba(239, 68, 68, .38) !important;
     }
 }
+
+/* ---------- 15. v13: без точка под свободните дни (те и без това са единствените светли, активни дни) ---------- */
+html .react-calendar__month-view__days__day abbr::after { content: none !important; display: none !important; }

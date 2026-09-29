@@ -1147,28 +1147,25 @@
             border-radius: 50%; transition: transform .2s ease, background-color .2s ease;
         }
         .xb-day.free, .xb-day.mine, .xb-day.done { color: var(--xb-text); font-weight: 700; cursor: pointer; }
-        .xb-day.free::after {
-            content: ""; position: absolute; left: 50%; bottom: 5px; width: 5px; height: 5px; margin-left: -2.5px;
+        /* the dot = the client's own training (red: coming, grey: done); free days need no mark — only they are lit */
+        .xb-day.mine::after, .xb-day.done::after {
+            content: ""; position: absolute; left: 50%; bottom: 4px; width: 6px; height: 6px; margin-left: -3px;
             border-radius: 50%; background: var(--xb-red);
         }
+        .xb-day.done::after { background: var(--xb-faint); }
         .xb-day.today::before { box-shadow: inset 0 0 0 1.5px var(--xb-line); }
-        .xb-day.mine::before { box-shadow: inset 0 0 0 2px var(--xb-red); }
-        .xb-day.done::before { box-shadow: inset 0 0 0 2px var(--xb-faint); }
-        .xb-day.done span::after {
-            content: "✓"; position: absolute; top: -9px; right: -10px; font-size: 10px; color: var(--xb-muted);
-        }
         .xb-day.sel { color: #fff; }
         .xb-day.sel::before {
             background: linear-gradient(145deg, #ef4444, #b91c1c); box-shadow: 0 6px 16px rgba(211, 47, 47, .45) !important;
         }
         .xb-day.sel::after { background: #fff; }
-        .xb-day.sel span::after { color: #fff; }
         .xb-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; padding: 8px 4px 4px; font-size: 11.5px; color: var(--xb-muted); }
         .xb-legend span { display: inline-flex; align-items: center; gap: 6px; }
         .xb-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
-        .xb-lg-free { width: 6px !important; height: 6px !important; background: var(--xb-red); }
-        .xb-lg-mine { box-shadow: inset 0 0 0 2px var(--xb-red); }
-        .xb-lg-done { box-shadow: inset 0 0 0 2px var(--xb-faint); }
+        .xb-legend i { width: 7px; height: 7px; }
+        .xb-lg-mine { background: var(--xb-red); }
+        .xb-lg-done { background: var(--xb-faint); }
+        .xb-lg-cart { width: 10px !important; height: 10px !important; border: 1.5px dashed var(--xb-red); box-sizing: border-box; }
 
         .xb-slots-title {
             margin: 18px 2px 10px; padding-left: 10px; border-left: 3px solid var(--xb-red); font-size: 13px; font-weight: 700;
@@ -1231,7 +1228,7 @@
             width: 18px; height: 18px; border-radius: 50%; background: var(--xb-red); color: #fff; font-size: 10px;
             display: flex; align-items: center; justify-content: center;
         }
-        .xb-day.cart::after { width: 7px !important; height: 7px !important; margin-left: -3.5px !important; bottom: 3px !important; background: var(--xb-red) !important; box-shadow: 0 0 0 2px var(--xb-card); }
+        .xb-day.cart:not(.sel)::before { border: 1.5px dashed var(--xb-red); box-sizing: border-box; }   /* chosen, not yet booked */
         .xb-cart {
             position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); z-index: 450;
             max-width: 456px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px;
@@ -1426,9 +1423,9 @@
                 <div class="xb-week" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span></div>
                 <div class="xb-days" id="xb-days"></div>
                 <div class="xb-legend" aria-hidden="true">
-                    <span><i class="xb-lg-free"></i>свободни часове</span>
                     <span><i class="xb-lg-mine"></i>ваша тренировка</span>
                     <span><i class="xb-lg-done"></i>проведена</span>
+                    <span><i class="xb-lg-cart"></i>избран час</span>
                 </div>
             </div>
             <h3 class="xb-slots-title" id="xb-slots-title"></h3>
