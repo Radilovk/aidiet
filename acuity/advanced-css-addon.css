@@ -414,18 +414,8 @@ p[for="tos"] a[href*="privacy"] span::after { content: "Политиката з�
     padding-left: 10px; border-left: 3px solid #d32f2f; line-height: 1.1;
 }
 
-/* Часовете: част от деня под часа (по самия час — aria-label="13:15") */
-.time-selection { position: relative; overflow: hidden; gap: 2px; }
-.time-selection::after {
-    font-family: Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase;
-    opacity: .6; line-height: 1;
-}
-.time-selection[aria-label^="06:"]::after, .time-selection[aria-label^="07:"]::after, .time-selection[aria-label^="08:"]::after,
-.time-selection[aria-label^="09:"]::after, .time-selection[aria-label^="10:"]::after, .time-selection[aria-label^="11:"]::after { content: "сутрин"; }
-.time-selection[aria-label^="12:"]::after, .time-selection[aria-label^="13:"]::after, .time-selection[aria-label^="14:"]::after,
-.time-selection[aria-label^="15:"]::after, .time-selection[aria-label^="16:"]::after { content: "следобед"; }
-.time-selection[aria-label^="17:"]::after, .time-selection[aria-label^="18:"]::after, .time-selection[aria-label^="19:"]::after,
-.time-selection[aria-label^="20:"]::after, .time-selection[aria-label^="21:"]::after, .time-selection[aria-label^="22:"]::after { content: "вечер"; }
+/* Часовете: по-едър час */
+.time-selection { position: relative; overflow: hidden; }
 .time-selection p { font-size: 18px !important; font-weight: 700 !important; letter-spacing: .02em; }
 
 /* Избраният час: градиент и сияние */
