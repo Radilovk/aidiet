@@ -17082,7 +17082,7 @@ async function handleXbodyAcuityWebhook(request, env) {
     method: 'PUT',
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ smsOptIn: true }),
-  }).catch((err) => ({ ok: false, status: 0, text: async () => err.message }));
+  }).catch((err) => new Response(String(err && err.message), { status: 502 }));   // network error: a real Response, so the checks below type-check
   if (!resp.ok) {
     const body = await resp.text().catch(() => '');
     console.error('[xbody-acuity-webhook] smsOptIn update failed:', resp.status, String(body).slice(0, 200));
@@ -17116,6 +17116,101 @@ export async function verifyAcuitySignature(body, signature, apiKey) {
   let diff = 0;
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
   return diff === 0;
+}
+
+/**
+ * GET /api/xbody/availability?month=YYYY-MM — the free hours of one month, for the xbody app's own calendar
+ * (the first booking step; the form and payment stay on Acuity's page, opened straight at the chosen hour).
+ * One answer = the whole month, the same for every client (nothing personal in it).
+ * Costs: no KV at all. Kept 3 min in the worker's memory and in Cloudflare's cache (where available), 60 s in
+ * the browser; Acuity is asked only on a miss: 1 call for the free dates + 1 per free date.
+ * A slightly old answer is harmless: Acuity itself checks the hour again on its form.
+ */
+const XBODY_ACUITY_BOOKING = { appointmentTypeID: '34691465', calendarID: '4715375', timezone: 'Europe/Sofia' };
+const XBODY_AVAIL_TTL_MS = 3 * 60 * 1000;
+const xbodyAvailMemo = new Map();   // month → { at, body }
+
+async function handleXbodyAvailability(request, env, ctx) {
+  const userId = env.ACUITY_USER_ID;
+  const apiKey = env.ACUITY_API_KEY;
+  if (!userId || !apiKey) {
+    return jsonResponse({ error: 'Acuity API не е конфигуриран.' }, 503);
+  }
+  const url = new URL(request.url);
+  const month = String(url.searchParams.get('month') || '');
+  const m = month.match(/^(\d{4})-(\d{2})$/);
+  const now = new Date();
+  const offset = m ? (Number(m[1]) - now.getUTCFullYear()) * 12 + (Number(m[2]) - 1 - now.getUTCMonth()) : NaN;
+  // the previous month too (at the turn of a month the phone and the server can disagree), up to 3 ahead
+  if (!(offset >= -1 && offset <= 3)) {
+    return jsonResponse({ error: 'Невалиден месец.' }, 400);
+  }
+  const cacheHeaders = { cacheControl: 'public, max-age=60' };
+
+  const memo = xbodyAvailMemo.get(month);
+  if (memo && Date.now() - memo.at < XBODY_AVAIL_TTL_MS) {
+    return jsonResponse(memo.body, 200, cacheHeaders);
+  }
+  const cacheKey = new Request(`${url.origin}/__cache/xbody-availability/${month}`);
+  const cache = typeof caches !== 'undefined' ? caches.default : null;
+  if (cache) {
+    try {
+      const hit = await cache.match(cacheKey);
+      if (hit) {
+        const body = await hit.json();
+        if (body && Date.now() - (body.fetchedAt || 0) < XBODY_AVAIL_TTL_MS) {
+          xbodyAvailMemo.set(month, { at: body.fetchedAt, body });
+          return jsonResponse(body, 200, cacheHeaders);
+        }
+      }
+    } catch (err) {
+      console.warn('[xbody-availability] cache read failed:', err.message);
+    }
+  }
+
+  const auth = btoa(`${userId}:${apiKey}`);
+  const acuity = async (path, params) => {
+    const u = new URL(`https://acuityscheduling.com/api/v1/availability/${path}`);
+    for (const [k, v] of Object.entries({ ...params, appointmentTypeID: XBODY_ACUITY_BOOKING.appointmentTypeID,
+      calendarID: XBODY_ACUITY_BOOKING.calendarID, timezone: XBODY_ACUITY_BOOKING.timezone })) {
+      u.searchParams.set(k, v);
+    }
+    const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
+    if (!resp.ok) throw new Error(`${path} ${resp.status}`);
+    const data = await resp.json();
+    if (!Array.isArray(data)) throw new Error(`${path}: not a list`);
+    return data;
+  };
+
+  const days = {};
+  try {
+    const dates = (await acuity('dates', { month }))
+      .map((d) => String((d && d.date) || ''))
+      .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d.startsWith(month));
+    // 4 at a time: quick enough, gentle with Acuity's rate limit
+    for (let i = 0; i < dates.length; i += 4) {
+      await Promise.all(dates.slice(i, i + 4).map(async (date) => {
+        const times = (await acuity('times', { date }))
+          .map((t) => String((t && t.time) || ''))
+          .filter((t) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(t));
+        if (times.length) days[date] = times;
+      }));
+    }
+  } catch (err) {
+    console.error('[xbody-availability] Acuity error:', err.message);
+    if (memo) return jsonResponse(memo.body, 200, cacheHeaders);   // an older answer beats none
+    return jsonResponse({ error: 'Свободните часове не могат да се заредят.' }, 502);
+  }
+
+  const body = { month, days, fetchedAt: Date.now() };
+  xbodyAvailMemo.set(month, { at: body.fetchedAt, body });
+  if (cache) {
+    const put = cache.put(cacheKey, new Response(JSON.stringify(body), {
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${XBODY_AVAIL_TTL_MS / 1000}` },
+    })).catch(() => {});
+    if (ctx && ctx.waitUntil) ctx.waitUntil(put);
+  }
+  return jsonResponse(body, 200, cacheHeaders);
 }
 
 async function handleXbodyAppointments(request, env) {
@@ -17192,6 +17287,7 @@ async function handleXbodyAppointments(request, env) {
       type: appt.type || 'Час',
       duration: appt.duration || '',
       calendar: appt.calendar || '',
+      calendarID: appt.calendarID || null,
       location: appt.location || '',
       canceled: Boolean(appt.canceled),
       canClientCancel: Boolean(appt.canClientCancel),
@@ -17582,6 +17678,9 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
         if (rlErr) return rlErr;
         return await handleXbodyAppointmentsVersion(request, env);
+      } else if (url.pathname === '/api/xbody/availability' && request.method === 'GET') {
+        // no KV rate limit (that is a KV write per call): the answer is shared and cached, the month is bounded
+        return await handleXbodyAvailability(request, env, ctx);
       } else if (url.pathname === '/api/xbody/appointments' && request.method === 'GET') {
         const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
         if (rlErr) return rlErr;

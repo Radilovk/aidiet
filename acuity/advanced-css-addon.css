@@ -43,6 +43,17 @@ div[role="group"]:has(input[name="client.smsOptIn"])::after {
     display: block; font-family: Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 12.5px !important; line-height: 1.45; opacity: .75; margin: 4px 0 2px;
 }
 
+/* Менюто при избор на час */
+div[role="menu"] li[role="menuitem"] { font-size: 0 !important; }
+div[role="menu"] li[role="menuitem"] { line-height: 0 !important; }
+div[role="menu"] li[role="menuitem"]::after {
+    font-size: 14px !important; font-weight: 500; line-height: 1.35 !important; display: block !important;
+    position: static !important; inset: auto !important; border: none !important; box-shadow: none !important; background: none !important;
+}   /* Acuity рисува рамката на фокуса в ::after (absolute) — тук е преводът */
+div[role="menu"] li[role="menuitem"]:nth-child(1)::after { content: "Избери и продължи"; }
+div[role="menu"] li[role="menuitem"]:nth-child(2)::after { content: "Избери и добави още един час"; }
+div[role="menu"] li[role="menuitem"]:nth-child(3)::after { content: "Избери като повтарящ се"; }
+
 /* Заглавия на стъпките */
 h3:has(+ #your-information-form-container) { font-size: 0 !important; }
 h3:has(+ #your-information-form-container)::after {
@@ -87,6 +98,128 @@ form:has(#payment-form-container) button.btn[type="submit"] span::after {
     display: inline-block !important;
 }
 
+
+/* ---------- 10. ОЩЕ ПРЕВОДИ (всички страници, до които се стига) ---------- */
+
+/* Календар: месец и година горе (Acuity ги пише на английски; тук 2026–2028) */
+.react-calendar__navigation__label__labelText { font-size: 0 !important; }
+.react-calendar__navigation__label__labelText::after { font-size: 16px; }
+.react-calendar:has(.react-calendar__year-view) .react-calendar__navigation__label__labelText { font-size: 16px !important; }   /* в избора на месец: годината */
+.react-calendar:has(abbr[aria-label="January 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Януари 2026"; }
+.react-calendar:has(abbr[aria-label="February 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Февруари 2026"; }
+.react-calendar:has(abbr[aria-label="March 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Март 2026"; }
+.react-calendar:has(abbr[aria-label="April 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Април 2026"; }
+.react-calendar:has(abbr[aria-label="May 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Май 2026"; }
+.react-calendar:has(abbr[aria-label="June 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Юни 2026"; }
+.react-calendar:has(abbr[aria-label="July 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Юли 2026"; }
+.react-calendar:has(abbr[aria-label="August 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Август 2026"; }
+.react-calendar:has(abbr[aria-label="September 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Септември 2026"; }
+.react-calendar:has(abbr[aria-label="October 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Октомври 2026"; }
+.react-calendar:has(abbr[aria-label="November 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Ноември 2026"; }
+.react-calendar:has(abbr[aria-label="December 1, 2026"]) .react-calendar__navigation__label__labelText::after { content: "Декември 2026"; }
+.react-calendar:has(abbr[aria-label="January 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Януари 2027"; }
+.react-calendar:has(abbr[aria-label="February 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Февруари 2027"; }
+.react-calendar:has(abbr[aria-label="March 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Март 2027"; }
+.react-calendar:has(abbr[aria-label="April 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Април 2027"; }
+.react-calendar:has(abbr[aria-label="May 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Май 2027"; }
+.react-calendar:has(abbr[aria-label="June 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Юни 2027"; }
+.react-calendar:has(abbr[aria-label="July 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Юли 2027"; }
+.react-calendar:has(abbr[aria-label="August 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Август 2027"; }
+.react-calendar:has(abbr[aria-label="September 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Септември 2027"; }
+.react-calendar:has(abbr[aria-label="October 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Октомври 2027"; }
+.react-calendar:has(abbr[aria-label="November 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Ноември 2027"; }
+.react-calendar:has(abbr[aria-label="December 1, 2027"]) .react-calendar__navigation__label__labelText::after { content: "Декември 2027"; }
+.react-calendar:has(abbr[aria-label="January 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Януари 2028"; }
+.react-calendar:has(abbr[aria-label="February 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Февруари 2028"; }
+.react-calendar:has(abbr[aria-label="March 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Март 2028"; }
+.react-calendar:has(abbr[aria-label="April 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Април 2028"; }
+.react-calendar:has(abbr[aria-label="May 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Май 2028"; }
+.react-calendar:has(abbr[aria-label="June 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Юни 2028"; }
+.react-calendar:has(abbr[aria-label="July 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Юли 2028"; }
+.react-calendar:has(abbr[aria-label="August 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Август 2028"; }
+.react-calendar:has(abbr[aria-label="September 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Септември 2028"; }
+.react-calendar:has(abbr[aria-label="October 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Октомври 2028"; }
+.react-calendar:has(abbr[aria-label="November 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Ноември 2028"; }
+.react-calendar:has(abbr[aria-label="December 1, 2028"]) .react-calendar__navigation__label__labelText::after { content: "Декември 2028"; }
+
+/* Избор на месец */
+.react-calendar__year-view abbr { font-size: 0 !important; }
+.react-calendar__year-view abbr::after { font-size: 14px; }
+.react-calendar__year-view abbr[aria-label^="January "]::after { content: "Януари"; }
+.react-calendar__year-view abbr[aria-label^="February "]::after { content: "Февруари"; }
+.react-calendar__year-view abbr[aria-label^="March "]::after { content: "Март"; }
+.react-calendar__year-view abbr[aria-label^="April "]::after { content: "Април"; }
+.react-calendar__year-view abbr[aria-label^="May "]::after { content: "Май"; }
+.react-calendar__year-view abbr[aria-label^="June "]::after { content: "Юни"; }
+.react-calendar__year-view abbr[aria-label^="July "]::after { content: "Юли"; }
+.react-calendar__year-view abbr[aria-label^="August "]::after { content: "Август"; }
+.react-calendar__year-view abbr[aria-label^="September "]::after { content: "Септември"; }
+.react-calendar__year-view abbr[aria-label^="October "]::after { content: "Октомври"; }
+.react-calendar__year-view abbr[aria-label^="November "]::after { content: "Ноември"; }
+.react-calendar__year-view abbr[aria-label^="December "]::after { content: "Декември"; }
+#monthly-calendar-region p span:only-child { font-size: 0 !important; }
+#monthly-calendar-region p span:only-child::after { content: "Изберете дата, за да видите свободните часове"; font-size: 14px; }
+
+/* „Добави още един час“ */
+label:has(+ ul) { font-size: 0 !important; }
+label:has(+ ul)::after { content: "Добавени часове:"; font-size: 14px; font-weight: 700; }
+button[aria-label^="Remove "] span span span { font-size: 0 !important; }
+button[aria-label^="Remove "] span span span::after { content: "Премахни"; font-size: 13px; }
+ul + button[type="button"] span { font-size: 0 !important; }
+ul + button[type="button"] span::after { content: "Продължи"; font-size: 16px; font-weight: 700; }
+
+/* Повтарящ се час (диалог) */
+div[role="dialog"][aria-label="Recurring Appointment"] h1 { font-size: 0 !important; }
+div[role="dialog"][aria-label="Recurring Appointment"] h1::after { content: "Повтарящ се час"; font-size: 18px; }
+#repeat-label { font-size: 0 !important; }
+#repeat-label::after { content: "Повтаряне"; font-size: 14px; font-weight: 600; }
+#timestorepeat-label { font-size: 0 !important; }
+#timestorepeat-label::after { content: "Брой повторения"; font-size: 14px; font-weight: 600; }
+div[role="dialog"][aria-label="Recurring Appointment"] p:has(strong) { display: none !important; }
+button[aria-label="See Availability"] span { font-size: 0 !important; }
+button[aria-label="See Availability"] span::after { content: "Виж свободните часове"; font-size: 15px; font-weight: 700; }
+
+/* Грешки във формите */
+div[aria-live="assertive"] p, div[role="group"][data-field-invalid="true"] p[id]:not(label + p) { font-size: 0 !important; }
+div[aria-live="assertive"] p::after, div[role="group"][data-field-invalid="true"] p[id]:not(label + p)::after { content: "Задължително поле"; font-size: 13px; }
+p[id="client.email-error"] { font-size: 0 !important; }
+p[id="client.email-error"]::after { content: "Въведете валиден имейл"; font-size: 13px; }
+[data-testid="checkboxlist-error"] { font-size: 0 !important; }
+[data-testid="checkboxlist-error"]::after { content: "Трябва да приемете условията"; font-size: 13px; }
+
+/* Английски подсказки в полетата: скрити (подсказка в поле не се превежда с CSS) */
+input[placeholder="Add..."]::placeholder, input[placeholder="Enter code"]::placeholder,
+input[placeholder^="First name"]::placeholder, input[placeholder^="Last name"]::placeholder { color: transparent !important; }
+
+/* Регистрация / Вход / Нова парола (прозорци) */
+div[role="dialog"][aria-label="Sign up for an account"] h1,
+div[role="dialog"][aria-label="Sign up for an account"] h1 + p,
+div[role="dialog"][aria-label="Login"] h1,
+div[role="dialog"][aria-label="Reset Password"] h1,
+div[role="dialog"][aria-label="Reset Password"] h1 + p { font-size: 0 !important; }
+div[role="dialog"][aria-label="Sign up for an account"] h1::after { content: "Регистрация"; font-size: 18px; }
+div[role="dialog"][aria-label="Sign up for an account"] h1 + p::after { content: "Създайте профил — данните ви ще се попълват сами при следващо записване."; font-size: 14px; }
+div[role="dialog"][aria-label="Login"] h1::after { content: "Вход"; font-size: 18px; }
+div[role="dialog"][aria-label="Reset Password"] h1::after { content: "Нова парола"; font-size: 18px; }
+div[role="dialog"][aria-label="Reset Password"] h1 + p::after { content: "Въведете имейла на профила си и ще ви изпратим указания за нова парола."; font-size: 14px; }
+p[for="username"], p[for="password"], p[for="confirmPassword"] { font-size: 0 !important; }
+p[for="username"]::after { content: "Имейл"; font-size: 14px; }
+p[for="password"]::after { content: "Парола"; font-size: 14px; }
+p[for="confirmPassword"]::after { content: "Повторете паролата"; font-size: 14px; }
+div[role="dialog"] button[type="submit"] { font-size: 0 !important; }
+div[role="dialog"] button[type="submit"]::after { font-size: 14px; font-weight: 700; }
+div[role="dialog"][aria-label="Sign up for an account"] button[type="submit"]::after { content: "Регистрация"; }
+div[role="dialog"][aria-label="Login"] button[type="submit"]::after { content: "Вход"; }
+div[role="dialog"][aria-label="Reset Password"] button[type="submit"]::after { content: "Изпрати"; }
+div[role="dialog"][aria-label="Login"] button span span span { font-size: 0 !important; }
+div[role="dialog"][aria-label="Login"] button span span span::after { content: "Забравена парола?"; font-size: 13px; }
+
+/* Условията при регистрация: „Съгласен/на съм с Общите условия и Политиката за поверителност“ */
+p[for="tos"] span:first-child { font-size: 0 !important; }
+p[for="tos"]::before { content: "Съгласен/на съм с "; font-size: 14px; }
+p[for="tos"] a[href*="terms-of-service"] span::after { content: "Общите условия"; font-size: 14px; }
+p[for="tos"] a[href*="terms-of-service"]::after { content: " и "; display: inline-block; white-space: pre; font-size: 14px; color: #333; text-decoration: none; }
+p[for="tos"] a[href*="privacy"] span::after { content: "Политиката за поверителност"; font-size: 14px; }
 
 /* ---------- 9. ТЪМНА ТЕМА (само когато телефонът е в тъмен режим) ----------
    Цветове: фон #121014 · повърхност #1c1a1f · поле #26232a · линия #3a353f
@@ -192,6 +325,192 @@ form:has(#payment-form-container) button.btn[type="submit"] span::after {
     /* менюто: еднакъв отстъп и на реда под пръста / на фокус */
     div[role="menu"] li[role="menuitem"] { padding: 12px 16px !important; outline: none !important; }
 
+    p[for="tos"] a[href*="terms-of-service"]::after { color: #f3f1f4 !important; }
+
     /* линии */
     #pylon [role="separator"] div, #pylon hr { background-color: #2c2830 !important; border-color: #2c2830 !important; }
+}
+
+
+/* ---------- 10. ИЗГЛЕД v7: подредба на страницата за избор на час ----------
+   Само подредба и цветове (отстъпи, подравняване, заглавие), без display:none на неща на Acuity. Ако Acuity смени
+   клас (css-xxxx), съответното правило просто спира да действа — страницата остава както преди. */
+
+/* Картата „Запазване на часове“: без празното място отдолу и без двойната рамка */
+.css-1w9jtr9 { padding: 18px 14px 16px !important; margin: 8px 0 16px !important; border-radius: 16px !important; }
+.css-1w9jtr9 .css-5u81xs { margin: 0 0 10px !important; }
+.css-1w9jtr9 h3 + div { padding: 4px 6px !important; margin: 0 !important; border: 0 !important; box-shadow: none !important; background: transparent !important; }
+.css-1w9jtr9 .css-cumhrw p.css-mx7jua { margin: 0 auto 2px !important; }
+.css-1w9jtr9 .css-qfhj2e { margin-top: 6px !important; }
+.css-1w9jtr9 .css-qfhj2e p { margin-top: 8px !important; padding-top: 10px !important; line-height: 1.5 !important; }
+.css-1w9jtr9 .css-qfhj2e p::before { content: "📍 "; }
+
+/* Календарът: на цялата ширина, подравнен с картата отгоре, заоблен */
+.css-1ff9ijj { padding: 18px 14px 20px !important; border-radius: 16px !important; margin-bottom: 16px !important; }
+.monthly-calendar-v2 { margin-bottom: 14px !important; }
+
+/* Месецът: на един ред със стрелките, стрелката пред него сочи надолу (отваря избор на месец) */
+.monthly-calendar-v2 .react-calendar__navigation { margin: 0 0 12px !important; align-items: center; }
+.react-calendar__navigation__label { padding: 0 4px !important; }
+.react-calendar__navigation__label__labelText { display: inline-flex !important; align-items: center; gap: 6px; }
+.monthly-calendar-v2 .react-calendar__navigation__label__labelText::before {
+    width: 18px !important; height: 18px !important; margin: 0 !important; vertical-align: middle !important; transform: rotate(-90deg); opacity: .7;
+}
+.react-calendar__navigation__label__labelText::after { font-size: 17px !important; font-weight: 700; letter-spacing: .01em; }
+.react-calendar__navigation__arrow { border-radius: 50% !important; }
+
+/* Дните: свободните се открояват (по-плътни), а маркировката на избрания ден е червена, не черна */
+.react-calendar__month-view__days__day:enabled abbr { font-weight: 700; }
+.monthly-calendar-v2 .react-calendar .react-calendar__tile:focus::before { outline-color: #f87171 !important; }
+.react-calendar__month-view__weekdays { margin-bottom: 4px; }
+
+/* Часовете: без отстъпа отляво (стоят точно под календара) и със заглавие */
+#monthly-calendar-region { padding-left: 0 !important; }
+#monthly-calendar-region:has(.time-selection)::before {
+    content: "Свободни часове"; display: block; margin: 0 2px 10px; font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .7;
+}
+.time-selection { border-radius: 12px !important; transition: transform .12s ease, border-color .15s ease, background-color .15s ease; }
+.time-selection:active { transform: scale(.97); }
+
+@media (prefers-color-scheme: dark) {
+    /* в тъмен режим картата е самият календар: обвивката без отстъпи отстрани, за да е с ширината на картата отгоре */
+    .css-1ff9ijj { padding: 0 !important; box-shadow: none !important; }
+    #pylon .react-calendar { padding: 14px 10px 10px !important; }
+    #pylon .react-calendar__month-view__days__day:enabled abbr { color: #f3f1f4 !important; }
+    html #pylon#pylon #monthly-calendar-region::before { color: #a8a2ab !important; }
+    /* зареждане на часовете: сиви плочки вместо тънки ивици */
+    #pylon #monthly-calendar-region div.line { background-color: #26232a !important; border-radius: 12px !important; }
+}
+
+/* ---------- 11. v8: ДВИЖЕНИЕ И ПОДСКАЗКИ ----------
+   Само CSS (Acuity не пуска JavaScript). Анимациите тръгват само ако телефонът не е с „Намаляване на движението“;
+   всяка свършва в нормалното си състояние, така че нищо не остава отместено или скрито. */
+
+/* Свободните дни: червена точка отдолу — вижда се веднага кога има часове */
+.react-calendar__month-view__days__day:enabled abbr { position: relative; }
+.react-calendar__month-view__days__day:enabled abbr::after {
+    content: ""; position: absolute; left: 50%; bottom: -7px; width: 5px; height: 5px; margin-left: -2.5px;
+    border-radius: 50%; background: #d32f2f;
+}
+.react-calendar__month-view__days__day.react-calendar__tile--active abbr::after { background: #fff !important; opacity: .9; }
+/* сиянието около избрания ден не се реже от квадратната клетка */
+.react-calendar__month-view__days__day { overflow: visible !important; }
+
+/* Избраният ден: червен градиент със сияние */
+.monthly-calendar-v2 .react-calendar__tile--active::before {
+    background: linear-gradient(145deg, #ef4444, #b91c1c) !important;
+    box-shadow: 0 6px 16px rgba(211, 47, 47, .45), inset 0 1px 0 rgba(255, 255, 255, .25);
+}
+
+/* Днешният ден: тънък пръстен */
+.monthly-calendar-v2 .react-calendar__tile--now:not(.react-calendar__tile--active)::before {
+    content: ""; position: absolute; width: 36px; height: 36px; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(211, 47, 47, .35);
+}
+
+/* Заглавие „Свободни часове“: червена черта пред него */
+#monthly-calendar-region:has(.time-selection)::before {
+    padding-left: 10px; border-left: 3px solid #d32f2f; line-height: 1.1;
+}
+
+/* Часовете: част от деня под часа (по самия час — aria-label="13:15") */
+.time-selection { position: relative; overflow: hidden; gap: 2px; }
+.time-selection::after {
+    font-family: Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase;
+    opacity: .6; line-height: 1;
+}
+.time-selection[aria-label^="06:"]::after, .time-selection[aria-label^="07:"]::after, .time-selection[aria-label^="08:"]::after,
+.time-selection[aria-label^="09:"]::after, .time-selection[aria-label^="10:"]::after, .time-selection[aria-label^="11:"]::after { content: "сутрин"; }
+.time-selection[aria-label^="12:"]::after, .time-selection[aria-label^="13:"]::after, .time-selection[aria-label^="14:"]::after,
+.time-selection[aria-label^="15:"]::after, .time-selection[aria-label^="16:"]::after { content: "следобед"; }
+.time-selection[aria-label^="17:"]::after, .time-selection[aria-label^="18:"]::after, .time-selection[aria-label^="19:"]::after,
+.time-selection[aria-label^="20:"]::after, .time-selection[aria-label^="21:"]::after, .time-selection[aria-label^="22:"]::after { content: "вечер"; }
+.time-selection p { font-size: 18px !important; font-weight: 700 !important; letter-spacing: .02em; }
+
+/* Избраният час: градиент и сияние */
+.time-selection.selected-time, .time-selection.selected, .time-selection[aria-expanded="true"] {
+    background: linear-gradient(145deg, #ef4444, #b91c1c) !important; border-color: transparent !important; color: #fff !important;
+    box-shadow: 0 8px 22px rgba(211, 47, 47, .4) !important;
+}
+.time-selection.selected-time *, .time-selection.selected *, .time-selection[aria-expanded="true"] * { color: #fff !important; }
+
+/* Картата „Запазване на часове“: червена светлинна линия отгоре */
+.css-1w9jtr9 { position: relative; overflow: hidden; }
+.css-1w9jtr9::before {
+    content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 2px; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, #ef4444, transparent);
+}
+
+/* Основните бутони (Следваща стъпка / Потвърди): градиент */
+#pylon button.btn { background: linear-gradient(145deg, #e53935, #b71c1c) !important; border-color: transparent !important; color: #fff !important;
+    border-radius: 12px !important; box-shadow: 0 8px 20px rgba(211, 47, 47, .3) !important; position: relative; overflow: hidden; }
+#pylon button.btn * { color: #fff !important; }
+#pylon button.btn:active { transform: scale(.98); }
+
+/* Картите с данни и плащане: заоблени и в светъл режим */
+#your-information-form-container, #payment-form-container { border-radius: 16px !important; }
+
+/* Полета: червен ореол при писане */
+#pylon [data-textinput-root]:focus-within, #pylon [data-textarea-root]:focus-within, #pylon .PhoneInput:focus-within {
+    border-color: #d32f2f !important; box-shadow: 0 0 0 3px rgba(211, 47, 47, .18) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    @keyframes xb-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes xb-pop { 0% { transform: translate(-50%, -50%) scale(.4); } 70% { transform: translate(-50%, -50%) scale(1.12); } 100% { transform: translate(-50%, -50%) scale(1); } }
+    @keyframes xb-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes xb-shine { from { left: -60%; } to { left: 130%; } }
+    @keyframes xb-glow { 0%, 100% { box-shadow: 0 8px 22px rgba(211, 47, 47, .35); } 50% { box-shadow: 0 8px 30px rgba(211, 47, 47, .65); } }
+    @keyframes xb-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes xb-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+    /* страницата се подрежда отгоре надолу */
+    .business-description-container img[alt="Main Image"] { animation: xb-float 6s ease-in-out 1.2s infinite; }
+    .business-description-container a[href*="storage/"] { animation: xb-rise .5s ease-out .15s both; }
+    .css-1w9jtr9 { animation: xb-rise .55s ease-out .25s both; }
+    .css-1w9jtr9::before { animation: xb-line .9s ease-out .7s both; }
+    .monthly-calendar-v2 { animation: xb-rise .55s ease-out .4s both; }
+
+    /* избраният ден „изскача“ */
+    .monthly-calendar-v2 .react-calendar__tile--active::before { animation: xb-pop .35s cubic-bezier(.3, 1.4, .5, 1) both; }
+
+    /* часовете влизат един след друг при всеки избран ден */
+    .available-times-container .time-selection { animation: xb-rise .4s ease-out both; }
+    .available-times-container div:nth-child(2) .time-selection { animation-delay: .05s; }
+    .available-times-container div:nth-child(3) .time-selection { animation-delay: .1s; }
+    .available-times-container div:nth-child(4) .time-selection { animation-delay: .15s; }
+    .available-times-container div:nth-child(5) .time-selection { animation-delay: .2s; }
+    .available-times-container div:nth-child(6) .time-selection { animation-delay: .25s; }
+    .available-times-container div:nth-child(7) .time-selection { animation-delay: .3s; }
+    .available-times-container div:nth-child(8) .time-selection { animation-delay: .35s; }
+    .available-times-container div:nth-child(9) .time-selection { animation-delay: .4s; }
+    .available-times-container div:nth-child(10) .time-selection { animation-delay: .45s; }
+    .available-times-container div:nth-child(n+11) .time-selection { animation-delay: .5s; }
+    .time-selection { transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease, background-color .2s ease; }
+    .time-selection:active { transform: scale(.95); }
+    .time-selection.selected-time, .time-selection.selected, .time-selection[aria-expanded="true"] { animation: xb-glow 1.8s ease-in-out infinite; }
+
+    /* меню „Избери и продължи“: плавно появяване */
+    div[role="menu"] { animation: xb-fade .2s ease-out both; }
+
+    /* основните бутони: отблясък, който минава през тях */
+    #pylon button.btn::before {
+        content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; pointer-events: none;
+        background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .28), transparent);
+        animation: xb-shine 2.8s ease-in-out 1s infinite;
+    }
+    #pylon #your-information-form-container, #pylon #payment-form-container { animation: xb-rise .5s ease-out both; }
+}
+
+@media (prefers-color-scheme: dark) {
+    #pylon .react-calendar__month-view__days__day:enabled abbr::after { background: #ef4444 !important; }
+    #pylon .react-calendar__month-view__days__day.react-calendar__tile--active abbr::after { background: #fff !important; }
+    #pylon .css-1w9jtr9 { background: linear-gradient(180deg, #221f25, #1c1a1f) !important; }
+    #pylon .react-calendar { background: linear-gradient(180deg, #211e24, #1c1a1f) !important; }
+    #pylon .time-selection { background: linear-gradient(180deg, #2a272e, #242127) !important; }
+    #pylon .time-selection.selected-time, #pylon .time-selection.selected, #pylon .time-selection[aria-expanded="true"] {
+        background: linear-gradient(145deg, #ef4444, #b91c1c) !important; border-color: transparent !important;
+    }
+    #pylon button.btn { background: linear-gradient(145deg, #e53935, #b71c1c) !important; }
 }
