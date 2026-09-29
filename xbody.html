@@ -1076,6 +1076,172 @@
         html[data-theme="dark"] .pwa-ios-steps ol { color: #a8a2ab; }
         html[data-theme="dark"] .pwa-ios-steps { background: #26232a; }
         html[data-theme="dark"] .pwa-install-btn { background: #f3f1f4; color: #121014; }
+
+        /* ── Own booking calendar (the first step; the form and payment stay on Acuity's page) ── */
+        #xb-book {
+            --xb-bg: #ffffff; --xb-card: #f9f9fa; --xb-line: #ececef; --xb-text: #16141a; --xb-muted: #8a8590;
+            --xb-faint: #cfcbd3; --xb-slot: #ffffff; --xb-slot-line: #dcd9df; --xb-red: #d32f2f; --xb-red2: #b71c1c;
+            --xb-soft: #fef2f2; --xb-soft-line: #fecaca;
+            max-width: 480px; margin: 0 auto; padding: 14px 16px 24px; box-sizing: border-box;
+            color: var(--xb-text); font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html[data-theme="dark"] #xb-book {
+            --xb-bg: #121014; --xb-card: #1c1a1f; --xb-line: #2c2830; --xb-text: #f3f1f4; --xb-muted: #a8a2ab;
+            --xb-faint: #5b5560; --xb-slot: #26232a; --xb-slot-line: #3a353f; --xb-red: #e53935; --xb-red2: #b71c1c;
+            --xb-soft: rgba(239, 68, 68, .12); --xb-soft-line: rgba(239, 68, 68, .38);
+        }
+        #xb-book.hidden, iframe.xb-off { display: none !important; }
+        #xb-book *, #xb-book *::before, #xb-book *::after { box-sizing: border-box; }
+        .xb-logo { display: block; width: 78%; max-width: 300px; height: auto; margin: 4px auto 6px; }
+        .xb-hero { display: block; width: 100%; max-width: 380px; height: auto; margin: 0 auto; aspect-ratio: 760 / 516; object-fit: contain; }
+        .xb-pills { display: flex; gap: 10px; justify-content: center; margin: 12px 0 14px; }
+        .xb-pills a {
+            flex: 1 1 0; max-width: 200px; min-height: 40px; display: flex; align-items: center; justify-content: center;
+            border-radius: 999px; background: var(--xb-soft); border: 1px solid var(--xb-soft-line); color: var(--xb-red);
+            font-size: 14px; font-weight: 500; text-decoration: none; transition: transform .12s ease;
+        }
+        html[data-theme="dark"] .xb-pills a { color: #fca5a5; }
+        .xb-pills a:active { transform: scale(.96); }
+        .xb-card {
+            position: relative; overflow: hidden; background: var(--xb-card); border: 1px solid var(--xb-line);
+            border-radius: 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, .06); margin-bottom: 14px;
+        }
+        html[data-theme="dark"] .xb-card { box-shadow: 0 10px 30px rgba(0, 0, 0, .35); background: linear-gradient(180deg, #221f25, #1c1a1f); }
+        .xb-info { padding: 18px 16px 14px; text-align: center; }
+        .xb-info::before {
+            content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 2px; border-radius: 2px;
+            background: linear-gradient(90deg, transparent, #ef4444, transparent);
+        }
+        .xb-info h1 { margin: 0 0 8px; font-size: 20px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+        .xb-info-name { margin: 0; font-size: 16px; font-weight: 600; }
+        .xb-info-addr { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--xb-line); font-size: 12.5px; line-height: 1.5; color: var(--xb-muted); }
+        .xb-next {
+            display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px;
+            border: 1px solid var(--xb-soft-line); background: var(--xb-soft); color: var(--xb-text); font: inherit; text-align: left; cursor: pointer;
+        }
+        .xb-next i { color: var(--xb-red); font-size: 18px; }
+        .xb-next small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--xb-muted); }
+        .xb-next strong { font-size: 15px; }
+        .xb-next.hidden { display: none; }
+
+        .xb-cal { padding: 14px 10px 10px; }
+        .xb-cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 10px; }
+        .xb-cal-head h2 { margin: 0; font-size: 18px; font-weight: 700; }
+        .xb-nav {
+            width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: var(--xb-text);
+            font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background-color .15s ease;
+        }
+        .xb-nav:active { background: var(--xb-line); }
+        .xb-nav:disabled { opacity: .25; cursor: default; }
+        .xb-week, .xb-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+        .xb-week span { text-align: center; font-size: 12px; font-weight: 700; color: var(--xb-muted); padding: 4px 0 6px; }
+        .xb-week span:nth-child(n+6) { color: var(--xb-red); }
+        .xb-day {
+            position: relative; height: 46px; border: 0; background: transparent; color: var(--xb-faint); font: inherit;
+            font-size: 16px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: default;
+        }
+        .xb-day span { position: relative; z-index: 1; }
+        .xb-day::before {
+            content: ""; position: absolute; top: 50%; left: 50%; width: 38px; height: 38px; margin: -19px 0 0 -19px;
+            border-radius: 50%; transition: transform .2s ease, background-color .2s ease;
+        }
+        .xb-day.free, .xb-day.mine, .xb-day.done { color: var(--xb-text); font-weight: 700; cursor: pointer; }
+        .xb-day.free::after {
+            content: ""; position: absolute; left: 50%; bottom: 5px; width: 5px; height: 5px; margin-left: -2.5px;
+            border-radius: 50%; background: var(--xb-red);
+        }
+        .xb-day.today::before { box-shadow: inset 0 0 0 1.5px var(--xb-line); }
+        .xb-day.mine::before { box-shadow: inset 0 0 0 2px var(--xb-red); }
+        .xb-day.done::before { box-shadow: inset 0 0 0 2px var(--xb-faint); }
+        .xb-day.done span::after {
+            content: "✓"; position: absolute; top: -9px; right: -10px; font-size: 10px; color: var(--xb-muted);
+        }
+        .xb-day.sel { color: #fff; }
+        .xb-day.sel::before {
+            background: linear-gradient(145deg, #ef4444, #b91c1c); box-shadow: 0 6px 16px rgba(211, 47, 47, .45) !important;
+        }
+        .xb-day.sel::after { background: #fff; }
+        .xb-day.sel span::after { color: #fff; }
+        .xb-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; padding: 8px 4px 4px; font-size: 11.5px; color: var(--xb-muted); }
+        .xb-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .xb-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+        .xb-lg-free { width: 6px !important; height: 6px !important; background: var(--xb-red); }
+        .xb-lg-mine { box-shadow: inset 0 0 0 2px var(--xb-red); }
+        .xb-lg-done { box-shadow: inset 0 0 0 2px var(--xb-faint); }
+
+        .xb-slots-title {
+            margin: 18px 2px 10px; padding-left: 10px; border-left: 3px solid var(--xb-red); font-size: 13px; font-weight: 700;
+            letter-spacing: .06em; text-transform: uppercase; color: var(--xb-muted); line-height: 1.2;
+        }
+        .xb-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .xb-slot {
+            position: relative; min-height: 64px; border-radius: 14px; border: 1px solid var(--xb-slot-line); background: var(--xb-slot);
+            color: var(--xb-text); font: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 3px; cursor: pointer; padding: 8px; transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+        }
+        html[data-theme="dark"] .xb-slot { background: linear-gradient(180deg, #2a272e, #242127); }
+        .xb-slot b { font-size: 19px; font-weight: 700; letter-spacing: .02em; }
+        .xb-slot small { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--xb-muted); }
+        .xb-slot:active { transform: scale(.96); }
+        .xb-slot.mine {
+            border-color: transparent; color: #fff; background: linear-gradient(145deg, #ef4444, #b91c1c) !important;
+            box-shadow: 0 8px 22px rgba(211, 47, 47, .38);
+        }
+        .xb-slot.mine small { color: rgba(255, 255, 255, .88); }
+        .xb-slot.mine::after {
+            content: "\f058"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; top: 8px; right: 10px; font-size: 13px; opacity: .9;
+        }
+        .xb-slot.done { cursor: default; background: transparent !important; border-style: dashed; color: var(--xb-muted); }
+        .xb-slot.done b { text-decoration: none; }
+        .xb-slot.done:active { transform: none; }
+        .xb-empty { grid-column: 1 / -1; padding: 18px 12px; text-align: center; font-size: 14px; color: var(--xb-muted); border: 1px dashed var(--xb-slot-line); border-radius: 14px; }
+        .xb-skel { min-height: 64px; border-radius: 14px; background: var(--xb-slot); border: 1px solid var(--xb-line); opacity: .7; }
+        .xb-note { margin: 12px 4px 0; font-size: 11.5px; text-align: center; color: var(--xb-muted); }
+
+        /* own hour: the small sheet (Промяна / Моите часове) */
+        .xb-sheet-back { position: fixed; inset: 0; z-index: 900; background: rgba(0, 0, 0, .45); display: flex; align-items: flex-end; justify-content: center; }
+        .xb-sheet-back.hidden { display: none; }
+        .xb-sheet {
+            width: 100%; max-width: 480px; background: var(--xb-card, #fff); color: var(--xb-text, #16141a); border-radius: 22px 22px 0 0;
+            padding: 10px 18px calc(env(safe-area-inset-bottom, 0px) + 18px); box-shadow: 0 -10px 40px rgba(0, 0, 0, .25);
+            font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        html[data-theme="dark"] .xb-sheet { background: #1c1a1f; color: #f3f1f4; }
+        .xb-sheet-handle { width: 40px; height: 4px; border-radius: 4px; background: #d4d0d8; margin: 0 auto 14px; }
+        html[data-theme="dark"] .xb-sheet-handle { background: #3a353f; }
+        .xb-sheet h3 { margin: 0 0 4px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #d32f2f; }
+        .xb-sheet p { margin: 0 0 16px; font-size: 20px; font-weight: 700; }
+        .xb-sheet a, .xb-sheet button {
+            display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; margin-top: 10px;
+            border-radius: 14px; font: inherit; font-size: 15px; font-weight: 700; text-decoration: none; cursor: pointer;
+        }
+        .xb-sheet .xb-primary { border: 0; color: #fff; background: linear-gradient(145deg, #e53935, #b71c1c); box-shadow: 0 8px 20px rgba(211, 47, 47, .3); }
+        .xb-sheet .xb-secondary { border: 1px solid #dcd9df; background: transparent; color: inherit; }
+        html[data-theme="dark"] .xb-sheet .xb-secondary { border-color: #3a353f; }
+
+        @media (prefers-reduced-motion: no-preference) {
+            @keyframes xbRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+            @keyframes xbPop { 0% { transform: scale(.4); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+            @keyframes xbFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+            @keyframes xbLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+            @keyframes xbGlow { 0%, 100% { box-shadow: 0 8px 22px rgba(211, 47, 47, .32); } 50% { box-shadow: 0 8px 30px rgba(211, 47, 47, .6); } }
+            @keyframes xbUp { from { transform: translateY(100%); } to { transform: none; } }
+            .xb-hero { animation: xbFloat 6s ease-in-out 1.2s infinite; }
+            .xb-pills, .xb-info, .xb-cal { animation: xbRise .5s ease-out both; }
+            .xb-info { animation-delay: .08s; }
+            .xb-cal { animation-delay: .16s; }
+            .xb-info::before { animation: xbLine .9s ease-out .5s both; }
+            .xb-day.sel::before { animation: xbPop .35s cubic-bezier(.3, 1.4, .5, 1) both; }
+            .xb-days.xb-swap { animation: xbRise .3s ease-out both; }
+            .xb-slots .xb-slot, .xb-slots .xb-empty { animation: xbRise .38s ease-out both; }
+            .xb-slots .xb-slot:nth-child(2) { animation-delay: .04s; } .xb-slots .xb-slot:nth-child(3) { animation-delay: .08s; }
+            .xb-slots .xb-slot:nth-child(4) { animation-delay: .12s; } .xb-slots .xb-slot:nth-child(5) { animation-delay: .16s; }
+            .xb-slots .xb-slot:nth-child(6) { animation-delay: .2s; } .xb-slots .xb-slot:nth-child(7) { animation-delay: .24s; }
+            .xb-slots .xb-slot:nth-child(n+8) { animation-delay: .28s; }
+            .xb-slot.mine { animation: xbRise .38s ease-out both, xbGlow 2.2s ease-in-out .4s infinite; }
+            .xb-sheet { animation: xbUp .25s ease-out both; }
+        }
     </style>
 </head>
 <body>
@@ -1193,6 +1359,39 @@
 
     <!-- Dedicated scroll container – see CSS comments above -->
     <div id="acuity-scroll-container" class="hidden">
+        <!-- Own first step: free hours from the worker + the client's own hours (marked); the chosen free hour opens
+             Acuity's page straight at its form. Stays hidden (and the iframe works as before) if anything fails. -->
+        <section id="xb-book" class="hidden" aria-label="Запазване на час">
+            <img class="xb-logo" src="acuity/xbody-logo.webp" alt="XBODY" width="640" height="222" decoding="async">
+            <img class="xb-hero" src="acuity/xbody-hero.webp" alt="" width="760" height="516" decoding="async">
+            <div class="xb-pills">
+                <a href="https://radilovk.github.io/storage/faq.html" target="_blank" rel="noopener">Чести въпроси</a>
+                <a href="https://radilovk.github.io/storage/effects.html" target="_blank" rel="noopener">Ефекти от EMS</a>
+            </div>
+            <div class="xb-card xb-info">
+                <h1>Запазване на часове</h1>
+                <p class="xb-info-name">XBODY Burgas</p>
+                <p class="xb-info-addr">📍 Ability Fitness &amp; SPA, Хотел България, ул. „Александровска“ 21, Център, Бургас</p>
+                <button type="button" class="xb-next hidden" id="xb-next"></button>
+            </div>
+            <div class="xb-card xb-cal">
+                <div class="xb-cal-head">
+                    <button type="button" class="xb-nav" id="xb-prev" aria-label="Предишен месец"><i class="fas fa-chevron-left"></i></button>
+                    <h2 id="xb-month" aria-live="polite"></h2>
+                    <button type="button" class="xb-nav" id="xb-nextm" aria-label="Следващ месец"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="xb-week" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span></div>
+                <div class="xb-days" id="xb-days"></div>
+                <div class="xb-legend" aria-hidden="true">
+                    <span><i class="xb-lg-free"></i>свободни часове</span>
+                    <span><i class="xb-lg-mine"></i>ваша тренировка</span>
+                    <span><i class="xb-lg-done"></i>проведена</span>
+                </div>
+            </div>
+            <h3 class="xb-slots-title" id="xb-slots-title"></h3>
+            <div class="xb-slots" id="xb-slots"></div>
+            <p class="xb-note">Изберете час — следващата стъпка е потвърждение на данните.</p>
+        </section>
         <iframe allow="payment"
                 sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts allow-popups align-top-navigation-by-user-activation"
                 frameborder="0">
@@ -1262,6 +1461,444 @@
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
 
+        /* ── Own booking calendar (the first step) ──
+           Free hours: GET /api/xbody/availability?month=YYYY-MM — one answer for the whole month, the same for every
+           client and cached on the server (no KV). The client's own hours: the "Моите часове" list already on the
+           phone (no extra request). The chosen free hour opens Acuity's page straight at its form (the iframe);
+           the client's own hour opens a small sheet (Промяна / Моите часове).
+           Costs: at most one request per month shown per minute; the last answer is kept on the phone and shown
+           at once. If the first answer cannot be had, the Acuity page (iframe) is shown exactly as before. */
+        (function () {
+            const root = document.getElementById('xb-book');
+            const sc = document.getElementById('acuity-scroll-container');
+            const frame = sc ? sc.querySelector('iframe') : null;
+            const back = document.getElementById('back-btn');
+            if (!root || !sc || !frame || !back || !window.fetch || !window.Promise) return;
+
+            const WORKER_URL = (window.location.hostname.endsWith('workers.dev') || window.location.hostname === 'localhost')
+                ? ''
+                : 'https://aidiet.radilov-k.workers.dev';
+            const FRESH_MS = 60 * 1000;            // asked again after a minute at most
+            const KEEP_MS = 30 * 60 * 1000;        // a younger answer is shown at once (and refreshed if older than FRESH_MS)
+            const AHEAD = 3;                       // months ahead (the server's limit)
+            const BEHIND = 6;                      // months back: the client's own past trainings only (no request)
+            const STORE = 'xbody_avail:';
+            const MONTHS = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември'];
+            const WEEKDAYS = ['неделя', 'понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота'];
+            const daysEl = document.getElementById('xb-days');
+            const monthEl = document.getElementById('xb-month');
+            const prevBtn = document.getElementById('xb-prev');
+            const nextBtn = document.getElementById('xb-nextm');
+            const slotsEl = document.getElementById('xb-slots');
+            const titleEl = document.getElementById('xb-slots-title');
+            const nextEl = document.getElementById('xb-next');
+
+            let bookingUrl = '';
+            let fallback = null;
+            let active = false;      // this calendar is the booking screen
+            let inFrame = false;     // Acuity's page is up (a free hour was chosen)
+            let failed = false;      // gave up once: the Acuity page from then on
+            let view = null;         // { y, m }
+            let selected = '';       // 'YYYY-MM-DD'
+            let picked = false;      // chosen by the client (else it follows the first free day)
+            const avail = {};        // 'YYYY-MM' → { days, at }
+            const pending = {};
+            const failedMonths = {};
+
+            function pad(n) { return String(n).padStart(2, '0'); }
+            function monthKey(y, m) { return y + '-' + pad(m + 1); }
+            function dayKey(y, m, d) { return monthKey(y, m) + '-' + pad(d); }
+            function todayKey() { const t = new Date(); return dayKey(t.getFullYear(), t.getMonth(), t.getDate()); }
+            function offsetOf(y, m) { const t = new Date(); return (y - t.getFullYear()) * 12 + (m - t.getMonth()); }
+            /* Acuity writes "2026-09-29T14:00:00+0300" (the studio's time): the day and hour are read as written */
+            function isoTime(iso) { return new Date(String(iso).replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).getTime(); }
+            function esc(v) {
+                return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+            function partOfDay(hm) {
+                const h = parseInt(hm, 10);
+                return h < 12 ? 'сутрин' : h < 17 ? 'следобед' : 'вечер';
+            }
+            function dayLabel(key) {
+                const d = new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, Number(key.slice(8, 10)));
+                return WEEKDAYS[d.getDay()] + ', ' + key.slice(8, 10) + '.' + key.slice(5, 7);
+            }
+
+            function readStore(key) {
+                try {
+                    const v = JSON.parse(localStorage.getItem(STORE + key) || 'null');
+                    return v && v.days && v.at && Date.now() - v.at < KEEP_MS ? v : null;
+                } catch (_) { return null; }
+            }
+            function writeStore(key, v) {
+                try { localStorage.setItem(STORE + key, JSON.stringify(v)); } catch (_) {}
+            }
+            (function tidyStore() {   // months already gone
+                try {
+                    const t = new Date();
+                    const oldest = monthKey(t.getFullYear(), t.getMonth() - 1 < 0 ? 11 : t.getMonth() - 1);
+                    for (let i = localStorage.length - 1; i >= 0; i--) {
+                        const k = localStorage.key(i);
+                        if (k && k.indexOf(STORE) === 0 && k.slice(STORE.length) < oldest) localStorage.removeItem(k);
+                    }
+                } catch (_) {}
+            })();
+
+            /* free hours of a month: what is kept (at once), then the server if that is older than a minute */
+            function monthData(key) {
+                if (!avail[key]) {
+                    const kept = readStore(key);
+                    if (kept) avail[key] = kept;
+                }
+                return avail[key] || null;
+            }
+            function fetchMonth(key) {
+                if (pending[key]) return pending[key];
+                pending[key] = fetch(WORKER_URL + '/api/xbody/availability?month=' + key)
+                    .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); })
+                    .then(function (d) {
+                        if (!d || !d.days || typeof d.days !== 'object') throw new Error('bad answer');
+                        const v = { days: d.days, at: Date.now() };
+                        avail[key] = v;
+                        delete failedMonths[key];
+                        writeStore(key, v);
+                        return v;
+                    })
+                    .finally(function () { delete pending[key]; });
+                return pending[key];
+            }
+            function ensureMonth(key, force) {
+                const kept = monthData(key);
+                if (kept && !force && Date.now() - kept.at < FRESH_MS) return Promise.resolve(kept);
+                return fetchMonth(key).then(function (v) {
+                    if (active && view && monthKey(view.y, view.m) === key) render();
+                    return v;
+                }, function (err) {
+                    failedMonths[key] = true;
+                    if (active && view && monthKey(view.y, view.m) === key) render();
+                    if (kept) return kept;
+                    throw err;
+                });
+            }
+
+            /* the client's own hours, from the "Моите часове" list on the phone: day → [{ hm, iso, item, past }] */
+            function ownByDay() {
+                const A = window.XBodyAppointments;
+                const data = A && A.data ? A.data() : null;
+                const out = {};
+                if (!data) return out;
+                const now = Date.now();
+                [].concat(data.upcoming || [], data.past || []).forEach(function (item) {
+                    if (!item || item.canceled || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(item.datetime || '')) return;
+                    const key = item.datetime.slice(0, 10);
+                    const t = isoTime(item.datetime);
+                    (out[key] = out[key] || []).push({
+                        hm: item.datetime.slice(11, 16), iso: item.datetime, item: item,
+                        past: Number.isFinite(t) ? t < now : key < todayKey()
+                    });
+                });
+                return out;
+            }
+            function nextOwn(own) {
+                const now = Date.now();
+                let best = null;
+                Object.keys(own).forEach(function (k) {
+                    own[k].forEach(function (o) {
+                        if (!o.past && isoTime(o.iso) > now - 3600000 && (!best || o.iso < best.iso)) best = o;
+                    });
+                });
+                return best;
+            }
+
+            function dayState(key, free, own) {
+                const hasFree = key >= todayKey() && Boolean(free[key] && free[key].length);
+                const mine = (own[key] || []).some(function (o) { return !o.past; });
+                const done = !mine && (own[key] || []).length > 0;
+                return { hasFree: hasFree, mine: mine, done: done, any: hasFree || mine || done };
+            }
+
+            function pickDefault(free, own, n) {
+                const pre = monthKey(view.y, view.m) + '-';
+                let firstMine = '';
+                for (let d = 1; d <= n; d++) {
+                    const k = pre + pad(d);
+                    const s = dayState(k, free, own);
+                    if (s.hasFree) return k;
+                    if (s.mine && !firstMine) firstMine = k;
+                }
+                return firstMine;
+            }
+
+            let lastRenderedMonth = '';
+            function render() {
+                if (!view) return;
+                const key = monthKey(view.y, view.m);
+                const off = offsetOf(view.y, view.m);
+                const data = off >= 0 ? monthData(key) : { days: {} };
+                const free = (data && data.days) || {};
+                const own = ownByDay();
+                const n = new Date(view.y, view.m + 1, 0).getDate();
+                const lead = (new Date(view.y, view.m, 1).getDay() + 6) % 7;
+                const today = todayKey();
+
+                monthEl.textContent = MONTHS[view.m] + ' ' + view.y;
+                prevBtn.disabled = off <= -BEHIND;
+                nextBtn.disabled = off >= AHEAD;
+
+                if (!picked || selected.slice(0, 7) !== key || !dayState(selected, free, own).any) {
+                    selected = pickDefault(free, own, n);
+                }
+
+                let html = '';
+                for (let i = 0; i < lead; i++) html += '<span></span>';
+                for (let d = 1; d <= n; d++) {
+                    const k = key + '-' + pad(d);
+                    const s = dayState(k, free, own);
+                    const cls = ['xb-day'];
+                    if (s.hasFree) cls.push('free');
+                    if (s.mine) cls.push('mine');
+                    if (s.done) cls.push('done');
+                    if (k === today) cls.push('today');
+                    if (k === selected) cls.push('sel');
+                    html += '<button type="button" class="' + cls.join(' ') + '" data-day="' + k + '"' +
+                        (s.any ? '' : ' disabled') + ' aria-pressed="' + (k === selected) + '" aria-label="' + esc(dayLabel(k)) +
+                        (s.mine ? ', ваша тренировка' : s.done ? ', проведена тренировка' : s.hasFree ? ', има свободни часове' : '') +
+                        '"><span>' + d + '</span></button>';
+                }
+                daysEl.innerHTML = html;
+                if (lastRenderedMonth && lastRenderedMonth !== key) {
+                    daysEl.classList.remove('xb-swap');
+                    void daysEl.offsetWidth;
+                    daysEl.classList.add('xb-swap');
+                }
+                lastRenderedMonth = key;
+
+                const upcoming = nextOwn(own);
+                if (upcoming) {
+                    nextEl.innerHTML = '<i class="fas fa-calendar-check"></i><span><small>Следваща тренировка</small><strong>' +
+                        esc(dayLabel(upcoming.iso.slice(0, 10)) + ' · ' + upcoming.hm) + '</strong></span>';
+                    nextEl.dataset.day = upcoming.iso.slice(0, 10);
+                    nextEl.classList.remove('hidden');
+                } else {
+                    nextEl.classList.add('hidden');
+                }
+
+                renderSlots(key, off, data, free, own);
+            }
+
+            function renderSlots(key, off, data, free, own) {
+                if (off >= 0 && !data) {
+                    titleEl.textContent = 'Свободни часове';
+                    if (failedMonths[key]) {
+                        slotsEl.innerHTML = '<div class="xb-empty">Свободните часове не се заредиха.<br><br>' +
+                            '<button type="button" class="xb-slot" data-retry="1" style="min-height:44px;width:100%"><b style="font-size:15px">Опитай отново</b></button>' +
+                            '<button type="button" class="xb-slot" data-acuity="1" style="min-height:44px;width:100%;margin-top:8px"><b style="font-size:15px">Календарът на Acuity</b></button></div>';
+                    } else {
+                        slotsEl.innerHTML = '<div class="xb-skel"></div><div class="xb-skel"></div><div class="xb-skel"></div><div class="xb-skel"></div>';
+                    }
+                    return;
+                }
+                if (!selected) {
+                    titleEl.textContent = MONTHS[view.m];
+                    slotsEl.innerHTML = '<div class="xb-empty">' + (off < 0
+                        ? 'Няма тренировки през този месец.'
+                        : 'Няма свободни часове този месец.' + (off < AHEAD ? '<br>Вижте следващия месец →' : '')) + '</div>';
+                    return;
+                }
+                const mineList = own[selected] || [];
+                const ownHm = {};
+                mineList.forEach(function (o) { ownHm[o.hm] = o; });
+                const list = mineList.map(function (o) { return { hm: o.hm, own: o }; });
+                if (selected >= todayKey()) {
+                    (free[selected] || []).forEach(function (iso) {
+                        const hm = String(iso).slice(11, 16);
+                        if (!ownHm[hm]) list.push({ hm: hm, iso: iso });
+                    });
+                }
+                list.sort(function (a, b) { return a.hm < b.hm ? -1 : a.hm > b.hm ? 1 : 0; });
+                const freeCount = list.filter(function (x) { return !x.own; }).length;
+                titleEl.textContent = (freeCount ? 'Свободни часове' : 'Вашите часове') + ' · ' + dayLabel(selected);
+                slotsEl.innerHTML = list.map(function (x) {
+                    if (x.own) {
+                        return x.own.past
+                            ? '<button type="button" class="xb-slot done" disabled><b>' + esc(x.hm) + '</b><small>проведена ✓</small></button>'
+                            : '<button type="button" class="xb-slot mine" data-own="' + esc(x.own.iso) + '"><b>' + esc(x.hm) + '</b><small>вашият час</small></button>';
+                    }
+                    return '<button type="button" class="xb-slot" data-iso="' + esc(x.iso) + '"><b>' + esc(x.hm) + '</b><small>' + partOfDay(x.hm) + '</small></button>';
+                }).join('') || '<div class="xb-empty">Няма свободни часове в този ден.</div>';
+            }
+
+            function go(delta) {
+                const d = new Date(view.y, view.m + delta, 1);
+                const off = offsetOf(d.getFullYear(), d.getMonth());
+                if (off < -BEHIND || off > AHEAD) return;
+                view = { y: d.getFullYear(), m: d.getMonth() };
+                selected = '';
+                picked = false;
+                render();
+                if (off >= 0) ensureMonth(monthKey(view.y, view.m)).catch(function () {});
+            }
+
+            /* a free hour: Acuity's page straight at its form (its first navigation replaces the empty frame; later
+               ones replace the page too, so the back history is only Acuity's own steps) */
+            function openAcuityAt(iso) {
+                const at = String(iso).replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+                const q = bookingUrl.indexOf('?');
+                const url = (q < 0 ? bookingUrl : bookingUrl.slice(0, q)) + '/datetime/' + encodeURIComponent(at) + (q < 0 ? '' : bookingUrl.slice(q));
+                inFrame = true;
+                root.classList.add('hidden');
+                frame.classList.remove('xb-off');
+                frame.dataset.originalSrc = url;
+                sc.scrollTop = 0;
+                let done = false;
+                if (frame.getAttribute('src')) {
+                    try { frame.contentWindow.location.replace(url); done = true; } catch (_) {}
+                }
+                if (!done) frame.src = url;
+                syncBack();
+            }
+
+            function backToCalendar() {
+                inFrame = false;
+                frame.classList.add('xb-off');
+                root.classList.remove('hidden');
+                sc.scrollTop = 0;
+                syncBack();
+                /* a booking may have just been made: the list is looked at again (its cheap version check) */
+                const A = window.XBodyAppointments;
+                if (A) {
+                    if (A.markDirty) A.markDirty();
+                    if (A.refresh) Promise.resolve(A.refresh()).catch(function () {});
+                }
+                if (view && offsetOf(view.y, view.m) >= 0) ensureMonth(monthKey(view.y, view.m)).catch(function () {});
+                render();
+            }
+
+            /* the back button: shown only while Acuity's page is up, and then it returns here */
+            function syncBack() {
+                if (!active) return;
+                const want = inFrame;
+                if (back.classList.contains('visible') !== want) back.classList.toggle('visible', want);
+            }
+            new MutationObserver(syncBack).observe(back, { attributes: true, attributeFilter: ['class'] });
+            back.addEventListener('click', function (e) {
+                if (!active || !inFrame) return;
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                backToCalendar();
+            }, true);
+
+            function giveUp() {
+                failed = true;
+                active = false;
+                inFrame = false;
+                root.classList.add('hidden');
+                frame.classList.remove('xb-off');
+                if (fallback) fallback();
+            }
+
+            /* own hour: Промяна (Acuity's page for that booking) / Моите часове */
+            let sheet = null;
+            function openSheet(o) {
+                if (!sheet) {
+                    sheet = document.createElement('div');
+                    sheet.className = 'xb-sheet-back hidden';
+                    sheet.addEventListener('click', function (e) {
+                        if (e.target === sheet || e.target.closest('[data-close]')) sheet.classList.add('hidden');
+                        if (e.target.closest('[data-list]')) {
+                            sheet.classList.add('hidden');
+                            if (window.XBodyAppointments && window.XBodyAppointments.open) window.XBodyAppointments.open();
+                        }
+                    });
+                    document.body.appendChild(sheet);
+                }
+                const link = o.item && o.item.confirmationPage;
+                sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Вашият час">' +
+                    '<div class="xb-sheet-handle"></div><h3>Вашият час</h3>' +
+                    '<p>' + esc(dayLabel(o.iso.slice(0, 10))) + ' · ' + esc(o.hm) + '</p>' +
+                    (link ? '<a class="xb-primary" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer"><i class="fas fa-pen"></i>Промяна или отказ</a>' : '') +
+                    '<button type="button" class="xb-secondary" data-list="1"><i class="fas fa-list"></i>Моите часове</button>' +
+                    '<button type="button" class="xb-secondary" data-close="1">Затвори</button></div>';
+                sheet.classList.remove('hidden');
+            }
+
+            daysEl.addEventListener('click', function (e) {
+                const b = e.target.closest('button[data-day]');
+                if (!b || b.disabled) return;
+                selected = b.dataset.day;
+                picked = true;
+                render();
+            });
+            slotsEl.addEventListener('click', function (e) {
+                const b = e.target.closest('button');
+                if (!b) return;
+                if (b.dataset.iso) { openAcuityAt(b.dataset.iso); return; }
+                if (b.dataset.retry) { ensureMonth(monthKey(view.y, view.m), true).catch(function () {}); delete failedMonths[monthKey(view.y, view.m)]; render(); return; }
+                if (b.dataset.acuity) { giveUp(); return; }
+                if (b.dataset.own) {
+                    const own = ownByDay()[b.dataset.own.slice(0, 10)] || [];
+                    const o = own.filter(function (x) { return x.iso === b.dataset.own; })[0];
+                    if (o) openSheet(o);
+                }
+            });
+            prevBtn.addEventListener('click', function () { go(-1); });
+            nextBtn.addEventListener('click', function () { go(1); });
+            nextEl.addEventListener('click', function () {
+                const k = nextEl.dataset.day;
+                if (!k) return;
+                const y = Number(k.slice(0, 4)), m = Number(k.slice(5, 7)) - 1;
+                if (y !== view.y || m !== view.m) {
+                    view = { y: y, m: m };
+                    ensureMonth(monthKey(y, m)).catch(function () {});
+                }
+                selected = k;
+                picked = true;
+                render();
+                titleEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+
+            /* the list changed (Моите часове refreshed): the marks follow, no request */
+            window.addEventListener('xbody-appt-updated', function () { if (active && !inFrame) render(); });
+            /* back in the app after a while: the free hours of the month shown (1 request, only if older than a minute) */
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden || !active || inFrame || !view || offsetOf(view.y, view.m) < 0) return;
+                ensureMonth(monthKey(view.y, view.m)).catch(function () {});
+            });
+
+            window.XBodyCal = {
+                /* the booking screen: this calendar; false = not possible (the caller loads Acuity's page) */
+                start: function (url, loadFrame) {
+                    if (failed) return false;
+                    bookingUrl = url;
+                    fallback = loadFrame;
+                    active = true;
+                    inFrame = false;
+                    frame.classList.add('xb-off');
+                    root.classList.remove('hidden');
+                    if (!view) {
+                        const t = new Date();
+                        view = { y: t.getFullYear(), m: t.getMonth() };
+                    }
+                    const key = monthKey(view.y, view.m);
+                    const kept = offsetOf(view.y, view.m) < 0 || monthData(key);
+                    render();
+                    syncBack();
+                    if (kept && window.XBodySplash) window.XBodySplash.hide();
+                    ensureMonth(key).then(function () {
+                        if (window.XBodySplash) window.XBodySplash.hide();
+                    }, function () {
+                        if (!kept) giveUp();   // nothing to show at all: Acuity's page, as before
+                    });
+                    return true;
+                },
+                /* pull down on the first page: the free hours again (1 request) */
+                refresh: function () {
+                    if (!active || inFrame || !view || offsetOf(view.y, view.m) < 0) return Promise.resolve();
+                    return ensureMonth(monthKey(view.y, view.m), true).catch(function () {});
+                }
+            };
+        })();
+
         /* ── Local onboarding + Acuity iframe ── */
         (function () {
             const STORAGE_KEYS = {
@@ -1316,7 +1953,13 @@
                 onboarding.classList.add('hidden');
                 scrollContainer.classList.remove('hidden');
                 frame.dataset.originalSrc = bookingUrl;
-                frame.src = bookingUrl;
+                const loadFrame = function () {
+                    frame.dataset.originalSrc = bookingUrl;
+                    frame.src = bookingUrl;
+                };
+                /* the own calendar first (Acuity's page opens at the chosen hour); if it cannot start: Acuity's page */
+                if (window.XBodyCal && window.XBodyCal.start(bookingUrl, loadFrame)) return;
+                loadFrame();
             }
 
             frame.addEventListener('load', function () {
@@ -1977,6 +2620,7 @@
                 memoryFetchedAt = fetchedAt;
                 memoryVersion = version || null;
                 renderAppointments(data, fetchedAt, fromCache, stale);
+                try { window.dispatchEvent(new CustomEvent('xbody-appt-updated')); } catch (_) {}   // the calendar's marks
             }
 
             function setLoadingState(message) {
@@ -2225,6 +2869,13 @@
 
             window.XBodyAppointments = {
                 open: openModal,
+                /* the list as kept on the phone (no request): for the calendar's marks */
+                data: function () {
+                    if (memoryCache) return memoryCache;
+                    const contact = getUserContact();
+                    const local = contact ? readLocalCache(contact.email) : null;
+                    return local ? local.data : null;
+                },
                 refresh: syncIfChanged,
                 next: nextAppointment,
                 lastStart: lastStart,
@@ -2233,6 +2884,7 @@
                 }
             };
 
+            try { window.dispatchEvent(new CustomEvent('xbody-appt-updated')); } catch (_) {}   // the calendar started before this list
             updateButtonVisibility();
             if (scrollContainer) {
                 new MutationObserver(updateButtonVisibility).observe(scrollContainer, {
@@ -2960,6 +3612,9 @@
                     const parts = [lookup(true).catch(function () {}).then(function () { update(); })];
                     if (window.XBodyAppointments && window.XBodyAppointments.refresh) {
                         parts.push(Promise.resolve(window.XBodyAppointments.refresh()).catch(function () {}));
+                    }
+                    if (window.XBodyCal && window.XBodyCal.refresh) {
+                        parts.push(Promise.resolve(window.XBodyCal.refresh()).catch(function () {}));
                     }
                     return Promise.all(parts).then(function () {
                         if (news() && !busy() && overlay.classList.contains('hidden')) openSheet('nudge');
