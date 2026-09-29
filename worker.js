@@ -24755,6 +24755,8 @@ var RATE_LIMIT = {
   // 5 reset requests per 15 min per IP
   XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 },
   // 15 lookups/min per IP
+  XBODY_BOOK: { maxRequests: 8, windowSec: 600 },
+  // several hours at once (card guarantee + booking): 8 calls / 10 min per IP
   ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 },
   // debounced client sync burst
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
@@ -36680,6 +36682,206 @@ async function handleXbodyAvailability(request, env, ctx) {
   }
   return jsonResponse2(body, 200, cacheHeaders);
 }
+var XBODY_BOOK_MAX = 8;
+var xbodyPriceMemo = null;
+function xbodyPhoneKey(phone) {
+  return String(phone || "").replace(/\D/g, "").slice(-9);
+}
+async function xbodyReadBooking(request) {
+  let body;
+  try {
+    const raw = await request.text();
+    if (raw.length > 4096) return { error: jsonResponse2({ error: "\u0422\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430 \u0437\u0430\u044F\u0432\u043A\u0430." }, 413) };
+    body = JSON.parse(raw);
+  } catch (_) {
+    return { error: jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430 \u0437\u0430\u044F\u0432\u043A\u0430." }, 400) };
+  }
+  const now = Date.now();
+  const out = {
+    email: String(body && body.email || "").trim().toLowerCase(),
+    phone: String(body && body.phone || "").trim().slice(0, 40),
+    name: String(body && body.name || "").trim().replace(/\s+/g, " ").slice(0, 80),
+    setupIntent: String(body && body.setupIntent || ""),
+    times: [...new Set((Array.isArray(body && body.times) ? body.times : []).map(String))].filter((t) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2}$/.test(t)).filter((t) => {
+      const ms = new Date(t.replace(/([+-]\d{2})(\d{2})$/, "$1:$2")).getTime();
+      return Number.isFinite(ms) && ms > now && ms < now + 120 * 864e5;
+    }).sort()
+  };
+  if (!out.email.includes("@") || xbodyPhoneKey(out.phone).length < 6 || !out.times.length || out.times.length > XBODY_BOOK_MAX) {
+    return { error: jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0438 \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0437\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435." }, 400) };
+  }
+  return out;
+}
+async function xbodyStripe(env, method, path, params) {
+  const init = { method, headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } };
+  let url = `https://api.stripe.com/v1/${path}`;
+  if (params) {
+    const form = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v !== void 0 && v !== null && v !== "") form.append(k, String(v));
+    if (method === "GET") url += (url.includes("?") ? "&" : "?") + form.toString();
+    else {
+      init.body = form.toString();
+      init.headers["Content-Type"] = "application/x-www-form-urlencoded";
+    }
+  }
+  const resp = await fetch(url, init);
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(`stripe ${path.split("/")[0]} ${resp.status} ${data.error && data.error.code || ""}`);
+  return data;
+}
+async function xbodyPrice(env) {
+  if (xbodyPriceMemo && Date.now() - xbodyPriceMemo.at < 6 * 3600 * 1e3) return xbodyPriceMemo.price;
+  let price = null;
+  try {
+    const resp = await fetch("https://acuityscheduling.com/api/v1/appointment-types", {
+      headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` }
+    });
+    const list = resp.ok ? await resp.json() : [];
+    const type = (Array.isArray(list) ? list : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
+    const n = type ? Number(type.price) : NaN;
+    if (Number.isFinite(n)) price = n;
+  } catch (err) {
+    console.warn("[xbody-book] price lookup failed:", err.message);
+  }
+  xbodyPriceMemo = { at: Date.now(), price };
+  return price;
+}
+async function handleXbodyGuarantee(request, env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return jsonResponse2({ error: "Acuity API \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D." }, 503);
+  if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PUBLISHABLE_KEY) return jsonResponse2({ error: "no_stripe" }, 503);
+  const b = await xbodyReadBooking(request);
+  if (b.error) return b.error;
+  try {
+    const found = await xbodyStripe(env, "GET", "customers", { email: b.email, limit: 1 });
+    let customer = found && Array.isArray(found.data) && found.data[0] ? found.data[0].id : "";
+    if (!customer) {
+      const created = await xbodyStripe(env, "POST", "customers", {
+        email: b.email,
+        name: b.name,
+        phone: b.phone,
+        "metadata[source]": "xbody-app"
+      });
+      customer = created.id;
+    }
+    const si = await xbodyStripe(env, "POST", "setup_intents", {
+      customer,
+      usage: "off_session",
+      "payment_method_types[]": "card",
+      description: `XBODY Burgas \u2014 \u0433\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0437\u0430 ${b.times.length} \u0447.`,
+      "metadata[email]": b.email,
+      "metadata[times]": b.times.join(",")
+    });
+    const price = await xbodyPrice(env);
+    return jsonResponse2({
+      clientSecret: si.client_secret,
+      publishableKey: env.STRIPE_PUBLISHABLE_KEY,
+      price,
+      total: price === null ? null : Math.round(price * b.times.length * 100) / 100
+    });
+  } catch (err) {
+    console.error("[xbody-guarantee] failed:", err.message);
+    return jsonResponse2({ error: "\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F\u0442\u0430 \u0441 \u043A\u0430\u0440\u0442\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u0437\u0430\u043F\u043E\u0447\u043D\u0435 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
+  }
+}
+async function handleXbodyBook(request, env) {
+  const userId = env.ACUITY_USER_ID;
+  const apiKey = env.ACUITY_API_KEY;
+  if (!userId || !apiKey) return jsonResponse2({ error: "Acuity API \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D." }, 503);
+  const b = await xbodyReadBooking(request);
+  if (b.error) return b.error;
+  const { email, times } = b;
+  const phoneKey = xbodyPhoneKey(b.phone);
+  const auth = btoa(`${userId}:${apiKey}`);
+  const stripeOn = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
+  let guarantee = null;
+  if (stripeOn) {
+    if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse2({ error: "card_required" }, 402);
+    try {
+      const si = await xbodyStripe(env, "GET", `setup_intents/${b.setupIntent}`, { "expand[]": "payment_method" });
+      const chosen = String(si.metadata && si.metadata.times || "").split(",");
+      const ok = si.status === "succeeded" && si.metadata && si.metadata.email === email && !si.metadata.acuity && times.every((t) => chosen.includes(t)) && Date.now() / 1e3 - (si.created || 0) < 3600;
+      if (!ok) return jsonResponse2({ error: "card_required" }, 402);
+      const card = si.payment_method && si.payment_method.card;
+      guarantee = {
+        id: si.id,
+        note: `\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u0430 (\u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 XBODY): Stripe ${si.customer}` + (card ? `, ${card.brand} \u2022\u2022\u2022\u2022 ${card.last4}` : "") + ". \u041D\u0438\u0449\u043E \u043D\u0435 \u0435 \u0438\u0437\u0442\u0435\u0433\u043B\u0435\u043D\u043E."
+      };
+    } catch (err) {
+      console.error("[xbody-book] setup intent check failed:", err.message);
+      return jsonResponse2({ error: "\u041A\u0430\u0440\u0442\u0430\u0442\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
+    }
+  }
+  let previous = null;
+  try {
+    const u = new URL("https://acuityscheduling.com/api/v1/appointments");
+    u.searchParams.set("email", email);
+    u.searchParams.set("calendarID", XBODY_ACUITY_BOOKING.calendarID);
+    u.searchParams.set("max", "10");
+    u.searchParams.set("direction", "DESC");
+    const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
+    if (!resp.ok) throw new Error("appointments " + resp.status);
+    const list = await resp.json();
+    previous = (Array.isArray(list) ? list : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey) || null;
+  } catch (err) {
+    console.error("[xbody-book] lookup failed:", err.message);
+    return jsonResponse2({ error: "\u0417\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
+  }
+  if (!previous && !guarantee) {
+    return jsonResponse2({ error: "first_booking" }, 403);
+  }
+  const fields = [];
+  for (const form of Array.isArray(previous && previous.forms) ? previous.forms : []) {
+    for (const v of Array.isArray(form && form.values) ? form.values : []) {
+      if (v && v.fieldID && v.value !== void 0 && v.value !== null && v.value !== "") {
+        fields.push({ id: v.fieldID, value: v.value });
+      }
+    }
+  }
+  if (!previous) fields.push({ id: 3583430, value: "yes" });
+  const names = b.name.split(" ");
+  const booked = [];
+  const failed = [];
+  for (const time of times) {
+    try {
+      const resp = await fetch("https://acuityscheduling.com/api/v1/appointments", {
+        method: "POST",
+        headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          datetime: time,
+          appointmentTypeID: Number(XBODY_ACUITY_BOOKING.appointmentTypeID),
+          calendarID: Number(XBODY_ACUITY_BOOKING.calendarID),
+          firstName: previous && previous.firstName || names[0] || "",
+          lastName: previous && previous.lastName || names.slice(1).join(" "),
+          email: previous && previous.email || email,
+          phone: previous && previous.phone || b.phone,
+          timezone: XBODY_ACUITY_BOOKING.timezone,
+          smsOptIn: true,
+          fields,
+          notes: guarantee ? guarantee.note : void 0
+        })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok && data && data.id) {
+        booked.push({ time, id: data.id });
+      } else {
+        console.warn("[xbody-book] Acuity refused", time, resp.status, JSON.stringify(data).slice(0, 200));
+        failed.push({ time, error: resp.status === 400 ? "taken" : "error" });
+      }
+    } catch (err) {
+      failed.push({ time, error: "error" });
+    }
+  }
+  if (guarantee) {
+    await xbodyStripe(env, "POST", `setup_intents/${guarantee.id}`, {
+      "metadata[acuity]": booked.map((x) => x.id).join(",") || "none"
+    }).catch((err) => console.warn("[xbody-book] setup intent mark failed:", err.message));
+  }
+  if (booked.length) {
+    await dropXbodyApptCache(env, email);
+    for (const t of booked) xbodyAvailMemo.delete(t.time.slice(0, 7));
+  }
+  return jsonResponse2({ booked, failed }, booked.length || !failed.length ? 200 : 409);
+}
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
   const apiKey = env.ACUITY_API_KEY;
@@ -37096,6 +37298,14 @@ var worker_entry_default = {
         const rlErr = await checkRateLimit(env, request, "XBODY_APPOINTMENTS");
         if (rlErr) return rlErr;
         return await handleXbodyAppointmentsVersion(request, env);
+      } else if (url.pathname === "/api/xbody/guarantee" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "XBODY_BOOK");
+        if (rlErr) return rlErr;
+        return await handleXbodyGuarantee(request, env);
+      } else if (url.pathname === "/api/xbody/book" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "XBODY_BOOK");
+        if (rlErr) return rlErr;
+        return await handleXbodyBook(request, env);
       } else if (url.pathname === "/api/xbody/availability" && request.method === "GET") {
         return await handleXbodyAvailability(request, env, ctx);
       } else if (url.pathname === "/api/xbody/appointments" && request.method === "GET") {
