@@ -17287,6 +17287,7 @@ async function handleXbodyAppointments(request, env) {
       type: appt.type || 'Час',
       duration: appt.duration || '',
       calendar: appt.calendar || '',
+      calendarID: appt.calendarID || null,
       location: appt.location || '',
       canceled: Boolean(appt.canceled),
       canClientCancel: Boolean(appt.canClientCancel),

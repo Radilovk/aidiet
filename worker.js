@@ -36745,6 +36745,7 @@ async function handleXbodyAppointments(request, env) {
       type: appt.type || "\u0427\u0430\u0441",
       duration: appt.duration || "",
       calendar: appt.calendar || "",
+      calendarID: appt.calendarID || null,
       location: appt.location || "",
       canceled: Boolean(appt.canceled),
       canClientCancel: Boolean(appt.canClientCancel),
