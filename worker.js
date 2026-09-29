@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -36558,13 +36563,22 @@ async function handleXbodyAcuityWebhook(request, env) {
   if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled|canceled|changed)$/.test(action)) {
     return new Response("ignored", { status: 200 });
   }
+  const sentCalendar = String(form.get("calendarID") || "");
+  if (sentCalendar && sentCalendar !== XBODY_ACUITY_BOOKING.calendarID) return new Response("ignored", { status: 200 });
   const auth = btoa(`${userId}:${apiKey}`);
+  const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
+    headers: { Authorization: `Basic ${auth}` }
+  }).catch(() => null);
+  const current = got && got.ok ? await got.json().catch(() => null) : null;
+  if (!current || String(current.calendarID || "") !== XBODY_ACUITY_BOOKING.calendarID) {
+    return new Response("ignored", { status: 200 });
+  }
   if (!/(^|\.)(scheduled|rescheduled)$/.test(action)) {
-    const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
-      headers: { Authorization: `Basic ${auth}` }
-    }).catch(() => null);
-    const appt2 = got && got.ok ? await got.json().catch(() => null) : null;
-    await dropXbodyApptCache(env, appt2 && appt2.email);
+    await dropXbodyApptCache(env, current.email);
+    return new Response("ok", { status: 200 });
+  }
+  if (current.smsOptIn === true) {
+    await dropXbodyApptCache(env, current.email);
     return new Response("ok", { status: 200 });
   }
   const resp = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}?admin=true`, {

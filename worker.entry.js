@@ -17054,6 +17054,8 @@ async function handleXbodyAppointmentsVersion(request, env) {
  * Webhooks). The studio chose that SMS reminders are always on: the booking page says that booking means
  * SMS reminders (the opt-in checkbox is hidden there), and this marks the new appointment's smsOptIn.
  * Signed by Acuity: X-Acuity-Signature = base64(HMAC-SHA256(raw body, API key)); anything else is refused.
+ * The webhook is account-wide (the account also runs the other studio on xbody.as.me): only XBODY Burgas
+ * appointments (calendar 4715375) are touched — the other studio's appointments are never written to.
  */
 async function handleXbodyAcuityWebhook(request, env) {
   const userId = env.ACUITY_USER_ID;
@@ -17069,14 +17071,25 @@ async function handleXbodyAcuityWebhook(request, env) {
   if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled|canceled|changed)$/.test(action)) {
     return new Response('ignored', { status: 200 });
   }
+  // Acuity sends calendarID with the event: another studio's appointment is left alone at once
+  const sentCalendar = String(form.get('calendarID') || '');
+  if (sentCalendar && sentCalendar !== XBODY_ACUITY_BOOKING.calendarID) return new Response('ignored', { status: 200 });
   const auth = btoa(`${userId}:${apiKey}`);
+  const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
+    headers: { Authorization: `Basic ${auth}` },
+  }).catch(() => null);
+  const current = got && got.ok ? await got.json().catch(() => null) : null;
+  // not readable, or not XBODY Burgas: nothing is written
+  if (!current || String(current.calendarID || '') !== XBODY_ACUITY_BOOKING.calendarID) {
+    return new Response('ignored', { status: 200 });
+  }
   if (!/(^|\.)(scheduled|rescheduled)$/.test(action)) {
-    // canceled / changed: only the client's cached list goes (one Acuity read for the e-mail, one KV delete)
-    const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
-      headers: { Authorization: `Basic ${auth}` },
-    }).catch(() => null);
-    const appt = got && got.ok ? await got.json().catch(() => null) : null;
-    await dropXbodyApptCache(env, appt && appt.email);
+    // canceled / changed: only the client's cached list goes
+    await dropXbodyApptCache(env, current.email);
+    return new Response('ok', { status: 200 });
+  }
+  if (current.smsOptIn === true) {   // already on: no write to Acuity at all
+    await dropXbodyApptCache(env, current.email);
     return new Response('ok', { status: 200 });
   }
   const resp = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}?admin=true`, {

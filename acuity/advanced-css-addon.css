@@ -9,10 +9,13 @@
 
 /* ВАЖНО: без знака ">" — редакторът на Acuity го поврежда при запис.
 
-   Горе: Sign Up / Login — на самата страница се виждат, на български (в xbody горната ивица е извън кадър) */
-header ul li button span span span { font-size: 0 !important; }
-header ul li:first-child button span span span::after { content: "Регистрация"; font-size: 13px !important; font-weight: 700; letter-spacing: .04em; }
-header ul li:nth-child(2) button span span span::after { content: "Вход"; font-size: 13px !important; font-weight: 700; letter-spacing: .04em; }
+   ИЗОЛАЦИЯ (v15): акаунтът в Acuity е общ с другото студио (xbody.as.me), а Advanced CSS важи за целия акаунт.
+   Затова тук НИЩО не се поставя директно: scripts/build-acuity-css.mjs слага пред всяко правило
+   :root:has(<белег на XBODY Бургас>) — белегът е картинка от описанието на КАЛЕНДАРА на Бургас (acuity/description.html).
+   Където белегът липсва (другото студио, „Моите часове“, входът в профила), тази добавка не прави нищо.
+
+   Горната ивица (Sign Up / Login и менюто на влезлия клиент) НЕ се пипа: след вход Acuity слага там други
+   бутони и те получаваха надписите „Регистрация“ / „Вход“ — клиентите не виждаха часовете си и изхода. */
 
 /* Логото е в описанието (обикновена картинка, работи във всеки браузър); това на Acuity е сплескано върху бяло */
 img.business-logo { display: none !important; }
@@ -43,7 +46,7 @@ div[role="group"]:has(input[name="client.smsOptIn"])::after {
     display: block; font-family: Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 12.5px !important; line-height: 1.45; opacity: .75; margin: 4px 0 2px;
 }
 
-/* Менюто при избор на час */
+/* Менюто при избор на час (скриптът го ограничава до момента, в който има отворен час: .time-selection[aria-expanded]) */
 div[role="menu"] li[role="menuitem"] { font-size: 0 !important; }
 div[role="menu"] li[role="menuitem"] { line-height: 0 !important; }
 div[role="menu"] li[role="menuitem"]::after {
@@ -208,13 +211,15 @@ p[for="username"], p[for="password"], p[for="confirmPassword"] { font-size: 0 !i
 p[for="username"]::after { content: "Имейл"; font-size: 14px; }
 p[for="password"]::after { content: "Парола"; font-size: 14px; }
 p[for="confirmPassword"]::after { content: "Повторете паролата"; font-size: 14px; }
-div[role="dialog"] button[type="submit"] { font-size: 0 !important; }
-div[role="dialog"] button[type="submit"]::after { font-size: 14px; font-weight: 700; }
+div[role="dialog"][aria-label="Sign up for an account"] button[type="submit"],
+div[role="dialog"][aria-label="Login"] button[type="submit"],
+div[role="dialog"][aria-label="Reset Password"] button[type="submit"] { font-size: 0 !important; }
+div[role="dialog"][aria-label="Sign up for an account"] button[type="submit"]::after,
+div[role="dialog"][aria-label="Login"] button[type="submit"]::after,
+div[role="dialog"][aria-label="Reset Password"] button[type="submit"]::after { font-size: 14px; font-weight: 700; }
 div[role="dialog"][aria-label="Sign up for an account"] button[type="submit"]::after { content: "Регистрация"; }
 div[role="dialog"][aria-label="Login"] button[type="submit"]::after { content: "Вход"; }
 div[role="dialog"][aria-label="Reset Password"] button[type="submit"]::after { content: "Изпрати"; }
-div[role="dialog"][aria-label="Login"] button span span span { font-size: 0 !important; }
-div[role="dialog"][aria-label="Login"] button span span span::after { content: "Забравена парола?"; font-size: 13px; }
 
 /* Условията при регистрация: „Съгласен/на съм с Общите условия и Политиката за поверителност“ */
 p[for="tos"] span:first-child { font-size: 0 !important; }
