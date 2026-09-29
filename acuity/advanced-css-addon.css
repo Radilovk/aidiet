@@ -86,8 +86,10 @@ label[for="billingInformation.lastName"] p::after { content: "Фамилия"; f
 /* Плащане: ваучер */
 button[aria-label="Remove applied certificate code"] { font-size: 0 !important; }
 button[aria-label="Remove applied certificate code"]::after { content: "Премахни"; font-size: 13px !important; text-decoration: underline; }
-div:has(+ div button[aria-label="Remove applied certificate code"]) p:first-child { font-size: 0 !important; }
-div:has(+ div button[aria-label="Remove applied certificate code"]) p:first-child::after { content: "Ваучер"; font-size: 15px !important; }
+/* само надписът на приложения ваучер: не етикетите на картата (те са в fieldset / label — иначе при ваучер
+   „Име“, „Фамилия“ и „Кредитна или дебитна карта“ ставаха „Ваучер“) */
+div:has(+ div button[aria-label="Remove applied certificate code"]) p:first-child:not(fieldset p):not(label p) { font-size: 0 !important; }
+div:has(+ div button[aria-label="Remove applied certificate code"]) p:first-child:not(fieldset p):not(label p)::after { content: "Ваучер"; font-size: 15px !important; }
 #certificate-code { font-size: 0 !important; }
 #certificate-code::after { content: "Ваучер"; font-size: 14px !important; }
 
