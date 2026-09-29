@@ -86,8 +86,10 @@ label[for="billingInformation.lastName"] p::after { content: "Фамилия"; f
 /* Плащане: ваучер */
 button[aria-label="Remove applied certificate code"] { font-size: 0 !important; }
 button[aria-label="Remove applied certificate code"]::after { content: "Премахни"; font-size: 13px !important; text-decoration: underline; }
-div:has(+ div button[aria-label="Remove applied certificate code"]) p:first-child { font-size: 0 !important; }
-div:has(+ div button[aria-label="Remove applied certificate code"]) p:first-child::after { content: "Ваучер"; font-size: 15px !important; }
+/* само надписът на приложения ваучер: не етикетите на картата (те са в fieldset / label — иначе при ваучер
+   „Име“, „Фамилия“ и „Кредитна или дебитна карта“ ставаха „Ваучер“) */
+div:has(+ div button[aria-label="Remove applied certificate code"]) p:first-child:not(fieldset p):not(label p) { font-size: 0 !important; }
+div:has(+ div button[aria-label="Remove applied certificate code"]) p:first-child:not(fieldset p):not(label p)::after { content: "Ваучер"; font-size: 15px !important; }
 #certificate-code { font-size: 0 !important; }
 #certificate-code::after { content: "Ваучер"; font-size: 14px !important; }
 
@@ -503,4 +505,159 @@ p[for="tos"] a[href*="privacy"] span::after { content: "Политиката з�
         background: linear-gradient(145deg, #ef4444, #b91c1c) !important; border-color: transparent !important;
     }
     #pylon button.btn { background: linear-gradient(145deg, #e53935, #b71c1c) !important; }
+}
+
+/* ---------- 12. v10: СТРАНИЦАТА НА ЧАСА (линкът „Промяна“ от имейла и от „Моите часове“) ----------
+   Селектори по устойчиви белези (id, data-action, aria-label). Датите и имената на дните идват готови от
+   Acuity и не се превеждат; адресът („Burgas, Alexandrovska str…“) се сменя в настройките на календара. */
+
+/* „Камен, your appointment is confirmed!“ → „Камен, часът Ви е потвърден!“ (името е отделно и остава) */
+#confirmation-line span { font-size: 0 !important; }
+#confirmation-line span::after { content: "часът Ви е потвърден!"; font-size: 18px; }
+
+/* Картата на часа */
+p[id^="date-label-"] { font-weight: 600 !important; }
+div[aria-labelledby^="type-label-"] svg + div p { font-size: 0 !important; }
+div[aria-labelledby^="type-label-"] svg + div p::after { font-size: 14px; line-height: 1.5; display: block; }
+/* часът още може да се мести / отказва: само данните от формата не се променят онлайн */
+div[aria-labelledby^="type-label-"]:has(button[data-action]) svg + div p::after {
+    content: "Данните, попълнени при записването, не могат да се променят онлайн. Часът може да се премести или откаже от бутоните по-долу.";
+}
+/* вече без промени онлайн (близо до часа) */
+div[aria-labelledby^="type-label-"]:not(:has(button[data-action])) svg + div p::after {
+    content: "Този час вече не може да се мести или отказва онлайн. За промяна се обадете на студиото.";
+}
+
+/* Бутоните: „Промени часа“ / „Откажи часа“ един до друг, календарите под тях като леки бутони */
+div[aria-labelledby^="type-label-"] div:has(ul + ul):not(:has(div ul + ul)) {
+    display: flex !important; flex-direction: column !important; align-items: stretch !important; gap: 0;
+}
+div[aria-labelledby^="type-label-"] ul:has(+ ul), div[aria-labelledby^="type-label-"] ul + ul {
+    display: flex !important; flex-wrap: wrap; gap: 10px; padding: 0 !important; margin: 0 0 10px !important; list-style: none;
+}
+div[aria-labelledby^="type-label-"] ul:has(+ ul) li { flex: 1 1 100%; margin: 0 !important; }
+#pylon div[aria-labelledby^="type-label-"] ul:has(+ ul) button.btn, div[aria-labelledby^="type-label-"] ul:has(+ ul) button.btn {
+    width: 100% !important; min-height: 44px !important; margin: 0 !important; border-radius: 12px !important; box-shadow: none !important;
+    background: transparent !important; border: 1px solid #d32f2f !important; color: #d32f2f !important;
+}
+#pylon div[aria-labelledby^="type-label-"] ul:has(+ ul) button.btn *, div[aria-labelledby^="type-label-"] ul:has(+ ul) button.btn span { font-size: 0 !important; color: #d32f2f !important; }
+div[aria-labelledby^="type-label-"] ul:has(+ ul) button.btn span::after { font-size: 14px; font-weight: 700; text-transform: none; letter-spacing: .01em; }
+div[aria-labelledby^="type-label-"] ul:has(+ ul) li:first-child button.btn span::after { content: "Добави в календара"; }
+div[aria-labelledby^="type-label-"] ul:has(+ ul) li:nth-child(2) button.btn span::after { content: "Добави в Google Календар"; }
+div[aria-labelledby^="type-label-"] ul + ul li { flex: 1 1 100%; margin: 0 !important; }
+/* „Промени“ / „Откажи“ най-отгоре */
+div[aria-labelledby^="type-label-"] ul + ul { order: -1; }
+/* само най-вътрешната обвивка на двата бутона (не и родителите ѝ) */
+div:has(button[data-action="reschedule"] + button[data-action="cancel"]):not(:has(div button[data-action])) { display: flex !important; gap: 10px; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+button[data-action] {
+    flex: 1 1 0; min-height: 48px !important; border-radius: 12px !important; font-size: 0 !important; margin: 0 !important;
+    display: inline-flex !important; align-items: center; justify-content: center;
+}
+button[data-action] span { font-size: 0 !important; }
+button[data-action] span::after { font-size: 14px; font-weight: 700; text-transform: none; white-space: nowrap; }
+button[data-action="reschedule"] { background: #d32f2f !important; border: 1px solid #d32f2f !important; color: #fff !important; }
+button[data-action="reschedule"] span::after { content: "Промени часа"; color: #fff; }
+button[data-action="cancel"] { background: transparent !important; border: 1px solid #cfcbd3 !important; color: inherit !important; }
+button[data-action="cancel"] span::after { content: "Откажи часа"; }
+
+/* Прозорец „Cancel Appointment“ */
+div[role="dialog"][aria-label="Cancel Appointment"] h1 { font-size: 0 !important; }
+div[role="dialog"][aria-label="Cancel Appointment"] h1::after { content: "Отказ от час"; font-size: 17px; font-weight: 700; }
+div[role="dialog"][aria-label="Cancel Appointment"] p span { font-size: 0 !important; }
+div[role="dialog"][aria-label="Cancel Appointment"] p span::after {
+    content: "Сигурни ли сте, че искате да откажете този час? След отказа часът се освобождава за други клиенти.";
+    font-size: 16px; line-height: 1.5; display: block;
+}
+div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]) { border-radius: 12px !important; min-height: 44px; padding: 0 16px !important; }
+div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]) span span:first-child { font-size: 0 !important; }
+div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]) span span:first-child::after { font-size: 14px; font-weight: 700; text-transform: none; letter-spacing: .01em; }
+div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]):first-child span span:first-child::after { content: "Назад"; }
+div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]):last-child span span:first-child::after { content: "Да, откажи часа"; }
+div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]):last-child { background: #d32f2f !important; color: #fff !important; }
+div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]):last-child * { color: #fff !important; }
+
+/* Прозорец „Rescheduling from … to...“ */
+div[role="dialog"][aria-label^="Rescheduling"] h1 { font-size: 0 !important; }
+div[role="dialog"][aria-label^="Rescheduling"] h1::after { content: "Изберете нов ден и час"; font-size: 17px; font-weight: 700; }
+#weekly-calendar-region span:has(span) { display: none !important; }
+button[aria-label="More Times"] { border-radius: 50% !important; }
+/* часовете: 24-часов формат, както в останалата страница */
+[aria-label^="Reschedul"] [aria-label^="6:00 AM,"] p, [aria-label^="Reschedul"] [aria-label^="6:15 AM,"] p, [aria-label^="Reschedul"] [aria-label^="6:30 AM,"] p, [aria-label^="Reschedul"] [aria-label^="6:45 AM,"] p, [aria-label^="Reschedul"] [aria-label^="7:00 AM,"] p, [aria-label^="Reschedul"] [aria-label^="7:15 AM,"] p, [aria-label^="Reschedul"] [aria-label^="7:30 AM,"] p, [aria-label^="Reschedul"] [aria-label^="7:45 AM,"] p, [aria-label^="Reschedul"] [aria-label^="8:00 AM,"] p, [aria-label^="Reschedul"] [aria-label^="8:15 AM,"] p, [aria-label^="Reschedul"] [aria-label^="8:30 AM,"] p, [aria-label^="Reschedul"] [aria-label^="8:45 AM,"] p, [aria-label^="Reschedul"] [aria-label^="9:00 AM,"] p, [aria-label^="Reschedul"] [aria-label^="9:15 AM,"] p, [aria-label^="Reschedul"] [aria-label^="9:30 AM,"] p, [aria-label^="Reschedul"] [aria-label^="9:45 AM,"] p, [aria-label^="Reschedul"] [aria-label^="10:00 AM,"] p, [aria-label^="Reschedul"] [aria-label^="10:15 AM,"] p, [aria-label^="Reschedul"] [aria-label^="10:30 AM,"] p, [aria-label^="Reschedul"] [aria-label^="10:45 AM,"] p, [aria-label^="Reschedul"] [aria-label^="11:00 AM,"] p, [aria-label^="Reschedul"] [aria-label^="11:15 AM,"] p, [aria-label^="Reschedul"] [aria-label^="11:30 AM,"] p, [aria-label^="Reschedul"] [aria-label^="11:45 AM,"] p, [aria-label^="Reschedul"] [aria-label^="12:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="12:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="12:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="12:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="1:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="1:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="1:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="1:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="2:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="2:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="2:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="2:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="3:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="3:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="3:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="3:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="4:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="4:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="4:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="4:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="5:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="5:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="5:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="5:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="6:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="6:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="6:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="6:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="7:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="7:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="7:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="7:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="8:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="8:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="8:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="8:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="9:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="9:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="9:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="9:45 PM,"] p, [aria-label^="Reschedul"] [aria-label^="10:00 PM,"] p, [aria-label^="Reschedul"] [aria-label^="10:15 PM,"] p, [aria-label^="Reschedul"] [aria-label^="10:30 PM,"] p, [aria-label^="Reschedul"] [aria-label^="10:45 PM,"] p { font-size: 0 !important; }
+[aria-label^="Reschedul"] [aria-label^="6:00 AM,"] p::after { font-size: 16px; font-weight: 600; content: "6:00"; }
+[aria-label^="Reschedul"] [aria-label^="6:15 AM,"] p::after { font-size: 16px; font-weight: 600; content: "6:15"; }
+[aria-label^="Reschedul"] [aria-label^="6:30 AM,"] p::after { font-size: 16px; font-weight: 600; content: "6:30"; }
+[aria-label^="Reschedul"] [aria-label^="6:45 AM,"] p::after { font-size: 16px; font-weight: 600; content: "6:45"; }
+[aria-label^="Reschedul"] [aria-label^="7:00 AM,"] p::after { font-size: 16px; font-weight: 600; content: "7:00"; }
+[aria-label^="Reschedul"] [aria-label^="7:15 AM,"] p::after { font-size: 16px; font-weight: 600; content: "7:15"; }
+[aria-label^="Reschedul"] [aria-label^="7:30 AM,"] p::after { font-size: 16px; font-weight: 600; content: "7:30"; }
+[aria-label^="Reschedul"] [aria-label^="7:45 AM,"] p::after { font-size: 16px; font-weight: 600; content: "7:45"; }
+[aria-label^="Reschedul"] [aria-label^="8:00 AM,"] p::after { font-size: 16px; font-weight: 600; content: "8:00"; }
+[aria-label^="Reschedul"] [aria-label^="8:15 AM,"] p::after { font-size: 16px; font-weight: 600; content: "8:15"; }
+[aria-label^="Reschedul"] [aria-label^="8:30 AM,"] p::after { font-size: 16px; font-weight: 600; content: "8:30"; }
+[aria-label^="Reschedul"] [aria-label^="8:45 AM,"] p::after { font-size: 16px; font-weight: 600; content: "8:45"; }
+[aria-label^="Reschedul"] [aria-label^="9:00 AM,"] p::after { font-size: 16px; font-weight: 600; content: "9:00"; }
+[aria-label^="Reschedul"] [aria-label^="9:15 AM,"] p::after { font-size: 16px; font-weight: 600; content: "9:15"; }
+[aria-label^="Reschedul"] [aria-label^="9:30 AM,"] p::after { font-size: 16px; font-weight: 600; content: "9:30"; }
+[aria-label^="Reschedul"] [aria-label^="9:45 AM,"] p::after { font-size: 16px; font-weight: 600; content: "9:45"; }
+[aria-label^="Reschedul"] [aria-label^="10:00 AM,"] p::after { font-size: 16px; font-weight: 600; content: "10:00"; }
+[aria-label^="Reschedul"] [aria-label^="10:15 AM,"] p::after { font-size: 16px; font-weight: 600; content: "10:15"; }
+[aria-label^="Reschedul"] [aria-label^="10:30 AM,"] p::after { font-size: 16px; font-weight: 600; content: "10:30"; }
+[aria-label^="Reschedul"] [aria-label^="10:45 AM,"] p::after { font-size: 16px; font-weight: 600; content: "10:45"; }
+[aria-label^="Reschedul"] [aria-label^="11:00 AM,"] p::after { font-size: 16px; font-weight: 600; content: "11:00"; }
+[aria-label^="Reschedul"] [aria-label^="11:15 AM,"] p::after { font-size: 16px; font-weight: 600; content: "11:15"; }
+[aria-label^="Reschedul"] [aria-label^="11:30 AM,"] p::after { font-size: 16px; font-weight: 600; content: "11:30"; }
+[aria-label^="Reschedul"] [aria-label^="11:45 AM,"] p::after { font-size: 16px; font-weight: 600; content: "11:45"; }
+[aria-label^="Reschedul"] [aria-label^="12:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "12:00"; }
+[aria-label^="Reschedul"] [aria-label^="12:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "12:15"; }
+[aria-label^="Reschedul"] [aria-label^="12:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "12:30"; }
+[aria-label^="Reschedul"] [aria-label^="12:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "12:45"; }
+[aria-label^="Reschedul"] [aria-label^="1:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "13:00"; }
+[aria-label^="Reschedul"] [aria-label^="1:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "13:15"; }
+[aria-label^="Reschedul"] [aria-label^="1:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "13:30"; }
+[aria-label^="Reschedul"] [aria-label^="1:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "13:45"; }
+[aria-label^="Reschedul"] [aria-label^="2:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "14:00"; }
+[aria-label^="Reschedul"] [aria-label^="2:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "14:15"; }
+[aria-label^="Reschedul"] [aria-label^="2:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "14:30"; }
+[aria-label^="Reschedul"] [aria-label^="2:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "14:45"; }
+[aria-label^="Reschedul"] [aria-label^="3:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "15:00"; }
+[aria-label^="Reschedul"] [aria-label^="3:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "15:15"; }
+[aria-label^="Reschedul"] [aria-label^="3:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "15:30"; }
+[aria-label^="Reschedul"] [aria-label^="3:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "15:45"; }
+[aria-label^="Reschedul"] [aria-label^="4:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "16:00"; }
+[aria-label^="Reschedul"] [aria-label^="4:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "16:15"; }
+[aria-label^="Reschedul"] [aria-label^="4:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "16:30"; }
+[aria-label^="Reschedul"] [aria-label^="4:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "16:45"; }
+[aria-label^="Reschedul"] [aria-label^="5:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "17:00"; }
+[aria-label^="Reschedul"] [aria-label^="5:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "17:15"; }
+[aria-label^="Reschedul"] [aria-label^="5:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "17:30"; }
+[aria-label^="Reschedul"] [aria-label^="5:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "17:45"; }
+[aria-label^="Reschedul"] [aria-label^="6:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "18:00"; }
+[aria-label^="Reschedul"] [aria-label^="6:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "18:15"; }
+[aria-label^="Reschedul"] [aria-label^="6:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "18:30"; }
+[aria-label^="Reschedul"] [aria-label^="6:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "18:45"; }
+[aria-label^="Reschedul"] [aria-label^="7:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "19:00"; }
+[aria-label^="Reschedul"] [aria-label^="7:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "19:15"; }
+[aria-label^="Reschedul"] [aria-label^="7:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "19:30"; }
+[aria-label^="Reschedul"] [aria-label^="7:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "19:45"; }
+[aria-label^="Reschedul"] [aria-label^="8:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "20:00"; }
+[aria-label^="Reschedul"] [aria-label^="8:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "20:15"; }
+[aria-label^="Reschedul"] [aria-label^="8:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "20:30"; }
+[aria-label^="Reschedul"] [aria-label^="8:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "20:45"; }
+[aria-label^="Reschedul"] [aria-label^="9:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "21:00"; }
+[aria-label^="Reschedul"] [aria-label^="9:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "21:15"; }
+[aria-label^="Reschedul"] [aria-label^="9:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "21:30"; }
+[aria-label^="Reschedul"] [aria-label^="9:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "21:45"; }
+[aria-label^="Reschedul"] [aria-label^="10:00 PM,"] p::after { font-size: 16px; font-weight: 600; content: "22:00"; }
+[aria-label^="Reschedul"] [aria-label^="10:15 PM,"] p::after { font-size: 16px; font-weight: 600; content: "22:15"; }
+[aria-label^="Reschedul"] [aria-label^="10:30 PM,"] p::after { font-size: 16px; font-weight: 600; content: "22:30"; }
+[aria-label^="Reschedul"] [aria-label^="10:45 PM,"] p::after { font-size: 16px; font-weight: 600; content: "22:45"; }
+
+@media (prefers-color-scheme: dark) {
+    #pylon div[aria-labelledby^="type-label-"] ul:has(+ ul) button.btn { background: transparent !important; border-color: #ef4444 !important; color: #fca5a5 !important; }
+    #pylon div[aria-labelledby^="type-label-"] ul:has(+ ul) button.btn * { color: #fca5a5 !important; }
+    #pylon button[data-action="reschedule"], #pylon button[data-action="reschedule"] * { background-color: #d32f2f !important; color: #fff !important; }
+    #pylon button[data-action="cancel"] { border-color: #3a353f !important; }
+    #pylon div[aria-labelledby^="type-label-"] div:has(svg + div) { background: #26232a !important; border-color: #3a353f !important; }
+    div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]):last-child,
+    div[role="dialog"][aria-label="Cancel Appointment"] button:not([aria-label]):last-child * { background-color: #d32f2f !important; color: #fff !important; }
 }
