@@ -1219,6 +1219,9 @@
         .xb-sheet .xb-primary { border: 0; color: #fff; background: linear-gradient(145deg, #e53935, #b71c1c); box-shadow: 0 8px 20px rgba(211, 47, 47, .3); }
         .xb-sheet .xb-secondary { border: 1px solid #dcd9df; background: transparent; color: inherit; }
         html[data-theme="dark"] .xb-sheet .xb-secondary { border-color: #3a353f; }
+        .xb-sheet.xb-late h3 { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; line-height: 1.35; letter-spacing: 0; text-transform: none; color: #d32f2f; margin-bottom: 10px; }
+        .xb-sheet .xb-late-text { margin: 0 0 8px; font-size: 15px; font-weight: 400; line-height: 1.55; }
+        .xb-sheet .xb-late-text b { font-weight: 700; }
         .xb-sheet .xb-quiet { border-color: transparent !important; font-weight: 500; opacity: .75; }
         /* the chosen hours: marks, the bar at the bottom, the list in the sheet */
         .xb-slot.picked { border: 2px solid var(--xb-red) !important; background: var(--xb-soft) !important; }
@@ -2121,7 +2124,7 @@
                 sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Вашият час">' +
                     '<div class="xb-sheet-handle"></div><h3>Вашият час</h3>' +
                     '<p>' + esc(dayLabel(o.iso.slice(0, 10))) + ' · ' + esc(o.hm) + '</p>' +
-                    (link ? '<a class="xb-primary" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer"><i class="fas fa-pen"></i>Промяна или отказ</a>' : '') +
+                    (link ? '<a class="xb-primary" href="' + esc(link) + '" data-start="' + isoTime(o.iso) + '" target="_blank" rel="noopener noreferrer"><i class="fas fa-pen"></i>Промяна или отказ</a>' : '') +
                     '<button type="button" class="xb-secondary" data-list="1"><i class="fas fa-list"></i>Моите часове</button>' +
                     '<button type="button" class="xb-secondary" data-close="1">Затвори</button></div>';
                 sheet.classList.remove('hidden');
@@ -2205,6 +2208,47 @@
                     return ensureMonth(monthKey(view.y, view.m), true).catch(function () {});
                 }
             };
+        })();
+
+        /* ── Late change / cancellation: under 12 h before the training, a clear warning before Acuity's page ──
+           Any link to an appointment's page (Промяна in Моите часове, Промяна или отказ in the calendar) carries
+           data-start (ms); inside 12 h it first shows the booking terms, then opens the page if the client goes on. */
+        (function () {
+            const LATE_MS = 12 * 3600 * 1000;
+            let back = null;
+            function close() { if (back) back.classList.add('hidden'); }
+            function warn(href, start) {
+                if (!back) {
+                    back = document.createElement('div');
+                    back.className = 'xb-sheet-back hidden';
+                    back.addEventListener('click', function (e) {
+                        if (e.target === back || e.target.closest('[data-close]')) { close(); return; }
+                        const go = e.target.closest('[data-go]');
+                        if (go) { close(); window.open(go.dataset.go, '_blank', 'noopener'); }
+                    });
+                    document.body.appendChild(back);
+                }
+                const hours = Math.max(0, (start - Date.now()) / 3600000);
+                const left = hours < 1 ? 'по-малко от час' : 'около ' + Math.round(hours) + (Math.round(hours) === 1 ? ' час' : ' часа');
+                back.innerHTML = '<div class="xb-sheet xb-late" role="alertdialog" aria-modal="true" aria-labelledby="xb-late-t">' +
+                    '<div class="xb-sheet-handle"></div>' +
+                    '<h3 id="xb-late-t"><i class="fas fa-exclamation-triangle"></i> Внимание: до тренировката остава ' + left + '</h3>' +
+                    '<p class="xb-late-text">Според условията за резервация при <b>отмяна, промяна или неявяване</b> по-малко от 12 часа ' +
+                        'преди тренировката тя се заплаща от картата Ви, <b>без възможност за възстановяване на сумата</b>.</p>' +
+                    '<button type="button" class="xb-secondary" data-close="1">Назад — запазвам часа</button>' +
+                    '<button type="button" class="xb-primary" data-go="' + String(href).replace(/"/g, '&quot;') + '">Разбирам, продължи</button>' +
+                    '</div>';
+                back.classList.remove('hidden');
+            }
+            document.addEventListener('click', function (e) {
+                const a = e.target.closest && e.target.closest('a[data-start]');
+                if (!a) return;
+                const start = Number(a.dataset.start);
+                if (!start || start - Date.now() >= LATE_MS || start < Date.now() - 3600000) return;
+                e.preventDefault();
+                e.stopPropagation();
+                warn(a.href, start);
+            }, true);
         })();
 
         /* ── Local onboarding + Acuity iframe ── */
@@ -2848,6 +2892,12 @@
                 };
             }
 
+            /* the start in ms, for the late-change warning (Acuity writes "+0300", some browsers want "+03:00") */
+            function apptStart(item, dt) {
+                const t = new Date(String((item && item.datetime) || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).getTime();
+                return Number.isFinite(t) ? t : (dt ? dt.getTime() : '');
+            }
+
             function renderRow(item, isPast) {
                 const labels = formatAppointmentBg(item);
                 const dt = parseApptDate(item);
@@ -2857,7 +2907,7 @@
                     ? ''
                     : canChange
                     ? '<a class="xbody-appt-change-btn" href="' + escapeHtml(item.confirmationPage) +
-                        '" target="_blank" rel="noopener noreferrer">Промяна</a>'
+                        '" data-start="' + apptStart(item, dt) + '" target="_blank" rel="noopener noreferrer">Промяна</a>'
                     : '<span class="xbody-appt-change-btn disabled">Промяна</span>';
                 const status = item.canceled
                     ? '<p class="xbody-appt-status">Отменен час</p>'
