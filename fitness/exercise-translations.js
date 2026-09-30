@@ -47,6 +47,7 @@ export function mergeExerciseTranslation(entry, raw, translations = {}, maxChars
     ...entry,
     nameBg: tr?.nameBg || entry.nameBg || '',
     instructions,
+    instructionsEn: instructionsEn.slice(0, maxChars),
     instructionsLang: instructionsBg ? 'bg' : (instructionsEn ? 'en' : ''),
   };
 }

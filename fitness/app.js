@@ -793,7 +793,20 @@ function openLightbox(ex) {
     media.equipment && `оборудване: ${localizeEquipment(media.equipment)}`,
   ].filter(Boolean);
   $('lightboxMeta').textContent = meta.join(' · ');
-  $('lightboxInstructions').textContent = media.instructions || '';
+  const insEl = $('lightboxInstructions');
+  insEl.textContent = media.instructions || '';
+  // BG ↔ EN превключвател, когато има и двата текста
+  if (media.instructionsEn) {
+    let en = false;
+    const toggle = el('button', { type: 'button', class: 'lang-toggle', text: 'EN' });
+    toggle.onclick = () => {
+      en = !en;
+      insEl.textContent = en ? media.instructionsEn : (media.instructions || '');
+      insEl.append(' ', toggle);
+      toggle.textContent = en ? 'BG' : 'EN';
+    };
+    insEl.append(' ', toggle);
+  }
   $('lightbox').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   armBackSentinel();

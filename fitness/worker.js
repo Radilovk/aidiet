@@ -850,6 +850,7 @@ function entryToClientExercise(env, entry, { includeInstructions = true } = {}) 
   if (includeInstructions) {
     out.instructions = entry.instructions || '';
     out.instructionsLang = entry.instructionsLang || '';
+    if (entry.instructionsEn && entry.instructionsEn !== out.instructions) out.instructionsEn = entry.instructionsEn;
   }
   return out;
 }

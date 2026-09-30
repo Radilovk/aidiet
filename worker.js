@@ -30,6 +30,18 @@ var init_exercise_dataset = __esm({
   }
 });
 
+// fitness/data/exercise-instructions.json
+var exercise_instructions_exports = {};
+__export(exercise_instructions_exports, {
+  default: () => exercise_instructions_default
+});
+var exercise_instructions_default;
+var init_exercise_instructions = __esm({
+  "fitness/data/exercise-instructions.json"() {
+    exercise_instructions_default = {};
+  }
+});
+
 // fitness/data/exercise-metadata.json
 var exercise_metadata_exports = {};
 __export(exercise_metadata_exports, {
@@ -4810,6 +4822,7 @@ function mergeExerciseTranslation(entry, raw, translations = {}, maxChars = 1200
     ...entry,
     nameBg: tr?.nameBg || entry.nameBg || "",
     instructions,
+    instructionsEn: instructionsEn.slice(0, maxChars),
     instructionsLang: instructionsBg ? "bg" : instructionsEn ? "en" : ""
   };
 }
@@ -4885,7 +4898,14 @@ function normalizeBatchResult(parsed, batch) {
 async function fetchExerciseDataset(url = null) {
   if (!url) {
     const mod = await Promise.resolve().then(() => (init_exercise_dataset(), exercise_dataset_exports));
-    return mod.default || mod;
+    const list = mod.default || mod;
+    let ins = {};
+    try {
+      const m = await Promise.resolve().then(() => (init_exercise_instructions(), exercise_instructions_exports));
+      ins = m.default || m;
+    } catch {
+    }
+    return list.map((x) => ins[x.id] ? { ...x, instructions: { ...x.instructions || {}, en: ins[x.id].en, bg: ins[x.id].bg } } : x);
   }
   const res = await fetch(url, { headers: { "User-Agent": "aidiet-fitness-translate" } });
   if (!res.ok) throw new Error(`Dataset HTTP ${res.status}`);
@@ -7595,6 +7615,7 @@ function entryToClientExercise(env, entry, { includeInstructions = true } = {}) 
   if (includeInstructions) {
     out.instructions = entry.instructions || "";
     out.instructionsLang = entry.instructionsLang || "";
+    if (entry.instructionsEn && entry.instructionsEn !== out.instructions) out.instructionsEn = entry.instructionsEn;
   }
   return out;
 }

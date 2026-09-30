@@ -1255,3 +1255,4 @@ body.pwa-install-open .chat-fab {
 .xv-credit { font-size: 11px; color: var(--muted, #8b95a7); margin-top: 8px; }
 .xv-credit a { color: inherit; }
 .alt-option .alt-visual { width: 46px; height: 46px; border-radius: 8px; flex-shrink: 0; }
+.lang-toggle { margin-left: 6px; padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
