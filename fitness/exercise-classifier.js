@@ -169,6 +169,10 @@ export function detectPattern(raw) {
   const t = targetOf(raw);
   const b = bodyOf(raw);
 
+  // equipment=assisted без машина в името = партньорско разтягане (assisted lying/prone …)
+  if (eq === 'assisted' && /\b(lying|prone|seated|side lying)\b/.test(n) && !/\b(raise|curl|crunch|sit up|pull|dip|row)\b/.test(n)) {
+    return { pattern: 'stretch', reason: 'equipment:assisted partner stretch' };
+  }
   if (has(R.stretch, n) || R.rollerEq.test(eq)) {
     // „circles“ с тежест (напр. kettlebell circles) не е стречинг
     if (!(/\bcircles?\b/.test(n) && /kettlebell|dumbbell|barbell|weighted|medicine/.test(eq))) {

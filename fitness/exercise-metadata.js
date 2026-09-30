@@ -125,6 +125,7 @@ export function metadataForExercise(raw, store = {}) {
 }
 
 export function mergeExerciseMetadata(entry, raw, metadata = {}) {
+  /** @type {any} */
   const meta = metadataForExercise(raw, metadata);
   return {
     ...entry,
@@ -158,7 +159,7 @@ export function resolveMaxDiff(experience = '', tags = null, profileText = '') {
   const blob = normalizeText(profileText || '');
 
   if (exp.includes('напреднал') || exp.includes('5+')) return 3;
-  if (exp.includes('никакъв') || (exp.includes('начинаещ') && !exp.includes('средно'))) return 1;
+  if (exp.includes('никакъв') || (exp.includes('начинаещ') && !exp.includes('средно') && !exp.includes('среден'))) return 1;
   if (exp.includes('среден')) return 2;
 
   if (tagSet.has('level:напреднал')) return 3;

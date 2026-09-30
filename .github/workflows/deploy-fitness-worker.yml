@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'fitness/worker.js'
+      - 'fitness/*.js'
       - 'fitness/wrangler.toml'
       - 'fitness/package.json'
       - 'fitness/package-lock.json'
@@ -28,7 +28,7 @@ on:
     branches:
       - main
     paths:
-      - 'fitness/worker.js'
+      - 'fitness/*.js'
       - 'fitness/wrangler.toml'
       - 'fitness/package.json'
       - 'fitness/package-lock.json'

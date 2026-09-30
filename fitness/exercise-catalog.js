@@ -19,7 +19,7 @@ export const KNOWN_FLAGS = [
 export const KNOWN_GEAR = [
   'floor', 'mat', 'wall', 'step', 'bench', 'chair', 'pull_bar', 'parallel_bars',
   'rings', 'suspension', 'dumbbell', 'kettlebell', 'band', 'barbell', 'cable',
-  'machine', 'ball', 'cardio_machine', 'assisted', 'weighted', 'rope',
+  'machine', 'ball', 'cardio_machine', 'assisted', 'weighted', 'rope', 'accessory',
 ];
 
 function clampDiff(n) {

@@ -104,7 +104,7 @@ export function goalKey(answers) {
 
 export function parseLevel(experience = '') {
   const exp = normalizeText(experience);
-  if (exp.includes('никакъв') || (exp.includes('начинаещ') && !exp.includes('средно'))) return 1;
+  if (exp.includes('никакъв') || (exp.includes('начинаещ') && !exp.includes('средно') && !exp.includes('среден'))) return 1;
   if (exp.includes('напреднал') || exp.includes('5+')) return 3;
   return 2;
 }

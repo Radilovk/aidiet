@@ -35,6 +35,8 @@ export const GEAR_CARDIO_MACHINE = 'cardio_machine';
 export const GEAR_ASSISTED = 'assisted';
 export const GEAR_WEIGHTED = 'weighted';
 export const GEAR_ROPE = 'rope';
+/** Аксесоари: ролер/колело за корем, гума, чук. */
+export const GEAR_ACCESSORY = 'accessory';
 
 /** @deprecated alias */
 export const GEAR_BOX = GEAR_STEP;
@@ -122,6 +124,7 @@ for (const group of [...EQUIPMENT_GROUPS, ...QUESTIONNAIRE_EXTRA_GROUPS]) {
     else if (norm.includes('ball')) gear.push(GEAR_BALL, GEAR_FLOOR);
     else if (norm === 'weighted') gear.push(GEAR_WEIGHTED, GEAR_FLOOR);
     else if (norm === 'rope') gear.push(GEAR_ROPE, GEAR_FLOOR);
+    else if (['roller', 'wheel roller', 'tire', 'hammer'].includes(norm)) gear.push(GEAR_ACCESSORY, GEAR_FLOOR);
     else if (['elliptical machine', 'skierg machine', 'stationary bike', 'stepmill machine', 'upper body ergometer'].includes(norm)) {
       gear.push(GEAR_CARDIO_MACHINE);
     }
@@ -202,7 +205,8 @@ export function inferRequiredGear(name = '', equipment = '') {
   if (eq === 'dumbbell') gear.add(GEAR_DUMBBELL);
   if (eq === 'kettlebell') gear.add(GEAR_KETTLEBELL);
   if (eq === 'band' || eq === 'resistance band') gear.add(GEAR_BAND);
-  if (eq.includes('barbell')) gear.add(GEAR_BARBELL);
+  if (eq.includes('barbell') || eq === 'trap bar') gear.add(GEAR_BARBELL);
+  if (/roller|tire|hammer/.test(eq)) gear.add(GEAR_ACCESSORY);
   if (eq === 'cable') gear.add(GEAR_CABLE);
   if (eq.includes('machine') || eq.includes('lever') || eq.includes('smith') || eq === 'sled machine') gear.add(GEAR_MACHINE);
   if (eq.includes('ball')) gear.add(GEAR_BALL);
