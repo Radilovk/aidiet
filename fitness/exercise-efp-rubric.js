@@ -8,7 +8,7 @@ export const EFP_FLAGS = [
   'compound', 'isolation', 'barbell', 'machine', 'bodyweight', 'true_bodyweight',
   'mislabeled_bw', 'cardio', 'glute', 'press', 'olympic', 'gymnastics', 'suspension',
   'rings', 'pull_bar', 'parallel_bars', 'beginner_safe', 'home_friendly', 'advanced',
-  'plyometric', 'unilateral', 'balance', 'stretch', 'mobility', 'excluded', 'gender_variant',
+  'plyometric', 'unilateral', 'balance', 'stretch', 'mobility', 'excluded', 'gender_variant', 'duplicate',
 ];
 
 export const CLASSIFY_RUBRIC = `

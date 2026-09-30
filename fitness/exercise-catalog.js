@@ -12,7 +12,7 @@ export const KNOWN_FLAGS = [
   'compound', 'isolation', 'barbell', 'machine', 'bodyweight', 'true_bodyweight',
   'mislabeled_bw', 'cardio', 'glute', 'press', 'olympic', 'gymnastics', 'suspension',
   'rings', 'pull_bar', 'parallel_bars', 'beginner_safe', 'home_friendly', 'advanced',
-  'gender_variant', 'plyometric', 'unilateral', 'balance', 'stretch', 'mobility',
+  'gender_variant', 'duplicate', 'plyometric', 'unilateral', 'balance', 'stretch', 'mobility',
   'excluded',
 ];
 

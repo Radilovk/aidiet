@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchExerciseDataset } from '../exercise-classify-batch.js';
 import { classifyExercise, findFlagContradictions, CLASSIFIER_VERSION } from '../exercise-classifier.js';
+import { baseEnName } from '../exercise-canonical.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outFile = join(root, 'data', 'exercise-metadata.json');
@@ -33,6 +34,11 @@ try {
 } catch { /* първи run */ }
 
 const classifiedAt = new Date().toISOString();
+// Демо дубли: „(back pov)“, „v. 2“, „with arm blaster“ при наличен основен запис със същото име
+const DEMO_RE = /\bv\.?\s*\d+\b|\bpov\b|arm blaster/i;
+const plainBases = new Set(all.filter((x) => !DEMO_RE.test(x.name)).map((x) => baseEnName(x.name)));
+const isDemoDuplicate = (x) => DEMO_RE.test(x.name) && plainBases.has(baseEnName(x.name));
+let demoDuplicates = 0;
 const next = {};
 const changes = { diff: 0, gf: 0, gm: 0, kept: 0 };
 const contradictions = [];
@@ -62,6 +68,12 @@ for (const raw of all) {
     efpVersion: CLASSIFIER_VERSION,
     classifiedAt,
   };
+  if (isDemoDuplicate(raw)) {
+    row.excluded = true;
+    row.flags = [...new Set([...row.flags, 'duplicate', 'excluded'])];
+    row.reasons = [...row.reasons, 'excluded:демо дубликат на основен запис'];
+    demoDuplicates++;
+  }
   const bad = findFlagContradictions(row);
   if (bad.length) contradictions.push(`${id} ${raw.name}: ${bad.join(', ')}`);
   if (prev) {
@@ -81,6 +93,7 @@ const count = (key) => Object.values(next).reduce((m, r) => { m[r[key]] = (m[r[k
 console.log(`EFP v${CLASSIFIER_VERSION}: ${Object.keys(next).length} упражнения → ${outFile}`);
 console.log('diff:', count('diff'));
 console.log('category:', count('category'));
+console.log(`демо дубли (изключени): ${demoDuplicates}`);
 console.log(`промени спрямо предишното: diff ${changes.diff}, gf ${changes.gf}, gm ${changes.gm}; запазени ръчни: ${changes.kept}`);
 if (contradictions.length) {
   console.error(`Противоречия (${contradictions.length}):\n${contradictions.join('\n')}`);
