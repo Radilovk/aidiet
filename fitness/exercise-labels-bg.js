@@ -379,3 +379,112 @@ export function sanitizePlanBulgarian(plan) {
   }
   return plan;
 }
+
+// ---------------------------------------------------------------------------
+// Съставно BG име за запис от каталога: база + уред + позиция + хват + вариант.
+// localizeExerciseDisplayName дава само базата („Сгъване за бицепс“) и слива десетки
+// различни упражнения в едно име; тук разликите се пазят.
+// ---------------------------------------------------------------------------
+
+/** Ред = ред в името. [EN регулярен израз, BG модификатор, група] — от група се взима първото съвпадение. */
+/** @type {[RegExp, string, string][]} */
+const NAME_MODIFIERS = [
+  [/\btrap bar\b/, 'с трап лост', 'eq'], [/\bez (?:bar|barbell)\b/, 'с EZ лост', 'eq'], [/\bsmith\b/, 'на Смит машина', 'eq'],
+  [/\bbarbell\b/, 'с щанга', 'eq'], [/\bdumbbells?\b/, 'с дъмбели', 'eq'], [/\bkettlebells?\b/, 'с пудовка', 'eq'],
+  [/\bcable\b/, 'на скрипец', 'eq'], [/\b(?:resistance )?band\b/, 'с ластик', 'eq'], [/\bsled\b/, 'на преса', 'eq'],
+  [/\blever\b|\bmachine\b/, 'на машина', 'eq'], [/\bweighted\b/, 'с тежест', 'eq'], [/\bmedicine ball\b/, 'с медицинска топка', 'eq2'],
+  [/\b(?:stability|exercise|swiss) ball\b/, 'на фитбол', 'eq2'], [/\bbosu\b/, 'на BOSU', 'eq2'], [/\bsuspended\b|\btrx\b/, 'на TRX', 'eq2'],
+  [/\b(?:wheel )?roller\b/, 'с ролер', 'eq2'], [/\bassisted\b/, 'с асистенция', 'eq3'], [/\brope\b/, 'с въже', 'eq3'],
+  [/\bv bar\b/, 'с V-дръжка', 'eq3'], [/\btowel\b/, 'с кърпа', 'eq3'],
+  [/\bside lying\b/, 'легнал на една страна', 'pos'], [/\bseated\b|\bsitted\b|\bsitting\b/, 'седнал', 'pos'],
+  [/\bstanding\b/, 'прав', 'pos'], [/\bkneeling\b|\bon knees\b/, 'на колене', 'pos'], [/\bprone\b/, 'легнал по корем', 'pos'],
+  [/\bsupine\b|\blying\b/, 'легнал', 'pos'], [/\bbent over\b/, 'в наклон', 'pos'],
+  [/\bincline\b/, 'на наклонена пейка', 'bench'], [/\bdecline\b/, 'на обратен наклон', 'bench'],
+  [/\bon (?:a )?bench\b|\bbench supported\b/, 'на пейка', 'bench'], [/\bfloor\b/, 'на пода', 'bench'], [/\bwall\b/, 'на стена', 'bench'],
+  [/\bclose grip\b|\bnarrow\b/, 'тесен хват', 'grip'], [/\bwide(?: grip)?\b/, 'широк хват', 'grip'],
+  [/\breverse grip\b|\bunderhand\b|\bsupinated\b/, 'обратен хват', 'grip'], [/\bneutral\b|\bparallel grip\b|\bhammer grip\b|\bpalms? in\b/, 'неутрален хват', 'grip'],
+  [/\bmixed grip\b/, 'смесен хват', 'grip'], [/\boverhand\b|\bpronated\b/, 'прав хват', 'grip'],
+  [/\b(?:one|single) (?:arm|hand)\b/, 'с една ръка', 'side'], [/\b(?:one|single) leg(?:ged)?\b/, 'на един крак', 'side'],
+  [/\balternat\w*\b/, 'редуващо', 'side'], [/\btwo arm\b|\bdouble\b/, 'с две ръце', 'side'],
+  [/\bsumo\b/, 'сумо', 'x1'], [/\bbehind (?:the )?(?:neck|head)\b/, 'зад врата', 'x2'], [/\boverhead\b|\babove head\b/, 'над глава', 'x3'],
+  [/\btwist\w*\b|\brotation\w*\b/, 'с ротация', 'x4'], [/\bjump\w*\b/, 'със скок', 'x5'], [/\bpause\b/, 'с пауза', 'x6'],
+  [/\bstraight arms?\b/, 'с прави ръце', 'x7'], [/\bstiff leg\b|\bstraight legs?\b/, 'с изпънати крака', 'x8'], [/\bbent knees?\b/, 'със свити колене', 'x8'],
+  [/\bdeficit\b/, 'от дефицит', 'x9'], [/\bhigh\b/, 'висок', 'x10'], [/\blow\b/, 'нисък', 'x10'], [/\bfront\b/, 'преден', 'x11'],
+  [/\brear\b|\bback\b/, 'заден', 'x11'], [/\blateral\b|\bside\b/, 'страничен', 'x11'], [/\bcross\w*\b/, 'кръстосано', 'x12'],
+  [/\bpartial\b|\bhalf\b|\bquarter\b|3 4/, 'частична амплитуда', 'x13'], [/\bfull range\b|\bfull\b/, 'пълна амплитуда', 'x13'],
+  [/\bexplosive\b|\bspeed\b|\bpower\b/, 'взривно', 'x14'], [/\bisometric\b|\bhold\b/, 'задържане', 'x15'],
+  [/\bhanging\b/, 'висящ', 'x17'], [/\boblique\b/, 'косо', 'x18'], [/\bdeep\b/, 'дълбоко', 'x19'], [/\bdrop\b/, 'с падане', 'x19'],
+  [/\binner\b/, 'вътрешна част', 'x20'], [/\bouter\b/, 'външна част', 'x20'], [/\bstraight bar\b/, 'на прав лост', 'x21'],
+  [/\bplyo\w*\b/, 'плиометрично', 'x5'], [/\bstork\b|\bbalance\b/, 'на един крак за баланс', 'x22'],
+  [/\bspider\b/, 'паяк', 'x16'], [/\bpreacher\b|\bscott\b/, 'на Скот пейка', 'x16'], [/\bconcentration\b/, 'концентрирано', 'x16'],
+  [/\bzercher\b/, 'Зерчер', 'x16'], [/\bpendlay\b/, 'Пендлей', 'x16'], [/\barnold\b/, 'Арнолд', 'x16'], [/\bgoblet\b/, 'гоблет', 'x16'],
+  [/\bbulgarian\b/, 'български', 'x16'], [/\bwalking\b/, 'в ход', 'x16'], [/\bcurtsey\b|\bcurtsy\b/, 'реверанс', 'x16'],
+  [/\bdiamond\b/, 'диамант', 'x16'], [/\barcher\b/, 'стрелец', 'x16'], [/\bclap\w*\b/, 'с пляскане', 'x16'], [/\bpike\b/, 'пайк', 'x16'],
+  [/\bhack\b/, 'хакен', 'x16'], [/\bdrag\b/, 'дърпане по тялото', 'x16'], [/\bupright\b/, 'изправено', 'x16'], [/\bguillotine\b/, 'гилотина', 'x16'],
+];
+
+/** Специфични бази с предимство пред речника (там биха се сляли с по-общо движение). */
+/** @type {[RegExp, string][]} */
+const PRIORITY_BASES = [
+  [/\bstretch\w*\b/, 'Разтягане'], [/\bcossack\b/, 'Казашки клек'],
+  [/\bwrist curl\b|\bwrist roll\w*\b/, 'Сгъване на китки'], [/\breverse curl\b/, 'Обратно сгъване за предмишници'],
+  [/\bfinger curls?\b/, 'Сгъване на пръстите'], [/\bhandstand push/, 'Лицева опора в стойка на ръце'], [/\bhandstand\b/, 'Стойка на ръце'],
+  [/\bmuscle ?up\b/, 'Мускул ъп'], [/\bdips?\b/, 'Кофички'], [/\bchin\b(?! up)|\bchin ups?\b/, 'Набиране с обратен хват'],
+  [/\bcurl\b.*\b(squat|lunge)\b|\b(squat|lunge)\b.*\bcurl\b/, 'Комбинация клек/напад + сгъване'],
+  [/\bcalf\b/, 'Повдигане на прасци'], [/\bplanche\b/, 'Планш'], [/\blever\b.*\b(front|back)\b|\b(front|back) lever\b/, 'Лост (гимнастика)'],
+  [/\bsissy squat\b/, 'Сиси клек'], [/\bpistol\b/, 'Пистолет клек'], [/\bhack squat\b/, 'Хакен клек'],
+  [/\bface pull\b/, 'Дърпане към лицето'], [/\bupright row\b/, 'Вертикално гребане'], [/\bleg press\b/, 'Преса за крака'],
+  [/\bglute ham\b|\bnordic\b|\binverse leg curl\b/, 'Нордическо сгъване'], [/\bfarmers? walk\b/, 'Фермерска разходка'],
+  [/\bmonster walk\b/, 'Странично ходене с ластик'], [/\bstepmill\b/, 'Стълбищен тренажор'], [/\bstationary bike\b/, 'Велоергометър'],
+  [/\belliptical\b|\bcross trainer\b/, 'Елипсовиден тренажор'], [/\btreadmill\b/, 'Бягаща пътека'],
+];
+
+/** Основи, когато речникът върне общото „Упражнение“ (EN ключова дума → BG). */
+/** @type {[RegExp, string][]} */
+const NAME_BASES = [
+  [/\bstretch\b/, 'Разтягане'], [/\bcrunch\w*\b/, 'Коремна преса'], [/\bsit up\b/, 'Коремно повдигане'], [/\bv up\b/, 'V-повдигане'],
+  [/\bleg raise\b|\bleg lift\b|\bknee raise\b|\bhip raise\b/, 'Повдигане на крака'], [/\brussian twist\b/, 'Руско завъртане'],
+  [/\bside bend\b/, 'Странично навеждане'], [/\bplank\b/, 'Планк'], [/\bbridge\b/, 'Мост'], [/\bhip thrust\b/, 'Хип тръст'],
+  [/\bkickback\b|\bkick back\b/, 'Разгъване назад'], [/\bextension\b/, 'Разгъване'], [/\bpushdown\b|\bpush down\b/, 'Разгъване надолу'],
+  [/\bfly\b|\bflye\w*\b|\bcrossover\w*\b/, 'Разтваряне'], [/\bpullover\b|\bpull over\b/, 'Пуловър'], [/\bshrug\w*\b/, 'Свиване на рамене'],
+  [/\braise\b/, 'Повдигане'], [/\bpress\b/, 'Избутване'], [/\bpulldown\b|\bpull down\b/, 'Дърпане отгоре'], [/\bpull\w*\b/, 'Дърпане'],
+  [/\bcurl\b/, 'Сгъване'], [/\bstep ?up\b/, 'Качване на степ'], [/\bswing\b/, 'Суинг'], [/\bclean\b/, 'Обръщане'], [/\bsnatch\b/, 'Изхвърляне'],
+  [/\bthruster\b/, 'Тръстер'], [/\bjerk\b/, 'Изтласкване'], [/\bgood morning\b/, 'Добро утро'], [/\bhyperextension\b/, 'Хиперекстензия'],
+  [/\bburpee\b/, 'Бърпи'], [/\bclimber\b/, 'Планинар'], [/\bjack\w*\b/, 'Джъмпинг джак'], [/\bjump\w*\b|\bhop\w*\b/, 'Скок'],
+  [/\brun\b|\bjog\b|\bsprint\b/, 'Бягане'], [/\bwalk\w*\b|\bmarch\w*\b/, 'Ходене'], [/\bbike\b|\bcycle\b/, 'Колоездене'],
+  [/\brow\w*\b/, 'Гребане'], [/\btwist\w*\b|\brotation\b/, 'Завъртане на торса'], [/\bcircles?\b/, 'Кръгови движения'],
+  [/\bcrawl\b/, 'Пълзене'], [/\brollout\b|\brollerout\b/, 'Разгъване с ролер'], [/\bdead bug\b/, 'Мъртва буболечка'],
+];
+
+/**
+ * Съставно BG име: „<база> — <модификатори>“. Детерминистично: едно и също EN име → едно и също BG.
+ * @param {string} name EN име от dataset-а
+ * @param {string} [equipment]
+ * @param {string} [target]
+ */
+export function composeExerciseNameBg(name, equipment = '', target = '') {
+  const neutral = neutralExerciseName(name);
+  const n = norm(neutral);
+  const priority = PRIORITY_BASES.find(([re]) => re.test(n));
+  let base = priority ? priority[1] : localizeExerciseDisplayName(name, '', equipment);
+  if (!base || base === 'Упражнение') {
+    const hit = NAME_BASES.find(([re]) => re.test(n));
+    const tgt = target ? localizeTarget(target) : '';
+    base = hit ? hit[1] : (tgt ? `Упражнение за ${tgt}` : 'Упражнение');
+  }
+  const baseLow = base.toLowerCase().replace(/кабел/g, 'кабел скрипец');
+  const already = (bg) => {
+    const stem = bg.toLowerCase().replace(/^(с|на|в|от|със) /, '').slice(0, 5);
+    return baseLow.includes(stem);
+  };
+  const usedGroups = new Set();
+  const mods = [];
+  for (const [re, bg, group] of NAME_MODIFIERS) {
+    if (usedGroups.has(group) || !re.test(n)) continue;
+    usedGroups.add(group);
+    if (!already(bg)) mods.push(bg);
+  }
+  const version = String(name).match(/\bv\.?\s*(\d+)\b/i);
+  if (version) mods.push(`вариант ${version[1]}`);
+  return mods.length ? `${base} — ${mods.join(', ')}` : base;
+}
