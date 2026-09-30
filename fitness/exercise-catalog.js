@@ -12,7 +12,7 @@ export const KNOWN_FLAGS = [
   'compound', 'isolation', 'barbell', 'machine', 'bodyweight', 'true_bodyweight',
   'mislabeled_bw', 'cardio', 'glute', 'press', 'olympic', 'gymnastics', 'suspension',
   'rings', 'pull_bar', 'parallel_bars', 'beginner_safe', 'home_friendly', 'advanced',
-  'gender_variant',
+  'gender_variant', 'plyometric', 'unilateral', 'balance', 'stretch', 'mobility',
   'excluded',
 ];
 
@@ -97,6 +97,13 @@ export function buildCatalogRecord(entry, raw = null, bundledMeta = {}, kvMeta =
     sourceHash: kvMetaRow?.sourceHash || bundledMetaRow?.sourceHash || null,
     classifiedAt: kvMetaRow?.classifiedAt || bundledMetaRow?.classifiedAt || null,
     heuristicOnly: kvMetaRow?.heuristicOnly ?? bundledMetaRow?.heuristicOnly ?? null,
+    // EFP v3 — двигателен модел и причини (зависят само от името/уреда, затова от bundled)
+    pattern: entry?.pattern || bundledMetaRow?.pattern || '',
+    category: entry?.category || bundledMetaRow?.category || '',
+    mechanic: entry?.mechanic || bundledMetaRow?.mechanic || '',
+    reasons: Array.isArray(bundledMetaRow?.reasons) ? bundledMetaRow.reasons : [],
+    efpVersion: kvMetaRow?.efpVersion ?? bundledMetaRow?.efpVersion ?? null,
+    manual: Boolean(kvMetaRow?.manual || kvMetaRow?.manualEdit),
     overridden: {
       metadata: Boolean(kvMetaRow),
       translation: Boolean(kvTrRow),
@@ -121,6 +128,9 @@ export function filterCatalogRecords(records, opts = {}) {
   const equip = normalizeText(opts.equipment || '');
   const excluded = opts.excluded;
   const overridden = opts.overridden;
+  const category = String(opts.category || '');
+  const pattern = String(opts.pattern || '');
+  const mechanic = String(opts.mechanic || '');
 
   return (records || []).filter((row) => {
     if (diff && row.diff !== diff) return false;
@@ -129,6 +139,9 @@ export function filterCatalogRecords(records, opts = {}) {
     if (excluded === 'no' && row.excluded) return false;
     if (overridden === 'metadata' && !row.overridden?.metadata) return false;
     if (overridden === 'translation' && !row.overridden?.translation) return false;
+    if (category && row.category !== category) return false;
+    if (pattern && row.pattern !== pattern) return false;
+    if (mechanic && row.mechanic !== mechanic) return false;
     if (!q) return true;
 
     const hay = [
@@ -139,6 +152,7 @@ export function filterCatalogRecords(records, opts = {}) {
       row.equipment,
       row.target,
       row.bodyPart,
+      row.pattern,
       ...(row.flags || []),
       ...(row.gear || []),
     ].join(' ');

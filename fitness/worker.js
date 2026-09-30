@@ -68,6 +68,8 @@ import {
 } from './exercise-classify-batch.js';
 import {
   EXERCISE_METADATA_KV_KEY,
+  effectiveKvMetadata,
+  mergeMetadataStores,
   buildExerciseCatalogSnippet,
   computeExerciseFacets,
   exerciseProfileFromAnswers,
@@ -218,7 +220,8 @@ const DATASET_URL_CANDIDATES = [
 // v2: loadExerciseMetadata вече слива bundled класификация с KV (виж по-долу) —
 // смяна на ключа изчиства стар кеш, изграден преди тази поправка (иначе 30-дневния
 // TTL би задържал грешно недоклассифицирани записи чак до естествения му изтек).
-const EXERCISE_INDEX_KV_KEY = 'exidx:v2';
+// v3: детерминистичен класификатор EFP v3 (exercise-classifier.js) в bundled данните.
+const EXERCISE_INDEX_KV_KEY = 'exidx:v3';
 const EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30; // 30 дни; при промяна на схемата — нов ключ
 const PLAN_TTL = 60 * 60 * 24 * 90;           // планът живее 90 дни в KV
 
@@ -459,7 +462,7 @@ export async function loadExerciseMetadata(env) {
     try {
       const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: 'json' });
       if (kv && typeof kv === 'object' && Object.keys(kv).length) {
-        return { ...bundled, ...kv };
+        return mergeMetadataStores(bundled, kv);
       }
     } catch (e) {
       console.error('KV read за exercise metadata пропадна:', e.message);
@@ -470,7 +473,6 @@ export async function loadExerciseMetadata(env) {
 
 async function saveExerciseMetadata(env, metadata) {
   await env.FITNESS_KV.put(EXERCISE_METADATA_KV_KEY, JSON.stringify(metadata));
-  bundledMetadata = metadata;
 }
 
 /** Build-time преводи: KV → bundled JSON fallback. */
@@ -2187,13 +2189,15 @@ async function loadKvExerciseTranslations(env) {
 }
 
 async function loadExerciseCatalogContext(env) {
-  const [all, bundledMeta, kvMeta, bundledTr, kvTr] = await Promise.all([
+  const [all, bundledMeta, kvMetaRaw, bundledTr, kvTr] = await Promise.all([
     fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined),
     loadBundledMetadata(),
     loadKvExerciseMetadata(env),
     loadBundledTranslations(),
     loadKvExerciseTranslations(env),
   ]);
+  // Само KV записите, които реално важат (ръчни или по-нова версия от bundled)
+  const kvMeta = effectiveKvMetadata(bundledMeta, kvMetaRaw);
   const mergedMeta = { ...bundledMeta, ...kvMeta };
   const mergedTr = { ...(bundledTr || {}), ...kvTr };
   const index = buildCompactIndex(all, mergedTr, mergedMeta);
@@ -2219,6 +2223,9 @@ async function handleGetExerciseCatalog(request, env, url) {
     equipment: url.searchParams.get('equipment') || '',
     excluded: url.searchParams.get('excluded') || '',
     overridden: url.searchParams.get('overridden') || '',
+    category: url.searchParams.get('category') || '',
+    pattern: url.searchParams.get('pattern') || '',
+    mechanic: url.searchParams.get('mechanic') || '',
   });
   const page = paginateCatalogRecords(
     filtered,
@@ -2276,7 +2283,7 @@ async function handleUpdateExerciseCatalogItem(request, env, id) {
   if (patch.metadata) await saveExerciseMetadata(env, applied.metadata);
   if (patch.translation) await saveExerciseTranslations(env, applied.translations);
 
-  const mergedMeta = { ...ctx.bundledMeta, ...applied.metadata };
+  const mergedMeta = mergeMetadataStores(ctx.bundledMeta, applied.metadata);
   const mergedTr = { ...(ctx.bundledTr || {}), ...applied.translations };
   const index = buildCompactIndex(ctx.all, mergedTr, mergedMeta);
   const entry = index.find((row) => String(row.id) === String(id));
@@ -2284,7 +2291,7 @@ async function handleUpdateExerciseCatalogItem(request, env, id) {
 
   return jsonResponse({
     success: true,
-    item: buildCatalogRecord(entry, raw, ctx.bundledMeta, applied.metadata, ctx.bundledTr, applied.translations),
+    item: buildCatalogRecord(entry, raw, ctx.bundledMeta, effectiveKvMetadata(ctx.bundledMeta, applied.metadata), ctx.bundledTr, applied.translations),
     indexRebuilt: Boolean(indexInfo),
     index: indexInfo,
   });
@@ -2320,7 +2327,7 @@ async function handleImportExerciseCatalog(request, env) {
   await saveExerciseTranslations(env, imported.translations);
 
   const ctx = await loadExerciseCatalogContext(env);
-  const mergedMeta = { ...ctx.bundledMeta, ...imported.metadata };
+  const mergedMeta = mergeMetadataStores(ctx.bundledMeta, imported.metadata);
   const mergedTr = { ...(ctx.bundledTr || {}), ...imported.translations };
   const indexInfo = await rebuildExerciseIndexInKv(env, mergedTr, mergedMeta);
 
@@ -2363,7 +2370,7 @@ async function handleBulkSaveExerciseCatalog(request, env) {
 
   await saveExerciseMetadata(env, kvMeta);
   await saveExerciseTranslations(env, kvTr);
-  const mergedMeta = { ...ctx.bundledMeta, ...kvMeta };
+  const mergedMeta = mergeMetadataStores(ctx.bundledMeta, kvMeta);
   const mergedTr = { ...(ctx.bundledTr || {}), ...kvTr };
   const indexInfo = await rebuildExerciseIndexInKv(env, mergedTr, mergedMeta);
 

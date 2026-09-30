@@ -28,10 +28,14 @@
     <details class="ec-criteria ec-card">
       <summary>Критерии за индексация</summary>
       <dl>
-        <dt>diff / gf / gm / flags</dt>
-        <dd><strong>AI класификация (EFP v2)</strong> — всяко упражнение се преглежда индивидуално (име, equipment, target, пълни инструкции). Оценки: motor, coordination, plyometric → diff. Без евристики. Само курирани записи влизат в AI каталога.</dd>
-        <dt>true_bodyweight / home_friendly</dt>
-        <dd>СТ = под/мат/стена/степ/пейка/стол. home_friendly = СТ без high-skill.</dd>
+        <dt>Модел → категория → трудност (EFP v3)</dt>
+        <dd><strong>Детерминистичен класификатор</strong> (<code>exercise-classifier.js</code>) — без AI и без случайност. Всяко упражнение минава по един и същ ред: 1) двигателен модел (клек, hinge, хоризонтално/вертикално бутане и дърпане, корем, стречинг…); 2) категория (сила / корем / кардио / плиометрия / мобилност); 3) compound или isolation; 4) тип натоварване (машина, кабел, свободна тежест, щанга, СТ).</dd>
+        <dt>d (1–3)</dt>
+        <dd>1 = стабилно и просто (машини, кабели, дъмбели изолиращо, базово СТ). 2 = свободна щанга многоставно, аксиално натоварване с тежест, лост/успоредка/TRX, нестабилна опора, базова плиометрия. 3 = олимпийски, гимнастика/халки, pistol/nordic, високоимпактна плиометрия, едноръчни варианти. Машини/кабели максимум 2. Стречинг винаги 1. Всяка оценка носи причина — виж „Защо“ в редактора.</dd>
+        <dt>gf / gm</dt>
+        <dd>Таблица по двигателен модел (напр. седалище 95/60, бутане от лежанка 60/90, корем 85/70), с корекции за щанга/ластик/лицеви на колене.</dd>
+        <dt>true_bodyweight / home_friendly / beginner_safe</dt>
+        <dd>СТ = под/мат/стена/степ/пейка/стол. home_friendly = СТ с d≤2 без гимнастика. beginner_safe = d1 без плиометрия и без лост/халки/TRX.</dd>
         <dt>(male)/(female)</dt>
         <dd>Автоматично изключени — дублират неутрални варианти.</dd>
       </dl>
@@ -54,6 +58,27 @@
             </select>
           </div>
           <div class="ec-field">
+            <label for="ecCategory">Категория</label>
+            <select id="ecCategory">
+              <option value="">Всички</option>
+            </select>
+          </div>
+          <div class="ec-field">
+            <label for="ecPattern">Модел</label>
+            <select id="ecPattern">
+              <option value="">Всички</option>
+            </select>
+          </div>
+          <div class="ec-field">
+            <label for="ecMechanic">Тип</label>
+            <select id="ecMechanic">
+              <option value="">Всички</option>
+              <option value="compound">Многоставно</option>
+              <option value="isolation">Изолиращо</option>
+              <option value="none">Мобилност</option>
+            </select>
+          </div>
+          <div class="ec-field">
             <label for="ecExcluded">Изключени</label>
             <select id="ecExcluded">
               <option value="">Всички</option>
@@ -71,6 +96,7 @@
                 <th>ID</th>
                 <th>EN име</th>
                 <th>BG име</th>
+                <th>Модел</th>
                 <th>d</th>
                 <th>gf/gm</th>
                 <th>Тагове</th>
@@ -90,6 +116,7 @@
       <div class="ec-card ec-editor ec-hidden" id="ecEditor">
         <h2 id="ecEditorTitle">Упражнение</h2>
         <p class="sub" id="ecEditorSub"></p>
+        <p class="ec-muted" id="ecReasons"></p>
         <div class="ec-media" id="ecMedia">
           <img id="ecMediaGif" class="ec-media-gif" alt="" hidden>
           <p class="ec-muted ec-media-empty" id="ecMediaEmpty" hidden>Няма анимация</p>
@@ -125,7 +152,7 @@
             <input type="text" id="ecEquipNorm" placeholder="body weight, dumbbell, rings…">
           </div>
           <div class="ec-field full">
-            <label><input type="checkbox" id="ecExcluded"> Изключи от AI каталога</label>
+            <label><input type="checkbox" id="ecExcludedEdit"> Изключи от AI каталога</label>
           </div>
           <div class="ec-field full">
             <label for="ecInstructionsBg">Инструкции BG</label>
@@ -157,6 +184,9 @@
       }
     })();
     const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/';
+    // Етикети от exercise-classifier.js (EFP v3)
+    const PATTERN_LABELS_BG = {"stretch": "Разтягане / мобилност", "cardio": "Кардио", "plyo": "Плиометрия / скокове", "olympic": "Олимпийски / мощност", "carry": "Носене", "squat": "Клек / преса", "lunge": "Напад / един крак", "hinge": "Тазово сгъване (hinge)", "glute": "Седалище (мост/тръст/отвеждане назад)", "adductor": "Привеждачи", "abductor": "Отвеждачи", "knee_ext": "Разгъване на коляно", "knee_flex": "Сгъване на коляно", "calf": "Прасци", "push_h": "Хоризонтално бутане", "push_v": "Вертикално бутане", "dip": "Кофички", "fly": "Разтваряне (fly)", "pull_v": "Вертикално дърпане", "pull_h": "Хоризонтално дърпане (гребане)", "pullover": "Пуловър", "shrug": "Трапец (свиване)", "lat_raise": "Странично вдигане", "front_raise": "Предно вдигане", "rear_delt": "Заден делт", "rotator": "Ротаторен маншон", "biceps": "Бицепс", "triceps": "Трицепс", "forearm": "Предмишница", "neck": "Врат", "core_flex": "Корем — сгъване", "core_rot": "Корем — ротация", "core_static": "Корем — статика / анти-движение", "core_hip": "Корем — повдигане на крака", "back_ext": "Гръбна екстензия"};
+    const CATEGORY_LABELS_BG = {"strength": "Сила", "core": "Корем / стабилност", "cardio": "Кардио", "plyometric": "Плиометрия", "mobility": "Мобилност"};
 
     const state = {
       page: 1,
@@ -199,6 +229,7 @@
           <td>${row.id}</td>
           <td>${escapeHtml(row.name)}</td>
           <td>${escapeHtml(row.displayName || row.nameBg || row.autoNameBg || '')}</td>
+          <td>${escapeHtml(PATTERN_LABELS_BG[row.pattern] || row.pattern || '')}${row.category ? `<br><span class="ec-muted">${escapeHtml(CATEGORY_LABELS_BG[row.category] || row.category)}</span>` : ''}</td>
           <td>${row.diff ?? ''}</td>
           <td>${row.gf ?? ''}/${row.gm ?? ''}</td>
           <td>${flags}${more}${pendingMark}${row.excluded ? badge('изключено', 'off') : ''}</td>
@@ -258,7 +289,7 @@
         flags: $('ecFlags').value,
         gear: $('ecGear').value,
         effectiveEquipNorm: $('ecEquipNorm').value,
-        excluded: $('ecExcluded').checked,
+        excluded: $('ecExcludedEdit').checked,
         instructionsBg: $('ecInstructionsBg').value,
       };
     }
@@ -267,6 +298,10 @@
       const p = pending || {};
       $('ecEditorTitle').textContent = row.name;
       $('ecEditorSub').textContent = `${row.equipment || ''} · ${row.target || ''} · id ${row.id}`;
+      const why = (row.reasons || []).join(' · ');
+      const kind = [PATTERN_LABELS_BG[row.pattern] || row.pattern, CATEGORY_LABELS_BG[row.category] || row.category, row.mechanic]
+        .filter(Boolean).join(' / ');
+      $('ecReasons').textContent = (kind ? `${kind}${row.manual ? ' · ръчна корекция' : ''}` : '') + (why ? ` — Защо: ${why}` : '');
       $('ecNameBg').value = p.nameBg !== undefined ? p.nameBg : (row.nameBg || '');
       $('ecAutoNameHint').textContent = (p.nameBg ?? row.nameBg) ? '' : `Авто: ${row.autoNameBg || row.displayName || ''}`;
       $('ecDiffEdit').value = p.diff !== undefined ? p.diff : (row.diff ?? 2);
@@ -275,7 +310,7 @@
       $('ecFlags').value = p.flags !== undefined ? p.flags : (row.flags || []).join(', ');
       $('ecGear').value = p.gear !== undefined ? p.gear : (row.gear || []).join(', ');
       $('ecEquipNorm').value = p.effectiveEquipNorm !== undefined ? p.effectiveEquipNorm : (row.effectiveEquipNorm || '');
-      $('ecExcluded').checked = p.excluded !== undefined ? Boolean(p.excluded) : Boolean(row.excluded);
+      $('ecExcludedEdit').checked = p.excluded !== undefined ? Boolean(p.excluded) : Boolean(row.excluded);
       $('ecInstructionsBg').value = p.instructionsBg !== undefined ? p.instructionsBg : (row.instructionsBg || '');
       setEditorMedia(row);
     }
@@ -304,6 +339,9 @@
         q: $('ecSearch').value.trim(),
         diff: $('ecDiff').value,
         excluded: $('ecExcluded').value,
+        category: $('ecCategory').value,
+        pattern: $('ecPattern').value,
+        mechanic: $('ecMechanic').value,
       });
       const res = await fetch(`${WORKER_URL}/api/admin/fitplan/exercise-catalog?${q}`, { headers: headers() });
       const data = await res.json();
@@ -411,6 +449,21 @@
       importCatalog(file).catch((err) => setStatus($('ecListStatus'), err.message, true));
       e.target.value = '';
     });
+
+    function fillSelect(id, labels) {
+      const sel = $(id);
+      for (const [value, label] of Object.entries(labels)) {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = label;
+        sel.appendChild(opt);
+      }
+    }
+    fillSelect('ecCategory', CATEGORY_LABELS_BG);
+    fillSelect('ecPattern', PATTERN_LABELS_BG);
+    for (const id of ['ecDiff', 'ecCategory', 'ecPattern', 'ecMechanic']) {
+      $(id).addEventListener('change', () => { state.page = 1; loadList().catch((e) => setStatus($('ecListStatus'), e.message, true)); });
+    }
 
     loadList().catch((e) => setStatus($('ecListStatus'), e.message, true));
     updatePendingUi();

@@ -31,6 +31,31 @@ export function isMetadataOverride(saved) {
 }
 
 /**
+ * Дали KV записът да измести bundled записа за същия id.
+ * Ръчна корекция печели винаги; иначе печели по-новата версия на класификатора
+ * (стар AI v2 запис в KV не бива да скрива детерминистичния v3 от bundled).
+ */
+export function kvMetadataWins(kvRow, bundledRow) {
+  if (!kvRow || typeof kvRow !== 'object') return false;
+  if (kvRow.manual === true || kvRow.manualEdit === true) return true;
+  if (!bundledRow) return true;
+  return (Number(kvRow.efpVersion) || 0) >= (Number(bundledRow.efpVersion) || 0);
+}
+
+/** KV записите, които реално важат над bundled. */
+export function effectiveKvMetadata(bundled = {}, kv = {}) {
+  const out = {};
+  for (const [id, row] of Object.entries(kv || {})) {
+    if (kvMetadataWins(row, bundled?.[id])) out[id] = row;
+  }
+  return out;
+}
+
+export function mergeMetadataStores(bundled = {}, kv = {}) {
+  return { ...(bundled || {}), ...effectiveKvMetadata(bundled, kv) };
+}
+
+/**
  * Fallback само при липсваща курирана класификация — маркира unclassified.
  * Не се ползва за production каталог (филтрира се).
  */
@@ -57,6 +82,24 @@ export function metadataForExercise(raw, store = {}) {
   /** @type {{ diff?: number, gf?: number, gm?: number, flags?: string[] }} */
   let seed;
   let forceExcluded = false;
+  if (saved?.ruleClassified === true && isMetadataOverride(saved) && !saved.manual && !saved.manualEdit) {
+    // EFP v3 е вътрешно консистентен — без допълнителни евристични корекции на flags/diff
+    const traits = inferExerciseTraits(raw?.name, raw?.equipment);
+    const excluded = Boolean(saved.excluded) || isGenderSpecificExerciseName(raw?.name);
+    const flags = new Set(saved.flags || []);
+    if (excluded) flags.add('excluded');
+    return {
+      diff: saved.diff,
+      gf: saved.gf ?? 70,
+      gm: saved.gm ?? 70,
+      flags: [...flags],
+      gear: traits.gear,
+      effectiveEquipNorm: traits.effectiveEquipNorm,
+      traits,
+      ...(saved.pattern ? { pattern: saved.pattern, category: saved.category, mechanic: saved.mechanic } : {}),
+      ...(excluded ? { excluded: true } : {}),
+    };
+  }
   if (isMetadataOverride(saved)) {
     seed = {
       diff: saved.diff,
@@ -92,6 +135,7 @@ export function mergeExerciseMetadata(entry, raw, metadata = {}) {
     ...(meta.flags?.length ? { flags: meta.flags } : {}),
     ...(meta.gear?.length ? { gear: meta.gear } : {}),
     ...(meta.traits ? { traits: meta.traits } : {}),
+    ...(meta.pattern ? { pattern: meta.pattern, category: meta.category, mechanic: meta.mechanic } : {}),
     ...(meta.excluded ? { excluded: true } : {}),
   };
 }
