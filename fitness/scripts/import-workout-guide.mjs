@@ -16,6 +16,23 @@ import { fileURLToPath } from 'node:url';
 export const WG_COMMIT = 'aac599224bb9780305239607ef98540b7e0ce389';
 const WG_RAW = `https://raw.githubusercontent.com/bryllim/workout-guide/${WG_COMMIT}/packages/workout-guide`;
 const EK_RAW = 'https://raw.githubusercontent.com/everkinetic/data/main/dist/exercises.json';
+// Старата база — само текстът на инструкциите (MIT); медията ѝ НЕ се ползва.
+const LEGACY_RAW = 'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json';
+const tok = (s) => String(s).toLowerCase().replace(/\(.*?\)|\bv\.?\s*\d+\b/g, ' ').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean)
+  .map((t) => t.replace(/s$/, '')).filter((t) => !['with', 'on', 'the', 'a'].includes(t));
+const EQ_WORD = { 'body weight': '', dumbbell: 'dumbbell', barbell: 'barbell', cable: 'cable', 'leverage machine': 'lever', band: 'band', kettlebell: 'kettlebell' };
+function legacyMatch(name, equipment, legacy) {
+  const q = new Set([...tok(name), ...(EQ_WORD[equipment] ? [EQ_WORD[equipment]] : [])]);
+  let best = null;
+  for (const l of legacy) {
+    if (/\((male|female)\)/.test(l.name) || !l.instructions?.en) continue;
+    const t = new Set(tok(l.name));
+    const inter = [...q].filter((x) => t.has(x)).length;
+    const score = inter / Math.max(q.size, t.size);
+    if (!best || score > best.score) best = { l, score };
+  }
+  return best && best.score >= 0.75 ? best.l : null;
+}
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -59,6 +76,7 @@ async function getJson(url) {
 
 const manifest = await getJson(`${WG_RAW}/manifest.json`);
 const everkinetic = await getJson(EK_RAW);
+const legacy = await getJson(LEGACY_RAW);
 const ekById = new Map((Array.isArray(everkinetic) ? everkinetic : everkinetic.exercises || []).map((e) => [e.id, e]));
 
 const out = manifest.map((x) => {
@@ -80,7 +98,11 @@ const out = manifest.map((x) => {
     secondary_muscles: (x.secondaryMuscles || []).map((m) => TARGET[m] || m.toLowerCase()),
     exerciseType: x.exerciseType,
     isStretch: Boolean(x.isStretch),
-    instructions: ek ? { en: ek.steps.join(' ') } : {},
+    ...(() => {
+      const l = legacyMatch(x.name, equipment, legacy);
+      const en = l ? (Array.isArray(l.instructions.en) ? l.instructions.en.join(' ') : l.instructions.en) : (ek ? ek.steps.join(' ') : '');
+      return { legacyId: l ? String(l.id) : null, instructions: en ? { en } : {} };
+    })(),
     frames: (x.frames || []).map((f) => f.path.replace(/^assets\//, '')),
     attribution: 'Everkinetic / Bryl Lim — CC BY-SA 4.0',
   };
@@ -88,4 +110,5 @@ const out = manifest.map((x) => {
 
 writeFileSync(join(root, 'data', 'exercise-dataset.json'), JSON.stringify(out));
 const withSteps = out.filter((x) => x.instructions.en).length;
+console.log(`връзка със старата база (BG преводи от KV): ${out.filter((x) => x.legacyId).length}`);
 console.log(`workout-guide@${WG_COMMIT.slice(0, 7)}: ${out.length} упражнения, ${withSteps} със стъпки от Everkinetic`);
