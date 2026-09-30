@@ -531,5 +531,9 @@ export const CURATED_NAMES_BG = {
   'leg swings': 'Махове с крак', 'doorway chest stretch': 'Разтягане на гърди на врата', 'child s pose': 'Поза на детето',
   'hamstring stretch': 'Разтягане на задно бедро', 'butterfly stretch': 'Пеперуда (разтягане)', 'side plank hip dip': 'Страничен планк с повдигане на таза',
   'assault bike': 'Въздушен велоергометър (assault bike)',
+  'pec deck': 'Пек-дек (разтваряне на машина)', 'cable woodchop': 'Дърводелец на скрипец', 'cable pallof hold': 'Палоф задържане на скрипец',
+  'superman hold': 'Супермен задържане', 'reverse snow angel': 'Обратен снежен ангел', 'seated knee tuck': 'Придърпване на колене седнал',
+  'high knees': 'Високи колене', 'lateral shuffle': 'Странични стъпки', 'fast feet': 'Бързи крака', 'seated forward fold': 'Предно навеждане седнал',
+  'towel row': 'Гребане с кърпа', 'bird dog': 'Куче-птица',
   'smith machine bulgarian split squat': 'Български клек на Смит машина', 'bulgarian split squat': 'Български клек',
 };
