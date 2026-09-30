@@ -25,7 +25,7 @@ export function pickInstructionsBg(instructions) {
 
 /**
  * @param {object} raw — суров запис от exercises dataset
- * @param {Record<string, {nameBg?: string, instructionsBg?: string}>} translations
+ * @param {Record<string, {nameBg?: string, instructionsBg?: string, instructionsBgTemplate?: string, manualEdit?: boolean}>} translations
  */
 export function translationForExercise(raw, translations = {}) {
   const id = String(raw?.id ?? '');
