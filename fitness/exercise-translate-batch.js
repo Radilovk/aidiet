@@ -87,7 +87,16 @@ export function normalizeBatchResult(parsed, batch) {
 export async function fetchExerciseDataset(url = null) {
   if (!url) {
     const mod = await import('./data/exercise-dataset.json', { with: { type: 'json' } });
-    return mod.default || mod;
+    const list = mod.default || mod;
+    // Генерирани ясни инструкции BG + EN (scripts/generate-exercise-instructions.mjs)
+    let ins = {};
+    try {
+      const m = await import('./data/exercise-instructions.json', { with: { type: 'json' } });
+      ins = m.default || m;
+    } catch { /* файлът още не е генериран */ }
+    return list.map((x) => (ins[x.id]
+      ? { ...x, instructions: { ...(x.instructions || {}), en: ins[x.id].en, bg: ins[x.id].bg } }
+      : x));
   }
   const res = await fetch(url, { headers: { 'User-Agent': 'aidiet-fitness-translate' } });
   if (!res.ok) throw new Error(`Dataset HTTP ${res.status}`);

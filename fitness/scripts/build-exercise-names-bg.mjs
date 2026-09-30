@@ -41,10 +41,10 @@ for (const [bg, list] of names) {
     const nameBg = neutrals.size > 1 ? `${bg} (${neutralExerciseName(x.name)})` : bg;
     if (neutrals.size > 1) collisions++;
     const prev = out[id] || {};
-    const instructionsBg = prev.manualEdit && prev.instructionsBg
-      ? prev.instructionsBg
-      : instructionsBgFor(classifyExercise(x).pattern, x.equipment);
-    out[id] = { ...prev, nameBg, instructionsBg, nameSource: 'compose-v1' };
+    // Шаблонът е резерв, не превод — отделно поле, за да не блокира admin AI превода
+    const instructionsBgTemplate = instructionsBgFor(classifyExercise(x).pattern, x.equipment);
+    const { instructionsBg: _drop, ...rest } = prev.manualEdit ? { instructionsBg: undefined, ...prev } : prev;
+    out[id] = { ...(prev.manualEdit ? prev : rest), nameBg, instructionsBgTemplate, nameSource: 'compose-v1' };
   }
 }
 writeFileSync(outFile, JSON.stringify(out));

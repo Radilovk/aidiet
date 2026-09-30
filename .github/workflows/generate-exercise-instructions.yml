@@ -1,0 +1,32 @@
+name: Generate exercise instructions (BG + EN)
+
+# Еднократно: Gemini пише ясни инструкции за всяко упражнение → fitness/data/exercise-instructions.json.
+# Пуска се при промяна на скрипта/базата или ръчно; довършва само липсващите.
+on:
+  # Само ръчно — файлът е написан и прегледан; скриптът довършва само липсващи записи
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node fitness/scripts/generate-exercise-instructions.mjs || node fitness/scripts/generate-exercise-instructions.mjs
+      - name: Commit
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fitness/data/exercise-instructions.json || exit 0
+          git diff --staged --quiet && exit 0
+          git commit -m "chore(fitness): exercise instructions BG+EN (generated)"
+          git push origin HEAD:${GITHUB_REF_NAME}

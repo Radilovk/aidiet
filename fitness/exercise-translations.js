@@ -25,16 +25,22 @@ export function pickInstructionsBg(instructions) {
 
 /**
  * @param {object} raw — суров запис от exercises dataset
- * @param {Record<string, {nameBg?: string, instructionsBg?: string}>} translations
+ * @param {Record<string, {nameBg?: string, instructionsBg?: string, instructionsBgTemplate?: string, manualEdit?: boolean}>} translations
  */
 export function translationForExercise(raw, translations = {}) {
   const id = String(raw?.id ?? '');
   return translations[id] || translations[raw?.id] || null;
 }
 
+const instructionsEnOf = (raw) => pickInstructionsEn(raw?.instructions);
+
 export function mergeExerciseTranslation(entry, raw, translations = {}, maxChars = 1200) {
   const tr = translationForExercise(raw, translations);
-  const instructionsBg = tr?.instructionsBg || pickInstructionsBg(raw?.instructions) || '';
+  // Приоритет: ръчен/собствен BG → BG превод на съответното упражнение от старата база (KV) → шаблон по модел
+  const legacyBg = raw?.legacyId ? translations[String(raw.legacyId)]?.instructionsBg : '';
+  // Ред: ръчна корекция → data/exercise-instructions.json (BG) → стар KV превод → друг превод
+  const instructionsBg = (tr?.manualEdit && tr?.instructionsBg) || pickInstructionsBg(raw?.instructions) || legacyBg || tr?.instructionsBg
+    || (instructionsEnOf(raw) ? '' : tr?.instructionsBgTemplate) || '';
   const instructionsEn = pickInstructionsEn(raw?.instructions);
   const instructions = (instructionsBg || instructionsEn).slice(0, maxChars);
 
@@ -42,6 +48,7 @@ export function mergeExerciseTranslation(entry, raw, translations = {}, maxChars
     ...entry,
     nameBg: tr?.nameBg || entry.nameBg || '',
     instructions,
+    instructionsEn: instructionsEn.slice(0, maxChars),
     instructionsLang: instructionsBg ? 'bg' : (instructionsEn ? 'en' : ''),
   };
 }
