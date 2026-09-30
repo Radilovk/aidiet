@@ -3,11 +3,7 @@ name: Generate exercise instructions (BG + EN)
 # Еднократно: Gemini пише ясни инструкции за всяко упражнение → fitness/data/exercise-instructions.json.
 # Пуска се при промяна на скрипта/базата или ръчно; довършва само липсващите.
 on:
-  push:
-    paths:
-      - 'fitness/scripts/generate-exercise-instructions.mjs'
-      - 'fitness/data/exercise-dataset.json'
-      - '.github/workflows/generate-exercise-instructions.yml'
+  # Само ръчно — файлът е написан и прегледан; скриптът довършва само липсващи записи
   workflow_dispatch:
 
 permissions:
