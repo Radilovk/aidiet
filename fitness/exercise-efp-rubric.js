@@ -8,7 +8,7 @@ export const EFP_FLAGS = [
   'compound', 'isolation', 'barbell', 'machine', 'bodyweight', 'true_bodyweight',
   'mislabeled_bw', 'cardio', 'glute', 'press', 'olympic', 'gymnastics', 'suspension',
   'rings', 'pull_bar', 'parallel_bars', 'beginner_safe', 'home_friendly', 'advanced',
-  'plyometric', 'unilateral', 'balance', 'excluded', 'gender_variant',
+  'plyometric', 'unilateral', 'balance', 'stretch', 'mobility', 'excluded', 'gender_variant', 'duplicate',
 ];
 
 export const CLASSIFY_RUBRIC = `
@@ -60,12 +60,10 @@ export const CLASSIFY_RESPONSE_SCHEMA = `{
 }`;
 
 export function isCuratedEfpRecord(record) {
-  return Boolean(
-    record?.diff
-    && record?.aiClassified === true
-    && (record?.efpVersion ?? 0) >= EFP_VERSION
-    && !record?.heuristicOnly,
-  );
+  if (!record?.diff || record?.heuristicOnly) return false;
+  // EFP v3: детерминистичен класификатор (exercise-classifier.js)
+  if (record.ruleClassified === true && (record.efpVersion ?? 0) >= 3) return true;
+  return record.aiClassified === true && (record.efpVersion ?? 0) >= EFP_VERSION;
 }
 
 export function clampDiff(n) {

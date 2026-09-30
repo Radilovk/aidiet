@@ -330,7 +330,8 @@ test('findAlternatives: bench press → push-up/dumbbell bench (същ slot)', a
 });
 
 test('matchExercise: при равен score предпочита по-просто оборудване', () => {
-  const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Начинаещ–среден (6 месеца – 2 години)' });
+  // Начинаещ (d≤1): щангата е изключена → най-простият наличен вариант
+  const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Никакъв / начинаещ (0–6 месеца системно)' });
   const result = matchExercise(INDEX, {
     canonicalName: 'Bench Press',
     equipmentHint: 'barbell',

@@ -35,6 +35,8 @@ export const GEAR_CARDIO_MACHINE = 'cardio_machine';
 export const GEAR_ASSISTED = 'assisted';
 export const GEAR_WEIGHTED = 'weighted';
 export const GEAR_ROPE = 'rope';
+/** Аксесоари: ролер/колело за корем, гума, чук. */
+export const GEAR_ACCESSORY = 'accessory';
 
 /** @deprecated alias */
 export const GEAR_BOX = GEAR_STEP;
@@ -51,8 +53,8 @@ export const BODYWEIGHT_GEAR = new Set([
 
 const GYMNASTICS_RE = /\b(ring|planche|muscle[- ]?up|kipping|skin the cat|iron cross(?! stretch)|l-sit|lsit|handstand|pistol squat|dragon flag|front lever|back lever|human flag|victorian)\b/i;
 const SUSPENDED_RE = /\b(suspended|trx)\b/i;
-const PARALLEL_BAR_RE = /\b(parallel bar|high parallel|dip bar|dip station)\b/i;
-const PULL_BAR_RE = /\b(pull[- ]?up|chin[- ]?up|muscle[- ]?up|kipping|toes to bar|hanging|fixed bar|single bar)\b/i;
+const PARALLEL_BAR_RE = /\b(parallel bars?|high parallel|dip bars?|dip station)\b/i;
+const PULL_BAR_RE = /\b(pull[- ]?ups?|chin[- ]?ups?|muscle[- ]?ups?|(?:sternum|gorilla|side[- ]to[- ]side) chin|kipping|toes to bar|hanging|fixed bar|single bar|vertical bar)\b/i;
 const INVERTED_ROW_RE = /\binverted row\b/i;
 const DIP_RE = /\b(dip|dips)\b/i;
 const BENCH_USE_RE = /\b(on bench|bench hip|hyperextension \(on bench\)|glute bridge two legs on bench|feet on bench|hands on bench)\b/i;
@@ -122,6 +124,7 @@ for (const group of [...EQUIPMENT_GROUPS, ...QUESTIONNAIRE_EXTRA_GROUPS]) {
     else if (norm.includes('ball')) gear.push(GEAR_BALL, GEAR_FLOOR);
     else if (norm === 'weighted') gear.push(GEAR_WEIGHTED, GEAR_FLOOR);
     else if (norm === 'rope') gear.push(GEAR_ROPE, GEAR_FLOOR);
+    else if (['roller', 'wheel roller', 'tire', 'hammer'].includes(norm)) gear.push(GEAR_ACCESSORY, GEAR_FLOOR);
     else if (['elliptical machine', 'skierg machine', 'stationary bike', 'stepmill machine', 'upper body ergometer'].includes(norm)) {
       gear.push(GEAR_CARDIO_MACHINE);
     }
@@ -191,7 +194,9 @@ export function inferRequiredGear(name = '', equipment = '') {
     && !INVERTED_ROW_RE.test(n);
   if (needsBar) gear.add(GEAR_PULL_BAR);
 
-  if (DIP_RE.test(n) && !/floor|bench dip on floor|triceps dip on floor/i.test(n) && !/machine|band|cable|lever|dumbbell/i.test(n)) {
+  const benchDip = DIP_RE.test(n) && /\b(bench|benches|between|chair|reverse dip)\b/i.test(n) && !PARALLEL_BAR_RE.test(n);
+  if (benchDip) gear.add(GEAR_BENCH);
+  if (DIP_RE.test(n) && !benchDip && !/floor|bench dip on floor|triceps dip on floor|scapula dip|exercise ball/i.test(n) && !/machine|band|cable|lever|dumbbell|ball/i.test(eq + ' ' + n)) {
     if (/\bring\b/.test(n)) gear.add(GEAR_RINGS);
     else if (PARALLEL_BAR_RE.test(n)) gear.add(GEAR_PARALLEL_BARS);
     else gear.add(GEAR_PULL_BAR);
@@ -200,7 +205,8 @@ export function inferRequiredGear(name = '', equipment = '') {
   if (eq === 'dumbbell') gear.add(GEAR_DUMBBELL);
   if (eq === 'kettlebell') gear.add(GEAR_KETTLEBELL);
   if (eq === 'band' || eq === 'resistance band') gear.add(GEAR_BAND);
-  if (eq.includes('barbell')) gear.add(GEAR_BARBELL);
+  if (eq.includes('barbell') || eq === 'trap bar') gear.add(GEAR_BARBELL);
+  if (/roller|tire|hammer/.test(eq)) gear.add(GEAR_ACCESSORY);
   if (eq === 'cable') gear.add(GEAR_CABLE);
   if (eq.includes('machine') || eq.includes('lever') || eq.includes('smith') || eq === 'sled machine') gear.add(GEAR_MACHINE);
   if (eq.includes('ball')) gear.add(GEAR_BALL);

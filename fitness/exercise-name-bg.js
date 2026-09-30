@@ -10,6 +10,20 @@ export const GENDER_SPECIFIC_NAME_RE = /\((male|female|men|women|man|woman|мъ�
 const VERSION_SUFFIX_RE = /\s+v\.?\s*\d+\s*$/i;
 
 /**
+ * Записи (male)/(female), които имат неутрален двойник в dataset-а — само те са дубли.
+ * Останалите (male)/(female) са уникални упражнения; маркерът е само полът на модела в GIF-а.
+ */
+const GENDER_DUPLICATES = new Set([
+  'barbell sitted alternate leg raise (female)',
+  'twisted leg raise (female)',
+]);
+
+/** Дубликат по пол (има неутрален запис) → изключва се от каталога. */
+export function isGenderDuplicateExerciseName(name) {
+  return GENDER_DUPLICATES.has(String(name || '').toLowerCase().trim());
+}
+
+/**
  * @param {string} name
  * @returns {boolean}
  */

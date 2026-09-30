@@ -47,6 +47,7 @@
  */
 
 import { localizeExerciseDisplayName, sanitizeBgText, sanitizePlanBulgarian } from './exercise-labels-bg.js';
+import { buildTrainingProgram, ENGINE_VERSION } from './program-engine.js';
 import { QUESTIONNAIRE_EQUIPMENT_MAP, EQUIPMENT_PICKER_OPTION } from './equipment-groups.js';
 import { expandApparatusIds, passesApparatusFilter } from './equipment-apparatus.js';
 import {
@@ -68,6 +69,8 @@ import {
 } from './exercise-classify-batch.js';
 import {
   EXERCISE_METADATA_KV_KEY,
+  effectiveKvMetadata,
+  mergeMetadataStores,
   buildExerciseCatalogSnippet,
   computeExerciseFacets,
   exerciseProfileFromAnswers,
@@ -85,7 +88,7 @@ import {
   searchExerciseIndex,
 } from './exercise-metadata.js';
 import { passesGearFilter, passesBeginnerSafety } from './exercise-tags.js';
-import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import { isGenderDuplicateExerciseName } from './exercise-name-bg.js';
 import {
   buildCatalogFromIndex,
   buildCatalogRecord,
@@ -218,7 +221,8 @@ const DATASET_URL_CANDIDATES = [
 // v2: loadExerciseMetadata вече слива bundled класификация с KV (виж по-долу) —
 // смяна на ключа изчиства стар кеш, изграден преди тази поправка (иначе 30-дневния
 // TTL би задържал грешно недоклассифицирани записи чак до естествения му изтек).
-const EXERCISE_INDEX_KV_KEY = 'exidx:v2';
+// v3: детерминистичен класификатор EFP v3 (exercise-classifier.js) в bundled данните.
+const EXERCISE_INDEX_KV_KEY = 'exidx:v3';
 const EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30; // 30 дни; при промяна на схемата — нов ключ
 const PLAN_TTL = 60 * 60 * 24 * 90;           // планът живее 90 дни в KV
 
@@ -292,7 +296,7 @@ export function matchExercise(index, {
   const bodyHint = normalizeText(bodyPart);
 
   const passesFilters = (entry) =>
-    !isGenderSpecificExerciseName(entry?.name)
+    !isGenderDuplicateExerciseName(entry?.name)
     && passesEquipment(entry, allowedEquipment)
     && passesApparatusFilter(entry, pickedApparatus)
     && passesGearFilter(entry, allowedGear)
@@ -459,7 +463,7 @@ export async function loadExerciseMetadata(env) {
     try {
       const kv = await env.FITNESS_KV.get(EXERCISE_METADATA_KV_KEY, { type: 'json' });
       if (kv && typeof kv === 'object' && Object.keys(kv).length) {
-        return { ...bundled, ...kv };
+        return mergeMetadataStores(bundled, kv);
       }
     } catch (e) {
       console.error('KV read за exercise metadata пропадна:', e.message);
@@ -470,7 +474,6 @@ export async function loadExerciseMetadata(env) {
 
 async function saveExerciseMetadata(env, metadata) {
   await env.FITNESS_KV.put(EXERCISE_METADATA_KV_KEY, JSON.stringify(metadata));
-  bundledMetadata = metadata;
 }
 
 /** Build-time преводи: KV → bundled JSON fallback. */
@@ -924,9 +927,35 @@ export function enrichPlanWithExercises(plan, index, {
     }));
   const matchIndex = eligible?.length ? eligible : index;
 
+  const byId = new Map(index.map((e) => [String(e.id), e]));
   for (const day of plan.days) {
     const usedIds = [];
+    // Основните упражнения на деня не се предлагат като алтернативи на други упражнения
+    const dayMainIds = new Set(day.exercises.map((ex) => ex.exerciseId && String(ex.exerciseId)).filter(Boolean));
+    const altUsed = new Set();
     for (const ex of day.exercises) {
+      const direct = ex.exerciseId ? byId.get(String(ex.exerciseId)) : null;
+      if (direct) {
+        ex.canonicalName = direct.name;
+        ex.match = entryToClientExercise(env, direct);
+        ex.matchScore = 1;
+        ex.matchFallback = false;
+        usedIds.push(direct.id);
+        const altOpts = {
+          allowedEquipment, pickedApparatus, limit: MAX_ALTERNATIVES, exerciseProfile, sessionType: day.type,
+        };
+        // Генераторът подава алтернативи, изчислени със същите ограничения (контузии, оборудване)
+        let alts = Array.isArray(ex.alternativeIds)
+          ? ex.alternativeIds.map((altId) => byId.get(String(altId))).filter(Boolean)
+          : findAlternatives(matchIndex, direct, { ...altOpts, excludeIds: [...dayMainIds, ...altUsed] });
+        if (!alts.length && !Array.isArray(ex.alternativeIds)) {
+          alts = findAlternatives(matchIndex, direct, { ...altOpts, excludeIds: [...dayMainIds] });
+        }
+        ex.alternatives = alts.map((alt) => entryToClientExercise(env, alt));
+        for (const a of alts) altUsed.add(a.id);
+        ex.displayName = ex.match?.displayName || ex.displayName;
+        continue;
+      }
       let result = matchExercise(matchIndex, {
         canonicalName: ex.canonicalName,
         equipmentHint: ex.equipmentHint,
@@ -969,15 +998,17 @@ export function enrichPlanWithExercises(plan, index, {
         ex.matchScore = result.score;
         ex.matchFallback = result.usedFallback;
         usedIds.push(result.entry.id);
-        ex.alternatives = findAlternatives(matchIndex, result.entry, {
-          allowedEquipment,
-          pickedApparatus,
-          excludeIds: usedIds,
-          limit: MAX_ALTERNATIVES,
-          exerciseProfile,
-          sessionType: day.type,
-        }).map((alt) => entryToClientExercise(env, alt));
-        usedIds.push(...ex.alternatives.map((a) => a.id));
+        // Алтернативите не „изяждат“ пула на следващите упражнения (иначе остават без замяна)
+        let alts = findAlternatives(matchIndex, result.entry, {
+          allowedEquipment, pickedApparatus, excludeIds: [...usedIds, ...altUsed], limit: MAX_ALTERNATIVES, exerciseProfile, sessionType: day.type,
+        });
+        if (!alts.length) {
+          alts = findAlternatives(matchIndex, result.entry, {
+            allowedEquipment, pickedApparatus, excludeIds: usedIds, limit: MAX_ALTERNATIVES, exerciseProfile, sessionType: day.type,
+          });
+        }
+        ex.alternatives = alts.map((alt) => entryToClientExercise(env, alt));
+        for (const a of alts) altUsed.add(a.id);
       } else {
         ex.match = null;
         ex.alternatives = [];
@@ -1051,9 +1082,29 @@ async function executePlanGeneration(env, ctx, {
   userPrompt, coachProfileText, allowedEquipment = null, allowedGear = null, pickedApparatus = null, clientTags = null,
   adminConfig = null, guidelineLayers = null, hasScheme = false, strictAssembly = false,
   exerciseProfile = null, constraints = null, programSpec = null, dslSpec = null,
+  answers = null, trainerBrief = false,
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
+
+  // Детерминистичен генератор (program-engine.js) — когато има само въпросник, без схема/бриф от треньор.
+  if (answers?.gender && !strictAssembly && !hasScheme && !trainerBrief && env.PLAN_ENGINE !== 'ai') {
+    const index = await indexPromise;
+    if (index?.length) {
+      const { plan, meta } = buildTrainingProgram({
+        answers, index, exerciseProfile, allowedEquipment, allowedGear, pickedApparatus, constraints,
+      });
+      if (!meta.issues.some((i) => /празна сесия/.test(i))) {
+        enrichPlanWithExercises(plan, index, {
+          allowedEquipment, allowedGear, pickedApparatus, env, exerciseProfile, eligibleIndex: null, constraints, programSpec,
+        });
+        sanitizePlanBulgarian(plan);
+        /** @type {any} */ (plan).engine = { version: ENGINE_VERSION, split: meta.split, weeklySets: meta.weeklySets };
+        return { plan, coachContext: buildCoachContext(coachProfileText, plan), engineMeta: meta };
+      }
+      console.warn('Program engine: празни сесии, преминавам към AI', meta.issues.join('; '));
+    }
+  }
   const trainerAddon = strictAssembly
     ? ''
     : buildTrainerSystemAddon(adminConfig, tagSet, guidelineLayers, { schemeMode: hasScheme, strictAssembly });
@@ -1183,7 +1234,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
 
   const adminGuidelines = await loadAdminGuidelines(env);
-  const { userPrompt, coachProfileText, allowedEquipment, allowedGear, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, allowedGear, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec, schemeKind } = preparePlanGeneration(
     { answers },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1207,6 +1258,8 @@ async function handleGeneratePlan(request, env, ctx) {
       constraints,
       programSpec,
       dslSpec,
+      answers,
+      trainerBrief: schemeKind === 'brief',
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -1858,7 +1911,7 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
     clientName: record.clientName,
     clientContact: record.clientContact,
   };
-  const { userPrompt, coachProfileText, allowedEquipment, allowedGear, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec } = preparePlanGeneration(
+  const { userPrompt, coachProfileText, allowedEquipment, allowedGear, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec, schemeKind } = preparePlanGeneration(
     genSource,
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet },
@@ -1882,6 +1935,8 @@ async function handleGenerateClientProgram(request, env, ctx, id) {
       constraints,
       programSpec,
       dslSpec,
+      answers: record.clientAnswers || null,
+      trainerBrief: schemeKind === 'brief',
     }));
   } catch (e) {
     if (isPlanParseError(e)) {
@@ -2187,13 +2242,15 @@ async function loadKvExerciseTranslations(env) {
 }
 
 async function loadExerciseCatalogContext(env) {
-  const [all, bundledMeta, kvMeta, bundledTr, kvTr] = await Promise.all([
+  const [all, bundledMeta, kvMetaRaw, bundledTr, kvTr] = await Promise.all([
     fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined),
     loadBundledMetadata(),
     loadKvExerciseMetadata(env),
     loadBundledTranslations(),
     loadKvExerciseTranslations(env),
   ]);
+  // Само KV записите, които реално важат (ръчни или по-нова версия от bundled)
+  const kvMeta = effectiveKvMetadata(bundledMeta, kvMetaRaw);
   const mergedMeta = { ...bundledMeta, ...kvMeta };
   const mergedTr = { ...(bundledTr || {}), ...kvTr };
   const index = buildCompactIndex(all, mergedTr, mergedMeta);
@@ -2219,6 +2276,9 @@ async function handleGetExerciseCatalog(request, env, url) {
     equipment: url.searchParams.get('equipment') || '',
     excluded: url.searchParams.get('excluded') || '',
     overridden: url.searchParams.get('overridden') || '',
+    category: url.searchParams.get('category') || '',
+    pattern: url.searchParams.get('pattern') || '',
+    mechanic: url.searchParams.get('mechanic') || '',
   });
   const page = paginateCatalogRecords(
     filtered,
@@ -2276,7 +2336,7 @@ async function handleUpdateExerciseCatalogItem(request, env, id) {
   if (patch.metadata) await saveExerciseMetadata(env, applied.metadata);
   if (patch.translation) await saveExerciseTranslations(env, applied.translations);
 
-  const mergedMeta = { ...ctx.bundledMeta, ...applied.metadata };
+  const mergedMeta = mergeMetadataStores(ctx.bundledMeta, applied.metadata);
   const mergedTr = { ...(ctx.bundledTr || {}), ...applied.translations };
   const index = buildCompactIndex(ctx.all, mergedTr, mergedMeta);
   const entry = index.find((row) => String(row.id) === String(id));
@@ -2284,7 +2344,7 @@ async function handleUpdateExerciseCatalogItem(request, env, id) {
 
   return jsonResponse({
     success: true,
-    item: buildCatalogRecord(entry, raw, ctx.bundledMeta, applied.metadata, ctx.bundledTr, applied.translations),
+    item: buildCatalogRecord(entry, raw, ctx.bundledMeta, effectiveKvMetadata(ctx.bundledMeta, applied.metadata), ctx.bundledTr, applied.translations),
     indexRebuilt: Boolean(indexInfo),
     index: indexInfo,
   });
@@ -2320,7 +2380,7 @@ async function handleImportExerciseCatalog(request, env) {
   await saveExerciseTranslations(env, imported.translations);
 
   const ctx = await loadExerciseCatalogContext(env);
-  const mergedMeta = { ...ctx.bundledMeta, ...imported.metadata };
+  const mergedMeta = mergeMetadataStores(ctx.bundledMeta, imported.metadata);
   const mergedTr = { ...(ctx.bundledTr || {}), ...imported.translations };
   const indexInfo = await rebuildExerciseIndexInKv(env, mergedTr, mergedMeta);
 
@@ -2363,7 +2423,7 @@ async function handleBulkSaveExerciseCatalog(request, env) {
 
   await saveExerciseMetadata(env, kvMeta);
   await saveExerciseTranslations(env, kvTr);
-  const mergedMeta = { ...ctx.bundledMeta, ...kvMeta };
+  const mergedMeta = mergeMetadataStores(ctx.bundledMeta, kvMeta);
   const mergedTr = { ...(ctx.bundledTr || {}), ...kvTr };
   const indexInfo = await rebuildExerciseIndexInKv(env, mergedTr, mergedMeta);
 

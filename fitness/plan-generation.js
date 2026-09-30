@@ -14,7 +14,7 @@ import { passesConstraintExclusions } from './exercise-constraints.js';
 import { buildProfileSummary } from './profile-summary.js';
 import { exerciseProfileFromContext, fitsExerciseProfile, passesEquipment } from './exercise-metadata.js';
 import { passesGearFilter, passesBeginnerSafety, resolveAllowedGear } from './exercise-tags.js';
-import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import { isGenderDuplicateExerciseName } from './exercise-name-bg.js';
 import { EQUIPMENT_PICKER_OPTION } from './equipment-groups.js';
 import { apparatusLabel, passesApparatusFilter } from './equipment-apparatus.js';
 import {
@@ -762,7 +762,7 @@ export function auditPlanExercises(plan, { allowedEquipment = null, allowedGear 
     if (day.type === 'rest') continue;
     for (const ex of day.exercises || []) {
       const name = String(ex.canonicalName || ex.displayName || '');
-      if (isGenderSpecificExerciseName(name)) {
+      if (isGenderDuplicateExerciseName(name)) {
         issues.push(`${day.day}: „${name}“ е полово-специфичен вариант — избери неутрално упражнение`);
         continue;
       }

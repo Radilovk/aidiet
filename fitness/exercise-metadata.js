@@ -13,7 +13,7 @@ import {
   passesBeginnerSafety,
   passesGearFilter,
 } from './exercise-tags.js';
-import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import { isGenderDuplicateExerciseName } from './exercise-name-bg.js';
 import { isCuratedEfpRecord, EFP_VERSION } from './exercise-efp-rubric.js';
 import { passesConstraintExclusions } from './exercise-constraints.js';
 
@@ -28,6 +28,31 @@ export function isMetadataOverride(saved) {
   if (!saved?.diff) return false;
   if (saved.manual === true || saved.manualEdit === true) return true;
   return isCuratedEfpRecord(saved);
+}
+
+/**
+ * Дали KV записът да измести bundled записа за същия id.
+ * Ръчна корекция печели винаги; иначе печели по-новата версия на класификатора
+ * (стар AI v2 запис в KV не бива да скрива детерминистичния v3 от bundled).
+ */
+export function kvMetadataWins(kvRow, bundledRow) {
+  if (!kvRow || typeof kvRow !== 'object') return false;
+  if (kvRow.manual === true || kvRow.manualEdit === true) return true;
+  if (!bundledRow) return true;
+  return (Number(kvRow.efpVersion) || 0) >= (Number(bundledRow.efpVersion) || 0);
+}
+
+/** KV записите, които реално важат над bundled. */
+export function effectiveKvMetadata(bundled = {}, kv = {}) {
+  const out = {};
+  for (const [id, row] of Object.entries(kv || {})) {
+    if (kvMetadataWins(row, bundled?.[id])) out[id] = row;
+  }
+  return out;
+}
+
+export function mergeMetadataStores(bundled = {}, kv = {}) {
+  return { ...(bundled || {}), ...effectiveKvMetadata(bundled, kv) };
 }
 
 /**
@@ -57,6 +82,24 @@ export function metadataForExercise(raw, store = {}) {
   /** @type {{ diff?: number, gf?: number, gm?: number, flags?: string[] }} */
   let seed;
   let forceExcluded = false;
+  if (saved?.ruleClassified === true && isMetadataOverride(saved) && !saved.manual && !saved.manualEdit) {
+    // EFP v3 е вътрешно консистентен — без допълнителни евристични корекции на flags/diff
+    const traits = inferExerciseTraits(raw?.name, raw?.equipment);
+    const excluded = Boolean(saved.excluded) || isGenderDuplicateExerciseName(raw?.name);
+    const flags = new Set(saved.flags || []);
+    if (excluded) flags.add('excluded');
+    return {
+      diff: saved.diff,
+      gf: saved.gf ?? 70,
+      gm: saved.gm ?? 70,
+      flags: [...flags],
+      gear: traits.gear,
+      effectiveEquipNorm: traits.effectiveEquipNorm,
+      traits,
+      ...(saved.pattern ? { pattern: saved.pattern, category: saved.category, mechanic: saved.mechanic } : {}),
+      ...(excluded ? { excluded: true } : {}),
+    };
+  }
   if (isMetadataOverride(saved)) {
     seed = {
       diff: saved.diff,
@@ -74,7 +117,7 @@ export function metadataForExercise(raw, store = {}) {
     meta.excluded = true;
     meta.flags = [...new Set([...(meta.flags || []), 'excluded', ...(seed.flags?.includes('unclassified') ? ['unclassified'] : [])])];
   }
-  if (isGenderSpecificExerciseName(raw?.name)) {
+  if (isGenderDuplicateExerciseName(raw?.name)) {
     meta.excluded = true;
     meta.flags = [...new Set([...(meta.flags || []), 'excluded', 'gender_variant'])];
   }
@@ -82,6 +125,7 @@ export function metadataForExercise(raw, store = {}) {
 }
 
 export function mergeExerciseMetadata(entry, raw, metadata = {}) {
+  /** @type {any} */
   const meta = metadataForExercise(raw, metadata);
   return {
     ...entry,
@@ -92,6 +136,7 @@ export function mergeExerciseMetadata(entry, raw, metadata = {}) {
     ...(meta.flags?.length ? { flags: meta.flags } : {}),
     ...(meta.gear?.length ? { gear: meta.gear } : {}),
     ...(meta.traits ? { traits: meta.traits } : {}),
+    ...(meta.pattern ? { pattern: meta.pattern, category: meta.category, mechanic: meta.mechanic } : {}),
     ...(meta.excluded ? { excluded: true } : {}),
   };
 }
@@ -114,7 +159,7 @@ export function resolveMaxDiff(experience = '', tags = null, profileText = '') {
   const blob = normalizeText(profileText || '');
 
   if (exp.includes('напреднал') || exp.includes('5+')) return 3;
-  if (exp.includes('никакъв') || (exp.includes('начинаещ') && !exp.includes('средно'))) return 1;
+  if (exp.includes('никакъв') || (exp.includes('начинаещ') && !exp.includes('средно') && !exp.includes('среден'))) return 1;
   if (exp.includes('среден')) return 2;
 
   if (tagSet.has('level:напреднал')) return 3;
@@ -411,7 +456,7 @@ export function filterExercises(index, profile, allowedEquipment = null, modalit
     && !(e.flags || []).includes('unclassified')
     && fitsExerciseProfile(e, profile)
     && passesBeginnerSafety(e, profile)
-    && !isGenderSpecificExerciseName(e.name)
+    && !isGenderDuplicateExerciseName(e.name)
     && passesEquipment(e, allowedEquipment)
     && passesGearFilter(e, allowedGear)
     && passesApparatusFilter(e, pickedApparatus)
