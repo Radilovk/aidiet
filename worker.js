@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -24757,6 +24762,8 @@ var RATE_LIMIT = {
   // 15 lookups/min per IP
   XBODY_BOOK: { maxRequests: 8, windowSec: 600 },
   // several hours at once (card guarantee + booking): 8 calls / 10 min per IP
+  XBODY_MANAGE: { maxRequests: 10, windowSec: 600 },
+  // change / cancel an hour in the app: 10 calls / 10 min per IP
   ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 },
   // debounced client sync burst
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
@@ -36558,13 +36565,23 @@ async function handleXbodyAcuityWebhook(request, env) {
   if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled|canceled|changed)$/.test(action)) {
     return new Response("ignored", { status: 200 });
   }
+  const sentCalendar = String(form.get("calendarID") || "");
+  if (sentCalendar && sentCalendar !== XBODY_ACUITY_BOOKING.calendarID) return new Response("ignored", { status: 200 });
   const auth = btoa(`${userId}:${apiKey}`);
+  const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
+    headers: { Authorization: `Basic ${auth}` }
+  }).catch(() => null);
+  const current = got && got.ok ? await got.json().catch(() => null) : null;
+  if (!current) return new Response("acuity read failed", { status: 502 });
+  if (String(current.calendarID || "") !== XBODY_ACUITY_BOOKING.calendarID) {
+    return new Response("ignored", { status: 200 });
+  }
   if (!/(^|\.)(scheduled|rescheduled)$/.test(action)) {
-    const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
-      headers: { Authorization: `Basic ${auth}` }
-    }).catch(() => null);
-    const appt2 = got && got.ok ? await got.json().catch(() => null) : null;
-    await dropXbodyApptCache(env, appt2 && appt2.email);
+    await dropXbodyApptCache(env, current.email);
+    return new Response("ok", { status: 200 });
+  }
+  if (current.smsOptIn === true) {
+    await dropXbodyApptCache(env, current.email);
     return new Response("ok", { status: 200 });
   }
   const resp = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}?admin=true`, {
@@ -36881,6 +36898,89 @@ async function handleXbodyBook(request, env) {
     for (const t of booked) xbodyAvailMemo.delete(t.time.slice(0, 7));
   }
   return jsonResponse2({ booked, failed }, booked.length || !failed.length ? 200 : 409);
+}
+async function xbodyReadManage(request, withTime) {
+  let body;
+  try {
+    const raw = await request.text();
+    if (raw.length > 2048) return { error: jsonResponse2({ error: "\u0422\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430 \u0437\u0430\u044F\u0432\u043A\u0430." }, 413) };
+    body = JSON.parse(raw);
+  } catch (_) {
+    return { error: jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430 \u0437\u0430\u044F\u0432\u043A\u0430." }, 400) };
+  }
+  const out = {
+    email: String(body && body.email || "").trim().toLowerCase(),
+    phone: String(body && body.phone || "").trim().slice(0, 40),
+    id: String(body && body.id || ""),
+    time: String(body && body.time || "")
+  };
+  let ok = out.email.includes("@") && xbodyPhoneKey(out.phone).length >= 6 && /^\d{1,15}$/.test(out.id);
+  if (ok && withTime) {
+    const ms = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2}$/.test(out.time) ? new Date(out.time.replace(/([+-]\d{2})(\d{2})$/, "$1:$2")).getTime() : NaN;
+    ok = Number.isFinite(ms) && ms > Date.now() && ms < Date.now() + 120 * 864e5;
+  }
+  if (!ok) return { error: jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0438 \u0434\u0430\u043D\u043D\u0438." }, 400) };
+  return out;
+}
+async function xbodyOwnAppointment(env, b) {
+  const auth = btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`);
+  const resp = await fetch(`https://acuityscheduling.com/api/v1/appointments/${b.id}`, {
+    headers: { Authorization: `Basic ${auth}` }
+  }).catch(() => null);
+  if (!resp || !resp.ok && resp.status !== 404) return { error: jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0432\u0440\u044A\u0437\u043A\u0430 \u0441\u044A\u0441 \u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430 \u0437\u0430 \u0437\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435." }, 502) };
+  const appt = resp.ok ? await resp.json().catch(() => null) : null;
+  const mine = appt && String(appt.calendarID || "") === XBODY_ACUITY_BOOKING.calendarID && String(appt.email || "").trim().toLowerCase() === b.email && xbodyPhoneKey(appt.phone) === xbodyPhoneKey(b.phone);
+  if (!mine) return { error: jsonResponse2({ error: "not_found" }, 404) };
+  if (appt.canceled) return { error: jsonResponse2({ error: "already_canceled" }, 409) };
+  return { appt, auth };
+}
+async function xbodyAcuityChange(url, auth, body) {
+  const resp = await fetch(url, {
+    method: "PUT",
+    headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  }).catch(() => null);
+  if (!resp) return { status: 502, error: "network" };
+  const data = await resp.json().catch(() => ({}));
+  if (resp.ok) return { status: 200, data };
+  console.warn("[xbody-manage] Acuity refused", resp.status, JSON.stringify(data).slice(0, 200));
+  return { status: resp.status === 400 || resp.status === 403 ? 409 : 502, error: String(data && data.error || "refused") };
+}
+async function xbodyAfterChange(env, email, times) {
+  await dropXbodyApptCache(env, email);
+  for (const t of times) if (t) xbodyAvailMemo.delete(String(t).slice(0, 7));
+}
+async function handleXbodyCancel(request, env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return jsonResponse2({ error: "Acuity API \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D." }, 503);
+  const b = await xbodyReadManage(request, false);
+  if (b.error) return b.error;
+  const own = await xbodyOwnAppointment(env, b);
+  if (own.error) return own.error;
+  if (own.appt.canClientCancel === false) return jsonResponse2({ error: "too_late" }, 409);
+  const r = await xbodyAcuityChange(
+    `https://acuityscheduling.com/api/v1/appointments/${b.id}/cancel`,
+    own.auth,
+    { cancelNote: "\u041E\u0442\u043A\u0430\u0437\u0430\u043D \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E XBODY" }
+  );
+  if (r.error) return jsonResponse2({ error: r.error }, r.status);
+  await xbodyAfterChange(env, b.email, [own.appt.datetime]);
+  return jsonResponse2({ ok: true, id: Number(b.id) });
+}
+async function handleXbodyReschedule(request, env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return jsonResponse2({ error: "Acuity API \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D." }, 503);
+  const b = await xbodyReadManage(request, true);
+  if (b.error) return b.error;
+  const own = await xbodyOwnAppointment(env, b);
+  if (own.error) return own.error;
+  if (own.appt.canClientReschedule === false) return jsonResponse2({ error: "too_late" }, 409);
+  const r = await xbodyAcuityChange(`https://acuityscheduling.com/api/v1/appointments/${b.id}/reschedule`, own.auth, {
+    datetime: b.time,
+    calendarID: Number(XBODY_ACUITY_BOOKING.calendarID),
+    timezone: XBODY_ACUITY_BOOKING.timezone
+  });
+  if (r.error) return jsonResponse2({ error: r.error === "network" ? r.error : "taken" }, r.status);
+  await xbodyAfterChange(env, b.email, [own.appt.datetime, b.time]);
+  return jsonResponse2({ ok: true, id: Number(b.id), time: r.data && r.data.datetime || b.time });
 }
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
@@ -37306,6 +37406,10 @@ var worker_entry_default = {
         const rlErr = await checkRateLimit(env, request, "XBODY_BOOK");
         if (rlErr) return rlErr;
         return await handleXbodyBook(request, env);
+      } else if ((url.pathname === "/api/xbody/cancel" || url.pathname === "/api/xbody/reschedule") && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "XBODY_MANAGE");
+        if (rlErr) return rlErr;
+        return url.pathname === "/api/xbody/cancel" ? await handleXbodyCancel(request, env) : await handleXbodyReschedule(request, env);
       } else if (url.pathname === "/api/xbody/availability" && request.method === "GET") {
         return await handleXbodyAvailability(request, env, ctx);
       } else if (url.pathname === "/api/xbody/appointments" && request.method === "GET") {
