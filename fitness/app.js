@@ -16,6 +16,7 @@ import { registerServiceWorker } from './common.js';
 import { bindPwaInstallCard } from './pwa-install.js';
 import { applyIntensity, effortLabelFromRpe, rpeInfoForValue } from './intensity.js';
 import { createWizardController, el } from './wizard-ui.js';
+import { exerciseVisual, VISUAL_ATTRIBUTION_HTML } from './exercise-visual.js';
 
 // ============================================================
 // Конфигурация и локално хранилище
@@ -587,6 +588,10 @@ function renderPlanFootnotes(plan, firstVisit) {
     wrap.append(item);
   }
 
+  if (plan.days?.some((d) => d.exercises?.some((e) => e.match?.frames?.length))) {
+    wrap.append(el('p', { class: 'xv-credit', html: VISUAL_ATTRIBUTION_HTML }));
+  }
+
   if (!firstVisit && hasOverview) {
     const overview = el('details', { class: 'guide-item guide-item-overview' });
     overview.append(el('summary', { text: '📋 Обобщение на плана' }));
@@ -683,20 +688,8 @@ function renderExerciseCard(dayIdx, exIdx) {
 
   const cardEl = el('div', { class: 'ex-card' });
 
-  // thumbnail (статична снимка; GIF-ът се зарежда чак в lightbox-а — пести трафик)
-  if (media?.imageUrl || media?.gifUrl) {
-    const img = el('img', {
-      class: 'ex-thumb',
-      src: media.imageUrl || media.gifUrl,
-      alt: displayName,
-      loading: 'lazy',
-      onclick: () => openLightbox(ex),
-      onerror: (e) => { e.target.replaceWith(el('div', { class: 'ex-thumb-placeholder', text: '🏋' })); },
-    });
-    cardEl.append(img);
-  } else {
-    cardEl.append(el('div', { class: 'ex-thumb-placeholder', text: '🏋' }));
-  }
+  // Неонова анимация (3 SVG кадъра); стари планове — статична снимка
+  cardEl.append(exerciseVisual(media || {}, { className: 'ex-thumb', alt: displayName, onClick: () => openLightbox(ex) }));
 
   const main = el('div', { class: 'ex-main' });
   main.append(el('div', { class: 'ex-name', text: displayName }));
@@ -749,9 +742,10 @@ function renderAltPanel(dayIdx, exIdx) {
   const panel = el('div', { class: 'alt-panel' }, el('h5', { text: 'Избери вариант за същата мускулна група' }));
   const options = el('div', { class: 'alt-options' });
 
-  const makeOption = (label, sub, imgUrl, isCurrent, onPick) => {
+  const makeOption = (label, sub, media, isCurrent, onPick) => {
     const btn = el('button', { type: 'button', class: `alt-option${isCurrent ? ' current' : ''}`, onclick: onPick });
-    if (imgUrl) btn.append(el('img', { src: imgUrl, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }));
+    if (media?.frames?.length) btn.append(exerciseVisual(media, { className: 'alt-visual', animate: false }));
+    else if (media?.imageUrl) btn.append(el('img', { src: media.imageUrl, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }));
     btn.append(el('span', {},
       el('div', { class: 'alt-name', text: label + (isCurrent ? ' ✓' : '') }),
       sub ? el('div', { class: 'alt-eq', text: sub }) : null,
@@ -761,7 +755,7 @@ function renderAltPanel(dayIdx, exIdx) {
 
   options.append(makeOption(
     base.displayName, 'оригинал от плана',
-    base.match?.imageUrl, current === undefined || current === -1,
+    base.match, current === undefined || current === -1,
     () => { delete swaps[swapKey]; store.set('swaps', swaps); openAltPanel = null; renderDay(); },
   ));
 
@@ -769,7 +763,7 @@ function renderAltPanel(dayIdx, exIdx) {
     const label = alt.displayName || localizeExerciseDisplayName(alt.name, '', alt.equipment);
     options.append(makeOption(
       label, alt.equipment ? `оборудване: ${localizeEquipment(alt.equipment)}` : '',
-      alt.imageUrl, current === i,
+      alt, current === i,
       () => { swaps[swapKey] = i; store.set('swaps', swaps); openAltPanel = null; renderDay(); },
     ));
   });
@@ -790,8 +784,9 @@ function openLightbox(ex) {
   const media = ex.match;
   if (!media) return;
   const displayName = exerciseDisplayName(ex);
-  $('lightboxImg').src = media.gifUrl || media.imageUrl;
-  $('lightboxImg').alt = displayName;
+  const holder = $('lightboxVisual');
+  holder.replaceChildren(exerciseVisual(media, { className: 'lightbox-visual', alt: displayName }));
+  $('lightboxCredit').innerHTML = media.frames?.length ? VISUAL_ATTRIBUTION_HTML : '';
   $('lightboxTitle').textContent = displayName;
   const meta = [
     media.target && `цел: ${localizeTarget(media.target)}`,
@@ -807,7 +802,7 @@ function openLightbox(ex) {
 function closeLightbox() {
   if ($('lightbox').classList.contains('hidden')) return;
   $('lightbox').classList.add('hidden');
-  $('lightboxImg').src = '';
+  $('lightboxVisual').replaceChildren();
   document.body.style.overflow = '';
 }
 

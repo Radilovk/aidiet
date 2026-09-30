@@ -69,7 +69,7 @@ test('isTrueBodyweightExercise: разграничава СТ от уред', ()
 });
 
 test('beginner woman bodyweight: no rings/suspended in catalog', async () => {
-  const raw = await (await fetch('https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/data/exercises.json')).json();
+  const raw = await (await import('../exercise-translate-batch.js')).fetchExerciseDataset();
   const curated = (id, diff = 1) => ({
     diff, gf: 85, gm: 60, aiClassified: true, efpVersion: 2,
     flags: ['beginner_safe', 'home_friendly', 'true_bodyweight'],
@@ -94,7 +94,8 @@ test('beginner woman bodyweight: no rings/suspended in catalog', async () => {
   assert.equal(bad.length, 0, `unexpected: ${bad.map((e) => e.name).join(', ')}`);
   assert.ok(!catalog.includes('suspended split squat'));
   assert.ok(!catalog.includes('ring dips'));
-  assert.ok(catalog.includes('glute bridge') || catalog.includes('push-up (wall)'));
+  const lower = catalog.toLowerCase();
+  assert.ok(lower.includes('glute bridge') || lower.includes('wall push-up'));
 });
 
 test('passesBeginnerSafety blocks pull-ups without bar gear', () => {

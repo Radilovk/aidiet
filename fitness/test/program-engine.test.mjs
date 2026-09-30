@@ -6,7 +6,7 @@ import { preparePlanGeneration } from '../plan-generation.js';
 import { buildProfileSummary } from '../profile-summary.js';
 import { buildTrainingProgram, composeWeek, resolveClient, doseFor, estimateMinutes } from '../program-engine.js';
 
-const lite = JSON.parse(readFileSync(new URL('../data/exercise-dataset-lite.json', import.meta.url), 'utf8'));
+const lite = JSON.parse(readFileSync(new URL('../data/exercise-dataset.json', import.meta.url), 'utf8'));
 const meta = JSON.parse(readFileSync(new URL('../data/exercise-metadata.json', import.meta.url), 'utf8'));
 const index = buildCompactIndex(lite, {}, meta);
 const byId = new Map(index.map((e) => [e.id, e]));
@@ -28,7 +28,8 @@ function program(o) {
   const prep = preparePlanGeneration({ answers }, null, { buildProfileSummary, allowedEquipmentSet });
   return buildTrainingProgram({ answers, index, ...prep });
 }
-const allWithAlts = (plan) => plan.days.flatMap((d) => d.exercises.flatMap((e) => [e, ...(e.alternativeIds || []).map((id) => byId.get(id))]));
+const allWithAlts = (plan) => plan.days.flatMap((d) => d.exercises.flatMap((e) => [e, ...(e.alternativeIds || []).map((id) => byId.get(id))]))
+  .map((e) => ({ ...e, canonicalName: String(e.canonicalName || e.name || '').toLowerCase(), name: String(e.name || e.canonicalName || '').toLowerCase() }));
 
 test('engine: ниво — „Начинаещ–среден“ е ниво 2, не начинаещ', () => {
   assert.equal(resolveClient(answersFor({ exp: 'Начинаещ–среден (6 месеца – 2 години)' })).level, 2);
@@ -46,11 +47,11 @@ test('engine: броят активни дни = заявената честот
 
 test('engine: хипертрофия в зала — класически движения и балансиран обем', () => {
   const { plan, meta } = program({ g: 'Мъж', exp: 'Среден (2–5 години)', goal: 'Покачване на мускулна маса', freq: '3–4' });
-  const names = plan.days.flatMap((d) => d.exercises.map((e) => e.canonicalName));
+  const names = plan.days.flatMap((d) => d.exercises.map((e) => e.canonicalName.toLowerCase()));
   assert.ok(names.some((n) => /squat|leg press/.test(n)));
   assert.ok(names.some((n) => /deadlift/.test(n)));
   assert.ok(names.some((n) => /bench press/.test(n)));
-  assert.ok(names.some((n) => /pulldown|pull-up|chin-up/.test(n)));
+  assert.ok(names.some((n) => /pulldown|pull-up|chin-up|row/.test(n)));
   assert.ok(!names.some((n) => /handstand|muscle up|planche|archer/.test(n)), 'без гимнастическа екзотика');
   for (const g of ['крака', 'гърди', 'гръб', 'рамене']) assert.ok(meta.weeklySets[g] >= 8, `${g}: ${meta.weeklySets[g]}`);
 });

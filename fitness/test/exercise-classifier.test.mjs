@@ -68,7 +68,7 @@ test('classifier: gf/gm от модела', () => {
 test('bundled EFP v3: пълно покритие и 0 противоречия', () => {
   const meta = JSON.parse(readFileSync(new URL('../data/exercise-metadata.json', import.meta.url), 'utf8'));
   const rows = Object.values(meta);
-  assert.equal(rows.length, 1324);
+  assert.equal(rows.length, 302);
   for (const [id, row] of Object.entries(meta)) {
     assert.deepEqual(findFlagContradictions(row), [], `${id}`);
     if (!row.manual && !row.manualEdit) {

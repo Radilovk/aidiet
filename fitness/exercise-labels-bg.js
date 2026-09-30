@@ -466,6 +466,7 @@ const NAME_BASES = [
 export function composeExerciseNameBg(name, equipment = '', target = '') {
   const neutral = neutralExerciseName(name);
   const n = norm(neutral);
+  if (CURATED_NAMES_BG[n]) return CURATED_NAMES_BG[n];
   const priority = PRIORITY_BASES.find(([re]) => re.test(n));
   let base = priority ? priority[1] : localizeExerciseDisplayName(name, '', equipment);
   if (!base || base === 'Упражнение') {
@@ -489,3 +490,46 @@ export function composeExerciseNameBg(name, equipment = '', target = '') {
   if (version) mods.push(`вариант ${version[1]}`);
   return mods.length ? `${base} — ${mods.join(', ')}` : base;
 }
+
+/** Ръчни BG имена за базата workout-guide (там, където съставното име е неточно или се слива). */
+export const CURATED_NAMES_BG = {
+  'push up': 'Лицева опора', 'front raise': 'Предно повдигане', 'reverse pec deck': 'Обратен пек-дек (заден делт)',
+  'face pull': 'Дърпане към лицето', 'romanian deadlift': 'Румънска мъртва тяга с щанга', 't bar row': 'Гребане на Т-лост',
+  'chest supported row': 'Гребане с опора на гърдите', 'lat pulldown': 'Дърпане на скрипец отгоре', 'pull up': 'Набирания',
+  squat: 'Клек с щанга', 'front squat': 'Преден клек с щанга', 'hip thrust': 'Хип тръст с щанга', 'glute bridge': 'Мост за седалище',
+  dip: 'Кофички на успоредка', plank: 'Планк', 'hanging leg raise': 'Повдигане на крака от вис', running: 'Бягане',
+  walking: 'Бързо ходене', cycling: 'Колоездене', rowing: 'Гребен ергометър', 'landmine press': 'Избутване с лендмайн',
+  'chest dip': 'Кофички за гърди', 'push press': 'Тласкане с щанга (пуш прес)', 'plate front raise': 'Предно повдигане с диск',
+  'inverted row': 'Обърнато гребане', 'meadows row': 'Гребане на Медоус', 'back extension': 'Гръбна екстензия',
+  'goblet squat': 'Гоблет клек', 'smith machine squat': 'Клек на Смит машина', 'belt squat': 'Клек с колан',
+  'split squat': 'Сплит клек', 'smith machine split squat': 'Сплит клек на Смит машина', 'heel elevated goblet squat': 'Гоблет клек с повдигнати пети',
+  'front foot elevated split squat': 'Сплит клек с повдигнат преден крак', 'landmine squat': 'Клек с лендмайн',
+  'landmine romanian deadlift': 'Румънска мъртва тяга с лендмайн', 'glute focused back extension': 'Гръбна екстензия с акцент седалище',
+  'donkey calf raise': 'Магарешко повдигане на прасци', 'leg press calf raise': 'Повдигане на прасци на преса',
+  'two dumbbell skullcrusher': 'Френско разгъване с два дъмбела', 'single dumbbell skullcrusher': 'Френско разгъване с един дъмбел',
+  'bench dip': 'Кофички на пейка', 'tricep kickback': 'Разгъване назад за трицепс', 'farmer carry': 'Фермерска разходка',
+  crunch: 'Коремна преса', 'reverse crunch': 'Обратна коремна преса', 'bicycle crunch': 'Колело (коремна преса)',
+  'dead bug': 'Мъртва буболечка', 'pallof press': 'Палоф преса', 'hanging knee raise': 'Повдигане на колене от вис',
+  swimming: 'Плуване', skierg: 'Ски ергометър', hiking: 'Туристически преход', 'battle ropes': 'Бойни въжета',
+  'knee push up': 'Лицева опора от колене', 'pike push up': 'Пайк лицева опора', 'feet elevated pike push up': 'Пайк лицева опора с повдигнати крака',
+  'typewriter push up': 'Лицева опора „пишеща машина“', 'hindu push up': 'Индийска лицева опора', 'scapular push up': 'Лопаткова лицева опора',
+  'push up shoulder tap': 'Лицева опора с докосване на рамо', 'chair dip': 'Кофички на стол', 'doorway row': 'Гребане на рамка на врата',
+  'prone y raise': 'Y-повдигане по корем', 'prone t raise': 'T-повдигане по корем', superman: 'Супермен', 'dead hang': 'Вис на лост',
+  'active hang': 'Активен вис', 'scapular pull up': 'Лопаткови набирания', 'negative pull up': 'Негативни набирания',
+  'commando pull up': 'Командос набирания', 'l sit pull up': 'Набирания в L-позиция', 'shrimp squat': 'Скарида клек',
+  'skater squat': 'Кънкьорски клек', 'step down': 'Слизане от степ', 'calf raise': 'Повдигане на прасци',
+  'frog pump': 'Жабешки мост', 'donkey kick': 'Магарешки ритник', 'fire hydrant': 'Пожарен кран', clamshell: 'Мида',
+  'hip airplane': 'Самолет за таза', 'banded glute bridge': 'Мост за седалище с ластик', 'banded hip thrust': 'Хип тръст с ластик',
+  'banded frog pump': 'Жабешки мост с ластик', 'banded clamshell': 'Мида с ластик', 'banded squat': 'Клек с ластик',
+  'banded donkey kick': 'Магарешки ритник с ластик', 'banded fire hydrant': 'Пожарен кран с ластик', 'banded kickback': 'Ритник назад с ластик',
+  'banded face pull': 'Дърпане към лицето с ластик', 'banded row': 'Гребане с ластик', 'banded lat pulldown': 'Дърпане отгоре с ластик',
+  'banded pallof press': 'Палоф преса с ластик', 'banded woodchop': 'Дърводелец с ластик', 'banded dead bug': 'Мъртва буболечка с ластик',
+  'hollow body hold': 'Холоу задържане', 'hollow rock': 'Холоу люлеене', 'flutter kick': 'Ножички', 'heel tap': 'Докосване на пети',
+  'plank shoulder tap': 'Планк с докосване на рамо', 'plank jack': 'Планк джак', 'bear plank': 'Мечешки планк', 'crab walk': 'Раково ходене',
+  inchworm: 'Гъсеница', 'l sit hold': 'L-задържане', 'copenhagen plank': 'Копенхагенски планк', 'dragon flag': 'Драконово знаме',
+  'squat thrust': 'Клек с изпъване (скуат тръст)', sprawl: 'Спрол', 'cat cow stretch': 'Котка–крава', 'world s greatest stretch': 'Най-доброто разтягане',
+  'leg swings': 'Махове с крак', 'doorway chest stretch': 'Разтягане на гърди на врата', 'child s pose': 'Поза на детето',
+  'hamstring stretch': 'Разтягане на задно бедро', 'butterfly stretch': 'Пеперуда (разтягане)', 'side plank hip dip': 'Страничен планк с повдигане на таза',
+  'assault bike': 'Въздушен велоергометър (assault bike)',
+  'smith machine bulgarian split squat': 'Български клек на Смит машина', 'bulgarian split squat': 'Български клек',
+};

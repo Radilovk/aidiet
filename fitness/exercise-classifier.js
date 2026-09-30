@@ -86,7 +86,7 @@ const R = {
   stretch: /\b(stretch|stretching|mobility|yoga|pose|foam roll|roller|self massage|circles?|swings? stretch|cat cow|child s? pose|cobra|sphinx|neck side|rotation of shoulders|arm circles|ankle circles|hip circles|wrist circles|knee circles|wall slide|dislocat|thread the needle|world s greatest|world greatest|inchworm|upward facing dog|downward dog|one arm against wall|hug keens|hug knees|knees to chest|pelvic tilt)\b/,
   rollerEq: /^roller$/,
   cardioMachine: /\b(elliptical|stationary bike|stepmill|skierg|ergometer|treadmill|bike)\b/,
-  cardio: /\b(battling ropes?|boxing|run|running|jog|jogging|sprint|marching in place|high knee|butt kick|jumping jacks?|jack jump|star jump|astride jumps?|scissor jumps?|jump rope|skipping|mountain climber|burpee|shadow box|punch|walking high|wheel run|cycle cross|bear crawl|crab walk|frog jump|stair)\b/,
+  cardio: /\b(high knees?|lateral shuffle|sprawl|squat thrust|seal jack|fast feet|plank jack|battling ropes?|battle ropes?|boxing|run|running|rowing|swimming|hiking|elliptical|treadmill|stair climber|assault bike|skierg|cycling|walking|jog|jogging|sprint|marching in place|high knee|butt kick|jumping jacks?|jack jump|star jump|astride jumps?|scissor jumps?|jump rope|skipping|mountain climber|burpee|shadow box|punch|walking high|wheel run|cycle cross|bear crawl|crab walk|frog jump|stair)\b/,
   plyo: /\b(jump|jumps|jumping|hop|hops|hopping|bound|bounding|clap|clapping|plyo|plyometric|depth|drop push|explosive|tuck jump|box jump|skater|split jump|lunge jump|power skip|throw|slam|toss)\b/,
   highImpactPlyo: /\b(depth jump|drop jump|drop push|clap|clapping|tuck jump|box jump|burpee|one leg hop|single leg hop|split jump|lunge with jump|jump lunge|plyo push|explosive push|broad jump|180)\b/,
   olympic: /\b(clean|snatch|jerk|push press|thruster|high pull|muscle snatch|hang|tire flip)\b/,
@@ -173,6 +173,7 @@ export function detectPattern(raw) {
   if (eq === 'assisted' && /\b(lying|prone|seated|side lying)\b/.test(n) && !/\b(raise|curl|crunch|sit up|pull|dip|row)\b/.test(n)) {
     return { pattern: 'stretch', reason: 'equipment:assisted partner stretch' };
   }
+  if (raw?.isStretch === true) return { pattern: 'stretch', reason: 'dataset:isStretch' };
   if (has(R.stretch, n) || R.rollerEq.test(eq)) {
     // „circles“ с тежест (напр. kettlebell circles) не е стречинг
     if (!(/\bcircles?\b/.test(n) && /kettlebell|dumbbell|barbell|weighted|medicine/.test(eq))) {
@@ -193,6 +194,7 @@ export function detectPattern(raw) {
   if (has(R.lunge, n) && !/\b(burpee|mountain climber)\b/.test(n)) return { pattern: 'lunge', reason: 'name:lunge/split squat/step up' };
   if (/\bglute bridge\b/.test(n) && !/\bmountain climber\b/.test(n)) return { pattern: 'glute', reason: 'name:glute bridge' };
   if (/\bmedicine ball\b/.test(eq) && /\b(push|release|pass)\b/.test(n)) return { pattern: 'plyo', reason: 'name:medicine ball power' };
+  if (/\b(high knees?|lateral shuffle|sprawl|squat thrust|seal jack|fast feet|plank jack)\b/.test(n)) return { pattern: 'cardio', reason: 'name:conditioning drill' };
   if (has(R.cardio, n) || b === 'cardio') return { pattern: 'cardio', reason: b === 'cardio' ? 'body_part:cardio' : 'name:cardio' };
 
   if (has(R.adductor, n)) return { pattern: 'adductor', reason: 'name:adduction' };
@@ -218,6 +220,7 @@ export function detectPattern(raw) {
     return { pattern: has(R.coreRot, n) ? 'core_rot' : 'core_flex', reason: 'name:crunch/sit-up' };
   }
   if (/\bplank\b/.test(n) && !/\b(row|fly)\b/.test(n)) return { pattern: 'core_static', reason: 'name:plank' };
+  if (has(R.pullover, n)) return { pattern: 'pullover', reason: 'name:pullover/straight arm' };
   if (has(R.pullV, n) && /\b(pulldown|pull down|chin|pull up|pull ups)\b/.test(n)) return { pattern: 'pull_v', reason: 'name:pull-up/chin-up/pulldown' };
   if (/\brow\b/.test(n) && !/\b(upright row|rear delt row)\b/.test(n)) return { pattern: 'pull_h', reason: 'name:row' };
   if (has(R.shrug, n)) return { pattern: 'shrug', reason: 'name:shrug' };
@@ -279,6 +282,7 @@ function categoryOf(pattern) {
 
 function mechanicOf(pattern, n) {
   if (pattern === 'stretch') return 'none';
+  if (/\b(dead hang|active hang|scapular)\b/.test(n)) return 'isolation';
   if (COMPOUND_PATTERNS.has(pattern)) return 'compound';
   if (pattern === 'glute' && /\b(thrust|bridge)\b/.test(n)) return 'compound';
   if (pattern === 'core_static' && /\b(plank|bear|rollout|roll out|ab wheel|body saw)\b/.test(n)) return 'compound';

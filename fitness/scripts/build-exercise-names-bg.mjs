@@ -11,10 +11,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { composeExerciseNameBg } from '../exercise-labels-bg.js';
 import { neutralExerciseName } from '../exercise-name-bg.js';
+import { instructionsBgFor } from '../exercise-instructions-bg.js';
+import { classifyExercise } from '../exercise-classifier.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const datasetArg = process.argv.find((a) => a.startsWith('--dataset='));
-const all = JSON.parse(readFileSync(datasetArg ? datasetArg.split('=')[1] : join(root, 'data', 'exercise-dataset-lite.json'), 'utf8'));
+const all = JSON.parse(readFileSync(datasetArg ? datasetArg.split('=')[1] : join(root, 'data', 'exercise-dataset.json'), 'utf8'));
 const outFile = join(root, 'data', 'exercise-translations-bg.json');
 let existing = {};
 try { existing = JSON.parse(readFileSync(outFile, 'utf8')); } catch { /* празен */ }
@@ -26,7 +28,9 @@ for (const x of all) {
   names.get(bg).push(x);
 }
 
-const out = { ...existing };
+// Само id-та от текущата база (старите записи от предишни бази се изчистват)
+const ids = new Set(all.map((x) => String(x.id)));
+const out = Object.fromEntries(Object.entries(existing).filter(([id]) => ids.has(id)));
 let collisions = 0;
 for (const [bg, list] of names) {
   const neutrals = new Set(list.map((x) => neutralExerciseName(x.name).toLowerCase()));
@@ -36,7 +40,11 @@ for (const [bg, list] of names) {
     // Дубли по неутрално име ((male)/(female), v. 2) споделят BG името законно
     const nameBg = neutrals.size > 1 ? `${bg} (${neutralExerciseName(x.name)})` : bg;
     if (neutrals.size > 1) collisions++;
-    out[id] = { ...(existing[id] || {}), nameBg, nameSource: 'compose-v1' };
+    const prev = out[id] || {};
+    const instructionsBg = prev.manualEdit && prev.instructionsBg
+      ? prev.instructionsBg
+      : instructionsBgFor(classifyExercise(x).pattern, x.equipment);
+    out[id] = { ...prev, nameBg, instructionsBg, nameSource: 'compose-v1' };
   }
 }
 writeFileSync(outFile, JSON.stringify(out));

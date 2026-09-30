@@ -4,7 +4,7 @@
  * Стратегия: онлайн = винаги мрежа (без stale CSS/HTML); офлайн = кеш fallback.
  */
 
-const VERSION = 'v7';
+const VERSION = 'v8';
 const APP_CACHE = `fitplan-app-${VERSION}`;
 const IMG_CACHE = 'fitplan-img-v1';
 const IMG_CACHE_MAX_ENTRIES = 300;
@@ -19,6 +19,7 @@ const PRECACHE_ASSETS = [
   './app.js',
   './questions.js',
   './exercise-labels-bg.js',
+  './exercise-visual.js',
   './common.js',
   '../icon-192x192.png',
   '../icon-512x512.png',

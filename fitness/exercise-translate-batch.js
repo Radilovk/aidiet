@@ -79,7 +79,16 @@ export function normalizeBatchResult(parsed, batch) {
   return out;
 }
 
-export async function fetchExerciseDataset(url = EXERCISE_DATASET_URL) {
+/**
+ * Базата упражнения. По подразбиране — вградената data/exercise-dataset.json
+ * (bryllim/workout-guide + Everkinetic, CC BY-SA 4.0; виж scripts/import-workout-guide.mjs).
+ * С url — външен JSON със същата схема (override през env.EXERCISE_DATASET_URL).
+ */
+export async function fetchExerciseDataset(url = null) {
+  if (!url) {
+    const mod = await import('./data/exercise-dataset.json', { with: { type: 'json' } });
+    return mod.default || mod;
+  }
   const res = await fetch(url, { headers: { 'User-Agent': 'aidiet-fitness-translate' } });
   if (!res.ok) throw new Error(`Dataset HTTP ${res.status}`);
   const data = await res.json();

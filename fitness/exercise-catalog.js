@@ -92,6 +92,7 @@ export function buildCatalogRecord(entry, raw = null, bundledMeta = {}, kvMeta =
     instructionsLang: entry?.instructionsLang || (instructionsBg ? 'bg' : (instructionsEn ? 'en' : '')),
     image: entry?.image || '',
     gif: entry?.gif || '',
+    frames: Array.isArray(entry?.frames) ? entry.frames : [],
     equipLabelBg: localizeEquipment(entry?.equipment),
     targetLabelBg: localizeTarget(entry?.target),
     sourceHash: kvMetaRow?.sourceHash || bundledMetaRow?.sourceHash || null,
