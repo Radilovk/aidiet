@@ -183,7 +183,7 @@
         return params.get('secret') || '';
       }
     })();
-    const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/';
+    const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/bryllim/workout-guide@aac599224bb9780305239607ef98540b7e0ce389/packages/workout-guide/assets/';
     // Етикети от exercise-classifier.js (EFP v3)
     const PATTERN_LABELS_BG = {"stretch": "Разтягане / мобилност", "cardio": "Кардио", "plyo": "Плиометрия / скокове", "olympic": "Олимпийски / мощност", "carry": "Носене", "squat": "Клек / преса", "lunge": "Напад / един крак", "hinge": "Тазово сгъване (hinge)", "glute": "Седалище (мост/тръст/отвеждане назад)", "adductor": "Привеждачи", "abductor": "Отвеждачи", "knee_ext": "Разгъване на коляно", "knee_flex": "Сгъване на коляно", "calf": "Прасци", "push_h": "Хоризонтално бутане", "push_v": "Вертикално бутане", "dip": "Кофички", "fly": "Разтваряне (fly)", "pull_v": "Вертикално дърпане", "pull_h": "Хоризонтално дърпане (гребане)", "pullover": "Пуловър", "shrug": "Трапец (свиване)", "lat_raise": "Странично вдигане", "front_raise": "Предно вдигане", "rear_delt": "Заден делт", "rotator": "Ротаторен маншон", "biceps": "Бицепс", "triceps": "Трицепс", "forearm": "Предмишница", "neck": "Врат", "core_flex": "Корем — сгъване", "core_rot": "Корем — ротация", "core_static": "Корем — статика / анти-движение", "core_hip": "Корем — повдигане на крака", "back_ext": "Гръбна екстензия"};
     const CATEGORY_LABELS_BG = {"strength": "Сила", "core": "Корем / стабилност", "cardio": "Кардио", "plyometric": "Плиометрия", "mobility": "Мобилност"};
@@ -260,7 +260,7 @@
     function setEditorMedia(row) {
       const img = $('ecMediaGif');
       const empty = $('ecMediaEmpty');
-      const url = mediaUrl(row?.gif || row?.image);
+      const url = mediaUrl(row?.frames?.[1] || row?.gif || row?.image);
       if (url) {
         img.hidden = false;
         empty.hidden = true;

@@ -242,6 +242,15 @@ cd fitness && npm test    # node --test, без мрежа и без API клю�
 
 ## Медия и лиценз
 
-Медията (GIF/thumbnail) е © Gym visual (gymvisual.com) чрез
-`hasaneyldrm/exercises-dataset` — за лична употреба, не за комерсиално
-препродаване или публично разпространявани клиентски материали.
+Упражненията и илюстрациите са от [bryllim/workout-guide](https://github.com/bryllim/workout-guide)
+(302 упражнения × 3 SVG кадъра), базирани на [Everkinetic](https://github.com/everkinetic/data) —
+**CC BY-SA 4.0**: комерсиалната употреба е позволена с посочване на автора; оцветените
+версии също са под CC BY-SA 4.0. Посочването е в приложението (под насоките и в лупата).
+
+- `scripts/import-workout-guide.mjs` → `data/exercise-dataset.json` (закачено към commit)
+- кадрите се сервират от jsDelivr; `exercise-visual.js` ги върти 1→2→3→2 като неонова
+  анимация (CSS маска + градиент по мускулна група + сияние)
+- `scripts/build-exercise-names-bg.mjs` → BG имена и инструкции (`exercise-instructions-bg.js`)
+- `scripts/rule-classify-exercises.mjs` → класификация EFP v3
+
+Старите планове с GIF-ове (предишната база) продължават да се показват.

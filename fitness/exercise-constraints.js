@@ -21,8 +21,10 @@ export function passesConstraintExclusions(entry, exclusions = []) {
   if (avoidLateral && LATERAL_RAISE_RE.test(name)) {
     return false;
   }
-  if (/бременност|кърмене/i.test(blob) && /\b(crunch|sit-?up|push-?up|bench|burpee|jump|plyo)\b/i.test(name)) {
-    return false;
+  if (/бременност|кърмене/i.test(blob)) {
+    // Лицева опора на стена/наклонена е препоръчителна при бременност — изключваме само хоризонталната
+    if (/\b(crunch|sit-?up|bench|burpee|jump|plyo)\b/i.test(name)) return false;
+    if (/\bpush-?up\b/i.test(name) && !/\b(wall|incline)\b/i.test(name)) return false;
   }
 
   for (const line of exclusions) {

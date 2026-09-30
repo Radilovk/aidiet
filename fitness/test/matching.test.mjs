@@ -290,43 +290,35 @@ test('findAlternatives: отхвърля различна модалност и 
   assert.deepEqual(alts.map((a) => a.id), ['g1']);
 });
 
-test('findAlternatives: клек → напад, не RDL (dataset target+muscle_group)', async () => {
+test('findAlternatives: клек → клек/напад, не тазово сгъване', async () => {
   const { buildCompactIndex, findAlternatives, loadBundledMetadata } = await import('../worker.js');
   const { fetchExerciseDataset } = await import('../exercise-translate-batch.js');
   const metadata = await loadBundledMetadata();
   const index = buildCompactIndex(await fetchExerciseDataset(), {}, metadata);
-  const squat = index.find((e) => e.name === 'barbell full squat');
-  assert.ok(squat, 'barbell full squat в dataset');
-  const slot = alternativeSlotKey(squat);
-  assert.equal(slot, 'compound:glutes:quadriceps');
+  const squat = index.find((e) => e.name === 'Squat');
+  assert.ok(squat, 'Squat в dataset');
   const alts = findAlternatives(index, squat, {
     allowedEquipment: new Set(['body weight', 'dumbbell', 'leverage machine']),
     limit: 8,
     sessionType: 'strength',
   });
   assert.ok(alts.length >= 1, 'очакват се алтернативи');
-  for (const alt of alts) {
-    assert.equal(alternativeSlotKey(alt), slot, `${alt.name} е извън слота ${slot}`);
-    assert.doesNotMatch(alt.name, /deadlift|rdl|romanian/i, `${alt.name} не трябва да е hinge`);
-  }
-  assert.ok(alts.some((a) => /lunge|split squat/i.test(a.name)), 'очаква се напад или split squat');
+  for (const alt of alts) assert.doesNotMatch(alt.name, /deadlift|rdl|romanian|good morning/i, `${alt.name} не трябва да е hinge`);
+  assert.ok(alts.some((a) => /squat|lunge|leg press/i.test(a.name)), 'очаква се клек, напад или преса');
 });
 
-test('findAlternatives: bench press → push-up/dumbbell bench (същ slot)', async () => {
-  const { buildCompactIndex, findAlternatives } = await import('../worker.js');
+test('findAlternatives: лежанка → лицева опора / дъмбели', async () => {
+  const { buildCompactIndex, findAlternatives, loadBundledMetadata } = await import('../worker.js');
   const { fetchExerciseDataset } = await import('../exercise-translate-batch.js');
-  const index = buildCompactIndex(await fetchExerciseDataset());
-  const bench = index.find((e) => e.name === 'barbell bench press');
-  const slot = alternativeSlotKey(bench);
-  assert.equal(slot, 'compound:pectorals:triceps');
+  const index = buildCompactIndex(await fetchExerciseDataset(), {}, await loadBundledMetadata());
+  const bench = index.find((e) => e.name === 'Bench Press');
   const alts = findAlternatives(index, bench, {
     allowedEquipment: new Set(['body weight', 'dumbbell']),
     limit: 8,
     sessionType: 'strength',
   });
   assert.ok(alts.length >= 1);
-  for (const alt of alts) assert.equal(alternativeSlotKey(alt), slot, alt.name);
-  assert.ok(alts.some((a) => /push-up|push up|dumbbell bench/i.test(a.name)));
+  assert.ok(alts.some((a) => /push-up|dumbbell bench|dumbbell press/i.test(a.name)), alts.map((a) => a.name).join(', '));
 });
 
 test('matchExercise: при равен score предпочита по-просто оборудване', () => {

@@ -478,30 +478,22 @@ function loadKind(entry) {
 
 /** Основни упражнения, които треньор избира първо (при равни други условия). */
 const STAPLES = new Set([
-  'barbell full squat', 'barbell front squat', 'barbell deadlift', 'barbell romanian deadlift', 'dumbbell romanian deadlift',
-  'barbell bench press', 'dumbbell bench press', 'dumbbell incline bench press', 'barbell incline bench press',
-  'barbell bent over row', 'dumbbell bent over row', 'dumbbell one arm bent-over row', 'pull-up', 'chin-up',
-  'cable pulldown', 'cable lat pulldown full range of motion', 'lever seated row', 'cable seated row', 'cable low seated row',
-  'dumbbell standing overhead press', 'dumbbell seated shoulder press', 'barbell seated overhead press',
-  'dumbbell goblet squat', 'kettlebell goblet squat', 'dumbbell lunge', 'walking lunge', 'dumbbell rear lunge', 'dumbbell step-up',
-  'barbell glute bridge', 'low glute bridge on floor', 'push-up', 'incline push-up', 'kneeling push-up (male)',
-  'dumbbell lateral raise', 'cable lateral raise', 'dumbbell biceps curl', 'dumbbell hammer curl', 'barbell curl',
-  'cable pushdown', 'cable pushdown (with rope attachment)', 'dumbbell kickback', 'lever leg extension', 'lever lying leg curl',
-  'lever seated leg curl', 'sled 45в° leg press', 'lever chest press', 'dead bug', 'weighted front plank', 'crunch floor',
-  'russian twist', 'hanging leg raise', 'kettlebell swing', 'bodyweight standing calf raise', 'lever standing calf raise',
-  'dumbbell single leg split squat', 'split squats', 'dumbbell reverse fly', 'cable standing fly', 'dumbbell fly', 'inverted row',
-  'band squat', 'band shoulder press', 'band bent-over hip extension', 'band standing rear delt row', 'lever seated fly',
-  'cable hip adduction', 'lever seated hip abduction', 'side hip abduction', 'reverse crunch', 'side bridge v. 2',
-  'bodyweight incline side plank', 'hyperextension', 'lever back extension', 'band pull through', 'cable pull through (with rope)',
-  'smith squat', 'dumbbell squat', 'band bench press', 'resistance band seated chest press', 'band one arm standing low row',
-  'resistance band seated straight back row', 'band close-grip pulldown', 'glute bridge march', 'single leg bridge with outstretched leg',
-  'quads', 'half knee bends (male)', 'forward lunge (male)', 'jack jump (male)', 'star jump (male)', 'chest tap push-up (male)',
-  'glute bridge two legs on bench (male)', 'resistance band hip thrusts on knees (female)', 'barbell glute bridge two legs on bench (male)',
-  'dumbbell incline row', 'kettlebell one arm row', 'dumbbell goblet squat', 'squat to overhead reach', 'bodyweight standing row',
+  'squat', 'front squat', 'goblet squat', 'leg press', 'hack squat', 'bodyweight squat', 'banded squat',
+  'deadlift', 'romanian deadlift', 'dumbbell romanian deadlift', 'kettlebell swing', 'cable pull through',
+  'hip thrust', 'dumbbell hip thrust', 'glute bridge', 'banded glute bridge', 'walking lunge', 'reverse lunge', 'forward lunge',
+  'bulgarian split squat', 'split squat', 'step up', 'bench press', 'dumbbell bench press', 'incline dumbbell press',
+  'machine chest press', 'push up', 'knee push up', 'incline push up', 'wall push up', 'overhead press',
+  'dumbbell seated shoulder press', 'machine shoulder press', 'barbell row', 'dumbbell bent over row', 'one arm dumbbell row',
+  'seated cable row', 'machine row', 'chest supported row', 'inverted row', 'banded row', 'lat pulldown', 'pull up', 'chin up',
+  'assisted pull up', 'banded lat pulldown', 'lateral raise', 'cable lateral raise', 'rear delt fly', 'face pull', 'band pull apart',
+  'cable fly', 'pec deck', 'dumbbell fly', 'bicep curl', 'hammer curl', 'tricep pushdown', 'rope tricep pushdown',
+  'overhead tricep extension', 'leg extension', 'lying leg curl', 'seated leg curl', 'standing calf raise', 'calf raise',
+  'plank', 'side plank', 'dead bug', 'bird dog', 'crunch', 'reverse crunch', 'russian twist', 'hanging knee raise', 'pallof press',
+  'walking', 'cycling', 'elliptical', 'treadmill incline walk', 'rowing', 'stair climber', 'jumping jack', 'mountain climber',
 ]);
 
 /** Имена в dataset-а, които не са ясни упражнения или са дубли/демо варианти. */
-const ODD_NAMES = /^(elevator|cocoons|bottoms up|butt ups|body up|flag|standing calves|wind sprints|swing 360|quick feet v 2|left hook boxing|push and pull bodyweight|push to run|hands bike|isometric wipers|dumbbell iron cross|dumbbell incline raise|dumbbell raise|dumbbell lying femoral|march sit wall|kick out sit|spell caster|sledge hammer|tire flip|london bridge|hug keens to chest)$/;
+const ODD_NAMES = /^(swimming|elevator|cocoons|bottoms up|butt ups|body up|flag|standing calves|wind sprints|swing 360|quick feet v 2|left hook boxing|push and pull bodyweight|push to run|hands bike|isometric wipers|dumbbell iron cross|dumbbell incline raise|dumbbell raise|dumbbell lying femoral|march sit wall|kick out sit|spell caster|sledge hammer|tire flip|london bridge|hug keens to chest)$/;
 
 /** Колкото по-обичайно/чисто е името, толкова по-добре (dataset-ът има много екзотични варианти). */
 function oddity(entry) {
@@ -509,7 +501,7 @@ function oddity(entry) {
   const tokens = n.split(' ').length;
   let s = Math.max(0, tokens - 3);
   if (ODD_NAMES.test(n)) s += 8;
-  if (STAPLES.has(entry.name)) s -= 3;
+  if (STAPLES.has(n)) s -= 3;
   if (/\b(upright row|good morning|behind neck|behind head)\b/.test(n)) s += 2;
   if (/\bv \d\b|\bpov\b|arm blaster|with towel|\(|\)|variation|version/.test(n)) s += 4;
   if (/\b(exercise ball|stability ball|on ball|bosu|suspended|on bench|from bench|on box|with rope attachment)\b/.test(n)) s += 2;
@@ -654,7 +646,7 @@ function alternativesFor(pool, item, client, env, excludeIds) {
 const HOLD_RE = /\b(plank|hold|hollow|l sit|lsit|wall sit|side bridge|isometric|dead hang|static)\b/;
 
 /** Серии × повторения × почивка × RPE × темпо — таблица цел × роля, скалирана по ниво. */
-export function doseFor(goal, role, level, { name = '', rpeCap = 8 } = {}) {
+export function doseFor(goal, role, level, { name = '', rpeCap = 8, isHold = false } = {}) {
   const T = {
     strength: { main: [4, '4-6', 180], sec: [3, '6-8', 120], acc: [3, '8-12', 75], core: [3, '8-12', 60] },
     hypertrophy: { main: [4, '6-10', 120], sec: [3, '8-12', 90], acc: [3, '10-15', 60], core: [3, '10-15', 60] },
@@ -672,7 +664,7 @@ export function doseFor(goal, role, level, { name = '', rpeCap = 8 } = {}) {
   }
   if (level === 3 && role === 'main' && goal !== 'rehab') sets += 1;
   const n = normalizeText(name);
-  if (HOLD_RE.test(n)) {
+  if (HOLD_RE.test(n) || isHold) {
     reps = level === 1 ? '20-30 сек' : level === 2 ? '30-45 сек' : '45-60 сек';
   }
   const rpeBase = role === 'main' || role === 'sec'
@@ -751,7 +743,7 @@ function pickByPattern(pool, patterns, client, count, { dayUsed, weekUsed = null
 
 /** Зона 2 = равномерно, ритмично движение. Пълзене, бърпи, удари — само за интервали. */
 const ZONE2_RE = /\b(walk|walking|march|run|jog|step|stepmill|elliptical|cross trainer|bike|cycle|treadmill|rope|jack|skier|ski)\b/;
-const INTERVAL_ONLY_RE = /\b(crawl|burpee|climber|boxing|hook|punch|swing 360|frog)\b/;
+const INTERVAL_ONLY_RE = /\b(crawl|burpee|climber|boxing|hook|punch|swing 360|frog|crab|plank jack|seal jack|sprawl|squat thrust|battle|swimming)\b/;
 
 const EASY_CARDIO_RE = /\b(walk|walking|march|step|elliptical|cross trainer|bike|cycle|stepmill)\b/;
 
@@ -949,7 +941,7 @@ export function buildTrainingProgram({
         if (!got) got = chosen;
         dayUsed.add(got.entry.id);
         weekUsed.add(got.entry.id);
-        const dose = doseFor(client.goal, slot.role, client.effLevel, { name: got.entry.name, rpeCap: client.restrictions.rpeCap });
+        const dose = doseFor(client.goal, slot.role, client.effLevel, { name: got.entry.name, rpeCap: client.restrictions.rpeCap, isHold: got.entry.exerciseType === 'duration' });
         items.push({ entry: got.entry, role: slot.role, pattern: got.pattern, ...dose, notes: '' });
       }
       // Финишър за отслабване/кондиция при достатъчно време

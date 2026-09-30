@@ -79,7 +79,7 @@
         return params.get('secret') || '';
       }
     })();
-    const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/';
+    const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/bryllim/workout-guide@aac599224bb9780305239607ef98540b7e0ce389/packages/workout-guide/assets/';
 
     const state = {
       allItems: [],
@@ -290,7 +290,7 @@
         ? `кластер · ${neighbors.length} близки анимации`
         : `${neighbors.length} визуално близки`;
       strip.innerHTML = neighbors.map(({ item: row, distance }) => {
-        const url = mediaUrl(row.gif || row.image);
+        const url = mediaUrl(row.frames?.[1] || row.gif || row.image);
         const title = row.displayName || row.nameBg || row.name;
         const excl = currentExcluded(row);
         const distClass = distance <= 3 ? 'ecs-vis-strong' : distance <= 6 ? 'ecs-vis-mid' : '';
@@ -446,7 +446,7 @@
         if (item !== current) card.style.zIndex = '1';
         else card.style.zIndex = '2';
 
-        const url = mediaUrl(item.gif || item.image);
+        const url = mediaUrl(item.frames?.[1] || item.gif || item.image);
         const title = item.displayName || item.nameBg || item.name || item.id;
         const sub = [item.name !== title ? item.name : '', item.equipment, item.target].filter(Boolean).join(' · ');
         const excludedNow = currentExcluded(item);

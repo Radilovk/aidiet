@@ -208,21 +208,17 @@ export {
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
 
-// hasaneyldrm/exercises-dataset — 1324 упражнения (GIF + thumbnail).
-// jsDelivr кешира агресивно => безплатен CDN трафик, нула натоварване на Worker-а.
-const DEFAULT_MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/';
-const DATASET_URL_CANDIDATES = [
-  'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/exercises.json',
-  'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/exercises.json',
-  'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/data/exercises.json',
-  'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json',
-];
+// Упражнения: bryllim/workout-guide (302 × 3 SVG кадъра) + Everkinetic стъпки — CC BY-SA 4.0,
+// позволява комерсиална употреба с посочване на автора. Кадрите се сервират от jsDelivr,
+// закачени към commit (виж scripts/import-workout-guide.mjs → WG_COMMIT).
+const DEFAULT_MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/bryllim/workout-guide@aac599224bb9780305239607ef98540b7e0ce389/packages/workout-guide/assets/';
 
 // v2: loadExerciseMetadata вече слива bundled класификация с KV (виж по-долу) —
 // смяна на ключа изчиства стар кеш, изграден преди тази поправка (иначе 30-дневния
 // TTL би задържал грешно недоклассифицирани записи чак до естествения му изтек).
 // v3: детерминистичен класификатор EFP v3 (exercise-classifier.js) в bundled данните.
-const EXERCISE_INDEX_KV_KEY = 'exidx:v3';
+// v4: нова база (workout-guide) — старият кеш е с други id-та.
+const EXERCISE_INDEX_KV_KEY = 'exidx:v4';
 const EXERCISE_INDEX_TTL = 60 * 60 * 24 * 30; // 30 дни; при промяна на схемата — нов ключ
 const PLAN_TTL = 60 * 60 * 24 * 90;           // планът живее 90 дни в KV
 
@@ -427,6 +423,8 @@ export function buildCompactIndex(rawList, translations = {}, metadata = {}) {
       secondary: Array.isArray(raw.secondary_muscles) ? raw.secondary_muscles.slice(0, 4) : [],
       image: raw.image || '',
       gif: raw.gif_url || raw.gifUrl || '',
+      frames: Array.isArray(raw.frames) ? raw.frames : [],
+      exerciseType: raw.exerciseType || '',
     }, raw, translations, MAX_INSTRUCTION_CHARS);
     entry = mergeExerciseMetadata(entry, raw, metadata);
     index.push(entry);
@@ -524,31 +522,22 @@ async function loadExerciseIndex(env, ctx) {
     }
   }
 
-  // 2. Отдалечен fetch — само при празен кеш (реално: веднъж на 30 дни)
-  const urls = env.EXERCISE_DATASET_URL
-    ? [env.EXERCISE_DATASET_URL, ...DATASET_URL_CANDIDATES]
-    : DATASET_URL_CANDIDATES;
-
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'aidiet-fitness-worker' } });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : (data.exercises || data.data || []);
-      const translations = await loadExerciseTranslations(env);
-      const metadata = await loadExerciseMetadata(env);
-      const index = buildCompactIndex(list, translations, metadata);
-      if (index.length > 50) {
-        memoryIndex = index;
-        if (env.FITNESS_KV) {
-          const save = env.FITNESS_KV.put(EXERCISE_INDEX_KV_KEY, JSON.stringify(index), { expirationTtl: EXERCISE_INDEX_TTL });
-          if (ctx) ctx.waitUntil(save); else await save;
-        }
-        return memoryIndex;
+  // 2. Вградената база (или override през EXERCISE_DATASET_URL) — без външна зависимост
+  try {
+    const list = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
+    const translations = await loadExerciseTranslations(env);
+    const metadata = await loadExerciseMetadata(env);
+    const index = buildCompactIndex(list, translations, metadata);
+    if (index.length > 50) {
+      memoryIndex = index;
+      if (env.FITNESS_KV) {
+        const save = env.FITNESS_KV.put(EXERCISE_INDEX_KV_KEY, JSON.stringify(index), { expirationTtl: EXERCISE_INDEX_TTL });
+        if (ctx) ctx.waitUntil(save); else await save;
       }
-    } catch (e) {
-      console.error(`Dataset fetch пропадна за ${url}:`, e.message);
+      return memoryIndex;
     }
+  } catch (e) {
+    console.error('Зареждане на базата упражнения пропадна:', e.message);
   }
   return null;
 }
@@ -848,8 +837,12 @@ function entryToClientExercise(env, entry, { includeInstructions = true } = {}) 
     equipment: entry.equipment,
     target: entry.target,
     bodyPart: entry.bodyPart,
-    imageUrl: mediaUrl(env, entry.image),
+    imageUrl: mediaUrl(env, entry.image || entry.frames?.[1] || entry.frames?.[0]),
     gifUrl: mediaUrl(env, entry.gif),
+    // 3 SVG кадъра (workout-guide) → клиентът ги върти като неонова анимация
+    frames: (entry.frames || []).map((f) => mediaUrl(env, f)),
+    category: entry.category || '',
+    exerciseType: entry.exerciseType || '',
   };
   // instructions може да е до MAX_INSTRUCTION_CHARS на запис — излишно
   // трафик за списъчни резултати като search picker-а, който показва
@@ -1478,7 +1471,7 @@ async function saveExerciseTranslations(env, translations) {
 }
 
 async function rebuildExerciseIndexInKv(env, translations, metadata) {
-  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
   const meta = metadata ?? await loadExerciseMetadata(env);
   const index = buildCompactIndex(all, translations, meta);
   memoryIndex = index;
@@ -1496,7 +1489,7 @@ async function handleGetTranslateExercisesStatus(request, env) {
   const translations = await loadExerciseTranslations(env);
   let all = [];
   try {
-    all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+    all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
   } catch (e) {
     return errorResponse(`Dataset: ${e.message}`, 502, 'dataset_error');
   }
@@ -1525,7 +1518,7 @@ async function handleRunTranslateExercises(request, env) {
   const batchSize = WORKER_BATCH_SIZE;
 
   const translations = await loadExerciseTranslations(env);
-  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
   const pending = listPendingExercises(all, translations, { force });
   const batches = chunkBatches(pending, batchSize).slice(0, maxBatches);
 
@@ -1562,7 +1555,7 @@ async function handleGetClassifyExercisesStatus(request, env) {
   const metadata = await loadExerciseMetadata(env);
   let all = [];
   try {
-    all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+    all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
   } catch (e) {
     return errorResponse(`Dataset: ${e.message}`, 502, 'dataset_error');
   }
@@ -1591,7 +1584,7 @@ async function handleRunClassifyExercises(request, env) {
 
   const metadata = await loadExerciseMetadata(env);
   const translations = await loadExerciseTranslations(env);
-  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined);
+  const all = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
   const pending = listPendingClassifications(all, metadata, { force });
   const batches = chunkBatches(pending, WORKER_CLASSIFY_BATCH_SIZE).slice(0, maxBatches);
 
@@ -2243,7 +2236,7 @@ async function loadKvExerciseTranslations(env) {
 
 async function loadExerciseCatalogContext(env) {
   const [all, bundledMeta, kvMetaRaw, bundledTr, kvTr] = await Promise.all([
-    fetchExerciseDataset(env.EXERCISE_DATASET_URL || undefined),
+    fetchExerciseDataset(env.EXERCISE_DATASET_URL || null),
     loadBundledMetadata(),
     loadKvExerciseMetadata(env),
     loadBundledTranslations(),

@@ -35,7 +35,7 @@ test('localizeExerciseDisplayName: полови варианти → неутр�
 });
 
 test('filterExercises: без дубликати по пол (с неутрален двойник) в каталога', async () => {
-  const raw = await (await fetch('https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/data/exercises.json')).json();
+  const raw = await (await import('../exercise-translate-batch.js')).fetchExerciseDataset();
   const meta = (await import('../data/exercise-metadata.json', { with: { type: 'json' } })).default;
   const index = buildCompactIndex(raw, {}, meta);
   const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Начинаещ' });
