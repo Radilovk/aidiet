@@ -427,6 +427,7 @@ const NAME_MODIFIERS = [
 /** @type {[RegExp, string][]} */
 const PRIORITY_BASES = [
   [/\bstretch\w*\b/, 'Разтягане'], [/\bcossack\b/, 'Казашки клек'],
+  [/^quads$/, 'Клек със собствено тегло'], [/\bhalf knee bends\b/, 'Полуклек'], [/\bjack jump\b/, 'Джъмпинг джак'],
   [/\bwrist curl\b|\bwrist roll\w*\b/, 'Сгъване на китки'], [/\breverse curl\b/, 'Обратно сгъване за предмишници'],
   [/\bfinger curls?\b/, 'Сгъване на пръстите'], [/\bhandstand push/, 'Лицева опора в стойка на ръце'], [/\bhandstand\b/, 'Стойка на ръце'],
   [/\bmuscle ?up\b/, 'Мускул ъп'], [/\bdips?\b/, 'Кофички'], [/\bchin\b(?! up)|\bchin ups?\b/, 'Набиране с обратен хват'],

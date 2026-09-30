@@ -55,9 +55,10 @@ test('needsClassification: стар heuristicOnly запис е pending', () => 
   assert.equal(needsClassification(ex, { '1': { diff: 2, heuristicOnly: true, aiClassified: true } }), true);
 });
 
-test('metadataForExercise: gender variant excluded', () => {
+test('metadataForExercise: изключва само дубликат по пол с неутрален двойник', () => {
   const store = { '1': { diff: 1, gf: 70, gm: 70, aiClassified: true, efpVersion: 2, flags: [] } };
-  const m = metadataForExercise({ id: '1', name: 'push-up (male)', equipment: 'body weight', target: 'pectorals' }, store);
-  assert.equal(m.excluded, true);
-  assert.ok(m.flags.includes('gender_variant'));
+  const dup = metadataForExercise({ id: '1', name: 'twisted leg raise (female)', equipment: 'body weight', target: 'abs' }, store);
+  assert.equal(dup.excluded, true);
+  const unique = metadataForExercise({ id: '1', name: 'kneeling push-up (male)', equipment: 'body weight', target: 'pectorals' }, store);
+  assert.ok(!unique.excluded, 'уникално упражнение, (male) е само полът на модела');
 });

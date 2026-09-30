@@ -88,7 +88,7 @@ import {
   searchExerciseIndex,
 } from './exercise-metadata.js';
 import { passesGearFilter, passesBeginnerSafety } from './exercise-tags.js';
-import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import { isGenderDuplicateExerciseName } from './exercise-name-bg.js';
 import {
   buildCatalogFromIndex,
   buildCatalogRecord,
@@ -296,7 +296,7 @@ export function matchExercise(index, {
   const bodyHint = normalizeText(bodyPart);
 
   const passesFilters = (entry) =>
-    !isGenderSpecificExerciseName(entry?.name)
+    !isGenderDuplicateExerciseName(entry?.name)
     && passesEquipment(entry, allowedEquipment)
     && passesApparatusFilter(entry, pickedApparatus)
     && passesGearFilter(entry, allowedGear)

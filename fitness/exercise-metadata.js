@@ -13,7 +13,7 @@ import {
   passesBeginnerSafety,
   passesGearFilter,
 } from './exercise-tags.js';
-import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import { isGenderDuplicateExerciseName } from './exercise-name-bg.js';
 import { isCuratedEfpRecord, EFP_VERSION } from './exercise-efp-rubric.js';
 import { passesConstraintExclusions } from './exercise-constraints.js';
 
@@ -85,7 +85,7 @@ export function metadataForExercise(raw, store = {}) {
   if (saved?.ruleClassified === true && isMetadataOverride(saved) && !saved.manual && !saved.manualEdit) {
     // EFP v3 е вътрешно консистентен — без допълнителни евристични корекции на flags/diff
     const traits = inferExerciseTraits(raw?.name, raw?.equipment);
-    const excluded = Boolean(saved.excluded) || isGenderSpecificExerciseName(raw?.name);
+    const excluded = Boolean(saved.excluded) || isGenderDuplicateExerciseName(raw?.name);
     const flags = new Set(saved.flags || []);
     if (excluded) flags.add('excluded');
     return {
@@ -117,7 +117,7 @@ export function metadataForExercise(raw, store = {}) {
     meta.excluded = true;
     meta.flags = [...new Set([...(meta.flags || []), 'excluded', ...(seed.flags?.includes('unclassified') ? ['unclassified'] : [])])];
   }
-  if (isGenderSpecificExerciseName(raw?.name)) {
+  if (isGenderDuplicateExerciseName(raw?.name)) {
     meta.excluded = true;
     meta.flags = [...new Set([...(meta.flags || []), 'excluded', 'gender_variant'])];
   }
@@ -456,7 +456,7 @@ export function filterExercises(index, profile, allowedEquipment = null, modalit
     && !(e.flags || []).includes('unclassified')
     && fitsExerciseProfile(e, profile)
     && passesBeginnerSafety(e, profile)
-    && !isGenderSpecificExerciseName(e.name)
+    && !isGenderDuplicateExerciseName(e.name)
     && passesEquipment(e, allowedEquipment)
     && passesGearFilter(e, allowedGear)
     && passesApparatusFilter(e, pickedApparatus)

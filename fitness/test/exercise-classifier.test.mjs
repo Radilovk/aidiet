@@ -51,8 +51,11 @@ test('classifier: флагове без противоречия', () => {
   assert.ok(!bench.gear.includes('pull_bar'));
 
   const male = c('kneeling push-up (male)', 'body weight', 'pectorals');
-  assert.equal(male.excluded, true);
-  assert.ok(male.flags.includes('excluded'));
+  assert.equal(male.excluded, false, 'уникално упражнение');
+  assert.ok(male.flags.includes('gender_variant'));
+  const dup = c('twisted leg raise (female)', 'body weight', 'abs');
+  assert.equal(dup.excluded, true);
+  assert.equal(c('quads', 'body weight', 'quads').pattern, 'squat');
 });
 
 test('classifier: gf/gm от модела', () => {

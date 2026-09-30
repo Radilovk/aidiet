@@ -495,11 +495,13 @@ const STAPLES = new Set([
   'bodyweight incline side plank', 'hyperextension', 'lever back extension', 'band pull through', 'cable pull through (with rope)',
   'smith squat', 'dumbbell squat', 'band bench press', 'resistance band seated chest press', 'band one arm standing low row',
   'resistance band seated straight back row', 'band close-grip pulldown', 'glute bridge march', 'single leg bridge with outstretched leg',
+  'quads', 'half knee bends (male)', 'forward lunge (male)', 'jack jump (male)', 'star jump (male)', 'chest tap push-up (male)',
+  'glute bridge two legs on bench (male)', 'resistance band hip thrusts on knees (female)', 'barbell glute bridge two legs on bench (male)',
   'dumbbell incline row', 'kettlebell one arm row', 'dumbbell goblet squat', 'squat to overhead reach', 'bodyweight standing row',
 ]);
 
 /** Имена в dataset-а, които не са ясни упражнения или са дубли/демо варианти. */
-const ODD_NAMES = /^(quads|elevator|cocoons|bottoms up|butt ups|body up|flag|standing calves|wind sprints|swing 360|quick feet v 2|left hook boxing|push and pull bodyweight|push to run|hands bike|isometric wipers|dumbbell iron cross|dumbbell incline raise|dumbbell raise|dumbbell lying femoral|march sit wall|kick out sit|spell caster|sledge hammer|tire flip|london bridge|hug keens to chest)$/;
+const ODD_NAMES = /^(elevator|cocoons|bottoms up|butt ups|body up|flag|standing calves|wind sprints|swing 360|quick feet v 2|left hook boxing|push and pull bodyweight|push to run|hands bike|isometric wipers|dumbbell iron cross|dumbbell incline raise|dumbbell raise|dumbbell lying femoral|march sit wall|kick out sit|spell caster|sledge hammer|tire flip|london bridge|hug keens to chest)$/;
 
 /** Колкото по-обичайно/чисто е името, толкова по-добре (dataset-ът има много екзотични варианти). */
 function oddity(entry) {

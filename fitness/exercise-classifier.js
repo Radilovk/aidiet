@@ -16,7 +16,7 @@
  */
 import { normalizeText } from './normalize.js';
 import { inferRequiredGear, isTrueBodyweightExercise, resolveEffectiveEquipNorm } from './exercise-tags.js';
-import { isGenderSpecificExerciseName } from './exercise-name-bg.js';
+import { isGenderSpecificExerciseName, isGenderDuplicateExerciseName } from './exercise-name-bg.js';
 
 export const CLASSIFIER_VERSION = 3;
 
@@ -86,7 +86,7 @@ const R = {
   stretch: /\b(stretch|stretching|mobility|yoga|pose|foam roll|roller|self massage|circles?|swings? stretch|cat cow|child s? pose|cobra|sphinx|neck side|rotation of shoulders|arm circles|ankle circles|hip circles|wrist circles|knee circles|wall slide|dislocat|thread the needle|world s greatest|world greatest|inchworm|upward facing dog|downward dog|one arm against wall|hug keens|hug knees|knees to chest|pelvic tilt)\b/,
   rollerEq: /^roller$/,
   cardioMachine: /\b(elliptical|stationary bike|stepmill|skierg|ergometer|treadmill|bike)\b/,
-  cardio: /\b(battling ropes?|boxing|run|running|jog|jogging|sprint|marching in place|high knee|butt kick|jumping jacks?|jack jump|star jump|astride jumps?|scissor jumps?|jump rope|skipping|mountain climber|burpee|shadow box|punch|walking high|wheel run|cycle cross|bear crawl|crab walk|frog jump|half knee bends|stair)\b/,
+  cardio: /\b(battling ropes?|boxing|run|running|jog|jogging|sprint|marching in place|high knee|butt kick|jumping jacks?|jack jump|star jump|astride jumps?|scissor jumps?|jump rope|skipping|mountain climber|burpee|shadow box|punch|walking high|wheel run|cycle cross|bear crawl|crab walk|frog jump|stair)\b/,
   plyo: /\b(jump|jumps|jumping|hop|hops|hopping|bound|bounding|clap|clapping|plyo|plyometric|depth|drop push|explosive|tuck jump|box jump|skater|split jump|lunge jump|power skip|throw|slam|toss)\b/,
   highImpactPlyo: /\b(depth jump|drop jump|drop push|clap|clapping|tuck jump|box jump|burpee|one leg hop|single leg hop|split jump|lunge with jump|jump lunge|plyo push|explosive push|broad jump|180)\b/,
   olympic: /\b(clean|snatch|jerk|push press|thruster|high pull|muscle snatch|hang|tire flip)\b/,
@@ -189,6 +189,7 @@ export function detectPattern(raw) {
   // Плиометрия преди клек/напад: jump squat е плиометрия, не клек
   const throwOnly = /\b(throw|toss|slam)\b/.test(n) && !/\b(jump|hop|bound|clap)\b/.test(n);
   if (has(R.plyo, n) && !/\bjump rope\b/.test(n) && (!throwOnly || /medicine ball/.test(eq))) return { pattern: 'plyo', reason: 'name:jump/hop/clap/throw' };
+  if (/^quads$|\bknee bends\b/.test(n)) return { pattern: 'squat', reason: 'name:bodyweight squat (dataset label)' };
   if (has(R.lunge, n) && !/\b(burpee|mountain climber)\b/.test(n)) return { pattern: 'lunge', reason: 'name:lunge/split squat/step up' };
   if (/\bglute bridge\b/.test(n) && !/\bmountain climber\b/.test(n)) return { pattern: 'glute', reason: 'name:glute bridge' };
   if (/\bmedicine ball\b/.test(eq) && /\b(push|release|pass)\b/.test(n)) return { pattern: 'plyo', reason: 'name:medicine ball power' };
@@ -453,7 +454,9 @@ export function classifyExercise(raw) {
   if (diff === 3) flags.add('advanced');
 
   const genderVariant = isGenderSpecificExerciseName(raw?.name);
-  if (genderVariant) { flags.add('gender_variant'); flags.add('excluded'); }
+  const genderDuplicate = isGenderDuplicateExerciseName(raw?.name);
+  if (genderVariant) flags.add('gender_variant');
+  if (genderDuplicate) { flags.add('duplicate'); flags.add('excluded'); }
 
   return {
     diff,
@@ -462,7 +465,7 @@ export function classifyExercise(raw) {
     flags: [...flags],
     gear,
     effectiveEquipNorm,
-    excluded: genderVariant,
+    excluded: genderDuplicate,
     pattern,
     category,
     mechanic,
@@ -482,7 +485,6 @@ export function findFlagContradictions(meta = {}) {
   if (f.has('advanced') && meta.diff !== 3) out.push('advanced при diff≠3');
   if (f.has('home_friendly') && !f.has('true_bodyweight')) out.push('home_friendly без true_bodyweight');
   if (f.has('true_bodyweight') && (f.has('pull_bar') || f.has('rings') || f.has('suspension') || f.has('parallel_bars'))) out.push('true_bodyweight с уред');
-  if (f.has('gender_variant') && !meta.excluded) out.push('gender_variant не е изключен');
   if (f.has('plyometric') && f.has('beginner_safe')) out.push('plyometric+beginner_safe');
   return out;
 }

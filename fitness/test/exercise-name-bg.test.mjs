@@ -4,6 +4,7 @@ import {
   isGenderSpecificExerciseName,
   neutralExerciseName,
   exerciseNameLookupKey,
+  isGenderDuplicateExerciseName,
 } from '../exercise-name-bg.js';
 import { localizeExerciseDisplayName } from '../exercise-labels-bg.js';
 import { buildCompactIndex } from '../worker.js';
@@ -33,13 +34,13 @@ test('localizeExerciseDisplayName: полови варианти → неутр�
   assert.ok(!/male|push-up/i.test(localizeExerciseDisplayName('chest tap push-up (male)')));
 });
 
-test('filterExercises: без (male)/(female) в каталога', async () => {
+test('filterExercises: без дубликати по пол (с неутрален двойник) в каталога', async () => {
   const raw = await (await fetch('https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/data/exercises.json')).json();
   const meta = (await import('../data/exercise-metadata.json', { with: { type: 'json' } })).default;
   const index = buildCompactIndex(raw, {}, meta);
   const profile = exerciseProfileFromAnswers({ gender: 'Жена', experience: 'Начинаещ' });
   const gear = resolveAllowedGear(['Собствено тегло']);
   const filtered = filterExercises(index, profile, allowedEquipmentSet(['Собствено тегло']), null, null, gear);
-  const gender = filtered.filter((e) => isGenderSpecificExerciseName(e.name));
+  const gender = filtered.filter((e) => isGenderDuplicateExerciseName(e.name));
   assert.equal(gender.length, 0);
 });
