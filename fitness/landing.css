@@ -523,4 +523,16 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .xv-anim .xv-f { animation: none; }
 }
+/* XEMS начин (селекторът задава 1/2/3 кадъра): 2 кадъра = работна поза ↔ поза в покой с плавно преливане,
+   1 кадър = неподвижно; неоново сияние в цвета на клиента (циан мъж / магента жена). */
+.xv-stage { filter: drop-shadow(0 0 2px var(--xv-glow, transparent)) drop-shadow(0 0 9px var(--xv-glow, transparent)); }
+.xv-n2.xv-anim .xv-f1 { animation: xv2-f1 2.4s infinite ease-in-out; }
+.xv-n2.xv-anim .xv-f2 { animation: xv2-f2 2.4s infinite ease-in-out; }
+@keyframes xv2-f1 { 0%, 38% { opacity: 1; } 50%, 88% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes xv2-f2 { 0%, 38% { opacity: 0; } 50%, 88% { opacity: 1; } 100% { opacity: 0; } }
+.xv-n1 .xv-f1 { animation: none !important; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .xv-n2.xv-anim .xv-f { animation: none; }
+}
+
 .preview-thumb.xv { width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; }

@@ -502,6 +502,65 @@ export async function loadBundledTranslations() {
   return bundledTranslations;
 }
 
+// ============================================================================
+// XEMS селектор: кои упражнения ползва KA fitness и с кои кадри (същата страница като за таблетите,
+// превключвател „KA fitness“; https://license.biocode-bg.com/admin/exercises). Ако не е достъпен —
+// целият индекс, както преди.
+// ============================================================================
+
+const XEMS_SELECTION_URL = 'https://license.biocode-bg.com/v1/exercises/selection?app=ka';
+const XEMS_SELECTION_TTL_MS = 5 * 60 * 1000;
+let xemsSelection = { at: 0, map: null };
+let xemsApplied = { sel: null, base: null, only: null, frames: null };
+
+/** id (wg-<id>) → { frames, zone } от селектора; null ако не е достъпен (или е изключен с XEMS_SELECTION=off). */
+export async function loadXemsSelection(env) {
+  if (env?.XEMS_SELECTION === 'off') return null;
+  if (Date.now() - xemsSelection.at < XEMS_SELECTION_TTL_MS) return xemsSelection.map;
+  try {
+    const r = await fetch(env?.XEMS_SELECTION_URL || XEMS_SELECTION_URL, { cf: { cacheTtl: 300 } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const map = new Map();
+    for (const it of j.items || []) {
+      if (it && it.id) map.set('wg-' + it.id, { frames: Array.isArray(it.frames) ? it.frames : [], zone: it.zone || '' });
+    }
+    xemsSelection = { at: Date.now(), map: map.size ? map : null };
+  } catch (e) {
+    console.error('XEMS selection:', e.message);
+    xemsSelection = { at: Date.now(), map: xemsSelection.map };     // старата остава до следващия опит
+  }
+  return xemsSelection.map;
+}
+
+/**
+ * Индексът според селектора. only=true (нов план, търсене): само избраните; иначе (показване на стар план)
+ * всички, но избраните с кадрите от селектора (избор 3/2/1, изправени линии).
+ */
+export function applyXemsSelection(index, sel, { only = false } = {}) {
+  if (!index || !sel) return index;
+  const key = only ? 'only' : 'frames';
+  if (xemsApplied.sel === sel && xemsApplied.base === index && xemsApplied[key]) return xemsApplied[key];
+  const out = [];
+  for (const e of index) {
+    const it = sel.get(e.id);
+    if (!it) {
+      if (!only) out.push(e);
+      continue;
+    }
+    out.push(it.frames.length ? { ...e, frames: it.frames } : e);
+  }
+  if (xemsApplied.sel !== sel || xemsApplied.base !== index) xemsApplied = { sel, base: index, only: null, frames: null };
+  xemsApplied[key] = out.length ? out : index;
+  return xemsApplied[key];
+}
+
+/** Индексът за нов план / търсене (само избраните) или за показване (кадрите от селектора). */
+async function loadSelectedIndex(env, ctx, opts) {
+  const [index, sel] = await Promise.all([loadExerciseIndex(env, ctx), loadXemsSelection(env)]);
+  return applyXemsSelection(index, sel, opts);
+}
+
 /**
  * Зарежда индекса: памет → KV → отдалечен fetch (еднократно).
  * Ако всичко пропадне, връща null — планът пак се генерира, само без медия.
@@ -1078,7 +1137,7 @@ async function executePlanGeneration(env, ctx, {
   exerciseProfile = null, constraints = null, programSpec = null, dslSpec = null,
   answers = null, trainerBrief = false,
 }) {
-  const indexPromise = loadExerciseIndex(env, ctx);
+  const indexPromise = loadSelectedIndex(env, ctx, { only: true });   // само избраните в XEMS селектора
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
 
   // Детерминистичен генератор (program-engine.js) — когато има само въпросник, без схема/бриф от треньор.
@@ -1297,7 +1356,7 @@ async function handleGetPlan(planId, env, ctx) {
   if (!record) return errorResponse('Планът не е намерен или е изтекъл', 404, 'not_found');
 
   let plan = record.plan;
-  const index = await loadExerciseIndex(env, ctx);
+  const index = await loadSelectedIndex(env, ctx, { only: false });
   if (index && plan) {
     const allowed = record.allowedEquipment ? new Set(record.allowedEquipment) : null;
     plan = enrichPlanWithExercises(JSON.parse(JSON.stringify(plan)), index, {
@@ -1391,7 +1450,7 @@ function numParam(url, key) {
  * Ползва се и от admin picker-а (редактор на клиентски програми).
  */
 async function handleExerciseSearch(url, env, ctx) {
-  const index = await loadExerciseIndex(env, ctx);
+  const index = await loadSelectedIndex(env, ctx, { only: true });
   if (!index) return errorResponse('Базата с упражнения не е налична', 503);
 
   const { total, results } = searchExerciseIndex(index, {
@@ -2064,7 +2123,7 @@ async function handleAdminGetClientProgramPlan(request, env, ctx, id) {
   const planRecord = await env.FITNESS_KV.get(`plan:${record.planId}`, { type: 'json' });
   if (!planRecord?.plan) return errorResponse('Планът не е намерен. Генерирай отново.', 404, 'not_found');
 
-  const index = await loadExerciseIndex(env, ctx);
+  const index = await loadSelectedIndex(env, ctx, { only: false });
   // Същото обогатяване като клиентския преглед — редакторът показва това, което вижда клиентът.
   const plan = enrichPlanForClientView(planRecord.plan, index, planRecord, env);
 
@@ -2125,7 +2184,7 @@ async function handleAdminUpdateClientProgramPlan(request, env, ctx, id) {
   record.planBriefStale = false;
   await saveClientProgram(env, record);
 
-  const index = await loadExerciseIndex(env, ctx);
+  const index = await loadSelectedIndex(env, ctx, { only: false });
   const displayPlan = enrichPlanForClientView(plan, index, planRecord, env);
   return jsonResponse({ success: true, plan: displayPlan, program: clientProgramPublicView(record) });
 }
@@ -2187,7 +2246,7 @@ async function handleAdminRestoreClientProgramPlan(request, env, ctx, id) {
   record.planBriefStale = false;
   await saveClientProgram(env, record);
 
-  const index = await loadExerciseIndex(env, ctx);
+  const index = await loadSelectedIndex(env, ctx, { only: false });
   const displayPlan = enrichPlanForClientView(restored.plan, index, restored, env);
   return jsonResponse({
     success: true,

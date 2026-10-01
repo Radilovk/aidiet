@@ -254,3 +254,22 @@ cd fitness && npm test    # node --test, без мрежа и без API клю�
 - `scripts/rule-classify-exercises.mjs` → класификация EFP v3
 
 Старите планове с GIF-ове (предишната база) продължават да се показват.
+
+---
+
+## XEMS селектор на упражненията (общ с XEMS таблетите)
+
+Кои упражнения ползва KA fitness и с кои кадри се решава на **същата страница** като за XEMS таблетите:
+https://license.biocode-bg.com/admin/exercises → превключвател **KA fitness** (своя отделна селекция; по
+подразбиране всички 302 са включени, докато не ги стесниш).
+
+- Worker-ът тегли `GET https://license.biocode-bg.com/v1/exercises/selection?app=ka` (публично, кеш 5 мин) →
+  `{ items: [{ id, zone, frames: [url…] }] }` (`loadXemsSelection`, `applyXemsSelection` в `worker.js`).
+- Нов план и търсене (`executePlanGeneration`, `/api/exercises/search`): **само избраните**. Показване на стар план:
+  всички, но избраните с кадрите от селектора. Недостъпен селектор → целият индекс, както преди.
+  `XEMS_SELECTION=off` (env) изключва връзката; `XEMS_SELECTION_URL` я пренасочва.
+- Кадрите: изборът 3 / 2 (крайните пози) / 1 (неподвижно) и изправените копия с еднаква дебелина на линиите
+  (ems: `branding/exercises/fixed`).
+- Изобразяване по XEMS начина (`exercise-visual.js`): цвят на клиента — циан мъж / магента жена (от въпросника),
+  неоново сияние, 2 кадъра = плавно преливане работна поза ↔ поза в покой, 1 кадър = неподвижно.
+- Тест: `test/xems-selection.test.mjs`.
