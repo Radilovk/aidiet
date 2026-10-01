@@ -3523,11 +3523,7 @@
             const PROFILE_KEY = 'xbody_xems_profile';
             const SENT_KEY = 'xbody_xems_profile_sent';
             const STUDIO_KEY = 'xbody_xems_studio';
-            const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // the card link does not change
-            const MISS_TTL_MS = 24 * 60 * 60 * 1000;   // no card yet: ask again only after a new appointment (or a day)
-            const MISS_UNKNOWN_TTL_MS = 10 * 60 * 1000; // no card and the appointments are not known
             const RECHECK_MS = 60 * 1000;              // never more than once a minute
-            const AROUND_MS = 4 * 60 * 60 * 1000;      // a training began this recently: look until its report is there
             const NEWS_MS = 3 * 24 * 60 * 60 * 1000;   // a report this fresh and not opened yet is shown as news
             const SEEN_KEY = 'xbody_progress_seen';
             const NUDGE_AWAY_MS = 30 * 60 * 1000;      // back in the app after this long = a new opening
@@ -3631,20 +3627,13 @@
                 try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch (e) { return null; }
             }
 
-            /* ask the server again? Around a training (it began ≤ 4 h ago) until the card carries it — the tablet
-               sends the report the moment the training is saved; otherwise a found link holds 7 days, a miss a day
-               (10 min when the appointments are not known: then a training cannot be seen coming) */
+            /* ask the server again? On every opening / return to the app, at most once a minute. The old rule (only
+               ≤ 4 h after an Acuity appointment, else the link held 7 days / a miss a day) missed every training
+               booked another way (tablet calendar, phone, walk-in): the new report showed up days later. One
+               indexed D1 read per opening — cheap. */
             function stale(cached, who) {
                 if (!cached || cached.who !== who) return true;
-                const now = Date.now();
-                const age = now - (cached.at || 0);
-                if (age < RECHECK_MS) return false;
-                const start = window.XBodyAppointments && window.XBodyAppointments.lastStart
-                    ? window.XBodyAppointments.lastStart() : -1;
-                if (start > 0 && now - start < AROUND_MS && !((cached.upd || 0) >= start)) return true;
-                if (start > (cached.at || 0)) return true;
-                if (cached.url) return age > CACHE_TTL_MS;
-                return age > (start < 0 ? MISS_UNKNOWN_TTL_MS : MISS_TTL_MS);
+                return Date.now() - (cached.at || 0) >= RECHECK_MS;
             }
 
             let inflight = null;
