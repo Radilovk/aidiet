@@ -3667,8 +3667,15 @@
                     cardUpd = cached.upd || 0;
                     return;
                 }
+                const st = studio();
+                if (!st) {
+                    cardUrl = null;
+                    cardUpd = 0;
+                    return;
+                }
                 try {
-                    const body = {};
+                    /* the studio's own cards only: the server never looks outside it */
+                    const body = { studio: st };
                     if (c.email) body.ek = await sha(c.email);
                     if (c.phone) body.pk = await sha(c.phone);
                     const res = await fetch(API + '/v1/card/find', {
