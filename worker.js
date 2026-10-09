@@ -26139,7 +26139,27 @@ function isExcludedByProtocol(entry, clinicalProtocolId) {
   if (!rule) return false;
   if (rule.excludeGroups?.includes(entry.group)) return true;
   const keys = protocolExcludedKeys(rule);
-  return keys.has(normalizeFoodKey(entry.nutritionKey || "")) || keys.has(normalizeFoodKey(entry.name || ""));
+  return [entry.nutritionKey, entry.name].some((v) => {
+    const key = normalizeFoodKey(v || "");
+    return key && (keys.has(key) || [...keys].some((k) => namesExcludedFood(key, k)));
+  });
+}
+var DIFFERENT_FOOD_BEFORE = {
+  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438": ["\u0441\u043B\u0430\u0434\u043A\u0438"],
+  "\u043C\u0430\u0441\u043B\u043E": ["\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E", "\u043C\u0430\u0441\u043B\u0438\u043D\u043E\u0432\u043E", "\u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0432\u043E"]
+};
+function namesExcludedFood(nameKey, excludedKey) {
+  if (!excludedKey || excludedKey.length < 3) return false;
+  const words = nameKey.split(" ").filter(Boolean);
+  const want = excludedKey.split(" ").filter(Boolean);
+  for (let i = 0; i + want.length <= words.length; i++) {
+    const hit = want.every((w, j) => j === want.length - 1 && w.length >= 4 ? words[i + j].startsWith(w) : words[i + j] === w);
+    if (!hit) continue;
+    const before = words[i - 1];
+    if (before && (DIFFERENT_FOOD_BEFORE[excludedKey] || []).includes(before)) continue;
+    return true;
+  }
+  return false;
 }
 function readyMealViolatesProtocol(entry, clinicalProtocolId) {
   if (!clinicalProtocolId || !entry || entry.group !== "ready_meal") return false;
