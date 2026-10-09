@@ -1,0 +1,858 @@
+{
+  "about": "Ястия като рецептурна структура: всяка част е обменна група с разрешени храни и диапазон в порции. Грамажите не са записани — идват от порциите, които хранителната схема дава на храненето. Части с минимум 0 отпадат, когато храненето няма такава порция или храната е изключена за клиента. fixed са вкусови съставки в грамове, които не се мащабират и отпадат, ако клиентът ги изключва.",
+  "seasons": {
+    "veg_tomato": ["summer", "autumn"],
+    "veg_cherry_tomato": ["summer", "autumn"],
+    "veg_cucumber": ["spring", "summer"],
+    "veg_pepper": ["summer", "autumn"],
+    "veg_zucchini": ["summer", "autumn"],
+    "veg_eggplant": ["summer", "autumn"],
+    "veg_lettuce": ["spring", "summer"],
+    "veg_asparagus": ["spring"],
+    "veg_spinach": ["spring", "autumn", "winter"],
+    "veg_cabbage": ["autumn", "winter"],
+    "veg_leek": ["autumn", "winter"],
+    "veg_pumpkin": ["autumn", "winter"],
+    "veg_beet": ["autumn", "winter"],
+    "veg_brussels": ["autumn", "winter"],
+    "fruit_strawberry": ["spring", "summer"],
+    "fruit_raspberry": ["summer"],
+    "fruit_blueberry": ["summer"],
+    "fruit_peach": ["summer"],
+    "fruit_watermelon": ["summer"],
+    "fruit_melon": ["summer"],
+    "fruit_grapes": ["autumn"],
+    "fruit_apple": ["autumn", "winter", "spring"],
+    "fruit_pear": ["autumn", "winter"],
+    "fruit_orange": ["winter", "spring"],
+    "fruit_mandarin": ["winter"],
+    "fruit_grapefruit": ["winter", "spring"],
+    "fruit_kiwi": ["winter", "spring"]
+  },
+  "dishes": [
+    { "id": "m_chicken_grill", "meals": ["main"], "category": "poultry", "name": "Пилешко филе на скара",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_breast"], "range": [3, 7] },
+        { "group": "STA", "options": ["eng_bulgur", "eng_rice_brown", "eng_potato", "eng_quinoa", "eng_sweet_potato", "eng_buckwheat", "eng_couscous"], "range": [0, 4], "with": true },
+        { "group": "VEG", "options": [["veg_broccoli"], ["veg_zucchini", "veg_pepper"], ["veg_green_beans"], ["veg_cauliflower"], ["veg_brussels"]], "range": [1, 2.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "fixed": [["cond_lemon_juice", 10]], "sides": ["salad", "bread"] },
+
+    { "id": "m_chicken_skewers", "meals": ["main"], "category": "poultry", "name": "Пилешки шишчета",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_breast"], "range": [3, 7] },
+        { "group": "VEG", "options": [["veg_pepper", "veg_zucchini"], ["veg_pepper", "veg_mushrooms"], ["veg_cherry_tomato", "veg_zucchini"]], "range": [1, 2.5], "with": true },
+        { "group": "STA", "options": ["eng_rice_brown", "eng_bulgur", "eng_potato", "eng_quinoa"], "range": [0, 4], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "sides": ["salad", "bread"] },
+
+    { "id": "m_chicken_thigh_oven", "meals": ["main"], "category": "poultry", "name": "Пилешко бутче на фурна",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_thigh"], "range": [3, 6] },
+        { "group": "STA", "options": ["eng_potato", "eng_sweet_potato"], "range": [0, 4], "with": true },
+        { "group": "VEG", "options": [["veg_carrot"], ["veg_pepper"], ["veg_zucchini"], ["veg_pumpkin"]], "range": [0.5, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1.5] }
+      ], "sides": ["salad", "bread"] },
+
+    { "id": "m_chicken_rice", "meals": ["main"], "category": "poultry", "name": "Пиле с ориз",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_thigh", "pro_chicken_breast"], "range": [3, 6] },
+        { "group": "STA", "options": ["eng_rice", "eng_rice_brown"], "range": [1.5, 4] },
+        { "group": "VEG", "options": [["veg_carrot", "veg_pepper"]], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 30]], "sides": ["salad", "yogurt"] },
+
+    { "id": "m_chicken_mushrooms", "meals": ["main"], "category": "poultry", "name": "Пилешко с гъби",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_breast"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_mushrooms"], ["veg_oyster_mushroom"]], "range": [1, 2] },
+        { "group": "STA", "options": ["eng_buckwheat", "eng_rice_brown", "eng_potato", "eng_pasta"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20]], "sides": ["salad", "bread"] },
+
+    { "id": "m_chicken_stew", "meals": ["main"], "category": "poultry", "name": "Пилешка яхния",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_breast", "pro_chicken_thigh"], "range": [3, 6] },
+        { "group": "STA", "options": ["eng_potato"], "range": [1, 3.5], "with": true },
+        { "group": "VEG", "options": [["veg_carrot", "veg_pepper"], ["veg_carrot", "veg_green_beans"]], "range": [1, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 30], ["cond_tomato_paste", 15]], "sides": ["salad", "bread"] },
+
+    { "id": "m_chicken_soup", "meals": ["main"], "category": "poultry", "name": "Пилешка супа",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_breast"], "range": [2, 4.5] },
+        { "group": "VEG", "options": [["veg_carrot", "veg_celery"], ["veg_carrot", "veg_zucchini"]], "range": [1, 2] },
+        { "group": "STA", "options": ["eng_rice", "eng_potato", "eng_pasta"], "range": [0, 2] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "fixed": [["cond_lemon_juice", 10]], "sides": ["bread", "salad", "cheese"] },
+
+    { "id": "m_turkey_veg", "meals": ["main"], "category": "poultry", "name": "Пуешко филе със задушени зеленчуци",
+      "parts": [
+        { "group": "PRO", "options": ["pro_turkey"], "range": [3, 7] },
+        { "group": "VEG", "options": [["veg_zucchini", "veg_carrot"], ["veg_broccoli", "veg_cauliflower"], ["veg_green_beans", "veg_pepper"], ["veg_brussels", "veg_carrot"]], "range": [1.5, 3] },
+        { "group": "STA", "options": ["eng_quinoa", "eng_rice_brown", "eng_potato", "eng_sweet_potato", "eng_millet"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "sides": ["salad", "bread"] },
+
+    { "id": "m_chicken_salad", "meals": ["main"], "category": "poultry", "name": "Салата с пилешко филе",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_breast"], "range": [2.5, 5] },
+        { "group": "VEG", "options": [["veg_lettuce", "veg_cucumber", "veg_cherry_tomato"], ["veg_arugula", "veg_cherry_tomato"], ["veg_lettuce", "veg_pepper", "veg_cucumber"]], "range": [1.5, 3], "with": true },
+        { "group": "FAT", "options": ["fat_oil", "fat_avocado", "fat_olives"], "range": [0.5, 3] },
+        { "group": "STA", "options": ["eng_corn", "eng_quinoa"], "range": [0, 2], "with": true }
+      ], "sides": ["bread"] },
+
+    { "id": "m_chicken_wrap", "meals": ["main"], "category": "poultry", "name": "Тортила с пилешко и зеленчуци",
+      "parts": [
+        { "group": "STA", "options": ["eng_tortilla"], "range": [1, 3] },
+        { "group": "PRO", "options": ["pro_chicken_breast"], "range": [2, 4.5] },
+        { "group": "VEG", "options": [["veg_lettuce", "veg_tomato", "veg_cucumber"], ["veg_pepper", "veg_lettuce"]], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_avocado"], "range": [0, 1.5] }
+      ], "fixed": [["dairy_yogurt", 30]], "sides": ["salad"] },
+
+    { "id": "m_chicken_curry", "meals": ["main"], "category": "poultry", "name": "Пилешко къри",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_breast"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_pepper", "veg_zucchini"], ["veg_cauliflower", "veg_spinach"]], "range": [1, 2], "with": true },
+        { "group": "STA", "options": ["eng_rice", "eng_rice_brown"], "range": [0, 4], "with": true },
+        { "group": "FAT", "options": ["cond_coconut_milk"], "range": [1, 3] }
+      ], "fixed": [["veg_onion", 20], ["cond_turmeric", 2], ["cond_ginger", 3]], "sides": ["salad"] },
+
+    { "id": "m_chicken_bulgur", "meals": ["main"], "category": "poultry", "name": "Пиле с булгур и зеленчуци",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_breast", "pro_chicken_thigh"], "range": [3, 6] },
+        { "group": "STA", "options": ["eng_bulgur"], "range": [1.5, 4] },
+        { "group": "VEG", "options": [["veg_pepper", "veg_tomato"], ["veg_zucchini", "veg_carrot"]], "range": [1, 2] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "sides": ["salad", "yogurt"] },
+
+    { "id": "m_meatballs", "meals": ["main"], "category": "red", "name": "Кюфтета на скара",
+      "parts": [
+        { "group": "PRO", "options": ["pro_ground_meat"], "range": [2.5, 5] },
+        { "group": "STA", "options": ["eng_potato", "eng_bulgur", "eng_rice"], "range": [0, 3.5], "with": true },
+        { "group": "VEG", "options": [["veg_tomato", "veg_cucumber"], ["veg_cabbage", "veg_carrot"], ["veg_pepper"]], "range": [1, 2.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "fixed": [["veg_onion", 15]], "sides": ["bread", "salad"] },
+
+    { "id": "m_beef_stew", "meals": ["main"], "category": "red", "name": "Задушено телешко",
+      "parts": [
+        { "group": "PRO", "options": ["pro_beef_lean"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_carrot", "veg_pepper"], ["veg_green_beans", "veg_carrot"], ["veg_cabbage", "veg_carrot"]], "range": [1, 2.5], "with": true },
+        { "group": "STA", "options": ["eng_potato", "eng_rice", "eng_bulgur"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 30], ["cond_tomato_paste", 15]], "sides": ["salad", "bread"] },
+
+    { "id": "m_beef_steak", "meals": ["main"], "category": "red", "name": "Телешки стек",
+      "parts": [
+        { "group": "PRO", "options": ["pro_beef_lean"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_asparagus"], ["veg_broccoli"], ["veg_green_beans"], ["veg_zucchini", "veg_pepper"], ["veg_mushrooms"]], "range": [1, 2.5], "with": true },
+        { "group": "STA", "options": ["eng_sweet_potato", "eng_potato", "eng_quinoa"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "sides": ["salad", "bread"] },
+
+    { "id": "m_beef_skewers", "meals": ["main"], "category": "red", "name": "Телешки шишчета",
+      "parts": [
+        { "group": "PRO", "options": ["pro_beef_lean"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_pepper", "veg_cherry_tomato"], ["veg_pepper", "veg_zucchini"]], "range": [1, 2], "with": true },
+        { "group": "STA", "options": ["eng_bulgur", "eng_rice", "eng_potato"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "sides": ["salad", "bread"] },
+
+    { "id": "m_guvech_beef", "meals": ["main"], "category": "red", "name": "Гювеч с телешко",
+      "parts": [
+        { "group": "PRO", "options": ["pro_beef_lean"], "range": [2.5, 5] },
+        { "group": "VEG", "options": [["veg_eggplant", "veg_pepper", "veg_tomato"], ["veg_zucchini", "veg_pepper", "veg_tomato"], ["veg_green_beans", "veg_pepper", "veg_tomato"]], "range": [1.5, 3] },
+        { "group": "STA", "options": ["eng_potato"], "range": [0, 2.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20]], "sides": ["bread", "salad"] },
+
+    { "id": "m_pork_cabbage", "meals": ["main"], "category": "red", "name": "Свинско със зеле",
+      "parts": [
+        { "group": "PRO", "options": ["pro_pork_lean"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_cabbage"]], "range": [1.5, 3] },
+        { "group": "STA", "options": ["eng_potato"], "range": [0, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1.5] }
+      ], "fixed": [["veg_onion", 20], ["cond_tomato_paste", 10]], "sides": ["bread"] },
+
+    { "id": "m_pork_rice", "meals": ["main"], "category": "red", "name": "Свинско с ориз",
+      "parts": [
+        { "group": "PRO", "options": ["pro_pork_lean"], "range": [3, 6] },
+        { "group": "STA", "options": ["eng_rice", "eng_rice_brown"], "range": [1.5, 4] },
+        { "group": "VEG", "options": [["veg_pepper", "veg_carrot"]], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20]], "sides": ["salad"] },
+
+    { "id": "m_kavarma", "meals": ["main"], "category": "red", "name": "Кавърма",
+      "parts": [
+        { "group": "PRO", "options": ["pro_pork_lean", "pro_chicken_breast"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_pepper", "veg_mushrooms"], ["veg_pepper", "veg_tomato"]], "range": [1, 2.5] },
+        { "group": "STA", "options": ["eng_potato", "eng_rice"], "range": [0, 2.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 30]], "sides": ["bread", "salad"] },
+
+    { "id": "m_pork_steak", "meals": ["main"], "category": "red", "name": "Свинско бон филе на скара",
+      "parts": [
+        { "group": "PRO", "options": ["pro_pork_lean"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_green_beans"], ["veg_pepper"], ["veg_cabbage", "veg_carrot"], ["veg_brussels"]], "range": [1, 2.5], "with": true },
+        { "group": "STA", "options": ["eng_potato", "eng_sweet_potato"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "sides": ["salad", "bread"] },
+
+    { "id": "m_moussaka", "meals": ["main"], "category": "red", "name": "Мусака",
+      "parts": [
+        { "group": "PRO", "options": ["pro_ground_meat"], "range": [2, 4.5] },
+        { "group": "STA", "options": ["eng_potato"], "range": [2, 4] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "fixed": [["veg_onion", 20], ["dairy_yogurt", 50], ["pro_eggs", 25]], "sides": ["salad"] },
+
+    { "id": "m_stuffed_peppers_meat", "meals": ["main"], "category": "red", "name": "Пълнени чушки с кайма и ориз",
+      "parts": [
+        { "group": "VEG", "options": [["veg_pepper"]], "range": [1.5, 3] },
+        { "group": "PRO", "options": ["pro_ground_meat"], "range": [2, 4.5] },
+        { "group": "STA", "options": ["eng_rice"], "range": [0.5, 2.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "fixed": [["veg_onion", 20], ["cond_tomato_paste", 15]], "sides": ["yogurt", "bread"] },
+
+    { "id": "m_sarmi", "meals": ["main"], "category": "red", "name": "Сарми със зеле",
+      "parts": [
+        { "group": "VEG", "options": [["veg_cabbage"]], "range": [1, 2.5] },
+        { "group": "PRO", "options": ["pro_ground_meat"], "range": [2, 4.5] },
+        { "group": "STA", "options": ["eng_rice"], "range": [0.5, 2.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "fixed": [["veg_onion", 20]], "sides": ["yogurt", "bread"] },
+
+    { "id": "m_bolognese", "meals": ["main"], "category": "red", "name": "Паста болонезе",
+      "parts": [
+        { "group": "STA", "options": ["eng_pasta"], "range": [2, 4] },
+        { "group": "PRO", "options": ["pro_ground_meat", "pro_beef_lean"], "range": [2, 4.5] },
+        { "group": "VEG", "options": [["veg_tomato", "veg_carrot"]], "range": [1, 2] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "fixed": [["cond_tomato_paste", 20], ["veg_onion", 20], ["dairy_parmesan", 10]], "sides": ["salad"] },
+
+    { "id": "m_lamb_oven", "meals": ["main"], "category": "red", "name": "Агнешко на фурна",
+      "parts": [
+        { "group": "PRO", "options": ["pro_lamb"], "range": [2.5, 5] },
+        { "group": "STA", "options": ["eng_potato"], "range": [0, 3], "with": true },
+        { "group": "VEG", "options": [["veg_spinach"], ["veg_green_beans"], ["veg_lettuce", "veg_cucumber"]], "range": [1, 2], "with": true }
+      ], "seasonsOnly": ["spring"], "sides": ["salad", "bread"] },
+
+    { "id": "m_fish_oven", "meals": ["main"], "category": "fish", "name": "{PRO} на фурна",
+      "parts": [
+        { "group": "PRO", "options": ["pro_salmon", "pro_trout", "pro_mackerel", "pro_sea_bass", "pro_hake", "pro_cod"], "range": [3, 6.5] },
+        { "group": "STA", "options": ["eng_potato", "eng_sweet_potato", "eng_rice_brown", "eng_quinoa", "eng_bulgur"], "range": [0, 4], "with": true },
+        { "group": "VEG", "options": [["veg_broccoli"], ["veg_spinach"], ["veg_zucchini"], ["veg_green_beans"], ["veg_asparagus"], ["veg_cauliflower"]], "range": [1, 2.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1.5] }
+      ], "fixed": [["cond_lemon_juice", 10]], "sides": ["salad", "bread"] },
+
+    { "id": "m_fish_grill", "meals": ["main"], "category": "fish", "name": "{PRO} на скара",
+      "parts": [
+        { "group": "PRO", "options": ["pro_sea_bass", "pro_trout", "pro_mackerel", "pro_salmon", "pro_tilapia"], "range": [3, 6.5] },
+        { "group": "VEG", "options": [["veg_zucchini", "veg_pepper"], ["veg_eggplant", "veg_pepper"], ["veg_cherry_tomato", "veg_arugula"]], "range": [1, 2.5], "with": true },
+        { "group": "STA", "options": ["eng_potato", "eng_rice", "eng_bulgur"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1.5] }
+      ], "fixed": [["cond_lemon_juice", 10]], "sides": ["salad", "bread"] },
+
+    { "id": "m_fish_plakia", "meals": ["main"], "category": "fish", "name": "Риба плакия",
+      "parts": [
+        { "group": "PRO", "options": ["pro_hake", "pro_cod", "pro_sea_bass", "pro_tilapia"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_tomato", "veg_pepper"]], "range": [1, 2] },
+        { "group": "STA", "options": ["eng_potato"], "range": [0, 3], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "fixed": [["veg_onion", 30], ["cond_tomato_paste", 10]], "sides": ["bread", "salad"] },
+
+    { "id": "m_fish_soup", "meals": ["main"], "category": "fish", "name": "Рибена чорба",
+      "parts": [
+        { "group": "PRO", "options": ["pro_hake", "pro_cod", "pro_tilapia"], "range": [2, 4.5] },
+        { "group": "VEG", "options": [["veg_carrot", "veg_celery", "veg_pepper"]], "range": [1, 2] },
+        { "group": "STA", "options": ["eng_potato", "eng_rice"], "range": [0, 2] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "fixed": [["veg_onion", 20], ["cond_lemon_juice", 10]], "sides": ["bread", "salad"] },
+
+    { "id": "m_tuna_salad", "meals": ["main"], "category": "fish", "name": "Салата с риба тон",
+      "parts": [
+        { "group": "PRO", "options": ["pro_tuna"], "range": [2, 4.5] },
+        { "group": "VEG", "options": [["veg_lettuce", "veg_cucumber", "veg_cherry_tomato"], ["veg_arugula", "veg_cherry_tomato", "veg_cucumber"]], "range": [1.5, 3] },
+        { "group": "PRO", "options": ["pro_eggs"], "range": [0, 2], "with": true },
+        { "group": "STA", "options": ["eng_corn", "eng_potato"], "range": [0, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil", "fat_olives", "fat_avocado"], "range": [0.5, 3] }
+      ], "sides": ["bread"] },
+
+    { "id": "m_tuna_beans", "meals": ["main"], "category": "fish", "name": "Салата с риба тон и бял боб",
+      "parts": [
+        { "group": "PRO", "options": ["pro_tuna"], "range": [1.5, 4] },
+        { "group": "LEG", "options": ["leg_white_beans"], "range": [1, 2.5] },
+        { "group": "VEG", "options": [["veg_arugula", "veg_cherry_tomato"], ["veg_lettuce", "veg_cucumber"], ["veg_pepper", "veg_cucumber"]], "range": [1, 2] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "sides": ["bread"] },
+
+    { "id": "m_salmon_bowl", "meals": ["main"], "category": "fish", "name": "Боул със сьомга",
+      "parts": [
+        { "group": "PRO", "options": ["pro_salmon"], "range": [2, 5] },
+        { "group": "STA", "options": ["eng_quinoa", "eng_rice_brown"], "range": [1, 3], "with": true },
+        { "group": "VEG", "options": [["veg_cucumber", "veg_cherry_tomato"], ["veg_spinach", "veg_cucumber"], ["veg_cabbage", "veg_carrot"]], "range": [1, 2], "with": true },
+        { "group": "FAT", "options": ["fat_avocado"], "range": [0, 2] }
+      ], "sides": ["salad"] },
+
+    { "id": "m_shrimp_pasta", "meals": ["main"], "category": "fish", "name": "Паста със скариди",
+      "parts": [
+        { "group": "STA", "options": ["eng_pasta"], "range": [2, 4] },
+        { "group": "PRO", "options": ["pro_shrimp"], "range": [2, 4.5] },
+        { "group": "VEG", "options": [["veg_cherry_tomato", "veg_spinach"], ["veg_zucchini", "veg_cherry_tomato"]], "range": [1, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "fixed": [["veg_garlic", 5]], "sides": ["salad"] },
+
+    { "id": "m_shrimp_veg", "meals": ["main"], "category": "fish", "name": "Скариди със зеленчуци",
+      "parts": [
+        { "group": "PRO", "options": ["pro_shrimp"], "range": [3, 6] },
+        { "group": "VEG", "options": [["veg_zucchini", "veg_pepper"], ["veg_broccoli", "veg_pepper"], ["veg_asparagus", "veg_cherry_tomato"]], "range": [1.5, 3], "with": true },
+        { "group": "STA", "options": ["eng_rice", "eng_quinoa"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "fixed": [["veg_garlic", 5]], "sides": ["salad"] },
+
+    { "id": "m_bean_stew", "meals": ["main"], "category": "legume", "name": "Боб яхния",
+      "parts": [
+        { "group": "LEG", "options": ["leg_white_beans"], "range": [2, 4.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "fixed": [["veg_onion", 30], ["veg_carrot", 40], ["veg_pepper", 40], ["cond_tomato_paste", 15]], "sides": ["bread", "salad", "cheese"] },
+
+    { "id": "m_lentil_stew", "meals": ["main"], "category": "legume", "name": "Леща яхния",
+      "parts": [
+        { "group": "LEG", "options": ["leg_lentils"], "range": [2, 4.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "fixed": [["veg_onion", 30], ["veg_carrot", 40], ["cond_tomato_paste", 10], ["veg_garlic", 5]], "sides": ["bread", "salad", "cheese"] },
+
+    { "id": "m_lentil_soup", "meals": ["main"], "category": "legume", "name": "Крем супа от леща",
+      "parts": [
+        { "group": "LEG", "options": ["leg_lentils"], "range": [1.5, 3.5] },
+        { "group": "VEG", "options": [["veg_carrot"], ["veg_pumpkin"]], "range": [0.5, 1.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20]], "sides": ["bread", "salad", "yogurt"] },
+
+    { "id": "m_chickpea_spinach", "meals": ["main"], "category": "legume", "name": "Нахут със спанак",
+      "parts": [
+        { "group": "LEG", "options": ["leg_chickpeas"], "range": [2, 4] },
+        { "group": "VEG", "options": [["veg_spinach"]], "range": [1, 2] },
+        { "group": "STA", "options": ["eng_rice_brown", "eng_bulgur"], "range": [0, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "fixed": [["veg_onion", 20], ["cond_tomato_paste", 10]], "sides": ["bread", "yogurt"] },
+
+    { "id": "m_chickpea_bowl", "meals": ["main"], "category": "legume", "name": "Боул с нахут",
+      "parts": [
+        { "group": "LEG", "options": ["leg_chickpeas"], "range": [1.5, 3.5] },
+        { "group": "STA", "options": ["eng_bulgur", "eng_quinoa"], "range": [0, 2.5], "with": true },
+        { "group": "VEG", "options": [["veg_cucumber", "veg_cherry_tomato"], ["veg_pepper", "veg_cucumber"], ["veg_spinach", "veg_carrot"]], "range": [1, 2], "with": true },
+        { "group": "FAT", "options": ["fat_tahini", "fat_oil", "fat_avocado"], "range": [0.5, 2.5] }
+      ], "sides": ["salad"] },
+
+    { "id": "m_bean_salad", "meals": ["main"], "category": "legume", "name": "Салата с боб",
+      "parts": [
+        { "group": "LEG", "options": ["leg_white_beans", "leg_black_beans"], "range": [1.5, 3.5] },
+        { "group": "VEG", "options": [["veg_pepper", "veg_cherry_tomato", "veg_cucumber"], ["veg_lettuce", "veg_pepper"]], "range": [1, 2] },
+        { "group": "PRO", "options": ["pro_eggs"], "range": [0, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "fixed": [["veg_onion", 15]], "sides": ["bread"] },
+
+    { "id": "m_lentil_rice", "meals": ["main"], "category": "legume", "name": "Леща с ориз и лук",
+      "parts": [
+        { "group": "LEG", "options": ["leg_lentils"], "range": [1.5, 3] },
+        { "group": "STA", "options": ["eng_rice_brown", "eng_rice"], "range": [0.5, 2.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 2] }
+      ], "fixed": [["veg_onion", 40]], "sides": ["salad", "yogurt"] },
+
+    { "id": "m_chicken_peas", "meals": ["main"], "category": "poultry", "name": "Пиле с грах",
+      "parts": [
+        { "group": "PRO", "options": ["pro_chicken_breast", "pro_chicken_thigh"], "range": [2.5, 5.5] },
+        { "group": "STA", "options": ["leg_peas"], "range": [1.5, 3.5] },
+        { "group": "VEG", "options": [["veg_carrot"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20], ["cond_tomato_paste", 10]], "sides": ["salad", "bread"] },
+
+    { "id": "m_lentil_pasta", "meals": ["main"], "category": "legume", "name": "Паста от леща с доматен сос",
+      "parts": [
+        { "group": "STA", "options": ["eng_lentil_pasta"], "range": [2, 4] },
+        { "group": "VEG", "options": [["veg_tomato", "veg_zucchini"], ["veg_spinach", "veg_cherry_tomato"]], "range": [1, 2], "with": true },
+        { "group": "PRO", "options": ["dairy_parmesan"], "range": [0, 1] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["cond_tomato_paste", 15]], "sides": ["salad"] },
+
+    { "id": "m_omelet", "meals": ["main", "breakfast"], "category": "veggie", "breakfastCategory": "eggs", "name": "Омлет",
+      "parts": [
+        { "group": "PRO", "options": ["pro_eggs"], "range": [2, 4] },
+        { "group": "VEG", "options": [["veg_spinach"], ["veg_pepper", "veg_tomato"], ["veg_zucchini"], ["veg_mushrooms"]], "range": [0.5, 2], "with": true },
+        { "group": "PRO", "options": ["dairy_cheese", "dairy_kashkaval"], "range": [0, 1.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "sides": ["bread", "salad", "fruit"] },
+
+    { "id": "m_mishmash", "meals": ["main", "breakfast"], "category": "veggie", "breakfastCategory": "eggs", "name": "Мишмаш",
+      "parts": [
+        { "group": "VEG", "options": [["veg_pepper", "veg_tomato"]], "range": [1, 2.5] },
+        { "group": "PRO", "options": ["pro_eggs"], "range": [1.5, 3] },
+        { "group": "PRO", "options": ["dairy_cheese"], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1] }
+      ], "fixed": [["veg_onion", 20]], "seasonsOnly": ["summer", "autumn"], "sides": ["bread"] },
+
+    { "id": "m_zucchini_bake", "meals": ["main"], "category": "veggie", "name": "Тиквички с яйца и сирене на фурна",
+      "parts": [
+        { "group": "VEG", "options": [["veg_zucchini"]], "range": [1.5, 3] },
+        { "group": "PRO", "options": ["pro_eggs"], "range": [1, 3] },
+        { "group": "PRO", "options": ["dairy_cheese"], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "sides": ["bread", "salad"] },
+
+    { "id": "m_stuffed_peppers_cheese", "meals": ["main"], "category": "veggie", "name": "Пълнени чушки със сирене и яйца на фурна",
+      "parts": [
+        { "group": "VEG", "options": [["veg_pepper"]], "range": [1, 2.5] },
+        { "group": "PRO", "options": ["dairy_cheese"], "range": [1, 2] },
+        { "group": "PRO", "options": ["pro_eggs"], "range": [1, 2] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "sides": ["bread", "salad"] },
+
+    { "id": "m_spinach_rice", "meals": ["main"], "category": "veggie", "name": "Спанак с ориз",
+      "parts": [
+        { "group": "VEG", "options": [["veg_spinach"]], "range": [1.5, 3] },
+        { "group": "STA", "options": ["eng_rice", "eng_rice_brown"], "range": [1, 3] },
+        { "group": "PRO", "options": ["pro_eggs"], "range": [0, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20]], "sides": ["yogurt", "cheese"] },
+
+    { "id": "m_green_bean_stew", "meals": ["main"], "category": "veggie", "name": "Яхния от зелен фасул",
+      "parts": [
+        { "group": "VEG", "options": [["veg_green_beans", "veg_carrot"]], "range": [1.5, 3] },
+        { "group": "STA", "options": ["eng_potato"], "range": [0, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20], ["cond_tomato_paste", 15]], "sides": ["cheese", "bread", "yogurt"] },
+
+    { "id": "m_guvech_veg", "meals": ["main"], "category": "veggie", "name": "Зеленчуков гювеч",
+      "parts": [
+        { "group": "VEG", "options": [["veg_eggplant", "veg_pepper", "veg_tomato"], ["veg_zucchini", "veg_pepper", "veg_tomato"], ["veg_green_beans", "veg_pepper", "veg_tomato"]], "range": [1.5, 3] },
+        { "group": "STA", "options": ["eng_potato"], "range": [0, 2], "with": true },
+        { "group": "PRO", "options": ["dairy_cheese", "pro_eggs"], "range": [0, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20]], "sides": ["bread", "cheese"] },
+
+    { "id": "m_stuffed_peppers_rice", "meals": ["main"], "category": "veggie", "name": "Постни пълнени чушки с ориз",
+      "parts": [
+        { "group": "VEG", "options": [["veg_pepper"]], "range": [1.5, 3] },
+        { "group": "STA", "options": ["eng_rice"], "range": [1, 2.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20], ["veg_carrot", 30], ["cond_tomato_paste", 10]], "sides": ["yogurt", "cheese"] },
+
+    { "id": "m_pasta_cheese", "meals": ["main"], "category": "veggie", "name": "Паста с доматен сос",
+      "parts": [
+        { "group": "STA", "options": ["eng_pasta"], "range": [2, 4] },
+        { "group": "VEG", "options": [["veg_tomato", "veg_zucchini"], ["veg_cherry_tomato", "veg_spinach"]], "range": [1, 2], "with": true },
+        { "group": "PRO", "options": ["dairy_mozzarella", "dairy_cheese", "dairy_parmesan"], "range": [0.5, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "fixed": [["cond_tomato_paste", 15]], "sides": ["salad"] },
+
+    { "id": "m_risotto", "meals": ["main"], "category": "veggie", "name": "Ризото с гъби",
+      "parts": [
+        { "group": "STA", "options": ["eng_rice"], "range": [2, 4] },
+        { "group": "VEG", "options": [["veg_mushrooms"], ["veg_oyster_mushroom"]], "range": [1, 2] },
+        { "group": "PRO", "options": ["dairy_parmesan"], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_oil", "fat_butter"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 20]], "sides": ["salad"] },
+
+    { "id": "m_cottage_veg", "meals": ["main"], "category": "veggie", "name": "Извара със зеленчуци",
+      "parts": [
+        { "group": "PRO", "options": ["dairy_cottage", "dairy_cottage_low"], "range": [2, 5] },
+        { "group": "VEG", "options": [["veg_cucumber", "veg_tomato"], ["veg_cucumber", "veg_pepper"], ["veg_cherry_tomato", "veg_arugula"]], "range": [1, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil", "fat_walnuts"], "range": [0, 1.5] }
+      ], "sides": ["bread"] },
+
+    { "id": "m_shopska", "meals": ["main"], "category": "veggie", "name": "Шопска салата",
+      "parts": [
+        { "group": "VEG", "options": [["veg_tomato", "veg_cucumber", "veg_pepper"]], "range": [1.5, 3] },
+        { "group": "PRO", "options": ["dairy_cheese"], "range": [1, 2] },
+        { "group": "PRO", "options": ["pro_eggs"], "range": [0, 2], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["veg_onion", 15]], "seasonsOnly": ["summer", "autumn"], "sides": ["bread"] },
+
+    { "id": "m_potato_cottage", "meals": ["main"], "category": "veggie", "name": "Печени картофи с извара",
+      "parts": [
+        { "group": "STA", "options": ["eng_potato", "eng_sweet_potato"], "range": [1.5, 3.5] },
+        { "group": "PRO", "options": ["dairy_cottage", "dairy_cottage_low"], "range": [2, 4] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "sides": ["salad"] },
+
+    { "id": "m_tofu_stirfry", "meals": ["main"], "category": "plant", "name": "Тофу със зеленчуци",
+      "parts": [
+        { "group": "PRO", "options": ["pro_tofu"], "range": [2, 5] },
+        { "group": "VEG", "options": [["veg_broccoli", "veg_pepper"], ["veg_zucchini", "veg_carrot"], ["veg_cabbage", "veg_carrot"]], "range": [1, 2.5], "with": true },
+        { "group": "STA", "options": ["eng_rice_brown", "eng_quinoa", "eng_buckwheat"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1.5] }
+      ], "fixed": [["cond_soy", 10], ["cond_ginger", 3]], "sides": ["salad"] },
+
+    { "id": "m_tofu_curry", "meals": ["main"], "category": "plant", "name": "Тофу къри",
+      "parts": [
+        { "group": "PRO", "options": ["pro_tofu"], "range": [2, 5] },
+        { "group": "VEG", "options": [["veg_spinach", "veg_cauliflower"], ["veg_pepper", "veg_zucchini"]], "range": [1, 2], "with": true },
+        { "group": "STA", "options": ["eng_rice", "eng_rice_brown"], "range": [0, 3.5], "with": true },
+        { "group": "FAT", "options": ["cond_coconut_milk"], "range": [1, 3] }
+      ], "fixed": [["veg_onion", 20], ["cond_turmeric", 2], ["cond_ginger", 3]], "sides": ["salad"] },
+
+    { "id": "m_tempeh_bowl", "meals": ["main"], "category": "plant", "name": "Боул с темпе",
+      "parts": [
+        { "group": "PRO", "options": ["pro_tempeh"], "range": [2, 4.5] },
+        { "group": "STA", "options": ["eng_quinoa", "eng_rice_brown", "eng_sweet_potato"], "range": [0, 3], "with": true },
+        { "group": "VEG", "options": [["veg_spinach", "veg_cucumber"], ["veg_broccoli"], ["veg_cabbage", "veg_carrot"]], "range": [1, 2], "with": true },
+        { "group": "FAT", "options": ["fat_tahini", "fat_avocado"], "range": [0.5, 2] }
+      ], "sides": ["salad"] },
+
+    { "id": "m_edamame_bowl", "meals": ["main"], "category": "plant", "name": "Боул с едамаме",
+      "parts": [
+        { "group": "PRO", "options": ["leg_edamame"], "range": [2, 4.5] },
+        { "group": "STA", "options": ["eng_quinoa", "eng_rice_brown"], "range": [0, 3], "with": true },
+        { "group": "VEG", "options": [["veg_cucumber", "veg_carrot"], ["veg_spinach", "veg_cherry_tomato"]], "range": [1, 2], "with": true },
+        { "group": "FAT", "options": ["fat_tahini", "fat_avocado"], "range": [0.5, 2] }
+      ], "sides": ["salad"] },
+
+    { "id": "b_boiled_eggs", "meals": ["breakfast"], "category": "eggs", "name": "Варени яйца",
+      "parts": [
+        { "group": "PRO", "options": ["pro_eggs"], "range": [1, 3] },
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [0, 3], "with": true },
+        { "group": "VEG", "options": [["veg_tomato", "veg_cucumber"], ["veg_pepper", "veg_cucumber"], ["veg_cherry_tomato"]], "range": [0.5, 1.5], "with": true },
+        { "group": "PRO", "options": ["dairy_cheese"], "range": [0, 1] }
+      ], "sides": ["fruit", "yogurt"] },
+
+    { "id": "b_scrambled_eggs", "meals": ["breakfast"], "category": "eggs", "name": "Бъркани яйца",
+      "parts": [
+        { "group": "PRO", "options": ["pro_eggs"], "range": [2, 3] },
+        { "group": "VEG", "options": [["veg_spinach"], ["veg_pepper"], ["veg_mushrooms"], ["veg_cherry_tomato"]], "range": [0.5, 1.5], "with": true },
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [0, 3], "with": true },
+        { "group": "FAT", "options": ["fat_oil", "fat_butter"], "range": [0, 1] }
+      ], "sides": ["fruit", "yogurt"] },
+
+    { "id": "b_eggs_avocado_toast", "meals": ["breakfast"], "category": "eggs", "name": "Тост с авокадо и яйце",
+      "parts": [
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [1, 2.5] },
+        { "group": "FAT", "options": ["fat_avocado"], "range": [1, 2] },
+        { "group": "PRO", "options": ["pro_eggs"], "range": [1, 2] },
+        { "group": "VEG", "options": [["veg_cherry_tomato"], ["veg_arugula"]], "range": [0, 1] }
+      ], "sides": ["fruit"] },
+
+    { "id": "b_panagyurishte", "meals": ["breakfast"], "category": "eggs", "name": "Яйца по панагюрски",
+      "parts": [
+        { "group": "PRO", "options": ["pro_eggs"], "range": [2, 3] },
+        { "group": "MLK", "options": ["dairy_yogurt", "dairy_yogurt_2"], "range": [0.5, 1] },
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [1, 2.5], "with": true }
+      ], "fixed": [["veg_garlic", 3]], "sides": ["fruit"] },
+
+    { "id": "b_eggs_keto", "meals": ["breakfast"], "category": "eggs", "name": "Яйца с {FAT} и зеленчуци",
+      "parts": [
+        { "group": "PRO", "options": ["pro_eggs"], "range": [2, 4] },
+        { "group": "FAT", "options": ["fat_avocado", "fat_olives"], "range": [0.5, 3] },
+        { "group": "VEG", "options": [["veg_cucumber", "veg_cherry_tomato"], ["veg_spinach"], ["veg_pepper"]], "range": [0.5, 1.5] },
+        { "group": "PRO", "options": ["dairy_cheese", "dairy_kashkaval"], "range": [0, 1.5] }
+      ], "sides": [] },
+
+    { "id": "b_yogurt_oats", "meals": ["breakfast"], "category": "dairy", "name": "{MLK} с овесени ядки",
+      "parts": [
+        { "group": "MLK", "options": ["dairy_yogurt", "dairy_yogurt_2", "dairy_greek"], "range": [1, 1.5] },
+        { "group": "STA", "options": ["eng_oats"], "range": [0.5, 2.5] },
+        { "group": "FRU", "options": [["fruit_banana"], ["fruit_apple"], ["fruit_blueberry"], ["fruit_strawberry"], ["fruit_raspberry"], ["fruit_peach"]], "range": [0.5, 1], "with": true },
+        { "group": "FAT", "options": ["fat_walnuts", "fat_almonds", "fat_chia", "fat_flax"], "range": [0, 2], "with": true }
+      ], "sides": [] },
+
+    { "id": "b_skyr_bowl", "meals": ["breakfast"], "category": "dairy", "name": "{MLK} с {FRU}",
+      "parts": [
+        { "group": "MLK", "options": ["dairy_skyr", "dairy_greek"], "range": [1, 1.5] },
+        { "group": "FRU", "options": [["fruit_blueberry"], ["fruit_raspberry"], ["fruit_strawberry"], ["fruit_kiwi"], ["fruit_peach"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_walnuts", "fat_almonds", "fat_chia"], "range": [0, 2], "with": true },
+        { "group": "STA", "options": ["eng_oats"], "range": [0, 1.5], "with": true }
+      ], "sides": ["bread"] },
+
+    { "id": "b_kefir_oats", "meals": ["breakfast"], "category": "dairy", "name": "Кефир с овесени ядки и семена",
+      "parts": [
+        { "group": "MLK", "options": ["dairy_kefir"], "range": [1, 1.5] },
+        { "group": "STA", "options": ["eng_oats"], "range": [0.5, 2.5] },
+        { "group": "FAT", "options": ["fat_chia", "fat_flax"], "range": [0.5, 1.5] },
+        { "group": "FRU", "options": [["fruit_apple"], ["fruit_banana"], ["fruit_blueberry"]], "range": [0, 1], "with": true }
+      ], "sides": [] },
+
+    { "id": "b_cottage_bowl", "meals": ["breakfast"], "category": "dairy", "name": "Извара с {FRU} и {FAT}",
+      "parts": [
+        { "group": "PRO", "options": ["dairy_cottage", "dairy_cottage_low"], "range": [1.5, 4] },
+        { "group": "FRU", "options": [["fruit_strawberry"], ["fruit_peach"], ["fruit_raspberry"], ["fruit_apple"], ["fruit_blueberry"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_walnuts", "fat_almonds"], "range": [0, 1.5] }
+      ], "fixed": [["cond_cinnamon", 1]], "sides": ["bread"] },
+
+    { "id": "b_cottage_keto", "meals": ["breakfast"], "category": "dairy", "name": "Извара с {FAT} и {VEG}",
+      "parts": [
+        { "group": "PRO", "options": ["dairy_cottage"], "range": [2, 4] },
+        { "group": "FAT", "options": ["fat_avocado", "fat_walnuts"], "range": [0.5, 2.5] },
+        { "group": "VEG", "options": [["veg_cucumber"], ["veg_cherry_tomato"]], "range": [0.5, 1.5] }
+      ], "sides": [] },
+
+    { "id": "b_porridge", "meals": ["breakfast"], "category": "porridge", "name": "Овесена каша с {MLK}",
+      "parts": [
+        { "group": "STA", "options": ["eng_oats"], "range": [1, 3] },
+        { "group": "MLK", "options": ["dairy_milk_2", "dairy_milk", "dairy_soy_milk"], "range": [0.5, 1.5] },
+        { "group": "FRU", "options": [["fruit_banana"], ["fruit_apple"], ["fruit_blueberry"], ["fruit_strawberry"]], "range": [0.5, 1], "with": true },
+        { "group": "FAT", "options": ["fat_walnuts", "fat_almonds", "fat_chia", "fat_peanut_butter"], "range": [0, 2], "with": true }
+      ], "fixed": [["cond_cinnamon", 2]], "sides": [] },
+
+    { "id": "b_porridge_plant", "meals": ["breakfast"], "category": "porridge", "name": "Овесена каша с растително мляко",
+      "parts": [
+        { "group": "STA", "options": ["eng_oats"], "range": [1, 3] },
+        { "group": "FRU", "options": [["fruit_banana"], ["fruit_apple"], ["fruit_blueberry"], ["fruit_raspberry"]], "range": [0.5, 1], "with": true },
+        { "group": "FAT", "options": ["fat_peanut_butter", "fat_almond_butter", "fat_walnuts", "fat_chia"], "range": [0.5, 2], "with": true }
+      ], "fixed": [["dairy_plant_milk", 200], ["cond_cinnamon", 2]], "sides": [] },
+
+    { "id": "b_buckwheat_milk", "meals": ["breakfast"], "category": "porridge", "name": "Елда с {MLK}",
+      "parts": [
+        { "group": "STA", "options": ["eng_buckwheat"], "range": [1, 3] },
+        { "group": "MLK", "options": ["dairy_milk_2", "dairy_soy_milk"], "range": [0.5, 1] },
+        { "group": "FRU", "options": [["fruit_apple"], ["fruit_banana"], ["fruit_blueberry"]], "range": [0.5, 1], "with": true },
+        { "group": "FAT", "options": ["fat_walnuts"], "range": [0, 1] }
+      ], "sides": [] },
+
+    { "id": "b_chia_pudding", "meals": ["breakfast", "snack"], "category": "porridge", "name": "Чиа пудинг с {FRU}",
+      "parts": [
+        { "group": "FAT", "options": ["fat_chia"], "range": [1, 3] },
+        { "group": "MLK", "options": ["dairy_milk_2", "dairy_soy_milk"], "range": [0.5, 1.5] },
+        { "group": "FRU", "options": [["fruit_raspberry"], ["fruit_blueberry"], ["fruit_mango"], ["fruit_strawberry"]], "range": [0.5, 1] }
+      ], "sides": [] },
+
+    { "id": "b_popara", "meals": ["breakfast"], "category": "porridge", "name": "Попара със сирене",
+      "parts": [
+        { "group": "STA", "options": ["eng_bread"], "range": [1.5, 3] },
+        { "group": "MLK", "options": ["dairy_milk_2"], "range": [0.5, 1] },
+        { "group": "PRO", "options": ["dairy_cheese"], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_butter"], "range": [0, 1] }
+      ], "seasonsOnly": ["autumn", "winter"], "sides": [] },
+
+    { "id": "b_cottage_sandwich", "meals": ["breakfast", "snack"], "category": "bread", "name": "Сандвич с извара",
+      "parts": [
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [1, 3] },
+        { "group": "PRO", "options": ["dairy_cottage", "dairy_cottage_low"], "range": [1, 3] },
+        { "group": "VEG", "options": [["veg_tomato"], ["veg_cucumber"], ["veg_cherry_tomato", "veg_arugula"]], "range": [0.5, 1.5], "with": true }
+      ], "sides": ["fruit"] },
+
+    { "id": "b_cheese_bread", "meals": ["breakfast", "snack"], "category": "bread", "name": "Филия със сирене",
+      "parts": [
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [1, 3] },
+        { "group": "PRO", "options": ["dairy_cheese"], "range": [0.5, 1.5] },
+        { "group": "VEG", "options": [["veg_tomato", "veg_cucumber"], ["veg_pepper"], ["veg_cucumber"]], "range": [0.5, 1.5], "with": true }
+      ], "sides": ["fruit", "yogurt"] },
+
+    { "id": "b_turkey_sandwich", "meals": ["breakfast", "snack"], "category": "bread", "name": "Сандвич с {PRO}",
+      "parts": [
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [1, 3] },
+        { "group": "PRO", "options": ["pro_turkey", "pro_chicken_breast"], "range": [1, 3] },
+        { "group": "VEG", "options": [["veg_lettuce", "veg_tomato"], ["veg_cucumber", "veg_arugula"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_avocado"], "range": [0, 1] }
+      ], "sides": ["fruit"] },
+
+    { "id": "b_hummus_toast", "meals": ["breakfast", "snack"], "category": "bread", "name": "Филия с хумус и зеленчуци",
+      "parts": [
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [1, 3] },
+        { "group": "LEG", "options": ["leg_hummus"], "range": [0.5, 1.5] },
+        { "group": "VEG", "options": [["veg_cucumber", "veg_cherry_tomato"], ["veg_pepper"]], "range": [0.5, 1.5] }
+      ], "sides": ["fruit"] },
+
+    { "id": "b_avocado_toast", "meals": ["breakfast"], "category": "bread", "name": "Тост с авокадо и домати",
+      "parts": [
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [1, 3] },
+        { "group": "FAT", "options": ["fat_avocado"], "range": [1, 2] },
+        { "group": "VEG", "options": [["veg_cherry_tomato"], ["veg_tomato"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_pumpkin_seeds"], "range": [0, 1] }
+      ], "sides": ["fruit"] },
+
+    { "id": "b_peanut_toast", "meals": ["breakfast", "snack"], "category": "bread", "name": "Филия с {FAT} и банан",
+      "parts": [
+        { "group": "STA", "options": ["eng_bread_whole"], "range": [1, 2.5] },
+        { "group": "FAT", "options": ["fat_peanut_butter", "fat_almond_butter"], "range": [1, 2] },
+        { "group": "FRU", "options": [["fruit_banana"]], "range": [0.5, 1] }
+      ], "sides": [] },
+
+    { "id": "b_rice_cakes_cottage", "meals": ["breakfast", "snack"], "category": "bread", "name": "Оризови галети с извара",
+      "parts": [
+        { "group": "STA", "options": ["eng_rice_cakes"], "range": [1, 2] },
+        { "group": "PRO", "options": ["dairy_cottage", "dairy_cottage_low"], "range": [1, 3] },
+        { "group": "VEG", "options": [["veg_cherry_tomato"], ["veg_cucumber"]], "range": [0.5, 1] }
+      ], "sides": ["fruit"] },
+
+    { "id": "b_tofu_scramble", "meals": ["breakfast"], "category": "plant", "name": "Тофу със зеленчуци",
+      "parts": [
+        { "group": "PRO", "options": ["pro_tofu"], "range": [2, 4] },
+        { "group": "VEG", "options": [["veg_spinach"], ["veg_pepper", "veg_tomato"], ["veg_mushrooms"]], "range": [0.5, 1.5], "with": true },
+        { "group": "STA", "options": ["eng_bread_whole", "eng_rye_bread"], "range": [0, 2.5], "with": true },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0.5, 1] }
+      ], "fixed": [["cond_turmeric", 1]], "sides": ["fruit"] },
+
+    { "id": "s_fruit_nuts", "meals": ["snack"], "category": "fruit", "name": "{FRU} с {FAT}", "fruitPaired": true,
+      "parts": [
+        { "group": "FRU", "options": [["fruit_apple"], ["fruit_pear"], ["fruit_orange"], ["fruit_mandarin"], ["fruit_kiwi"], ["fruit_peach"], ["fruit_banana"], ["fruit_grapes"], ["fruit_strawberry"]], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_almonds", "fat_walnuts", "fat_hazelnuts", "fat_cashew", "fat_peanuts_pistachio"], "range": [0.5, 2] }
+      ], "sides": [] },
+
+    { "id": "s_yogurt_fruit", "meals": ["snack"], "category": "dairy", "name": "{MLK} с {FRU}", "fruitPaired": true,
+      "parts": [
+        { "group": "MLK", "options": ["dairy_yogurt", "dairy_yogurt_2", "dairy_skyr", "dairy_greek", "dairy_soy_yogurt"], "range": [0.5, 1.5] },
+        { "group": "FRU", "options": [["fruit_blueberry"], ["fruit_strawberry"], ["fruit_raspberry"], ["fruit_banana"], ["fruit_apple"], ["fruit_peach"], ["fruit_kiwi"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_walnuts", "fat_chia"], "range": [0, 1] }
+      ], "sides": [] },
+
+    { "id": "s_cottage_fruit", "meals": ["snack"], "category": "dairy", "name": "Извара с {FRU}", "fruitPaired": true,
+      "parts": [
+        { "group": "PRO", "options": ["dairy_cottage", "dairy_cottage_low"], "range": [1, 3] },
+        { "group": "FRU", "options": [["fruit_strawberry"], ["fruit_peach"], ["fruit_raspberry"], ["fruit_blueberry"], ["fruit_apple"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_walnuts"], "range": [0, 1] }
+      ], "sides": [] },
+
+    { "id": "s_hummus_veg", "meals": ["snack"], "category": "savory", "name": "Хумус със зеленчукови пръчици",
+      "parts": [
+        { "group": "LEG", "options": ["leg_hummus"], "range": [0.5, 1.5] },
+        { "group": "VEG", "options": [["veg_carrot", "veg_cucumber"], ["veg_pepper", "veg_celery"], ["veg_cucumber", "veg_pepper"]], "range": [0.5, 1.5] }
+      ], "sides": [] },
+
+    { "id": "s_cheese_veg", "meals": ["snack", "late"], "category": "savory", "name": "Сирене с {VEG}",
+      "parts": [
+        { "group": "PRO", "options": ["dairy_cheese"], "range": [0.5, 1.5] },
+        { "group": "VEG", "options": [["veg_tomato"], ["veg_cucumber"], ["veg_cherry_tomato"], ["veg_pepper"]], "range": [0.5, 1.5] },
+        { "group": "STA", "options": ["eng_rice_cakes", "eng_rye_bread"], "range": [0, 1.5], "with": true }
+      ], "sides": [] },
+
+    { "id": "s_kefir", "meals": ["snack", "late"], "category": "dairy", "name": "Чаша кефир",
+      "parts": [
+        { "group": "MLK", "options": ["dairy_kefir"], "range": [0.5, 1.5] }
+      ], "sides": [] },
+
+    { "id": "s_protein_shake", "meals": ["snack"], "category": "shake", "name": "Протеинов шейк", "requires": "sport",
+      "parts": [
+        { "group": "PRO", "options": ["pro_whey", "pro_plant_protein"], "range": [2, 4] },
+        { "group": "MLK", "options": ["dairy_milk_2", "dairy_soy_milk"], "range": [0, 1] },
+        { "group": "FRU", "options": [["fruit_banana"], ["fruit_blueberry"]], "range": [0, 1], "with": true }
+      ], "sides": [] },
+
+    { "id": "s_edamame", "meals": ["snack"], "category": "savory", "name": "Едамаме",
+      "parts": [
+        { "group": "PRO", "options": ["leg_edamame"], "range": [1, 3] },
+        { "group": "FAT", "options": ["fat_tahini"], "range": [0, 1], "with": true }
+      ], "sides": [] },
+
+    { "id": "s_nuts", "meals": ["snack", "late"], "category": "nuts", "name": "Шепа {FAT}",
+      "parts": [
+        { "group": "FAT", "options": ["fat_almonds", "fat_walnuts", "fat_hazelnuts", "fat_cashew", "fat_nuts"], "range": [1, 3] }
+      ], "sides": [] },
+
+    { "id": "s_rice_cakes_nut_butter", "meals": ["snack"], "category": "bread", "name": "Оризови галети с {FAT}",
+      "parts": [
+        { "group": "STA", "options": ["eng_rice_cakes"], "range": [1, 2] },
+        { "group": "FAT", "options": ["fat_peanut_butter", "fat_almond_butter"], "range": [0.5, 1.5] }
+      ], "sides": [] },
+
+    { "id": "s_apple_pb", "meals": ["snack"], "category": "fruit", "name": "{FRU} с {FAT}", "fruitPaired": true,
+      "parts": [
+        { "group": "FRU", "options": [["fruit_apple"], ["fruit_banana"], ["fruit_pear"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_peanut_butter", "fat_almond_butter", "fat_tahini"], "range": [0.5, 1.5] }
+      ], "sides": [] },
+
+    { "id": "s_olives_cheese", "meals": ["snack"], "category": "savory", "name": "Маслини с {PRO}",
+      "parts": [
+        { "group": "FAT", "options": ["fat_olives"], "range": [0.5, 2] },
+        { "group": "PRO", "options": ["dairy_cheese", "dairy_kashkaval"], "range": [0.5, 1.5] },
+        { "group": "VEG", "options": [["veg_cucumber"], ["veg_cherry_tomato"]], "range": [0, 1], "with": true }
+      ], "sides": [] },
+
+    { "id": "s_eggs_veg", "meals": ["snack", "late"], "category": "savory", "name": "Варени яйца с {VEG}",
+      "parts": [
+        { "group": "PRO", "options": ["pro_eggs"], "range": [1, 2] },
+        { "group": "VEG", "options": [["veg_cucumber"], ["veg_cherry_tomato"], ["veg_pepper"]], "range": [0.5, 1] }
+      ], "sides": [] },
+
+    { "id": "s_tarator", "meals": ["snack"], "category": "dairy", "name": "Таратор",
+      "parts": [
+        { "group": "MLK", "options": ["dairy_yogurt", "dairy_yogurt_2"], "range": [1, 1.5] },
+        { "group": "VEG", "options": [["veg_cucumber"]], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_walnuts"], "range": [0, 1] }
+      ], "fixed": [["veg_garlic", 3]], "seasonsOnly": ["summer"], "sides": [] },
+
+    { "id": "s_snezhanka", "meals": ["snack", "late"], "category": "dairy", "name": "Салата Снежанка",
+      "parts": [
+        { "group": "MLK", "options": ["dairy_greek"], "range": [0.5, 1.5] },
+        { "group": "VEG", "options": [["veg_cucumber"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_walnuts"], "range": [0, 1] }
+      ], "fixed": [["veg_garlic", 3]], "sides": [] },
+
+    { "id": "s_tuna_cucumber", "meals": ["snack", "late"], "category": "savory", "name": "Риба тон с {VEG}",
+      "parts": [
+        { "group": "PRO", "options": ["pro_tuna"], "range": [1, 3] },
+        { "group": "VEG", "options": [["veg_cucumber"], ["veg_cherry_tomato"]], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_oil"], "range": [0, 1] }
+      ], "fixed": [["cond_lemon_juice", 5]], "sides": [] },
+
+    { "id": "b_savory_plate", "meals": ["breakfast"], "category": "plant", "name": "{PRO} с {VEG}",
+      "parts": [
+        { "group": "PRO", "options": ["pro_turkey", "pro_chicken_breast", "pro_salmon"], "range": [1.5, 4] },
+        { "group": "STA", "options": ["eng_sweet_potato"], "range": [0, 2], "with": true },
+        { "group": "VEG", "options": [["veg_cucumber"], ["veg_spinach"], ["veg_zucchini"]], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_avocado", "fat_oil"], "range": [0.5, 2] }
+      ], "sides": ["fruit"] },
+
+    { "id": "s_fruit", "meals": ["snack"], "category": "fruit", "name": "{FRU}", "fruitAlone": true,
+      "parts": [
+        { "group": "FRU", "options": [["fruit_apple"], ["fruit_pear"], ["fruit_orange"], ["fruit_mandarin"], ["fruit_kiwi"], ["fruit_peach"], ["fruit_grapes"], ["fruit_strawberry"], ["fruit_watermelon"], ["fruit_melon"], ["fruit_banana"]], "range": [0.5, 2] }
+      ], "sides": [] },
+
+    { "id": "s_avocado_cucumber", "meals": ["snack", "late"], "category": "savory", "name": "Авокадо с краставица",
+      "parts": [
+        { "group": "FAT", "options": ["fat_avocado"], "range": [1, 3] },
+        { "group": "VEG", "options": [["veg_cucumber"]], "range": [0.5, 1.5] }
+      ], "fixed": [["cond_lemon_juice", 5]], "sides": [] },
+
+    { "id": "l_turkey_cucumber", "meals": ["late", "snack"], "category": "savory", "name": "{PRO} с краставица",
+      "parts": [
+        { "group": "PRO", "options": ["pro_turkey", "pro_chicken_breast"], "range": [1, 3] },
+        { "group": "VEG", "options": [["veg_cucumber"]], "range": [0.5, 1] }
+      ], "sides": [] },
+
+    { "id": "l_yogurt_nuts", "meals": ["late", "snack"], "category": "dairy", "name": "{MLK} с {FAT}",
+      "parts": [
+        { "group": "MLK", "options": ["dairy_yogurt", "dairy_yogurt_2", "dairy_greek", "dairy_skyr", "dairy_soy_yogurt"], "range": [0.5, 1.5] },
+        { "group": "FAT", "options": ["fat_walnuts", "fat_almonds", "fat_pumpkin_seeds", "fat_chia", "fat_flax"], "range": [0, 1.5] }
+      ], "sides": [] },
+
+    { "id": "l_cottage_walnuts", "meals": ["late", "snack"], "category": "dairy", "name": "Извара с канела и {FAT}",
+      "parts": [
+        { "group": "PRO", "options": ["dairy_cottage", "dairy_cottage_low"], "range": [1, 2.5] },
+        { "group": "FAT", "options": ["fat_walnuts", "fat_almonds"], "range": [0, 1] }
+      ], "fixed": [["cond_cinnamon", 1]], "sides": [] },
+
+    { "id": "l_cottage_cucumber", "meals": ["late", "snack"], "category": "dairy", "name": "Извара с краставица",
+      "parts": [
+        { "group": "PRO", "options": ["dairy_cottage"], "range": [1, 2.5] },
+        { "group": "VEG", "options": [["veg_cucumber"]], "range": [0.5, 1] },
+        { "group": "FAT", "options": ["fat_olives"], "range": [0, 1], "with": true }
+      ], "sides": [] }
+  ],
+  "sides": {
+    "bread": { "label": "Хляб", "meals": ["breakfast", "main", "snack"], "group": "STA",
+      "options": ["eng_bread_whole", "eng_rye_bread", "eng_bread", "eng_rice_cakes"], "range": [0.5, 3] },
+    "salad": { "label": "Салата", "meals": ["main", "breakfast"], "group": "VEG",
+      "salads": [
+        { "name": "Салата от домати и краставици", "foods": ["veg_tomato", "veg_cucumber"] },
+        { "name": "Зелена салата", "foods": ["veg_lettuce", "veg_cucumber"] },
+        { "name": "Салата от зеле и моркови", "foods": ["veg_cabbage", "veg_carrot"] },
+        { "name": "Салата с рукола и чери домати", "foods": ["veg_arugula", "veg_cherry_tomato"] },
+        { "name": "Салата от домати, краставици и чушки", "foods": ["veg_tomato", "veg_cucumber", "veg_pepper"] },
+        { "name": "Салата от печено цвекло", "foods": ["veg_beet"] },
+        { "name": "Салата от печени чушки", "foods": ["veg_pepper"] },
+        { "name": "Задушени броколи и моркови", "foods": ["veg_broccoli", "veg_carrot"] }
+      ],
+      "range": [0.5, 3], "dressing": "fat_oil", "dressingRange": [0, 2] },
+    "fruit": { "label": "Плод", "meals": ["breakfast", "main", "snack"], "group": "FRU",
+      "options": ["fruit_apple", "fruit_orange", "fruit_mandarin", "fruit_pear", "fruit_kiwi", "fruit_peach", "fruit_grapes", "fruit_strawberry", "fruit_watermelon", "fruit_banana", "fruit_blueberry"], "range": [0.5, 1.5] },
+    "yogurt": { "label": "Кисело мляко", "meals": ["breakfast", "main", "snack", "late"], "group": "MLK",
+      "options": ["dairy_yogurt", "dairy_yogurt_2", "dairy_kefir", "dairy_soy_yogurt"], "range": [0.5, 1.5] },
+    "cheese": { "label": "Сирене", "meals": ["main"], "group": "PRO",
+      "options": ["dairy_cheese", "dairy_cottage"], "range": [1, 1.5] },
+    "nuts": { "label": "Ядки", "meals": ["breakfast", "snack", "late"], "group": "FAT",
+      "options": ["fat_almonds", "fat_walnuts", "fat_hazelnuts", "fat_pumpkin_seeds"], "range": [0.5, 2] },
+    "fats": { "label": "Мазнини", "meals": ["main", "breakfast"], "group": "FAT",
+      "options": ["fat_avocado", "fat_olives"], "range": [1, 4] },
+    "dessert": { "label": "Десерт", "meals": ["main"], "group": "SWT",
+      "options": ["sw_dark_chocolate"], "range": [1, 1] }
+  }
+}

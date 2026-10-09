@@ -72,7 +72,7 @@ ok(ranked[0]?.nutritionKey === 'пилешко месо', 'ranking boosts high-a
 ok(worker.includes('persistFoodLedger'), 'worker persists ledger');
 ok(worker.includes('loadAdherenceRatioForGeneration'), 'worker loads adherence');
 ok(worker.includes('handleGetFoodCatalogOverlay'), 'worker admin food catalog');
-ok(readFileSync(new URL('../step3-deterministic.js', import.meta.url), 'utf8').includes('_adherenceRatio'), 'dish picker uses adherence');
+ok(readFileSync(new URL('../nutrition-engine/index.js', import.meta.url), 'utf8').includes('_adherenceRatio'), 'engine uses adherence');
 ok(readFileSync('plan-source-meta.js', 'utf8').includes('ledgerVersion'), 'source meta ledger');
 
 const slice = planSliceForLedgerSync({ weekPlan: { day1: {} }, sourceMeta: { catalogVersion: 'cat_x' } });

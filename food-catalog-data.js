@@ -74,6 +74,7 @@ export const FOOD_CATALOG = [
   item('pro_sardines', 'Сардини', 'сардини', 'protein', ['PRO', 'FAT'], ['main', 'snack'], 3, { genericOf: 'pro_fish' }),
   item('pro_tempeh', 'Темпе', 'темпе', 'protein', ['PRO'], ['main'], 2, { vegan: true, vegetarian: true }),
   item('pro_whey', 'Протеин (суроватка)', 'протеин суроватка', 'protein', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegetarian: true }),
+  item('pro_lamb', 'Агнешко', 'агнешко', 'protein', ['PRO'], ['main'], 2),
   item('pro_plant_protein', 'Протеин (растителен)', 'протеин растителен', 'protein', ['PRO'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true }),
 
   // ── DAIRY ──
@@ -142,6 +143,7 @@ export const FOOD_CATALOG = [
   item('eng_corn', 'Царевица', 'царевица', 'carb', ['ENG'], ['main', 'snack'], 4, { vegan: true, vegetarian: true }),
   item('eng_couscous', 'Кус-кус', 'кус-кус', 'carb', ['ENG'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('eng_lentil_pasta', 'Паста от леща', 'паста от леща', 'carb', ['ENG', 'PRO'], ['main'], 3, { vegan: true, vegetarian: true }),
+  item('eng_rice_cakes', 'Оризови галети', 'оризови крекери', 'carb', ['ENG'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true }),
   item('eng_porridge', 'Каша', 'каша', 'carb', ['ENG'], ['breakfast'], 4, { vegan: true, vegetarian: true }),
 
   // ── LEGUMES ──
@@ -206,6 +208,7 @@ export const FOOD_CATALOG = [
   item('cond_turmeric', 'Куркума', 'куркума', 'condiment', ['VOL'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('cond_ginger', 'Джинджифил', 'джинджифил', 'condiment', ['VOL'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('cond_honey', 'Мед', 'мед', 'condiment', ['ENG'], ['breakfast', 'snack'], 4, { vegetarian: true }),
+  item('sw_dark_chocolate', 'Черен шоколад', 'тъмен шоколад', 'condiment', ['FAT'], ['main', 'snack'], 3, { vegan: true, vegetarian: true }),
 
 ];
 
