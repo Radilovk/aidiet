@@ -42815,8 +42815,9 @@ async function handleXbodyBook(request, env) {
           datetime: time,
           appointmentTypeID: Number(XBODY_ACUITY_BOOKING.appointmentTypeID),
           calendarID: Number(XBODY_ACUITY_BOOKING.calendarID),
-          firstName: previous && previous.firstName || names[0] || "",
-          lastName: previous && previous.lastName || names.slice(1).join(" "),
+          // the client as registered in the app (not a name from an earlier booking, e.g. a card holder's)
+          firstName: names[0] || previous && previous.firstName || "",
+          lastName: (names[0] ? names.slice(1).join(" ") : "") || previous && previous.lastName || "",
           email: previous && previous.email || email,
           phone: previous && previous.phone || b.phone,
           timezone: XBODY_ACUITY_BOOKING.timezone,
@@ -42882,7 +42883,10 @@ async function xbodyOwnAppointment(env, b) {
   const appt = resp.ok ? await resp.json().catch(() => null) : null;
   const mine = appt && String(appt.calendarID || "") === XBODY_ACUITY_BOOKING.calendarID && String(appt.email || "").trim().toLowerCase() === b.email && xbodyPhoneKey(appt.phone) === xbodyPhoneKey(b.phone);
   if (!mine) return { error: jsonResponse2({ error: "not_found" }, 404) };
-  if (appt.canceled) return { error: jsonResponse2({ error: "already_canceled" }, 409) };
+  if (appt.canceled) {
+    await dropXbodyApptCache(env, b.email);
+    return { error: jsonResponse2({ error: "already_canceled" }, 409) };
+  }
   return { appt, auth };
 }
 async function xbodyAcuityChange(url, auth, body) {
@@ -42972,7 +42976,7 @@ async function handleXbodyAppointments(request, env) {
         if (!payload2.version) {
           payload2.version = computeXbodyApptVersion(payload2.upcoming, payload2.past);
         }
-        return jsonResponse2(payload2, 200, { cacheControl: "private, max-age=300" });
+        return jsonResponse2(payload2, 200, { cacheControl: "private, no-store" });
       }
     } catch (err) {
       console.warn("[xbody-appointments] KV cache read failed:", err.message);
@@ -43031,7 +43035,7 @@ async function handleXbodyAppointments(request, env) {
       console.warn("[xbody-appointments] KV cache write failed:", err.message);
     }
   }
-  return jsonResponse2(payload, 200, { cacheControl: "private, max-age=300" });
+  return jsonResponse2(payload, 200, { cacheControl: "private, no-store" });
 }
 function isFitnessRoute(pathname, method) {
   if (method === "GET" && (pathname === "/api/health" || pathname === "/api/exercises/search")) return true;

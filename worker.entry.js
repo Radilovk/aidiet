@@ -16039,8 +16039,9 @@ async function handleXbodyBook(request, env) {
           datetime: time,
           appointmentTypeID: Number(XBODY_ACUITY_BOOKING.appointmentTypeID),
           calendarID: Number(XBODY_ACUITY_BOOKING.calendarID),
-          firstName: (previous && previous.firstName) || names[0] || '',
-          lastName: (previous && previous.lastName) || names.slice(1).join(' '),
+          // the client as registered in the app (not a name from an earlier booking, e.g. a card holder's)
+          firstName: names[0] || (previous && previous.firstName) || '',
+          lastName: (names[0] ? names.slice(1).join(' ') : '') || (previous && previous.lastName) || '',
           email: (previous && previous.email) || email,
           phone: (previous && previous.phone) || b.phone,
           timezone: XBODY_ACUITY_BOOKING.timezone,
@@ -16121,7 +16122,10 @@ async function xbodyOwnAppointment(env, b) {
   const mine = appt && String(appt.calendarID || '') === XBODY_ACUITY_BOOKING.calendarID &&
     String(appt.email || '').trim().toLowerCase() === b.email && xbodyPhoneKey(appt.phone) === xbodyPhoneKey(b.phone);
   if (!mine) return { error: jsonResponse({ error: 'not_found' }, 404) };
-  if (appt.canceled) return { error: jsonResponse({ error: 'already_canceled' }, 409) };
+  if (appt.canceled) {   // canceled elsewhere (Acuity's page, the studio): the client's cached list is stale
+    await dropXbodyApptCache(env, b.email);
+    return { error: jsonResponse({ error: 'already_canceled' }, 409) };
+  }
   return { appt, auth };
 }
 
@@ -16219,7 +16223,7 @@ async function handleXbodyAppointments(request, env) {
         if (!payload.version) {
           payload.version = computeXbodyApptVersion(payload.upcoming, payload.past);
         }
-        return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
+        return jsonResponse(payload, 200, { cacheControl: 'private, no-store' });   // a cancel must show at once
       }
     } catch (err) {
       console.warn('[xbody-appointments] KV cache read failed:', err.message);
@@ -16289,7 +16293,7 @@ async function handleXbodyAppointments(request, env) {
     }
   }
 
-  return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
+  return jsonResponse(payload, 200, { cacheControl: 'private, no-store' });
 }
 
 /** FitPlan AI routes — delegated to fitness/worker.js (uses FITNESS_KV or page_content). */

@@ -2012,7 +2012,10 @@
                     if (what === 'move-no') { sheet.classList.add('hidden'); return; }
                     if (what === 'move-yes') {
                         const from = moving.iso, to = sheetMoveTo;
-                        manageCall('/api/xbody/reschedule', { id: moving.id, time: to }, 'move-yes', function () {
+                        manageCall('/api/xbody/reschedule', { id: moving.id, time: to }, 'move-yes', function (d) {
+                            const A = window.XBodyAppointments;
+                            const at = (d && d.time) || to;
+                            if (A && A.change) A.change(moving.id, { datetime: at, time: at.slice(11, 16) });
                             moving = null;
                             afterManage([from, to], 'Часът е променен ✓',
                                 '<li><span>' + esc(dayLabel(to.slice(0, 10))) + ' · <b>' + esc(to.slice(11, 16)) + '</b></span></li>',
@@ -2025,6 +2028,8 @@
                     if (what === 'cancel-yes') {
                         const o = sheetOwn;
                         manageCall('/api/xbody/cancel', { id: o.item.id }, 'cancel-yes', function () {
+                            const A = window.XBodyAppointments;
+                            if (A && A.change) A.change(o.item.id, { canceled: true });
                             if (moving && moving.id === o.item.id) moving = null;
                             afterManage([o.iso], 'Часът е отказан ✓',
                                 '<li><span>' + esc(dayLabel(o.iso.slice(0, 10))) + ' · <b>' + esc(o.hm) + '</b></span></li>',
@@ -2418,6 +2423,12 @@
                     booking = false;
                     if (res.status === 200 && res.d && res.d.ok) { done(res.d); return; }
                     const e = res.d && res.d.error;
+                    if (e === 'already_canceled') {   // canceled elsewhere: the list and the calendar follow at once
+                        const A = window.XBodyAppointments;
+                        if (A && A.change) A.change(payload.id, { canceled: true });
+                        window.dispatchEvent(new CustomEvent('xbody-appt-invalidate', { detail: { email: c.email } }));
+                        render();
+                    }
                     manageError(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
                         : e === 'too_late' ? 'Този час вече не може да се мести или отказва онлайн. За промяна се обадете на студиото.'
                         : e === 'taken' ? 'Новият час не може да бъде зает (току-що е записан от друг или е извън правилата) — изберете друг.'
@@ -3392,12 +3403,36 @@
                 applyCache(payload, Date.now(), true, false, null);
             }
 
+            function changeAppt(id, patch) {
+                const contact = getUserContact();
+                if (!contact || !id) return;
+                const local = memoryCache || (readLocalCache(contact.email) || {}).data;
+                if (!local) return;
+                const all = [].concat(local.upcoming || [], local.past || []).map(function (a) {
+                    return String(a.id) === String(id) ? Object.assign({}, a, patch) : a;
+                });
+                const now = Date.now();
+                const payload = { upcoming: [], past: [] };
+                all.forEach(function (a) {
+                    const t = Date.parse(String(a.datetime || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2'));   // "+0200" → "+02:00" (Safari)
+                    (!a.canceled && t >= now ? payload.upcoming : payload.past).push(a);
+                });
+                payload.upcoming.sort(function (a, b) { return String(a.datetime).localeCompare(String(b.datetime)); });
+                try {   // a just-booked hour must not come back as booked
+                    localStorage.setItem(BOOKED_KEY, JSON.stringify(justBooked().map(function (x) {
+                        return String(x.item.id) === String(id) ? { item: Object.assign({}, x.item, patch), at: x.at } : x;
+                    })));
+                } catch (_) {}
+                writeLocalCache(contact.email, payload, now, null);
+                applyCache(payload, now, true, false, null);
+            }
+
             async function fetchFromServer(contact, force) {
                 const params = new URLSearchParams({ email: contact.email });
                 if (force) {
                     params.set('refresh', '1');
                 }
-                const resp = await fetch(WORKER_URL + '/api/xbody/appointments?' + params.toString());
+                const resp = await fetch(WORKER_URL + '/api/xbody/appointments?' + params.toString(), { cache: 'no-store' });
                 const data = await resp.json().catch(function () { return {}; });
                 if (!resp.ok) {
                     throw new Error(data.error || 'Грешка при зареждане.');
@@ -3415,7 +3450,7 @@
 
             async function fetchServerVersion(contact) {
                 const params = new URLSearchParams({ email: contact.email });
-                const resp = await fetch(WORKER_URL + '/api/xbody/appointments/version?' + params.toString());
+                const resp = await fetch(WORKER_URL + '/api/xbody/appointments/version?' + params.toString(), { cache: 'no-store' });
                 const data = await resp.json().catch(function () { return {}; });
                 if (!resp.ok) {
                     throw new Error(data.error || 'Грешка при проверка.');
@@ -3645,6 +3680,8 @@
                 lastStart: lastStart,
                 /* hours just booked (as the server created them): in the list and on the calendar at once */
                 add: addBooked,
+                /* an hour just canceled or moved in the app: changed in the list and on the calendar at once */
+                change: changeAppt,
                 markDirty: function (email) {
                     markDirty((email || '').trim().toLowerCase() || (getUserContact() && getUserContact().email));
                 }
