@@ -2192,10 +2192,10 @@
                 busyButton('[data-go="book"]', 'Момент…');
                 busyButton('[data-go="new-card"]', 'Момент…');
                 postJson('/api/xbody/guarantee', {
-                    email: c.email, phone: c.phone, name: c.name, times: times, paymentMethod: saved ? saved.pm : undefined
+                    email: c.email, phone: c.phone, name: c.name, times: times, paymentMethod: saved ? saved.pm : undefined, newCard: fresh ? true : undefined
                 }).then(function (res) {
                     if (res.status === 503 && res.d.error === 'no_stripe') return sendBooking(c, times, '');   // no card step set up yet
-                    if (res.status === 200 && res.d.saved && saved) return openSavedCardSheet(c, times, res.d, saved);
+                    if (res.status === 200 && res.d.saved && res.d.saved.pm && !fresh) return openSavedCardSheet(c, times, res.d, res.d.saved);
                     if (res.status === 200 && saved) forgetCard();   // the saved card is gone or expired: a new one
                     if (res.status !== 200 || !res.d.clientSecret) {
                         booking = false;

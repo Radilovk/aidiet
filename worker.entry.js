@@ -17274,6 +17274,7 @@ async function xbodyReadBooking(request) {
     name: String((body && body.name) || '').trim().replace(/\s+/g, ' ').slice(0, 80),
     setupIntent: String((body && body.setupIntent) || ''),
     paymentMethod: String((body && body.paymentMethod) || ''),
+    newCard: Boolean(body && body.newCard === true),
     sms: !(body && body.sms === false),
     terms: Boolean(body && body.terms === true),
     times: [...new Set((Array.isArray(body && body.times) ? body.times : []).map(String))]
@@ -17325,6 +17326,28 @@ async function xbodySavedCard(env, pm, email) {
   }
 }
 
+/** the client's card kept by Stripe from an earlier booking, found by e-mail + the same phone (a phone that lost its
+ *  own memory, a new phone): { pm, customer, brand, last4 } or null. Only the brand and last digits go back to the client. */
+async function xbodyFindCard(env, email, phone) {
+  try {
+    const key = xbodyPhoneKey(phone);
+    const found = await xbodyStripe(env, 'GET', 'customers', { email, limit: 5 });
+    for (const cust of (found && Array.isArray(found.data) ? found.data : [])) {
+      if (xbodyPhoneKey(cust.phone) !== key) continue;
+      const list = await xbodyStripe(env, 'GET', `customers/${cust.id}/payment_methods`, { type: 'card', limit: 3 });
+      const now = new Date();
+      for (const m of (list && Array.isArray(list.data) ? list.data : [])) {
+        const c = m.card;
+        if (!c || c.exp_year < now.getUTCFullYear() || (c.exp_year === now.getUTCFullYear() && c.exp_month < now.getUTCMonth() + 1)) continue;
+        return { pm: m.id, customer: cust.id, brand: c.brand || '', last4: c.last4 || '' };
+      }
+    }
+  } catch (err) {
+    console.warn('[xbody-book] card lookup failed:', err.message);
+  }
+  return null;
+}
+
 async function xbodyPrice(env) {
   if (xbodyPriceMemo && Date.now() - xbodyPriceMemo.at < 6 * 3600 * 1000) return xbodyPriceMemo.price;
   let price = null;
@@ -17349,12 +17372,13 @@ async function handleXbodyGuarantee(request, env) {
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PUBLISHABLE_KEY) return jsonResponse({ error: 'no_stripe' }, 503);
   const b = await xbodyReadBooking(request);
   if (b.error) return b.error;
-  if (b.paymentMethod) {   // the card saved before: no new SetupIntent, the client only confirms
-    const saved = await xbodySavedCard(env, b.paymentMethod, b.email);
+  if (!b.newCard) {   // the card saved before (the phone's own, else Stripe's by e-mail + phone): no new SetupIntent, only a confirm
+    let saved = b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, b.email) : null;
+    if (!saved) saved = await xbodyFindCard(env, b.email, b.phone);
     if (saved) {
       const price = await xbodyPrice(env);
       return jsonResponse({
-        saved: { brand: saved.brand, last4: saved.last4 },
+        saved: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
         price,
         total: price === null ? null : Math.round(price * b.times.length * 100) / 100,
       });

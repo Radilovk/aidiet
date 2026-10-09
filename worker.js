@@ -38359,6 +38359,7 @@ async function xbodyReadBooking(request) {
     name: String(body && body.name || "").trim().replace(/\s+/g, " ").slice(0, 80),
     setupIntent: String(body && body.setupIntent || ""),
     paymentMethod: String(body && body.paymentMethod || ""),
+    newCard: Boolean(body && body.newCard === true),
     sms: !(body && body.sms === false),
     terms: Boolean(body && body.terms === true),
     times: [...new Set((Array.isArray(body && body.times) ? body.times : []).map(String))].filter((t) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2}$/.test(t)).filter((t) => {
@@ -38403,6 +38404,25 @@ async function xbodySavedCard(env, pm, email) {
     return null;
   }
 }
+async function xbodyFindCard(env, email, phone) {
+  try {
+    const key = xbodyPhoneKey(phone);
+    const found = await xbodyStripe(env, "GET", "customers", { email, limit: 5 });
+    for (const cust of found && Array.isArray(found.data) ? found.data : []) {
+      if (xbodyPhoneKey(cust.phone) !== key) continue;
+      const list = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
+      const now = /* @__PURE__ */ new Date();
+      for (const m of list && Array.isArray(list.data) ? list.data : []) {
+        const c = m.card;
+        if (!c || c.exp_year < now.getUTCFullYear() || c.exp_year === now.getUTCFullYear() && c.exp_month < now.getUTCMonth() + 1) continue;
+        return { pm: m.id, customer: cust.id, brand: c.brand || "", last4: c.last4 || "" };
+      }
+    }
+  } catch (err) {
+    console.warn("[xbody-book] card lookup failed:", err.message);
+  }
+  return null;
+}
 async function xbodyPrice(env) {
   if (xbodyPriceMemo && Date.now() - xbodyPriceMemo.at < 6 * 3600 * 1e3) return xbodyPriceMemo.price;
   let price = null;
@@ -38425,12 +38445,13 @@ async function handleXbodyGuarantee(request, env) {
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PUBLISHABLE_KEY) return jsonResponse2({ error: "no_stripe" }, 503);
   const b = await xbodyReadBooking(request);
   if (b.error) return b.error;
-  if (b.paymentMethod) {
-    const saved = await xbodySavedCard(env, b.paymentMethod, b.email);
+  if (!b.newCard) {
+    let saved = b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, b.email) : null;
+    if (!saved) saved = await xbodyFindCard(env, b.email, b.phone);
     if (saved) {
       const price = await xbodyPrice(env);
       return jsonResponse2({
-        saved: { brand: saved.brand, last4: saved.last4 },
+        saved: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
         price,
         total: price === null ? null : Math.round(price * b.times.length * 100) / 100
       });
