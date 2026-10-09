@@ -15,7 +15,7 @@ function ok(cond, msg) {
 ok(worker.includes('return { blocking, warnings }'), 'validateWeekPlanChunkAgainstScheme returns split');
 ok(worker.includes('if (dayKcalOk) warnings.push(msg)'), 'daily macro soft when kcal ok');
 ok(worker.includes('COMPOSITION_REPAIR_MAX_PER_CHUNK = 0'), 'no AI composition repair at runtime');
-ok(worker.includes('buildInfeasibilityRetryHints'), 'infeasibility hints on regen');
+ok(!worker.includes('generateMealPlanChunkPrompt'), 'no AI week prompt — retries rebuild from the catalog');
 ok(!worker.includes('hasBlockingNutritionErrors'), 'partial chunk fallback helper removed');
 
 const dailyMacroSoft =

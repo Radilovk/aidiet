@@ -4,7 +4,7 @@
  */
 
 import { MEAL_TYPE_TIMING } from './food-catalog-data.js';
-import { resolveCatalogDietProfile } from './diet-registry.js';
+import { dietFromSignals, libraryDietProfileOf } from './profile-code.js';
 import {
   LIBRARY_ORCHESTRATOR,
   LIBRARY_PROTOCOL_RULES,
@@ -21,30 +21,13 @@ import {
 
 const SLOT_ORDER = ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5'];
 
-/** Map NutriPlan client signals → library diet profile id */
+/**
+ * Map NutriPlan client signals → library diet profile id.
+ * Same rules as the client profile code: the ethical pattern wins, then the
+ * explicit style, then clinical hints; keto and low-carb stay distinct.
+ */
 export function resolveLibraryDietProfile(ctx = {}) {
-  const text = [
-    ctx.dietaryModifier,
-    ...(Array.isArray(ctx.dietPreference) ? ctx.dietPreference : ctx.dietPreference ? [ctx.dietPreference] : []),
-    ctx.dietDislike,
-    ctx.questionnaireHints,
-  ].filter(Boolean).join(' ').toLowerCase();
-
-  const flags = resolveCatalogDietProfile(ctx);
-  if (flags.vegan) return 'vegan';
-  if (flags.vegetarian) return 'vegetarian';
-  if (flags.pescatarian) return 'pescatarian';
-  if (flags.keto) return 'keto';
-  if (/dash|хипертон|кръвно/i.test(text)) return 'dash';
-  if (/paleo|палео/i.test(text)) return 'paleo';
-  if (/fodmap|ibs|подуване/i.test(text)) return 'low_fodmap';
-  if (/висок\s*протеин|high protein/i.test(text)) return 'high_protein';
-  if (/без\s*глутен|gluten/i.test(text)) return 'gluten_free';
-  if (/без\s*млеч|dairy.?free|лактоз/i.test(text)) return 'dairy_free';
-  if (/средиземномор|mediterr/i.test(text)) return 'mediterranean';
-  if (/нисковъглехидрат|low carb/i.test(text)) return 'low_carb';
-  if (/противовъзпалител|anti.?inflam/i.test(text)) return 'anti_inflammatory';
-  return 'balanced';
+  return libraryDietProfileOf(dietFromSignals(ctx));
 }
 
 /** Mifflin-St Jeor BMR + activity → daily kcal target */

@@ -10,12 +10,10 @@
 
 | Файл | Стъпка |
 |------|--------|
-| `KV/prompts/admin_analysis_prompt.txt` | Стъпка 1 — Анализ |
-| `KV/prompts/admin_strategy_prompt.txt` | Стъпка 2 — Стратегия |
-| `KV/prompts/admin_meal_plan_prompt.txt` | Стъпка 3 — Хранителен план |
+| `KV/prompts/admin_analysis_prompt.txt` | Анализ — само преразказ на текста, по желание |
+| `KV/prompts/admin_meal_enrichment_prompt.txt` | Текстове на ястията (Step 5) |
 | `KV/prompts/admin_modification_prompt.txt` | Модификация на план |
 | `KV/prompts/admin_correction_prompt.txt` | Корекция на план |
-| `KV/prompts/admin_summary_prompt.txt` | Обобщение |
 | `KV/prompts/admin_consultation_prompt.txt` | Консултация / чат |
 
 **Правила:**
@@ -59,16 +57,20 @@
 
 ---
 
-## 5. Пайплайн — 4 стъпки
+## 5. Пайплайн — детерминистичен двигател
 
 ```
-Стъпка 1 (Анализ)  →  Стъпка 2 (Стратегия)  →  Стъпка 3 (Хранителен план)  →  Стъпка 4 (Обобщение)
+Въпросник → Код на профила → Анализ → Енергия/макроси → Схема → Ястия → Грамажи → Обобщение
 ```
 
-- Стъпка 1 → изходни данни: `macroGrams`, `macroRatios`, `nutritionalNeeds`.
-- Стъпка 2 може да върне `adjustedMacroGrams` за override на Step 1 macros.
-- Промптите за стъпки 1–4 → виж таблицата в т.1 по-горе.
-- Динамичните food sections (mainlist/whitelist/blacklist) се инжектират само в Step 3 промпта.
+- **Код на профила** (`profile-code.js`) — отговорите → затворени кодове по таблици. Всички модули четат кода, не текста. Непознат отговор → `unmapped`, добавя се в таблицата.
+- **Анализ** (`analysis-deterministic.js`) — проблеми, здравна оценка, прогнози, вода, нужди по правила.
+- **Енергия** (`energy.js`, `step1-deterministic.js`, `macro-targets.js`) — BMR/TDEE/дефицит; макросите по диетата (протеин г/кг, стилът задава въглехидрати/мазнини).
+- **Схема** (`step2-deterministic.js`) — слотове и цели по хранене.
+- **Ястия** (`step3-deterministic.js`, `dish-fingerprint.js`) — избор от `data/plate-formulas.json` (~1200 разгънати чинии) + `data/meal-dishes.json` по макро зона, отпечатък, реалистичност и разнообразие (без един протеин на обяд и вечеря, формула ≤4 пъти седмично); грамажите — един мащаб на ястие, таваните растат с храненето.
+- **Обобщение** (`plan-summary.js`) — макроси от реалната седмица, добавки от протокола.
+- **AI** — не взема решения. По желание: текстовете на ястията (Step 5) и преразказ на анализа (`ANALYSIS_AI_NARRATIVE=1`). Грешка в AI не спира плана.
+- Качество: `npm run test:plan-quality`; дупки в каталога: `npm run report:catalog-coverage`.
 
 ---
 

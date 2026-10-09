@@ -69,6 +69,9 @@ export const FOOD_CATALOG = [
   item('pro_shrimp', 'Скариди', 'скариди', 'protein', ['PRO'], ['main'], 2, { genericOf: 'pro_fish' }),
   item('pro_egg_whites', 'Яйчни белтъци', 'яйчни белтъци', 'protein', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegetarian: true, genericOf: 'pro_eggs' }),
   item('pro_tofu', 'Тофу', 'тофу', 'protein', ['PRO'], ['main', 'snack'], 4, { vegan: true, vegetarian: true }),
+  item('pro_trout', 'Пъстърва', 'пъстърва', 'protein', ['PRO'], ['main'], 4, { genericOf: 'pro_fish' }),
+  item('pro_hake', 'Хек', 'хек', 'protein', ['PRO'], ['main'], 3, { genericOf: 'pro_fish' }),
+  item('pro_sardines', 'Сардини', 'сардини', 'protein', ['PRO', 'FAT'], ['main', 'snack'], 3, { genericOf: 'pro_fish' }),
   item('pro_tempeh', 'Темпе', 'темпе', 'protein', ['PRO'], ['main'], 2, { vegan: true, vegetarian: true }),
   item('pro_whey', 'Протеин (суроватка)', 'протеин суроватка', 'protein', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegetarian: true }),
   item('pro_plant_protein', 'Протеин (растителен)', 'протеин растителен', 'protein', ['PRO'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true }),
@@ -87,6 +90,10 @@ export const FOOD_CATALOG = [
   item('dairy_milk', 'Мляко', 'мляко', 'dairy', ['PRO'], ['breakfast', 'snack'], 4, { vegetarian: true }),
   item('dairy_milk_2', 'Мляко (2%)', 'мляко 2', 'dairy', ['PRO'], ['breakfast', 'snack'], 4, { vegetarian: true, genericOf: 'dairy_milk' }),
   item('dairy_plant_milk', 'Растително мляко', 'растително мляко', 'dairy', ['ENG'], ['breakfast', 'snack'], 4, { vegan: true, vegetarian: true }),
+  item('dairy_soy_yogurt', 'Соево кисело мляко', 'соево кисело мляко', 'dairy', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegan: true, vegetarian: true }),
+  item('dairy_soy_milk', 'Соево мляко', 'соево мляко', 'dairy', ['PRO'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true }),
+  item('dairy_parmesan', 'Пармезан', 'пармезан', 'dairy', ['PRO', 'FAT'], ['main'], 3, { vegetarian: true }),
+  item('dairy_mozzarella', 'Моцарела', 'моцарела', 'dairy', ['PRO', 'FAT'], ['main', 'snack'], 3, { vegetarian: true }),
   item('dairy_kefir', 'Кефир', 'кефир', 'dairy', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegetarian: true }),
 
   // ── VEG — generic + common ──
@@ -112,6 +119,8 @@ export const FOOD_CATALOG = [
   item('veg_pumpkin', 'Тиква', 'тиква', 'vegetable', ['VOL', 'ENG'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('veg_cherry_tomato', 'Чери домати', 'чери домати', 'vegetable', ['VOL'], ['main', 'snack'], 3, { vegan: true, vegetarian: true, genericOf: 'veg_tomato' }),
   item('veg_leek', 'Праз', 'праз', 'vegetable', ['VOL'], ['main'], 3, { vegan: true, vegetarian: true }),
+  item('veg_beet', 'Цвекло', 'цвекло', 'vegetable', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
+  item('veg_brussels', 'Брюкселско зеле', 'брюкселско зеле', 'vegetable', ['VOL'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('veg_oyster_mushroom', 'Еринги', 'еринги', 'vegetable', ['VOL'], ['main'], 2, { vegan: true, vegetarian: true, genericOf: 'veg_mushrooms' }),
 
   // ── ENG — generic + common ──
@@ -131,12 +140,15 @@ export const FOOD_CATALOG = [
   item('eng_tortilla', 'Тортила', 'тортила', 'carb', ['ENG'], ['main', 'snack'], 3, { vegan: true, vegetarian: true }),
   item('eng_sweet_potato', 'Сладки картофи', 'сладки картофи', 'carb', ['ENG'], ['main'], 3, { vegan: true, vegetarian: true, aliases: ['батат'] }),
   item('eng_corn', 'Царевица', 'царевица', 'carb', ['ENG'], ['main', 'snack'], 4, { vegan: true, vegetarian: true }),
+  item('eng_couscous', 'Кус-кус', 'кус-кус', 'carb', ['ENG'], ['main'], 3, { vegan: true, vegetarian: true }),
+  item('eng_lentil_pasta', 'Паста от леща', 'паста от леща', 'carb', ['ENG', 'PRO'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('eng_porridge', 'Каша', 'каша', 'carb', ['ENG'], ['breakfast'], 4, { vegan: true, vegetarian: true }),
 
   // ── LEGUMES ──
   item('leg_lentils', 'Леща', 'леща', 'legume', ['PRO', 'ENG'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('leg_chickpeas', 'Нахут', 'нахут', 'legume', ['PRO', 'ENG'], ['main', 'snack'], 4, { vegan: true, vegetarian: true }),
   item('leg_black_beans', 'Черен боб', 'черен боб', 'legume', ['PRO', 'ENG'], ['main'], 4, { vegan: true, vegetarian: true }),
+  item('leg_edamame', 'Едамаме', 'едамаме', 'legume', ['PRO', 'ENG'], ['main', 'snack', 'late_snack'], 3, { vegan: true, vegetarian: true }),
   item('leg_white_beans', 'Бял боб', 'бял боб', 'legume', ['PRO', 'ENG'], ['main'], 4, { vegan: true, vegetarian: true, aliases: ['боб'] }),
   item('leg_peas', 'Грах', 'грах', 'legume', ['PRO', 'ENG'], ['main'], 4, { vegan: true, vegetarian: true }),
 
@@ -219,7 +231,7 @@ export const CLINICAL_PROTOCOL_EXCLUSIONS = {
       // nuts & seeds (all FAT/PRO items derived from nuts/seeds)
       'ядки', 'бадеми', 'орехи', 'кашу', 'лешници', 'фъстъци', 'фъстъчено масло',
       'бадемово масло', 'тахан', 'семена чиа', 'ленено семе', 'тиквени семки',
-      'слънчогледови семки', 'шамфъстък', 'хумус',
+      'слънчогледови семки', 'шамфъстък', 'хумус', 'слънчогледово масло',
       // grains (incl. gluten) — AIP eliminates ALL grains, not just gluten ones
       'хляб', 'хляб пълнозърнест', 'ръжен хляб', 'овесени ядки', 'овес', 'паста',
       'киноа', 'булгур', 'просо', 'елда', 'тортила', 'царевица',

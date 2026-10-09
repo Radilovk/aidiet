@@ -1,22 +1,11 @@
 /**
- * Step 1 deterministic energy contract — backend authority for kcal/macros.
- * AI keeps narrative (keyProblems, psychology); bounded clinical/metabolic
- * review adjusts intake on top of the backend baseline (never replaces TDEE).
+ * Step 1 energy contract — backend authority for kcal/macros.
+ * A bounded clinical/metabolic review adjusts intake on top of the backend
+ * baseline from structured profile codes only (never replaces TDEE). AI
+ * percentages are not read: the energy is not an AI decision.
  */
 
-/** Default on — set DETERMINISTIC_STEP1=0 to let AI propose Final_Calories/macros. */
-export function deterministicStep1Enabled(env = {}) {
-  const v = env?.DETERMINISTIC_STEP1;
-  if (v === '0' || v === 'false' || v === false) return false;
-  return true;
-}
-
-/** Default on — set METABOLIC_REVIEW=0 to skip bounded AI/structured intake review. */
-export function metabolicReviewEnabled(env = {}) {
-  const v = env?.METABOLIC_REVIEW;
-  if (v === '0' || v === 'false' || v === false) return false;
-  return true;
-}
+import { compileProfile } from './profile-code.js';
 
 /** Per-axis bounds (physiological guardrails for reviewer adjustments). */
 export const METABOLIC_REVIEW_BOUNDS = {
@@ -62,35 +51,25 @@ export function mergeAdjustmentPercent(aiValue, structuredValue) {
 }
 
 /**
- * Deterministic clinical/metabolic hints from structured profile fields only.
- * Catches obvious physiology the regex pipeline cannot infer from free text alone.
+ * Deterministic clinical/metabolic hints from the compiled client profile.
+ *
+ * Чете кодовете, не текста: „Хашимото“ от въпросника е хипотиреоидизъм,
+ * левотироксин в лекарствата — също, а „5–6“ часа сън е 5,5 часа. Старият
+ * регулярен израз не хващаше нито едно от трите.
  * @returns {{ clinical: number, metabolic: number }}
  */
 export function deriveStructuredMetabolicHints(data = {}) {
-  const blob = [
-    ...(Array.isArray(data.medicalConditions) ? data.medicalConditions : []),
-    data['medicalConditions_Ендокринни_детайл'] || '',
-    data['medicalConditions_Метаболитни_детайл'] || '',
-    ...(Array.isArray(data.medications) ? data.medications : []),
-  ].join(' ').toLowerCase();
-
+  const profile = compileProfile(data || {});
   let clinical = 0;
   let metabolic = 0;
 
-  if (/хипотирео|hypothyroid|щитовидн.*(недост|ниска|hypo)/i.test(blob)) {
-    clinical = Math.min(clinical, -5);
-  }
-  if (/хипертирео|hyperthyroid|щитовидн.*(висок|hyper)/i.test(blob)) {
-    clinical = Math.max(clinical, 3);
-  }
+  if (profile.clinical.includes('HYPO')) clinical = Math.min(clinical, -5);
+  if (profile.clinical.includes('HYPER')) clinical = Math.max(clinical, 3);
 
-  const sleep = Number(data.sleepHours);
+  const sleep = Number(profile.sleepHours);
   if (sleep > 0 && sleep < 6) metabolic = Math.min(metabolic, sleep < 5 ? -5 : -3);
 
-  const stress = String(data.stressLevel || '').toLowerCase();
-  if (/много висок|висок|high|severe/i.test(stress)) {
-    metabolic = Math.min(metabolic, -2);
-  }
+  if (profile.stress === 3) metabolic = Math.min(metabolic, -2);
 
   return { clinical, metabolic };
 }
@@ -146,7 +125,8 @@ export function applyBoundedMetabolicReview(analysis, options = {}) {
   if (baseline <= 0) return analysis;
 
   const structured = deriveStructuredMetabolicHints(userData);
-  const review = computeBoundedReviewPercent(cm, {
+  // Само кодовете на профила — процентите от AI (ако стар анализ ги носи) не се четат.
+  const review = computeBoundedReviewPercent({}, {
     goal: userData.goal,
     isLactation: userData.clinicalProtocol === 'postpartum_lactation',
   }, structured);

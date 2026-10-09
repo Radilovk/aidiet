@@ -114,7 +114,11 @@ function libraryProfiles() {
   return libraryProfileCache;
 }
 
-function buildDbIndex(extraDb = {}) {
+let baseIndexCache = null;
+
+/** Таблицата с храни като индекс — строи се веднъж; тя не се променя по време на работа. */
+function baseDbIndex() {
+  if (baseIndexCache) return baseIndexCache;
   const index = new Map();
   // Library-derived profiles first, so the curated table always overrides them.
   for (const [rawKey, values] of Object.entries(libraryProfiles())) {
@@ -123,7 +127,20 @@ function buildDbIndex(extraDb = {}) {
   for (const [rawKey, values] of Object.entries(FOOD_NUTRITION_PER_100G)) {
     index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
   }
-  for (const [rawKey, values] of Object.entries(extraDb)) {
+  baseIndexCache = index;
+  return index;
+}
+
+/**
+ * Индексът за едно търсене. Без допълнителни данни — общият кеширан индекс;
+ * с тях — копие, в което допълнителните имат предимство.
+ */
+function buildDbIndex(extraDb = {}) {
+  const base = baseDbIndex();
+  const extraEntries = Object.entries(extraDb || {});
+  if (!extraEntries.length) return base;
+  const index = new Map(base);
+  for (const [rawKey, values] of extraEntries) {
     if (Array.isArray(values)) index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
     else if (values && typeof values === 'object') index.set(normalizeFoodKey(rawKey), values);
   }
@@ -325,13 +342,44 @@ function macroCost(achieved, target, kcalPerGram, slotKcal) {
   return Math.abs(achieved - target) * kcalPerGram / scale;
 }
 
+/**
+ * Таваните на порциите растат с храненето. 250 г ориз е чиния за хранене от
+ * 600 kcal; за 1000 kcal (клиент от 120 кг на 3000 kcal) същата чиния е
+ * по-голяма, иначе въглехидратите изостават и денят се пълни с мазнини.
+ * Мазнините и подправките не растат — лъжицата си остава лъжица.
+ */
+const MEAL_SIZE_BASE_KCAL = 700;
+const MEAL_SIZE_MAX_FACTOR = 1.4;
+const MEAL_SIZE_GROUPS = new Set(['protein', 'carb', 'legume', 'vegetable', 'dairy', 'fruit']);
+
+function mealSizeFactor(targetKcal) {
+  const k = Number(targetKcal) || 0;
+  return Math.min(MEAL_SIZE_MAX_FACTOR, Math.max(1, k / MEAL_SIZE_BASE_KCAL));
+}
+
+/** Ястие, което не може да се мащабира в реалистични граници — остава каквото е. */
+function keepDishProportions(items) {
+  return {
+    grams: items.map(it => snapGrams(Number(it.referenceGrams) || 0)),
+    feasible: false,
+    reason: 'порцията на ястието не стига целта — избери друго ястие',
+  };
+}
+
+/** Най-малката порция от ястие спрямо референтната. */
+const MIN_DISH_SCALE = 0.5;
+
 function solveDishScale(items, target, maxTotalGrams) {
   const refs = items.map(i => Number(i.referenceGrams) || 0);
   if (refs.some(r => r <= 0)) return null;
   const targetKcal = Number(target?.kcal) || 0;
   if (!(targetKcal > 0)) return null;
 
-  const windows = items.map(item => portionWindow(item));
+  const appetite = mealSizeFactor(targetKcal);
+  const windows = items.map((item) => {
+    const w = portionWindow(item);
+    return MEAL_SIZE_GROUPS.has(w.group) ? { ...w, max: gridFloor(w.max * appetite) } : w;
+  });
   // Готварската мазнина е лъжицата в тигана, не носеща съставка: тя не расте
   // заедно с порцията и не ограничава мащаба на ястието. Мащабирана като
   // всичко останало, тя стигаше 20 г на хранене и 45 г на ден само от олио —
@@ -345,15 +393,17 @@ function solveDishScale(items, target, maxTotalGrams) {
   // Ако вместо това всеки продукт се клампваше поотделно, ястието се
   // разтягаше през хляба, докато яйцата опират в тавана си — и спираше да
   // бъде същото ястие. Ястие, което не стига слота, просто не се избира.
-  const minScale = Math.max(0.35, ...bound(i => windows[i].min).filter(Number.isFinite));
+  // Под половин порция ястието вече не е същата чиния, а символ.
+  const minScale = Math.max(MIN_DISH_SCALE, ...bound(i => windows[i].min).filter(Number.isFinite));
   const maxScale = Math.min(
     ...bound(i => windows[i].max),
     maxTotalGrams / refs.reduce((a, b) => a + b, 0),
   );
   if (maxScale < minScale) return null;
 
+  // Лъжицата в тигана не се смалява с порцията: 5 г зехтин не е готвене.
   const cookingFatGrams = (ref, scale) =>
-    snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5)));
+    snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, Math.max(ref, ref * Math.min(scale, 1.5))));
 
   let best = null;
   const seen = new Set();
@@ -457,8 +507,20 @@ export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEA
  * @returns {number} 0, когато ястието изобщо не може да бъде мащабирано
  */
 export function achievableKcal(products = [], targetKcal = 0) {
+  return achievablePortion(products, targetKcal).kcal;
+}
+
+/**
+ * Порцията, която ястието наистина ще има при тази цел — калории и макроси.
+ * Таваните на продуктите (спанак 200 г, месо 250 г) променят съотношението
+ * при голяма порция, затова то се мери при сервираната порция, не при
+ * референтната.
+ * @returns {{ kcal: number, p: number, c: number, f: number }} нули, когато не се мащабира
+ */
+export function achievablePortion(products = [], targetKcal = 0) {
+  const none = { kcal: 0, p: 0, c: 0, f: 0 };
   const target = Number(targetKcal) || 0;
-  if (target <= 0) return 0;
+  if (target <= 0) return none;
   const items = products
     .map(p => (typeof p === 'string' ? { name: p } : p))
     .map(p => ({
@@ -466,14 +528,16 @@ export function achievableKcal(products = [], targetKcal = 0) {
       profile: lookupFoodProfile(p.name).profile, grams: 0,
     }))
     .filter(item => item.profile);
-  if (!items.length) return 0;
+  if (!items.length) return none;
   const solved = solveDishScale(items, { kcal: target }, MAX_MEAL_WEIGHT_GRAMS);
-  if (!solved) return 0;
+  if (!solved) return none;
   // Същата аритметика, каквато храненето ще покаже: калориите се смятат от
   // закръглените макроси. Иначе ястие, което пасва на ръба (134 при допуск
   // 174±40), излизаше 133 и слотът се обявяваше за грешка.
-  const { p, c, f } = solved.totals;
-  return Math.round(Math.round(p) * 4 + Math.round(c) * 4 + Math.round(f) * 9);
+  const p = Math.round(solved.totals.p);
+  const c = Math.round(solved.totals.c);
+  const f = Math.round(solved.totals.f);
+  return { kcal: Math.round(p * 4 + c * 4 + f * 9), p, c, f };
 }
 
 /**
@@ -643,8 +707,13 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     grams: capItemGrams(item, seedGramsForItem(item, bounds[i], slotTarget, items.length)),
   }));
 
+  // Ястие с декларирана порция се мащабира само като цяло. Ако мащабът не
+  // стига целта, ястието остава в пропорцията си и слотът се отчита като
+  // неизпълним — продуктите не се разтягат поотделно, за да излезе числото.
+  // Решателят по продукти е само за свободни композиции без референтна порция.
+  const isDish = items.length > 0 && items.every(it => Number(it.referenceGrams) > 0);
   const solved = solveDishScale(items, slotTarget, plateBudget)
-    || solveMealGrams(items, slotTarget, bounds, plateBudget);
+    || (isDish ? keepDishProportions(items) : solveMealGrams(items, slotTarget, bounds, plateBudget));
   items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i]) }));
 
   const totals = sumItemNutrition(items);

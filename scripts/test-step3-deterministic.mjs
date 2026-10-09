@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 /** Step 3 deterministic builder — scheme → catalog → solver pipeline. */
-import {
-  buildDeterministicWeekPlanChunk,
-  deterministicStep3Enabled,
-} from '../step3-deterministic.js';
+import { buildDeterministicWeekPlanChunk } from '../step3-deterministic.js';
 import { syncWeekPlanNutritionFromDatabase } from '../meal-day-sync.js';
 import { validateProductNamesInCatalog } from '../food-catalog.js';
 import { parseMealDescription } from '../food-nutrition.js';
@@ -17,8 +14,6 @@ function ok(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
-ok(deterministicStep3Enabled({}), 'deterministic enabled by default');
-ok(!deterministicStep3Enabled({ DETERMINISTIC_STEP3: '0' }), 'opt-out via env');
 
 function makeStrategy({ meals = 5, dailyKcal = 2200 } = {}) {
   const weights = meals === 5

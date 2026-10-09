@@ -126,7 +126,7 @@ export function resolveDishTagFilter(userData, strategy, slotType) {
     filter.requireAll.push('gluten_free');
   }
 
-  const wantsLowCarb = profile.keto
+  const wantsLowCarb = profile.keto || profile.lowCarb
     || /кето|нисковъглехидрат|keto|low carb|инсулин|диабет/.test(hints)
     || userData?.clinicalProtocol === 'insulin_resistance';
   const mainSlot = slotType === 'Хранене 1' || slotType === 'Хранене 2' || slotType === 'Хранене 4';

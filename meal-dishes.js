@@ -8,11 +8,28 @@
  */
 import { snapGrams } from './gram-rounding.js';
 import { inferDishTags } from './dish-tags.js';
+import { catalogFoodOf, expandPlateFormulas, proteinKeyOf } from './plate-formulas.js';
 import dishesDocument from './data/meal-dishes.json' with { type: 'json' };
 
 /**
+ * Веган/вегетарианско — от съставките, не от ръчен флаг: ястие е веган само
+ * ако всеки продукт е. Ръчният флаг остава само при непознат продукт.
+ */
+function dietFlags(raw) {
+  const foods = (raw.products || []).map(p => catalogFoodOf(p.name));
+  if (!foods.length || foods.some(f => !f)) {
+    return { vegan: !!raw.vegan, vegetarian: raw.vegetarian !== undefined ? !!raw.vegetarian : !!raw.vegan };
+  }
+  return {
+    vegan: foods.every(f => f.vegan),
+    vegetarian: foods.every(f => f.vegan || f.vegetarian),
+  };
+}
+
+/**
  * @param {{ id: string, name: string, products: Array<{name: string, grams: number}>,
- *   timing: string[], vegan?: boolean, vegetarian?: boolean, universality?: number, tags?: string[] }} raw
+ *   timing: string[], vegan?: boolean, vegetarian?: boolean, universality?: number, tags?: string[],
+ *   family?: string, source?: string }} raw
  */
 function normalizeDish(raw) {
   const snapped = (raw.products || []).map(p => ({
@@ -30,14 +47,24 @@ function normalizeDish(raw) {
     })),
     referenceGrams: totalGrams,
     timing: [...(raw.timing || [])],
-    vegan: !!raw.vegan,
-    vegetarian: raw.vegetarian !== undefined ? !!raw.vegetarian : !!raw.vegan,
+    ...dietFlags(raw),
     universality: raw.universality ?? 4,
     tags: Array.isArray(raw.tags) ? [...raw.tags] : [],
+    // Семейство: вариантите на една формула са едно ястие за разнообразието.
+    family: raw.family || raw.id,
+    proteinKey: proteinKeyOf(snapped),
+    source: raw.source || 'curated',
   };
 }
 
-export const MEAL_DISHES = (dishesDocument.dishes || []).map(normalizeDish);
+/**
+ * Ръчно курираните ястия + разгънатите формули на чинии
+ * (data/plate-formulas.json).
+ */
+export const MEAL_DISHES = [
+  ...(dishesDocument.dishes || []),
+  ...expandPlateFormulas(),
+].map(normalizeDish);
 
 /** Ястия по id — за бърза проверка. */
 export const MEAL_DISHES_BY_ID = new Map(MEAL_DISHES.map(d => [d.id, d]));
@@ -48,7 +75,8 @@ export const DISH_TIMINGS = ['breakfast', 'main', 'snack', 'late_snack'];
 /**
  * Ястие → каталожен запис (group ready_meal).
  * @param {{ id: string, name: string, products: Array<{name: string, share: number, grams?: number}>,
- *   timing: string[], vegan: boolean, vegetarian: boolean, universality: number, tags?: string[] }} d
+ *   timing: string[], vegan: boolean, vegetarian: boolean, universality: number, tags?: string[],
+ *   family?: string, proteinKey?: string|null }} d
  * @param {(name: string) => string|null} groupOfProduct
  */
 export function dishToCatalogEntry(d, groupOfProduct) {
@@ -70,6 +98,8 @@ export function dishToCatalogEntry(d, groupOfProduct) {
     universality: d.universality,
     vegan: d.vegan,
     vegetarian: d.vegetarian,
+    family: d.family || d.id,
+    proteinKey: d.proteinKey || null,
     tags: d.tags?.length ? [...d.tags] : [],
     dishTags: inferDishTags(d),
     genericOf: null,

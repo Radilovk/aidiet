@@ -12,6 +12,7 @@ import {
   NUTRITION_LIBRARY_VERSION,
 } from './nutrition-library-bridge.js';
 import { MEAL_DISHES, dishToCatalogEntry } from './meal-dishes.js';
+import { proteinKeyOf } from './plate-formulas.js';
 import { applyDishOverlayParts } from './ready-meal-parts.js';
 
 /** @type {object[]} */
@@ -89,6 +90,8 @@ function normalizeDish(d) {
     vegetarian: d.vegetarian !== undefined ? !!d.vegetarian : !!d.vegan,
     universality: Number(d.universality) || 4,
     tags: Array.isArray(d.tags) ? [...d.tags] : [],
+    family: d.family || d.id,
+    proteinKey: d.proteinKey ?? proteinKeyOf(d.products || []),
   };
 }
 
@@ -120,10 +123,15 @@ export function buildRegistryIndex() {
 
   const byId = new Map();
   const byKey = new Map();
+  // Пълното име със скобите: нормализацията ги изтрива и „Говеждо (постно)“
+  // ставаше „говеждо“, „Протеин (растителен)“ — „протеин“.
+  const byFullName = new Map();
   const all = getCatalogEntries();
 
   for (const entry of all) {
     byId.set(entry.id, entry);
+    const full = fullNameKey(entry.name);
+    if (full && !byFullName.has(full)) byFullName.set(full, entry);
     const keys = new Set([
       normalizeFoodKey(entry.name),
       normalizeFoodKey(entry.nutritionKey),
@@ -135,8 +143,13 @@ export function buildRegistryIndex() {
     }
   }
 
-  indexCache = { byId, byKey, all };
+  indexCache = { byId, byKey, byFullName, all };
   return indexCache;
+}
+
+/** Име като ключ, без да се губят скобите — само регистър, булет и интервали. */
+export function fullNameKey(name) {
+  return String(name || '').toLowerCase().replace(/^[•\-*]\s*/, '').replace(/\s+/g, ' ').trim();
 }
 
 export function invalidateRegistryIndex() {
@@ -147,6 +160,8 @@ export function invalidateRegistryIndex() {
 /** @returns {{ entry: object|null, unknown: boolean }} */
 export function resolveRegistryEntry(name) {
   const index = buildRegistryIndex();
+  const exact = index.byFullName.get(fullNameKey(name));
+  if (exact) return { entry: exact, unknown: false };
   const normalized = normalizeFoodKey(name);
   if (!normalized) return { entry: null, unknown: true };
 

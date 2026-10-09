@@ -10,7 +10,7 @@ import {
 } from './food-catalog-data.js';
 import { FOOD_NUTRITION_PER_100G } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
-import { buildRegistryIndex, getCatalogEntries } from './food-registry.js';
+import { buildRegistryIndex, fullNameKey, getCatalogEntries } from './food-registry.js';
 import { passesDietRegistry, resolveCatalogDietProfile } from './diet-registry.js';
 import { rankCatalogCandidates } from './candidate-ranking.js';
 import { maxSlotKcalInChunk, buildHighKcalCreationHint } from './step3-creation-hints.js';
@@ -97,6 +97,8 @@ function buildCatalogIndex() {
 /** @returns {{ entry: object|null, unknown: boolean }} */
 export function resolveCatalogEntry(name) {
   const index = buildCatalogIndex();
+  const exact = index.byFullName?.get(fullNameKey(name));
+  if (exact) return { entry: exact, unknown: false };
   const normalized = normalizeFoodKey(name);
   if (!normalized) return { entry: null, unknown: true };
 
@@ -173,53 +175,49 @@ function isDietCompatible(entry, diet) {
 }
 
 /** True if a clinical protocol's food-group elimination excludes this catalog entry. */
+const protocolKeyCache = new WeakMap();
+
+/** Изключените храни на протокола като нормализирани ключове. */
+function protocolExcludedKeys(rule) {
+  if (!protocolKeyCache.has(rule)) {
+    protocolKeyCache.set(rule, new Set((rule.excludeNutritionKeys || []).map(k => normalizeFoodKey(k))));
+  }
+  return protocolKeyCache.get(rule);
+}
+
+/**
+ * True if a clinical protocol's food-group elimination excludes this catalog entry.
+ *
+ * Храната се сравнява по ключ, не по подниз: „картофи“ в AIP не изключва
+ * сладките картофи, а „масло“ — кокосовото масло. Това са различни храни.
+ */
 function isExcludedByProtocol(entry, clinicalProtocolId) {
   const rule = clinicalProtocolId && CLINICAL_PROTOCOL_EXCLUSIONS[clinicalProtocolId];
   if (!rule) return false;
   if (rule.excludeGroups?.includes(entry.group)) return true;
-  if (rule.excludeNutritionKeys?.includes(entry.nutritionKey)) return true;
-  const nameLower = String(entry.name || '').toLowerCase();
-  const keyLower = String(entry.nutritionKey || '').toLowerCase();
-  for (const key of rule.excludeNutritionKeys || []) {
-    const k = String(key).toLowerCase();
-    if (k.length < 3) continue;
-    const nk = normalizeFoodKey(k);
-    if (nameLower.includes(k) || keyLower.includes(k)
-      || normalizeFoodKey(nameLower).includes(nk) || normalizeFoodKey(keyLower).includes(nk)) {
-      return true;
-    }
-  }
-  return false;
+  const keys = protocolExcludedKeys(rule);
+  return keys.has(normalizeFoodKey(entry.nutritionKey || ''))
+    || keys.has(normalizeFoodKey(entry.name || ''));
 }
 
-/** Ready meals: exclude when name or decomposed parts hit clinical protocol keys/groups. */
+/** Ready meals: exclude when the dish or any of its products is excluded. */
 function readyMealViolatesProtocol(entry, clinicalProtocolId) {
   if (!clinicalProtocolId || !entry || entry.group !== 'ready_meal') return false;
   if (isExcludedByProtocol(entry, clinicalProtocolId)) return true;
   const rule = CLINICAL_PROTOCOL_EXCLUSIONS[clinicalProtocolId];
   if (!rule) return false;
 
-  const nameLower = String(entry.name || '').toLowerCase();
-  const keys = rule.excludeNutritionKeys || [];
-  for (const key of keys) {
-    const k = String(key).toLowerCase();
-    if (k.length >= 3 && (nameLower.includes(k) || normalizeFoodKey(nameLower).includes(normalizeFoodKey(k)))) {
-      return true;
-    }
-  }
-
   const parts = READY_MEAL_PARTS[entry.id];
-  if (parts?.length) {
-    for (const part of parts) {
-      const pk = normalizeFoodKey(part.name);
-      if (keys.some(k => pk.includes(normalizeFoodKey(k)) || normalizeFoodKey(k).includes(pk))) return true;
-      if (rule.excludeGroups?.length) {
-        const { entry: partEntry } = resolveCatalogEntry(part.name);
-        if (partEntry && rule.excludeGroups.includes(partEntry.group)) return true;
-      }
-    }
+  if (!parts?.length) {
+    // Без декларирани продукти името е единственото, което знаем.
+    const nameKey = normalizeFoodKey(entry.name || '');
+    return [...protocolExcludedKeys(rule)].some(k => k.length >= 3 && nameKey.includes(k));
   }
-  return false;
+  return parts.some((part) => {
+    const { entry: partEntry, unknown } = resolveCatalogEntry(part.name);
+    if (!unknown && partEntry) return isExcludedByProtocol(partEntry, clinicalProtocolId);
+    return protocolExcludedKeys(rule).has(normalizeFoodKey(part.name));
+  });
 }
 
 function isBlockedByTerms(entry, blockedTerms = []) {

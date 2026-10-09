@@ -133,7 +133,6 @@ Merge с външна библиотека (сурови храни). Ястия
 | `step1-deterministic.js` | Калории / TDEE |
 | `step2-deterministic.js` | Седмична схема, слотове |
 | `step3-deterministic.js` | Избор на ястие, ротация |
-| `step3-slot-repair.js` | AI repair при catalog gap (max 2 calls) |
 | `meal-solver.js` | Мащабиране на грамажи |
 | `worker.entry.js` | Оркестрация (редактираш → `npm run build:worker`) |
 

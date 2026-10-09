@@ -1,6 +1,6 @@
 {
   "updatedAt": "2026-09-01T02:58:04.349Z",
-  "count": 171,
+  "count": 188,
   "dishes": [
     {
       "id": "meal_omelet",
@@ -4186,6 +4186,467 @@
       "vegetarian": true,
       "universality": 4,
       "tags": []
+    },
+    {
+      "id": "late_tuna_cucumber",
+      "name": "Риба тон с краставици",
+      "products": [
+        {
+          "name": "риба тон",
+          "grams": 80
+        },
+        {
+          "name": "краставици",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "late_salmon_cucumber",
+      "name": "Сьомга с краставици",
+      "products": [
+        {
+          "name": "сьомга",
+          "grams": 60
+        },
+        {
+          "name": "краставици",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "late_chicken_avocado",
+      "name": "Пилешко с авокадо",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 60
+        },
+        {
+          "name": "авокадо",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "late_avocado_cucumber",
+      "name": "Авокадо с краставици",
+      "products": [
+        {
+          "name": "авокадо",
+          "grams": 70
+        },
+        {
+          "name": "краставици",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "snack",
+        "late_snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "late_tofu_cucumber",
+      "name": "Тофу с краставици",
+      "products": [
+        {
+          "name": "тофу",
+          "grams": 100
+        },
+        {
+          "name": "краставици",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "mc_chicken_chickpea_spinach",
+      "name": "Пиле с нахут и спанак",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "нахут",
+          "grams": 80
+        },
+        {
+          "name": "спанак",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_salmon_quinoa_broccoli",
+      "name": "Сьомга с киноа и броколи",
+      "products": [
+        {
+          "name": "сьомга",
+          "grams": 150
+        },
+        {
+          "name": "киноа",
+          "grams": 80
+        },
+        {
+          "name": "броколи",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_turkey_lentils_zucchini",
+      "name": "Пуешко с леща и тиквички",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "леща",
+          "grams": 80
+        },
+        {
+          "name": "тиквички",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_beef_beans_cabbage",
+      "name": "Говеждо с боб и зеле",
+      "products": [
+        {
+          "name": "говеждо месо",
+          "grams": 150
+        },
+        {
+          "name": "бял боб",
+          "grams": 80
+        },
+        {
+          "name": "зеле",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_chicken_sweetpotato_spinach",
+      "name": "Пиле със сладки картофи и спанак",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 150
+        },
+        {
+          "name": "сладки картофи",
+          "grams": 100
+        },
+        {
+          "name": "спанак",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_fish_bulgur_peppers",
+      "name": "Риба с булгур и чушки",
+      "products": [
+        {
+          "name": "риба",
+          "grams": 180
+        },
+        {
+          "name": "булгур",
+          "grams": 70
+        },
+        {
+          "name": "чушки",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_pork_lentils_carrots",
+      "name": "Свинско с леща и моркови",
+      "products": [
+        {
+          "name": "свинско месо",
+          "grams": 130
+        },
+        {
+          "name": "леща",
+          "grams": 80
+        },
+        {
+          "name": "моркови",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_turkey_potato_greenbeans",
+      "name": "Пуешко с картофи и зелен фасул",
+      "products": [
+        {
+          "name": "пуешко филе",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 100
+        },
+        {
+          "name": "зелен фасул",
+          "grams": 150
+        },
+        {
+          "name": "зехтин",
+          "grams": 10
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_eggs_potato_spinach",
+      "name": "Омлет с картофи и спанак",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 150
+        },
+        {
+          "name": "картофи",
+          "grams": 100
+        },
+        {
+          "name": "спанак",
+          "grams": 100
+        }
+      ],
+      "timing": [
+        "breakfast",
+        "main"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_eggs_bread_avocado",
+      "name": "Яйца с пълнозърнест хляб и авокадо",
+      "products": [
+        {
+          "name": "яйца",
+          "grams": 120
+        },
+        {
+          "name": "пълнозърнест хляб",
+          "grams": 40
+        },
+        {
+          "name": "авокадо",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_skyr_oats_walnuts",
+      "name": "Скир с овесени ядки и орехи",
+      "products": [
+        {
+          "name": "скир",
+          "grams": 200
+        },
+        {
+          "name": "овесени ядки",
+          "grams": 20
+        },
+        {
+          "name": "орехи",
+          "grams": 20
+        }
+      ],
+      "timing": [
+        "breakfast"
+      ],
+      "vegan": false,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
+    },
+    {
+      "id": "mc_tofu_quinoa_broccoli",
+      "name": "Тофу с киноа и броколи",
+      "products": [
+        {
+          "name": "тофу",
+          "grams": 200
+        },
+        {
+          "name": "киноа",
+          "grams": 50
+        },
+        {
+          "name": "броколи",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "main"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "moderate_carb"
+      ]
     }
   ]
 }

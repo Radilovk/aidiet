@@ -14,7 +14,7 @@ function ok(cond, msg) {
 ok(src.includes('PLAN_VALIDATION_BLOCKING'), 'blocking patterns defined');
 ok(src.includes('blockingErrors'), 'validatePlan returns blockingErrors');
 ok(src.includes('COMPOSITION_REPAIR_MAX_PER_CHUNK = 0'), 'composition repair disabled — precision-first');
-ok(src.includes('step3-creation-hints.js'), 'creation hints wired');
+ok(!src.includes('generateMealPlanChunkPrompt'), 'no AI week generation path');
 ok(!src.includes('bestSnapshot && !hasBlockingNutritionErrors'), 'no partial chunk fallback accept');
 ok(src.includes('медицински прагове'), 'generatePlanCore blocks on safety');
 ok(src.includes("validateMealCombinations({ ...meal, dessert: undefined })"), 'combo check ignores dessert field');

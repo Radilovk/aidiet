@@ -1,0 +1,3798 @@
+{
+  "about": "Формули на чинии: истинско ястие = основа + изрично разрешени варианти. Всяка комбинация е реална чиния; нищо не се съчетава свободно. Ястията се генерират при зареждане (meal-dishes.js) и минават през същите проверки като ръчните.",
+  "sets": {
+    "garnish": [
+      {
+        "key": "rice",
+        "label": "ориз",
+        "products": [
+          [
+            "ориз",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "potatoes",
+        "label": "картофи",
+        "products": [
+          [
+            "картофи",
+            200
+          ]
+        ]
+      },
+      {
+        "key": "quinoa",
+        "label": "киноа",
+        "products": [
+          [
+            "киноа",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "bulgur",
+        "label": "булгур",
+        "products": [
+          [
+            "булгур",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "buckwheat",
+        "label": "елда",
+        "products": [
+          [
+            "елда",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "sweet_potato",
+        "label": "сладки картофи",
+        "products": [
+          [
+            "сладки картофи",
+            200
+          ]
+        ]
+      },
+      {
+        "key": "couscous",
+        "label": "кус-кус",
+        "products": [
+          [
+            "кус-кус",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "none",
+        "label": "",
+        "products": []
+      }
+    ],
+    "garnish_short": [
+      {
+        "key": "potatoes",
+        "label": "картофи",
+        "products": [
+          [
+            "картофи",
+            200
+          ]
+        ]
+      },
+      {
+        "key": "rice",
+        "label": "ориз",
+        "products": [
+          [
+            "ориз",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "bulgur",
+        "label": "булгур",
+        "products": [
+          [
+            "булгур",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "none",
+        "label": "",
+        "products": []
+      }
+    ],
+    "veg_side": [
+      {
+        "key": "broccoli",
+        "label": "броколи",
+        "products": [
+          [
+            "броколи",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "salad",
+        "label": "зелена салата",
+        "products": [
+          [
+            "маруля",
+            100
+          ]
+        ]
+      },
+      {
+        "key": "green_beans",
+        "label": "зелен фасул",
+        "products": [
+          [
+            "зелен фасул",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "zucchini",
+        "label": "тиквички",
+        "products": [
+          [
+            "тиквички",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "vegetables",
+        "label": "печени зеленчуци",
+        "products": [
+          [
+            "зеленчуци",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "spinach",
+        "label": "спанак",
+        "products": [
+          [
+            "спанак",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "cauliflower",
+        "label": "карфиол",
+        "products": [
+          [
+            "карфиол",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "mushrooms",
+        "label": "гъби",
+        "products": [
+          [
+            "гъби",
+            150
+          ]
+        ]
+      }
+    ],
+    "veg_hearty": [
+      {
+        "key": "salad",
+        "label": "зелена салата",
+        "products": [
+          [
+            "маруля",
+            100
+          ]
+        ]
+      },
+      {
+        "key": "cabbage",
+        "label": "салата от зеле",
+        "products": [
+          [
+            "зеле",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "vegetables",
+        "label": "печени зеленчуци",
+        "products": [
+          [
+            "зеленчуци",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "tomatoes",
+        "label": "домати",
+        "products": [
+          [
+            "домати",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "peppers",
+        "label": "чушки",
+        "products": [
+          [
+            "чушки",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "mushrooms",
+        "label": "гъби",
+        "products": [
+          [
+            "гъби",
+            150
+          ]
+        ]
+      }
+    ],
+    "veg_lowcarb": [
+      {
+        "key": "broccoli",
+        "label": "броколи",
+        "products": [
+          [
+            "броколи",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "zucchini",
+        "label": "тиквички",
+        "products": [
+          [
+            "тиквички",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "spinach",
+        "label": "спанак",
+        "products": [
+          [
+            "спанак",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "cauliflower",
+        "label": "карфиол",
+        "products": [
+          [
+            "карфиол",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "salad",
+        "label": "зелена салата",
+        "products": [
+          [
+            "маруля",
+            100
+          ]
+        ]
+      },
+      {
+        "key": "mushrooms",
+        "label": "гъби",
+        "products": [
+          [
+            "гъби",
+            150
+          ]
+        ]
+      }
+    ],
+    "fruit": [
+      {
+        "key": "banana",
+        "label": "банан",
+        "products": [
+          [
+            "банан",
+            100
+          ]
+        ]
+      },
+      {
+        "key": "apple",
+        "label": "ябълка",
+        "products": [
+          [
+            "ябълка",
+            120
+          ]
+        ]
+      },
+      {
+        "key": "blueberries",
+        "label": "боровинки",
+        "products": [
+          [
+            "боровинки",
+            80
+          ]
+        ]
+      },
+      {
+        "key": "raspberries",
+        "label": "малини",
+        "products": [
+          [
+            "малини",
+            80
+          ]
+        ]
+      },
+      {
+        "key": "strawberries",
+        "label": "ягоди",
+        "products": [
+          [
+            "ягоди",
+            100
+          ]
+        ]
+      }
+    ],
+    "fruit_wide": [
+      {
+        "key": "banana",
+        "label": "банан",
+        "products": [
+          [
+            "банан",
+            100
+          ]
+        ]
+      },
+      {
+        "key": "apple",
+        "label": "ябълка",
+        "products": [
+          [
+            "ябълка",
+            120
+          ]
+        ]
+      },
+      {
+        "key": "blueberries",
+        "label": "боровинки",
+        "products": [
+          [
+            "боровинки",
+            80
+          ]
+        ]
+      },
+      {
+        "key": "raspberries",
+        "label": "малини",
+        "products": [
+          [
+            "малини",
+            80
+          ]
+        ]
+      },
+      {
+        "key": "strawberries",
+        "label": "ягоди",
+        "products": [
+          [
+            "ягоди",
+            100
+          ]
+        ]
+      },
+      {
+        "key": "peach",
+        "label": "праскова",
+        "products": [
+          [
+            "праскова",
+            120
+          ]
+        ]
+      },
+      {
+        "key": "pear",
+        "label": "круша",
+        "products": [
+          [
+            "круша",
+            120
+          ]
+        ]
+      }
+    ],
+    "nuts": [
+      {
+        "key": "walnuts",
+        "label": "орехи",
+        "products": [
+          [
+            "орехи",
+            20
+          ]
+        ]
+      },
+      {
+        "key": "almonds",
+        "label": "бадеми",
+        "products": [
+          [
+            "бадеми",
+            20
+          ]
+        ]
+      },
+      {
+        "key": "cashews",
+        "label": "кашу",
+        "products": [
+          [
+            "кашу",
+            20
+          ]
+        ]
+      },
+      {
+        "key": "hazelnuts",
+        "label": "лешници",
+        "products": [
+          [
+            "лешници",
+            20
+          ]
+        ]
+      },
+      {
+        "key": "pumpkin_seeds",
+        "label": "тиквени семки",
+        "products": [
+          [
+            "тиквени семки",
+            20
+          ]
+        ]
+      }
+    ],
+    "bowl_topping": [
+      {
+        "key": "walnuts",
+        "label": "орехи",
+        "products": [
+          [
+            "орехи",
+            15
+          ]
+        ]
+      },
+      {
+        "key": "almonds",
+        "label": "бадеми",
+        "products": [
+          [
+            "бадеми",
+            15
+          ]
+        ]
+      },
+      {
+        "key": "oats",
+        "label": "овесени ядки",
+        "products": [
+          [
+            "овесени ядки",
+            30
+          ]
+        ]
+      },
+      {
+        "key": "chia",
+        "label": "семена чиа",
+        "products": [
+          [
+            "семена чиа",
+            15
+          ]
+        ]
+      }
+    ],
+    "late_topping": [
+      {
+        "key": "walnuts",
+        "label": "орехи",
+        "products": [
+          [
+            "орехи",
+            15
+          ]
+        ]
+      },
+      {
+        "key": "almonds",
+        "label": "бадеми",
+        "products": [
+          [
+            "бадеми",
+            15
+          ]
+        ]
+      },
+      {
+        "key": "chia",
+        "label": "семена чиа",
+        "products": [
+          [
+            "семена чиа",
+            15
+          ]
+        ]
+      },
+      {
+        "key": "flax",
+        "label": "ленено семе",
+        "products": [
+          [
+            "ленено семе",
+            15
+          ]
+        ]
+      },
+      {
+        "key": "pumpkin_seeds",
+        "label": "тиквени семки",
+        "products": [
+          [
+            "тиквени семки",
+            15
+          ]
+        ]
+      }
+    ],
+    "crunch_veg": [
+      {
+        "key": "cucumbers",
+        "label": "краставици",
+        "products": [
+          [
+            "краставици",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "tomatoes",
+        "label": "домати",
+        "products": [
+          [
+            "домати",
+            150
+          ]
+        ]
+      },
+      {
+        "key": "peppers",
+        "label": "чушки",
+        "products": [
+          [
+            "чушки",
+            150
+          ]
+        ]
+      }
+    ],
+    "breakfast_bread": [
+      {
+        "key": "wholegrain",
+        "label": "пълнозърнест хляб",
+        "products": [
+          [
+            "пълнозърнест хляб",
+            50
+          ]
+        ]
+      },
+      {
+        "key": "rye",
+        "label": "ръжен хляб",
+        "products": [
+          [
+            "ръжен хляб",
+            50
+          ]
+        ]
+      },
+      {
+        "key": "none",
+        "label": "",
+        "products": []
+      }
+    ]
+  },
+  "formulas": [
+    {
+      "id": "grill_chicken",
+      "base": "Пилешко филе на скара",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "пилешко месо",
+          150
+        ]
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "set": "garnish"
+        },
+        {
+          "set": "veg_side"
+        }
+      ]
+    },
+    {
+      "id": "oven_chicken_thigh",
+      "base": "Пилешко бутче на фурна",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "пилешко бутче",
+          180
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "potatoes",
+              "label": "картофи",
+              "products": [
+                [
+                  "картофи",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "rice",
+              "label": "ориз",
+              "products": [
+                [
+                  "ориз",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "bulgur",
+              "label": "булгур",
+              "products": [
+                [
+                  "булгур",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "sweet_potato",
+              "label": "сладки картофи",
+              "products": [
+                [
+                  "сладки картофи",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        },
+        {
+          "set": "veg_hearty"
+        }
+      ]
+    },
+    {
+      "id": "turkey_fillet",
+      "base": "Пуешко филе",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "пуешко филе",
+          150
+        ]
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "rice",
+              "label": "ориз",
+              "products": [
+                [
+                  "ориз",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "quinoa",
+              "label": "киноа",
+              "products": [
+                [
+                  "киноа",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "bulgur",
+              "label": "булгур",
+              "products": [
+                [
+                  "булгур",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "buckwheat",
+              "label": "елда",
+              "products": [
+                [
+                  "елда",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "potatoes",
+              "label": "картофи",
+              "products": [
+                [
+                  "картофи",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "broccoli",
+              "label": "броколи",
+              "products": [
+                [
+                  "броколи",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "zucchini",
+              "label": "тиквички",
+              "products": [
+                [
+                  "тиквички",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "green_beans",
+              "label": "зелен фасул",
+              "products": [
+                [
+                  "зелен фасул",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "salad",
+              "label": "зелена салата",
+              "products": [
+                [
+                  "маруля",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "brussels",
+              "label": "брюкселско зеле",
+              "products": [
+                [
+                  "брюкселско зеле",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "beef_stew",
+      "base": "Задушено телешко",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "говеждо (постно)",
+          150
+        ]
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "potatoes",
+              "label": "картофи",
+              "products": [
+                [
+                  "картофи",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "rice",
+              "label": "ориз",
+              "products": [
+                [
+                  "ориз",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "bulgur",
+              "label": "булгур",
+              "products": [
+                [
+                  "булгур",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "pasta",
+              "label": "паста",
+              "products": [
+                [
+                  "паста",
+                  180
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "vegetables",
+              "label": "зеленчуци",
+              "products": [
+                [
+                  "зеленчуци",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "green_beans",
+              "label": "зелен фасул",
+              "products": [
+                [
+                  "зелен фасул",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "carrots",
+              "label": "моркови",
+              "products": [
+                [
+                  "моркови",
+                  120
+                ]
+              ]
+            },
+            {
+              "key": "peppers",
+              "label": "чушки",
+              "products": [
+                [
+                  "чушки",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pork_grill",
+      "base": "Свинско филе на скара",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "свинско (постно)",
+          150
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "potatoes",
+              "label": "картофи",
+              "products": [
+                [
+                  "картофи",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "rice",
+              "label": "ориз",
+              "products": [
+                [
+                  "ориз",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "buckwheat",
+              "label": "елда",
+              "products": [
+                [
+                  "елда",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "cabbage",
+              "label": "салата от зеле",
+              "products": [
+                [
+                  "зеле",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "salad",
+              "label": "зелена салата",
+              "products": [
+                [
+                  "маруля",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "vegetables",
+              "label": "печени зеленчуци",
+              "products": [
+                [
+                  "зеленчуци",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "peppers",
+              "label": "печени чушки",
+              "products": [
+                [
+                  "чушки",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "meatballs",
+      "base": "Кюфтета от кайма",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "кайма",
+          130
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "potatoes",
+              "label": "картофи",
+              "products": [
+                [
+                  "картофи",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "rice",
+              "label": "ориз",
+              "products": [
+                [
+                  "ориз",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "bulgur",
+              "label": "булгур",
+              "products": [
+                [
+                  "булгур",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "tomatoes",
+              "label": "домати",
+              "products": [
+                [
+                  "домати",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "cucumbers",
+              "label": "краставици",
+              "products": [
+                [
+                  "краставици",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "salad",
+              "label": "зелена салата",
+              "products": [
+                [
+                  "маруля",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "cabbage",
+              "label": "салата от зеле",
+              "products": [
+                [
+                  "зеле",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oven_fish",
+      "base": "{fish} на фурна",
+      "timing": [
+        "main"
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "key": "fish",
+          "options": [
+            {
+              "key": "salmon",
+              "title": "Сьомга",
+              "products": [
+                [
+                  "сьомга",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "trout",
+              "title": "Пъстърва",
+              "products": [
+                [
+                  "пъстърва",
+                  180
+                ]
+              ]
+            },
+            {
+              "key": "hake",
+              "title": "Хек",
+              "products": [
+                [
+                  "хек",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "cod",
+              "title": "Треска",
+              "products": [
+                [
+                  "треска",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "mackerel",
+              "title": "Скумрия",
+              "products": [
+                [
+                  "скумрия",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "white_fish",
+              "title": "Бяла риба",
+              "products": [
+                [
+                  "риба",
+                  180
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "potatoes",
+              "label": "картофи",
+              "products": [
+                [
+                  "картофи",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "rice",
+              "label": "ориз",
+              "products": [
+                [
+                  "ориз",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "quinoa",
+              "label": "киноа",
+              "products": [
+                [
+                  "киноа",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "bulgur",
+              "label": "булгур",
+              "products": [
+                [
+                  "булгур",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "sweet_potato",
+              "label": "сладки картофи",
+              "products": [
+                [
+                  "сладки картофи",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "broccoli",
+              "label": "броколи",
+              "products": [
+                [
+                  "броколи",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "salad",
+              "label": "зелена салата",
+              "products": [
+                [
+                  "маруля",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "spinach",
+              "label": "спанак",
+              "products": [
+                [
+                  "спанак",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "green_beans",
+              "label": "зелен фасул",
+              "products": [
+                [
+                  "зелен фасул",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "zucchini",
+              "label": "тиквички",
+              "products": [
+                [
+                  "тиквички",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tuna_salad",
+      "base": "Салата с риба тон",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "риба тон",
+          120
+        ],
+        [
+          "маруля",
+          100
+        ]
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "chickpeas",
+              "label": "нахут",
+              "products": [
+                [
+                  "нахут",
+                  80
+                ]
+              ]
+            },
+            {
+              "key": "corn",
+              "label": "царевица",
+              "products": [
+                [
+                  "царевица",
+                  80
+                ]
+              ]
+            },
+            {
+              "key": "quinoa",
+              "label": "киноа",
+              "products": [
+                [
+                  "киноа",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "potatoes",
+              "label": "картофи",
+              "products": [
+                [
+                  "картофи",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "white_beans",
+              "label": "бял боб",
+              "products": [
+                [
+                  "бял боб",
+                  80
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pasta_plate",
+      "base": "Паста",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "паста",
+          180
+        ]
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "chicken",
+              "label": "пиле",
+              "products": [
+                [
+                  "пилешко месо",
+                  120
+                ]
+              ]
+            },
+            {
+              "key": "minced",
+              "label": "кайма",
+              "products": [
+                [
+                  "кайма",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "tuna",
+              "label": "риба тон",
+              "products": [
+                [
+                  "риба тон",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "tofu",
+              "label": "тофу",
+              "products": [
+                [
+                  "тофу",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "tomatoes",
+              "label": "домати",
+              "products": [
+                [
+                  "домати",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "zucchini",
+              "label": "тиквички",
+              "products": [
+                [
+                  "тиквички",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "spinach",
+              "label": "спанак",
+              "products": [
+                [
+                  "спанак",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "broccoli",
+              "label": "броколи",
+              "products": [
+                [
+                  "броколи",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lentil_pasta",
+      "base": "Паста от леща",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "паста от леща",
+          180
+        ]
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "tomatoes",
+              "label": "домати",
+              "products": [
+                [
+                  "домати",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "spinach",
+              "label": "спанак",
+              "products": [
+                [
+                  "спанак",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "zucchini",
+              "label": "тиквички",
+              "products": [
+                [
+                  "тиквички",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "broccoli",
+              "label": "броколи",
+              "products": [
+                [
+                  "броколи",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "tofu",
+              "label": "тофу",
+              "products": [
+                [
+                  "тофу",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tofu_pan",
+      "base": "Тофу на тиган",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "тофу",
+          200
+        ]
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "rice",
+              "label": "ориз",
+              "products": [
+                [
+                  "ориз",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "quinoa",
+              "label": "киноа",
+              "products": [
+                [
+                  "киноа",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "bulgur",
+              "label": "булгур",
+              "products": [
+                [
+                  "булгур",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "buckwheat",
+              "label": "елда",
+              "products": [
+                [
+                  "елда",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "couscous",
+              "label": "кус-кус",
+              "products": [
+                [
+                  "кус-кус",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "broccoli",
+              "label": "броколи",
+              "products": [
+                [
+                  "броколи",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "peppers",
+              "label": "чушки",
+              "products": [
+                [
+                  "чушки",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "spinach",
+              "label": "спанак",
+              "products": [
+                [
+                  "спанак",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "vegetables",
+              "label": "зеленчуци",
+              "products": [
+                [
+                  "зеленчуци",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "zucchini",
+              "label": "тиквички",
+              "products": [
+                [
+                  "тиквички",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "edamame_bowl",
+      "base": "Купа с едамаме",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "едамаме",
+          150
+        ]
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "rice",
+              "label": "ориз",
+              "products": [
+                [
+                  "ориз",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "quinoa",
+              "label": "киноа",
+              "products": [
+                [
+                  "киноа",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "bulgur",
+              "label": "булгур",
+              "products": [
+                [
+                  "булгур",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "cucumbers",
+              "label": "краставици",
+              "products": [
+                [
+                  "краставици",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "carrots",
+              "label": "моркови",
+              "products": [
+                [
+                  "моркови",
+                  120
+                ]
+              ]
+            },
+            {
+              "key": "salad",
+              "label": "зелена салата",
+              "products": [
+                [
+                  "маруля",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "vegetables",
+              "label": "зеленчуци",
+              "products": [
+                [
+                  "зеленчуци",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "legume_stew",
+      "base": "{legume}",
+      "timing": [
+        "main"
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "key": "legume",
+          "options": [
+            {
+              "key": "lentils",
+              "title": "Яхния от леща",
+              "products": [
+                [
+                  "леща",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "beans",
+              "title": "Боб яхния",
+              "products": [
+                [
+                  "бял боб",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "chickpeas",
+              "title": "Яхния от нахут",
+              "products": [
+                [
+                  "нахут",
+                  180
+                ]
+              ]
+            },
+            {
+              "key": "black_beans",
+              "title": "Яхния от черен боб",
+              "products": [
+                [
+                  "черен боб",
+                  200
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "carrots",
+              "label": "моркови",
+              "products": [
+                [
+                  "моркови",
+                  120
+                ]
+              ]
+            },
+            {
+              "key": "tomatoes",
+              "label": "домати",
+              "products": [
+                [
+                  "домати",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "spinach",
+              "label": "спанак",
+              "products": [
+                [
+                  "спанак",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "peppers",
+              "label": "чушки",
+              "products": [
+                [
+                  "чушки",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "vegetables",
+              "label": "зеленчуци",
+              "products": [
+                [
+                  "зеленчуци",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "bread",
+              "label": "пълнозърнест хляб",
+              "products": [
+                [
+                  "пълнозърнест хляб",
+                  50
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "keto_fish",
+      "base": "{fish}",
+      "timing": [
+        "main"
+      ],
+      "choices": [
+        {
+          "key": "fish",
+          "options": [
+            {
+              "key": "salmon",
+              "title": "Сьомга",
+              "products": [
+                [
+                  "сьомга",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "mackerel",
+              "title": "Скумрия",
+              "products": [
+                [
+                  "скумрия",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "trout",
+              "title": "Пъстърва",
+              "products": [
+                [
+                  "пъстърва",
+                  180
+                ]
+              ]
+            },
+            {
+              "key": "sardines",
+              "title": "Сардини",
+              "products": [
+                [
+                  "сардини",
+                  130
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "set": "veg_lowcarb"
+        },
+        {
+          "options": [
+            {
+              "key": "avocado",
+              "label": "авокадо",
+              "products": [
+                [
+                  "авокадо",
+                  70
+                ]
+              ]
+            },
+            {
+              "key": "olives",
+              "label": "маслини",
+              "products": [
+                [
+                  "маслини",
+                  40
+                ]
+              ]
+            },
+            {
+              "key": "butter",
+              "label": "масло",
+              "products": [
+                [
+                  "масло",
+                  10
+                ]
+              ]
+            },
+            {
+              "key": "olive_oil",
+              "label": "зехтин",
+              "products": [
+                [
+                  "зехтин",
+                  15
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "keto_meat",
+      "base": "{meat}",
+      "timing": [
+        "main"
+      ],
+      "choices": [
+        {
+          "key": "meat",
+          "options": [
+            {
+              "key": "chicken_thigh",
+              "title": "Пилешко бутче",
+              "products": [
+                [
+                  "пилешко бутче",
+                  180
+                ]
+              ]
+            },
+            {
+              "key": "pork",
+              "title": "Свинско",
+              "products": [
+                [
+                  "свинско месо",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "beef",
+              "title": "Телешко",
+              "products": [
+                [
+                  "говеждо месо",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "minced",
+              "title": "Кюфтета",
+              "products": [
+                [
+                  "кайма",
+                  130
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "set": "veg_lowcarb"
+        },
+        {
+          "options": [
+            {
+              "key": "cheese",
+              "label": "сирене",
+              "products": [
+                [
+                  "сирене",
+                  40
+                ]
+              ]
+            },
+            {
+              "key": "kashkaval",
+              "label": "кашкавал",
+              "products": [
+                [
+                  "кашкавал",
+                  30
+                ]
+              ]
+            },
+            {
+              "key": "avocado",
+              "label": "авокадо",
+              "products": [
+                [
+                  "авокадо",
+                  70
+                ]
+              ]
+            },
+            {
+              "key": "butter",
+              "label": "масло",
+              "products": [
+                [
+                  "масло",
+                  10
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tofu_lowcarb",
+      "base": "Тофу",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "тофу",
+          200
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "broccoli",
+              "label": "броколи",
+              "products": [
+                [
+                  "броколи",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "spinach",
+              "label": "спанак",
+              "products": [
+                [
+                  "спанак",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "zucchini",
+              "label": "тиквички",
+              "products": [
+                [
+                  "тиквички",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "cauliflower",
+              "label": "карфиол",
+              "products": [
+                [
+                  "карфиол",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "brussels",
+              "label": "брюкселско зеле",
+              "products": [
+                [
+                  "брюкселско зеле",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "avocado",
+              "label": "авокадо",
+              "products": [
+                [
+                  "авокадо",
+                  70
+                ]
+              ]
+            },
+            {
+              "key": "tahini",
+              "label": "тахан",
+              "products": [
+                [
+                  "тахан",
+                  15
+                ]
+              ]
+            },
+            {
+              "key": "pumpkin_seeds",
+              "label": "тиквени семки",
+              "products": [
+                [
+                  "тиквени семки",
+                  20
+                ]
+              ]
+            },
+            {
+              "key": "olives",
+              "label": "маслини",
+              "products": [
+                [
+                  "маслини",
+                  40
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "baked_veg_cheese",
+      "base": "{veg} със сирене и яйца",
+      "timing": [
+        "main"
+      ],
+      "core": [
+        [
+          "сирене",
+          60
+        ],
+        [
+          "яйца",
+          100
+        ]
+      ],
+      "choices": [
+        {
+          "key": "veg",
+          "options": [
+            {
+              "key": "zucchini",
+              "title": "Запечени тиквички",
+              "products": [
+                [
+                  "тиквички",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "eggplant",
+              "title": "Запечен патладжан",
+              "products": [
+                [
+                  "патладжан",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "spinach",
+              "title": "Запечен спанак",
+              "products": [
+                [
+                  "спанак",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "peppers",
+              "title": "Запечени чушки",
+              "products": [
+                [
+                  "чушки",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "title": "Запечени гъби",
+              "products": [
+                [
+                  "гъби",
+                  200
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oatmeal",
+      "base": "Овесена каша",
+      "timing": [
+        "breakfast"
+      ],
+      "core": [
+        [
+          "овесени ядки",
+          50
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "milk",
+              "label": "мляко",
+              "products": [
+                [
+                  "мляко",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "plant_milk",
+              "label": "растително мляко",
+              "products": [
+                [
+                  "растително мляко",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "soy_milk",
+              "label": "соево мляко",
+              "products": [
+                [
+                  "соево мляко",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "yogurt",
+              "label": "кисело мляко",
+              "products": [
+                [
+                  "кисело мляко",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "set": "fruit"
+        },
+        {
+          "options": [
+            {
+              "key": "walnuts",
+              "label": "орехи",
+              "products": [
+                [
+                  "орехи",
+                  15
+                ]
+              ]
+            },
+            {
+              "key": "almonds",
+              "label": "бадеми",
+              "products": [
+                [
+                  "бадеми",
+                  15
+                ]
+              ]
+            },
+            {
+              "key": "chia",
+              "label": "семена чиа",
+              "products": [
+                [
+                  "семена чиа",
+                  10
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "omelet",
+      "base": "Омлет",
+      "timing": [
+        "breakfast"
+      ],
+      "core": [
+        [
+          "яйца",
+          150
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "tomatoes",
+              "label": "домати",
+              "products": [
+                [
+                  "домати",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "spinach",
+              "label": "спанак",
+              "products": [
+                [
+                  "спанак",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "peppers",
+              "label": "чушки",
+              "products": [
+                [
+                  "чушки",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "zucchini",
+              "label": "тиквички",
+              "products": [
+                [
+                  "тиквички",
+                  100
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "cheese",
+              "label": "сирене",
+              "products": [
+                [
+                  "сирене",
+                  30
+                ]
+              ]
+            },
+            {
+              "key": "kashkaval",
+              "label": "кашкавал",
+              "products": [
+                [
+                  "кашкавал",
+                  25
+                ]
+              ]
+            },
+            {
+              "key": "none",
+              "label": "",
+              "products": []
+            }
+          ]
+        },
+        {
+          "set": "breakfast_bread"
+        }
+      ]
+    },
+    {
+      "id": "dairy_bowl",
+      "base": "{base}",
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "choices": [
+        {
+          "key": "base",
+          "options": [
+            {
+              "key": "skyr",
+              "title": "Скир",
+              "products": [
+                [
+                  "скир",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "cottage",
+              "title": "Извара",
+              "products": [
+                [
+                  "извара",
+                  180
+                ]
+              ]
+            },
+            {
+              "key": "greek",
+              "title": "Гръцко кисело мляко",
+              "products": [
+                [
+                  "гръцко кисело мляко",
+                  180
+                ]
+              ]
+            },
+            {
+              "key": "yogurt",
+              "title": "Кисело мляко",
+              "products": [
+                [
+                  "кисело мляко",
+                  250
+                ]
+              ]
+            },
+            {
+              "key": "soy_yogurt",
+              "title": "Соево кисело мляко",
+              "products": [
+                [
+                  "соево кисело мляко",
+                  200
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "set": "fruit_wide"
+        },
+        {
+          "set": "bowl_topping"
+        }
+      ]
+    },
+    {
+      "id": "sandwich",
+      "base": "{bread} сандвич",
+      "timing": [
+        "breakfast"
+      ],
+      "choices": [
+        {
+          "key": "bread",
+          "options": [
+            {
+              "key": "wholegrain",
+              "title": "Пълнозърнест",
+              "products": [
+                [
+                  "пълнозърнест хляб",
+                  80
+                ]
+              ]
+            },
+            {
+              "key": "rye",
+              "title": "Ръжен",
+              "products": [
+                [
+                  "ръжен хляб",
+                  80
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "cheese",
+              "label": "сирене",
+              "products": [
+                [
+                  "сирене",
+                  60
+                ]
+              ]
+            },
+            {
+              "key": "cottage",
+              "label": "извара",
+              "products": [
+                [
+                  "извара",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "eggs",
+              "label": "яйца",
+              "products": [
+                [
+                  "яйца",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "hummus",
+              "label": "хумус",
+              "products": [
+                [
+                  "хумус",
+                  70
+                ]
+              ]
+            },
+            {
+              "key": "avocado",
+              "label": "авокадо",
+              "products": [
+                [
+                  "авокадо",
+                  70
+                ]
+              ]
+            },
+            {
+              "key": "tuna",
+              "label": "риба тон",
+              "products": [
+                [
+                  "риба тон",
+                  80
+                ]
+              ]
+            },
+            {
+              "key": "kashkaval",
+              "label": "кашкавал",
+              "products": [
+                [
+                  "кашкавал",
+                  40
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "tomatoes",
+              "label": "домати",
+              "products": [
+                [
+                  "домати",
+                  80
+                ]
+              ]
+            },
+            {
+              "key": "cucumbers",
+              "label": "краставици",
+              "products": [
+                [
+                  "краставици",
+                  80
+                ]
+              ]
+            },
+            {
+              "key": "salad",
+              "label": "зелена салата",
+              "products": [
+                [
+                  "маруля",
+                  50
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tofu_scramble",
+      "base": "Бъркано тофу",
+      "timing": [
+        "breakfast"
+      ],
+      "core": [
+        [
+          "тофу",
+          150
+        ]
+      ],
+      "extra": [
+        [
+          "зехтин",
+          10
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "spinach",
+              "label": "спанак",
+              "products": [
+                [
+                  "спанак",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "tomatoes",
+              "label": "домати",
+              "products": [
+                [
+                  "домати",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "peppers",
+              "label": "чушки",
+              "products": [
+                [
+                  "чушки",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "zucchini",
+              "label": "тиквички",
+              "products": [
+                [
+                  "тиквички",
+                  100
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "set": "breakfast_bread"
+        }
+      ]
+    },
+    {
+      "id": "chia_pudding",
+      "base": "Чиа пудинг",
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "core": [
+        [
+          "семена чиа",
+          30
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "plant_milk",
+              "label": "растително мляко",
+              "products": [
+                [
+                  "растително мляко",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "soy_milk",
+              "label": "соево мляко",
+              "products": [
+                [
+                  "соево мляко",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "yogurt",
+              "label": "кисело мляко",
+              "products": [
+                [
+                  "кисело мляко",
+                  200
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "blueberries",
+              "label": "боровинки",
+              "products": [
+                [
+                  "боровинки",
+                  80
+                ]
+              ]
+            },
+            {
+              "key": "raspberries",
+              "label": "малини",
+              "products": [
+                [
+                  "малини",
+                  80
+                ]
+              ]
+            },
+            {
+              "key": "strawberries",
+              "label": "ягоди",
+              "products": [
+                [
+                  "ягоди",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "banana",
+              "label": "банан",
+              "products": [
+                [
+                  "банан",
+                  100
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eggs_keto",
+      "base": "Яйца",
+      "timing": [
+        "breakfast"
+      ],
+      "core": [
+        [
+          "яйца",
+          150
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "avocado",
+              "label": "авокадо",
+              "products": [
+                [
+                  "авокадо",
+                  70
+                ]
+              ]
+            },
+            {
+              "key": "cheese",
+              "label": "сирене",
+              "products": [
+                [
+                  "сирене",
+                  40
+                ]
+              ]
+            },
+            {
+              "key": "kashkaval",
+              "label": "кашкавал",
+              "products": [
+                [
+                  "кашкавал",
+                  30
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "tomatoes",
+              "label": "домати",
+              "products": [
+                [
+                  "домати",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "cucumbers",
+              "label": "краставици",
+              "products": [
+                [
+                  "краставици",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "spinach",
+              "label": "спанак",
+              "products": [
+                [
+                  "спанак",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "mushrooms",
+              "label": "гъби",
+              "products": [
+                [
+                  "гъби",
+                  100
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "protein_shake",
+      "base": "Протеинов шейк",
+      "timing": [
+        "breakfast",
+        "snack"
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "whey",
+              "label": "суроватъчен протеин",
+              "products": [
+                [
+                  "протеин (суроватка)",
+                  30
+                ]
+              ]
+            },
+            {
+              "key": "plant",
+              "label": "растителен протеин",
+              "products": [
+                [
+                  "протеин (растителен)",
+                  30
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "milk",
+              "label": "мляко",
+              "products": [
+                [
+                  "мляко",
+                  300
+                ]
+              ]
+            },
+            {
+              "key": "soy_milk",
+              "label": "соево мляко",
+              "products": [
+                [
+                  "соево мляко",
+                  300
+                ]
+              ]
+            },
+            {
+              "key": "plant_milk",
+              "label": "растително мляко",
+              "products": [
+                [
+                  "растително мляко",
+                  300
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "options": [
+            {
+              "key": "banana",
+              "label": "банан",
+              "products": [
+                [
+                  "банан",
+                  100
+                ]
+              ]
+            },
+            {
+              "key": "blueberries",
+              "label": "боровинки",
+              "products": [
+                [
+                  "боровинки",
+                  80
+                ]
+              ]
+            },
+            {
+              "key": "strawberries",
+              "label": "ягоди",
+              "products": [
+                [
+                  "ягоди",
+                  100
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fruit_nuts",
+      "base": "{fruit}",
+      "timing": [
+        "snack"
+      ],
+      "choices": [
+        {
+          "key": "fruit",
+          "options": [
+            {
+              "key": "apple",
+              "title": "Ябълка",
+              "products": [
+                [
+                  "ябълка",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "banana",
+              "title": "Банан",
+              "products": [
+                [
+                  "банан",
+                  120
+                ]
+              ]
+            },
+            {
+              "key": "orange",
+              "title": "Портокал",
+              "products": [
+                [
+                  "портокал",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "pear",
+              "title": "Круша",
+              "products": [
+                [
+                  "круша",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "tangerine",
+              "title": "Мандарини",
+              "products": [
+                [
+                  "мандарина",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "kiwi",
+              "title": "Киви",
+              "products": [
+                [
+                  "киви",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "grapes",
+              "title": "Грозде",
+              "products": [
+                [
+                  "грозде",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "peach",
+              "title": "Праскова",
+              "products": [
+                [
+                  "праскова",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "set": "nuts"
+        }
+      ]
+    },
+    {
+      "id": "hummus_veg",
+      "base": "Хумус",
+      "timing": [
+        "snack"
+      ],
+      "core": [
+        [
+          "хумус",
+          80
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "carrots",
+              "label": "моркови",
+              "products": [
+                [
+                  "моркови",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "cucumbers",
+              "label": "краставици",
+              "products": [
+                [
+                  "краставици",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "peppers",
+              "label": "чушки",
+              "products": [
+                [
+                  "чушки",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "celery",
+              "label": "целина",
+              "products": [
+                [
+                  "целина",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cheese_veg",
+      "base": "{cheese}",
+      "timing": [
+        "snack",
+        "late_snack"
+      ],
+      "choices": [
+        {
+          "key": "cheese",
+          "options": [
+            {
+              "key": "cheese",
+              "title": "Сирене",
+              "products": [
+                [
+                  "сирене",
+                  60
+                ]
+              ]
+            },
+            {
+              "key": "kashkaval",
+              "title": "Кашкавал",
+              "products": [
+                [
+                  "кашкавал",
+                  40
+                ]
+              ]
+            },
+            {
+              "key": "mozzarella",
+              "title": "Моцарела",
+              "products": [
+                [
+                  "моцарела",
+                  60
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "set": "crunch_veg"
+        }
+      ]
+    },
+    {
+      "id": "boiled_eggs",
+      "base": "Варени яйца",
+      "timing": [
+        "snack",
+        "late_snack"
+      ],
+      "core": [
+        [
+          "яйца",
+          100
+        ]
+      ],
+      "choices": [
+        {
+          "set": "crunch_veg"
+        }
+      ]
+    },
+    {
+      "id": "olives_nuts",
+      "base": "Маслини",
+      "timing": [
+        "snack"
+      ],
+      "core": [
+        [
+          "маслини",
+          50
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "almonds",
+              "label": "бадеми",
+              "products": [
+                [
+                  "бадеми",
+                  20
+                ]
+              ]
+            },
+            {
+              "key": "walnuts",
+              "label": "орехи",
+              "products": [
+                [
+                  "орехи",
+                  20
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "avocado_seeds",
+      "base": "Авокадо",
+      "timing": [
+        "snack",
+        "late_snack"
+      ],
+      "core": [
+        [
+          "авокадо",
+          100
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "pumpkin_seeds",
+              "label": "тиквени семки",
+              "products": [
+                [
+                  "тиквени семки",
+                  15
+                ]
+              ]
+            },
+            {
+              "key": "sunflower_seeds",
+              "label": "слънчогледови семки",
+              "products": [
+                [
+                  "слънчогледови семки",
+                  15
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "edamame_snack",
+      "base": "Едамаме",
+      "timing": [
+        "snack",
+        "late_snack"
+      ],
+      "core": [
+        [
+          "едамаме",
+          120
+        ]
+      ],
+      "choices": [
+        {
+          "options": [
+            {
+              "key": "cucumbers",
+              "label": "краставици",
+              "products": [
+                [
+                  "краставици",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "carrots",
+              "label": "моркови",
+              "products": [
+                [
+                  "моркови",
+                  120
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "late_dairy",
+      "base": "{base}",
+      "timing": [
+        "late_snack"
+      ],
+      "choices": [
+        {
+          "key": "base",
+          "options": [
+            {
+              "key": "yogurt",
+              "title": "Кисело мляко",
+              "products": [
+                [
+                  "кисело мляко",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "skyr",
+              "title": "Скир",
+              "products": [
+                [
+                  "скир",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "cottage",
+              "title": "Извара",
+              "products": [
+                [
+                  "извара",
+                  120
+                ]
+              ]
+            },
+            {
+              "key": "greek",
+              "title": "Гръцко кисело мляко",
+              "products": [
+                [
+                  "гръцко кисело мляко",
+                  150
+                ]
+              ]
+            },
+            {
+              "key": "kefir",
+              "title": "Кефир",
+              "products": [
+                [
+                  "кефир",
+                  200
+                ]
+              ]
+            },
+            {
+              "key": "soy_yogurt",
+              "title": "Соево кисело мляко",
+              "products": [
+                [
+                  "соево кисело мляко",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "set": "late_topping"
+        }
+      ]
+    },
+    {
+      "id": "keto_snack",
+      "base": "{snack}",
+      "timing": [
+        "snack",
+        "late_snack"
+      ],
+      "choices": [
+        {
+          "key": "snack",
+          "options": [
+            {
+              "key": "cheese_olives",
+              "title": "Сирене с маслини",
+              "products": [
+                [
+                  "сирене",
+                  50
+                ],
+                [
+                  "маслини",
+                  40
+                ]
+              ]
+            },
+            {
+              "key": "kashkaval_olives",
+              "title": "Кашкавал с маслини",
+              "products": [
+                [
+                  "кашкавал",
+                  40
+                ],
+                [
+                  "маслини",
+                  40
+                ]
+              ]
+            },
+            {
+              "key": "mozzarella_olives",
+              "title": "Моцарела с маслини",
+              "products": [
+                [
+                  "моцарела",
+                  50
+                ],
+                [
+                  "маслини",
+                  40
+                ]
+              ]
+            },
+            {
+              "key": "eggs_avocado",
+              "title": "Яйца с авокадо",
+              "products": [
+                [
+                  "яйца",
+                  100
+                ],
+                [
+                  "авокадо",
+                  50
+                ]
+              ]
+            },
+            {
+              "key": "eggs_cheese",
+              "title": "Варени яйца със сирене",
+              "products": [
+                [
+                  "яйца",
+                  100
+                ],
+                [
+                  "сирене",
+                  30
+                ]
+              ]
+            },
+            {
+              "key": "tofu_olives",
+              "title": "Тофу с маслини",
+              "products": [
+                [
+                  "тофу",
+                  150
+                ],
+                [
+                  "маслини",
+                  40
+                ]
+              ]
+            },
+            {
+              "key": "tuna_olives",
+              "title": "Риба тон с маслини",
+              "products": [
+                [
+                  "риба тон",
+                  80
+                ],
+                [
+                  "маслини",
+                  40
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

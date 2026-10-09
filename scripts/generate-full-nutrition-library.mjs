@@ -518,7 +518,7 @@ const protocolRules = {
     balanced: { prefer_groups: ['vegetables', 'fruits', 'whole_grains', 'fish', 'eggs', 'fats'], prefer_tags: ['fiber'] },
     mediterranean: { prefer_groups: ['vegetables', 'fruits', 'whole_grains', 'fish', 'fats', 'legumes'], prefer_tags: ['fiber', 'omega3', 'antioxidant'] },
     keto: { max_carbs_g_day: 30, exclude_groups: ['whole_grains', 'fruits', 'legumes', 'refined_grains', 'sweets'], prefer_groups: ['eggs', 'fish', 'meat', 'vegetables', 'fats', 'dairy'] },
-    low_carb: { max_carbs_g_day: 80, exclude_groups: ['refined_grains', 'sweets'], prefer_groups: ['vegetables', 'fish', 'meat', 'eggs', 'fats'] },
+    low_carb: { max_carbs_g_day: 130, exclude_groups: ['refined_grains', 'sweets'], prefer_groups: ['vegetables', 'fish', 'meat', 'eggs', 'fats'] },
     vegan: { exclude_groups: ['meat', 'fish', 'seafood', 'eggs', 'dairy'], prefer_groups: ['vegetables', 'legumes', 'plant_protein', 'whole_grains', 'nuts_seeds'] },
     vegetarian: { exclude_groups: ['meat', 'fish', 'seafood'], prefer_groups: ['eggs', 'dairy', 'legumes', 'vegetables', 'whole_grains'] },
     pescatarian: { exclude_groups: ['meat'], prefer_groups: ['fish', 'seafood', 'eggs', 'dairy', 'vegetables', 'whole_grains'] },

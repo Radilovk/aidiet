@@ -4,7 +4,6 @@ import {
   buildEnergyContract,
   applyDeterministicEnergyContract,
   computeIntakeTarget,
-  deterministicStep1Enabled,
   macroGramsFromIntake,
 } from '../step1-deterministic.js';
 
@@ -15,8 +14,6 @@ function ok(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
-ok(deterministicStep1Enabled({}), 'deterministic Step1 enabled by default');
-ok(!deterministicStep1Enabled({ DETERMINISTIC_STEP1: '0' }), 'opt-out via DETERMINISTIC_STEP1=0');
 
 const tdee = 2500;
 const deficitData = { targetCalories: 2050, deficitPercent: 18, maxDeficitCalories: 1875 };

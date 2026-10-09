@@ -3,7 +3,6 @@
 import {
   buildDeterministicStrategy,
   buildAndValidateDeterministicStrategy,
-  deterministicStep2Enabled,
 } from '../step2-deterministic.js';
 import { validateProtocolStrategy } from '../protocol-validate.js';
 import { userSkipsBreakfast } from '../plan-normalize.js';
@@ -15,8 +14,6 @@ function ok(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
-ok(deterministicStep2Enabled({}), 'deterministic Step2 enabled by default');
-ok(!deterministicStep2Enabled({ DETERMINISTIC_STEP2: '0' }), 'opt-out via DETERMINISTIC_STEP2=0');
 
 const analysis = {
   Final_Calories: 2100,
