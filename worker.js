@@ -38540,8 +38540,8 @@ async function handleXbodyBook(request, env) {
     console.error("[xbody-book] lookup failed:", err.message);
     return jsonResponse2({ error: "\u0417\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
   }
-  if (!previous && !guarantee && !b.terms) {
-    return jsonResponse2({ error: "terms_required" }, 400);
+  if (!previous && !guarantee) {
+    return jsonResponse2({ error: "first_booking" }, 403);
   }
   const fields = [];
   for (const form of Array.isArray(previous && previous.forms) ? previous.forms : []) {

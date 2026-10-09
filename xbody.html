@@ -1884,8 +1884,12 @@
                ones replace the page too, so the back history is only Acuity's own steps) */
             function openAcuityAt(iso) {
                 const q = bookingUrl.indexOf('?');
+                let rest = q < 0 ? '' : bookingUrl.slice(q);
+                try {   // the terms accepted at "Запази" are ticked on Acuity's form too
+                    if ((JSON.parse(localStorage.getItem('xbody_consents') || 'null') || {}).terms && rest.indexOf('field:3583430') < 0) rest += '&field:3583430=yes';
+                } catch (_) {}
                 openInFrame(!iso ? bookingUrl : (q < 0 ? bookingUrl : bookingUrl.slice(0, q)) + '/datetime/' +
-                    encodeURIComponent(String(iso).replace(/([+-]\d{2})(\d{2})$/, '$1:$2')) + (q < 0 ? '' : bookingUrl.slice(q)));
+                    encodeURIComponent(String(iso).replace(/([+-]\d{2})(\d{2})$/, '$1:$2')) + rest);
             }
             function openInFrame(url) {
                 inFrame = true;
@@ -1996,6 +2000,13 @@
                         moving = { id: sheetOwn.item.id, iso: sheetOwn.iso };
                         render();
                         if (moveEl) moveEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        return;
+                    }
+                    if (what === 'first') {   // a first booking: Acuity's form for the first hour, the rest stay chosen
+                        sheet.classList.add('hidden');
+                        const first = cart[0];
+                        toggleCart(first);
+                        openAcuityAt(first);
                         return;
                     }
                     if (what === 'move-no') { sheet.classList.add('hidden'); return; }
@@ -2284,6 +2295,15 @@
                     if (paymentMethod && res.status === 402) {   // the saved card is no longer valid: the card form
                         forgetCard();
                         bookCart(true);
+                        return;
+                    }
+                    if (res.status === 403 && res.d.error === 'first_booking') {   // no card step here: Acuity's form takes the payment details
+                        sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
+                            '<h3>Първо записване</h3><p class="xb-cart-msg">Първият Ви час се потвърждава във формата на студиото, където се дават и данните за плащане. ' +
+                            'След това останалите избрани часове се записват с едно натискане.</p>' +
+                            '<button type="button" class="xb-primary" data-go="first"><i class="fas fa-arrow-right"></i>Към формата за ' +
+                            esc(dayLabel(cart[0].slice(0, 10)) + ' · ' + cart[0].slice(11, 16)) + '</button>' +
+                            '<button type="button" class="xb-secondary" data-close="1">Затвори</button></div>';
                         return;
                     }
                     const booked = (res.d.booked || []).map(function (b) { return b.time; });

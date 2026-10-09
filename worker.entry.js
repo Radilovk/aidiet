@@ -17473,9 +17473,10 @@ async function handleXbodyBook(request, env) {
     console.error('[xbody-book] lookup failed:', err.message);
     return jsonResponse({ error: 'Записването не е възможно в момента.' }, 502);
   }
-  if (!previous && !guarantee && !b.terms) {
-    // a new client without a card step books in the app too, but only after accepting the terms there
-    return jsonResponse({ error: 'terms_required' }, 400);
+  if (!previous && !guarantee) {
+    // no card taken here and not a known client: nobody books without leaving payment details, so the first
+    // booking goes through Acuity's page (its card form)
+    return jsonResponse({ error: 'first_booking' }, 403);
   }
 
   const fields = [];
