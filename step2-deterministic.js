@@ -39,13 +39,6 @@ const DIET_PROFILE_LABELS = {
   anti_inflammatory: 'Противовъзпалителна',
 };
 
-/** Default on — set DETERMINISTIC_STEP2=0 to force AI-first Step 2. */
-export function deterministicStep2Enabled(env = {}) {
-  const v = env?.DETERMINISTIC_STEP2;
-  if (v === '0' || v === 'false' || v === false) return false;
-  return true;
-}
-
 function parseDailyKcal(analysis) {
   const raw = analysis?.Final_Calories ?? analysis?.recommendedCalories;
   if (typeof raw === 'number' && raw > 0) return Math.round(raw);

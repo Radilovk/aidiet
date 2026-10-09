@@ -471,8 +471,20 @@ export function computeMealItemBounds(items, slotTarget, maxTotalGrams = MAX_MEA
  * @returns {number} 0, когато ястието изобщо не може да бъде мащабирано
  */
 export function achievableKcal(products = [], targetKcal = 0) {
+  return achievablePortion(products, targetKcal).kcal;
+}
+
+/**
+ * Порцията, която ястието наистина ще има при тази цел — калории и макроси.
+ * Таваните на продуктите (спанак 200 г, месо 250 г) променят съотношението
+ * при голяма порция, затова то се мери при сервираната порция, не при
+ * референтната.
+ * @returns {{ kcal: number, p: number, c: number, f: number }} нули, когато не се мащабира
+ */
+export function achievablePortion(products = [], targetKcal = 0) {
+  const none = { kcal: 0, p: 0, c: 0, f: 0 };
   const target = Number(targetKcal) || 0;
-  if (target <= 0) return 0;
+  if (target <= 0) return none;
   const items = products
     .map(p => (typeof p === 'string' ? { name: p } : p))
     .map(p => ({
@@ -480,14 +492,16 @@ export function achievableKcal(products = [], targetKcal = 0) {
       profile: lookupFoodProfile(p.name).profile, grams: 0,
     }))
     .filter(item => item.profile);
-  if (!items.length) return 0;
+  if (!items.length) return none;
   const solved = solveDishScale(items, { kcal: target }, MAX_MEAL_WEIGHT_GRAMS);
-  if (!solved) return 0;
+  if (!solved) return none;
   // Същата аритметика, каквато храненето ще покаже: калориите се смятат от
   // закръглените макроси. Иначе ястие, което пасва на ръба (134 при допуск
   // 174±40), излизаше 133 и слотът се обявяваше за грешка.
-  const { p, c, f } = solved.totals;
-  return Math.round(Math.round(p) * 4 + Math.round(c) * 4 + Math.round(f) * 9);
+  const p = Math.round(solved.totals.p);
+  const c = Math.round(solved.totals.c);
+  const f = Math.round(solved.totals.f);
+  return { kcal: Math.round(p * 4 + c * 4 + f * 9), p, c, f };
 }
 
 /**

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Step 1 bounded metabolic review — AI + structured hints on backend baseline. */
+/** Step 1 bounded metabolic review — structured profile hints on backend baseline. */
 import {
   applyDeterministicEnergyContract,
   buildEnergyContract,
@@ -8,7 +8,6 @@ import {
   deriveStructuredMetabolicHints,
   mergeAdjustmentPercent,
   clampPercent,
-  metabolicReviewEnabled,
 } from '../step1-deterministic.js';
 
 let pass = 0;
@@ -18,8 +17,6 @@ function ok(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
-ok(metabolicReviewEnabled({}), 'metabolic review enabled by default');
-ok(!metabolicReviewEnabled({ METABOLIC_REVIEW: '0' }), 'opt-out via METABOLIC_REVIEW=0');
 
 ok(mergeAdjustmentPercent(0, -5) === -5, 'structured downward beats AI zero');
 ok(mergeAdjustmentPercent(-3, -5) === -5, 'structured downward beats weaker AI');
@@ -73,7 +70,7 @@ ok(analysis.Final_Calories === 1800, 'baseline 1800 before review');
 applyBoundedMetabolicReview(analysis, {
   userData: { goal: 'Отслабване', sleepHours: 7 },
 });
-ok(analysis.Final_Calories === Math.round(1800 * 0.9), 'AI -10% applied to baseline');
+ok(analysis.Final_Calories === 1800, 'AI -10% is not read — energy is not an AI decision');
 ok(analysis.correctedMetabolism.goalAdjustmentPercent === 0, 'goal zeroed after review');
 ok(analysis.correctedMetabolism._goalAdjustmentIgnored, 'goal ignore flagged');
 ok(analysis.tdee === 2200, 'TDEE unchanged by review');

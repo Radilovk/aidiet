@@ -214,18 +214,33 @@ check('protocol engine', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
 });
 
+check('profile code', () => {
+  const r = run('node', ['scripts/test-profile-code.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
+check('dish fingerprint + realism', () => {
+  const r = run('node', ['scripts/test-dish-fingerprint.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
+check('deterministic analysis', () => {
+  const r = run('node', ['scripts/test-analysis-deterministic.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
+check('plan quality (all fixtures)', () => {
+  const r = run('node', ['scripts/test-plan-quality.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
+});
+
 check('step3 deterministic builder', () => {
   const r = run('node', ['scripts/test-step3-deterministic.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
 });
 
-check('plan engine v1/v2', () => {
+check('plan engine meta', () => {
   const r = run('node', ['scripts/test-plan-engine.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
-});
-
-check('step3 slot repair', () => {
-  const r = run('node', ['scripts/test-step3-slot-repair.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
@@ -261,11 +276,6 @@ check('step1 deterministic energy contract', () => {
 
 check('questionnaire engine map', () => {
   const r = run('node', ['scripts/test-questionnaire-engine-map.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
-});
-
-check('step6 final director', () => {
-  const r = run('node', ['scripts/test-step6-final-director.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
 });
 

@@ -20,7 +20,7 @@ assert(strategyPrompt.includes('{finalCalories}'), 'strategy prompt uses intake 
 assert(strategyPrompt.includes('Maintenance TDEE: {realTDEE}'), 'strategy prompt keeps TDEE as reference only');
 assert(!strategyPrompt.includes('Final calories: {realTDEE}'), 'strategy must not label TDEE as final calories');
 assert(!analysisPrompt.includes('realTDEE=Final_Calories'), 'step1 must not conflate TDEE with intake');
-assert(workerSrc.includes('finalCalories,'), 'generateStrategyPrompt passes finalCalories');
+assert(!workerSrc.includes('async function generateStrategyPrompt'), 'Step 2 has no AI strategy path — the scheme is built from the profile code');
 assert(!workerSrc.includes('function enforceWeekPlanCalorieTargets'), 'no post-hoc calorie enforce patch');
 assert(workerSrc.includes('Final_Calories: intake'), 'buildCompactAnalysis includes intake for step2 cache');
 assert(workerSrc.includes('finalizeStep1Analysis'), 'step1 uses deterministic energy finalizer');

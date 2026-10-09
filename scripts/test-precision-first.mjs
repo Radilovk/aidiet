@@ -55,11 +55,11 @@ const catalog = buildCatalogPromptSection({
 ok(catalog.includes('1112') || catalog.includes('900') || catalog.includes('600'), 'catalog prompt includes high-kcal creation hint');
 
 ok(worker.includes('COMPOSITION_REPAIR_MAX_PER_CHUNK = 0'), 'AI composition repair disabled');
-ok(worker.includes('step3-creation-hints.js'), 'worker imports creation hints');
-ok(worker.includes('buildInfeasibilityRetryHints'), 'worker uses infeasibility retry hints');
+ok(!worker.includes('step3_slot_repair'), 'no AI slot repair in worker');
+ok(!worker.includes('generateMealPlanChunkPrompt'), 'no AI week prompt in worker');
 ok(!worker.includes('bestSnapshot && !hasBlockingNutritionErrors'), 'no partial chunk fallback accept');
 ok(!worker.includes('tryCompositionRepair'), 'no AI composition repair call in worker');
-ok(worker.includes('Precision-first: each chunk must pass validation cleanly'), 'precision-first chunk policy documented');
+ok(worker.includes('if (attempt >= MEAL_PLAN_CHUNK_MAX_RETRIES)'), 'precision-first: critical errors retry, then fail loudly');
 
 console.log(`\n=== precision-first: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

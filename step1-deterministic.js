@@ -1,24 +1,11 @@
 /**
- * Step 1 deterministic energy contract — backend authority for kcal/macros.
- * AI keeps narrative (keyProblems, psychology); bounded clinical/metabolic
- * review adjusts intake on top of the backend baseline (never replaces TDEE).
+ * Step 1 energy contract — backend authority for kcal/macros.
+ * A bounded clinical/metabolic review adjusts intake on top of the backend
+ * baseline from structured profile codes only (never replaces TDEE). AI
+ * percentages are not read: the energy is not an AI decision.
  */
 
 import { compileProfile } from './profile-code.js';
-
-/** Default on — set DETERMINISTIC_STEP1=0 to let AI propose Final_Calories/macros. */
-export function deterministicStep1Enabled(env = {}) {
-  const v = env?.DETERMINISTIC_STEP1;
-  if (v === '0' || v === 'false' || v === false) return false;
-  return true;
-}
-
-/** Default on — set METABOLIC_REVIEW=0 to skip bounded AI/structured intake review. */
-export function metabolicReviewEnabled(env = {}) {
-  const v = env?.METABOLIC_REVIEW;
-  if (v === '0' || v === 'false' || v === false) return false;
-  return true;
-}
 
 /** Per-axis bounds (physiological guardrails for reviewer adjustments). */
 export const METABOLIC_REVIEW_BOUNDS = {
@@ -138,7 +125,8 @@ export function applyBoundedMetabolicReview(analysis, options = {}) {
   if (baseline <= 0) return analysis;
 
   const structured = deriveStructuredMetabolicHints(userData);
-  const review = computeBoundedReviewPercent(cm, {
+  // Само кодовете на профила — процентите от AI (ако стар анализ ги носи) не се четат.
+  const review = computeBoundedReviewPercent({}, {
     goal: userData.goal,
     isLactation: userData.clinicalProtocol === 'postpartum_lactation',
   }, structured);

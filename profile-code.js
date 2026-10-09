@@ -270,7 +270,15 @@ const SLEEP_HOURS = table([
   [['Под 5'], 4.5], [['5-6'], 5.5], [['6-7'], 6.5], [['7-8'], 7.5], [['Над 8'], 8.5],
 ]);
 
-const LEVEL_1_3 = table([[['Ниско', 'Ниска'], 1], [['Средно', 'Средна'], 2], [['Високо', 'Висока'], 3]]);
+/** Вода на ден в литри — средата на отговора. */
+const WATER_LITERS = table([
+  [['под 1 л'], 0.75], [['1-1.5 л'], 1.25], [['1.5-2 л'], 1.75], [['над 2 л'], 2.25],
+]);
+
+const LEVEL_1_3 = table([
+  [['Ниско', 'Ниска'], 1], [['Средно', 'Средна'], 2],
+  [['Високо', 'Висока', 'Много високо', 'Много висока'], 3],
+]);
 
 /** Спорт: дни седмично (среда на диапазона) и клас 0–3. */
 const SPORT_LABELS = table([
@@ -530,6 +538,7 @@ export function compileProfile(userData = {}, overrides = {}) {
 
   const sleepHours = SLEEP_HOURS.get(normLabel(data.sleepHours)) ?? num(data.sleepHours);
   const stress = LEVEL_1_3.get(normLabel(data.stressLevel)) || null;
+  const waterL = WATER_LITERS.get(normLabel(data.waterIntake)) ?? null;
 
   // Диета: изричните етикети на клиента + етикетът на стратегията/админа.
   const prefs = readDietLabels([...asList(data.dietPreference), ...asList(data.dietPreference_other)]);
@@ -597,7 +606,9 @@ export function compileProfile(userData = {}, overrides = {}) {
     pace: paceFor(goal, weightKg, lossKg),
     activity: { daily, sportDays: sport.days, sportBand: sport.band },
     sleepHours: sleepHours ?? null,
+    sleepInterrupted: normLabel(data.sleepInterrupt) === 'да',
     stress,
+    waterL,
     diet: { style, pattern },
     exclusions: EXCLUSIONS.filter(c => exclusions.has(c)),
     clinical: CLINICAL.filter(c => clinical.has(c)),

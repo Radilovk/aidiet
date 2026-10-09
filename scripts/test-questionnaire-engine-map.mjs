@@ -4,7 +4,6 @@ import {
   extractQuestionnaireBlockedTerms,
   buildQuestionnaireDietHints,
   enrichUserDataEngineContext,
-  buildFinalAuditPacket,
   resolveLongTermPhase,
   buildAdaptPhaseContext,
 } from '../questionnaire-engine-map.js';
@@ -79,12 +78,6 @@ const plan = {
   generationWarnings: ['test warning'],
 };
 
-const packet = buildFinalAuditPacket({ plan, userData: user, codeValidation: { warnings: ['code warn'] } });
-ok(packet.includes('step1:'), 'audit has step1');
-ok(packet.includes('step2:'), 'audit has step2');
-ok(packet.includes('step3 skeleton'), 'audit has step3');
-ok(packet.includes('blocked='), 'audit has blocked terms');
-ok(packet.includes('phase='), 'audit has phase');
 
 console.log('');
 if (fail) {

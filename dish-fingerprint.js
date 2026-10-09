@@ -119,12 +119,12 @@ export function shareFit(fp, desired) {
 }
 
 /**
- * Записва избраното ястие в дневния отчет — оценка при калориите на слота,
- * защото порцията ще бъде мащабирана точно към тях.
+ * Записва избраното ястие в дневния отчет — при калориите на сервираната
+ * порция (или на слота, ако порцията не е известна).
  */
-export function recordDishInLedger(ledger, fp, slotTarget) {
+export function recordDishInLedger(ledger, fp, slotTarget, servedKcal = null) {
   if (!fp || !ledger) return;
-  const kcal = Number(slotTarget?.calories) || 0;
+  const kcal = Number(servedKcal) || Number(slotTarget?.calories) || 0;
   for (const m of ['p', 'c', 'f']) {
     const target = (Number(slotTarget?.[TARGET_KEY[m]]) || 0) * MACRO_KCAL[m];
     ledger[m] += fp[m] * kcal - target;

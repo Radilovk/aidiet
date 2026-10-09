@@ -13,7 +13,7 @@ import { getCatalogCandidatesForChunk, resolveCatalogEntry } from './food-catalo
 import { rankCatalogCandidates } from './candidate-ranking.js';
 import { passesDietRegistry } from './diet-registry.js';
 import { normalizeFoodKey } from './food-utils.js';
-import { parseMealDescription, achievableKcal } from './food-nutrition.js';
+import { parseMealDescription, achievablePortion } from './food-nutrition.js';
 import { isMealCaloriesAdequate } from './plan-normalize.js';
 import { READY_MEAL_PARTS } from './ready-meal-parts.js';
 import {
@@ -21,7 +21,6 @@ import {
   preferTagScore,
   resolveDishTagFilter,
 } from './dish-tags.js';
-import { SLOT_REPAIR_CANDIDATE_COUNT } from './step3-slot-repair.js';
 import { compileProfile } from './profile-code.js';
 import { DEFAULT_MIN_UNIVERSALITY } from './food-catalog-data.js';
 import {
@@ -39,12 +38,8 @@ const MAIN_MEAL_SLOTS = new Set(['Хранене 1', 'Хранене 2', 'Хра
 /** Lunch and dinner are plated and must carry a vegetable; breakfast need not. */
 const PLATED_MEAL_SLOTS = new Set(['Хранене 2', 'Хранене 4']);
 
-/** Default on — set env DETERMINISTIC_STEP3=0 to force AI-first Step 3. */
-export function deterministicStep3Enabled(env = {}) {
-  const v = env?.DETERMINISTIC_STEP3;
-  if (v === '0' || v === 'false' || v === false) return false;
-  return true;
-}
+/** Колко най-близки ястия се разглеждат, когато строгият избор остави слота празен. */
+export const FALLBACK_CANDIDATE_COUNT = 8;
 
 
 function catalogName(name) {
@@ -137,7 +132,7 @@ function scorePoolEntry(entry, ctx, slotType) {
   const tagBoost = preferTagScore(entry, ctx.tagFilter?.prefer) * 0.5;
   // Съотношението на макросите е свойство на ястието: денят стига целта си
   // по P/C/F само ако ястията са избрани по него.
-  const macroMiss = shareFit(cachedFingerprint(entry, ctx.fingerprintCache), ctx.desiredShares);
+  const macroMiss = shareFit(servedFingerprint(entry, ctx), ctx.desiredShares);
   // Колкото по-близо порцията стига целта на слота, толкова по-малко
   // калории се пренасят към следващите хранения.
   const targetKcal = Number(ctx.slotTarget?.calories) || 0;
@@ -365,7 +360,7 @@ function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRe
 }
 
 /** Top-N catalog dishes for slot repair (wider pool when strict pick leaves a gap). */
-export function listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx, limit = SLOT_REPAIR_CANDIDATE_COUNT) {
+export function listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx, limit = FALLBACK_CANDIDATE_COUNT) {
   let pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx);
   if (!pool.length) {
     pool = buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRepair: true });
@@ -425,14 +420,36 @@ const MIN_DISHES_FOR_ENERGY_PREFERENCE = 4;
  * от седмицата. Запомня се за една седмица, не в модула: админът може да смени
  * грамажите на ястие през KV и модулен кеш би върнал стари стойности.
  */
-function dishAchievableKcal(entry, targetKcal, cache) {
+function dishPortion(entry, targetKcal, cache) {
   const key = `${entry.id || entry.name}|${targetKcal}`;
-  let kcal = cache?.get(key);
-  if (kcal === undefined) {
-    kcal = achievableKcal(readyMealProducts(entry), targetKcal);
-    cache?.set(key, kcal);
+  let portion = cache?.get(key);
+  if (portion === undefined) {
+    portion = achievablePortion(readyMealProducts(entry), targetKcal);
+    cache?.set(key, portion);
   }
-  return kcal;
+  return portion;
+}
+
+function dishAchievableKcal(entry, targetKcal, cache) {
+  return dishPortion(entry, targetKcal, cache).kcal;
+}
+
+/**
+ * Съотношението на ястието при порцията, която ще бъде сервирана в този слот.
+ * При голяма порция таваните на продуктите го изместват спрямо референтната.
+ */
+function servedFingerprint(entry, ctx) {
+  const target = Number(ctx.slotTarget?.calories) || 0;
+  const portion = target > 0 && ctx.achievableCache ? dishPortion(entry, target, ctx.achievableCache) : null;
+  if (portion?.kcal > 0) {
+    return {
+      kcal: portion.kcal,
+      p: (portion.p * 4) / portion.kcal,
+      c: (portion.c * 4) / portion.kcal,
+      f: (portion.f * 9) / portion.kcal,
+    };
+  }
+  return cachedFingerprint(entry, ctx.fingerprintCache);
 }
 
 /** A ready meal is blocked when any of its parts is. */
@@ -470,7 +487,7 @@ function recordReadyMealUse(entry, ctx, slotType) {
  * подходящо ястие, това е дупка в списъка — тя се съобщава, вместо да се
  * запълва с произволна комбинация продукти.
  */
-async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
+function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, ctx, includeDessert = false }) {
   if (slotType === 'Свободно хранене') {
     return { type: slotType, name: 'Свободно хранене' };
   }
@@ -479,23 +496,16 @@ async function buildMealForSchemeSlot({ slotType, slotTarget, candidatesBySlot, 
     return { type: slotType, name: drink, description: `• ${drink}` };
   }
 
-  let dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx);
-  if (!dish && ctx.repairSlot) {
-    const candidates = listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx);
-    if (candidates.length) {
-      dish = await ctx.repairSlot({
-        dayNum: ctx.dayNum,
-        slotType,
-        slotTarget,
-        candidates,
-        ctx,
-      });
-      if (dish && !candidates.some(c => c.id === dish.id)) dish = null;
-    }
-  }
-  if (!dish) throw new Error(`Няма подходящо ястие за ${slotType}`);
+  // Строгият избор може да остави слота празен (напр. всички подходящи ястия
+  // вече са в деня). Тогава се взима най-добре класираното от по-широкия
+  // кръг — по същите правила, без AI.
+  const dish = pickReadyMeal(slotType, slotTarget, candidatesBySlot, ctx)
+    || listReadyMealCandidates(slotType, slotTarget, candidatesBySlot, ctx, 1)[0]
+    || null;
+  if (!dish) throw new Error(`Няма подходящо ястие за ${slotType} — дупка в каталога за тази диета`);
   recordReadyMealUse(dish, ctx, slotType);
-  recordDishInLedger(ctx.dayDrift, cachedFingerprint(dish, ctx.fingerprintCache), slotTarget);
+  const served = servedFingerprint(dish, { ...ctx, slotTarget });
+  recordDishInLedger(ctx.dayDrift, served, slotTarget, served.kcal);
 
   const meal = {
     type: slotType,
@@ -523,10 +533,8 @@ export async function buildDeterministicWeekPlanChunk({
   includeDessert = false,
   clinicalProtocolId = null,
   blockedTerms = [],
-  /** Softer dish filters when strict pick leaves catalog gaps (plan engine v2). */
+  /** Softer dish filters when strict pick leaves catalog gaps. */
   relaxed = false,
-  /** Async callback: pick 1 dish from repair candidates when deterministic pick fails. */
-  repairSlot = null,
 }) {
   if (!strategy?.weeklyScheme) {
     throw new Error('Missing strategy.weeklyScheme');
@@ -597,14 +605,13 @@ export async function buildDeterministicWeekPlanChunk({
         adherenceRatio,
         relaxed: !!relaxed,
         tagFilter: resolveDishTagFilter(userData, strategy, slot.type),
-        repairSlot,
         profile,
         fingerprintCache,
         dayDrift,
         desiredShares: desiredSlotShares(slot, dayDrift, remainingKcal),
       };
 
-      meals.push(await buildMealForSchemeSlot({
+      meals.push(buildMealForSchemeSlot({
         slotType: slot.type,
         slotTarget: slot,
         candidatesBySlot,
