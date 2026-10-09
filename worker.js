@@ -42765,13 +42765,14 @@ async function handleXbodyBook(request, env) {
     const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
     if (!resp.ok) throw new Error("appointments " + resp.status);
     const list = await resp.json();
-    previous = (Array.isArray(list) ? list : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey) || null;
+    const complete = (a) => /Гаранция с карта/.test(String(a.notes || "")) || (Array.isArray(a.forms) ? a.forms : []).some((f) => (Array.isArray(f && f.values) ? f.values : []).some((v) => v && v.fieldID && Number(v.fieldID) !== 3583430 && v.value !== void 0 && v.value !== null && v.value !== ""));
+    previous = (Array.isArray(list) ? list : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
   } catch (err) {
     console.error("[xbody-book] lookup failed:", err.message);
     return jsonResponse2({ error: "\u0417\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
   }
-  if (!previous && !guarantee && !b.terms) {
-    return jsonResponse2({ error: "terms_required" }, 400);
+  if (!previous && !guarantee) {
+    return jsonResponse2({ error: "first_booking" }, 403);
   }
   const fields = [];
   for (const form of Array.isArray(previous && previous.forms) ? previous.forms : []) {
@@ -42808,11 +42809,13 @@ async function handleXbodyBook(request, env) {
       if (resp.ok && data && data.id) {
         booked.push({ time, id: data.id, appointment: xbodyApptItem(data) });
       } else {
-        console.warn("[xbody-book] Acuity refused", time, resp.status, JSON.stringify(data).slice(0, 200));
-        failed.push({ time, error: resp.status === 400 ? "taken" : "error" });
+        console.warn("[xbody-book] Acuity refused", time, resp.status, JSON.stringify(data).slice(0, 300));
+        const why = `${data && data.error || ""} ${data && data.message || ""}`;
+        const taken = /not[_ ]?available|unavailable|no longer|already booked|time.*taken/i.test(why);
+        failed.push({ time, error: taken ? "taken" : "form" });
       }
     } catch (err) {
-      failed.push({ time, error: "error" });
+      failed.push({ time, error: "form" });
     }
   }
   if (guarantee && guarantee.id) {

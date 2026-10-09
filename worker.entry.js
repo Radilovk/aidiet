@@ -16001,15 +16001,21 @@ async function handleXbodyBook(request, env) {
     const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
     if (!resp.ok) throw new Error('appointments ' + resp.status);
     const list = await resp.json();
+    // a known client: an earlier booking that went through Acuity's own form (its answers beyond the terms box)
+    // or one guaranteed by a card in the app — never one of the hours booked with no payment details
+    const complete = (a) => /Гаранция с карта/.test(String(a.notes || '')) ||
+      (Array.isArray(a.forms) ? a.forms : []).some((f) => (Array.isArray(f && f.values) ? f.values : [])
+        .some((v) => v && v.fieldID && Number(v.fieldID) !== 3583430 && v.value !== undefined && v.value !== null && v.value !== ''));
     previous = (Array.isArray(list) ? list : []).find((a) => a && !a.canceled &&
-      String(a.email || '').trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey) || null;
+      String(a.email || '').trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
   } catch (err) {
     console.error('[xbody-book] lookup failed:', err.message);
     return jsonResponse({ error: 'Записването не е възможно в момента.' }, 502);
   }
-  if (!previous && !guarantee && !b.terms) {
-    // a new client without a card step books in the app too, but only after accepting the terms there
-    return jsonResponse({ error: 'terms_required' }, 400);
+  if (!previous && !guarantee) {
+    // no card taken here and not a known client: nobody books without leaving payment details, so the first
+    // booking goes through Acuity's page (its card form)
+    return jsonResponse({ error: 'first_booking' }, 403);
   }
 
   const fields = [];
@@ -16047,11 +16053,15 @@ async function handleXbodyBook(request, env) {
       if (resp.ok && data && data.id) {
         booked.push({ time, id: data.id, appointment: xbodyApptItem(data) });   // the app shows it at once
       } else {
-        console.warn('[xbody-book] Acuity refused', time, resp.status, JSON.stringify(data).slice(0, 200));
-        failed.push({ time, error: resp.status === 400 ? 'taken' : 'error' });
+        console.warn('[xbody-book] Acuity refused', time, resp.status, JSON.stringify(data).slice(0, 300));
+        // only "not available" means someone took the hour; anything else (a required form field, payment, a
+        // client rule) is what Acuity's own form asks for: the app sends the client there for this hour
+        const why = `${(data && data.error) || ''} ${(data && data.message) || ''}`;
+        const taken = /not[_ ]?available|unavailable|no longer|already booked|time.*taken/i.test(why);
+        failed.push({ time, error: taken ? 'taken' : 'form' });
       }
     } catch (err) {
-      failed.push({ time, error: 'error' });
+      failed.push({ time, error: 'form' });
     }
   }
   if (guarantee && guarantee.id) {   // the guarantee is used: it names its bookings and cannot book again
