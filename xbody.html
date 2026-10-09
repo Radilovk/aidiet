@@ -2307,13 +2307,19 @@
                         return;
                     }
                     const booked = (res.d.booked || []).map(function (b) { return b.time; });
-                    const failed = (res.d.failed || []).map(function (f) { return f.time; });
-                    if (!booked.length && !failed.length) {
+                    const failed = (res.d.failed || []).filter(function (f) { return f.error === 'taken'; }).map(function (f) { return f.time; });
+                    /* not taken but refused (Acuity wants its own form: a required field, payment details): that hour goes
+                       through the studio's form, so the client can always book */
+                    const viaForm = (res.d.failed || []).filter(function (f) { return f.error !== 'taken'; }).map(function (f) { return f.time; });
+                    if (!booked.length && !failed.length && !viaForm.length) {
                         openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
                             : res.status === 402 ? 'Картата не беше потвърдена. Опитайте отново.' : 'Записването не успя. Опитайте отново.');
                         return;
                     }
                     cart = cart.filter(function (t) { return booked.indexOf(t) < 0 && failed.indexOf(t) < 0; });
+                    if (viaForm.length) {   // these stay chosen, the first of them first
+                        cart = viaForm.concat(cart.filter(function (t) { return viaForm.indexOf(t) < 0; }));
+                    }
                     saveCart();
                     const line = function (t) { return '<li><span>' + esc(dayLabel(t.slice(0, 10))) + ' · <b>' + esc(t.slice(11, 16)) + '</b></span></li>'; };
                     sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
@@ -2322,7 +2328,13 @@
                             (setupIntent || paymentMethod ? ' Картата е запазена като гаранция — нищо не е изтеглено.' : '') + '</p>' : '') +
                         (failed.length ? '<h3>Не бяха записани</h3><ul class="xb-cart-list bad">' + failed.map(line).join('') + '</ul>' +
                             '<p class="xb-cart-msg">Тези часове вече са заети — изберете други.</p>' : '') +
-                        '<button type="button" class="xb-primary" data-close="1">Готово</button></div>';
+                        (viaForm.length ? '<h3>Довършете записването</h3><p class="xb-cart-msg">' +
+                            (viaForm.length === 1 ? 'Този час се потвърждава' : 'Първият от тези часове се потвърждава') +
+                            ' във формата на студиото, където се дават и данните за плащане.</p>' +
+                            '<button type="button" class="xb-primary" data-go="first"><i class="fas fa-arrow-right"></i>Към формата за ' +
+                            esc(dayLabel(viaForm[0].slice(0, 10)) + ' · ' + viaForm[0].slice(11, 16)) + '</button>' +
+                            '<button type="button" class="xb-secondary" data-close="1">Затвори</button></div>'
+                            : '<button type="button" class="xb-primary" data-close="1">Готово</button></div>');
                     if (booked.length) {
                         const A = window.XBodyAppointments;
                         if (A && A.add) A.add((res.d.booked || []).map(function (b) { return b.appointment; }));
