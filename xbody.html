@@ -1298,8 +1298,13 @@
         .xb-saved-card i { color: #d32f2f; }
         .xb-saved-card small { margin-left: auto; font-size: 12px; font-weight: 500; color: #16a34a; }
         html[data-theme="dark"] .xb-saved-card { border-color: #3a353f; }
-        .xb-consent { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0 2px; font-size: 14px; line-height: 1.45; cursor: pointer; }
-        .xb-consent input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: #d32f2f; }
+        .xb-consent { display: flex; align-items: center; gap: 10px; margin: 10px 0 2px; font-size: 14px; line-height: 1.4; }
+        .xb-consent label { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; }
+        .xb-consent input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: #d32f2f; }
+        .xb-sheet .xb-consent .xb-info { flex: none; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; min-height: 0; margin: 0;
+            padding: 0; border-radius: 50%; border: 1px solid #b9b4be; background: transparent; color: inherit; font: italic 700 14px/1 Georgia, serif; }
+        .xb-sheet .xb-info-text { margin: 4px 0 6px; font-size: 13px; font-weight: 400; line-height: 1.5; color: #8a8590; }
+        .xb-sheet .xb-info-text.hidden { display: none; }
         .xb-sheet .xb-cart-msg { font-size: 14px; line-height: 1.5; }
         /* changing an hour: the bar above the calendar while a new hour is chosen */
         .xb-move {
@@ -1956,6 +1961,15 @@
                         sheet.classList.add('hidden');
                         if (window.XBodyAppointments && window.XBodyAppointments.open) window.XBodyAppointments.open();
                     }
+                    const info = e.target.closest('[data-info]');
+                    if (info) {   // the short checkbox text explains itself on the "i" button
+                        const box = sheet.querySelector('#' + info.dataset.info);
+                        if (box) {
+                            const open = box.classList.toggle('hidden') === false;
+                            info.setAttribute('aria-expanded', open ? 'true' : 'false');
+                        }
+                        return;
+                    }
                     const rm = e.target.closest('[data-rm]');
                     if (rm) { toggleCart(rm.dataset.rm); if (cart.length) openCartSheet(); else sheet.classList.add('hidden'); return; }
                     if (!go) return;
@@ -2017,12 +2031,6 @@
                                 'Часът е освободен. Потвърждение идва на имейла Ви.');
                         });
                         return;
-                    }
-                    if (what === 'first') {   // a first booking: Acuity's form for the first hour, the rest stay chosen
-                        sheet.classList.add('hidden');
-                        const first = cart[0];
-                        toggleCart(first);
-                        openAcuityAt(first);
                     }
                 });
                 document.body.appendChild(sheet);
@@ -2108,9 +2116,14 @@
             }
             function consentBoxes() {
                 if (consents()) return '';
-                return '<label class="xb-consent"><input type="checkbox" id="xb-terms"><span>Приемам <b>условията за резервация</b>: ' +
-                        'при отмяна, промяна или неявяване по-малко от 12 часа преди тренировката тя се заплаща.</span></label>' +
-                    '<label class="xb-consent"><input type="checkbox" id="xb-sms"><span>Искам SMS напомняния за часовете си.</span></label>' +
+                return '<div class="xb-consent"><label><input type="checkbox" id="xb-terms"><span>Приемам условията за резервация</span></label>' +
+                        '<button type="button" class="xb-info" data-info="xb-terms-info" aria-label="Какво включват условията" aria-expanded="false">i</button></div>' +
+                    '<p class="xb-info-text hidden" id="xb-terms-info">При отмяна, промяна или неявяване по-малко от 12 часа преди тренировката ' +
+                        'тя се заплаща от картата Ви, без възможност за възстановяване на сумата. Картата е само гаранция — при записване не се тегли нищо.</p>' +
+                    '<div class="xb-consent"><label><input type="checkbox" id="xb-sms"><span>SMS напомняния за часовете</span></label>' +
+                        '<button type="button" class="xb-info" data-info="xb-sms-info" aria-label="За SMS напомнянията" aria-expanded="false">i</button></div>' +
+                    '<p class="xb-info-text hidden" id="xb-sms-info">Студиото Ви изпраща кратко SMS преди всяка тренировка. Не е задължително — ' +
+                        'можете да запишете час и без него.</p>' +
                     '<p class="xb-cart-note" id="xb-consent-err" role="alert"></p>';
             }
 
@@ -2297,22 +2310,13 @@
                 const agreed = consents();
                 return postJson('/api/xbody/book', {
                     email: c.email, phone: c.phone, name: c.name, times: times, setupIntent: setupIntent || undefined,
-                    paymentMethod: paymentMethod || undefined, sms: agreed ? agreed.sms : undefined
+                    paymentMethod: paymentMethod || undefined, sms: agreed ? agreed.sms : undefined, terms: agreed ? true : undefined
                 }).then(function (res) {
                     booking = false;
                     if (res.d.card) keepCard(c.email, res.d.card);
                     if (paymentMethod && res.status === 402) {   // the saved card is no longer valid: the card form next time
                         forgetCard();
                         openCartSheet('Запазената карта вече не е валидна — въведете карта.');
-                        return;
-                    }
-                    if (res.status === 403 && res.d.error === 'first_booking') {
-                        sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
-                            '<h3>Първо записване</h3><p class="xb-cart-msg">Първият Ви час се потвърждава във формата на студиото. ' +
-                            'След това останалите избрани часове се записват с едно натискане.</p>' +
-                            '<button type="button" class="xb-primary" data-go="first"><i class="fas fa-arrow-right"></i>Към формата за ' +
-                            esc(dayLabel(cart[0].slice(0, 10)) + ' · ' + cart[0].slice(11, 16)) + '</button>' +
-                            '<button type="button" class="xb-secondary" data-close="1">Затвори</button></div>';
                         return;
                     }
                     const booked = (res.d.booked || []).map(function (b) { return b.time; });

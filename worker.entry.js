@@ -17275,6 +17275,7 @@ async function xbodyReadBooking(request) {
     setupIntent: String((body && body.setupIntent) || ''),
     paymentMethod: String((body && body.paymentMethod) || ''),
     sms: !(body && body.sms === false),
+    terms: Boolean(body && body.terms === true),
     times: [...new Set((Array.isArray(body && body.times) ? body.times : []).map(String))]
       .filter((t) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2}$/.test(t))
       .filter((t) => {
@@ -17448,9 +17449,9 @@ async function handleXbodyBook(request, env) {
     console.error('[xbody-book] lookup failed:', err.message);
     return jsonResponse({ error: 'Записването не е възможно в момента.' }, 502);
   }
-  if (!previous && !guarantee) {
-    // no card and not a known client: the first booking goes through Acuity's page
-    return jsonResponse({ error: 'first_booking' }, 403);
+  if (!previous && !guarantee && !b.terms) {
+    // a new client without a card step books in the app too, but only after accepting the terms there
+    return jsonResponse({ error: 'terms_required' }, 400);
   }
 
   const fields = [];
