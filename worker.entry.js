@@ -17511,7 +17511,7 @@ async function handleXbodyBook(request, env) {
       });
       const data = await resp.json().catch(() => ({}));
       if (resp.ok && data && data.id) {
-        booked.push({ time, id: data.id });
+        booked.push({ time, id: data.id, appointment: xbodyApptItem(data) });   // the app shows it at once
       } else {
         console.warn('[xbody-book] Acuity refused', time, resp.status, JSON.stringify(data).slice(0, 200));
         failed.push({ time, error: resp.status === 400 ? 'taken' : 'error' });
@@ -17631,6 +17631,26 @@ async function handleXbodyReschedule(request, env) {
   return jsonResponse({ ok: true, id: Number(b.id), time: (r.data && r.data.datetime) || b.time });
 }
 
+/** an Acuity appointment as the app's list keeps it (the list and a just-made booking use the same shape) */
+function xbodyApptItem(appt) {
+  return {
+    id: appt.id,
+    date: appt.date || '',
+    time: (appt.time || '').trim(),
+    endTime: (appt.endTime || '').trim(),
+    datetime: appt.datetime || '',
+    type: appt.type || 'Час',
+    duration: appt.duration || '',
+    calendar: appt.calendar || '',
+    calendarID: appt.calendarID || null,
+    location: appt.location || '',
+    canceled: Boolean(appt.canceled),
+    canClientCancel: Boolean(appt.canClientCancel),
+    canClientReschedule: Boolean(appt.canClientReschedule),
+    confirmationPage: appt.confirmationPage || ''
+  };
+}
+
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
   const apiKey = env.ACUITY_API_KEY;
@@ -17696,22 +17716,7 @@ async function handleXbodyAppointments(request, env) {
   const past = [];
 
   for (const appt of appointments) {
-    const item = {
-      id: appt.id,
-      date: appt.date || '',
-      time: (appt.time || '').trim(),
-      endTime: (appt.endTime || '').trim(),
-      datetime: appt.datetime || '',
-      type: appt.type || 'Час',
-      duration: appt.duration || '',
-      calendar: appt.calendar || '',
-      calendarID: appt.calendarID || null,
-      location: appt.location || '',
-      canceled: Boolean(appt.canceled),
-      canClientCancel: Boolean(appt.canClientCancel),
-      canClientReschedule: Boolean(appt.canClientReschedule),
-      confirmationPage: appt.confirmationPage || ''
-    };
+    const item = xbodyApptItem(appt);
 
     const when = item.datetime ? new Date(item.datetime).getTime() : NaN;
     if (!item.canceled && Number.isFinite(when) && when >= now) {

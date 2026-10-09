@@ -38576,7 +38576,7 @@ async function handleXbodyBook(request, env) {
       });
       const data = await resp.json().catch(() => ({}));
       if (resp.ok && data && data.id) {
-        booked.push({ time, id: data.id });
+        booked.push({ time, id: data.id, appointment: xbodyApptItem(data) });
       } else {
         console.warn("[xbody-book] Acuity refused", time, resp.status, JSON.stringify(data).slice(0, 200));
         failed.push({ time, error: resp.status === 400 ? "taken" : "error" });
@@ -38680,6 +38680,24 @@ async function handleXbodyReschedule(request, env) {
   await xbodyAfterChange(env, b.email, [own.appt.datetime, b.time]);
   return jsonResponse2({ ok: true, id: Number(b.id), time: r.data && r.data.datetime || b.time });
 }
+function xbodyApptItem(appt) {
+  return {
+    id: appt.id,
+    date: appt.date || "",
+    time: (appt.time || "").trim(),
+    endTime: (appt.endTime || "").trim(),
+    datetime: appt.datetime || "",
+    type: appt.type || "\u0427\u0430\u0441",
+    duration: appt.duration || "",
+    calendar: appt.calendar || "",
+    calendarID: appt.calendarID || null,
+    location: appt.location || "",
+    canceled: Boolean(appt.canceled),
+    canClientCancel: Boolean(appt.canClientCancel),
+    canClientReschedule: Boolean(appt.canClientReschedule),
+    confirmationPage: appt.confirmationPage || ""
+  };
+}
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
   const apiKey = env.ACUITY_API_KEY;
@@ -38736,22 +38754,7 @@ async function handleXbodyAppointments(request, env) {
   const upcoming = [];
   const past = [];
   for (const appt of appointments) {
-    const item2 = {
-      id: appt.id,
-      date: appt.date || "",
-      time: (appt.time || "").trim(),
-      endTime: (appt.endTime || "").trim(),
-      datetime: appt.datetime || "",
-      type: appt.type || "\u0427\u0430\u0441",
-      duration: appt.duration || "",
-      calendar: appt.calendar || "",
-      calendarID: appt.calendarID || null,
-      location: appt.location || "",
-      canceled: Boolean(appt.canceled),
-      canClientCancel: Boolean(appt.canClientCancel),
-      canClientReschedule: Boolean(appt.canClientReschedule),
-      confirmationPage: appt.confirmationPage || ""
-    };
+    const item2 = xbodyApptItem(appt);
     const when = item2.datetime ? new Date(item2.datetime).getTime() : NaN;
     if (!item2.canceled && Number.isFinite(when) && when >= now) {
       upcoming.push(item2);

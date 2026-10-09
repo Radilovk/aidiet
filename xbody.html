@@ -2304,6 +2304,8 @@
                             '<p class="xb-cart-msg">Тези часове вече са заети — изберете други.</p>' : '') +
                         '<button type="button" class="xb-primary" data-close="1">Готово</button></div>';
                     if (booked.length) {
+                        const A = window.XBodyAppointments;
+                        if (A && A.add) A.add((res.d.booked || []).map(function (b) { return b.appointment; }));
                         window.dispatchEvent(new CustomEvent('xbody-appt-invalidate', { detail: { email: c.email } }));
                     }
                     const months = {};
@@ -3322,6 +3324,42 @@
                 footerEl.classList.add('hidden');
             }
 
+            /* an hour the app has just booked stays in the list until the server's list carries it too (Acuity may be a
+               moment behind) — at most 15 minutes */
+            const BOOKED_KEY = 'xbody_just_booked';
+            function justBooked() {
+                try {
+                    const v = JSON.parse(localStorage.getItem(BOOKED_KEY) || '[]');
+                    return (Array.isArray(v) ? v : []).filter(function (x) { return x && x.item && Date.now() - x.at < 15 * 60 * 1000; });
+                } catch (_) { return []; }
+            }
+            function withJustBooked(payload) {
+                const mine = justBooked();
+                const have = {};
+                [].concat(payload.upcoming, payload.past).forEach(function (a) { have[String(a.id)] = true; });
+                const keep = mine.filter(function (x) { return !have[String(x.item.id)]; });
+                try { localStorage.setItem(BOOKED_KEY, JSON.stringify(keep)); } catch (_) {}
+                keep.forEach(function (x) { if (!x.item.canceled) payload.upcoming.push(x.item); });
+                payload.upcoming.sort(function (a, b) { return String(a.datetime).localeCompare(String(b.datetime)); });
+                return payload;
+            }
+            function addBooked(items) {
+                const contact = getUserContact();
+                items = (Array.isArray(items) ? items : []).filter(function (a) { return a && a.id && a.datetime; });
+                if (!contact || !items.length) return;
+                const local = memoryCache || (readLocalCache(contact.email) || {}).data || { upcoming: [], past: [] };
+                const payload = { upcoming: (local.upcoming || []).slice(), past: (local.past || []).slice() };
+                const mine = justBooked();
+                items.forEach(function (a) {
+                    if (!payload.upcoming.concat(payload.past).some(function (x) { return String(x.id) === String(a.id); })) payload.upcoming.push(a);
+                    mine.push({ item: a, at: Date.now() });
+                });
+                try { localStorage.setItem(BOOKED_KEY, JSON.stringify(mine)); } catch (_) {}
+                payload.upcoming.sort(function (a, b) { return String(a.datetime).localeCompare(String(b.datetime)); });
+                writeLocalCache(contact.email, payload, Date.now(), null);
+                applyCache(payload, Date.now(), true, false, null);
+            }
+
             async function fetchFromServer(contact, force) {
                 const params = new URLSearchParams({ email: contact.email });
                 if (force) {
@@ -3334,10 +3372,10 @@
                 }
                 const fetchedAt = data.fetchedAt || Date.now();
                 const version = data.version || null;
-                const payload = {
+                const payload = withJustBooked({
                     upcoming: Array.isArray(data.upcoming) ? data.upcoming : [],
                     past: Array.isArray(data.past) ? data.past : []
-                };
+                });
                 writeLocalCache(contact.email, payload, fetchedAt, version);
                 applyCache(payload, fetchedAt, false, false, version);
                 clearDirty(contact.email);
@@ -3573,6 +3611,8 @@
                 refresh: syncIfChanged,
                 next: nextAppointment,
                 lastStart: lastStart,
+                /* hours just booked (as the server created them): in the list and on the calendar at once */
+                add: addBooked,
                 markDirty: function (email) {
                     markDirty((email || '').trim().toLowerCase() || (getUserContact() && getUserContact().email));
                 }
