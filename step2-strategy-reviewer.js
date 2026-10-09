@@ -197,7 +197,7 @@ export function parseStrategyReviewerResponse(raw) {
  * Apply bounded reviewer corrections onto deterministic strategy.
  * @param {object} strategy
  * @param {ReturnType<typeof parseStrategyReviewerResponse>} review
- * @param {{ mandatoryBlocked?: string[] }} [guardrails]
+ * @param {{ mandatoryBlocked?: string[], lockDiet?: boolean }} [guardrails]
  */
 export function applyStrategyReviewAdjustments(strategy, review, guardrails = {}) {
   if (!strategy || !review) return strategy;
@@ -208,17 +208,22 @@ export function applyStrategyReviewAdjustments(strategy, review, guardrails = {}
     ...(strategy.avoidFoodCategories || []),
   ]);
 
-  if (review.libraryDietProfile) {
-    strategy.libraryDietProfile = review.libraryDietProfile;
+  const suggestedDiet = review.libraryDietProfile || review.dietaryModifier;
+  const dietLocked = guardrails.lockDiet && suggestedDiet
+    && review.libraryDietProfile !== strategy.libraryDietProfile;
+  if (!guardrails.lockDiet) {
+    if (review.libraryDietProfile) {
+      strategy.libraryDietProfile = review.libraryDietProfile;
+    }
+    if (review.dietaryModifier) {
+      strategy.dietaryModifier = review.dietaryModifier;
+      strategy.dietType = review.dietaryModifier;
+    } else if (review.libraryDietProfile && DIET_PROFILE_LABELS[review.libraryDietProfile]) {
+      strategy.dietaryModifier = DIET_PROFILE_LABELS[review.libraryDietProfile];
+      strategy.dietType = strategy.dietaryModifier;
+    }
+    if (review.modifierReasoning) strategy.modifierReasoning = review.modifierReasoning;
   }
-  if (review.dietaryModifier) {
-    strategy.dietaryModifier = review.dietaryModifier;
-    strategy.dietType = review.dietaryModifier;
-  } else if (review.libraryDietProfile && DIET_PROFILE_LABELS[review.libraryDietProfile]) {
-    strategy.dietaryModifier = DIET_PROFILE_LABELS[review.libraryDietProfile];
-    strategy.dietType = strategy.dietaryModifier;
-  }
-  if (review.modifierReasoning) strategy.modifierReasoning = review.modifierReasoning;
 
   if (review.foodsToInclude?.length) {
     strategy.foodsToInclude = uniqueTerms(review.foodsToInclude);
@@ -237,6 +242,13 @@ export function applyStrategyReviewAdjustments(strategy, review, guardrails = {}
     verdict: review.verdict,
     at: new Date().toISOString(),
     notes: review.reviewNotes || [],
+    ...(dietLocked ? {
+      rejectedDietChange: {
+        libraryDietProfile: review.libraryDietProfile || null,
+        dietaryModifier: review.dietaryModifier || null,
+        reasoning: review.modifierReasoning || '',
+      },
+    } : {}),
   };
 
   return strategy;

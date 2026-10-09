@@ -12,6 +12,7 @@ import {
   isMealCaloriesAdequate,
   slotCalorieTolerance,
 } from '../../../plan-normalize.js';
+import { MEAL_CARRY_MAX_DISTORTION } from '../../../meal-day-sync.js';
 
 function macrosToCalories(macros) {
   const p = Number(macros?.protein) || 0;
@@ -154,9 +155,16 @@ export function validateWeekPlanNutrition(weekPlan, strategy) {
 
       const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
       dayKcal += mealCal;
-      if (target?.calories && mealCal > 0) {
-        if (!isMealCaloriesAdequate(mealCal, target.calories)) {
-          issues.push(`day${d} ${meal.type}: ${mealCal} kcal ≠ схема ${target.calories} (±${slotCalorieTolerance(target.calories)})`);
+      // Като worker-а: слотът се проверява по целта, която дневният пренос му
+      // е дал (в границите на преноса), не по замразената схема.
+      const schemeCal = Number(target?.calories) || 0;
+      const solvedCal = Number(meal.targetCalories) || 0;
+      const slotTarget = solvedCal > 0 && Math.abs(solvedCal - schemeCal) <= schemeCal * MEAL_CARRY_MAX_DISTORTION + 1
+        ? solvedCal
+        : schemeCal;
+      if (slotTarget > 0 && mealCal > 0) {
+        if (!isMealCaloriesAdequate(mealCal, slotTarget)) {
+          issues.push(`day${d} ${meal.type}: ${mealCal} kcal ≠ схема ${slotTarget} (±${slotCalorieTolerance(slotTarget)})`);
         }
       }
     }

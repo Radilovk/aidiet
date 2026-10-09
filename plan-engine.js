@@ -51,6 +51,7 @@ export function buildPlanEngineMeta(analysis, strategy, mealPlan, metrics = {}) 
   return {
     planEngine: mealPlan?.planEngine || resolvePlanEngine({}),
     step3Engine,
+    profileCode: strategy?.profileCode || null,
     step1Deterministic: Boolean(analysis?._deterministicEnergy),
     step2Deterministic: Boolean(strategy?._deterministicCore),
     slotRepairCalls,

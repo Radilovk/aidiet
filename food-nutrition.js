@@ -325,6 +325,18 @@ function macroCost(achieved, target, kcalPerGram, slotKcal) {
   return Math.abs(achieved - target) * kcalPerGram / scale;
 }
 
+/** Ястие, което не може да се мащабира в реалистични граници — остава каквото е. */
+function keepDishProportions(items) {
+  return {
+    grams: items.map(it => snapGrams(Number(it.referenceGrams) || 0)),
+    feasible: false,
+    reason: 'порцията на ястието не стига целта — избери друго ястие',
+  };
+}
+
+/** Най-малката порция от ястие спрямо референтната. */
+const MIN_DISH_SCALE = 0.5;
+
 function solveDishScale(items, target, maxTotalGrams) {
   const refs = items.map(i => Number(i.referenceGrams) || 0);
   if (refs.some(r => r <= 0)) return null;
@@ -345,15 +357,17 @@ function solveDishScale(items, target, maxTotalGrams) {
   // Ако вместо това всеки продукт се клампваше поотделно, ястието се
   // разтягаше през хляба, докато яйцата опират в тавана си — и спираше да
   // бъде същото ястие. Ястие, което не стига слота, просто не се избира.
-  const minScale = Math.max(0.35, ...bound(i => windows[i].min).filter(Number.isFinite));
+  // Под половин порция ястието вече не е същата чиния, а символ.
+  const minScale = Math.max(MIN_DISH_SCALE, ...bound(i => windows[i].min).filter(Number.isFinite));
   const maxScale = Math.min(
     ...bound(i => windows[i].max),
     maxTotalGrams / refs.reduce((a, b) => a + b, 0),
   );
   if (maxScale < minScale) return null;
 
+  // Лъжицата в тигана не се смалява с порцията: 5 г зехтин не е готвене.
   const cookingFatGrams = (ref, scale) =>
-    snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, ref * Math.min(scale, 1.5)));
+    snapGrams(Math.min(COOKING_FAT_MAX_PORTION_G, Math.max(ref, ref * Math.min(scale, 1.5))));
 
   let best = null;
   const seen = new Set();
@@ -643,8 +657,13 @@ export function applyMealNutritionFromDatabase(meal, target = null, extraDb = {}
     grams: capItemGrams(item, seedGramsForItem(item, bounds[i], slotTarget, items.length)),
   }));
 
+  // Ястие с декларирана порция се мащабира само като цяло. Ако мащабът не
+  // стига целта, ястието остава в пропорцията си и слотът се отчита като
+  // неизпълним — продуктите не се разтягат поотделно, за да излезе числото.
+  // Решателят по продукти е само за свободни композиции без референтна порция.
+  const isDish = items.length > 0 && items.every(it => Number(it.referenceGrams) > 0);
   const solved = solveDishScale(items, slotTarget, plateBudget)
-    || solveMealGrams(items, slotTarget, bounds, plateBudget);
+    || (isDish ? keepDishProportions(items) : solveMealGrams(items, slotTarget, bounds, plateBudget));
   items = items.map((it, i) => ({ ...it, grams: capItemGrams(it, solved.grams[i]) }));
 
   const totals = sumItemNutrition(items);

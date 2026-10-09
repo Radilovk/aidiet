@@ -6,7 +6,7 @@
  */
 
 import { FOOD_NUTRITION_PER_100G } from './food-nutrition-data.js';
-import { normalizeFoodKey } from './food-utils.js';
+import { catalogDietFlagsOf, dietFromSignals } from './profile-code.js';
 
 const REGISTRY_VERSION = 'diet_v2';
 
@@ -39,79 +39,33 @@ export const DIET_NARROWING_RULES = {
   pescatarian: { blockedTerms: ANIMAL_MEAT_TERMS },
 };
 
-function asPreferenceList(dietPreference) {
-  if (Array.isArray(dietPreference)) return dietPreference.map(String).filter(Boolean);
-  if (dietPreference) return [String(dietPreference)];
-  return [];
-}
-
-/** Merge all user/strategy diet signals into one constraint string. */
-export function resolveDietConstraintText({
-  dietaryModifier = '',
-  dietPreference = null,
-  dietDislike = '',
-} = {}) {
-  return [
-    dietaryModifier,
-    ...asPreferenceList(dietPreference),
-    dietDislike,
-  ].filter(Boolean).join(' | ');
-}
-
-/** Catalog compatibility flags — derived from modifier + preferences (not profile ids). */
+/**
+ * Catalog compatibility flags — from the same rules as the client profile code.
+ * Diet style and pattern come only from the modifier and preferences; disliked
+ * foods add exclusions, never a diet ("не обичам кето" is not keto). Keto and
+ * low-carb are different diets.
+ */
 export function resolveCatalogDietProfile(ctx = {}) {
-  const text = resolveDietConstraintText(ctx).toLowerCase();
-  const prefs = asPreferenceList(ctx.dietPreference).map(p => p.toLowerCase());
-  const combined = [text, ...prefs].join(' ');
-  return {
-    vegan: combined.includes('веган') || combined.includes('vegan'),
-    vegetarian: combined.includes('вегетариан') || combined.includes('vegetarian'),
-    pescatarian: combined.includes('пескетариан') || combined.includes('pescatarian'),
-    keto: /кето|нисковъглехидрат|keto|low carb/.test(combined),
-    glutenFree: combined.includes('без глутен') || combined.includes('глuten free'),
-  };
+  return catalogDietFlagsOf(dietFromSignals(ctx));
 }
 
 export function getDietRegistryVersion() {
   return REGISTRY_VERSION;
 }
 
-function normalizeDietKey(modifier = '') {
-  return normalizeFoodKey(String(modifier).replace(/\([^)]*\)/g, ''));
-}
-
-function rulesForText(text = '') {
-  const key = normalizeDietKey(text);
-  if (!key) return [];
-  const matched = [];
-  for (const [ruleKey, rule] of Object.entries(DIET_NARROWING_RULES)) {
-    if (key.includes(normalizeFoodKey(ruleKey))) matched.push(rule);
-  }
-  return matched;
-}
+/** Which narrowing rule each catalog flag turns on. */
+const RULE_BY_FLAG = [
+  ['keto', DIET_NARROWING_RULES.keto],
+  ['lowCarb', DIET_NARROWING_RULES['нисковъглехидрат']],
+  ['dairyFree', DIET_NARROWING_RULES['без млечни']],
+  ['vegan', DIET_NARROWING_RULES.vegan],
+  ['vegetarian', DIET_NARROWING_RULES.vegetarian],
+  ['pescatarian', DIET_NARROWING_RULES.pescatarian],
+];
 
 function collectMatchingRules(ctx) {
-  const rules = [];
-  const seen = new Set();
-  const push = (rule) => {
-    if (!rule || seen.has(rule)) return;
-    seen.add(rule);
-    rules.push(rule);
-  };
-
-  if (typeof ctx === 'string') {
-    for (const r of rulesForText(ctx)) push(r);
-    return rules;
-  }
-
-  for (const r of rulesForText(resolveDietConstraintText(ctx))) push(r);
-  for (const pref of asPreferenceList(ctx?.dietPreference)) {
-    for (const r of rulesForText(pref)) push(r);
-  }
-  if (ctx?.dietaryModifier) {
-    for (const r of rulesForText(ctx.dietaryModifier)) push(r);
-  }
-  return rules;
+  const flags = resolveCatalogDietProfile(typeof ctx === 'string' ? { dietaryModifier: ctx } : (ctx || {}));
+  return RULE_BY_FLAG.filter(([flag]) => flags[flag]).map(([, rule]) => rule);
 }
 
 function shareOfKcal(nutritionKey, macroIdx) {

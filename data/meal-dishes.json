@@ -1,6 +1,6 @@
 {
   "updatedAt": "2026-09-01T02:58:04.349Z",
-  "count": 171,
+  "count": 176,
   "dishes": [
     {
       "id": "meal_omelet",
@@ -4186,6 +4186,122 @@
       "vegetarian": true,
       "universality": 4,
       "tags": []
+    },
+    {
+      "id": "late_tuna_cucumber",
+      "name": "Риба тон с краставици",
+      "products": [
+        {
+          "name": "риба тон",
+          "grams": 80
+        },
+        {
+          "name": "краставици",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "late_salmon_cucumber",
+      "name": "Сьомга с краставици",
+      "products": [
+        {
+          "name": "сьомга",
+          "grams": 60
+        },
+        {
+          "name": "краставици",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "late_chicken_avocado",
+      "name": "Пилешко с авокадо",
+      "products": [
+        {
+          "name": "пилешко месо",
+          "grams": 60
+        },
+        {
+          "name": "авокадо",
+          "grams": 50
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": false,
+      "vegetarian": false,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "late_avocado_cucumber",
+      "name": "Авокадо с краставици",
+      "products": [
+        {
+          "name": "авокадо",
+          "grams": 70
+        },
+        {
+          "name": "краставици",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "snack",
+        "late_snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "late_tofu_cucumber",
+      "name": "Тофу с краставици",
+      "products": [
+        {
+          "name": "тофу",
+          "grams": 100
+        },
+        {
+          "name": "краставици",
+          "grams": 150
+        }
+      ],
+      "timing": [
+        "late_snack"
+      ],
+      "vegan": true,
+      "vegetarian": true,
+      "universality": 4,
+      "tags": [
+        "low_carb"
+      ]
     }
   ]
 }

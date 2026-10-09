@@ -151,7 +151,8 @@ export const ITEM_MIN_PORTION_G = {
   'масло': 5,
   'семена чиа': 5,
   'ленено семе': 5,
-  'мед': 5,
+  // Чаена лъжичка — под нея медът е украса, не съставка.
+  'мед': 10,
 };
 
 function lookup(table, name, nutritionKey) {

@@ -9,6 +9,8 @@
  *  4. Analysis severity labels must match severityValue bands.
  */
 
+import { compileProfile } from './profile-code.js';
+
 export const MAX_PLATED_SLOT_KCAL_ABSOLUTE = 900;
 export const MAX_PLATED_SLOT_KCAL_BASE = 800;
 export const FREE_MEAL_MAX_DAILY_RATIO = 0.45;
@@ -442,18 +444,14 @@ function enforceFreeDayDinnerCap(day, dailyKcal) {
   distributeSurplusToRecipients(recipients, excessKcal, 0, 0, 0, dailyKcal, day.mealBreakdown);
 }
 
-function dietPreferences(userData) {
-  const raw = userData?.dietPreference;
-  if (Array.isArray(raw)) return raw.map(String);
-  return raw ? [String(raw)] : [];
-}
-
 export function isVeganUser(userData) {
-  return dietPreferences(userData).some(p => p.includes('Веган'));
+  return compileProfile(userData || {}).diet.pattern === 'vegan';
 }
 
 export function isKetoUser(userData) {
-  return dietPreferences(userData).some(p => /кето|нисковъглехидрат/i.test(p));
+  // Само кето: нисковъглехидратната е отделна диета със собствен таван (80 г/ден),
+  // не 15% от калориите.
+  return compileProfile(userData || {}).diet.style === 'keto';
 }
 
 const MIN_FAT_GRAMS_PER_KG = 0.7;
@@ -746,8 +744,7 @@ function collectContextKeyProblemCandidates(analysis, userData) {
 }
 
 export function userSkipsBreakfast(userData) {
-  const habits = userData?.eatingHabits;
-  return Array.isArray(habits) && habits.some(h => String(h).includes('Не закусвам'));
+  return compileProfile(userData || {}).skipsBreakfast;
 }
 
 /**

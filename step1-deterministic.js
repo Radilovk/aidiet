@@ -4,6 +4,8 @@
  * review adjusts intake on top of the backend baseline (never replaces TDEE).
  */
 
+import { compileProfile } from './profile-code.js';
+
 /** Default on — set DETERMINISTIC_STEP1=0 to let AI propose Final_Calories/macros. */
 export function deterministicStep1Enabled(env = {}) {
   const v = env?.DETERMINISTIC_STEP1;
@@ -62,35 +64,25 @@ export function mergeAdjustmentPercent(aiValue, structuredValue) {
 }
 
 /**
- * Deterministic clinical/metabolic hints from structured profile fields only.
- * Catches obvious physiology the regex pipeline cannot infer from free text alone.
+ * Deterministic clinical/metabolic hints from the compiled client profile.
+ *
+ * Чете кодовете, не текста: „Хашимото“ от въпросника е хипотиреоидизъм,
+ * левотироксин в лекарствата — също, а „5–6“ часа сън е 5,5 часа. Старият
+ * регулярен израз не хващаше нито едно от трите.
  * @returns {{ clinical: number, metabolic: number }}
  */
 export function deriveStructuredMetabolicHints(data = {}) {
-  const blob = [
-    ...(Array.isArray(data.medicalConditions) ? data.medicalConditions : []),
-    data['medicalConditions_Ендокринни_детайл'] || '',
-    data['medicalConditions_Метаболитни_детайл'] || '',
-    ...(Array.isArray(data.medications) ? data.medications : []),
-  ].join(' ').toLowerCase();
-
+  const profile = compileProfile(data || {});
   let clinical = 0;
   let metabolic = 0;
 
-  if (/хипотирео|hypothyroid|щитовидн.*(недост|ниска|hypo)/i.test(blob)) {
-    clinical = Math.min(clinical, -5);
-  }
-  if (/хипертирео|hyperthyroid|щитовидн.*(висок|hyper)/i.test(blob)) {
-    clinical = Math.max(clinical, 3);
-  }
+  if (profile.clinical.includes('HYPO')) clinical = Math.min(clinical, -5);
+  if (profile.clinical.includes('HYPER')) clinical = Math.max(clinical, 3);
 
-  const sleep = Number(data.sleepHours);
+  const sleep = Number(profile.sleepHours);
   if (sleep > 0 && sleep < 6) metabolic = Math.min(metabolic, sleep < 5 ? -5 : -3);
 
-  const stress = String(data.stressLevel || '').toLowerCase();
-  if (/много висок|висок|high|severe/i.test(stress)) {
-    metabolic = Math.min(metabolic, -2);
-  }
+  if (profile.stress === 3) metabolic = Math.min(metabolic, -2);
 
   return { clinical, metabolic };
 }

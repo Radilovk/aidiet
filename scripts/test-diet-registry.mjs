@@ -2,7 +2,6 @@
 /** Universal diet registry — dietPreference + dietaryModifier, no profile ids. */
 import {
   resolveCatalogDietProfile,
-  resolveDietConstraintText,
   passesDietRegistry,
   getDietRegistryVersion,
 } from '../diet-registry.js';
@@ -52,10 +51,15 @@ const vegCtx = { dietaryModifier: 'Балансирано', dietPreference: ['В
 ok(resolveCatalogDietProfile(vegCtx).vegetarian, 'vegetarian flag from preference');
 ok(passesDietRegistry({ name: 'Скир', nutritionKey: 'скир', group: 'dairy', slots: ['PRO'], vegetarian: true }, vegCtx), 'vegetarian allows dairy');
 
-ok(
-  resolveDietConstraintText({ dietaryModifier: 'Кето', dietPreference: ['Нисковъглехидратна'] }).includes('Кето'),
-  'constraint text merges modifier + preference',
-);
+const lowCarb = resolveCatalogDietProfile({ dietaryModifier: 'Балансирано', dietPreference: ['Нисковъглехидратна'] });
+ok(lowCarb.lowCarb && !lowCarb.keto, 'Нисковъглехидратна е low-carb, не кето');
+ok(resolveCatalogDietProfile({ dietaryModifier: 'Кетогенна диета' }).keto, 'кетогенна диета → keto');
+const dislike = resolveCatalogDietProfile({ dietaryModifier: 'Балансирано', dietDislike: 'веган колбаси, кето десерти' });
+ok(!dislike.vegan && !dislike.keto, 'нелюбимите храни не определят диетата');
+ok(resolveCatalogDietProfile({ dietaryModifier: 'Балансирано', dietDislike: 'непоносимост към глутен' }).glutenFree,
+  'непоносимост към глутен в нелюбими → без глутен');
+const combo = resolveCatalogDietProfile({ dietaryModifier: 'Веган · Без глутен' });
+ok(combo.vegan && combo.glutenFree, 'съставен етикет носи и модела, и изключването');
 
 console.log(`\n=== diet registry universal: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

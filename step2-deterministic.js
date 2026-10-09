@@ -4,17 +4,21 @@
  */
 
 import { LIBRARY_PROTOCOL_RULES } from './nutrition-library-bridge.js';
-import { resolveLibraryDietProfile } from './protocol-engine.js';
+import {
+  compileProfile,
+  dietLabelOf,
+  encodeProfileCode,
+  libraryDietProfileOf,
+  slotsFor,
+} from './profile-code.js';
 import { getMealDistribution } from './meal-template-engine.js';
 import { validateProtocolStrategy } from './protocol-validate.js';
 import {
-  isKetoUser,
-  userSkipsBreakfast,
   slotCeilingKcal,
   dayCapacityKcal,
   FIRST_MEAL_SLOT,
 } from './plan-normalize.js';
-import { buildQuestionnaireDietHints, extractQuestionnaireBlockedTerms } from './questionnaire-engine-map.js';
+import { extractQuestionnaireBlockedTerms } from './questionnaire-engine-map.js';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -71,31 +75,6 @@ function resolveIncludeDessert(userData) {
     return s.includes('Диабет') || s.includes('Инсулинова резистентност');
   });
   return !blocked;
-}
-
-function resolveMealsPerDay(userData) {
-  const text = (userData?.eatingHabits || []).join(' ').toLowerCase();
-  if (/5\s*хран|пет\s*хран|5\s*meal/i.test(text)) return 5;
-  if (/4\s*хран|четири\s*хран|4\s*meal/i.test(text)) return 4;
-  if (/3\s*хран|три\s*хран|3\s*meal|без\s*междин/i.test(text)) return 3;
-  if (/2\s*хран|две\s*хран/i.test(text)) return 3;
-  return 5;
-}
-
-/** Слотовете, които навиците на клиента искат — преди проверката за капацитет. */
-function preferredSlots(mealsPerDay, userData) {
-  const skipBreakfast = userSkipsBreakfast(userData);
-  if (mealsPerDay <= 3) {
-    return skipBreakfast ? ['Хранене 2', 'Хранене 4'] : ['Хранене 1', 'Хранене 2', 'Хранене 4'];
-  }
-  if (mealsPerDay === 4) {
-    return skipBreakfast
-      ? ['Хранене 2', 'Хранене 3', 'Хранене 4']
-      : ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4'];
-  }
-  return skipBreakfast
-    ? ['Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5']
-    : ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5'];
 }
 
 /**
@@ -314,8 +293,7 @@ function buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay, restoredSlot = 
   };
 }
 
-function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restoredSlot = null) {
-  const label = DIET_PROFILE_LABELS[dietProfile] || DIET_PROFILE_LABELS.balanced;
+function buildCopyFields(label, mealsPerDay, slotTypes, userData, profile, restoredSlot = null) {
   // Клиентът е казал, че не закусва — ако денят не се събира без първо хранене,
   // това трябва да е обяснено, а не просто да се появи в плана.
   const restoredNote = restoredSlot
@@ -332,7 +310,7 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restored
   return {
     dietaryModifier: label,
     dietType: label,
-    modifierReasoning: `Профил "${dietProfile}" — избран детерминистично от предпочитания, цели и медицински сигнали.`,
+    modifierReasoning: `Код на профила ${profile.code} — диетата е избрана детерминистично от предпочитания, цели и медицински сигнали.`,
     welcomeMessage: `${name}, планът следва ${label.toLowerCase()} модел с ${mealsPerDay} хранения на ден.`,
     planJustification: `Структурата (${mealList}) и калориите идват от анализа и протоколни правила — стабилна база за седмичното меню.`,
     longTermStrategy: 'Постепенна адаптация чрез седмичен мониторинг на тегло, енергия и придържане.',
@@ -344,7 +322,7 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restored
     calorieDistribution: 'Разпределение по протоколни тегла — основни хранения носят по-голям калориен дял.',
     macroDistribution: 'Макросите следват Step 1 анализа и diet profile ограниченията.',
     breakfastStrategy: restoredNote
-      || (userSkipsBreakfast(userData)
+      || (profile.skipsBreakfast
         ? 'Без закуска — калориите са в основните хранения.'
         : 'Закуската стартира деня с балансиран PRO/ENG профил.'),
     mealTiming: {
@@ -365,7 +343,7 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restored
     foodsToInclude: loves,
     foodsToAvoid: blocked,
     psychologicalSupport: [
-      restoredNote || (userSkipsBreakfast(userData)
+      restoredNote || (profile.skipsBreakfast
         ? 'Без закуска — калориите са в основните хранения.'
         : null),
       Array.isArray(userData?.foodCravings) && userData.foodCravings.length
@@ -384,12 +362,12 @@ function buildCopyFields(dietProfile, mealsPerDay, slotTypes, userData, restored
 export function buildDeterministicStrategy({ userData = null, analysis = null, options = {} } = {}) {
   const weightKg = Number(userData?.weight) || 70;
 
-  const dietProfile = options.libraryDietProfile || resolveLibraryDietProfile({
-    dietaryModifier: options.dietaryModifier,
-    dietPreference: userData?.dietPreference,
-    dietDislike: userData?.dietDislike || '',
-    questionnaireHints: userData?._engineDietHints || buildQuestionnaireDietHints(userData),
-  });
+  // Кодът на профила е единственият източник за диета, изключвания и хранения.
+  const profile = compileProfile(userData || {}, { dietaryModifier: options.dietaryModifier });
+  const dietProfile = options.libraryDietProfile || libraryDietProfileOf(profile);
+  const dietLabel = options.libraryDietProfile
+    ? (DIET_PROFILE_LABELS[dietProfile] || DIET_PROFILE_LABELS.balanced)
+    : dietLabelOf(profile);
 
   const dailyKcal = parseDailyKcal(analysis);
   let macros = parseMacroGrams(analysis);
@@ -401,9 +379,14 @@ export function buildDeterministicStrategy({ userData = null, analysis = null, o
     };
   }
   macros = applyDietMacroCaps(macros, dietProfile, dailyKcal, weightKg);
+  // Веган кето: библиотеката държи един профил (веган), таванът на стила остава.
+  if (!options.libraryDietProfile && profile.diet.style !== dietProfile) {
+    macros = applyDietMacroCaps(macros, profile.diet.style, dailyKcal, weightKg);
+  }
 
-  const mealsPerDay = options.mealsPerDay || resolveMealsPerDay(userData);
-  const preferred = preferredSlots(mealsPerDay, userData);
+  const preferred = options.mealsPerDay
+    ? slotsFor(options.mealsPerDay, profile.skipsBreakfast)
+    : profile.slots;
   const restoredSlot = restoredFirstMeal(preferred, dailyKcal);
   const slotTypes = restoredSlot ? [restoredSlot, ...preferred] : preferred;
   const freeDayNumber = options.freeDayNumber ?? 7;
@@ -414,10 +397,12 @@ export function buildDeterministicStrategy({ userData = null, analysis = null, o
     weeklyScheme[DAY_KEYS[i]] = buildDayScheme(slotTypes, dailyKcal, macros, isFreeDay, restoredSlot);
   }
 
-  const copy = buildCopyFields(dietProfile, slotTypes.length, slotTypes, userData, restoredSlot);
+  profile.code = encodeProfileCode(profile, { kcal: dailyKcal, ...macros });
+  const copy = buildCopyFields(dietLabel, slotTypes.length, slotTypes, userData, profile, restoredSlot);
 
   return {
     ...copy,
+    profileCode: profile.code,
     weeklyScheme,
     freeDayNumber,
     includeDessert: resolveIncludeDessert(userData),

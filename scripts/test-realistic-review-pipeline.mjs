@@ -5,7 +5,10 @@
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { HARD_PROFILES } from './plan-adequacy/fixtures/hard-profiles.mjs';
+import { compileProfile } from '../profile-code.js';
+import { macroTargetsFor } from '../macro-targets.js';
 import {
+  computeIntakeTarget,
   buildEnergyContract,
   applyDeterministicEnergyContract,
   applyBoundedMetabolicReview,
@@ -118,26 +121,6 @@ function tdeeFromScore(bmrVal, score) {
   return Math.round(bmrVal * (mult[Math.round(score)] || mult[5]));
 }
 
-function macroRatios(data, score, tdeeVal) {
-  const weight = parseFloat(data.weight) || 70;
-  const gender = data.gender;
-  let proteinPerKg = gender === 'Мъж'
-    ? (score >= 7 ? 2.0 : score >= 5 ? 1.6 : 1.2)
-    : (score >= 7 ? 1.8 : score >= 5 ? 1.4 : 1.0);
-  if (goalIncludes(data.goal, 'Мускулна')) proteinPerKg *= 1.2;
-  else if (goalIncludes(data.goal, 'Отслабване')) proteinPerKg *= 1.1;
-  const proteinGrams = weight * proteinPerKg;
-  const est = tdeeVal || weight * 30;
-  let protein = Math.round((proteinGrams * 4 / est) * 100);
-  const rem = 100 - protein;
-  let carbs; let fats;
-  if (score >= 7) { carbs = Math.round(rem * 0.6); fats = rem - carbs; }
-  else if (score >= 4) { carbs = Math.round(rem * 0.5); fats = rem - carbs; }
-  else { carbs = Math.round(rem * 0.4); fats = rem - carbs; }
-  fats += 100 - (protein + carbs + fats);
-  return { protein, carbs, fats };
-}
-
 function safeDeficit(tdeeVal, goal) {
   if (!goalIncludes(goal, 'Отслабване')) {
     return { targetCalories: tdeeVal };
@@ -204,7 +187,8 @@ async function buildPlan(profile, { metabolicReview, strategyReview }) {
   const B = bmr(data);
   const T = tdeeFromScore(B, score);
   const deficitData = safeDeficit(T, data.goal);
-  const macros = macroRatios(data, score, T);
+  // Същите макро цели като worker-а — от кода на профила, при приема.
+  const macros = macroTargetsFor(compileProfile(data), computeIntakeTarget(T, data.goal, deficitData)).ratios;
   const weight = parseFloat(data.weight) || 70;
   const minFatG = Math.round(weight * MIN_FAT_PER_KG);
   const contract = buildEnergyContract({
@@ -250,6 +234,9 @@ async function buildPlan(profile, { metabolicReview, strategyReview }) {
   for (const [start, end] of [[1, 3], [4, 6], [7, 7]]) {
     Object.assign(weekPlan, await buildDeterministicWeekPlanChunk({
       strategy, userData: data, startDay: start, endDay: end, seed: String(profile.id).length,
+      // Като worker-а: клиничният протокол и блокираните храни филтрират каталога.
+      clinicalProtocolId: data.clinicalProtocol || null,
+      blockedTerms: data._engineBlockedTerms || [],
     }));
   }
   syncWeekPlanNutritionFromDatabase(weekPlan, strategy, 1, 7, data);

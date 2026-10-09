@@ -113,7 +113,10 @@ import {
   buildDeterministicStrategy,
   deterministicStep2Enabled,
 } from './step2-deterministic.js';
+import { compileProfile } from './profile-code.js';
+import { macroTargetsFor } from './macro-targets.js';
 import {
+  computeIntakeTarget,
   buildEnergyContract,
   applyDeterministicEnergyContract,
   deterministicStep1Enabled,
@@ -1139,90 +1142,32 @@ function calculateBMI(data) {
 }
 
 /**
- * Calculate macronutrient ratios - Issue #2 & #28 Resolution
- * Non-circular formula based on percentage distribution
- * Gender-specific protein requirements
- * 
- * NOTE (2026-02-06): This provides baseline ratios for reference.
- * AI model should see and validate/adjust these based on individual factors.
- * 
- * @param {Object} data - User data with weight, gender, goal
- * @param {number} activityScore - Unified activity score (1-10)
- * @param {number} tdee - Total Daily Energy Expenditure (optional, for accurate %)
- * @returns {{protein: number, carbs: number, fats: number, proteinGramsPerKg: number}} - protein/carbs/fats are percentages that sum to 100, proteinGramsPerKg is g/kg
+ * Macro ratios from the client profile code — diet-native targets.
+ *
+ * Протеинът е котва в г/кг (коригирано тегло при наднормено), стилът на
+ * диетата задава въглехидратите или мазнините, останалото е третият макрос.
+ * Процентите са спрямо приема (след дефицита), не спрямо TDEE: иначе
+ * протеинът падаше с процента на дефицита.
+ *
+ * @param {Object} data - User data
+ * @param {number} _activityScore - kept for call-site compatibility (activity comes from the profile)
+ * @param {number} tdee - maintenance TDEE
+ * @returns {{protein: number, carbs: number, fats: number, proteinGramsPerKg: number}}
  */
-function calculateMacronutrientRatios(data, activityScore, tdee = null) {
-  const weight = parseFloat(data.weight) || 70;
-  const gender = data.gender;
-  const goal = data.goal || '';
-  
-  // Base protein needs (g/kg body weight)
-  // Women generally need slightly less due to lower muscle mass
-  // Men need more for muscle maintenance/growth
-  let proteinPerKg;
-  if (gender === 'Мъж') {
-    proteinPerKg = activityScore >= 7 ? 2.0 : activityScore >= 5 ? 1.6 : 1.2;
-  } else { // Жена
-    proteinPerKg = activityScore >= 7 ? 1.8 : activityScore >= 5 ? 1.4 : 1.0;
-  }
-  
-  // Adjust for goal
-  const goalStr = Array.isArray(goal) ? goal.join(' ') : String(goal || '');
-  if (goalStr.toLowerCase().includes('мускулна маса')) {
-    proteinPerKg *= 1.2;
-  } else if (goalStr.toLowerCase().includes('отслабване')) {
-    proteinPerKg *= 1.1; // Slightly more protein to preserve muscle
-  }
-  
-  // Calculate protein grams needed
-  const proteinGrams = weight * proteinPerKg;
-  
-  // Protein has 4 cal/g
-  // Use provided TDEE if available, otherwise estimate based on weight/gender
-  const estimatedCalories = tdee || (gender === 'Мъж' ? weight * 30 : weight * 28);
-  const proteinCalories = proteinGrams * 4;
-  let proteinPercent = Math.round((proteinCalories / estimatedCalories) * 100);
-  
-  // Distribute remaining calories between carbs and fats
-  // Higher activity = more carbs for energy
-  // Lower activity = more fats for satiety
-  const remainingPercent = 100 - proteinPercent;
-  let carbsPercent, fatsPercent;
-  
-  if (activityScore >= 7) {
-    // Very active: prioritize carbs for energy
-    carbsPercent = Math.round(remainingPercent * 0.6);
-    fatsPercent = remainingPercent - carbsPercent;
-  } else if (activityScore >= 4) {
-    // Moderate: balanced
-    carbsPercent = Math.round(remainingPercent * 0.5);
-    fatsPercent = remainingPercent - carbsPercent;
-  } else {
-    // Low activity: prioritize fats for satiety
-    carbsPercent = Math.round(remainingPercent * 0.4);
-    fatsPercent = remainingPercent - carbsPercent;
-  }
-  
-  // Apply clinical protocol macro modifiers if present
-  const protocol = getClinicalProtocol(data.clinicalProtocol);
-  if (protocol && protocol.macroModifiers) {
-    const mod = protocol.macroModifiers;
-    carbsPercent = Math.max(15, carbsPercent - (mod.carbReduction || 0));
-    proteinPercent = proteinPercent + (mod.proteinIncrease || 0);
-    fatsPercent = fatsPercent + (mod.fatIncrease || 0);
-  }
-  
-  // Ensure ratios sum to exactly 100%
-  const total = proteinPercent + carbsPercent + fatsPercent;
-  if (total !== 100) {
-    fatsPercent += (100 - total); // Adjust fats to make it exactly 100
-  }
-  
+function calculateMacronutrientRatios(data, _activityScore, tdee = null) {
+  const profile = compileProfile(data);
+  const maintenance = Number(tdee) || (data.gender === 'Мъж' ? 30 : 28) * (parseFloat(data.weight) || 70);
+  const intake = computeIntakeTarget(maintenance, data.goal, calculateSafeDeficit(maintenance, data.goal))
+    || maintenance;
+  // Изместването от клиничния протокол е в macroTargetsFor — един източник.
+  const targets = macroTargetsFor(profile, intake);
+  const { protein: proteinPercent, carbs: carbsPercent, fats: fatsPercent } = targets.ratios;
+
   return {
     protein: proteinPercent,
     carbs: carbsPercent,
     fats: fatsPercent,
-    proteinGramsPerKg: Math.round(proteinPerKg * 10) / 10
+    proteinGramsPerKg: targets.proteinPerKg,
   };
 }
 
@@ -4208,26 +4153,10 @@ async function runStrategyReviewerReview(env, strategy, analysis, userData, sess
   const review = parseStrategyReviewerResponse(parsed);
   const mandatoryBlocked = extractQuestionnaireBlockedTerms(userData);
 
-  const previousProfile = strategy.libraryDietProfile;
-  if (
-    review.libraryDietProfile
-    && review.libraryDietProfile !== previousProfile
-    && review.verdict !== 'REJECT'
-  ) {
-    const rebuilt = buildDeterministicStrategy({
-      userData,
-      analysis,
-      options: {
-        libraryDietProfile: review.libraryDietProfile,
-        dietaryModifier: review.dietaryModifier || strategy.dietaryModifier,
-        freeDayNumber: strategy.freeDayNumber,
-      },
-    });
-    strategy.weeklyScheme = rebuilt.weeklyScheme;
-    strategy.libraryDietProfile = rebuilt.libraryDietProfile;
-  }
-
-  applyStrategyReviewAdjustments(strategy, review, { mandatoryBlocked });
+  // Диетата идва от кода на профила. Прегледът може да стесни списъка с
+  // храни, но не и да смени диетата: предложението му остава в бележките,
+  // за да се добави липсващото правило в таблиците на профила.
+  applyStrategyReviewAdjustments(strategy, review, { mandatoryBlocked, lockDiet: true });
   strategy._deterministicCore = true;
   console.log(`Step 2 Strategy Reviewer: ${review.verdict}`);
   return { strategy, review };

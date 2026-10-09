@@ -7013,7 +7013,7 @@ export const LIBRARY_PROTOCOL_RULES = {
       ]
     },
     "low_carb": {
-      "max_carbs_g_day": 80,
+      "max_carbs_g_day": 130,
       "exclude_groups": [
         "refined_grains",
         "sweets"
