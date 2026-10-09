@@ -1239,6 +1239,7 @@
             width: 100%; max-width: 480px; background: var(--xb-card, #fff); color: var(--xb-text, #16141a); border-radius: 22px 22px 0 0;
             padding: 10px 18px calc(env(safe-area-inset-bottom, 0px) + 18px); box-shadow: 0 -10px 40px rgba(0, 0, 0, .25);
             font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-height: 92vh; max-height: 92dvh; overflow-y: auto; -webkit-overflow-scrolling: touch;
         }
         html[data-theme="dark"] .xb-sheet { background: #1c1a1f; color: #f3f1f4; }
         .xb-sheet-handle { width: 40px; height: 4px; border-radius: 4px; background: #d4d0d8; margin: 0 auto 14px; }
@@ -1292,8 +1293,13 @@
         .xb-sum td { padding: 6px 2px; border-bottom: 1px solid rgba(128, 128, 128, .18); }
         .xb-sum td:last-child { text-align: right; font-weight: 700; white-space: nowrap; }
         .xb-sum tr.now td { color: #16a34a; font-weight: 700; }
-        .xb-card-field { margin: 10px 0 4px; padding: 14px 12px; border-radius: 12px; border: 1px solid #dcd9df; background: #fff; }
-        html[data-theme="dark"] .xb-card-field { background: #26232a; border-color: #3a353f; }
+        .xb-pay-field { margin: 12px 0 4px; min-height: 56px; }
+        .xb-saved-card { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; padding: 14px 12px; border-radius: 12px; border: 1px solid #dcd9df; font-size: 15px; font-weight: 700; }
+        .xb-saved-card i { color: #d32f2f; }
+        .xb-saved-card small { margin-left: auto; font-size: 12px; font-weight: 500; color: #16a34a; }
+        html[data-theme="dark"] .xb-saved-card { border-color: #3a353f; }
+        .xb-consent { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0 2px; font-size: 14px; line-height: 1.45; cursor: pointer; }
+        .xb-consent input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: #d32f2f; }
         .xb-sheet .xb-cart-msg { font-size: 14px; line-height: 1.5; }
         /* changing an hour: the bar above the calendar while a new hour is chosen */
         .xb-move {
@@ -1955,22 +1961,32 @@
                     if (!go) return;
                     const what = go.dataset.go;
                     if (what === 'continue') {
-                        // hours already chosen: this one joins them and all go on together (as Запази)
-                        if (cart.length) {
-                            let note = '';
-                            if (cart.indexOf(sheetIso) < 0) {
-                                if (cart.length < 8) toggleCart(sheetIso); else note = 'Най-много 8 часа наведнъж — последният не е добавен.';
-                            }
-                            openCartSheet(note);
-                            return;
+                        // this hour joins the chosen ones (or goes alone) and all are booked in the app (as Запази):
+                        // Acuity's form (its SMS / terms boxes, its card form) only for a first booking without a card step
+                        let note = '';
+                        if (cart.indexOf(sheetIso) < 0) {
+                            if (cart.length < 8) toggleCart(sheetIso); else note = 'Най-много 8 часа наведнъж — последният не е добавен.';
                         }
-                        sheet.classList.add('hidden');
-                        openAcuityAt(sheetIso);
+                        openCartSheet(note);
                         return;
                     }
                     if (what === 'more') { sheet.classList.add('hidden'); toggleCart(sheetIso); return; }
-                    if (what === 'book') { bookCart(); return; }
+                    if (what === 'book') {
+                        if (!consents()) {
+                            const terms = sheet.querySelector('#xb-terms');
+                            const sms = sheet.querySelector('#xb-sms');
+                            if (!terms || !terms.checked) {
+                                const err = sheet.querySelector('#xb-consent-err');
+                                if (err) err.textContent = 'Моля, приемете условията за резервация.';
+                                return;
+                            }
+                            saveConsents(Boolean(sms && sms.checked));
+                        }
+                        bookCart();
+                        return;
+                    }
                     if (what === 'card') { if (cardStep) cardStep(); return; }
+                    if (what === 'new-card') { cardStep = null; bookCart(true); return; }
                     if (what === 'cancel-card') { cardStep = null; openCartSheet(); return; }
                     if (what === 'move') {   // Промени часа: a free hour is chosen in the calendar
                         sheet.classList.add('hidden');
@@ -2074,6 +2090,52 @@
                 const get = function (k) { return (sessionStorage.getItem(k) || localStorage.getItem(k) || '').trim(); };
                 return { email: get('xbody_booking_email').toLowerCase(), phone: get('xbody_booking_phone'), name: get('xbody_booking_full_name') };
             }
+            /* SMS reminders and the booking terms: asked once (here, or on Acuity's form at an earlier booking), then
+               never again on this phone */
+            const CONSENT_KEY = 'xbody_consents';
+            function saveConsents(sms) {
+                const v = { terms: true, sms: sms !== false, at: Date.now() };
+                try { localStorage.setItem(CONSENT_KEY, JSON.stringify(v)); } catch (_) {}
+                return v;
+            }
+            function consents() {
+                try {
+                    const v = JSON.parse(localStorage.getItem(CONSENT_KEY) || 'null');
+                    if (v && v.terms) return v;
+                } catch (_) {}
+                if (Object.keys(ownByDay()).length) return saveConsents(true);   // an earlier XBODY Burgas booking: answered then
+                return null;
+            }
+            function consentBoxes() {
+                if (consents()) return '';
+                return '<label class="xb-consent"><input type="checkbox" id="xb-terms"><span>Приемам <b>условията за резервация</b>: ' +
+                        'при отмяна, промяна или неявяване по-малко от 12 часа преди тренировката тя се заплаща.</span></label>' +
+                    '<label class="xb-consent"><input type="checkbox" id="xb-sms"><span>Искам SMS напомняния за часовете си.</span></label>' +
+                    '<p class="xb-cart-note" id="xb-consent-err" role="alert"></p>';
+            }
+
+            /* the card given once (Stripe keeps it for the client): the phone keeps only its id and last digits, so the
+               next bookings only confirm it */
+            const CARD_KEY = 'xbody_saved_card';
+            function savedCard(email) {
+                try {
+                    const v = JSON.parse(localStorage.getItem(CARD_KEY) || 'null');
+                    return v && /^pm_\w+$/.test(v.pm || '') && v.email === email ? v : null;
+                } catch (_) {
+                    return null;
+                }
+            }
+            function keepCard(email, card) {
+                if (!card || !/^pm_\w+$/.test(card.pm || '')) return;
+                try {
+                    localStorage.setItem(CARD_KEY, JSON.stringify({ email: email, pm: card.pm, brand: card.brand || '', last4: card.last4 || '' }));
+                } catch (_) {}
+            }
+            function forgetCard() {
+                try { localStorage.removeItem(CARD_KEY); } catch (_) {}
+            }
+            const BRANDS = { visa: 'Visa', mastercard: 'Mastercard', amex: 'American Express', maestro: 'Maestro', discover: 'Discover', jcb: 'JCB', diners: 'Diners Club', unionpay: 'UnionPay' };
+
             function openCartSheet(note) {
                 ensureSheet();
                 const c = contact();
@@ -2084,6 +2146,7 @@
                             '<button type="button" data-rm="' + esc(iso) + '" aria-label="Премахни"><i class="fas fa-times"></i></button></li>';
                     }).join('') + '</ul>' +
                     '<p class="xb-cart-who">' + esc([c.name, c.phone].filter(Boolean).join(' · ')) + '</p>' +
+                    consentBoxes() +
                     (note ? '<p class="xb-cart-note">' + note + '</p>' : '') +
                     '<button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Продължи' +
                         (cart.length > 1 ? ' (' + cart.length + ')' : '') + '</button>' +
@@ -2105,15 +2168,22 @@
             }
             function money(n) { return '€' + Number(n).toFixed(2); }
 
-            /* Потвърди: the card guarantee first (once, for all the hours; nothing is charged), then the booking */
-            function bookCart() {
+            /* Потвърди: the card guarantee first (once, for all the hours; nothing is charged), then the booking.
+               A card saved before is only confirmed; fresh = another card. */
+            function bookCart(fresh) {
                 const c = contact();
                 const times = cart.slice();
                 if (!times.length) return;
+                const saved = fresh ? null : savedCard(c.email);
                 booking = true;
                 busyButton('[data-go="book"]', 'Момент…');
-                postJson('/api/xbody/guarantee', { email: c.email, phone: c.phone, name: c.name, times: times }).then(function (res) {
+                busyButton('[data-go="new-card"]', 'Момент…');
+                postJson('/api/xbody/guarantee', {
+                    email: c.email, phone: c.phone, name: c.name, times: times, paymentMethod: saved ? saved.pm : undefined
+                }).then(function (res) {
                     if (res.status === 503 && res.d.error === 'no_stripe') return sendBooking(c, times, '');   // no card step set up yet
+                    if (res.status === 200 && res.d.saved && saved) return openSavedCardSheet(c, times, res.d, saved);
+                    if (res.status === 200 && saved) forgetCard();   // the saved card is gone or expired: a new one
                     if (res.status !== 200 || !res.d.clientSecret) {
                         booking = false;
                         openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.' : 'Записването не успя. Опитайте отново.');
@@ -2141,11 +2211,8 @@
                 }
                 return stripeLoad;
             }
-            function openCardSheet(c, times, g) {
-                const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-                sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Гаранция с карта">' +
-                    '<div class="xb-sheet-handle"></div><h3>Гаранция с карта</h3>' +
-                    '<table class="xb-sum">' +
+            function sumTable(times, g) {
+                return '<table class="xb-sum">' +
                         (g.price !== null && g.price !== undefined
                             ? '<tr><td>' + times.length + (times.length === 1 ? ' час' : ' часа') + ' × ' + money(g.price) + '</td><td>' + money(g.total) + '</td></tr>'
                             : '<tr><td>' + times.length + (times.length === 1 ? ' час' : ' часа') + '</td><td></td></tr>') +
@@ -2153,8 +2220,31 @@
                         (g.total !== null && g.total !== undefined ? '<tr><td>Плащане на място</td><td>' + money(g.total) + '</td></tr>' : '') +
                     '</table>' +
                     '<p class="xb-cart-msg">Картата е гаранция за всички избрани часове — сега не се тегли нищо. ' +
-                        'Студиото може да я таксува само при неявяване, според условията за резервация.</p>' +
-                    '<div class="xb-card-field" id="xb-card-field"></div>' +
+                        'Студиото може да я таксува само при неявяване, според условията за резервация.</p>';
+            }
+            /* the card given at an earlier booking: one tap (Друга карта = the card form) */
+            function openSavedCardSheet(c, times, g, saved) {
+                booking = false;
+                const card = g.saved || saved;
+                sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Гаранция с карта">' +
+                    '<div class="xb-sheet-handle"></div><h3>Гаранция с карта</h3>' + sumTable(times, g) +
+                    '<div class="xb-saved-card"><i class="fas fa-credit-card"></i><span>' +
+                        esc(BRANDS[card.brand] || card.brand || 'Карта') + ' •••• ' + esc(card.last4 || '') + '</span><small>запазена</small></div>' +
+                    '<p class="xb-cart-note" id="xb-card-err" role="alert"></p>' +
+                    '<button type="button" class="xb-primary" data-go="card"><i class="fas fa-lock"></i>Запази ' +
+                        (times.length === 1 ? '1 час' : times.length + ' часа') + '</button>' +
+                    '<button type="button" class="xb-secondary" data-go="new-card"><i class="fas fa-credit-card"></i>Друга карта</button>' +
+                    '<button type="button" class="xb-secondary xb-quiet" data-go="cancel-card">Назад</button></div>';
+                cardStep = function () {
+                    busyButton('[data-go="card"]', 'Записване…');
+                    sendBooking(c, times, '', saved.pm);
+                };
+            }
+            function openCardSheet(c, times, g) {
+                const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Гаранция с карта">' +
+                    '<div class="xb-sheet-handle"></div><h3>Гаранция с карта</h3>' + sumTable(times, g) +
+                    '<div class="xb-pay-field" id="xb-card-field"></div>' +
                     '<p class="xb-cart-note" id="xb-card-err" role="alert"></p>' +
                     '<button type="button" class="xb-primary" data-go="card"><i class="fas fa-lock"></i>Запази ' +
                         (times.length === 1 ? '1 час' : times.length + ' часа') + '</button>' +
@@ -2162,19 +2252,27 @@
                 const errEl = sheet.querySelector('#xb-card-err');
                 return loadStripe().then(function (StripeJs) {
                     const stripe = StripeJs(g.publishableKey, { locale: 'bg' });
-                    const card = stripe.elements().create('card', {
-                        hidePostalCode: true,
-                        style: { base: { fontSize: '16px', color: dark ? '#f3f1f4' : '#16141a', '::placeholder': { color: dark ? '#7a747d' : '#9a95a0' } },
-                            invalid: { color: '#ef4444' } }
+                    const elements = stripe.elements({
+                        clientSecret: g.clientSecret,
+                        appearance: { theme: dark ? 'night' : 'stripe', variables: { colorPrimary: '#d32f2f', fontSizeBase: '16px', borderRadius: '12px' } }
                     });
-                    card.mount('#xb-card-field');
+                    /* Stripe's Payment Element: the cards kept in the browser / phone (autofill), Google Pay on Android,
+                       Apple Pay on iPhone and iPad, or a card typed in */
+                    const pay = elements.create('payment', { layout: 'tabs', wallets: { applePay: 'auto', googlePay: 'auto' } });
+                    pay.on('loaderror', function () { errEl.textContent = 'Формата за карта не се зареди. Проверете връзката и опитайте отново.'; });
+                    pay.mount('#xb-card-field');
                     booking = false;
                     cardStep = function () {
                         booking = true;
                         errEl.textContent = '';
                         busyButton('[data-go="card"]', 'Проверка на картата…');
-                        stripe.confirmCardSetup(g.clientSecret, {
-                            payment_method: { card: card, billing_details: { name: c.name || undefined, email: c.email, phone: c.phone || undefined } }
+                        stripe.confirmSetup({
+                            elements: elements,
+                            redirect: 'if_required',
+                            confirmParams: {
+                                return_url: location.href.split('#')[0],
+                                payment_method_data: { billing_details: { name: c.name || undefined, email: c.email, phone: c.phone || undefined } }
+                            }
                         }).then(function (r) {
                             if (r.error || !r.setupIntent || r.setupIntent.status !== 'succeeded') {
                                 booking = false;
@@ -2194,10 +2292,20 @@
             }
             let cardStep = null;
 
-            function sendBooking(c, times, setupIntent) {
+            function sendBooking(c, times, setupIntent, paymentMethod) {
                 booking = true;
-                return postJson('/api/xbody/book', { email: c.email, phone: c.phone, name: c.name, times: times, setupIntent: setupIntent || undefined }).then(function (res) {
+                const agreed = consents();
+                return postJson('/api/xbody/book', {
+                    email: c.email, phone: c.phone, name: c.name, times: times, setupIntent: setupIntent || undefined,
+                    paymentMethod: paymentMethod || undefined, sms: agreed ? agreed.sms : undefined
+                }).then(function (res) {
                     booking = false;
+                    if (res.d.card) keepCard(c.email, res.d.card);
+                    if (paymentMethod && res.status === 402) {   // the saved card is no longer valid: the card form next time
+                        forgetCard();
+                        openCartSheet('Запазената карта вече не е валидна — въведете карта.');
+                        return;
+                    }
                     if (res.status === 403 && res.d.error === 'first_booking') {
                         sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
                             '<h3>Първо записване</h3><p class="xb-cart-msg">Първият Ви час се потвърждава във формата на студиото. ' +
@@ -2220,7 +2328,7 @@
                     sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
                         (booked.length ? '<h3>Записани ✓</h3><ul class="xb-cart-list ok">' + booked.map(line).join('') + '</ul>' +
                             '<p class="xb-cart-msg">Потвърждение за всеки час идва на имейла Ви, както при отделно записване.' +
-                            (setupIntent ? ' Картата е запазена като гаранция — нищо не е изтеглено.' : '') + '</p>' : '') +
+                            (setupIntent || paymentMethod ? ' Картата е запазена като гаранция — нищо не е изтеглено.' : '') + '</p>' : '') +
                         (failed.length ? '<h3>Не бяха записани</h3><ul class="xb-cart-list bad">' + failed.map(line).join('') + '</ul>' +
                             '<p class="xb-cart-msg">Тези часове вече са заети — изберете други.</p>' : '') +
                         '<button type="button" class="xb-primary" data-close="1">Готово</button></div>';
@@ -2544,7 +2652,9 @@
                     '&lastName=' + encodeURIComponent(nameParts.lastName) +
                     '&email=' + encodeURIComponent(userData.email) +
                     '&phone=' + encodeURIComponent(userData.phone);
-                if (userData.consented) {
+                let agreed = false;
+                try { agreed = Boolean((JSON.parse(localStorage.getItem('xbody_consents') || 'null') || {}).terms); } catch (_) {}
+                if (userData.consented || agreed) {
                     url += CONSENT_PARAM;
                 }
                 return url;

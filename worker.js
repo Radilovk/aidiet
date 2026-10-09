@@ -38358,6 +38358,8 @@ async function xbodyReadBooking(request) {
     phone: String(body && body.phone || "").trim().slice(0, 40),
     name: String(body && body.name || "").trim().replace(/\s+/g, " ").slice(0, 80),
     setupIntent: String(body && body.setupIntent || ""),
+    paymentMethod: String(body && body.paymentMethod || ""),
+    sms: !(body && body.sms === false),
     times: [...new Set((Array.isArray(body && body.times) ? body.times : []).map(String))].filter((t) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2}$/.test(t)).filter((t) => {
       const ms = new Date(t.replace(/([+-]\d{2})(\d{2})$/, "$1:$2")).getTime();
       return Number.isFinite(ms) && ms > now && ms < now + 120 * 864e5;
@@ -38385,6 +38387,21 @@ async function xbodyStripe(env, method, path, params) {
   if (!resp.ok) throw new Error(`stripe ${path.split("/")[0]} ${resp.status} ${data.error && data.error.code || ""}`);
   return data;
 }
+async function xbodySavedCard(env, pm, email) {
+  if (!/^pm_\w+$/.test(pm)) return null;
+  try {
+    const m = await xbodyStripe(env, "GET", `payment_methods/${pm}`, { "expand[]": "customer" });
+    const owner = m && m.customer && typeof m.customer === "object" ? m.customer : null;
+    const card = m && m.type === "card" ? m.card : null;
+    if (!owner || owner.deleted || String(owner.email || "").trim().toLowerCase() !== email || !card) return null;
+    const now = /* @__PURE__ */ new Date();
+    if (card.exp_year < now.getUTCFullYear() || card.exp_year === now.getUTCFullYear() && card.exp_month < now.getUTCMonth() + 1) return null;
+    return { pm: m.id, customer: owner.id, brand: card.brand || "", last4: card.last4 || "" };
+  } catch (err) {
+    console.warn("[xbody-book] saved card check failed:", err.message);
+    return null;
+  }
+}
 async function xbodyPrice(env) {
   if (xbodyPriceMemo && Date.now() - xbodyPriceMemo.at < 6 * 3600 * 1e3) return xbodyPriceMemo.price;
   let price = null;
@@ -38407,6 +38424,17 @@ async function handleXbodyGuarantee(request, env) {
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PUBLISHABLE_KEY) return jsonResponse2({ error: "no_stripe" }, 503);
   const b = await xbodyReadBooking(request);
   if (b.error) return b.error;
+  if (b.paymentMethod) {
+    const saved = await xbodySavedCard(env, b.paymentMethod, b.email);
+    if (saved) {
+      const price = await xbodyPrice(env);
+      return jsonResponse2({
+        saved: { brand: saved.brand, last4: saved.last4 },
+        price,
+        total: price === null ? null : Math.round(price * b.times.length * 100) / 100
+      });
+    }
+  }
   try {
     const found = await xbodyStripe(env, "GET", "customers", { email: b.email, limit: 1 });
     let customer = found && Array.isArray(found.data) && found.data[0] ? found.data[0].id : "";
@@ -38450,17 +38478,25 @@ async function handleXbodyBook(request, env) {
   const auth = btoa(`${userId}:${apiKey}`);
   const stripeOn = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
   let guarantee = null;
-  if (stripeOn) {
+  const saved = stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
+  if (saved) {
+    guarantee = {
+      id: "",
+      card: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
+      note: `\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u0430 (\u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 XBODY, \u0437\u0430\u043F\u0430\u0437\u0435\u043D\u0430 \u043A\u0430\u0440\u0442\u0430): Stripe ${saved.customer}, ${saved.brand} \u2022\u2022\u2022\u2022 ${saved.last4}. \u041D\u0438\u0449\u043E \u043D\u0435 \u0435 \u0438\u0437\u0442\u0435\u0433\u043B\u0435\u043D\u043E.`
+    };
+  } else if (stripeOn) {
     if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse2({ error: "card_required" }, 402);
     try {
       const si = await xbodyStripe(env, "GET", `setup_intents/${b.setupIntent}`, { "expand[]": "payment_method" });
       const chosen = String(si.metadata && si.metadata.times || "").split(",");
       const ok = si.status === "succeeded" && si.metadata && si.metadata.email === email && !si.metadata.acuity && times.every((t) => chosen.includes(t)) && Date.now() / 1e3 - (si.created || 0) < 3600;
       if (!ok) return jsonResponse2({ error: "card_required" }, 402);
-      const card = si.payment_method && si.payment_method.card;
+      const card2 = si.payment_method && si.payment_method.card;
       guarantee = {
         id: si.id,
-        note: `\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u0430 (\u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 XBODY): Stripe ${si.customer}` + (card ? `, ${card.brand} \u2022\u2022\u2022\u2022 ${card.last4}` : "") + ". \u041D\u0438\u0449\u043E \u043D\u0435 \u0435 \u0438\u0437\u0442\u0435\u0433\u043B\u0435\u043D\u043E."
+        card: card2 && si.payment_method.id ? { pm: si.payment_method.id, brand: card2.brand || "", last4: card2.last4 || "" } : null,
+        note: `\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u0430 (\u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 XBODY): Stripe ${si.customer}` + (card2 ? `, ${card2.brand} \u2022\u2022\u2022\u2022 ${card2.last4}` : "") + ". \u041D\u0438\u0449\u043E \u043D\u0435 \u0435 \u0438\u0437\u0442\u0435\u0433\u043B\u0435\u043D\u043E."
       };
     } catch (err) {
       console.error("[xbody-book] setup intent check failed:", err.message);
@@ -38511,7 +38547,7 @@ async function handleXbodyBook(request, env) {
           email: previous && previous.email || email,
           phone: previous && previous.phone || b.phone,
           timezone: XBODY_ACUITY_BOOKING.timezone,
-          smsOptIn: true,
+          smsOptIn: b.sms,
           fields,
           notes: guarantee ? guarantee.note : void 0
         })
@@ -38527,7 +38563,7 @@ async function handleXbodyBook(request, env) {
       failed.push({ time, error: "error" });
     }
   }
-  if (guarantee) {
+  if (guarantee && guarantee.id) {
     await xbodyStripe(env, "POST", `setup_intents/${guarantee.id}`, {
       "metadata[acuity]": booked.map((x) => x.id).join(",") || "none"
     }).catch((err) => console.warn("[xbody-book] setup intent mark failed:", err.message));
@@ -38536,7 +38572,8 @@ async function handleXbodyBook(request, env) {
     await dropXbodyApptCache(env, email);
     for (const t of booked) xbodyAvailMemo.delete(t.time.slice(0, 7));
   }
-  return jsonResponse2({ booked, failed }, booked.length || !failed.length ? 200 : 409);
+  const card = booked.length && guarantee && guarantee.card ? guarantee.card : void 0;
+  return jsonResponse2({ booked, failed, card }, booked.length || !failed.length ? 200 : 409);
 }
 async function xbodyReadManage(request, withTime) {
   let body;
