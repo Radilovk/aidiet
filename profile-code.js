@@ -415,6 +415,20 @@ function firstStyle(styles) {
   return null;
 }
 
+/**
+ * Несъвместими избори. Веган кето (≤12% въглехидрати) с реални храни не се
+ * постига — растителните протеини (тофу, бобови) носят въглехидрати. Става
+ * веган нисковъглехидратна (≤25%) и причината се записва, вместо планът да
+ * се разпада на храни извън диетата.
+ */
+function resolveConflicts(style, pattern, adjustments) {
+  if (style === 'keto' && pattern === 'vegan') {
+    adjustments.push('VEGAN_KETO→LOW_CARB: кето под 12% въглехидрати не е постижимо веган — нисковъглехидратна до 25%');
+    return 'low_carb';
+  }
+  return style;
+}
+
 /** Изключвания по категория от свободен текст. */
 export function exclusionsFromText(text) {
   const found = [];
@@ -558,10 +572,15 @@ export function compileProfile(userData = {}, overrides = {}) {
   for (const label of asList(data.foodSensitivities)) addAll(exclusions, exclusionsFromText(label));
 
   const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns]);
-  const style = firstStyle(modifier.styles)
-    || firstStyle(prefs.styles.filter(s => s !== 'balanced'))
-    || clinicalDefaultStyle(clinical, protocolId)
-    || 'balanced';
+  const adjustments = [];
+  const style = resolveConflicts(
+    firstStyle(modifier.styles)
+      || firstStyle(prefs.styles.filter(s => s !== 'balanced'))
+      || clinicalDefaultStyle(clinical, protocolId)
+      || 'balanced',
+    pattern,
+    adjustments,
+  );
   // Палео изключва зърнени и млечни по дефиниция.
   if (style === 'paleo') {
     exclusions.add('GLU');
@@ -619,6 +638,7 @@ export function compileProfile(userData = {}, overrides = {}) {
     skipsBreakfast,
     slots,
     unmapped: [...new Set(unmapped)],
+    adjustments,
   };
 }
 
@@ -782,9 +802,11 @@ export function dietFromSignals(ctx = {}) {
   addAll(exclusions, exclusionsFromText(ctx.dietDislike));
 
   const pattern = strictestPattern(explicit.patterns);
-  const style = firstStyle(explicit.styles.filter(s => s !== 'balanced'))
-    || firstStyle(hints.styles)
-    || 'balanced';
+  const style = resolveConflicts(
+    firstStyle(explicit.styles.filter(s => s !== 'balanced')) || firstStyle(hints.styles) || 'balanced',
+    pattern,
+    [],
+  );
   if (style === 'paleo') {
     exclusions.add('GLU');
     exclusions.add('LAC');

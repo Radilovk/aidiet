@@ -30,6 +30,7 @@ import { syncWeekPlanNutritionFromDatabase } from '../meal-day-sync.js';
 import { buildPlanSummary } from '../plan-summary.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { compileProfile } from '../profile-code.js';
+import { MEAL_DISHES_BY_ID } from '../meal-dishes.js';
 import { validateDietetic } from './plan-adequacy/validators/dietetic.mjs';
 import { validateProfileRules } from './plan-adequacy/validators/profile-rules.mjs';
 import { validateWeekPlanNutrition } from './plan-adequacy/validators/nutrition.mjs';
@@ -161,15 +162,31 @@ for (const profile of profiles) {
 const avg = x => x / total.n;
 console.log(`\nСредно дневно разминаване: kcal ${(avg(total.kcal) * 100).toFixed(1)}%  P ${(avg(total.p) * 100).toFixed(1)}%  C ${(avg(total.c) * 100).toFixed(1)}%  F ${(avg(total.f) * 100).toFixed(1)}%  | проблеми ${total.issues} | символични грамажи ${total.tiny}`);
 ok(total.n === profiles.length, `всички ${profiles.length} профила дават план`);
-// Прагове = постигнатото + малък запас. Най-голямото оставащо разминаване е
-// при 3000+ kcal: таваните на порциите (250 г ориз) не растат с клиента, а
-// при веган/AIP/кето каталогът още е тесен.
-ok(avg(total.kcal) < 0.05, 'калории средно под 5%');
-ok(avg(total.p) < 0.17, 'протеин средно под 17%');
-ok(avg(total.c) < 0.17, 'въглехидрати средно под 17%');
-ok(avg(total.f) < 0.14, 'мазнини средно под 14%');
+// Прагове = постигнатото + малък запас; падане под тях е регресия.
+ok(avg(total.kcal) < 0.04, 'калории средно под 4%');
+ok(avg(total.p) < 0.11, 'протеин средно под 11%');
+ok(avg(total.c) < 0.10, 'въглехидрати средно под 10%');
+ok(avg(total.f) < 0.07, 'мазнини средно под 7%');
 ok(total.tiny === 0, 'няма символични грамажи под 10 г');
-ok(total.issues <= 25, `проблеми от валидаторите ≤ 25 (${total.issues})`);
+ok(total.issues <= 8, `проблеми от валидаторите ≤ 8 (${total.issues})`);
+
+// Разнообразие: седмицата се върти по формули и протеини, а обядът и
+// вечерята никога не са на един и същ протеин.
+let sameDayProtein = 0;
+let familyTotal = 0;
+for (const plan of plans.values()) {
+  const families = new Set();
+  for (let d = 1; d <= 7; d++) {
+    const meals = plan.weekPlan[`day${d}`]?.meals || [];
+    for (const m of meals) if (m.dishId) families.add(MEAL_DISHES_BY_ID.get(m.dishId)?.family || m.dishId);
+    const plated = meals.filter(m => m.type === 'Хранене 2' || m.type === 'Хранене 4')
+      .map(m => MEAL_DISHES_BY_ID.get(m.dishId)?.proteinKey);
+    if (plated.length === 2 && plated[0] && plated[0] === plated[1]) sameDayProtein++;
+  }
+  familyTotal += families.size;
+}
+ok(sameDayProtein === 0, `обяд и вечеря на един и същ протеин: ${sameDayProtein} дни`);
+ok(familyTotal / plans.size >= 20, `различни ястия (формули) седмично: ${(familyTotal / plans.size).toFixed(1)}`);
 
 const kamen = plans.get('kamen_benchmark');
 ok(kamen && kamen.analysis.Final_Calories >= 2800, `Камен: ${kamen?.analysis.Final_Calories} kcal — не на минимума`);

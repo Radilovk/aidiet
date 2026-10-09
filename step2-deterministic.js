@@ -303,7 +303,10 @@ function buildCopyFields(label, mealsPerDay, slotTypes, userData, profile, resto
   return {
     dietaryModifier: label,
     dietType: label,
-    modifierReasoning: `Код на профила ${profile.code} — диетата е избрана детерминистично от предпочитания, цели и медицински сигнали.`,
+    modifierReasoning: [
+      `Код на профила ${profile.code} — диетата е избрана детерминистично от предпочитания, цели и медицински сигнали.`,
+      ...(profile.adjustments || []).map(a => a.split(': ').slice(1).join(': ') || a),
+    ].join(' '),
     welcomeMessage: `${name}, планът следва ${label.toLowerCase()} модел с ${mealsPerDay} хранения на ден.`,
     planJustification: `Структурата (${mealList}) и калориите идват от анализа и протоколни правила — стабилна база за седмичното меню.`,
     longTermStrategy: 'Постепенна адаптация чрез седмичен мониторинг на тегло, енергия и придържане.',

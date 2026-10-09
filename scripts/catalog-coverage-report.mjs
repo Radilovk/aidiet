@@ -4,7 +4,11 @@
  * зоната на диетата. Клетка под 7 значи, че седмицата не може да мине без
  * повторения или без изход извън зоната — там трябва да се добавят ястия.
  *
- *   node scripts/catalog-coverage-report.mjs
+ *   node scripts/catalog-coverage-report.mjs           — отчет
+ *   node scripts/catalog-coverage-report.mjs --check   — пада при дупка
+ *
+ * Веган кето не се проверява: профилът го превръща във веган
+ * нисковъглехидратна (profile-code.js → resolveConflicts).
  */
 import { MEAL_DISHES } from '../meal-dishes.js';
 import { dishFingerprint, macroZoneFor, zoneDistance } from '../dish-fingerprint.js';
@@ -37,7 +41,7 @@ for (const pattern of PATTERNS) {
       const n = MEAL_DISHES.filter(d => d.timing.includes(timing)
         && fitsPattern(d, pattern)
         && zoneDistance(fingerprints.get(d.id), zone) === 0).length;
-      if (n < WEEK) gaps.push(`${style}/${pattern} ${slot}: ${n}`);
+      if (n < WEEK && !(style === 'keto' && pattern === 'vegan')) gaps.push(`${style}/${pattern} ${slot}: ${n}`);
       return n;
     });
     console.log(`${style}/${pattern}`.padEnd(24), cells.map(n => `${n < WEEK ? '!' : ' '}${n}`.padStart(4)).join(' '));
@@ -45,3 +49,4 @@ for (const pattern of PATTERNS) {
 }
 console.log(`\nВсичко ястия: ${MEAL_DISHES.length}. Клетки под ${WEEK} (!): ${gaps.length}`);
 for (const g of gaps) console.log(`  - ${g}`);
+if (process.argv.includes('--check') && gaps.length) process.exit(1);

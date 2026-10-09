@@ -10,7 +10,7 @@ import {
 } from './food-catalog-data.js';
 import { FOOD_NUTRITION_PER_100G } from './food-nutrition-data.js';
 import { normalizeFoodKey } from './food-utils.js';
-import { buildRegistryIndex, getCatalogEntries } from './food-registry.js';
+import { buildRegistryIndex, fullNameKey, getCatalogEntries } from './food-registry.js';
 import { passesDietRegistry, resolveCatalogDietProfile } from './diet-registry.js';
 import { rankCatalogCandidates } from './candidate-ranking.js';
 import { maxSlotKcalInChunk, buildHighKcalCreationHint } from './step3-creation-hints.js';
@@ -97,6 +97,8 @@ function buildCatalogIndex() {
 /** @returns {{ entry: object|null, unknown: boolean }} */
 export function resolveCatalogEntry(name) {
   const index = buildCatalogIndex();
+  const exact = index.byFullName?.get(fullNameKey(name));
+  if (exact) return { entry: exact, unknown: false };
   const normalized = normalizeFoodKey(name);
   if (!normalized) return { entry: null, unknown: true };
 

@@ -229,6 +229,11 @@ check('deterministic analysis', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
+check('catalog covers every diet × meal', () => {
+  const r = run('node', ['scripts/catalog-coverage-report.mjs', '--check']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
 check('plan quality (all fixtures)', () => {
   const r = run('node', ['scripts/test-plan-quality.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));

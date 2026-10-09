@@ -22,6 +22,7 @@ import {
   resolveDishTagFilter,
 } from './dish-tags.js';
 import { compileProfile } from './profile-code.js';
+import { MEAL_DISHES_BY_ID } from './meal-dishes.js';
 import { DEFAULT_MIN_UNIVERSALITY } from './food-catalog-data.js';
 import {
   cachedFingerprint,
@@ -96,6 +97,19 @@ function collectUsedDishes(previousDays = []) {
   return counts;
 }
 
+/** Семействата на ястията от предишните дни (за разнообразие между части на седмицата). */
+function collectUsedFamilies(previousDays = []) {
+  const counts = new Map();
+  for (const day of previousDays) {
+    for (const meal of day.meals || []) {
+      const dish = meal.dishId ? MEAL_DISHES_BY_ID.get(meal.dishId) : null;
+      const key = dish?.family || meal.dishId;
+      if (key) counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  }
+  return counts;
+}
+
 function slotDishUseMaps() {
   return new Map();
 }
@@ -128,6 +142,13 @@ function scorePoolEntry(entry, ctx, slotType) {
   const dishKey = entry.id || key;
   const productUses = ctx.usedProducts.get(key) || 0;
   const dishUses = ctx.usedDishes?.get(dishKey) || 0;
+  // Вариантите на една формула („Пилешко филе на скара с …“) са едно ястие
+  // за окото — седмицата не бива да е от тях.
+  const familyUses = ctx.usedFamilies?.get(entry.family || dishKey) || 0;
+  // Основният протеин се върти през седмицата: пиле, риба, телешко, бобови...
+  const proteinUses = PLATED_MEAL_SLOTS.has(slotType) && entry.proteinKey
+    ? (ctx.usedMainProteins?.get(entry.proteinKey) || 0)
+    : 0;
   const slotUses = slotType ? (ctx.slotDishUses?.get(slotType)?.get(dishKey) || 0) : 0;
   const tagBoost = preferTagScore(entry, ctx.tagFilter?.prefer) * 0.5;
   // Съотношението на макросите е свойство на ястието: денят стига целта си
@@ -140,7 +161,7 @@ function scorePoolEntry(entry, ctx, slotType) {
     ? Math.max(0, Math.abs(dishAchievableKcal(entry, targetKcal, ctx.achievableCache) - targetKcal) / targetKcal
       - ENERGY_DEADBAND)
     : 0;
-  return dishUses * 3 + slotUses * 2 + productUses - (ctx.loveSet?.has(key) ? 1 : 0) - tagBoost
+  return dishUses * 3 + familyUses * 1.5 + proteinUses * 1 + slotUses * 2 + productUses - (ctx.loveSet?.has(key) ? 1 : 0) - tagBoost
     + macroMiss * MACRO_FIT_WEIGHT + energyMiss * ENERGY_FIT_WEIGHT;
 }
 
@@ -188,7 +209,9 @@ function rankPoolEntries(pool, ctx, roleKey, slotType) {
     maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
     loveSet: ctx.loveSet,
     adherenceRatio: ctx.adherenceRatio,
-    limit: Math.min(filtered.length, 32),
+    // Целият кръг: при голям каталог отрязване тук изхвърляше ястията с най-
+    // добро съотношение, преди изобщо да бъдат оценени.
+    limit: filtered.length,
   });
   if (!ranked.length) return [];
 
@@ -248,7 +271,8 @@ function descriptionFromReadyMeal(entry) {
  * това е чинията на друго хранене.
  */
 const SLOT_FOREIGN_PRODUCTS = {
-  'Хранене 3': /пилеш|говежд|свинск|пуешк|риба|сьомга|скумрия|ориз|паста|хляб|картоф/,
+  // Следобедната закуска е сладка от плода, не от мед или захар.
+  'Хранене 3': /пилеш|говежд|свинск|пуешк|риба|сьомга|скумрия|ориз|паста|хляб|картоф|мед|захар|сироп/,
   'Хранене 5': /ориз|хляб|паста|картоф|банан|ябълка|грозде|мед|захар|овес/,
 };
 
@@ -315,6 +339,26 @@ function excludeDishesToday(pool, ctx) {
   return pool.filter(e => !ctx.dishesToday.has(dishDayKey(e)));
 }
 
+/** Една формула (с всичките ѝ варианти) най-много толкова пъти седмично. */
+const MAX_FAMILY_PER_WEEK = 4;
+
+function capWeeklyFamilies(pool, ctx) {
+  if (!ctx.usedFamilies?.size) return pool;
+  const fresh = pool.filter(e => (ctx.usedFamilies.get(e.family || e.id) || 0) < MAX_FAMILY_PER_WEEK);
+  return fresh.length ? fresh : pool;
+}
+
+/**
+ * Обядът и вечерята не са на един и същ протеин: пиле на обяд и пиле вечер
+ * е скучен ден, колкото и различни да са гарнитурите. Ако правилото изпразни
+ * избора, се отпуска.
+ */
+function excludeSameProteinToday(pool, ctx, slotType) {
+  if (!PLATED_MEAL_SLOTS.has(slotType) || !ctx.platedProteinsToday?.size) return pool;
+  const varied = pool.filter(e => !e.proteinKey || !ctx.platedProteinsToday.has(e.proteinKey));
+  return varied.length ? varied : pool;
+}
+
 function preferVegetableOnPlated(pool, slotType) {
   if (!PLATED_MEAL_SLOTS.has(slotType) || !pool.length) return pool;
   const withVeg = pool.filter(e => readyMealProducts(e).some(x => isVegetableName(x.name)));
@@ -348,6 +392,8 @@ function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRe
 
   pool = excludeDishesToday(pool, ctx);
   if (!pool.length) return pool;
+  pool = excludeSameProteinToday(pool, ctx, slotType);
+  pool = capWeeklyFamilies(pool, ctx);
 
   if (ctx.relaxed || forRepair) return pool;
 
@@ -471,6 +517,12 @@ function recordReadyMealUse(entry, ctx, slotType) {
   const dishKey = entry.id || normalizeFoodKey(entry.name);
   ctx.usedProducts.set(normalizeFoodKey(entry.name), (ctx.usedProducts.get(normalizeFoodKey(entry.name)) || 0) + 1);
   ctx.usedDishes.set(dishKey, (ctx.usedDishes.get(dishKey) || 0) + 1);
+  const family = entry.family || dishKey;
+  ctx.usedFamilies?.set(family, (ctx.usedFamilies.get(family) || 0) + 1);
+  if (PLATED_MEAL_SLOTS.has(slotType) && entry.proteinKey) {
+    ctx.platedProteinsToday?.add(entry.proteinKey);
+    ctx.usedMainProteins?.set(entry.proteinKey, (ctx.usedMainProteins.get(entry.proteinKey) || 0) + 1);
+  }
   recordSlotDishUse(ctx.slotDishUses, slotType, dishKey);
   for (const part of READY_MEAL_PARTS[entry.id] || []) {
     const k = normalizeFoodKey(catalogName(part.name) || part.name);
@@ -564,6 +616,8 @@ export async function buildDeterministicWeekPlanChunk({
   const fingerprintCache = new Map();
   const usedProducts = collectUsedProducts(previousDays);
   const usedDishes = collectUsedDishes(previousDays);
+  const usedFamilies = collectUsedFamilies(previousDays);
+  const usedMainProteins = new Map();
   const slotDishUses = slotDishUseMaps();
   const achievableCache = new Map();
   /** @type {Record<string, { meals: object[] }>} */
@@ -580,6 +634,7 @@ export async function buildDeterministicWeekPlanChunk({
     let slotIndex = 0;
     // Reset per day so a dish can recur across the week but never within a day.
     const dishesToday = new Set();
+    const platedProteinsToday = new Set();
     const dayDrift = emptyDayLedger();
     const plated = dayScheme.mealBreakdown.filter(m => m.type !== 'Свободно хранене' && m.type !== 'Напитка');
     let remainingKcal = plated.reduce((sum, m) => sum + (Number(m.calories) || 0), 0);
@@ -598,6 +653,9 @@ export async function buildDeterministicWeekPlanChunk({
         usedDishes,
         slotDishUses,
         dishesToday,
+        platedProteinsToday,
+        usedFamilies,
+        usedMainProteins,
         achievableCache,
         dietCtx,
         blockedTerms,

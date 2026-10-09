@@ -59,7 +59,8 @@ const back = readDietLabels([dietLabelOf(veganGf)]);
 ok(back.patterns.includes('vegan') && back.exclusions.includes('GLU') && !back.unmapped.length, 'етикетът се чете обратно еднозначно');
 
 const veganKeto = compileProfile({ ...base, dietPreference: ['Веган', 'Кето'] });
-ok(veganKeto.diet.style === 'keto' && veganKeto.diet.pattern === 'vegan', 'веган кето = стил кето + модел веган');
+ok(veganKeto.diet.style === 'low_carb' && veganKeto.diet.pattern === 'vegan', 'веган кето → веган нисковъглехидратна');
+ok(veganKeto.adjustments.some(a => a.startsWith('VEGAN_KETO')), 'причината за промяната е записана');
 
 // Клинични отговори, както ги мапва HEALTH_CONDITIONS_MAP.
 const hashimoto = compileProfile({ ...base, medicalConditions: ['Хашимото'] });

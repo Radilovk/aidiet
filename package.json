@@ -23,6 +23,7 @@
     "test:solver": "node scripts/test-solver.mjs",
     "test:plan-quality": "node scripts/test-plan-quality.mjs",
     "report:catalog-coverage": "node scripts/catalog-coverage-report.mjs",
+    "test:catalog-zones": "node scripts/catalog-coverage-report.mjs --check",
     "test:rebuild-stage1": "node scripts/test-rebuild-stage1.mjs",
     "test:registry-arch": "node scripts/test-registry-arch.mjs",
     "test:rebuild-stage17-2": "node scripts/test-rebuild-stage17-2.mjs",

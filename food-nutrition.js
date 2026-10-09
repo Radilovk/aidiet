@@ -114,7 +114,11 @@ function libraryProfiles() {
   return libraryProfileCache;
 }
 
-function buildDbIndex(extraDb = {}) {
+let baseIndexCache = null;
+
+/** Таблицата с храни като индекс — строи се веднъж; тя не се променя по време на работа. */
+function baseDbIndex() {
+  if (baseIndexCache) return baseIndexCache;
   const index = new Map();
   // Library-derived profiles first, so the curated table always overrides them.
   for (const [rawKey, values] of Object.entries(libraryProfiles())) {
@@ -123,7 +127,20 @@ function buildDbIndex(extraDb = {}) {
   for (const [rawKey, values] of Object.entries(FOOD_NUTRITION_PER_100G)) {
     index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
   }
-  for (const [rawKey, values] of Object.entries(extraDb)) {
+  baseIndexCache = index;
+  return index;
+}
+
+/**
+ * Индексът за едно търсене. Без допълнителни данни — общият кеширан индекс;
+ * с тях — копие, в което допълнителните имат предимство.
+ */
+function buildDbIndex(extraDb = {}) {
+  const base = baseDbIndex();
+  const extraEntries = Object.entries(extraDb || {});
+  if (!extraEntries.length) return base;
+  const index = new Map(base);
+  for (const [rawKey, values] of extraEntries) {
     if (Array.isArray(values)) index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
     else if (values && typeof values === 'object') index.set(normalizeFoodKey(rawKey), values);
   }
@@ -325,6 +342,21 @@ function macroCost(achieved, target, kcalPerGram, slotKcal) {
   return Math.abs(achieved - target) * kcalPerGram / scale;
 }
 
+/**
+ * Таваните на порциите растат с храненето. 250 г ориз е чиния за хранене от
+ * 600 kcal; за 1000 kcal (клиент от 120 кг на 3000 kcal) същата чиния е
+ * по-голяма, иначе въглехидратите изостават и денят се пълни с мазнини.
+ * Мазнините и подправките не растат — лъжицата си остава лъжица.
+ */
+const MEAL_SIZE_BASE_KCAL = 700;
+const MEAL_SIZE_MAX_FACTOR = 1.4;
+const MEAL_SIZE_GROUPS = new Set(['protein', 'carb', 'legume', 'vegetable', 'dairy', 'fruit']);
+
+function mealSizeFactor(targetKcal) {
+  const k = Number(targetKcal) || 0;
+  return Math.min(MEAL_SIZE_MAX_FACTOR, Math.max(1, k / MEAL_SIZE_BASE_KCAL));
+}
+
 /** Ястие, което не може да се мащабира в реалистични граници — остава каквото е. */
 function keepDishProportions(items) {
   return {
@@ -343,7 +375,11 @@ function solveDishScale(items, target, maxTotalGrams) {
   const targetKcal = Number(target?.kcal) || 0;
   if (!(targetKcal > 0)) return null;
 
-  const windows = items.map(item => portionWindow(item));
+  const appetite = mealSizeFactor(targetKcal);
+  const windows = items.map((item) => {
+    const w = portionWindow(item);
+    return MEAL_SIZE_GROUPS.has(w.group) ? { ...w, max: gridFloor(w.max * appetite) } : w;
+  });
   // Готварската мазнина е лъжицата в тигана, не носеща съставка: тя не расте
   // заедно с порцията и не ограничава мащаба на ястието. Мащабирана като
   // всичко останало, тя стигаше 20 г на хранене и 45 г на ден само от олио —

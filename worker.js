@@ -9112,9 +9112,11 @@ var FOOD_NUTRITION_PER_100G = {
   "\u043F\u0438\u043B\u0435\u0448\u043A\u0438 \u0433\u044A\u0440\u0434\u0438": [165, 31, 0, 3.6],
   "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435": [177, 24, 0, 9],
   "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435": [135, 30, 0, 1],
-  "\u0433\u043E\u0432\u0435\u0436\u0434\u043E \u043F\u043E\u0441\u0442\u043D\u043E": [250, 26, 0, 17],
+  // Постно говеждо, сготвено (бут/филе) — не кайма.
+  "\u0433\u043E\u0432\u0435\u0436\u0434\u043E \u043F\u043E\u0441\u0442\u043D\u043E": [180, 29, 0, 7],
   "\u0433\u043E\u0432\u0435\u0436\u0434\u043E": [250, 26, 0, 17],
-  "\u0441\u0432\u0438\u043D\u0441\u043A\u043E \u043F\u043E\u0441\u0442\u043D\u043E": [242, 27, 0, 14],
+  // Свинско филе, сготвено.
+  "\u0441\u0432\u0438\u043D\u0441\u043A\u043E \u043F\u043E\u0441\u0442\u043D\u043E": [196, 28, 0, 9],
   "\u0441\u0432\u0438\u043D\u0441\u043A\u043E": [242, 27, 0, 14],
   "\u044F\u0439\u0446\u0430": [155, 13, 1.1, 11],
   "\u044F\u0439\u0447\u043D\u0438 \u0431\u0435\u043B\u0442\u044A\u0446\u0438": [52, 11, 0.7, 0.2],
@@ -9124,7 +9126,8 @@ var FOOD_NUTRITION_PER_100G = {
   "\u0442\u0440\u0435\u0441\u043A\u0430": [82, 18, 0, 0.7],
   "\u0442\u0438\u043B\u0430\u043F\u0438\u044F": [96, 20, 0, 1.7],
   "\u0441\u043A\u0430\u0440\u0438\u0434\u0438": [99, 24, 0.2, 0.3],
-  "\u0442\u043E\u0444\u0443": [76, 8, 1.9, 4.8],
+  // Твърдо тофу (каквото се продава у нас); мекото е ~76 kcal / 8 г протеин.
+  "\u0442\u043E\u0444\u0443": [124, 13, 2, 7],
   "\u0442\u0435\u043C\u043F\u0435": [193, 19, 9, 11],
   "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430": [400, 80, 8, 5],
   "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D": [370, 75, 10, 4],
@@ -9133,6 +9136,9 @@ var FOOD_NUTRITION_PER_100G = {
   "\u043F\u0438\u043B\u0435": [165, 31, 0, 3.6],
   "\u0440\u0438\u0431\u0430": [120, 22, 0, 3],
   "\u043A\u0430\u0439\u043C\u0430": [250, 17, 0, 20],
+  "\u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430": [168, 24, 0, 7.4],
+  "\u0445\u0435\u043A": [90, 18.5, 0, 1.3],
+  "\u0441\u0430\u0440\u0434\u0438\u043D\u0438": [208, 24.6, 0, 11.5],
   "\u0448\u0430\u043C\u0444\u044A\u0441\u0442\u044A\u043A": [567, 26, 16, 49],
   "\u043F\u0435\u043A\u0430\u043D\u0438": [691, 9, 14, 72],
   // ── Dairy ──
@@ -9150,6 +9156,10 @@ var FOOD_NUTRITION_PER_100G = {
   "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E": [45, 1, 7, 1.5],
   "\u0441\u043A\u0438\u0440": [62, 11, 4, 0.2],
   "\u043A\u0435\u0444\u0438\u0440": [52, 3.5, 4.5, 2],
+  "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E": [54, 3.5, 4, 2.3],
+  "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E": [40, 3.5, 2, 2],
+  "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D": [431, 38, 4, 29],
+  "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430": [280, 22, 2, 20],
   // ── Vegetables ──
   "\u0431\u0440\u043E\u043A\u043E\u043B\u0438": [34, 2.8, 7, 0.4],
   "\u0441\u043F\u0430\u043D\u0430\u043A": [23, 2.9, 3.6, 0.4],
@@ -9178,6 +9188,8 @@ var FOOD_NUTRITION_PER_100G = {
   "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438": [86, 1.6, 20, 0.1],
   "\u0442\u0438\u043A\u0432\u0430": [26, 1, 6.5, 0.1],
   "\u0435\u0440\u0438\u043D\u0433\u0438": [35, 2.4, 6.8, 0.4],
+  "\u0446\u0432\u0435\u043A\u043B\u043E": [44, 1.7, 10, 0.2],
+  "\u0431\u0440\u044E\u043A\u0441\u0435\u043B\u0441\u043A\u043E \u0437\u0435\u043B\u0435": [43, 3.4, 9, 0.3],
   "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A": [25, 1.5, 5, 0.2],
   // ── Carbs / grains / legumes ──
   "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438": [389, 17, 66, 7],
@@ -9203,6 +9215,8 @@ var FOOD_NUTRITION_PER_100G = {
   "\u0433\u0440\u0430\u0445": [81, 5.4, 14, 0.4],
   "\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430": [86, 3.3, 19, 1.2],
   "\u043A\u0430\u0448\u0430": [80, 3, 14, 1.5],
+  "\u043A\u0443\u0441-\u043A\u0443\u0441": [112, 3.8, 23, 0.2],
+  "\u043F\u0430\u0441\u0442\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430": [150, 11, 24, 1],
   // ── Fats / nuts / seeds ──
   "\u0430\u0432\u043E\u043A\u0430\u0434\u043E": [160, 2, 9, 15],
   "\u0437\u0435\u0445\u0442\u0438\u043D": [884, 0, 0, 100],
@@ -9325,7 +9339,6 @@ var FOOD_ALIASES = {
   "\u0437\u0435\u0445\u0442\u0438\u043D extra virgin": "\u0437\u0435\u0445\u0442\u0438\u043D",
   "\u0437\u0435\u0445\u0442\u0438\u043D \u0435\u043A\u0441\u0442\u0440\u0430": "\u0437\u0435\u0445\u0442\u0438\u043D",
   "\u0441\u0438\u0440\u0435\u043D\u0435 \u0431\u044F\u043B\u043E": "\u0441\u0438\u0440\u0435\u043D\u0435",
-  "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430": "\u0441\u0438\u0440\u0435\u043D\u0435",
   "\u043A\u0430\u0439\u043C\u0430 \u0433\u043E\u0432\u0435\u0436\u0434\u0430": "\u043A\u0430\u0439\u043C\u0430",
   "\u043A\u0430\u0439\u043C\u0430 \u0441\u043C\u0435\u0441\u0435\u043D\u0430": "\u043A\u0430\u0439\u043C\u0430",
   "\u043C\u043B\u044F\u043A\u043E 2%": "\u043C\u043B\u044F\u043A\u043E 2",
@@ -9345,8 +9358,16 @@ var FOOD_ALIASES = {
 var GENERIC_FOOD_PROFILE = [120, 8, 12, 5];
 
 // food-utils.js
+var normalizedCache = /* @__PURE__ */ new Map();
+var NORMALIZED_CACHE_MAX = 2e4;
 function normalizeFoodKey(name) {
-  return String(name || "").toLowerCase().replace(/^[•\-\*]\s*/, "").replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+  const raw = String(name || "");
+  let key = normalizedCache.get(raw);
+  if (key !== void 0) return key;
+  key = raw.toLowerCase().replace(/^[•\-\*]\s*/, "").replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+  if (normalizedCache.size >= NORMALIZED_CACHE_MAX) normalizedCache.clear();
+  normalizedCache.set(raw, key);
+  return key;
 }
 
 // food-catalog-data.js
@@ -9391,6 +9412,9 @@ var FOOD_CATALOG = [
   item("pro_shrimp", "\u0421\u043A\u0430\u0440\u0438\u0434\u0438", "\u0441\u043A\u0430\u0440\u0438\u0434\u0438", "protein", ["PRO"], ["main"], 2, { genericOf: "pro_fish" }),
   item("pro_egg_whites", "\u042F\u0439\u0447\u043D\u0438 \u0431\u0435\u043B\u0442\u044A\u0446\u0438", "\u044F\u0439\u0447\u043D\u0438 \u0431\u0435\u043B\u0442\u044A\u0446\u0438", "protein", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegetarian: true, genericOf: "pro_eggs" }),
   item("pro_tofu", "\u0422\u043E\u0444\u0443", "\u0442\u043E\u0444\u0443", "protein", ["PRO"], ["main", "snack"], 4, { vegan: true, vegetarian: true }),
+  item("pro_trout", "\u041F\u044A\u0441\u0442\u044A\u0440\u0432\u0430", "\u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430", "protein", ["PRO"], ["main"], 4, { genericOf: "pro_fish" }),
+  item("pro_hake", "\u0425\u0435\u043A", "\u0445\u0435\u043A", "protein", ["PRO"], ["main"], 3, { genericOf: "pro_fish" }),
+  item("pro_sardines", "\u0421\u0430\u0440\u0434\u0438\u043D\u0438", "\u0441\u0430\u0440\u0434\u0438\u043D\u0438", "protein", ["PRO", "FAT"], ["main", "snack"], 3, { genericOf: "pro_fish" }),
   item("pro_tempeh", "\u0422\u0435\u043C\u043F\u0435", "\u0442\u0435\u043C\u043F\u0435", "protein", ["PRO"], ["main"], 2, { vegan: true, vegetarian: true }),
   item("pro_whey", "\u041F\u0440\u043E\u0442\u0435\u0438\u043D (\u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430)", "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430", "protein", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegetarian: true }),
   item("pro_plant_protein", "\u041F\u0440\u043E\u0442\u0435\u0438\u043D (\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D)", "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D", "protein", ["PRO"], ["breakfast", "snack"], 3, { vegan: true, vegetarian: true }),
@@ -9408,6 +9432,10 @@ var FOOD_CATALOG = [
   item("dairy_milk", "\u041C\u043B\u044F\u043A\u043E", "\u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack"], 4, { vegetarian: true }),
   item("dairy_milk_2", "\u041C\u043B\u044F\u043A\u043E (2%)", "\u043C\u043B\u044F\u043A\u043E 2", "dairy", ["PRO"], ["breakfast", "snack"], 4, { vegetarian: true, genericOf: "dairy_milk" }),
   item("dairy_plant_milk", "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["ENG"], ["breakfast", "snack"], 4, { vegan: true, vegetarian: true }),
+  item("dairy_soy_yogurt", "\u0421\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegan: true, vegetarian: true }),
+  item("dairy_soy_milk", "\u0421\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack"], 3, { vegan: true, vegetarian: true }),
+  item("dairy_parmesan", "\u041F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "dairy", ["PRO", "FAT"], ["main"], 3, { vegetarian: true }),
+  item("dairy_mozzarella", "\u041C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", "dairy", ["PRO", "FAT"], ["main", "snack"], 3, { vegetarian: true }),
   item("dairy_kefir", "\u041A\u0435\u0444\u0438\u0440", "\u043A\u0435\u0444\u0438\u0440", "dairy", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegetarian: true }),
   // ── VEG — generic + common ──
   item("veg_generic", "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", "vegetable", ["VOL"], ["breakfast", "main", "snack"], 5, { vegan: true, vegetarian: true, aliases: ["\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A"] }),
@@ -9432,6 +9460,8 @@ var FOOD_CATALOG = [
   item("veg_pumpkin", "\u0422\u0438\u043A\u0432\u0430", "\u0442\u0438\u043A\u0432\u0430", "vegetable", ["VOL", "ENG"], ["main"], 4, { vegan: true, vegetarian: true }),
   item("veg_cherry_tomato", "\u0427\u0435\u0440\u0438 \u0434\u043E\u043C\u0430\u0442\u0438", "\u0447\u0435\u0440\u0438 \u0434\u043E\u043C\u0430\u0442\u0438", "vegetable", ["VOL"], ["main", "snack"], 3, { vegan: true, vegetarian: true, genericOf: "veg_tomato" }),
   item("veg_leek", "\u041F\u0440\u0430\u0437", "\u043F\u0440\u0430\u0437", "vegetable", ["VOL"], ["main"], 3, { vegan: true, vegetarian: true }),
+  item("veg_beet", "\u0426\u0432\u0435\u043A\u043B\u043E", "\u0446\u0432\u0435\u043A\u043B\u043E", "vegetable", ["VOL"], ["main"], 4, { vegan: true, vegetarian: true }),
+  item("veg_brussels", "\u0411\u0440\u044E\u043A\u0441\u0435\u043B\u0441\u043A\u043E \u0437\u0435\u043B\u0435", "\u0431\u0440\u044E\u043A\u0441\u0435\u043B\u0441\u043A\u043E \u0437\u0435\u043B\u0435", "vegetable", ["VOL"], ["main"], 3, { vegan: true, vegetarian: true }),
   item("veg_oyster_mushroom", "\u0415\u0440\u0438\u043D\u0433\u0438", "\u0435\u0440\u0438\u043D\u0433\u0438", "vegetable", ["VOL"], ["main"], 2, { vegan: true, vegetarian: true, genericOf: "veg_mushrooms" }),
   // ── ENG — generic + common ──
   item("eng_rice", "\u041E\u0440\u0438\u0437", "\u043E\u0440\u0438\u0437", "carb", ["ENG"], ["main", "snack"], 5, { vegan: true, vegetarian: true }),
@@ -9450,11 +9480,14 @@ var FOOD_CATALOG = [
   item("eng_tortilla", "\u0422\u043E\u0440\u0442\u0438\u043B\u0430", "\u0442\u043E\u0440\u0442\u0438\u043B\u0430", "carb", ["ENG"], ["main", "snack"], 3, { vegan: true, vegetarian: true }),
   item("eng_sweet_potato", "\u0421\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "carb", ["ENG"], ["main"], 3, { vegan: true, vegetarian: true, aliases: ["\u0431\u0430\u0442\u0430\u0442"] }),
   item("eng_corn", "\u0426\u0430\u0440\u0435\u0432\u0438\u0446\u0430", "\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430", "carb", ["ENG"], ["main", "snack"], 4, { vegan: true, vegetarian: true }),
+  item("eng_couscous", "\u041A\u0443\u0441-\u043A\u0443\u0441", "\u043A\u0443\u0441-\u043A\u0443\u0441", "carb", ["ENG"], ["main"], 3, { vegan: true, vegetarian: true }),
+  item("eng_lentil_pasta", "\u041F\u0430\u0441\u0442\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430", "\u043F\u0430\u0441\u0442\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430", "carb", ["ENG", "PRO"], ["main"], 3, { vegan: true, vegetarian: true }),
   item("eng_porridge", "\u041A\u0430\u0448\u0430", "\u043A\u0430\u0448\u0430", "carb", ["ENG"], ["breakfast"], 4, { vegan: true, vegetarian: true }),
   // ── LEGUMES ──
   item("leg_lentils", "\u041B\u0435\u0449\u0430", "\u043B\u0435\u0449\u0430", "legume", ["PRO", "ENG"], ["main"], 4, { vegan: true, vegetarian: true }),
   item("leg_chickpeas", "\u041D\u0430\u0445\u0443\u0442", "\u043D\u0430\u0445\u0443\u0442", "legume", ["PRO", "ENG"], ["main", "snack"], 4, { vegan: true, vegetarian: true }),
   item("leg_black_beans", "\u0427\u0435\u0440\u0435\u043D \u0431\u043E\u0431", "\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431", "legume", ["PRO", "ENG"], ["main"], 4, { vegan: true, vegetarian: true }),
+  item("leg_edamame", "\u0415\u0434\u0430\u043C\u0430\u043C\u0435", "\u0435\u0434\u0430\u043C\u0430\u043C\u0435", "legume", ["PRO", "ENG"], ["main", "snack", "late_snack"], 3, { vegan: true, vegetarian: true }),
   item("leg_white_beans", "\u0411\u044F\u043B \u0431\u043E\u0431", "\u0431\u044F\u043B \u0431\u043E\u0431", "legume", ["PRO", "ENG"], ["main"], 4, { vegan: true, vegetarian: true, aliases: ["\u0431\u043E\u0431"] }),
   item("leg_peas", "\u0413\u0440\u0430\u0445", "\u0433\u0440\u0430\u0445", "legume", ["PRO", "ENG"], ["main"], 4, { vegan: true, vegetarian: true }),
   // ── FAT — generic + common ──
@@ -10008,6 +10041,13 @@ function firstStyle(styles) {
   for (const s of STYLE_PRIORITY) if (styles.includes(s)) return s;
   return null;
 }
+function resolveConflicts(style, pattern, adjustments) {
+  if (style === "keto" && pattern === "vegan") {
+    adjustments.push("VEGAN_KETO\u2192LOW_CARB: \u043A\u0435\u0442\u043E \u043F\u043E\u0434 12% \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u043D\u0435 \u0435 \u043F\u043E\u0441\u0442\u0438\u0436\u0438\u043C\u043E \u0432\u0435\u0433\u0430\u043D \u2014 \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430 \u0434\u043E 25%");
+    return "low_carb";
+  }
+  return style;
+}
 function exclusionsFromText(text) {
   const found = [];
   if (!text) return found;
@@ -10113,7 +10153,12 @@ function compileProfile(userData = {}, overrides = {}) {
   if (clinical.has("CEL")) exclusions.add("GLU");
   for (const label of asList(data.foodSensitivities)) addAll(exclusions, exclusionsFromText(label));
   const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns]);
-  const style = firstStyle(modifier.styles) || firstStyle(prefs.styles.filter((s) => s !== "balanced")) || clinicalDefaultStyle(clinical, protocolId) || "balanced";
+  const adjustments = [];
+  const style = resolveConflicts(
+    firstStyle(modifier.styles) || firstStyle(prefs.styles.filter((s) => s !== "balanced")) || clinicalDefaultStyle(clinical, protocolId) || "balanced",
+    pattern,
+    adjustments
+  );
   if (style === "paleo") {
     exclusions.add("GLU");
     exclusions.add("LAC");
@@ -10166,7 +10211,8 @@ function compileProfile(userData = {}, overrides = {}) {
     mealsPerDay: slots.length,
     skipsBreakfast,
     slots,
-    unmapped: [...new Set(unmapped)]
+    unmapped: [...new Set(unmapped)],
+    adjustments
   };
 }
 function libraryDietProfileOf(profile) {
@@ -10237,7 +10283,11 @@ function dietFromSignals(ctx = {}) {
   const exclusions = /* @__PURE__ */ new Set([...explicit.exclusions, ...hints.exclusions]);
   addAll(exclusions, exclusionsFromText(ctx.dietDislike));
   const pattern = strictestPattern(explicit.patterns);
-  const style = firstStyle(explicit.styles.filter((s) => s !== "balanced")) || firstStyle(hints.styles) || "balanced";
+  const style = resolveConflicts(
+    firstStyle(explicit.styles.filter((s) => s !== "balanced")) || firstStyle(hints.styles) || "balanced",
+    pattern,
+    []
+  );
   if (style === "paleo") {
     exclusions.add("GLU");
     exclusions.add("LAC");
@@ -10634,6 +10684,3924 @@ function resolveDishTagFilter(userData, strategy, slotType) {
   }
   const hasRules = filter.requireAll.length || filter.prefer.length || filter.exclude.length;
   return hasRules ? filter : null;
+}
+
+// data/plate-formulas.json
+var plate_formulas_default = {
+  about: "\u0424\u043E\u0440\u043C\u0443\u043B\u0438 \u043D\u0430 \u0447\u0438\u043D\u0438\u0438: \u0438\u0441\u0442\u0438\u043D\u0441\u043A\u043E \u044F\u0441\u0442\u0438\u0435 = \u043E\u0441\u043D\u043E\u0432\u0430 + \u0438\u0437\u0440\u0438\u0447\u043D\u043E \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0438. \u0412\u0441\u044F\u043A\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F \u0435 \u0440\u0435\u0430\u043B\u043D\u0430 \u0447\u0438\u043D\u0438\u044F; \u043D\u0438\u0449\u043E \u043D\u0435 \u0441\u0435 \u0441\u044A\u0447\u0435\u0442\u0430\u0432\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E. \u042F\u0441\u0442\u0438\u044F\u0442\u0430 \u0441\u0435 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u0442 \u043F\u0440\u0438 \u0437\u0430\u0440\u0435\u0436\u0434\u0430\u043D\u0435 (meal-dishes.js) \u0438 \u043C\u0438\u043D\u0430\u0432\u0430\u0442 \u043F\u0440\u0435\u0437 \u0441\u044A\u0449\u0438\u0442\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u043A\u0430\u0442\u043E \u0440\u044A\u0447\u043D\u0438\u0442\u0435.",
+  sets: {
+    garnish: [
+      {
+        key: "rice",
+        label: "\u043E\u0440\u0438\u0437",
+        products: [
+          [
+            "\u043E\u0440\u0438\u0437",
+            150
+          ]
+        ]
+      },
+      {
+        key: "potatoes",
+        label: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+        products: [
+          [
+            "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+            200
+          ]
+        ]
+      },
+      {
+        key: "quinoa",
+        label: "\u043A\u0438\u043D\u043E\u0430",
+        products: [
+          [
+            "\u043A\u0438\u043D\u043E\u0430",
+            150
+          ]
+        ]
+      },
+      {
+        key: "bulgur",
+        label: "\u0431\u0443\u043B\u0433\u0443\u0440",
+        products: [
+          [
+            "\u0431\u0443\u043B\u0433\u0443\u0440",
+            150
+          ]
+        ]
+      },
+      {
+        key: "buckwheat",
+        label: "\u0435\u043B\u0434\u0430",
+        products: [
+          [
+            "\u0435\u043B\u0434\u0430",
+            150
+          ]
+        ]
+      },
+      {
+        key: "sweet_potato",
+        label: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+        products: [
+          [
+            "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+            200
+          ]
+        ]
+      },
+      {
+        key: "couscous",
+        label: "\u043A\u0443\u0441-\u043A\u0443\u0441",
+        products: [
+          [
+            "\u043A\u0443\u0441-\u043A\u0443\u0441",
+            150
+          ]
+        ]
+      },
+      {
+        key: "none",
+        label: "",
+        products: []
+      }
+    ],
+    garnish_short: [
+      {
+        key: "potatoes",
+        label: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+        products: [
+          [
+            "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+            200
+          ]
+        ]
+      },
+      {
+        key: "rice",
+        label: "\u043E\u0440\u0438\u0437",
+        products: [
+          [
+            "\u043E\u0440\u0438\u0437",
+            150
+          ]
+        ]
+      },
+      {
+        key: "bulgur",
+        label: "\u0431\u0443\u043B\u0433\u0443\u0440",
+        products: [
+          [
+            "\u0431\u0443\u043B\u0433\u0443\u0440",
+            150
+          ]
+        ]
+      },
+      {
+        key: "none",
+        label: "",
+        products: []
+      }
+    ],
+    veg_side: [
+      {
+        key: "broccoli",
+        label: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+        products: [
+          [
+            "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "salad",
+        label: "\u0437\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+        products: [
+          [
+            "\u043C\u0430\u0440\u0443\u043B\u044F",
+            100
+          ]
+        ]
+      },
+      {
+        key: "green_beans",
+        label: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+        products: [
+          [
+            "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+            150
+          ]
+        ]
+      },
+      {
+        key: "zucchini",
+        label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+        products: [
+          [
+            "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "vegetables",
+        label: "\u043F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+        products: [
+          [
+            "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "spinach",
+        label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+        products: [
+          [
+            "\u0441\u043F\u0430\u043D\u0430\u043A",
+            150
+          ]
+        ]
+      },
+      {
+        key: "cauliflower",
+        label: "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+        products: [
+          [
+            "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+            150
+          ]
+        ]
+      },
+      {
+        key: "mushrooms",
+        label: "\u0433\u044A\u0431\u0438",
+        products: [
+          [
+            "\u0433\u044A\u0431\u0438",
+            150
+          ]
+        ]
+      }
+    ],
+    veg_hearty: [
+      {
+        key: "salad",
+        label: "\u0437\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+        products: [
+          [
+            "\u043C\u0430\u0440\u0443\u043B\u044F",
+            100
+          ]
+        ]
+      },
+      {
+        key: "cabbage",
+        label: "\u0441\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0437\u0435\u043B\u0435",
+        products: [
+          [
+            "\u0437\u0435\u043B\u0435",
+            150
+          ]
+        ]
+      },
+      {
+        key: "vegetables",
+        label: "\u043F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+        products: [
+          [
+            "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "tomatoes",
+        label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+        products: [
+          [
+            "\u0434\u043E\u043C\u0430\u0442\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "peppers",
+        label: "\u0447\u0443\u0448\u043A\u0438",
+        products: [
+          [
+            "\u0447\u0443\u0448\u043A\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "mushrooms",
+        label: "\u0433\u044A\u0431\u0438",
+        products: [
+          [
+            "\u0433\u044A\u0431\u0438",
+            150
+          ]
+        ]
+      }
+    ],
+    veg_lowcarb: [
+      {
+        key: "broccoli",
+        label: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+        products: [
+          [
+            "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "zucchini",
+        label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+        products: [
+          [
+            "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "spinach",
+        label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+        products: [
+          [
+            "\u0441\u043F\u0430\u043D\u0430\u043A",
+            150
+          ]
+        ]
+      },
+      {
+        key: "cauliflower",
+        label: "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+        products: [
+          [
+            "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+            150
+          ]
+        ]
+      },
+      {
+        key: "salad",
+        label: "\u0437\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+        products: [
+          [
+            "\u043C\u0430\u0440\u0443\u043B\u044F",
+            100
+          ]
+        ]
+      },
+      {
+        key: "mushrooms",
+        label: "\u0433\u044A\u0431\u0438",
+        products: [
+          [
+            "\u0433\u044A\u0431\u0438",
+            150
+          ]
+        ]
+      }
+    ],
+    fruit: [
+      {
+        key: "banana",
+        label: "\u0431\u0430\u043D\u0430\u043D",
+        products: [
+          [
+            "\u0431\u0430\u043D\u0430\u043D",
+            100
+          ]
+        ]
+      },
+      {
+        key: "apple",
+        label: "\u044F\u0431\u044A\u043B\u043A\u0430",
+        products: [
+          [
+            "\u044F\u0431\u044A\u043B\u043A\u0430",
+            120
+          ]
+        ]
+      },
+      {
+        key: "blueberries",
+        label: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+        products: [
+          [
+            "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+            80
+          ]
+        ]
+      },
+      {
+        key: "raspberries",
+        label: "\u043C\u0430\u043B\u0438\u043D\u0438",
+        products: [
+          [
+            "\u043C\u0430\u043B\u0438\u043D\u0438",
+            80
+          ]
+        ]
+      },
+      {
+        key: "strawberries",
+        label: "\u044F\u0433\u043E\u0434\u0438",
+        products: [
+          [
+            "\u044F\u0433\u043E\u0434\u0438",
+            100
+          ]
+        ]
+      }
+    ],
+    fruit_wide: [
+      {
+        key: "banana",
+        label: "\u0431\u0430\u043D\u0430\u043D",
+        products: [
+          [
+            "\u0431\u0430\u043D\u0430\u043D",
+            100
+          ]
+        ]
+      },
+      {
+        key: "apple",
+        label: "\u044F\u0431\u044A\u043B\u043A\u0430",
+        products: [
+          [
+            "\u044F\u0431\u044A\u043B\u043A\u0430",
+            120
+          ]
+        ]
+      },
+      {
+        key: "blueberries",
+        label: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+        products: [
+          [
+            "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+            80
+          ]
+        ]
+      },
+      {
+        key: "raspberries",
+        label: "\u043C\u0430\u043B\u0438\u043D\u0438",
+        products: [
+          [
+            "\u043C\u0430\u043B\u0438\u043D\u0438",
+            80
+          ]
+        ]
+      },
+      {
+        key: "strawberries",
+        label: "\u044F\u0433\u043E\u0434\u0438",
+        products: [
+          [
+            "\u044F\u0433\u043E\u0434\u0438",
+            100
+          ]
+        ]
+      },
+      {
+        key: "peach",
+        label: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+        products: [
+          [
+            "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+            120
+          ]
+        ]
+      },
+      {
+        key: "pear",
+        label: "\u043A\u0440\u0443\u0448\u0430",
+        products: [
+          [
+            "\u043A\u0440\u0443\u0448\u0430",
+            120
+          ]
+        ]
+      }
+    ],
+    nuts: [
+      {
+        key: "walnuts",
+        label: "\u043E\u0440\u0435\u0445\u0438",
+        products: [
+          [
+            "\u043E\u0440\u0435\u0445\u0438",
+            20
+          ]
+        ]
+      },
+      {
+        key: "almonds",
+        label: "\u0431\u0430\u0434\u0435\u043C\u0438",
+        products: [
+          [
+            "\u0431\u0430\u0434\u0435\u043C\u0438",
+            20
+          ]
+        ]
+      },
+      {
+        key: "cashews",
+        label: "\u043A\u0430\u0448\u0443",
+        products: [
+          [
+            "\u043A\u0430\u0448\u0443",
+            20
+          ]
+        ]
+      },
+      {
+        key: "hazelnuts",
+        label: "\u043B\u0435\u0448\u043D\u0438\u0446\u0438",
+        products: [
+          [
+            "\u043B\u0435\u0448\u043D\u0438\u0446\u0438",
+            20
+          ]
+        ]
+      },
+      {
+        key: "pumpkin_seeds",
+        label: "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+        products: [
+          [
+            "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+            20
+          ]
+        ]
+      }
+    ],
+    bowl_topping: [
+      {
+        key: "walnuts",
+        label: "\u043E\u0440\u0435\u0445\u0438",
+        products: [
+          [
+            "\u043E\u0440\u0435\u0445\u0438",
+            15
+          ]
+        ]
+      },
+      {
+        key: "almonds",
+        label: "\u0431\u0430\u0434\u0435\u043C\u0438",
+        products: [
+          [
+            "\u0431\u0430\u0434\u0435\u043C\u0438",
+            15
+          ]
+        ]
+      },
+      {
+        key: "oats",
+        label: "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+        products: [
+          [
+            "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+            30
+          ]
+        ]
+      },
+      {
+        key: "chia",
+        label: "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+        products: [
+          [
+            "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+            15
+          ]
+        ]
+      }
+    ],
+    late_topping: [
+      {
+        key: "walnuts",
+        label: "\u043E\u0440\u0435\u0445\u0438",
+        products: [
+          [
+            "\u043E\u0440\u0435\u0445\u0438",
+            15
+          ]
+        ]
+      },
+      {
+        key: "almonds",
+        label: "\u0431\u0430\u0434\u0435\u043C\u0438",
+        products: [
+          [
+            "\u0431\u0430\u0434\u0435\u043C\u0438",
+            15
+          ]
+        ]
+      },
+      {
+        key: "chia",
+        label: "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+        products: [
+          [
+            "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+            15
+          ]
+        ]
+      },
+      {
+        key: "flax",
+        label: "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435",
+        products: [
+          [
+            "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435",
+            15
+          ]
+        ]
+      },
+      {
+        key: "pumpkin_seeds",
+        label: "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+        products: [
+          [
+            "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+            15
+          ]
+        ]
+      }
+    ],
+    crunch_veg: [
+      {
+        key: "cucumbers",
+        label: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+        products: [
+          [
+            "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "tomatoes",
+        label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+        products: [
+          [
+            "\u0434\u043E\u043C\u0430\u0442\u0438",
+            150
+          ]
+        ]
+      },
+      {
+        key: "peppers",
+        label: "\u0447\u0443\u0448\u043A\u0438",
+        products: [
+          [
+            "\u0447\u0443\u0448\u043A\u0438",
+            150
+          ]
+        ]
+      }
+    ],
+    breakfast_bread: [
+      {
+        key: "wholegrain",
+        label: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+        products: [
+          [
+            "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+            50
+          ]
+        ]
+      },
+      {
+        key: "rye",
+        label: "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431",
+        products: [
+          [
+            "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431",
+            50
+          ]
+        ]
+      },
+      {
+        key: "none",
+        label: "",
+        products: []
+      }
+    ]
+  },
+  formulas: [
+    {
+      id: "grill_chicken",
+      base: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+          150
+        ]
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          set: "garnish"
+        },
+        {
+          set: "veg_side"
+        }
+      ]
+    },
+    {
+      id: "oven_chicken_thigh",
+      base: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435",
+          180
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "potatoes",
+              label: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+              products: [
+                [
+                  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "rice",
+              label: "\u043E\u0440\u0438\u0437",
+              products: [
+                [
+                  "\u043E\u0440\u0438\u0437",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "bulgur",
+              label: "\u0431\u0443\u043B\u0433\u0443\u0440",
+              products: [
+                [
+                  "\u0431\u0443\u043B\u0433\u0443\u0440",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "sweet_potato",
+              label: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+              products: [
+                [
+                  "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        },
+        {
+          set: "veg_hearty"
+        }
+      ]
+    },
+    {
+      id: "turkey_fillet",
+      base: "\u041F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u043F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
+          150
+        ]
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "rice",
+              label: "\u043E\u0440\u0438\u0437",
+              products: [
+                [
+                  "\u043E\u0440\u0438\u0437",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "quinoa",
+              label: "\u043A\u0438\u043D\u043E\u0430",
+              products: [
+                [
+                  "\u043A\u0438\u043D\u043E\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "bulgur",
+              label: "\u0431\u0443\u043B\u0433\u0443\u0440",
+              products: [
+                [
+                  "\u0431\u0443\u043B\u0433\u0443\u0440",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "buckwheat",
+              label: "\u0435\u043B\u0434\u0430",
+              products: [
+                [
+                  "\u0435\u043B\u0434\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "potatoes",
+              label: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+              products: [
+                [
+                  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "broccoli",
+              label: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+              products: [
+                [
+                  "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "zucchini",
+              label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "green_beans",
+              label: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "salad",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+              products: [
+                [
+                  "\u043C\u0430\u0440\u0443\u043B\u044F",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "brussels",
+              label: "\u0431\u0440\u044E\u043A\u0441\u0435\u043B\u0441\u043A\u043E \u0437\u0435\u043B\u0435",
+              products: [
+                [
+                  "\u0431\u0440\u044E\u043A\u0441\u0435\u043B\u0441\u043A\u043E \u0437\u0435\u043B\u0435",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "beef_stew",
+      base: "\u0417\u0430\u0434\u0443\u0448\u0435\u043D\u043E \u0442\u0435\u043B\u0435\u0448\u043A\u043E",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u0433\u043E\u0432\u0435\u0436\u0434\u043E (\u043F\u043E\u0441\u0442\u043D\u043E)",
+          150
+        ]
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "potatoes",
+              label: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+              products: [
+                [
+                  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "rice",
+              label: "\u043E\u0440\u0438\u0437",
+              products: [
+                [
+                  "\u043E\u0440\u0438\u0437",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "bulgur",
+              label: "\u0431\u0443\u043B\u0433\u0443\u0440",
+              products: [
+                [
+                  "\u0431\u0443\u043B\u0433\u0443\u0440",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "pasta",
+              label: "\u043F\u0430\u0441\u0442\u0430",
+              products: [
+                [
+                  "\u043F\u0430\u0441\u0442\u0430",
+                  180
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "vegetables",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "green_beans",
+              label: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "carrots",
+              label: "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+              products: [
+                [
+                  "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+                  120
+                ]
+              ]
+            },
+            {
+              key: "peppers",
+              label: "\u0447\u0443\u0448\u043A\u0438",
+              products: [
+                [
+                  "\u0447\u0443\u0448\u043A\u0438",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "pork_grill",
+      base: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0444\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u0441\u0432\u0438\u043D\u0441\u043A\u043E (\u043F\u043E\u0441\u0442\u043D\u043E)",
+          150
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "potatoes",
+              label: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+              products: [
+                [
+                  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "rice",
+              label: "\u043E\u0440\u0438\u0437",
+              products: [
+                [
+                  "\u043E\u0440\u0438\u0437",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "buckwheat",
+              label: "\u0435\u043B\u0434\u0430",
+              products: [
+                [
+                  "\u0435\u043B\u0434\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "cabbage",
+              label: "\u0441\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0437\u0435\u043B\u0435",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "salad",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+              products: [
+                [
+                  "\u043C\u0430\u0440\u0443\u043B\u044F",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "vegetables",
+              label: "\u043F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "peppers",
+              label: "\u043F\u0435\u0447\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438",
+              products: [
+                [
+                  "\u0447\u0443\u0448\u043A\u0438",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "meatballs",
+      base: "\u041A\u044E\u0444\u0442\u0435\u0442\u0430 \u043E\u0442 \u043A\u0430\u0439\u043C\u0430",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u043A\u0430\u0439\u043C\u0430",
+          130
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "potatoes",
+              label: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+              products: [
+                [
+                  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "rice",
+              label: "\u043E\u0440\u0438\u0437",
+              products: [
+                [
+                  "\u043E\u0440\u0438\u0437",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "bulgur",
+              label: "\u0431\u0443\u043B\u0433\u0443\u0440",
+              products: [
+                [
+                  "\u0431\u0443\u043B\u0433\u0443\u0440",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "tomatoes",
+              label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+              products: [
+                [
+                  "\u0434\u043E\u043C\u0430\u0442\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "cucumbers",
+              label: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+              products: [
+                [
+                  "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "salad",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+              products: [
+                [
+                  "\u043C\u0430\u0440\u0443\u043B\u044F",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "cabbage",
+              label: "\u0441\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0437\u0435\u043B\u0435",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "oven_fish",
+      base: "{fish} \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
+      timing: [
+        "main"
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          key: "fish",
+          options: [
+            {
+              key: "salmon",
+              title: "\u0421\u044C\u043E\u043C\u0433\u0430",
+              products: [
+                [
+                  "\u0441\u044C\u043E\u043C\u0433\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "trout",
+              title: "\u041F\u044A\u0441\u0442\u044A\u0440\u0432\u0430",
+              products: [
+                [
+                  "\u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430",
+                  180
+                ]
+              ]
+            },
+            {
+              key: "hake",
+              title: "\u0425\u0435\u043A",
+              products: [
+                [
+                  "\u0445\u0435\u043A",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "cod",
+              title: "\u0422\u0440\u0435\u0441\u043A\u0430",
+              products: [
+                [
+                  "\u0442\u0440\u0435\u0441\u043A\u0430",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "mackerel",
+              title: "\u0421\u043A\u0443\u043C\u0440\u0438\u044F",
+              products: [
+                [
+                  "\u0441\u043A\u0443\u043C\u0440\u0438\u044F",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "white_fish",
+              title: "\u0411\u044F\u043B\u0430 \u0440\u0438\u0431\u0430",
+              products: [
+                [
+                  "\u0440\u0438\u0431\u0430",
+                  180
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "potatoes",
+              label: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+              products: [
+                [
+                  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "rice",
+              label: "\u043E\u0440\u0438\u0437",
+              products: [
+                [
+                  "\u043E\u0440\u0438\u0437",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "quinoa",
+              label: "\u043A\u0438\u043D\u043E\u0430",
+              products: [
+                [
+                  "\u043A\u0438\u043D\u043E\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "bulgur",
+              label: "\u0431\u0443\u043B\u0433\u0443\u0440",
+              products: [
+                [
+                  "\u0431\u0443\u043B\u0433\u0443\u0440",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "sweet_potato",
+              label: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+              products: [
+                [
+                  "\u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "broccoli",
+              label: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+              products: [
+                [
+                  "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "salad",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+              products: [
+                [
+                  "\u043C\u0430\u0440\u0443\u043B\u044F",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "spinach",
+              label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "green_beans",
+              label: "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "zucchini",
+              label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "tuna_salad",
+      base: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+          120
+        ],
+        [
+          "\u043C\u0430\u0440\u0443\u043B\u044F",
+          100
+        ]
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "chickpeas",
+              label: "\u043D\u0430\u0445\u0443\u0442",
+              products: [
+                [
+                  "\u043D\u0430\u0445\u0443\u0442",
+                  80
+                ]
+              ]
+            },
+            {
+              key: "corn",
+              label: "\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430",
+              products: [
+                [
+                  "\u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430",
+                  80
+                ]
+              ]
+            },
+            {
+              key: "quinoa",
+              label: "\u043A\u0438\u043D\u043E\u0430",
+              products: [
+                [
+                  "\u043A\u0438\u043D\u043E\u0430",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "potatoes",
+              label: "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+              products: [
+                [
+                  "\u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "white_beans",
+              label: "\u0431\u044F\u043B \u0431\u043E\u0431",
+              products: [
+                [
+                  "\u0431\u044F\u043B \u0431\u043E\u0431",
+                  80
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "pasta_plate",
+      base: "\u041F\u0430\u0441\u0442\u0430",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u043F\u0430\u0441\u0442\u0430",
+          180
+        ]
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "chicken",
+              label: "\u043F\u0438\u043B\u0435",
+              products: [
+                [
+                  "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043C\u0435\u0441\u043E",
+                  120
+                ]
+              ]
+            },
+            {
+              key: "minced",
+              label: "\u043A\u0430\u0439\u043C\u0430",
+              products: [
+                [
+                  "\u043A\u0430\u0439\u043C\u0430",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "tuna",
+              label: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+              products: [
+                [
+                  "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "tofu",
+              label: "\u0442\u043E\u0444\u0443",
+              products: [
+                [
+                  "\u0442\u043E\u0444\u0443",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "tomatoes",
+              label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+              products: [
+                [
+                  "\u0434\u043E\u043C\u0430\u0442\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "zucchini",
+              label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "spinach",
+              label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "broccoli",
+              label: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+              products: [
+                [
+                  "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "lentil_pasta",
+      base: "\u041F\u0430\u0441\u0442\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u043F\u0430\u0441\u0442\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430",
+          180
+        ]
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "tomatoes",
+              label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+              products: [
+                [
+                  "\u0434\u043E\u043C\u0430\u0442\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "spinach",
+              label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "zucchini",
+              label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "broccoli",
+              label: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+              products: [
+                [
+                  "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "tofu",
+              label: "\u0442\u043E\u0444\u0443",
+              products: [
+                [
+                  "\u0442\u043E\u0444\u0443",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "tofu_pan",
+      base: "\u0422\u043E\u0444\u0443 \u043D\u0430 \u0442\u0438\u0433\u0430\u043D",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u0442\u043E\u0444\u0443",
+          200
+        ]
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "rice",
+              label: "\u043E\u0440\u0438\u0437",
+              products: [
+                [
+                  "\u043E\u0440\u0438\u0437",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "quinoa",
+              label: "\u043A\u0438\u043D\u043E\u0430",
+              products: [
+                [
+                  "\u043A\u0438\u043D\u043E\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "bulgur",
+              label: "\u0431\u0443\u043B\u0433\u0443\u0440",
+              products: [
+                [
+                  "\u0431\u0443\u043B\u0433\u0443\u0440",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "buckwheat",
+              label: "\u0435\u043B\u0434\u0430",
+              products: [
+                [
+                  "\u0435\u043B\u0434\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "couscous",
+              label: "\u043A\u0443\u0441-\u043A\u0443\u0441",
+              products: [
+                [
+                  "\u043A\u0443\u0441-\u043A\u0443\u0441",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "broccoli",
+              label: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+              products: [
+                [
+                  "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "peppers",
+              label: "\u0447\u0443\u0448\u043A\u0438",
+              products: [
+                [
+                  "\u0447\u0443\u0448\u043A\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "spinach",
+              label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "vegetables",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "zucchini",
+              label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "edamame_bowl",
+      base: "\u041A\u0443\u043F\u0430 \u0441 \u0435\u0434\u0430\u043C\u0430\u043C\u0435",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u0435\u0434\u0430\u043C\u0430\u043C\u0435",
+          150
+        ]
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "rice",
+              label: "\u043E\u0440\u0438\u0437",
+              products: [
+                [
+                  "\u043E\u0440\u0438\u0437",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "quinoa",
+              label: "\u043A\u0438\u043D\u043E\u0430",
+              products: [
+                [
+                  "\u043A\u0438\u043D\u043E\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "bulgur",
+              label: "\u0431\u0443\u043B\u0433\u0443\u0440",
+              products: [
+                [
+                  "\u0431\u0443\u043B\u0433\u0443\u0440",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "cucumbers",
+              label: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+              products: [
+                [
+                  "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "carrots",
+              label: "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+              products: [
+                [
+                  "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+                  120
+                ]
+              ]
+            },
+            {
+              key: "salad",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+              products: [
+                [
+                  "\u043C\u0430\u0440\u0443\u043B\u044F",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "vegetables",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "legume_stew",
+      base: "{legume}",
+      timing: [
+        "main"
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          key: "legume",
+          options: [
+            {
+              key: "lentils",
+              title: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u043B\u0435\u0449\u0430",
+              products: [
+                [
+                  "\u043B\u0435\u0449\u0430",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "beans",
+              title: "\u0411\u043E\u0431 \u044F\u0445\u043D\u0438\u044F",
+              products: [
+                [
+                  "\u0431\u044F\u043B \u0431\u043E\u0431",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "chickpeas",
+              title: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u043D\u0430\u0445\u0443\u0442",
+              products: [
+                [
+                  "\u043D\u0430\u0445\u0443\u0442",
+                  180
+                ]
+              ]
+            },
+            {
+              key: "black_beans",
+              title: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+              products: [
+                [
+                  "\u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+                  200
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "carrots",
+              label: "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+              products: [
+                [
+                  "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+                  120
+                ]
+              ]
+            },
+            {
+              key: "tomatoes",
+              label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+              products: [
+                [
+                  "\u0434\u043E\u043C\u0430\u0442\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "spinach",
+              label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "peppers",
+              label: "\u0447\u0443\u0448\u043A\u0438",
+              products: [
+                [
+                  "\u0447\u0443\u0448\u043A\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "vegetables",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+              products: [
+                [
+                  "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "bread",
+              label: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+              products: [
+                [
+                  "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+                  50
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "keto_fish",
+      base: "{fish}",
+      timing: [
+        "main"
+      ],
+      choices: [
+        {
+          key: "fish",
+          options: [
+            {
+              key: "salmon",
+              title: "\u0421\u044C\u043E\u043C\u0433\u0430",
+              products: [
+                [
+                  "\u0441\u044C\u043E\u043C\u0433\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "mackerel",
+              title: "\u0421\u043A\u0443\u043C\u0440\u0438\u044F",
+              products: [
+                [
+                  "\u0441\u043A\u0443\u043C\u0440\u0438\u044F",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "trout",
+              title: "\u041F\u044A\u0441\u0442\u044A\u0440\u0432\u0430",
+              products: [
+                [
+                  "\u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430",
+                  180
+                ]
+              ]
+            },
+            {
+              key: "sardines",
+              title: "\u0421\u0430\u0440\u0434\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u0441\u0430\u0440\u0434\u0438\u043D\u0438",
+                  130
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          set: "veg_lowcarb"
+        },
+        {
+          options: [
+            {
+              key: "avocado",
+              label: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+              products: [
+                [
+                  "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+                  70
+                ]
+              ]
+            },
+            {
+              key: "olives",
+              label: "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+                  40
+                ]
+              ]
+            },
+            {
+              key: "butter",
+              label: "\u043C\u0430\u0441\u043B\u043E",
+              products: [
+                [
+                  "\u043C\u0430\u0441\u043B\u043E",
+                  10
+                ]
+              ]
+            },
+            {
+              key: "olive_oil",
+              label: "\u0437\u0435\u0445\u0442\u0438\u043D",
+              products: [
+                [
+                  "\u0437\u0435\u0445\u0442\u0438\u043D",
+                  15
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "keto_meat",
+      base: "{meat}",
+      timing: [
+        "main"
+      ],
+      choices: [
+        {
+          key: "meat",
+          options: [
+            {
+              key: "chicken_thigh",
+              title: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435",
+              products: [
+                [
+                  "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435",
+                  180
+                ]
+              ]
+            },
+            {
+              key: "pork",
+              title: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E",
+              products: [
+                [
+                  "\u0441\u0432\u0438\u043D\u0441\u043A\u043E \u043C\u0435\u0441\u043E",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "beef",
+              title: "\u0422\u0435\u043B\u0435\u0448\u043A\u043E",
+              products: [
+                [
+                  "\u0433\u043E\u0432\u0435\u0436\u0434\u043E \u043C\u0435\u0441\u043E",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "minced",
+              title: "\u041A\u044E\u0444\u0442\u0435\u0442\u0430",
+              products: [
+                [
+                  "\u043A\u0430\u0439\u043C\u0430",
+                  130
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          set: "veg_lowcarb"
+        },
+        {
+          options: [
+            {
+              key: "cheese",
+              label: "\u0441\u0438\u0440\u0435\u043D\u0435",
+              products: [
+                [
+                  "\u0441\u0438\u0440\u0435\u043D\u0435",
+                  40
+                ]
+              ]
+            },
+            {
+              key: "kashkaval",
+              label: "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+              products: [
+                [
+                  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+                  30
+                ]
+              ]
+            },
+            {
+              key: "avocado",
+              label: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+              products: [
+                [
+                  "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+                  70
+                ]
+              ]
+            },
+            {
+              key: "butter",
+              label: "\u043C\u0430\u0441\u043B\u043E",
+              products: [
+                [
+                  "\u043C\u0430\u0441\u043B\u043E",
+                  10
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "tofu_lowcarb",
+      base: "\u0422\u043E\u0444\u0443",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u0442\u043E\u0444\u0443",
+          200
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "broccoli",
+              label: "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+              products: [
+                [
+                  "\u0431\u0440\u043E\u043A\u043E\u043B\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "spinach",
+              label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "zucchini",
+              label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "cauliflower",
+              label: "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+              products: [
+                [
+                  "\u043A\u0430\u0440\u0444\u0438\u043E\u043B",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "brussels",
+              label: "\u0431\u0440\u044E\u043A\u0441\u0435\u043B\u0441\u043A\u043E \u0437\u0435\u043B\u0435",
+              products: [
+                [
+                  "\u0431\u0440\u044E\u043A\u0441\u0435\u043B\u0441\u043A\u043E \u0437\u0435\u043B\u0435",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "avocado",
+              label: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+              products: [
+                [
+                  "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+                  70
+                ]
+              ]
+            },
+            {
+              key: "tahini",
+              label: "\u0442\u0430\u0445\u0430\u043D",
+              products: [
+                [
+                  "\u0442\u0430\u0445\u0430\u043D",
+                  15
+                ]
+              ]
+            },
+            {
+              key: "pumpkin_seeds",
+              label: "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+                  20
+                ]
+              ]
+            },
+            {
+              key: "olives",
+              label: "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+                  40
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "baked_veg_cheese",
+      base: "{veg} \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u044F\u0439\u0446\u0430",
+      timing: [
+        "main"
+      ],
+      core: [
+        [
+          "\u0441\u0438\u0440\u0435\u043D\u0435",
+          60
+        ],
+        [
+          "\u044F\u0439\u0446\u0430",
+          100
+        ]
+      ],
+      choices: [
+        {
+          key: "veg",
+          options: [
+            {
+              key: "zucchini",
+              title: "\u0417\u0430\u043F\u0435\u0447\u0435\u043D\u0438 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "eggplant",
+              title: "\u0417\u0430\u043F\u0435\u0447\u0435\u043D \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+              products: [
+                [
+                  "\u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "spinach",
+              title: "\u0417\u0430\u043F\u0435\u0447\u0435\u043D \u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "peppers",
+              title: "\u0417\u0430\u043F\u0435\u0447\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438",
+              products: [
+                [
+                  "\u0447\u0443\u0448\u043A\u0438",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              title: "\u0417\u0430\u043F\u0435\u0447\u0435\u043D\u0438 \u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  200
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "oatmeal",
+      base: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430",
+      timing: [
+        "breakfast"
+      ],
+      core: [
+        [
+          "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
+          50
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "milk",
+              label: "\u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u043C\u043B\u044F\u043A\u043E",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "plant_milk",
+              label: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "soy_milk",
+              label: "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "yogurt",
+              label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          set: "fruit"
+        },
+        {
+          options: [
+            {
+              key: "walnuts",
+              label: "\u043E\u0440\u0435\u0445\u0438",
+              products: [
+                [
+                  "\u043E\u0440\u0435\u0445\u0438",
+                  15
+                ]
+              ]
+            },
+            {
+              key: "almonds",
+              label: "\u0431\u0430\u0434\u0435\u043C\u0438",
+              products: [
+                [
+                  "\u0431\u0430\u0434\u0435\u043C\u0438",
+                  15
+                ]
+              ]
+            },
+            {
+              key: "chia",
+              label: "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+              products: [
+                [
+                  "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+                  10
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "omelet",
+      base: "\u041E\u043C\u043B\u0435\u0442",
+      timing: [
+        "breakfast"
+      ],
+      core: [
+        [
+          "\u044F\u0439\u0446\u0430",
+          150
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "tomatoes",
+              label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+              products: [
+                [
+                  "\u0434\u043E\u043C\u0430\u0442\u0438",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "spinach",
+              label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "peppers",
+              label: "\u0447\u0443\u0448\u043A\u0438",
+              products: [
+                [
+                  "\u0447\u0443\u0448\u043A\u0438",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "zucchini",
+              label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+                  100
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "cheese",
+              label: "\u0441\u0438\u0440\u0435\u043D\u0435",
+              products: [
+                [
+                  "\u0441\u0438\u0440\u0435\u043D\u0435",
+                  30
+                ]
+              ]
+            },
+            {
+              key: "kashkaval",
+              label: "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+              products: [
+                [
+                  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+                  25
+                ]
+              ]
+            },
+            {
+              key: "none",
+              label: "",
+              products: []
+            }
+          ]
+        },
+        {
+          set: "breakfast_bread"
+        }
+      ]
+    },
+    {
+      id: "dairy_bowl",
+      base: "{base}",
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      choices: [
+        {
+          key: "base",
+          options: [
+            {
+              key: "skyr",
+              title: "\u0421\u043A\u0438\u0440",
+              products: [
+                [
+                  "\u0441\u043A\u0438\u0440",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "cottage",
+              title: "\u0418\u0437\u0432\u0430\u0440\u0430",
+              products: [
+                [
+                  "\u0438\u0437\u0432\u0430\u0440\u0430",
+                  180
+                ]
+              ]
+            },
+            {
+              key: "greek",
+              title: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+                  180
+                ]
+              ]
+            },
+            {
+              key: "yogurt",
+              title: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+                  250
+                ]
+              ]
+            },
+            {
+              key: "soy_yogurt",
+              title: "\u0421\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+                  200
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          set: "fruit_wide"
+        },
+        {
+          set: "bowl_topping"
+        }
+      ]
+    },
+    {
+      id: "sandwich",
+      base: "{bread} \u0441\u0430\u043D\u0434\u0432\u0438\u0447",
+      timing: [
+        "breakfast"
+      ],
+      choices: [
+        {
+          key: "bread",
+          options: [
+            {
+              key: "wholegrain",
+              title: "\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442",
+              products: [
+                [
+                  "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431",
+                  80
+                ]
+              ]
+            },
+            {
+              key: "rye",
+              title: "\u0420\u044A\u0436\u0435\u043D",
+              products: [
+                [
+                  "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431",
+                  80
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "cheese",
+              label: "\u0441\u0438\u0440\u0435\u043D\u0435",
+              products: [
+                [
+                  "\u0441\u0438\u0440\u0435\u043D\u0435",
+                  60
+                ]
+              ]
+            },
+            {
+              key: "cottage",
+              label: "\u0438\u0437\u0432\u0430\u0440\u0430",
+              products: [
+                [
+                  "\u0438\u0437\u0432\u0430\u0440\u0430",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "eggs",
+              label: "\u044F\u0439\u0446\u0430",
+              products: [
+                [
+                  "\u044F\u0439\u0446\u0430",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "hummus",
+              label: "\u0445\u0443\u043C\u0443\u0441",
+              products: [
+                [
+                  "\u0445\u0443\u043C\u0443\u0441",
+                  70
+                ]
+              ]
+            },
+            {
+              key: "avocado",
+              label: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+              products: [
+                [
+                  "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+                  70
+                ]
+              ]
+            },
+            {
+              key: "tuna",
+              label: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+              products: [
+                [
+                  "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+                  80
+                ]
+              ]
+            },
+            {
+              key: "kashkaval",
+              label: "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+              products: [
+                [
+                  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+                  40
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "tomatoes",
+              label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+              products: [
+                [
+                  "\u0434\u043E\u043C\u0430\u0442\u0438",
+                  80
+                ]
+              ]
+            },
+            {
+              key: "cucumbers",
+              label: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+              products: [
+                [
+                  "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+                  80
+                ]
+              ]
+            },
+            {
+              key: "salad",
+              label: "\u0437\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+              products: [
+                [
+                  "\u043C\u0430\u0440\u0443\u043B\u044F",
+                  50
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "tofu_scramble",
+      base: "\u0411\u044A\u0440\u043A\u0430\u043D\u043E \u0442\u043E\u0444\u0443",
+      timing: [
+        "breakfast"
+      ],
+      core: [
+        [
+          "\u0442\u043E\u0444\u0443",
+          150
+        ]
+      ],
+      extra: [
+        [
+          "\u0437\u0435\u0445\u0442\u0438\u043D",
+          10
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "spinach",
+              label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "tomatoes",
+              label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+              products: [
+                [
+                  "\u0434\u043E\u043C\u0430\u0442\u0438",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "peppers",
+              label: "\u0447\u0443\u0448\u043A\u0438",
+              products: [
+                [
+                  "\u0447\u0443\u0448\u043A\u0438",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "zucchini",
+              label: "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438",
+                  100
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          set: "breakfast_bread"
+        }
+      ]
+    },
+    {
+      id: "chia_pudding",
+      base: "\u0427\u0438\u0430 \u043F\u0443\u0434\u0438\u043D\u0433",
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      core: [
+        [
+          "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430",
+          30
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "plant_milk",
+              label: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "soy_milk",
+              label: "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "yogurt",
+              label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+                  200
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "blueberries",
+              label: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+              products: [
+                [
+                  "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+                  80
+                ]
+              ]
+            },
+            {
+              key: "raspberries",
+              label: "\u043C\u0430\u043B\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u043C\u0430\u043B\u0438\u043D\u0438",
+                  80
+                ]
+              ]
+            },
+            {
+              key: "strawberries",
+              label: "\u044F\u0433\u043E\u0434\u0438",
+              products: [
+                [
+                  "\u044F\u0433\u043E\u0434\u0438",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "banana",
+              label: "\u0431\u0430\u043D\u0430\u043D",
+              products: [
+                [
+                  "\u0431\u0430\u043D\u0430\u043D",
+                  100
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "eggs_keto",
+      base: "\u042F\u0439\u0446\u0430",
+      timing: [
+        "breakfast"
+      ],
+      core: [
+        [
+          "\u044F\u0439\u0446\u0430",
+          150
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "avocado",
+              label: "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+              products: [
+                [
+                  "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+                  70
+                ]
+              ]
+            },
+            {
+              key: "cheese",
+              label: "\u0441\u0438\u0440\u0435\u043D\u0435",
+              products: [
+                [
+                  "\u0441\u0438\u0440\u0435\u043D\u0435",
+                  40
+                ]
+              ]
+            },
+            {
+              key: "kashkaval",
+              label: "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+              products: [
+                [
+                  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+                  30
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "tomatoes",
+              label: "\u0434\u043E\u043C\u0430\u0442\u0438",
+              products: [
+                [
+                  "\u0434\u043E\u043C\u0430\u0442\u0438",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "cucumbers",
+              label: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+              products: [
+                [
+                  "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "spinach",
+              label: "\u0441\u043F\u0430\u043D\u0430\u043A",
+              products: [
+                [
+                  "\u0441\u043F\u0430\u043D\u0430\u043A",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "mushrooms",
+              label: "\u0433\u044A\u0431\u0438",
+              products: [
+                [
+                  "\u0433\u044A\u0431\u0438",
+                  100
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "protein_shake",
+      base: "\u041F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u0448\u0435\u0439\u043A",
+      timing: [
+        "breakfast",
+        "snack"
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "whey",
+              label: "\u0441\u0443\u0440\u043E\u0432\u0430\u0442\u044A\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D",
+              products: [
+                [
+                  "\u043F\u0440\u043E\u0442\u0435\u0438\u043D (\u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430)",
+                  30
+                ]
+              ]
+            },
+            {
+              key: "plant",
+              label: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D",
+              products: [
+                [
+                  "\u043F\u0440\u043E\u0442\u0435\u0438\u043D (\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D)",
+                  30
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "milk",
+              label: "\u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u043C\u043B\u044F\u043A\u043E",
+                  300
+                ]
+              ]
+            },
+            {
+              key: "soy_milk",
+              label: "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+                  300
+                ]
+              ]
+            },
+            {
+              key: "plant_milk",
+              label: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+                  300
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          options: [
+            {
+              key: "banana",
+              label: "\u0431\u0430\u043D\u0430\u043D",
+              products: [
+                [
+                  "\u0431\u0430\u043D\u0430\u043D",
+                  100
+                ]
+              ]
+            },
+            {
+              key: "blueberries",
+              label: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+              products: [
+                [
+                  "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438",
+                  80
+                ]
+              ]
+            },
+            {
+              key: "strawberries",
+              label: "\u044F\u0433\u043E\u0434\u0438",
+              products: [
+                [
+                  "\u044F\u0433\u043E\u0434\u0438",
+                  100
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "fruit_nuts",
+      base: "{fruit}",
+      timing: [
+        "snack"
+      ],
+      choices: [
+        {
+          key: "fruit",
+          options: [
+            {
+              key: "apple",
+              title: "\u042F\u0431\u044A\u043B\u043A\u0430",
+              products: [
+                [
+                  "\u044F\u0431\u044A\u043B\u043A\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "banana",
+              title: "\u0411\u0430\u043D\u0430\u043D",
+              products: [
+                [
+                  "\u0431\u0430\u043D\u0430\u043D",
+                  120
+                ]
+              ]
+            },
+            {
+              key: "orange",
+              title: "\u041F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+              products: [
+                [
+                  "\u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "pear",
+              title: "\u041A\u0440\u0443\u0448\u0430",
+              products: [
+                [
+                  "\u043A\u0440\u0443\u0448\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "tangerine",
+              title: "\u041C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u043C\u0430\u043D\u0434\u0430\u0440\u0438\u043D\u0430",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "kiwi",
+              title: "\u041A\u0438\u0432\u0438",
+              products: [
+                [
+                  "\u043A\u0438\u0432\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "grapes",
+              title: "\u0413\u0440\u043E\u0437\u0434\u0435",
+              products: [
+                [
+                  "\u0433\u0440\u043E\u0437\u0434\u0435",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "peach",
+              title: "\u041F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+              products: [
+                [
+                  "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          set: "nuts"
+        }
+      ]
+    },
+    {
+      id: "hummus_veg",
+      base: "\u0425\u0443\u043C\u0443\u0441",
+      timing: [
+        "snack"
+      ],
+      core: [
+        [
+          "\u0445\u0443\u043C\u0443\u0441",
+          80
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "carrots",
+              label: "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+              products: [
+                [
+                  "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "cucumbers",
+              label: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+              products: [
+                [
+                  "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "peppers",
+              label: "\u0447\u0443\u0448\u043A\u0438",
+              products: [
+                [
+                  "\u0447\u0443\u0448\u043A\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "celery",
+              label: "\u0446\u0435\u043B\u0438\u043D\u0430",
+              products: [
+                [
+                  "\u0446\u0435\u043B\u0438\u043D\u0430",
+                  150
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "cheese_veg",
+      base: "{cheese}",
+      timing: [
+        "snack",
+        "late_snack"
+      ],
+      choices: [
+        {
+          key: "cheese",
+          options: [
+            {
+              key: "cheese",
+              title: "\u0421\u0438\u0440\u0435\u043D\u0435",
+              products: [
+                [
+                  "\u0441\u0438\u0440\u0435\u043D\u0435",
+                  60
+                ]
+              ]
+            },
+            {
+              key: "kashkaval",
+              title: "\u041A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+              products: [
+                [
+                  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+                  40
+                ]
+              ]
+            },
+            {
+              key: "mozzarella",
+              title: "\u041C\u043E\u0446\u0430\u0440\u0435\u043B\u0430",
+              products: [
+                [
+                  "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430",
+                  60
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          set: "crunch_veg"
+        }
+      ]
+    },
+    {
+      id: "boiled_eggs",
+      base: "\u0412\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430",
+      timing: [
+        "snack",
+        "late_snack"
+      ],
+      core: [
+        [
+          "\u044F\u0439\u0446\u0430",
+          100
+        ]
+      ],
+      choices: [
+        {
+          set: "crunch_veg"
+        }
+      ]
+    },
+    {
+      id: "olives_nuts",
+      base: "\u041C\u0430\u0441\u043B\u0438\u043D\u0438",
+      timing: [
+        "snack"
+      ],
+      core: [
+        [
+          "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+          50
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "almonds",
+              label: "\u0431\u0430\u0434\u0435\u043C\u0438",
+              products: [
+                [
+                  "\u0431\u0430\u0434\u0435\u043C\u0438",
+                  20
+                ]
+              ]
+            },
+            {
+              key: "walnuts",
+              label: "\u043E\u0440\u0435\u0445\u0438",
+              products: [
+                [
+                  "\u043E\u0440\u0435\u0445\u0438",
+                  20
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "avocado_seeds",
+      base: "\u0410\u0432\u043E\u043A\u0430\u0434\u043E",
+      timing: [
+        "snack",
+        "late_snack"
+      ],
+      core: [
+        [
+          "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+          100
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "pumpkin_seeds",
+              label: "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+              products: [
+                [
+                  "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438",
+                  15
+                ]
+              ]
+            },
+            {
+              key: "sunflower_seeds",
+              label: "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438",
+              products: [
+                [
+                  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438",
+                  15
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "edamame_snack",
+      base: "\u0415\u0434\u0430\u043C\u0430\u043C\u0435",
+      timing: [
+        "snack",
+        "late_snack"
+      ],
+      core: [
+        [
+          "\u0435\u0434\u0430\u043C\u0430\u043C\u0435",
+          120
+        ]
+      ],
+      choices: [
+        {
+          options: [
+            {
+              key: "cucumbers",
+              label: "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+              products: [
+                [
+                  "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "carrots",
+              label: "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+              products: [
+                [
+                  "\u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+                  120
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "late_dairy",
+      base: "{base}",
+      timing: [
+        "late_snack"
+      ],
+      choices: [
+        {
+          key: "base",
+          options: [
+            {
+              key: "yogurt",
+              title: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "skyr",
+              title: "\u0421\u043A\u0438\u0440",
+              products: [
+                [
+                  "\u0441\u043A\u0438\u0440",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "cottage",
+              title: "\u0418\u0437\u0432\u0430\u0440\u0430",
+              products: [
+                [
+                  "\u0438\u0437\u0432\u0430\u0440\u0430",
+                  120
+                ]
+              ]
+            },
+            {
+              key: "greek",
+              title: "\u0413\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+                  150
+                ]
+              ]
+            },
+            {
+              key: "kefir",
+              title: "\u041A\u0435\u0444\u0438\u0440",
+              products: [
+                [
+                  "\u043A\u0435\u0444\u0438\u0440",
+                  200
+                ]
+              ]
+            },
+            {
+              key: "soy_yogurt",
+              title: "\u0421\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
+                  150
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          set: "late_topping"
+        }
+      ]
+    },
+    {
+      id: "keto_snack",
+      base: "{snack}",
+      timing: [
+        "snack",
+        "late_snack"
+      ],
+      choices: [
+        {
+          key: "snack",
+          options: [
+            {
+              key: "cheese_olives",
+              title: "\u0421\u0438\u0440\u0435\u043D\u0435 \u0441 \u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u0441\u0438\u0440\u0435\u043D\u0435",
+                  50
+                ],
+                [
+                  "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+                  40
+                ]
+              ]
+            },
+            {
+              key: "kashkaval_olives",
+              title: "\u041A\u0430\u0448\u043A\u0430\u0432\u0430\u043B \u0441 \u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B",
+                  40
+                ],
+                [
+                  "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+                  40
+                ]
+              ]
+            },
+            {
+              key: "mozzarella_olives",
+              title: "\u041C\u043E\u0446\u0430\u0440\u0435\u043B\u0430 \u0441 \u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430",
+                  50
+                ],
+                [
+                  "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+                  40
+                ]
+              ]
+            },
+            {
+              key: "eggs_avocado",
+              title: "\u042F\u0439\u0446\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+              products: [
+                [
+                  "\u044F\u0439\u0446\u0430",
+                  100
+                ],
+                [
+                  "\u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+                  50
+                ]
+              ]
+            },
+            {
+              key: "eggs_cheese",
+              title: "\u0412\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
+              products: [
+                [
+                  "\u044F\u0439\u0446\u0430",
+                  100
+                ],
+                [
+                  "\u0441\u0438\u0440\u0435\u043D\u0435",
+                  30
+                ]
+              ]
+            },
+            {
+              key: "tofu_olives",
+              title: "\u0422\u043E\u0444\u0443 \u0441 \u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u0442\u043E\u0444\u0443",
+                  150
+                ],
+                [
+                  "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+                  40
+                ]
+              ]
+            },
+            {
+              key: "tuna_olives",
+              title: "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 \u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+              products: [
+                [
+                  "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+                  80
+                ],
+                [
+                  "\u043C\u0430\u0441\u043B\u0438\u043D\u0438",
+                  40
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+// plate-formulas.js
+var MAX_PRODUCTS = 4;
+var PROTEIN_GROUPS = ["protein", "legume", "dairy"];
+var foodIndexCache = null;
+function foodIndex() {
+  if (foodIndexCache) return foodIndexCache;
+  const full = /* @__PURE__ */ new Map();
+  const loose = /* @__PURE__ */ new Map();
+  for (const entry of FOOD_CATALOG) {
+    const fullKey = String(entry.name).toLowerCase().trim();
+    if (!full.has(fullKey)) full.set(fullKey, entry);
+    for (const key of [entry.name, entry.nutritionKey, ...entry.aliases || []].map(normalizeFoodKey)) {
+      if (key && !loose.has(key)) loose.set(key, entry);
+    }
+  }
+  foodIndexCache = { full, loose };
+  return foodIndexCache;
+}
+function catalogFoodOf(name) {
+  const { full, loose } = foodIndex();
+  return full.get(String(name || "").toLowerCase().trim()) || loose.get(normalizeFoodKey(name)) || null;
+}
+function proteinKeyOf(products = []) {
+  for (const p of products) {
+    const entry = catalogFoodOf(p.name);
+    if (entry && PROTEIN_GROUPS.includes(entry.group)) return entry.genericOf || entry.id;
+  }
+  return null;
+}
+function optionsOf(choice, sets) {
+  if (choice.set) {
+    const set = sets[choice.set];
+    if (!set) throw new Error(`\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442 \u043D\u0430\u0431\u043E\u0440 \u201E${choice.set}\u201C`);
+    return set;
+  }
+  return choice.options || [];
+}
+function cartesian(lists) {
+  return lists.reduce(
+    (acc, list) => acc.flatMap((prefix) => list.map((item2) => [...prefix, item2])),
+    [[]]
+  );
+}
+function withPreposition(word) {
+  return /^[сз]/i.test(word) ? "\u0441\u044A\u0441" : "\u0441";
+}
+function joinList(labels) {
+  if (labels.length === 1) return labels[0];
+  return `${labels.slice(0, -1).join(", ")} \u0438 ${labels[labels.length - 1]}`;
+}
+function dishName(base, labels) {
+  if (!labels.length) return base;
+  if (/(^|\s)(с|със)\s/i.test(base)) {
+    return labels.length === 1 ? `${base} \u0438 ${labels[0]}` : `${base}, ${joinList(labels)}`;
+  }
+  return `${base} ${withPreposition(labels[0])} ${joinList(labels)}`;
+}
+function mergeProducts(list) {
+  const out = [];
+  for (const [name, grams] of list) {
+    const existing = out.find((p) => p.name === name);
+    if (existing) existing.grams += grams;
+    else out.push({ name, grams });
+  }
+  return out;
+}
+function expandPlateFormulas(doc = plate_formulas_default) {
+  const sets = doc.sets || {};
+  const dishes = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const formula of doc.formulas || []) {
+    const choices = formula.choices || [];
+    const combos = cartesian(choices.map((c) => optionsOf(c, sets).map((option) => ({ choice: c, option }))));
+    for (const combo of combos) {
+      let base = formula.base;
+      const labels = [];
+      const keys = [];
+      for (const { choice, option } of combo) {
+        keys.push(option.key);
+        if (choice.key && base.includes(`{${choice.key}}`)) {
+          base = base.replace(`{${choice.key}}`, option.title);
+        } else if (option.label) {
+          labels.push(option.label);
+        }
+      }
+      const products = mergeProducts([
+        ...formula.core || [],
+        ...combo.flatMap(({ option }) => option.products || []),
+        ...formula.extra || []
+      ]);
+      const id = `f_${formula.id}_${keys.join("_")}`;
+      if (seen.has(id)) throw new Error(`\u041F\u043E\u0432\u0442\u0430\u0440\u044F\u0449\u043E \u0441\u0435 \u044F\u0441\u0442\u0438\u0435 ${id}`);
+      seen.add(id);
+      if (products.length > MAX_PRODUCTS) {
+        throw new Error(`${id}: ${products.length} \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0430 \u2014 \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E ${MAX_PRODUCTS}`);
+      }
+      const foods = products.map((p) => catalogFoodOf(p.name));
+      if (foods.some((f) => !f)) {
+        const unknown = products.filter((_, i) => !foods[i]).map((p) => p.name);
+        throw new Error(`${id}: \u043D\u0435\u043F\u043E\u0437\u043D\u0430\u0442\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 ${unknown.join(", ")}`);
+      }
+      dishes.push({
+        id,
+        name: dishName(base, labels),
+        products,
+        timing: [...formula.timing],
+        vegan: foods.every((f) => f.vegan),
+        vegetarian: foods.every((f) => f.vegetarian || f.vegan),
+        universality: Math.min(4, ...foods.map((f) => f.universality ?? 4)),
+        tags: [...formula.tags || []],
+        family: formula.id,
+        source: "formula"
+      });
+    }
+  }
+  return dishes;
 }
 
 // data/meal-dishes.json
@@ -15291,6 +19259,16 @@ var meal_dishes_default = {
 };
 
 // meal-dishes.js
+function dietFlags(raw) {
+  const foods = (raw.products || []).map((p) => catalogFoodOf(p.name));
+  if (!foods.length || foods.some((f) => !f)) {
+    return { vegan: !!raw.vegan, vegetarian: raw.vegetarian !== void 0 ? !!raw.vegetarian : !!raw.vegan };
+  }
+  return {
+    vegan: foods.every((f) => f.vegan),
+    vegetarian: foods.every((f) => f.vegan || f.vegetarian)
+  };
+}
 function normalizeDish(raw) {
   const snapped = (raw.products || []).map((p) => ({
     name: p.name,
@@ -15307,13 +19285,19 @@ function normalizeDish(raw) {
     })),
     referenceGrams: totalGrams,
     timing: [...raw.timing || []],
-    vegan: !!raw.vegan,
-    vegetarian: raw.vegetarian !== void 0 ? !!raw.vegetarian : !!raw.vegan,
+    ...dietFlags(raw),
     universality: raw.universality ?? 4,
-    tags: Array.isArray(raw.tags) ? [...raw.tags] : []
+    tags: Array.isArray(raw.tags) ? [...raw.tags] : [],
+    // Семейство: вариантите на една формула са едно ястие за разнообразието.
+    family: raw.family || raw.id,
+    proteinKey: proteinKeyOf(snapped),
+    source: raw.source || "curated"
   };
 }
-var MEAL_DISHES = (meal_dishes_default.dishes || []).map(normalizeDish);
+var MEAL_DISHES = [
+  ...meal_dishes_default.dishes || [],
+  ...expandPlateFormulas()
+].map(normalizeDish);
 var MEAL_DISHES_BY_ID = new Map(MEAL_DISHES.map((d) => [d.id, d]));
 function dishToCatalogEntry(d, groupOfProduct2) {
   const groups = d.products.map((p) => groupOfProduct2(p.name));
@@ -15333,6 +19317,8 @@ function dishToCatalogEntry(d, groupOfProduct2) {
     universality: d.universality,
     vegan: d.vegan,
     vegetarian: d.vegetarian,
+    family: d.family || d.id,
+    proteinKey: d.proteinKey || null,
     tags: d.tags?.length ? [...d.tags] : [],
     dishTags: inferDishTags(d),
     genericOf: null,
@@ -21812,7 +25798,9 @@ function normalizeDish2(d) {
     vegan: !!d.vegan,
     vegetarian: d.vegetarian !== void 0 ? !!d.vegetarian : !!d.vegan,
     universality: Number(d.universality) || 4,
-    tags: Array.isArray(d.tags) ? [...d.tags] : []
+    tags: Array.isArray(d.tags) ? [...d.tags] : [],
+    family: d.family || d.id,
+    proteinKey: d.proteinKey ?? proteinKeyOf(d.products || [])
   };
 }
 function getCatalogEntries() {
@@ -21832,9 +25820,12 @@ function buildRegistryIndex() {
   if (indexCache) return indexCache;
   const byId = /* @__PURE__ */ new Map();
   const byKey = /* @__PURE__ */ new Map();
+  const byFullName = /* @__PURE__ */ new Map();
   const all = getCatalogEntries();
   for (const entry of all) {
     byId.set(entry.id, entry);
+    const full = fullNameKey(entry.name);
+    if (full && !byFullName.has(full)) byFullName.set(full, entry);
     const keys = /* @__PURE__ */ new Set([
       normalizeFoodKey(entry.name),
       normalizeFoodKey(entry.nutritionKey),
@@ -21845,8 +25836,11 @@ function buildRegistryIndex() {
       if (!byKey.has(key)) byKey.set(key, entry);
     }
   }
-  indexCache = { byId, byKey, all };
+  indexCache = { byId, byKey, byFullName, all };
   return indexCache;
+}
+function fullNameKey(name) {
+  return String(name || "").toLowerCase().replace(/^[•\-*]\s*/, "").replace(/\s+/g, " ").trim();
 }
 function invalidateRegistryIndex() {
   indexCache = null;
@@ -21854,6 +25848,8 @@ function invalidateRegistryIndex() {
 }
 function resolveRegistryEntry(name) {
   const index = buildRegistryIndex();
+  const exact = index.byFullName.get(fullNameKey(name));
+  if (exact) return { entry: exact, unknown: false };
   const normalized = normalizeFoodKey(name);
   if (!normalized) return { entry: null, unknown: true };
   if (index.byKey.has(normalized)) {
@@ -22039,6 +26035,8 @@ function buildCatalogIndex() {
 }
 function resolveCatalogEntry(name) {
   const index = buildCatalogIndex();
+  const exact = index.byFullName?.get(fullNameKey(name));
+  if (exact) return { entry: exact, unknown: false };
   const normalized = normalizeFoodKey(name);
   if (!normalized) return { entry: null, unknown: true };
   if (index.byKey.has(normalized)) {
@@ -23379,6 +27377,10 @@ var ITEM_MAX_PORTION_G = {
   "\u043A\u0438\u043D\u043E\u0430": 200,
   "\u043F\u0430\u0441\u0442\u0430": 250,
   "\u0431\u0443\u043B\u0433\u0443\u0440": 250,
+  "\u043A\u0443\u0441-\u043A\u0443\u0441": 250,
+  "\u043F\u0430\u0441\u0442\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430": 250,
+  "\u0435\u0434\u0430\u043C\u0430\u043C\u0435": 200,
+  "\u0441\u0430\u0440\u0434\u0438\u043D\u0438": 150,
   // Dry weights (uncooked grains keep small servings).
   "\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438": 100,
   "\u043E\u0432\u0435\u0441": 100,
@@ -23414,8 +27416,16 @@ var ITEM_MIN_PORTION_G = {
   "\u0437\u0435\u0445\u0442\u0438\u043D": 5,
   "\u043E\u043B\u0438\u043E": 5,
   "\u043C\u0430\u0441\u043B\u043E": 5,
-  "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430": 5,
-  "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435": 5,
+  // Под 10 г семената и ядките са поръсване, не съставка.
+  "\u0441\u0435\u043C\u0435\u043D\u0430 \u0447\u0438\u0430": 10,
+  "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435": 10,
+  "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438": 10,
+  "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438": 10,
+  "\u0431\u0430\u0434\u0435\u043C\u0438": 10,
+  "\u043E\u0440\u0435\u0445\u0438": 10,
+  "\u043A\u0430\u0448\u0443": 10,
+  "\u043B\u0435\u0448\u043D\u0438\u0446\u0438": 10,
+  "\u044F\u0434\u043A\u0438": 10,
   // Чаена лъжичка — под нея медът е украса, не съставка.
   "\u043C\u0435\u0434": 10
 };
@@ -23496,7 +27506,9 @@ function libraryProfiles() {
   if (!libraryProfileCache) libraryProfileCache = getLibraryNutritionPer100g();
   return libraryProfileCache;
 }
-function buildDbIndex(extraDb = {}) {
+var baseIndexCache = null;
+function baseDbIndex() {
+  if (baseIndexCache) return baseIndexCache;
   const index = /* @__PURE__ */ new Map();
   for (const [rawKey, values] of Object.entries(libraryProfiles())) {
     index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
@@ -23504,7 +27516,15 @@ function buildDbIndex(extraDb = {}) {
   for (const [rawKey, values] of Object.entries(FOOD_NUTRITION_PER_100G)) {
     index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
   }
-  for (const [rawKey, values] of Object.entries(extraDb)) {
+  baseIndexCache = index;
+  return index;
+}
+function buildDbIndex(extraDb = {}) {
+  const base = baseDbIndex();
+  const extraEntries = Object.entries(extraDb || {});
+  if (!extraEntries.length) return base;
+  const index = new Map(base);
+  for (const [rawKey, values] of extraEntries) {
     if (Array.isArray(values)) index.set(normalizeFoodKey(rawKey), arrayToProfile(values));
     else if (values && typeof values === "object") index.set(normalizeFoodKey(rawKey), values);
   }
@@ -23646,6 +27666,13 @@ function macroCost(achieved, target, kcalPerGram2, slotKcal) {
   const scale = Math.max(target * kcalPerGram2, slotKcal * 0.1);
   return Math.abs(achieved - target) * kcalPerGram2 / scale;
 }
+var MEAL_SIZE_BASE_KCAL = 700;
+var MEAL_SIZE_MAX_FACTOR = 1.4;
+var MEAL_SIZE_GROUPS = /* @__PURE__ */ new Set(["protein", "carb", "legume", "vegetable", "dairy", "fruit"]);
+function mealSizeFactor(targetKcal) {
+  const k = Number(targetKcal) || 0;
+  return Math.min(MEAL_SIZE_MAX_FACTOR, Math.max(1, k / MEAL_SIZE_BASE_KCAL));
+}
 function keepDishProportions(items) {
   return {
     grams: items.map((it) => snapGrams(Number(it.referenceGrams) || 0)),
@@ -23659,7 +27686,11 @@ function solveDishScale(items, target, maxTotalGrams) {
   if (refs.some((r) => r <= 0)) return null;
   const targetKcal = Number(target?.kcal) || 0;
   if (!(targetKcal > 0)) return null;
-  const windows = items.map((item2) => portionWindow(item2));
+  const appetite = mealSizeFactor(targetKcal);
+  const windows = items.map((item2) => {
+    const w = portionWindow(item2);
+    return MEAL_SIZE_GROUPS.has(w.group) ? { ...w, max: gridFloor(w.max * appetite) } : w;
+  });
   const cooking = items.map((it) => isCookingFat(it.name, getCatalogMeta(it.name).nutritionKey));
   const carriers = refs.map((_, i) => !cooking[i]);
   if (!carriers.some(Boolean)) carriers.fill(true);
@@ -24746,6 +28777,17 @@ function collectUsedDishes(previousDays = []) {
   }
   return counts;
 }
+function collectUsedFamilies(previousDays = []) {
+  const counts = /* @__PURE__ */ new Map();
+  for (const day of previousDays) {
+    for (const meal of day.meals || []) {
+      const dish = meal.dishId ? MEAL_DISHES_BY_ID.get(meal.dishId) : null;
+      const key = dish?.family || meal.dishId;
+      if (key) counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  }
+  return counts;
+}
 function slotDishUseMaps() {
   return /* @__PURE__ */ new Map();
 }
@@ -24765,12 +28807,14 @@ function scorePoolEntry(entry, ctx, slotType) {
   const dishKey = entry.id || key;
   const productUses = ctx.usedProducts.get(key) || 0;
   const dishUses = ctx.usedDishes?.get(dishKey) || 0;
+  const familyUses = ctx.usedFamilies?.get(entry.family || dishKey) || 0;
+  const proteinUses = PLATED_MEAL_SLOTS.has(slotType) && entry.proteinKey ? ctx.usedMainProteins?.get(entry.proteinKey) || 0 : 0;
   const slotUses = slotType ? ctx.slotDishUses?.get(slotType)?.get(dishKey) || 0 : 0;
   const tagBoost = preferTagScore(entry, ctx.tagFilter?.prefer) * 0.5;
   const macroMiss = shareFit(servedFingerprint(entry, ctx), ctx.desiredShares);
   const targetKcal = Number(ctx.slotTarget?.calories) || 0;
   const energyMiss = targetKcal > 0 && ctx.achievableCache ? Math.max(0, Math.abs(dishAchievableKcal(entry, targetKcal, ctx.achievableCache) - targetKcal) / targetKcal - ENERGY_DEADBAND) : 0;
-  return dishUses * 3 + slotUses * 2 + productUses - (ctx.loveSet?.has(key) ? 1 : 0) - tagBoost + macroMiss * MACRO_FIT_WEIGHT + energyMiss * ENERGY_FIT_WEIGHT;
+  return dishUses * 3 + familyUses * 1.5 + proteinUses * 1 + slotUses * 2 + productUses - (ctx.loveSet?.has(key) ? 1 : 0) - tagBoost + macroMiss * MACRO_FIT_WEIGHT + energyMiss * ENERGY_FIT_WEIGHT;
 }
 var ENERGY_DEADBAND = 0.08;
 var ENERGY_FIT_WEIGHT = 6;
@@ -24794,7 +28838,9 @@ function rankPoolEntries(pool, ctx, roleKey, slotType) {
     maxSlotKcal: Number(ctx.slotTarget?.calories) || 0,
     loveSet: ctx.loveSet,
     adherenceRatio: ctx.adherenceRatio,
-    limit: Math.min(filtered.length, 32)
+    // Целият кръг: при голям каталог отрязване тук изхвърляше ястията с най-
+    // добро съотношение, преди изобщо да бъдат оценени.
+    limit: filtered.length
   });
   if (!ranked.length) return [];
   const start = (seed + dayNum * 13 + slotIndex * 7 + roleKey.charCodeAt(0)) % ranked.length;
@@ -24841,7 +28887,8 @@ function descriptionFromReadyMeal(entry) {
   return single ? `\u2022 ${single}` : `\u2022 ${entry.name}`;
 }
 var SLOT_FOREIGN_PRODUCTS = {
-  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": /пилеш|говежд|свинск|пуешк|риба|сьомга|скумрия|ориз|паста|хляб|картоф/,
+  // Следобедната закуска е сладка от плода, не от мед или захар.
+  "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": /пилеш|говежд|свинск|пуешк|риба|сьомга|скумрия|ориз|паста|хляб|картоф|мед|захар|сироп/,
   "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": /ориз|хляб|паста|картоф|банан|ябълка|грозде|мед|захар|овес/
 };
 function isEverydayDish(entry) {
@@ -24886,6 +28933,17 @@ function excludeDishesToday(pool, ctx) {
   if (ctx.relaxed || !ctx.dishesToday?.size) return pool;
   return pool.filter((e) => !ctx.dishesToday.has(dishDayKey(e)));
 }
+var MAX_FAMILY_PER_WEEK = 4;
+function capWeeklyFamilies(pool, ctx) {
+  if (!ctx.usedFamilies?.size) return pool;
+  const fresh = pool.filter((e) => (ctx.usedFamilies.get(e.family || e.id) || 0) < MAX_FAMILY_PER_WEEK);
+  return fresh.length ? fresh : pool;
+}
+function excludeSameProteinToday(pool, ctx, slotType) {
+  if (!PLATED_MEAL_SLOTS.has(slotType) || !ctx.platedProteinsToday?.size) return pool;
+  const varied = pool.filter((e) => !e.proteinKey || !ctx.platedProteinsToday.has(e.proteinKey));
+  return varied.length ? varied : pool;
+}
 function preferVegetableOnPlated(pool, slotType) {
   if (!PLATED_MEAL_SLOTS.has(slotType) || !pool.length) return pool;
   const withVeg = pool.filter((e) => readyMealProducts(e).some((x) => isVegetableName(x.name)));
@@ -24910,6 +28968,8 @@ function buildReadyMealPool(slotType, slotTarget, candidatesBySlot, ctx, { forRe
   if (!pool.length) return pool;
   pool = excludeDishesToday(pool, ctx);
   if (!pool.length) return pool;
+  pool = excludeSameProteinToday(pool, ctx, slotType);
+  pool = capWeeklyFamilies(pool, ctx);
   if (ctx.relaxed || forRepair) return pool;
   const energyFit = narrowByEnergyFit(pool, slotTarget, ctx.achievableCache);
   if (energyFit.length) return preferVegetableOnPlated(energyFit, slotType);
@@ -24977,6 +29037,12 @@ function recordReadyMealUse(entry, ctx, slotType) {
   const dishKey = entry.id || normalizeFoodKey(entry.name);
   ctx.usedProducts.set(normalizeFoodKey(entry.name), (ctx.usedProducts.get(normalizeFoodKey(entry.name)) || 0) + 1);
   ctx.usedDishes.set(dishKey, (ctx.usedDishes.get(dishKey) || 0) + 1);
+  const family = entry.family || dishKey;
+  ctx.usedFamilies?.set(family, (ctx.usedFamilies.get(family) || 0) + 1);
+  if (PLATED_MEAL_SLOTS.has(slotType) && entry.proteinKey) {
+    ctx.platedProteinsToday?.add(entry.proteinKey);
+    ctx.usedMainProteins?.set(entry.proteinKey, (ctx.usedMainProteins.get(entry.proteinKey) || 0) + 1);
+  }
   recordSlotDishUse(ctx.slotDishUses, slotType, dishKey);
   for (const part of READY_MEAL_PARTS[entry.id] || []) {
     const k = normalizeFoodKey(catalogName(part.name) || part.name);
@@ -25043,6 +29109,8 @@ async function buildDeterministicWeekPlanChunk({
   const fingerprintCache = /* @__PURE__ */ new Map();
   const usedProducts = collectUsedProducts(previousDays);
   const usedDishes = collectUsedDishes(previousDays);
+  const usedFamilies = collectUsedFamilies(previousDays);
+  const usedMainProteins = /* @__PURE__ */ new Map();
   const slotDishUses = slotDishUseMaps();
   const achievableCache = /* @__PURE__ */ new Map();
   const out = {};
@@ -25055,6 +29123,7 @@ async function buildDeterministicWeekPlanChunk({
     const meals = [];
     let slotIndex = 0;
     const dishesToday = /* @__PURE__ */ new Set();
+    const platedProteinsToday = /* @__PURE__ */ new Set();
     const dayDrift = emptyDayLedger();
     const plated = dayScheme.mealBreakdown.filter((m) => m.type !== "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" && m.type !== "\u041D\u0430\u043F\u0438\u0442\u043A\u0430");
     let remainingKcal = plated.reduce((sum, m) => sum + (Number(m.calories) || 0), 0);
@@ -25069,6 +29138,9 @@ async function buildDeterministicWeekPlanChunk({
         usedDishes,
         slotDishUses,
         dishesToday,
+        platedProteinsToday,
+        usedFamilies,
+        usedMainProteins,
         achievableCache,
         dietCtx,
         blockedTerms,
@@ -25434,7 +29506,10 @@ function buildCopyFields(label, mealsPerDay, slotTypes, userData, profile, resto
   return {
     dietaryModifier: label,
     dietType: label,
-    modifierReasoning: `\u041A\u043E\u0434 \u043D\u0430 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 ${profile.code} \u2014 \u0434\u0438\u0435\u0442\u0430\u0442\u0430 \u0435 \u0438\u0437\u0431\u0440\u0430\u043D\u0430 \u0434\u0435\u0442\u0435\u0440\u043C\u0438\u043D\u0438\u0441\u0442\u0438\u0447\u043D\u043E \u043E\u0442 \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0438\u044F, \u0446\u0435\u043B\u0438 \u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438.`,
+    modifierReasoning: [
+      `\u041A\u043E\u0434 \u043D\u0430 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 ${profile.code} \u2014 \u0434\u0438\u0435\u0442\u0430\u0442\u0430 \u0435 \u0438\u0437\u0431\u0440\u0430\u043D\u0430 \u0434\u0435\u0442\u0435\u0440\u043C\u0438\u043D\u0438\u0441\u0442\u0438\u0447\u043D\u043E \u043E\u0442 \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0438\u044F, \u0446\u0435\u043B\u0438 \u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438.`,
+      ...(profile.adjustments || []).map((a) => a.split(": ").slice(1).join(": ") || a)
+    ].join(" "),
     welcomeMessage: `${name}, \u043F\u043B\u0430\u043D\u044A\u0442 \u0441\u043B\u0435\u0434\u0432\u0430 ${label.toLowerCase()} \u043C\u043E\u0434\u0435\u043B \u0441 ${mealsPerDay} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043D\u0430 \u0434\u0435\u043D.`,
     planJustification: `\u0421\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430\u0442\u0430 (${mealList}) \u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0438 \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u043D\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u0430 \u2014 \u0441\u0442\u0430\u0431\u0438\u043B\u043D\u0430 \u0431\u0430\u0437\u0430 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E\u0442\u043E \u043C\u0435\u043D\u044E.`,
     longTermStrategy: "\u041F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0447\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043C\u043E\u043D\u0438\u0442\u043E\u0440\u0438\u043D\u0433 \u043D\u0430 \u0442\u0435\u0433\u043B\u043E, \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u0440\u0438\u0434\u044A\u0440\u0436\u0430\u043D\u0435.",
