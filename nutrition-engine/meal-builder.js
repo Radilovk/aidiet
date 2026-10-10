@@ -91,11 +91,12 @@ function partTotal(part) {
  * portion-limits.js. Мазнината за готвене е 10 г; при кето — до 20 г,
  * защото там тя носи енергията.
  */
-function foodCap(id, fatScale) {
+function foodCap(id, fatScale, appetite = 1) {
   const f = food(id);
   // Олио или зехтин — лъжица до 20 г (15–20 г в салатата или тигана).
   if (isCookingFat(f.name, f.nutritionKey)) return COOKING_FAT_COOK_MAX_G;
-  return maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP[f.group] });
+  // По-голям разход — по-голяма порция, но най-много с 40%.
+  return Math.round(maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP[f.group] }) * Math.min(1.4, appetite) / 10) * 10;
 }
 
 /** Обменна група → група на каталога (за таваните на порциите). */
@@ -104,9 +105,9 @@ const CATALOG_GROUP = {
   PRO: 'protein', FAT: 'fat', SWT: 'condiment', FREE: 'condiment',
 };
 
-function makePart(group, foods, range, extra = {}, fatScale = 1) {
+function makePart(group, foods, range, extra = {}, fatScale = 1, appetite = 1) {
   const serving = servingOf(foods);
-  const cap = foods.reduce((a, id) => a + foodCap(id, fatScale), 0);
+  const cap = foods.reduce((a, id) => a + foodCap(id, fatScale, appetite), 0);
   return {
     group,
     foods,
@@ -251,6 +252,7 @@ function dishName(dish, parts) {
 export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   /** @type {PartInstance[]} */
   const parts = [];
+  let carbId = null;
   for (let i = 0; i < dish.parts.length; i++) {
     const spec = dish.parts[i];
     if (spec.onlyStyles && !spec.onlyStyles.includes(ctx.policy.style)) continue;
@@ -261,13 +263,22 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
       return null;
     }
     if (optional && !(quota[spec.group] > 0) && spec.group !== 'LEG') continue;
+    // Един въглехидратен източник в хранене (ориз ИЛИ хляб): втори, различен, отпада.
+    const carb = option.find(id => food(id).catalogGroup === 'carb');
+    if (carb) {
+      if (carbId && carbId !== carb) {
+        if (optional) continue;
+        return null;
+      }
+      carbId = carb;
+    }
     const fatScale = spec.group === 'FAT' ? (ctx.policy.styleDef.fatPartScale || 1) : 1;
     // Голям енергиен разход — по-голяма чиния от същото ястие (в таваните на порциите).
     const sizeScale = APPETITE_GROUPS.has(spec.group) ? (ctx.appetite || 1) : fatScale;
     parts.push(makePart(spec.group, option, [spec.range[0], spec.range[1] * sizeScale], {
       with: spec.with,
       weight: parts.some(p => p.group === spec.group) ? 0.5 : 1,
-    }, fatScale));
+    }, fatScale, APPETITE_GROUPS.has(spec.group) ? (ctx.appetite || 1) : 1));
   }
   // Подправките и сосовете (чесън, лимон, канела) овкусяват ястието — не са
   // съставка с грамаж и не влизат в описанието, а в рецептата.
@@ -280,6 +291,8 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   const error = refine(parts, fixed, target, carbsCap);
 
   const kept = parts.filter(p => partTotal(p) > 0);
+  // Основно хранене без зеленчук не е хранене.
+  if (mealKind === 'main' && !kept.some(p => p.group === 'VEG') && !fixed.some(([id]) => food(id).group === 'VEG')) return null;
   return {
     parts: kept,
     fixed,

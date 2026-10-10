@@ -81,9 +81,9 @@
     "dairy_kefir": { "group": "MLK", "label": "кефир", "kind": "dairy", "flags": ["lactose"], "serving": 250 },
     "dairy_milk": { "group": "MLK", "label": "прясно мляко", "kind": "dairy", "flags": ["lactose", "high_fodmap"], "serving": 250 },
     "dairy_milk_2": { "group": "MLK", "label": "прясно мляко 2%", "kind": "dairy", "flags": ["lactose", "high_fodmap"], "serving": 250 },
-    "dairy_soy_yogurt": { "group": "MLK", "label": "соево кисело мляко", "kind": "plant", "flags": ["soy"], "serving": 200 },
-    "dairy_soy_milk": { "group": "MLK", "label": "соево мляко", "kind": "plant", "flags": ["soy"], "serving": 250 },
-    "dairy_plant_milk": { "group": "STA", "label": "овесено мляко", "kind": "plant", "flags": ["oats"], "serving": 200 },
+    "dairy_soy_yogurt": { "group": "MLK", "label": "соево кисело", "kind": "plant", "flags": ["soy"], "serving": 200 },
+    "dairy_soy_milk": { "group": "MLK", "label": "соев напитък", "kind": "plant", "flags": ["soy"], "serving": 250 },
+    "dairy_plant_milk": { "group": "STA", "label": "овесен напитък", "kind": "plant", "flags": ["oats"], "serving": 200 },
 
     "eng_bread_whole": { "group": "STA", "label": "пълнозърнест хляб", "flags": ["gluten", "grain", "whole_grain", "low_gi"], "unit": { "one": "филия", "many": "филии", "grams": 35 } },
     "eng_rye_bread": { "group": "STA", "label": "ръжен хляб", "flags": ["gluten", "grain", "whole_grain", "low_gi"], "unit": { "one": "филия", "many": "филии", "grams": 30 } },
@@ -175,7 +175,7 @@
     "fat_flax": { "group": "FAT", "label": "ленено семе", "flags": ["keto", "seed"] },
     "fat_pumpkin_seeds": { "group": "FAT", "label": "тиквени семки", "flags": ["keto", "seed"] },
     "fat_sunflower_seeds": { "group": "FAT", "label": "слънчогледови семки", "flags": ["keto", "seed"] },
-    "cond_coconut_milk": { "group": "FAT", "label": "кокосово мляко", "flags": ["keto"] },
+    "cond_coconut_milk": { "group": "FAT", "label": "кокосова сметана", "flags": ["keto"] },
 
     "cond_honey": { "group": "SWT", "label": "мед", "flags": ["high_gi"], "unit": { "one": "ч.л.", "many": "ч.л.", "grams": 10 } },
     "sw_dark_chocolate": { "group": "SWT", "label": "черен шоколад", "flags": [] },

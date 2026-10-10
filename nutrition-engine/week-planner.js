@@ -28,6 +28,8 @@ const CANDIDATES_PER_MEAL = 12;
 /** Колко тежи липсата на капацитет по група при предварителното подреждане. */
 const FIT_WEIGHTS = { PRO: 2, STA: 1.2, FRU: 0.8, MLK: 0.8, VEG: 0.4, FAT: 0.6 };
 const CARRY_LIMIT = 0.4;
+const LATE_SNACK_MAX_KCAL = 175;
+const SNACK_BAN = /пилеш|говежд|свинск|риба|сьомга|скумри|пъстърва|хек|треска|тилапи|ориз|паста|хляб|галети|бял|захар|мед\b|сироп|шоколад|кус-кус|булгур/;
 /** Колко пъти седмично едно ястие може да се повтори в даден вид хранене. */
 const MAX_USES_PER_WEEK = { main: 2, breakfast: 3, snack: 3, late: 3 };
 /** Над тези калории порциите в ястията растат пропорционално. */
@@ -339,12 +341,19 @@ function carryTarget(target, carry) {
 export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false, morningDrink = false }) {
   const rng = rngFrom(seed);
   const eligible = eligibleDishes(policy);
+  // Следобедната закуска е лека: без месо, риба, ориз, паста, хляб и висок ГИ.
+  const snackPolicy = {
+    ...policy,
+    allowed: id => policy.allowed(id) && !SNACK_BAN.test(food(id).name.toLowerCase()),
+  };
+  eligible.snack = eligibleDishes(snackPolicy).snack;
   const ctx = {
     policy,
     appetite: Math.max(1, (prescription.kcal || 0) / APPETITE_BASE_KCAL),
     preferenceOf: id => policy.preference(id),
     usageOf: key => state.foodUses.get(key) || 0,
   };
+  const snackCtx = { ...ctx, policy: snackPolicy, preferenceOf: id => policy.preference(id) };
 
   const slots = prescription.slots;
   const mainSlots = [];
@@ -420,7 +429,15 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       const base = dessertToday
         ? Object.fromEntries(['protein', 'carbs', 'fats'].map(k => [k, Math.max(0, plan.target[k] - FIXED_DESSERT.macros[k])]))
         : plan.target;
-      const target = carryTarget(base, carry);
+      let target = carryTarget(base, carry);
+      // Късната закуска е най-много 200 kcal.
+      if (kind === 'late') {
+        const k = target.protein * 4 + target.carbs * 4 + target.fats * 9;
+        if (k > LATE_SNACK_MAX_KCAL) {
+          const f = LATE_SNACK_MAX_KCAL / k;
+          target = { protein: target.protein * f, carbs: target.carbs * f, fats: target.fats * f };
+        }
+      }
 
       // Предварителен ред: неизползвани и предпочитани напред, после се
       // сглобяват най-добрите кандидати и печели най-точният и разнообразен.
@@ -448,7 +465,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
         }
         return found;
       };
-      let best = pick(ranked.map(r => r.d), ctx);
+      let best = pick(ranked.map(r => r.d), kind === 'snack' ? snackCtx : ctx);
       if (!best && policy.withoutOnly) {
         // Избраните храни не стигат за това хранене — то се сглобява от целия каталог.
         relaxed = relaxed || (() => {
@@ -467,7 +484,8 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       }
       for (const k of ['protein', 'carbs', 'fats']) carry[k] = target[k] - best.built.totals[k];
       const meal = toPlanMeal(type, best.dish, best.built, dessertToday);
-      meal.targetCalories = round(plan.target.kcal);
+      // Целта на храненето е тази след пренесения остатък и десерта.
+      meal.targetCalories = round(target.protein * 4 + target.carbs * 4 + target.fats * 9 + (dessertToday ? FIXED_DESSERT.calories : 0));
       meals.push(meal);
     }
     state.yesterdayDishes = todayDishes;

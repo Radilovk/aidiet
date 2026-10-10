@@ -12,6 +12,10 @@ import { normalizeFoodKey } from '../food-utils.js';
 
 /** @typedef {ReturnType<typeof import('../profile-code.js').compileProfile>} Profile */
 
+/** Рядки продукти (правилото за универсалност): не влизат в плана. */
+const MIN_UNIVERSALITY = 3;
+const NICHE = /лаврак|патеш|заеш|агнеш|дивеч|амарант|темпе/i;
+
 const MONTH_SEASON = ['winter', 'winter', 'spring', 'spring', 'spring', 'summer',
   'summer', 'summer', 'autumn', 'autumn', 'autumn', 'winter'];
 
@@ -95,10 +99,10 @@ export function buildFoodPolicy(profile, options = {}) {
   function allowed(id) {
     if (allowedCache.has(id)) return allowedCache.get(id);
     const f = food(id);
-    let ok = true;
-    if (pattern === 'vegan') ok = f.vegan;
-    else if (pattern === 'vegetarian') ok = f.vegetarian;
-    else if (pattern === 'pescatarian') ok = f.vegetarian || f.kind === 'fish' || f.kind === 'shellfish';
+    let ok = f.universality >= MIN_UNIVERSALITY && !NICHE.test(f.name);
+    if (ok && pattern === 'vegan') ok = f.vegan;
+    if (ok && pattern === 'vegetarian') ok = f.vegetarian;
+    if (ok && pattern === 'pescatarian') ok = f.vegetarian || f.kind === 'fish' || f.kind === 'shellfish';
     if (ok && styleDef.ketoOnly) ok = f.group === 'FREE' || f.flags.has('keto');
     if (ok && excludeFoods.has(id)) ok = false;
     if (ok && f.kind && excludeKinds.has(f.kind)) ok = false;

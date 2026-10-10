@@ -110,7 +110,8 @@ export function macroTargetsFor(profile, kcal) {
   const maxProteinShare = style === 'high_protein' ? 0.40 : 0.35;
 
   let protein = Math.round(Math.min(refKg * perKg, energy * maxProteinShare / 4));
-  const minFat = Math.round(refKg * MIN_FAT_G_PER_KG);
+  // Минимумът мазнини е за хормонална функция — по реалното тегло, не по коригираното.
+  const minFat = Math.round((Number(profile.weightKg) || refKg) * MIN_FAT_G_PER_KG);
   let carbs;
   let fats;
 

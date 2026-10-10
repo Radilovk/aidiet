@@ -9344,9 +9344,9 @@ var FOOD_CATALOG = [
   item("dairy_ricotta", "\u0420\u0438\u043A\u043E\u0442\u0430", "\u0440\u0438\u043A\u043E\u0442\u0430", "dairy", ["PRO", "FAT"], ["main", "snack"], 3, { vegetarian: true }),
   item("dairy_milk", "\u041C\u043B\u044F\u043A\u043E", "\u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack"], 4, { vegetarian: true }),
   item("dairy_milk_2", "\u041C\u043B\u044F\u043A\u043E (2%)", "\u043C\u043B\u044F\u043A\u043E 2", "dairy", ["PRO"], ["breakfast", "snack"], 4, { vegetarian: true, genericOf: "dairy_milk" }),
-  item("dairy_plant_milk", "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["ENG"], ["breakfast", "snack"], 4, { vegan: true, vegetarian: true }),
-  item("dairy_soy_yogurt", "\u0421\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegan: true, vegetarian: true }),
-  item("dairy_soy_milk", "\u0421\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack"], 3, { vegan: true, vegetarian: true }),
+  item("dairy_plant_milk", "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u043D\u0430\u043F\u0438\u0442\u044A\u043A", "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["ENG"], ["breakfast", "snack"], 4, { vegan: true, vegetarian: true, aliases: ["\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E"] }),
+  item("dairy_soy_yogurt", "\u0421\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E", "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegan: true, vegetarian: true, aliases: ["\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E"] }),
+  item("dairy_soy_milk", "\u0421\u043E\u0435\u0432 \u043D\u0430\u043F\u0438\u0442\u044A\u043A", "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack"], 3, { vegan: true, vegetarian: true, aliases: ["\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E"] }),
   item("dairy_parmesan", "\u041F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "dairy", ["PRO", "FAT"], ["main"], 3, { vegetarian: true }),
   item("dairy_mozzarella", "\u041C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", "dairy", ["PRO", "FAT"], ["main", "snack"], 3, { vegetarian: true }),
   item("dairy_kefir", "\u041A\u0435\u0444\u0438\u0440", "\u043A\u0435\u0444\u0438\u0440", "dairy", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegetarian: true }),
@@ -9451,7 +9451,7 @@ var FOOD_CATALOG = [
   item("cond_lemon_juice", "\u041B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A", "\u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A", "condiment", ["VOL"], ["main"], 4, { vegan: true, vegetarian: true }),
   item("cond_vinegar", "\u041E\u0446\u0435\u0442", "\u043E\u0446\u0435\u0442", "condiment", ["VOL"], ["main"], 4, { vegan: true, vegetarian: true }),
   item("cond_tomato_paste", "\u0414\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435", "\u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435", "condiment", ["VOL"], ["main"], 4, { vegan: true, vegetarian: true }),
-  item("cond_coconut_milk", "\u041A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "condiment", ["FAT"], ["main"], 3, { vegan: true, vegetarian: true }),
+  item("cond_coconut_milk", "\u041A\u043E\u043A\u043E\u0441\u043E\u0432\u0430 \u0441\u043C\u0435\u0442\u0430\u043D\u0430", "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "condiment", ["FAT"], ["main"], 3, { vegan: true, vegetarian: true, aliases: ["\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E"] }),
   item("cond_cinnamon", "\u041A\u0430\u043D\u0435\u043B\u0430", "\u043A\u0430\u043D\u0435\u043B\u0430", "condiment", ["VOL"], ["breakfast"], 3, { vegan: true, vegetarian: true }),
   item("cond_turmeric", "\u041A\u0443\u0440\u043A\u0443\u043C\u0430", "\u043A\u0443\u0440\u043A\u0443\u043C\u0430", "condiment", ["VOL"], ["main"], 3, { vegan: true, vegetarian: true }),
   item("cond_ginger", "\u0414\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B", "\u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B", "condiment", ["VOL"], ["main"], 3, { vegan: true, vegetarian: true }),
@@ -26762,9 +26762,9 @@ var foods_default = {
     dairy_kefir: { group: "MLK", label: "\u043A\u0435\u0444\u0438\u0440", kind: "dairy", flags: ["lactose"], serving: 250 },
     dairy_milk: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
     dairy_milk_2: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
-    dairy_soy_yogurt: { group: "MLK", label: "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "plant", flags: ["soy"], serving: 200 },
-    dairy_soy_milk: { group: "MLK", label: "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", kind: "plant", flags: ["soy"], serving: 250 },
-    dairy_plant_milk: { group: "STA", label: "\u043E\u0432\u0435\u0441\u0435\u043D\u043E \u043C\u043B\u044F\u043A\u043E", kind: "plant", flags: ["oats"], serving: 200 },
+    dairy_soy_yogurt: { group: "MLK", label: "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E", kind: "plant", flags: ["soy"], serving: 200 },
+    dairy_soy_milk: { group: "MLK", label: "\u0441\u043E\u0435\u0432 \u043D\u0430\u043F\u0438\u0442\u044A\u043A", kind: "plant", flags: ["soy"], serving: 250 },
+    dairy_plant_milk: { group: "STA", label: "\u043E\u0432\u0435\u0441\u0435\u043D \u043D\u0430\u043F\u0438\u0442\u044A\u043A", kind: "plant", flags: ["oats"], serving: 200 },
     eng_bread_whole: { group: "STA", label: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", flags: ["gluten", "grain", "whole_grain", "low_gi"], unit: { one: "\u0444\u0438\u043B\u0438\u044F", many: "\u0444\u0438\u043B\u0438\u0438", grams: 35 } },
     eng_rye_bread: { group: "STA", label: "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431", flags: ["gluten", "grain", "whole_grain", "low_gi"], unit: { one: "\u0444\u0438\u043B\u0438\u044F", many: "\u0444\u0438\u043B\u0438\u0438", grams: 30 } },
     eng_bread: { group: "STA", label: "\u0445\u043B\u044F\u0431", flags: ["gluten", "grain", "refined", "high_gi"], unit: { one: "\u0444\u0438\u043B\u0438\u044F", many: "\u0444\u0438\u043B\u0438\u0438", grams: 30 } },
@@ -26851,7 +26851,7 @@ var foods_default = {
     fat_flax: { group: "FAT", label: "\u043B\u0435\u043D\u0435\u043D\u043E \u0441\u0435\u043C\u0435", flags: ["keto", "seed"] },
     fat_pumpkin_seeds: { group: "FAT", label: "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438", flags: ["keto", "seed"] },
     fat_sunflower_seeds: { group: "FAT", label: "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438", flags: ["keto", "seed"] },
-    cond_coconut_milk: { group: "FAT", label: "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u043E \u043C\u043B\u044F\u043A\u043E", flags: ["keto"] },
+    cond_coconut_milk: { group: "FAT", label: "\u043A\u043E\u043A\u043E\u0441\u043E\u0432\u0430 \u0441\u043C\u0435\u0442\u0430\u043D\u0430", flags: ["keto"] },
     cond_honey: { group: "SWT", label: "\u043C\u0435\u0434", flags: ["high_gi"], unit: { one: "\u0447.\u043B.", many: "\u0447.\u043B.", grams: 10 } },
     sw_dark_chocolate: { group: "SWT", label: "\u0447\u0435\u0440\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434", flags: [] },
     cond_tomato_paste: { group: "FREE", label: "\u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435", flags: ["nightshade"] },
@@ -26868,159 +26868,1107 @@ var foods_default = {
 // data/engine/diet-patterns.json
 var diet_patterns_default = {
   about: "\u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043C\u043E\u0434\u0435\u043B\u0438 \u043A\u0430\u0442\u043E \u0434\u0430\u043D\u043D\u0438: \u043A\u043E\u043B\u043A\u043E \u043F\u043E\u0440\u0446\u0438\u0438 \u043E\u0442 \u0432\u0441\u044F\u043A\u0430 \u0433\u0440\u0443\u043F\u0430 \u0434\u0430\u0432\u0430 \u043C\u043E\u0434\u0435\u043B\u044A\u0442 \u043F\u0440\u0438 \u0434\u0430\u0434\u0435\u043D\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 (\u043A\u043E\u0442\u0432\u0438), \u043A\u0430\u043A\u0432\u043E \u0434\u043E\u043F\u0443\u0441\u043A\u0430, \u043A\u043E\u043B\u043A\u043E \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u0438\u0434\u0432\u0430 \u0432\u0441\u0435\u043A\u0438 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A \u043D\u0430 \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u043A\u0430\u043A \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0435 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u044F\u0442 \u043F\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430. \u0427\u0438\u0441\u043B\u0430\u0442\u0430 \u0441\u0430 \u043E\u0442 \u043F\u0443\u0431\u043B\u0438\u043A\u0443\u0432\u0430\u043D\u0438\u0442\u0435 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438, \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438 \u0432 basis.",
-  kcalLevels: [1200, 1500, 1800, 2100, 2400, 2700, 3e3, 3300],
+  kcalLevels: [
+    1200,
+    1500,
+    1800,
+    2100,
+    2400,
+    2700,
+    3e3,
+    3300
+  ],
   styles: {
     balanced: {
       label: "\u0411\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
       basis: "\u041D\u0426\u041E\u0417\u0410 2018, \u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438 \u0437\u0430 \u0432\u044A\u0437\u0440\u0430\u0441\u0442\u043D\u0438: \u2265400 \u0433 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0434\u043D\u0435\u0432\u043D\u043E, 1 \u0447\u0430\u0448\u0430 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438 50 \u0433 \u0441\u0438\u0440\u0435\u043D\u0435, \u0440\u0438\u0431\u0430 1\u20132 \u043F\u044A\u0442\u0438 \u0438 \u0431\u043E\u0431\u043E\u0432\u0438 \u22652 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E; USDA Healthy US-Style Pattern",
-      anchors: { VEG: [3, 3.5, 4, 4.5, 5, 5, 5.5, 6], FRU: [2, 2, 2, 2.5, 3, 3, 3, 3.5], MLK: [1, 1.5, 1.5, 2, 2, 2, 2.5, 2.5] },
-      bounds: { STA: [2, 22], PRO: [4, 22], FAT: [2, 16] },
-      prefer: ["whole_grain"],
-      mains: { fish: 3, legume: 3, poultry: 4, red: 2, veggie: 2 },
-      breakfasts: { eggs: 2, dairy: 2, bread: 2, porridge: 1 },
+      anchors: {
+        VEG: [
+          3,
+          3.5,
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6
+        ],
+        FRU: [
+          2,
+          2,
+          2,
+          2.5,
+          3,
+          3,
+          3,
+          3.5
+        ],
+        MLK: [
+          1,
+          1.5,
+          1.5,
+          2,
+          2,
+          2,
+          2.5,
+          2.5
+        ]
+      },
+      bounds: {
+        STA: [
+          2,
+          22
+        ],
+        PRO: [
+          4,
+          22
+        ],
+        FAT: [
+          2,
+          16
+        ]
+      },
+      prefer: [
+        "whole_grain"
+      ],
+      mains: {
+        fish: 3,
+        legume: 3,
+        poultry: 4,
+        red: 2,
+        veggie: 2
+      },
+      breakfasts: {
+        eggs: 2,
+        dairy: 2,
+        bread: 2,
+        porridge: 1
+      },
       distribution: "standard"
     },
     mediterranean: {
       label: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
       basis: "Bach-Faig et al., Mediterranean diet pyramid today (2011): \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u22652 \u043F\u043E\u0440\u0446\u0438\u0438 \u043D\u0430 \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0440\u0438\u0431\u0430 \u22652, \u0431\u043E\u0431\u043E\u0432\u0438 \u22652, \u0431\u044F\u043B\u043E \u043C\u0435\u0441\u043E 2, \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E <2, \u044F\u0439\u0446\u0430 2\u20134 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E; \u0437\u0435\u0445\u0442\u0438\u043D \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430; \u044F\u0434\u043A\u0438 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u043E",
-      anchors: { VEG: [3.5, 4, 4.5, 5, 5.5, 6, 6, 6.5], FRU: [2, 2, 2.5, 2.5, 3, 3, 3, 3.5], MLK: [1, 1, 1.5, 1.5, 2, 2, 2, 2] },
-      bounds: { STA: [2, 22], PRO: [4, 22], FAT: [3, 16] },
-      prefer: ["whole_grain", "oily_fish"],
-      preferFoods: ["fat_oil", "fat_walnuts", "fat_almonds", "fat_olives"],
-      mains: { fish: 4, legume: 4, poultry: 3, red: 1, veggie: 2 },
-      breakfasts: { eggs: 2, dairy: 3, bread: 1, porridge: 1 },
+      anchors: {
+        VEG: [
+          3.5,
+          4,
+          4.5,
+          5,
+          5.5,
+          6,
+          6,
+          6.5
+        ],
+        FRU: [
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3,
+          3,
+          3.5
+        ],
+        MLK: [
+          1,
+          1,
+          1.5,
+          1.5,
+          2,
+          2,
+          2,
+          2
+        ]
+      },
+      bounds: {
+        STA: [
+          2,
+          22
+        ],
+        PRO: [
+          4,
+          22
+        ],
+        FAT: [
+          3,
+          16
+        ]
+      },
+      prefer: [
+        "whole_grain",
+        "oily_fish"
+      ],
+      preferFoods: [
+        "fat_oil",
+        "fat_walnuts",
+        "fat_almonds",
+        "fat_olives"
+      ],
+      mains: {
+        fish: 4,
+        legume: 4,
+        poultry: 3,
+        red: 1,
+        veggie: 2
+      },
+      breakfasts: {
+        eggs: 2,
+        dairy: 3,
+        bread: 1,
+        porridge: 1
+      },
       distribution: "standard"
     },
     dash: {
       label: "DASH \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
       basis: "NHLBI, DASH Eating Plan: 4\u20135 \u043F\u043E\u0440\u0446\u0438\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 4\u20135 \u043F\u043B\u043E\u0434\u043E\u0432\u0435, 2\u20133 \u043D\u0438\u0441\u043A\u043E\u043C\u0430\u0441\u043B\u0435\u043D\u0438 \u043C\u043B\u0435\u0447\u043D\u0438, \u044F\u0434\u043A\u0438/\u0441\u0435\u043C\u0435\u043D\u0430/\u0431\u043E\u0431\u043E\u0432\u0438 4\u20135 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E, \u0441\u043B\u0430\u0434\u043A\u043E \u22645 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E, \u043D\u0430\u0442\u0440\u0438\u0439 \u22642300 \u043C\u0433",
-      anchors: { VEG: [3.5, 4, 4.5, 5, 5, 5.5, 6, 6], FRU: [2.5, 3, 3.5, 4, 4, 4.5, 5, 5], MLK: [1.5, 2, 2, 2.5, 2.5, 3, 3, 3] },
-      bounds: { STA: [2, 22], PRO: [4, 22], FAT: [2, 12] },
-      prefer: ["whole_grain"],
-      limitFlags: { salty: 3 },
-      preferFoods: ["dairy_yogurt_0", "dairy_yogurt_2", "dairy_kefir", "dairy_skyr", "dairy_cottage_low"],
-      mains: { fish: 3, legume: 3, poultry: 5, red: 1, veggie: 2 },
-      breakfasts: { eggs: 2, dairy: 3, bread: 1, porridge: 1 },
+      anchors: {
+        VEG: [
+          3.5,
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6,
+          6
+        ],
+        FRU: [
+          2.5,
+          3,
+          3.5,
+          4,
+          4,
+          4.5,
+          5,
+          5
+        ],
+        MLK: [
+          1.5,
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3,
+          3
+        ]
+      },
+      bounds: {
+        STA: [
+          2,
+          22
+        ],
+        PRO: [
+          4,
+          22
+        ],
+        FAT: [
+          2,
+          12
+        ]
+      },
+      prefer: [
+        "whole_grain"
+      ],
+      limitFlags: {
+        salty: 3
+      },
+      preferFoods: [
+        "dairy_yogurt_0",
+        "dairy_yogurt_2",
+        "dairy_kefir",
+        "dairy_skyr",
+        "dairy_cottage_low"
+      ],
+      mains: {
+        fish: 3,
+        legume: 3,
+        poultry: 5,
+        red: 1,
+        veggie: 2
+      },
+      breakfasts: {
+        eggs: 2,
+        dairy: 3,
+        bread: 1,
+        porridge: 1
+      },
       distribution: "standard"
     },
     high_protein: {
       label: "\u0412\u0438\u0441\u043E\u043A\u043E\u043F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
       basis: "ISSN Position Stand: Protein and Exercise (2017) \u2014 1.6\u20132.2 \u0433/\u043A\u0433; \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043F\u043E 0.3\u20130.4 \u0433/\u043A\u0433 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
-      anchors: { VEG: [3, 3.5, 4, 4.5, 5, 5, 5.5, 6], FRU: [1.5, 2, 2, 2, 2.5, 2.5, 3, 3], MLK: [1, 1.5, 1.5, 2, 2, 2, 2.5, 2.5] },
-      bounds: { STA: [2, 22], PRO: [6, 26], FAT: [2, 14] },
-      prefer: ["whole_grain"],
-      preferFoods: ["dairy_skyr", "dairy_greek", "dairy_cottage_low", "pro_chicken_breast", "pro_turkey"],
-      mains: { fish: 3, legume: 1, poultry: 5, red: 3, veggie: 2 },
-      breakfasts: { eggs: 3, dairy: 2, bread: 1, porridge: 1 },
+      anchors: {
+        VEG: [
+          3,
+          3.5,
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6
+        ],
+        FRU: [
+          1.5,
+          2,
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3
+        ],
+        MLK: [
+          1,
+          1.5,
+          1.5,
+          2,
+          2,
+          2,
+          2.5,
+          2.5
+        ]
+      },
+      bounds: {
+        STA: [
+          2,
+          22
+        ],
+        PRO: [
+          6,
+          26
+        ],
+        FAT: [
+          2,
+          14
+        ]
+      },
+      prefer: [
+        "whole_grain"
+      ],
+      preferFoods: [
+        "dairy_skyr",
+        "dairy_greek",
+        "dairy_cottage_low",
+        "pro_chicken_breast",
+        "pro_turkey"
+      ],
+      mains: {
+        fish: 3,
+        legume: 1,
+        poultry: 5,
+        red: 3,
+        veggie: 2
+      },
+      breakfasts: {
+        eggs: 3,
+        dairy: 2,
+        bread: 1,
+        porridge: 1
+      },
       distribution: "protein_even"
     },
     low_carb: {
       label: "\u041D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
       basis: "ADA Standards of Care: Nutrition Therapy \u2014 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 <130 \u0433/\u0434\u0435\u043D; \u043D\u0435\u0441\u043A\u043E\u0440\u0431\u044F\u043B\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u0430, \u043D\u0438\u0441\u044A\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0438\u043D\u0434\u0435\u043A\u0441",
-      anchors: { VEG: [4, 4.5, 5, 5, 5.5, 6, 6, 6.5], FRU: [1, 1, 1, 1.5, 1.5, 1.5, 2, 2], MLK: [1, 1, 1, 1, 1, 1.5, 1.5, 1.5] },
-      bounds: { STA: [0, 5], PRO: [5, 22], FAT: [3, 18] },
-      prefer: ["low_gi", "whole_grain"],
-      excludeFlags: ["high_gi"],
+      anchors: {
+        VEG: [
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6,
+          6,
+          6.5
+        ],
+        FRU: [
+          1,
+          1,
+          1,
+          1.5,
+          1.5,
+          1.5,
+          2,
+          2
+        ],
+        MLK: [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1.5,
+          1.5,
+          1.5
+        ]
+      },
+      bounds: {
+        STA: [
+          0,
+          5
+        ],
+        PRO: [
+          5,
+          22
+        ],
+        FAT: [
+          3,
+          18
+        ]
+      },
+      prefer: [
+        "low_gi",
+        "whole_grain"
+      ],
+      excludeFlags: [
+        "high_gi"
+      ],
       fatPartScale: 1.5,
-      preferFoods: ["dairy_greek", "dairy_skyr", "dairy_kefir"],
-      mains: { fish: 4, legume: 1, poultry: 5, red: 3, veggie: 1 },
-      breakfasts: { eggs: 4, dairy: 3 },
+      preferFoods: [
+        "dairy_greek",
+        "dairy_skyr",
+        "dairy_kefir"
+      ],
+      mains: {
+        fish: 4,
+        legume: 1,
+        poultry: 5,
+        red: 3,
+        veggie: 1
+      },
+      breakfasts: {
+        eggs: 4,
+        dairy: 3
+      },
       distribution: "low_carb"
     },
     keto: {
       label: "\u041A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
       basis: "\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u226430 \u0433/\u0434\u0435\u043D \u043E\u0442 \u043D\u0435\u0441\u043A\u043E\u0440\u0431\u044F\u043B\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435; \u0431\u0435\u043B\u0442\u044A\u043A \u0443\u043C\u0435\u0440\u0435\u043D; \u043C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 \u0434\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430",
-      anchors: { VEG: [3, 3.5, 3.5, 4, 4, 4.5, 4.5, 5], FRU: [0, 0, 0, 0, 0, 0, 0, 0], MLK: [0, 0, 0, 0, 0, 0, 0, 0] },
-      bounds: { STA: [0, 0], PRO: [5, 20], FAT: [5, 30] },
+      anchors: {
+        VEG: [
+          3,
+          3.5,
+          3.5,
+          4,
+          4,
+          4.5,
+          4.5,
+          5
+        ],
+        FRU: [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        MLK: [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      bounds: {
+        STA: [
+          0,
+          0
+        ],
+        PRO: [
+          5,
+          20
+        ],
+        FAT: [
+          5,
+          30
+        ]
+      },
       ketoOnly: true,
       fatPartScale: 2.5,
-      mains: { fish: 4, legume: 0, poultry: 5, red: 3, veggie: 2 },
-      breakfasts: { eggs: 5, dairy: 2 },
+      mains: {
+        fish: 4,
+        legume: 0,
+        poultry: 5,
+        red: 3,
+        veggie: 2
+      },
+      breakfasts: {
+        eggs: 5,
+        dairy: 2
+      },
       distribution: "keto"
     },
     low_fodmap: {
       label: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u043D\u0438\u0441\u043A\u043E FODMAP",
       basis: "Monash University Low FODMAP Diet \u2014 \u0444\u0430\u0437\u0430 \u043D\u0430 \u0435\u043B\u0438\u043C\u0438\u043D\u0438\u0440\u0430\u043D\u0435",
-      anchors: { VEG: [3, 3.5, 4, 4.5, 5, 5, 5.5, 6], FRU: [1.5, 2, 2, 2, 2.5, 2.5, 3, 3], MLK: [0, 0, 0, 0, 0, 0, 0, 0] },
-      bounds: { STA: [2, 22], PRO: [4, 22], FAT: [2, 16] },
-      excludeFlags: ["high_fodmap", "gluten"],
-      mains: { fish: 4, legume: 0, poultry: 5, red: 2, veggie: 2, plant: 1 },
-      breakfasts: { eggs: 3, porridge: 2, bread: 2 },
+      anchors: {
+        VEG: [
+          3,
+          3.5,
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6
+        ],
+        FRU: [
+          1.5,
+          2,
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3
+        ],
+        MLK: [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      bounds: {
+        STA: [
+          2,
+          22
+        ],
+        PRO: [
+          4,
+          22
+        ],
+        FAT: [
+          2,
+          16
+        ]
+      },
+      excludeFlags: [
+        "high_fodmap",
+        "gluten"
+      ],
+      mains: {
+        fish: 4,
+        legume: 0,
+        poultry: 5,
+        red: 2,
+        veggie: 2,
+        plant: 1
+      },
+      breakfasts: {
+        eggs: 3,
+        porridge: 2,
+        bread: 2
+      },
       distribution: "standard"
     },
     paleo: {
       label: "\u041F\u0430\u043B\u0435\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
       basis: "\u0411\u0435\u0437 \u0437\u044A\u0440\u043D\u0435\u043D\u0438, \u0431\u043E\u0431\u043E\u0432\u0438 \u0438 \u043C\u043B\u0435\u0447\u043D\u0438; \u043C\u0435\u0441\u043E, \u0440\u0438\u0431\u0430, \u044F\u0439\u0446\u0430, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u043F\u043B\u043E\u0434\u043E\u0432\u0435, \u044F\u0434\u043A\u0438",
-      anchors: { VEG: [4, 4.5, 5, 5.5, 6, 6, 6.5, 7], FRU: [2, 2, 2.5, 2.5, 3, 3, 3.5, 3.5], MLK: [0, 0, 0, 0, 0, 0, 0, 0] },
-      bounds: { STA: [0, 8], PRO: [5, 20], FAT: [3, 16] },
-      excludeFlags: ["grain", "legume", "lactose"],
-      mains: { fish: 4, legume: 0, poultry: 5, red: 3, veggie: 2 },
-      breakfasts: { eggs: 5, porridge: 2 },
+      anchors: {
+        VEG: [
+          4,
+          4.5,
+          5,
+          5.5,
+          6,
+          6,
+          6.5,
+          7
+        ],
+        FRU: [
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3,
+          3.5,
+          3.5
+        ],
+        MLK: [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      bounds: {
+        STA: [
+          0,
+          8
+        ],
+        PRO: [
+          5,
+          20
+        ],
+        FAT: [
+          3,
+          16
+        ]
+      },
+      excludeFlags: [
+        "grain",
+        "legume",
+        "lactose"
+      ],
+      mains: {
+        fish: 4,
+        legume: 0,
+        poultry: 5,
+        red: 3,
+        veggie: 2
+      },
+      breakfasts: {
+        eggs: 5,
+        porridge: 2
+      },
       distribution: "standard"
     },
     anti_inflammatory: {
       label: "\u041F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
       basis: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B \u0441 \u0430\u043A\u0446\u0435\u043D\u0442 \u0432\u044A\u0440\u0445\u0443 \u043C\u0430\u0437\u043D\u0430 \u0440\u0438\u0431\u0430 (\u043E\u043C\u0435\u0433\u0430-3), \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438, \u0437\u0435\u0445\u0442\u0438\u043D, \u044F\u0434\u043A\u0438 \u0438 \u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435; \u0431\u0435\u0437 \u043F\u0440\u0435\u0440\u0430\u0431\u043E\u0442\u0435\u043D\u043E \u043C\u0435\u0441\u043E \u0438 \u0440\u0430\u0444\u0438\u043D\u0438\u0440\u0430\u043D\u0438 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438",
-      anchors: { VEG: [3.5, 4, 4.5, 5, 5.5, 6, 6, 6.5], FRU: [2, 2, 2.5, 2.5, 3, 3, 3, 3.5], MLK: [1, 1, 1, 1.5, 1.5, 1.5, 2, 2] },
-      bounds: { STA: [2, 22], PRO: [4, 22], FAT: [3, 16] },
-      prefer: ["whole_grain", "oily_fish", "low_gi"],
-      excludeFlags: ["refined"],
-      preferFoods: ["fat_oil", "fat_walnuts", "fruit_blueberry", "fruit_raspberry"],
-      mains: { fish: 4, legume: 4, poultry: 3, red: 1, veggie: 2 },
-      breakfasts: { eggs: 2, dairy: 3, bread: 1, porridge: 1 },
+      anchors: {
+        VEG: [
+          3.5,
+          4,
+          4.5,
+          5,
+          5.5,
+          6,
+          6,
+          6.5
+        ],
+        FRU: [
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3,
+          3,
+          3.5
+        ],
+        MLK: [
+          1,
+          1,
+          1,
+          1.5,
+          1.5,
+          1.5,
+          2,
+          2
+        ]
+      },
+      bounds: {
+        STA: [
+          2,
+          22
+        ],
+        PRO: [
+          4,
+          22
+        ],
+        FAT: [
+          3,
+          16
+        ]
+      },
+      prefer: [
+        "whole_grain",
+        "oily_fish",
+        "low_gi"
+      ],
+      excludeFlags: [
+        "refined"
+      ],
+      preferFoods: [
+        "fat_oil",
+        "fat_walnuts",
+        "fruit_blueberry",
+        "fruit_raspberry"
+      ],
+      mains: {
+        fish: 4,
+        legume: 4,
+        poultry: 3,
+        red: 1,
+        veggie: 2
+      },
+      breakfasts: {
+        eggs: 2,
+        dairy: 3,
+        bread: 1,
+        porridge: 1
+      },
       distribution: "standard"
     }
   },
   patterns: {
-    omnivore: { label: "\u0412\u0441\u0435\u044F\u0434\u043D\u043E" },
-    pescatarian: { label: "\u041F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E", dropMains: ["poultry", "red"], toMains: ["fish", "legume", "veggie"] },
-    vegetarian: { label: "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E", dropMains: ["poultry", "red", "fish"], toMains: ["legume", "veggie", "plant"] },
-    vegan: { label: "\u0412\u0435\u0433\u0430\u043D\u0441\u043A\u043E", dropMains: ["poultry", "red", "fish", "veggie"], toMains: ["legume", "plant"], dropBreakfasts: ["eggs", "dairy"], toBreakfasts: ["porridge", "bread", "plant"] }
+    omnivore: {
+      label: "\u0412\u0441\u0435\u044F\u0434\u043D\u043E"
+    },
+    pescatarian: {
+      label: "\u041F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E",
+      dropMains: [
+        "poultry",
+        "red"
+      ],
+      toMains: [
+        "fish",
+        "legume",
+        "veggie"
+      ]
+    },
+    vegetarian: {
+      label: "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E",
+      dropMains: [
+        "poultry",
+        "red",
+        "fish"
+      ],
+      toMains: [
+        "legume",
+        "veggie",
+        "plant"
+      ]
+    },
+    vegan: {
+      label: "\u0412\u0435\u0433\u0430\u043D\u0441\u043A\u043E",
+      dropMains: [
+        "poultry",
+        "red",
+        "fish",
+        "veggie"
+      ],
+      toMains: [
+        "legume",
+        "plant"
+      ],
+      dropBreakfasts: [
+        "eggs",
+        "dairy"
+      ],
+      toBreakfasts: [
+        "porridge",
+        "bread",
+        "plant"
+      ]
+    }
   },
-  veganBreakfasts: { porridge: 3, bread: 2, plant: 2 },
+  veganBreakfasts: {
+    porridge: 3,
+    bread: 2,
+    plant: 2
+  },
   distributions: {
     standard: {
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": { STA: 0.33, FRU: 0.3, MLK: 0.4, VEG: 0.12, PRO: 0.2, FAT: 0.2, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": { STA: 0.35, FRU: 0.05, MLK: 0, VEG: 0.42, PRO: 0.36, FAT: 0.3, SWT: 1 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": { STA: 0.1, FRU: 0.5, MLK: 0.25, VEG: 0.04, PRO: 0.06, FAT: 0.18, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": { STA: 0.22, FRU: 0.05, MLK: 0, VEG: 0.42, PRO: 0.32, FAT: 0.24, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": { STA: 0, FRU: 0.1, MLK: 0.35, VEG: 0, PRO: 0.06, FAT: 0.08, SWT: 0 }
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": {
+        STA: 0.33,
+        FRU: 0.3,
+        MLK: 0.4,
+        VEG: 0.12,
+        PRO: 0.2,
+        FAT: 0.2,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": {
+        STA: 0.35,
+        FRU: 0.05,
+        MLK: 0,
+        VEG: 0.42,
+        PRO: 0.36,
+        FAT: 0.3,
+        SWT: 1
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": {
+        STA: 0.1,
+        FRU: 0.5,
+        MLK: 0.25,
+        VEG: 0.04,
+        PRO: 0.06,
+        FAT: 0.18,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": {
+        STA: 0.22,
+        FRU: 0.05,
+        MLK: 0,
+        VEG: 0.42,
+        PRO: 0.32,
+        FAT: 0.24,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": {
+        STA: 0,
+        FRU: 0.1,
+        MLK: 0.35,
+        VEG: 0,
+        PRO: 0.06,
+        FAT: 0.08,
+        SWT: 0
+      }
     },
     even_carbs: {
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": { STA: 0.28, FRU: 0.25, MLK: 0.4, VEG: 0.12, PRO: 0.22, FAT: 0.2, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": { STA: 0.3, FRU: 0.1, MLK: 0, VEG: 0.42, PRO: 0.33, FAT: 0.28, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": { STA: 0.15, FRU: 0.45, MLK: 0.25, VEG: 0.04, PRO: 0.08, FAT: 0.2, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": { STA: 0.27, FRU: 0.1, MLK: 0, VEG: 0.42, PRO: 0.31, FAT: 0.24, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": { STA: 0, FRU: 0.1, MLK: 0.35, VEG: 0, PRO: 0.06, FAT: 0.08, SWT: 0 }
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": {
+        STA: 0.28,
+        FRU: 0.25,
+        MLK: 0.4,
+        VEG: 0.12,
+        PRO: 0.22,
+        FAT: 0.2,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": {
+        STA: 0.3,
+        FRU: 0.1,
+        MLK: 0,
+        VEG: 0.42,
+        PRO: 0.33,
+        FAT: 0.28,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": {
+        STA: 0.15,
+        FRU: 0.45,
+        MLK: 0.25,
+        VEG: 0.04,
+        PRO: 0.08,
+        FAT: 0.2,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": {
+        STA: 0.27,
+        FRU: 0.1,
+        MLK: 0,
+        VEG: 0.42,
+        PRO: 0.31,
+        FAT: 0.24,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": {
+        STA: 0,
+        FRU: 0.1,
+        MLK: 0.35,
+        VEG: 0,
+        PRO: 0.06,
+        FAT: 0.08,
+        SWT: 0
+      }
     },
     protein_even: {
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": { STA: 0.33, FRU: 0.3, MLK: 0.4, VEG: 0.12, PRO: 0.25, FAT: 0.2, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": { STA: 0.35, FRU: 0.05, MLK: 0, VEG: 0.42, PRO: 0.3, FAT: 0.3, SWT: 1 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": { STA: 0.1, FRU: 0.5, MLK: 0.25, VEG: 0.04, PRO: 0.1, FAT: 0.18, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": { STA: 0.22, FRU: 0.05, MLK: 0, VEG: 0.42, PRO: 0.28, FAT: 0.24, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": { STA: 0, FRU: 0.1, MLK: 0.35, VEG: 0, PRO: 0.07, FAT: 0.08, SWT: 0 }
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": {
+        STA: 0.33,
+        FRU: 0.3,
+        MLK: 0.4,
+        VEG: 0.12,
+        PRO: 0.25,
+        FAT: 0.2,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": {
+        STA: 0.35,
+        FRU: 0.05,
+        MLK: 0,
+        VEG: 0.42,
+        PRO: 0.3,
+        FAT: 0.3,
+        SWT: 1
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": {
+        STA: 0.1,
+        FRU: 0.5,
+        MLK: 0.25,
+        VEG: 0.04,
+        PRO: 0.1,
+        FAT: 0.18,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": {
+        STA: 0.22,
+        FRU: 0.05,
+        MLK: 0,
+        VEG: 0.42,
+        PRO: 0.28,
+        FAT: 0.24,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": {
+        STA: 0,
+        FRU: 0.1,
+        MLK: 0.35,
+        VEG: 0,
+        PRO: 0.07,
+        FAT: 0.08,
+        SWT: 0
+      }
     },
     low_carb: {
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": { STA: 0.4, FRU: 0.4, MLK: 0.5, VEG: 0.15, PRO: 0.22, FAT: 0.2, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": { STA: 0.35, FRU: 0, MLK: 0, VEG: 0.4, PRO: 0.34, FAT: 0.28, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": { STA: 0, FRU: 0.6, MLK: 0.25, VEG: 0.05, PRO: 0.06, FAT: 0.18, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": { STA: 0.25, FRU: 0, MLK: 0, VEG: 0.4, PRO: 0.32, FAT: 0.26, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": { STA: 0, FRU: 0, MLK: 0.25, VEG: 0, PRO: 0.06, FAT: 0.08, SWT: 0 }
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": {
+        STA: 0.4,
+        FRU: 0.4,
+        MLK: 0.5,
+        VEG: 0.15,
+        PRO: 0.22,
+        FAT: 0.2,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": {
+        STA: 0.35,
+        FRU: 0,
+        MLK: 0,
+        VEG: 0.4,
+        PRO: 0.34,
+        FAT: 0.28,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": {
+        STA: 0,
+        FRU: 0.6,
+        MLK: 0.25,
+        VEG: 0.05,
+        PRO: 0.06,
+        FAT: 0.18,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": {
+        STA: 0.25,
+        FRU: 0,
+        MLK: 0,
+        VEG: 0.4,
+        PRO: 0.32,
+        FAT: 0.26,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": {
+        STA: 0,
+        FRU: 0,
+        MLK: 0.25,
+        VEG: 0,
+        PRO: 0.06,
+        FAT: 0.08,
+        SWT: 0
+      }
     },
     keto: {
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": { STA: 0, FRU: 0, MLK: 0, VEG: 0.15, PRO: 0.24, FAT: 0.22, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": { STA: 0, FRU: 0, MLK: 0, VEG: 0.4, PRO: 0.32, FAT: 0.28, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": { STA: 0, FRU: 0, MLK: 0, VEG: 0.05, PRO: 0.06, FAT: 0.18, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": { STA: 0, FRU: 0, MLK: 0, VEG: 0.4, PRO: 0.32, FAT: 0.24, SWT: 0 },
-      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": { STA: 0, FRU: 0, MLK: 0, VEG: 0, PRO: 0.06, FAT: 0.08, SWT: 0 }
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": {
+        STA: 0,
+        FRU: 0,
+        MLK: 0,
+        VEG: 0.15,
+        PRO: 0.24,
+        FAT: 0.22,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": {
+        STA: 0,
+        FRU: 0,
+        MLK: 0,
+        VEG: 0.4,
+        PRO: 0.32,
+        FAT: 0.28,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": {
+        STA: 0,
+        FRU: 0,
+        MLK: 0,
+        VEG: 0.05,
+        PRO: 0.06,
+        FAT: 0.18,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": {
+        STA: 0,
+        FRU: 0,
+        MLK: 0,
+        VEG: 0.4,
+        PRO: 0.32,
+        FAT: 0.24,
+        SWT: 0
+      },
+      "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": {
+        STA: 0,
+        FRU: 0,
+        MLK: 0,
+        VEG: 0,
+        PRO: 0.06,
+        FAT: 0.08,
+        SWT: 0
+      }
     }
   },
   mealBounds: {
-    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": { STA: [0, 4], FRU: [0, 1.5], MLK: [0, 1.5], VEG: [0, 1.5], PRO: [0, 5], FAT: [0, 4], SWT: [0, 0] },
-    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": { STA: [0, 5], FRU: [0, 1], MLK: [0, 1], VEG: [1, 4], PRO: [2, 8], FAT: [0.5, 5], SWT: [0, 1] },
-    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": { STA: [0, 2], FRU: [0, 2], MLK: [0, 1.5], VEG: [0, 1.5], PRO: [0, 3], FAT: [0, 4], SWT: [0, 0] },
-    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": { STA: [0, 4], FRU: [0, 1], MLK: [0, 1], VEG: [1, 4], PRO: [2, 8], FAT: [0.5, 5], SWT: [0, 0] },
-    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": { STA: [0, 0], FRU: [0, 1], MLK: [0, 1.5], VEG: [0, 1], PRO: [0, 2], FAT: [0, 2], SWT: [0, 0] }
+    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": {
+      STA: [
+        0,
+        4
+      ],
+      FRU: [
+        0,
+        1.5
+      ],
+      MLK: [
+        0,
+        1.5
+      ],
+      VEG: [
+        0,
+        1.5
+      ],
+      PRO: [
+        0,
+        5
+      ],
+      FAT: [
+        0,
+        4
+      ],
+      SWT: [
+        0,
+        0
+      ]
+    },
+    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": {
+      STA: [
+        0,
+        5
+      ],
+      FRU: [
+        0,
+        1
+      ],
+      MLK: [
+        0,
+        1
+      ],
+      VEG: [
+        1,
+        4
+      ],
+      PRO: [
+        2,
+        8
+      ],
+      FAT: [
+        0.5,
+        5
+      ],
+      SWT: [
+        0,
+        1
+      ]
+    },
+    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": {
+      STA: [
+        0,
+        1
+      ],
+      FRU: [
+        0,
+        3
+      ],
+      MLK: [
+        0,
+        2
+      ],
+      VEG: [
+        0,
+        1.5
+      ],
+      PRO: [
+        0,
+        3
+      ],
+      FAT: [
+        0,
+        4
+      ],
+      SWT: [
+        0,
+        0
+      ]
+    },
+    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": {
+      STA: [
+        0,
+        4
+      ],
+      FRU: [
+        0,
+        1
+      ],
+      MLK: [
+        0,
+        1
+      ],
+      VEG: [
+        1,
+        4
+      ],
+      PRO: [
+        2,
+        8
+      ],
+      FAT: [
+        0.5,
+        5
+      ],
+      SWT: [
+        0,
+        0
+      ]
+    },
+    "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": {
+      STA: [
+        0,
+        0
+      ],
+      FRU: [
+        0,
+        1
+      ],
+      MLK: [
+        0,
+        1.5
+      ],
+      VEG: [
+        0,
+        1
+      ],
+      PRO: [
+        0,
+        2
+      ],
+      FAT: [
+        0,
+        2
+      ],
+      SWT: [
+        0,
+        0
+      ]
+    }
   }
 };
 
@@ -27364,18 +28312,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -27467,18 +28403,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -27562,18 +28486,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -27645,18 +28557,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -27741,18 +28641,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -27841,18 +28729,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -27938,18 +28814,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -28049,18 +28913,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -28148,18 +29000,6 @@ var dishes_default = {
           with: true
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -28233,18 +29073,6 @@ var dishes_default = {
           range: [
             0,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -28324,22 +29152,12 @@ var dishes_default = {
         {
           group: "FAT",
           options: [
-            "cond_coconut_milk"
+            [
+              "fat_oil"
+            ]
           ],
           range: [
             1,
-            3
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
             3
           ]
         },
@@ -28434,18 +29252,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -28526,18 +29332,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -28628,18 +29422,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -28741,18 +29523,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -28830,18 +29600,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -28929,18 +29687,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -29016,18 +29762,6 @@ var dishes_default = {
           range: [
             0,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -29113,18 +29847,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -29206,18 +29928,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -29311,18 +30021,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -29379,18 +30077,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -29478,18 +30164,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -29571,18 +30245,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -29659,18 +30321,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -29755,18 +30405,6 @@ var dishes_default = {
             2
           ],
           with: true
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
         },
         {
           group: "FAT",
@@ -29869,18 +30507,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -29975,18 +30601,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -30066,18 +30680,6 @@ var dishes_default = {
           range: [
             0.5,
             2
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -30164,18 +30766,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -30282,18 +30872,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -30370,18 +30948,6 @@ var dishes_default = {
           range: [
             0.5,
             2
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -30467,18 +31033,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -30552,18 +31106,6 @@ var dishes_default = {
           range: [
             0.5,
             2
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -30655,18 +31197,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -30718,18 +31248,6 @@ var dishes_default = {
           range: [
             0.5,
             2
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -30798,18 +31316,6 @@ var dishes_default = {
           range: [
             0.5,
             2
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -30897,18 +31403,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -30986,18 +31480,6 @@ var dishes_default = {
           range: [
             0.5,
             2
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -31096,18 +31578,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -31186,18 +31656,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -31260,18 +31718,6 @@ var dishes_default = {
           range: [
             0.5,
             2
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -31350,18 +31796,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -31449,18 +31883,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -31555,18 +31977,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -31639,18 +32049,6 @@ var dishes_default = {
           range: [
             0.5,
             1
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -31734,18 +32132,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -31814,18 +32200,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -31902,18 +32276,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -31980,18 +32342,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -32092,18 +32442,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -32168,18 +32506,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -32277,18 +32603,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -32366,18 +32680,6 @@ var dishes_default = {
           range: [
             0.5,
             1.5
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -32459,18 +32761,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -32544,18 +32834,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -32623,18 +32901,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -32721,18 +32987,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -32813,22 +33067,12 @@ var dishes_default = {
         {
           group: "FAT",
           options: [
-            "cond_coconut_milk"
+            [
+              "fat_oil"
+            ]
           ],
           range: [
             1,
-            3
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
             3
           ]
         },
@@ -32930,18 +33174,6 @@ var dishes_default = {
           ]
         },
         {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
-          ]
-        },
-        {
           group: "FAT",
           options: [
             "fat_avocado",
@@ -33018,18 +33250,6 @@ var dishes_default = {
           range: [
             0.5,
             2
-          ]
-        },
-        {
-          group: "STA",
-          options: [
-            "eng_bread_whole",
-            "eng_rye_bread",
-            "eng_bread"
-          ],
-          range: [
-            0,
-            3
           ]
         },
         {
@@ -33762,7 +33982,7 @@ var dishes_default = {
         "breakfast"
       ],
       category: "porridge",
-      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u043D\u0430\u043F\u0438\u0442\u044A\u043A",
       parts: [
         {
           group: "STA",
@@ -33911,7 +34131,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1.5
+            2
           ]
         },
         {
@@ -33932,7 +34152,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1
+            3
           ]
         }
       ],
@@ -34315,7 +34535,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1
+            3
           ]
         }
       ],
@@ -34484,7 +34704,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1.5
+            3
           ]
         },
         {
@@ -34524,7 +34744,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1.5
+            2
           ]
         },
         {
@@ -34554,7 +34774,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1
+            3
           ]
         },
         {
@@ -34612,7 +34832,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1
+            3
           ]
         },
         {
@@ -34741,7 +34961,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1.5
+            2
           ]
         }
       ],
@@ -34775,7 +34995,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            1
+            2
           ]
         },
         {
@@ -34790,7 +35010,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            1
+            3
           ],
           with: true
         }
@@ -34848,8 +35068,8 @@ var dishes_default = {
             "fat_nuts"
           ],
           range: [
-            1,
-            3
+            2,
+            5
           ]
         }
       ],
@@ -34911,7 +35131,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1
+            3
           ]
         },
         {
@@ -35033,7 +35253,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            1.5
+            2
           ]
         },
         {
@@ -35086,7 +35306,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1.5
+            2
           ]
         },
         {
@@ -35284,7 +35504,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            2
+            3
           ]
         }
       ],
@@ -35385,7 +35605,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1.5
+            2
           ]
         },
         {
@@ -35744,6 +35964,8 @@ for (const [id, def] of Object.entries(foodsDoc.foods)) {
     kind: def.kind || null,
     flags: new Set(def.flags || []),
     unit: def.unit || null,
+    catalogGroup: entry.group,
+    universality: entry.universality ?? 4,
     vegan: !!entry.vegan,
     vegetarian: !!(entry.vegetarian || entry.vegan),
     per100,
@@ -36025,7 +36247,7 @@ function macroTargetsFor(profile, kcal) {
   const style = profile.diet?.style || "balanced";
   const maxProteinShare = style === "high_protein" ? 0.4 : 0.35;
   let protein = Math.round(Math.min(refKg * perKg, energy * maxProteinShare / 4));
-  const minFat = Math.round(refKg * MIN_FAT_G_PER_KG);
+  const minFat = Math.round((Number(profile.weightKg) || refKg) * MIN_FAT_G_PER_KG);
   let carbs;
   let fats;
   if (style === "keto" || style === "low_carb") {
@@ -36934,6 +37156,8 @@ function buildPlanSummary({
 }
 
 // nutrition-engine/policy.js
+var MIN_UNIVERSALITY = 3;
+var NICHE = /лаврак|патеш|заеш|агнеш|дивеч|амарант|темпе/i;
 var MONTH_SEASON = [
   "winter",
   "winter",
@@ -37008,10 +37232,10 @@ function buildFoodPolicy(profile, options = {}) {
   function allowed(id) {
     if (allowedCache.has(id)) return allowedCache.get(id);
     const f = food(id);
-    let ok = true;
-    if (pattern === "vegan") ok = f.vegan;
-    else if (pattern === "vegetarian") ok = f.vegetarian;
-    else if (pattern === "pescatarian") ok = f.vegetarian || f.kind === "fish" || f.kind === "shellfish";
+    let ok = f.universality >= MIN_UNIVERSALITY && !NICHE.test(f.name);
+    if (ok && pattern === "vegan") ok = f.vegan;
+    if (ok && pattern === "vegetarian") ok = f.vegetarian;
+    if (ok && pattern === "pescatarian") ok = f.vegetarian || f.kind === "fish" || f.kind === "shellfish";
     if (ok && styleDef.ketoOnly) ok = f.group === "FREE" || f.flags.has("keto");
     if (ok && excludeFoods.has(id)) ok = false;
     if (ok && f.kind && excludeKinds.has(f.kind)) ok = false;
@@ -37329,10 +37553,10 @@ function setPartGrams(part, total) {
 function partTotal(part) {
   return part.grams.reduce((a, b) => a + b, 0);
 }
-function foodCap(id, fatScale) {
+function foodCap(id, fatScale, appetite = 1) {
   const f = food(id);
   if (isCookingFat(f.name, f.nutritionKey)) return COOKING_FAT_COOK_MAX_G;
-  return maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP2[f.group] });
+  return Math.round(maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP2[f.group] }) * Math.min(1.4, appetite) / 10) * 10;
 }
 var CATALOG_GROUP2 = {
   STA: "carb",
@@ -37345,9 +37569,9 @@ var CATALOG_GROUP2 = {
   SWT: "condiment",
   FREE: "condiment"
 };
-function makePart(group, foods, range, extra = {}, fatScale = 1) {
+function makePart(group, foods, range, extra = {}, fatScale = 1, appetite = 1) {
   const serving = servingOf(foods);
-  const cap = foods.reduce((a, id) => a + foodCap(id, fatScale), 0);
+  const cap = foods.reduce((a, id) => a + foodCap(id, fatScale, appetite), 0);
   return {
     group,
     foods,
@@ -37463,6 +37687,7 @@ function dishName2(dish, parts) {
 }
 function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   const parts = [];
+  let carbId = null;
   for (let i = 0; i < dish.parts.length; i++) {
     const spec = dish.parts[i];
     if (spec.onlyStyles && !spec.onlyStyles.includes(ctx.policy.style)) continue;
@@ -37473,12 +37698,20 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
       return null;
     }
     if (optional && !(quota[spec.group] > 0) && spec.group !== "LEG") continue;
+    const carb = option.find((id) => food(id).catalogGroup === "carb");
+    if (carb) {
+      if (carbId && carbId !== carb) {
+        if (optional) continue;
+        return null;
+      }
+      carbId = carb;
+    }
     const fatScale = spec.group === "FAT" ? ctx.policy.styleDef.fatPartScale || 1 : 1;
     const sizeScale = APPETITE_GROUPS.has(spec.group) ? ctx.appetite || 1 : fatScale;
     parts.push(makePart(spec.group, option, [spec.range[0], spec.range[1] * sizeScale], {
       with: spec.with,
       weight: parts.some((p) => p.group === spec.group) ? 0.5 : 1
-    }, fatScale));
+    }, fatScale, APPETITE_GROUPS.has(spec.group) ? ctx.appetite || 1 : 1));
   }
   const fixedAll = dish.fixed.filter(([id]) => ctx.policy.allowed(id));
   const flavour = fixedAll.filter(([id]) => food(id).group === "FREE").map(([id]) => food(id).label);
@@ -37487,6 +37720,7 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   const carbsCap = ctx.policy.style === "keto" || ctx.policy.style === "low_carb";
   const error = refine(parts, fixed, target, carbsCap);
   const kept = parts.filter((p) => partTotal(p) > 0);
+  if (mealKind === "main" && !kept.some((p) => p.group === "VEG") && !fixed.some(([id]) => food(id).group === "VEG")) return null;
   return {
     parts: kept,
     fixed,
@@ -37560,6 +37794,8 @@ var MEAL_KIND = {
 var CANDIDATES_PER_MEAL = 12;
 var FIT_WEIGHTS = { PRO: 2, STA: 1.2, FRU: 0.8, MLK: 0.8, VEG: 0.4, FAT: 0.6 };
 var CARRY_LIMIT = 0.4;
+var LATE_SNACK_MAX_KCAL = 175;
+var SNACK_BAN = /пилеш|говежд|свинск|риба|сьомга|скумри|пъстърва|хек|треска|тилапи|ориз|паста|хляб|галети|бял|захар|мед\b|сироп|шоколад|кус-кус|булгур/;
 var MAX_USES_PER_WEEK = { main: 2, breakfast: 3, snack: 3, late: 3 };
 var APPETITE_BASE_KCAL = 1800;
 function hashSeed(value) {
@@ -37818,12 +38054,18 @@ function carryTarget(target, carry) {
 function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false }) {
   const rng = rngFrom(seed);
   const eligible = eligibleDishes(policy);
+  const snackPolicy = {
+    ...policy,
+    allowed: (id) => policy.allowed(id) && !SNACK_BAN.test(food(id).name.toLowerCase())
+  };
+  eligible.snack = eligibleDishes(snackPolicy).snack;
   const ctx = {
     policy,
     appetite: Math.max(1, (prescription.kcal || 0) / APPETITE_BASE_KCAL),
     preferenceOf: (id) => policy.preference(id),
     usageOf: (key) => state.foodUses.get(key) || 0
   };
+  const snackCtx = { ...ctx, policy: snackPolicy, preferenceOf: (id) => policy.preference(id) };
   const slots = prescription.slots;
   const mainSlots = [];
   for (let day = 1; day <= 7; day++) {
@@ -37884,7 +38126,14 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       if (!pool.length) pool = (eligible[kind] || []).filter((d) => !todayDishes.has(d.id));
       const dessertToday = policy.sweets && type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2";
       const base = dessertToday ? Object.fromEntries(["protein", "carbs", "fats"].map((k) => [k, Math.max(0, plan.target[k] - FIXED_DESSERT.macros[k])])) : plan.target;
-      const target = carryTarget(base, carry);
+      let target = carryTarget(base, carry);
+      if (kind === "late") {
+        const k = target.protein * 4 + target.carbs * 4 + target.fats * 9;
+        if (k > LATE_SNACK_MAX_KCAL) {
+          const f = LATE_SNACK_MAX_KCAL / k;
+          target = { protein: target.protein * f, carbs: target.carbs * f, fats: target.fats * f };
+        }
+      }
       const ranked = pool.map((d) => ({
         d,
         pre: -dishFit(d, plan.quota, policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 - (state.yesterdayDishes.has(d.id) ? 2 : 0) + rng() * 1.5
@@ -37901,7 +38150,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         }
         return found;
       };
-      let best = pick(ranked.map((r) => r.d), ctx);
+      let best = pick(ranked.map((r) => r.d), kind === "snack" ? snackCtx : ctx);
       if (!best && policy.withoutOnly) {
         relaxed = relaxed || (() => {
           const p = policy.withoutOnly();
@@ -37918,7 +38167,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       }
       for (const k of ["protein", "carbs", "fats"]) carry[k] = target[k] - best.built.totals[k];
       const meal = toPlanMeal(type, best.dish, best.built, dessertToday);
-      meal.targetCalories = round(plan.target.kcal);
+      meal.targetCalories = round(target.protein * 4 + target.carbs * 4 + target.fats * 9 + (dessertToday ? FIXED_DESSERT.calories : 0));
       meals.push(meal);
     }
     state.yesterdayDishes = todayDishes;
@@ -44109,7 +44358,7 @@ function validatePlan(plan, userData, substitutions = []) {
   }
   if (plan.analysis && plan.analysis.macroGrams && userData.weight) {
     const fatGrams = parseInt(plan.analysis.macroGrams.fats) || 0;
-    const weight = referenceWeightKg(compileProfile(userData)) || parseFloat(userData.weight) || 70;
+    const weight = parseFloat(userData.weight) || 70;
     const minFatGrams = Math.round(weight * MIN_FAT_GRAMS_PER_KG2);
     if (fatGrams > 0 && fatGrams < minFatGrams) {
       const error = `\u041C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 (${fatGrams}\u0433) \u0441\u0430 \u043F\u043E\u0434 \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u043D\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430 \u043E\u0442 ${minFatGrams}\u0433 (${MIN_FAT_GRAMS_PER_KG2}\u0433/\u043A\u0433) \u0437\u0430 \u0445\u043E\u0440\u043C\u043E\u043D\u0430\u043B\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F`;

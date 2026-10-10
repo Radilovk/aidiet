@@ -22,6 +22,8 @@ import { FOOD_NUTRITION_PER_100G } from '../food-nutrition-data.js';
  * @property {string} nutritionKey
  * @property {string} label       името в названието на ястието
  * @property {ExchangeGroup} group
+ * @property {string} catalogGroup   групата в каталога (carb, vegetable…)
+ * @property {number} universality   1–5; под 3 е рядък продукт, който планът не използва
  * @property {string|null} kind
  * @property {Set<string>} flags
  * @property {{ one: string, many: string, grams: number }|null} unit
@@ -84,6 +86,8 @@ for (const [id, def] of Object.entries(foodsDoc.foods)) {
     kind: def.kind || null,
     flags: new Set(def.flags || []),
     unit: def.unit || null,
+    catalogGroup: entry.group,
+    universality: entry.universality ?? 4,
     vegan: !!entry.vegan,
     vegetarian: !!(entry.vegetarian || entry.vegan),
     per100,

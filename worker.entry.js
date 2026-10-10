@@ -67,7 +67,6 @@ import {
 } from './nutrition-engine/index.js';
 import { buildEngineStrategy } from './nutrition-engine/strategy.js';
 import { compileProfile } from './profile-code.js';
-import { referenceWeightKg } from './macro-targets.js';
 import {
   WEEKLY_CHECKIN_QUESTIONS,
   readCheckin,
@@ -7306,9 +7305,7 @@ function validatePlan(plan, userData, substitutions = []) {
   // 7b. Minimum fat grams (hormonal function requires ≥0.7g/kg)
   if (plan.analysis && plan.analysis.macroGrams && userData.weight) {
     const fatGrams = parseInt(plan.analysis.macroGrams.fats) || 0;
-    // Коригирано тегло при наднормено — както в macro-targets.js: 0.7 г/кг
-    // върху 130 кг реално тегло е мазнина за 180 кг суха маса.
-    const weight = referenceWeightKg(compileProfile(userData)) || parseFloat(userData.weight) || 70;
+    const weight = parseFloat(userData.weight) || 70;
     const minFatGrams = Math.round(weight * MIN_FAT_GRAMS_PER_KG);
     if (fatGrams > 0 && fatGrams < minFatGrams) {
       const error = `Мазнините (${fatGrams}г) са под минималната нужда от ${minFatGrams}г (${MIN_FAT_GRAMS_PER_KG}г/кг) за хормонална функция`;

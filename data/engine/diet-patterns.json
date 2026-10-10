@@ -1,157 +1,1105 @@
 {
   "about": "Хранителни модели като данни: колко порции от всяка група дава моделът при дадени калории (котви), какво допуска, колко пъти седмично идва всеки източник на белтък и как порциите се разпределят по храненията. Числата са от публикуваните препоръки, посочени в basis.",
-  "kcalLevels": [1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300],
+  "kcalLevels": [
+    1200,
+    1500,
+    1800,
+    2100,
+    2400,
+    2700,
+    3000,
+    3300
+  ],
   "styles": {
     "balanced": {
       "label": "Балансирано хранене",
       "basis": "НЦОЗА 2018, Хранителни препоръки за възрастни: ≥400 г зеленчуци и плодове дневно, 1 чаша кисело мляко и 50 г сирене, риба 1–2 пъти и бобови ≥2 пъти седмично; USDA Healthy US-Style Pattern",
-      "anchors": { "VEG": [3, 3.5, 4, 4.5, 5, 5, 5.5, 6], "FRU": [2, 2, 2, 2.5, 3, 3, 3, 3.5], "MLK": [1, 1.5, 1.5, 2, 2, 2, 2.5, 2.5] },
-      "bounds": { "STA": [2, 22], "PRO": [4, 22], "FAT": [2, 16] },
-      "prefer": ["whole_grain"],
-      "mains": { "fish": 3, "legume": 3, "poultry": 4, "red": 2, "veggie": 2 },
-      "breakfasts": { "eggs": 2, "dairy": 2, "bread": 2, "porridge": 1 },
+      "anchors": {
+        "VEG": [
+          3,
+          3.5,
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6
+        ],
+        "FRU": [
+          2,
+          2,
+          2,
+          2.5,
+          3,
+          3,
+          3,
+          3.5
+        ],
+        "MLK": [
+          1,
+          1.5,
+          1.5,
+          2,
+          2,
+          2,
+          2.5,
+          2.5
+        ]
+      },
+      "bounds": {
+        "STA": [
+          2,
+          22
+        ],
+        "PRO": [
+          4,
+          22
+        ],
+        "FAT": [
+          2,
+          16
+        ]
+      },
+      "prefer": [
+        "whole_grain"
+      ],
+      "mains": {
+        "fish": 3,
+        "legume": 3,
+        "poultry": 4,
+        "red": 2,
+        "veggie": 2
+      },
+      "breakfasts": {
+        "eggs": 2,
+        "dairy": 2,
+        "bread": 2,
+        "porridge": 1
+      },
       "distribution": "standard"
     },
     "mediterranean": {
       "label": "Средиземноморско хранене",
       "basis": "Bach-Faig et al., Mediterranean diet pyramid today (2011): зеленчуци ≥2 порции на основно хранене, риба ≥2, бобови ≥2, бяло месо 2, червено месо <2, яйца 2–4 пъти седмично; зехтин като основна мазнина; ядки ежедневно",
-      "anchors": { "VEG": [3.5, 4, 4.5, 5, 5.5, 6, 6, 6.5], "FRU": [2, 2, 2.5, 2.5, 3, 3, 3, 3.5], "MLK": [1, 1, 1.5, 1.5, 2, 2, 2, 2] },
-      "bounds": { "STA": [2, 22], "PRO": [4, 22], "FAT": [3, 16] },
-      "prefer": ["whole_grain", "oily_fish"],
-      "preferFoods": ["fat_oil", "fat_walnuts", "fat_almonds", "fat_olives"],
-      "mains": { "fish": 4, "legume": 4, "poultry": 3, "red": 1, "veggie": 2 },
-      "breakfasts": { "eggs": 2, "dairy": 3, "bread": 1, "porridge": 1 },
+      "anchors": {
+        "VEG": [
+          3.5,
+          4,
+          4.5,
+          5,
+          5.5,
+          6,
+          6,
+          6.5
+        ],
+        "FRU": [
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3,
+          3,
+          3.5
+        ],
+        "MLK": [
+          1,
+          1,
+          1.5,
+          1.5,
+          2,
+          2,
+          2,
+          2
+        ]
+      },
+      "bounds": {
+        "STA": [
+          2,
+          22
+        ],
+        "PRO": [
+          4,
+          22
+        ],
+        "FAT": [
+          3,
+          16
+        ]
+      },
+      "prefer": [
+        "whole_grain",
+        "oily_fish"
+      ],
+      "preferFoods": [
+        "fat_oil",
+        "fat_walnuts",
+        "fat_almonds",
+        "fat_olives"
+      ],
+      "mains": {
+        "fish": 4,
+        "legume": 4,
+        "poultry": 3,
+        "red": 1,
+        "veggie": 2
+      },
+      "breakfasts": {
+        "eggs": 2,
+        "dairy": 3,
+        "bread": 1,
+        "porridge": 1
+      },
       "distribution": "standard"
     },
     "dash": {
       "label": "DASH хранене",
       "basis": "NHLBI, DASH Eating Plan: 4–5 порции зеленчуци и 4–5 плодове, 2–3 нискомаслени млечни, ядки/семена/бобови 4–5 пъти седмично, сладко ≤5 пъти седмично, натрий ≤2300 мг",
-      "anchors": { "VEG": [3.5, 4, 4.5, 5, 5, 5.5, 6, 6], "FRU": [2.5, 3, 3.5, 4, 4, 4.5, 5, 5], "MLK": [1.5, 2, 2, 2.5, 2.5, 3, 3, 3] },
-      "bounds": { "STA": [2, 22], "PRO": [4, 22], "FAT": [2, 12] },
-      "prefer": ["whole_grain"],
-      "limitFlags": { "salty": 3 },
-      "preferFoods": ["dairy_yogurt_0", "dairy_yogurt_2", "dairy_kefir", "dairy_skyr", "dairy_cottage_low"],
-      "mains": { "fish": 3, "legume": 3, "poultry": 5, "red": 1, "veggie": 2 },
-      "breakfasts": { "eggs": 2, "dairy": 3, "bread": 1, "porridge": 1 },
+      "anchors": {
+        "VEG": [
+          3.5,
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6,
+          6
+        ],
+        "FRU": [
+          2.5,
+          3,
+          3.5,
+          4,
+          4,
+          4.5,
+          5,
+          5
+        ],
+        "MLK": [
+          1.5,
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3,
+          3
+        ]
+      },
+      "bounds": {
+        "STA": [
+          2,
+          22
+        ],
+        "PRO": [
+          4,
+          22
+        ],
+        "FAT": [
+          2,
+          12
+        ]
+      },
+      "prefer": [
+        "whole_grain"
+      ],
+      "limitFlags": {
+        "salty": 3
+      },
+      "preferFoods": [
+        "dairy_yogurt_0",
+        "dairy_yogurt_2",
+        "dairy_kefir",
+        "dairy_skyr",
+        "dairy_cottage_low"
+      ],
+      "mains": {
+        "fish": 3,
+        "legume": 3,
+        "poultry": 5,
+        "red": 1,
+        "veggie": 2
+      },
+      "breakfasts": {
+        "eggs": 2,
+        "dairy": 3,
+        "bread": 1,
+        "porridge": 1
+      },
       "distribution": "standard"
     },
     "high_protein": {
       "label": "Високопротеиново хранене",
       "basis": "ISSN Position Stand: Protein and Exercise (2017) — 1.6–2.2 г/кг; разпределение по 0.3–0.4 г/кг на хранене",
-      "anchors": { "VEG": [3, 3.5, 4, 4.5, 5, 5, 5.5, 6], "FRU": [1.5, 2, 2, 2, 2.5, 2.5, 3, 3], "MLK": [1, 1.5, 1.5, 2, 2, 2, 2.5, 2.5] },
-      "bounds": { "STA": [2, 22], "PRO": [6, 26], "FAT": [2, 14] },
-      "prefer": ["whole_grain"],
-      "preferFoods": ["dairy_skyr", "dairy_greek", "dairy_cottage_low", "pro_chicken_breast", "pro_turkey"],
-      "mains": { "fish": 3, "legume": 1, "poultry": 5, "red": 3, "veggie": 2 },
-      "breakfasts": { "eggs": 3, "dairy": 2, "bread": 1, "porridge": 1 },
+      "anchors": {
+        "VEG": [
+          3,
+          3.5,
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6
+        ],
+        "FRU": [
+          1.5,
+          2,
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3
+        ],
+        "MLK": [
+          1,
+          1.5,
+          1.5,
+          2,
+          2,
+          2,
+          2.5,
+          2.5
+        ]
+      },
+      "bounds": {
+        "STA": [
+          2,
+          22
+        ],
+        "PRO": [
+          6,
+          26
+        ],
+        "FAT": [
+          2,
+          14
+        ]
+      },
+      "prefer": [
+        "whole_grain"
+      ],
+      "preferFoods": [
+        "dairy_skyr",
+        "dairy_greek",
+        "dairy_cottage_low",
+        "pro_chicken_breast",
+        "pro_turkey"
+      ],
+      "mains": {
+        "fish": 3,
+        "legume": 1,
+        "poultry": 5,
+        "red": 3,
+        "veggie": 2
+      },
+      "breakfasts": {
+        "eggs": 3,
+        "dairy": 2,
+        "bread": 1,
+        "porridge": 1
+      },
       "distribution": "protein_even"
     },
     "low_carb": {
       "label": "Нисковъглехидратно хранене",
       "basis": "ADA Standards of Care: Nutrition Therapy — въглехидрати <130 г/ден; нескорбялни зеленчуци като основа, нисък гликемичен индекс",
-      "anchors": { "VEG": [4, 4.5, 5, 5, 5.5, 6, 6, 6.5], "FRU": [1, 1, 1, 1.5, 1.5, 1.5, 2, 2], "MLK": [1, 1, 1, 1, 1, 1.5, 1.5, 1.5] },
-      "bounds": { "STA": [0, 5], "PRO": [5, 22], "FAT": [3, 18] },
-      "prefer": ["low_gi", "whole_grain"],
-      "excludeFlags": ["high_gi"],
+      "anchors": {
+        "VEG": [
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6,
+          6,
+          6.5
+        ],
+        "FRU": [
+          1,
+          1,
+          1,
+          1.5,
+          1.5,
+          1.5,
+          2,
+          2
+        ],
+        "MLK": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1.5,
+          1.5,
+          1.5
+        ]
+      },
+      "bounds": {
+        "STA": [
+          0,
+          5
+        ],
+        "PRO": [
+          5,
+          22
+        ],
+        "FAT": [
+          3,
+          18
+        ]
+      },
+      "prefer": [
+        "low_gi",
+        "whole_grain"
+      ],
+      "excludeFlags": [
+        "high_gi"
+      ],
       "fatPartScale": 1.5,
-      "preferFoods": ["dairy_greek", "dairy_skyr", "dairy_kefir"],
-      "mains": { "fish": 4, "legume": 1, "poultry": 5, "red": 3, "veggie": 1 },
-      "breakfasts": { "eggs": 4, "dairy": 3 },
+      "preferFoods": [
+        "dairy_greek",
+        "dairy_skyr",
+        "dairy_kefir"
+      ],
+      "mains": {
+        "fish": 4,
+        "legume": 1,
+        "poultry": 5,
+        "red": 3,
+        "veggie": 1
+      },
+      "breakfasts": {
+        "eggs": 4,
+        "dairy": 3
+      },
       "distribution": "low_carb"
     },
     "keto": {
       "label": "Кетогенно хранене",
       "basis": "Въглехидрати ≤30 г/ден от нескорбялни зеленчуци и малко горски плодове; белтък умерен; мазнините допълват енергията",
-      "anchors": { "VEG": [3, 3.5, 3.5, 4, 4, 4.5, 4.5, 5], "FRU": [0, 0, 0, 0, 0, 0, 0, 0], "MLK": [0, 0, 0, 0, 0, 0, 0, 0] },
-      "bounds": { "STA": [0, 0], "PRO": [5, 20], "FAT": [5, 30] },
+      "anchors": {
+        "VEG": [
+          3,
+          3.5,
+          3.5,
+          4,
+          4,
+          4.5,
+          4.5,
+          5
+        ],
+        "FRU": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "MLK": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "bounds": {
+        "STA": [
+          0,
+          0
+        ],
+        "PRO": [
+          5,
+          20
+        ],
+        "FAT": [
+          5,
+          30
+        ]
+      },
       "ketoOnly": true,
       "fatPartScale": 2.5,
-      "mains": { "fish": 4, "legume": 0, "poultry": 5, "red": 3, "veggie": 2 },
-      "breakfasts": { "eggs": 5, "dairy": 2 },
+      "mains": {
+        "fish": 4,
+        "legume": 0,
+        "poultry": 5,
+        "red": 3,
+        "veggie": 2
+      },
+      "breakfasts": {
+        "eggs": 5,
+        "dairy": 2
+      },
       "distribution": "keto"
     },
     "low_fodmap": {
       "label": "Хранене с ниско FODMAP",
       "basis": "Monash University Low FODMAP Diet — фаза на елиминиране",
-      "anchors": { "VEG": [3, 3.5, 4, 4.5, 5, 5, 5.5, 6], "FRU": [1.5, 2, 2, 2, 2.5, 2.5, 3, 3], "MLK": [0, 0, 0, 0, 0, 0, 0, 0] },
-      "bounds": { "STA": [2, 22], "PRO": [4, 22], "FAT": [2, 16] },
-      "excludeFlags": ["high_fodmap", "gluten"],
-      "mains": { "fish": 4, "legume": 0, "poultry": 5, "red": 2, "veggie": 2, "plant": 1 },
-      "breakfasts": { "eggs": 3, "porridge": 2, "bread": 2 },
+      "anchors": {
+        "VEG": [
+          3,
+          3.5,
+          4,
+          4.5,
+          5,
+          5,
+          5.5,
+          6
+        ],
+        "FRU": [
+          1.5,
+          2,
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3
+        ],
+        "MLK": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "bounds": {
+        "STA": [
+          2,
+          22
+        ],
+        "PRO": [
+          4,
+          22
+        ],
+        "FAT": [
+          2,
+          16
+        ]
+      },
+      "excludeFlags": [
+        "high_fodmap",
+        "gluten"
+      ],
+      "mains": {
+        "fish": 4,
+        "legume": 0,
+        "poultry": 5,
+        "red": 2,
+        "veggie": 2,
+        "plant": 1
+      },
+      "breakfasts": {
+        "eggs": 3,
+        "porridge": 2,
+        "bread": 2
+      },
       "distribution": "standard"
     },
     "paleo": {
       "label": "Палео хранене",
       "basis": "Без зърнени, бобови и млечни; месо, риба, яйца, зеленчуци, плодове, ядки",
-      "anchors": { "VEG": [4, 4.5, 5, 5.5, 6, 6, 6.5, 7], "FRU": [2, 2, 2.5, 2.5, 3, 3, 3.5, 3.5], "MLK": [0, 0, 0, 0, 0, 0, 0, 0] },
-      "bounds": { "STA": [0, 8], "PRO": [5, 20], "FAT": [3, 16] },
-      "excludeFlags": ["grain", "legume", "lactose"],
-      "mains": { "fish": 4, "legume": 0, "poultry": 5, "red": 3, "veggie": 2 },
-      "breakfasts": { "eggs": 5, "porridge": 2 },
+      "anchors": {
+        "VEG": [
+          4,
+          4.5,
+          5,
+          5.5,
+          6,
+          6,
+          6.5,
+          7
+        ],
+        "FRU": [
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3,
+          3.5,
+          3.5
+        ],
+        "MLK": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "bounds": {
+        "STA": [
+          0,
+          8
+        ],
+        "PRO": [
+          5,
+          20
+        ],
+        "FAT": [
+          3,
+          16
+        ]
+      },
+      "excludeFlags": [
+        "grain",
+        "legume",
+        "lactose"
+      ],
+      "mains": {
+        "fish": 4,
+        "legume": 0,
+        "poultry": 5,
+        "red": 3,
+        "veggie": 2
+      },
+      "breakfasts": {
+        "eggs": 5,
+        "porridge": 2
+      },
       "distribution": "standard"
     },
     "anti_inflammatory": {
       "label": "Противовъзпалително хранене",
       "basis": "Средиземноморски модел с акцент върху мазна риба (омега-3), пълнозърнести, зехтин, ядки и горски плодове; без преработено месо и рафинирани въглехидрати",
-      "anchors": { "VEG": [3.5, 4, 4.5, 5, 5.5, 6, 6, 6.5], "FRU": [2, 2, 2.5, 2.5, 3, 3, 3, 3.5], "MLK": [1, 1, 1, 1.5, 1.5, 1.5, 2, 2] },
-      "bounds": { "STA": [2, 22], "PRO": [4, 22], "FAT": [3, 16] },
-      "prefer": ["whole_grain", "oily_fish", "low_gi"],
-      "excludeFlags": ["refined"],
-      "preferFoods": ["fat_oil", "fat_walnuts", "fruit_blueberry", "fruit_raspberry"],
-      "mains": { "fish": 4, "legume": 4, "poultry": 3, "red": 1, "veggie": 2 },
-      "breakfasts": { "eggs": 2, "dairy": 3, "bread": 1, "porridge": 1 },
+      "anchors": {
+        "VEG": [
+          3.5,
+          4,
+          4.5,
+          5,
+          5.5,
+          6,
+          6,
+          6.5
+        ],
+        "FRU": [
+          2,
+          2,
+          2.5,
+          2.5,
+          3,
+          3,
+          3,
+          3.5
+        ],
+        "MLK": [
+          1,
+          1,
+          1,
+          1.5,
+          1.5,
+          1.5,
+          2,
+          2
+        ]
+      },
+      "bounds": {
+        "STA": [
+          2,
+          22
+        ],
+        "PRO": [
+          4,
+          22
+        ],
+        "FAT": [
+          3,
+          16
+        ]
+      },
+      "prefer": [
+        "whole_grain",
+        "oily_fish",
+        "low_gi"
+      ],
+      "excludeFlags": [
+        "refined"
+      ],
+      "preferFoods": [
+        "fat_oil",
+        "fat_walnuts",
+        "fruit_blueberry",
+        "fruit_raspberry"
+      ],
+      "mains": {
+        "fish": 4,
+        "legume": 4,
+        "poultry": 3,
+        "red": 1,
+        "veggie": 2
+      },
+      "breakfasts": {
+        "eggs": 2,
+        "dairy": 3,
+        "bread": 1,
+        "porridge": 1
+      },
       "distribution": "standard"
     }
   },
   "patterns": {
-    "omnivore": { "label": "Всеядно" },
-    "pescatarian": { "label": "Пескетарианско", "dropMains": ["poultry", "red"], "toMains": ["fish", "legume", "veggie"] },
-    "vegetarian": { "label": "Вегетарианско", "dropMains": ["poultry", "red", "fish"], "toMains": ["legume", "veggie", "plant"] },
-    "vegan": { "label": "Веганско", "dropMains": ["poultry", "red", "fish", "veggie"], "toMains": ["legume", "plant"], "dropBreakfasts": ["eggs", "dairy"], "toBreakfasts": ["porridge", "bread", "plant"] }
+    "omnivore": {
+      "label": "Всеядно"
+    },
+    "pescatarian": {
+      "label": "Пескетарианско",
+      "dropMains": [
+        "poultry",
+        "red"
+      ],
+      "toMains": [
+        "fish",
+        "legume",
+        "veggie"
+      ]
+    },
+    "vegetarian": {
+      "label": "Вегетарианско",
+      "dropMains": [
+        "poultry",
+        "red",
+        "fish"
+      ],
+      "toMains": [
+        "legume",
+        "veggie",
+        "plant"
+      ]
+    },
+    "vegan": {
+      "label": "Веганско",
+      "dropMains": [
+        "poultry",
+        "red",
+        "fish",
+        "veggie"
+      ],
+      "toMains": [
+        "legume",
+        "plant"
+      ],
+      "dropBreakfasts": [
+        "eggs",
+        "dairy"
+      ],
+      "toBreakfasts": [
+        "porridge",
+        "bread",
+        "plant"
+      ]
+    }
   },
-  "veganBreakfasts": { "porridge": 3, "bread": 2, "plant": 2 },
+  "veganBreakfasts": {
+    "porridge": 3,
+    "bread": 2,
+    "plant": 2
+  },
   "distributions": {
     "standard": {
-      "Хранене 1": { "STA": 0.33, "FRU": 0.30, "MLK": 0.40, "VEG": 0.12, "PRO": 0.20, "FAT": 0.20, "SWT": 0 },
-      "Хранене 2": { "STA": 0.35, "FRU": 0.05, "MLK": 0.00, "VEG": 0.42, "PRO": 0.36, "FAT": 0.30, "SWT": 1 },
-      "Хранене 3": { "STA": 0.10, "FRU": 0.50, "MLK": 0.25, "VEG": 0.04, "PRO": 0.06, "FAT": 0.18, "SWT": 0 },
-      "Хранене 4": { "STA": 0.22, "FRU": 0.05, "MLK": 0.00, "VEG": 0.42, "PRO": 0.32, "FAT": 0.24, "SWT": 0 },
-      "Хранене 5": { "STA": 0.00, "FRU": 0.10, "MLK": 0.35, "VEG": 0.00, "PRO": 0.06, "FAT": 0.08, "SWT": 0 }
+      "Хранене 1": {
+        "STA": 0.33,
+        "FRU": 0.3,
+        "MLK": 0.4,
+        "VEG": 0.12,
+        "PRO": 0.2,
+        "FAT": 0.2,
+        "SWT": 0
+      },
+      "Хранене 2": {
+        "STA": 0.35,
+        "FRU": 0.05,
+        "MLK": 0.0,
+        "VEG": 0.42,
+        "PRO": 0.36,
+        "FAT": 0.3,
+        "SWT": 1
+      },
+      "Хранене 3": {
+        "STA": 0.1,
+        "FRU": 0.5,
+        "MLK": 0.25,
+        "VEG": 0.04,
+        "PRO": 0.06,
+        "FAT": 0.18,
+        "SWT": 0
+      },
+      "Хранене 4": {
+        "STA": 0.22,
+        "FRU": 0.05,
+        "MLK": 0.0,
+        "VEG": 0.42,
+        "PRO": 0.32,
+        "FAT": 0.24,
+        "SWT": 0
+      },
+      "Хранене 5": {
+        "STA": 0.0,
+        "FRU": 0.1,
+        "MLK": 0.35,
+        "VEG": 0.0,
+        "PRO": 0.06,
+        "FAT": 0.08,
+        "SWT": 0
+      }
     },
     "even_carbs": {
-      "Хранене 1": { "STA": 0.28, "FRU": 0.25, "MLK": 0.40, "VEG": 0.12, "PRO": 0.22, "FAT": 0.20, "SWT": 0 },
-      "Хранене 2": { "STA": 0.30, "FRU": 0.10, "MLK": 0.00, "VEG": 0.42, "PRO": 0.33, "FAT": 0.28, "SWT": 0 },
-      "Хранене 3": { "STA": 0.15, "FRU": 0.45, "MLK": 0.25, "VEG": 0.04, "PRO": 0.08, "FAT": 0.20, "SWT": 0 },
-      "Хранене 4": { "STA": 0.27, "FRU": 0.10, "MLK": 0.00, "VEG": 0.42, "PRO": 0.31, "FAT": 0.24, "SWT": 0 },
-      "Хранене 5": { "STA": 0.00, "FRU": 0.10, "MLK": 0.35, "VEG": 0.00, "PRO": 0.06, "FAT": 0.08, "SWT": 0 }
+      "Хранене 1": {
+        "STA": 0.28,
+        "FRU": 0.25,
+        "MLK": 0.4,
+        "VEG": 0.12,
+        "PRO": 0.22,
+        "FAT": 0.2,
+        "SWT": 0
+      },
+      "Хранене 2": {
+        "STA": 0.3,
+        "FRU": 0.1,
+        "MLK": 0.0,
+        "VEG": 0.42,
+        "PRO": 0.33,
+        "FAT": 0.28,
+        "SWT": 0
+      },
+      "Хранене 3": {
+        "STA": 0.15,
+        "FRU": 0.45,
+        "MLK": 0.25,
+        "VEG": 0.04,
+        "PRO": 0.08,
+        "FAT": 0.2,
+        "SWT": 0
+      },
+      "Хранене 4": {
+        "STA": 0.27,
+        "FRU": 0.1,
+        "MLK": 0.0,
+        "VEG": 0.42,
+        "PRO": 0.31,
+        "FAT": 0.24,
+        "SWT": 0
+      },
+      "Хранене 5": {
+        "STA": 0.0,
+        "FRU": 0.1,
+        "MLK": 0.35,
+        "VEG": 0.0,
+        "PRO": 0.06,
+        "FAT": 0.08,
+        "SWT": 0
+      }
     },
     "protein_even": {
-      "Хранене 1": { "STA": 0.33, "FRU": 0.30, "MLK": 0.40, "VEG": 0.12, "PRO": 0.25, "FAT": 0.20, "SWT": 0 },
-      "Хранене 2": { "STA": 0.35, "FRU": 0.05, "MLK": 0.00, "VEG": 0.42, "PRO": 0.30, "FAT": 0.30, "SWT": 1 },
-      "Хранене 3": { "STA": 0.10, "FRU": 0.50, "MLK": 0.25, "VEG": 0.04, "PRO": 0.10, "FAT": 0.18, "SWT": 0 },
-      "Хранене 4": { "STA": 0.22, "FRU": 0.05, "MLK": 0.00, "VEG": 0.42, "PRO": 0.28, "FAT": 0.24, "SWT": 0 },
-      "Хранене 5": { "STA": 0.00, "FRU": 0.10, "MLK": 0.35, "VEG": 0.00, "PRO": 0.07, "FAT": 0.08, "SWT": 0 }
+      "Хранене 1": {
+        "STA": 0.33,
+        "FRU": 0.3,
+        "MLK": 0.4,
+        "VEG": 0.12,
+        "PRO": 0.25,
+        "FAT": 0.2,
+        "SWT": 0
+      },
+      "Хранене 2": {
+        "STA": 0.35,
+        "FRU": 0.05,
+        "MLK": 0.0,
+        "VEG": 0.42,
+        "PRO": 0.3,
+        "FAT": 0.3,
+        "SWT": 1
+      },
+      "Хранене 3": {
+        "STA": 0.1,
+        "FRU": 0.5,
+        "MLK": 0.25,
+        "VEG": 0.04,
+        "PRO": 0.1,
+        "FAT": 0.18,
+        "SWT": 0
+      },
+      "Хранене 4": {
+        "STA": 0.22,
+        "FRU": 0.05,
+        "MLK": 0.0,
+        "VEG": 0.42,
+        "PRO": 0.28,
+        "FAT": 0.24,
+        "SWT": 0
+      },
+      "Хранене 5": {
+        "STA": 0.0,
+        "FRU": 0.1,
+        "MLK": 0.35,
+        "VEG": 0.0,
+        "PRO": 0.07,
+        "FAT": 0.08,
+        "SWT": 0
+      }
     },
     "low_carb": {
-      "Хранене 1": { "STA": 0.40, "FRU": 0.40, "MLK": 0.50, "VEG": 0.15, "PRO": 0.22, "FAT": 0.20, "SWT": 0 },
-      "Хранене 2": { "STA": 0.35, "FRU": 0.00, "MLK": 0.00, "VEG": 0.40, "PRO": 0.34, "FAT": 0.28, "SWT": 0 },
-      "Хранене 3": { "STA": 0.00, "FRU": 0.60, "MLK": 0.25, "VEG": 0.05, "PRO": 0.06, "FAT": 0.18, "SWT": 0 },
-      "Хранене 4": { "STA": 0.25, "FRU": 0.00, "MLK": 0.00, "VEG": 0.40, "PRO": 0.32, "FAT": 0.26, "SWT": 0 },
-      "Хранене 5": { "STA": 0.00, "FRU": 0.00, "MLK": 0.25, "VEG": 0.00, "PRO": 0.06, "FAT": 0.08, "SWT": 0 }
+      "Хранене 1": {
+        "STA": 0.4,
+        "FRU": 0.4,
+        "MLK": 0.5,
+        "VEG": 0.15,
+        "PRO": 0.22,
+        "FAT": 0.2,
+        "SWT": 0
+      },
+      "Хранене 2": {
+        "STA": 0.35,
+        "FRU": 0.0,
+        "MLK": 0.0,
+        "VEG": 0.4,
+        "PRO": 0.34,
+        "FAT": 0.28,
+        "SWT": 0
+      },
+      "Хранене 3": {
+        "STA": 0.0,
+        "FRU": 0.6,
+        "MLK": 0.25,
+        "VEG": 0.05,
+        "PRO": 0.06,
+        "FAT": 0.18,
+        "SWT": 0
+      },
+      "Хранене 4": {
+        "STA": 0.25,
+        "FRU": 0.0,
+        "MLK": 0.0,
+        "VEG": 0.4,
+        "PRO": 0.32,
+        "FAT": 0.26,
+        "SWT": 0
+      },
+      "Хранене 5": {
+        "STA": 0.0,
+        "FRU": 0.0,
+        "MLK": 0.25,
+        "VEG": 0.0,
+        "PRO": 0.06,
+        "FAT": 0.08,
+        "SWT": 0
+      }
     },
     "keto": {
-      "Хранене 1": { "STA": 0, "FRU": 0, "MLK": 0, "VEG": 0.15, "PRO": 0.24, "FAT": 0.22, "SWT": 0 },
-      "Хранене 2": { "STA": 0, "FRU": 0, "MLK": 0, "VEG": 0.40, "PRO": 0.32, "FAT": 0.28, "SWT": 0 },
-      "Хранене 3": { "STA": 0, "FRU": 0, "MLK": 0, "VEG": 0.05, "PRO": 0.06, "FAT": 0.18, "SWT": 0 },
-      "Хранене 4": { "STA": 0, "FRU": 0, "MLK": 0, "VEG": 0.40, "PRO": 0.32, "FAT": 0.24, "SWT": 0 },
-      "Хранене 5": { "STA": 0, "FRU": 0, "MLK": 0, "VEG": 0.00, "PRO": 0.06, "FAT": 0.08, "SWT": 0 }
+      "Хранене 1": {
+        "STA": 0,
+        "FRU": 0,
+        "MLK": 0,
+        "VEG": 0.15,
+        "PRO": 0.24,
+        "FAT": 0.22,
+        "SWT": 0
+      },
+      "Хранене 2": {
+        "STA": 0,
+        "FRU": 0,
+        "MLK": 0,
+        "VEG": 0.4,
+        "PRO": 0.32,
+        "FAT": 0.28,
+        "SWT": 0
+      },
+      "Хранене 3": {
+        "STA": 0,
+        "FRU": 0,
+        "MLK": 0,
+        "VEG": 0.05,
+        "PRO": 0.06,
+        "FAT": 0.18,
+        "SWT": 0
+      },
+      "Хранене 4": {
+        "STA": 0,
+        "FRU": 0,
+        "MLK": 0,
+        "VEG": 0.4,
+        "PRO": 0.32,
+        "FAT": 0.24,
+        "SWT": 0
+      },
+      "Хранене 5": {
+        "STA": 0,
+        "FRU": 0,
+        "MLK": 0,
+        "VEG": 0.0,
+        "PRO": 0.06,
+        "FAT": 0.08,
+        "SWT": 0
+      }
     }
   },
   "mealBounds": {
-    "Хранене 1": { "STA": [0, 4], "FRU": [0, 1.5], "MLK": [0, 1.5], "VEG": [0, 1.5], "PRO": [0, 5], "FAT": [0, 4], "SWT": [0, 0] },
-    "Хранене 2": { "STA": [0, 5], "FRU": [0, 1], "MLK": [0, 1], "VEG": [1, 4], "PRO": [2, 8], "FAT": [0.5, 5], "SWT": [0, 1] },
-    "Хранене 3": { "STA": [0, 2], "FRU": [0, 2], "MLK": [0, 1.5], "VEG": [0, 1.5], "PRO": [0, 3], "FAT": [0, 4], "SWT": [0, 0] },
-    "Хранене 4": { "STA": [0, 4], "FRU": [0, 1], "MLK": [0, 1], "VEG": [1, 4], "PRO": [2, 8], "FAT": [0.5, 5], "SWT": [0, 0] },
-    "Хранене 5": { "STA": [0, 0], "FRU": [0, 1], "MLK": [0, 1.5], "VEG": [0, 1], "PRO": [0, 2], "FAT": [0, 2], "SWT": [0, 0] }
+    "Хранене 1": {
+      "STA": [
+        0,
+        4
+      ],
+      "FRU": [
+        0,
+        1.5
+      ],
+      "MLK": [
+        0,
+        1.5
+      ],
+      "VEG": [
+        0,
+        1.5
+      ],
+      "PRO": [
+        0,
+        5
+      ],
+      "FAT": [
+        0,
+        4
+      ],
+      "SWT": [
+        0,
+        0
+      ]
+    },
+    "Хранене 2": {
+      "STA": [
+        0,
+        5
+      ],
+      "FRU": [
+        0,
+        1
+      ],
+      "MLK": [
+        0,
+        1
+      ],
+      "VEG": [
+        1,
+        4
+      ],
+      "PRO": [
+        2,
+        8
+      ],
+      "FAT": [
+        0.5,
+        5
+      ],
+      "SWT": [
+        0,
+        1
+      ]
+    },
+    "Хранене 3": {
+      "STA": [
+        0,
+        1
+      ],
+      "FRU": [
+        0,
+        3
+      ],
+      "MLK": [
+        0,
+        2
+      ],
+      "VEG": [
+        0,
+        1.5
+      ],
+      "PRO": [
+        0,
+        3
+      ],
+      "FAT": [
+        0,
+        4
+      ],
+      "SWT": [
+        0,
+        0
+      ]
+    },
+    "Хранене 4": {
+      "STA": [
+        0,
+        4
+      ],
+      "FRU": [
+        0,
+        1
+      ],
+      "MLK": [
+        0,
+        1
+      ],
+      "VEG": [
+        1,
+        4
+      ],
+      "PRO": [
+        2,
+        8
+      ],
+      "FAT": [
+        0.5,
+        5
+      ],
+      "SWT": [
+        0,
+        0
+      ]
+    },
+    "Хранене 5": {
+      "STA": [
+        0,
+        0
+      ],
+      "FRU": [
+        0,
+        1
+      ],
+      "MLK": [
+        0,
+        1.5
+      ],
+      "VEG": [
+        0,
+        1
+      ],
+      "PRO": [
+        0,
+        2
+      ],
+      "FAT": [
+        0,
+        2
+      ],
+      "SWT": [
+        0,
+        0
+      ]
+    }
   }
 }
