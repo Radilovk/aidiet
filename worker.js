@@ -529,7 +529,8 @@ var MEAL_TYPE_SHORT = {
   "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": "H3",
   "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": "H4",
   "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": "H5",
-  "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435": "SF"
+  "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435": "SF",
+  "\u041D\u0430\u043F\u0438\u0442\u043A\u0430": "DR"
 };
 function hasContent(value) {
   if (value == null || value === "") return false;
@@ -775,8 +776,22 @@ function serializeStrategyForMealPlan(strategy) {
     strategy.calorieDistribution ? `cd=${esc(String(strategy.calorieDistribution).slice(0, 200))}` : "",
     strategy.macroDistribution ? `md=${esc(String(strategy.macroDistribution).slice(0, 200))}` : "",
     strategy.freeDayNumber != null ? `free=D${strategy.freeDayNumber}` : "",
-    strategy.includeDessert === false ? "dessert=0" : ""
+    strategy.includeDessert != null ? `dessert=${strategy.includeDessert ? 1 : 0}` : "",
+    strategy.exchangePlan?.daily ? `sch=${exchangeLine(strategy.exchangePlan.daily)}` : "",
+    strategy.breakfastStrategy ? `bf=${esc(String(strategy.breakfastStrategy).slice(0, 200))}` : "",
+    strategy.modifierReasoning ? `why=${esc(String(strategy.modifierReasoning).slice(0, 500))}` : ""
   ].filter(Boolean).join("\n");
+}
+var EXCHANGE_SHORT = { STA: "\u0437\u044A\u0440\u043D", PRO: "\u0431\u0435\u043B\u0442", VEG: "\u0437\u0435\u043B", FRU: "\u043F\u043B\u043E\u0434", MLK: "\u043C\u043B\u044F\u043A\u043E", FAT: "\u043C\u0430\u0437\u043D", LEG: "\u0431\u043E\u0431", SWT: "\u0441\u043B" };
+function exchangeLine(daily) {
+  return Object.entries(daily || {}).filter(([, n]) => Number(n) > 0).map(([g, n]) => `${EXCHANGE_SHORT[g] || g}${n}`).join("+");
+}
+function mealItemsFor(m) {
+  if (m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") return `\u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E(\u0431\u044E\u0434\u0436\u0435\u0442~${Number(m._plannedCalories) || 0}kcal)`;
+  const parts = [compactMealItems(m.description)];
+  if (m.dessert) parts.push(`\u0434\u0435\u0441\u0435\u0440\u0442:${esc(m.dessert.name)}${Number(m.dessert.calories) ? `(${m.dessert.calories}kcal)` : ""}`);
+  if (m.recipe) parts.push(esc(m.recipe));
+  return parts.filter(Boolean).join("+");
 }
 function compactMealItems(description) {
   if (!description) return "";
@@ -791,20 +806,19 @@ function serializeWeekPlanClient(weekPlan, options = {}) {
     if (!dayData?.meals?.length) continue;
     for (const m of dayData.meals) {
       const type = MEAL_TYPE_SHORT[m.type] || esc(String(m.type || "?").slice(0, 3));
-      const kcal = Number(m.calories) || 0;
+      const kcal = Number(m.calories ?? m._plannedCalories) || 0;
       const g = parseInt(String(m.weight || "0").replace(/[^\d]/g, ""), 10) || 0;
       const p = Number(m.macros?.protein) || 0;
       const c = Number(m.macros?.carbs) || 0;
       const f = Number(m.macros?.fats ?? m.macros?.fat) || 0;
-      const items = compactMealItems(m.description);
-      lines.push(`${dayKey}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${items}`);
+      lines.push(`${dayKey}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${mealItemsFor(m)}`);
     }
   }
   return lines.length > 1 ? lines.join("\n") : "";
 }
 function serializeWeekPlanAdmin(weekPlan) {
   if (!weekPlan) return "";
-  const lines = ["#PL v2 admin|day|idx|type|name|kcal|g|P|C|F|patch"];
+  const lines = ["#PL v2 admin|day|idx|type|name|kcal|g|P|C|F|patch|items"];
   for (const [dayKey, dayData] of Object.entries(weekPlan)) {
     if (!dayData?.meals?.length) continue;
     const meals = dayData.meals;
@@ -815,7 +829,7 @@ function serializeWeekPlanAdmin(weekPlan) {
     for (let i = 0; i < meals.length; i++) {
       const m = meals[i];
       const type = MEAL_TYPE_SHORT[m.type] || esc(String(m.type || "?").slice(0, 3));
-      const kcal = Number(m.calories) || 0;
+      const kcal = Number(m.calories ?? m._plannedCalories) || 0;
       const g = parseInt(String(m.weight || "0").replace(/[^\d]/g, ""), 10) || 0;
       const p = Number(m.macros?.protein) || 0;
       const c = Number(m.macros?.carbs) || 0;
@@ -825,7 +839,7 @@ function serializeWeekPlanAdmin(weekPlan) {
       dayC += c;
       dayF += f;
       const patch = `/plan/weekPlan/${dayKey}/meals/${i}`;
-      lines.push(`${dayKey}|${i}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${patch}`);
+      lines.push(`${dayKey}|${i}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${patch}|${mealItemsFor(m)}`);
     }
     lines.push(`${dayKey}|T|\u2014|\u0434\u0435\u043D_\u043E\u0431\u0449\u043E|${dayKcal}|\u2014|${dayP}|${dayC}|${dayF}|`);
   }
@@ -1374,14 +1388,14 @@ var CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
 var CHAT_INTENTS = (
   /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */
   [
-    [/\b(калори|kcal|ккал|bmr|tdee|енерги|макро|протеин|белтък|въглехидрат|мазнин|bmi|метабол)\b/iu, ["summary", "analysis"]],
-    [/\b(стратег|принцип|подход|режим|разпредел|свободн\w*\s+ден)\b/iu, "strategy"],
-    [/\b(препоръч|съвет|насок)\b/iu, "recommendations"],
-    [/\b(забран|избягв|не\s+ям|алерг|непоносим)\b/iu, "forbidden"],
-    [/\b(психол|мотивац|стрес|навик|емоци|тригер)\b/iu, "psychology"],
-    [/\b(добавк|витамин|минерал|суплемент)\b/iu, "supplements"],
-    [/\b(вода|хидрат|течност)\b/iu, "water"],
-    [/\b(анамнез|история|лекарств|медицин|сън|активност|спорт|хронотип)\b/iu, "profile_full"]
+    [/(?<![\p{L}\p{N}])(калори|kcal|ккал|bmr|tdee|енерги|макро|протеин|белтък|въглехидрат|мазнин|bmi|метабол)/iu, ["summary", "analysis"]],
+    [/(?<![\p{L}\p{N}])(стратег|принцип|подход|режим|разпредел|свободн|десерт|сладк|шоколад|схем|порци|защо)/iu, "strategy"],
+    [/(?<![\p{L}\p{N}])(препоръч|съвет|насок)/iu, "recommendations"],
+    [/(?<![\p{L}\p{N}])(забран|избягв|не\s+ям|алерг|непоносим)/iu, "forbidden"],
+    [/(?<![\p{L}\p{N}])(психол|мотивац|стрес|навик|емоци|тригер)/iu, "psychology"],
+    [/(?<![\p{L}\p{N}])(добавк|витамин|минерал|суплемент)/iu, "supplements"],
+    [/(?<![\p{L}\p{N}])(вода|хидрат|течност)/iu, "water"],
+    [/(?<![\p{L}\p{N}])(анамнез|история|лекарств|медицин|сън|активност|спорт|хронотип)/iu, "profile_full"]
   ]
 );
 function buildChatContextSections(userData, plan) {
@@ -39603,6 +39617,41 @@ function adherenceMap(raw) {
 }
 var PATTERN_RANK = { omnivore: 0, pescatarian: 1, vegetarian: 2, vegan: 3 };
 var SLOT_ORDER2 = ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
+var PLAN_MODIFICATION_CODES = {
+  "3_meals_per_day": "3 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0434\u043D\u0435\u0432\u043D\u043E (\u0431\u0435\u0437 \u043C\u0435\u0436\u0434\u0438\u043D\u043D\u0438)",
+  no_intermediate_meals: "\u0431\u0435\u0437 \u043C\u0435\u0436\u0434\u0438\u043D\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F (= 3 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F)",
+  "4_meals_per_day": "4 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0434\u043D\u0435\u0432\u043D\u043E (\u0441 \u0435\u0434\u043D\u0430 \u043C\u0435\u0436\u0434\u0438\u043D\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430)",
+  "5_meals_per_day": "5 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0434\u043D\u0435\u0432\u043D\u043E (\u0432\u0440\u044A\u0449\u0430 \u043C\u0435\u0436\u0434\u0438\u043D\u043D\u0438\u0442\u0435 \u0437\u0430\u043A\u0443\u0441\u043A\u0438)",
+  vegetarian: "\u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E \u2014 \u0431\u0435\u0437 \u043C\u0435\u0441\u043E \u0438 \u0440\u0438\u0431\u0430",
+  no_dairy: "\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438",
+  low_carb: "\u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u043E",
+  increase_protein: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0431\u0435\u043B\u0442\u044A\u043A (+15%)",
+  smaller_portions: "\u043F\u043E-\u043C\u0430\u043B\u043A\u0438 \u043F\u043E\u0440\u0446\u0438\u0438, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u0432 \u043F\u043E\u0432\u0435\u0447\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F",
+  simplify_meals: "\u043F\u043E-\u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F, \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0442\u0432\u0435\u043D\u0435, \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u044F",
+  more_variety: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435 \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u044F\u0441\u0442\u0438\u044F",
+  more_volume: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0431\u0435\u043C (\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438) \u043F\u0440\u0438 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438",
+  gentle_digestion: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E (\u0431\u0435\u0437 \u0445\u0440\u0430\u043D\u0438, \u043A\u043E\u0438\u0442\u043E \u043F\u043E\u0434\u0443\u0432\u0430\u0442)"
+};
+var MEAL_COUNT_CODES = ["3_meals_per_day", "no_intermediate_meals", "4_meals_per_day", "5_meals_per_day"];
+function mergePlanModifications(existing = [], incoming = []) {
+  const valid = (m) => PLAN_MODIFICATION_CODES[m] || /^exclude_food:.{2,60}$/.test(m);
+  const merged = (Array.isArray(existing) ? existing : []).map((m) => String(m).trim()).filter(valid);
+  const accepted = [];
+  const rejected = [];
+  for (const raw of Array.isArray(incoming) ? incoming : []) {
+    const m = String(raw ?? "").trim();
+    if (!valid(m)) {
+      if (m) rejected.push(m);
+      continue;
+    }
+    if (MEAL_COUNT_CODES.includes(m)) {
+      for (let i = merged.length - 1; i >= 0; i--) if (MEAL_COUNT_CODES.includes(merged[i])) merged.splice(i, 1);
+    }
+    if (!merged.includes(m)) merged.push(m);
+    accepted.push(m);
+  }
+  return { merged, accepted, rejected };
+}
 function applyModifications(profile, mods = []) {
   const set = new Set(mods);
   const out = { ...profile, diet: { ...profile.diet }, exclusions: [...profile.exclusions], slots: [...profile.slots] };
@@ -39611,6 +39660,7 @@ function applyModifications(profile, mods = []) {
   if (set.has("no_dairy") && !out.exclusions.includes("LAC")) out.exclusions.push("LAC");
   if (set.has("no_intermediate_meals") || set.has("3_meals_per_day")) out.slots = slotsFor(3, out.skipsBreakfast);
   if (set.has("4_meals_per_day")) out.slots = slotsFor(4, out.skipsBreakfast);
+  if (set.has("5_meals_per_day")) out.slots = slotsFor(5, out.skipsBreakfast);
   if (set.has("smaller_portions")) {
     const extra = ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"].find((s) => !out.slots.includes(s));
     if (extra) out.slots = SLOT_ORDER2.filter((s) => out.slots.includes(s) || s === extra);
@@ -39741,6 +39791,11 @@ function avoidOf(profile, policy, blockedTerms) {
   }
   return [...new Set(list)].slice(0, 10);
 }
+function morningDrinkText(weekPlan) {
+  const drink = Object.values(weekPlan || {}).flatMap((d) => d?.meals || []).find((m) => m.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430");
+  const lines = String(drink?.description || "").split("\n").map((l) => l.replace(/^•\s*/, "").trim()).filter(Boolean);
+  return lines.length ? lines.join(", ").toLowerCase() : "\u0432\u043E\u0434\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438\u043B\u0438 \u0431\u0438\u043B\u043A\u043E\u0432 \u0447\u0430\u0439";
+}
 function buildEngineStrategy(engine, userData, options) {
   const { profile, policy, prescription, weekPlan, stats, macros } = engine;
   const label = dietLabelOf(profile);
@@ -39771,7 +39826,7 @@ function buildEngineStrategy(engine, userData, options) {
     weeklyMealPattern: `\u041E\u0441\u043D\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043F\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430: ${mainsText}. \u0415\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435 \u0441\u0435 \u043F\u043E\u0432\u0442\u0430\u0440\u044F \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u0434\u0432\u0430 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E.`,
     calorieDistribution: mealsText,
     macroDistribution: `\u0411\u0435\u043B\u0442\u044A\u043A ${round2(macros.protein)} \u0433${perKg ? ` (${perKg} \u0433/\u043A\u0433)` : ""}, \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${round2(macros.carbs)} \u0433, \u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${round2(macros.fats)} \u0433 \u2014 \u043F\u043E ${policy.styleDef.label.toLowerCase()}.`,
-    breakfastStrategy: !slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u0411\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043B\u0430\u0433\u0430. \u0421\u0443\u0442\u0440\u0438\u043D \u0441\u0435 \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430 \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F (\u0430\u0439\u0440\u0430\u043D, \u043F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u0448\u0435\u0439\u043A \u0438\u043B\u0438 \u0432\u043E\u0434\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D), \u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432 \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F." : added.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u041B\u0435\u043A\u043E \u043F\u044A\u0440\u0432\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043F\u0440\u0438 \u0442\u043E\u0437\u0438 \u043A\u0430\u043B\u043E\u0440\u0430\u0436 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0438\u043D\u0430\u0447\u0435 \u0438\u0437\u043B\u0438\u0437\u0430\u0442 \u043F\u0440\u0435\u043A\u0430\u043B\u0435\u043D\u043E \u0433\u043E\u043B\u0435\u043C\u0438." : "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u044A\u0447\u0435\u0442\u0430\u0432\u0430 \u0431\u0435\u043B\u0442\u044A\u043A, \u0437\u044A\u0440\u043D\u0435\u043D\u0438 \u0438 \u043F\u043B\u043E\u0434 \u0438\u043B\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A.",
+    breakfastStrategy: !slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? `\u0411\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043B\u0430\u0433\u0430. \u0421\u0443\u0442\u0440\u0438\u043D \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F: ${morningDrinkText(weekPlan)}; \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432 \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F.` : added.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u041B\u0435\u043A\u043E \u043F\u044A\u0440\u0432\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043F\u0440\u0438 \u0442\u043E\u0437\u0438 \u043A\u0430\u043B\u043E\u0440\u0430\u0436 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0438\u043D\u0430\u0447\u0435 \u0438\u0437\u043B\u0438\u0437\u0430\u0442 \u043F\u0440\u0435\u043A\u0430\u043B\u0435\u043D\u043E \u0433\u043E\u043B\u0435\u043C\u0438." : "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u044A\u0447\u0435\u0442\u0430\u0432\u0430 \u0431\u0435\u043B\u0442\u044A\u043A, \u0437\u044A\u0440\u043D\u0435\u043D\u0438 \u0438 \u043F\u043B\u043E\u0434 \u0438\u043B\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A.",
     mealTiming: {
       pattern: `${slots.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F`,
       fastingWindows: "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 2\u20133 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u043D.",
@@ -40432,26 +40487,6 @@ var PEP_DEFAULT_SALES = [
 ];
 var DAY_NUMBER_TO_KEY = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var ERROR_MESSAGE_PARSE_FAILURE = ERROR_MESSAGES.PARSE_FAILURE;
-var PLAN_MODIFICATIONS = {
-  NO_INTERMEDIATE_MEALS: "no_intermediate_meals",
-  THREE_MEALS_PER_DAY: "3_meals_per_day",
-  FOUR_MEALS_PER_DAY: "4_meals_per_day",
-  VEGETARIAN: "vegetarian",
-  NO_DAIRY: "no_dairy",
-  LOW_CARB: "low_carb",
-  INCREASE_PROTEIN: "increase_protein",
-  SIMPLIFY_MEALS: "simplify_meals"
-};
-var PLAN_MODIFICATION_DESCRIPTIONS = {
-  [PLAN_MODIFICATIONS.NO_INTERMEDIATE_MEALS]: "- \u0411\u0415\u0417 \u043C\u0435\u0436\u0434\u0438\u043D\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F - \u0441\u0430\u043C\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F (\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1, \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2, \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4)",
-  [PLAN_MODIFICATIONS.THREE_MEALS_PER_DAY]: "- \u0422\u043E\u0447\u043D\u043E 3 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043D\u0430 \u0434\u0435\u043D (\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1, \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2, \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4)",
-  [PLAN_MODIFICATIONS.FOUR_MEALS_PER_DAY]: "- 4 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043D\u0430 \u0434\u0435\u043D (\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1, \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2, \u0425\u0440\u0430\u043D\u0435\u043D\u0435 3, \u0425\u0440\u0430\u043D\u0435\u043D\u0435 4)",
-  [PLAN_MODIFICATIONS.VEGETARIAN]: "- \u0412\u0415\u0413\u0415\u0422\u0410\u0420\u0418\u0410\u041D\u0421\u041A\u041E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 - \u0431\u0435\u0437 \u043C\u0435\u0441\u043E \u0438 \u0440\u0438\u0431\u0430",
-  [PLAN_MODIFICATIONS.NO_DAIRY]: "- \u0411\u0415\u0417 \u043C\u043B\u0435\u0447\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438",
-  [PLAN_MODIFICATIONS.LOW_CARB]: "- \u041D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430 \u0434\u0438\u0435\u0442\u0430",
-  [PLAN_MODIFICATIONS.INCREASE_PROTEIN]: "- \u041F\u043E\u0432\u0438\u0448\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u043D\u0430 \u043F\u0440\u043E\u0442\u0435\u0438\u043D\u0438",
-  [PLAN_MODIFICATIONS.SIMPLIFY_MEALS]: "- \u041E\u043F\u0440\u043E\u0441\u0442\u0435\u043D\u0438/\u0431\u044A\u0440\u0437\u0438 \u044F\u0441\u0442\u0438\u044F \u2014 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0442\u0432\u0435\u043D\u0435, \u0433\u043E\u0442\u043E\u0432\u0438 \u043E\u043F\u0446\u0438\u0438"
-};
 var DEFAULT_GOAL_HACKS = {
   "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435": [
     "\u{1F4A7} \u041F\u0438\u0439\u0442\u0435 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430 20 \u043C\u0438\u043D. \u043F\u0440\u0435\u0434\u0438 \u0432\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 - \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u0430\u043F\u0435\u0442\u0438\u0442\u0430 \u0441 \u0434\u043E 25%",
@@ -42317,6 +42352,10 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   }
   return response;
 }
+var MODIFICATION_CODES_TEXT = [
+  ...Object.entries(PLAN_MODIFICATION_CODES).map(([code, label]) => `   - "${code}" \u2014 ${label}`),
+  '   - "exclude_food:\u0438\u043C\u0435_\u043D\u0430_\u0445\u0440\u0430\u043D\u0430" \u2014 \u043F\u0440\u0435\u043C\u0430\u0445\u0432\u0430\u043D\u0435 \u043D\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0430 \u0445\u0440\u0430\u043D\u0430'
+].join("\n");
 async function generateChatPrompt(env, userMessage, contextText, userData, conversationHistory, mode = "consultation", userPlan = null) {
   const name = userData?.name || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430";
   const baseContext = `\u0422\u0438 \u0441\u0438 \u043B\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433, \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433 \u0438 \u0437\u0434\u0440\u0430\u0432\u0435\u043D \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u0437\u0430 ${name}.
@@ -42334,7 +42373,7 @@ ${conversationHistory.map((h) => `${h.role}: ${h.content}`).join("\n")}` : ""}
   if (mode === "consultation") {
     modeInstructions = (chatPrompts.consultation || "").replace(/{communicationStyle}/g, commGuidelines);
   } else if (mode === "modification") {
-    modeInstructions = (chatPrompts.modification || "").replace(/{goal}/g, userData?.goal || "\u0442\u0432\u043E\u044F\u0442\u0430 \u0446\u0435\u043B").replace(/{communicationStyle}/g, commGuidelines);
+    modeInstructions = (chatPrompts.modification || "").replace(/{modificationCodes}/g, MODIFICATION_CODES_TEXT).replace(/{goal}/g, userData?.goal || "\u0442\u0432\u043E\u044F\u0442\u0430 \u0446\u0435\u043B").replace(/{communicationStyle}/g, commGuidelines);
   }
   const fullPrompt = `${baseContext}
 ${modeInstructions}
@@ -42641,6 +42680,34 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   if (clinicalProtocol) cleanPlan.clinicalProtocol = { id: clinicalProtocol.id, name: clinicalProtocol.name };
   return { success: true, plan: cleanPlan, userId, correctionAttempts };
 }
+async function regeneratePlanFromChat(env, data, currentPlan) {
+  const kcal = parseFinalCalories(currentPlan?.analysis?.Final_Calories);
+  if (!kcal) {
+    const result = await generatePlanCore(env, data);
+    if (!result.plan) throw new Error("\u041F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u043C\u043E\u0436\u0430 \u0434\u0430 \u0441\u0435 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430");
+    return result.plan;
+  }
+  await loadCatalogRegistryOverlay(env);
+  const userId = data.email || generateUserId(data);
+  const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
+  if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
+  enrichUserDataEngineContext(data);
+  await applyIntakeHints(env, data);
+  const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
+  const cycleNumber = currentPlan._meta?.cycleNumber || 1;
+  let plan = assembleEnginePlan(data, analysis, { cycleNumber });
+  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps }));
+  try {
+    await finalizeValidatedPlan(env, plan, data);
+  } catch (validationErr) {
+    if (validationErr.message?.includes("\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435")) throw validationErr;
+    console.warn("[chat] post-validation skipped:", validationErr.message);
+  }
+  const clean = removeInternalJustifications(plan);
+  if (currentPlan.hacks) clean.hacks = currentPlan.hacks;
+  if (currentPlan.clinicalProtocol) clean.clinicalProtocol = currentPlan.clinicalProtocol;
+  return clean;
+}
 async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
   const { requireApproval = false, userId: preferredUserId = "" } = options;
   console.log(`generatePlanAndSave: starting job ${jobId}${clientId ? ` (clientId: ${clientId})` : ""}`);
@@ -42946,27 +43013,19 @@ async function handleChat(request, env) {
           if (chatMode === "modification") {
             const regenerateData = JSON.parse(jsonContent);
             const modifications = regenerateData.modifications || [];
-            const existingMods = new Set(effectiveUserData.planModifications || []);
+            const { merged, accepted, rejected } = mergePlanModifications(effectiveUserData.planModifications, modifications);
+            if (rejected.length) console.warn("[chat] \u043D\u0435\u043F\u043E\u0437\u043D\u0430\u0442\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438, \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0430\u043D\u0438:", rejected);
             const excludedFoods = new Set((effectiveUserData.dietDislike || "").split(",").map((f) => f.trim()).filter((f) => f));
-            const validatedModifications = [];
-            modifications.forEach((mod) => {
-              if (mod.startsWith("exclude_food:")) {
-                const foodName = mod.substring("exclude_food:".length).trim();
-                if (foodName) {
-                  excludedFoods.add(foodName);
-                  validatedModifications.push(mod);
-                }
-              } else {
-                existingMods.add(mod);
-                validatedModifications.push(mod);
-              }
-            });
+            for (const mod of accepted) {
+              if (mod.startsWith("exclude_food:")) excludedFoods.add(mod.slice("exclude_food:".length).trim());
+            }
             const modifiedUserData = {
               ...effectiveUserData,
-              planModifications: Array.from(existingMods),
+              planModifications: merged,
               dietDislike: Array.from(excludedFoods).join(", ")
             };
-            const newPlan = await generatePlanMultiStep(env, modifiedUserData);
+            const newPlan = accepted.length ? await regeneratePlanFromChat(env, modifiedUserData, effectiveUserPlan) : null;
+            if (!newPlan) throw new Error("\u041D\u044F\u043C\u0430 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0442\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0437\u0430 \u043F\u0440\u0438\u043B\u0430\u0433\u0430\u043D\u0435");
             planWasUpdated = true;
             updatedPlan = newPlan;
             updatedUserData = modifiedUserData;
@@ -43964,24 +44023,30 @@ var ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `\u0422\u0438 \u0441\u0438 NutriPlan AI
 Patch root: { answers, plan, adminNotes }
 \u0420\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438 path \u043F\u0440\u0435\u0444\u0438\u043A\u0441\u0438: /answers, /plan, /adminNotes
 
-\u041F\u0440\u0438\u043C\u0435\u0440\u0438:
-- /plan/summary/dailyCalories
-- /plan/weekPlan/day1/meals/0/name
-- /plan/weekPlan/day1/meals/0/calories
-- /plan/weekPlan/day1/meals/0/weight  (\u0441\u0442\u0440\u0438\u043D\u0433, \u043D\u0430\u043F\u0440. "250g")
-- /plan/weekPlan/day1/meals/0/macros/protein
-- /plan/weekPlan/day1/meals/0/macros/carbs
-- /plan/weekPlan/day1/meals/0/macros/fats
-- /plan/supplements/-  (add \u0432 \u043A\u0440\u0430\u044F \u043D\u0430 \u043C\u0430\u0441\u0438\u0432)
-- /answers/lossKg
-- /adminNotes
+\u041A\u0410\u041A \u0415 \u041D\u0410\u041F\u0420\u0410\u0412\u0415\u041D \u041F\u041B\u0410\u041D\u042A\u0422: \u043C\u0435\u043D\u044E\u0442\u043E \u0441\u0435 \u0441\u0433\u043B\u043E\u0431\u044F\u0432\u0430 \u043E\u0442 \u0434\u0435\u0442\u0435\u0440\u043C\u0438\u043D\u0438\u0441\u0442\u0438\u0447\u0435\u043D \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B (\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u0432 \u043E\u0431\u043C\u0435\u043D\u043D\u0438 \u043F\u043E\u0440\u0446\u0438\u0438,
+\u043A\u043B\u0438\u043D\u0438\u0447\u043D\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u0430, \u043A\u0443\u0445\u043D\u0435\u043D\u0441\u043A\u0438 \u0433\u0440\u0430\u043C\u0430\u0436\u0438). \u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435\u0442\u043E \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E (\u0440\u0435\u0434\u043E\u0432\u0435 \u201E\u2022 \u0425\u0440\u0430\u043D\u0430 150g\u201C) \u0435 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A\u044A\u0442 \u2014
+\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u043C\u0430\u043A\u0440\u043E\u0441\u0438\u0442\u0435 \u0438 \u0433\u0440\u0430\u043C\u0430\u0436\u044A\u0442 \u0441\u0435 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0442 \u043E\u0442 \u043D\u0435\u0433\u043E \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E. \u0417\u0430\u0442\u043E\u0432\u0430:
 
-\u0421\u0435\u0434\u043C\u0438\u0446\u0430: day1..day7 (\u043D\u0435 monday). \u0425\u0440\u0430\u043D\u0435\u043D\u0438\u044F: meals[] \u0441 type, name, calories, weight, macros (protein, carbs, fats).
+1) \u041F\u0420\u041E\u041C\u0415\u041D\u0418 \u0412\u042A\u0420\u0425\u0423 \u0426\u0415\u041B\u0418\u042F \u041F\u041B\u0410\u041D (\u043F\u0440\u0435\u043C\u0430\u0445\u0432\u0430\u043D\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u0430, \u0430\u043B\u0435\u0440\u0433\u0438\u044F, \u0431\u0440\u043E\u0439 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F, \u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E, \u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438,
+   \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u043E, \u043F\u043E\u0432\u0435\u0447\u0435 \u0431\u0435\u043B\u0442\u044A\u043A, \u043F\u043E-\u043F\u0440\u043E\u0441\u0442\u043E, \u043F\u043E\u0432\u0435\u0447\u0435 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435\u2026) \u2014 \u041D\u0415 \u0440\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u0430\u0439 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F.
+   \u0414\u043E\u0431\u0430\u0432\u0438 \u043A\u043E\u0434 \u0432 /answers/planModifications (op "add", path "/answers/planModifications/-") \u0438/\u0438\u043B\u0438 \u0445\u0440\u0430\u043D\u0430
+   \u0432 /answers/dietDislike. \u0421\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430 \u0440\u0435\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430 \u043F\u043B\u0430\u043D\u0430 \u0441 \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044F. \u041F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438 \u043A\u043E\u0434\u043E\u0432\u0435:
+${Object.entries(PLAN_MODIFICATION_CODES).map(([code, label]) => `   - "${code}" \u2014 ${label}`).join("\n")}
+   - "exclude_food:\u0438\u043C\u0435_\u043D\u0430_\u0445\u0440\u0430\u043D\u0430" \u2014 \u043F\u0440\u0435\u043C\u0430\u0445\u0432\u0430\u043D\u0435 \u043D\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u043D\u0430\u0432\u0441\u044F\u043A\u044A\u0434\u0435
+2) \u041B\u041E\u041A\u0410\u041B\u041D\u0410 \u041A\u041E\u0420\u0415\u041A\u0426\u0418\u042F \u043D\u0430 \u0435\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 replace \u043D\u0430 /plan/weekPlan/dayN/meals/i/description (\u0438 \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 /name):
+   \u0440\u0435\u0434\u043E\u0432\u0435 \u201E\u2022 <\u0438\u043C\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u0430> <\u0433\u0440\u0430\u043C\u043E\u0432\u0435>g\u201C, \u0440\u0430\u0437\u0434\u0435\u043B\u0435\u043D\u0438 \u0441 
+. \u0413\u0440\u0430\u043C\u0430\u0436\u0438 \u043F\u043E \u043A\u0443\u0445\u043D\u0435\u043D\u0441\u043A\u0430\u0442\u0430 \u043C\u0440\u0435\u0436\u0430: \u043E\u0442 50 \u0433 \u043D\u0430\u0433\u043E\u0440\u0435
+   \u043F\u0440\u0435\u0437 50 \u0433; \u043F\u043E\u0434 50 \u0433 \u2014 10, 15, 20, 30, 40 \u0433. \u0415\u0434\u043D\u043E \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u043E \u0433\u0430\u0440\u043D\u0438\u0440\u043D\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 (\u043D\u0435 \u0445\u043B\u044F\u0431 + \u043E\u0440\u0438\u0437).
+   \u041D\u0415 patch-\u0432\u0430\u0439 calories, macros, weight \u0438\u043B\u0438 summary \u2014 \u0442\u0435 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430\u0442 \u043E\u0442 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435\u0442\u043E.
+3) \u0422\u0435\u043A\u0441\u0442\u043E\u0432\u0435 (strategy, recommendations, supplements, /adminNotes) \u2014 patch \u043F\u043E \u043D\u0443\u0436\u0434\u0430.
+
+\u0421\u0435\u0434\u043C\u0438\u0446\u0430: day1..day7 (\u043D\u0435 monday). \u0425\u0440\u0430\u043D\u0435\u043D\u0438\u044F: meals[] \u0441 type, name, description, calories, weight, macros.
+\u0422\u0438\u043F \u201E\u041D\u0430\u043F\u0438\u0442\u043A\u0430\u201C \u0435 \u0441\u0443\u0442\u0440\u0435\u0448\u043D\u0430 \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435; \u201E\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u201C \u0435 \u0441 \u0431\u044E\u0434\u0436\u0435\u0442, \u0431\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435; \u0434\u0435\u0441\u0435\u0440\u0442\u044A\u0442 \u0435 meal.dessert.
 
 #PL v2 admin \u2014 \u043F\u044A\u043B\u0435\u043D \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D (\u0432\u0441\u0435\u043A\u0438 \u0440\u0435\u0434 = \u0435\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435):
-  \u043A\u043E\u043B\u043E\u043D\u0438: day|idx|type|name|kcal|g|P|C|F|patch
-  idx = \u0438\u043D\u0434\u0435\u043A\u0441 \u0432 meals[] (0..n), type = H1-H5 \u0438\u043B\u0438 SF, g = \u0433\u0440\u0430\u043C\u0430\u0436, P/C/F = \u043C\u0430\u043A\u0440\u043E\u0441\u0438 \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435
-  patch = JSON Patch \u043F\u044A\u0442 \u0434\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435\u0442\u043E; \u0441\u0443\u0444\u0438\u043A\u0441\u0438: /calories, /weight ("250g"), /name, /macros/protein \u0438 \u0442.\u043D.
+  \u043A\u043E\u043B\u043E\u043D\u0438: day|idx|type|name|kcal|g|P|C|F|patch|items
+  idx = \u0438\u043D\u0434\u0435\u043A\u0441 \u0432 meals[], type = H1-H5, SF (\u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E) \u0438\u043B\u0438 DR (\u043D\u0430\u043F\u0438\u0442\u043A\u0430), g = \u0433\u0440\u0430\u043C\u0430\u0436, P/C/F = \u043C\u0430\u043A\u0440\u043E\u0441\u0438 \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435
+  patch = JSON Patch \u043F\u044A\u0442 \u0434\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435\u0442\u043E (\u0441\u0443\u0444\u0438\u043A\u0441\u0438 /description, /name); items = \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0438, \u0434\u0435\u0441\u0435\u0440\u0442, \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438
   \u0440\u0435\u0434 T = \u0434\u043D\u0435\u0432\u0435\u043D \u0442\u043E\u0442\u0430\u043B (\u0441\u0443\u043C\u0430\u0440\u043D\u0438 kcal \u0438 \u043C\u0430\u043A\u0440\u043E\u0441\u0438 \u0437\u0430 \u0434\u0435\u043D\u044F)
 
 \u0421\u0435\u043A\u0446\u0438\u044F #AX (\u0430\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430 \u043E\u0442 gamification \u043C\u043E\u0434\u0443\u043B\u0430) \u2014 READ-ONLY, \u043D\u043E \u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u044F \u0432\u0437\u0435\u043C\u0430\u0439 \u043F\u0440\u0435\u0434\u0432\u0438\u0434:
@@ -44001,14 +44066,8 @@ Patch root: { answers, plan, adminNotes }
 - \u0410\u0434\u0430\u043F\u0442\u0438\u0440\u0430\u0439 \u043F\u043B\u0430\u043D\u0430 (#plan patches) \u043D\u0430 \u0431\u0430\u0437\u0430 \u0430\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430\u0442\u0430 + \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0441\u0430\u043C\u043E \u0438\u0437\u043E\u043B\u0438\u0440\u0430\u043D\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438.
 - \u041E\u0431\u044F\u0441\u043D\u0438 \u0432 reply \u0437\u0430\u0449\u043E \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430 \u0441\u043B\u0435\u0434\u0432\u0430 \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0432 #AX.
 
-\u0425\u041E\u041B\u0418\u0421\u0422\u0418\u0427\u041D\u0418 \u041F\u0420\u041E\u041C\u0415\u041D\u0418 (\u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E \u043F\u0440\u0438 \u0440\u0435\u0434\u0430\u043A\u0446\u0438\u044F):
-- \u0417\u0430\u044F\u0432\u043A\u0430 \u043A\u0430\u0442\u043E \u201E\u043F\u0440\u0435\u043C\u0430\u0445\u043D\u0438 \u044F\u0434\u043A\u0438" \u043E\u0437\u043D\u0430\u0447\u0430\u0432\u0430: \u043F\u0440\u0435\u043C\u0430\u0445\u043D\u0438 \u0412\u0421\u0418\u0427\u041A\u0418 \u044F\u0441\u0442\u0438\u044F/\u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0441 \u044F\u0434\u043A\u0438 \u0432 \u0446\u0435\u043B\u0438\u044F \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D (day1..day7), \u0437\u0430\u043C\u0435\u043D\u0438 \u0441 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438 \u0430\u043B\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u0438 \u0441\u044A\u0441 \u0441\u0445\u043E\u0434\u043D\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043C\u0430\u043A\u0440\u043E\u0441\u0438, \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438\u0442\u0435 \u043D\u0430 \u043D\u0438\u0432\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435.
-- \u041D\u0415 \u043F\u0440\u0430\u0432\u0438 \u043F\u043E\u0432\u044A\u0440\u0445\u043D\u043E\u0441\u0442\u043D\u0438 replace \u0441\u0430\u043C\u043E \u043D\u0430 \u0434\u0443\u043C\u0438\u0447\u043A\u0430 \u0432 name \u2014 \u0441\u043C\u0435\u043D\u044F\u0439 \u0446\u044F\u043B\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: name, weight, calories, macros (protein/carbs/fats). \u041F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 replace \u0446\u0435\u043B\u0438\u044F meals[] \u0435\u043B\u0435\u043C\u0435\u043D\u0442.
-- \u0421\u043A\u0430\u043D\u0438\u0440\u0430\u0439 \u0432\u0441\u0438\u0447\u043A\u0438 7 \u0434\u043D\u0438 \u0438 \u0432\u0441\u0438\u0447\u043A\u0438 meals[] \u2014 \u0435\u0434\u043D\u043E \u0438 \u0441\u044A\u0449\u043E \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435/\u0430\u043B\u0435\u0440\u0433\u0438\u044F \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u0435 \u043E\u0442\u0440\u0430\u0437\u0438 \u043D\u0430\u0432\u0441\u044F\u043A\u044A\u0434\u0435, \u043D\u0435 \u0441\u0430\u043C\u043E \u0432 \u0435\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435.
-- \u0410\u043A\u0442\u0443\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u0439 /plan/summary/dailyCalories \u0438 /plan/summary/averageMacros \u043F\u0440\u0438 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F; \u0430\u043A\u0442\u0443\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u0439 strategy/recommendations/supplements \u0442\u0435\u043A\u0441\u0442\u043E\u0432\u0435, \u0430\u043A\u043E \u0441\u043F\u043E\u043C\u0435\u043D\u0430\u0432\u0430\u0442 \u043F\u0440\u0435\u043C\u0430\u0445\u043D\u0430\u0442\u043E\u0442\u043E.
-- \u0410\u043A\u043E \u0441\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0442 answers (\u0430\u043B\u0435\u0440\u0433\u0438\u0438, \u043D\u0435\u0436\u0435\u043B\u0430\u043D\u0438 \u0445\u0440\u0430\u043D\u0438) \u2014 \u043E\u0442\u0440\u0430\u0437\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0438 \u0432 /adminNotes.
-- \u041F\u0440\u0435\u043C\u0430\u0445\u043D\u0438 \u0437\u0430\u0433\u043B\u0430\u0432\u0438\u044F, \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F \u0438 \u0431\u0435\u043B\u0435\u0436\u043A\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430, \u043A\u043E\u0438\u0442\u043E \u0432\u0441\u0435 \u043E\u0449\u0435 \u0441\u043F\u043E\u043C\u0435\u043D\u0430\u0432\u0430\u0442 \u043F\u0440\u0435\u043C\u0430\u0445\u043D\u0430\u0442\u0438\u0442\u0435 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438.
-- \u041F\u0440\u0438 \u0433\u043E\u043B\u0435\u043C\u0438 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u0438 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439 \u043C\u043D\u043E\u0436\u0435\u0441\u0442\u0432\u043E patch \u043E\u043F\u0435\u0440\u0430\u0446\u0438\u0438 \u0432\u044A\u0440\u0445\u0443 \u0432\u0441\u0438\u0447\u043A\u0438 \u0437\u0430\u0441\u0435\u0433\u043D\u0430\u0442\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u2014 \u043D\u0435 \u0441\u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0430\u0432\u0430\u0439 \u0434\u043E \u0435\u0434\u043D\u0430 \u043E\u043F\u0435\u0440\u0430\u0446\u0438\u044F.
+\u0425\u041E\u041B\u0418\u0421\u0422\u0418\u0427\u041D\u0418 \u041F\u0420\u041E\u041C\u0415\u041D\u0418: \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435 \u0438\u043B\u0438 \u0430\u043B\u0435\u0440\u0433\u0438\u044F \u0432\u0430\u0436\u0438 \u0437\u0430 \u0446\u0435\u043B\u0438\u044F \u043F\u043B\u0430\u043D \u2014 \u0437\u0430\u0442\u043E\u0432\u0430 \u0435 \u043A\u043E\u0434/answers (\u0442. 1), \u0430 \u043D\u0435
+\u0440\u044A\u0447\u043D\u0430 \u0441\u043C\u044F\u043D\u0430 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F. \u0410\u043A\u043E \u0441\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0442 answers (\u0430\u043B\u0435\u0440\u0433\u0438\u0438, \u043D\u0435\u0436\u0435\u043B\u0430\u043D\u0438 \u0445\u0440\u0430\u043D\u0438) \u2014 \u043E\u0442\u0440\u0430\u0437\u0438 \u0438 \u0432 /adminNotes.
 
 \u041F\u0440\u0430\u0432\u0438\u043B\u0430:
 - \u041E\u0442\u0433\u043E\u0432\u0430\u0440\u044F\u0439 \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438.
@@ -44151,8 +44210,12 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     if (!isEnginePlan(plan)) refreshAnalysisEnergyFromProfile(env || {}, userData, plan.analysis);
   }
   if (plan.analysis) normalizeAnalysisOutput(plan.analysis, userData);
-  if (plan.strategy) normalizeStrategyDessertFlag(plan.strategy, userData);
-  stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
+  if (isEnginePlan(plan)) {
+    if (plan.strategy) plan.strategy.includeDessert = Object.values(plan.weekPlan).some((d) => (d?.meals || []).some((m) => m.dessert));
+  } else {
+    if (plan.strategy) normalizeStrategyDessertFlag(plan.strategy, userData);
+    stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
+  }
   reconcileEnginePlan(plan);
   if (plan.analysis) syncPlanTargets(plan, plan.analysis);
   const avgMacros = calculateAverageMacrosFromPlan(plan.weekPlan);
@@ -44338,10 +44401,30 @@ async function syncActivatedPlanToUserProfile(env, clientData, clientId) {
     console.warn("[Client] Profile sync failed:", e.message);
   }
 }
+var ENGINE_INPUT_ANSWER_KEYS = [
+  "planModifications",
+  "dietDislike",
+  "dietLove",
+  "dietPreference",
+  "medicalConditions",
+  "foodCravings",
+  "eatingHabits",
+  "mealsPerDay",
+  "userFoodList"
+];
+var engineInputsOf = (answers) => JSON.stringify(ENGINE_INPUT_ANSWER_KEYS.map((k) => answers?.[k] ?? null));
 async function applyAssistantPatches(env, session, clientData, patches, ctx) {
   const patchDoc = buildPatchDocument(clientData);
-  const { document, touchedPlan } = applyJsonPatches(patchDoc, patches);
+  const inputsBefore = engineInputsOf(clientData.answers);
+  const { document, touchedPlan: touchedByPatch } = applyJsonPatches(patchDoc, patches);
   mergePatchDocument(clientData, document);
+  let touchedPlan = touchedByPatch;
+  if (clientData.answers && clientData.plan?.weekPlan && engineInputsOf(clientData.answers) !== inputsBefore) {
+    clientData.answers.planModifications = mergePlanModifications([], clientData.answers.planModifications).merged;
+    const data = JSON.parse(JSON.stringify(clientData.answers));
+    clientData.plan = await regeneratePlanFromChat(env, data, clientData.plan);
+    touchedPlan = true;
+  }
   const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
   if (touchedPlan) {
     await reconcilePlanAfterAssistantPatches(clientData.plan, clientData.answers, env);
@@ -44540,11 +44623,7 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
   };
 }
 function mergeWeeklyModifications(existing, decisionMods) {
-  const mods = new Set(existing || []);
-  (decisionMods || []).forEach((m) => {
-    if (typeof m === "string" && m.trim()) mods.add(m.trim());
-  });
-  return Array.from(mods);
+  return mergePlanModifications(existing, decisionMods).merged;
 }
 async function verifyWeeklyRequestAuth(userId, idToken, env) {
   if (!userId?.startsWith("fb_") || !idToken || !env.FIREBASE_PROJECT_ID) return;
@@ -46107,6 +46186,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
   plan.strategy = strategy;
   plan._meta = {
     generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    cycleNumber: options.cycleNumber || 1,
     engine: buildPlanEngineMeta(analysis, strategy, plan, { step3DurationMs })
   };
   syncPlanTargets(plan, analysis);
@@ -46571,7 +46651,7 @@ async function getChatPrompts(env) {
 8. \u0410\u0434\u0430\u043F\u0442\u0438\u0440\u0430\u0439 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043A\u043E\u043C\u0443\u043D\u0438\u043A\u0430\u0446\u0438\u044F \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442\u0430: {communicationStyle}
 
 \u041F\u0420\u0418\u041C\u0415\u0420\u0418:
-- "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438 \u0441 \u0431\u0430\u043D\u0430\u043D (350 \u043A\u0430\u043B\u043E\u0440\u0438\u0438). \u0417\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430, \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u0430\u0439 \u0440\u0435\u0436\u0438\u043C\u0430 \u0437\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430."
+- "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0432 \u043F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A \u0435 \u043E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0431\u0430\u043D\u0430\u043D \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0438 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0441\u0430 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0442\u0438. \u0417\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430, \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u0430\u0439 \u0440\u0435\u0436\u0438\u043C\u0430 \u0437\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430."
 - "\u041C\u043E\u0436\u0435\u0448 \u0434\u0430 \u0437\u0430\u043C\u0435\u043D\u0438\u0448 \u0440\u0438\u0431\u0430\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435\u0448\u043A\u043E - \u0438 \u0434\u0432\u0435\u0442\u0435 \u0441\u0430 \u043E\u0442\u043B\u0438\u0447\u043D\u0438 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438 \u043D\u0430 \u043F\u0440\u043E\u0442\u0435\u0438\u043D. \u0417\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430, \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u0430\u0439 \u0440\u0435\u0436\u0438\u043C\u0430 \u0437\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430."`,
     modification: `\u0422\u0415\u041A\u0423\u0429 \u0420\u0415\u0416\u0418\u041C: \u041F\u0420\u041E\u041C\u042F\u041D\u0410 \u041D\u0410 \u041F\u041B\u0410\u041D\u0410
 
@@ -46590,7 +46670,7 @@ async function getChatPrompts(env) {
    - \u041E\u0431\u044F\u0441\u043D\u0438 \u041A\u0420\u0410\u0422\u041A\u041E \u043F\u043E\u0441\u043B\u0435\u0434\u0438\u0446\u0438\u0442\u0435 (\u0441\u0430\u043C\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0442\u043E)
    - \u0410\u043A\u043E \u0438\u043C\u0430 \u043F\u043E-\u0434\u043E\u0431\u0440\u0430 \u0430\u043B\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u0430, \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u044F \u0441 1 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435
    - \u0417\u0430\u043F\u0438\u0442\u0430\u0439 \u0441 1 \u0432\u044A\u043F\u0440\u043E\u0441 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435
-   - \u0421\u043B\u0435\u0434 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435, \u043F\u0440\u0438\u043B\u043E\u0436\u0438 \u0441 [REGENERATE_PLAN:{"modifications":["\u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435"]}]
+   - \u0421\u043B\u0435\u0434 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435, \u043F\u0440\u0438\u043B\u043E\u0436\u0438 \u0441 [REGENERATE_PLAN:{"modifications":["\u043A\u043E\u0434"]}] \u2014 \u0441\u0430\u043C\u043E \u043A\u043E\u0434 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 \u0432 \u0442. 7
 
 3. \u0420\u0410\u0417\u041F\u041E\u0417\u041D\u0410\u0412\u0410\u041D\u0415 \u041D\u0410 \u041F\u041E\u0422\u0412\u042A\u0420\u0416\u0414\u0415\u041D\u0418\u0415:
    - "\u0434\u0430", "yes", "\u0434\u043E\u0431\u0440\u0435", "\u043E\u043A", "\u043E\u043A\u0435\u0439", "\u0441\u0438\u0433\u0443\u0440\u0435\u043D", "\u0441\u0438\u0433\u0443\u0440\u043D\u0430" = \u041F\u041E\u0422\u0412\u042A\u0420\u0416\u0414\u0415\u041D\u0418\u0415
@@ -46613,7 +46693,7 @@ async function getChatPrompts(env) {
    
    \u0417\u0430 \u0442\u0432\u043E\u044F\u0442\u0430 \u0446\u0435\u043B \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0432\u0430\u043C \u0435\u0434\u043D\u0430 \u043E\u0442 \u0434\u0432\u0435\u0442\u0435:
    - \u041F\u0440\u0435\u043C\u0430\u0445\u0432\u0430\u043D\u0435 \u043D\u0430 \u0432\u0441\u0438\u0447\u043A\u0438 \u043C\u0435\u0436\u0434\u0438\u043D\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F (\u0441\u0430\u043C\u043E 3 \u043E\u0441\u043D\u043E\u0432\u043D\u0438)
-   - \u041E\u0441\u0442\u0430\u0432\u044F\u043D\u0435 \u043D\u0430 1 \u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 (\u043F\u043E-\u0431\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E)
+   - 4 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u2014 \u0441 \u0435\u0434\u043D\u0430 \u043C\u0435\u0436\u0434\u0438\u043D\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 (\u043F\u043E-\u0431\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u0430\u043D\u043E)
    
    \u041A\u0430\u043A\u0432\u043E \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0448?"
    
@@ -46638,15 +46718,8 @@ async function getChatPrompts(env) {
    
    [REGENERATE_PLAN:{"modifications":["exclude_food:\u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438"]}]"
 
-7. \u041F\u041E\u0414\u0414\u042A\u0420\u0416\u0410\u041D\u0418 \u041C\u041E\u0414\u0418\u0424\u0418\u041A\u0410\u0426\u0418\u0418:
-   - "${PLAN_MODIFICATIONS.NO_INTERMEDIATE_MEALS}" - \u0431\u0435\u0437 \u043C\u0435\u0436\u0434\u0438\u043D\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F
-   - "${PLAN_MODIFICATIONS.THREE_MEALS_PER_DAY}" - 3 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0434\u043D\u0435\u0432\u043D\u043E
-   - "${PLAN_MODIFICATIONS.FOUR_MEALS_PER_DAY}" - 4 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0434\u043D\u0435\u0432\u043D\u043E
-   - "${PLAN_MODIFICATIONS.VEGETARIAN}" - \u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0438 \u043F\u043B\u0430\u043D
-   - "${PLAN_MODIFICATIONS.NO_DAIRY}" - \u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438
-   - "${PLAN_MODIFICATIONS.LOW_CARB}" - \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u0430 \u0434\u0438\u0435\u0442\u0430
-   - "${PLAN_MODIFICATIONS.INCREASE_PROTEIN}" - \u043F\u043E\u0432\u0435\u0447\u0435 \u043F\u0440\u043E\u0442\u0435\u0438\u043D\u0438
-   - "exclude_food:\u0438\u043C\u0435_\u043D\u0430_\u0445\u0440\u0430\u043D\u0430" - \u043F\u0440\u0435\u043C\u0430\u0445\u0432\u0430\u043D\u0435 \u043D\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0430 \u0445\u0440\u0430\u043D\u0430
+7. \u041F\u041E\u0414\u0414\u042A\u0420\u0416\u0410\u041D\u0418 \u041C\u041E\u0414\u0418\u0424\u0418\u041A\u0410\u0426\u0418\u0418 (\u0441\u0430\u043C\u043E \u0442\u0435\u0437\u0438 \u043A\u043E\u0434\u043E\u0432\u0435 \u2014 \u0434\u0440\u0443\u0433 \u0442\u0435\u043A\u0441\u0442 \u0441\u0435 \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0430):
+{modificationCodes}
 
 \u041F\u041E\u041C\u041D\u0418: 
 - \u0424\u043E\u0440\u043C\u0430\u0442\u0438\u0440\u0430\u0439 \u044F\u0441\u043D\u043E \u0441 \u043D\u043E\u0432\u0438 \u0440\u0435\u0434\u043E\u0432\u0435 \u0438 \u0438\u0437\u0431\u0440\u043E\u044F\u0432\u0430\u043D\u0435

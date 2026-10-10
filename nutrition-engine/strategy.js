@@ -88,6 +88,13 @@ function avoidOf(profile, policy, blockedTerms) {
  * @param {object} userData
  * @param {{ freeDayNumber?: number|null, kcal: number }} options
  */
+/** Сутрешната напитка от плана — със същите варианти, които клиентът вижда. */
+function morningDrinkText(weekPlan) {
+  const drink = Object.values(weekPlan || {}).flatMap(d => d?.meals || []).find(m => m.type === 'Напитка');
+  const lines = String(drink?.description || '').split('\n').map(l => l.replace(/^•\s*/, '').trim()).filter(Boolean);
+  return lines.length ? lines.join(', ').toLowerCase() : 'вода с лимон или билков чай';
+}
+
 export function buildEngineStrategy(engine, userData, options) {
   const { profile, policy, prescription, weekPlan, stats, macros } = engine;
   const label = dietLabelOf(profile);
@@ -132,7 +139,7 @@ export function buildEngineStrategy(engine, userData, options) {
     calorieDistribution: mealsText,
     macroDistribution: `Белтък ${round(macros.protein)} г${perKg ? ` (${perKg} г/кг)` : ''}, въглехидрати ${round(macros.carbs)} г, мазнини ${round(macros.fats)} г — по ${policy.styleDef.label.toLowerCase()}.`,
     breakfastStrategy: !slots.includes('Хранене 1')
-      ? 'Без закуска — не се налага. Сутрин се предлага по желание хидратация (айран, протеинов шейк или вода с лимон), а порциите са в останалите хранения.'
+      ? `Без закуска — не се налага. Сутрин по желание хидратация: ${morningDrinkText(weekPlan)}; порциите са в останалите хранения.`
       : (added.includes('Хранене 1')
         ? 'Леко първо хранене — при този калораж основните хранения иначе излизат прекалено големи.'
         : 'Закуската съчетава белтък, зърнени и плод или зеленчук.'),

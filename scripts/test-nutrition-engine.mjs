@@ -10,7 +10,8 @@ import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
 import { calculateBMR, calculateUnifiedActivityScore, calculateTDEE, calculateSafeDeficit } from '../energy.js';
 import { computeIntakeTarget } from '../step1-deterministic.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
-import { buildNutritionPlan, reconcileEnginePlan } from '../nutrition-engine/index.js';
+import { buildNutritionPlan, reconcileEnginePlan, mergePlanModifications } from '../nutrition-engine/index.js';
+import { serializeWeekPlanClient, serializeStrategyForMealPlan } from '../context-compression.js';
 import { buildFoodPolicy } from '../nutrition-engine/policy.js';
 import { prescribe } from '../nutrition-engine/prescription.js';
 import { foodByCatalogName, DISHES_BY_ID } from '../nutrition-engine/knowledge.js';
@@ -198,6 +199,25 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const brief = profileBrief(compileProfile({ ...PROFILES[0], medicalConditions: ['Диабет'] }));
   ok(/цел:/.test(brief) && /T2D/.test(brief) && /изключвания/.test(brief), 'AI: получава разбрания профил като контекст');
   ok(WEEKLY_CHECKIN_QUESTIONS.some(q => q.type === 'text'), 'седмичен преглед: свободен коментар');
+}
+
+// ── Чат и промени по плана: само кодове на двигателя; бройката хранения се заменя ──
+{
+  const m = mergePlanModifications(['3_meals_per_day', 'стар свободен текст'], ['4_meals_per_day', 'махни сладкото', 'exclude_food:овесени ядки']);
+  ok(m.merged.includes('4_meals_per_day') && !m.merged.includes('3_meals_per_day'), 'промени: новият брой хранения заменя стария');
+  ok(!m.merged.some(x => /текст|сладкото/.test(x)) && m.rejected.includes('махни сладкото'), 'промени: свободният текст се отхвърля');
+  ok(m.merged.includes('exclude_food:овесени ядки'), 'промени: exclude_food се приема');
+  const data = structuredClone(PROFILES[0]);
+  enrichUserDataEngineContext(data);
+  const res = buildNutritionPlan({ ...data, foodCravings: ['Сладко'], eatingHabits: ['Не закусвам'] }, { kcal: 2000, seed: 'chat' });
+  const strategy = buildEngineStrategy(res, data, { kcal: 2000, freeDayNumber: res.freeDayNumber });
+  const text = serializeWeekPlanClient(res.weekPlan);
+  ok(/\|DR\|/.test(text), 'чат: сутрешната напитка се вижда като DR');
+  ok(!res.policy.sweets || /десерт:/.test(text), 'чат: десертът е в състава на храненето');
+  ok(!res.freeDayNumber || /свободно\(бюджет~[1-9]/.test(text), 'чат: свободното хранене е с бюджет');
+  const st = serializeStrategyForMealPlan(strategy);
+  ok(/sch=/.test(st) && /dessert=[01]/.test(st), 'чат: стратегията носи схемата в порции и десерта');
+  ok(!/айран/i.test(strategy.breakfastStrategy) || res.policy.allowed('dairy_kefir'), 'стратегия: напитката е според клиента');
 }
 
 console.log(`\n=== nutrition engine: ${pass} pass, ${fail} fail ===`);

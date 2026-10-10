@@ -35,6 +35,52 @@ const PATTERN_RANK = { omnivore: 0, pescatarian: 1, vegetarian: 2, vegan: 3 };
 const SLOT_ORDER = ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5'];
 
 /**
+ * Промените в плана, които двигателят разбира — единственият списък: от него
+ * се пишат инструкциите на чата, по него се проверява всичко, което AI върне.
+ * Плюс exclude_food:<храна>.
+ */
+export const PLAN_MODIFICATION_CODES = {
+  '3_meals_per_day': '3 хранения дневно (без междинни)',
+  no_intermediate_meals: 'без междинни хранения (= 3 хранения)',
+  '4_meals_per_day': '4 хранения дневно (с една междинна закуска)',
+  '5_meals_per_day': '5 хранения дневно (връща междинните закуски)',
+  vegetarian: 'вегетарианско — без месо и риба',
+  no_dairy: 'без млечни продукти',
+  low_carb: 'нисковъглехидратно',
+  increase_protein: 'повече белтък (+15%)',
+  smaller_portions: 'по-малки порции, разпределени в повече хранения',
+  simplify_meals: 'по-прости ястия, по-малко готвене, повторения',
+  more_variety: 'повече разнообразие в основните ястия',
+  more_volume: 'повече обем (зеленчуци) при същите калории',
+  gentle_digestion: 'щадящо храносмилането (без храни, които подуват)',
+};
+const MEAL_COUNT_CODES = ['3_meals_per_day', 'no_intermediate_meals', '4_meals_per_day', '5_meals_per_day'];
+
+/**
+ * Добавя нови промени към текущите: само познати кодове и exclude_food:…;
+ * новият брой хранения заменя стария (3 и 4 хранения не се трупат).
+ * @param {unknown[]} existing
+ * @param {unknown[]} incoming
+ * @returns {{ merged: string[], accepted: string[], rejected: string[] }}
+ */
+export function mergePlanModifications(existing = [], incoming = []) {
+  const valid = (m) => PLAN_MODIFICATION_CODES[m] || /^exclude_food:.{2,60}$/.test(m);
+  const merged = (Array.isArray(existing) ? existing : []).map(m => String(m).trim()).filter(valid);
+  const accepted = [];
+  const rejected = [];
+  for (const raw of Array.isArray(incoming) ? incoming : []) {
+    const m = String(raw ?? '').trim();
+    if (!valid(m)) { if (m) rejected.push(m); continue; }
+    if (MEAL_COUNT_CODES.includes(m)) {
+      for (let i = merged.length - 1; i >= 0; i--) if (MEAL_COUNT_CODES.includes(merged[i])) merged.splice(i, 1);
+    }
+    if (!merged.includes(m)) merged.push(m);
+    accepted.push(m);
+  }
+  return { merged, accepted, rejected };
+}
+
+/**
  * Промените, поискани от клиента (чат) или от седмичния преглед, приложени
  * към профила като кодове — не като текст към модел.
  */
@@ -46,6 +92,7 @@ export function applyModifications(profile, mods = []) {
   if (set.has('no_dairy') && !out.exclusions.includes('LAC')) out.exclusions.push('LAC');
   if (set.has('no_intermediate_meals') || set.has('3_meals_per_day')) out.slots = slotsFor(3, out.skipsBreakfast);
   if (set.has('4_meals_per_day')) out.slots = slotsFor(4, out.skipsBreakfast);
+  if (set.has('5_meals_per_day')) out.slots = slotsFor(5, out.skipsBreakfast);
   if (set.has('smaller_portions')) {
     const extra = ['Хранене 3', 'Хранене 5'].find(s => !out.slots.includes(s));
     if (extra) out.slots = SLOT_ORDER.filter(s => out.slots.includes(s) || s === extra);

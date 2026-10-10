@@ -64,6 +64,8 @@ import {
   isEnginePlan,
   reconcileEnginePlan,
   ENGINE_ID,
+  PLAN_MODIFICATION_CODES,
+  mergePlanModifications,
 } from './nutrition-engine/index.js';
 import { buildEngineStrategy } from './nutrition-engine/strategy.js';
 import {
@@ -391,27 +393,6 @@ const DAY_NUMBER_TO_KEY = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday
 const ERROR_MESSAGE_PARSE_FAILURE = ERROR_MESSAGES.PARSE_FAILURE;
 
 // Plan modification descriptions for AI prompts
-const PLAN_MODIFICATIONS = {
-  NO_INTERMEDIATE_MEALS: 'no_intermediate_meals',
-  THREE_MEALS_PER_DAY: '3_meals_per_day',
-  FOUR_MEALS_PER_DAY: '4_meals_per_day',
-  VEGETARIAN: 'vegetarian',
-  NO_DAIRY: 'no_dairy',
-  LOW_CARB: 'low_carb',
-  INCREASE_PROTEIN: 'increase_protein',
-  SIMPLIFY_MEALS: 'simplify_meals'
-};
-
-const PLAN_MODIFICATION_DESCRIPTIONS = {
-  [PLAN_MODIFICATIONS.NO_INTERMEDIATE_MEALS]: '- БЕЗ междинни хранения - само основни хранения (Хранене 1, Хранене 2, Хранене 4)',
-  [PLAN_MODIFICATIONS.THREE_MEALS_PER_DAY]: '- Точно 3 хранения на ден (Хранене 1, Хранене 2, Хранене 4)',
-  [PLAN_MODIFICATIONS.FOUR_MEALS_PER_DAY]: '- 4 хранения на ден (Хранене 1, Хранене 2, Хранене 3, Хранене 4)',
-  [PLAN_MODIFICATIONS.VEGETARIAN]: '- ВЕГЕТАРИАНСКО хранене - без месо и риба',
-  [PLAN_MODIFICATIONS.NO_DAIRY]: '- БЕЗ млечни продукти',
-  [PLAN_MODIFICATIONS.LOW_CARB]: '- Нисковъглехидратна диета',
-  [PLAN_MODIFICATIONS.INCREASE_PROTEIN]: '- Повишен прием на протеини',
-  [PLAN_MODIFICATIONS.SIMPLIFY_MEALS]: '- Опростени/бързи ястия — по-малко готвене, готови опции'
-};
 
 // Default goal-based hacks (hardcoded tips per goal, managed via admin panel)
 const DEFAULT_GOAL_HACKS = {
@@ -2822,6 +2803,11 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
 /**
  * Generate chat prompt with Smart Context (SCC v1) — NPCF sections, not raw JSON.
  */
+const MODIFICATION_CODES_TEXT = [
+  ...Object.entries(PLAN_MODIFICATION_CODES).map(([code, label]) => `   - "${code}" — ${label}`),
+  '   - "exclude_food:име_на_храна" — премахване на конкретна храна',
+].join('\n');
+
 async function generateChatPrompt(env, userMessage, contextText, userData, conversationHistory, mode = 'consultation', userPlan = null) {
   const name = userData?.name || 'клиента';
   const baseContext = `Ти си личен диетолог, психолог и здравен асистент за ${name}.
@@ -2841,6 +2827,7 @@ ${conversationHistory.length > 0 ? `ИСТОРИЯ НА РАЗГОВОРА:\n${c
     modeInstructions = (chatPrompts.consultation || '').replace(/{communicationStyle}/g, commGuidelines);
   } else if (mode === 'modification') {
     modeInstructions = (chatPrompts.modification || '')
+      .replace(/{modificationCodes}/g, MODIFICATION_CODES_TEXT)
       .replace(/{goal}/g, userData?.goal || 'твоята цел')
       .replace(/{communicationStyle}/g, commGuidelines);
   }
@@ -3264,6 +3251,40 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
 }
 
 /**
+ * Промяна на плана от чата: същият двигател и същите проверки като при
+ * генериране, но с текущия анализ (калориите след седмичните корекции) и
+ * цикъла на плана — менюто се променя само там, където промяната го изисква.
+ */
+async function regeneratePlanFromChat(env, data, currentPlan) {
+  const kcal = parseFinalCalories(currentPlan?.analysis?.Final_Calories);
+  if (!kcal) {
+    const result = await generatePlanCore(env, data);
+    if (!result.plan) throw new Error('Планът не можа да се генерира');
+    return result.plan;
+  }
+  await loadCatalogRegistryOverlay(env);
+  const userId = data.email || generateUserId(data);
+  const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
+  if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
+  enrichUserDataEngineContext(data);
+  await applyIntakeHints(env, data);
+  const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
+  const cycleNumber = currentPlan._meta?.cycleNumber || 1;
+  let plan = assembleEnginePlan(data, analysis, { cycleNumber });
+  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps }));
+  try {
+    await finalizeValidatedPlan(env, plan, data);
+  } catch (validationErr) {
+    if (validationErr.message?.includes('медицински прагове')) throw validationErr;
+    console.warn('[chat] post-validation skipped:', validationErr.message);
+  }
+  const clean = removeInternalJustifications(plan);
+  if (currentPlan.hacks) clean.hacks = currentPlan.hacks;
+  if (currentPlan.clinicalProtocol) clean.clinicalProtocol = currentPlan.clinicalProtocol;
+  return clean;
+}
+
+/**
  * Generates a diet plan, stores the result (or failure) in KV under jobId.
  * Runs as a ctx.waitUntil() background task so the Worker stays alive even
  * after the HTTP client disconnects (e.g. Android app backgrounded/killed).
@@ -3664,39 +3685,23 @@ async function handleChat(request, env) {
             const regenerateData = JSON.parse(jsonContent);
             const modifications = regenerateData.modifications || [];
             
-            // Apply modifications to user data and regenerate plan
-            // Use Set to avoid duplicates when accumulating modifications
-            const existingMods = new Set(effectiveUserData.planModifications || []);
+            // Само кодове, които двигателят разбира; новият брой хранения заменя стария.
+            const { merged, accepted, rejected } = mergePlanModifications(effectiveUserData.planModifications, modifications);
+            if (rejected.length) console.warn('[chat] непознати промени, игнорирани:', rejected);
             const excludedFoods = new Set((effectiveUserData.dietDislike || '').split(',').map(f => f.trim()).filter(f => f));
-            
-            // Enhancement #4: Validate food exclusions against current plan
-            const validatedModifications = [];
-            
-            modifications.forEach(mod => {
-              if (mod.startsWith('exclude_food:')) {
-                // Extract food name from "exclude_food:име_на_храна"
-                const foodName = mod.substring('exclude_food:'.length).trim();
-                if (foodName) {
-                  // Add to excluded foods regardless (as preference for future plan generations)
-                  excludedFoods.add(foodName);
-                  validatedModifications.push(mod);
-                }
-              } else {
-                existingMods.add(mod);
-                validatedModifications.push(mod);
-              }
-            });
-            
+            for (const mod of accepted) {
+              if (mod.startsWith('exclude_food:')) excludedFoods.add(mod.slice('exclude_food:'.length).trim());
+            }
             const modifiedUserData = {
               ...effectiveUserData,
-              planModifications: Array.from(existingMods),
+              planModifications: merged,
               dietDislike: Array.from(excludedFoods).join(', ')
             };
-            
-            // Regenerate the plan using multi-step approach with new criteria
-            // Return updated data to client - no server storage
-            const newPlan = await generatePlanMultiStep(env, modifiedUserData);
-            
+
+            // Същият път като генерирането: двигател, проверки, текущите калории и цикъл.
+            const newPlan = accepted.length ? await regeneratePlanFromChat(env, modifiedUserData, effectiveUserPlan) : null;
+            if (!newPlan) throw new Error('Няма разпозната промяна за прилагане');
+
             planWasUpdated = true;
             updatedPlan = newPlan;
             updatedUserData = modifiedUserData;
@@ -4993,24 +4998,29 @@ const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си NutriPlan AI асисте�
 Patch root: { answers, plan, adminNotes }
 Разрешени path префикси: /answers, /plan, /adminNotes
 
-Примери:
-- /plan/summary/dailyCalories
-- /plan/weekPlan/day1/meals/0/name
-- /plan/weekPlan/day1/meals/0/calories
-- /plan/weekPlan/day1/meals/0/weight  (стринг, напр. "250g")
-- /plan/weekPlan/day1/meals/0/macros/protein
-- /plan/weekPlan/day1/meals/0/macros/carbs
-- /plan/weekPlan/day1/meals/0/macros/fats
-- /plan/supplements/-  (add в края на масив)
-- /answers/lossKg
-- /adminNotes
+КАК Е НАПРАВЕН ПЛАНЪТ: менюто се сглобява от детерминистичен двигател (хранителна схема в обменни порции,
+клинични правила, кухненски грамажи). Описанието на храненето (редове „• Храна 150g“) е източникът —
+калориите, макросите и грамажът се преизчисляват от него автоматично. Затова:
 
-Седмица: day1..day7 (не monday). Хранения: meals[] с type, name, calories, weight, macros (protein, carbs, fats).
+1) ПРОМЕНИ ВЪРХУ ЦЕЛИЯ ПЛАН (премахване на храна, алергия, брой хранения, вегетарианско, без млечни,
+   нисковъглехидратно, повече белтък, по-просто, повече разнообразие…) — НЕ редактирай хранения.
+   Добави код в /answers/planModifications (op "add", path "/answers/planModifications/-") и/или храна
+   в /answers/dietDislike. Системата регенерира плана с двигателя. Позволени кодове:
+${Object.entries(PLAN_MODIFICATION_CODES).map(([code, label]) => `   - "${code}" — ${label}`).join('\n')}
+   - "exclude_food:име_на_храна" — премахване на конкретна храна навсякъде
+2) ЛОКАЛНА КОРЕКЦИЯ на едно хранене — replace на /plan/weekPlan/dayN/meals/i/description (и при нужда /name):
+   редове „• <име на храна> <грамове>g“, разделени с \n. Грамажи по кухненската мрежа: от 50 г нагоре
+   през 50 г; под 50 г — 10, 15, 20, 30, 40 г. Едно въглехидратно гарнирне в хранене (не хляб + ориз).
+   НЕ patch-вай calories, macros, weight или summary — те се смятат от описанието.
+3) Текстове (strategy, recommendations, supplements, /adminNotes) — patch по нужда.
+
+Седмица: day1..day7 (не monday). Хранения: meals[] с type, name, description, calories, weight, macros.
+Тип „Напитка“ е сутрешна хидратация по желание; „Свободно хранене“ е с бюджет, без описание; десертът е meal.dessert.
 
 #PL v2 admin — пълен седмичен план (всеки ред = едно хранене):
-  колони: day|idx|type|name|kcal|g|P|C|F|patch
-  idx = индекс в meals[] (0..n), type = H1-H5 или SF, g = грамаж, P/C/F = макроси в грамове
-  patch = JSON Patch път до хранението; суфикси: /calories, /weight ("250g"), /name, /macros/protein и т.н.
+  колони: day|idx|type|name|kcal|g|P|C|F|patch|items
+  idx = индекс в meals[], type = H1-H5, SF (свободно) или DR (напитка), g = грамаж, P/C/F = макроси в грамове
+  patch = JSON Patch път до хранението (суфикси /description, /name); items = съставки, десерт, подправки
   ред T = дневен тотал (сумарни kcal и макроси за деня)
 
 Секция #AX (аналитика от gamification модула) — READ-ONLY, но ЗАДЪЛЖИТЕЛНО я вземай предвид:
@@ -5030,14 +5040,8 @@ Patch root: { answers, plan, adminNotes }
 - Адаптирай плана (#plan patches) на база аналитиката + профила — не само изолирани промени.
 - Обясни в reply защо промяната следва от данните в #AX.
 
-ХОЛИСТИЧНИ ПРОМЕНИ (задължително при редакция):
-- Заявка като „премахни ядки" означава: премахни ВСИЧКИ ястия/продукти с ядки в целия седмичен план (day1..day7), замени с подходящи алтернативи със сходни калории и макроси, преизчисли стойностите на ниво хранене.
-- НЕ прави повърхностни replace само на думичка в name — сменяй цялото хранене: name, weight, calories, macros (protein/carbs/fats). При нужда replace целия meals[] елемент.
-- Сканирай всички 7 дни и всички meals[] — едно и също ограничение/алергия трябва да се отрази навсякъде, не само в едно ястие.
-- Актуализирай /plan/summary/dailyCalories и /plan/summary/averageMacros при промяна на хранения; актуализирай strategy/recommendations/supplements текстове, ако споменават премахнатото.
-- Ако се променят answers (алергии, нежелани храни) — отрази в плана и в /adminNotes.
-- Премахни заглавия, описания и бележки в плана, които все още споменават премахнатите продукти.
-- При големи корекции използвай множество patch операции върху всички засегнати хранения — не се ограничавай до една операция.
+ХОЛИСТИЧНИ ПРОМЕНИ: ограничение или алергия важи за целия план — затова е код/answers (т. 1), а не
+ръчна смяна на отделни хранения. Ако се променят answers (алергии, нежелани храни) — отрази и в /adminNotes.
 
 Правила:
 - Отговаряй на български.
@@ -5242,8 +5246,14 @@ async function reconcilePlanStructure(plan, userData = null, env = null) {
     if (!isEnginePlan(plan)) refreshAnalysisEnergyFromProfile(env || {}, userData, plan.analysis);
   }
   if (plan.analysis) normalizeAnalysisOutput(plan.analysis, userData);
-  if (plan.strategy) normalizeStrategyDessertFlag(plan.strategy, userData);
-  stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
+  // Десертът на плана от двигателя е решен от политиката му (сладкоежец и без
+  // клинично ограничение) — флагът се взема от самите хранения, не от старото правило.
+  if (isEnginePlan(plan)) {
+    if (plan.strategy) plan.strategy.includeDessert = Object.values(plan.weekPlan).some(d => (d?.meals || []).some(m => m.dessert));
+  } else {
+    if (plan.strategy) normalizeStrategyDessertFlag(plan.strategy, userData);
+    stripDessertsWhenDisabled(plan.weekPlan, plan.strategy);
+  }
   // Описанието на храненето е източникът: стойностите се смятат от
   // грамовете му, без мащабиране и без нов избор на ястия.
   reconcileEnginePlan(plan);
@@ -5475,10 +5485,28 @@ async function syncActivatedPlanToUserProfile(env, clientData, clientId) {
 /**
  * Прилага JSON Patch върху клиент и записва в KV.
  */
+/** Отговорите, от които двигателят сглобява менюто — промяна в тях означава ново меню. */
+const ENGINE_INPUT_ANSWER_KEYS = [
+  'planModifications', 'dietDislike', 'dietLove', 'dietPreference', 'medicalConditions',
+  'foodCravings', 'eatingHabits', 'mealsPerDay', 'userFoodList',
+];
+const engineInputsOf = (answers) => JSON.stringify(ENGINE_INPUT_ANSWER_KEYS.map(k => answers?.[k] ?? null));
+
 async function applyAssistantPatches(env, session, clientData, patches, ctx) {
   const patchDoc = buildPatchDocument(clientData);
-  const { document, touchedPlan } = applyJsonPatches(patchDoc, patches);
+  const inputsBefore = engineInputsOf(clientData.answers);
+  const { document, touchedPlan: touchedByPatch } = applyJsonPatches(patchDoc, patches);
   mergePatchDocument(clientData, document);
+  let touchedPlan = touchedByPatch;
+
+  // Промяна в ограниченията, модификациите или навиците → менюто се сглобява
+  // наново от двигателя (същите калории и цикъл), не с ръчни редакции.
+  if (clientData.answers && clientData.plan?.weekPlan && engineInputsOf(clientData.answers) !== inputsBefore) {
+    clientData.answers.planModifications = mergePlanModifications([], clientData.answers.planModifications).merged;
+    const data = JSON.parse(JSON.stringify(clientData.answers));
+    clientData.plan = await regeneratePlanFromChat(env, data, clientData.plan);
+    touchedPlan = true;
+  }
 
   const wasPreviouslyActivated = Boolean(clientData.planActivatedAt);
   if (touchedPlan) {
@@ -5714,11 +5742,7 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
 }
 
 function mergeWeeklyModifications(existing, decisionMods) {
-  const mods = new Set(existing || []);
-  (decisionMods || []).forEach((m) => {
-    if (typeof m === 'string' && m.trim()) mods.add(m.trim());
-  });
-  return Array.from(mods);
+  return mergePlanModifications(existing, decisionMods).merged;
 }
 
 async function verifyWeeklyRequestAuth(userId, idToken, env) {
@@ -7621,6 +7645,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
   plan.strategy = strategy;
   plan._meta = {
     generatedAt: new Date().toISOString(),
+    cycleNumber: options.cycleNumber || 1,
     engine: buildPlanEngineMeta(analysis, strategy, plan, { step3DurationMs }),
   };
   syncPlanTargets(plan, analysis);
@@ -8198,7 +8223,7 @@ async function getChatPrompts(env) {
 8. Адаптирай стила на комуникация към клиента: {communicationStyle}
 
 ПРИМЕРИ:
-- "Закуската съдържа овесени ядки с банан (350 калории). За промяна, активирай режима за промяна."
+- "Закуската в понеделник е овесена каша с банан — калориите и грамажите са в плана ти. За промяна, активирай режима за промяна."
 - "Можеш да замениш рибата с пилешко - и двете са отлични източници на протеин. За промяна, активирай режима за промяна."`,
     modification: `ТЕКУЩ РЕЖИМ: ПРОМЯНА НА ПЛАНА
 
@@ -8217,7 +8242,7 @@ async function getChatPrompts(env) {
    - Обясни КРАТКО последиците (само основното)
    - Ако има по-добра алтернатива, предложи я с 1 изречение
    - Запитай с 1 въпрос за потвърждение
-   - След потвърждение, приложи с [REGENERATE_PLAN:{"modifications":["описание"]}]
+   - След потвърждение, приложи с [REGENERATE_PLAN:{"modifications":["код"]}] — само код от списъка в т. 7
 
 3. РАЗПОЗНАВАНЕ НА ПОТВЪРЖДЕНИЕ:
    - "да", "yes", "добре", "ок", "окей", "сигурен", "сигурна" = ПОТВЪРЖДЕНИЕ
@@ -8240,7 +8265,7 @@ async function getChatPrompts(env) {
    
    За твоята цел препоръчвам една от двете:
    - Премахване на всички междинни хранения (само 3 основни)
-   - Оставяне на 1 здравословна закуска (по-балансирано)
+   - 4 хранения — с една междинна закуска (по-балансирано)
    
    Какво предпочиташ?"
    
@@ -8265,15 +8290,8 @@ async function getChatPrompts(env) {
    
    [REGENERATE_PLAN:{"modifications":["exclude_food:овесени ядки"]}]"
 
-7. ПОДДЪРЖАНИ МОДИФИКАЦИИ:
-   - "${PLAN_MODIFICATIONS.NO_INTERMEDIATE_MEALS}" - без междинни хранения
-   - "${PLAN_MODIFICATIONS.THREE_MEALS_PER_DAY}" - 3 хранения дневно
-   - "${PLAN_MODIFICATIONS.FOUR_MEALS_PER_DAY}" - 4 хранения дневно
-   - "${PLAN_MODIFICATIONS.VEGETARIAN}" - вегетариански план
-   - "${PLAN_MODIFICATIONS.NO_DAIRY}" - без млечни продукти
-   - "${PLAN_MODIFICATIONS.LOW_CARB}" - нисковъглехидратна диета
-   - "${PLAN_MODIFICATIONS.INCREASE_PROTEIN}" - повече протеини
-   - "exclude_food:име_на_храна" - премахване на конкретна храна
+7. ПОДДЪРЖАНИ МОДИФИКАЦИИ (само тези кодове — друг текст се игнорира):
+{modificationCodes}
 
 ПОМНИ: 
 - Форматирай ясно с нови редове и изброяване

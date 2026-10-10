@@ -5211,6 +5211,9 @@
                         // Budget the free meal at its realistic cost, not at the cost of the
                         // lunch it replaces — otherwise the free day silently understates intake.
                         var freeBudget = freeCal > 0 ? Math.round(freeCal * FREE_MEAL_OVERAGE) : 0;
+                        // Планът от двигателя носи бюджета си — същият като в книгата и сървъра.
+                        var engineBudget = (plan.planEngine === 'exchange-v4' || (plan.strategy && plan.strategy.engine === 'exchange-v4')) ? (parseInt(meal._plannedCalories) || 0) : 0;
+                        if (engineBudget > 0) freeBudget = engineBudget;
                         if (freeBudget > 0) meal._plannedCalories = freeBudget;
                         totalCal += freeBudget;
                         if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
@@ -5221,9 +5224,10 @@
                                 });
                                 if (freeEntry) {
                                     // Scale macros with the calories so daily totals stay coherent
-                                    totalProtein += (parseFloat(freeEntry.protein) || 0) * FREE_MEAL_OVERAGE;
-                                    totalCarbs += (parseFloat(freeEntry.carbs) || 0) * FREE_MEAL_OVERAGE;
-                                    totalFats += (parseFloat(freeEntry.fats) || 0) * FREE_MEAL_OVERAGE;
+                                    var macroScale = engineBudget > 0 ? 1 : FREE_MEAL_OVERAGE;
+                                    totalProtein += (parseFloat(freeEntry.protein) || 0) * macroScale;
+                                    totalCarbs += (parseFloat(freeEntry.carbs) || 0) * macroScale;
+                                    totalFats += (parseFloat(freeEntry.fats) || 0) * macroScale;
                                 }
                             }
                         }
@@ -5421,8 +5425,10 @@
             // Build breakfast-note element if strategy includes one
             const bs = dietPlan.strategy && dietPlan.strategy.breakfastStrategy;
             const skipsBreakfast = userData && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
+            // Планът от двигателя показва сутрешната напитка като собствена карта („Напитка“).
+            const isEnginePlanView = dietPlan.planEngine === 'exchange-v4' || (dietPlan.strategy && dietPlan.strategy.engine === 'exchange-v4');
             let bsEl = null;
-            if (bs) {
+            if (bs && !isEnginePlanView) {
                 bsEl = document.createElement('div');
                 bsEl.className = 'meal-card breakfast-note-card meal-card--clickable';
                 bsEl.innerHTML =
@@ -6143,7 +6149,7 @@
                 }
                 openModal(
                     meal.name,
-                    meal.description || '',
+                    (meal.description || '') + (meal.recipe ? '\n' + meal.recipe : ''),
                     meal.benefits || '',
                     meal.macros || null,
                     meal.dessert || null,
@@ -7091,6 +7097,9 @@
             
             const snapshot = {
                 plan: JSON.parse(JSON.stringify(dietPlan)),
+                // Промените от чата са и в отговорите (кодове, отказани храни) —
+                // отмяната ги връща, иначе следващото генериране ги прилага отново.
+                userData: userData ? JSON.parse(JSON.stringify(userData)) : null,
                 timestamp: Date.now()
             };
             
@@ -7118,12 +7127,25 @@
             
             const lastSnapshot = planHistory.pop();
             dietPlan = lastSnapshot.plan;
+            if (lastSnapshot.userData) {
+                userData = lastSnapshot.userData;
+                localStorage.setItem('userData', JSON.stringify(userData));
+            }
             migrateMealTypes(dietPlan);
             alignPlanMealsToStrategy(dietPlan);
             correctPlanCalories(dietPlan);
             
             // Save to localStorage and backend
             localStorage.setItem('dietPlan', JSON.stringify(dietPlan));
+            if (userId && window.NutriPlanPlanSync) {
+                (async () => {
+                    const _idToken = (userId.startsWith('fb_') && auth.currentUser)
+                        ? await auth.currentUser.getIdToken().catch(() => null)
+                        : null;
+                    window.NutriPlanPlanSync.saveUserProfile(userId, dietPlan, userData, localStorage.getItem('planSource') || '', _idToken)
+                        .catch(function (e) { console.warn('[PWA] Undo save failed:', e); });
+                })();
+            }
             
             // Update UI
             renderDay(currentDay);
@@ -9708,7 +9730,8 @@
                     var typeEl = card.querySelector('.meal-type');
                     mealType = typeEl ? typeEl.textContent.replace(/\(.*\)/,'').trim() : '';
                 }
-                if (!mealType) return;
+                // Сутрешната напитка е по желание — не е хранене за отмятане.
+                if (!mealType || mealType === 'Напитка') return;
                 card.setAttribute('data-ge','1');
                 var isFreeMeal = card.classList.contains('free-day');
 
