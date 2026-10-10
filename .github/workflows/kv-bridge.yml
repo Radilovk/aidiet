@@ -19,7 +19,7 @@ on:
         required: false
         type: string
       value:
-        description: 'Стойност (само за put)'
+        description: 'Стойност (само за put). Входовете са публични — тук не се пишат тайни, само настройки и промптове.'
         required: false
         type: string
 
