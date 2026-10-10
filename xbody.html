@@ -1304,6 +1304,11 @@
         html[data-theme="dark"] .xb-code input { border-color: #3a353f; }
         .xb-sheet .xb-code .xb-code-go { width: auto; min-height: 44px; margin: 0; padding: 0 16px; border: 0; border-radius: 12px; background: #16141a; color: #fff; font-size: 14px; }
         html[data-theme="dark"] .xb-sheet .xb-code .xb-code-go { background: #f3f1f4; color: #16141a; }
+        .xb-policy { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 4px; padding: 11px 12px; border-radius: 12px;
+            background: rgba(211, 47, 47, .06); border: 1px solid rgba(211, 47, 47, .18); font-size: 13px; line-height: 1.5; }
+        .xb-policy i { margin-top: 2px; color: #d32f2f; }
+        .xb-policy b { font-weight: 700; }
+        html[data-theme="dark"] .xb-policy { background: rgba(229, 57, 53, .1); border-color: rgba(229, 57, 53, .28); }
         .xb-sheet .xb-notice { margin: 10px 0 2px; font-size: 13px; font-weight: 400; line-height: 1.45; color: #8a8590; }
         .xb-sheet .xb-link { display: inline; width: auto; min-height: 0; margin: 0; padding: 0; border: 0; background: none; color: #d32f2f; font: inherit; font-size: inherit; font-weight: 600; text-decoration: underline; }
         .xb-sheet .xb-notice .xb-info { vertical-align: middle; margin-left: 4px; }
@@ -1622,7 +1627,7 @@
             const titleEl = document.getElementById('xb-slots-title');
             const nextEl = document.getElementById('xb-next');
             const moveEl = document.getElementById('xb-move');
-            const LATE_MS = 12 * 3600 * 1000;
+            const LATE_MS = 24 * 3600 * 1000;   // free change / cancel until 24 h before the training
 
             let bookingUrl = '';
             let fallback = null;
@@ -2143,8 +2148,8 @@
                 if (consents()) return '';
                 return '<p class="xb-notice">Със „Запази“ приемате условията за резервация и SMS напомняния за часовете. ' +
                         '<button type="button" class="xb-info" data-info="xb-terms-info" aria-label="Какво включват условията" aria-expanded="false">i</button></p>' +
-                    '<p class="xb-info-text hidden" id="xb-terms-info">При отмяна, промяна или неявяване по-малко от 12 часа преди тренировката ' +
-                        'тя се заплаща от картата Ви, без възможност за възстановяване на сумата. Картата е само гаранция — при записване не се тегли нищо. ' +
+                    '<p class="xb-info-text hidden" id="xb-terms-info">Промяна или отказ — безплатно до 24 часа преди тренировката. ' +
+                        'По-късно или при неявяване тя се таксува автоматично от картата Ви и сумата не се възстановява. Картата е само гаранция — при записване не се тегли нищо. ' +
                         'SMS напомнянията са кратки съобщения преди тренировката.</p>';
             }
 
@@ -2226,6 +2231,7 @@
                     (savedLine(c) || '') +
                     codeLine(c) +
                     consentBoxes() +
+                    (savedCard(c.email) ? policyBox() : '<p class="xb-notice"><i class="far fa-clock" aria-hidden="true"></i> Промяна или отказ — безплатно до 24 ч преди часа.</p>') +
                     (note ? '<p class="xb-cart-note">' + note + '</p>' : '') +
                     '<button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Запази ' +
                         (cart.length === 1 ? '1 час' : cart.length + ' часа') + '</button>' +
@@ -2290,11 +2296,16 @@
                 }
                 return stripeLoad;
             }
+            /* the guarantee in two lines: nothing now; free change / cancel until 24 h, after that charged */
+            function policyBox(extra) {
+                return '<div class="xb-policy"><i class="fas fa-shield-halved" aria-hidden="true"></i><div>' +
+                    '<b>Сега не се тегли нищо</b> — картата е гаранция' + (extra || '') + '.<br>' +
+                    'Промяна или отказ — безплатно до <b>24 ч</b> преди часа. След това часът се таксува автоматично и не се възстановява.</div></div>';
+            }
             function sumTable(times, g) {
                 const k = savedCode(contact().email);
-                return '<p class="xb-cart-msg">Картата е само гаранция — сега не се тегли нищо' +
-                    (k ? '; часът се отчита по код ' + esc(k.code) : g.total !== null && g.total !== undefined ? '; плащате на място ' + money(g.total) : '') +
-                    '. Запомня се за следващия път.</p>';
+                return policyBox(k ? '; часът се отчита по код ' + esc(k.code)
+                    : g.total !== null && g.total !== undefined ? '; плащате ' + money(g.total) + ' на място' : '');
             }
             function openCardSheet(c, times, g) {
                 const dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -2428,7 +2439,7 @@
                 const hours = Math.max(0, (isoTime(iso) - Date.now()) / 3600000);
                 const left = hours < 1 ? 'по-малко от час' : 'около ' + Math.round(hours) + (Math.round(hours) === 1 ? ' час' : ' часа');
                 return '<p class="xb-late-text"><b>До тренировката остава ' + left + '.</b> Според условията за резервация при ' +
-                    '<b>отмяна, промяна или неявяване</b> по-малко от 12 часа преди тренировката тя се заплаща от картата Ви, ' +
+                    '<b>отмяна, промяна или неявяване</b> по-малко от 24 часа преди тренировката тя се заплаща от картата Ви, ' +
                     '<b>без възможност за възстановяване на сумата</b>.</p>';
             }
             /* an XBODY Burgas hour the app can change (the other studio's hours keep their own Acuity page) */
@@ -2642,11 +2653,11 @@
             };
         })();
 
-        /* ── Late change / cancellation: under 12 h before the training, a clear warning before Acuity's page ──
+        /* ── Late change / cancellation: under 24 h before the training, a clear warning before Acuity's page ──
            Any link to an appointment's page (Промяна in Моите часове, Промяна или отказ in the calendar) carries
-           data-start (ms); inside 12 h it first shows the booking terms, then opens the page if the client goes on. */
+           data-start (ms); inside 24 h it first shows the booking terms, then opens the page if the client goes on. */
         (function () {
-            const LATE_MS = 12 * 3600 * 1000;
+            const LATE_MS = 24 * 3600 * 1000;   // free change / cancel until 24 h before the training
             /* the appointment's page inside the app (the list is closed first); a new tab if that is not possible */
             function openPage(href) {
                 const list = document.getElementById('appointments-overlay');
@@ -2677,7 +2688,7 @@
                 back.innerHTML = '<div class="xb-sheet xb-late" role="alertdialog" aria-modal="true" aria-labelledby="xb-late-t">' +
                     '<div class="xb-sheet-handle"></div>' +
                     '<h3 id="xb-late-t"><i class="fas fa-exclamation-triangle"></i> Внимание: до тренировката остава ' + left + '</h3>' +
-                    '<p class="xb-late-text">Според условията за резервация при <b>отмяна, промяна или неявяване</b> по-малко от 12 часа ' +
+                    '<p class="xb-late-text">Според условията за резервация при <b>отмяна, промяна или неявяване</b> по-малко от 24 часа ' +
                         'преди тренировката тя се заплаща от картата Ви, <b>без възможност за възстановяване на сумата</b>.</p>' +
                     '<button type="button" class="xb-secondary" data-close="1">Назад — запазвам часа</button>' +
                     '<button type="button" class="xb-primary" data-go="' + String(href).replace(/"/g, '&quot;') + '">Разбирам, продължи</button>' +
