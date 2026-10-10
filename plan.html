@@ -4229,6 +4229,9 @@
         let userId = null;
         let userData = null;
         let currentDay = 1;
+        // Чатът от обвивката зарежда тази страница само за чата: без изрисуване на
+        // плана, игрови подкани и известия (те вече работят в таба с плана).
+        const IS_SHELL_CHAT = document.documentElement.getAttribute('data-shell-chat') === '1';
         let currentViewDateKey = window._initialPlanDateKey || null;
         let chatVisible = false;
         let conversationId = Date.now().toString();
@@ -4544,6 +4547,9 @@
         }
         
         async function processOfflineQueue() {
+            // В обвивката чатът живее в отделния прозорец на чата — табът с плана
+            // не изпраща опашката, иначе съобщенията тръгват два пъти.
+            if (!IS_SHELL_CHAT && document.documentElement.getAttribute('data-embedded-tab') === '1') return;
             if (offlineMessageQueue.length === 0) return;
             
             addMessageToChat('✓ Връзката е възстановена. Изпращам запазени съобщения...', 'assistant', false);
@@ -4624,8 +4630,9 @@
             if (new URLSearchParams(window.location.search).get('shellChat') === '1') {
                 try { loadDietData(); } catch (_) {}
                 loadChatHistory();
-                openChat();
-                scheduleNotifications();
+                loadOfflineQueue();
+                // Предварително заредения чат се отваря чак когато клиентът го поиска.
+                if (new URLSearchParams(window.location.search).get('preload') !== '1') openChat();
                 window.history.replaceState({}, '', window.location.pathname);
                 return;
             }
@@ -4971,6 +4978,7 @@
                     return;
                 }
                 _planRenderedSig = renderSig;
+                if (IS_SHELL_CHAT) return;
                 
                 // Update greeting — no longer a banner; kept for future use only
                 // (greetingName element removed from DOM)
@@ -5922,6 +5930,7 @@
 
         var _weeklyNoticeCheckedAt = 0;
         function maybeCheckWeeklyAdaptNotice() {
+            if (IS_SHELL_CHAT) return;
             var sync = window.NutriPlanPlanSync;
             var uid = localStorage.getItem('userId') || '';
             // При смяна на таб — най-много веднъж на 10 минути (KV четене при всяка смяна е излишно).
@@ -8792,6 +8801,7 @@
         // This ensures automatic installation prompt instead of manual instructions
         (function initPWAInstallBanner() {
             function setupInstallBanner() {
+                if (IS_SHELL_CHAT) return;
                 setTimeout(() => {
                     // Only log for debugging - don't show manual instructions
                     if (!deferredPrompt && !isInStandaloneMode()) {
@@ -9250,6 +9260,7 @@
         }
 
         function startPromptInterval() {
+            if (IS_SHELL_CHAT) return;
             if (_promptIntervalId) clearInterval(_promptIntervalId);
             _promptIntervalId = setInterval(function() {
                 checkTimePrompts();
@@ -10557,7 +10568,7 @@
         // Same-day unanswered notification questions → quick-answer catch-up chain
         // (real answers, app stays open, integrated into analysis).
         function checkOpenAppPrompts() {
-            if (!isGameEnabled()) return;
+            if (IS_SHELL_CHAT || !isGameEnabled()) return;
             if (_openPromptPending || _queueDepth > 0) return;
             var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
             if (!gn || typeof gn.getCatchUpTypesForToday !== 'function') return;
@@ -11481,7 +11492,7 @@
         // ── Init on page load ─────────────────────────────────────────────────
         (function initGameModule() {
             function setupGame() {
-                if (!isGameEnabled()) return;
+                if (IS_SHELL_CHAT || !isGameEnabled()) return;
                 setTimeout(function(){
                     enhanceMealCards();
                     checkOpenAppPrompts();

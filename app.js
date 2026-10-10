@@ -704,14 +704,28 @@
 
     /** Отстъпите за изреза/статус лентата на телефона, измерени в горния прозорец. */
     function readSafeAreaInsets() {
-        var probe = document.createElement('div');
-        probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;' +
-            'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);';
-        document.body.appendChild(probe);
-        var cs = getComputedStyle(probe);
-        var insets = { top: cs.paddingTop, right: cs.paddingRight, bottom: cs.paddingBottom, left: cs.paddingLeft };
-        probe.remove();
-        return insets;
+        // По-голямото от env() и --safe-area-inset-* (Capacitor на Android подава
+        // отстъпите като CSS променливи, когато WebView-то не поддържа env()).
+        function measure(css) {
+            var probe = document.createElement('div');
+            probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;' + css;
+            document.body.appendChild(probe);
+            var cs = getComputedStyle(probe);
+            var out = {
+                top: parseFloat(cs.paddingTop) || 0, right: parseFloat(cs.paddingRight) || 0,
+                bottom: parseFloat(cs.paddingBottom) || 0, left: parseFloat(cs.paddingLeft) || 0
+            };
+            probe.remove();
+            return out;
+        }
+        var fromEnv = measure('padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);');
+        var fromVar = measure('padding:var(--safe-area-inset-top,0px) var(--safe-area-inset-right,0px) var(--safe-area-inset-bottom,0px) var(--safe-area-inset-left,0px);');
+        return {
+            top: Math.max(fromEnv.top, fromVar.top) + 'px',
+            right: Math.max(fromEnv.right, fromVar.right) + 'px',
+            bottom: Math.max(fromEnv.bottom, fromVar.bottom) + 'px',
+            left: Math.max(fromEnv.left, fromVar.left) + 'px'
+        };
     }
 
     /**
@@ -821,24 +835,60 @@
         }
     }
 
+    var shellChatLoaded = false;
+    var shellChatOpenPending = false;
+
+    /** Зарежда прозореца на чата (preload = без да го отваря). */
+    function loadShellChatFrame(preload) {
+        ensureShellChatOverlay();
+        if (!shellChatFrame || shellChatFrame.getAttribute('src')) return;
+        shellChatFrame.addEventListener('load', function onShellChatLoad() {
+            shellChatFrame.removeEventListener('load', onShellChatLoad);
+            shellChatLoaded = true;
+            applyFrameSafeArea(shellChatFrame);
+            try {
+                if (shellChatFrame.contentWindow) {
+                    shellChatFrame.contentWindow.NutriPlanAppData = window.NutriPlanAppData;
+                }
+            } catch (_) {}
+            if (shellChatOpenPending) {
+                shellChatOpenPending = false;
+                dispatchShellChatOpen();
+            }
+        });
+        shellChatFrame.setAttribute('src', 'plan.html?chat=1&embedded=1&shellChat=1' + (preload ? '&preload=1' : ''));
+    }
+
+    function dispatchShellChatOpen() {
+        try {
+            shellChatFrame.contentWindow.NutriPlanAppData = window.NutriPlanAppData;
+            shellChatFrame.contentWindow.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_CHAT_OPEN'));
+        } catch (_) {}
+    }
+
+    /**
+     * Чатът е готов предварително, когато телефонът е свободен — отваря се веднага.
+     * Не на слаби устройства (под 3 GB RAM), там се зарежда при първото отваряне.
+     */
+    function scheduleShellChatPreload() {
+        if (navigator.deviceMemory && navigator.deviceMemory < 3) return;
+        var run = function () { loadShellChatFrame(true); };
+        setTimeout(function () {
+            if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 4000 });
+            else run();
+        }, 6000);
+    }
+
     function openShellChat() {
         ensureShellChatOverlay();
         if (!shellChatFrame) return;
-        var nextSrc = 'plan.html?chat=1&embedded=1&shellChat=1';
-        if (shellChatFrame.getAttribute('src') !== nextSrc) {
-            shellChatFrame.setAttribute('src', nextSrc);
-            shellChatFrame.addEventListener('load', function onShellChatLoad() {
-                shellChatFrame.removeEventListener('load', onShellChatLoad);
-                applyFrameSafeArea(shellChatFrame);
-                try {
-                    if (shellChatFrame.contentWindow) {
-                        shellChatFrame.contentWindow.NutriPlanAppData = window.NutriPlanAppData;
-                    }
-                } catch (_) {}
-            });
-        } else if (shellChatFrame.contentWindow) {
-            try { shellChatFrame.contentWindow.NutriPlanAppData = window.NutriPlanAppData; } catch (_) {}
-            shellChatFrame.contentWindow.dispatchEvent(new CustomEvent('NUTRIPLAN_SHELL_CHAT_OPEN'));
+        if (!shellChatFrame.getAttribute('src')) {
+            // Първо отваряне без предварително зареждане: страницата сама отваря чата.
+            loadShellChatFrame(false);
+        } else if (shellChatLoaded) {
+            dispatchShellChatOpen();
+        } else {
+            shellChatOpenPending = true;
         }
         shellChatFrame.style.display = 'block';
         shellChatFrame.setAttribute('aria-hidden', 'false');
@@ -1170,6 +1220,7 @@
         switchTab(initialTab, true);
         initApkGameNotifier();
         runPlanUpdateCatchUp();
+        scheduleShellChatPreload();
     }
 
     /** Android „Назад“ в обвивката: чат → прозорец в таба → към плана. */

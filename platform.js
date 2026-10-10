@@ -167,9 +167,8 @@
             return false;
         }
         var path = (global.location && global.location.pathname) || '';
-        if (path.indexOf('quick-answer') !== -1) return false;
-        if (/admin|notifications-test|questionnaire/i.test(path)) return false;
-        return true;
+        // Само началната страница (виж GameNotifier._shouldAutoCatchUpOnPage).
+        return (path.split('/').pop() || 'index.html') === 'index.html';
     }
 
     function runNotificationCatchUpIfReady() {

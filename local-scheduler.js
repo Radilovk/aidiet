@@ -1884,8 +1884,10 @@ const GameNotifier = {
     _shouldAutoCatchUpOnPage() {
         if (typeof window === 'undefined') return false;
         const path = window.location.pathname || '';
-        if (path.indexOf('quick-answer') !== -1) return false;
-        if (/admin|notifications-test|questionnaire/i.test(path)) return false;
+        // Само началната страница пренасочва към бързия въпрос. Книгата с плана,
+        // изборът на храни и другите страници се отварят, без да бъдат прекъсвани.
+        const file = path.split('/').pop() || 'index.html';
+        if (file !== 'index.html') return false;
         try {
             const params = new URLSearchParams(window.location.search || '');
             if (params.has('login') || params.has('logout')) return false;

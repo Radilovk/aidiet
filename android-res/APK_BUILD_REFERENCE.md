@@ -103,6 +103,7 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
   - регистрира receiver в plugin `AndroidManifest.xml` **вътре в `<application>`**
   - action бутоните → `BroadcastReceiver` (без стартиране на WebView)
 - `android-res/patch-app-exit.py` — `App.exitApp()` → `finishAndRemoveTask()` (без фонов процес в recents)
+- `android-res/patch-print-plugin.py` — копира `NutriPrintPlugin` (системен печат / „Запази като PDF“ за книгата с плана) и го регистрира в `MainActivity`; спира билда, ако `MainActivity` не е празният клас на Capacitor
 - AndroidManifest.xml (app) получава следните permissions (добавени идемпотентно):
   - `POST_NOTIFICATIONS`
   - `SCHEDULE_EXACT_ALARM`
@@ -181,3 +182,4 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
 |------|---------|---------|
 | 2026-05-05 | Иконата на APK = PWA иконата (`icon-512x512.png`), без overlay | Иконата трябва да е идентична с PWA |
 | 2026-05-05 | Навигационна лента следва темата (values/values-night) | Лентата беше постоянно бяла, сега следва light/dark режима |
+| 2026-10-10 | `NutriPrintPlugin` + `patch-print-plugin.py` | `window.print()` не работи в WebView — книгата с плана не можеше да се запази като PDF в APK |

@@ -1311,7 +1311,8 @@
                 line-height: 1.55;
             }
 
-            .screen-controls {
+            .screen-controls,
+            #bookNotice {
                 display: none !important;
             }
 
@@ -1804,7 +1805,7 @@
     <!-- Screen-only toolbar -->
     <div class="screen-controls" id="screenControls">
         <button type="button" class="back-link" onclick="goBack()"><i class="fas fa-arrow-left"></i> Към Плана</button>
-        <button class="btn-print" onclick="handlePrint()"><i class="fas fa-print"></i> Отпечатай</button>
+        <button class="btn-print" onclick="handlePrint()"><i class="fas fa-file-pdf"></i> PDF / Печат</button>
     </div>
 
     <!-- Loading screen -->
@@ -2829,8 +2830,6 @@
 
     })();
 
-    // Print handler: use window.print() on desktop/PWA; on native Android APK fall back
-    // to opening the current page in the system browser because WebView print support is unreliable.
     function goBack() {
         if (document.referrer && document.referrer.includes(window.location.hostname)) {
             window.history.back();
@@ -2838,25 +2837,45 @@
             window.location.href = 'index.html?app=1&tab=plan';
         }
     }
-    function handlePrint() {
-        var cap = window.Capacitor;
-        var isNative = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
-        if (isNative) {
-            var browser = cap && cap.Plugins ? cap.Plugins.Browser : null;
-            if (browser && typeof browser.open === 'function') {
-                browser.open({ url: window.location.href }).catch(function() {
-                    alert('Неуспешно отваряне в браузър. Опитайте от менюто на устройството.');
-                });
-            } else {
-                var opened = window.open(window.location.href, '_blank', 'noopener');
-                if (!opened) {
-                    alert('За да отпечатате плана, отворете го в браузър и използвайте функцията за печат.');
-                }
-            }
-            return;
-        } else {
-            window.print();
+    // Печат / PDF: в браузъра — window.print(); в APK — системният диалог на
+    // Android (NutriPrint), в който е и „Запази като PDF“. WebView не поддържа window.print().
+    function showBookNotice(text) {
+        var el = document.getElementById('bookNotice');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'bookNotice';
+            el.setAttribute('role', 'status');
+            el.style.cssText = 'position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:10000;' +
+                'background:#0F2F2E;color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;line-height:1.45;' +
+                'box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:520px;margin:0 auto;';
+            document.body.appendChild(el);
         }
+        el.textContent = text;
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(function () { el.remove(); }, 6000);
+    }
+    function handlePrint() {
+        var platform = window.NutriPlanPlatform;
+        var isNative = platform && typeof platform.isAPK === 'function' && platform.isAPK();
+        if (!isNative) {
+            window.print();
+            return;
+        }
+        var printer = platform.getPlugin('NutriPrint');
+        if (!printer || typeof printer.print !== 'function') {
+            showBookNotice('Обновете приложението до последната версия, за да запазите плана като PDF.');
+            return;
+        }
+        var name = 'NutriPlan - хранителен план';
+        try {
+            var ud = JSON.parse(localStorage.getItem('userData') || '{}');
+            if (ud && ud.name) name = 'NutriPlan - ' + String(ud.name).slice(0, 40);
+        } catch (_) {}
+        printer.print({ name: name }).then(function () {
+            showBookNotice('Изберете „Запази като PDF“ или принтер от горното меню.');
+        }).catch(function () {
+            showBookNotice('Печатът не успя. Опитайте отново след малко.');
+        });
     }
     </script>
 
