@@ -14654,6 +14654,11 @@ async function handleXbodyAvailability(request, env, ctx) {
  *   POST /api/xbody/book { email, phone, name, times, setupIntent } → the SetupIntent is checked with Stripe
  *        (succeeded, this client, these hours, not used yet) and the hours are booked; each Acuity booking notes
  *        the Stripe customer and card, the SetupIntent keeps the Acuity ids (so it cannot book twice).
+ *        The answer names the saved card ({ pm, brand, last4 }): the phone keeps it for the next bookings.
+ * A card saved before (the phone sends its pm_… as paymentMethod, to both calls): the guarantee answers with the
+ * card (no new SetupIntent) and the booking checks that the card is still this client's and not expired, so the
+ * client is not asked for a card again. A pm id is known only to the phone that saved the card.
+ * sms: the client's SMS choice (asked once in the app; the default is yes, as Acuity's own form).
  * Without Stripe keys (STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY) the guarantee answers "no_stripe" and a
  * booking needs a known client instead (e-mail and phone of an earlier booking made on Acuity's page).
  * Costs: 1 KV write per call (rate limit) + Stripe/Acuity calls only when a client books; Stripe charges nothing
@@ -14664,6 +14669,45 @@ let xbodyPriceMemo = null;   // { at, price } — the appointment type's price, 
 
 function xbodyPhoneKey(phone) {
   return String(phone || '').replace(/\D/g, '').slice(-9);
+}
+
+/** a package / coupon code as Acuity takes it ("FULLPASS"), or '' */
+function xbodyCode(v) {
+  const code = String(v || '').trim().toUpperCase();
+  return /^[A-Z0-9_-]{2,40}$/.test(code) ? code : '';
+}
+
+/**
+ * POST /api/xbody/code { email, code } — is this package / coupon code good for an XBODY Burgas hour (Acuity's
+ * own check)? → { ok, code, name } or { error: 'bad_code' }. The app keeps a good code and books with it.
+ */
+async function handleXbodyCode(request, env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return jsonResponse({ error: 'Acuity API не е конфигуриран.' }, 503);
+  let body;
+  try {
+    const raw = await request.text();
+    if (raw.length > 1024) return jsonResponse({ error: 'Твърде голяма заявка.' }, 413);
+    body = JSON.parse(raw);
+  } catch (_) {
+    return jsonResponse({ error: 'Невалидна заявка.' }, 400);
+  }
+  const code = xbodyCode(body && body.code);
+  const email = String((body && body.email) || '').trim().toLowerCase();
+  if (!code) return jsonResponse({ error: 'bad_code' }, 400);
+  const u = new URL('https://acuityscheduling.com/api/v1/certificates/check');
+  u.searchParams.set('certificate', code);
+  u.searchParams.set('appointmentTypeID', XBODY_ACUITY_BOOKING.appointmentTypeID);
+  if (email.includes('@')) u.searchParams.set('email', email);
+  const resp = await fetch(u.toString(), {
+    headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` },
+  }).catch(() => null);
+  if (!resp) return jsonResponse({ error: 'Няма връзка със системата за записване.' }, 502);
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    console.warn('[xbody-code] Acuity refused', resp.status, JSON.stringify(data).slice(0, 200));
+    return jsonResponse({ error: resp.status >= 500 ? 'Проверката не е възможна в момента.' : 'bad_code' }, resp.status >= 500 ? 502 : 400);
+  }
+  return jsonResponse({ ok: true, code, name: String((data && data.name) || '').slice(0, 80) });
 }
 
 async function xbodyReadBooking(request) {
@@ -14681,6 +14725,11 @@ async function xbodyReadBooking(request) {
     phone: String((body && body.phone) || '').trim().slice(0, 40),
     name: String((body && body.name) || '').trim().replace(/\s+/g, ' ').slice(0, 80),
     setupIntent: String((body && body.setupIntent) || ''),
+    paymentMethod: String((body && body.paymentMethod) || ''),
+    newCard: Boolean(body && body.newCard === true),
+    code: xbodyCode(body && body.code),
+    sms: !(body && body.sms === false),
+    terms: Boolean(body && body.terms === true),
     times: [...new Set((Array.isArray(body && body.times) ? body.times : []).map(String))]
       .filter((t) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2}$/.test(t))
       .filter((t) => {
@@ -14713,6 +14762,45 @@ async function xbodyStripe(env, method, path, params) {
   return data;
 }
 
+/** a card saved before by this client (pm_… sent by the phone): { pm, customer, brand, last4 } or null */
+async function xbodySavedCard(env, pm, email) {
+  if (!/^pm_\w+$/.test(pm)) return null;
+  try {
+    const m = await xbodyStripe(env, 'GET', `payment_methods/${pm}`, { 'expand[]': 'customer' });
+    const owner = m && m.customer && typeof m.customer === 'object' ? m.customer : null;
+    const card = m && m.type === 'card' ? m.card : null;
+    if (!owner || owner.deleted || String(owner.email || '').trim().toLowerCase() !== email || !card) return null;
+    const now = new Date();
+    if (card.exp_year < now.getUTCFullYear() || (card.exp_year === now.getUTCFullYear() && card.exp_month < now.getUTCMonth() + 1)) return null;
+    return { pm: m.id, customer: owner.id, brand: card.brand || '', last4: card.last4 || '' };
+  } catch (err) {
+    console.warn('[xbody-book] saved card check failed:', err.message);
+    return null;
+  }
+}
+
+/** the client's card kept by Stripe from an earlier booking, found by e-mail + the same phone (a phone that lost its
+ *  own memory, a new phone): { pm, customer, brand, last4 } or null. Only the brand and last digits go back to the client. */
+async function xbodyFindCard(env, email, phone) {
+  try {
+    const key = xbodyPhoneKey(phone);
+    const found = await xbodyStripe(env, 'GET', 'customers', { email, limit: 5 });
+    for (const cust of (found && Array.isArray(found.data) ? found.data : [])) {
+      if (xbodyPhoneKey(cust.phone) !== key) continue;
+      const list = await xbodyStripe(env, 'GET', `customers/${cust.id}/payment_methods`, { type: 'card', limit: 3 });
+      const now = new Date();
+      for (const m of (list && Array.isArray(list.data) ? list.data : [])) {
+        const c = m.card;
+        if (!c || c.exp_year < now.getUTCFullYear() || (c.exp_year === now.getUTCFullYear() && c.exp_month < now.getUTCMonth() + 1)) continue;
+        return { pm: m.id, customer: cust.id, brand: c.brand || '', last4: c.last4 || '' };
+      }
+    }
+  } catch (err) {
+    console.warn('[xbody-book] card lookup failed:', err.message);
+  }
+  return null;
+}
+
 async function xbodyPrice(env) {
   if (xbodyPriceMemo && Date.now() - xbodyPriceMemo.at < 6 * 3600 * 1000) return xbodyPriceMemo.price;
   let price = null;
@@ -14737,6 +14825,18 @@ async function handleXbodyGuarantee(request, env) {
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PUBLISHABLE_KEY) return jsonResponse({ error: 'no_stripe' }, 503);
   const b = await xbodyReadBooking(request);
   if (b.error) return b.error;
+  if (!b.newCard) {   // the card saved before (the phone's own, else Stripe's by e-mail + phone): no new SetupIntent, only a confirm
+    let saved = b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, b.email) : null;
+    if (!saved) saved = await xbodyFindCard(env, b.email, b.phone);
+    if (saved) {
+      const price = await xbodyPrice(env);
+      return jsonResponse({
+        saved: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
+        price,
+        total: price === null ? null : Math.round(price * b.times.length * 100) / 100,
+      });
+    }
+  }
   try {
     const found = await xbodyStripe(env, 'GET', 'customers', { email: b.email, limit: 1 });
     let customer = found && Array.isArray(found.data) && found.data[0] ? found.data[0].id : '';
@@ -14781,7 +14881,14 @@ async function handleXbodyBook(request, env) {
 
   // the card guarantee: a SetupIntent of this client, for these hours, confirmed, not used yet
   let guarantee = null;
-  if (stripeOn) {
+  const saved = stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
+  if (saved) {
+    guarantee = {
+      id: '',
+      card: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
+      note: `Гаранция с карта (приложение XBODY, запазена карта): Stripe ${saved.customer}, ${saved.brand} •••• ${saved.last4}. Нищо не е изтеглено.`,
+    };
+  } else if (stripeOn) {
     if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse({ error: 'card_required' }, 402);
     try {
       const si = await xbodyStripe(env, 'GET', `setup_intents/${b.setupIntent}`, { 'expand[]': 'payment_method' });
@@ -14792,6 +14899,7 @@ async function handleXbodyBook(request, env) {
       const card = si.payment_method && si.payment_method.card;
       guarantee = {
         id: si.id,
+        card: card && si.payment_method.id ? { pm: si.payment_method.id, brand: card.brand || '', last4: card.last4 || '' } : null,
         note: `Гаранция с карта (приложение XBODY): Stripe ${si.customer}` +
           (card ? `, ${card.brand} •••• ${card.last4}` : '') + '. Нищо не е изтеглено.',
       };
@@ -14812,14 +14920,20 @@ async function handleXbodyBook(request, env) {
     const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
     if (!resp.ok) throw new Error('appointments ' + resp.status);
     const list = await resp.json();
+    // a known client: an earlier booking that went through Acuity's own form (its answers beyond the terms box)
+    // or one guaranteed by a card in the app — never one of the hours booked with no payment details
+    const complete = (a) => /Гаранция с карта/.test(String(a.notes || '')) ||
+      (Array.isArray(a.forms) ? a.forms : []).some((f) => (Array.isArray(f && f.values) ? f.values : [])
+        .some((v) => v && v.fieldID && Number(v.fieldID) !== 3583430 && v.value !== undefined && v.value !== null && v.value !== ''));
     previous = (Array.isArray(list) ? list : []).find((a) => a && !a.canceled &&
-      String(a.email || '').trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey) || null;
+      String(a.email || '').trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
   } catch (err) {
     console.error('[xbody-book] lookup failed:', err.message);
     return jsonResponse({ error: 'Записването не е възможно в момента.' }, 502);
   }
   if (!previous && !guarantee) {
-    // no card and not a known client: the first booking goes through Acuity's page
+    // no card taken here and not a known client: nobody books without leaving payment details, so the first
+    // booking goes through Acuity's page (its card form)
     return jsonResponse({ error: 'first_booking' }, 403);
   }
 
@@ -14831,7 +14945,7 @@ async function handleXbodyBook(request, env) {
       }
     }
   }
-  if (!previous) fields.push({ id: 3583430, value: 'yes' });   // the terms, accepted in the app (as the ?field:3583430=yes link)
+  if (!previous) fields.push({ id: 3583430, value: 'yes' });   // the terms, accepted in the app ("Запази" with the notice)
   const names = b.name.split(' ');
   const booked = [];
   const failed = [];
@@ -14844,28 +14958,35 @@ async function handleXbodyBook(request, env) {
           datetime: time,
           appointmentTypeID: Number(XBODY_ACUITY_BOOKING.appointmentTypeID),
           calendarID: Number(XBODY_ACUITY_BOOKING.calendarID),
-          firstName: (previous && previous.firstName) || names[0] || '',
-          lastName: (previous && previous.lastName) || names.slice(1).join(' '),
+          // the client as registered in the app (not a name from an earlier booking, e.g. a card holder's)
+          firstName: names[0] || (previous && previous.firstName) || '',
+          lastName: (names[0] ? names.slice(1).join(' ') : '') || (previous && previous.lastName) || '',
           email: (previous && previous.email) || email,
           phone: (previous && previous.phone) || b.phone,
           timezone: XBODY_ACUITY_BOOKING.timezone,
-          smsOptIn: true,
+          smsOptIn: b.sms,
+          certificate: b.code || undefined,   // a package / coupon (Fullpass…): Acuity counts it on this hour
           fields,
           notes: guarantee ? guarantee.note : undefined,
         }),
       });
       const data = await resp.json().catch(() => ({}));
       if (resp.ok && data && data.id) {
-        booked.push({ time, id: data.id });
+        booked.push({ time, id: data.id, appointment: xbodyApptItem(data) });   // the app shows it at once
       } else {
-        console.warn('[xbody-book] Acuity refused', time, resp.status, JSON.stringify(data).slice(0, 200));
-        failed.push({ time, error: resp.status === 400 ? 'taken' : 'error' });
+        console.warn('[xbody-book] Acuity refused', time, resp.status, JSON.stringify(data).slice(0, 300));
+        // only "not available" means someone took the hour; anything else (a required form field, payment, a
+        // client rule) is what Acuity's own form asks for: the app sends the client there for this hour
+        const why = `${(data && data.error) || ''} ${(data && data.message) || ''}`;
+        const taken = /not[_ ]?available|unavailable|no longer|already booked|time.*taken/i.test(why);
+        const badCode = !taken && b.code && /certificate|coupon|package|code/i.test(why);
+        failed.push({ time, error: taken ? 'taken' : badCode ? 'code' : 'form' });
       }
     } catch (err) {
-      failed.push({ time, error: 'error' });
+      failed.push({ time, error: 'form' });
     }
   }
-  if (guarantee) {   // the guarantee is used: it names its bookings and cannot book again
+  if (guarantee && guarantee.id) {   // the guarantee is used: it names its bookings and cannot book again
     await xbodyStripe(env, 'POST', `setup_intents/${guarantee.id}`, {
       'metadata[acuity]': booked.map((x) => x.id).join(',') || 'none',
     }).catch((err) => console.warn('[xbody-book] setup intent mark failed:', err.message));
@@ -14874,7 +14995,8 @@ async function handleXbodyBook(request, env) {
     await dropXbodyApptCache(env, email);
     for (const t of booked) xbodyAvailMemo.delete(t.time.slice(0, 7));
   }
-  return jsonResponse({ booked, failed }, booked.length || !failed.length ? 200 : 409);
+  const card = booked.length && guarantee && guarantee.card ? guarantee.card : undefined;   // the phone keeps it
+  return jsonResponse({ booked, failed, card }, booked.length || !failed.length ? 200 : 409);
 }
 
 /**
@@ -14921,7 +15043,10 @@ async function xbodyOwnAppointment(env, b) {
   const mine = appt && String(appt.calendarID || '') === XBODY_ACUITY_BOOKING.calendarID &&
     String(appt.email || '').trim().toLowerCase() === b.email && xbodyPhoneKey(appt.phone) === xbodyPhoneKey(b.phone);
   if (!mine) return { error: jsonResponse({ error: 'not_found' }, 404) };
-  if (appt.canceled) return { error: jsonResponse({ error: 'already_canceled' }, 409) };
+  if (appt.canceled) {   // canceled elsewhere (Acuity's page, the studio): the client's cached list is stale
+    await dropXbodyApptCache(env, b.email);
+    return { error: jsonResponse({ error: 'already_canceled' }, 409) };
+  }
   return { appt, auth };
 }
 
@@ -14975,6 +15100,26 @@ async function handleXbodyReschedule(request, env) {
   return jsonResponse({ ok: true, id: Number(b.id), time: (r.data && r.data.datetime) || b.time });
 }
 
+/** an Acuity appointment as the app's list keeps it (the list and a just-made booking use the same shape) */
+function xbodyApptItem(appt) {
+  return {
+    id: appt.id,
+    date: appt.date || '',
+    time: (appt.time || '').trim(),
+    endTime: (appt.endTime || '').trim(),
+    datetime: appt.datetime || '',
+    type: appt.type || 'Час',
+    duration: appt.duration || '',
+    calendar: appt.calendar || '',
+    calendarID: appt.calendarID || null,
+    location: appt.location || '',
+    canceled: Boolean(appt.canceled),
+    canClientCancel: Boolean(appt.canClientCancel),
+    canClientReschedule: Boolean(appt.canClientReschedule),
+    confirmationPage: appt.confirmationPage || ''
+  };
+}
+
 async function handleXbodyAppointments(request, env) {
   const userId = env.ACUITY_USER_ID;
   const apiKey = env.ACUITY_API_KEY;
@@ -14999,7 +15144,7 @@ async function handleXbodyAppointments(request, env) {
         if (!payload.version) {
           payload.version = computeXbodyApptVersion(payload.upcoming, payload.past);
         }
-        return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
+        return jsonResponse(payload, 200, { cacheControl: 'private, no-store' });   // a cancel must show at once
       }
     } catch (err) {
       console.warn('[xbody-appointments] KV cache read failed:', err.message);
@@ -15040,22 +15185,7 @@ async function handleXbodyAppointments(request, env) {
   const past = [];
 
   for (const appt of appointments) {
-    const item = {
-      id: appt.id,
-      date: appt.date || '',
-      time: (appt.time || '').trim(),
-      endTime: (appt.endTime || '').trim(),
-      datetime: appt.datetime || '',
-      type: appt.type || 'Час',
-      duration: appt.duration || '',
-      calendar: appt.calendar || '',
-      calendarID: appt.calendarID || null,
-      location: appt.location || '',
-      canceled: Boolean(appt.canceled),
-      canClientCancel: Boolean(appt.canClientCancel),
-      canClientReschedule: Boolean(appt.canClientReschedule),
-      confirmationPage: appt.confirmationPage || ''
-    };
+    const item = xbodyApptItem(appt);
 
     const when = item.datetime ? new Date(item.datetime).getTime() : NaN;
     if (!item.canceled && Number.isFinite(when) && when >= now) {
@@ -15084,7 +15214,7 @@ async function handleXbodyAppointments(request, env) {
     }
   }
 
-  return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
+  return jsonResponse(payload, 200, { cacheControl: 'private, no-store' });
 }
 
 /** FitPlan AI routes — delegated to fitness/worker.js (uses FITNESS_KV or page_content). */
@@ -15441,6 +15571,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
         if (rlErr) return rlErr;
         return await handleXbodyAppointmentsVersion(request, env);
+      } else if (url.pathname === '/api/xbody/code' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'XBODY_MANAGE');
+        if (rlErr) return rlErr;
+        return await handleXbodyCode(request, env);
       } else if (url.pathname === '/api/xbody/guarantee' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'XBODY_BOOK');
         if (rlErr) return rlErr;

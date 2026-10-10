@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { MEAL_DISHES } from '../meal-dishes.js';
 import { FOOD_CATALOG } from '../food-catalog-data.js';
 import { inferDishTags } from '../dish-tags.js';
-import { DEFAULT_PLAN_ENGINE, PLAN_ENGINE_VERSION } from '../plan-engine.js';
+import { PLAN_ENGINE_VERSION } from '../plan-engine.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -40,7 +40,7 @@ const lowCarb = MEAL_DISHES.filter(d => inferDishTags(d).includes('low_carb')).l
 const sweet = MEAL_DISHES.filter(d => inferDishTags(d).includes('sweet_slot')).length;
 
 console.log('=== NutriPlan catalog sources ===\n');
-console.log(`Plan engine: ${PLAN_ENGINE_VERSION} (default ${DEFAULT_PLAN_ENGINE})\n`);
+console.log(`Plan engine: ${PLAN_ENGINE_VERSION}\n`);
 
 console.log('Counts:');
 console.log(`  dishes (meal-dishes):   ${MEAL_DISHES.length}`);

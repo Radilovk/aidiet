@@ -196,8 +196,34 @@ function isExcludedByProtocol(entry, clinicalProtocolId) {
   if (!rule) return false;
   if (rule.excludeGroups?.includes(entry.group)) return true;
   const keys = protocolExcludedKeys(rule);
-  return keys.has(normalizeFoodKey(entry.nutritionKey || ''))
-    || keys.has(normalizeFoodKey(entry.name || ''));
+  return [entry.nutritionKey, entry.name].some((v) => {
+    const key = normalizeFoodKey(v || '');
+    return key && (keys.has(key) || [...keys].some(k => namesExcludedFood(key, k)));
+  });
+}
+
+/** Думи пред храната, които я правят друга храна: сладките картофи не са картофи, растителните масла не са масло. */
+const DIFFERENT_FOOD_BEFORE = {
+  'картофи': ['сладки'],
+  'масло': ['кокосово', 'маслиново', 'авокадово'],
+};
+
+/**
+ * Името съдържа изключената храна като цяла дума (или нейна форма: „оризови“ ← „ориз“, „бъркани яйца“ ← „яйца“),
+ * освен когато думата пред нея я прави друга храна.
+ */
+function namesExcludedFood(nameKey, excludedKey) {
+  if (!excludedKey || excludedKey.length < 3) return false;
+  const words = nameKey.split(' ').filter(Boolean);
+  const want = excludedKey.split(' ').filter(Boolean);
+  for (let i = 0; i + want.length <= words.length; i++) {
+    const hit = want.every((w, j) => (j === want.length - 1 && w.length >= 4 ? words[i + j].startsWith(w) : words[i + j] === w));
+    if (!hit) continue;
+    const before = words[i - 1];
+    if (before && (DIFFERENT_FOOD_BEFORE[excludedKey] || []).includes(before)) continue;
+    return true;
+  }
+  return false;
 }
 
 /** Ready meals: exclude when the dish or any of its products is excluded. */
