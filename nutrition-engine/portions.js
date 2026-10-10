@@ -13,11 +13,15 @@ const CATALOG_GROUP = {
 
 const minCache = new Map();
 /** Под тази порция храната е украса, не съставка (5 г ядки, 10 г месо). */
+const MEAT_KINDS = new Set(['poultry', 'red', 'fish', 'shellfish']);
+
 export function minPortion(foodId) {
   if (!minCache.has(foodId)) {
     const f = food(foodId);
     // Мазнината за готвене е лъжица (10 г) — 5 г олио в тигана не е порция.
     if (isCookingFat(f.name, f.nutritionKey)) { minCache.set(foodId, COOKING_FAT_MAX_PORTION_G); return COOKING_FAT_MAX_PORTION_G; }
+    // Месо и риба — от 50 г нагоре (резени в сандвич); 40 г пилешко не е белтъчен източник.
+    if (MEAT_KINDS.has(f.kind)) { minCache.set(foodId, 50); return 50; }
     minCache.set(foodId, minPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP[f.group] }));
   }
   return minCache.get(foodId);

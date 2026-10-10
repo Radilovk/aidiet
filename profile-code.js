@@ -476,10 +476,11 @@ function readConditions(userData, unmapped) {
  */
 function clinicalDefaultStyle(clinical, protocolId) {
   if (clinical.has('IBS') || clinical.has('SIBO') || protocolId === 'gi_issues') return 'low_fodmap';
-  // Общ храносмилателен проблем без уточнение — щадящо, както досега.
-  if (clinical.has('GI')) return 'low_fodmap';
+  // Общ храносмилателен дискомфорт без диагноза IBS: първа линия (BSG 2021) е
+  // щадящо хранене — правилото GI; ниско FODMAP е само при поставен IBS.
   if (clinical.has('HTN')) return 'dash';
-  if (protocolId === 'insulin_resistance' || clinical.has('IR') || clinical.has('T2D') || clinical.has('PCOS')) {
+  // СПКЯ без инсулинова резистентност: PCOS 2023 не препоръчва конкретна диета.
+  if (protocolId === 'insulin_resistance' || clinical.has('IR') || clinical.has('T2D')) {
     return 'low_carb';
   }
   if (protocolId === 'autoimmune_aip') return 'anti_inflammatory';

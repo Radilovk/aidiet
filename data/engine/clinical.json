@@ -3,156 +3,461 @@
   "conditions": {
     "IR": {
       "label": "Инсулинова резистентност",
-      "basis": "ADA Standards of Care 2024, Nutrition Therapy: въглехидрати разпределени равномерно, нисък гликемичен индекс, без добавена захар",
+      "basis": "ADA Standards of Care 2025, Nutrition Therapy: въглехидратите разпределени равномерно, пълнозърнести и нисък ГИ, без добавена захар; целите плодове остават (по-сладките — до 2 пъти седмично и с белтък)",
       "distribution": "even_carbs",
-      "excludeFlags": ["high_gi"],
+      "excludeFlags": [
+        "high_gi"
+      ],
+      "limitFlags": {
+        "high_gi_fruit": 2
+      },
+      "prefer": [
+        "low_gi",
+        "whole_grain"
+      ],
       "noSweets": true,
-      "fruitWithProtein": true,
-      "prefer": ["low_gi", "whole_grain"]
+      "fruitWithProtein": true
     },
     "T2D": {
       "label": "Диабет тип 2",
-      "basis": "ADA Standards of Care 2024, Nutrition Therapy",
+      "basis": "ADA Standards of Care 2025, Nutrition Therapy: еднакво количество въглехидрати по хранения, пълнозърнести и нисък ГИ, без добавена захар и сладки напитки; целите плодове остават",
       "distribution": "even_carbs",
-      "excludeFlags": ["high_gi"],
+      "excludeFlags": [
+        "high_gi"
+      ],
+      "limitFlags": {
+        "high_gi_fruit": 2
+      },
+      "prefer": [
+        "low_gi",
+        "whole_grain"
+      ],
       "noSweets": true,
-      "fruitWithProtein": true,
-      "prefer": ["low_gi", "whole_grain"]
+      "fruitWithProtein": true
     },
     "PCOS": {
       "label": "Поликистозни яйчници",
-      "basis": "International Evidence-based Guideline for PCOS (2023): хранене с нисък гликемичен товар",
-      "distribution": "even_carbs",
-      "excludeFlags": ["high_gi"],
-      "noSweets": true,
-      "prefer": ["low_gi", "whole_grain"]
+      "basis": "International Evidence-based Guideline for PCOS 2023: няма доказано по-добър тип диета — общо здравословно хранене и енергиен баланс; предпочитат се пълнозърнести и храни с нисък ГИ. При доказана инсулинова резистентност важат и правилата за нея",
+      "limitFlags": {
+        "high_gi": 3
+      },
+      "prefer": [
+        "low_gi",
+        "whole_grain"
+      ]
     },
     "METS": {
       "label": "Метаболитен синдром",
-      "basis": "Средиземноморски/DASH модел; нисък гликемичен товар",
+      "basis": "Средиземноморски/DASH модел (ESC 2021, AHA): нисък гликемичен товар, риба, пълнозърнести, без добавена захар",
       "distribution": "even_carbs",
-      "excludeFlags": ["high_gi"],
+      "excludeFlags": [
+        "high_gi"
+      ],
+      "limitFlags": {
+        "high_gi_fruit": 2
+      },
+      "prefer": [
+        "low_gi",
+        "whole_grain",
+        "oily_fish"
+      ],
       "noSweets": true,
-      "prefer": ["low_gi", "whole_grain", "oily_fish"]
+      "mainsMin": {
+        "fish": 2
+      }
     },
     "NAFLD": {
-      "label": "Неалкохолна мастна чернодробна болест",
-      "basis": "EASL–EASD–EASO 2024: средиземноморски модел, без добавена фруктоза и сладки напитки",
-      "excludeFlags": ["high_gi"],
+      "label": "Неалкохолна мастна чернодробна болест (MASLD)",
+      "basis": "EASL–EASD–EASO 2024: средиземноморски модел, без добавена фруктоза и сладки напитки, без алкохол; целите плодове са позволени",
+      "excludeFlags": [
+        "high_gi"
+      ],
+      "limitFlags": {
+        "high_gi_fruit": 3
+      },
       "noSweets": true,
-      "prefer": ["whole_grain", "oily_fish"],
-      "mainsMin": { "fish": 3 }
+      "prefer": [
+        "whole_grain",
+        "oily_fish"
+      ],
+      "mainsMin": {
+        "fish": 2
+      }
     },
     "HTN": {
       "label": "Хипертония",
-      "basis": "DASH (NHLBI): натрий ≤2300 мг, повече зеленчуци, плодове и нискомаслени млечни",
-      "limitFlags": { "salty": 2 },
-      "mainsMax": { "red": 1 },
-      "prefer": ["whole_grain"]
+      "basis": "DASH (NHLBI) и ESH 2023: натрий <2 г/ден (сол <5 г), повече зеленчуци, плодове и нискомаслени млечни, ограничено червено месо",
+      "limitFlags": {
+        "salty": 2
+      },
+      "mainsMax": {
+        "red": 1
+      },
+      "prefer": [
+        "whole_grain",
+        "lowfat_dairy"
+      ]
     },
     "CVD": {
       "label": "Сърдечно-съдово заболяване",
-      "basis": "ESC 2021 Prevention Guidelines: средиземноморски модел, риба ≥2 пъти седмично, по-малко наситени мазнини и сол",
-      "limitFlags": { "salty": 2 },
-      "excludeFlags": ["fatty_meat"],
-      "mainsMin": { "fish": 3 },
-      "mainsMax": { "red": 1 },
-      "prefer": ["oily_fish", "whole_grain"]
+      "basis": "ESC 2021 Prevention Guidelines: средиземноморски модел, риба 1–2 пъти седмично (за предпочитане мазна), по-малко наситени мазнини (без тлъсто месо и масло) и сол <5 г",
+      "limitFlags": {
+        "salty": 2
+      },
+      "excludeFlags": [
+        "fatty_meat"
+      ],
+      "mainsMin": {
+        "fish": 2
+      },
+      "mainsMax": {
+        "red": 1
+      },
+      "prefer": [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
     },
     "DYSL": {
       "label": "Дислипидемия",
-      "basis": "ESC/EAS 2019 Dyslipidaemia: ограничаване на наситените мазнини; НЦОЗА — до половин жълтък дневно при повишен холестерол",
-      "excludeFlags": ["fatty_meat"],
-      "weeklyMax": { "egg": 4 },
-      "mainsMin": { "fish": 3 },
-      "prefer": ["oily_fish", "whole_grain"]
+      "basis": "ESC/EAS 2019 Dyslipidaemia: по-малко наситени мазнини (без тлъсто месо и масло), разтворими фибри (овес, бобови), риба; яйцата умерено при висок LDL",
+      "excludeFlags": [
+        "fatty_meat"
+      ],
+      "weeklyMax": {
+        "egg": 4
+      },
+      "mainsMin": {
+        "fish": 2
+      },
+      "prefer": [
+        "oily_fish",
+        "whole_grain",
+        "oats",
+        "legume"
+      ]
     },
     "GOUT": {
       "label": "Подагра",
-      "basis": "ACR 2020 Gout Guideline: ограничаване на пурини (червено месо, карантии, морски дарове), без фруктоза и алкохол",
-      "excludeFlags": ["high_purine"],
-      "mainsMax": { "red": 1 },
-      "noSweets": true
+      "basis": "ACR 2020 Gout Guideline и EULAR 2016: ограничаване на храни с много пурини (карантии, червено месо, сардини, скумрия, пъстърва, риба тон, морски дарове), без алкохол и добавена фруктоза; нискомаслените млечни са полезни, бобовите и зеленчуците — без ограничение",
+      "excludeFlags": [
+        "high_purine"
+      ],
+      "mainsMax": {
+        "red": 1
+      },
+      "noSweets": true,
+      "prefer": [
+        "lowfat_dairy"
+      ]
     },
     "GERD": {
       "label": "Гастроезофагеален рефлукс",
-      "basis": "ACG 2022 GERD Guideline: без обилна и мазна храна вечер, последно хранене 3 часа преди сън",
-      "excludeFoods": ["cond_tomato_paste", "fruit_orange", "fruit_grapefruit", "cond_lemon_juice", "sw_dark_chocolate"],
-      "mealFatMax": { "Хранене 4": 2, "Хранене 5": 1 },
+      "basis": "ACG 2022 GERD Guideline: без хранене 2–3 часа преди лягане, без обилна и мазна вечеря; избягване на храните, които провокират симптоми (цитруси, доматено пюре, шоколад)",
+      "excludeFoods": [
+        "cond_tomato_paste",
+        "fruit_orange",
+        "fruit_grapefruit",
+        "cond_lemon_juice",
+        "sw_dark_chocolate"
+      ],
+      "mealFatMax": {
+        "Хранене 4": 2
+      },
+      "noLateMeal": true,
       "noSweets": true
     },
     "GAST": {
       "label": "Гастрит",
-      "basis": "Щадящо хранене: без кисели и пикантни храни, умерени мазнини",
-      "excludeFoods": ["cond_tomato_paste", "fruit_orange", "fruit_grapefruit", "cond_lemon_juice", "cond_vinegar", "cond_mustard"],
-      "mealFatMax": { "Хранене 4": 2, "Хранене 5": 1 }
+      "basis": "Щадящо хранене (без доказателства за строга диета): без кисели и люти храни при симптоми, умерени мазнини, без късно хранене",
+      "excludeFoods": [
+        "cond_tomato_paste",
+        "fruit_orange",
+        "fruit_grapefruit",
+        "cond_lemon_juice",
+        "cond_vinegar",
+        "cond_mustard"
+      ],
+      "mealFatMax": {
+        "Хранене 4": 2,
+        "Хранене 5": 1
+      }
     },
     "IBS": {
       "label": "Синдром на раздразненото черво",
-      "basis": "Monash University Low FODMAP Diet; BSG 2021 IBS Guideline",
-      "excludeFlags": ["high_fodmap"]
+      "basis": "BSG 2021 IBS Guideline и Monash University Low FODMAP Diet: фаза на елиминиране 2–6 седмици, после постепенно връщане на храните под наблюдение",
+      "excludeFlags": [
+        "high_fodmap"
+      ]
     },
     "SIBO": {
       "label": "SIBO",
-      "basis": "Low FODMAP подход в периода на лечение",
-      "excludeFlags": ["high_fodmap"]
+      "basis": "Ниско FODMAP временно, за облекчаване на симптомите по време на лечението (ACG 2020 SIBO)",
+      "excludeFlags": [
+        "high_fodmap"
+      ]
     },
     "CEL": {
       "label": "Цьолиакия",
-      "basis": "Безглутенова диета; овес само сертифициран",
-      "excludeFlags": ["gluten", "oats"]
+      "basis": "ACG 2023 Celiac Disease: строга безглутенова диета; овес само сертифициран безглутенов",
+      "excludeFlags": [
+        "gluten",
+        "oats"
+      ]
     },
     "ANEM": {
-      "label": "Анемия",
-      "basis": "Хем желязо от червено месо и риба; бобови заедно с витамин C",
-      "mainsMin": { "red": 2 }
+      "label": "Желязодефицитна анемия",
+      "basis": "WHO/BDA: хем желязо от червено месо и риба; растително желязо (бобови, елда) заедно с витамин C; чай и кафе отделно от храненията",
+      "mainsMin": {
+        "red": 2
+      },
+      "prefer": [
+        "legume"
+      ]
     },
     "OSTEO": {
       "label": "Остеопороза",
-      "basis": "IOF: калций от 3 порции млечни дневно и белтък ≥1 г/кг",
-      "extraServings": { "MLK": 1 }
+      "basis": "IOF/ESCEO: калций 1000–1200 мг (3 порции млечни), витамин D (мазна риба), белтък 1–1.2 г/кг",
+      "extraServings": {
+        "MLK": 1
+      },
+      "prefer": [
+        "oily_fish"
+      ]
     },
     "MENO": {
       "label": "Менопауза",
-      "basis": "Калций и белтък за костите и мускулите",
-      "extraServings": { "MLK": 0.5 }
+      "basis": "The Menopause Society 2022 / EMAS: калций и белтък за костите и мускулите, средиземноморски модел за сърдечно-съдовия риск",
+      "extraServings": {
+        "MLK": 0.5
+      },
+      "prefer": [
+        "oily_fish",
+        "whole_grain"
+      ]
     },
     "PP": {
       "label": "Кърмене",
       "basis": "EFSA/FDA: риба 2–3 пъти седмично с ниско съдържание на живак",
-      "excludeFlags": ["high_mercury"],
-      "mainsMin": { "fish": 2 }
+      "excludeFlags": [
+        "high_mercury"
+      ],
+      "mainsMin": {
+        "fish": 2
+      }
+    },
+    "GI": {
+      "label": "Храносмилателен дискомфорт",
+      "basis": "BSG 2021 (първа линия): редовни хранения, умерени мазнини, без обилна вечеря; ниско FODMAP само при поставена диагноза IBS",
+      "mealFatMax": {
+        "Хранене 4": 2,
+        "Хранене 5": 1
+      }
+    },
+    "IBD": {
+      "label": "Възпалително чревно заболяване",
+      "basis": "ECCO 2023 Dietary Guidance: средиземноморски модел; по-малко червено и преработено месо (особено при улцерозен колит); при стриктури — щадящо, с по-малко неразтворими фибри",
+      "mainsMax": {
+        "red": 1
+      },
+      "prefer": [
+        "oily_fish"
+      ]
+    },
+    "HYPO": {
+      "label": "Хипотиреоидизъм / Хашимото",
+      "basis": "ATA/ETA: няма специална диета; безглутенова само при цьолиакия; соята и кафето — 4 часа след левотироксина (не се изключват)"
+    },
+    "INFL": {
+      "label": "Хронично възпаление",
+      "basis": "Средиземноморски модел с мазна риба (омега-3), пълнозърнести, бобови и зехтин (PREDIMED)",
+      "mainsMin": {
+        "fish": 2
+      },
+      "prefer": [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    "JOINT": {
+      "label": "Ставни проблеми",
+      "basis": "EULAR 2021 (лайфстайл при артрит): средиземноморски модел, мазна риба, нормално тегло",
+      "mainsMin": {
+        "fish": 2
+      },
+      "prefer": [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    "AI": {
+      "label": "Автоимунно заболяване",
+      "basis": "Средиземноморски модел с мазна риба; без елиминационни диети без показание",
+      "mainsMin": {
+        "fish": 2
+      },
+      "prefer": [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    "DEP": {
+      "label": "Депресия",
+      "basis": "SMILES trial (Jacka 2017) и ISNPR 2019: средиземноморски модел — пълнозърнести, бобови, риба, зеленчуци",
+      "mainsMin": {
+        "fish": 2
+      },
+      "prefer": [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    "ANX": {
+      "label": "Тревожност",
+      "basis": "Редовни хранения без дълги паузи, средиземноморски модел (ISNPR 2019)",
+      "prefer": [
+        "whole_grain",
+        "oily_fish",
+        "legume"
+      ]
+    },
+    "COG": {
+      "label": "Когнитивно здраве",
+      "basis": "MIND диета (Morris 2015): листни зеленчуци, горски плодове, ядки, бобови, риба ≥1 път седмично; ограничено червено месо и масло",
+      "mainsMin": {
+        "fish": 1
+      },
+      "mainsMax": {
+        "red": 2
+      },
+      "prefer": [
+        "whole_grain",
+        "legume",
+        "oily_fish"
+      ]
+    },
+    "SKIN": {
+      "label": "Кожни проблеми (акне)",
+      "basis": "Хранене с нисък гликемичен товар (Smith 2007; AAD 2024 — ограничени доказателства)",
+      "limitFlags": {
+        "high_gi": 3
+      },
+      "prefer": [
+        "low_gi"
+      ]
     }
   },
   "protocols": {
-    "insulin_resistance": { "use": ["IR"] },
-    "visceral_fat": { "use": ["IR"] },
-    "menopause_sarcopenia": { "use": ["MENO"] },
-    "postpartum_lactation": { "use": ["PP"] },
-    "gi_issues": { "use": ["IBS"] },
+    "insulin_resistance": {
+      "use": [
+        "IR"
+      ]
+    },
+    "visceral_fat": {
+      "use": [
+        "IR"
+      ]
+    },
+    "menopause_sarcopenia": {
+      "use": [
+        "MENO"
+      ]
+    },
+    "postpartum_lactation": {
+      "use": [
+        "PP"
+      ]
+    },
+    "gi_issues": {
+      "use": [
+        "IBS"
+      ]
+    },
     "longevity": {
       "label": "Дълголетие",
       "basis": "Средиземноморски модел с повече бобови и риба",
-      "mainsMin": { "legume": 3, "fish": 3 },
-      "mainsMax": { "red": 1 }
+      "mainsMin": {
+        "legume": 3,
+        "fish": 3
+      },
+      "mainsMax": {
+        "red": 1
+      }
     },
     "autoimmune_aip": {
       "label": "Автоимунен протокол (AIP)",
       "basis": "Autoimmune Protocol — фаза на елиминиране: без зърнени, бобови, млечни, яйца, ядки, семена, картофови и соя",
-      "excludeFlags": ["grain", "legume", "lactose", "nut", "peanut", "seed", "nightshade", "soy", "supplement"],
-      "excludeKinds": ["egg", "dairy"],
+      "excludeFlags": [
+        "grain",
+        "legume",
+        "lactose",
+        "nut",
+        "peanut",
+        "seed",
+        "nightshade",
+        "soy",
+        "supplement"
+      ],
+      "excludeKinds": [
+        "egg",
+        "dairy"
+      ],
       "noSweets": true
     }
   },
   "exclusions": {
-    "GLU": { "flags": ["gluten"] },
-    "LAC": { "flags": ["lactose"], "kinds": ["dairy"] },
-    "EGG": { "kinds": ["egg"] },
-    "NUT": { "flags": ["nut"] },
-    "PNT": { "flags": ["peanut"] },
-    "FSH": { "kinds": ["fish"] },
-    "SHF": { "kinds": ["shellfish"] },
-    "SOY": { "flags": ["soy"] },
-    "PORK": { "flags": ["pork"] }
+    "GLU": {
+      "flags": [
+        "gluten"
+      ]
+    },
+    "LAC": {
+      "flags": [
+        "lactose"
+      ],
+      "kinds": [
+        "dairy"
+      ]
+    },
+    "EGG": {
+      "kinds": [
+        "egg"
+      ]
+    },
+    "NUT": {
+      "flags": [
+        "nut"
+      ]
+    },
+    "PNT": {
+      "flags": [
+        "peanut"
+      ]
+    },
+    "FSH": {
+      "kinds": [
+        "fish"
+      ]
+    },
+    "SHF": {
+      "kinds": [
+        "shellfish"
+      ]
+    },
+    "SOY": {
+      "flags": [
+        "soy"
+      ]
+    },
+    "PORK": {
+      "flags": [
+        "pork"
+      ]
+    }
   }
 }

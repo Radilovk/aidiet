@@ -71,7 +71,7 @@ const DAIRY = /(^|\n)• (Мляко|Кисело|Гръцко|Извара|Си
 const MEAT = /(Пилеш|Говежд|Свинск|Кайма|Агнеш|Пуеш)/;
 const FISH = /(Риба|Сьомга|Скумрия|Пъстърва|Хек|Треска|Тилапия|Сардини|Скарид|Лаврак)/;
 const EGGS = /(^|\n)• Яйца/;
-const PURINE = /(Сардини|Скумрия|Скарид|Агнеш|Мидa)/;
+const PURINE = /(Сардини|Скумрия|Скарид|Агнеш|Мидa|Пъстърва|Риба тон)/;
 const FODMAP_FOODS = [...FOODS.values()].filter(f => f.flags.has('high_fodmap')).map(f => f.name);
 
 const issues = [];
@@ -165,6 +165,8 @@ for (let i = 0; i < N; i++) {
   if ((prof.clinical.includes('IBS') || prof.diet.style === 'low_fodmap') && FODMAP_FOODS.some(n => new RegExp(`• ${n} \\d`).test(desc))) {
     fail('забранено: висок FODMAP', FODMAP_FOODS.find(n => new RegExp(`• ${n} \\d`).test(desc)));
   }
+  if (prof.clinical.includes('GERD') && meals.some(m => m.type === 'Хранене 5')) fail('рефлукс: късно хранене преди лягане');
+  if (prof.clinical.some(c => ['T2D', 'IR'].includes(c)) && /(^|\n)• (Бял хляб|Хляб|Оризови галети|Ориз|Ориз \(бял\)|Картофи|Мед) \d/.test(desc)) fail('висок ГИ при диабет/ИР', (desc.match(/(^|\n)• (Бял хляб|Хляб|Оризови галети|Ориз|Ориз \(бял\)|Картофи|Мед) \d/) || [])[2]);
   if (prof.clinical.includes('HTN')) {
     const salty = plated.filter(m => /(Сирене|Кашкавал|Маслини|Сардини|Пармезан)/.test(m.description)).length;
     if (salty > 6) fail('солено при хипертония: твърде често', String(salty));

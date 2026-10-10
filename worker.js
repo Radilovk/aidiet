@@ -9995,9 +9995,8 @@ function readConditions(userData, unmapped) {
 }
 function clinicalDefaultStyle(clinical, protocolId) {
   if (clinical.has("IBS") || clinical.has("SIBO") || protocolId === "gi_issues") return "low_fodmap";
-  if (clinical.has("GI")) return "low_fodmap";
   if (clinical.has("HTN")) return "dash";
-  if (protocolId === "insulin_resistance" || clinical.has("IR") || clinical.has("T2D") || clinical.has("PCOS")) {
+  if (protocolId === "insulin_resistance" || clinical.has("IR") || clinical.has("T2D")) {
     return "low_carb";
   }
   if (protocolId === "autoimmune_aip") return "anti_inflammatory";
@@ -26762,11 +26761,11 @@ var foods_default = {
     pro_hake: { group: "PRO", label: "\u0445\u0435\u043A", kind: "fish", flags: ["keto"] },
     pro_cod: { group: "PRO", label: "\u0442\u0440\u0435\u0441\u043A\u0430", kind: "fish", flags: ["keto"] },
     pro_tilapia: { group: "PRO", label: "\u0442\u0438\u043B\u0430\u043F\u0438\u044F", kind: "fish", flags: ["keto"] },
-    pro_trout: { group: "PRO", label: "\u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430", kind: "fish", flags: ["keto", "oily_fish"] },
+    pro_trout: { group: "PRO", label: "\u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430", kind: "fish", flags: ["keto", "oily_fish", "high_purine"] },
     pro_salmon: { group: "PRO", label: "\u0441\u044C\u043E\u043C\u0433\u0430", kind: "fish", flags: ["keto", "oily_fish"] },
     pro_mackerel: { group: "PRO", label: "\u0441\u043A\u0443\u043C\u0440\u0438\u044F", kind: "fish", flags: ["keto", "oily_fish", "high_purine"] },
     pro_sardines: { group: "PRO", label: "\u0441\u0430\u0440\u0434\u0438\u043D\u0438", kind: "fish", flags: ["keto", "oily_fish", "high_purine", "salty"] },
-    pro_tuna: { group: "PRO", label: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", kind: "fish", flags: ["keto", "high_mercury"] },
+    pro_tuna: { group: "PRO", label: "\u0440\u0438\u0431\u0430 \u0442\u043E\u043D", kind: "fish", flags: ["keto", "high_mercury", "high_purine"] },
     pro_shrimp: { group: "PRO", label: "\u0441\u043A\u0430\u0440\u0438\u0434\u0438", kind: "shellfish", flags: ["keto", "high_purine"] },
     pro_eggs: { group: "PRO", label: "\u044F\u0439\u0446\u0430", kind: "egg", flags: ["keto"], unit: { one: "\u044F\u0439\u0446\u0435", many: "\u044F\u0439\u0446\u0430", grams: 50 } },
     pro_egg_whites: { group: "PRO", label: "\u0431\u0435\u043B\u0442\u044A\u0446\u0438", kind: "egg", flags: ["keto"], unit: { one: "\u0431\u0435\u043B\u0442\u044A\u043A", many: "\u0431\u0435\u043B\u0442\u044A\u043A\u0430", grams: 35 } },
@@ -26779,20 +26778,20 @@ var foods_default = {
     dairy_cheese: { group: "PRO", label: "\u0441\u0438\u0440\u0435\u043D\u0435", kind: "dairy", flags: ["keto", "lactose", "salty"] },
     dairy_kashkaval: { group: "PRO", label: "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B", kind: "dairy", flags: ["keto", "lactose", "salty"] },
     dairy_cottage: { group: "PRO", label: "\u0438\u0437\u0432\u0430\u0440\u0430", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"] },
-    dairy_cottage_low: { group: "PRO", label: "\u043D\u0438\u0441\u043A\u043E\u043C\u0430\u0441\u043B\u0435\u043D\u0430 \u0438\u0437\u0432\u0430\u0440\u0430", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"] },
+    dairy_cottage_low: { group: "PRO", label: "\u043D\u0438\u0441\u043A\u043E\u043C\u0430\u0441\u043B\u0435\u043D\u0430 \u0438\u0437\u0432\u0430\u0440\u0430", kind: "dairy", flags: ["keto", "lactose", "high_fodmap", "lowfat_dairy"] },
     dairy_ricotta: { group: "PRO", label: "\u0440\u0438\u043A\u043E\u0442\u0430", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"] },
     dairy_mozzarella: { group: "PRO", label: "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", kind: "dairy", flags: ["keto", "lactose"] },
     dairy_parmesan: { group: "PRO", label: "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", kind: "dairy", flags: ["keto", "lactose", "salty"] },
     dairy_yogurt: { group: "MLK", label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 200 },
-    dairy_yogurt_2: { group: "MLK", label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 200 },
-    dairy_yogurt_0: { group: "MLK", label: "\u043E\u0431\u0435\u0437\u043C\u0430\u0441\u043B\u0435\u043D\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 200 },
+    dairy_yogurt_2: { group: "MLK", label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose", "high_fodmap", "lowfat_dairy"], serving: 200 },
+    dairy_yogurt_0: { group: "MLK", label: "\u043E\u0431\u0435\u0437\u043C\u0430\u0441\u043B\u0435\u043D\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap", "lowfat_dairy"], serving: 200 },
     dairy_greek: { group: "MLK", label: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"], serving: 150 },
     dairy_skyr: { group: "MLK", label: "\u0441\u043A\u0438\u0440", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"], serving: 150 },
     dairy_yogurt_lf: { group: "MLK", label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", kind: "dairy", flags: ["lactose_free"], serving: 200 },
     dairy_milk_lf: { group: "MLK", label: "\u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", kind: "dairy", flags: ["lactose_free"], serving: 250 },
     dairy_kefir: { group: "MLK", label: "\u043A\u0435\u0444\u0438\u0440", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
     dairy_milk: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
-    dairy_milk_2: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
+    dairy_milk_2: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose", "high_fodmap", "lowfat_dairy"], serving: 250 },
     dairy_soy_yogurt: { group: "MLK", label: "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E", kind: "plant", flags: ["soy", "legume"], serving: 200 },
     dairy_soy_milk: { group: "MLK", label: "\u0441\u043E\u0435\u0432 \u043D\u0430\u043F\u0438\u0442\u044A\u043A", kind: "plant", flags: ["soy", "legume"], serving: 250 },
     dairy_plant_milk: { group: "STA", label: "\u043E\u0432\u0435\u0441\u0435\u043D \u043D\u0430\u043F\u0438\u0442\u044A\u043A", kind: "plant", flags: ["oats"], serving: 200 },
@@ -26852,15 +26851,15 @@ var foods_default = {
     fruit_grapefruit: { group: "FRU", label: "\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442", flags: ["low_gi"], unit: { one: "\u043F\u043E\u043B\u043E\u0432\u0438\u043D \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442", many: "\u043F\u043E\u043B\u043E\u0432\u0438\u043D\u043A\u0438 \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442", grams: 150 } },
     fruit_peach: { group: "FRU", label: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", flags: ["low_gi", "high_fodmap"], unit: { one: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0430", many: "\u043F\u0440\u0430\u0441\u043A\u043E\u0432\u0438", grams: 150 } },
     fruit_kiwi: { group: "FRU", label: "\u043A\u0438\u0432\u0438", flags: ["low_gi"], unit: { one: "\u043A\u0438\u0432\u0438", many: "\u043A\u0438\u0432\u0438", grams: 75 } },
-    fruit_banana: { group: "FRU", label: "\u0431\u0430\u043D\u0430\u043D", flags: ["high_gi"], unit: { one: "\u0431\u0430\u043D\u0430\u043D", many: "\u0431\u0430\u043D\u0430\u043D\u0430", grams: 120 } },
+    fruit_banana: { group: "FRU", label: "\u0431\u0430\u043D\u0430\u043D", flags: ["high_gi_fruit"], unit: { one: "\u0431\u0430\u043D\u0430\u043D", many: "\u0431\u0430\u043D\u0430\u043D\u0430", grams: 120 } },
     fruit_strawberry: { group: "FRU", label: "\u044F\u0433\u043E\u0434\u0438", flags: ["low_gi", "keto"] },
     fruit_raspberry: { group: "FRU", label: "\u043C\u0430\u043B\u0438\u043D\u0438", flags: ["low_gi", "keto"] },
     fruit_blueberry: { group: "FRU", label: "\u0431\u043E\u0440\u043E\u0432\u0438\u043D\u043A\u0438", flags: ["low_gi"] },
-    fruit_grapes: { group: "FRU", label: "\u0433\u0440\u043E\u0437\u0434\u0435", flags: ["high_gi"] },
-    fruit_watermelon: { group: "FRU", label: "\u0434\u0438\u043D\u044F", flags: ["high_gi", "high_fodmap"] },
-    fruit_melon: { group: "FRU", label: "\u043F\u044A\u043F\u0435\u0448", flags: ["high_gi"] },
-    fruit_pineapple: { group: "FRU", label: "\u0430\u043D\u0430\u043D\u0430\u0441", flags: ["high_gi"] },
-    fruit_mango: { group: "FRU", label: "\u043C\u0430\u043D\u0433\u043E", flags: ["high_gi", "high_fodmap"] },
+    fruit_grapes: { group: "FRU", label: "\u0433\u0440\u043E\u0437\u0434\u0435", flags: ["high_gi_fruit"] },
+    fruit_watermelon: { group: "FRU", label: "\u0434\u0438\u043D\u044F", flags: ["high_gi_fruit", "high_fodmap"] },
+    fruit_melon: { group: "FRU", label: "\u043F\u044A\u043F\u0435\u0448", flags: ["high_gi_fruit"] },
+    fruit_pineapple: { group: "FRU", label: "\u0430\u043D\u0430\u043D\u0430\u0441", flags: ["high_gi_fruit"] },
+    fruit_mango: { group: "FRU", label: "\u043C\u0430\u043D\u0433\u043E", flags: ["high_gi_fruit", "high_fodmap"] },
     fruit_lemon: { group: "FREE", label: "\u043B\u0438\u043C\u043E\u043D", flags: ["keto"] },
     fat_oil: { group: "FAT", label: "\u0437\u0435\u0445\u0442\u0438\u043D", flags: ["keto"], unit: { one: "\u0447.\u043B.", many: "\u0447.\u043B.", grams: 5 } },
     fat_sunflower_oil: { group: "FAT", label: "\u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u043E \u043E\u043B\u0438\u043E", flags: ["keto", "seed"], unit: { one: "\u0447.\u043B.", many: "\u0447.\u043B.", grams: 5 } },
@@ -27256,7 +27255,8 @@ var diet_patterns_default = {
         "whole_grain"
       ],
       excludeFlags: [
-        "high_gi"
+        "high_gi",
+        "high_gi_fruit"
       ],
       fatPartScale: 1.5,
       preferFoods: [
@@ -27447,7 +27447,7 @@ var diet_patterns_default = {
       bounds: {
         STA: [
           0,
-          8
+          14
         ],
         PRO: [
           5,
@@ -28009,157 +28009,462 @@ var clinical_default = {
   conditions: {
     IR: {
       label: "\u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442",
-      basis: "ADA Standards of Care 2024, Nutrition Therapy: \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u0440\u0430\u0432\u043D\u043E\u043C\u0435\u0440\u043D\u043E, \u043D\u0438\u0441\u044A\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0438\u043D\u0434\u0435\u043A\u0441, \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440",
+      basis: "ADA Standards of Care 2025, Nutrition Therapy: \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u0440\u0430\u0432\u043D\u043E\u043C\u0435\u0440\u043D\u043E, \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438 \u0438 \u043D\u0438\u0441\u044A\u043A \u0413\u0418, \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440; \u0446\u0435\u043B\u0438\u0442\u0435 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u043E\u0441\u0442\u0430\u0432\u0430\u0442 (\u043F\u043E-\u0441\u043B\u0430\u0434\u043A\u0438\u0442\u0435 \u2014 \u0434\u043E 2 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u0438 \u0441 \u0431\u0435\u043B\u0442\u044A\u043A)",
       distribution: "even_carbs",
-      excludeFlags: ["high_gi"],
+      excludeFlags: [
+        "high_gi"
+      ],
+      limitFlags: {
+        high_gi_fruit: 2
+      },
+      prefer: [
+        "low_gi",
+        "whole_grain"
+      ],
       noSweets: true,
-      fruitWithProtein: true,
-      prefer: ["low_gi", "whole_grain"]
+      fruitWithProtein: true
     },
     T2D: {
       label: "\u0414\u0438\u0430\u0431\u0435\u0442 \u0442\u0438\u043F 2",
-      basis: "ADA Standards of Care 2024, Nutrition Therapy",
+      basis: "ADA Standards of Care 2025, Nutrition Therapy: \u0435\u0434\u043D\u0430\u043A\u0432\u043E \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u043F\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F, \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438 \u0438 \u043D\u0438\u0441\u044A\u043A \u0413\u0418, \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u0441\u043B\u0430\u0434\u043A\u0438 \u043D\u0430\u043F\u0438\u0442\u043A\u0438; \u0446\u0435\u043B\u0438\u0442\u0435 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u043E\u0441\u0442\u0430\u0432\u0430\u0442",
       distribution: "even_carbs",
-      excludeFlags: ["high_gi"],
+      excludeFlags: [
+        "high_gi"
+      ],
+      limitFlags: {
+        high_gi_fruit: 2
+      },
+      prefer: [
+        "low_gi",
+        "whole_grain"
+      ],
       noSweets: true,
-      fruitWithProtein: true,
-      prefer: ["low_gi", "whole_grain"]
+      fruitWithProtein: true
     },
     PCOS: {
       label: "\u041F\u043E\u043B\u0438\u043A\u0438\u0441\u0442\u043E\u0437\u043D\u0438 \u044F\u0439\u0447\u043D\u0438\u0446\u0438",
-      basis: "International Evidence-based Guideline for PCOS (2023): \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u043D\u0438\u0441\u044A\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0442\u043E\u0432\u0430\u0440",
-      distribution: "even_carbs",
-      excludeFlags: ["high_gi"],
-      noSweets: true,
-      prefer: ["low_gi", "whole_grain"]
+      basis: "International Evidence-based Guideline for PCOS 2023: \u043D\u044F\u043C\u0430 \u0434\u043E\u043A\u0430\u0437\u0430\u043D\u043E \u043F\u043E-\u0434\u043E\u0431\u044A\u0440 \u0442\u0438\u043F \u0434\u0438\u0435\u0442\u0430 \u2014 \u043E\u0431\u0449\u043E \u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0438 \u0435\u043D\u0435\u0440\u0433\u0438\u0435\u043D \u0431\u0430\u043B\u0430\u043D\u0441; \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0442 \u0441\u0435 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438 \u0438 \u0445\u0440\u0430\u043D\u0438 \u0441 \u043D\u0438\u0441\u044A\u043A \u0413\u0418. \u041F\u0440\u0438 \u0434\u043E\u043A\u0430\u0437\u0430\u043D\u0430 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0432\u0430\u0436\u0430\u0442 \u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u0442\u0430 \u0437\u0430 \u043D\u0435\u044F",
+      limitFlags: {
+        high_gi: 3
+      },
+      prefer: [
+        "low_gi",
+        "whole_grain"
+      ]
     },
     METS: {
       label: "\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u0435\u043D \u0441\u0438\u043D\u0434\u0440\u043E\u043C",
-      basis: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438/DASH \u043C\u043E\u0434\u0435\u043B; \u043D\u0438\u0441\u044A\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0442\u043E\u0432\u0430\u0440",
+      basis: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438/DASH \u043C\u043E\u0434\u0435\u043B (ESC 2021, AHA): \u043D\u0438\u0441\u044A\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0442\u043E\u0432\u0430\u0440, \u0440\u0438\u0431\u0430, \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438, \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440",
       distribution: "even_carbs",
-      excludeFlags: ["high_gi"],
+      excludeFlags: [
+        "high_gi"
+      ],
+      limitFlags: {
+        high_gi_fruit: 2
+      },
+      prefer: [
+        "low_gi",
+        "whole_grain",
+        "oily_fish"
+      ],
       noSweets: true,
-      prefer: ["low_gi", "whole_grain", "oily_fish"]
+      mainsMin: {
+        fish: 2
+      }
     },
     NAFLD: {
-      label: "\u041D\u0435\u0430\u043B\u043A\u043E\u0445\u043E\u043B\u043D\u0430 \u043C\u0430\u0441\u0442\u043D\u0430 \u0447\u0435\u0440\u043D\u043E\u0434\u0440\u043E\u0431\u043D\u0430 \u0431\u043E\u043B\u0435\u0441\u0442",
-      basis: "EASL\u2013EASD\u2013EASO 2024: \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B, \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0444\u0440\u0443\u043A\u0442\u043E\u0437\u0430 \u0438 \u0441\u043B\u0430\u0434\u043A\u0438 \u043D\u0430\u043F\u0438\u0442\u043A\u0438",
-      excludeFlags: ["high_gi"],
+      label: "\u041D\u0435\u0430\u043B\u043A\u043E\u0445\u043E\u043B\u043D\u0430 \u043C\u0430\u0441\u0442\u043D\u0430 \u0447\u0435\u0440\u043D\u043E\u0434\u0440\u043E\u0431\u043D\u0430 \u0431\u043E\u043B\u0435\u0441\u0442 (MASLD)",
+      basis: "EASL\u2013EASD\u2013EASO 2024: \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B, \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0444\u0440\u0443\u043A\u0442\u043E\u0437\u0430 \u0438 \u0441\u043B\u0430\u0434\u043A\u0438 \u043D\u0430\u043F\u0438\u0442\u043A\u0438, \u0431\u0435\u0437 \u0430\u043B\u043A\u043E\u0445\u043E\u043B; \u0446\u0435\u043B\u0438\u0442\u0435 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0441\u0430 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438",
+      excludeFlags: [
+        "high_gi"
+      ],
+      limitFlags: {
+        high_gi_fruit: 3
+      },
       noSweets: true,
-      prefer: ["whole_grain", "oily_fish"],
-      mainsMin: { fish: 3 }
+      prefer: [
+        "whole_grain",
+        "oily_fish"
+      ],
+      mainsMin: {
+        fish: 2
+      }
     },
     HTN: {
       label: "\u0425\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F",
-      basis: "DASH (NHLBI): \u043D\u0430\u0442\u0440\u0438\u0439 \u22642300 \u043C\u0433, \u043F\u043E\u0432\u0435\u0447\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0438 \u043D\u0438\u0441\u043A\u043E\u043C\u0430\u0441\u043B\u0435\u043D\u0438 \u043C\u043B\u0435\u0447\u043D\u0438",
-      limitFlags: { salty: 2 },
-      mainsMax: { red: 1 },
-      prefer: ["whole_grain"]
+      basis: "DASH (NHLBI) \u0438 ESH 2023: \u043D\u0430\u0442\u0440\u0438\u0439 <2 \u0433/\u0434\u0435\u043D (\u0441\u043E\u043B <5 \u0433), \u043F\u043E\u0432\u0435\u0447\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0438 \u043D\u0438\u0441\u043A\u043E\u043C\u0430\u0441\u043B\u0435\u043D\u0438 \u043C\u043B\u0435\u0447\u043D\u0438, \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E",
+      limitFlags: {
+        salty: 2
+      },
+      mainsMax: {
+        red: 1
+      },
+      prefer: [
+        "whole_grain",
+        "lowfat_dairy"
+      ]
     },
     CVD: {
       label: "\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
-      basis: "ESC 2021 Prevention Guidelines: \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B, \u0440\u0438\u0431\u0430 \u22652 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E, \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u043D\u0430\u0441\u0438\u0442\u0435\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u0438 \u0441\u043E\u043B",
-      limitFlags: { salty: 2 },
-      excludeFlags: ["fatty_meat"],
-      mainsMin: { fish: 3 },
-      mainsMax: { red: 1 },
-      prefer: ["oily_fish", "whole_grain"]
+      basis: "ESC 2021 Prevention Guidelines: \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B, \u0440\u0438\u0431\u0430 1\u20132 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (\u0437\u0430 \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0435 \u043C\u0430\u0437\u043D\u0430), \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u043D\u0430\u0441\u0438\u0442\u0435\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 (\u0431\u0435\u0437 \u0442\u043B\u044A\u0441\u0442\u043E \u043C\u0435\u0441\u043E \u0438 \u043C\u0430\u0441\u043B\u043E) \u0438 \u0441\u043E\u043B <5 \u0433",
+      limitFlags: {
+        salty: 2
+      },
+      excludeFlags: [
+        "fatty_meat"
+      ],
+      mainsMin: {
+        fish: 2
+      },
+      mainsMax: {
+        red: 1
+      },
+      prefer: [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
     },
     DYSL: {
       label: "\u0414\u0438\u0441\u043B\u0438\u043F\u0438\u0434\u0435\u043C\u0438\u044F",
-      basis: "ESC/EAS 2019 Dyslipidaemia: \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0430\u0432\u0430\u043D\u0435 \u043D\u0430 \u043D\u0430\u0441\u0438\u0442\u0435\u043D\u0438\u0442\u0435 \u043C\u0430\u0437\u043D\u0438\u043D\u0438; \u041D\u0426\u041E\u0417\u0410 \u2014 \u0434\u043E \u043F\u043E\u043B\u043E\u0432\u0438\u043D \u0436\u044A\u043B\u0442\u044A\u043A \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043F\u043E\u0432\u0438\u0448\u0435\u043D \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B",
-      excludeFlags: ["fatty_meat"],
-      weeklyMax: { egg: 4 },
-      mainsMin: { fish: 3 },
-      prefer: ["oily_fish", "whole_grain"]
+      basis: "ESC/EAS 2019 Dyslipidaemia: \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u043D\u0430\u0441\u0438\u0442\u0435\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 (\u0431\u0435\u0437 \u0442\u043B\u044A\u0441\u0442\u043E \u043C\u0435\u0441\u043E \u0438 \u043C\u0430\u0441\u043B\u043E), \u0440\u0430\u0437\u0442\u0432\u043E\u0440\u0438\u043C\u0438 \u0444\u0438\u0431\u0440\u0438 (\u043E\u0432\u0435\u0441, \u0431\u043E\u0431\u043E\u0432\u0438), \u0440\u0438\u0431\u0430; \u044F\u0439\u0446\u0430\u0442\u0430 \u0443\u043C\u0435\u0440\u0435\u043D\u043E \u043F\u0440\u0438 \u0432\u0438\u0441\u043E\u043A LDL",
+      excludeFlags: [
+        "fatty_meat"
+      ],
+      weeklyMax: {
+        egg: 4
+      },
+      mainsMin: {
+        fish: 2
+      },
+      prefer: [
+        "oily_fish",
+        "whole_grain",
+        "oats",
+        "legume"
+      ]
     },
     GOUT: {
       label: "\u041F\u043E\u0434\u0430\u0433\u0440\u0430",
-      basis: "ACR 2020 Gout Guideline: \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0430\u0432\u0430\u043D\u0435 \u043D\u0430 \u043F\u0443\u0440\u0438\u043D\u0438 (\u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E, \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u0438, \u043C\u043E\u0440\u0441\u043A\u0438 \u0434\u0430\u0440\u043E\u0432\u0435), \u0431\u0435\u0437 \u0444\u0440\u0443\u043A\u0442\u043E\u0437\u0430 \u0438 \u0430\u043B\u043A\u043E\u0445\u043E\u043B",
-      excludeFlags: ["high_purine"],
-      mainsMax: { red: 1 },
-      noSweets: true
+      basis: "ACR 2020 Gout Guideline \u0438 EULAR 2016: \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0430\u0432\u0430\u043D\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u0438 \u0441 \u043C\u043D\u043E\u0433\u043E \u043F\u0443\u0440\u0438\u043D\u0438 (\u043A\u0430\u0440\u0430\u043D\u0442\u0438\u0438, \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E, \u0441\u0430\u0440\u0434\u0438\u043D\u0438, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430, \u0440\u0438\u0431\u0430 \u0442\u043E\u043D, \u043C\u043E\u0440\u0441\u043A\u0438 \u0434\u0430\u0440\u043E\u0432\u0435), \u0431\u0435\u0437 \u0430\u043B\u043A\u043E\u0445\u043E\u043B \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0444\u0440\u0443\u043A\u0442\u043E\u0437\u0430; \u043D\u0438\u0441\u043A\u043E\u043C\u0430\u0441\u043B\u0435\u043D\u0438\u0442\u0435 \u043C\u043B\u0435\u0447\u043D\u0438 \u0441\u0430 \u043F\u043E\u043B\u0435\u0437\u043D\u0438, \u0431\u043E\u0431\u043E\u0432\u0438\u0442\u0435 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u2014 \u0431\u0435\u0437 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435",
+      excludeFlags: [
+        "high_purine"
+      ],
+      mainsMax: {
+        red: 1
+      },
+      noSweets: true,
+      prefer: [
+        "lowfat_dairy"
+      ]
     },
     GERD: {
       label: "\u0413\u0430\u0441\u0442\u0440\u043E\u0435\u0437\u043E\u0444\u0430\u0433\u0435\u0430\u043B\u0435\u043D \u0440\u0435\u0444\u043B\u0443\u043A\u0441",
-      basis: "ACG 2022 GERD Guideline: \u0431\u0435\u0437 \u043E\u0431\u0438\u043B\u043D\u0430 \u0438 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u0432\u0435\u0447\u0435\u0440, \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 3 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u043D",
-      excludeFoods: ["cond_tomato_paste", "fruit_orange", "fruit_grapefruit", "cond_lemon_juice", "sw_dark_chocolate"],
-      mealFatMax: { "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": 2, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": 1 },
+      basis: "ACG 2022 GERD Guideline: \u0431\u0435\u0437 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 2\u20133 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u043B\u044F\u0433\u0430\u043D\u0435, \u0431\u0435\u0437 \u043E\u0431\u0438\u043B\u043D\u0430 \u0438 \u043C\u0430\u0437\u043D\u0430 \u0432\u0435\u0447\u0435\u0440\u044F; \u0438\u0437\u0431\u044F\u0433\u0432\u0430\u043D\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u0438\u0442\u0435, \u043A\u043E\u0438\u0442\u043E \u043F\u0440\u043E\u0432\u043E\u043A\u0438\u0440\u0430\u0442 \u0441\u0438\u043C\u043F\u0442\u043E\u043C\u0438 (\u0446\u0438\u0442\u0440\u0443\u0441\u0438, \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435, \u0448\u043E\u043A\u043E\u043B\u0430\u0434)",
+      excludeFoods: [
+        "cond_tomato_paste",
+        "fruit_orange",
+        "fruit_grapefruit",
+        "cond_lemon_juice",
+        "sw_dark_chocolate"
+      ],
+      mealFatMax: {
+        "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": 2
+      },
+      noLateMeal: true,
       noSweets: true
     },
     GAST: {
       label: "\u0413\u0430\u0441\u0442\u0440\u0438\u0442",
-      basis: "\u0429\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0431\u0435\u0437 \u043A\u0438\u0441\u0435\u043B\u0438 \u0438 \u043F\u0438\u043A\u0430\u043D\u0442\u043D\u0438 \u0445\u0440\u0430\u043D\u0438, \u0443\u043C\u0435\u0440\u0435\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438",
-      excludeFoods: ["cond_tomato_paste", "fruit_orange", "fruit_grapefruit", "cond_lemon_juice", "cond_vinegar", "cond_mustard"],
-      mealFatMax: { "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": 2, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": 1 }
+      basis: "\u0429\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 (\u0431\u0435\u0437 \u0434\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0441\u0442\u0432\u0430 \u0437\u0430 \u0441\u0442\u0440\u043E\u0433\u0430 \u0434\u0438\u0435\u0442\u0430): \u0431\u0435\u0437 \u043A\u0438\u0441\u0435\u043B\u0438 \u0438 \u043B\u044E\u0442\u0438 \u0445\u0440\u0430\u043D\u0438 \u043F\u0440\u0438 \u0441\u0438\u043C\u043F\u0442\u043E\u043C\u0438, \u0443\u043C\u0435\u0440\u0435\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438, \u0431\u0435\u0437 \u043A\u044A\u0441\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+      excludeFoods: [
+        "cond_tomato_paste",
+        "fruit_orange",
+        "fruit_grapefruit",
+        "cond_lemon_juice",
+        "cond_vinegar",
+        "cond_mustard"
+      ],
+      mealFatMax: {
+        "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": 2,
+        "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": 1
+      }
     },
     IBS: {
       label: "\u0421\u0438\u043D\u0434\u0440\u043E\u043C \u043D\u0430 \u0440\u0430\u0437\u0434\u0440\u0430\u0437\u043D\u0435\u043D\u043E\u0442\u043E \u0447\u0435\u0440\u0432\u043E",
-      basis: "Monash University Low FODMAP Diet; BSG 2021 IBS Guideline",
-      excludeFlags: ["high_fodmap"]
+      basis: "BSG 2021 IBS Guideline \u0438 Monash University Low FODMAP Diet: \u0444\u0430\u0437\u0430 \u043D\u0430 \u0435\u043B\u0438\u043C\u0438\u043D\u0438\u0440\u0430\u043D\u0435 2\u20136 \u0441\u0435\u0434\u043C\u0438\u0446\u0438, \u043F\u043E\u0441\u043B\u0435 \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E \u0432\u0440\u044A\u0449\u0430\u043D\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u0438\u0442\u0435 \u043F\u043E\u0434 \u043D\u0430\u0431\u043B\u044E\u0434\u0435\u043D\u0438\u0435",
+      excludeFlags: [
+        "high_fodmap"
+      ]
     },
     SIBO: {
       label: "SIBO",
-      basis: "Low FODMAP \u043F\u043E\u0434\u0445\u043E\u0434 \u0432 \u043F\u0435\u0440\u0438\u043E\u0434\u0430 \u043D\u0430 \u043B\u0435\u0447\u0435\u043D\u0438\u0435",
-      excludeFlags: ["high_fodmap"]
+      basis: "\u041D\u0438\u0441\u043A\u043E FODMAP \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E, \u0437\u0430 \u043E\u0431\u043B\u0435\u043A\u0447\u0430\u0432\u0430\u043D\u0435 \u043D\u0430 \u0441\u0438\u043C\u043F\u0442\u043E\u043C\u0438\u0442\u0435 \u043F\u043E \u0432\u0440\u0435\u043C\u0435 \u043D\u0430 \u043B\u0435\u0447\u0435\u043D\u0438\u0435\u0442\u043E (ACG 2020 SIBO)",
+      excludeFlags: [
+        "high_fodmap"
+      ]
     },
     CEL: {
       label: "\u0426\u044C\u043E\u043B\u0438\u0430\u043A\u0438\u044F",
-      basis: "\u0411\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432\u0430 \u0434\u0438\u0435\u0442\u0430; \u043E\u0432\u0435\u0441 \u0441\u0430\u043C\u043E \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u0446\u0438\u0440\u0430\u043D",
-      excludeFlags: ["gluten", "oats"]
+      basis: "ACG 2023 Celiac Disease: \u0441\u0442\u0440\u043E\u0433\u0430 \u0431\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432\u0430 \u0434\u0438\u0435\u0442\u0430; \u043E\u0432\u0435\u0441 \u0441\u0430\u043C\u043E \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u0446\u0438\u0440\u0430\u043D \u0431\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432",
+      excludeFlags: [
+        "gluten",
+        "oats"
+      ]
     },
     ANEM: {
-      label: "\u0410\u043D\u0435\u043C\u0438\u044F",
-      basis: "\u0425\u0435\u043C \u0436\u0435\u043B\u044F\u0437\u043E \u043E\u0442 \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E \u0438 \u0440\u0438\u0431\u0430; \u0431\u043E\u0431\u043E\u0432\u0438 \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u0432\u0438\u0442\u0430\u043C\u0438\u043D C",
-      mainsMin: { red: 2 }
+      label: "\u0416\u0435\u043B\u044F\u0437\u043E\u0434\u0435\u0444\u0438\u0446\u0438\u0442\u043D\u0430 \u0430\u043D\u0435\u043C\u0438\u044F",
+      basis: "WHO/BDA: \u0445\u0435\u043C \u0436\u0435\u043B\u044F\u0437\u043E \u043E\u0442 \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E \u0438 \u0440\u0438\u0431\u0430; \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u0436\u0435\u043B\u044F\u0437\u043E (\u0431\u043E\u0431\u043E\u0432\u0438, \u0435\u043B\u0434\u0430) \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u0432\u0438\u0442\u0430\u043C\u0438\u043D C; \u0447\u0430\u0439 \u0438 \u043A\u0430\u0444\u0435 \u043E\u0442\u0434\u0435\u043B\u043D\u043E \u043E\u0442 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430",
+      mainsMin: {
+        red: 2
+      },
+      prefer: [
+        "legume"
+      ]
     },
     OSTEO: {
       label: "\u041E\u0441\u0442\u0435\u043E\u043F\u043E\u0440\u043E\u0437\u0430",
-      basis: "IOF: \u043A\u0430\u043B\u0446\u0438\u0439 \u043E\u0442 3 \u043F\u043E\u0440\u0446\u0438\u0438 \u043C\u043B\u0435\u0447\u043D\u0438 \u0434\u043D\u0435\u0432\u043D\u043E \u0438 \u0431\u0435\u043B\u0442\u044A\u043A \u22651 \u0433/\u043A\u0433",
-      extraServings: { MLK: 1 }
+      basis: "IOF/ESCEO: \u043A\u0430\u043B\u0446\u0438\u0439 1000\u20131200 \u043C\u0433 (3 \u043F\u043E\u0440\u0446\u0438\u0438 \u043C\u043B\u0435\u0447\u043D\u0438), \u0432\u0438\u0442\u0430\u043C\u0438\u043D D (\u043C\u0430\u0437\u043D\u0430 \u0440\u0438\u0431\u0430), \u0431\u0435\u043B\u0442\u044A\u043A 1\u20131.2 \u0433/\u043A\u0433",
+      extraServings: {
+        MLK: 1
+      },
+      prefer: [
+        "oily_fish"
+      ]
     },
     MENO: {
       label: "\u041C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430",
-      basis: "\u041A\u0430\u043B\u0446\u0438\u0439 \u0438 \u0431\u0435\u043B\u0442\u044A\u043A \u0437\u0430 \u043A\u043E\u0441\u0442\u0438\u0442\u0435 \u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435",
-      extraServings: { MLK: 0.5 }
+      basis: "The Menopause Society 2022 / EMAS: \u043A\u0430\u043B\u0446\u0438\u0439 \u0438 \u0431\u0435\u043B\u0442\u044A\u043A \u0437\u0430 \u043A\u043E\u0441\u0442\u0438\u0442\u0435 \u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435, \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B \u0437\u0430 \u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438\u044F \u0440\u0438\u0441\u043A",
+      extraServings: {
+        MLK: 0.5
+      },
+      prefer: [
+        "oily_fish",
+        "whole_grain"
+      ]
     },
     PP: {
       label: "\u041A\u044A\u0440\u043C\u0435\u043D\u0435",
       basis: "EFSA/FDA: \u0440\u0438\u0431\u0430 2\u20133 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u0441 \u043D\u0438\u0441\u043A\u043E \u0441\u044A\u0434\u044A\u0440\u0436\u0430\u043D\u0438\u0435 \u043D\u0430 \u0436\u0438\u0432\u0430\u043A",
-      excludeFlags: ["high_mercury"],
-      mainsMin: { fish: 2 }
+      excludeFlags: [
+        "high_mercury"
+      ],
+      mainsMin: {
+        fish: 2
+      }
+    },
+    GI: {
+      label: "\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u0435\u043D \u0434\u0438\u0441\u043A\u043E\u043C\u0444\u043E\u0440\u0442",
+      basis: "BSG 2021 (\u043F\u044A\u0440\u0432\u0430 \u043B\u0438\u043D\u0438\u044F): \u0440\u0435\u0434\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F, \u0443\u043C\u0435\u0440\u0435\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438, \u0431\u0435\u0437 \u043E\u0431\u0438\u043B\u043D\u0430 \u0432\u0435\u0447\u0435\u0440\u044F; \u043D\u0438\u0441\u043A\u043E FODMAP \u0441\u0430\u043C\u043E \u043F\u0440\u0438 \u043F\u043E\u0441\u0442\u0430\u0432\u0435\u043D\u0430 \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0430 IBS",
+      mealFatMax: {
+        "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": 2,
+        "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": 1
+      }
+    },
+    IBD: {
+      label: "\u0412\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u043E \u0447\u0440\u0435\u0432\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+      basis: "ECCO 2023 Dietary Guidance: \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B; \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u0438 \u043F\u0440\u0435\u0440\u0430\u0431\u043E\u0442\u0435\u043D\u043E \u043C\u0435\u0441\u043E (\u043E\u0441\u043E\u0431\u0435\u043D\u043E \u043F\u0440\u0438 \u0443\u043B\u0446\u0435\u0440\u043E\u0437\u0435\u043D \u043A\u043E\u043B\u0438\u0442); \u043F\u0440\u0438 \u0441\u0442\u0440\u0438\u043A\u0442\u0443\u0440\u0438 \u2014 \u0449\u0430\u0434\u044F\u0449\u043E, \u0441 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u043D\u0435\u0440\u0430\u0437\u0442\u0432\u043E\u0440\u0438\u043C\u0438 \u0444\u0438\u0431\u0440\u0438",
+      mainsMax: {
+        red: 1
+      },
+      prefer: [
+        "oily_fish"
+      ]
+    },
+    HYPO: {
+      label: "\u0425\u0438\u043F\u043E\u0442\u0438\u0440\u0435\u043E\u0438\u0434\u0438\u0437\u044A\u043C / \u0425\u0430\u0448\u0438\u043C\u043E\u0442\u043E",
+      basis: "ATA/ETA: \u043D\u044F\u043C\u0430 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u043D\u0430 \u0434\u0438\u0435\u0442\u0430; \u0431\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432\u0430 \u0441\u0430\u043C\u043E \u043F\u0440\u0438 \u0446\u044C\u043E\u043B\u0438\u0430\u043A\u0438\u044F; \u0441\u043E\u044F\u0442\u0430 \u0438 \u043A\u0430\u0444\u0435\u0442\u043E \u2014 4 \u0447\u0430\u0441\u0430 \u0441\u043B\u0435\u0434 \u043B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D\u0430 (\u043D\u0435 \u0441\u0435 \u0438\u0437\u043A\u043B\u044E\u0447\u0432\u0430\u0442)"
+    },
+    INFL: {
+      label: "\u0425\u0440\u043E\u043D\u0438\u0447\u043D\u043E \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435",
+      basis: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B \u0441 \u043C\u0430\u0437\u043D\u0430 \u0440\u0438\u0431\u0430 (\u043E\u043C\u0435\u0433\u0430-3), \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438, \u0431\u043E\u0431\u043E\u0432\u0438 \u0438 \u0437\u0435\u0445\u0442\u0438\u043D (PREDIMED)",
+      mainsMin: {
+        fish: 2
+      },
+      prefer: [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    JOINT: {
+      label: "\u0421\u0442\u0430\u0432\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438",
+      basis: "EULAR 2021 (\u043B\u0430\u0439\u0444\u0441\u0442\u0430\u0439\u043B \u043F\u0440\u0438 \u0430\u0440\u0442\u0440\u0438\u0442): \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B, \u043C\u0430\u0437\u043D\u0430 \u0440\u0438\u0431\u0430, \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u043E \u0442\u0435\u0433\u043B\u043E",
+      mainsMin: {
+        fish: 2
+      },
+      prefer: [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    AI: {
+      label: "\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+      basis: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B \u0441 \u043C\u0430\u0437\u043D\u0430 \u0440\u0438\u0431\u0430; \u0431\u0435\u0437 \u0435\u043B\u0438\u043C\u0438\u043D\u0430\u0446\u0438\u043E\u043D\u043D\u0438 \u0434\u0438\u0435\u0442\u0438 \u0431\u0435\u0437 \u043F\u043E\u043A\u0430\u0437\u0430\u043D\u0438\u0435",
+      mainsMin: {
+        fish: 2
+      },
+      prefer: [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    DEP: {
+      label: "\u0414\u0435\u043F\u0440\u0435\u0441\u0438\u044F",
+      basis: "SMILES trial (Jacka 2017) \u0438 ISNPR 2019: \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B \u2014 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438, \u0431\u043E\u0431\u043E\u0432\u0438, \u0440\u0438\u0431\u0430, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      mainsMin: {
+        fish: 2
+      },
+      prefer: [
+        "oily_fish",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    ANX: {
+      label: "\u0422\u0440\u0435\u0432\u043E\u0436\u043D\u043E\u0441\u0442",
+      basis: "\u0420\u0435\u0434\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0431\u0435\u0437 \u0434\u044A\u043B\u0433\u0438 \u043F\u0430\u0443\u0437\u0438, \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B (ISNPR 2019)",
+      prefer: [
+        "whole_grain",
+        "oily_fish",
+        "legume"
+      ]
+    },
+    COG: {
+      label: "\u041A\u043E\u0433\u043D\u0438\u0442\u0438\u0432\u043D\u043E \u0437\u0434\u0440\u0430\u0432\u0435",
+      basis: "MIND \u0434\u0438\u0435\u0442\u0430 (Morris 2015): \u043B\u0438\u0441\u0442\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435, \u044F\u0434\u043A\u0438, \u0431\u043E\u0431\u043E\u0432\u0438, \u0440\u0438\u0431\u0430 \u22651 \u043F\u044A\u0442 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E; \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E \u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E \u0438 \u043C\u0430\u0441\u043B\u043E",
+      mainsMin: {
+        fish: 1
+      },
+      mainsMax: {
+        red: 2
+      },
+      prefer: [
+        "whole_grain",
+        "legume",
+        "oily_fish"
+      ]
+    },
+    SKIN: {
+      label: "\u041A\u043E\u0436\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438 (\u0430\u043A\u043D\u0435)",
+      basis: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u043D\u0438\u0441\u044A\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0442\u043E\u0432\u0430\u0440 (Smith 2007; AAD 2024 \u2014 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438 \u0434\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0441\u0442\u0432\u0430)",
+      limitFlags: {
+        high_gi: 3
+      },
+      prefer: [
+        "low_gi"
+      ]
     }
   },
   protocols: {
-    insulin_resistance: { use: ["IR"] },
-    visceral_fat: { use: ["IR"] },
-    menopause_sarcopenia: { use: ["MENO"] },
-    postpartum_lactation: { use: ["PP"] },
-    gi_issues: { use: ["IBS"] },
+    insulin_resistance: {
+      use: [
+        "IR"
+      ]
+    },
+    visceral_fat: {
+      use: [
+        "IR"
+      ]
+    },
+    menopause_sarcopenia: {
+      use: [
+        "MENO"
+      ]
+    },
+    postpartum_lactation: {
+      use: [
+        "PP"
+      ]
+    },
+    gi_issues: {
+      use: [
+        "IBS"
+      ]
+    },
     longevity: {
       label: "\u0414\u044A\u043B\u0433\u043E\u043B\u0435\u0442\u0438\u0435",
       basis: "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438 \u043C\u043E\u0434\u0435\u043B \u0441 \u043F\u043E\u0432\u0435\u0447\u0435 \u0431\u043E\u0431\u043E\u0432\u0438 \u0438 \u0440\u0438\u0431\u0430",
-      mainsMin: { legume: 3, fish: 3 },
-      mainsMax: { red: 1 }
+      mainsMin: {
+        legume: 3,
+        fish: 3
+      },
+      mainsMax: {
+        red: 1
+      }
     },
     autoimmune_aip: {
       label: "\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u0435\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B (AIP)",
       basis: "Autoimmune Protocol \u2014 \u0444\u0430\u0437\u0430 \u043D\u0430 \u0435\u043B\u0438\u043C\u0438\u043D\u0438\u0440\u0430\u043D\u0435: \u0431\u0435\u0437 \u0437\u044A\u0440\u043D\u0435\u043D\u0438, \u0431\u043E\u0431\u043E\u0432\u0438, \u043C\u043B\u0435\u0447\u043D\u0438, \u044F\u0439\u0446\u0430, \u044F\u0434\u043A\u0438, \u0441\u0435\u043C\u0435\u043D\u0430, \u043A\u0430\u0440\u0442\u043E\u0444\u043E\u0432\u0438 \u0438 \u0441\u043E\u044F",
-      excludeFlags: ["grain", "legume", "lactose", "nut", "peanut", "seed", "nightshade", "soy", "supplement"],
-      excludeKinds: ["egg", "dairy"],
+      excludeFlags: [
+        "grain",
+        "legume",
+        "lactose",
+        "nut",
+        "peanut",
+        "seed",
+        "nightshade",
+        "soy",
+        "supplement"
+      ],
+      excludeKinds: [
+        "egg",
+        "dairy"
+      ],
       noSweets: true
     }
   },
   exclusions: {
-    GLU: { flags: ["gluten"] },
-    LAC: { flags: ["lactose"], kinds: ["dairy"] },
-    EGG: { kinds: ["egg"] },
-    NUT: { flags: ["nut"] },
-    PNT: { flags: ["peanut"] },
-    FSH: { kinds: ["fish"] },
-    SHF: { kinds: ["shellfish"] },
-    SOY: { flags: ["soy"] },
-    PORK: { flags: ["pork"] }
+    GLU: {
+      flags: [
+        "gluten"
+      ]
+    },
+    LAC: {
+      flags: [
+        "lactose"
+      ],
+      kinds: [
+        "dairy"
+      ]
+    },
+    EGG: {
+      kinds: [
+        "egg"
+      ]
+    },
+    NUT: {
+      flags: [
+        "nut"
+      ]
+    },
+    PNT: {
+      flags: [
+        "peanut"
+      ]
+    },
+    FSH: {
+      kinds: [
+        "fish"
+      ]
+    },
+    SHF: {
+      kinds: [
+        "shellfish"
+      ]
+    },
+    SOY: {
+      flags: [
+        "soy"
+      ]
+    },
+    PORK: {
+      flags: [
+        "pork"
+      ]
+    }
   }
 };
 
@@ -38347,6 +38652,7 @@ function buildFoodPolicy(profile, options = {}) {
   const extraServings = {};
   let distribution = styleDef.distribution;
   let noSweets = false;
+  let noLateMeal = false;
   let fruitWithProtein = false;
   for (const rule of rules) {
     for (const [k, v] of Object.entries(rule.mainsMin || {})) mainsMin[k] = Math.max(mainsMin[k] || 0, v);
@@ -38357,6 +38663,7 @@ function buildFoodPolicy(profile, options = {}) {
     for (const [k, v] of Object.entries(rule.extraServings || {})) extraServings[k] = Math.max(extraServings[k] || 0, v);
     if (rule.distribution && style !== "keto") distribution = rule.distribution;
     if (rule.noSweets) noSweets = true;
+    if (rule.noLateMeal) noLateMeal = true;
     if (rule.fruitWithProtein) fruitWithProtein = true;
   }
   if (style === "keto") noSweets = true;
@@ -38386,6 +38693,7 @@ function buildFoodPolicy(profile, options = {}) {
     extraServings,
     distribution,
     noSweets,
+    noLateMeal,
     fruitWithProtein,
     sweets: !!options.sweetsCraving && !noSweets,
     sport,
@@ -38471,8 +38779,8 @@ function allocate(total, weights, bounds) {
   }
   return { amounts: floored, overflow: Math.max(0, roundHalf(left)) };
 }
-function extraSlot(slots, skipsBreakfast) {
-  const order = skipsBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
+function extraSlot(slots, skipsBreakfast, noLateMeal = false) {
+  const order = (skipsBreakfast ? ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"] : ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"]).filter((s) => !(noLateMeal && s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"));
   return order.find((s) => !slots.includes(s)) || null;
 }
 var BOUNDS_BASE_KCAL = 2400;
@@ -38502,7 +38810,7 @@ function distributeExchanges(daily, slots, policy, options = {}) {
       });
       overflow += over;
     }
-    const extra = overflow >= 0.5 ? extraSlot(current, options.skipsBreakfast) : null;
+    const extra = overflow >= 0.5 ? extraSlot(current, options.skipsBreakfast, options.noLateMeal) : null;
     if (!extra) return { quotas, slots: current, added, overflow };
     current = SLOT_ORDER.filter((s) => current.includes(s) || s === extra);
     added.push(extra);
@@ -38550,12 +38858,17 @@ var CATALOG_GROUP = {
   FREE: "condiment"
 };
 var minCache = /* @__PURE__ */ new Map();
+var MEAT_KINDS = /* @__PURE__ */ new Set(["poultry", "red", "fish", "shellfish"]);
 function minPortion(foodId) {
   if (!minCache.has(foodId)) {
     const f = food(foodId);
     if (isCookingFat(f.name, f.nutritionKey)) {
       minCache.set(foodId, COOKING_FAT_MAX_PORTION_G);
       return COOKING_FAT_MAX_PORTION_G;
+    }
+    if (MEAT_KINDS.has(f.kind)) {
+      minCache.set(foodId, 50);
+      return 50;
     }
     minCache.set(foodId, minPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP[f.group] }));
   }
@@ -39043,7 +39356,7 @@ function limitPenalty(built, state, policy) {
   const eggMax = policy.weeklyMax.egg;
   if (eggMax != null && foods.some((f) => f.kind === "egg") && state.kindUses.egg >= eggMax) penalty += 40;
   for (const [flag, max] of Object.entries(policy.limitFlags)) {
-    if (foods.some((f) => f.flags.has(flag)) && (state.flagUses[flag] || 0) >= max) penalty += 25;
+    if (foods.some((f) => f.flags.has(flag)) && (state.flagUses[flag] || 0) >= max) penalty += 80;
   }
   return penalty;
 }
@@ -39336,8 +39649,10 @@ function buildNutritionPlan(userData, options) {
     extraExcludeFlags: mods.includes("gentle_digestion") ? ["high_fodmap"] : [],
     onlyFoods: Array.isArray(userData?.userFoodList) ? userData.userFoodList.map(String) : []
   });
-  const prescription = prescribe({ kcal, macros }, profile.slots, policy, {
+  const slots = policy.noLateMeal && profile.slots.length > 3 ? profile.slots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") : profile.slots;
+  const prescription = prescribe({ kcal, macros }, slots, policy, {
     skipsBreakfast: profile.skipsBreakfast,
+    noLateMeal: policy.noLateMeal,
     extraVeg: mods.includes("more_volume") ? 1 : 0
   });
   const seed = typeof options.seed === "number" ? options.seed : hashSeed(options.seed ?? userData?.email ?? userData?.name ?? "");

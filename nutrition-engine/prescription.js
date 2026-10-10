@@ -112,10 +112,10 @@ function allocate(total, weights, bounds) {
 }
 
 /** Храненето, което се добавя, когато порциите не се побират в избраните. */
-function extraSlot(slots, skipsBreakfast) {
-  const order = skipsBreakfast
+function extraSlot(slots, skipsBreakfast, noLateMeal = false) {
+  const order = (skipsBreakfast
     ? ['Хранене 3', 'Хранене 5', 'Хранене 1']
-    : ['Хранене 3', 'Хранене 1', 'Хранене 5'];
+    : ['Хранене 3', 'Хранене 1', 'Хранене 5']).filter(s => !(noLateMeal && s === 'Хранене 5'));
   return order.find(s => !slots.includes(s)) || null;
 }
 
@@ -165,7 +165,7 @@ export function distributeExchanges(daily, slots, policy, options = {}) {
       current.forEach((s, i) => { quotas[s][g] = amounts[i]; });
       overflow += over;
     }
-    const extra = overflow >= 0.5 ? extraSlot(current, options.skipsBreakfast) : null;
+    const extra = overflow >= 0.5 ? extraSlot(current, options.skipsBreakfast, options.noLateMeal) : null;
     if (!extra) return { quotas, slots: current, added, overflow };
     current = SLOT_ORDER.filter(s => current.includes(s) || s === extra);
     added.push(extra);
@@ -188,7 +188,7 @@ export function quotaTarget(quota) {
  * @param {{ kcal: number, macros: { protein: number, carbs: number, fats: number } }} target
  * @param {string[]} slots
  * @param {ReturnType<typeof import('./policy.js').buildFoodPolicy>} policy
- * @param {{ skipsBreakfast?: boolean, extraVeg?: number }} [options]
+ * @param {{ skipsBreakfast?: boolean, extraVeg?: number, noLateMeal?: boolean }} [options]
  */
 export function prescribe(target, slots, policy, options = {}) {
   const daily = dailyExchanges({ ...target, extraVeg: options.extraVeg }, policy);

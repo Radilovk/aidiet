@@ -126,6 +126,7 @@ for (const prof of profiles) {
   const kDev = dev.k / dev.n;
   ok(kDev < (profile.diet.style === 'keto' ? 0.12 : 0.12), `${prof.id}: калории ±${(kDev * 100).toFixed(1)}%`);
   total.k += kDev; total.p += dev.p / dev.n; total.c += dev.c / dev.n; total.f += dev.f / dev.n; total.n++;
+  if (process.env.DEV) console.log(prof.id, (kDev * 100).toFixed(1), ((dev.p / dev.n) * 100).toFixed(1));
 
   // Описанието е източникът: преизчисляването не мести стойностите.
   const before = JSON.stringify(Object.values(weekPlan).map(d => d.dailyTotals));

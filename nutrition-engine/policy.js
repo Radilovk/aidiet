@@ -143,6 +143,7 @@ export function buildFoodPolicy(profile, options = {}) {
   const extraServings = {};
   let distribution = styleDef.distribution;
   let noSweets = false;
+  let noLateMeal = false;
   let fruitWithProtein = false;
   for (const rule of rules) {
     for (const [k, v] of Object.entries(rule.mainsMin || {})) mainsMin[k] = Math.max(mainsMin[k] || 0, v);
@@ -153,6 +154,7 @@ export function buildFoodPolicy(profile, options = {}) {
     for (const [k, v] of Object.entries(rule.extraServings || {})) extraServings[k] = Math.max(extraServings[k] || 0, v);
     if (rule.distribution && style !== 'keto') distribution = rule.distribution;
     if (rule.noSweets) noSweets = true;
+    if (rule.noLateMeal) noLateMeal = true;
     if (rule.fruitWithProtein) fruitWithProtein = true;
   }
   // Кето вече държи въглехидратите под 30 г; равномерното им разпределение е без значение.
@@ -192,6 +194,7 @@ export function buildFoodPolicy(profile, options = {}) {
     extraServings,
     distribution,
     noSweets,
+    noLateMeal,
     fruitWithProtein,
     sweets: !!options.sweetsCraving && !noSweets,
     sport,

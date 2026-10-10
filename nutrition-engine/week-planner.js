@@ -236,7 +236,7 @@ function limitPenalty(built, state, policy) {
   const eggMax = policy.weeklyMax.egg;
   if (eggMax != null && foods.some(f => f.kind === 'egg') && state.kindUses.egg >= eggMax) penalty += 40;
   for (const [flag, max] of Object.entries(policy.limitFlags)) {
-    if (foods.some(f => f.flags.has(flag)) && (state.flagUses[flag] || 0) >= max) penalty += 25;
+    if (foods.some(f => f.flags.has(flag)) && (state.flagUses[flag] || 0) >= max) penalty += 80;
   }
   return penalty;
 }

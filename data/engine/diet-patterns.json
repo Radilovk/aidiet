@@ -357,7 +357,8 @@
         "whole_grain"
       ],
       "excludeFlags": [
-        "high_gi"
+        "high_gi",
+        "high_gi_fruit"
       ],
       "fatPartScale": 1.5,
       "preferFoods": [
@@ -548,7 +549,7 @@
       "bounds": {
         "STA": [
           0,
-          8
+          14
         ],
         "PRO": [
           5,

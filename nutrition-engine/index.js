@@ -93,8 +93,11 @@ export function buildNutritionPlan(userData, options) {
     extraExcludeFlags: mods.includes('gentle_digestion') ? ['high_fodmap'] : [],
     onlyFoods: Array.isArray(userData?.userFoodList) ? userData.userFoodList.map(String) : [],
   });
-  const prescription = prescribe({ kcal, macros }, profile.slots, policy, {
+  // Рефлукс: без хранене 2–3 часа преди лягане — късната закуска отпада.
+  const slots = policy.noLateMeal && profile.slots.length > 3 ? profile.slots.filter(s => s !== 'Хранене 5') : profile.slots;
+  const prescription = prescribe({ kcal, macros }, slots, policy, {
     skipsBreakfast: profile.skipsBreakfast,
+    noLateMeal: policy.noLateMeal,
     extraVeg: mods.includes('more_volume') ? 1 : 0,
   });
   const seed = typeof options.seed === 'number' ? options.seed : hashSeed(options.seed ?? userData?.email ?? userData?.name ?? '');
