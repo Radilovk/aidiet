@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="NutriPlan — Твоята персонална здравна платформа за 2026 г. AI анализ с 30+ критерия, 7-дневен план за хранене, психология, добавки и активности. Клинични протоколи, програма за дълголетие, анализ на емоционалното хранене. 24/7 AI консултант. Свали като приложение — безплатно.">
+    <meta name="description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -15,16 +15,16 @@
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/">
-    <meta property="og:title" content="NutriPlan — Персонален AI Здравен Асистент 2026">
-    <meta property="og:description" content="Персонализиран план за хранене, психология, добавки и активности. 7-степенен AI анализ, клинични протоколи, програма за дълголетие и анализ на емоционалното хранене. Свали безплатно.">
+    <meta property="og:title" content="NutriPlan — хранене по твоя мярка">
+    <meta property="og:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://biocode.website/">
-    <meta name="twitter:title" content="NutriPlan — Персонален AI Здравен Асистент 2026">
-    <meta name="twitter:description" content="Персонализиран план за хранене, психология, добавки и активности. 7-степенен AI анализ, клинични протоколи, програма за дълголетие и анализ на емоционалното хранене. Свали безплатно.">
+    <meta name="twitter:title" content="NutriPlan — хранене по твоя мярка">
+    <meta name="twitter:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
 
     <link rel="canonical" href="https://biocode.website/">
@@ -33,7 +33,7 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
-    <title>NutriPlan — Персонален AI Здравен Асистент 2026</title>
+    <title>NutriPlan — хранене по твоя мярка</title>
     <!-- Prefetch adjacent tabs so the browser caches them before they are needed -->
     <link rel="prefetch" href="./plan.html">
     <link rel="prefetch" href="./guidelines.html">
@@ -43,7 +43,7 @@
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
@@ -172,34 +172,55 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: calc(20px + var(--safe-area-inset-top)) calc(5% + var(--safe-area-inset-right)) 20px calc(5% + var(--safe-area-inset-left));
-            min-height: calc(60px + var(--safe-area-inset-top));
-            background: var(--white);
-            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            padding: calc(14px + var(--safe-area-inset-top)) calc(24px + var(--safe-area-inset-right)) 14px calc(24px + var(--safe-area-inset-left));
+            min-height: calc(64px + var(--safe-area-inset-top));
+            background: transparent;
             position: fixed;
             width: 100%;
             top: 0;
             z-index: 1000;
-            box-shadow: var(--shadow);
-            border-bottom: 1px solid var(--glass-border);
-            transition: background-color 0.3s ease;
+            border-bottom: 1px solid transparent;
+            transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, backdrop-filter 0.4s ease;
         }
-        [data-theme="dark"] .top-nav {
-            background: rgba(10, 28, 28, 0.92);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(45, 212, 191, 0.08);
-            border-bottom-color: rgba(45, 212, 191, 0.12);
+        .top-nav.is-scrolled {
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(18px) saturate(180%);
+            -webkit-backdrop-filter: blur(18px) saturate(180%);
+            border-bottom-color: rgba(11, 43, 42, 0.07);
+            box-shadow: 0 10px 30px -24px rgba(11, 43, 42, 0.5);
+        }
+        [data-theme="dark"] .top-nav.is-scrolled {
+            background: rgba(8, 24, 23, 0.82);
+            border-bottom-color: rgba(178, 236, 226, 0.08);
+            box-shadow: 0 10px 30px -20px rgba(0, 0, 0, 0.8);
         }
 
         .logo {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 800;
+            letter-spacing: -0.03em;
             color: var(--text-dark);
+            text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 9px;
         }
         .logo i { color: var(--primary-red); }
+        .top-nav-actions { display: flex; align-items: center; gap: 6px; }
+        .theme-toggle-btn {
+            width: 42px; height: 42px;
+            border-radius: 12px;
+            border: 0;
+            background: transparent;
+            color: var(--text-dark);
+            font-size: 1rem;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            transition: background 0.25s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .theme-toggle-btn:hover { background: rgba(13, 148, 136, 0.08); }
+        .theme-toggle-btn:active { transform: rotate(-30deg) scale(0.9); }
 
         .nav-btn {
             background: linear-gradient(135deg, #06D6C8 0%, #0D9488 60%, #0F766E 100%);
@@ -552,726 +573,742 @@
             .blob { animation: none; }
         }
 
-        /* --- HERO SECTION --- */
+        /* ════════════════════════════════════════════════════════════
+           LANDING — editorial layout, one-shot motion, light + dark
+           ════════════════════════════════════════════════════════════ */
+        .lp {
+            --lp-ink: #0B2B2A;
+            --lp-ink-2: #3D5856;
+            --lp-muted: #6B8480;
+            --lp-line: rgba(11, 43, 42, 0.09);
+            --lp-surface: #ffffff;
+            --lp-surface-2: #F4FAF8;
+            --lp-accent: #0D9488;
+            --lp-accent-2: #14B8A6;
+            --lp-accent-soft: rgba(13, 148, 136, 0.09);
+            --lp-ease: cubic-bezier(0.16, 1, 0.3, 1);
+            --lp-radius: 22px;
+            color: var(--lp-ink);
+        }
+        [data-theme="dark"] .lp {
+            --lp-ink: #E3F4F1;
+            --lp-ink-2: #B4CFCA;
+            --lp-muted: #85A39E;
+            --lp-line: rgba(178, 236, 226, 0.1);
+            --lp-surface: #0F2423;
+            --lp-surface-2: #0C1D1C;
+            --lp-accent: #2DD4BF;
+            --lp-accent-2: #5EEAD4;
+            --lp-accent-soft: rgba(45, 212, 191, 0.1);
+        }
+        .lp em {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-style: italic;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            color: var(--lp-accent);
+            white-space: nowrap;
+        }
+        .lp-wrap { width: min(1160px, 100%); margin: 0 auto; padding: 0 24px; }
+
+        /* --- HERO --- */
         .hero {
-            min-height: 100vh;
+            min-height: 100svh;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 120px 5% 50px 5%;
-            background: var(--white);
+            padding: calc(110px + var(--safe-area-inset-top)) 0 72px;
             position: relative;
+            overflow: hidden;
             /* Prevent flickering: hide until auth check completes */
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        .hero.visible {
-            opacity: 1;
-        }
-        [data-theme="dark"] .hero {
-            background: transparent;
-        }
-
-        .hero-content {
-            flex: 1;
-            max-width: 600px;
-            z-index: 2;
-        }
-
-        .hero h1 {
-            font-size: clamp(2.2rem, 5vw, 3.8rem);
-            line-height: 1.15;
-            font-weight: 800;
-            margin-bottom: 24px;
-            color: var(--text-dark);
-            letter-spacing: -0.03em;
-        }
-
-        .hero h1 span {
-            background: linear-gradient(135deg, #0D9488 0%, #0F766E 50%, #134E4A 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            color: #0D9488;
-        }
-
-        [data-theme="dark"] .hero h1 span {
-            background: linear-gradient(135deg, #2DD4BF 0%, #14B8A6 50%, #0D9488 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .hero p {
-            font-size: clamp(1rem, 1.5vw, 1.2rem);
-            color: var(--text-gray);
-            margin-bottom: 36px;
-            line-height: 1.7;
-            max-width: 540px;
-        }
-
-        .cta-group {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .btn-outline {
-            border: 2px solid rgba(13, 148, 136, 0.3);
-            color: var(--primary-red);
-            padding: 12px 30px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-            backdrop-filter: blur(8px);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-        .btn-outline:hover {
-            background: linear-gradient(135deg, #06D6C8 0%, #0D9488 100%);
-            border-color: transparent;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
-        }
-
-        /* --- PHONE MOCKUP (CSS Only - Realistic iPhone Style) --- */
-        .hero-image {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            position: relative;
-        }
-
-        .phone-mockup {
-            width: 280px;
-            height: 560px;
-            background: linear-gradient(160deg, #0D3D3D 0%, #0A2E2E 40%, #082828 100%);
-            border-radius: 44px;
-            border: 3px solid rgba(45, 212, 191, 0.25);
-            position: relative;
-            overflow: hidden;
-            box-shadow:
-                0 30px 60px rgba(0, 0, 0, 0.25),
-                0 8px 20px rgba(13, 148, 136, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.08),
-                0 0 0 1px rgba(45, 212, 191, 0.1);
-            animation: float 6s ease-in-out infinite;
-        }
-
-        [data-theme="dark"] .phone-mockup {
-            background: linear-gradient(160deg, #0D3D3D 0%, #0A2E2E 40%, #082828 100%);
-            border-color: rgba(45, 212, 191, 0.3);
-            box-shadow:
-                0 30px 60px rgba(0, 0, 0, 0.4),
-                0 8px 20px rgba(45, 212, 191, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05),
-                0 0 40px rgba(45, 212, 191, 0.08);
-        }
-
-        /* Fake Screen Content inside phone */
-        .screen-content {
-            padding: 0;
-            background: linear-gradient(170deg, #0D3838 0%, #0A2E2E 50%, #082525 100%);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        /* Dynamic Island */
-        .phone-mockup::before {
+        .hero.visible { opacity: 1; }
+        .lp-hero::before {
             content: '';
             position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90px;
-            height: 26px;
-            background: #000000;
-            border-radius: 20px;
-            z-index: 20;
-            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+            inset: 0;
+            background:
+                radial-gradient(60% 50% at 78% 38%, rgba(20, 184, 166, 0.16) 0%, transparent 70%),
+                radial-gradient(40% 40% at 8% 90%, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+            pointer-events: none;
         }
-
-        /* Status bar */
-        .phone-status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 22px 0 22px;
-            height: 46px;
-            position: relative;
-            z-index: 15;
-        }
-        .phone-status-time {
-            font-size: 14px;
-            font-weight: 700;
-            color: #ffffff;
-            letter-spacing: -0.3px;
-        }
-        .phone-status-icons {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .phone-status-icons i {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.85);
-        }
-        .phone-status-battery {
-            width: 22px;
-            height: 10px;
-            border: 1.5px solid rgba(255, 255, 255, 0.7);
-            border-radius: 2.5px;
-            position: relative;
-            margin-left: 2px;
-        }
-        .phone-status-battery::before {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 3px;
-            bottom: 2px;
-            background: #2DD4BF;
-            border-radius: 1px;
-        }
-        .phone-status-battery::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            right: -3px;
-            transform: translateY(-50%);
-            width: 1.5px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 0 1px 1px 0;
-        }
-
-        /* Gradient header in phone */
-        .screen-header-gradient {
-            background: linear-gradient(135deg, rgba(13, 148, 136, 0.4) 0%, rgba(6, 182, 212, 0.25) 100%);
-            padding: 8px 18px 14px;
-            border-bottom: 1px solid rgba(45, 212, 191, 0.15);
-        }
-        .screen-app-title {
-            font-size: 18px;
-            font-weight: 800;
-            color: #ffffff;
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .screen-app-title i {
-            font-size: 15px;
-            color: #2DD4BF;
-        }
-        .screen-app-subtitle {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.55);
-            margin-top: 2px;
-            letter-spacing: 0.3px;
-        }
-
-        /* Phone body content */
-        .screen-body {
-            padding: 10px 14px 14px;
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        /* Meal cards inside phone */
-        .screen-card {
-            background: rgba(20, 60, 60, 0.65);
-            backdrop-filter: blur(10px);
-            border-radius: 14px;
-            padding: 11px 13px;
-            border: 1px solid rgba(45, 212, 191, 0.12);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.3s ease;
-        }
-        .screen-card:hover {
-            border-color: rgba(45, 212, 191, 0.25);
-        }
-        .screen-card-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-        .screen-card-icon.breakfast { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .screen-card-icon.lunch { background: linear-gradient(135deg, #2DD4BF, #0D9488); }
-        .screen-card-icon.dinner { background: linear-gradient(135deg, #8B5CF6, #6D28D9); }
-        .screen-card-info {
-            flex: 1;
-            min-width: 0;
-        }
-        .screen-meal-label {
-            font-size: 9px;
-            color: #2DD4BF;
-            font-weight: 700;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-        }
-        .screen-meal-title {
-            font-weight: 600;
-            font-size: 13px;
-            color: #ffffff;
-            margin-top: 1px;
-        }
-        .screen-meal-amount {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 1px;
-        }
-        .screen-card-cal {
-            font-size: 11px;
-            font-weight: 700;
-            color: #2DD4BF;
-            white-space: nowrap;
-        }
-
-        /* Summary strip inside phone */
-        .screen-summary {
-            background: linear-gradient(135deg, rgba(45, 212, 191, 0.15), rgba(6, 182, 212, 0.1));
-            border-radius: 12px;
-            padding: 10px 14px;
-            display: flex;
-            justify-content: space-around;
-            border: 1px solid rgba(45, 212, 191, 0.12);
-            margin-top: auto;
-        }
-        .screen-stat {
-            text-align: center;
-        }
-        .screen-stat-value {
-            font-size: 14px;
-            font-weight: 800;
-            color: #ffffff;
-        }
-        .screen-stat-label {
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.5);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 1px;
-        }
-
-        /* FAB inside phone */
-        .fab-mock {
-            width: 40px; height: 40px;
-            background: linear-gradient(135deg, #2DD4BF 0%, #0D9488 100%);
-            border-radius: 50%;
-            position: absolute; bottom: 16px; right: 16px;
-            display: flex; align-items: center; justify-content: center; color: white;
-            box-shadow: 0 4px 14px rgba(45, 212, 191, 0.4);
-            font-size: 14px;
-            z-index: 10;
-        }
-
-        /* Phone bottom nav bar */
-        .screen-bottom-nav {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 8px 0 12px;
-            background: rgba(10, 35, 35, 0.9);
-            border-top: 1px solid rgba(45, 212, 191, 0.1);
-        }
-        .screen-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            font-size: 9px;
-            color: rgba(255, 255, 255, 0.4);
-        }
-        .screen-nav-item i {
-            font-size: 14px;
-        }
-        .screen-nav-item.active {
-            color: #2DD4BF;
-        }
-
-        /* Home indicator */
-        .screen-home-indicator {
-            width: 100px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-            margin: 0 auto 6px;
-        }
-
-        /* Light theme phone overrides */
-        [data-theme="light"] .phone-mockup,
-        :root:not([data-theme="dark"]) .phone-mockup {
-            background: linear-gradient(160deg, #0F4040 0%, #0B3333 40%, #092C2C 100%);
-        }
-
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-            100% { transform: translateY(0px); }
-        }
-
-        /* --- FEATURES SECTION --- */
-        .features {
-            padding: 80px 5%;
-            background: var(--white);
-        }
-        [data-theme="dark"] .features {
-            background: #0A1A1A;
-        }
-
-        .section-title {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-        .section-title h2 {
-            font-size: clamp(1.8rem, 4vw, 2.5rem);
-            margin-bottom: 12px;
-            color: var(--text-dark);
-            letter-spacing: -0.02em;
-        }
-        .section-title p {
-            color: var(--text-gray);
-            font-size: 1rem;
-        }
-        .section-title span { color: var(--primary-dark); font-weight: 800; }
-
-        .feature-grid {
+        .lp-hero-inner {
+            width: min(1160px, 100%);
+            margin: 0 auto;
+            padding: 0 24px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-        }
-
-        .feature-card {
-            background: var(--white);
-            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-            padding: 36px 28px;
-            border-radius: var(--radius);
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            cursor: pointer;
-            border: 1px solid var(--glass-border);
-            position: relative;
-            overflow: hidden;
-        }
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary-red) 0%, var(--accent-blue) 100%);
-            opacity: 0;
-            transition: opacity 0.35s ease;
-        }
-        .feature-card:hover::before {
-            opacity: 1;
-        }
-        [data-theme="dark"] .feature-card {
-            background: linear-gradient(145deg, var(--white) 0%, rgba(30, 41, 59, 0.95) 100%);
-            border: 1px solid rgba(45, 212, 191, 0.15);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
-        }
-        .feature-card:hover {
-            transform: translateY(-6px) scale(1.01);
-            box-shadow: var(--shadow), 0 0 0 1px rgba(13, 148, 136, 0.1);
-            border-color: rgba(13, 148, 136, 0.2);
-        }
-        [data-theme="dark"] .feature-card:hover {
-            border-color: rgba(45, 212, 191, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 12px rgba(45, 212, 191, 0.1);
-        }
-
-        .icon-box {
-            width: 60px; height: 60px;
-            background: linear-gradient(135deg, var(--soft-red) 0%, rgba(6, 182, 212, 0.15) 100%);
-            color: var(--primary-red);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15);
-        }
-
-        /* Icon box color variants for feature cards */
-        .icon-box--teal  { background: linear-gradient(135deg, #e0f7fa, #b2ebf2); color: #0097a7; }
-        .icon-box--indigo { background: linear-gradient(135deg, #e8eaf6, #c5cae9); color: #3949ab; }
-        .icon-box--blue  { background: linear-gradient(135deg, #e3f2fd, #bbdefb); color: #1976d2; }
-        .icon-box--rose  { background: linear-gradient(135deg, #fce4ec, #f8bbd0); color: #c2185b; }
-        .icon-box--green { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); color: #2e7d32; }
-        .icon-box--amber { background: linear-gradient(135deg, #fff8e1, #ffecb3); color: #f57f17; }
-
-        /* Dark mode icon-box overrides */
-        [data-theme="dark"] .icon-box--teal  { background: linear-gradient(135deg, rgba(0,151,167,0.2), rgba(0,151,167,0.1)); color: #26C6DA; }
-        [data-theme="dark"] .icon-box--indigo { background: linear-gradient(135deg, rgba(57,73,171,0.22), rgba(57,73,171,0.12)); color: #7986CB; }
-        [data-theme="dark"] .icon-box--blue  { background: linear-gradient(135deg, rgba(25,118,210,0.22), rgba(25,118,210,0.12)); color: #64B5F6; }
-        [data-theme="dark"] .icon-box--rose  { background: linear-gradient(135deg, rgba(194,24,91,0.22), rgba(194,24,91,0.12)); color: #F48FB1; }
-        [data-theme="dark"] .icon-box--green { background: linear-gradient(135deg, rgba(46,125,50,0.22), rgba(46,125,50,0.12)); color: #81C784; }
-        [data-theme="dark"] .icon-box--amber { background: linear-gradient(135deg, rgba(245,127,23,0.22), rgba(245,127,23,0.12)); color: #FFD54F; }
-
-        /* Screen header overlay (phone mockup) - removed, using new layout */
-
-        .feature-card h3 { margin-bottom: 10px; font-size: 1.2rem; }
-        .feature-card p { color: var(--text-gray); font-size: 0.95rem; line-height: 1.6; }
-
-        /* EmoEat Feature Card Styles */
-        .feature-card.emoeat-card {
-            background: linear-gradient(135deg, #EDE9FE, #FCE7F3);
-            border: 2px solid #8B5CF6;
-        }
-        .feature-card.emoeat-card a {
-            text-decoration: none;
-            color: inherit;
-            display: block;
-        }
-        .feature-card.emoeat-card .icon-box {
-            background: linear-gradient(135deg, #8B5CF6, #EC4899);
-        }
-        .feature-card.emoeat-card .icon-box i {
-            color: white;
-        }
-        .feature-card.emoeat-card h3 {
-            color: #6D28D9;
-        }
-        [data-theme="dark"] .feature-card.emoeat-card {
-            background: linear-gradient(135deg, #2E1065, #831843);
-            border-color: #A78BFA;
-        }
-        [data-theme="dark"] .feature-card.emoeat-card h3 {
-            color: #C4B5FD;
-        }
-
-        /* Longevity Feature Card Styles */
-        .feature-card.longevity-card {
-            background: linear-gradient(135deg, #e0f7fa, #fef3c7);
-            border: 2px solid #00c4c8;
-        }
-        .feature-card.longevity-card a {
-            text-decoration: none;
-            color: inherit;
-            display: block;
-        }
-        .feature-card.longevity-card .icon-box {
-            background: linear-gradient(135deg, #00c4c8, #d4a843);
-        }
-        .feature-card.longevity-card .icon-box i {
-            color: white;
-        }
-        .feature-card.longevity-card h3 {
-            color: #008b8f;
-        }
-        [data-theme="dark"] .feature-card.longevity-card {
-            background: linear-gradient(135deg, #0a2e2f, #422006);
-            border-color: #06d6da;
-        }
-        [data-theme="dark"] .feature-card.longevity-card h3 {
-            color: #7ddcde;
-        }
-
-        /* Protocol Landing Feature Card Styles */
-        .feature-card.protocol-landing-card {
-            background: linear-gradient(135deg, #e8f5e9, #e3f2fd);
-            border: 2px solid #2e7d32;
-        }
-        .feature-card.protocol-landing-card a {
-            text-decoration: none;
-            color: inherit;
-            display: block;
-        }
-        .feature-card.protocol-landing-card .icon-box {
-            background: linear-gradient(135deg, #2e7d32, #1565c0);
-        }
-        .feature-card.protocol-landing-card .icon-box i {
-            color: white;
-        }
-        .feature-card.protocol-landing-card h3 {
-            color: #1b5e20;
-        }
-        [data-theme="dark"] .feature-card.protocol-landing-card {
-            background: linear-gradient(135deg, #0a2e0c, #0a1929);
-            border-color: #4caf50;
-        }
-        [data-theme="dark"] .feature-card.protocol-landing-card h3 {
-            color: #81c784;
-        }
-
-        /* --- STEPS SECTION --- */
-        .steps {
-            padding: 80px 5%;
-            background: var(--soft-red);
-            position: relative;
-            overflow: hidden;
-        }
-        [data-theme="dark"] .steps {
-            background: linear-gradient(180deg, #0C2020 0%, #0A1A1A 100%);
-        }
-        /* Decorational circle */
-        .steps::before {
-            content: ''; position: absolute; top: -100px; left: -100px; width: 300px; height: 300px;
-            background: rgba(13, 148, 136, 0.08); border-radius: 50%; filter: blur(60px);
-        }
-
-        .steps-container {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 32px;
-            margin-top: 50px;
-        }
-
-        .step-item {
-            text-align: center;
-            flex: 1;
-            min-width: 250px;
-            position: relative;
-            padding: 28px 20px;
-            background: var(--white);
-            border-radius: var(--radius);
-            border: 1px solid var(--glass-border);
-            backdrop-filter: blur(var(--glass-blur));
-            -webkit-backdrop-filter: blur(var(--glass-blur));
-            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        [data-theme="dark"] .step-item {
-            background: linear-gradient(145deg, rgba(20, 55, 55, 0.78) 0%, rgba(30, 41, 59, 0.9) 100%);
-            border-color: rgba(45, 212, 191, 0.15);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-        }
-
-        .step-item:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow);
-        }
-
-        .step-number {
-            font-size: 3rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, var(--primary-red), var(--accent-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            color: var(--primary-red);
-            display: block;
-            margin-bottom: 8px;
-            opacity: 0.65;
-        }
-
-        [data-theme="dark"] .step-number {
-            opacity: 0.7;
-            background: linear-gradient(135deg, #2DD4BF, #22D3EE);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .step-content {
+            grid-template-columns: 1.08fr 0.92fr;
+            gap: 48px;
+            align-items: center;
             position: relative;
             z-index: 1;
         }
-        .step-content h3 { font-size: 1.2rem; margin-bottom: 10px; font-weight: 700; }
-
-        /* --- FOOTER --- */
-        footer {
-            background: linear-gradient(180deg, #0F2F2E 0%, #0A2020 100%);
-            color: #e0f5f0;
-            padding: 60px 5% 40px;
-            text-align: center;
-            position: relative;
+        .lp-hero-copy { max-width: 600px; }
+        .lp-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 14px 7px 12px;
+            border-radius: 999px;
+            background: var(--lp-accent-soft);
+            color: var(--lp-accent);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-bottom: 26px;
         }
-        footer::before {
+        .lp-pulse {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 0 0 currentColor;
+            animation: lpPulse 2.4s ease-out infinite;
+        }
+        @keyframes lpPulse {
+            0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.45); }
+            70%, 100% { box-shadow: 0 0 0 9px rgba(13, 148, 136, 0); }
+        }
+        .lp-h1 {
+            font-size: clamp(2.7rem, 6.4vw, 5rem);
+            line-height: 1.02;
+            font-weight: 800;
+            letter-spacing: -0.045em;
+            margin-bottom: 26px;
+            color: var(--lp-ink);
+        }
+        .lp-line { display: block; }
+        .lp-h1 em { font-size: 1.06em; padding-right: 0.04em; }
+        .lp-lead {
+            font-size: clamp(1.02rem, 1.4vw, 1.18rem);
+            line-height: 1.65;
+            color: var(--lp-ink-2);
+            max-width: 500px;
+            margin-bottom: 34px;
+        }
+        .cta-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .lp-btn, .nav-btn.lp-btn {
+            padding: 15px 30px;
+            font-size: 1rem;
+            border-radius: 14px;
+            background: var(--lp-ink);
+            box-shadow: 0 10px 30px -10px rgba(11, 43, 42, 0.55);
+            transition: transform 0.4s var(--lp-ease), box-shadow 0.4s var(--lp-ease), background 0.3s;
+        }
+        .nav-btn.lp-btn::after { display: none; }
+        .nav-btn.lp-btn:hover {
+            background: var(--lp-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 16px 34px -12px rgba(13, 148, 136, 0.6);
+        }
+        [data-theme="dark"] .nav-btn.lp-btn { background: var(--lp-accent); color: #04211F; box-shadow: 0 10px 30px -10px rgba(45, 212, 191, 0.5); }
+        [data-theme="dark"] .nav-btn.lp-btn:hover { background: var(--lp-accent-2); }
+        .btn-outline {
+            border: 1px solid var(--lp-line, rgba(13,148,136,0.25));
+            color: var(--lp-ink, var(--text-dark));
+            background: transparent;
+            padding: 14px 28px;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.3s, background 0.3s, transform 0.4s var(--lp-ease, ease);
+        }
+        .btn-outline:hover { border-color: var(--lp-accent, #0D9488); background: var(--lp-accent-soft, rgba(13,148,136,.08)); transform: translateY(-2px); }
+        .lp-hero-meta {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 22px;
+            margin-top: 30px;
+            color: var(--lp-muted);
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+        .lp-hero-meta i { color: var(--lp-accent); font-size: 0.75rem; margin-right: 6px; }
+
+        /* hero entrance (plays once the auth check reveals the hero) */
+        .lp-enter { opacity: 0; transform: translateY(18px); }
+        .hero.visible .lp-enter {
+            animation: lpRise 0.9s var(--lp-ease) forwards;
+            animation-delay: calc(var(--d, 0) * 90ms + 60ms);
+        }
+        @keyframes lpRise { to { opacity: 1; transform: none; } }
+
+        /* --- HERO VISUAL: phone --- */
+        .hero-image { display: flex; justify-content: center; position: relative; min-height: 560px; align-items: center; }
+        .lp-orbit {
+            position: absolute;
+            width: 470px; height: 470px;
+            border-radius: 50%;
+            border: 1px dashed rgba(13, 148, 136, 0.22);
+            animation: lpSpin 60s linear infinite;
+        }
+        .lp-orbit::before, .lp-orbit::after {
+            content: ''; position: absolute; width: 10px; height: 10px; border-radius: 50%;
+            background: var(--lp-accent-2);
+            top: 50%; left: -5px;
+            box-shadow: 0 0 18px var(--lp-accent-2);
+        }
+        .lp-orbit::after { left: auto; right: 40px; top: 12%; width: 6px; height: 6px; background: #f59e0b; box-shadow: 0 0 14px #f59e0b; }
+        @keyframes lpSpin { to { transform: rotate(360deg); } }
+        .lp-phone {
+            width: 290px;
+            height: 590px;
+            border-radius: 46px;
+            padding: 10px;
+            background: linear-gradient(155deg, #1d3836, #0a1b1a 60%);
+            box-shadow:
+                0 50px 90px -30px rgba(6, 40, 38, 0.55),
+                0 20px 40px -20px rgba(13, 148, 136, 0.35),
+                inset 0 0 0 1.5px rgba(255, 255, 255, 0.08);
+            position: relative;
+            transform: perspective(1200px) rotateY(var(--ry, -8deg)) rotateX(var(--rx, 4deg));
+            transition: transform 0.8s var(--lp-ease);
+            opacity: 0;
+        }
+        .hero.visible .lp-phone { animation: lpPhoneIn 1.2s var(--lp-ease) 0.25s forwards; }
+        @keyframes lpPhoneIn {
+            from { opacity: 0; translate: 0 40px; }
+            to { opacity: 1; translate: 0 0; }
+        }
+        .lp-phone::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent 0%, rgba(45, 212, 191, 0.3) 50%, transparent 100%);
+            top: 20px; left: 50%;
+            width: 84px; height: 24px;
+            translate: -50% 0;
+            background: #000;
+            border-radius: 20px;
+            z-index: 3;
         }
-        [data-theme="dark"] footer {
-            background: #0A2020;
-            color: #c8ece6;
+        .lp-phone-screen {
+            width: 100%; height: 100%;
+            border-radius: 37px;
+            overflow: hidden;
+            background: #F3FAF8;
+            color: #0B2B2A;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            font-size: 11px;
         }
-        .footer-logo { font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; display: inline-block; color: #ffffff; }
-        .socials { margin-bottom: 20px; }
-        .socials a { color: #e0f5f0; font-size: 1.2rem; margin: 0 10px; transition: 0.3s; }
-        .socials a:hover { color: var(--primary-red); }
-        .copyright { color: #7faba6; font-size: 0.9rem; }
-        .footer-legal { margin-top: 12px; font-size: 0.82rem; }
-        .footer-legal a { color: #7faba6; text-decoration: none; margin: 0 8px; }
-        .footer-legal a:hover { color: #e0f5f0; }
+        [data-theme="dark"] .lp-phone-screen { background: #0B1A19; color: #E3F4F1; }
+        .lp-ps-status { display: flex; justify-content: space-between; padding: 14px 24px 0; font-weight: 700; font-size: 11px; height: 36px; }
+        .lp-ps-icons { display: flex; gap: 5px; align-items: center; font-size: 9px; }
+        .lp-ps-icons b { width: 18px; height: 9px; border-radius: 3px; border: 1.3px solid currentColor; position: relative; }
+        .lp-ps-icons b::after { content: ''; position: absolute; inset: 1.3px 4px 1.3px 1.3px; background: currentColor; border-radius: 1px; }
+        .lp-ps-head { display: flex; justify-content: space-between; align-items: flex-end; padding: 14px 18px 10px; }
+        .lp-ps-kicker { font-size: 10px; color: #0D9488; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+        .lp-ps-title { font-size: 19px; font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; }
+        .lp-ps-days { display: flex; gap: 3px; }
+        .lp-ps-days span { width: 20px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-size: 9px; font-weight: 700; color: #6B8480; }
+        .lp-ps-days span.on { background: #0B2B2A; color: #fff; }
+        [data-theme="dark"] .lp-ps-days span.on { background: #2DD4BF; color: #04211F; }
+        .lp-ps-summary {
+            margin: 4px 14px 10px;
+            padding: 12px;
+            border-radius: 18px;
+            background: #0B2B2A;
+            color: #E3F4F1;
+            display: grid;
+            grid-template-columns: 56px 1fr;
+            grid-template-rows: auto auto;
+            column-gap: 12px;
+            align-items: center;
+        }
+        [data-theme="dark"] .lp-ps-summary { background: #13302E; }
+        .lp-ring { width: 56px; height: 56px; grid-row: span 2; transform: rotate(-90deg); }
+        .lp-ring circle { fill: none; stroke-width: 7; }
+        .lp-ring-track { stroke: rgba(255, 255, 255, 0.12); }
+        .lp-ring-fill {
+            stroke: #2DD4BF;
+            stroke-linecap: round;
+            stroke-dasharray: 169.6;
+            stroke-dashoffset: 169.6;
+        }
+        .hero.visible .lp-ring-fill { animation: lpRing 1.6s var(--lp-ease) 0.9s forwards; }
+        @keyframes lpRing { to { stroke-dashoffset: 56; } }
+        .lp-ps-kcal b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; display: block; }
+        .lp-ps-kcal span { font-size: 9.5px; opacity: 0.7; }
+        .lp-ps-macros { display: grid; gap: 4px; margin-top: 6px; }
+        .lp-ps-macros div { display: grid; grid-template-columns: 58px 1fr; align-items: center; font-size: 8.5px; opacity: 0.85; }
+        .lp-ps-macros i { height: 4px; border-radius: 4px; background: rgba(255,255,255,0.12); position: relative; overflow: hidden; }
+        .lp-ps-macros i::after {
+            content: ''; position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: inherit;
+            background: linear-gradient(90deg, #14B8A6, #5EEAD4);
+            transform-origin: left; transform: scaleX(0);
+        }
+        .hero.visible .lp-ps-macros i::after { animation: lpBar 1.2s var(--lp-ease) 1.1s forwards; }
+        .hero.visible .lp-ps-macros div:nth-child(2) i::after { animation-delay: 1.2s; }
+        .hero.visible .lp-ps-macros div:nth-child(3) i::after { animation-delay: 1.3s; }
+        @keyframes lpBar { to { transform: scaleX(1); } }
+        .lp-ps-meals { list-style: none; padding: 0 14px; display: grid; gap: 8px; flex: 1; }
+        .lp-meal {
+            display: grid;
+            grid-template-columns: 34px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 9px 10px;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 1px 0 rgba(11, 43, 42, 0.05), 0 6px 16px -10px rgba(11, 43, 42, 0.25);
+            opacity: 0;
+            transform: translateY(12px);
+        }
+        [data-theme="dark"] .lp-meal { background: #12292A; box-shadow: none; }
+        .hero.visible .lp-meal { animation: lpRise 0.8s var(--lp-ease) forwards; animation-delay: calc(1s + var(--i) * 120ms); }
+        .lp-meal-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; background: #ECF7F4; }
+        [data-theme="dark"] .lp-meal-ico { background: #183736; }
+        .lp-meal-txt { font-weight: 700; font-size: 10.5px; line-height: 1.25; }
+        .lp-meal-txt small { display: block; font-weight: 600; font-size: 8.5px; color: #6B8480; margin-bottom: 1px; }
+        .lp-meal-kcal { font-weight: 700; font-size: 10px; color: #0D9488; }
+        .lp-meal-check {
+            width: 22px; height: 22px; border-radius: 50%;
+            display: grid; place-items: center;
+            font-size: 9px; color: #fff;
+            background: #0D9488;
+            transform: scale(0);
+        }
+        .hero.visible .lp-meal-check { animation: lpPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 2.1s forwards; }
+        .lp-meal.done .lp-meal-txt { opacity: 0.55; }
+        @keyframes lpPop { to { transform: scale(1); } }
+        .lp-ps-nav {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            padding: 10px 8px 18px;
+            border-top: 1px solid rgba(11, 43, 42, 0.06);
+            background: rgba(255,255,255,0.75);
+        }
+        [data-theme="dark"] .lp-ps-nav { background: #0E2221; border-color: rgba(255,255,255,0.05); }
+        .lp-ps-nav span { display: grid; justify-items: center; gap: 3px; font-size: 8px; font-weight: 600; color: #8AA19D; }
+        .lp-ps-nav i { font-size: 13px; }
+        .lp-ps-nav span.on { color: #0D9488; }
+        [data-theme="dark"] .lp-ps-nav span.on { color: #2DD4BF; }
 
-        /* --- RESPONSIVE --- */
-        /* Mobile-first design - optimize for mobile browsers only */
+        /* floating chips */
+        .lp-chip {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px 10px 10px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            box-shadow: 0 18px 40px -18px rgba(11, 43, 42, 0.35), 0 0 0 1px rgba(11, 43, 42, 0.05);
+            font-size: 0.72rem;
+            color: var(--lp-muted);
+            line-height: 1.3;
+            opacity: 0;
+            z-index: 2;
+        }
+        [data-theme="dark"] .lp-chip { background: rgba(18, 41, 42, 0.88); box-shadow: 0 18px 40px -18px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06); }
+        .lp-chip b { display: block; color: var(--lp-ink); font-size: 0.8rem; font-weight: 700; }
+        .lp-chip > i {
+            width: 32px; height: 32px; border-radius: 10px;
+            display: grid; place-items: center;
+            background: var(--lp-accent-soft); color: var(--lp-accent);
+            font-size: 0.85rem;
+        }
+        .lp-chip-a { top: 0; left: 0; }
+        .lp-chip-b { top: 46%; right: -6%; }
+        .lp-chip-b > i { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+        .lp-chip-c { bottom: 8%; left: 2%; }
+        .lp-chip-c > i { background: rgba(168, 85, 247, 0.12); color: #9333ea; }
+        .hero.visible .lp-chip { animation: lpChipIn 0.9s var(--lp-ease) forwards, lpFloat 7s ease-in-out infinite; }
+        .hero.visible .lp-chip-a { animation-delay: 1.5s, 2.4s; }
+        .hero.visible .lp-chip-b { animation-delay: 1.75s, 3.2s; }
+        .hero.visible .lp-chip-c { animation-delay: 2s, 2.8s; }
+        @keyframes lpChipIn { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        @keyframes lpFloat { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+
+        .lp-scroll-cue {
+            position: absolute;
+            bottom: 22px; left: 50%;
+            translate: -50% 0;
+            width: 26px; height: 42px;
+            min-width: 0; min-height: 0;
+            border-radius: 14px;
+            border: 1.5px solid var(--lp-line);
+            display: grid; justify-items: center;
+            padding-top: 8px;
+            z-index: 1;
+        }
+        .lp-scroll-cue span { width: 3px; height: 8px; border-radius: 3px; background: var(--lp-muted); animation: lpCue 1.8s ease-in-out infinite; }
+        @keyframes lpCue { 0% { opacity: 0; transform: translateY(-3px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(10px); } }
+
+        /* --- shared section scaffolding --- */
+        .lp-section { padding: 120px 0; position: relative; }
+        .lp-section--tint { background: var(--lp-surface-2); }
+        .lp-head { max-width: 680px; margin-bottom: 56px; }
+        .lp-kicker {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--lp-accent);
+            margin-bottom: 14px;
+        }
+        .lp-h2 {
+            font-size: clamp(2rem, 4.4vw, 3.3rem);
+            line-height: 1.06;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: var(--lp-ink);
+        }
+        .lp-sub { margin-top: 18px; font-size: 1.08rem; line-height: 1.65; color: var(--lp-ink-2); max-width: 560px; }
+
+        /* one-shot reveal */
+        .lp-reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.9s var(--lp-ease), transform 0.9s var(--lp-ease); transition-delay: var(--rd, 0ms); }
+        .lp-reveal.is-in { opacity: 1; transform: none; }
+
+        /* --- numbers --- */
+        .lp-numbers { padding: 0 0 20px; position: relative; z-index: 2; margin-top: -10px; }
+        .lp-numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-top: 1px solid var(--lp-line);
+            border-bottom: 1px solid var(--lp-line);
+        }
+        .lp-num { padding: 34px 24px; border-left: 1px solid var(--lp-line); }
+        .lp-num:first-child { border-left: 0; padding-left: 0; }
+        .lp-num b {
+            display: block;
+            font-size: clamp(2.2rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            line-height: 1;
+            margin-bottom: 10px;
+            color: var(--lp-ink);
+            font-variant-numeric: tabular-nums;
+        }
+        .lp-num span { font-size: 0.9rem; color: var(--lp-muted); line-height: 1.4; display: block; max-width: 180px; }
+
+        /* --- bento --- */
+        .lp-bento {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .lp-tile {
+            background: var(--lp-surface);
+            border: 1px solid var(--lp-line);
+            border-radius: var(--lp-radius);
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: opacity 0.9s var(--lp-ease) var(--rd, 0ms), transform 0.9s var(--lp-ease) var(--rd, 0ms), border-color 0.4s, box-shadow 0.5s var(--lp-ease);
+        }
+        .lp-tile.is-in:hover { transform: translateY(-4px); border-color: rgba(13, 148, 136, 0.28); box-shadow: 0 30px 60px -36px rgba(11, 43, 42, 0.35); }
+        .lp-tile h3 { font-size: 1.18rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; color: var(--lp-ink); }
+        .lp-tile p { font-size: 0.95rem; line-height: 1.6; color: var(--lp-ink-2); }
+        .lp-tile-ico {
+            width: 42px; height: 42px; border-radius: 12px;
+            display: grid; place-items: center;
+            background: var(--lp-accent-soft); color: var(--lp-accent);
+            margin-bottom: 22px;
+            font-size: 1rem;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .lp-tile:hover .lp-tile-ico { transform: rotate(-8deg) scale(1.08); }
+        .lp-tile--plan {
+            grid-column: span 2;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: center;
+            background: linear-gradient(140deg, #0B2B2A 0%, #0F3B39 100%);
+            border-color: transparent;
+        }
+        .lp-tile--plan h3 { color: #fff; font-size: 1.5rem; }
+        .lp-tile--plan p { color: rgba(227, 244, 241, 0.75); }
+        .lp-tile--plan .lp-tile-ico { background: rgba(45, 212, 191, 0.15); color: #5EEAD4; }
+        .lp-mini-plan { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 14px; display: grid; gap: 8px; }
+        .lp-mini-days { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .lp-mini-days span { font-size: 0.68rem; font-weight: 700; color: rgba(227,244,241,0.5); width: 30px; text-align: center; padding: 6px 0; border-radius: 8px; }
+        .lp-mini-days span.on { background: #2DD4BF; color: #04211F; }
+        .lp-mini-row {
+            display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center;
+            padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.06);
+            color: #E3F4F1; font-size: 0.82rem; font-weight: 600;
+            position: relative;
+        }
+        .lp-mini-row i { font-style: normal; font-size: 1rem; }
+        .lp-mini-row b { color: #5EEAD4; font-size: 0.78rem; }
+        .lp-mini-row em {
+            position: absolute; right: 52px; top: 50%; translate: 0 -50%;
+            font: 600 0.62rem/1 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.08em;
+            color: #04211F; background: #FBBF24; padding: 4px 6px; border-radius: 6px;
+        }
+        .lp-tile--plan.is-in .lp-mini-swap { animation: lpSwap 4.5s var(--lp-ease) 0.8s infinite; }
+        .lp-tile--plan.is-in .lp-mini-swap em { animation: lpTag 4.5s var(--lp-ease) 0.8s infinite; }
+        @keyframes lpSwap {
+            0%, 8% { background: rgba(255,255,255,0.06); }
+            14% { background: rgba(45, 212, 191, 0.22); }
+            40%, 100% { background: rgba(255,255,255,0.06); }
+        }
+        @keyframes lpTag { 0%, 8% { opacity: 0; scale: 0.8; } 14%, 60% { opacity: 1; scale: 1; } 70%, 100% { opacity: 0; scale: 0.9; } }
+        .lp-tile--chat { grid-row: span 2; display: flex; flex-direction: column; }
+        .lp-chat { margin-top: auto; padding-top: 26px; display: grid; gap: 10px; }
+        .lp-bubble { max-width: 88%; padding: 11px 14px; border-radius: 16px; font-size: 0.86rem; line-height: 1.45; }
+        .lp-bubble--me { justify-self: end; background: var(--lp-ink); color: #fff; border-bottom-right-radius: 5px; }
+        [data-theme="dark"] .lp-bubble--me { background: #2DD4BF; color: #04211F; }
+        .lp-bubble--ai { background: var(--lp-surface-2); color: var(--lp-ink); border: 1px solid var(--lp-line); border-bottom-left-radius: 5px; min-height: 42px; position: relative; }
+        .lp-typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+        .lp-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--lp-muted); animation: lpDot 1s ease-in-out infinite; }
+        .lp-typing i:nth-child(2) { animation-delay: 0.15s; }
+        .lp-typing i:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes lpDot { 0%, 100% { opacity: 0.3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+        .lp-answer { display: none; }
+        .lp-tile--chat.is-answered .lp-typing { display: none; }
+        .lp-tile--chat.is-answered .lp-answer { display: inline; animation: lpRise 0.6s var(--lp-ease) both; }
+        .lp-tile--chat .lp-bubble { opacity: 0; transform: translateY(8px); }
+        .lp-tile--chat.is-in .lp-bubble--me { animation: lpRise 0.6s var(--lp-ease) 0.5s forwards; }
+        .lp-tile--chat.is-in .lp-bubble--ai { animation: lpRise 0.6s var(--lp-ease) 1.1s forwards; }
+
+        /* --- programs --- */
+        .lp-programs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .lp-program {
+            --tone: #0d9488;
+            display: flex;
+            flex-direction: column;
+            padding: 28px 26px;
+            border-radius: var(--lp-radius);
+            background: var(--lp-surface);
+            border: 1px solid var(--lp-line);
+            color: inherit;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            transition: opacity 0.9s var(--lp-ease) var(--rd, 0ms), transform 0.9s var(--lp-ease) var(--rd, 0ms), border-color 0.4s, box-shadow 0.5s var(--lp-ease);
+        }
+        .lp-program::before {
+            content: '';
+            position: absolute;
+            inset: auto -30% -60% auto;
+            width: 220px; height: 220px; border-radius: 50%;
+            background: var(--tone);
+            opacity: 0;
+            filter: blur(60px);
+            transition: opacity 0.6s;
+        }
+        .lp-program.is-in:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--tone) 40%, transparent); box-shadow: 0 30px 60px -36px color-mix(in srgb, var(--tone) 60%, transparent); }
+        .lp-program:hover::before { opacity: 0.16; }
+        .lp-program-ico {
+            width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+            color: var(--tone);
+            background: color-mix(in srgb, var(--tone) 12%, transparent);
+            margin-bottom: 40px;
+        }
+        .lp-program h3 { font-size: 1.12rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; color: var(--lp-ink); }
+        .lp-program p { font-size: 0.92rem; line-height: 1.6; color: var(--lp-ink-2); margin-bottom: 26px; }
+        .lp-program-go { margin-top: auto; font-size: 0.86rem; font-weight: 700; color: var(--tone); display: inline-flex; align-items: center; gap: 8px; }
+        .lp-program-go i { transition: transform 0.4s var(--lp-ease); font-size: 0.78rem; }
+        .lp-program:hover .lp-program-go i { transform: translateX(5px); }
+        [data-theme="dark"] .lp-program-go, [data-theme="dark"] .lp-program-ico { filter: brightness(1.35); }
+
+        /* --- steps --- */
+        .lp-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; position: relative; padding-top: 34px; }
+        .lp-steps::before, .lp-steps::after {
+            content: ''; position: absolute; top: 0; left: 0; height: 2px; border-radius: 2px;
+        }
+        .lp-steps::before { right: 0; background: var(--lp-line); }
+        .lp-steps::after { width: 100%; background: linear-gradient(90deg, var(--lp-accent), var(--lp-accent-2)); transform-origin: left; transform: scaleX(0); transition: transform 1.6s var(--lp-ease) 0.3s; }
+        .lp-steps.is-in::after { transform: scaleX(1); }
+        .lp-step { position: relative; }
+        .lp-step::before {
+            content: ''; position: absolute; top: -40px; left: 0;
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--bg-color); border: 2px solid var(--lp-accent);
+            transform: scale(0);
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .lp-steps.is-in .lp-step::before { transform: scale(1); }
+        .lp-steps.is-in .lp-step:nth-child(1)::before { transition-delay: 0.3s; }
+        .lp-steps.is-in .lp-step:nth-child(2)::before { transition-delay: 0.85s; }
+        .lp-steps.is-in .lp-step:nth-child(3)::before { transition-delay: 1.4s; }
+        .lp-step-n { display: block; font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 1.1rem; color: var(--lp-accent); margin-bottom: 10px; }
+        .lp-step h3 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 10px; color: var(--lp-ink); }
+        .lp-step p { color: var(--lp-ink-2); line-height: 1.6; font-size: 0.98rem; max-width: 300px; }
+
+        /* --- final CTA --- */
+        .lp-final { padding: 0 0 120px; }
+        .lp-final-inner {
+            text-align: center;
+            padding: 90px 32px;
+            border-radius: 32px;
+            background:
+                radial-gradient(70% 90% at 50% 0%, rgba(45, 212, 191, 0.35) 0%, transparent 70%),
+                linear-gradient(160deg, #0B2B2A 0%, #082120 100%);
+            color: #E3F4F1;
+            position: relative;
+            overflow: hidden;
+            width: min(1112px, calc(100% - 48px));
+        }
+        .lp-final-inner .lp-h2 { color: #fff; max-width: 720px; margin: 0 auto; }
+        .lp-final-inner em { color: #5EEAD4; }
+        .lp-final-inner p { margin: 18px 0 34px; color: rgba(227, 244, 241, 0.7); font-size: 1.05rem; }
+        .lp-btn-light {
+            display: inline-flex; align-items: center; gap: 12px;
+            padding: 16px 30px; border-radius: 14px;
+            background: #fff; color: #0B2B2A;
+            font-weight: 700; font-size: 1rem; text-decoration: none;
+            box-shadow: 0 16px 40px -14px rgba(45, 212, 191, 0.6);
+            transition: transform 0.4s var(--lp-ease), box-shadow 0.4s var(--lp-ease);
+        }
+        .lp-btn-light i { transition: transform 0.4s var(--lp-ease); }
+        .lp-btn-light:hover { transform: translateY(-2px); box-shadow: 0 22px 46px -14px rgba(45, 212, 191, 0.75); }
+        .lp-btn-light:hover i { transform: translateX(4px); }
+
+        /* --- contact --- */
+        #contact { padding-top: 40px; }
+        .lp-contact { max-width: 720px; text-align: center; }
+        .lp-contact .lp-head { margin: 0 auto 32px; }
+        .lp-contact .lp-sub { margin-left: auto; margin-right: auto; }
+        .contact-toggle-btn { margin: 0 auto 8px; cursor: pointer; border: 0; }
+        .lp-form { text-align: left; display: grid; gap: 16px; padding: 28px; margin-top: 24px; border-radius: var(--lp-radius); background: var(--lp-surface); border: 1px solid var(--lp-line); }
+        .lp-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .lp-field { display: grid; gap: 7px; }
+        .lp-field span { font-size: 0.82rem; font-weight: 600; color: var(--lp-ink-2); }
+        .lp-field input, .lp-field textarea {
+            width: 100%;
+            padding: 13px 15px;
+            border-radius: 12px;
+            border: 1px solid var(--lp-line);
+            background: var(--lp-surface-2);
+            color: var(--lp-ink);
+            font-size: 1rem;
+            outline: none;
+            resize: vertical;
+            transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+        }
+        .lp-field input:focus, .lp-field textarea:focus { border-color: var(--lp-accent); box-shadow: 0 0 0 4px var(--lp-accent-soft); background: var(--lp-surface); }
+        .lp-form-status { padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center; }
+        .lp-btn-block { width: 100%; }
+
+        /* --- install --- */
+        .android-install-section { padding: 100px 0 110px; background: var(--lp-surface-2); }
+        .android-install-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .android-install-card {
+            padding: 28px;
+            border-radius: var(--lp-radius);
+            background: var(--lp-surface);
+            border: 1px solid var(--lp-line);
+            display: flex;
+            flex-direction: column;
+        }
+        .android-install-card .card-icon {
+            width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+            background: var(--lp-accent-soft); color: var(--lp-accent); font-size: 1.1rem; margin-bottom: 20px;
+        }
+        .android-install-card h3 { font-size: 1.12rem; font-weight: 700; color: var(--lp-ink); margin-bottom: 6px; }
+        .android-install-card p { color: var(--lp-ink-2); font-size: 0.92rem; line-height: 1.55; margin-bottom: 18px; }
+        .android-steps { list-style: none; counter-reset: st; display: grid; gap: 10px; margin-bottom: 24px; }
+        .android-steps li { counter-increment: st; position: relative; padding: 2px 0 0 34px; min-height: 22px; font-size: 0.86rem; line-height: 1.45; color: var(--lp-ink-2); }
+        .android-steps li::before {
+            content: counter(st);
+            position: absolute; left: 0; top: 0;
+            width: 22px; height: 22px; border-radius: 50%;
+            display: grid; place-items: center;
+            font-size: 0.72rem; font-weight: 700;
+            border: 1px solid var(--lp-line); color: var(--lp-ink);
+        }
+        .android-steps strong { color: var(--lp-ink); }
+        .android-btn {
+            margin-top: auto;
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 13px 20px; border-radius: 12px;
+            background: var(--lp-ink); color: #fff;
+            border: 0; font-weight: 700; font-size: 0.92rem; text-decoration: none; cursor: pointer;
+            transition: transform 0.4s var(--lp-ease), background 0.3s;
+        }
+        [data-theme="dark"] .android-btn { background: var(--lp-accent); color: #04211F; }
+        .android-btn:hover { transform: translateY(-2px); background: var(--lp-accent); }
+        .android-btn.secondary { background: transparent; color: var(--lp-muted); border: 1px dashed var(--lp-line); }
+        .android-btn.secondary:hover { background: transparent; color: var(--lp-ink); transform: none; }
+        .android-install-card--soon { background: transparent; border-style: dashed; }
+        .lp-version { margin-top: 22px; font-size: 0.8rem; color: var(--lp-muted); }
+
+        /* --- footer --- */
+        .lp-footer { background: #071918; color: #B4CFCA; padding: 64px 0 36px; }
+        .lp-footer-inner { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; flex-wrap: wrap; padding-bottom: 36px; border-bottom: 1px solid rgba(178, 236, 226, 0.08); }
+        .footer-logo { font-size: 1.35rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
+        .footer-logo i { color: #2DD4BF; }
+        .lp-footer-brand p { margin-top: 10px; font-family: 'Playfair Display', Georgia, serif; font-style: italic; color: #85A39E; }
+        .lp-footer-links { display: flex; flex-wrap: wrap; gap: 6px 28px; }
+        .lp-footer-links a { color: #B4CFCA; text-decoration: none; font-size: 0.92rem; min-height: 32px; display: inline-flex; align-items: center; transition: color 0.2s; }
+        .lp-footer-links a:hover { color: #fff; }
+        .copyright { width: min(1160px, 100%); margin: 0 auto; padding: 24px 24px 0; color: #5F7C78; font-size: 0.82rem; }
+
+        /* --- responsive --- */
+        @media (max-width: 1024px) {
+            .lp-programs { grid-template-columns: repeat(2, 1fr); }
+            .lp-chip-b { right: -2%; }
+        }
+        @media (max-width: 900px) {
+            .lp-hero-inner { grid-template-columns: 1fr; gap: 24px; }
+            .lp-hero-copy { max-width: none; }
+            .hero-image { min-height: 0; padding: 30px 0 20px; }
+            .lp-bento { grid-template-columns: 1fr 1fr; }
+            .lp-tile--plan { grid-column: span 2; }
+            .lp-tile--chat { grid-row: auto; grid-column: span 2; }
+            .android-install-cards { grid-template-columns: 1fr; }
+        }
         @media (max-width: 768px) {
-            .hero {
-                flex-direction: column;
-                text-align: center;
-                padding-top: 120px;
-                padding-bottom: 30px;
-            }
-            .hero h1 { font-size: 2.2rem; line-height: 1.2; }
-            .hero p { font-size: 1rem; line-height: 1.6; }
-            .cta-group {
-                justify-content: center;
-                flex-direction: column;
-                width: 100%;
-                max-width: 300px;
-                margin: 0 auto;
-            }
-            .nav-btn, .btn-outline {
-                width: 100%;
-                text-align: center;
-            }
-            nav > div {
-                flex-direction: column;
-                gap: 5px;
-            }
-            nav .nav-btn {
-                font-size: 0.85rem;
-                padding: 8px 15px;
-            }
-            .hero-image { margin-top: 30px; width: 100%; }
-            .phone-mockup { width: 240px; height: 480px; border-radius: 38px; }
-            .phone-mockup::before { width: 72px; height: 22px; top: 8px; }
-            .feature-grid {
-                grid-template-columns: 1fr;
-            }
-            .feature-card {
-                padding: 24px 20px;
-                border-radius: 20px;
-            }
-            .top-nav {
-                padding: 15px 20px;
-            }
-            .logo {
-                font-size: 1.3rem;
-            }
-            .steps-container {
-                flex-direction: column;
-            }
-            .step-item {
-                min-width: 100%;
-            }
+            .hero { min-height: 0; padding: calc(96px + var(--safe-area-inset-top)) 0 48px; }
+            .lp-hero-inner, .lp-wrap { padding: 0 20px; }
+            .lp-h1 { font-size: clamp(2.5rem, 12vw, 3.3rem); }
+            .cta-group { flex-direction: column; align-items: stretch; }
+            .cta-group > * { width: 100%; }
+            .lp-hero-meta { gap: 8px 16px; font-size: 0.82rem; }
+            .lp-orbit { width: 340px; height: 340px; }
+            .lp-phone { width: 250px; height: 510px; border-radius: 40px; }
+            .lp-phone-screen { border-radius: 31px; }
+            .lp-chip { font-size: 0.66rem; padding: 8px 12px 8px 8px; }
+            .lp-chip b { font-size: 0.74rem; }
+            .lp-chip > i { width: 28px; height: 28px; }
+            .lp-chip-a { left: 0; top: 0; }
+            .lp-ps-title { font-size: 16px; }
+            .lp-ps-days span { width: 17px; }
+            .lp-chip-b { right: 0; }
+            .lp-chip-c { left: 2%; bottom: 4%; }
+            .lp-scroll-cue { display: none; }
+            .lp-section { padding: 80px 0; }
+            .lp-head { margin-bottom: 36px; }
+            .lp-numbers-grid { grid-template-columns: 1fr 1fr; }
+            .lp-num { padding: 26px 18px; }
+            .lp-num:nth-child(odd) { border-left: 0; padding-left: 0; }
+            .lp-num:nth-child(n+3) { border-top: 1px solid var(--lp-line); }
+            .lp-bento, .lp-programs { grid-template-columns: 1fr; }
+            .lp-tile--plan, .lp-tile--chat { grid-column: auto; }
+            .lp-tile--plan { grid-template-columns: 1fr; gap: 22px; }
+            .lp-tile { padding: 24px; }
+            .lp-program-ico { margin-bottom: 24px; }
+            .lp-steps { grid-template-columns: 1fr; gap: 34px; padding: 0 0 0 30px; }
+            .lp-steps::before, .lp-steps::after { top: 0; bottom: 0; left: 6px; right: auto; width: 2px; height: auto; }
+            .lp-steps::after { transform-origin: top; transform: scaleY(0); }
+            .lp-steps.is-in::after { transform: scaleY(1); }
+            .lp-step::before { top: 4px; left: -30px; }
+            .lp-final { padding-bottom: 80px; }
+            .lp-final-inner { padding: 64px 22px; border-radius: 26px; width: calc(100% - 40px); }
+            .lp-form { padding: 20px; }
+            .lp-form-row { grid-template-columns: 1fr; }
+            .android-install-section { padding: 80px 0; }
         }
-
+        @media (hover: hover) and (min-width: 901px) {
+            .lp-phone:hover { --ry: -2deg; --rx: 1deg; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .lp-enter, .lp-phone, .lp-meal, .lp-chip, .lp-reveal, .lp-tile--chat .lp-bubble { opacity: 1 !important; transform: none !important; translate: none !important; animation: none !important; transition: none !important; }
+            .lp-ring-fill { stroke-dashoffset: 56 !important; animation: none !important; }
+            .lp-ps-macros i::after, .lp-meal-check { transform: none !important; animation: none !important; }
+            .lp-orbit, .lp-pulse, .lp-scroll-cue span, .lp-mini-swap, .lp-mini-swap em, .lp-typing i { animation: none !important; }
+            .lp-steps::after, .lp-step::before { transform: none !important; transition: none !important; }
+        }
         /* Ensure touch-friendly elements */
         button, a, .nav-btn, .btn-outline {
             min-height: 44px;
@@ -1634,129 +1671,6 @@
             vertical-align: middle;
         }
 
-        /* Android Install Section */
-        .android-install-section {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            color: #e0e0e0;
-            padding: 60px 20px;
-            text-align: center;
-        }
-
-        .android-install-section .section-title h2 {
-            color: #3ddc84;
-        }
-
-        .android-install-section .section-title p {
-            color: #b0bec5;
-        }
-
-        .android-install-cards {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-            max-width: 900px;
-            margin: 30px auto 0;
-        }
-
-        .android-install-card {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(61,220,132,0.2);
-            border-radius: 20px;
-            padding: 28px 24px;
-            flex: 1 1 260px;
-            max-width: 300px;
-            text-align: center;
-            transition: transform 0.3s ease, border-color 0.3s ease;
-        }
-
-        .android-install-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(61,220,132,0.5);
-        }
-
-        .android-install-card .card-icon {
-            font-size: 2.5rem;
-            margin-bottom: 14px;
-            color: #3ddc84;
-        }
-
-        .android-install-card h3 {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #ffffff;
-            margin-bottom: 10px;
-        }
-
-        .android-install-card p {
-            font-size: 0.88rem;
-            color: #9ab;
-            line-height: 1.6;
-            margin-bottom: 18px;
-        }
-
-        .android-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #3ddc84;
-            color: #1a1a2e;
-            border: none;
-            padding: 11px 22px;
-            border-radius: 14px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-            transition: background 0.2s ease, transform 0.2s ease;
-        }
-
-        .android-btn:hover {
-            background: #2ec96e;
-            transform: translateY(-1px);
-        }
-
-        .android-btn.secondary {
-            background: transparent;
-            color: #3ddc84;
-            border: 2px solid #3ddc84;
-        }
-
-        .android-btn.secondary:hover {
-            background: rgba(61,220,132,0.1);
-        }
-
-        .android-steps {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            text-align: left;
-            margin-bottom: 18px;
-        }
-
-        .android-step {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            font-size: 0.85rem;
-            color: #b0bec5;
-        }
-
-        .android-step-num {
-            background: #3ddc84;
-            color: #1a1a2e;
-            border-radius: 50%;
-            width: 22px;
-            height: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.75rem;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
         /* --- SPA shell: mounted once, tab switches are class-only (0ms) --- */
         .spa-shell[hidden] { display: none !important; }
         body.spa-mode {
@@ -1801,8 +1715,54 @@
         }
         .spa-tab-view.is-active {
             display: block;
+            animation: spaTabIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+        .spa-tab-stack[data-dir="back"] .spa-tab-view.is-active { animation-name: spaTabInBack; }
+        .spa-tab-stack[data-dir="none"] .spa-tab-view.is-active { animation: none; }
+        @keyframes spaTabIn {
+            from { opacity: 0; transform: translate3d(14px, 0, 0); }
+            to { opacity: 1; transform: none; }
+        }
+        @keyframes spaTabInBack {
+            from { opacity: 0; transform: translate3d(-14px, 0, 0); }
+            to { opacity: 1; transform: none; }
         }
         .spa-bottom-nav { z-index: 10001; }
+        .spa-bottom-nav .bottom-nav-item {
+            flex: 1;
+            min-width: 0;
+            padding: 7px 4px;
+            background: transparent !important;
+            z-index: 1;
+        }
+        .spa-bottom-nav .bottom-nav-item span { transition: font-weight 0.2s, letter-spacing 0.2s; }
+        .spa-bottom-nav .bottom-nav-item.active span { font-weight: 700; }
+        .spa-bottom-nav .bottom-nav-item.active i { animation: spaIconPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes spaIconPop {
+            0% { transform: scale(0.8) translateY(2px); }
+            60% { transform: scale(1.18) translateY(-2px); }
+            100% { transform: scale(1.1); }
+        }
+        .spa-nav-pill {
+            position: absolute;
+            top: 6px;
+            left: 0;
+            height: 48px;
+            width: var(--pill-w, 0px);
+            transform: translateX(var(--pill-x, 0px));
+            border-radius: 16px;
+            background: rgba(13, 148, 136, 0.1);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), width 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.2s;
+        }
+        .spa-nav-pill.is-ready { opacity: 1; }
+        [data-theme="dark"] .spa-nav-pill { background: rgba(45, 212, 191, 0.15); }
+        @media (prefers-reduced-motion: reduce) {
+            .spa-tab-view.is-active,
+            .spa-bottom-nav .bottom-nav-item.active i { animation: none; }
+            .spa-nav-pill { transition: opacity 0.2s; }
+        }
 
         /* --- Wide screens: constrain the app to a centered mobile-width column ---
            The embedded pages are mobile-first; without this they stretch edge-to-edge
@@ -2113,6 +2073,7 @@
             <iframe class="spa-tab-view" data-tab-view="analytics" title="Анализ" data-src="game-analytics.html?embedded=1"></iframe>
         </div>
         <nav class="bottom-nav spa-bottom-nav" aria-label="Основна навигация">
+            <span class="spa-nav-pill" aria-hidden="true"></span>
             <button type="button" class="bottom-nav-item" data-tab-target="plan">
                 <i class="fas fa-utensils"></i>
                 <span>Моят План</span>
@@ -2148,11 +2109,14 @@
     <!-- Navigation -->
     <nav class="top-nav" role="navigation" aria-label="Главна навигация">
         <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
+        <div class="top-nav-actions">
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Смени темата"><i id="themeIcon" class="fas fa-moon" aria-hidden="true"></i></button>
         <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
             <span class="bar"></span>
             <span class="bar"></span>
             <span class="bar"></span>
         </button>
+        </div>
     </nav>
 
     <!-- Navigation overlay -->
@@ -2161,20 +2125,21 @@
     <!-- Slide-in navigation menu -->
     <nav class="nav-menu" id="navMenu" role="dialog" aria-modal="true" aria-label="Навигационно меню">
         <a href="index.html?app=1&tab=plan" class="nav-menu-top-link" id="navMyPlanLink" style="display:none;"><i class="fas fa-user-check"></i> Моят План</a>
-        <a href="questionnaire2.html" class="nav-menu-top-link" id="startNowBtn" style="display:none;"><i class="fas fa-clipboard-list"></i> Започни промяната</a>
+        <a href="questionnaire2.html" class="nav-menu-top-link" id="startNowBtn" style="display:none;"><i class="fas fa-clipboard-list"></i> Създай моя план</a>
 
         <div class="nav-menu-section-label">Начална страница</div>
         <a href="index.html?stay=1" onclick="closeNavMenu()"><i class="fas fa-home"></i> Начало</a>
-        <a href="features.html" onclick="closeNavMenu()"><i class="fas fa-star"></i> Функции и Предимства</a>
-        <a href="index.html?stay=1#features" onclick="closeNavMenu()"><i class="fas fa-th-large"></i> Модули</a>
+        <a href="features.html" onclick="closeNavMenu()"><i class="fas fa-star"></i> Всички възможности</a>
+        <a href="index.html?stay=1#features" onclick="closeNavMenu()"><i class="fas fa-th-large"></i> Какво получаваш</a>
+        <a href="index.html?stay=1#programs" onclick="closeNavMenu()"><i class="fas fa-layer-group"></i> Програми</a>
         <a href="index.html?stay=1#how-it-works" onclick="closeNavMenu()"><i class="fas fa-info-circle"></i> Как работи</a>
-        <a href="index.html?stay=1#contact" onclick="closeNavMenu(); handleContactNavigation();"><i class="fas fa-envelope"></i> Контакти</a>
+        <a href="index.html?stay=1#contact" onclick="closeNavMenu(); handleContactNavigation();"><i class="fas fa-envelope"></i> Контакт</a>
 
         <div class="nav-menu-divider"></div>
-        <div class="nav-menu-section-label">Модули</div>
-        <a href="emoeat.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално Хранене</a>
+        <div class="nav-menu-section-label">Програми</div>
+        <a href="emoeat.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално хранене</a>
         <a href="longevity.html" onclick="closeNavMenu()"><i class="fas fa-dna"></i> Дълголетие</a>
-        <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични Протоколи</a>
+        <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични протоколи</a>
         <a href="kids.html" onclick="closeNavMenu()"><i class="fas fa-baby"></i> KidFood AI</a>
         <div class="nav-menu-divider"></div>
         <button class="nav-menu-logout" id="navLogoutBtn" onclick="window.indexSignOut()">
@@ -2182,254 +2147,277 @@
         </button>
     </nav>
 
-    <!-- Hero Section -->
-    <main id="main-content">
-    <section class="hero" role="region" aria-label="Герой секция">
-        <div class="hero-content">
-            <h1>Твоят път към <br> по-здравословно <span>тяло</span>.</h1>
-            <p>Комплексна здравна платформа, която обединява персонализирано хранене, психологична подкрепа, добавки, активности, клинични протоколи и научно-базирана програма за дълголетие — всичко с помощта на 7-степенен AI анализ и 30+ индивидуални критерия.</p>
-            <div class="cta-group">
-                <a href="questionnaire2.html" class="nav-btn" id="heroCTABtn">Започни промяната</a>
-                <button type="button" class="btn-outline" id="heroLoginBtn" onclick="window.indexOpenLoginModal()">Вход</button>
-            </div>
-        </div>
-
-        <div class="hero-image">
-            <!-- CSS Phone Mockup representing the interface -->
-            <div class="phone-mockup">
-                <div class="screen-content">
-                    <!-- Status bar -->
-                    <div class="phone-status-bar">
-                        <span class="phone-status-time">9:41</span>
-                        <div class="phone-status-icons">
-                            <i class="fas fa-signal" aria-hidden="true"></i>
-                            <i class="fas fa-wifi" aria-hidden="true"></i>
-                            <div class="phone-status-battery"></div>
-                        </div>
-                    </div>
-                    <!-- Header -->
-                    <div class="screen-header-gradient">
-                        <div class="screen-app-title"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</div>
-                        <div class="screen-app-subtitle">Твоят дневен план</div>
-                    </div>
-                    <!-- Body with meal cards -->
-                    <div class="screen-body">
-                        <div class="screen-card">
-                            <div class="screen-card-icon breakfast">☀️</div>
-                            <div class="screen-card-info">
-                                <div class="screen-meal-label">ЗАКУСКА</div>
-                                <div class="screen-meal-title">Овесена каша</div>
-                                <div class="screen-meal-amount">250 гр.</div>
-                            </div>
-                            <div class="screen-card-cal">320 kcal</div>
-                        </div>
-                        <div class="screen-card">
-                            <div class="screen-card-icon lunch">🥗</div>
-                            <div class="screen-card-info">
-                                <div class="screen-meal-label">ОБЯД</div>
-                                <div class="screen-meal-title">Пилешко филе</div>
-                                <div class="screen-meal-amount">350 гр.</div>
-                            </div>
-                            <div class="screen-card-cal">480 kcal</div>
-                        </div>
-                        <div class="screen-card">
-                            <div class="screen-card-icon dinner">🐟</div>
-                            <div class="screen-card-info">
-                                <div class="screen-meal-label">ВЕЧЕРЯ</div>
-                                <div class="screen-meal-title">Риба на скара</div>
-                                <div class="screen-meal-amount">300 гр.</div>
-                            </div>
-                            <div class="screen-card-cal">390 kcal</div>
-                        </div>
-                        <!-- Summary strip -->
-                        <div class="screen-summary">
-                            <div class="screen-stat">
-                                <div class="screen-stat-value">1,190</div>
-                                <div class="screen-stat-label">kcal</div>
-                            </div>
-                            <div class="screen-stat">
-                                <div class="screen-stat-value">85g</div>
-                                <div class="screen-stat-label">протеин</div>
-                            </div>
-                            <div class="screen-stat">
-                                <div class="screen-stat-value">7</div>
-                                <div class="screen-stat-label">дни</div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Bottom navigation -->
-                    <div class="screen-bottom-nav">
-                        <div class="screen-nav-item active"><i class="fas fa-utensils" aria-hidden="true"></i><span>План</span></div>
-                        <div class="screen-nav-item"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>Анализ</span></div>
-                        <div class="screen-nav-item"><i class="fas fa-user" aria-hidden="true"></i><span>Профил</span></div>
-                    </div>
-                    <div class="screen-home-indicator"></div>
-                    <div class="fab-mock"><i class="fas fa-comment" aria-hidden="true"></i></div>
+    <!-- Hero -->
+    <main id="main-content" class="lp">
+    <section class="hero lp-hero" aria-labelledby="lpHeroTitle">
+        <div class="lp-hero-inner">
+            <div class="hero-content lp-hero-copy">
+                <p class="lp-eyebrow lp-enter" style="--d:0"><span class="lp-pulse" aria-hidden="true"></span> Персонален хранителен план</p>
+                <h1 id="lpHeroTitle" class="lp-h1">
+                    <span class="lp-line lp-enter" style="--d:1">Хранене по</span>
+                    <span class="lp-line lp-enter" style="--d:2"><em>твоя</em> мярка.</span>
+                </h1>
+                <p class="lp-lead lp-enter" style="--d:3">Седемдневен план, изграден от над 30 твои показателя — здраве, цели, вкусове и ритъм на деня. Прегледан от специалист. Под ръка всеки ден.</p>
+                <div class="cta-group lp-enter" style="--d:4">
+                    <a href="questionnaire2.html" class="nav-btn lp-btn" id="heroCTABtn">Създай моя план</a>
+                    <button type="button" class="btn-outline lp-btn-ghost" id="heroLoginBtn" onclick="window.indexOpenLoginModal()">Вход</button>
                 </div>
+                <ul class="lp-hero-meta lp-enter" style="--d:5">
+                    <li><i class="fas fa-check" aria-hidden="true"></i> Безплатен въпросник</li>
+                    <li><i class="fas fa-check" aria-hidden="true"></i> Готов за минути</li>
+                    <li><i class="fas fa-check" aria-hidden="true"></i> Android и уеб</li>
+                </ul>
+            </div>
+
+            <div class="hero-image lp-hero-visual" aria-hidden="true">
+                <div class="lp-orbit"></div>
+                <div class="lp-phone" id="lpPhone">
+                    <div class="lp-phone-screen">
+                        <div class="lp-ps-status"><span>9:41</span><span class="lp-ps-icons"><i class="fas fa-signal"></i><i class="fas fa-wifi"></i><b></b></span></div>
+                        <div class="lp-ps-head">
+                            <div>
+                                <div class="lp-ps-kicker">Вторник</div>
+                                <div class="lp-ps-title">Моят план</div>
+                            </div>
+                            <div class="lp-ps-days"><span>П</span><span class="on">В</span><span>С</span><span>Ч</span><span>П</span></div>
+                        </div>
+                        <div class="lp-ps-summary">
+                            <svg class="lp-ring" viewBox="0 0 64 64">
+                                <circle cx="32" cy="32" r="27" class="lp-ring-track"/>
+                                <circle cx="32" cy="32" r="27" class="lp-ring-fill"/>
+                            </svg>
+                            <div class="lp-ps-kcal"><b>1 240</b><span>от 1 850 kcal</span></div>
+                            <div class="lp-ps-macros">
+                                <div><span>Протеин</span><i style="--w:72%"></i></div>
+                                <div><span>Въглехидр.</span><i style="--w:58%"></i></div>
+                                <div><span>Мазнини</span><i style="--w:64%"></i></div>
+                            </div>
+                        </div>
+                        <ul class="lp-ps-meals">
+                            <li class="lp-meal done" style="--i:0">
+                                <span class="lp-meal-ico">🥣</span>
+                                <span class="lp-meal-txt"><small>Закуска · 08:00</small>Овесена каша с боровинки</span>
+                                <span class="lp-meal-check"><i class="fas fa-check"></i></span>
+                            </li>
+                            <li class="lp-meal" style="--i:1">
+                                <span class="lp-meal-ico">🥗</span>
+                                <span class="lp-meal-txt"><small>Обяд · 13:00</small>Пиле, киноа, печени зеленчуци</span>
+                                <span class="lp-meal-kcal">520</span>
+                            </li>
+                            <li class="lp-meal" style="--i:2">
+                                <span class="lp-meal-ico">🐟</span>
+                                <span class="lp-meal-txt"><small>Вечеря · 19:30</small>Сьомга с аспержи</span>
+                                <span class="lp-meal-kcal">410</span>
+                            </li>
+                        </ul>
+                        <div class="lp-ps-nav">
+                            <span class="on"><i class="fas fa-utensils"></i>План</span>
+                            <span><i class="fas fa-compass"></i>Насоки</span>
+                            <span><i class="fas fa-chart-bar"></i>Анализ</span>
+                            <span><i class="fas fa-user"></i>Профил</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="lp-chip lp-chip-a"><i class="fas fa-bell"></i><span><b>Обяд след 15 мин</b>Пиле, киноа, зеленчуци</span></div>
+                <div class="lp-chip lp-chip-b"><i class="fas fa-dumbbell"></i><span><b>112 г протеин</b>днешна цел</span></div>
+                <div class="lp-chip lp-chip-c"><i class="fas fa-leaf"></i><span><b>Без глутен</b>спазено във всяко ястие</span></div>
             </div>
         </div>
+        <a href="#numbers" class="lp-scroll-cue" aria-label="Надолу"><span></span></a>
     </section>
 
     <!-- Notification Section (PWA) -->
     <section class="notification-section" id="notificationSection" style="display: none;">
-        <h2 style="margin-bottom: 15px; color: var(--text-dark);">
-            <i class="fas fa-bell"></i> Получавай Напомняния
-        </h2>
-        <p style="margin-bottom: 20px; color: var(--text-gray);">
-            Включи известията, за да получаваш напомняния за храненията и мотивиращи съобщения.
-        </p>
+        <h2><i class="fas fa-bell" aria-hidden="true"></i> Напомняния за храненията</h2>
+        <p>Включи известията — ще ти напомняме кога и какво е следващото хранене.</p>
         <button class="notification-btn" id="enableNotificationsBtn" onclick="handleEnableNotifications()">
             <i class="fas fa-bell"></i>
-            Включи Известия
+            Включи известията
         </button>
         <div class="notification-status" id="notificationStatus"></div>
         <p class="notification-compat-note">
-            APK версията използва Android notification channel, runtime permission за Android 13+ и локални нотификации.
-            APK работи на всички Android марки (Samsung, Xiaomi, OPPO, vivo, Huawei/Honor и др.) — разрешете известия и изключете ограничения за батерия.
-            PWA: Chrome, Firefox, Edge, Samsung Internet; на iOS — инсталирайте от Safari на началния екран. Календарният абонамент е резерв за всеки телефон.
+            На Android: разреши известията и изключи ограничението за батерия за NutriPlan.
+            На iPhone: добави сайта към началния екран от Safari.
         </p>
     </section>
 
-    <!-- Features Section -->
-    <section class="features reveal" id="features">
-        <div class="section-title">
-            <h2>Защо да избереш <span>NutriPlan</span>?</h2>
-            <p>Единствената платформа, която съчетава персонализиран AI анализ, клинични протоколи, дълголетие и емоционална грижа — всичко на едно място.</p>
+    <!-- Numbers -->
+    <section class="lp-numbers" id="numbers" aria-label="NutriPlan в числа">
+        <div class="lp-wrap lp-numbers-grid lp-reveal">
+            <div class="lp-num"><b data-count="30" data-suffix="+">30+</b><span>показателя в анализа</span></div>
+            <div class="lp-num"><b data-count="7">7</b><span>дни, ястие по ястие</span></div>
+            <div class="lp-num"><b data-count="11">11</b><span>клинични протокола</span></div>
+            <div class="lp-num"><b>24/7</b><span>консултант, който знае плана ти</span></div>
         </div>
+    </section>
 
-        <div class="feature-grid ds-stagger">
-            <div class="feature-card">
-                <div class="icon-box icon-box--teal"><i class="fas fa-users"></i></div>
-                <h3>Екип от Специалисти</h3>
-                <p>Реални професионалисти в областта на хранене, здраве, спорт и психология стоят зад всеки персонализиран план.</p>
+    <!-- Features (bento) -->
+    <section class="lp-section" id="features">
+        <div class="lp-wrap">
+            <header class="lp-head lp-reveal">
+                <p class="lp-kicker">Какво получаваш</p>
+                <h2 class="lp-h2">Не диета. <em>Система.</em></h2>
+                <p class="lp-sub">Всяко ястие, грамаж и замяна следват от твоя профил — и се преизчисляват, когато нещо се промени.</p>
+            </header>
+
+            <div class="lp-bento">
+                <article class="lp-tile lp-tile--plan lp-reveal">
+                    <div class="lp-tile-copy">
+                        <span class="lp-tile-ico"><i class="fas fa-utensils"></i></span>
+                        <h3>Седмица, ястие по ястие</h3>
+                        <p>От закуската до вечерята — с грамажи, калории и макроси. Смениш ли ястие, балансът на деня се пресмята наново.</p>
+                    </div>
+                    <div class="lp-mini-plan" aria-hidden="true">
+                        <div class="lp-mini-days"><span>Пн</span><span>Вт</span><span class="on">Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span></div>
+                        <div class="lp-mini-row"><i>🍳</i><span>Омлет със спанак</span><b>290</b></div>
+                        <div class="lp-mini-row"><i>🍲</i><span>Леща с моркови</span><b>480</b></div>
+                        <div class="lp-mini-row lp-mini-swap"><i>🐠</i><span>Пъстърва на фурна</span><b>390</b><em>замяна</em></div>
+                    </div>
+                </article>
+
+                <article class="lp-tile lp-tile--chat lp-reveal">
+                    <span class="lp-tile-ico"><i class="fas fa-comments"></i></span>
+                    <h3>Консултант с контекст</h3>
+                    <p>Отговорите тръгват от твоя план и профил, не от общи съвети.</p>
+                    <div class="lp-chat" aria-hidden="true">
+                        <div class="lp-bubble lp-bubble--me">Мога ли да сменя сьомгата?</div>
+                        <div class="lp-bubble lp-bubble--ai"><span class="lp-typing"><i></i><i></i><i></i></span><span class="lp-answer">Да — скумрия, 160 г. Протеинът за деня остава същият.</span></div>
+                    </div>
+                </article>
+
+                <article class="lp-tile lp-reveal">
+                    <span class="lp-tile-ico"><i class="fas fa-camera"></i></span>
+                    <h3>Снимай чинията</h3>
+                    <p>Снимка на ястие или на менюто в ресторанта — и знаеш кое пасва на целите ти.</p>
+                </article>
+
+                <article class="lp-tile lp-reveal">
+                    <span class="lp-tile-ico"><i class="fas fa-sliders"></i></span>
+                    <h3>Промени със съгласие</h3>
+                    <p>Поискай корекция. Виждаш какво се променя и защо, преди да бъде приложено.</p>
+                </article>
+
+                <article class="lp-tile lp-reveal">
+                    <span class="lp-tile-ico"><i class="fas fa-capsules"></i></span>
+                    <h3>Добавки и движение</h3>
+                    <p>Препоръки, проверени за взаимодействия, и активност, съобразена с плана.</p>
+                </article>
+
+                <article class="lp-tile lp-reveal">
+                    <span class="lp-tile-ico"><i class="fas fa-user-doctor"></i></span>
+                    <h3>Специалист зад плана</h3>
+                    <p>Хранене, медицина, спорт и психология. Алгоритъмът предлага — човек проверява.</p>
+                </article>
             </div>
-            <div class="feature-card">
-                <div class="icon-box icon-box--indigo"><i class="fas fa-brain"></i></div>
-                <h3>7-Степенен AI Анализ</h3>
-                <p>Интелигентен алгоритъм анализира 30+ критерия и хиляди корелации — за план, направен точно за теб.</p>
-            </div>
-            <div class="feature-card">
-                <div class="icon-box icon-box--blue"><i class="fas fa-comments"></i></div>
-                <h3>24/7 AI Консултант</h3>
-                <p>Личен AI асистент, запознат с твоя профил, цели и план. Задай въпрос по всяко време и получи експертен отговор.</p>
-            </div>
-            <div class="feature-card">
-                <div class="icon-box icon-box--rose"><i class="fas fa-heart"></i></div>
-                <h3>Комплексен Подход</h3>
-                <p>Не само хранене — психологически съвети, хранителни добавки, физически активности и цялостна грижа за тялото и ума.</p>
-            </div>
-            <div class="feature-card">
-                <div class="icon-box icon-box--green"><i class="fas fa-stethoscope"></i></div>
-                <h3>Клинични Протоколи</h3>
-                <p>Специализирани протоколи за диабет, хипертония, ендометриоза, PCOS и още 10+ специфични здравни състояния.</p>
-            </div>
-            <div class="feature-card">
-                <div class="icon-box icon-box--amber"><i class="fas fa-chart-line"></i></div>
-                <h3>Научен Подход</h3>
-                <p>Базирано на знания от хиляди медицински учебника и последни научни изследвания за оптимално здраве.</p>
-            </div>
-            <div class="feature-card emoeat-card">
-                <a href="emoeat.html">
-                    <div class="icon-box"><i class="fas fa-heart-pulse"></i></div>
-                    <h3>Емоционално Хранене</h3>
-                    <p>Разкрий подсъзнателните тригери зад яденето. Получи персонализирани терапевтични стратегии (CBT, DBT, HALT, RAIN) за трайна промяна.</p>
+        </div>
+    </section>
+
+    <!-- Programs -->
+    <section class="lp-section lp-section--tint" id="programs">
+        <div class="lp-wrap">
+            <header class="lp-head lp-reveal">
+                <p class="lp-kicker">Програми</p>
+                <h2 class="lp-h2">Когато целта е <em>по-конкретна</em>.</h2>
+            </header>
+            <div class="lp-programs">
+                <a class="lp-program lp-reveal" href="emoeat.html" style="--tone:#a855f7">
+                    <span class="lp-program-ico"><i class="fas fa-heart-pulse"></i></span>
+                    <h3>Емоционално хранене</h3>
+                    <p>Откъде идва гладът, който не е глад. Тригери и стратегии от CBT, DBT, HALT и RAIN.</p>
+                    <span class="lp-program-go">Разгледай <i class="fas fa-arrow-right"></i></span>
                 </a>
-            </div>
-            <div class="feature-card longevity-card">
-                <a href="longevity.html">
-                    <div class="icon-box"><i class="fas fa-dna"></i></div>
+                <a class="lp-program lp-reveal" href="longevity.html" style="--tone:#d97706">
+                    <span class="lp-program-ico"><i class="fas fa-dna"></i></span>
                     <h3>Дълголетие</h3>
-                    <p>Научно-базирани протоколи за забавяне на стареенето, активиране на автофагия и максимизиране на жизнеността с години напред.</p>
+                    <p>Хранене и навици за по-бавно стареене — автофагия, митохондрии, възстановяване.</p>
+                    <span class="lp-program-go">Разгледай <i class="fas fa-arrow-right"></i></span>
                 </a>
-            </div>
-            <div class="feature-card protocol-landing-card">
-                <a href="protocol-landing.html">
-                    <div class="icon-box"><i class="fas fa-stethoscope"></i></div>
-                    <h3>Клинични Протоколи</h3>
-                    <p>Специализирани протоколи за диабет, хипертония, ендометриоза, PCOS и още 10+ специфични здравни състояния — персонализирани за теб.</p>
+                <a class="lp-program lp-reveal" href="protocol-landing.html" style="--tone:#0d9488">
+                    <span class="lp-program-ico"><i class="fas fa-stethoscope"></i></span>
+                    <h3>Клинични протоколи</h3>
+                    <p>Диабет, хипертония, PCOS, ендометриоза и още — 11 протокола с план за хранене и добавки.</p>
+                    <span class="lp-program-go">Разгледай <i class="fas fa-arrow-right"></i></span>
+                </a>
+                <a class="lp-program lp-reveal" href="kids.html" style="--tone:#2563eb">
+                    <span class="lp-program-ico"><i class="fas fa-baby"></i></span>
+                    <h3>KidFood AI</h3>
+                    <p>Снимай храната и разбери дали е подходяща за детето. От 0 до 18 години.</p>
+                    <span class="lp-program-go">Разгледай <i class="fas fa-arrow-right"></i></span>
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- Steps Section -->
-    <section class="steps reveal" id="how-it-works">
-        <div class="section-title">
-            <h2>Как работи?</h2>
-            <p>Три лесни стъпки — и твоят личен план е готов.</p>
-        </div>
-
-        <div class="steps-container">
-            <div class="step-item">
-                <div class="step-number">01</div>
-                <div class="step-content">
-                    <h3>Попълни въпросника</h3>
-                    <p>Отговори на въпроси за твоето здраве, цели и любими храни.</p>
-                </div>
-            </div>
-            <div class="step-item">
-                <div class="step-number">02</div>
-                <div class="step-content">
-                    <h3>Получи анализ</h3>
-                    <p>Екипът ни от специалисти и AI алгоритъм създават твой 7-дневен комплексен план — хранене, психология, добавки, активности и при нужда клиничен протокол.</p>
-                </div>
-            </div>
-            <div class="step-item">
-                <div class="step-number">03</div>
-                <div class="step-content">
-                    <h3>Постигни целите си</h3>
-                    <p>Следвай плана, следи прогреса си и се наслаждавай на резултатите.</p>
-                </div>
-            </div>
-        </div>
-
-        <div style="text-align:center; margin-top:50px;">
-            <a href="questionnaire2.html" class="nav-btn" style="padding: 15px 40px; font-size: 1.1rem;">Започни Своята Промяна</a>
+    <!-- How it works -->
+    <section class="lp-section" id="how-it-works">
+        <div class="lp-wrap">
+            <header class="lp-head lp-reveal">
+                <p class="lp-kicker">Как работи</p>
+                <h2 class="lp-h2">Три стъпки до <em>първата седмица</em>.</h2>
+            </header>
+            <ol class="lp-steps lp-reveal">
+                <li class="lp-step">
+                    <span class="lp-step-n">01</span>
+                    <h3>Разказваш</h3>
+                    <p>Въпросник за здраве, навици, цели и любими храни.</p>
+                </li>
+                <li class="lp-step">
+                    <span class="lp-step-n">02</span>
+                    <h3>Анализираме</h3>
+                    <p>Седемстепенен анализ на профила ти. Специалист преглежда резултата.</p>
+                </li>
+                <li class="lp-step">
+                    <span class="lp-step-n">03</span>
+                    <h3>Храниш се</h3>
+                    <p>Планът е в приложението — с напомняния, замени и консултант.</p>
+                </li>
+            </ol>
         </div>
     </section>
-    </main>
 
-    <!-- Contact Section -->
-    <section class="steps reveal" id="contact" style="background: var(--soft-red);">
-        <div class="section-title">
-            <h2>Свържи се с нас</h2>
-            <p>Имаш въпрос или предложение? Ще се радваме да чуем от теб.</p>
+    <!-- Final CTA -->
+    <section class="lp-final" aria-labelledby="lpFinalTitle">
+        <div class="lp-wrap lp-final-inner lp-reveal">
+            <h2 id="lpFinalTitle" class="lp-h2">Първата седмица започва <em>с въпросника</em>.</h2>
+            <p>Безплатно. Отнема няколко минути.</p>
+            <a href="questionnaire2.html" class="lp-btn-light">Създай моя план <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
         </div>
-        <div style="max-width: 600px; margin: 0 auto; text-align: center;">
-            <button class="nav-btn contact-toggle-btn" id="contactToggleBtn" onclick="toggleContactForm()">
+    </section>
+
+    <!-- Contact -->
+    <section class="lp-section" id="contact">
+        <div class="lp-wrap lp-contact">
+            <header class="lp-head lp-reveal">
+                <p class="lp-kicker">Контакт</p>
+                <h2 class="lp-h2">Въпрос, идея или <em>проблем</em>?</h2>
+                <p class="lp-sub">Пиши ни. Четем всяко съобщение.</p>
+            </header>
+            <button class="nav-btn contact-toggle-btn lp-btn" id="contactToggleBtn" onclick="toggleContactForm()">
                 <i class="fas fa-envelope"></i> Пиши ни
             </button>
             <div class="contact-form-wrapper" id="contactFormWrapper">
-                <form id="contactForm" onsubmit="submitContactForm(event)" novalidate style="text-align: left;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-dark); font-size: 0.9rem;">Вашето Име *</label>
-                            <input type="text" id="contactName" required placeholder="Иван Иванов"
-                                style="width: 100%; padding: 12px 16px; border: 2px solid var(--glass-border); border-radius: 12px; background: var(--white); color: var(--text-dark); font-size: 1rem; outline: none; transition: border-color 0.2s;"
-                                onfocus="this.style.borderColor='var(--primary-red)'" onblur="this.style.borderColor='var(--glass-border)'">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-dark); font-size: 0.9rem;">Имейл</label>
-                            <input type="email" id="contactEmail" placeholder="email@example.com"
-                                style="width: 100%; padding: 12px 16px; border: 2px solid var(--glass-border); border-radius: 12px; background: var(--white); color: var(--text-dark); font-size: 1rem; outline: none; transition: border-color 0.2s;"
-                                onfocus="this.style.borderColor='var(--primary-red)'" onblur="this.style.borderColor='var(--glass-border)'">
-                        </div>
+                <form id="contactForm" class="lp-form" onsubmit="submitContactForm(event)" novalidate>
+                    <div class="lp-form-row">
+                        <label class="lp-field">
+                            <span>Име *</span>
+                            <input type="text" id="contactName" required autocomplete="name" placeholder="Как да се обърнем към теб">
+                        </label>
+                        <label class="lp-field">
+                            <span>Имейл</span>
+                            <input type="email" id="contactEmail" autocomplete="email" placeholder="за отговор">
+                        </label>
                     </div>
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-dark); font-size: 0.9rem;">Тема</label>
-                        <input type="text" id="contactSubject" placeholder="За какво се отнася съобщението?"
-                            style="width: 100%; padding: 12px 16px; border: 2px solid var(--glass-border); border-radius: 12px; background: var(--white); color: var(--text-dark); font-size: 1rem; outline: none; transition: border-color 0.2s;"
-                            onfocus="this.style.borderColor='var(--primary-red)'" onblur="this.style.borderColor='var(--glass-border)'">
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-dark); font-size: 0.9rem;">Съобщение *</label>
-                        <textarea id="contactMessage" required rows="5" placeholder="Напишете вашето съобщение тук..."
-                            style="width: 100%; padding: 12px 16px; border: 2px solid var(--glass-border); border-radius: 12px; background: var(--white); color: var(--text-dark); font-size: 1rem; outline: none; resize: vertical; transition: border-color 0.2s;"
-                            onfocus="this.style.borderColor='var(--primary-red)'" onblur="this.style.borderColor='var(--glass-border)'"></textarea>
-                    </div>
-                    <div id="contactFormStatus" style="margin-bottom: 16px; display: none; padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center;"></div>
-                    <button type="submit" id="contactSubmitBtn" class="nav-btn" style="width: 100%; padding: 14px; font-size: 1rem;">
-                        <i class="fas fa-paper-plane"></i> Изпрати Съобщение
+                    <label class="lp-field">
+                        <span>Тема</span>
+                        <input type="text" id="contactSubject" placeholder="Накратко">
+                    </label>
+                    <label class="lp-field">
+                        <span>Съобщение *</span>
+                        <textarea id="contactMessage" required rows="5" placeholder="Какво искаш да ни кажеш?"></textarea>
+                    </label>
+                    <div id="contactFormStatus" class="lp-form-status" style="display: none;"></div>
+                    <button type="submit" id="contactSubmitBtn" class="nav-btn lp-btn lp-btn-block">
+                        <i class="fas fa-paper-plane"></i> Изпрати
                     </button>
                 </form>
             </div>
@@ -2437,76 +2425,73 @@
     </section>
 
     <!-- Android / TWA Install Section -->
-    <section class="android-install-section reveal" id="android-install">
-        <div class="section-title">
-            <h2><i class="fab fa-android" style="margin-right:10px;"></i>Инсталирай за Android</h2>
-            <p>Получи NutriPlan като нативно приложение на Android устройство — безплатно, без App Store.</p>
+    <section class="android-install-section" id="android-install">
+        <div class="lp-wrap">
+            <header class="lp-head lp-reveal">
+                <p class="lp-kicker">Приложение</p>
+                <h2 class="lp-h2">NutriPlan <em>на телефона</em>.</h2>
+                <p class="lp-sub">С известия за храненията и старт с едно докосване.</p>
+            </header>
+
+            <div class="android-install-cards">
+                <div class="android-install-card lp-reveal">
+                    <div class="card-icon"><i class="fas fa-bolt"></i></div>
+                    <h3>От браузъра</h3>
+                    <p>Най-бързо. Без файл за сваляне.</p>
+                    <ol class="android-steps">
+                        <li>Отвори <strong>biocode.website</strong> в Chrome</li>
+                        <li>Меню <strong>⋮</strong> → <strong>„Инсталирай приложение“</strong></li>
+                        <li>Потвърди</li>
+                    </ol>
+                    <button class="android-btn" onclick="triggerInstallPrompt()">
+                        <i class="fas fa-download"></i> Инсталирай
+                    </button>
+                </div>
+
+                <div class="android-install-card lp-reveal">
+                    <div class="card-icon"><i class="fab fa-android"></i></div>
+                    <h3>APK файл</h3>
+                    <p>Пълното Android приложение.</p>
+                    <ol class="android-steps">
+                        <li>Свали <strong>NutriPlan.apk</strong></li>
+                        <li>Разреши инсталация от този източник</li>
+                        <li>Отвори файла и потвърди</li>
+                    </ol>
+                    <a class="android-btn" id="apkDownloadBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="NutriPlan.apk">
+                        <i class="fab fa-android"></i> Свали APK
+                    </a>
+                </div>
+
+                <div class="android-install-card android-install-card--soon lp-reveal">
+                    <div class="card-icon"><i class="fab fa-google-play"></i></div>
+                    <h3>Google Play</h3>
+                    <p>Скоро — с автоматични обновявания.</p>
+                    <a class="android-btn secondary" href="https://play.google.com/store/apps/details?id=com.biocode.nutriplan" target="_blank" rel="noopener">
+                        <i class="fab fa-google-play"></i> Очаквай скоро
+                    </a>
+                </div>
+            </div>
+            <p class="lp-version" data-app-version>Версия...</p>
         </div>
-
-        <div class="android-install-cards">
-            <!-- Option 1: PWA (instant, recommended) -->
-            <div class="android-install-card">
-                <div class="card-icon"><i class="fas fa-bolt"></i></div>
-                <h3>Бърза инсталация (PWA)</h3>
-                <p>Инсталирай директно от Chrome без да сваляш файл. Работи моментално.</p>
-                <div class="android-steps">
-                    <div class="android-step"><span class="android-step-num">1</span><span>Отвори <strong>biocode.website</strong> в Chrome</span></div>
-                    <div class="android-step"><span class="android-step-num">2</span><span>Натисни менюто (<strong>⋮</strong>) горе вдясно</span></div>
-                    <div class="android-step"><span class="android-step-num">3</span><span>Избери <strong>„Инсталирай приложение"</strong></span></div>
-                    <div class="android-step"><span class="android-step-num">4</span><span>Потвърди с <strong>„Инсталирай"</strong></span></div>
-                </div>
-                <button class="android-btn" onclick="triggerInstallPrompt()">
-                    <i class="fas fa-download"></i> Инсталирай сега
-                </button>
-            </div>
-
-            <!-- Option 2: APK direct download -->
-            <div class="android-install-card">
-                <div class="card-icon"><i class="fab fa-android"></i></div>
-                <h3>Свали APK файл</h3>
-                <p>Свали пакета директно и го инсталирай ръчно. Препоръчително за напредели потребители.</p>
-                <div class="android-steps">
-                    <div class="android-step"><span class="android-step-num">1</span><span>Свали <strong>NutriPlan.apk</strong> по-долу</span></div>
-                    <div class="android-step"><span class="android-step-num">2</span><span>В настройките разреши <strong>„Инсталация от неизвестни източници"</strong></span></div>
-                    <div class="android-step"><span class="android-step-num">3</span><span>Отвори сваления APK файл и потвърди</span></div>
-                </div>
-                <a class="android-btn" id="apkDownloadBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="NutriPlan.apk">
-                    <i class="fab fa-android"></i> Свали APK
-                </a>
-            </div>
-
-            <!-- Option 3: Google Play (future) -->
-            <div class="android-install-card">
-                <div class="card-icon"><i class="fab fa-google-play"></i></div>
-                <h3>Google Play Store</h3>
-                <p>Скоро ще можеш да намериш NutriPlan директно в Google Play Store.</p>
-                <div class="android-steps">
-                    <div class="android-step"><span class="android-step-num">✦</span><span>Автоматични обновявания</span></div>
-                    <div class="android-step"><span class="android-step-num">✦</span><span>Верифицирана инсталация</span></div>
-                    <div class="android-step"><span class="android-step-num">✦</span><span>Push известия с по-добра интеграция</span></div>
-                </div>
-                <a class="android-btn secondary" href="https://play.google.com/store/apps/details?id=com.biocode.nutriplan" target="_blank" rel="noopener">
-                    <i class="fab fa-google-play"></i> Скоро в Play Store
-                </a>
-            </div>
-        </div>
-        <p style="margin-top: 14px; font-size: 0.82rem; color: #9ab;" data-app-version>Версия...</p>
     </section>
+    </main>
 
     <!-- Footer -->
-    <footer role="contentinfo">
-        <div class="footer-logo"><i class="fas fa-apple-alt"></i> NutriPlan</div>
-        <div class="socials">
-            <a href="#"><i class="fab fa-facebook-f"></i></a>
-            <a href="#"><i class="fab fa-instagram"></i></a>
-            <a href="#"><i class="fab fa-twitter"></i></a>
+    <footer role="contentinfo" class="lp-footer">
+        <div class="lp-wrap lp-footer-inner">
+            <div class="lp-footer-brand">
+                <div class="footer-logo"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</div>
+                <p>Хранене по твоя мярка.</p>
+            </div>
+            <nav class="lp-footer-links" aria-label="Връзки във футъра">
+                <a href="features.html">Възможности</a>
+                <a href="#how-it-works">Как работи</a>
+                <a href="#contact" onclick="handleContactNavigation()">Контакт</a>
+                <a href="/privacy-policy.html">Поверителност</a>
+                <a href="/terms.html">Условия</a>
+            </nav>
         </div>
-        <p class="copyright">&copy; 2026 NutriPlan. Всички права запазени.</p>
-        <div class="footer-legal">
-            <a href="/privacy-policy.html">Политика за поверителност</a>
-            <span style="color:#2d4a48">·</span>
-            <a href="/terms.html">Условия за ползване</a>
-        </div>
+        <p class="copyright">&copy; 2026 NutriPlan</p>
     </footer>
 
     <!-- Install App Banner -->
@@ -2617,12 +2602,12 @@
                 status.style.display = 'block';
                 status.style.background = '#fee2e2';
                 status.style.color = '#dc2626';
-                status.textContent = 'Моля, попълнете Име и Съобщение.';
+                status.textContent = 'Нужни са име и съобщение.';
                 return;
             }
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Изпращане...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Изпращаме…';
             status.style.display = 'none';
 
             try {
@@ -2645,7 +2630,7 @@
                     status.style.display = 'block';
                     status.style.background = '#d1fae5';
                     status.style.color = '#065f46';
-                    status.textContent = '✅ Съобщението е изпратено успешно! Ще се свържем с вас скоро.';
+                    status.textContent = 'Получихме го. Ще ти отговорим скоро.';
                     document.getElementById('contactForm').reset();
                 } else {
                     throw new Error(result.error || 'Грешка при изпращане');
@@ -2654,10 +2639,10 @@
                 status.style.display = 'block';
                 status.style.background = '#fee2e2';
                 status.style.color = '#dc2626';
-                status.textContent = '❌ Грешка: ' + error.message;
+                status.textContent = 'Не успяхме да изпратим съобщението: ' + error.message;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати Съобщение';
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати';
             }
         }
 
@@ -2893,7 +2878,7 @@
                 if (startNowBtn) startNowBtn.style.display = 'flex';
                 if (heroCTABtn) {
                     heroCTABtn.href = 'questionnaire2.html';
-                    heroCTABtn.textContent = 'Започни промяната';
+                    heroCTABtn.textContent = 'Създай моя план';
                 }
                 if (navMyPlanLink) navMyPlanLink.style.display = 'none';
             }
@@ -3006,11 +2991,11 @@
             const heroSection = document.querySelector('.hero');
 
             if (!authUser) {
-                // Not authenticated — always show "Започни промяната"
+                // Not authenticated — always show "Създай моя план"
                 if (startNowBtn) startNowBtn.style.display = 'flex';
                 if (heroCTABtn) {
                     heroCTABtn.href = 'questionnaire2.html';
-                    heroCTABtn.textContent = 'Започни промяната';
+                    heroCTABtn.textContent = 'Създай моя план';
                 }
                 if (navMyPlanLink) navMyPlanLink.style.display = 'none';
                 // Make hero section visible
@@ -3055,7 +3040,7 @@
                 return;
             }
 
-            // Authenticated user, no plan yet — show "Започни промяната" button
+            // Authenticated user, no plan yet — show "Създай моя план" button
             if (startNowBtn) {
                 startNowBtn.style.display = 'flex';
             }
@@ -3070,26 +3055,85 @@
             }
         });
 
-        // --- Scroll Reveal Animation Logic ---
-        window.addEventListener('scroll', reveal);
+        // --- Landing motion: one-shot reveals, count-ups, chat demo, nav state, phone tilt ---
+        (function initLandingMotion() {
+            var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var revealEls = Array.prototype.slice.call(document.querySelectorAll('.lp-reveal'));
 
-        function reveal() {
-            var reveals = document.querySelectorAll('.reveal');
+            // Siblings that reveal together get a short stagger.
+            revealEls.forEach(function (el) {
+                var parent = el.parentElement;
+                if (!parent) return;
+                var group = Array.prototype.filter.call(parent.children, function (c) { return c.classList.contains('lp-reveal'); });
+                var i = group.indexOf(el);
+                if (i > 0) el.style.setProperty('--rd', Math.min(i, 5) * 80 + 'ms');
+            });
 
-            for (var i = 0; i < reveals.length; i++) {
-                var windowHeight = window.innerHeight;
-                var elementTop = reveals[i].getBoundingClientRect().top;
-                var elementVisible = 150;
+            function countUp(el) {
+                var target = parseInt(el.getAttribute('data-count'), 10);
+                var suffix = el.getAttribute('data-suffix') || '';
+                if (!target || reduceMotion) return;
+                var start = null, dur = 1400;
+                function step(ts) {
+                    if (start === null) start = ts;
+                    var p = Math.min((ts - start) / dur, 1);
+                    var eased = 1 - Math.pow(1 - p, 4);
+                    el.textContent = Math.round(target * eased) + suffix;
+                    if (p < 1) requestAnimationFrame(step);
+                }
+                el.textContent = '0' + suffix;
+                requestAnimationFrame(step);
+            }
 
-                if (elementTop < windowHeight - elementVisible) {
-                    reveals[i].classList.add('active');
-                } else {
-                    reveals[i].classList.remove('active');
+            function onReveal(el) {
+                el.classList.add('is-in');
+                // Drop the stagger delay afterwards so hover transitions respond instantly.
+                var rd = parseInt(el.style.getPropertyValue('--rd'), 10) || 0;
+                setTimeout(function () { el.style.removeProperty('--rd'); }, 1000 + rd);
+                el.querySelectorAll('[data-count]').forEach(countUp);
+                if (el.classList.contains('lp-tile--chat')) {
+                    setTimeout(function () { el.classList.add('is-answered'); }, reduceMotion ? 0 : 2600);
                 }
             }
-        }
-        // Trigger once on load
-        reveal();
+
+            if (!('IntersectionObserver' in window) || reduceMotion) {
+                revealEls.forEach(onReveal);
+            } else {
+                var io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (!entry.isIntersecting) return;
+                        io.unobserve(entry.target);
+                        onReveal(entry.target);
+                    });
+                }, { rootMargin: '0px 0px -12% 0px', threshold: 0.12 });
+                revealEls.forEach(function (el) { io.observe(el); });
+            }
+
+            // Top bar: transparent over the hero, solid once the page scrolls.
+            var topNav = document.querySelector('.top-nav');
+            function syncNav() {
+                if (topNav) topNav.classList.toggle('is-scrolled', window.scrollY > 12);
+            }
+            window.addEventListener('scroll', syncNav, { passive: true });
+            syncNav();
+
+            // Phone mockup follows the pointer a little (desktop only).
+            var phone = document.getElementById('lpPhone');
+            var visual = phone && phone.parentElement;
+            if (phone && visual && !reduceMotion && window.matchMedia('(hover: hover) and (min-width: 901px)').matches) {
+                visual.addEventListener('pointermove', function (e) {
+                    var r = visual.getBoundingClientRect();
+                    var x = (e.clientX - r.left) / r.width - 0.5;
+                    var y = (e.clientY - r.top) / r.height - 0.5;
+                    phone.style.setProperty('--ry', (x * 14 - 4).toFixed(2) + 'deg');
+                    phone.style.setProperty('--rx', (-y * 10 + 2).toFixed(2) + 'deg');
+                });
+                visual.addEventListener('pointerleave', function () {
+                    phone.style.removeProperty('--ry');
+                    phone.style.removeProperty('--rx');
+                });
+            }
+        })();
 
         // --- PWA Service Worker Registration ---
 
@@ -4320,7 +4364,7 @@
             if (startNowBtn) startNowBtn.style.display = 'flex';
             if (heroCTABtn) {
                 heroCTABtn.href = 'questionnaire2.html';
-                heroCTABtn.textContent = 'Започни промяната';
+                heroCTABtn.textContent = 'Създай моя план';
             }
             if (navMyPlanLink) navMyPlanLink.style.display = 'none';
             if (heroLoginBtn) heroLoginBtn.style.display = '';

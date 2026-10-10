@@ -992,11 +992,42 @@
         } catch (_) {}
     }
 
+    // Slide the bottom-nav highlight under the active button.
+    function syncNavPill(animate) {
+        var pill = document.querySelector('.spa-nav-pill');
+        var button = document.querySelector('.spa-bottom-nav [data-tab-target].active');
+        if (!pill || !button || !button.offsetWidth) return;
+        var width = Math.min(button.offsetWidth - 12, 76);
+        if (!animate) pill.style.transition = 'none';
+        pill.style.setProperty('--pill-w', width + 'px');
+        pill.style.setProperty('--pill-x', (button.offsetLeft + (button.offsetWidth - width) / 2) + 'px');
+        pill.classList.add('is-ready');
+        if (!animate) {
+            void pill.offsetWidth;
+            pill.style.transition = '';
+        }
+    }
+
+    function tabIndex(tab) {
+        var buttons = Array.prototype.slice.call(document.querySelectorAll('.spa-bottom-nav [data-tab-target]'));
+        for (var i = 0; i < buttons.length; i++) {
+            if (buttons[i].getAttribute('data-tab-target') === tab) return i;
+        }
+        return -1;
+    }
+
     function switchTab(tab, updateUrl) {
         tab = normalizeTab(tab);
         var previousTab = state.activeTab;
         var previousFrame = previousTab ? document.querySelector('[data-tab-view="' + previousTab + '"]') : null;
         var activeFrame = ensureFrameLoaded(tab);
+        var stack = document.querySelector('.spa-tab-stack');
+        if (stack) {
+            // Direction of the entrance follows the nav order; first paint and re-taps stay still.
+            stack.setAttribute('data-dir', !previousTab || previousTab === tab
+                ? 'none'
+                : (tabIndex(tab) < tabIndex(previousTab) ? 'back' : 'forward'));
+        }
 
         if (previousTab && previousTab !== tab) {
             triggerTabHaptic();
@@ -1022,6 +1053,7 @@
             button.classList.toggle('active', isActive);
             button.setAttribute('aria-current', isActive ? 'page' : 'false');
         });
+        syncNavPill(!!previousTab);
 
         if (activeFrame) {
             dispatchFrameEvent(activeFrame, 'NUTRIPLAN_TAB_ACTIVATED', {
@@ -1117,6 +1149,7 @@
         });
 
         switchTab(initialTab, true);
+        window.addEventListener('resize', function () { syncNavPill(false); });
         initApkGameNotifier();
         runPlanUpdateCatchUp();
     }
