@@ -1,0 +1,92 @@
+name: Cloudflare Bridge
+
+# Мост към Cloudflare за Worker-а със секретите на GitHub (CLOUDFLARE_API_TOKEN / _ACCOUNT_ID) — САМО ЧЕТЕНЕ.
+#  * На всеки pull request: какви секрети/променливи липсват, какво би се деплойнало и какво
+#    се различава в KV (резултатът е в „Summary“ на задачата).
+#  * Ръчно (workflow_dispatch): състояние, проверка на секрети, опашки, версии, пробен деплой.
+# Репото е публично: печатат се само имена на секрети, никога стойности.
+# За KV ключове има отделен мост: kv-bridge.yml.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'status | secrets-check | queues | deployments | dry-run | secret-put | secret-generate | secret-delete'
+        required: true
+        type: choice
+        options: [status, secrets-check, queues, deployments, dry-run, secret-put, secret-generate, secret-delete]
+      name:
+        description: 'Име на секрета, напр. STRIPE_SECRET_KEY (за secret-*). За secret-put стойността е в GitHub секрет CF_SECRET_<име> — НЕ я пиши тук, репото е публично.'
+        required: false
+        type: string
+      overwrite:
+        description: 'Смяна на вече съществуващ секрет'
+        required: false
+        type: boolean
+        default: false
+      environment:
+        description: 'production | staging'
+        required: false
+        type: choice
+        options: [production, staging]
+        default: production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cf-bridge-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-check:
+    # Само за PR-и от това репо (форковете нямат достъп до секрети).
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Cloudflare — какво липсва и какво би се деплойнало
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_ENV: production
+        run: |
+          {
+            echo '## Cloudflare проверка'
+            echo '```'
+            bash scripts/cf-bridge.sh secrets-check || true
+            echo
+            bash scripts/cf-bridge.sh dry-run 2>&1 | tail -12 || true
+            echo
+            bash scripts/kv-bridge.sh diff 2>&1 | grep -E '^(~|!|Разлики)' || true
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+  bridge:
+    if: github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run bridge
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_ENV: ${{ inputs.environment }}
+          BRIDGE_ACTION: ${{ inputs.action }}
+          BRIDGE_NAME: ${{ inputs.name }}
+          BRIDGE_OVERWRITE: ${{ inputs.overwrite && 'overwrite' || '' }}
+          # Стойност само за secret-put: GitHub секрет CF_SECRET_<ИМЕ> (достъпът по име е динамичен).
+          CF_SECRET_VALUE: ${{ inputs.action == 'secret-put' && secrets[format('CF_SECRET_{0}', inputs.name)] || '' }}
+        run: bash scripts/cf-bridge.sh "$BRIDGE_ACTION" "$BRIDGE_NAME" "$BRIDGE_OVERWRITE"
