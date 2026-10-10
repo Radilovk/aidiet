@@ -912,7 +912,7 @@ function getPlannedCalories(rec) {
 }
 function calcDayScore(rec, todayKey) {
   if (!rec) return emptyDayScore();
-  const meals = getMealSlots(rec);
+  const meals = planMealSlots(rec);
   let mealPts = 0;
   const mealMax = meals.length * 10;
   meals.forEach((m) => {
@@ -968,9 +968,10 @@ function calcDayScore(rec, todayKey) {
   const activityPts = rec.eveningCheck?.activityLevel != null ? [0, 0, 5, 10][rec.eveningCheck.activityLevel] || 0 : null;
   const balancePts = rec.eveningCheck?.emotionalBalance != null ? [0, 0, 5, 10][rec.eveningCheck.emotionalBalance] || 0 : null;
   const wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
-  const wellnessMax = 40;
+  const answered = [sleepPts, waterPts, activityPts, balancePts].filter((v) => v != null).length;
+  const wellnessMax = answered * 10;
   const allMealsOk = meals.length > 0 && meals.every((m) => rec.meals[m] === true);
-  const has5StarBlocker = !allMealsOk || excessCalories || rec.morningCheck?.sleptWell === false || rec.eveningCheck?.waterIntake === false || rec.eveningCheck?.activityLevel === 1 || rec.eveningCheck?.emotionalBalance === 1 || junkCount > 0;
+  const has5StarBlocker = !allMealsOk || excessCalories || answered === 0 || rec.morningCheck?.sleptWell === false || rec.eveningCheck?.waterIntake === false || rec.eveningCheck?.activityLevel === 1 || rec.eveningCheck?.emotionalBalance === 1 || junkCount > 0;
   const planMeals = planMealSlots(rec);
   const done = planMeals.filter((m) => rec.meals[m] === true).length;
   const mealEngPct = planMeals.length > 0 ? done / planMeals.length * 50 : 0;
@@ -1068,7 +1069,10 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     }, 0);
   });
   const totalExtraCals = extraCalsByDay.reduce((s, v) => s + v, 0);
-  const calBalanceByDay = days.map((d) => d.rec && d.key < todayKey ? calcDayScore(d.rec, todayKey).calorieDelta : 0);
+  const calBalanceByDay = days.map((d) => {
+    const adh = d.key < todayKey ? dayMealAdherence(d.rec) : null;
+    return adh != null && adh >= 50 ? calcDayScore(d.rec, todayKey).calorieDelta : 0;
+  });
   const netCalBalance = calBalanceByDay.reduce((s, v) => s + v, 0);
   const mealAdh = days.map((d) => dayMealAdherence(d.rec)).filter((v) => v != null);
   const mealAdherence = mealAdh.length ? Math.round(mealAdh.reduce((a, b) => a + b, 0) / mealAdh.length) : null;

@@ -76,7 +76,8 @@ function getPlannedCalories(rec) {
  */
 export function calcDayScore(rec, todayKey) {
   if (!rec) return emptyDayScore();
-  const meals = getMealSlots(rec);
+  // Звездите — по храненията от плана (без свободното и напитката), както ангажираността.
+  const meals = planMealSlots(rec);
   let mealPts = 0;
   const mealMax = meals.length * 10;
 
@@ -130,10 +131,12 @@ export function calcDayScore(rec, todayKey) {
   const activityPts = rec.eveningCheck?.activityLevel != null ? ([0, 0, 5, 10][rec.eveningCheck.activityLevel] || 0) : null;
   const balancePts = rec.eveningCheck?.emotionalBalance != null ? ([0, 0, 5, 10][rec.eveningCheck.emotionalBalance] || 0) : null;
   const wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
-  const wellnessMax = 40;
+  // Само отговорените въпроси са в знаменателя; петата звезда иска поне една проверка.
+  const answered = [sleepPts, waterPts, activityPts, balancePts].filter((v) => v != null).length;
+  const wellnessMax = answered * 10;
 
   const allMealsOk = meals.length > 0 && meals.every((m) => rec.meals[m] === true);
-  const has5StarBlocker = !allMealsOk || excessCalories ||
+  const has5StarBlocker = !allMealsOk || excessCalories || answered === 0 ||
     (rec.morningCheck?.sleptWell === false) ||
     (rec.eveningCheck?.waterIntake === false) ||
     (rec.eveningCheck?.activityLevel === 1) ||
@@ -264,8 +267,11 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
   });
   const totalExtraCals = extraCalsByDay.reduce((s, v) => s + v, 0);
 
-  // Днешният ден още не е изяден — броят се само завършените дни.
-  const calBalanceByDay = days.map((d) => (d.rec && d.key < todayKey ? calcDayScore(d.rec, todayKey).calorieDelta : 0));
+  // Само завършени дни с поне половината хранения отметнати: неотметнато не значи неизядено.
+  const calBalanceByDay = days.map((d) => {
+    const adh = d.key < todayKey ? dayMealAdherence(d.rec) : null;
+    return adh != null && adh >= 50 ? calcDayScore(d.rec, todayKey).calorieDelta : 0;
+  });
   const netCalBalance = calBalanceByDay.reduce((s, v) => s + v, 0);
 
   // Спазване на храненията (отметнати / планирани, без свободното и напитката) —

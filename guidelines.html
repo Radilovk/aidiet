@@ -1185,11 +1185,7 @@
                 <div class="acc-content">
                     <div class="acc-content-inner">
                         <ul class="good-list" id="recommendedFoodsList">
-                            <li>Вода (минимум 2.5л на ден)</li>
-                            <li>Зеленолистни зеленчуци</li>
-                            <li>Чисто месо (пилешко, пуешко)</li>
-                            <li>Риба и морски дарове</li>
-                            <li>Сурови ядки (в умерени количества)</li>
+                            <li>Препоръките ще се появят тук, щом планът ви е готов.</li>
                         </ul>
                     </div>
                 </div>
@@ -1197,16 +1193,13 @@
 
             <div class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-ban"></i> Забранени храни</span>
+                    <span><i class="fas fa-ban"></i> Да избягвате</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
                     <div class="acc-content-inner">
                         <ul class="bad-list" id="forbiddenFoodsList">
-                            <li>Газирани напитки със захар</li>
-                            <li>Пържени храни и фаст фуд</li>
-                            <li>Сладкиши и рафинирана захар</li>
-                            <li>Алкохол (особено концентрати)</li>
+                            <li>Списъкът ще се появи тук, щом планът ви е готов.</li>
                         </ul>
                     </div>
                 </div>
@@ -1456,7 +1449,8 @@
             supplements: 'fa-pills'
         };
 
-        const MIN_ITEMS_COUNT = 3;
+        // Двигателят дава до 6 съвета и до 5 добавки — показват се всички.
+        const MIN_ITEMS_COUNT = 6;
 
         function escapeHtml(value) {
             if (value === null || value === undefined) return '';
@@ -1519,7 +1513,7 @@
                 let details = content.title || content.name || `${fallbackPrefix} ${index + 1}`;
                 if (content.description) details += ` - ${content.description}`;
                 if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
-                if (content.intake) details += ` - Прием: ${content.intake}`;
+                if (content.intake || content.timing) details += ` - Прием: ${content.intake || content.timing}`;
                 return escapeHtml(details);
             }
             return '';
@@ -1539,7 +1533,10 @@
 
                 const forbiddenFoodsList = document.getElementById('forbiddenFoodsList');
                 if (forbiddenFoodsList && Array.isArray(dietPlan.forbidden) && dietPlan.forbidden.length > 0) {
-                    forbiddenFoodsList.innerHTML = dietPlan.forbidden.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+                    // „✕ Без захар“ е двойно отрицание — показва се „✕ Захар“.
+                    forbiddenFoodsList.innerHTML = dietPlan.forbidden
+                        .map(item => String(item).replace(/^Без\s+/i, ''))
+                        .map(item => `<li>${escapeHtml(item.charAt(0).toUpperCase() + item.slice(1))}</li>`).join('');
                 }
 
                 const psychologyContent = document.getElementById('psychologyContent');
@@ -1709,11 +1706,23 @@
                 let previewText = '';
                 let hasAnyContent = false;
 
+                // Текстовете са от самия план: отделните ключове в localStorage можеха
+                // да останат от предишен план и да се покажат до новите числа.
+                let planStrategy = null;
+                try {
+                    const dp = JSON.parse(localStorage.getItem('dietPlan') || 'null');
+                    planStrategy = dp && dp.strategy && typeof dp.strategy === 'object' ? dp.strategy : null;
+                } catch (_) { planStrategy = null; }
+                const readField = function(key) {
+                    if (planStrategy) return String(planStrategy[key] || '').trim();
+                    return (localStorage.getItem(key) || '').trim();
+                };
                 fields.forEach(function(field) {
-                    let value = (localStorage.getItem(field.key) || '').trim();
+                    let value = readField(field.key);
                     if (!value && field.fallback) {
-                        value = (localStorage.getItem(field.fallback) || '').trim();
+                        value = readField(field.fallback);
                     }
+                    if (field.key === 'afterDinnerMealJustification' && /^Не са необходими/.test(value)) value = '';
                     const section = document.getElementById(field.sectionId);
                     const textEl = document.getElementById(field.textId);
                     if (value && section && textEl) {
