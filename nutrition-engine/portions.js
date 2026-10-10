@@ -5,7 +5,7 @@
  */
 
 import { food } from './knowledge.js';
-import { minPortionGrams } from '../portion-limits.js';
+import { minPortionGrams, isCookingFat, COOKING_FAT_MAX_PORTION_G } from '../portion-limits.js';
 
 /** Обменна група → група на каталога (за минималните порции). */
 const CATALOG_GROUP = {
@@ -18,6 +18,8 @@ const minCache = new Map();
 export function minPortion(foodId) {
   if (!minCache.has(foodId)) {
     const f = food(foodId);
+    // Мазнината за готвене е лъжица (10 г) — 5 г олио в тигана не е порция.
+    if (isCookingFat(f.name, f.nutritionKey)) { minCache.set(foodId, COOKING_FAT_MAX_PORTION_G); return COOKING_FAT_MAX_PORTION_G; }
     minCache.set(foodId, minPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP[f.group] }));
   }
   return minCache.get(foodId);
@@ -40,15 +42,18 @@ export function portionSteps(foodId, lo = 0, hi = 800) {
   if (unit) {
     // Бройките не са на грам: яйце от 50 г е една порция, макар порцията да е 54 г.
     steps = [];
-    for (let n = 1; n * unit.grams <= Math.max(hi * 1.2, unit.grams); n++) steps.push(n * unit.grams);
+    for (let n = 1; n * unit.grams <= 800; n++) steps.push(n * unit.grams);
     tolerance = 0.15;
   }
   const floor = Math.max(lo * (1 - tolerance), minPortion(foodId));
   const inRange = steps.filter(g => g >= floor - 1e-9 && g <= hi * (1 + tolerance) + 1e-9);
   if (inRange.length) return inRange;
   // Диапазонът е по-тесен от стъпката — най-близката стъпка до него.
+  // Никога под минималната порция — 5 г олио или 3 г чесън не са порция.
+  const pool = steps.filter(g => g >= floor - 1e-9);
+  const from = pool.length ? pool : steps;
   const mid = (lo + hi) / 2;
-  return [steps.reduce((best, g) => (Math.abs(g - mid) < Math.abs(best - mid) ? g : best), steps[0])];
+  return [from.reduce((best, g) => (Math.abs(g - mid) < Math.abs(best - mid) ? g : best), from[0])];
 }
 
 /** Най-близкото допустимо количество. */

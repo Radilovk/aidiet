@@ -82,7 +82,7 @@ for (const prof of profiles) {
         if (cats[dish.category] != null) cats[dish.category]++;
       }
     }
-    if (mainsToday.length === 2 && profile.diet.pattern !== 'vegan') ok(mainsToday[0] !== mainsToday[1] || mainsToday[0] === 'poultry', `${prof.id} д${d}: обяд и вечеря от една категория`);
+    if (mainsToday.length === 2 && profile.diet.pattern !== 'vegan' && profile.protocol !== 'autoimmune_aip') ok(mainsToday[0] !== mainsToday[1] || mainsToday[0] === 'poultry', `${prof.id} д${d}: обяд и вечеря от една категория`);
     if (meals.some(m => m.type === 'Свободно хранене')) continue;
     const t = weekPlan[`day${d}`].dailyTotals;
     dev.k += Math.abs(t.calories - kcal) / kcal;

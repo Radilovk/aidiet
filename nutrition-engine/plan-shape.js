@@ -108,6 +108,14 @@ export function recomputeMealFromDescription(meal) {
     t.fats += n.fats;
     grams += g;
   }
+  // Десертът е отделен обект, но е включен в калориите и теглото на храненето.
+  const dessert = meal.dessert && typeof meal.dessert === 'object' ? meal.dessert : null;
+  if (dessert?.macros) {
+    t.protein += Number(dessert.macros.protein) || 0;
+    t.carbs += Number(dessert.macros.carbs) || 0;
+    t.fats += Number(dessert.macros.fats) || 0;
+    grams += parseFloat(String(dessert.weight).replace(',', '.')) || 0;
+  }
   meal.macros = { ...(meal.macros || {}), protein: Math.round(t.protein), carbs: Math.round(t.carbs), fats: Math.round(t.fats) };
   meal.calories = Math.round(meal.macros.protein * 4 + meal.macros.carbs * 4 + meal.macros.fats * 9);
   if (grams > 0) meal.weight = `${Math.round(grams)}г`;

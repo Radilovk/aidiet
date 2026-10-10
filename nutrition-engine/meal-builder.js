@@ -324,7 +324,7 @@ function dishName(dish, parts) {
  * @param {Target} args.target         целта (с пренесения остатък)
  * @param {'main'|'breakfast'|'snack'|'late'} args.mealKind
  * @param {object} args.ctx            policy, preferenceOf(id), usageOf(key)
- * @returns {null | { parts: PartInstance[], fixed: Array<[string, number]>, totals: object, error: number, name: string }}
+ * @returns {null | { parts: PartInstance[], fixed: Array<[string, number]>, flavour: string[], totals: object, error: number, name: string }}
  */
 export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   /** @type {PartInstance[]} */
@@ -346,7 +346,11 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
       weight: parts.some(p => p.group === spec.group) ? 0.5 : 1,
     }, fatScale));
   }
-  const fixed = dish.fixed.filter(([id]) => ctx.policy.allowed(id));
+  // Подправките и сосовете (чесън, лимон, канела) овкусяват ястието — не са
+  // съставка с грамаж и не влизат в описанието, а в рецептата.
+  const fixedAll = dish.fixed.filter(([id]) => ctx.policy.allowed(id));
+  const flavour = fixedAll.filter(([id]) => food(id).group === 'FREE').map(([id]) => food(id).label);
+  const fixed = fixedAll.filter(([id]) => food(id).group !== 'FREE');
 
   parts.push(...sideParts(dish, parts, quota, mealKind, ctx));
   initialSizing(parts, fixed, quota, target);
@@ -358,13 +362,14 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   return {
     parts: kept,
     fixed,
+    flavour,
     totals: totalsOf(kept, fixed),
     error,
     name: dishName(dish, kept),
   };
 }
 
-/** Описанието на храненето — ред по съставка, по реда на ястието. */
+/** Описанието на храненето — ред по съставка, по реда на ястието (десертът е отделен обект). */
 export function describeMeal(built) {
   const lines = [];
   const seen = new Map();
@@ -383,7 +388,6 @@ export function describeMeal(built) {
     p.foods.forEach((id, i) => push(id, p.grams[i]));
   }
   for (const [id, g] of built.fixed) push(id, g);
-  for (const p of built.parts) if (p.side === 'dessert') p.foods.forEach((id, i) => push(id, p.grams[i]));
   return lines;
 }
 

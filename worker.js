@@ -27188,1428 +27188,6658 @@ var clinical_default = {
 var dishes_default = {
   about: "\u042F\u0441\u0442\u0438\u044F \u043A\u0430\u0442\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u0443\u0440\u043D\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430: \u0432\u0441\u044F\u043A\u0430 \u0447\u0430\u0441\u0442 \u0435 \u043E\u0431\u043C\u0435\u043D\u043D\u0430 \u0433\u0440\u0443\u043F\u0430 \u0441 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u0438 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u0432 \u043F\u043E\u0440\u0446\u0438\u0438. \u0413\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u0438 \u2014 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435, \u043A\u043E\u0438\u0442\u043E \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430\u0442\u0430 \u0441\u0445\u0435\u043C\u0430 \u0434\u0430\u0432\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E. \u0427\u0430\u0441\u0442\u0438 \u0441 \u043C\u0438\u043D\u0438\u043C\u0443\u043C 0 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u043A\u043E\u0433\u0430\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043D\u044F\u043C\u0430 \u0442\u0430\u043A\u0430\u0432\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u0438\u043B\u0438 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0435 \u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0430 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. fixed \u0441\u0430 \u0432\u043A\u0443\u0441\u043E\u0432\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0438 \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u043E\u0438\u0442\u043E \u043D\u0435 \u0441\u0435 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430\u0442 \u0438 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u0430\u043A\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0433\u0438 \u0438\u0437\u043A\u043B\u044E\u0447\u0432\u0430.",
   seasons: {
-    veg_tomato: ["summer", "autumn"],
-    veg_cherry_tomato: ["summer", "autumn"],
-    veg_cucumber: ["spring", "summer"],
-    veg_pepper: ["summer", "autumn"],
-    veg_zucchini: ["summer", "autumn"],
-    veg_eggplant: ["summer", "autumn"],
-    veg_lettuce: ["spring", "summer"],
-    veg_asparagus: ["spring"],
-    veg_spinach: ["spring", "autumn", "winter"],
-    veg_cabbage: ["autumn", "winter"],
-    veg_leek: ["autumn", "winter"],
-    veg_pumpkin: ["autumn", "winter"],
-    veg_beet: ["autumn", "winter"],
-    veg_brussels: ["autumn", "winter"],
-    fruit_strawberry: ["spring", "summer"],
-    fruit_raspberry: ["summer"],
-    fruit_blueberry: ["summer"],
-    fruit_peach: ["summer"],
-    fruit_watermelon: ["summer"],
-    fruit_melon: ["summer"],
-    fruit_grapes: ["autumn"],
-    fruit_apple: ["autumn", "winter", "spring"],
-    fruit_pear: ["autumn", "winter"],
-    fruit_orange: ["winter", "spring"],
-    fruit_mandarin: ["winter"],
-    fruit_grapefruit: ["winter", "spring"],
-    fruit_kiwi: ["winter", "spring"]
+    veg_tomato: [
+      "summer",
+      "autumn"
+    ],
+    veg_cherry_tomato: [
+      "summer",
+      "autumn"
+    ],
+    veg_cucumber: [
+      "spring",
+      "summer"
+    ],
+    veg_pepper: [
+      "summer",
+      "autumn"
+    ],
+    veg_zucchini: [
+      "summer",
+      "autumn"
+    ],
+    veg_eggplant: [
+      "summer",
+      "autumn"
+    ],
+    veg_lettuce: [
+      "spring",
+      "summer"
+    ],
+    veg_asparagus: [
+      "spring"
+    ],
+    veg_spinach: [
+      "spring",
+      "autumn",
+      "winter"
+    ],
+    veg_cabbage: [
+      "autumn",
+      "winter"
+    ],
+    veg_leek: [
+      "autumn",
+      "winter"
+    ],
+    veg_pumpkin: [
+      "autumn",
+      "winter"
+    ],
+    veg_beet: [
+      "autumn",
+      "winter"
+    ],
+    veg_brussels: [
+      "autumn",
+      "winter"
+    ],
+    fruit_strawberry: [
+      "spring",
+      "summer"
+    ],
+    fruit_raspberry: [
+      "summer"
+    ],
+    fruit_blueberry: [
+      "summer"
+    ],
+    fruit_peach: [
+      "summer"
+    ],
+    fruit_watermelon: [
+      "summer"
+    ],
+    fruit_melon: [
+      "summer"
+    ],
+    fruit_grapes: [
+      "autumn"
+    ],
+    fruit_apple: [
+      "autumn",
+      "winter",
+      "spring"
+    ],
+    fruit_pear: [
+      "autumn",
+      "winter"
+    ],
+    fruit_orange: [
+      "winter",
+      "spring"
+    ],
+    fruit_mandarin: [
+      "winter"
+    ],
+    fruit_grapefruit: [
+      "winter",
+      "spring"
+    ],
+    fruit_kiwi: [
+      "winter",
+      "spring"
+    ]
   },
   dishes: [
     {
       id: "m_chicken_grill",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430",
       parts: [
-        { group: "PRO", options: ["pro_chicken_breast"], range: [3, 7] },
-        { group: "STA", options: ["eng_bulgur", "eng_rice_brown", "eng_potato", "eng_quinoa", "eng_sweet_potato", "eng_buckwheat", "eng_couscous"], range: [0, 4], with: true },
-        { group: "VEG", options: [["veg_broccoli"], ["veg_zucchini", "veg_pepper"], ["veg_green_beans"], ["veg_cauliflower"], ["veg_brussels"]], range: [1, 2.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            7
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bulgur",
+            "eng_rice_brown",
+            "eng_potato",
+            "eng_quinoa",
+            "eng_sweet_potato",
+            "eng_buckwheat",
+            "eng_couscous"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_zucchini",
+              "veg_pepper"
+            ],
+            [
+              "veg_green_beans"
+            ],
+            [
+              "veg_cauliflower"
+            ],
+            [
+              "veg_brussels"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      fixed: [["cond_lemon_juice", 10]],
-      sides: ["salad", "bread"]
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_chicken_skewers",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0448\u0438\u0448\u0447\u0435\u0442\u0430",
       parts: [
-        { group: "PRO", options: ["pro_chicken_breast"], range: [3, 7] },
-        { group: "VEG", options: [["veg_pepper", "veg_zucchini"], ["veg_pepper", "veg_mushrooms"], ["veg_cherry_tomato", "veg_zucchini"]], range: [1, 2.5], with: true },
-        { group: "STA", options: ["eng_rice_brown", "eng_bulgur", "eng_potato", "eng_quinoa"], range: [0, 4], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            7
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_zucchini"
+            ],
+            [
+              "veg_pepper",
+              "veg_mushrooms"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_bulgur",
+            "eng_potato",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      sides: ["salad", "bread"]
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_chicken_thigh_oven",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0431\u0443\u0442\u0447\u0435 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
       parts: [
-        { group: "PRO", options: ["pro_chicken_thigh"], range: [3, 6] },
-        { group: "STA", options: ["eng_potato", "eng_sweet_potato"], range: [0, 4], with: true },
-        { group: "VEG", options: [["veg_carrot"], ["veg_pepper"], ["veg_zucchini"], ["veg_pumpkin"]], range: [0.5, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_thigh"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_sweet_potato"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot"
+            ],
+            [
+              "veg_pepper"
+            ],
+            [
+              "veg_zucchini"
+            ],
+            [
+              "veg_pumpkin"
+            ]
+          ],
+          range: [
+            0.5,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
       ],
-      sides: ["salad", "bread"]
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_chicken_rice",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435 \u0441 \u043E\u0440\u0438\u0437",
       parts: [
-        { group: "PRO", options: ["pro_chicken_thigh", "pro_chicken_breast"], range: [3, 6] },
-        { group: "STA", options: ["eng_rice", "eng_rice_brown"], range: [1.5, 4] },
-        { group: "VEG", options: [["veg_carrot", "veg_pepper"]], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_thigh",
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 30]],
-      sides: ["salad", "yogurt"]
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ]
     },
     {
       id: "m_chicken_mushrooms",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0441 \u0433\u044A\u0431\u0438",
       parts: [
-        { group: "PRO", options: ["pro_chicken_breast"], range: [3, 6] },
-        { group: "VEG", options: [["veg_mushrooms"], ["veg_oyster_mushroom"]], range: [1, 2] },
-        { group: "STA", options: ["eng_buckwheat", "eng_rice_brown", "eng_potato", "eng_pasta"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_mushrooms"
+            ],
+            [
+              "veg_oyster_mushroom"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_buckwheat",
+            "eng_rice_brown",
+            "eng_potato",
+            "eng_pasta"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20]],
-      sides: ["salad", "bread"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_chicken_stew",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u044F\u0445\u043D\u0438\u044F",
       parts: [
-        { group: "PRO", options: ["pro_chicken_breast", "pro_chicken_thigh"], range: [3, 6] },
-        { group: "STA", options: ["eng_potato"], range: [1, 3.5], with: true },
-        { group: "VEG", options: [["veg_carrot", "veg_pepper"], ["veg_carrot", "veg_green_beans"]], range: [1, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast",
+            "pro_chicken_thigh"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            1,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_pepper"
+            ],
+            [
+              "veg_carrot",
+              "veg_green_beans"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 30], ["cond_tomato_paste", 15]],
-      sides: ["salad", "bread"]
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_chicken_soup",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0441\u0443\u043F\u0430",
       parts: [
-        { group: "PRO", options: ["pro_chicken_breast"], range: [2, 4.5] },
-        { group: "VEG", options: [["veg_carrot", "veg_celery"], ["veg_carrot", "veg_zucchini"]], range: [1, 2] },
-        { group: "STA", options: ["eng_rice", "eng_potato", "eng_pasta"], range: [0, 2] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_celery"
+            ],
+            [
+              "veg_carrot",
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_potato",
+            "eng_pasta"
+          ],
+          range: [
+            0,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["cond_lemon_juice", 10]],
-      sides: ["bread", "salad", "cheese"]
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad",
+        "cheese"
+      ]
     },
     {
       id: "m_turkey_veg",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0443\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435 \u0441\u044A\u0441 \u0437\u0430\u0434\u0443\u0448\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
       parts: [
-        { group: "PRO", options: ["pro_turkey"], range: [3, 7] },
-        { group: "VEG", options: [["veg_zucchini", "veg_carrot"], ["veg_broccoli", "veg_cauliflower"], ["veg_green_beans", "veg_pepper"], ["veg_brussels", "veg_carrot"]], range: [1.5, 3] },
-        { group: "STA", options: ["eng_quinoa", "eng_rice_brown", "eng_potato", "eng_sweet_potato", "eng_millet"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "PRO",
+          options: [
+            "pro_turkey"
+          ],
+          range: [
+            3,
+            7
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_zucchini",
+              "veg_carrot"
+            ],
+            [
+              "veg_broccoli",
+              "veg_cauliflower"
+            ],
+            [
+              "veg_green_beans",
+              "veg_pepper"
+            ],
+            [
+              "veg_brussels",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_quinoa",
+            "eng_rice_brown",
+            "eng_potato",
+            "eng_sweet_potato",
+            "eng_millet"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      sides: ["salad", "bread"]
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_chicken_salad",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435",
       parts: [
-        { group: "PRO", options: ["pro_chicken_breast"], range: [2.5, 5] },
-        { group: "VEG", options: [["veg_lettuce", "veg_cucumber", "veg_cherry_tomato"], ["veg_arugula", "veg_cherry_tomato"], ["veg_lettuce", "veg_pepper", "veg_cucumber"]], range: [1.5, 3], with: true },
-        { group: "FAT", options: ["fat_oil", "fat_avocado", "fat_olives"], range: [0.5, 3] },
-        { group: "STA", options: ["eng_corn", "eng_quinoa"], range: [0, 2], with: true }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_lettuce",
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_arugula",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_lettuce",
+              "veg_pepper",
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil",
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_corn",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        }
       ],
-      sides: ["bread"]
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "m_chicken_wrap",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u0422\u043E\u0440\u0442\u0438\u043B\u0430 \u0441 \u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
       parts: [
-        { group: "STA", options: ["eng_tortilla"], range: [1, 3] },
-        { group: "PRO", options: ["pro_chicken_breast"], range: [2, 4.5] },
-        { group: "VEG", options: [["veg_lettuce", "veg_tomato", "veg_cucumber"], ["veg_pepper", "veg_lettuce"]], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_avocado"], range: [0, 1.5] }
+        {
+          group: "STA",
+          options: [
+            "eng_tortilla"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_lettuce",
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_pepper",
+              "veg_lettuce"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
       ],
-      fixed: [["dairy_yogurt", 30]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "dairy_yogurt",
+          30
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_chicken_curry",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u043A\u044A\u0440\u0438",
       parts: [
-        { group: "PRO", options: ["pro_chicken_breast"], range: [3, 6] },
-        { group: "VEG", options: [["veg_pepper", "veg_zucchini"], ["veg_cauliflower", "veg_spinach"]], range: [1, 2], with: true },
-        { group: "STA", options: ["eng_rice", "eng_rice_brown"], range: [0, 4], with: true },
-        { group: "FAT", options: ["cond_coconut_milk"], range: [1, 3] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_zucchini"
+            ],
+            [
+              "veg_cauliflower",
+              "veg_spinach"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "cond_coconut_milk"
+          ],
+          range: [
+            1,
+            3
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["cond_turmeric", 2], ["cond_ginger", 3]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_turmeric",
+          2
+        ],
+        [
+          "cond_ginger",
+          3
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_chicken_bulgur",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435 \u0441 \u0431\u0443\u043B\u0433\u0443\u0440 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
       parts: [
-        { group: "PRO", options: ["pro_chicken_breast", "pro_chicken_thigh"], range: [3, 6] },
-        { group: "STA", options: ["eng_bulgur"], range: [1.5, 4] },
-        { group: "VEG", options: [["veg_pepper", "veg_tomato"], ["veg_zucchini", "veg_carrot"]], range: [1, 2] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast",
+            "pro_chicken_thigh"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bulgur"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ],
+            [
+              "veg_zucchini",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      sides: ["salad", "yogurt"]
+      sides: [
+        "salad",
+        "yogurt"
+      ]
     },
     {
       id: "m_meatballs",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u041A\u044E\u0444\u0442\u0435\u0442\u0430 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430",
       parts: [
-        { group: "PRO", options: ["pro_ground_meat"], range: [2.5, 5] },
-        { group: "STA", options: ["eng_potato", "eng_bulgur", "eng_rice"], range: [0, 3.5], with: true },
-        { group: "VEG", options: [["veg_tomato", "veg_cucumber"], ["veg_cabbage", "veg_carrot"], ["veg_pepper"]], range: [1, 2.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_bulgur",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ],
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["veg_onion", 15]],
-      sides: ["bread", "salad"]
+      fixed: [
+        [
+          "veg_onion",
+          15
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ]
     },
     {
       id: "m_beef_stew",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u0417\u0430\u0434\u0443\u0448\u0435\u043D\u043E \u0442\u0435\u043B\u0435\u0448\u043A\u043E",
       parts: [
-        { group: "PRO", options: ["pro_beef_lean"], range: [3, 6] },
-        { group: "VEG", options: [["veg_carrot", "veg_pepper"], ["veg_green_beans", "veg_carrot"], ["veg_cabbage", "veg_carrot"]], range: [1, 2.5], with: true },
-        { group: "STA", options: ["eng_potato", "eng_rice", "eng_bulgur"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_beef_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_pepper"
+            ],
+            [
+              "veg_green_beans",
+              "veg_carrot"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_rice",
+            "eng_bulgur"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 30], ["cond_tomato_paste", 15]],
-      sides: ["salad", "bread"]
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_beef_steak",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u0422\u0435\u043B\u0435\u0448\u043A\u0438 \u0441\u0442\u0435\u043A",
       parts: [
-        { group: "PRO", options: ["pro_beef_lean"], range: [3, 6] },
-        { group: "VEG", options: [["veg_asparagus"], ["veg_broccoli"], ["veg_green_beans"], ["veg_zucchini", "veg_pepper"], ["veg_mushrooms"]], range: [1, 2.5], with: true },
-        { group: "STA", options: ["eng_sweet_potato", "eng_potato", "eng_quinoa"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_beef_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_asparagus"
+            ],
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_green_beans"
+            ],
+            [
+              "veg_zucchini",
+              "veg_pepper"
+            ],
+            [
+              "veg_mushrooms"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_sweet_potato",
+            "eng_potato",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      sides: ["salad", "bread"]
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_beef_skewers",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u0422\u0435\u043B\u0435\u0448\u043A\u0438 \u0448\u0438\u0448\u0447\u0435\u0442\u0430",
       parts: [
-        { group: "PRO", options: ["pro_beef_lean"], range: [3, 6] },
-        { group: "VEG", options: [["veg_pepper", "veg_cherry_tomato"], ["veg_pepper", "veg_zucchini"]], range: [1, 2], with: true },
-        { group: "STA", options: ["eng_bulgur", "eng_rice", "eng_potato"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_beef_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_pepper",
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bulgur",
+            "eng_rice",
+            "eng_potato"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      sides: ["salad", "bread"]
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_guvech_beef",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u0413\u044E\u0432\u0435\u0447 \u0441 \u0442\u0435\u043B\u0435\u0448\u043A\u043E",
       parts: [
-        { group: "PRO", options: ["pro_beef_lean"], range: [2.5, 5] },
-        { group: "VEG", options: [["veg_eggplant", "veg_pepper", "veg_tomato"], ["veg_zucchini", "veg_pepper", "veg_tomato"], ["veg_green_beans", "veg_pepper", "veg_tomato"]], range: [1.5, 3] },
-        { group: "STA", options: ["eng_potato"], range: [0, 2.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_beef_lean"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_eggplant",
+              "veg_pepper",
+              "veg_tomato"
+            ],
+            [
+              "veg_zucchini",
+              "veg_pepper",
+              "veg_tomato"
+            ],
+            [
+              "veg_green_beans",
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20]],
-      sides: ["bread", "salad"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ]
     },
     {
       id: "m_pork_cabbage",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435",
       parts: [
-        { group: "PRO", options: ["pro_pork_lean"], range: [3, 6] },
-        { group: "VEG", options: [["veg_cabbage"]], range: [1.5, 3] },
-        { group: "STA", options: ["eng_potato"], range: [0, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_pork_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cabbage"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["cond_tomato_paste", 10]],
-      sides: ["bread"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_tomato_paste",
+          10
+        ]
+      ],
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "m_pork_rice",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u043E\u0440\u0438\u0437",
       parts: [
-        { group: "PRO", options: ["pro_pork_lean"], range: [3, 6] },
-        { group: "STA", options: ["eng_rice", "eng_rice_brown"], range: [1.5, 4] },
-        { group: "VEG", options: [["veg_pepper", "veg_carrot"]], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_pork_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_kavarma",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u041A\u0430\u0432\u044A\u0440\u043C\u0430",
       parts: [
-        { group: "PRO", options: ["pro_pork_lean", "pro_chicken_breast"], range: [3, 6] },
-        { group: "VEG", options: [["veg_pepper", "veg_mushrooms"], ["veg_pepper", "veg_tomato"]], range: [1, 2.5] },
-        { group: "STA", options: ["eng_potato", "eng_rice"], range: [0, 2.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_pork_lean",
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_mushrooms"
+            ],
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 30]],
-      sides: ["bread", "salad"]
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ]
     },
     {
       id: "m_pork_steak",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0431\u043E\u043D \u0444\u0438\u043B\u0435 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430",
       parts: [
-        { group: "PRO", options: ["pro_pork_lean"], range: [3, 6] },
-        { group: "VEG", options: [["veg_green_beans"], ["veg_pepper"], ["veg_cabbage", "veg_carrot"], ["veg_brussels"]], range: [1, 2.5], with: true },
-        { group: "STA", options: ["eng_potato", "eng_sweet_potato"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_pork_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_green_beans"
+            ],
+            [
+              "veg_pepper"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ],
+            [
+              "veg_brussels"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_sweet_potato"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      sides: ["salad", "bread"]
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_moussaka",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u041C\u0443\u0441\u0430\u043A\u0430",
       parts: [
-        { group: "PRO", options: ["pro_ground_meat"], range: [2, 4.5] },
-        { group: "STA", options: ["eng_potato"], range: [2, 4] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["dairy_yogurt", 50], ["pro_eggs", 25]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "dairy_yogurt",
+          50
+        ],
+        [
+          "pro_eggs",
+          25
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_stuffed_peppers_meat",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u041F\u044A\u043B\u043D\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438 \u0441 \u043A\u0430\u0439\u043C\u0430 \u0438 \u043E\u0440\u0438\u0437",
       parts: [
-        { group: "VEG", options: [["veg_pepper"]], range: [1.5, 3] },
-        { group: "PRO", options: ["pro_ground_meat"], range: [2, 4.5] },
-        { group: "STA", options: ["eng_rice"], range: [0.5, 2.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice"
+          ],
+          range: [
+            0.5,
+            2.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["cond_tomato_paste", 15]],
-      sides: ["yogurt", "bread"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      sides: [
+        "yogurt",
+        "bread"
+      ]
     },
     {
       id: "m_sarmi",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u0421\u0430\u0440\u043C\u0438 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435",
       parts: [
-        { group: "VEG", options: [["veg_cabbage"]], range: [1, 2.5] },
-        { group: "PRO", options: ["pro_ground_meat"], range: [2, 4.5] },
-        { group: "STA", options: ["eng_rice"], range: [0.5, 2.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cabbage"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice"
+          ],
+          range: [
+            0.5,
+            2.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20]],
-      sides: ["yogurt", "bread"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [
+        "yogurt",
+        "bread"
+      ]
     },
     {
       id: "m_bolognese",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u041F\u0430\u0441\u0442\u0430 \u0431\u043E\u043B\u043E\u043D\u0435\u0437\u0435",
       parts: [
-        { group: "STA", options: ["eng_pasta"], range: [2, 4] },
-        { group: "PRO", options: ["pro_ground_meat", "pro_beef_lean"], range: [2, 4.5] },
-        { group: "VEG", options: [["veg_tomato", "veg_carrot"]], range: [1, 2] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_pasta"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat",
+            "pro_beef_lean"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["cond_tomato_paste", 20], ["veg_onion", 20], ["dairy_parmesan", 10]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "dairy_parmesan",
+          10
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_lamb_oven",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "red",
       name: "\u0410\u0433\u043D\u0435\u0448\u043A\u043E \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
       parts: [
-        { group: "PRO", options: ["pro_lamb"], range: [2.5, 5] },
-        { group: "STA", options: ["eng_potato"], range: [0, 3], with: true },
-        { group: "VEG", options: [["veg_spinach"], ["veg_green_beans"], ["veg_lettuce", "veg_cucumber"]], range: [1, 2], with: true }
+        {
+          group: "PRO",
+          options: [
+            "pro_lamb"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_green_beans"
+            ],
+            [
+              "veg_lettuce",
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        }
       ],
-      seasonsOnly: ["spring"],
-      sides: ["salad", "bread"]
+      seasonsOnly: [
+        "spring"
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_fish_oven",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "fish",
       name: "{PRO} \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
       parts: [
-        { group: "PRO", options: ["pro_salmon", "pro_trout", "pro_mackerel", "pro_sea_bass", "pro_hake", "pro_cod"], range: [3, 6.5] },
-        { group: "STA", options: ["eng_potato", "eng_sweet_potato", "eng_rice_brown", "eng_quinoa", "eng_bulgur"], range: [0, 4], with: true },
-        { group: "VEG", options: [["veg_broccoli"], ["veg_spinach"], ["veg_zucchini"], ["veg_green_beans"], ["veg_asparagus"], ["veg_cauliflower"]], range: [1, 2.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_salmon",
+            "pro_trout",
+            "pro_mackerel",
+            "pro_sea_bass",
+            "pro_hake",
+            "pro_cod"
+          ],
+          range: [
+            3,
+            6.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_sweet_potato",
+            "eng_rice_brown",
+            "eng_quinoa",
+            "eng_bulgur"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_zucchini"
+            ],
+            [
+              "veg_green_beans"
+            ],
+            [
+              "veg_asparagus"
+            ],
+            [
+              "veg_cauliflower"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
       ],
-      fixed: [["cond_lemon_juice", 10]],
-      sides: ["salad", "bread"]
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_fish_grill",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "fish",
       name: "{PRO} \u043D\u0430 \u0441\u043A\u0430\u0440\u0430",
       parts: [
-        { group: "PRO", options: ["pro_sea_bass", "pro_trout", "pro_mackerel", "pro_salmon", "pro_tilapia"], range: [3, 6.5] },
-        { group: "VEG", options: [["veg_zucchini", "veg_pepper"], ["veg_eggplant", "veg_pepper"], ["veg_cherry_tomato", "veg_arugula"]], range: [1, 2.5], with: true },
-        { group: "STA", options: ["eng_potato", "eng_rice", "eng_bulgur"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_sea_bass",
+            "pro_trout",
+            "pro_mackerel",
+            "pro_salmon",
+            "pro_tilapia"
+          ],
+          range: [
+            3,
+            6.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_zucchini",
+              "veg_pepper"
+            ],
+            [
+              "veg_eggplant",
+              "veg_pepper"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_arugula"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_rice",
+            "eng_bulgur"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
       ],
-      fixed: [["cond_lemon_juice", 10]],
-      sides: ["salad", "bread"]
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_fish_plakia",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "fish",
       name: "\u0420\u0438\u0431\u0430 \u043F\u043B\u0430\u043A\u0438\u044F",
       parts: [
-        { group: "PRO", options: ["pro_hake", "pro_cod", "pro_sea_bass", "pro_tilapia"], range: [3, 6] },
-        { group: "VEG", options: [["veg_tomato", "veg_pepper"]], range: [1, 2] },
-        { group: "STA", options: ["eng_potato"], range: [0, 3], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "PRO",
+          options: [
+            "pro_hake",
+            "pro_cod",
+            "pro_sea_bass",
+            "pro_tilapia"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      fixed: [["veg_onion", 30], ["cond_tomato_paste", 10]],
-      sides: ["bread", "salad"]
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "cond_tomato_paste",
+          10
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ]
     },
     {
       id: "m_fish_soup",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "fish",
       name: "\u0420\u0438\u0431\u0435\u043D\u0430 \u0447\u043E\u0440\u0431\u0430",
       parts: [
-        { group: "PRO", options: ["pro_hake", "pro_cod", "pro_tilapia"], range: [2, 4.5] },
-        { group: "VEG", options: [["veg_carrot", "veg_celery", "veg_pepper"]], range: [1, 2] },
-        { group: "STA", options: ["eng_potato", "eng_rice"], range: [0, 2] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_hake",
+            "pro_cod",
+            "pro_tilapia"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_celery",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["cond_lemon_juice", 10]],
-      sides: ["bread", "salad"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ]
     },
     {
       id: "m_tuna_salad",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "fish",
       name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
       parts: [
-        { group: "PRO", options: ["pro_tuna"], range: [2, 4.5] },
-        { group: "VEG", options: [["veg_lettuce", "veg_cucumber", "veg_cherry_tomato"], ["veg_arugula", "veg_cherry_tomato", "veg_cucumber"]], range: [1.5, 3] },
-        { group: "PRO", options: ["pro_eggs"], range: [0, 2], with: true },
-        { group: "STA", options: ["eng_corn", "eng_potato"], range: [0, 2], with: true },
-        { group: "FAT", options: ["fat_oil", "fat_olives", "fat_avocado"], range: [0.5, 3] }
+        {
+          group: "PRO",
+          options: [
+            "pro_tuna"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_lettuce",
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_arugula",
+              "veg_cherry_tomato",
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_corn",
+            "eng_potato"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil",
+            "fat_olives",
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            3
+          ]
+        }
       ],
-      sides: ["bread"]
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "m_tuna_beans",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "fish",
       name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D \u0438 \u0431\u044F\u043B \u0431\u043E\u0431",
       parts: [
-        { group: "PRO", options: ["pro_tuna"], range: [1.5, 4] },
-        { group: "LEG", options: ["leg_white_beans"], range: [1, 2.5] },
-        { group: "VEG", options: [["veg_arugula", "veg_cherry_tomato"], ["veg_lettuce", "veg_cucumber"], ["veg_pepper", "veg_cucumber"]], range: [1, 2] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "PRO",
+          options: [
+            "pro_tuna"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_white_beans"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_arugula",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_lettuce",
+              "veg_cucumber"
+            ],
+            [
+              "veg_pepper",
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      sides: ["bread"]
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "m_salmon_bowl",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "fish",
       name: "\u0411\u043E\u0443\u043B \u0441\u044A\u0441 \u0441\u044C\u043E\u043C\u0433\u0430",
       parts: [
-        { group: "PRO", options: ["pro_salmon"], range: [2, 5] },
-        { group: "STA", options: ["eng_quinoa", "eng_rice_brown"], range: [1, 3], with: true },
-        { group: "VEG", options: [["veg_cucumber", "veg_cherry_tomato"], ["veg_spinach", "veg_cucumber"], ["veg_cabbage", "veg_carrot"]], range: [1, 2], with: true },
-        { group: "FAT", options: ["fat_avocado"], range: [0, 2] }
+        {
+          group: "PRO",
+          options: [
+            "pro_salmon"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_quinoa",
+            "eng_rice_brown"
+          ],
+          range: [
+            1,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_spinach",
+              "veg_cucumber"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            2
+          ]
+        }
       ],
-      sides: ["salad"]
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_shrimp_pasta",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "fish",
       name: "\u041F\u0430\u0441\u0442\u0430 \u0441\u044A\u0441 \u0441\u043A\u0430\u0440\u0438\u0434\u0438",
       parts: [
-        { group: "STA", options: ["eng_pasta"], range: [2, 4] },
-        { group: "PRO", options: ["pro_shrimp"], range: [2, 4.5] },
-        { group: "VEG", options: [["veg_cherry_tomato", "veg_spinach"], ["veg_zucchini", "veg_cherry_tomato"]], range: [1, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "STA",
+          options: [
+            "eng_pasta"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_shrimp"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cherry_tomato",
+              "veg_spinach"
+            ],
+            [
+              "veg_zucchini",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      fixed: [["veg_garlic", 5]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_shrimp_veg",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "fish",
       name: "\u0421\u043A\u0430\u0440\u0438\u0434\u0438 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
       parts: [
-        { group: "PRO", options: ["pro_shrimp"], range: [3, 6] },
-        { group: "VEG", options: [["veg_zucchini", "veg_pepper"], ["veg_broccoli", "veg_pepper"], ["veg_asparagus", "veg_cherry_tomato"]], range: [1.5, 3], with: true },
-        { group: "STA", options: ["eng_rice", "eng_quinoa"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "PRO",
+          options: [
+            "pro_shrimp"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_zucchini",
+              "veg_pepper"
+            ],
+            [
+              "veg_broccoli",
+              "veg_pepper"
+            ],
+            [
+              "veg_asparagus",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      fixed: [["veg_garlic", 5]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_bean_stew",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "legume",
       name: "\u0411\u043E\u0431 \u044F\u0445\u043D\u0438\u044F",
       parts: [
-        { group: "LEG", options: ["leg_white_beans"], range: [2, 4.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "LEG",
+          options: [
+            "leg_white_beans"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      fixed: [["veg_onion", 30], ["veg_carrot", 40], ["veg_pepper", 40], ["cond_tomato_paste", 15]],
-      sides: ["bread", "salad", "cheese"]
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "veg_carrot",
+          40
+        ],
+        [
+          "veg_pepper",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad",
+        "cheese"
+      ]
     },
     {
       id: "m_lentil_stew",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "legume",
       name: "\u041B\u0435\u0449\u0430 \u044F\u0445\u043D\u0438\u044F",
       parts: [
-        { group: "LEG", options: ["leg_lentils"], range: [2, 4.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "LEG",
+          options: [
+            "leg_lentils"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      fixed: [["veg_onion", 30], ["veg_carrot", 40], ["cond_tomato_paste", 10], ["veg_garlic", 5]],
-      sides: ["bread", "salad", "cheese"]
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "veg_carrot",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          10
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad",
+        "cheese"
+      ]
     },
     {
       id: "m_lentil_soup",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "legume",
       name: "\u041A\u0440\u0435\u043C \u0441\u0443\u043F\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430",
       parts: [
-        { group: "LEG", options: ["leg_lentils"], range: [1.5, 3.5] },
-        { group: "VEG", options: [["veg_carrot"], ["veg_pumpkin"]], range: [0.5, 1.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "LEG",
+          options: [
+            "leg_lentils"
+          ],
+          range: [
+            1.5,
+            3.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot"
+            ],
+            [
+              "veg_pumpkin"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20]],
-      sides: ["bread", "salad", "yogurt"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad",
+        "yogurt"
+      ]
     },
     {
       id: "m_chickpea_spinach",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "legume",
       name: "\u041D\u0430\u0445\u0443\u0442 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A",
       parts: [
-        { group: "LEG", options: ["leg_chickpeas"], range: [2, 4] },
-        { group: "VEG", options: [["veg_spinach"]], range: [1, 2] },
-        { group: "STA", options: ["eng_rice_brown", "eng_bulgur"], range: [0, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "LEG",
+          options: [
+            "leg_chickpeas"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_bulgur"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["cond_tomato_paste", 10]],
-      sides: ["bread", "yogurt"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_tomato_paste",
+          10
+        ]
+      ],
+      sides: [
+        "bread",
+        "yogurt"
+      ]
     },
     {
       id: "m_chickpea_bowl",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "legume",
       name: "\u0411\u043E\u0443\u043B \u0441 \u043D\u0430\u0445\u0443\u0442",
       parts: [
-        { group: "LEG", options: ["leg_chickpeas"], range: [1.5, 3.5] },
-        { group: "STA", options: ["eng_bulgur", "eng_quinoa"], range: [0, 2.5], with: true },
-        { group: "VEG", options: [["veg_cucumber", "veg_cherry_tomato"], ["veg_pepper", "veg_cucumber"], ["veg_spinach", "veg_carrot"]], range: [1, 2], with: true },
-        { group: "FAT", options: ["fat_tahini", "fat_oil", "fat_avocado"], range: [0.5, 2.5] }
+        {
+          group: "LEG",
+          options: [
+            "leg_chickpeas"
+          ],
+          range: [
+            1.5,
+            3.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bulgur",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_pepper",
+              "veg_cucumber"
+            ],
+            [
+              "veg_spinach",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_tahini",
+            "fat_oil",
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            2.5
+          ]
+        }
       ],
-      sides: ["salad"]
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_bean_salad",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "legume",
       name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0431\u043E\u0431",
       parts: [
-        { group: "LEG", options: ["leg_white_beans", "leg_black_beans"], range: [1.5, 3.5] },
-        { group: "VEG", options: [["veg_pepper", "veg_cherry_tomato", "veg_cucumber"], ["veg_lettuce", "veg_pepper"]], range: [1, 2] },
-        { group: "PRO", options: ["pro_eggs"], range: [0, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "LEG",
+          options: [
+            "leg_white_beans",
+            "leg_black_beans"
+          ],
+          range: [
+            1.5,
+            3.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_cherry_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_lettuce",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      fixed: [["veg_onion", 15]],
-      sides: ["bread"]
+      fixed: [
+        [
+          "veg_onion",
+          15
+        ]
+      ],
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "m_lentil_rice",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "legume",
       name: "\u041B\u0435\u0449\u0430 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043B\u0443\u043A",
       parts: [
-        { group: "LEG", options: ["leg_lentils"], range: [1.5, 3] },
-        { group: "STA", options: ["eng_rice_brown", "eng_rice"], range: [0.5, 2.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 2] }
+        {
+          group: "LEG",
+          options: [
+            "leg_lentils"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice"
+          ],
+          range: [
+            0.5,
+            2.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      fixed: [["veg_onion", 40]],
-      sides: ["salad", "yogurt"]
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ]
     },
     {
       id: "m_chicken_peas",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "poultry",
       name: "\u041F\u0438\u043B\u0435 \u0441 \u0433\u0440\u0430\u0445",
       parts: [
-        { group: "PRO", options: ["pro_chicken_breast", "pro_chicken_thigh"], range: [2.5, 5.5] },
-        { group: "STA", options: ["leg_peas"], range: [1.5, 3.5] },
-        { group: "VEG", options: [["veg_carrot"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast",
+            "pro_chicken_thigh"
+          ],
+          range: [
+            2.5,
+            5.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "leg_peas"
+          ],
+          range: [
+            1.5,
+            3.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["cond_tomato_paste", 10]],
-      sides: ["salad", "bread"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_tomato_paste",
+          10
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
     },
     {
       id: "m_lentil_pasta",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "legume",
       name: "\u041F\u0430\u0441\u0442\u0430 \u043E\u0442 \u043B\u0435\u0449\u0430 \u0441 \u0434\u043E\u043C\u0430\u0442\u0435\u043D \u0441\u043E\u0441",
       parts: [
-        { group: "STA", options: ["eng_lentil_pasta"], range: [2, 4] },
-        { group: "VEG", options: [["veg_tomato", "veg_zucchini"], ["veg_spinach", "veg_cherry_tomato"]], range: [1, 2], with: true },
-        { group: "PRO", options: ["dairy_parmesan"], range: [0, 1] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "STA",
+          options: [
+            "eng_lentil_pasta"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_zucchini"
+            ],
+            [
+              "veg_spinach",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_parmesan"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["cond_tomato_paste", 15]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_omelet",
-      meals: ["main", "breakfast"],
+      meals: [
+        "main",
+        "breakfast"
+      ],
       category: "veggie",
       breakfastCategory: "eggs",
       name: "\u041E\u043C\u043B\u0435\u0442",
       parts: [
-        { group: "PRO", options: ["pro_eggs"], range: [2, 4] },
-        { group: "VEG", options: [["veg_spinach"], ["veg_pepper", "veg_tomato"], ["veg_zucchini"], ["veg_mushrooms"]], range: [0.5, 2], with: true },
-        { group: "PRO", options: ["dairy_cheese", "dairy_kashkaval"], range: [0, 1.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ],
+            [
+              "veg_zucchini"
+            ],
+            [
+              "veg_mushrooms"
+            ]
+          ],
+          range: [
+            0.5,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "dairy_kashkaval"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      sides: ["bread", "salad", "fruit"]
+      sides: [
+        "bread",
+        "salad",
+        "fruit"
+      ]
     },
     {
       id: "m_mishmash",
-      meals: ["main", "breakfast"],
+      meals: [
+        "main",
+        "breakfast"
+      ],
       category: "veggie",
       breakfastCategory: "eggs",
       name: "\u041C\u0438\u0448\u043C\u0430\u0448",
       parts: [
-        { group: "VEG", options: [["veg_pepper", "veg_tomato"]], range: [1, 2.5] },
-        { group: "PRO", options: ["pro_eggs"], range: [1.5, 3] },
-        { group: "PRO", options: ["dairy_cheese"], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20]],
-      seasonsOnly: ["summer", "autumn"],
-      sides: ["bread"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      seasonsOnly: [
+        "summer",
+        "autumn"
+      ],
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "m_zucchini_bake",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u0422\u0438\u043A\u0432\u0438\u0447\u043A\u0438 \u0441 \u044F\u0439\u0446\u0430 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
       parts: [
-        { group: "VEG", options: [["veg_zucchini"]], range: [1.5, 3] },
-        { group: "PRO", options: ["pro_eggs"], range: [1, 3] },
-        { group: "PRO", options: ["dairy_cheese"], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      sides: ["bread", "salad"]
+      sides: [
+        "bread",
+        "salad"
+      ]
     },
     {
       id: "m_stuffed_peppers_cheese",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u041F\u044A\u043B\u043D\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u044F\u0439\u0446\u0430 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
       parts: [
-        { group: "VEG", options: [["veg_pepper"]], range: [1, 2.5] },
-        { group: "PRO", options: ["dairy_cheese"], range: [1, 2] },
-        { group: "PRO", options: ["pro_eggs"], range: [1, 2] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      sides: ["bread", "salad"]
+      sides: [
+        "bread",
+        "salad"
+      ]
     },
     {
       id: "m_spinach_rice",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u0421\u043F\u0430\u043D\u0430\u043A \u0441 \u043E\u0440\u0438\u0437",
       parts: [
-        { group: "VEG", options: [["veg_spinach"]], range: [1.5, 3] },
-        { group: "STA", options: ["eng_rice", "eng_rice_brown"], range: [1, 3] },
-        { group: "PRO", options: ["pro_eggs"], range: [0, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20]],
-      sides: ["yogurt", "cheese"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [
+        "yogurt",
+        "cheese"
+      ]
     },
     {
       id: "m_green_bean_stew",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u042F\u0445\u043D\u0438\u044F \u043E\u0442 \u0437\u0435\u043B\u0435\u043D \u0444\u0430\u0441\u0443\u043B",
       parts: [
-        { group: "VEG", options: [["veg_green_beans", "veg_carrot"]], range: [1.5, 3] },
-        { group: "STA", options: ["eng_potato"], range: [0, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_green_beans",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["cond_tomato_paste", 15]],
-      sides: ["cheese", "bread", "yogurt"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      sides: [
+        "cheese",
+        "bread",
+        "yogurt"
+      ]
     },
     {
       id: "m_guvech_veg",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432 \u0433\u044E\u0432\u0435\u0447",
       parts: [
-        { group: "VEG", options: [["veg_eggplant", "veg_pepper", "veg_tomato"], ["veg_zucchini", "veg_pepper", "veg_tomato"], ["veg_green_beans", "veg_pepper", "veg_tomato"]], range: [1.5, 3] },
-        { group: "STA", options: ["eng_potato"], range: [0, 2], with: true },
-        { group: "PRO", options: ["dairy_cheese", "pro_eggs"], range: [0, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_eggplant",
+              "veg_pepper",
+              "veg_tomato"
+            ],
+            [
+              "veg_zucchini",
+              "veg_pepper",
+              "veg_tomato"
+            ],
+            [
+              "veg_green_beans",
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "pro_eggs"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20]],
-      sides: ["bread", "cheese"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [
+        "bread",
+        "cheese"
+      ]
     },
     {
       id: "m_stuffed_peppers_rice",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u041F\u043E\u0441\u0442\u043D\u0438 \u043F\u044A\u043B\u043D\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438 \u0441 \u043E\u0440\u0438\u0437",
       parts: [
-        { group: "VEG", options: [["veg_pepper"]], range: [1.5, 3] },
-        { group: "STA", options: ["eng_rice"], range: [1, 2.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["veg_carrot", 30], ["cond_tomato_paste", 10]],
-      sides: ["yogurt", "cheese"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "veg_carrot",
+          30
+        ],
+        [
+          "cond_tomato_paste",
+          10
+        ]
+      ],
+      sides: [
+        "yogurt",
+        "cheese"
+      ]
     },
     {
       id: "m_pasta_cheese",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u041F\u0430\u0441\u0442\u0430 \u0441 \u0434\u043E\u043C\u0430\u0442\u0435\u043D \u0441\u043E\u0441",
       parts: [
-        { group: "STA", options: ["eng_pasta"], range: [2, 4] },
-        { group: "VEG", options: [["veg_tomato", "veg_zucchini"], ["veg_cherry_tomato", "veg_spinach"]], range: [1, 2], with: true },
-        { group: "PRO", options: ["dairy_mozzarella", "dairy_cheese", "dairy_parmesan"], range: [0.5, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_pasta"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_zucchini"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_spinach"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_mozzarella",
+            "dairy_cheese",
+            "dairy_parmesan"
+          ],
+          range: [
+            0.5,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["cond_tomato_paste", 15]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_risotto",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u0420\u0438\u0437\u043E\u0442\u043E \u0441 \u0433\u044A\u0431\u0438",
       parts: [
-        { group: "STA", options: ["eng_rice"], range: [2, 4] },
-        { group: "VEG", options: [["veg_mushrooms"], ["veg_oyster_mushroom"]], range: [1, 2] },
-        { group: "PRO", options: ["dairy_parmesan"], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_oil", "fat_butter"], range: [0.5, 1.5] }
+        {
+          group: "STA",
+          options: [
+            "eng_rice"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_mushrooms"
+            ],
+            [
+              "veg_oyster_mushroom"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_parmesan"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil",
+            "fat_butter"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_cottage_veg",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
       parts: [
-        { group: "PRO", options: ["dairy_cottage", "dairy_cottage_low"], range: [2, 5] },
-        { group: "VEG", options: [["veg_cucumber", "veg_tomato"], ["veg_cucumber", "veg_pepper"], ["veg_cherry_tomato", "veg_arugula"]], range: [1, 2], with: true },
-        { group: "FAT", options: ["fat_oil", "fat_walnuts"], range: [0, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_tomato"
+            ],
+            [
+              "veg_cucumber",
+              "veg_pepper"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_arugula"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil",
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
       ],
-      sides: ["bread"]
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "m_shopska",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u0428\u043E\u043F\u0441\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
       parts: [
-        { group: "VEG", options: [["veg_tomato", "veg_cucumber", "veg_pepper"]], range: [1.5, 3] },
-        { group: "PRO", options: ["dairy_cheese"], range: [1, 2] },
-        { group: "PRO", options: ["pro_eggs"], range: [0, 2], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["veg_onion", 15]],
-      seasonsOnly: ["summer", "autumn"],
-      sides: ["bread"]
+      fixed: [
+        [
+          "veg_onion",
+          15
+        ]
+      ],
+      seasonsOnly: [
+        "summer",
+        "autumn"
+      ],
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "m_potato_cottage",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "veggie",
       name: "\u041F\u0435\u0447\u0435\u043D\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0441 \u0438\u0437\u0432\u0430\u0440\u0430",
       parts: [
-        { group: "STA", options: ["eng_potato", "eng_sweet_potato"], range: [1.5, 3.5] },
-        { group: "PRO", options: ["dairy_cottage", "dairy_cottage_low"], range: [2, 4] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_sweet_potato"
+          ],
+          range: [
+            1.5,
+            3.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      sides: ["salad"]
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_tofu_stirfry",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "plant",
       name: "\u0422\u043E\u0444\u0443 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
       parts: [
-        { group: "PRO", options: ["pro_tofu"], range: [2, 5] },
-        { group: "VEG", options: [["veg_broccoli", "veg_pepper"], ["veg_zucchini", "veg_carrot"], ["veg_cabbage", "veg_carrot"]], range: [1, 2.5], with: true },
-        { group: "STA", options: ["eng_rice_brown", "eng_quinoa", "eng_buckwheat"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_broccoli",
+              "veg_pepper"
+            ],
+            [
+              "veg_zucchini",
+              "veg_carrot"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_quinoa",
+            "eng_buckwheat"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["cond_soy", 10], ["cond_ginger", 3]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "cond_soy",
+          10
+        ],
+        [
+          "cond_ginger",
+          3
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_tofu_curry",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "plant",
       name: "\u0422\u043E\u0444\u0443 \u043A\u044A\u0440\u0438",
       parts: [
-        { group: "PRO", options: ["pro_tofu"], range: [2, 5] },
-        { group: "VEG", options: [["veg_spinach", "veg_cauliflower"], ["veg_pepper", "veg_zucchini"]], range: [1, 2], with: true },
-        { group: "STA", options: ["eng_rice", "eng_rice_brown"], range: [0, 3.5], with: true },
-        { group: "FAT", options: ["cond_coconut_milk"], range: [1, 3] }
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach",
+              "veg_cauliflower"
+            ],
+            [
+              "veg_pepper",
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            3.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "cond_coconut_milk"
+          ],
+          range: [
+            1,
+            3
+          ]
+        }
       ],
-      fixed: [["veg_onion", 20], ["cond_turmeric", 2], ["cond_ginger", 3]],
-      sides: ["salad"]
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_turmeric",
+          2
+        ],
+        [
+          "cond_ginger",
+          3
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_tempeh_bowl",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "plant",
       name: "\u0411\u043E\u0443\u043B \u0441 \u0442\u0435\u043C\u043F\u0435",
       parts: [
-        { group: "PRO", options: ["pro_tempeh"], range: [2, 4.5] },
-        { group: "STA", options: ["eng_quinoa", "eng_rice_brown", "eng_sweet_potato"], range: [0, 3], with: true },
-        { group: "VEG", options: [["veg_spinach", "veg_cucumber"], ["veg_broccoli"], ["veg_cabbage", "veg_carrot"]], range: [1, 2], with: true },
-        { group: "FAT", options: ["fat_tahini", "fat_avocado"], range: [0.5, 2] }
+        {
+          group: "PRO",
+          options: [
+            "pro_tempeh"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_quinoa",
+            "eng_rice_brown",
+            "eng_sweet_potato"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach",
+              "veg_cucumber"
+            ],
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_tahini",
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      sides: ["salad"]
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "m_edamame_bowl",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       category: "plant",
       name: "\u0411\u043E\u0443\u043B \u0441 \u0435\u0434\u0430\u043C\u0430\u043C\u0435",
       parts: [
-        { group: "PRO", options: ["leg_edamame"], range: [2, 4.5] },
-        { group: "STA", options: ["eng_quinoa", "eng_rice_brown"], range: [0, 3], with: true },
-        { group: "VEG", options: [["veg_cucumber", "veg_carrot"], ["veg_spinach", "veg_cherry_tomato"]], range: [1, 2], with: true },
-        { group: "FAT", options: ["fat_tahini", "fat_avocado"], range: [0.5, 2] }
+        {
+          group: "PRO",
+          options: [
+            "leg_edamame"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_quinoa",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_carrot"
+            ],
+            [
+              "veg_spinach",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_tahini",
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      sides: ["salad"]
+      sides: [
+        "salad"
+      ]
     },
     {
       id: "b_boiled_eggs",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "eggs",
       name: "\u0412\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430",
       parts: [
-        { group: "PRO", options: ["pro_eggs"], range: [1, 3] },
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [0, 3], with: true },
-        { group: "VEG", options: [["veg_tomato", "veg_cucumber"], ["veg_pepper", "veg_cucumber"], ["veg_cherry_tomato"]], range: [0.5, 1.5], with: true },
-        { group: "PRO", options: ["dairy_cheese"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_pepper",
+              "veg_cucumber"
+            ],
+            [
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      sides: ["fruit", "yogurt"]
+      sides: [
+        "fruit",
+        "yogurt"
+      ]
     },
     {
       id: "b_scrambled_eggs",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "eggs",
       name: "\u0411\u044A\u0440\u043A\u0430\u043D\u0438 \u044F\u0439\u0446\u0430",
       parts: [
-        { group: "PRO", options: ["pro_eggs"], range: [2, 3] },
-        { group: "VEG", options: [["veg_spinach"], ["veg_pepper"], ["veg_mushrooms"], ["veg_cherry_tomato"]], range: [0.5, 1.5], with: true },
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [0, 3], with: true },
-        { group: "FAT", options: ["fat_oil", "fat_butter"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            2,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_pepper"
+            ],
+            [
+              "veg_mushrooms"
+            ],
+            [
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      sides: ["fruit", "yogurt"]
+      sides: [
+        "fruit",
+        "yogurt"
+      ]
     },
     {
       id: "b_eggs_avocado_toast",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "eggs",
       name: "\u0422\u043E\u0441\u0442 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u044F\u0439\u0446\u0435",
       parts: [
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [1, 2.5] },
-        { group: "FAT", options: ["fat_avocado"], range: [1, 2] },
-        { group: "PRO", options: ["pro_eggs"], range: [1, 2] },
-        { group: "VEG", options: [["veg_cherry_tomato"], ["veg_arugula"]], range: [0, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_arugula"
+            ]
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      sides: ["fruit"]
+      sides: [
+        "fruit"
+      ]
     },
     {
       id: "b_panagyurishte",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "eggs",
       name: "\u042F\u0439\u0446\u0430 \u043F\u043E \u043F\u0430\u043D\u0430\u0433\u044E\u0440\u0441\u043A\u0438",
       parts: [
-        { group: "PRO", options: ["pro_eggs"], range: [2, 3] },
-        { group: "MLK", options: ["dairy_yogurt", "dairy_yogurt_2"], range: [0.5, 1] },
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [1, 2.5], with: true }
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            2,
+            3
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_yogurt_2"
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        }
       ],
-      fixed: [["veg_garlic", 3]],
-      sides: ["fruit"]
+      fixed: [
+        [
+          "veg_garlic",
+          3
+        ]
+      ],
+      sides: [
+        "fruit"
+      ]
     },
     {
       id: "b_eggs_keto",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "eggs",
       name: "\u042F\u0439\u0446\u0430 \u0441 {FAT} \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
       parts: [
-        { group: "PRO", options: ["pro_eggs"], range: [2, 4] },
-        { group: "FAT", options: ["fat_avocado", "fat_olives"], range: [0.5, 3] },
-        { group: "VEG", options: [["veg_cucumber", "veg_cherry_tomato"], ["veg_spinach"], ["veg_pepper"]], range: [0.5, 1.5] },
-        { group: "PRO", options: ["dairy_cheese", "dairy_kashkaval"], range: [0, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0.5,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "dairy_kashkaval"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "b_yogurt_oats",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "dairy",
       name: "{MLK} \u0441 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438",
       parts: [
-        { group: "MLK", options: ["dairy_yogurt", "dairy_yogurt_2", "dairy_greek"], range: [1, 1.5] },
-        { group: "STA", options: ["eng_oats"], range: [0.5, 2.5] },
-        { group: "FRU", options: [["fruit_banana"], ["fruit_apple"], ["fruit_blueberry"], ["fruit_strawberry"], ["fruit_raspberry"], ["fruit_peach"]], range: [0.5, 1], with: true },
-        { group: "FAT", options: ["fat_walnuts", "fat_almonds", "fat_chia", "fat_flax"], range: [0, 2], with: true }
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_yogurt_2",
+            "dairy_greek"
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            0.5,
+            2.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_raspberry"
+            ],
+            [
+              "fruit_peach"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds",
+            "fat_chia",
+            "fat_flax"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        }
       ],
       sides: []
     },
     {
       id: "b_skyr_bowl",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "dairy",
       name: "{MLK} \u0441 {FRU}",
       parts: [
-        { group: "MLK", options: ["dairy_skyr", "dairy_greek"], range: [1, 1.5] },
-        { group: "FRU", options: [["fruit_blueberry"], ["fruit_raspberry"], ["fruit_strawberry"], ["fruit_kiwi"], ["fruit_peach"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_walnuts", "fat_almonds", "fat_chia"], range: [0, 2], with: true },
-        { group: "STA", options: ["eng_oats"], range: [0, 1.5], with: true }
+        {
+          group: "MLK",
+          options: [
+            "dairy_skyr",
+            "dairy_greek"
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_raspberry"
+            ],
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_kiwi"
+            ],
+            [
+              "fruit_peach"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds",
+            "fat_chia"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          with: true
+        }
       ],
-      sides: ["bread"]
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "b_kefir_oats",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "dairy",
       name: "\u041A\u0435\u0444\u0438\u0440 \u0441 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438 \u0438 \u0441\u0435\u043C\u0435\u043D\u0430",
       parts: [
-        { group: "MLK", options: ["dairy_kefir"], range: [1, 1.5] },
-        { group: "STA", options: ["eng_oats"], range: [0.5, 2.5] },
-        { group: "FAT", options: ["fat_chia", "fat_flax"], range: [0.5, 1.5] },
-        { group: "FRU", options: [["fruit_apple"], ["fruit_banana"], ["fruit_blueberry"]], range: [0, 1], with: true }
+        {
+          group: "MLK",
+          options: [
+            "dairy_kefir"
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            0.5,
+            2.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_chia",
+            "fat_flax"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_blueberry"
+            ]
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        }
       ],
       sides: []
     },
     {
       id: "b_cottage_bowl",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "dairy",
       name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 {FRU} \u0438 {FAT}",
       parts: [
-        { group: "PRO", options: ["dairy_cottage", "dairy_cottage_low"], range: [1.5, 4] },
-        { group: "FRU", options: [["fruit_strawberry"], ["fruit_peach"], ["fruit_raspberry"], ["fruit_apple"], ["fruit_blueberry"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_walnuts", "fat_almonds"], range: [0, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_peach"
+            ],
+            [
+              "fruit_raspberry"
+            ],
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_blueberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
       ],
-      fixed: [["cond_cinnamon", 1]],
-      sides: ["bread"]
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: [
+        "bread"
+      ]
     },
     {
       id: "b_cottage_keto",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "dairy",
       name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 {FAT} \u0438 {VEG}",
       parts: [
-        { group: "PRO", options: ["dairy_cottage"], range: [2, 4] },
-        { group: "FAT", options: ["fat_avocado", "fat_walnuts"], range: [0.5, 2.5] },
-        { group: "VEG", options: [["veg_cucumber"], ["veg_cherry_tomato"]], range: [0.5, 1.5] }
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_walnuts"
+          ],
+          range: [
+            0.5,
+            2.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "b_porridge",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "porridge",
       name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 {MLK}",
       parts: [
-        { group: "STA", options: ["eng_oats"], range: [1, 3] },
-        { group: "MLK", options: ["dairy_milk_2", "dairy_milk", "dairy_soy_milk"], range: [0.5, 1.5] },
-        { group: "FRU", options: [["fruit_banana"], ["fruit_apple"], ["fruit_blueberry"], ["fruit_strawberry"]], range: [0.5, 1], with: true },
-        { group: "FAT", options: ["fat_walnuts", "fat_almonds", "fat_chia", "fat_peanut_butter"], range: [0, 2], with: true }
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_milk_2",
+            "dairy_milk",
+            "dairy_soy_milk"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_strawberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds",
+            "fat_chia",
+            "fat_peanut_butter"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        }
       ],
-      fixed: [["cond_cinnamon", 2]],
+      fixed: [
+        [
+          "cond_cinnamon",
+          2
+        ]
+      ],
       sides: []
     },
     {
       id: "b_porridge_plant",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "porridge",
       name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E",
       parts: [
-        { group: "STA", options: ["eng_oats"], range: [1, 3] },
-        { group: "FRU", options: [["fruit_banana"], ["fruit_apple"], ["fruit_blueberry"], ["fruit_raspberry"]], range: [0.5, 1], with: true },
-        { group: "FAT", options: ["fat_peanut_butter", "fat_almond_butter", "fat_walnuts", "fat_chia"], range: [0.5, 2], with: true }
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_raspberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_peanut_butter",
+            "fat_almond_butter",
+            "fat_walnuts",
+            "fat_chia"
+          ],
+          range: [
+            0.5,
+            2
+          ],
+          with: true
+        }
       ],
-      fixed: [["dairy_plant_milk", 200], ["cond_cinnamon", 2]],
+      fixed: [
+        [
+          "dairy_plant_milk",
+          200
+        ],
+        [
+          "cond_cinnamon",
+          2
+        ]
+      ],
       sides: []
     },
     {
       id: "b_buckwheat_milk",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "porridge",
       name: "\u0415\u043B\u0434\u0430 \u0441 {MLK}",
       parts: [
-        { group: "STA", options: ["eng_buckwheat"], range: [1, 3] },
-        { group: "MLK", options: ["dairy_milk_2", "dairy_soy_milk"], range: [0.5, 1] },
-        { group: "FRU", options: [["fruit_apple"], ["fruit_banana"], ["fruit_blueberry"]], range: [0.5, 1], with: true },
-        { group: "FAT", options: ["fat_walnuts"], range: [0, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_buckwheat"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_milk_2",
+            "dairy_soy_milk"
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_blueberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "b_chia_pudding",
-      meals: ["breakfast", "snack"],
+      meals: [
+        "breakfast",
+        "snack"
+      ],
       category: "porridge",
       name: "\u0427\u0438\u0430 \u043F\u0443\u0434\u0438\u043D\u0433 \u0441 {FRU}",
       parts: [
-        { group: "FAT", options: ["fat_chia"], range: [1, 3] },
-        { group: "MLK", options: ["dairy_milk_2", "dairy_soy_milk"], range: [0.5, 1.5] },
-        { group: "FRU", options: [["fruit_raspberry"], ["fruit_blueberry"], ["fruit_mango"], ["fruit_strawberry"]], range: [0.5, 1] }
+        {
+          group: "FAT",
+          options: [
+            "fat_chia"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_milk_2",
+            "dairy_soy_milk"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_raspberry"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_mango"
+            ],
+            [
+              "fruit_strawberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "b_popara",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "porridge",
       name: "\u041F\u043E\u043F\u0430\u0440\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
       parts: [
-        { group: "STA", options: ["eng_bread"], range: [1.5, 3] },
-        { group: "MLK", options: ["dairy_milk_2"], range: [0.5, 1] },
-        { group: "PRO", options: ["dairy_cheese"], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_butter"], range: [0, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_bread"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_milk_2"
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_butter"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      seasonsOnly: ["autumn", "winter"],
+      seasonsOnly: [
+        "autumn",
+        "winter"
+      ],
       sides: []
     },
     {
       id: "b_cottage_sandwich",
-      meals: ["breakfast", "snack"],
+      meals: [
+        "breakfast",
+        "snack"
+      ],
       category: "bread",
       name: "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441 \u0438\u0437\u0432\u0430\u0440\u0430",
       parts: [
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [1, 3] },
-        { group: "PRO", options: ["dairy_cottage", "dairy_cottage_low"], range: [1, 3] },
-        { group: "VEG", options: [["veg_tomato"], ["veg_cucumber"], ["veg_cherry_tomato", "veg_arugula"]], range: [0.5, 1.5], with: true }
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato"
+            ],
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_arugula"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        }
       ],
-      sides: ["fruit"]
+      sides: [
+        "fruit"
+      ]
     },
     {
       id: "b_cheese_bread",
-      meals: ["breakfast", "snack"],
+      meals: [
+        "breakfast",
+        "snack"
+      ],
       category: "bread",
       name: "\u0424\u0438\u043B\u0438\u044F \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
       parts: [
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [1, 3] },
-        { group: "PRO", options: ["dairy_cheese"], range: [0.5, 1.5] },
-        { group: "VEG", options: [["veg_tomato", "veg_cucumber"], ["veg_pepper"], ["veg_cucumber"]], range: [0.5, 1.5], with: true }
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_pepper"
+            ],
+            [
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        }
       ],
-      sides: ["fruit", "yogurt"]
+      sides: [
+        "fruit",
+        "yogurt"
+      ]
     },
     {
       id: "b_turkey_sandwich",
-      meals: ["breakfast", "snack"],
+      meals: [
+        "breakfast",
+        "snack"
+      ],
       category: "bread",
       name: "\u0421\u0430\u043D\u0434\u0432\u0438\u0447 \u0441 {PRO}",
       parts: [
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [1, 3] },
-        { group: "PRO", options: ["pro_turkey", "pro_chicken_breast"], range: [1, 3] },
-        { group: "VEG", options: [["veg_lettuce", "veg_tomato"], ["veg_cucumber", "veg_arugula"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_avocado"], range: [0, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_turkey",
+            "pro_chicken_breast"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_lettuce",
+              "veg_tomato"
+            ],
+            [
+              "veg_cucumber",
+              "veg_arugula"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      sides: ["fruit"]
+      sides: []
     },
     {
       id: "b_hummus_toast",
-      meals: ["breakfast", "snack"],
+      meals: [
+        "breakfast",
+        "snack"
+      ],
       category: "bread",
       name: "\u0424\u0438\u043B\u0438\u044F \u0441 \u0445\u0443\u043C\u0443\u0441 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
       parts: [
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [1, 3] },
-        { group: "LEG", options: ["leg_hummus"], range: [0.5, 1.5] },
-        { group: "VEG", options: [["veg_cucumber", "veg_cherry_tomato"], ["veg_pepper"]], range: [0.5, 1.5] }
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_hummus"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      sides: ["fruit"]
+      sides: [
+        "fruit"
+      ]
     },
     {
       id: "b_avocado_toast",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "bread",
       name: "\u0422\u043E\u0441\u0442 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
       parts: [
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [1, 3] },
-        { group: "FAT", options: ["fat_avocado"], range: [1, 2] },
-        { group: "VEG", options: [["veg_cherry_tomato"], ["veg_tomato"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_pumpkin_seeds"], range: [0, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_pumpkin_seeds"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      sides: ["fruit"]
+      sides: [
+        "fruit"
+      ]
     },
     {
       id: "b_peanut_toast",
-      meals: ["breakfast", "snack"],
+      meals: [
+        "breakfast",
+        "snack"
+      ],
       category: "bread",
       name: "\u0424\u0438\u043B\u0438\u044F \u0441 {FAT} \u0438 \u0431\u0430\u043D\u0430\u043D",
       parts: [
-        { group: "STA", options: ["eng_bread_whole"], range: [1, 2.5] },
-        { group: "FAT", options: ["fat_peanut_butter", "fat_almond_butter"], range: [1, 2] },
-        { group: "FRU", options: [["fruit_banana"]], range: [0.5, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_peanut_butter",
+            "fat_almond_butter"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_banana"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "b_rice_cakes_cottage",
-      meals: ["breakfast", "snack"],
+      meals: [
+        "breakfast",
+        "snack"
+      ],
       category: "bread",
       name: "\u041E\u0440\u0438\u0437\u043E\u0432\u0438 \u0433\u0430\u043B\u0435\u0442\u0438 \u0441 \u0438\u0437\u0432\u0430\u0440\u0430",
       parts: [
-        { group: "STA", options: ["eng_rice_cakes"], range: [1, 2] },
-        { group: "PRO", options: ["dairy_cottage", "dairy_cottage_low"], range: [1, 3] },
-        { group: "VEG", options: [["veg_cherry_tomato"], ["veg_cucumber"]], range: [0.5, 1] }
+        {
+          group: "STA",
+          options: [
+            "eng_rice_cakes"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
       ],
-      sides: ["fruit"]
+      sides: [
+        "fruit"
+      ]
     },
     {
       id: "b_tofu_scramble",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "plant",
       name: "\u0422\u043E\u0444\u0443 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
       parts: [
-        { group: "PRO", options: ["pro_tofu"], range: [2, 4] },
-        { group: "VEG", options: [["veg_spinach"], ["veg_pepper", "veg_tomato"], ["veg_mushrooms"]], range: [0.5, 1.5], with: true },
-        { group: "STA", options: ["eng_bread_whole", "eng_rye_bread"], range: [0, 2.5], with: true },
-        { group: "FAT", options: ["fat_oil"], range: [0.5, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ],
+            [
+              "veg_mushrooms"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            0,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
       ],
-      fixed: [["cond_turmeric", 1]],
-      sides: ["fruit"]
+      fixed: [
+        [
+          "cond_turmeric",
+          1
+        ]
+      ],
+      sides: [
+        "fruit"
+      ]
     },
     {
       id: "s_fruit_nuts",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "fruit",
       name: "{FRU} \u0441 {FAT}",
       fruitPaired: true,
       parts: [
-        { group: "FRU", options: [["fruit_apple"], ["fruit_pear"], ["fruit_orange"], ["fruit_mandarin"], ["fruit_kiwi"], ["fruit_peach"], ["fruit_banana"], ["fruit_grapes"], ["fruit_strawberry"]], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_almonds", "fat_walnuts", "fat_hazelnuts", "fat_cashew", "fat_peanuts_pistachio"], range: [0.5, 2] }
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_pear"
+            ],
+            [
+              "fruit_orange"
+            ],
+            [
+              "fruit_mandarin"
+            ],
+            [
+              "fruit_kiwi"
+            ],
+            [
+              "fruit_peach"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_grapes"
+            ],
+            [
+              "fruit_strawberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_hazelnuts",
+            "fat_cashew",
+            "fat_peanuts_pistachio"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_yogurt_fruit",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "dairy",
       name: "{MLK} \u0441 {FRU}",
       fruitPaired: true,
       parts: [
-        { group: "MLK", options: ["dairy_yogurt", "dairy_yogurt_2", "dairy_skyr", "dairy_greek", "dairy_soy_yogurt"], range: [0.5, 1.5] },
-        { group: "FRU", options: [["fruit_blueberry"], ["fruit_strawberry"], ["fruit_raspberry"], ["fruit_banana"], ["fruit_apple"], ["fruit_peach"], ["fruit_kiwi"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_walnuts", "fat_chia"], range: [0, 1] }
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_yogurt_2",
+            "dairy_skyr",
+            "dairy_greek",
+            "dairy_soy_yogurt"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_raspberry"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_peach"
+            ],
+            [
+              "fruit_kiwi"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_chia"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_cottage_fruit",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "dairy",
       name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 {FRU}",
       fruitPaired: true,
       parts: [
-        { group: "PRO", options: ["dairy_cottage", "dairy_cottage_low"], range: [1, 3] },
-        { group: "FRU", options: [["fruit_strawberry"], ["fruit_peach"], ["fruit_raspberry"], ["fruit_blueberry"], ["fruit_apple"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_walnuts"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_peach"
+            ],
+            [
+              "fruit_raspberry"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_apple"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_hummus_veg",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "savory",
       name: "\u0425\u0443\u043C\u0443\u0441 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0438 \u043F\u0440\u044A\u0447\u0438\u0446\u0438",
       parts: [
-        { group: "LEG", options: ["leg_hummus"], range: [0.5, 1.5] },
-        { group: "VEG", options: [["veg_carrot", "veg_cucumber"], ["veg_pepper", "veg_celery"], ["veg_cucumber", "veg_pepper"]], range: [0.5, 1.5] }
+        {
+          group: "LEG",
+          options: [
+            "leg_hummus"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_cucumber"
+            ],
+            [
+              "veg_pepper",
+              "veg_celery"
+            ],
+            [
+              "veg_cucumber",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_cheese_veg",
-      meals: ["snack", "late"],
+      meals: [
+        "snack",
+        "late"
+      ],
       category: "savory",
       name: "\u0421\u0438\u0440\u0435\u043D\u0435 \u0441 {VEG}",
       parts: [
-        { group: "PRO", options: ["dairy_cheese"], range: [0.5, 1.5] },
-        { group: "VEG", options: [["veg_tomato"], ["veg_cucumber"], ["veg_cherry_tomato"], ["veg_pepper"]], range: [0.5, 1.5] },
-        { group: "STA", options: ["eng_rice_cakes", "eng_rye_bread"], range: [0, 1.5], with: true }
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato"
+            ],
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_cakes",
+            "eng_rye_bread"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          with: true
+        }
       ],
       sides: []
     },
     {
       id: "s_kefir",
-      meals: ["snack", "late"],
+      meals: [
+        "snack",
+        "late"
+      ],
       category: "dairy",
       name: "\u0427\u0430\u0448\u0430 \u043A\u0435\u0444\u0438\u0440",
       parts: [
-        { group: "MLK", options: ["dairy_kefir"], range: [0.5, 1.5] }
+        {
+          group: "MLK",
+          options: [
+            "dairy_kefir"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_protein_shake",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "shake",
       name: "\u041F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u0448\u0435\u0439\u043A",
       requires: "sport",
       parts: [
-        { group: "PRO", options: ["pro_whey", "pro_plant_protein"], range: [2, 4] },
-        { group: "MLK", options: ["dairy_milk_2", "dairy_soy_milk"], range: [0, 1] },
-        { group: "FRU", options: [["fruit_banana"], ["fruit_blueberry"]], range: [0, 1], with: true }
+        {
+          group: "PRO",
+          options: [
+            "pro_whey",
+            "pro_plant_protein"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_milk_2",
+            "dairy_soy_milk"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_blueberry"
+            ]
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        }
       ],
       sides: []
     },
     {
       id: "s_edamame",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "savory",
       name: "\u0415\u0434\u0430\u043C\u0430\u043C\u0435",
       parts: [
-        { group: "PRO", options: ["leg_edamame"], range: [1, 3] },
-        { group: "FAT", options: ["fat_tahini"], range: [0, 1], with: true }
+        {
+          group: "PRO",
+          options: [
+            "leg_edamame"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_tahini"
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        }
       ],
       sides: []
     },
     {
       id: "s_nuts",
-      meals: ["snack", "late"],
+      meals: [
+        "snack",
+        "late"
+      ],
       category: "nuts",
       name: "\u0428\u0435\u043F\u0430 {FAT}",
       parts: [
-        { group: "FAT", options: ["fat_almonds", "fat_walnuts", "fat_hazelnuts", "fat_cashew", "fat_nuts"], range: [1, 3] }
+        {
+          group: "FAT",
+          options: [
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_hazelnuts",
+            "fat_cashew",
+            "fat_nuts"
+          ],
+          range: [
+            1,
+            3
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_rice_cakes_nut_butter",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "bread",
       name: "\u041E\u0440\u0438\u0437\u043E\u0432\u0438 \u0433\u0430\u043B\u0435\u0442\u0438 \u0441 {FAT}",
       parts: [
-        { group: "STA", options: ["eng_rice_cakes"], range: [1, 2] },
-        { group: "FAT", options: ["fat_peanut_butter", "fat_almond_butter"], range: [0.5, 1.5] }
+        {
+          group: "STA",
+          options: [
+            "eng_rice_cakes"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_peanut_butter",
+            "fat_almond_butter"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_apple_pb",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "fruit",
       name: "{FRU} \u0441 {FAT}",
       fruitPaired: true,
       parts: [
-        { group: "FRU", options: [["fruit_apple"], ["fruit_banana"], ["fruit_pear"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_peanut_butter", "fat_almond_butter", "fat_tahini"], range: [0.5, 1.5] }
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_pear"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_peanut_butter",
+            "fat_almond_butter",
+            "fat_tahini"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_olives_cheese",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "savory",
       name: "\u041C\u0430\u0441\u043B\u0438\u043D\u0438 \u0441 {PRO}",
       parts: [
-        { group: "FAT", options: ["fat_olives"], range: [0.5, 2] },
-        { group: "PRO", options: ["dairy_cheese", "dairy_kashkaval"], range: [0.5, 1.5] },
-        { group: "VEG", options: [["veg_cucumber"], ["veg_cherry_tomato"]], range: [0, 1], with: true }
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "dairy_kashkaval"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        }
       ],
       sides: []
     },
     {
       id: "s_eggs_veg",
-      meals: ["snack", "late"],
+      meals: [
+        "snack",
+        "late"
+      ],
       category: "savory",
       name: "\u0412\u0430\u0440\u0435\u043D\u0438 \u044F\u0439\u0446\u0430 \u0441 {VEG}",
       parts: [
-        { group: "PRO", options: ["pro_eggs"], range: [1, 2] },
-        { group: "VEG", options: [["veg_cucumber"], ["veg_cherry_tomato"], ["veg_pepper"]], range: [0.5, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_tarator",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "dairy",
       name: "\u0422\u0430\u0440\u0430\u0442\u043E\u0440",
       parts: [
-        { group: "MLK", options: ["dairy_yogurt", "dairy_yogurt_2"], range: [1, 1.5] },
-        { group: "VEG", options: [["veg_cucumber"]], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_walnuts"], range: [0, 1] }
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_yogurt_2"
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["veg_garlic", 3]],
-      seasonsOnly: ["summer"],
+      fixed: [
+        [
+          "veg_garlic",
+          3
+        ]
+      ],
+      seasonsOnly: [
+        "summer"
+      ],
       sides: []
     },
     {
       id: "s_snezhanka",
-      meals: ["snack", "late"],
+      meals: [
+        "snack",
+        "late"
+      ],
       category: "dairy",
       name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0421\u043D\u0435\u0436\u0430\u043D\u043A\u0430",
       parts: [
-        { group: "MLK", options: ["dairy_greek"], range: [0.5, 1.5] },
-        { group: "VEG", options: [["veg_cucumber"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_walnuts"], range: [0, 1] }
+        {
+          group: "MLK",
+          options: [
+            "dairy_greek"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["veg_garlic", 3]],
+      fixed: [
+        [
+          "veg_garlic",
+          3
+        ]
+      ],
       sides: []
     },
     {
       id: "s_tuna_cucumber",
-      meals: ["snack", "late"],
+      meals: [
+        "snack",
+        "late"
+      ],
       category: "savory",
       name: "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0441 {VEG}",
       parts: [
-        { group: "PRO", options: ["pro_tuna"], range: [1, 3] },
-        { group: "VEG", options: [["veg_cucumber"], ["veg_cherry_tomato"]], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_oil"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_tuna"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["cond_lemon_juice", 5]],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
       sides: []
     },
     {
       id: "b_savory_plate",
-      meals: ["breakfast"],
+      meals: [
+        "breakfast"
+      ],
       category: "plant",
       name: "{PRO} \u0441 {VEG}",
       parts: [
-        { group: "PRO", options: ["pro_turkey", "pro_chicken_breast", "pro_salmon"], range: [1.5, 4] },
-        { group: "STA", options: ["eng_sweet_potato"], range: [0, 2], with: true },
-        { group: "VEG", options: [["veg_cucumber"], ["veg_spinach"], ["veg_zucchini"]], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_avocado", "fat_oil"], range: [0.5, 2] }
+        {
+          group: "PRO",
+          options: [
+            "pro_turkey",
+            "pro_chicken_breast",
+            "pro_salmon"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_sweet_potato"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
-      sides: ["fruit"]
+      sides: []
     },
     {
       id: "s_fruit",
-      meals: ["snack"],
+      meals: [
+        "snack"
+      ],
       category: "fruit",
       name: "{FRU}",
       fruitAlone: true,
       parts: [
-        { group: "FRU", options: [["fruit_apple"], ["fruit_pear"], ["fruit_orange"], ["fruit_mandarin"], ["fruit_kiwi"], ["fruit_peach"], ["fruit_grapes"], ["fruit_strawberry"], ["fruit_watermelon"], ["fruit_melon"], ["fruit_banana"]], range: [0.5, 2] }
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_pear"
+            ],
+            [
+              "fruit_orange"
+            ],
+            [
+              "fruit_mandarin"
+            ],
+            [
+              "fruit_kiwi"
+            ],
+            [
+              "fruit_peach"
+            ],
+            [
+              "fruit_grapes"
+            ],
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_watermelon"
+            ],
+            [
+              "fruit_melon"
+            ],
+            [
+              "fruit_banana"
+            ]
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "s_avocado_cucumber",
-      meals: ["snack", "late"],
+      meals: [
+        "snack",
+        "late"
+      ],
       category: "savory",
       name: "\u0410\u0432\u043E\u043A\u0430\u0434\u043E \u0441 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430",
       parts: [
-        { group: "FAT", options: ["fat_avocado"], range: [1, 3] },
-        { group: "VEG", options: [["veg_cucumber"]], range: [0.5, 1.5] }
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
       ],
-      fixed: [["cond_lemon_juice", 5]],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
       sides: []
     },
     {
       id: "l_turkey_cucumber",
-      meals: ["late", "snack"],
+      meals: [
+        "late",
+        "snack"
+      ],
       category: "savory",
       name: "{PRO} \u0441 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430",
       parts: [
-        { group: "PRO", options: ["pro_turkey", "pro_chicken_breast"], range: [1, 3] },
-        { group: "VEG", options: [["veg_cucumber"]], range: [0.5, 1] }
+        {
+          group: "PRO",
+          options: [
+            "pro_turkey",
+            "pro_chicken_breast"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "l_yogurt_nuts",
-      meals: ["late", "snack"],
+      meals: [
+        "late",
+        "snack"
+      ],
       category: "dairy",
       name: "{MLK} \u0441 {FAT}",
       parts: [
-        { group: "MLK", options: ["dairy_yogurt", "dairy_yogurt_2", "dairy_greek", "dairy_skyr", "dairy_soy_yogurt"], range: [0.5, 1.5] },
-        { group: "FAT", options: ["fat_walnuts", "fat_almonds", "fat_pumpkin_seeds", "fat_chia", "fat_flax"], range: [0, 1.5] }
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_yogurt_2",
+            "dairy_greek",
+            "dairy_skyr",
+            "dairy_soy_yogurt"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds",
+            "fat_pumpkin_seeds",
+            "fat_chia",
+            "fat_flax"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
       ],
       sides: []
     },
     {
       id: "l_cottage_walnuts",
-      meals: ["late", "snack"],
+      meals: [
+        "late",
+        "snack"
+      ],
       category: "dairy",
       name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 {FAT}",
       parts: [
-        { group: "PRO", options: ["dairy_cottage", "dairy_cottage_low"], range: [1, 2.5] },
-        { group: "FAT", options: ["fat_walnuts", "fat_almonds"], range: [0, 1] }
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
       ],
-      fixed: [["cond_cinnamon", 1]],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
       sides: []
     },
     {
       id: "l_cottage_cucumber",
-      meals: ["late", "snack"],
+      meals: [
+        "late",
+        "snack"
+      ],
       category: "dairy",
       name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430",
       parts: [
-        { group: "PRO", options: ["dairy_cottage"], range: [1, 2.5] },
-        { group: "VEG", options: [["veg_cucumber"]], range: [0.5, 1] },
-        { group: "FAT", options: ["fat_olives"], range: [0, 1], with: true }
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        }
       ],
       sides: []
     }
@@ -28617,70 +33847,206 @@ var dishes_default = {
   sides: {
     bread: {
       label: "\u0425\u043B\u044F\u0431",
-      meals: ["breakfast", "main", "snack"],
+      meals: [
+        "breakfast",
+        "main",
+        "snack"
+      ],
       group: "STA",
-      options: ["eng_bread_whole", "eng_rye_bread", "eng_bread", "eng_rice_cakes"],
-      range: [0.5, 3]
+      options: [
+        "eng_bread_whole",
+        "eng_rye_bread",
+        "eng_bread",
+        "eng_rice_cakes"
+      ],
+      range: [
+        0.5,
+        3
+      ]
     },
     salad: {
       label: "\u0421\u0430\u043B\u0430\u0442\u0430",
-      meals: ["main", "breakfast"],
+      meals: [
+        "main",
+        "breakfast"
+      ],
       group: "VEG",
       salads: [
-        { name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", foods: ["veg_tomato", "veg_cucumber"] },
-        { name: "\u0417\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430", foods: ["veg_lettuce", "veg_cucumber"] },
-        { name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0437\u0435\u043B\u0435 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438", foods: ["veg_cabbage", "veg_carrot"] },
-        { name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0443\u043A\u043E\u043B\u0430 \u0438 \u0447\u0435\u0440\u0438 \u0434\u043E\u043C\u0430\u0442\u0438", foods: ["veg_arugula", "veg_cherry_tomato"] },
-        { name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0434\u043E\u043C\u0430\u0442\u0438, \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438 \u0438 \u0447\u0443\u0448\u043A\u0438", foods: ["veg_tomato", "veg_cucumber", "veg_pepper"] },
-        { name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u043F\u0435\u0447\u0435\u043D\u043E \u0446\u0432\u0435\u043A\u043B\u043E", foods: ["veg_beet"] },
-        { name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u043F\u0435\u0447\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438", foods: ["veg_pepper"] },
-        { name: "\u0417\u0430\u0434\u0443\u0448\u0435\u043D\u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438", foods: ["veg_broccoli", "veg_carrot"] }
+        {
+          name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438",
+          foods: [
+            "veg_tomato",
+            "veg_cucumber"
+          ]
+        },
+        {
+          name: "\u0417\u0435\u043B\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+          foods: [
+            "veg_lettuce",
+            "veg_cucumber"
+          ]
+        },
+        {
+          name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0437\u0435\u043B\u0435 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+          foods: [
+            "veg_cabbage",
+            "veg_carrot"
+          ]
+        },
+        {
+          name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u0440\u0443\u043A\u043E\u043B\u0430 \u0438 \u0447\u0435\u0440\u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+          foods: [
+            "veg_arugula",
+            "veg_cherry_tomato"
+          ]
+        },
+        {
+          name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0434\u043E\u043C\u0430\u0442\u0438, \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438 \u0438 \u0447\u0443\u0448\u043A\u0438",
+          foods: [
+            "veg_tomato",
+            "veg_cucumber",
+            "veg_pepper"
+          ]
+        },
+        {
+          name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u043F\u0435\u0447\u0435\u043D\u043E \u0446\u0432\u0435\u043A\u043B\u043E",
+          foods: [
+            "veg_beet"
+          ]
+        },
+        {
+          name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u043F\u0435\u0447\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438",
+          foods: [
+            "veg_pepper"
+          ]
+        },
+        {
+          name: "\u0417\u0430\u0434\u0443\u0448\u0435\u043D\u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438",
+          foods: [
+            "veg_broccoli",
+            "veg_carrot"
+          ]
+        }
       ],
-      range: [0.5, 3],
+      range: [
+        0.5,
+        3
+      ],
       dressing: "fat_oil",
-      dressingRange: [0, 2]
+      dressingRange: [
+        0,
+        2
+      ]
     },
     fruit: {
       label: "\u041F\u043B\u043E\u0434",
-      meals: ["breakfast", "main", "snack"],
+      meals: [
+        "breakfast",
+        "main",
+        "snack"
+      ],
       group: "FRU",
-      options: ["fruit_apple", "fruit_orange", "fruit_mandarin", "fruit_pear", "fruit_kiwi", "fruit_peach", "fruit_grapes", "fruit_strawberry", "fruit_watermelon", "fruit_banana", "fruit_blueberry"],
-      range: [0.5, 1.5]
+      options: [
+        "fruit_apple",
+        "fruit_orange",
+        "fruit_mandarin",
+        "fruit_pear",
+        "fruit_kiwi",
+        "fruit_peach",
+        "fruit_grapes",
+        "fruit_strawberry",
+        "fruit_watermelon",
+        "fruit_banana",
+        "fruit_blueberry"
+      ],
+      range: [
+        0.5,
+        1.5
+      ]
     },
     yogurt: {
       label: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
-      meals: ["breakfast", "main", "snack", "late"],
+      meals: [
+        "breakfast",
+        "main",
+        "snack",
+        "late"
+      ],
       group: "MLK",
-      options: ["dairy_yogurt", "dairy_yogurt_2", "dairy_kefir", "dairy_soy_yogurt"],
-      range: [0.5, 1.5]
+      options: [
+        "dairy_yogurt",
+        "dairy_yogurt_2",
+        "dairy_kefir",
+        "dairy_soy_yogurt"
+      ],
+      range: [
+        0.5,
+        1.5
+      ]
     },
     cheese: {
       label: "\u0421\u0438\u0440\u0435\u043D\u0435",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       group: "PRO",
-      options: ["dairy_cheese", "dairy_cottage"],
-      range: [1, 1.5]
+      options: [
+        "dairy_cheese",
+        "dairy_cottage"
+      ],
+      range: [
+        1,
+        1.5
+      ]
     },
     nuts: {
       label: "\u042F\u0434\u043A\u0438",
-      meals: ["breakfast", "snack", "late"],
+      meals: [
+        "breakfast",
+        "snack",
+        "late"
+      ],
       group: "FAT",
-      options: ["fat_almonds", "fat_walnuts", "fat_hazelnuts", "fat_pumpkin_seeds"],
-      range: [0.5, 2]
+      options: [
+        "fat_almonds",
+        "fat_walnuts",
+        "fat_hazelnuts",
+        "fat_pumpkin_seeds"
+      ],
+      range: [
+        0.5,
+        2
+      ]
     },
     fats: {
       label: "\u041C\u0430\u0437\u043D\u0438\u043D\u0438",
-      meals: ["main", "breakfast"],
+      meals: [
+        "main",
+        "breakfast"
+      ],
       group: "FAT",
-      options: ["fat_avocado", "fat_olives"],
-      range: [1, 4]
+      options: [
+        "fat_avocado",
+        "fat_olives"
+      ],
+      range: [
+        1,
+        4
+      ]
     },
     dessert: {
       label: "\u0414\u0435\u0441\u0435\u0440\u0442",
-      meals: ["main"],
+      meals: [
+        "main"
+      ],
       group: "SWT",
-      options: ["sw_dark_chocolate"],
-      range: [1, 1]
+      options: [
+        "sw_dark_chocolate"
+      ],
+      range: [
+        1,
+        1
+      ]
     }
   }
 };
@@ -28877,6 +34243,13 @@ function recomputeMealFromDescription(meal) {
     t.carbs += n.carbs;
     t.fats += n.fats;
     grams += g;
+  }
+  const dessert = meal.dessert && typeof meal.dessert === "object" ? meal.dessert : null;
+  if (dessert?.macros) {
+    t.protein += Number(dessert.macros.protein) || 0;
+    t.carbs += Number(dessert.macros.carbs) || 0;
+    t.fats += Number(dessert.macros.fats) || 0;
+    grams += parseFloat(String(dessert.weight).replace(",", ".")) || 0;
   }
   meal.macros = { ...meal.macros || {}, protein: Math.round(t.protein), carbs: Math.round(t.carbs), fats: Math.round(t.fats) };
   meal.calories = Math.round(meal.macros.protein * 4 + meal.macros.carbs * 4 + meal.macros.fats * 9);
@@ -30216,6 +35589,10 @@ var minCache = /* @__PURE__ */ new Map();
 function minPortion(foodId) {
   if (!minCache.has(foodId)) {
     const f = food(foodId);
+    if (isCookingFat(f.name, f.nutritionKey)) {
+      minCache.set(foodId, COOKING_FAT_MAX_PORTION_G);
+      return COOKING_FAT_MAX_PORTION_G;
+    }
     minCache.set(foodId, minPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP[f.group] }));
   }
   return minCache.get(foodId);
@@ -30234,14 +35611,16 @@ function portionSteps(foodId, lo = 0, hi = 800) {
   let tolerance = 0;
   if (unit) {
     steps = [];
-    for (let n = 1; n * unit.grams <= Math.max(hi * 1.2, unit.grams); n++) steps.push(n * unit.grams);
+    for (let n = 1; n * unit.grams <= 800; n++) steps.push(n * unit.grams);
     tolerance = 0.15;
   }
   const floor = Math.max(lo * (1 - tolerance), minPortion(foodId));
   const inRange = steps.filter((g) => g >= floor - 1e-9 && g <= hi * (1 + tolerance) + 1e-9);
   if (inRange.length) return inRange;
+  const pool = steps.filter((g) => g >= floor - 1e-9);
+  const from = pool.length ? pool : steps;
   const mid = (lo + hi) / 2;
-  return [steps.reduce((best, g) => Math.abs(g - mid) < Math.abs(best - mid) ? g : best, steps[0])];
+  return [from.reduce((best, g) => Math.abs(g - mid) < Math.abs(best - mid) ? g : best, from[0])];
 }
 function snapPortion(foodId, grams, lo = 0, hi = 800) {
   const steps = portionSteps(foodId, lo, hi);
@@ -30518,7 +35897,9 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
       weight: parts.some((p) => p.group === spec.group) ? 0.5 : 1
     }, fatScale));
   }
-  const fixed = dish.fixed.filter(([id]) => ctx.policy.allowed(id));
+  const fixedAll = dish.fixed.filter(([id]) => ctx.policy.allowed(id));
+  const flavour = fixedAll.filter(([id]) => food(id).group === "FREE").map(([id]) => food(id).label);
+  const fixed = fixedAll.filter(([id]) => food(id).group !== "FREE");
   parts.push(...sideParts(dish, parts, quota, mealKind, ctx));
   initialSizing(parts, fixed, quota, target);
   const carbsCap = ctx.policy.style === "keto" || ctx.policy.style === "low_carb";
@@ -30528,6 +35909,7 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   return {
     parts: kept,
     fixed,
+    flavour,
     totals: totalsOf(kept, fixed),
     error,
     name: dishName2(dish, kept)
@@ -30551,7 +35933,6 @@ function describeMeal(built) {
     p.foods.forEach((id, i) => push(id, p.grams[i]));
   }
   for (const [id, g] of built.fixed) push(id, g);
-  for (const p of built.parts) if (p.side === "dessert") p.foods.forEach((id, i) => push(id, p.grams[i]));
   return lines;
 }
 
@@ -30823,7 +36204,9 @@ function round(n) {
 function toPlanMeal(type, dish, built) {
   const lines = describeMeal(built);
   const description = lines.map((l) => portionLine(l.id, l.grams)).join("\n");
-  const totalGrams = lines.reduce((a, l) => a + l.grams, 0);
+  const dessertPart = built.parts.find((p) => p.side === "dessert");
+  const dessertGrams = dessertPart ? dessertPart.grams.reduce((a, b) => a + b, 0) : 0;
+  const totalGrams = lines.reduce((a, l) => a + l.grams, 0) + dessertGrams;
   const macros = {
     protein: round(built.totals.protein),
     carbs: round(built.totals.carbs),
@@ -30841,6 +36224,7 @@ function toPlanMeal(type, dish, built) {
     calories: round(macros.protein * 4 + macros.carbs * 4 + macros.fats * 9),
     benefits: mealBenefits(built)
   };
+  if (built.flavour?.length) meal.recipe = `\u041E\u0432\u043A\u0443\u0441\u0435\u0442\u0435 \u0441: ${built.flavour.join(", ")}.`;
   const dessert = built.parts.find((p) => p.side === "dessert");
   if (dessert) {
     const grams = dessert.grams.reduce((a, b) => a + b, 0);

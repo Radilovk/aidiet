@@ -289,7 +289,9 @@ function round(n) {
 function toPlanMeal(type, dish, built) {
   const lines = describeMeal(built);
   const description = lines.map(l => portionLine(l.id, l.grams)).join('\n');
-  const totalGrams = lines.reduce((a, l) => a + l.grams, 0);
+  const dessertPart = built.parts.find(p => p.side === 'dessert');
+  const dessertGrams = dessertPart ? dessertPart.grams.reduce((a, b) => a + b, 0) : 0;
+  const totalGrams = lines.reduce((a, l) => a + l.grams, 0) + dessertGrams;
   const macros = {
     protein: round(built.totals.protein),
     carbs: round(built.totals.carbs),
@@ -307,6 +309,7 @@ function toPlanMeal(type, dish, built) {
     calories: round(macros.protein * 4 + macros.carbs * 4 + macros.fats * 9),
     benefits: mealBenefits(built),
   };
+  if (built.flavour?.length) meal.recipe = `Овкусете с: ${built.flavour.join(', ')}.`;
   const dessert = built.parts.find(p => p.side === 'dessert');
   if (dessert) {
     const grams = dessert.grams.reduce((a, b) => a + b, 0);
