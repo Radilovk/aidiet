@@ -24,6 +24,9 @@
 # ── NutriPlan notification action receiver (patched into local-notifications plugin) ─
 -keep class com.capacitorjs.plugins.localnotifications.GameNotificationActionReceiver { *; }
 
+# ── NutriPlan print / PDF plugin ─────────────────────────────────────────────
+-keep class com.biocode.nutriplan.NutriPrintPlugin { *; }
+
 # ── General Android / Kotlin reflection safety ────────────────────────────────
 -keepattributes *Annotation*
 -keepattributes Signature

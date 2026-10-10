@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="bg">
 <head>
+    <script>(function(){if(new URLSearchParams(window.location.search).get('embedded')==='1')document.documentElement.setAttribute('data-embedded-tab','1');})();</script>
+    <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Текущ анализ и здравен индекс за вашия хранителен план в NutriPlan.">
@@ -806,6 +808,15 @@
             try { allData = JSON.parse(localStorage.getItem('gameData') || '{}'); } catch(e) {}
 
             var days = GS.buildLast7Days(allData, todayKey);
+            // Същите формули като на сървъра (решенията за плана се вземат там).
+            var summary = GS.weekSummary(allData, todayKey);
+            var waterGoalText = (function(){
+                try {
+                    var st = (JSON.parse(localStorage.getItem('dietPlan') || '{}').strategy) || {};
+                    var m = String(st.hydrationStrategy || '').match(/(\d+(?:[.,]\d+)?)\s*л/);
+                    return m ? m[1].replace('.', ',') + ' л' : '2 л';
+                } catch (_) { return '2 л'; }
+            })();
 
             // ── Core metrics ──────────────────────────────────────────────────
             var weekScores = days.map(function(d){ return d.rec ? calcDayScore(d.rec) : null; });
@@ -828,11 +839,12 @@
             });
             var totalExtraCals = extraCalsByDay.reduce(function(s,v){return s+(v||0);},0);
 
+            // Само завършени дни с поне половината хранения отметнати (както сумата).
             var calBalanceByDay = days.map(function(d){
-                if (!d.rec) return null;
+                if (!GS.calorieDayCounts(d, todayKey)) return null;
                 return calcDayScore(d.rec).calorieDelta;
             });
-            var netCalBalance = calBalanceByDay.reduce(function(s,v){return s+(v||0);},0);
+            var netCalBalance = summary.netCalBalance;
 
             var calConsumedByDay = days.map(function(d){
                 if (!d.rec) return null;
@@ -851,20 +863,9 @@
                 return total > 0 ? total : null;
             });
             var calPlannedByDay = days.map(function(d){
-                return d.rec ? (d.rec.plannedCalories || null) : null;
+                return d.rec ? (GS.getPlannedCalories(d.rec) || null) : null;
             });
-            var calAdherencePct = (function(){
-                var vals = [];
-                calConsumedByDay.forEach(function(consumed, idx){
-                    if (!consumed) return;
-                    var plan = calPlannedByDay[idx];
-                    if (!plan) return;
-                    vals.push(Math.min(100, Math.round(consumed / plan * 100)));
-                });
-                return vals.length > 0
-                    ? Math.round(vals.reduce(function(a,b){return a+b;},0) / vals.length)
-                    : null;
-            })();
+            var calAdherencePct = summary.calAdherence;
 
             var balanceByDay = days.map(function(d){
                 if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.emotionalBalance==null) return null;
@@ -910,14 +911,8 @@
                 (firstHalf.reduce(function(a,s){return a+s.score;},0)/firstHalf.length) >
                 (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length + 0.3);
 
-            var healthScore = GS.computeHealthIndex({
-                engagementPct: engagementPct,
-                sleepPct: sleepPct,
-                balancePct: balancePct,
-                actPct: actPct,
-                waterPct: waterPct,
-                totalExtraCals: totalExtraCals
-            });
+            var healthScore = summary.healthIndex;
+            var mealAdherencePct = summary.mealAdherence;
 
             // ── Correlation insights ──────────────────────────────────────────
             var insights = [];
@@ -994,34 +989,49 @@
             // ── Encouragement ─────────────────────────────────────────────────
             var leadingCriterion='', encourageText='<i class="fas fa-dumbbell" style="color:#0D9488"></i> Последователността е ключът към успеха!';
             if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='<i class="fas fa-leaf" style="color:#10b981"></i> Намалете вредните храни — планът работи когато го следвате!'; }
-            else if (waterPct!=null&&waterPct<50)      { leadingCriterion='Хидратация'; encourageText='<i class="fas fa-droplet" style="color:#06B6D4"></i> Пийте повече вода през деня — тялото ви се нуждае от поне 2 литра!'; }
+            else if (waterPct!=null&&waterPct<50)      { leadingCriterion='Хидратация'; encourageText='<i class="fas fa-droplet" style="color:#06B6D4"></i> Пийте повече вода през деня — целта ви по плана е ' + waterGoalText + '.'; }
             else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!'; }
             else if (engagementPct<60)                 { leadingCriterion='';             encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвайте храненията по план — резултатите идват!'; }
-            else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-person-walking" style="color:#0D9488"></i> Малко движение прави голяма разлика. Дори 15 минути помагат!'; }
+            else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-heart-pulse" style="color:#10b981"></i> Седмицата е напрегната. Няколко минути спокойно дишане или разходка вечер помагат — и не се наказвайте за пропуснато хранене.'; }
             else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотно! Продължавайте в същия дух — резултатите идват!'; }
             if (badge) badge.textContent = leadingCriterion || (validScores.length+' дни');
 
             // ── Explanation modal ─────────────────────────────────────────────
+            // Обясненията са без измислени проценти и „изследвания“: само това, което
+            // насоките (СЗО, EFSA, ESC) и обзорите наистина казват.
             var EXPLANATIONS = {
                 engagement: { title:'Ангажираност към плана',
-                    text:'Показва колко редовно следваш плана си тази седмица — хранения, чек-ини и избягване на вредни храни.\n\nЦел: минимум 80%.',
-                    why:'Проучване в American Journal of Preventive Medicine (2019) показва, че хората, които следват хранителен план поне 80% от времето, постигат 3× по-добри резултати за отслабване. Всеки пропуснат ден увеличава риска от пълно отказване с 27%.' },
+                    text:'Показва колко редовно следваш плана си тази седмица:\n• спазени хранения от плана — половината от оценката (свободното хранене и сутрешната напитка не се броят);\n• сутрешна и вечерна проверка — по 15%;\n• без вредни хранения — 20%.\n\nСпазените хранения решават и седмичната корекция: над 75% — калориите се настройват по теглото ти; под 60% — следващото меню става по-просто.\n\nЦел: минимум 80%.',
+                    why:'Постоянството е най-силният предиктор за резултат при всяка диета — по-важно от вида на диетата. Затова планът се настройва по това, което реално спазваш.' },
                 calories: { title:'Калориен баланс',
-                    text:'Следи дали приемаш правилното количество калории спрямо твоя таргет.\n\nЦел: баланс в рамките на ±100 kcal дневно.',
-                    why:'Мета-анализ в New England Journal of Medicine (2022) доказва: дори 200 kcal дневен излишък води до 10 кг наднормено тегло за 5 години. Обратно — последователен умерен дефицит от 300–500 kcal е най-устойчивият път към здравословно тегло.' },
+                    text:'Сумата на разликата между изядено и планирано за завършените дни, в които са отметнати поне половината хранения. Неотметнатото хранене не се брои като неизядено, а днешният ден — едва когато свърши.\n\nЛентата показва колко близо си до плана (100% = точно; 10% над или под = 90%).',
+                    why:'Теглото следва енергийния баланс за седмици, не за един ден — затова гледаме седмицата, а корекциите се правят по реалното тегло.' },
                 stress: { title:'Емоционален баланс',
-                    text:'Показва емоционалното ти състояние. Висок баланс = нисък стрес.\n\nЦел: минимум 70%.',
-                    why:'Хроничният стрес повишава кортизола, което според Nature Reviews Endocrinology (2020) увеличава апетита за висококалорична храна с 40% и натрупва мастна тъкан в коремната област. Управлението на стреса е толкова важно, колкото и самата диета.' },
+                    text:'Показва емоционалното ти състояние от вечерните проверки. Висок баланс = по-малко напрежение.\n\nЦел: минимум 70%.',
+                    why:'Напрежението и умората често водят до хранене „по емоция“ и избор на по-калорични храни. Да го забелязваш е първата стъпка да го управляваш.' },
                 sleep: { title:'Качество на съня',
-                    text:'Отразява качеството на съня ти на база сутрешните чек-ини.\n\nЦел: минимум 70%.',
-                    why:'Изследване в Annals of Internal Medicine (2010) показва: при сън под 6 часа тялото губи мускулна маса вместо мазнини при дефицит, а грелинът (хормонът на глада) се увеличава с 28%. Добрият сън буквално определя дали ще горите мазнини или мускули.' },
+                    text:'Отразява качеството на съня ти на база сутрешните проверки.\n\nЦел: минимум 70%.',
+                    why:'Недоспиването повишава апетита и прави дефицита по-труден за спазване. Препоръката за възрастни е 7–9 часа сън.' },
                 activity: { title:'Активност',
-                    text:'Показва колко активен си бил всеки ден.\n\nЦел: минимум 70%.',
-                    why:'The Lancet (2016) доказа в проучване с 1 милион участници: 30 мин. ежедневна активност намалява риска от преждевременна смърт с 28%. Дори 15 мин. ходене дневно удължават живота с 3 години.' },
-                health: { title:'Здравен Индекс',
-                    text:'Обобщена оценка на здравословното ти поведение — ангажираност, сън, хидратация, активност и емоционален баланс.\n\nЦел: минимум 70.',
-                    why:'Комбинацията от добър сън, хранене, хидратация, активност и нисък стрес намалява риска от хронични заболявания с 80% (European Heart Journal, 2020). Здравният индекс отразява цялостния ти начин на живот — подобрението дори с 10 пункта означава измеримо по-добро здраве.' }
+                    text:'Показва колко активен си бил всеки ден (от вечерните проверки).\n\nЦел: минимум 70%.',
+                    why:'СЗО препоръчва поне 150 минути умерена активност седмично. Всяко раздвижване се брои — включително разходката.' },
+                water: { title:'Хидратация',
+                    text:'Дали си изпил препоръчаната вода за деня (от вечерните проверки). Твоята цел по плана: ' + waterGoalText + ' дневно.\n\nЦел: минимум 70% от дните.',
+                    why:'Водата помага за ситостта и храносмилането; нуждите растат при жега и тренировки.' },
+                health: { title:'Индекс на навиците',
+                    text:'Обобщена оценка на навиците ти тази седмица — ангажираност, сън, хидратация, активност, емоционален баланс и извънпланови калории. Не е медицинска оценка.\n\nЦел: минимум 70.',
+                    why:'Добрите навици се подсилват взаимно: по-добрият сън и по-малкото напрежение улесняват спазването на плана.' }
             };
+            // „Назад“ на Android и Escape затварят най-горното обяснение.
+            window.NutriPlanHandleBack = function () {
+                var open = document.querySelectorAll('.game-explain-overlay');
+                if (!open.length) return false;
+                open[open.length - 1].remove();
+                return true;
+            };
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') window.NutriPlanHandleBack();
+            });
             function showExplanation(key) {
                 var info = EXPLANATIONS[key]; if(!info) return;
                 var old = document.getElementById('gameExplainOverlay'); if(old) old.remove();
@@ -1075,7 +1085,9 @@
                 var cols = perDayValues.map(function(v,idx){
                     var dow   = new Date(days[idx].key).getDay();
                     var label = DAY_NAMES[(dow+6)%7];
-                    if(v==null || v===0) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.25)', label);
+                    if(v==null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.25)', label);
+                    // 0 е отговор (лош сън, без вода) — показва се в цвят, не като „няма данни“.
+                    if(v===0) return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color+';opacity:.55', label);
                     var pct2 = maxVal>0?Math.min(100,Math.round(v/maxVal*100)):0;
                     var h    = Math.max(BAR_MIN_H, Math.round(pct2*BAR_MAX_H/100));
                     return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"');
@@ -1149,7 +1161,7 @@
             '</div>';
 
             html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
-                '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488',22) + '<div class="game-ring-label">Здраве</div></div>' +
+                '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488',22) + '<div class="game-ring-label">Навици</div></div>' +
                 (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22) + '<div class="game-ring-label">Активност</div></div>' : '') +
                 (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
                 (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
@@ -1170,9 +1182,10 @@
 
             html += '<div class="game-index-row" data-explain="engagement">' +
                 '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+(mealAdherencePct!=null?' · спазени хранения '+mealAdherencePct+'%':'')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
             '</div>';
+
 
             var hasDeficit = calBalanceByDay.some(function(v){ return v!==null && v<-50; });
             var calBalanceLabel;
@@ -1216,7 +1229,7 @@
                 pBar(waterPct,'linear-gradient(90deg,#06B6D4,#0284C7)') + miniBarChart(waterByDay,100,'#06B6D4') +
             '</div>';
 
-            if(noDataDaysCount>0) html += '<div class="game-no-data-note"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (отчетени като 0%)</div>';
+            if(noDataDaysCount>0) html += '<div class="game-no-data-note"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (не влизат в средните стойности)</div>';
 
             if(insights.length>0){
                 html += '<div class="game-section-title">Корелации и открития</div>';

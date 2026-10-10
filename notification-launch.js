@@ -52,7 +52,7 @@
             var src = localStorage.getItem('planJobSource');
             var planSync = window.NutriPlanPlanSync;
             if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
-                location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                location.replace('questionnaire2.html');
                 return;
             }
         }

@@ -3,7 +3,8 @@
  * Синхронизирано с data-diet-related="true" в profile.html.
  */
 export const DIET_RELATED_PROFILE_FIELDS = [
-  'gender', 'height', 'weight', 'goal', 'lossKg',
+  // Възрастта влиза в разхода (BMR) и в белтъка (60+) — промяната ѝ сменя плана.
+  'gender', 'age', 'height', 'weight', 'goal', 'lossKg',
   'sleepHours', 'sleepInterrupt', 'chronotype', 'dailyActivityLevel',
   'stressLevel', 'sportActivity', 'waterIntake', 'drinksSweet', 'drinksAlcohol',
   'weightChange', 'weightChangeDetails',

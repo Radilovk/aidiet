@@ -49,7 +49,9 @@
         if (!rec) return emptyDayScore();
         todayKey = todayKey || dateKey(new Date());
 
-        var meals = getMealSlots(rec);
+        // Звездите се смятат по храненията от плана — свободното хранене и
+        // сутрешната напитка не са задължителни (както в ангажираността).
+        var meals = planMealSlots(rec);
         var mealPts = 0;
         var mealMax = meals.length * 10;
 
@@ -111,18 +113,24 @@
             ? ([0, 0, 5, 10][rec.eveningCheck.emotionalBalance] || 0) : null;
 
         var wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
-        var wellnessMax = 40;
+        // В знаменателя са само отговорените въпроси: всички хранения без проверки
+        // не са „2 звезди“. Петата звезда иска поне една проверка за деня.
+        var answered = [sleepPts, waterPts, activityPts, balancePts].filter(function (v) { return v != null; }).length;
+        var wellnessMax = answered * 10;
 
         var allMealsOk = meals.length > 0 && meals.every(function (m) { return rec.meals[m] === true; });
         var badSleep = rec.morningCheck && rec.morningCheck.sleptWell === false;
         var badWater = rec.eveningCheck && rec.eveningCheck.waterIntake === false;
         var lowActivity = rec.eveningCheck && rec.eveningCheck.activityLevel === 1;
         var lowBalance = rec.eveningCheck && rec.eveningCheck.emotionalBalance === 1;
-        var has5StarBlocker = !allMealsOk || excessCalories ||
+        var has5StarBlocker = !allMealsOk || excessCalories || answered === 0 ||
             badSleep || badWater || lowActivity || lowBalance || junkCount > 0;
 
-        var done = meals.filter(function (m) { return rec.meals[m] === true; }).length;
-        var mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
+        // Половината от ангажираността са спазените хранения от плана (без
+        // свободното и сутрешната напитка) — същото число, по което се коригира планът.
+        var planMeals = planMealSlots(rec);
+        var done = planMeals.filter(function (m) { return rec.meals[m] === true; }).length;
+        var mealEngPct = planMeals.length > 0 ? done / planMeals.length * 50 : 0;
         var mornEngPct = rec.morningCheck ? 15 : 0;
         var eveEngPct = (rec.eveningCheck && (
             rec.eveningCheck.activityLevel != null ||
@@ -203,7 +211,9 @@
             totalWeight += HEALTH_WEIGHTS.water;
         }
 
-        var extraCalsWeight = Math.max(0, 100 - Math.round((m.totalExtraCals || 0) / 700 * 100));
+        // Извънплановите калории на ден (средно за записаните дни): 0 → 100, 350+ kcal/ден → 0.
+        var perDay = m.extraCalsPerDay != null ? m.extraCalsPerDay : (m.totalExtraCals || 0) / 7;
+        var extraCalsWeight = Math.max(0, 100 - Math.round(perDay / 350 * 100));
         healthScore += extraCalsWeight * HEALTH_WEIGHTS.extraCals;
         totalWeight += HEALTH_WEIGHTS.extraCals;
 
@@ -229,6 +239,141 @@
         return days.filter(function (d) { return !!d.rec; }).length;
     }
 
+    /* ── Седмично обобщение — СЪЩИТЕ формули като на сървъра ──────────────
+     * (analytics-compression.js buildAnalyticsSummary). Клиентът и сървърът
+     * показват едни и същи числа; scripts/test-analytics-parity.mjs го проверява. */
+
+    function avg(values) {
+        var v = values.filter(function (x) { return x != null; });
+        return v.length ? Math.round(v.reduce(function (a, b) { return a + b; }, 0) / v.length) : null;
+    }
+
+    function extraCalsOf(rec) {
+        return ((rec && rec.extraMeals) || []).reduce(function (s, em) {
+            if (em.isAddedToPlan && !em.countCalories) return s;
+            return s + (em.calories || 0);
+        }, 0);
+    }
+
+    /** Слотовете, които се броят за спазване: без свободното хранене и напитката. */
+    function planMealSlots(rec) {
+        var freeKey = rec && rec.freeMeal && rec.freeMeal.mealKey;
+        return getMealSlots(rec).filter(function (m) {
+            return m !== freeKey && !/^Напитка|^Свободно хранене/.test(m);
+        });
+    }
+
+    /** Спазени хранения за деня (без свободното и напитката); null за ден само отворен. */
+    function dayMealAdherence(rec) {
+        if (!rec) return null;
+        var slots = planMealSlots(rec);
+        if (!slots.length) return null;
+        var ticked = slots.filter(function (m) { return rec.meals && rec.meals[m] === true; }).length;
+        var touched = ticked > 0 || rec.morningCheck || rec.eveningCheck || ((rec.extraMeals || []).length > 0);
+        return touched ? Math.round(ticked / slots.length * 100) : null;
+    }
+
+    /** Колко близо до плана са калориите: 100 = точно; 10% над или под = 90. */
+    function dayCalCloseness(rec) {
+        if (!rec) return null;
+        var mealCalMap = rec.mealCalories || {};
+        var free = (rec.freeMeal && rec.freeMeal.calories > 0) ? rec.freeMeal : null;
+        var consumed = getMealSlots(rec).reduce(function (sum, mt) {
+            if (!rec.meals || !rec.meals[mt]) return sum;
+            if (free && free.mealKey === mt) return sum + free.calories;
+            return sum + (mealCalMap[mt] || 0);
+        }, 0);
+        var total = consumed + extraCalsOf(rec);
+        var plan = getPlannedCalories(rec);
+        if (!(total > 0) || !plan) return null;
+        return Math.max(0, 100 - Math.round(Math.abs(total / plan - 1) * 100));
+    }
+
+    /** Поредни дни с поне 4 звезди назад от днес (днес се прескача, ако още няма оценка). */
+    function streakOf(allData, todayKey, windowDays) {
+        windowDays = windowDays || 7;
+        var streak = 0;
+        var todayRec = (allData || {})[todayKey];
+        var start = (!todayRec || calcDayScore(todayRec, todayKey).score == null) ? 1 : 0;
+        for (var i = start; i < windowDays; i++) {
+            var d = new Date();
+            d.setDate(d.getDate() - i);
+            var rec = (allData || {})[dateKey(d)];
+            var sc = rec ? calcDayScore(rec, todayKey).score : null;
+            if (sc != null && sc >= 4) streak++;
+            else break;
+        }
+        return streak;
+    }
+
+    /** Денят влиза в калорийния баланс: завършен и с поне половината хранения отметнати. */
+    function calorieDayCounts(d, todayKey) {
+        if (!d || !d.rec || !(d.key < todayKey)) return false;
+        var adh = dayMealAdherence(d.rec);
+        return adh != null && adh >= 50;
+    }
+
+    function weekSummary(allData, todayKey) {
+        todayKey = todayKey || dateKey(new Date());
+        var days = buildLast7Days(allData, todayKey);
+        var recorded = days.filter(function (d) { return !!d.rec; });
+        var scores = days.map(function (d) { return d.rec ? calcDayScore(d.rec, todayKey) : null; });
+        var valid = scores.filter(function (s) { return s && s.score != null; });
+        var avgScore = valid.length
+            ? Math.round(valid.reduce(function (a, s) { return a + s.score; }, 0) / valid.length * 10) / 10
+            : null;
+        var engagementPct = avg(recorded.map(function (d) { return calcDayScore(d.rec, todayKey).engPct; })) || 0;
+        var mealAdh = days.map(function (d) { return dayMealAdherence(d.rec); }).filter(function (v) { return v != null; });
+        var totalExtraCals = days.reduce(function (s, d) { return s + extraCalsOf(d.rec); }, 0);
+        // Нетният баланс — само за завършени дни с поне половината хранения отметнати:
+        // неотметнато хранене не значи неизядено, а днешният ден още не е свършил.
+        var netCalBalance = days.reduce(function (s, d) {
+            return s + (calorieDayCounts(d, todayKey) ? calcDayScore(d.rec, todayKey).calorieDelta : 0);
+        }, 0);
+        var sleep = days.map(function (d) { var m = d.rec && d.rec.morningCheck; return m && m.sleptWell != null ? (m.sleptWell ? 100 : 0) : null; });
+        var bal = days.map(function (d) { var e = d.rec && d.rec.eveningCheck; return e && e.emotionalBalance != null ? Math.round((e.emotionalBalance - 1) / 2 * 100) : null; });
+        var act = days.map(function (d) { var e = d.rec && d.rec.eveningCheck; return e && e.activityLevel != null ? Math.round((e.activityLevel - 1) / 2 * 100) : null; });
+        var water = days.map(function (d) { var e = d.rec && d.rec.eveningCheck; return e && e.waterIntake != null ? (e.waterIntake ? 100 : 0) : null; });
+        var junk7 = 0;
+        days.forEach(function (d) {
+            ((d.rec && d.rec.extraMeals) || []).forEach(function (em) {
+                if (em.isJunk && (!em.isAddedToPlan || em.countCalories !== false)) junk7++;
+            });
+        });
+        var past = scores.slice(0, -1);
+        var first = past.slice(0, Math.floor(past.length / 2)).filter(function (x) { return x && x.score != null; });
+        var last = past.slice(Math.ceil(past.length / 2)).filter(function (x) { return x && x.score != null; });
+        var trend = 'flat';
+        if (first.length && last.length) {
+            var fh = first.reduce(function (a, x) { return a + x.score; }, 0) / first.length;
+            var lh = last.reduce(function (a, x) { return a + x.score; }, 0) / last.length;
+            if (lh > fh + 0.3) trend = 'up';
+            else if (fh > lh + 0.3) trend = 'down';
+        }
+        var dims = { eng: engagementPct, slp: avg(sleep), bal: avg(bal), act: avg(act), wtr: avg(water) };
+        return {
+            days: days,
+            daysRecorded: recorded.length,
+            avgScore: avgScore,
+            engagementPct: engagementPct,
+            mealAdherence: mealAdh.length ? Math.round(mealAdh.reduce(function (a, b) { return a + b; }, 0) / mealAdh.length) : null,
+            mealDays: mealAdh.length,
+            calAdherence: avg(days.map(function (d) { return dayCalCloseness(d.rec); })),
+            netCalBalance: netCalBalance,
+            totalExtraCals: totalExtraCals,
+            junk7: junk7,
+            trend: trend,
+            streak: streakOf(allData, todayKey, 7),
+            dimensions: dims,
+            healthIndex: computeHealthIndex({
+                engagementPct: engagementPct,
+                sleepPct: dims.slp, balancePct: dims.bal, actPct: dims.act, waterPct: dims.wtr,
+                totalExtraCals: totalExtraCals,
+                extraCalsPerDay: totalExtraCals / Math.max(1, recorded.length)
+            })
+        };
+    }
+
     global.GameScoring = {
         JUNK_MAX_POINTS: JUNK_MAX_POINTS,
         JUNK_PENALTY_PER_MEAL: JUNK_PENALTY_PER_MEAL,
@@ -239,6 +384,11 @@
         calcDayScore: calcDayScore,
         computeHealthIndex: computeHealthIndex,
         buildLast7Days: buildLast7Days,
-        countDaysWithRecords: countDaysWithRecords
+        countDaysWithRecords: countDaysWithRecords,
+        dayMealAdherence: dayMealAdherence,
+        dayCalCloseness: dayCalCloseness,
+        streakOf: streakOf,
+        calorieDayCounts: calorieDayCounts,
+        weekSummary: weekSummary
     };
 }(typeof window !== 'undefined' ? window : this));

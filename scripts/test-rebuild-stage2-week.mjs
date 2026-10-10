@@ -34,7 +34,6 @@ ok(prompt.includes('{chunkTaskSection}') && prompt.includes('{daysRangeHeader}')
 ok(!prompt.includes('Return ONLY JSON for day {startDay}'), 'legacy single-day return removed from KV');
 
 ok(worker.includes("from './step3-chunk.js'"), 'worker imports step3-chunk');
-ok(worker.includes('enrichmentTokenLimitForChunk'), 'worker sizes the optional copy call per chunk');
 ok(!worker.includes('const DAYS_PER_CHUNK = 1'), 'DAYS_PER_CHUNK=1 removed');
 
 const step3Schema = getPlanStepResponseSchema('step3_meal_plan_chunk_1');

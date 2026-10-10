@@ -13,9 +13,8 @@ function assert(cond, msg) {
 const workerSrc = readFileSync('worker.entry.js', 'utf8');
 const foodPickerSrc = readFileSync('food-picker.html', 'utf8');
 
-assert(workerSrc.includes('userFoodList'), 'worker handles userFoodList');
-assert(workerSrc.includes('userFoodExclude'), 'worker handles userFoodExclude');
-assert(workerSrc.includes('buildUserFoodPickerSection'), 'worker builds per-user mainlist section');
+assert(readFileSync('nutrition-engine/index.js', 'utf8').includes('userFoodList'), 'engine handles userFoodList');
+assert(readFileSync('questionnaire-engine-map.js', 'utf8').includes('userFoodExclude'), 'blocked terms include userFoodExclude');
 assert(!foodPickerSrc.includes('/api/admin/set-mainlist'), 'food-picker does not mutate global mainlist');
 assert(!foodPickerSrc.includes('/api/admin/set-blacklist'), 'food-picker does not mutate global blacklist');
 assert(foodPickerSrc.includes('generate-plan-async'), 'food-picker uses async generation');

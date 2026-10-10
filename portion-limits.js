@@ -121,6 +121,7 @@ export const ITEM_MAX_PORTION_G = {
   'овес': 100,
   'протеин суроватка': 50,
   'протеин растителен': 50,
+  'соева кайма': 60,
   // Sweeteners and spreads.
   'мед': 20,
   // Berries are a garnish portion, not a bowl of fruit.

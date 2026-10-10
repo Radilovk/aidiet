@@ -79,14 +79,19 @@ check('production health endpoint', () => {
   if (!data.success) throw new Error(`health: ${r.out}`);
 });
 
+check('nutrition engine (схема, меню, преглед)', () => {
+  const r = run('node', ['scripts/test-nutrition-engine.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
+check('матрица от профили', () => {
+  const r = run('node', ['scripts/test-profile-matrix.mjs', '120']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
 check('plan adequacy (offline)', () => {
   const r = run('node', ['scripts/plan-adequacy/run-offline.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
-});
-
-check('weekly adapt guardrails', () => {
-  const r = run('node', ['scripts/test-weekly-adapt-guardrails.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
 check('profile regen field classification', () => {
@@ -111,11 +116,6 @@ check('skip-breakfast contract', () => {
 
 check('plan reconcile paths', () => {
   const r = run('node', ['scripts/test-plan-reconcile.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
-});
-
-check('late snack mealBreakdown clamp', () => {
-  const r = run('node', ['scripts/test-late-snack-normalize.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
@@ -164,16 +164,6 @@ check('registry architecture', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
-check('precision-first Step 3', () => {
-  const r = run('node', ['scripts/test-precision-first.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
-});
-
-check('rebuild stage 1.7+2', () => {
-  const r = run('node', ['scripts/test-rebuild-stage17-2.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
-});
-
 check('rebuild stage2 week-at-once', () => {
   const r = run('node', ['scripts/test-rebuild-stage2-week.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
@@ -191,11 +181,6 @@ check('plan analytics sync contract', () => {
 
 check('meal solver pipeline', () => {
   const r = run('node', ['scripts/test-solver.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
-});
-
-check('chunk validation kcal-first split', () => {
-  const r = run('node', ['scripts/test-chunk-validation.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-10).join('\n'));
 });
 
@@ -219,33 +204,8 @@ check('profile code', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
-check('dish fingerprint + realism', () => {
-  const r = run('node', ['scripts/test-dish-fingerprint.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
-});
-
 check('deterministic analysis', () => {
   const r = run('node', ['scripts/test-analysis-deterministic.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
-});
-
-check('catalog covers every diet × meal', () => {
-  const r = run('node', ['scripts/catalog-coverage-report.mjs', '--check']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
-});
-
-check('plan quality (all fixtures)', () => {
-  const r = run('node', ['scripts/test-plan-quality.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
-});
-
-check('step3 deterministic builder', () => {
-  const r = run('node', ['scripts/test-step3-deterministic.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
-});
-
-check('plan engine meta', () => {
-  const r = run('node', ['scripts/test-plan-engine.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
@@ -254,24 +214,9 @@ check('dish tags', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
-check('catalog coverage v2', () => {
-  const r = run('node', ['scripts/test-catalog-coverage.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));
-});
-
 check('catalog source inventory', () => {
   const r = run('node', ['scripts/list-catalog-sources.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-8).join('\n'));
-});
-
-check('step3 engine quality', () => {
-  const r = run('node', ['scripts/test-step3-engine-quality.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
-});
-
-check('step2 deterministic builder', () => {
-  const r = run('node', ['scripts/test-step2-deterministic.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-20).join('\n'));
 });
 
 check('step1 deterministic energy contract', () => {
@@ -292,11 +237,6 @@ check('nutrition library merge', () => {
 check('fitness тестове', () => {
   const r = run('npm', ['test'], { cwd: join(root, 'fitness') });
   if (!r.ok) throw new Error(r.out.split('\n').slice(-8).join('\n'));
-});
-
-check('порции и мазнини', () => {
-  const r = run('node', ['scripts/test-plan-portions.mjs']);
-  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
 check('списък с ястия', () => {

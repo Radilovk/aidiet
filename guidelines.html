@@ -30,6 +30,8 @@
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Detect embedded context before first paint -->
     <script>(function(){if(new URLSearchParams(window.location.search).get('embedded')==='1')document.documentElement.setAttribute('data-embedded-tab','1');})();</script>
+    <!-- Вътре в приложението навигацията е на обвивката — собствената не мига при зареждане. -->
+    <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}</style>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
     <style>body{opacity:0}</style>
     <style>
@@ -1185,11 +1187,7 @@
                 <div class="acc-content">
                     <div class="acc-content-inner">
                         <ul class="good-list" id="recommendedFoodsList">
-                            <li>Вода (минимум 2.5л на ден)</li>
-                            <li>Зеленолистни зеленчуци</li>
-                            <li>Чисто месо (пилешко, пуешко)</li>
-                            <li>Риба и морски дарове</li>
-                            <li>Сурови ядки (в умерени количества)</li>
+                            <li>Препоръките ще се появят тук, щом планът ви е готов.</li>
                         </ul>
                     </div>
                 </div>
@@ -1197,16 +1195,13 @@
 
             <div class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-ban"></i> Забранени храни</span>
+                    <span><i class="fas fa-ban"></i> Да избягвате</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
                     <div class="acc-content-inner">
                         <ul class="bad-list" id="forbiddenFoodsList">
-                            <li>Газирани напитки със захар</li>
-                            <li>Пържени храни и фаст фуд</li>
-                            <li>Сладкиши и рафинирана захар</li>
-                            <li>Алкохол (особено концентрати)</li>
+                            <li>Списъкът ще се появи тук, щом планът ви е готов.</li>
                         </ul>
                     </div>
                 </div>
@@ -1265,7 +1260,7 @@
         </div>
 
         <!-- Strategy Detail Modal -->
-        <div class="strategy-modal-overlay" id="strategyModal" onclick="handleStrategyModalClick(event)">
+        <div class="strategy-modal-overlay" id="strategyModal" role="dialog" aria-modal="true" onclick="handleStrategyModalClick(event)">
             <div class="strategy-modal-card" id="strategyModalCard">
                 <div class="strategy-modal-header">
                     <div class="strategy-modal-title">
@@ -1327,7 +1322,7 @@
             <i class="fas fa-compass"></i>
             <h2>Няма налични насоки</h2>
             <p>Създайте вашия персонализиран хранителен план, за да видите вашите макро цели и хранителна стратегия.</p>
-            <a href="questionnaire.html" class="btn-primary">
+            <a href="questionnaire2.html" class="btn-primary" target="_top">
                 <i class="fas fa-play"></i> Създай план
             </a>
         </div>
@@ -1456,7 +1451,8 @@
             supplements: 'fa-pills'
         };
 
-        const MIN_ITEMS_COUNT = 3;
+        // Двигателят дава до 6 съвета и до 5 добавки — показват се всички.
+        const MIN_ITEMS_COUNT = 6;
 
         function escapeHtml(value) {
             if (value === null || value === undefined) return '';
@@ -1519,7 +1515,7 @@
                 let details = content.title || content.name || `${fallbackPrefix} ${index + 1}`;
                 if (content.description) details += ` - ${content.description}`;
                 if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
-                if (content.intake) details += ` - Прием: ${content.intake}`;
+                if (content.intake || content.timing) details += ` - Прием: ${content.intake || content.timing}`;
                 return escapeHtml(details);
             }
             return '';
@@ -1539,7 +1535,10 @@
 
                 const forbiddenFoodsList = document.getElementById('forbiddenFoodsList');
                 if (forbiddenFoodsList && Array.isArray(dietPlan.forbidden) && dietPlan.forbidden.length > 0) {
-                    forbiddenFoodsList.innerHTML = dietPlan.forbidden.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+                    // „✕ Без захар“ е двойно отрицание — показва се „✕ Захар“.
+                    forbiddenFoodsList.innerHTML = dietPlan.forbidden
+                        .map(item => String(item).replace(/^Без\s+/i, ''))
+                        .map(item => `<li>${escapeHtml(item.charAt(0).toUpperCase() + item.slice(1))}</li>`).join('');
                 }
 
                 const psychologyContent = document.getElementById('psychologyContent');
@@ -1709,11 +1708,23 @@
                 let previewText = '';
                 let hasAnyContent = false;
 
+                // Текстовете са от самия план: отделните ключове в localStorage можеха
+                // да останат от предишен план и да се покажат до новите числа.
+                let planStrategy = null;
+                try {
+                    const dp = JSON.parse(localStorage.getItem('dietPlan') || 'null');
+                    planStrategy = dp && dp.strategy && typeof dp.strategy === 'object' ? dp.strategy : null;
+                } catch (_) { planStrategy = null; }
+                const readField = function(key) {
+                    if (planStrategy) return String(planStrategy[key] || '').trim();
+                    return (localStorage.getItem(key) || '').trim();
+                };
                 fields.forEach(function(field) {
-                    let value = (localStorage.getItem(field.key) || '').trim();
+                    let value = readField(field.key);
                     if (!value && field.fallback) {
-                        value = (localStorage.getItem(field.fallback) || '').trim();
+                        value = readField(field.fallback);
                     }
+                    if (field.key === 'afterDinnerMealJustification' && /^Не са необходими/.test(value)) value = '';
                     const section = document.getElementById(field.sectionId);
                     const textEl = document.getElementById(field.textId);
                     if (value && section && textEl) {
@@ -1773,6 +1784,16 @@
             }
         }
 
+        // „Назад“ на Android и Escape затварят прозореца със стратегията.
+        window.NutriPlanHandleBack = function () {
+            const modal = document.getElementById('strategyModal');
+            if (modal && modal.classList.contains('active')) { closeStrategyModal(); return true; }
+            return false;
+        };
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') window.NutriPlanHandleBack();
+        });
+
         function handleStrategyModalClick(event) {
             if (event.target === document.getElementById('strategyModal')) {
                 closeStrategyModal();
@@ -1829,9 +1850,37 @@
             }
         })();
 
+        // Нов план по промените в профила чака одобрение — насоките са още за сегашния.
+        (function showPendingReplaceNote() {
+            try {
+                if (localStorage.getItem('planReplacePending') !== '1') return;
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (document.getElementById('npPendingReplaceNote')) return;
+                    var note = document.createElement('div');
+                    note.id = 'npPendingReplaceNote';
+                    note.setAttribute('role', 'status');
+                    note.style.cssText = 'margin:12px 16px;padding:12px 14px;border-radius:12px;background:#FEF3C7;color:#78350F;font-size:.9rem;line-height:1.45';
+                    note.textContent = 'Новият план по промените ви очаква одобрение от специалист. Насоките по-долу са за сегашния ви план.';
+                    var main = document.querySelector('main, .container, body');
+                    if (main) main.insertBefore(note, main.firstChild);
+                });
+            } catch (_) {}
+        })();
+
         window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
             refreshGuidelinesFromShellData('shell-data-ready');
         });
+
+        // Планът е обновен в друг таб/рамка (седмично меню, промяна от специалиста, чат) —
+        // насоките се преначертават, без презареждане и без logout.
+        (function() {
+            var t = null;
+            window.addEventListener('storage', function(e) {
+                if (e.key !== 'dietPlan' && e.key !== 'planUpdatedAt') return;
+                clearTimeout(t);
+                t = setTimeout(function() { refreshGuidelinesFromShellData('plan-updated'); }, 300);
+            });
+        })();
 
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {
@@ -1873,8 +1922,8 @@
         var tabs = [
             { tab: 'plan', url: 'index.html?app=1&tab=plan' },
             { tab: 'guidelines', url: 'index.html?app=1&tab=guidelines' },
-            { tab: 'profile', url: 'index.html?app=1&tab=profile' },
-            { tab: 'analytics', url: 'index.html?app=1&tab=analytics' }
+            { tab: 'analytics', url: 'index.html?app=1&tab=analytics' },
+            { tab: 'profile', url: 'index.html?app=1&tab=profile' }
         ];
         var currentIndex = 1;
         var touchStartX = 0, touchStartY = 0;
@@ -1884,6 +1933,7 @@
             touchStartY = e.changedTouches[0].clientY;
         }, { passive: true });
         document.addEventListener('touchend', function(e) {
+            if (document.querySelector('#strategyModal.active')) return;
             var dx = e.changedTouches[0].clientX - touchStartX;
             var dy = e.changedTouches[0].clientY - touchStartY;
             if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
@@ -1916,13 +1966,13 @@
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
-            <i class="fas fa-user"></i>
-            <span>Профил</span>
-        </a>
         <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
             <i class="fas fa-chart-bar"></i>
             <span>Анализ</span>
+        </a>
+        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
+            <i class="fas fa-user"></i>
+            <span>Профил</span>
         </a>
     </nav>
 </body>
