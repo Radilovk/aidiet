@@ -1,0 +1,58 @@
+name: KV Bridge
+
+# Ръчно пускан мост към KV на Cloudflare — чете и пише конфигурационни ключове admin_*
+# със секретите на GitHub. Резултатът е в лога на задачата (логовете на публично репо
+# са видими за всички — затова скриптът не допуска клиентски данни, виж scripts/kv-bridge.sh).
+# Файловете в KV/ се променят през репото и се качват от deploy-kv.yml; мостът е за
+# четене, сравнение и за ключове, които живеят само в KV (настройки от админ панела).
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'list | get | put | delete | diff'
+        required: true
+        type: choice
+        options: [list, get, put, delete, diff]
+      key:
+        description: 'Ключ (get/put/delete) или префикс (list), напр. admin_ai_provider'
+        required: false
+        type: string
+      value:
+        description: 'Стойност (само за put)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kv-bridge
+  cancel-in-progress: false
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    # Само собственикът на репото.
+    if: github.actor == github.repository_owner
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run bridge
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BRIDGE_ACTION: ${{ inputs.action }}
+          BRIDGE_KEY: ${{ inputs.key }}
+          BRIDGE_VALUE: ${{ inputs.value }}
+        run: bash scripts/kv-bridge.sh "$BRIDGE_ACTION" "$BRIDGE_KEY" "$BRIDGE_VALUE"

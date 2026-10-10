@@ -49,6 +49,7 @@ uploaded=0
 shopt -s nullglob
 for file in "$KV_DIR"/*.txt; do
   key="$(basename "$file" .txt)"
+  [[ "$key" == "retired-keys" ]] && continue
   if upload_key "$key" "$file"; then
     uploaded=$((uploaded + 1))
   else
@@ -68,9 +69,34 @@ for file in "$KV_DIR"/prompts/*.txt; do
 done
 shopt -u nullglob
 
+# Спрени ключове (KV/retired-keys.txt): изтриват се, ако съществуват.
+# Само изброените — друго в namespace-а (клиенти, профили, настройки) не се пипа.
+deleted=0
+if [[ -f "$KV_DIR/retired-keys.txt" ]]; then
+  while IFS= read -r key || [[ -n "$key" ]]; do
+    key="${key%%#*}"
+    key="$(echo "$key" | tr -d '[:space:]')"
+    [[ -z "$key" ]] && continue
+    # Ключ, за който има файл, никога не се трие (грешка в списъка не бива да махне жив ключ).
+    if [[ -f "$KV_DIR/$key.txt" || -f "$KV_DIR/prompts/$key.txt" ]]; then
+      echo "⚠️  $key е в retired-keys.txt, но има файл — пропуснат"
+      continue
+    fi
+    if wr kv key get --namespace-id="$NAMESPACE_ID" "$key" "${REMOTE_FLAG[@]}" &> /dev/null; then
+      echo "🗑  $key (спрян ключ)"
+      if wr kv key delete --namespace-id="$NAMESPACE_ID" "$key" "${REMOTE_FLAG[@]}" &> /dev/null; then
+        deleted=$((deleted + 1))
+      else
+        echo "❌ Неуспешно изтриване: $key"
+        failed=$((failed + 1))
+      fi
+    fi
+  done < "$KV_DIR/retired-keys.txt"
+fi
+
 echo ""
 echo "=========================================="
-echo "  Готово: $uploaded качени, $failed грешки"
+echo "  Готово: $uploaded качени, $deleted изтрити, $failed грешки"
 echo "=========================================="
 
 if [[ "$failed" -gt 0 ]]; then

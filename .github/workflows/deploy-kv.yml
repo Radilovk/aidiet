@@ -34,14 +34,23 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           KV_UPLOAD_REMOTE: '1'
 
-      - name: Verify sample keys
+      - name: Verify uploaded keys
         run: |
           NS="81fc0991b2764918b682f9ca170abd4b"
-          for key in admin_analysis_prompt admin_strategy_prompt admin_strategy_reviewer_prompt admin_meal_plan_prompt admin_summary_prompt admin_ai_provider admin_ai_model_name admin_ai_model; do
-            echo "Checking $key..."
-            npx wrangler kv key get --namespace-id="$NS" "$key" --remote | head -3
-            echo "..."
+          # Всеки качен файл трябва да се чете обратно от KV; спрените ключове не бива да съществуват.
+          for f in KV/*.txt KV/prompts/*.txt; do
+            key="$(basename "$f" .txt)"
+            [ "$key" = "retired-keys" ] && continue
+            npx wrangler kv key get --namespace-id="$NS" "$key" --remote > /dev/null || { echo "::error::липсва ключ $key"; exit 1; }
           done
+          while IFS= read -r line; do
+            key="$(echo "${line%%#*}" | tr -d '[:space:]')"
+            [ -z "$key" ] && continue
+            if npx wrangler kv key get --namespace-id="$NS" "$key" --remote > /dev/null 2>&1; then
+              echo "::error::спрян ключ още съществува: $key"; exit 1
+            fi
+          done < KV/retired-keys.txt
+          echo "KV е синхронизиран."
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
