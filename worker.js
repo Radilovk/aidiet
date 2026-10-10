@@ -25640,12 +25640,12 @@ var DIFFERENT_FOOD_BEFORE = {
 };
 function namesExcludedFood(nameKey, excludedKey) {
   if (!excludedKey || excludedKey.length < 3) return false;
-  const words = nameKey.split(" ").filter(Boolean);
+  const words2 = nameKey.split(" ").filter(Boolean);
   const want = excludedKey.split(" ").filter(Boolean);
-  for (let i = 0; i + want.length <= words.length; i++) {
-    const hit = want.every((w, j) => j === want.length - 1 && w.length >= 4 ? words[i + j].startsWith(w) : words[i + j] === w);
+  for (let i = 0; i + want.length <= words2.length; i++) {
+    const hit = want.every((w, j) => j === want.length - 1 && w.length >= 4 ? words2[i + j].startsWith(w) : words2[i + j] === w);
     if (!hit) continue;
-    const before = words[i - 1];
+    const before = words2[i - 1];
     if (before && (DIFFERENT_FOOD_BEFORE[excludedKey] || []).includes(before)) continue;
     return true;
   }
