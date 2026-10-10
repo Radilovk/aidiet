@@ -94,11 +94,13 @@ export function buildNutritionPlan(userData, options) {
     extraVeg: mods.includes('more_volume') ? 1 : 0,
   });
   const seed = typeof options.seed === 'number' ? options.seed : hashSeed(options.seed ?? userData?.email ?? userData?.name ?? '');
+  const freeDayNumber = options.freeDayNumber === undefined ? (policy.allowsFreeMeal ? 7 : null) : options.freeDayNumber;
   const week = planWeek({
     prescription,
     policy,
     seed,
-    freeDayNumber: options.freeDayNumber ?? null,
+    freeDayNumber,
+    morningDrink: profile.skipsBreakfast,
     previousWeek: new Set(options.previousWeek || []),
     simplify: mods.includes('simplify_meals'),
     variety: mods.includes('more_variety'),
@@ -109,7 +111,7 @@ export function buildNutritionPlan(userData, options) {
     weekPlan[`day${i + 1}`] = { meals: day.meals, dailyTotals: dayTotals(day.meals) };
   });
 
-  return { profile, policy, prescription, weekPlan, stats: week.stats, macros, modifications: mods };
+  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods };
 }
 
 /** Хранителната схема с думи — както диетологът я дава на клиента. */

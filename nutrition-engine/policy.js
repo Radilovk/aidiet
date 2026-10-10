@@ -154,7 +154,16 @@ export function buildFoodPolicy(profile, options = {}) {
 
   const sport = (profile.activity?.sportBand || 0) >= 2 || profile.goal === 'GAIN' || style === 'high_protein';
 
+  // Свободно хранене в събота/неделя за всички — освен при категорични правила.
+  const noFree = new Set(['T2D', 'IR', 'CEL', 'GOUT', 'IBD']);
+  const allergic = ['NUT', 'PNT', 'SHF', 'FSH', 'EGG', 'SOY'];
+  const allowsFreeMeal = style !== 'keto'
+    && profile.protocol !== 'autoimmune_aip'
+    && !(profile.clinical || []).some(c => noFree.has(c))
+    && !(profile.exclusions || []).some(c => allergic.includes(c));
+
   return {
+    allowsFreeMeal,
     // Без списъка „Избери храни“ — когато с него храненето не може да се сглоби.
     withoutOnly: only.length ? () => buildFoodPolicy(profile, { ...options, onlyFoods: [] }) : null,
     style,

@@ -7544,9 +7544,6 @@ function validatePlan(plan, userData, substitutions = []) {
   };
 }
 
-/** Свободният ден на седмицата — неделя. */
-const FREE_DAY_NUMBER = 7;
-
 /** Семето на менюто: един клиент и една седмица дават едно и също меню. */
 function planSeedOf(data, cycleNumber = 0) {
   return `${data?.email || data?.userId || data?.name || ''}:${cycleNumber}`;
@@ -7567,7 +7564,6 @@ function assembleEnginePlan(data, analysis, options = {}) {
   const engine = buildNutritionPlan(data, {
     kcal,
     seed: planSeedOf(data, options.cycleNumber),
-    freeDayNumber: FREE_DAY_NUMBER,
     previousWeek: options.previousWeek || [],
   });
   analysis.macroGrams = { ...engine.macros };
@@ -7576,7 +7572,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
     carbs: Math.round(engine.macros.carbs * 400 / kcal),
     fats: Math.round(engine.macros.fats * 900 / kcal),
   };
-  const strategy = buildEngineStrategy(engine, data, { kcal, freeDayNumber: FREE_DAY_NUMBER });
+  const strategy = buildEngineStrategy(engine, data, { kcal, freeDayNumber: engine.freeDayNumber });
   const summary = buildPlanSummary({
     userData: data,
     strategy,

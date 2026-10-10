@@ -132,7 +132,7 @@ export function buildEngineStrategy(engine, userData, options) {
     calorieDistribution: mealsText,
     macroDistribution: `Белтък ${round(macros.protein)} г${perKg ? ` (${perKg} г/кг)` : ''}, въглехидрати ${round(macros.carbs)} г, мазнини ${round(macros.fats)} г — по ${policy.styleDef.label.toLowerCase()}.`,
     breakfastStrategy: !slots.includes('Хранене 1')
-      ? 'Без закуска — дневните порции са разпределени в останалите хранения.'
+      ? 'Без закуска — не се налага. Сутрин се предлага по желание хидратация (айран, протеинов шейк или вода с лимон), а порциите са в останалите хранения.'
       : (added.includes('Хранене 1')
         ? 'Леко първо хранене — при този калораж основните хранения иначе излизат прекалено големи.'
         : 'Закуската съчетава белтък, зърнени и плод или зеленчук.'),

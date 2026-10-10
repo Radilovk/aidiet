@@ -14,6 +14,23 @@ export const ENGINE_ID = 'exchange-v4';
 export const ENGINE_VERSION = '4.0';
 export const FREE_MEAL = 'Свободно хранене';
 
+/** Фиксираният десерт към обяда за любителите на сладко (30 г, включен в калориите). */
+export const FIXED_DESSERT = {
+  name: 'Пълномаслен шоколад с лешници',
+  weight: '30г',
+  description: 'Насладете се на 2 реда млечен или черен шоколад с цели лешници.',
+  calories: 168,
+  macros: { protein: 2, carbs: 14, fats: 12 },
+};
+export const FIXED_DESSERT_WEIGHT_GRAMS = 30;
+
+/** Предложение вместо закуска за хората, които не закусват — без калории в плана. */
+export const MORNING_DRINK = {
+  type: 'Напитка',
+  name: 'Сутрешна хидратация (по желание)',
+  description: '• Чаша айран или кефир\n• Протеинов шейк\n• Вода с лимон или билков чай',
+};
+
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:g|гр|г)(?![\p{L}\p{N}])(?:\s*[—-]\s*(.+))?$/iu;
 
@@ -58,7 +75,7 @@ export function weeklySchemeFromPlan(weekPlan, freeMealTarget = null) {
       carbs: totals.carbs,
       fats: totals.fats,
       description: hasFree ? 'Ден със свободно хранене' : 'Ден по хранителната схема',
-      mealBreakdown: meals.map(m => {
+      mealBreakdown: meals.filter(m => m.type !== 'Напитка').map(m => {
         if (m.type === FREE_MEAL) {
           const t = freeMealTarget || { kcal: Number(m._plannedCalories) || 0, protein: 0, carbs: 0, fats: 0 };
           return {
@@ -93,7 +110,7 @@ function lineNutrients(name, grams) {
 
 /** Преизчислява макросите, калориите и теглото на хранене от описанието му. */
 export function recomputeMealFromDescription(meal) {
-  if (!meal || meal.type === FREE_MEAL || !meal.description) return meal;
+  if (!meal || meal.type === FREE_MEAL || meal.type === 'Напитка' || !meal.description) return meal;
   const t = { protein: 0, carbs: 0, fats: 0 };
   let grams = 0;
   for (const raw of String(meal.description).split('\n')) {

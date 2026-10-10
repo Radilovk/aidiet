@@ -118,6 +118,7 @@ export function foodByCatalogName(name) {
  * @property {string[][]} options   всеки вариант е една храна или смес от храни
  * @property {[number, number]} range  порции
  * @property {boolean} with          вариантът влиза в името („с булгур“)
+ * @property {string[]|null} onlyStyles  частта е само за тези хранителни стилове (авокадо при кето)
  */
 
 /**
@@ -148,7 +149,7 @@ function normalizePart(dishId, part) {
   }
   const [min, max] = part.range;
   if (!(min >= 0 && max >= min)) throw new Error(`Ястие ${dishId}: невалиден диапазон ${part.range}`);
-  return { group: part.group, options, range: [min, max], with: !!part.with };
+  return { group: part.group, options, range: [min, max], with: !!part.with, onlyStyles: part.onlyStyles || null };
 }
 
 /** @type {Dish[]} */

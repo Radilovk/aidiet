@@ -53,7 +53,7 @@ export function dailyExchanges(target, policy) {
     MLK: policy.hasAllowed('MLK')
       ? roundHalf(interpolate(s.anchors.MLK, kcal) + (s.anchors.MLK.some(v => v > 0) ? (policy.extraServings.MLK || 0) : 0))
       : 0,
-    SWT: policy.sweets ? 1 : 0,
+    SWT: 0, // десертът е отделен от схемата — планировчикът го добавя към обяда
   };
 
   // Когато зеленчуците и плодовете сами надхвърлят въглехидратите (кето),

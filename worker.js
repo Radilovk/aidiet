@@ -27362,6 +27362,33 @@ var dishes_default = {
             0.5,
             2
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -27438,6 +27465,33 @@ var dishes_default = {
             0.5,
             2
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -27506,6 +27560,33 @@ var dishes_default = {
             0,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -27564,6 +27645,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -27634,6 +27742,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -27703,6 +27838,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -27776,6 +27938,33 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -27858,6 +28047,33 @@ var dishes_default = {
             0.5,
             2
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -27930,6 +28146,33 @@ var dishes_default = {
             2
           ],
           with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -27990,6 +28233,33 @@ var dishes_default = {
           range: [
             0,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -28059,6 +28329,33 @@ var dishes_default = {
           range: [
             1,
             3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -28135,6 +28432,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -28202,6 +28526,33 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -28277,6 +28628,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -28361,6 +28739,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -28425,6 +28830,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -28495,6 +28927,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -28557,6 +29016,33 @@ var dishes_default = {
           range: [
             0,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -28624,6 +29110,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -28693,6 +29206,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -28769,6 +29309,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -28812,6 +29379,33 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -28882,6 +29476,33 @@ var dishes_default = {
             0,
             1
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -28948,6 +29569,33 @@ var dishes_default = {
             0,
             1
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -29011,6 +29659,33 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -29080,6 +29755,33 @@ var dishes_default = {
             2
           ],
           with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       seasonsOnly: [
@@ -29165,6 +29867,33 @@ var dishes_default = {
             0,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -29244,6 +29973,33 @@ var dishes_default = {
             0,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -29310,6 +30066,33 @@ var dishes_default = {
           range: [
             0.5,
             2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -29381,6 +30164,33 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -29470,6 +30280,33 @@ var dishes_default = {
             0.5,
             3
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -29533,6 +30370,33 @@ var dishes_default = {
           range: [
             0.5,
             2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -29601,6 +30465,33 @@ var dishes_default = {
             0,
             2
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -29661,6 +30552,33 @@ var dishes_default = {
           range: [
             0.5,
             2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -29735,6 +30653,33 @@ var dishes_default = {
             0.5,
             2
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -29773,6 +30718,33 @@ var dishes_default = {
           range: [
             0.5,
             2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -29826,6 +30798,33 @@ var dishes_default = {
           range: [
             0.5,
             2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -29896,6 +30895,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -29960,6 +30986,33 @@ var dishes_default = {
           range: [
             0.5,
             2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -30041,6 +31094,33 @@ var dishes_default = {
             0.5,
             2.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -30104,6 +31184,33 @@ var dishes_default = {
             0.5,
             2
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -30153,6 +31260,33 @@ var dishes_default = {
           range: [
             0.5,
             2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -30216,6 +31350,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -30288,6 +31449,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -30365,6 +31553,33 @@ var dishes_default = {
             0,
             1
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -30424,6 +31639,33 @@ var dishes_default = {
           range: [
             0.5,
             1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -30490,6 +31732,33 @@ var dishes_default = {
             0,
             1
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -30545,6 +31814,33 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -30604,6 +31900,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -30657,6 +31980,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -30740,6 +32090,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -30791,6 +32168,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -30871,6 +32275,33 @@ var dishes_default = {
             0,
             1
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -30936,6 +32367,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -30999,6 +32457,33 @@ var dishes_default = {
             0,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -31057,6 +32542,33 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       fixed: [
@@ -31111,6 +32623,33 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -31179,6 +32718,33 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -31252,6 +32818,33 @@ var dishes_default = {
           range: [
             1,
             3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -31335,6 +32928,33 @@ var dishes_default = {
             0.5,
             2
           ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
+          ]
         }
       ],
       sides: [
@@ -31398,6 +33018,33 @@ var dishes_default = {
           range: [
             0.5,
             2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread",
+            "eng_bread"
+          ],
+          range: [
+            0,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            4
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb"
           ]
         }
       ],
@@ -34129,7 +35776,7 @@ function normalizePart(dishId, part) {
   }
   const [min, max] = part.range;
   if (!(min >= 0 && max >= min)) throw new Error(`\u042F\u0441\u0442\u0438\u0435 ${dishId}: \u043D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D ${part.range}`);
-  return { group: part.group, options, range: [min, max], with: !!part.with };
+  return { group: part.group, options, range: [min, max], with: !!part.with, onlyStyles: part.onlyStyles || null };
 }
 var DISHES = dishesDoc.dishes.map((d) => {
   for (const [id] of d.fixed || []) food(id);
@@ -34165,6 +35812,19 @@ var DISHES_BY_ID = new Map(DISHES.map((d) => [d.id, d]));
 var ENGINE_ID = "exchange-v4";
 var ENGINE_VERSION2 = "4.0";
 var FREE_MEAL = "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435";
+var FIXED_DESSERT = {
+  name: "\u041F\u044A\u043B\u043D\u043E\u043C\u0430\u0441\u043B\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434 \u0441 \u043B\u0435\u0448\u043D\u0438\u0446\u0438",
+  weight: "30\u0433",
+  description: "\u041D\u0430\u0441\u043B\u0430\u0434\u0435\u0442\u0435 \u0441\u0435 \u043D\u0430 2 \u0440\u0435\u0434\u0430 \u043C\u043B\u0435\u0447\u0435\u043D \u0438\u043B\u0438 \u0447\u0435\u0440\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434 \u0441 \u0446\u0435\u043B\u0438 \u043B\u0435\u0448\u043D\u0438\u0446\u0438.",
+  calories: 168,
+  macros: { protein: 2, carbs: 14, fats: 12 }
+};
+var FIXED_DESSERT_WEIGHT_GRAMS = 30;
+var MORNING_DRINK = {
+  type: "\u041D\u0430\u043F\u0438\u0442\u043A\u0430",
+  name: "\u0421\u0443\u0442\u0440\u0435\u0448\u043D\u0430 \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F (\u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435)",
+  description: "\u2022 \u0427\u0430\u0448\u0430 \u0430\u0439\u0440\u0430\u043D \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440\n\u2022 \u041F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u0448\u0435\u0439\u043A\n\u2022 \u0412\u043E\u0434\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438\u043B\u0438 \u0431\u0438\u043B\u043A\u043E\u0432 \u0447\u0430\u0439"
+};
 var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:g|гр|г)(?![\p{L}\p{N}])(?:\s*[—-]\s*(.+))?$/iu;
 function isEnginePlan(plan) {
@@ -34198,7 +35858,7 @@ function weeklySchemeFromPlan(weekPlan, freeMealTarget = null) {
       carbs: totals.carbs,
       fats: totals.fats,
       description: hasFree ? "\u0414\u0435\u043D \u0441\u044A\u0441 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" : "\u0414\u0435\u043D \u043F\u043E \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430\u0442\u0430 \u0441\u0445\u0435\u043C\u0430",
-      mealBreakdown: meals.map((m) => {
+      mealBreakdown: meals.filter((m) => m.type !== "\u041D\u0430\u043F\u0438\u0442\u043A\u0430").map((m) => {
         if (m.type === FREE_MEAL) {
           const t = freeMealTarget || { kcal: Number(m._plannedCalories) || 0, protein: 0, carbs: 0, fats: 0 };
           return {
@@ -34229,7 +35889,7 @@ function lineNutrients(name, grams) {
   return { kcal: profile.kcal * k, protein: profile.p * k, carbs: profile.c * k, fats: profile.f * k };
 }
 function recomputeMealFromDescription(meal) {
-  if (!meal || meal.type === FREE_MEAL || !meal.description) return meal;
+  if (!meal || meal.type === FREE_MEAL || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430" || !meal.description) return meal;
   const t = { protein: 0, carbs: 0, fats: 0 };
   let grams = 0;
   for (const raw of String(meal.description).split("\n")) {
@@ -35405,7 +37065,11 @@ function buildFoodPolicy(profile, options = {}) {
   }
   if (style === "keto") noSweets = true;
   const sport = (profile.activity?.sportBand || 0) >= 2 || profile.goal === "GAIN" || style === "high_protein";
+  const noFree = /* @__PURE__ */ new Set(["T2D", "IR", "CEL", "GOUT", "IBD"]);
+  const allergic = ["NUT", "PNT", "SHF", "FSH", "EGG", "SOY"];
+  const allowsFreeMeal = style !== "keto" && profile.protocol !== "autoimmune_aip" && !(profile.clinical || []).some((c) => noFree.has(c)) && !(profile.exclusions || []).some((c) => allergic.includes(c));
   return {
+    allowsFreeMeal,
     // Без списъка „Избери храни“ — когато с него храненето не може да се сглоби.
     withoutOnly: only.length ? () => buildFoodPolicy(profile, { ...options, onlyFoods: [] }) : null,
     style,
@@ -35460,7 +37124,8 @@ function dailyExchanges(target, policy) {
     VEG: roundHalf(interpolate(s.anchors.VEG, kcal)) + (Number(target.extraVeg) || 0),
     FRU: policy.hasAllowed("FRU") ? roundHalf(interpolate(s.anchors.FRU, kcal)) : 0,
     MLK: policy.hasAllowed("MLK") ? roundHalf(interpolate(s.anchors.MLK, kcal) + (s.anchors.MLK.some((v) => v > 0) ? policy.extraServings.MLK || 0 : 0)) : 0,
-    SWT: policy.sweets ? 1 : 0
+    SWT: 0
+    // десертът е отделен от схемата — планировчикът го добавя към обяда
   };
   while (standardSum(daily, "carbs") > macros.carbs && (daily.FRU > 0 || daily.MLK > 0 || daily.VEG > 2)) {
     if (daily.FRU > 0) daily.FRU -= 0.5;
@@ -35597,25 +37262,11 @@ function minPortion(foodId) {
   }
   return minCache.get(foodId);
 }
-var KITCHEN_GRID = (() => {
-  const grid = [];
-  for (let g = 5; g < 50; g += 5) grid.push(g);
-  for (let g = 50; g < 100; g += 10) grid.push(g);
-  for (let g = 100; g < 200; g += 20) grid.push(g);
-  for (let g = 200; g <= 800; g += 50) grid.push(g);
-  return grid;
-})();
+var KITCHEN_GRID = [10, 15, 20, 30, 40, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800];
 function portionSteps(foodId, lo = 0, hi = 800) {
-  const unit = food(foodId).unit;
-  let steps = KITCHEN_GRID;
-  let tolerance = 0;
-  if (unit) {
-    steps = [];
-    for (let n = 1; n * unit.grams <= 800; n++) steps.push(n * unit.grams);
-    tolerance = 0.15;
-  }
-  const floor = Math.max(lo * (1 - tolerance), minPortion(foodId));
-  const inRange = steps.filter((g) => g >= floor - 1e-9 && g <= hi * (1 + tolerance) + 1e-9);
+  const steps = KITCHEN_GRID;
+  const floor = Math.max(lo, minPortion(foodId));
+  const inRange = steps.filter((g) => g >= floor - 1e-9 && g <= hi + 1e-9);
   if (inRange.length) return inRange;
   const pool = steps.filter((g) => g >= floor - 1e-9);
   const from = pool.length ? pool : steps;
@@ -35634,21 +37285,15 @@ function neighbourPortion(foodId, grams, direction, lo = 0, hi = 800) {
   const j = i + direction;
   return j >= 0 && j < steps.length ? steps[j] : null;
 }
-function unitText(unit, grams) {
-  const n = grams / unit.grams;
-  const count = Number.isInteger(n) ? n : Math.round(n * 2) / 2;
-  if (count === 0.5) return `\u043F\u043E\u043B\u043E\u0432\u0438\u043D ${unit.one}`;
-  return `${String(count).replace(".", ",")} ${count === 1 ? unit.one : unit.many}`;
-}
 function portionLine(foodId, grams) {
   const f = food(foodId);
   const g = Math.round(grams);
-  const unit = f.unit;
-  const note = unit && g >= unit.grams / 2 ? ` \u2014 ${unitText(unit, g)}` : "";
+  const note = f.id === "pro_eggs" && g >= 50 ? ` \u2014 ${Math.round(g / 50)} ${g === 50 ? "\u044F\u0439\u0446\u0435" : "\u044F\u0439\u0446\u0430"}` : "";
   return `\u2022 ${f.name} ${g}g${note}`;
 }
 
 // nutrition-engine/meal-builder.js
+var COOKING_FAT_COOK_MAX_G = 20;
 var ADJUSTABLE = /* @__PURE__ */ new Set(["STA", "LEG", "PRO", "FAT"]);
 var APPETITE_GROUPS = /* @__PURE__ */ new Set(["STA", "LEG", "PRO", "VEG"]);
 function totalsOf(parts, fixed) {
@@ -35686,7 +37331,7 @@ function partTotal(part) {
 }
 function foodCap(id, fatScale) {
   const f = food(id);
-  if (isCookingFat(f.name, f.nutritionKey)) return COOKING_FAT_MAX_PORTION_G * Math.min(2, fatScale);
+  if (isCookingFat(f.name, f.nutritionKey)) return COOKING_FAT_COOK_MAX_G;
   return maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP2[f.group] });
 }
 var CATALOG_GROUP2 = {
@@ -35717,77 +37362,6 @@ function makePart(group, foods, range, extra = {}, fatScale = 1) {
     ...extra
   };
 }
-function capacity(parts, group) {
-  let cap = 0;
-  for (const p of parts) {
-    const servings = p.hi / servingOf(p.foods);
-    if (p.group === group) cap += servings;
-    if (p.group === "LEG" && (group === "STA" || group === "PRO")) cap += servings;
-  }
-  return cap;
-}
-function pickSideFood(options, ctx) {
-  const allowed = options.filter((id) => ctx.policy.allowed(id));
-  if (!allowed.length) return null;
-  return allowed.map((id, i) => ({ id, score: ctx.preferenceOf(id) - ctx.usageOf(id) * 0.8 - i * 0.05 })).sort((a, b) => b.score - a.score)[0].id;
-}
-function pickSalad(ctx) {
-  const salads = SIDES.salad.salads.filter((s) => s.foods.every((id) => ctx.policy.allowed(id)));
-  if (!salads.length) return null;
-  return salads.map((s, i) => ({
-    s,
-    score: s.foods.reduce((a, id) => a + ctx.preferenceOf(id), 0) / s.foods.length - ctx.usageOf(`salad:${s.name.toLowerCase()}`) * 1.5 - i * 0.02
-  })).sort((a, b) => b.score - a.score)[0].s;
-}
-function sideParts(dish, parts, quota, mealKind, ctx) {
-  const allowedSides = new Set(dish.sides);
-  const out = [];
-  const short = (g) => (quota[g] || 0) - capacity(parts, g);
-  const sideAllowed = (key) => allowedSides.has(key) && SIDES[key].meals.includes(mealKind);
-  if (sideAllowed("bread") && short("STA") >= 0.75) {
-    const id = pickSideFood(SIDES.bread.options, ctx);
-    if (id) out.push(makePart("STA", [id], [0.5, Math.min(3 * (ctx.appetite || 1), short("STA") + 0.5)], { side: "bread", sideName: food(id).label }));
-  }
-  const vegShort = (quota.VEG || 0) * 100 - capacity(parts, "VEG") * 100;
-  if (sideAllowed("salad") && vegShort >= 60) {
-    const salad = pickSalad(ctx);
-    if (salad) {
-      const servings = Math.min(3, vegShort / 100 + 0.5);
-      out.push(makePart("VEG", salad.foods, [0.5, servings], { side: "salad", sideName: salad.name.toLowerCase() }));
-      if (ctx.policy.allowed(SIDES.salad.dressing)) {
-        const [lo, hi] = SIDES.salad.dressingRange;
-        const scale = ctx.policy.styleDef.fatPartScale || 1;
-        out.push(makePart("FAT", [SIDES.salad.dressing], [lo, hi * scale], { side: "dressing" }, scale));
-      }
-    }
-  }
-  if (sideAllowed("fruit") && short("FRU") >= 0.75) {
-    const id = pickSideFood(SIDES.fruit.options, ctx);
-    if (id) out.push(makePart("FRU", [id], [0.9, Math.max(1, Math.min(1.5, short("FRU") + 0.25))], { side: "fruit", sideName: food(id).label }));
-  }
-  if (sideAllowed("yogurt") && short("MLK") >= 0.5) {
-    const id = pickSideFood(SIDES.yogurt.options, ctx);
-    if (id) out.push(makePart("MLK", [id], [0.5, Math.min(1.5, short("MLK") + 0.25)], { side: "yogurt", sideName: food(id).label }));
-  }
-  if (sideAllowed("cheese") && short("PRO") >= 1.5) {
-    const id = pickSideFood(SIDES.cheese.options, ctx);
-    if (id) out.push(makePart("PRO", [id], SIDES.cheese.range, { side: "cheese", sideName: food(id).label }));
-  }
-  if (sideAllowed("nuts") && short("FAT") >= 1) {
-    const id = pickSideFood(SIDES.nuts.options, ctx);
-    if (id) out.push(makePart("FAT", [id], [0.5, Math.min(2, short("FAT"))], { side: "nuts", sideName: food(id).label }));
-  }
-  const fatShort = short("FAT") - out.filter((p) => p.group === "FAT").reduce((a, p) => a + p.hi / servingOf(p.foods), 0);
-  if (fatShort >= 1.5 && SIDES.fats.meals.includes(mealKind)) {
-    const id = pickSideFood(SIDES.fats.options, ctx);
-    if (id) out.push(makePart("FAT", [id], [1, Math.min(SIDES.fats.range[1], fatShort)], { side: "fats", sideName: food(id).label }));
-  }
-  if ((quota.SWT || 0) >= 1 && SIDES.dessert.meals.includes(mealKind)) {
-    const id = pickSideFood(SIDES.dessert.options, ctx);
-    if (id) out.push(makePart("SWT", [id], SIDES.dessert.range, { side: "dessert", sideName: food(id).label, adjustable: false }));
-  }
-  return out;
-}
 function initialSizing(parts, fixed, quota, target) {
   const byGroup = (g) => parts.filter((p) => p.group === g);
   for (const g of ["VEG", "FRU", "MLK", "SWT"]) {
@@ -35805,6 +37379,14 @@ function initialSizing(parts, fixed, quota, target) {
     if (!list.length) return;
     list.forEach((p) => setPartGrams(p, 0));
     let need = Math.max(0, residual(key));
+    if (group === "STA") {
+      for (const p of list) {
+        const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
+        setPartGrams(p, perGram > 0 ? need / perGram : p.lo);
+        need = Math.max(0, residual(key));
+      }
+      return;
+    }
     const wsum = list.reduce((a, p) => a + p.weight, 0);
     for (const p of list) {
       const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
@@ -35883,6 +37465,7 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   const parts = [];
   for (let i = 0; i < dish.parts.length; i++) {
     const spec = dish.parts[i];
+    if (spec.onlyStyles && !spec.onlyStyles.includes(ctx.policy.style)) continue;
     const option = spec.options[choice[i] ?? 0];
     const optional = spec.range[0] === 0;
     if (!option || !option.every((id) => ctx.policy.allowed(id))) {
@@ -35900,11 +37483,9 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   const fixedAll = dish.fixed.filter(([id]) => ctx.policy.allowed(id));
   const flavour = fixedAll.filter(([id]) => food(id).group === "FREE").map(([id]) => food(id).label);
   const fixed = fixedAll.filter(([id]) => food(id).group !== "FREE");
-  parts.push(...sideParts(dish, parts, quota, mealKind, ctx));
   initialSizing(parts, fixed, quota, target);
   const carbsCap = ctx.policy.style === "keto" || ctx.policy.style === "low_carb";
   const error = refine(parts, fixed, target, carbsCap);
-  for (const p of parts) if (p.side && partTotal(p) <= 0) p.grams = p.grams.map(() => 0);
   const kept = parts.filter((p) => partTotal(p) > 0);
   return {
     parts: kept,
@@ -35933,6 +37514,7 @@ function describeMeal(built) {
     p.foods.forEach((id, i) => push(id, p.grams[i]));
   }
   for (const [id, g] of built.fixed) push(id, g);
+  for (const l of lines) l.grams = snapPortion(l.id, l.grams, 0, 800);
   return lines;
 }
 
@@ -35977,17 +37559,9 @@ var MEAL_KIND = {
 };
 var CANDIDATES_PER_MEAL = 12;
 var FIT_WEIGHTS = { PRO: 2, STA: 1.2, FRU: 0.8, MLK: 0.8, VEG: 0.4, FAT: 0.6 };
-var SIDE_CAPACITY = {
-  bread: { STA: 3 },
-  salad: { VEG: 3, FAT: 2 },
-  fruit: { FRU: 1.5 },
-  yogurt: { MLK: 1.5 },
-  cheese: { PRO: 1.5 },
-  nuts: { FAT: 2 }
-};
 var CARRY_LIMIT = 0.4;
 var MAX_USES_PER_WEEK = { main: 2, breakfast: 3, snack: 3, late: 3 };
-var APPETITE_BASE_KCAL = 2400;
+var APPETITE_BASE_KCAL = 1800;
 function hashSeed(value) {
   const s = String(value ?? "");
   let h = 2166136261;
@@ -36116,7 +37690,6 @@ function dishFit(dish, quota, policy, mealKind) {
       add(floor, g, part.range[0]);
     }
   }
-  for (const side of dish.sides) for (const [g, n] of Object.entries(SIDE_CAPACITY[side] || {})) add(cap, g, n);
   if (mealKind === "main" || mealKind === "breakfast") add(cap, "FAT", 3);
   let penalty = 0;
   for (const [g, w] of Object.entries(FIT_WEIGHTS)) {
@@ -36201,22 +37774,27 @@ function recordUse(dish, built, state) {
 function round(n) {
   return Math.round(n);
 }
-function toPlanMeal(type, dish, built) {
+function toPlanMeal(type, dish, built, withDessert = false) {
   const lines = describeMeal(built);
   const description = lines.map((l) => portionLine(l.id, l.grams)).join("\n");
-  const dessertPart = built.parts.find((p) => p.side === "dessert");
-  const dessertGrams = dessertPart ? dessertPart.grams.reduce((a, b) => a + b, 0) : 0;
+  const dessert = withDessert ? { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros }, _weightAddedToMeal: true } : null;
+  const dessertGrams = dessert ? FIXED_DESSERT_WEIGHT_GRAMS : 0;
   const totalGrams = lines.reduce((a, l) => a + l.grams, 0) + dessertGrams;
+  const sum = { protein: 0, carbs: 0, fats: 0 };
+  for (const l of lines) {
+    const n = nutrientsOf(l.id, l.grams);
+    sum.protein += n.protein;
+    sum.carbs += n.carbs;
+    sum.fats += n.fats;
+  }
   const macros = {
-    protein: round(built.totals.protein),
-    carbs: round(built.totals.carbs),
-    fats: round(built.totals.fats)
+    protein: round(sum.protein + (dessert?.macros.protein || 0)),
+    carbs: round(sum.carbs + (dessert?.macros.carbs || 0)),
+    fats: round(sum.fats + (dessert?.macros.fats || 0))
   };
-  const sides = built.parts.filter((p) => p.side && p.side !== "dressing" && p.side !== "dessert" && p.sideName);
-  const name = [built.name, ...sides.map((p) => p.sideName)].join(" + ");
   const meal = {
     type,
-    name,
+    name: built.name,
     dishId: dish.id,
     description,
     weight: `${round(totalGrams)}\u0433`,
@@ -36225,24 +37803,7 @@ function toPlanMeal(type, dish, built) {
     benefits: mealBenefits(built)
   };
   if (built.flavour?.length) meal.recipe = `\u041E\u0432\u043A\u0443\u0441\u0435\u0442\u0435 \u0441: ${built.flavour.join(", ")}.`;
-  const dessert = built.parts.find((p) => p.side === "dessert");
-  if (dessert) {
-    const grams = dessert.grams.reduce((a, b) => a + b, 0);
-    const id = dessert.foods[0];
-    const n = { protein: 0, carbs: 0, fats: 0 };
-    const p = food(id).per100;
-    n.protein = round(p.protein * grams / 100);
-    n.carbs = round(p.carbs * grams / 100);
-    n.fats = round(p.fats * grams / 100);
-    meal.dessert = {
-      name: food(id).name,
-      weight: `${grams}\u0433`,
-      description: `\u041F\u043B\u0430\u043D\u0438\u0440\u0430\u043D \u0434\u0435\u0441\u0435\u0440\u0442: ${grams} \u0433 ${food(id).label} \u0441\u043B\u0435\u0434 \u043E\u0431\u044F\u0434\u0430 \u2014 \u0432\u043A\u043B\u044E\u0447\u0435\u043D \u0432 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u0434\u0435\u043D\u044F.`,
-      calories: round(n.protein * 4 + n.carbs * 4 + n.fats * 9),
-      macros: n,
-      _weightAddedToMeal: true
-    };
-  }
+  if (dessert) meal.dessert = dessert;
   return meal;
 }
 function carryTarget(target, carry) {
@@ -36254,7 +37815,7 @@ function carryTarget(target, carry) {
   }
   return out;
 }
-function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false }) {
+function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false }) {
   const rng = rngFrom(seed);
   const eligible = eligibleDishes(policy);
   const ctx = {
@@ -36301,6 +37862,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
   let relaxed = null;
   for (let day = 1; day <= 7; day++) {
     const meals = [];
+    if (morningDrink) meals.push({ ...MORNING_DRINK });
     const todayDishes = /* @__PURE__ */ new Set();
     state.mainFoodsToday = /* @__PURE__ */ new Set();
     let carry = { protein: 0, carbs: 0, fats: 0 };
@@ -36320,7 +37882,9 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       const maxUses = (MAX_USES_PER_WEEK[kind] ?? 3) + (simplify ? 1 : 0) - (variety && kind === "main" ? 1 : 0);
       pool = pool.filter((d) => !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !(kind === "main" && state.yesterdayDishes.has(d.id)));
       if (!pool.length) pool = (eligible[kind] || []).filter((d) => !todayDishes.has(d.id));
-      const target = carryTarget(plan.target, carry);
+      const dessertToday = policy.sweets && type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2";
+      const base = dessertToday ? Object.fromEntries(["protein", "carbs", "fats"].map((k) => [k, Math.max(0, plan.target[k] - FIXED_DESSERT.macros[k])])) : plan.target;
+      const target = carryTarget(base, carry);
       const ranked = pool.map((d) => ({
         d,
         pre: -dishFit(d, plan.quota, policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 - (state.yesterdayDishes.has(d.id) ? 2 : 0) + rng() * 1.5
@@ -36353,7 +37917,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         for (const id of proteinPart?.foods || []) state.mainFoodsToday.add(id);
       }
       for (const k of ["protein", "carbs", "fats"]) carry[k] = target[k] - best.built.totals[k];
-      const meal = toPlanMeal(type, best.dish, best.built);
+      const meal = toPlanMeal(type, best.dish, best.built, dessertToday);
       meal.targetCalories = round(plan.target.kcal);
       meals.push(meal);
     }
@@ -36427,11 +37991,13 @@ function buildNutritionPlan(userData, options) {
     extraVeg: mods.includes("more_volume") ? 1 : 0
   });
   const seed = typeof options.seed === "number" ? options.seed : hashSeed(options.seed ?? userData?.email ?? userData?.name ?? "");
+  const freeDayNumber = options.freeDayNumber === void 0 ? policy.allowsFreeMeal ? 7 : null : options.freeDayNumber;
   const week = planWeek({
     prescription,
     policy,
     seed,
-    freeDayNumber: options.freeDayNumber ?? null,
+    freeDayNumber,
+    morningDrink: profile.skipsBreakfast,
     previousWeek: new Set(options.previousWeek || []),
     simplify: mods.includes("simplify_meals"),
     variety: mods.includes("more_variety")
@@ -36440,7 +38006,7 @@ function buildNutritionPlan(userData, options) {
   week.days.forEach((day, i) => {
     weekPlan[`day${i + 1}`] = { meals: day.meals, dailyTotals: dayTotals(day.meals) };
   });
-  return { profile, policy, prescription, weekPlan, stats: week.stats, macros, modifications: mods };
+  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods };
 }
 
 // nutrition-engine/strategy.js
@@ -36539,7 +38105,7 @@ function buildEngineStrategy(engine, userData, options) {
     weeklyMealPattern: `\u041E\u0441\u043D\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043F\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430: ${mainsText}. \u0415\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435 \u0441\u0435 \u043F\u043E\u0432\u0442\u0430\u0440\u044F \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u0434\u0432\u0430 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E.`,
     calorieDistribution: mealsText,
     macroDistribution: `\u0411\u0435\u043B\u0442\u044A\u043A ${round2(macros.protein)} \u0433${perKg ? ` (${perKg} \u0433/\u043A\u0433)` : ""}, \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${round2(macros.carbs)} \u0433, \u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${round2(macros.fats)} \u0433 \u2014 \u043F\u043E ${policy.styleDef.label.toLowerCase()}.`,
-    breakfastStrategy: !slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u0411\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u0434\u043D\u0435\u0432\u043D\u0438\u0442\u0435 \u043F\u043E\u0440\u0446\u0438\u0438 \u0441\u0430 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u0432 \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F." : added.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u041B\u0435\u043A\u043E \u043F\u044A\u0440\u0432\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043F\u0440\u0438 \u0442\u043E\u0437\u0438 \u043A\u0430\u043B\u043E\u0440\u0430\u0436 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0438\u043D\u0430\u0447\u0435 \u0438\u0437\u043B\u0438\u0437\u0430\u0442 \u043F\u0440\u0435\u043A\u0430\u043B\u0435\u043D\u043E \u0433\u043E\u043B\u0435\u043C\u0438." : "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u044A\u0447\u0435\u0442\u0430\u0432\u0430 \u0431\u0435\u043B\u0442\u044A\u043A, \u0437\u044A\u0440\u043D\u0435\u043D\u0438 \u0438 \u043F\u043B\u043E\u0434 \u0438\u043B\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A.",
+    breakfastStrategy: !slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u0411\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043B\u0430\u0433\u0430. \u0421\u0443\u0442\u0440\u0438\u043D \u0441\u0435 \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430 \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F (\u0430\u0439\u0440\u0430\u043D, \u043F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u0448\u0435\u0439\u043A \u0438\u043B\u0438 \u0432\u043E\u0434\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D), \u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432 \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F." : added.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u041B\u0435\u043A\u043E \u043F\u044A\u0440\u0432\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043F\u0440\u0438 \u0442\u043E\u0437\u0438 \u043A\u0430\u043B\u043E\u0440\u0430\u0436 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0438\u043D\u0430\u0447\u0435 \u0438\u0437\u043B\u0438\u0437\u0430\u0442 \u043F\u0440\u0435\u043A\u0430\u043B\u0435\u043D\u043E \u0433\u043E\u043B\u0435\u043C\u0438." : "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u044A\u0447\u0435\u0442\u0430\u0432\u0430 \u0431\u0435\u043B\u0442\u044A\u043A, \u0437\u044A\u0440\u043D\u0435\u043D\u0438 \u0438 \u043F\u043B\u043E\u0434 \u0438\u043B\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A.",
     mealTiming: {
       pattern: `${slots.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F`,
       fastingWindows: "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 2\u20133 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u043D.",
@@ -41918,15 +43484,15 @@ var MIN_MEALS_PER_DAY = 1;
 var MAX_MEALS_PER_DAY = 5;
 var MEAL_ORDER_MAP = { "\u041D\u0430\u043F\u0438\u0442\u043A\u0430": 0, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": 0, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": 1, "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435": 1, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": 2, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": 3, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5": 4 };
 var ALLOWED_MEAL_TYPES = ["\u041D\u0430\u043F\u0438\u0442\u043A\u0430", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
-var FIXED_DESSERT = {
+var FIXED_DESSERT2 = {
   name: "\u041F\u044A\u043B\u043D\u043E\u043C\u0430\u0441\u043B\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434 \u0441 \u043B\u0435\u0448\u043D\u0438\u0446\u0438",
   weight: "30\u0433",
   description: "\u041D\u0430\u0441\u043B\u0430\u0434\u0435\u0442\u0435 \u0441\u0435 \u043D\u0430 2 \u0440\u0435\u0434\u0430 \u043C\u043B\u0435\u0447\u0435\u043D \u0438\u043B\u0438 \u0447\u0435\u0440\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434 \u0441 \u0446\u0435\u043B\u0438 \u043B\u0435\u0448\u043D\u0438\u0446\u0438.",
   calories: 168,
   macros: { protein: 2, carbs: 14, fats: 12 }
 };
-var FIXED_DESSERT_WEIGHT_GRAMS = (() => {
-  const m = FIXED_DESSERT.weight.match(/(\d+(?:\.\d+)?)/);
+var FIXED_DESSERT_WEIGHT_GRAMS2 = (() => {
+  const m = FIXED_DESSERT2.weight.match(/(\d+(?:\.\d+)?)/);
   return m ? parseFloat(m[1]) : 0;
 })();
 function macrosToCalories(macros) {
@@ -42717,7 +44283,6 @@ function validatePlan(plan, userData, substitutions = []) {
     earliestErrorStep
   };
 }
-var FREE_DAY_NUMBER = 7;
 function planSeedOf(data, cycleNumber = 0) {
   return `${data?.email || data?.userId || data?.name || ""}:${cycleNumber}`;
 }
@@ -42727,7 +44292,6 @@ function assembleEnginePlan(data, analysis, options = {}) {
   const engine = buildNutritionPlan(data, {
     kcal,
     seed: planSeedOf(data, options.cycleNumber),
-    freeDayNumber: FREE_DAY_NUMBER,
     previousWeek: options.previousWeek || []
   });
   analysis.macroGrams = { ...engine.macros };
@@ -42736,7 +44300,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
     carbs: Math.round(engine.macros.carbs * 400 / kcal),
     fats: Math.round(engine.macros.fats * 900 / kcal)
   };
-  const strategy = buildEngineStrategy(engine, data, { kcal, freeDayNumber: FREE_DAY_NUMBER });
+  const strategy = buildEngineStrategy(engine, data, { kcal, freeDayNumber: engine.freeDayNumber });
   const summary = buildPlanSummary({
     userData: data,
     strategy,

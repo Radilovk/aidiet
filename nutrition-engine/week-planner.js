@@ -11,9 +11,9 @@
  *    към следващото хранене на деня, както диетологът балансира деня.
  */
 
-import { DISHES, SIDES, food, PATTERNS, VEGAN_BREAKFASTS } from './knowledge.js';
+import { DISHES, SIDES, food, nutrientsOf, PATTERNS, VEGAN_BREAKFASTS } from './knowledge.js';
 import { buildMeal, describeMeal, portionLine } from './meal-builder.js';
-import { FREE_MEAL } from './plan-shape.js';
+import { FREE_MEAL, FIXED_DESSERT, FIXED_DESSERT_WEIGHT_GRAMS, MORNING_DRINK } from './plan-shape.js';
 import { mealBenefits } from './benefits.js';
 
 export const MEAL_KIND = {
@@ -27,20 +27,11 @@ export { FREE_MEAL };
 const CANDIDATES_PER_MEAL = 12;
 /** Колко тежи липсата на капацитет по група при предварителното подреждане. */
 const FIT_WEIGHTS = { PRO: 2, STA: 1.2, FRU: 0.8, MLK: 0.8, VEG: 0.4, FAT: 0.6 };
-/** Колко порции може да добави всяка гарнитура. */
-const SIDE_CAPACITY = {
-  bread: { STA: 3 },
-  salad: { VEG: 3, FAT: 2 },
-  fruit: { FRU: 1.5 },
-  yogurt: { MLK: 1.5 },
-  cheese: { PRO: 1.5 },
-  nuts: { FAT: 2 },
-};
 const CARRY_LIMIT = 0.4;
 /** Колко пъти седмично едно ястие може да се повтори в даден вид хранене. */
 const MAX_USES_PER_WEEK = { main: 2, breakfast: 3, snack: 3, late: 3 };
 /** Над тези калории порциите в ястията растат пропорционално. */
-const APPETITE_BASE_KCAL = 2400;
+const APPETITE_BASE_KCAL = 1800;
 
 /* ─── Детерминистичен случаен ред ─────────────────────────────────────── */
 
@@ -190,7 +181,6 @@ function dishFit(dish, quota, policy, mealKind) {
       add(floor, g, part.range[0]);
     }
   }
-  for (const side of dish.sides) for (const [g, n] of Object.entries(SIDE_CAPACITY[side] || {})) add(cap, g, n);
   if (mealKind === 'main' || mealKind === 'breakfast') add(cap, 'FAT', 3);
   let penalty = 0;
   for (const [g, w] of Object.entries(FIT_WEIGHTS)) {
@@ -286,22 +276,32 @@ function round(n) {
   return Math.round(n);
 }
 
-function toPlanMeal(type, dish, built) {
+/**
+ * @param {string} type
+ * @param {import('./knowledge.js').Dish} dish
+ * @param {ReturnType<typeof buildMeal>} built
+ * @param {boolean} withDessert  фиксираният десерт към обяда (за сладкоежки)
+ */
+function toPlanMeal(type, dish, built, withDessert = false) {
   const lines = describeMeal(built);
   const description = lines.map(l => portionLine(l.id, l.grams)).join('\n');
-  const dessertPart = built.parts.find(p => p.side === 'dessert');
-  const dessertGrams = dessertPart ? dessertPart.grams.reduce((a, b) => a + b, 0) : 0;
+  const dessert = withDessert ? { ...FIXED_DESSERT, macros: { ...FIXED_DESSERT.macros }, _weightAddedToMeal: true } : null;
+  const dessertGrams = dessert ? FIXED_DESSERT_WEIGHT_GRAMS : 0;
   const totalGrams = lines.reduce((a, l) => a + l.grams, 0) + dessertGrams;
+  // Стойностите са от описанието — каквото е написано, това е сметнато.
+  const sum = { protein: 0, carbs: 0, fats: 0 };
+  for (const l of lines) {
+    const n = nutrientsOf(l.id, l.grams);
+    sum.protein += n.protein; sum.carbs += n.carbs; sum.fats += n.fats;
+  }
   const macros = {
-    protein: round(built.totals.protein),
-    carbs: round(built.totals.carbs),
-    fats: round(built.totals.fats),
+    protein: round(sum.protein + (dessert?.macros.protein || 0)),
+    carbs: round(sum.carbs + (dessert?.macros.carbs || 0)),
+    fats: round(sum.fats + (dessert?.macros.fats || 0)),
   };
-  const sides = built.parts.filter(p => p.side && p.side !== 'dressing' && p.side !== 'dessert' && p.sideName);
-  const name = [built.name, ...sides.map(p => p.sideName)].join(' + ');
   const meal = {
     type,
-    name,
+    name: built.name,
     dishId: dish.id,
     description,
     weight: `${round(totalGrams)}г`,
@@ -310,24 +310,7 @@ function toPlanMeal(type, dish, built) {
     benefits: mealBenefits(built),
   };
   if (built.flavour?.length) meal.recipe = `Овкусете с: ${built.flavour.join(', ')}.`;
-  const dessert = built.parts.find(p => p.side === 'dessert');
-  if (dessert) {
-    const grams = dessert.grams.reduce((a, b) => a + b, 0);
-    const id = dessert.foods[0];
-    const n = { protein: 0, carbs: 0, fats: 0 };
-    const p = food(id).per100;
-    n.protein = round(p.protein * grams / 100);
-    n.carbs = round(p.carbs * grams / 100);
-    n.fats = round(p.fats * grams / 100);
-    meal.dessert = {
-      name: food(id).name,
-      weight: `${grams}г`,
-      description: `Планиран десерт: ${grams} г ${food(id).label} след обяда — включен в калориите на деня.`,
-      calories: round(n.protein * 4 + n.carbs * 4 + n.fats * 9),
-      macros: n,
-      _weightAddedToMeal: true,
-    };
-  }
+  if (dessert) meal.dessert = dessert;
   return meal;
 }
 
@@ -351,8 +334,9 @@ function carryTarget(target, carry) {
  * @param {Set<string>} [args.previousWeek]  ястия от миналата седмица
  * @param {boolean} [args.simplify]  по-малко различни и по-прости ястия
  * @param {boolean} [args.variety]   всяко основно ястие най-много веднъж
+ * @param {boolean} [args.morningDrink]  сутрешна напитка вместо закуска
  */
-export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false }) {
+export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false, morningDrink = false }) {
   const rng = rngFrom(seed);
   const eligible = eligibleDishes(policy);
   const ctx = {
@@ -405,6 +389,8 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
   let relaxed = null;
   for (let day = 1; day <= 7; day++) {
     const meals = [];
+    // Без закуска не се натиска за закуска — предлага се напитка за хидратация.
+    if (morningDrink) meals.push({ ...MORNING_DRINK });
     const todayDishes = new Set();
     state.mainFoodsToday = new Set();
     let carry = { protein: 0, carbs: 0, fats: 0 };
@@ -429,7 +415,12 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
         && (state.dishUses.get(d.id) || 0) < maxUses
         && !(kind === 'main' && state.yesterdayDishes.has(d.id)));
       if (!pool.length) pool = (eligible[kind] || []).filter(d => !todayDishes.has(d.id));
-      const target = carryTarget(plan.target, carry);
+      // Десертът към обяда влиза в калориите на обяда.
+      const dessertToday = policy.sweets && type === 'Хранене 2';
+      const base = dessertToday
+        ? Object.fromEntries(['protein', 'carbs', 'fats'].map(k => [k, Math.max(0, plan.target[k] - FIXED_DESSERT.macros[k])]))
+        : plan.target;
+      const target = carryTarget(base, carry);
 
       // Предварителен ред: неизползвани и предпочитани напред, после се
       // сглобяват най-добрите кандидати и печели най-точният и разнообразен.
@@ -475,7 +466,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
         for (const id of proteinPart?.foods || []) state.mainFoodsToday.add(id);
       }
       for (const k of ['protein', 'carbs', 'fats']) carry[k] = target[k] - best.built.totals[k];
-      const meal = toPlanMeal(type, best.dish, best.built);
+      const meal = toPlanMeal(type, best.dish, best.built, dessertToday);
       meal.targetCalories = round(plan.target.kcal);
       meals.push(meal);
     }

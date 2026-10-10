@@ -1,7 +1,5 @@
 /**
- * Порции, каквито човек мери в кухнята: битова мярка, където храната има
- * такава (яйце, филия, плод, чаена лъжичка), иначе кръгли грамове — през 5 г
- * до 50 г, през 10 г до 100 г, през 20 г до 200 г и през 50 г нагоре.
+ * Порции, каквито човек мери в кухнята — виж KITCHEN_GRID.
  */
 
 import { food } from './knowledge.js';
@@ -25,31 +23,20 @@ export function minPortion(foodId) {
   return minCache.get(foodId);
 }
 
-export const KITCHEN_GRID = (() => {
-  const grid = [];
-  for (let g = 5; g < 50; g += 5) grid.push(g);
-  for (let g = 50; g < 100; g += 10) grid.push(g);
-  for (let g = 100; g < 200; g += 20) grid.push(g);
-  for (let g = 200; g <= 800; g += 50) grid.push(g);
-  return grid;
-})();
+/**
+ * Кухненската мрежа: от 50 г нагоре — на 50 г (основни, гарнитури, салати);
+ * под 50 г — на 10 г, а мазнините и подправките и на 15 г
+ * (олио 15–20 г, ядки 10–30 г).
+ */
+export const KITCHEN_GRID = [10, 15, 20, 30, 40, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800];
 
 /** Допустимите количества на храната в диапазона [lo, hi] грама. */
 export function portionSteps(foodId, lo = 0, hi = 800) {
-  const unit = food(foodId).unit;
-  let steps = KITCHEN_GRID;
-  let tolerance = 0;
-  if (unit) {
-    // Бройките не са на грам: яйце от 50 г е една порция, макар порцията да е 54 г.
-    steps = [];
-    for (let n = 1; n * unit.grams <= 800; n++) steps.push(n * unit.grams);
-    tolerance = 0.15;
-  }
-  const floor = Math.max(lo * (1 - tolerance), minPortion(foodId));
-  const inRange = steps.filter(g => g >= floor - 1e-9 && g <= hi * (1 + tolerance) + 1e-9);
+  const steps = KITCHEN_GRID;
+  const floor = Math.max(lo, minPortion(foodId));
+  const inRange = steps.filter(g => g >= floor - 1e-9 && g <= hi + 1e-9);
   if (inRange.length) return inRange;
-  // Диапазонът е по-тесен от стъпката — най-близката стъпка до него.
-  // Никога под минималната порция — 5 г олио или 3 г чесън не са порция.
+  // Диапазонът е по-тесен от стъпката — най-близката стъпка, но не под минимума.
   const pool = steps.filter(g => g >= floor - 1e-9);
   const from = pool.length ? pool : steps;
   const mid = (lo + hi) / 2;
@@ -72,18 +59,10 @@ export function neighbourPortion(foodId, grams, direction, lo = 0, hi = 800) {
   return j >= 0 && j < steps.length ? steps[j] : null;
 }
 
-function unitText(unit, grams) {
-  const n = grams / unit.grams;
-  const count = Number.isInteger(n) ? n : Math.round(n * 2) / 2;
-  if (count === 0.5) return `половин ${unit.one}`;
-  return `${String(count).replace('.', ',')} ${count === 1 ? unit.one : unit.many}`;
-}
-
 /** Ред от описанието: „• Яйца 100g — 2 яйца“. Латинското g го чете и приложението. */
 export function portionLine(foodId, grams) {
   const f = food(foodId);
   const g = Math.round(grams);
-  const unit = f.unit;
-  const note = unit && g >= unit.grams / 2 ? ` — ${unitText(unit, g)}` : '';
+  const note = f.id === 'pro_eggs' && g >= 50 ? ` — ${Math.round(g / 50)} ${g === 50 ? 'яйце' : 'яйца'}` : '';
   return `• ${f.name} ${g}g${note}`;
 }

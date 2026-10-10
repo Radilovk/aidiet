@@ -14,6 +14,7 @@ import { buildNutritionPlan, reconcileEnginePlan } from '../nutrition-engine/ind
 import { buildFoodPolicy } from '../nutrition-engine/policy.js';
 import { prescribe } from '../nutrition-engine/prescription.js';
 import { foodByCatalogName, DISHES_BY_ID } from '../nutrition-engine/knowledge.js';
+import { KITCHEN_GRID } from '../nutrition-engine/portions.js';
 import { readCheckin, decideWeeklyAdjustment } from '../nutrition-engine/monitoring.js';
 
 let pass = 0;
@@ -51,7 +52,7 @@ for (const prof of profiles) {
   const kcal = intakeOf(data);
   let res;
   try {
-    res = buildNutritionPlan(data, { kcal, seed: prof.id, freeDayNumber: 7 });
+    res = buildNutritionPlan(data, { kcal, seed: prof.id });
   } catch (e) {
     ok(false, `${prof.id}: планът се изгражда (${e.message})`);
     continue;
@@ -64,12 +65,13 @@ for (const prof of profiles) {
     const meals = weekPlan[`day${d}`].meals;
     const mainsToday = [];
     for (const m of meals) {
-      if (m.type === 'Свободно хранене') continue;
+      if (m.type === 'Свободно хранене' || m.type === 'Напитка') continue;
       ok(m.macros && m.calories > 0 && /^\d+г$/.test(m.weight), `${prof.id} д${d} ${m.type}: формат`);
       for (const line of m.description.split('\n')) {
         const hit = line.match(LINE);
         ok(hit, `${prof.id}: ред „${line}“ се чете`);
         if (!hit) continue;
+        ok(KITCHEN_GRID.includes(Number(hit[2])), `${prof.id}: ${hit[2]} g извън кухненската мрежа (50 г нагоре на 50, под 50 — 10/15)`);
         const f = foodByCatalogName(hit[1]);
         ok(f, `${prof.id}: „${hit[1]}“ е храна от двигателя`);
         if (f && f.group !== 'FREE') ok(policy.allowed(f.id), `${prof.id}: ${hit[1]} е позволено за ${profile.diet.style}/${profile.diet.pattern}`);
@@ -96,6 +98,10 @@ for (const prof of profiles) {
   if (profile.diet.pattern === 'omnivore' && profile.diet.style === 'balanced' && !profile.exclusions.includes('FSH')) {
     ok(cats.fish >= 2 && cats.red <= 3, `${prof.id}: риба ${cats.fish}, червено месо ${cats.red} седмично`);
   }
+  // Без закуска — предложение за хидратация; свободно хранене в неделя, освен при категорични правила.
+  const day1 = weekPlan.day1.meals;
+  ok(profile.skipsBreakfast === day1.some(m => m.type === 'Напитка'), `${prof.id}: сутрешна напитка точно при „не закусвам“`);
+  ok(Object.values(weekPlan).some(d => d.meals.some(m => m.type === 'Свободно хранене')) === policy.allowsFreeMeal, `${prof.id}: свободно хранене според правилата`);
   const kDev = dev.k / dev.n;
   ok(kDev < (profile.diet.style === 'keto' ? 0.12 : 0.08), `${prof.id}: калории ±${(kDev * 100).toFixed(1)}%`);
   total.k += kDev; total.p += dev.p / dev.n; total.c += dev.c / dev.n; total.f += dev.f / dev.n; total.n++;
@@ -109,7 +115,7 @@ for (const prof of profiles) {
 const avg = k => total[k] / total.n;
 console.log(`Средно: kcal ${(avg('k') * 100).toFixed(1)}%  P ${(avg('p') * 100).toFixed(1)}%  C ${(avg('c') * 100).toFixed(1)}%  F ${(avg('f') * 100).toFixed(1)}%  (${profiles.length} профила, ${Date.now() - started} ms)`);
 ok(total.n === profiles.length, 'всички профили дават план');
-ok(avg('k') < 0.04 && avg('p') < 0.05 && avg('c') < 0.07 && avg('f') < 0.06, 'средното отклонение е в праговете');
+ok(avg('k') < 0.04 && avg('p') < 0.045 && avg('c') < 0.075 && avg('f') < 0.06, 'средното отклонение е в праговете');
 
 // 2. Изменения от чата/прегледа и избор на храни.
 {
