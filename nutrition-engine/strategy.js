@@ -153,7 +153,7 @@ export function buildEngineStrategy(engine, userData, options) {
     avoidFoodCategories: avoidOf(profile, policy, blocked),
     foodsToInclude: recommendationsOf(prescription, stats, policy),
     foodsToAvoid: avoidOf(profile, policy, blocked),
-    psychologicalSupport: addedNote ? [addedNote] : [],
+    psychologicalSupport: [...(addedNote ? [addedNote] : []), ...(profile.aiNotes || [])],
     hydrationStrategy: `${waterNeedLiters(profile)} л вода дневно, разпределена през деня.`,
     profileCode: encodeProfileCode(profile, { kcal: options.kcal, ...macros }),
     weeklyScheme: weeklySchemeFromPlan(weekPlan, prescription.meals['Хранене 2']?.target || null),

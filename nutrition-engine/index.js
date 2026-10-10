@@ -64,11 +64,15 @@ function increaseProtein(macros, profile) {
 
 /**
  * @param {object} userData
- * @param {{ kcal: number, macros?: { protein: number, carbs: number, fats: number }, seed?: number|string,
+ * @param {{ kcal: number, macros?: { protein: number, carbs: number, fats: number }, seed?: number|string, slotAvoid?: Array<{ day: number, type: string, avoid: string[] }>,
  *   freeDayNumber?: number|null, previousWeek?: Iterable<string>, date?: Date, dietaryModifier?: string }} options
  */
 export function buildNutritionPlan(userData, options) {
-  const mods = Array.isArray(userData?.planModifications) ? userData.planModifications.map(String) : [];
+  const hints = userData?._aiHints || null;
+  const mods = [...new Set([
+    ...(Array.isArray(userData?.planModifications) ? userData.planModifications.map(String) : []),
+    ...(hints?.approach || []),
+  ])];
   const profile = applyModifications(compileProfile(userData || {}, { dietaryModifier: options.dietaryModifier }), mods);
   const kcal = Math.round(Number(options.kcal) || 0);
   if (!(kcal > 0)) throw new Error('Липсва дневен калориен прием за плана');
@@ -82,7 +86,7 @@ export function buildNutritionPlan(userData, options) {
 
   const policy = buildFoodPolicy(profile, {
     blockedTerms: userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {}),
-    loves: userData?.dietLove,
+    loves: [userData?.dietLove, ...(hints?.loves || [])].filter(Boolean).join(', '),
     adherence: adherenceMap(userData?._adherenceRatio),
     date: options.date,
     sweetsCraving: hasSweetsCraving(userData),
@@ -102,6 +106,7 @@ export function buildNutritionPlan(userData, options) {
     freeDayNumber,
     morningDrink: profile.skipsBreakfast,
     previousWeek: new Set(options.previousWeek || []),
+    slotAvoid: options.slotAvoid || [],
     simplify: mods.includes('simplify_meals'),
     variety: mods.includes('more_variety'),
   });

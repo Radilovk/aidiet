@@ -571,11 +571,18 @@ export function compileProfile(userData = {}, overrides = {}) {
   // Полето от протоколните въпросници за непоносимости.
   for (const label of asList(data.foodSensitivities)) addAll(exclusions, exclusionsFromText(label));
 
-  const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns]);
+  // Подсказките от AI (свободен текст) само ДОБАВЯТ — ограничения, състояния, навици.
+  const hints = data._aiHints && typeof data._aiHints === 'object' ? data._aiHints : null;
+  if (hints) {
+    addAll(exclusions, hints.exclusions || []);
+    addAll(clinical, hints.clinical || []);
+  }
+  const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns, ...(hints?.pattern ? [hints.pattern] : [])]);
   const adjustments = [];
   const style = resolveConflicts(
     firstStyle(modifier.styles)
       || firstStyle(prefs.styles.filter(s => s !== 'balanced'))
+      || (hints?.style && hints.style !== 'balanced' ? hints.style : null)
       || clinicalDefaultStyle(clinical, protocolId)
       || 'balanced',
     pattern,
@@ -591,7 +598,7 @@ export function compileProfile(userData = {}, overrides = {}) {
     exclusions.add('EGG');
   }
 
-  const behaviors = new Set([...prefs.behaviors, ...modifier.behaviors]);
+  const behaviors = new Set([...prefs.behaviors, ...modifier.behaviors, ...(hints?.behaviors || [])]);
   for (const label of asList(data.eatingHabits)) {
     const code = EATING_HABIT_LABELS.get(normLabel(label));
     if (code) behaviors.add(code);
@@ -639,6 +646,7 @@ export function compileProfile(userData = {}, overrides = {}) {
     slots,
     unmapped: [...new Set(unmapped)],
     adjustments,
+    aiNotes: hints?.cautions || [],
   };
 }
 

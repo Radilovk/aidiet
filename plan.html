@@ -10767,6 +10767,32 @@
                 progress.querySelectorAll('.game-qa-dot').forEach(function(dot, i) {
                     dot.className = 'game-qa-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
                 });
+                if (q.type === 'text') {
+                    var ta = document.createElement('textarea');
+                    ta.className = 'game-qa-text';
+                    ta.rows = 3;
+                    ta.maxLength = 400;
+                    ta.placeholder = 'Напишете свободно (може да оставите празно)';
+                    ta.style.cssText = 'width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;margin-bottom:10px';
+                    optsWrap.appendChild(ta);
+                    var next = document.createElement('button');
+                    next.type = 'button';
+                    next.className = 'game-qa-option';
+                    next.textContent = 'Напред';
+                    next.onclick = function() {
+                        var text = ta.value.trim();
+                        if (text) answers.push({ questionId: q.id, value: text });
+                        idx++;
+                        if (idx >= questions.length) {
+                            overlay.remove();
+                            onComplete(answers);
+                        } else {
+                            renderStep();
+                        }
+                    };
+                    optsWrap.appendChild(next);
+                    return;
+                }
                 (q.options || ['Да', 'Не']).forEach(function(opt) {
                     var btn = document.createElement('button');
                     btn.type = 'button';

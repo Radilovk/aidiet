@@ -10041,10 +10041,15 @@ function compileProfile(userData = {}, overrides = {}) {
   addAll(exclusions, exclusionsFromText(data.dietDislike));
   if (clinical.has("CEL")) exclusions.add("GLU");
   for (const label of asList(data.foodSensitivities)) addAll(exclusions, exclusionsFromText(label));
-  const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns]);
+  const hints = data._aiHints && typeof data._aiHints === "object" ? data._aiHints : null;
+  if (hints) {
+    addAll(exclusions, hints.exclusions || []);
+    addAll(clinical, hints.clinical || []);
+  }
+  const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns, ...hints?.pattern ? [hints.pattern] : []]);
   const adjustments = [];
   const style = resolveConflicts(
-    firstStyle(modifier.styles) || firstStyle(prefs.styles.filter((s) => s !== "balanced")) || clinicalDefaultStyle(clinical, protocolId) || "balanced",
+    firstStyle(modifier.styles) || firstStyle(prefs.styles.filter((s) => s !== "balanced")) || (hints?.style && hints.style !== "balanced" ? hints.style : null) || clinicalDefaultStyle(clinical, protocolId) || "balanced",
     pattern,
     adjustments
   );
@@ -10056,7 +10061,7 @@ function compileProfile(userData = {}, overrides = {}) {
     exclusions.add("LAC");
     exclusions.add("EGG");
   }
-  const behaviors = /* @__PURE__ */ new Set([...prefs.behaviors, ...modifier.behaviors]);
+  const behaviors = /* @__PURE__ */ new Set([...prefs.behaviors, ...modifier.behaviors, ...hints?.behaviors || []]);
   for (const label of asList(data.eatingHabits)) {
     const code = EATING_HABIT_LABELS.get(normLabel(label));
     if (code) behaviors.add(code);
@@ -10101,7 +10106,8 @@ function compileProfile(userData = {}, overrides = {}) {
     skipsBreakfast,
     slots,
     unmapped: [...new Set(unmapped)],
-    adjustments
+    adjustments,
+    aiNotes: hints?.cautions || []
   };
 }
 function libraryDietProfileOf(profile) {
@@ -10381,6 +10387,8 @@ function extractQuestionnaireBlockedTerms(userData = {}) {
       pushTermsFromValue(terms, seen, entry);
     }
   }
+  const ai = userData._aiHints;
+  if (ai && Array.isArray(ai.blockedTerms)) for (const t of ai.blockedTerms) pushTermsFromValue(terms, seen, t);
   const textMap = userData._dq_text_map || {};
   for (const key of Object.keys(userData)) {
     if (!key.startsWith("dq_")) continue;
@@ -38051,7 +38059,7 @@ function carryTarget(target, carry) {
   }
   return out;
 }
-function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false }) {
+function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [] }) {
   const rng = rngFrom(seed);
   const eligible = eligibleDishes(policy);
   const snackPolicy = {
@@ -38150,7 +38158,20 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         }
         return found;
       };
-      let best = pick(ranked.map((r) => r.d), kind === "snack" ? snackCtx : ctx);
+      const avoid = slotAvoid.filter((a) => a.day === day && a.type === type).flatMap((a) => a.avoid);
+      let slotCtx = kind === "snack" ? snackCtx : ctx;
+      let slotPool = ranked.map((r) => r.d);
+      if (avoid.length) {
+        const terms = avoid.map((t) => normalizeFoodKey(t));
+        const basePolicy = slotCtx.policy;
+        const avoidPolicy = {
+          ...basePolicy,
+          allowed: (id) => basePolicy.allowed(id) && !terms.some((t) => t && (normalizeFoodKey(food(id).name).includes(t) || normalizeFoodKey(food(id).label).includes(t)))
+        };
+        slotCtx = { ...slotCtx, policy: avoidPolicy };
+        slotPool = (eligibleDishes(avoidPolicy)[kind] || []).filter((d) => !todayDishes.has(d.id)).slice(0, CANDIDATES_PER_MEAL * 2);
+      }
+      let best = pick(slotPool, slotCtx);
       if (!best && policy.withoutOnly) {
         relaxed = relaxed || (() => {
           const p = policy.withoutOnly();
@@ -38215,7 +38236,11 @@ function increaseProtein(macros, profile) {
   return { protein, carbs: Math.max(0, macros.carbs - added), fats: macros.fats };
 }
 function buildNutritionPlan(userData, options) {
-  const mods = Array.isArray(userData?.planModifications) ? userData.planModifications.map(String) : [];
+  const hints = userData?._aiHints || null;
+  const mods = [.../* @__PURE__ */ new Set([
+    ...Array.isArray(userData?.planModifications) ? userData.planModifications.map(String) : [],
+    ...hints?.approach || []
+  ])];
   const profile = applyModifications(compileProfile(userData || {}, { dietaryModifier: options.dietaryModifier }), mods);
   const kcal = Math.round(Number(options.kcal) || 0);
   if (!(kcal > 0)) throw new Error("\u041B\u0438\u043F\u0441\u0432\u0430 \u0434\u043D\u0435\u0432\u0435\u043D \u043A\u0430\u043B\u043E\u0440\u0438\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u0437\u0430 \u043F\u043B\u0430\u043D\u0430");
@@ -38228,7 +38253,7 @@ function buildNutritionPlan(userData, options) {
   if (mods.includes("increase_protein")) macros = increaseProtein(macros, profile);
   const policy = buildFoodPolicy(profile, {
     blockedTerms: userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {}),
-    loves: userData?.dietLove,
+    loves: [userData?.dietLove, ...hints?.loves || []].filter(Boolean).join(", "),
     adherence: adherenceMap(userData?._adherenceRatio),
     date: options.date,
     sweetsCraving: hasSweetsCraving(userData),
@@ -38248,6 +38273,7 @@ function buildNutritionPlan(userData, options) {
     freeDayNumber,
     morningDrink: profile.skipsBreakfast,
     previousWeek: new Set(options.previousWeek || []),
+    slotAvoid: options.slotAvoid || [],
     simplify: mods.includes("simplify_meals"),
     variety: mods.includes("more_variety")
   });
@@ -38370,7 +38396,7 @@ function buildEngineStrategy(engine, userData, options) {
     avoidFoodCategories: avoidOf(profile, policy, blocked),
     foodsToInclude: recommendationsOf(prescription, stats, policy),
     foodsToAvoid: avoidOf(profile, policy, blocked),
-    psychologicalSupport: addedNote ? [addedNote] : [],
+    psychologicalSupport: [...addedNote ? [addedNote] : [], ...profile.aiNotes || []],
     hydrationStrategy: `${waterNeedLiters(profile)} \u043B \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0432\u043D\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F.`,
     profileCode: encodeProfileCode(profile, { kcal: options.kcal, ...macros }),
     weeklyScheme: weeklySchemeFromPlan(weekPlan, prescription.meals["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2"]?.target || null),
@@ -38384,6 +38410,87 @@ function buildEngineStrategy(engine, userData, options) {
     engine: ENGINE_ID,
     _deterministicCore: true
   };
+}
+
+// nutrition-engine/ai-assist.js
+var APPROACH_CODES = ["simplify_meals", "more_variety", "gentle_digestion", "more_volume", "smaller_portions"];
+var VOCABULARY = {
+  exclusions: EXCLUSIONS,
+  clinical: CLINICAL,
+  behaviors: BEHAVIORS,
+  styles: Object.keys(DIET_STYLES),
+  patterns: Object.keys(DIET_PATTERNS),
+  approach: APPROACH_CODES
+};
+var SKIP_KEY = /^(_|dq_)|name|email|phone|password|token|id$|date|birth|city|address|userId|uid/i;
+var MAX_TEXT_CHARS = 1800;
+function collectFreeText(userData = {}) {
+  const out = [];
+  let total = 0;
+  for (const [field, value] of Object.entries(userData || {})) {
+    if (typeof value !== "string" || SKIP_KEY.test(field)) continue;
+    const text = value.trim().replace(/\s+/g, " ");
+    if (text.length < 12 || !/\s/.test(text)) continue;
+    if (total + text.length > MAX_TEXT_CHARS) break;
+    out.push({ field, text });
+    total += text.length;
+  }
+  return out;
+}
+function textHash(items) {
+  const s = items.map((i) => `${i.field}:${i.text}`).join("|");
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (h << 5) + h + s.charCodeAt(i) >>> 0;
+  return h.toString(36);
+}
+var pickKnown = (list, allowed) => [...new Set((Array.isArray(list) ? list : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))];
+var cleanTerms = (list, max = 8) => [...new Set((Array.isArray(list) ? list : []).map((x) => String(x).trim().toLowerCase()).filter((x) => x.length >= 3 && x.length <= 40 && !/[{}<>]/.test(x)))].slice(0, max);
+function normalizeIntakeHints(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const style = DIET_STYLES[raw.style] ? raw.style : null;
+  const pattern = DIET_PATTERNS[raw.pattern] ? raw.pattern : null;
+  return {
+    exclusions: pickKnown(raw.exclusions, EXCLUSIONS),
+    clinical: pickKnown(raw.clinical, CLINICAL),
+    behaviors: pickKnown(raw.behaviors, BEHAVIORS),
+    style,
+    pattern: pattern === "omnivore" ? null : pattern,
+    blockedTerms: cleanTerms(raw.blockedFoods),
+    loves: cleanTerms(raw.lovedFoods),
+    approach: pickKnown(raw.approach, APPROACH_CODES),
+    cautions: (Array.isArray(raw.cautions) ? raw.cautions : []).map((x) => String(x).trim().slice(0, 160)).filter(Boolean).slice(0, 4)
+  };
+}
+function normalizeFeedbackHints(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    modifications: pickKnown(raw.approach, APPROACH_CODES),
+    blockedTerms: cleanTerms(raw.blockedFoods, 5),
+    exclusions: pickKnown(raw.exclusions, EXCLUSIONS)
+  };
+}
+function weekDigest(weekPlan) {
+  const lines = [];
+  for (let d = 1; d <= 7; d++) {
+    const meals = weekPlan?.[`day${d}`]?.meals || [];
+    const parts = meals.filter((m) => m.macros).map((m) => `${m.type.replace("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ", "H")}: ${m.name}`);
+    if (parts.length) lines.push(`\u0434\u0435\u043D ${d} | ${parts.join(" | ")}`);
+  }
+  return lines.join("\n");
+}
+function normalizeSwaps(raw, weekPlan, max = 6) {
+  const list = Array.isArray(raw?.swaps) ? raw.swaps : [];
+  const out = [];
+  for (const s of list) {
+    const day = Number(s?.day);
+    const type = /^H?(\d)$/i.test(String(s?.slot || s?.type || "")) ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ${String(s.slot || s.type).replace(/\D/g, "")}` : String(s?.type || "");
+    const meal = weekPlan?.[`day${day}`]?.meals?.find((m) => m.type === type);
+    const avoid = cleanTerms(s?.avoid, 3);
+    if (!meal || !meal.macros || !avoid.length) continue;
+    out.push({ day, type, avoid, reason: String(s?.reason || "").trim().slice(0, 160) });
+    if (out.length >= max) break;
+  }
+  return out;
 }
 
 // nutrition-engine/monitoring.js
@@ -38417,6 +38524,12 @@ var WEEKLY_CHECKIN_QUESTIONS = [
     text: "\u041A\u043E\u0435 \u0431\u0435\u0448\u0435 \u043D\u0430\u0439-\u0442\u0440\u0443\u0434\u043D\u043E \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430?",
     type: "choice",
     options: ["\u041D\u0438\u0449\u043E \u043E\u0441\u043E\u0431\u0435\u043D\u043E", "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u044F\u043D\u0435\u0442\u043E \u043E\u0442\u043D\u0435\u043C\u0430 \u0432\u0440\u0435\u043C\u0435", "\u041F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u043C\u0438 \u0438\u0434\u0432\u0430\u0442 \u043C\u043D\u043E\u0433\u043E", "\u041B\u0438\u043F\u0441\u0432\u0430\u0448\u0435 \u043C\u0438 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435", "\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E (\u043F\u043E\u0434\u0443\u0432\u0430\u043D\u0435, \u0442\u0435\u0436\u0435\u0441\u0442)"]
+  },
+  {
+    id: "note",
+    text: "\u0418\u0441\u043A\u0430\u0442\u0435 \u043B\u0438 \u0434\u0430 \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u0435 \u043D\u0435\u0449\u043E \u0437\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430? (\u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435)",
+    type: "text",
+    options: []
   }
 ];
 var KCAL_PER_KG = 7700;
@@ -43157,7 +43270,23 @@ async function runWeeklyAdaptation(env, payload, jobId) {
   const caloriesBefore = parseFinalCalories(plan.analysis?.Final_Calories);
   try {
     const enrichedData = normalizeQuestionnaireData(userData);
+    await applyIntakeHints(env, enrichedData);
     const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, answers, weeklyAdaptHistory);
+    const note = String((answers || []).find((a) => a.questionId === "note")?.value || "").trim();
+    if (note.length >= 6) {
+      const hints = normalizeFeedbackHints(await aiHelperJson(env, "admin_feedback_hints_prompt", {
+        freeText: note.slice(0, 500),
+        approachList: VOCABULARY.approach.join(", "),
+        exclusionsList: VOCABULARY.exclusions.join(", ")
+      }, enrichedData, "feedback_hints"));
+      if (hints) {
+        decision.modifications = [.../* @__PURE__ */ new Set([...decision.modifications, ...hints.modifications, ...hints.blockedTerms.map((t) => `exclude_food:${t}`)])];
+        if (hints.exclusions.length) {
+          enrichedData._aiHints = { ...enrichedData._aiHints || {}, exclusions: [.../* @__PURE__ */ new Set([...enrichedData._aiHints?.exclusions || [], ...hints.exclusions])] };
+        }
+        decision.changeSummary = [...decision.changeSummary, "\u0412\u0437\u0435\u0442\u043E \u0435 \u043F\u0440\u0435\u0434\u0432\u0438\u0434 \u0432\u0430\u0448\u0435\u0442\u043E \u043C\u043D\u0435\u043D\u0438\u0435"].slice(0, 4);
+      }
+    }
     enrichedData.planModifications = mergeWeeklyModifications(
       userData.planModifications || enrichedData.planModifications,
       decision.modifications
@@ -43172,7 +43301,8 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       enforceCalorieGuardrails(analysis, enrichedData, tdee);
     }
     const previousWeek = Object.values(plan.weekPlan).flatMap((d) => d?.meals || []).map((m) => m.dishId).filter(Boolean);
-    const newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
+    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
+    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps }));
     try {
       await finalizeValidatedPlan(env, newPlan, enrichedData);
     } catch (validationErr) {
@@ -44541,7 +44671,8 @@ function assembleEnginePlan(data, analysis, options = {}) {
   const engine = buildNutritionPlan(data, {
     kcal,
     seed: planSeedOf(data, options.cycleNumber),
-    previousWeek: options.previousWeek || []
+    previousWeek: options.previousWeek || [],
+    slotAvoid: options.slotAvoid || []
   });
   analysis.macroGrams = { ...engine.macros };
   analysis.macroRatios = {
@@ -44577,11 +44708,62 @@ function assembleEnginePlan(data, analysis, options = {}) {
   console.log(`Plan engine ${ENGINE_ID}: ${strategy.profileCode} \u2014 ${step3DurationMs} ms`);
   return plan;
 }
+async function aiHelperJson(env, promptKey, vars, data, stepName) {
+  try {
+    const template = await getCustomPrompt(env, promptKey);
+    if (!template || !String(template).trim()) return null;
+    const prompt = Object.entries(vars).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), String(template));
+    const response = await callAIModel(env, prompt, 900, stepName, null, data, null);
+    return parseAIResponse(response);
+  } catch (error) {
+    console.warn(`${stepName}: AI \u043F\u043E\u043C\u043E\u0449\u043D\u0438\u043A\u044A\u0442 \u0435 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442 \u2014 ${error.message}`);
+    return null;
+  }
+}
+var freeTextBlock = (items) => items.length ? items.map((i) => `- ${i.text}`).join("\n") : "\u043D\u044F\u043C\u0430";
+async function applyIntakeHints(env, data) {
+  const items = collectFreeText(data);
+  if (!items.length) {
+    delete data._aiHints;
+    return;
+  }
+  const hash = textHash(items);
+  if (data._aiHints?.hash === hash) return;
+  const raw = await aiHelperJson(env, "admin_intake_hints_prompt", {
+    freeText: freeTextBlock(items),
+    exclusionsList: VOCABULARY.exclusions.join(", "),
+    clinicalList: VOCABULARY.clinical.join(", "),
+    behaviorsList: VOCABULARY.behaviors.join(", "),
+    stylesList: VOCABULARY.styles.join(", "),
+    patternsList: VOCABULARY.patterns.join(", "),
+    approachList: VOCABULARY.approach.join(", ")
+  }, data, "intake_hints");
+  const hints = normalizeIntakeHints(raw);
+  if (hints) data._aiHints = { ...hints, hash };
+  else delete data._aiHints;
+}
+async function reviewMenuWithAI(env, data, plan, rebuild) {
+  const raw = await aiHelperJson(env, "admin_menu_review_prompt", {
+    freeText: freeTextBlock(collectFreeText(data)),
+    menu: weekDigest(plan.weekPlan)
+  }, data, "menu_review");
+  const swaps = normalizeSwaps(raw, plan.weekPlan);
+  if (!swaps.length) return plan;
+  try {
+    const next = rebuild(swaps);
+    next._meta.aiSwaps = swaps;
+    return next;
+  } catch (error) {
+    console.warn(`menu_review: \u0437\u0430\u043C\u0435\u043D\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u0438\u0437\u043F\u044A\u043B\u043D\u0438\u0445\u0430 \u2014 ${error.message}`);
+    return plan;
+  }
+}
 async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   enrichUserDataEngineContext(data);
   const sessionId = generateUniqueId("session");
   const tokens = { input: 0, output: 0, total: 0 };
   try {
+    await applyIntakeHints(env, data);
     const analysis = await runStep1Analysis(env, data, sessionId, "step1_analysis", null, tokens);
     if (typeof onAnalysisReady === "function") {
       try {
@@ -44590,7 +44772,8 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         console.warn("Could not persist partial analysis status:", progressError);
       }
     }
-    const plan = assembleEnginePlan(data, analysis);
+    let plan = assembleEnginePlan(data, analysis);
+    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { slotAvoid: swaps }));
     plan._meta.tokenUsage = tokens;
     await finalizeAISessionLogs(env, sessionId);
     return plan;

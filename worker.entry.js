@@ -66,6 +66,15 @@ import {
   ENGINE_ID,
 } from './nutrition-engine/index.js';
 import { buildEngineStrategy } from './nutrition-engine/strategy.js';
+import {
+  VOCABULARY,
+  collectFreeText,
+  textHash,
+  normalizeIntakeHints,
+  normalizeFeedbackHints,
+  normalizeSwaps,
+  weekDigest,
+} from './nutrition-engine/ai-assist.js';
 import { compileProfile } from './profile-code.js';
 import {
   WEEKLY_CHECKIN_QUESTIONS,
@@ -5859,7 +5868,24 @@ async function runWeeklyAdaptation(env, payload, jobId) {
 
   try {
     const enrichedData = normalizeQuestionnaireData(userData);
+    await applyIntakeHints(env, enrichedData);
     const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, answers, weeklyAdaptHistory);
+    // Свободният коментар от прегледа → само промени в менюто, не в калориите.
+    const note = String((answers || []).find(a => a.questionId === 'note')?.value || '').trim();
+    if (note.length >= 6) {
+      const hints = normalizeFeedbackHints(await aiHelperJson(env, 'admin_feedback_hints_prompt', {
+        freeText: note.slice(0, 500),
+        approachList: VOCABULARY.approach.join(', '),
+        exclusionsList: VOCABULARY.exclusions.join(', '),
+      }, enrichedData, 'feedback_hints'));
+      if (hints) {
+        decision.modifications = [...new Set([...decision.modifications, ...hints.modifications, ...hints.blockedTerms.map(t => `exclude_food:${t}`)])];
+        if (hints.exclusions.length) {
+          enrichedData._aiHints = { ...(enrichedData._aiHints || {}), exclusions: [...new Set([...(enrichedData._aiHints?.exclusions || []), ...hints.exclusions])] };
+        }
+        decision.changeSummary = [...decision.changeSummary, 'Взето е предвид вашето мнение'].slice(0, 4);
+      }
+    }
     enrichedData.planModifications = mergeWeeklyModifications(
       userData.planModifications || enrichedData.planModifications,
       decision.modifications,
@@ -5879,7 +5905,9 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       .flatMap(d => d?.meals || [])
       .map(m => m.dishId)
       .filter(Boolean);
-    const newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
+    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
+    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) =>
+      assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps }));
 
     try {
       await finalizeValidatedPlan(env, newPlan, enrichedData);
@@ -7553,7 +7581,7 @@ function planSeedOf(data, cycleNumber = 0) {
  *
  * @param {object} data
  * @param {object} analysis
- * @param {{ cycleNumber?: number, previousWeek?: string[] }} [options]
+ * @param {{ cycleNumber?: number, previousWeek?: string[], slotAvoid?: Array<{ day: number, type: string, avoid: string[] }> }} [options]
  */
 function assembleEnginePlan(data, analysis, options = {}) {
   const kcal = parseFinalCalories(analysis.Final_Calories || analysis.recommendedCalories);
@@ -7562,6 +7590,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
     kcal,
     seed: planSeedOf(data, options.cycleNumber),
     previousWeek: options.previousWeek || [],
+    slotAvoid: options.slotAvoid || [],
   });
   analysis.macroGrams = { ...engine.macros };
   analysis.macroRatios = {
@@ -7599,6 +7628,67 @@ function assembleEnginePlan(data, analysis, options = {}) {
 }
 
 /**
+ * AI помощникът (по желание): чете свободния текст на клиента и връща
+ * предложения в затворен речник. Алгоритъмът проверява всяко от тях.
+ * При липсващ промпт в KV или при грешка — null, планът се генерира същото.
+ */
+async function aiHelperJson(env, promptKey, vars, data, stepName) {
+  try {
+    const template = await getCustomPrompt(env, promptKey);
+    if (!template || !String(template).trim()) return null;
+    const prompt = Object.entries(vars).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), String(template));
+    const response = await callAIModel(env, prompt, 900, stepName, null, data, null);
+    return parseAIResponse(response);
+  } catch (error) {
+    console.warn(`${stepName}: AI помощникът е пропуснат — ${error.message}`);
+    return null;
+  }
+}
+
+const freeTextBlock = (items) => (items.length ? items.map(i => `- ${i.text}`).join('\n') : 'няма');
+
+/** Свободният текст при приемане → допълнителни ограничения и подход (кеширано по текста). */
+async function applyIntakeHints(env, data) {
+  const items = collectFreeText(data);
+  if (!items.length) {
+    delete data._aiHints;
+    return;
+  }
+  const hash = textHash(items);
+  if (data._aiHints?.hash === hash) return;
+  const raw = await aiHelperJson(env, 'admin_intake_hints_prompt', {
+    freeText: freeTextBlock(items),
+    exclusionsList: VOCABULARY.exclusions.join(', '),
+    clinicalList: VOCABULARY.clinical.join(', '),
+    behaviorsList: VOCABULARY.behaviors.join(', '),
+    stylesList: VOCABULARY.styles.join(', '),
+    patternsList: VOCABULARY.patterns.join(', '),
+    approachList: VOCABULARY.approach.join(', '),
+  }, data, 'intake_hints');
+  const hints = normalizeIntakeHints(raw);
+  if (hints) data._aiHints = { ...hints, hash };
+  else delete data._aiHints;
+}
+
+/** Прегледът на готовото меню от AI: замени на конкретни хранения, които алгоритъмът изпълнява. */
+async function reviewMenuWithAI(env, data, plan, rebuild) {
+  const raw = await aiHelperJson(env, 'admin_menu_review_prompt', {
+    freeText: freeTextBlock(collectFreeText(data)),
+    menu: weekDigest(plan.weekPlan),
+  }, data, 'menu_review');
+  const swaps = normalizeSwaps(raw, plan.weekPlan);
+  if (!swaps.length) return plan;
+  try {
+    const next = rebuild(swaps);
+    next._meta.aiSwaps = swaps;
+    return next;
+  } catch (error) {
+    console.warn(`menu_review: замените не се изпълниха — ${error.message}`);
+    return plan;
+  }
+}
+
+/**
  * Генерира плана: анализ по правила (AI текст само по желание) → двигател.
  * AI не взема решения в плана.
  */
@@ -7607,6 +7697,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   const sessionId = generateUniqueId('session');
   const tokens = { input: 0, output: 0, total: 0 };
   try {
+    await applyIntakeHints(env, data);
     const analysis = await runStep1Analysis(env, data, sessionId, 'step1_analysis', null, tokens);
     if (typeof onAnalysisReady === 'function') {
       try {
@@ -7615,7 +7706,8 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         console.warn('Could not persist partial analysis status:', progressError);
       }
     }
-    const plan = assembleEnginePlan(data, analysis);
+    let plan = assembleEnginePlan(data, analysis);
+    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { slotAvoid: swaps }));
     plan._meta.tokenUsage = tokens;
     await finalizeAISessionLogs(env, sessionId);
     return plan;

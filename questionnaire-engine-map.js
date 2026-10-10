@@ -86,6 +86,10 @@ export function extractQuestionnaireBlockedTerms(userData = {}) {
     }
   }
 
+  // Храни, които AI е разпознал в свободния текст на клиента.
+  const ai = userData._aiHints;
+  if (ai && Array.isArray(ai.blockedTerms)) for (const t of ai.blockedTerms) pushTermsFromValue(terms, seen, t);
+
   const textMap = userData._dq_text_map || {};
   for (const key of Object.keys(userData)) {
     if (!key.startsWith('dq_')) continue;

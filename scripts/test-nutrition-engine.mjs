@@ -23,7 +23,9 @@ import { validateWeekPlanNutrition } from './plan-adequacy/validators/nutrition.
 import { validateWeekPlanFoods } from './plan-adequacy/validators/foods.mjs';
 import { validateWeekPlanCombinations } from './plan-adequacy/validators/combinations.mjs';
 import { validateWeekPlanDayCoherence, validateWeeklyDishVariety } from '../meal-combinations.js';
-import { readCheckin, decideWeeklyAdjustment } from '../nutrition-engine/monitoring.js';
+import { normalizeIntakeHints, normalizeFeedbackHints, normalizeSwaps, collectFreeText } from '../nutrition-engine/ai-assist.js';
+import { compileProfile } from '../profile-code.js';
+import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment } from '../nutrition-engine/monitoring.js';
 
 let validatorIssues = 0;
 let pass = 0;
@@ -170,6 +172,29 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(fast.calorieAdjust === 150, 'твърде бързо — +150 kcal');
   const low = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Без промяна', 'Малко'), null), history: [{ weight: 'flat' }] });
   ok(low.calorieAdjust === 0 && low.modifications.includes('simplify_meals'), 'ниско придържане — по-прост план, не по-малко калории');
+}
+
+// 4. AI помощникът: затворен речник, само добавя ограничения, замените ги изпълнява алгоритъмът.
+{
+  const hints = normalizeIntakeHints({ exclusions: ['GLU', 'ХИМИЯ'], clinical: ['IBS', 'RAK'], behaviors: ['EMO', 'XXX'], style: 'keto', pattern: 'vegan',
+    blockedFoods: ['Гъби', 'a'], approach: ['simplify_meals', 'hack'], cautions: ['алергия към лешници'] });
+  ok(hints.exclusions.join() === 'GLU' && hints.clinical.join() === 'IBS' && hints.behaviors.join() === 'EMO', 'AI: непознати кодове се отхвърлят');
+  ok(hints.approach.join() === 'simplify_meals' && hints.blockedTerms.join() === 'гъби', 'AI: подходът и храните са проверени');
+  ok(normalizeIntakeHints('глупост') === null && normalizeFeedbackHints(null) === null, 'AI: невалиден отговор -> нищо');
+  const withHints = compileProfile({ ...PROFILES[0], _aiHints: hints });
+  ok(withHints.exclusions.includes('GLU') && withHints.clinical.includes('IBS') && withHints.diet.pattern === 'vegan', 'AI: подсказките добавят ограничения в профила');
+  const base = compileProfile({ ...PROFILES[0] });
+  ok(base.exclusions.every(c => withHints.exclusions.includes(c)) && base.clinical.every(c => withHints.clinical.includes(c)), 'AI: не маха съществуващи ограничения');
+  ok(collectFreeText({ name: 'Иван Иванов', dietLove: 'обичам риба и зеленчуци много', note: 'кратко' }).length === 1, 'AI: само свободният текст се подава');
+  const plan = buildNutritionPlan({ ...structuredClone(PROFILES[0]), _aiHints: { ...hints, pattern: null, style: null, exclusions: [], clinical: [] } }, { kcal: 1800, seed: 'ai' });
+  ok(!Object.values(plan.weekPlan).flatMap(d => d.meals).some(m => /Гъби/.test(m.description || '')), 'AI: избягваната храна не е в плана');
+  const swaps = normalizeSwaps({ swaps: [{ day: 1, slot: 2, avoid: ['пиле'] }, { day: 9, slot: 2, avoid: ['риба'] }, { day: 1, slot: 4, avoid: [] }] }, plan.weekPlan);
+  ok(swaps.length === 1 && swaps[0].type === 'Хранене 2', 'AI: замените са само за съществуващи хранения');
+  const target = swaps[0];
+  const avoided = buildNutritionPlan(structuredClone(PROFILES[0]), { kcal: 1800, seed: 'ai', slotAvoid: [{ day: target.day, type: target.type, avoid: ['пилешк', 'пиле'] }] });
+  const meal = avoided.weekPlan[`day${target.day}`].meals.find(m => m.type === target.type);
+  ok(meal && !/Пилешк/.test(meal.description), `AI: замяната е изпълнена от алгоритъма (${meal?.name})`);
+  ok(WEEKLY_CHECKIN_QUESTIONS.some(q => q.type === 'text'), 'седмичен преглед: свободен коментар');
 }
 
 console.log(`\n=== nutrition engine: ${pass} pass, ${fail} fail ===`);

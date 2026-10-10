@@ -13,6 +13,7 @@
 
 import { DISHES, SIDES, food, nutrientsOf, PATTERNS, VEGAN_BREAKFASTS } from './knowledge.js';
 import { buildMeal, describeMeal, portionLine } from './meal-builder.js';
+import { normalizeFoodKey } from '../food-utils.js';
 import { FREE_MEAL, FIXED_DESSERT, FIXED_DESSERT_WEIGHT_GRAMS, MORNING_DRINK } from './plan-shape.js';
 import { mealBenefits } from './benefits.js';
 
@@ -337,8 +338,9 @@ function carryTarget(target, carry) {
  * @param {boolean} [args.simplify]  по-малко различни и по-прости ястия
  * @param {boolean} [args.variety]   всяко основно ястие най-много веднъж
  * @param {boolean} [args.morningDrink]  сутрешна напитка вместо закуска
+ * @param {Array<{ day: number, type: string, avoid: string[] }>} [args.slotAvoid]  храни, които да се избегнат в конкретно хранене (от AI прегледа)
  */
-export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false, morningDrink = false }) {
+export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [] }) {
   const rng = rngFrom(seed);
   const eligible = eligibleDishes(policy);
   // Следобедната закуска е лека: без месо, риба, ориз, паста, хляб и висок ГИ.
@@ -465,7 +467,21 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
         }
         return found;
       };
-      let best = pick(ranked.map(r => r.d), kind === 'snack' ? snackCtx : ctx);
+      const avoid = slotAvoid.filter(a => a.day === day && a.type === type).flatMap(a => a.avoid);
+      let slotCtx = kind === 'snack' ? snackCtx : ctx;
+      let slotPool = ranked.map(r => r.d);
+      if (avoid.length) {
+        // Замяна по искане на AI прегледа: храните се избягват само в това хранене.
+        const terms = avoid.map(t => normalizeFoodKey(t));
+        const basePolicy = slotCtx.policy;
+        const avoidPolicy = {
+          ...basePolicy,
+          allowed: id => basePolicy.allowed(id) && !terms.some(t => t && (normalizeFoodKey(food(id).name).includes(t) || normalizeFoodKey(food(id).label).includes(t))),
+        };
+        slotCtx = { ...slotCtx, policy: avoidPolicy };
+        slotPool = (eligibleDishes(avoidPolicy)[kind] || []).filter(d => !todayDishes.has(d.id)).slice(0, CANDIDATES_PER_MEAL * 2);
+      }
+      let best = pick(slotPool, slotCtx);
       if (!best && policy.withoutOnly) {
         // Избраните храни не стигат за това хранене — то се сглобява от целия каталог.
         relaxed = relaxed || (() => {
