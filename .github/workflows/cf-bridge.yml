@@ -13,10 +13,19 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'status | secrets-check | queues | deployments | dry-run'
+        description: 'status | secrets-check | queues | deployments | dry-run | secret-put | secret-generate | secret-delete'
         required: true
         type: choice
-        options: [status, secrets-check, queues, deployments, dry-run]
+        options: [status, secrets-check, queues, deployments, dry-run, secret-put, secret-generate, secret-delete]
+      name:
+        description: 'Име на секрета, напр. STRIPE_SECRET_KEY (за secret-*). За secret-put стойността е в GitHub секрет CF_SECRET_<име> — НЕ я пиши тук, репото е публично.'
+        required: false
+        type: string
+      overwrite:
+        description: 'Смяна на вече съществуващ секрет'
+        required: false
+        type: boolean
+        default: false
       environment:
         description: 'production | staging'
         required: false
@@ -76,4 +85,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_ENV: ${{ inputs.environment }}
           BRIDGE_ACTION: ${{ inputs.action }}
-        run: bash scripts/cf-bridge.sh "$BRIDGE_ACTION"
+          BRIDGE_NAME: ${{ inputs.name }}
+          BRIDGE_OVERWRITE: ${{ inputs.overwrite && 'overwrite' || '' }}
+          # Стойност само за secret-put: GitHub секрет CF_SECRET_<ИМЕ> (достъпът по име е динамичен).
+          CF_SECRET_VALUE: ${{ inputs.action == 'secret-put' && secrets[format('CF_SECRET_{0}', inputs.name)] || '' }}
+        run: bash scripts/cf-bridge.sh "$BRIDGE_ACTION" "$BRIDGE_NAME" "$BRIDGE_OVERWRITE"
