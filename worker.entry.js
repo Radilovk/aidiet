@@ -15116,22 +15116,23 @@ function fitnessEnv(env) {
 
 /**
  * Endpoint-и под /api/admin/*, които се викат от КЛИЕНТСКИ страници и затова
- * не могат да искат admin тайна. Наследено именуване — тези маршрути логически
- * не са админски.
+ * не могат да искат admin тайна. Само четене на публични данни:
  *
- *   /api/admin/update-client-plan     → analysis.html, plan-pending.html,
- *                                        questionnaire2.html, plan-sync.js
- *   /api/admin/get-blacklist          → food-picker.html (само четене)
- *   /api/admin/get-all-protocol-images→ protocol-landing.html (само четене)
+ *   /api/admin/get-blacklist          → food-picker.html
+ *   /api/admin/get-all-protocol-images→ protocol-landing.html
  *
- * TODO(сигурност): да се преместят под /api/client/* и /api/public/*, а
- * update-client-plan да получи авторизация по клиентска идентичност — днес
- * приема произволен clientId без проверка на собственост.
+ * update-client-plan вече е само за админа: готовият план от въпросника се
+ * записва в клиентския запис от самия сървър (generatePlanAndSave), а не от
+ * браузъра — иначе всеки с чужд clientId можеше да подмени плана на клиент.
  */
 const CLIENT_REACHABLE_ADMIN_ROUTES = new Set([
-  '/api/admin/update-client-plan',
   '/api/admin/get-blacklist',
   '/api/admin/get-all-protocol-images',
+]);
+
+/** Маршрути извън /api/admin/*, които също са само за админа. */
+const ADMIN_ONLY_ROUTES = new Set([
+  '/api/push/send',
 ]);
 
 function isClientReachableAdminRoute(pathname) {
@@ -15157,7 +15158,7 @@ export default {
     // Всеки /api/admin/* маршрут изисква валиден X-Admin-Secret, независимо
     // дали конкретният handler проверява сам. Нови admin endpoint-и са
     // защитени автоматично, без да се разчита на човешка дисциплина.
-    if (url.pathname.startsWith('/api/admin/') && !isClientReachableAdminRoute(url.pathname)) {
+    if ((url.pathname.startsWith('/api/admin/') && !isClientReachableAdminRoute(url.pathname)) || ADMIN_ONLY_ROUTES.has(url.pathname)) {
       const authErr = requireAdminAuth(request, env);
       if (authErr) return authErr;
     }

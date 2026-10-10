@@ -9670,6 +9670,911 @@
 
         // ── Streak: consecutive days with ≥3 stars (includes today if scored) ─
         function calcStreak() {
+            // Поредни отлични дни (4+ звезди) — като в анализа и на сървъра; до 30 дни назад.
+            var GS = window.GameScoring;
+            return GS.streakOf(getGameData(), GS.dateKey(new Date()), 30);
+        }
+
+        // ── Meal checkmarks ───────────────────────────────────────────────────
+        function enhanceMealCards() {
+            if (!isGameEnabled()) return;
+            var container = document.getElementById('mealContainer');
+            if (!container) return;
+            var dayKey = getCurrentViewDayKey();
+
+            // Future days: remove any leftover check buttons, hide score card
+            if (isFutureDayKey(dayKey)) {
+                container.querySelectorAll('.meal-check-btn').forEach(function(b){ b.remove(); });
+                var sc = document.getElementById('dailyScoreCard');
+                if (sc) sc.style.display = 'none';
+                return;
+            }
+
+            var rec = getRecord(dayKey);
+            if (!rec.freeMealRatings) rec.freeMealRatings = {}; // backward compat: preserve existing field in stored records
+            if (!rec.mealCalories) rec.mealCalories = {};
+            var mealsInitialized = false;
+            var rawData = getGameData();
+            var hasStoredRecord = !!rawData[dayKey];
+            // Retro window (≤2 days): allow marking; schema freezes only after first save or when age-locked.
+            // Analytics reads gameData lazily (analytics page + weekly AI) — no per-click server sync.
+            var schemaFrozen = isAgeLocked(dayKey) || (hasStoredRecord && rec.mealSlots && rec.mealSlots.length > 0);
+            if (schemaFrozen && lockPastDaySchema(rec, dayKey)) mealsInitialized = true;
+
+            // Compute planned calorie total from rendered meal cards (best effort)
+            // Also capture per-meal calorie data for accurate completed-meal calorie tracking
+            // Only count planned meals (not added-meal-cards which lack data-meal-calories)
+            var plannedCals = 0;
+            container.querySelectorAll('.meal-card:not(.added-meal-card)').forEach(function(card) {
+                var calEl = card.querySelector('[data-meal-calories]');
+                if (calEl) { plannedCals += parseFloat(calEl.getAttribute('data-meal-calories')) || 0; }
+            });
+            if (!schemaFrozen && plannedCals > 0 && (!rec.plannedCalories || (rec.plannedCalories > 0 && Math.abs(rec.plannedCalories - plannedCals) > rec.plannedCalories * 0.05))) {
+                rec.plannedCalories = Math.round(plannedCals);
+                mealsInitialized = true;
+            }
+
+            var seenMealTypes = {};
+            // Skip added-meal-card elements: they represent extra food already tracked
+            // via extraMeals from logExtraFood. Including them as planned meal slots
+            // would inflate the denominator and cause double-counting issues.
+            container.querySelectorAll('.meal-card:not([data-ge]):not(.added-meal-card):not(.breakfast-note-card)').forEach(function(card) {
+                var mealType = card.getAttribute('data-meal-type') || '';
+                if (!mealType) {
+                    var typeEl = card.querySelector('.meal-type');
+                    mealType = typeEl ? typeEl.textContent.replace(/\(.*\)/,'').trim() : '';
+                }
+                // Сутрешната напитка е по желание — не е хранене за отмятане.
+                if (!mealType || mealType === 'Напитка') return;
+                card.setAttribute('data-ge','1');
+                var isFreeMeal = card.classList.contains('free-day');
+
+                // Generate a unique storage key per card to avoid collisions when multiple
+                // cards share the same meal type label (e.g. two "Вечеря" entries).
+                // The first occurrence keeps the plain type name for backward-compatibility.
+                seenMealTypes[mealType] = (seenMealTypes[mealType] || 0) + 1;
+                var mealKey = seenMealTypes[mealType] === 1 ? mealType : mealType + '_' + seenMealTypes[mealType];
+                card.setAttribute('data-meal-key', mealKey);
+                if (schemaFrozen && !(mealKey in rec.meals)) return;
+
+                // Store per-meal calories for calorie-balance calculation
+                // Update only when the value changes to reflect plan regeneration
+                var calAttr = card.getAttribute('data-meal-calories');
+                if (!schemaFrozen && calAttr) {
+                    var calVal = Math.round(parseFloat(calAttr) || 0);
+                    if (calVal > 0 && rec.mealCalories[mealKey] !== calVal) {
+                        rec.mealCalories[mealKey] = calVal;
+                        mealsInitialized = true;
+                    }
+                }
+
+                // Ensure all planned meals are present in the record so calcDayScore knows the total
+                if (!schemaFrozen && !(mealKey in rec.meals)) {
+                    rec.meals[mealKey] = false;
+                    mealsInitialized = true;
+                }
+                var isDone = rec.meals[mealKey] === true;
+                var checkBtn = document.createElement('button');
+
+                // ── Time-based lock: meal check only available after its designated hour ──
+                var unlockHour = getMealUnlockHour(mealType);
+                var currentHour = new Date().getHours();
+                var isTimeLocked = !isPastDayKey(dayKey) && currentHour < unlockHour;
+                var isAgeLockedDay = isAgeLocked(dayKey);
+                checkBtn.className = 'meal-check-btn' + (isDone ? ' done' : '') + ((isTimeLocked || isAgeLockedDay) ? ' locked' : '');
+                if (isAgeLockedDay) {
+                    checkBtn.title = 'Не може да се редактира ден, по-стар от 2 дни';
+                    checkBtn.setAttribute('aria-label', 'Отбелязването е заключено за дни по-стари от 2 дни');
+                } else if (isTimeLocked) {
+                    checkBtn.title = 'Ще се отключи по-късно';
+                    checkBtn.setAttribute('aria-label', 'Отбелязването ще се отключи по-късно');
+                }
+
+                checkBtn.innerHTML = '<i class="fas fa-check"></i>';
+                if (!isTimeLocked && !isAgeLockedDay) checkBtn.setAttribute('aria-label','\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
+                checkBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    // Block edits for days older than 2 days
+                    if (isAgeLocked(dayKey)) return;
+                    // Re-check time lock at click time (button could have been rendered earlier)
+                    var clickHour = new Date().getHours();
+                    if (!isPastDayKey(dayKey) && clickHour < getMealUnlockHour(mealType)) return;
+                    var r = getRecord(dayKey);
+                    if (!r.mealCalories) r.mealCalories = {};
+                    r.meals[mealKey] = !r.meals[mealKey];
+                    // Sync per-meal calories from DOM at check time
+                    var cAttr = card.getAttribute('data-meal-calories');
+                    if (cAttr) {
+                        var cVal = Math.round(parseFloat(cAttr) || 0);
+                        if (cVal > 0) r.mealCalories[mealKey] = cVal;
+                    }
+                    saveRecord(dayKey, r);
+                    checkBtn.classList.toggle('done', r.meals[mealKey]);
+                    if (!calcDayScore(r).excessCalories) {
+                        var mealIsJunk = card.getAttribute('data-incorrect-meal') === '1';
+                        _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey], mealIsJunk);
+                    }
+                    recalcAndShowScore(dayKey);
+                });
+
+                // Free meal: optional describe button — group both actions on the right
+                if (card.classList.contains('free-day') && !isAgeLockedDay) {
+                    var actionsWrap = document.createElement('div');
+                    actionsWrap.className = 'meal-card-actions';
+
+                    var describeBtn = document.createElement('button');
+                    describeBtn.className = 'meal-describe-btn';
+                    describeBtn.innerHTML = '<i class="fas fa-pen"></i>';
+                    describeBtn.title = 'Опиши какво изяде (по избор)';
+                    describeBtn.setAttribute('aria-label', 'Опиши свободното хранене (по избор)');
+                    if (rec.freeMeal && rec.freeMeal.mealKey === mealKey) {
+                        describeBtn.classList.add('filled');
+                    }
+                    (function(mk) {
+                        describeBtn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            if (isAgeLocked(dayKey)) return;
+                            var est = Math.round(parseFloat(card.getAttribute('data-meal-calories')) || 0);
+                            showFreeMealEntryModal(dayKey, mk, est);
+                        });
+                    }(mealKey));
+                    actionsWrap.appendChild(describeBtn);
+                    actionsWrap.appendChild(checkBtn);
+                    card.appendChild(actionsWrap);
+                } else {
+                    card.appendChild(checkBtn);
+                }
+            });
+            if (mealsInitialized) saveRecord(dayKey, rec);
+            recalcAndShowScore(dayKey);
+
+            // ── Photo-added meal check buttons ───────────────────────────────
+            // Give each added-meal-card a toggleable consumed button.
+            // These do NOT count toward the day-score denominator — they are
+            // purely for personal tracking of photographed / advance-planned meals.
+            var addedDateKey = dayKey; // same date-string format as addedMeals_DATEKEY
+
+            // ── Sync addedMeals.consumed → extraMeals.countCalories on every render ──
+            (function() {
+                var syncList = [];
+                try { syncList = JSON.parse(localStorage.getItem('addedMeals_' + addedDateKey) || '[]'); } catch(e) {}
+                if (!syncList.length) return;
+                var syncRec = getRecord(addedDateKey);
+                if (!syncRec.extraMeals || !syncRec.extraMeals.length) return;
+                var changed = false;
+                syncList.forEach(function(am) {
+                    var shouldCount = (am.consumed !== false);
+                    for (var i = 0; i < syncRec.extraMeals.length; i++) {
+                        var em = syncRec.extraMeals[i];
+                        var matched = am.planId ? em.planId === am.planId
+                            : (!em.planId && !em.isFreeMealReplacement &&
+                               em.name === am.name && Math.round(em.calories || 0) === Math.round(am.calories || 0));
+                        if (matched) {
+                            if (!em.isAddedToPlan) { em.isAddedToPlan = true; changed = true; }
+                            if (em.countCalories !== shouldCount) { em.countCalories = shouldCount; changed = true; }
+                            break;
+                        }
+                    }
+                });
+                if (changed) {
+                    saveRecord(addedDateKey, syncRec);
+                    recalcAndShowScore(addedDateKey);
+                }
+            })();
+
+            container.querySelectorAll('.added-meal-card:not([data-ge-added])').forEach(function(addedCard) {
+                addedCard.setAttribute('data-ge-added', '1');
+                var idx = parseInt(addedCard.getAttribute('data-added-idx'), 10);
+                if (isNaN(idx)) return;
+                var storedList = [];
+                try { storedList = JSON.parse(localStorage.getItem('addedMeals_' + addedDateKey) || '[]'); } catch(e) {}
+                var addedMeal = storedList[idx];
+                if (!addedMeal) return;
+
+                // Backward-compat: entries without consumed property are treated as consumed.
+                var isDoneAdded = addedMeal.consumed !== false;
+                var mealTypeAdded = addedMeal.type || '';
+
+                // Only apply time-lock for recognised meal types (not intermediate/unknown).
+                var KNOWN_TYPES = ['Хранене 1','Хранене 2','Хранене 3','Хранене 4','Хранене 5','Свободно хранене',
+                                   'Закуска','Обяд','Следобедна закуска','Следобедна','Десерт','Вечеря'];
+                var isKnownType = KNOWN_TYPES.indexOf(mealTypeAdded) >= 0;
+                var unlockHAdded = isKnownType ? getMealUnlockHour(mealTypeAdded) : -1;
+                var isAgeLockedAdded = isAgeLocked(dayKey);
+                var isLockedAdded = isAgeLockedAdded || (isKnownType && !isPastDayKey(dayKey) && new Date().getHours() < unlockHAdded);
+
+                var addedCheckBtn = document.createElement('button');
+                addedCheckBtn.className = 'meal-check-btn' + (isDoneAdded ? ' done' : '') + (isLockedAdded ? ' locked' : '');
+                addedCheckBtn.innerHTML = '<i class="fas fa-check"></i>';
+                if (isAgeLockedAdded) {
+                    addedCheckBtn.title = 'Не може да се редактира ден, по-стар от 2 дни';
+                    addedCheckBtn.setAttribute('aria-label', 'Отбелязването е заключено за дни по-стари от 2 дни');
+                } else if (isLockedAdded) {
+                    addedCheckBtn.title = 'Ще се отключи по-късно';
+                    addedCheckBtn.setAttribute('aria-label', 'Отбелязването ще се отключи по-късно');
+                } else {
+                    addedCheckBtn.setAttribute('aria-label', 'Отбележи хранене');
+                }
+
+                (function(cardIdx, btn, mType, knownType) {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        // Block edits for days older than 2 days
+                        if (isAgeLocked(dayKey)) return;
+                        var clickH = new Date().getHours();
+                        if (!isPastDayKey(dayKey) && knownType && clickH < getMealUnlockHour(mType)) return;
+                        var arr = [];
+                        try { arr = JSON.parse(localStorage.getItem('addedMeals_' + addedDateKey) || '[]'); } catch(e) {}
+                        if (arr[cardIdx]) {
+                            arr[cardIdx].consumed = (arr[cardIdx].consumed === false);
+                            localStorage.setItem('addedMeals_' + addedDateKey, JSON.stringify(arr));
+                            btn.classList.toggle('done', arr[cardIdx].consumed !== false);
+
+                            // Sync the consumed state to the extraMeals game record.
+                            var updMeal = arr[cardIdx];
+                            var countVal = (updMeal.consumed !== false);
+                            var dRec = getRecord(addedDateKey);
+                            if (!dRec.extraMeals) dRec.extraMeals = [];
+                            var matchFound = false;
+                            for (var j = 0; j < dRec.extraMeals.length; j++) {
+                                var em = dRec.extraMeals[j];
+                                var matched = updMeal.planId ? em.planId === updMeal.planId
+                                    : (!em.planId && !em.isFreeMealReplacement &&
+                                       em.name === updMeal.name && Math.round(em.calories || 0) === Math.round(updMeal.calories || 0));
+                                if (matched) {
+                                    em.isAddedToPlan = true;
+                                    em.countCalories = countVal;
+                                    matchFound = true;
+                                    break;
+                                }
+                            }
+                            if (!matchFound && (updMeal.calories || 0) > 0) {
+                                dRec.extraMeals.push({
+                                    name: updMeal.name || 'Добавено хранене',
+                                    calories: Math.round(updMeal.calories || 0),
+                                    isJunk: !!(updMeal.suitability && typeof updMeal.suitability.score === 'number' && updMeal.suitability.score <= JUNK_SUITABILITY_MAX),
+                                    isFreeMealReplacement: false,
+                                    isAddedToPlan: true,
+                                    planId: updMeal.planId,
+                                    countCalories: countVal,
+                                    mealContext: updMeal.type || '',
+                                    ts: updMeal.ts || new Date().toISOString()
+                                });
+                            }
+                            saveRecord(addedDateKey, dRec);
+                            if (!calcDayScore(dRec).excessCalories) {
+                                var addedIsJunk = !!(updMeal.suitability && typeof updMeal.suitability.score === 'number' && updMeal.suitability.score <= JUNK_SUITABILITY_MAX);
+                                _triggerMealCheckBurst(btn, btn.closest('.meal-card') || btn.parentElement, arr[cardIdx].consumed !== false, addedIsJunk);
+                            }
+                            recalcAndShowScore(addedDateKey);
+                        }
+                    });
+                })(idx, addedCheckBtn, mealTypeAdded, isKnownType);
+
+                addedCard.appendChild(addedCheckBtn);
+            });
+        }
+
+        // ── Extra food logging ────────────────────────────────────────────────
+        // mealContext: the meal slot name (e.g. 'Обяд', 'Вечеря', etc.)
+        function logExtraFood(name, calories, suitabilityScore, mealContext) {
+            if (!isGameEnabled()) return;
+            var rec = getTodayRecord();
+            var isJunk = (suitabilityScore != null && suitabilityScore <= JUNK_SUITABILITY_MAX);
+            // Ensure freeMealRatings object exists (backward compat with stored records)
+            if (!rec.freeMealRatings) rec.freeMealRatings = {};
+
+            // All logged food is treated as regular extra food — free meals are now handled
+            // via the normal check button and no longer require photo analysis.
+            rec.extraMeals.push({ name: name || 'Допълнително хранене',
+                calories: Math.round(calories || 0), isJunk: isJunk,
+                isFreeMealReplacement: false,
+                mealContext: mealContext || '', ts: new Date().toISOString() });
+            saveTodayRecord(rec);
+            recalcAndShowScore();
+        }
+
+        // ── Bubble UI ─────────────────────────────────────────────────────────
+        var YES_NO = [
+            { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' },
+            { label:'Не', icon:'<i class="fas fa-xmark" style="color:#ef4444"></i>', value:false, cls:'no'  }
+        ];
+        // Reversed order for hydration question (Не left, Да right per UX spec)
+        var NO_YES = [
+            { label:'Не', icon:'<i class="fas fa-xmark" style="color:#ef4444"></i>', value:false, cls:'no'  },
+            { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' }
+        ];
+        var ACTIVITY_1_3 = [
+            { label:'Ниска',   icon:'<i class="fas fa-couch" style="color:#fff;font-size:1em"></i>', value:1, cls:'tier-low' },
+            { label:'Умерена', icon:'<i class="fas fa-person-walking" style="color:#fff;font-size:1em"></i>', value:2, cls:'tier-mid' },
+            { label:'Висока',  icon:'<i class="fas fa-fire" style="color:#fff;font-size:1em"></i>', value:3, cls:'tier-high' }
+        ];
+        var BALANCE_1_3 = [
+            { label:'Напрегнат', icon:'<i class="fas fa-cloud-rain" style="color:#fff;font-size:1em"></i>', value:1, cls:'tier-calm' },
+            { label:'Спокоен',   icon:'<i class="fas fa-leaf" style="color:#fff;font-size:1em"></i>', value:2, cls:'tier-mid' },
+            { label:'Позитивен', icon:'<i class="fas fa-sun" style="color:#fff;font-size:1em"></i>', value:3, cls:'tier-high' }
+        ];
+
+        var _fabLowerTimer = null;
+        var _queueDepth    = 0; // incremented for each active runQueue; FAB stays raised while > 0
+        var _openPromptPending = false; // prevents double-scheduling of checkOpenAppPrompts
+        var _bubbleSeq = 0; // cancels delayed bubble renders when prompts change quickly
+        var _pastDayQueueKey = ''; // debounce past-day question prompts per day
+        // Delay must exceed the longest inter-question pause (350–400 ms) so that
+        // a chained showBubble call (in the queue) fires before the timer and can
+        // cancel the lower animation — keeping the FAB raised throughout the queue.
+        var FAB_BUBBLE_GAP = 6;
+        var FAB_LOWER_DELAY = 500;
+
+        function _resetFabPosition() {
+            var fab = document.querySelector('.fab-chat');
+            if (!fab) return;
+            if (_fabLowerTimer) { clearTimeout(_fabLowerTimer); _fabLowerTimer = null; }
+            fab.classList.remove('fab-raised', 'game-prompt');
+            fab.style.removeProperty('top');
+            fab.style.removeProperty('bottom');
+        }
+
+        function _scheduleFabLower() {
+            var fab = document.querySelector('.fab-chat');
+            if (fab) {
+                if (_fabLowerTimer) clearTimeout(_fabLowerTimer);
+                _fabLowerTimer = setTimeout(function(){
+                    if (_queueDepth > 0 || document.getElementById('gameBubble')) return;
+                    _resetFabPosition();
+                    _fabLowerTimer = null;
+                }, FAB_LOWER_DELAY);
+            }
+        }
+
+        function removeBubble() {
+            _bubbleSeq++;
+            var o=document.getElementById('gameBubble');
+            if (o) {
+                o.classList.add('game-bubble--exit');
+                setTimeout(function() {
+                    o.remove();
+                    if (_queueDepth === 0) _scheduleFabLower();
+                }, 280);
+            } else if (_queueDepth === 0) {
+                _scheduleFabLower();
+            }
+        }
+
+        function _getElementLayoutBottom(el) {
+            var top = 0;
+            while (el && el !== document.body) {
+                top += el.offsetTop || 0;
+                el = el.offsetParent;
+            }
+            return top;
+        }
+
+        function _positionFabBelowBubble(bubble) {
+            bubble = bubble || document.getElementById('gameBubble');
+            var fabPos = document.querySelector('.fab-chat');
+            if (!bubble || !fabPos || !fabPos.classList.contains('fab-raised')) return;
+            var anchor = bubble.querySelector('.game-bubble-body') || bubble;
+            var anchorBottom = _getElementLayoutBottom(anchor) + anchor.offsetHeight;
+            var bottomVal = window.innerHeight - anchorBottom - FAB_BUBBLE_GAP - fabPos.offsetHeight;
+            fabPos.style.setProperty('bottom', Math.max(4, bottomVal) + 'px', 'important');
+            fabPos.style.removeProperty('top');
+        }
+
+        function showBubble(question, answers, onAnswer, opts) {
+            opts = opts || {};
+            var seq = ++_bubbleSeq;
+            // Cancel pending lower animation — new question is coming
+            if (_fabLowerTimer) { clearTimeout(_fabLowerTimer); _fabLowerTimer = null; }
+
+            var fab = document.querySelector('.fab-chat');
+            var wasRaised = fab && fab.classList.contains('fab-raised');
+            if (fab) {
+                fab.classList.add('fab-raised', 'game-prompt');
+                setTimeout(function(){ fab.classList.remove('game-prompt'); }, 2600);
+            }
+
+            var existing = document.getElementById('gameBubble');
+
+            // Helper: populate answer buttons into a container
+            function fillAnswers(ansWrap) {
+                ansWrap.innerHTML = '';
+                answers.forEach(function(a) {
+                    var btn = document.createElement('button');
+                    btn.className = 'game-answer-btn ' + (a.cls || 'yes');
+                    btn.innerHTML = (a.icon ? '<span>' + a.icon + '</span>' : '') + '<span>' + a.label + '</span>';
+                    btn.addEventListener('click', function(){ onAnswer(a.value); removeBubble(); });
+                    ansWrap.appendChild(btn);
+                });
+            }
+
+            // If FAB is already raised and a bubble is visible → update content in-place (no flicker)
+            if (existing && wasRaised) {
+                var grEl = existing.querySelector('.game-bubble-greeting');
+                var qEl  = existing.querySelector('.game-bubble-q');
+                var awEl = existing.querySelector('.game-bubble-answers');
+                if (grEl && qEl && awEl) {
+                    existing.classList.remove('game-bubble--exit'); // cancel any exit animation
+                    var name = getUserName();
+                    grEl.textContent = opts.greeting ? opts.greeting :
+                                       (opts.showName && name) ? 'Здравейте, '+name+'!' : 'AI Асистент';
+                    awEl.classList.remove('visible');
+                    fillAnswers(awEl);
+                    qEl.textContent = question;
+                    qEl.style.visibility = 'hidden';
+                    requestAnimationFrame(function() {
+                        _positionFabBelowBubble(existing);
+                        qEl.style.removeProperty('visibility');
+                        typewriter(qEl, question, 32, function() {
+                            setTimeout(function(){
+                                awEl.classList.add('visible');
+                            }, 120);
+                        });
+                    });
+                    return;
+                }
+            }
+
+            // Remove existing bubble (fresh start or no existing bubble)
+            if (existing) existing.remove();
+
+            var raiseDelay = 0;
+
+            setTimeout(function() {
+                if (seq !== _bubbleSeq) return;
+                var bubble = document.createElement('div');
+                bubble.id = 'gameBubble';
+                bubble.className = 'game-bubble';
+                // If the FAB is currently raised to top, position the bubble below it
+                var fabForPos = document.querySelector('.fab-chat');
+                if (fabForPos && fabForPos.classList.contains('fab-raised')) {
+                    bubble.classList.add('game-bubble--top');
+                }
+
+                // Header
+                var hdr = document.createElement('div');
+                hdr.className = 'game-bubble-header';
+                var av = document.createElement('div');
+                av.className = 'game-bubble-avatar';
+                av.innerHTML = '<i class="fas fa-robot"></i>';
+                var gr = document.createElement('div');
+                gr.className = 'game-bubble-greeting';
+                var name = getUserName();
+                gr.textContent = opts.greeting ? opts.greeting :
+                                 (opts.showName && name) ? 'Здравейте, '+name+'!' :
+                                 'AI Асистент';
+                hdr.appendChild(av); hdr.appendChild(gr);
+
+                // Body
+                var body = document.createElement('div');
+                body.className = 'game-bubble-body';
+                var qDiv = document.createElement('div');
+                qDiv.className = 'game-bubble-q';
+                qDiv.textContent = question;
+                qDiv.style.visibility = 'hidden';
+                var ansWrap = document.createElement('div');
+                ansWrap.className = 'game-bubble-answers';
+
+                fillAnswers(ansWrap);
+
+                body.appendChild(qDiv);
+                body.appendChild(ansWrap);
+                bubble.appendChild(hdr);
+                bubble.appendChild(body);
+                document.body.appendChild(bubble);
+
+                // Position FAB once against the final bubble height, then start typing
+                requestAnimationFrame(function() {
+                    _positionFabBelowBubble(bubble);
+                    qDiv.style.removeProperty('visibility');
+                    typewriter(qDiv, question, 32, function() {
+                        setTimeout(function(){
+                            ansWrap.classList.add('visible');
+                        }, 120);
+                    });
+                });
+            }, raiseDelay);
+        }
+
+        // ── Morning / Evening questions ───────────────────────────────────────
+        function gameNotifyQuestion(type, fallback) {
+            if (window.GameNotifier && typeof window.GameNotifier.questionBody === 'function') {
+                var q = window.GameNotifier.questionBody(type);
+                if (q) return q;
+            }
+            return fallback;
+        }
+
+        function gameNotifyAnswers(type, fallback) {
+            if (window.GameNotifier && typeof window.GameNotifier.bubbleAnswersForType === 'function') {
+                var a = window.GameNotifier.bubbleAnswersForType(type);
+                if (a && a.length) return a;
+            }
+            return fallback;
+        }
+
+        function gameNotifyCancel(type, recordKey) {
+            if (window.GameNotifier && typeof window.GameNotifier.cancelTodaysNotification === 'function') {
+                window.GameNotifier.cancelTodaysNotification(type, recordKey);
+            }
+        }
+
+        function getPromptDayMeta(recordKey) {
+            if (recordKey === getTodayKey()) {
+                return { prefix:'', greetingMorning:undefined, greetingEvening:'Добър вечер!', showName:true };
+            }
+            var todayDate = new Date(getTodayKey() + 'T00:00:00');
+            var recDate = new Date(recordKey + 'T00:00:00');
+            var daysAgo = Math.max(1, Math.round((todayDate - recDate) / 86400000));
+            var label = daysAgo === 1 ? 'Вчера' : 'Преди ' + daysAgo + ' дни';
+            return {
+                prefix:'[' + label + '] ',
+                greetingMorning:'Въвеждане за ' + label.toLowerCase(),
+                greetingEvening:'Въвеждане за ' + label.toLowerCase(),
+                showName:false
+            };
+        }
+
+        function showMorningQuestion(force, recordKey, doneCb) {
+            recordKey = recordKey || getTodayKey();
+            var rec = getRecord(recordKey);
+            if (!force && rec.morningCheck) { if (doneCb) doneCb(); return; }
+            var meta = getPromptDayMeta(recordKey);
+            showBubble(
+                meta.prefix + gameNotifyQuestion('morning_check', 'Спахте ли добре тази нощ?'),
+                gameNotifyAnswers('morning_check', YES_NO),
+                function(val) {
+                    var r = getRecord(recordKey);
+                    r.morningCheck = { sleptWell: val, ts: new Date().toISOString() };
+                    saveRecord(recordKey, r);
+                    recalcAndShowScore(recordKey);
+                    gameNotifyCancel('morning_check', recordKey);
+                    if (doneCb) { setTimeout(doneCb, 350); }
+                    else { setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400); }
+                },
+                { greeting: meta.greetingMorning, showName: meta.showName }
+            );
+        }
+
+        function isEveningComplete(rec) {
+            var ec = rec && rec.eveningCheck;
+            return !!(ec && ec.activityLevel != null && ec.emotionalBalance != null && ec.waterIntake != null);
+        }
+
+        function showEveningStep(step, recordKey, doneCb) {
+            recordKey = recordKey || getTodayKey();
+            var meta = getPromptDayMeta(recordKey);
+            var prefix = meta.prefix;
+            var hdrOpts = { greeting: meta.greetingEvening };
+            var rec = getRecord(recordKey);
+            if (!rec.eveningCheck) {
+                rec.eveningCheck = { activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null };
+            }
+            function saveField(field, value, next) {
+                var r = getRecord(recordKey);
+                if (!r.eveningCheck) r.eveningCheck = { activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null };
+                if (r.eveningCheck[field] != null) { if (next) next(); return; }
+                r.eveningCheck[field] = value;
+                if (!r.eveningCheck.ts) r.eveningCheck.ts = new Date().toISOString();
+                saveRecord(recordKey, r);
+                recalcAndShowScore(recordKey);
+                var cancelType = field === 'activityLevel' ? 'evening_activity'
+                    : field === 'emotionalBalance' ? 'evening_balance' : 'evening_water';
+                gameNotifyCancel(cancelType, recordKey);
+                if (next) setTimeout(next, 350);
+                else setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
+            }
+            if (step === 'activity') {
+                if (rec.eveningCheck.activityLevel != null) { if (doneCb) doneCb(); return; }
+                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Ниво на активност?'),
+                    gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
+                    function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
+                return;
+            }
+            if (step === 'balance') {
+                if (rec.eveningCheck.emotionalBalance != null) { if (doneCb) doneCb(); return; }
+                showBubble(prefix + gameNotifyQuestion('evening_balance', 'Емоционален баланс?'),
+                    gameNotifyAnswers('evening_balance', BALANCE_1_3),
+                    function(v){ saveField('emotionalBalance', v, doneCb); }, hdrOpts);
+                return;
+            }
+            if (step === 'water') {
+                if (rec.eveningCheck.waterIntake != null) { if (doneCb) doneCb(); return; }
+                showBubble(prefix + gameNotifyQuestion('evening_water', 'Изпихте ли поне 2 л вода?'),
+                    gameNotifyAnswers('evening_water', NO_YES),
+                    function(v){ saveField('waterIntake', v, doneCb); }, hdrOpts);
+            }
+        }
+
+        function showEveningFlow(force, recordKey, doneCb, opts) {
+            recordKey = recordKey || getTodayKey();
+            opts = opts || {};
+            if (opts.step) {
+                showEveningStep(opts.step, recordKey, doneCb);
+                return;
+            }
+            var rec = getRecord(recordKey);
+            if (!force && isEveningComplete(rec)) { if (doneCb) doneCb(); return; }
+            var meta = getPromptDayMeta(recordKey);
+            var prefix = meta.prefix;
+            var hdrOpts = { greeting: meta.greetingEvening };
+            var prefillWater = !!opts.prefillWater;
+            var ec = rec.eveningCheck || {};
+            var eveData = {
+                activityLevel: ec.activityLevel != null ? ec.activityLevel : undefined,
+                emotionalBalance: ec.emotionalBalance != null ? ec.emotionalBalance : undefined,
+                waterIntake: ec.waterIntake != null ? ec.waterIntake : (prefillWater ? true : undefined)
+            };
+            function finish() {
+                var r = getRecord(recordKey);
+                r.eveningCheck = {
+                    activityLevel: eveData.activityLevel,
+                    emotionalBalance: eveData.emotionalBalance,
+                    waterIntake: !!eveData.waterIntake,
+                    ts: new Date().toISOString()
+                };
+                saveRecord(recordKey, r);
+                recalcAndShowScore(recordKey);
+                if (doneCb) { setTimeout(doneCb, 350); }
+                else if (recordKey === getTodayKey()) {
+                    setTimeout(function(){
+                        var upd = getRecord(recordKey);
+                        showDayEndModal(upd.dailyScore || calcDayScore(upd));
+                    }, 500);
+                } else {
+                    setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
+                }
+            }
+            function q3() {
+                if (eveData.waterIntake != null) { finish(); return; }
+                showBubble(prefix+'Изпихте ли поне 2 л вода?', NO_YES, function(v) {
+                    eveData.waterIntake = v;
+                    finish();
+                }, hdrOpts);
+            }
+            function q2() {
+                if (eveData.emotionalBalance != null) { q3(); return; }
+                showBubble(prefix+'Емоционален баланс?', BALANCE_1_3,
+                    function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
+            }
+            function q1() {
+                if (eveData.activityLevel != null) { q2(); return; }
+                showBubble(prefix+'Ниво на активност?', ACTIVITY_1_3,
+                    function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
+            }
+            q1();
+        }
+
+        // ── Question queue ────────────────────────────────────────────────────
+        function buildDayQueue(recordKey) {
+            var rec = getRecord(recordKey);
+            var queue = [];
+            var isToday = recordKey === getTodayKey();
+            var h = new Date().getHours();
+            // Morning (sleep) question: only relevant after 6 am — asking before
+            // that makes no sense (the user may not have slept yet).
+            if (!rec.morningCheck && (!isToday || h >= 6)) {
+                queue.push(function(next){ showMorningQuestion(true, recordKey, next); });
+            }
+            if (!isEveningComplete(rec) && (!isToday || h >= 20)) {
+                queue.push(function(next){ showEveningFlow(true, recordKey, next); });
+            }
+            return queue;
+        }
+
+        function runQueue(queue, onDone) {
+            if (!queue.length) { if (onDone) onDone(); return; }
+            _queueDepth++;
+            var idx = 0;
+            function next() {
+                if (idx < queue.length) {
+                    queue[idx++](next);
+                } else {
+                    _queueDepth = Math.max(0, _queueDepth - 1);
+                    recalcAndShowScore();
+                    if (onDone) onDone();
+                    if (_queueDepth === 0 && !document.getElementById('gameBubble')) {
+                        _resetFabPosition();
+                    }
+                }
+            }
+            next();
+        }
+
+        // ── On-open prompts ───────────────────────────────────────────────────
+        // Same-day unanswered notification questions → quick-answer catch-up chain
+        // (real answers, app stays open, integrated into analysis).
+        function checkOpenAppPrompts() {
+            if (!isGameEnabled()) return;
+            if (_openPromptPending || _queueDepth > 0) return;
+            var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
+            if (!gn || typeof gn.getCatchUpTypesForToday !== 'function') return;
+            var pending = gn.getCatchUpTypesForToday();
+            if (!pending.length) return;
+            _openPromptPending = true;
+            setTimeout(function(){
+                _openPromptPending = false;
+                if (_queueDepth > 0) return;
+                var todayKey = getTodayKey();
+                var q = buildDayQueue(todayKey);
+                if (q.length) runQueue(q);
+            }, 400);
+        }
+
+        // ── Retroactive entry (last 2 days) ─────────────────────────────────
+        function checkRetroEntry() {
+            if (!isGameEnabled()) return;
+            var allData = getGameData();
+            for (var offset = 1; offset <= 2; offset++) {
+                var pastDate = new Date(); pastDate.setDate(pastDate.getDate() - offset);
+                var pKey = dateKey(pastDate);
+                if (!allData[pKey]) continue; // no real data for this day — skip (e.g. game was just activated)
+                var rec  = getRecord(pKey);
+                if (rec.missing) continue;
+                if (rec.morningCheck && isEveningComplete(rec)) continue;
+                var offerKey = 'gameRetroOffered_' + pKey;
+                if (localStorage.getItem(offerKey)) continue;
+                localStorage.setItem(offerKey, '1');
+                (function(dayKey, daysAgo) {
+                    var greeting = daysAgo === 1 ? 'Вчерашни данни' : 'Данни от преди ' + daysAgo + ' дни';
+                    var msg = daysAgo === 1
+                        ? 'Вчерашните въпроси не са попълнени. Искате ли да ги попълните сега?'
+                        : 'Данните от ' + daysAgo + ' дни назад не са попълнени. Искате ли да ги въведете сега?';
+                    setTimeout(function(){
+                        // Do not interrupt a question queue that is already in progress
+                        if (_queueDepth > 0) return;
+                        showBubble(
+                            msg,
+                            YES_NO,
+                            function(yes){
+                                if (!yes) return;
+                                var q = buildDayQueue(dayKey);
+                                if (q.length) setTimeout(function(){ runQueue(q); }, 350);
+                            },
+                            { greeting: greeting }
+                        );
+                    }, 2800);
+                })(pKey, offset);
+                break; // offer one at a time to avoid bubble spam
+            }
+        }
+
+        // ── Encouragement ─────────────────────────────────────────────────────
+        var ENC = {
+            sleep:   '<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!',
+            water:   '<i class="fas fa-droplet" style="color:#06B6D4"></i> Целта е 2 л вода на ден. Поставете бутилка на видно място!',
+            activity:'<i class="fas fa-person-walking" style="color:#0D9488"></i> Дори 15 мин. разходка подобрява метаболизма и настроението!',
+            junk:    '<i class="fas fa-leaf" style="color:#10b981"></i> Вредните храни са изкушение, но планът работи. Утре нов старт!',
+            perfect: '<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотен ден! Спазихте плана отлично. Резултатите идват!',
+            good:    '<i class="fas fa-check-circle" style="color:#10b981"></i> Добре се справяте! Малките крачки водят до голямата цел!',
+            def:     '<i class="fas fa-dumbbell" style="color:#0D9488"></i> На прав път сте! Последователността е ключът!'
+        };
+        function buildEncouragement(recordKey) {
+            var rec = getRecord(recordKey || getTodayKey());
+            var ds  = rec.dailyScore || calcDayScore(rec);
+            if (ds.junkCount > 0) return { text: ENC.junk, type: 'warn' };
+            if (rec.morningCheck && !rec.morningCheck.sleptWell) return { text: ENC.sleep, type: 'warn' };
+            if (rec.eveningCheck && !rec.eveningCheck.waterIntake) return { text: ENC.water, type: 'warn' };
+            if (rec.eveningCheck && rec.eveningCheck.activityLevel === 1) return { text: ENC.activity, type: 'warn' };
+            if (ds.score === 5 && !ds.junkCount) return { text: ENC.perfect, type: 'perfect' };
+            if (ds.score >= 4) return { text: ENC.good, type: 'good' };
+            return { text: ENC.def, type: 'good' };
+        }
+        function showEncouragement(textOrObj) {
+            var text = (textOrObj && typeof textOrObj === 'object') ? textOrObj.text : textOrObj;
+            var type = (textOrObj && typeof textOrObj === 'object') ? (textOrObj.type || '') : '';
+            var t = document.getElementById('gameEncourageToast');
+            if (!t) {
+                t = document.createElement('div');
+                t.id = 'gameEncourageToast';
+                document.body.appendChild(t);
+            }
+            t.className = 'game-encourage-toast' + (type ? ' enc-' + type : '');
+            t.innerHTML = text;
+            requestAnimationFrame(function(){
+                requestAnimationFrame(function(){
+                    t.classList.add('visible');
+                    setTimeout(function(){ t.classList.remove('visible'); }, 4500);
+                });
+            });
+        }
+
+        // ── Day-end modal ─────────────────────────────────────────────────────
+        var DAY_LEVELS = [
+            { min:5, iconClass:'fas fa-trophy', iconColor:'#fbbf24', title:'Перфектен резултат!',  color:'#fbbf24',
+              msg:'Изпълнихте плана 100%! Вие сте шампион. Резултатите ще дойдат!', confetti:true  },
+            { min:4, iconClass:'fas fa-award',  iconColor:'#10b981', title:'Отличен резултат!',    color:'#10b981',
+              msg:'Браво! Почти перфектно. Малко крачки = голям успех!', confetti:true  },
+            { min:3, iconClass:'fas fa-thumbs-up', iconColor:'#0D9488', title:'Задоволителен резултат!',   color:'#0D9488',
+              msg:'Справихте се добре. Утре може дори по-добре!', confetti:false },
+            { min:2, iconClass:'fas fa-dumbbell', iconColor:'#f59e0b', title:'Може по-добре', color:'#f59e0b',
+              msg:'Трудно е понякога, но не се отказвайте. Всеки ден е нов шанс!', confetti:false },
+            { min:0, iconClass:'fas fa-seedling', iconColor:'#6366f1', title:'Нов старт утре!', color:'#6366f1',
+              msg:'Днес беше предизвикателно. Малките промени правят голяма разлика!', confetti:false }
+        ];
+
+        function showDayEndModal(ds) {
+            var old = document.getElementById('gameDayEndModal');
+            if (old) old.remove();
+            var lv = DAY_LEVELS[DAY_LEVELS.length-1];
+            for (var i=0; i<DAY_LEVELS.length; i++) {
+                if ((ds.score||0) >= DAY_LEVELS[i].min) { lv = DAY_LEVELS[i]; break; }
+            }
+            var overlay = document.createElement('div');
+            overlay.id = 'gameDayEndModal';
+            overlay.className = 'game-modal-overlay';
+            overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+
+            var modal = document.createElement('div');
+            modal.className = 'game-modal';
+
+            if (lv.confetti) {
+                var cf = document.createElement('div');
+                cf.className = 'game-confetti';
+                makeConfetti(cf, 28);
+                modal.appendChild(cf);
+            }
+
+            var emoEl = document.createElement('span');
+            emoEl.className = 'game-modal-emoji';
+            emoEl.innerHTML = '<i class="'+lv.iconClass+'" style="color:'+lv.iconColor+'"></i>';
+            modal.appendChild(emoEl);
+
+            var titleEl = document.createElement('div');
+            titleEl.className = 'game-modal-title';
+            titleEl.textContent = lv.title;
+            modal.appendChild(titleEl);
+
+            var scoreEl = document.createElement('div');
+            scoreEl.className = 'game-modal-score';
+            scoreEl.style.cssText = 'background:linear-gradient(135deg,'+lv.color+','+lv.color+'99);color:white;';
+            scoreEl.innerHTML = '\u041E\u0446\u0435\u043D\u043A\u0430: <strong>' + (ds.stars||'') + '</strong>';
+            modal.appendChild(scoreEl);
+
+            var engEl = document.createElement('div');
+            engEl.className = 'game-modal-score';
+            engEl.style.cssText = 'background:rgba(13,148,136,0.12);color:#0D9488;';
+            engEl.innerHTML = '<i class="fas fa-chart-bar" style="color:#0D9488"></i> Ангажираност: <strong>' + (ds.engPct||0) + '%</strong>';
+            modal.appendChild(engEl);
+
+            var msgEl = document.createElement('div');
+            msgEl.className = 'game-modal-msg';
+            msgEl.textContent = lv.msg;
+            modal.appendChild(msgEl);
+
+            var closeBtn = document.createElement('button');
+            closeBtn.className = 'game-modal-btn';
+            closeBtn.style.cssText = 'background:linear-gradient(135deg,'+lv.color+',#0F766E);color:white;';
+            closeBtn.textContent = '\u2713 \u0421\u0442\u0440\u0430\u0445\u043E\u0442\u043D\u043E, \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0439!';
+            closeBtn.onclick = function(){ overlay.remove(); };
+            modal.appendChild(closeBtn);
+
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        }
+
+        // ── Weekly recap ──────────────────────────────────────────────────────
+        function calcWeeklyScore() {
+            var allData = getGameData();
+            var GS = window.GameScoring;
+            // Същите формули като на сървъра и екрана с анализа (game-scoring.js).
+            var sum = GS.weekSummary(allData, GS.dateKey(new Date()));
+            var noDataDays = sum.days.filter(function(day) {
+                if (!day.rec) return true;
+                var ds = GS.calcDayScore(day.rec);
+                return ds.score === null && (ds.engPct || 0) === 0;
+            }).length;
+            return {
+                days: sum.days,
+                avgScore: sum.avgScore != null ? sum.avgScore : 0,
+                avgEngPct: sum.engagementPct,
+                mealAdherence: sum.mealAdherence,
+                daysRecorded: sum.daysRecorded,
+                noDataDays: noDataDays
+            };
+        }
+
+        function calcStreak() {
             var allData = getGameData();
             var streak = 0;
             var d = new Date();

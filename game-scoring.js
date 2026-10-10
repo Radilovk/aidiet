@@ -203,7 +203,9 @@
             totalWeight += HEALTH_WEIGHTS.water;
         }
 
-        var extraCalsWeight = Math.max(0, 100 - Math.round((m.totalExtraCals || 0) / 700 * 100));
+        // Извънплановите калории на ден (средно за записаните дни): 0 → 100, 350+ kcal/ден → 0.
+        var perDay = m.extraCalsPerDay != null ? m.extraCalsPerDay : (m.totalExtraCals || 0) / 7;
+        var extraCalsWeight = Math.max(0, 100 - Math.round(perDay / 350 * 100));
         healthScore += extraCalsWeight * HEALTH_WEIGHTS.extraCals;
         totalWeight += HEALTH_WEIGHTS.extraCals;
 
@@ -229,6 +231,128 @@
         return days.filter(function (d) { return !!d.rec; }).length;
     }
 
+    /* ── Седмично обобщение — СЪЩИТЕ формули като на сървъра ──────────────
+     * (analytics-compression.js buildAnalyticsSummary). Клиентът и сървърът
+     * показват едни и същи числа; scripts/test-analytics-parity.mjs го проверява. */
+
+    function avg(values) {
+        var v = values.filter(function (x) { return x != null; });
+        return v.length ? Math.round(v.reduce(function (a, b) { return a + b; }, 0) / v.length) : null;
+    }
+
+    function extraCalsOf(rec) {
+        return ((rec && rec.extraMeals) || []).reduce(function (s, em) {
+            if (em.isAddedToPlan && !em.countCalories) return s;
+            return s + (em.calories || 0);
+        }, 0);
+    }
+
+    /** Спазени хранения за деня (без свободното и напитката); null за ден само отворен. */
+    function dayMealAdherence(rec) {
+        if (!rec) return null;
+        var freeKey = rec.freeMeal && rec.freeMeal.mealKey;
+        var slots = getMealSlots(rec).filter(function (m) {
+            return m !== freeKey && !/^Напитка|^Свободно хранене/.test(m);
+        });
+        if (!slots.length) return null;
+        var ticked = slots.filter(function (m) { return rec.meals && rec.meals[m] === true; }).length;
+        var touched = ticked > 0 || rec.morningCheck || rec.eveningCheck || ((rec.extraMeals || []).length > 0);
+        return touched ? Math.round(ticked / slots.length * 100) : null;
+    }
+
+    /** Колко близо до плана са калориите: 100 = точно; 10% над или под = 90. */
+    function dayCalCloseness(rec) {
+        if (!rec) return null;
+        var mealCalMap = rec.mealCalories || {};
+        var free = (rec.freeMeal && rec.freeMeal.calories > 0) ? rec.freeMeal : null;
+        var consumed = getMealSlots(rec).reduce(function (sum, mt) {
+            if (!rec.meals || !rec.meals[mt]) return sum;
+            if (free && free.mealKey === mt) return sum + free.calories;
+            return sum + (mealCalMap[mt] || 0);
+        }, 0);
+        var total = consumed + extraCalsOf(rec);
+        var plan = getPlannedCalories(rec);
+        if (!(total > 0) || !plan) return null;
+        return Math.max(0, 100 - Math.round(Math.abs(total / plan - 1) * 100));
+    }
+
+    /** Поредни дни с поне 4 звезди назад от днес (днес се прескача, ако още няма оценка). */
+    function streakOf(allData, todayKey, windowDays) {
+        windowDays = windowDays || 7;
+        var streak = 0;
+        var todayRec = (allData || {})[todayKey];
+        var start = (!todayRec || calcDayScore(todayRec, todayKey).score == null) ? 1 : 0;
+        for (var i = start; i < windowDays; i++) {
+            var d = new Date();
+            d.setDate(d.getDate() - i);
+            var rec = (allData || {})[dateKey(d)];
+            var sc = rec ? calcDayScore(rec, todayKey).score : null;
+            if (sc != null && sc >= 4) streak++;
+            else break;
+        }
+        return streak;
+    }
+
+    function weekSummary(allData, todayKey) {
+        todayKey = todayKey || dateKey(new Date());
+        var days = buildLast7Days(allData, todayKey);
+        var recorded = days.filter(function (d) { return !!d.rec; });
+        var scores = days.map(function (d) { return d.rec ? calcDayScore(d.rec, todayKey) : null; });
+        var valid = scores.filter(function (s) { return s && s.score != null; });
+        var avgScore = valid.length
+            ? Math.round(valid.reduce(function (a, s) { return a + s.score; }, 0) / valid.length * 10) / 10
+            : null;
+        var engagementPct = avg(recorded.map(function (d) { return calcDayScore(d.rec, todayKey).engPct; })) || 0;
+        var mealAdh = days.map(function (d) { return dayMealAdherence(d.rec); }).filter(function (v) { return v != null; });
+        var totalExtraCals = days.reduce(function (s, d) { return s + extraCalsOf(d.rec); }, 0);
+        // Днешният ден още не е изяден — нетният баланс е само за завършените дни.
+        var netCalBalance = days.reduce(function (s, d) {
+            return s + (d.rec && d.key < todayKey ? calcDayScore(d.rec, todayKey).calorieDelta : 0);
+        }, 0);
+        var sleep = days.map(function (d) { var m = d.rec && d.rec.morningCheck; return m && m.sleptWell != null ? (m.sleptWell ? 100 : 0) : null; });
+        var bal = days.map(function (d) { var e = d.rec && d.rec.eveningCheck; return e && e.emotionalBalance != null ? Math.round((e.emotionalBalance - 1) / 2 * 100) : null; });
+        var act = days.map(function (d) { var e = d.rec && d.rec.eveningCheck; return e && e.activityLevel != null ? Math.round((e.activityLevel - 1) / 2 * 100) : null; });
+        var water = days.map(function (d) { var e = d.rec && d.rec.eveningCheck; return e && e.waterIntake != null ? (e.waterIntake ? 100 : 0) : null; });
+        var junk7 = 0;
+        days.forEach(function (d) {
+            ((d.rec && d.rec.extraMeals) || []).forEach(function (em) {
+                if (em.isJunk && (!em.isAddedToPlan || em.countCalories !== false)) junk7++;
+            });
+        });
+        var past = scores.slice(0, -1);
+        var first = past.slice(0, Math.floor(past.length / 2)).filter(function (x) { return x && x.score != null; });
+        var last = past.slice(Math.ceil(past.length / 2)).filter(function (x) { return x && x.score != null; });
+        var trend = 'flat';
+        if (first.length && last.length) {
+            var fh = first.reduce(function (a, x) { return a + x.score; }, 0) / first.length;
+            var lh = last.reduce(function (a, x) { return a + x.score; }, 0) / last.length;
+            if (lh > fh + 0.3) trend = 'up';
+            else if (fh > lh + 0.3) trend = 'down';
+        }
+        var dims = { eng: engagementPct, slp: avg(sleep), bal: avg(bal), act: avg(act), wtr: avg(water) };
+        return {
+            days: days,
+            daysRecorded: recorded.length,
+            avgScore: avgScore,
+            engagementPct: engagementPct,
+            mealAdherence: mealAdh.length ? Math.round(mealAdh.reduce(function (a, b) { return a + b; }, 0) / mealAdh.length) : null,
+            mealDays: mealAdh.length,
+            calAdherence: avg(days.map(function (d) { return dayCalCloseness(d.rec); })),
+            netCalBalance: netCalBalance,
+            totalExtraCals: totalExtraCals,
+            junk7: junk7,
+            trend: trend,
+            streak: streakOf(allData, todayKey, 7),
+            dimensions: dims,
+            healthIndex: computeHealthIndex({
+                engagementPct: engagementPct,
+                sleepPct: dims.slp, balancePct: dims.bal, actPct: dims.act, waterPct: dims.wtr,
+                totalExtraCals: totalExtraCals,
+                extraCalsPerDay: totalExtraCals / Math.max(1, recorded.length)
+            })
+        };
+    }
+
     global.GameScoring = {
         JUNK_MAX_POINTS: JUNK_MAX_POINTS,
         JUNK_PENALTY_PER_MEAL: JUNK_PENALTY_PER_MEAL,
@@ -239,6 +363,10 @@
         calcDayScore: calcDayScore,
         computeHealthIndex: computeHealthIndex,
         buildLast7Days: buildLast7Days,
-        countDaysWithRecords: countDaysWithRecords
+        countDaysWithRecords: countDaysWithRecords,
+        dayMealAdherence: dayMealAdherence,
+        dayCalCloseness: dayCalCloseness,
+        streakOf: streakOf,
+        weekSummary: weekSummary
     };
 }(typeof window !== 'undefined' ? window : this));

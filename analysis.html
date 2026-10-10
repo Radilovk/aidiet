@@ -2578,21 +2578,9 @@
                 body: JSON.stringify({ userId, plan: data.plan, userData: planPayload, planSource: 'questionnaire2', clientId: savedClientId })
             }).catch(e => console.error('Error saving completed background plan:', e));
 
-            if (savedClientId) {
-                const forcePending = localStorage.getItem('planReplacePending') === '1'
-                    || localStorage.getItem('planSource') === 'questionnaire2';
-                fetch('https://aidiet.radilov-k.workers.dev/api/admin/update-client-plan', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: savedClientId,
-                        plan: data.plan,
-                        userId,
-                        ...(forcePending ? { forcePending: true } : {})
-                    })
-                }).catch(e => console.error('Error saving completed plan to client record:', e));
-                if (forcePending) localStorage.removeItem('planReplacePending');
-            }
+            // Клиентският запис се обновява от сървъра при завършване на задачата
+            // (с „чака одобрение“) — браузърът не пише в него.
+            localStorage.removeItem('planReplacePending');
 
             updateQuestionnaire2PendingNotice('ready');
         }

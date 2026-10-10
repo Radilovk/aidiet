@@ -51857,9 +51857,11 @@ function fitnessEnv(env) {
   return { ...env, FITNESS_KV: env.FITNESS_KV || env.page_content };
 }
 var CLIENT_REACHABLE_ADMIN_ROUTES = /* @__PURE__ */ new Set([
-  "/api/admin/update-client-plan",
   "/api/admin/get-blacklist",
   "/api/admin/get-all-protocol-images"
+]);
+var ADMIN_ONLY_ROUTES = /* @__PURE__ */ new Set([
+  "/api/push/send"
 ]);
 function isClientReachableAdminRoute(pathname) {
   return CLIENT_REACHABLE_ADMIN_ROUTES.has(pathname);
@@ -51875,7 +51877,7 @@ var worker_entry_default = {
         headers: CORS_HEADERS2
       });
     }
-    if (url.pathname.startsWith("/api/admin/") && !isClientReachableAdminRoute(url.pathname)) {
+    if (url.pathname.startsWith("/api/admin/") && !isClientReachableAdminRoute(url.pathname) || ADMIN_ONLY_ROUTES.has(url.pathname)) {
       const authErr = requireAdminAuth(request, env);
       if (authErr) return authErr;
     }

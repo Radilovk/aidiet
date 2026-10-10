@@ -1009,23 +1009,9 @@
         } catch (_) {}
     }
 
-    async function submitProfileRegenPlanToServer(plan, userId, clientId) {
-        if (!clientId || !plan) return;
-        try {
-            await fetch(WORKER_URL + '/api/admin/update-client-plan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    clientId: clientId,
-                    plan: plan,
-                    userId: userId || undefined,
-                    forcePending: true
-                })
-            });
-        } catch (e) {
-            console.warn('Profile regen plan submit failed:', e);
-        }
-    }
+    // Планът от профила стига до клиентския запис от сървъра (задачата носи
+    // _clientId и _requireApproval) — браузърът не пише в него.
+    async function submitProfileRegenPlanToServer() {}
 
     async function pollProfileRegenJobOnce() {
         var jobId = '';

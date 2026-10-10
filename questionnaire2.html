@@ -4293,18 +4293,8 @@
 
             if (savedClientId) {
                 localStorage.setItem('pendingClientId', savedClientId);
-                const forcePending = localStorage.getItem('planReplacePending') === '1';
-                fetch('https://aidiet.radilov-k.workers.dev/api/admin/update-client-plan', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: savedClientId,
-                        plan: result.plan,
-                        userId: fbUserId || result.userId,
-                        ...(forcePending ? { forcePending: true } : {})
-                    })
-                }).catch(e => console.error('Error saving plan to client record:', e));
-                if (forcePending) localStorage.removeItem('planReplacePending');
+                // Клиентският запис се обновява от сървъра при завършване на задачата.
+                localStorage.removeItem('planReplacePending');
             }
 
             localStorage.removeItem('hasSeenPlanJustification');

@@ -4272,7 +4272,7 @@
                         : (input instanceof Request ? input.url : String(input?.url ?? input ?? ''));
                 } catch (_) { urlStr = ''; }
 
-                if (!urlStr.includes('/api/admin/')) {
+                if (!urlStr.includes('/api/admin/') && !urlStr.includes('/api/push/send')) {
                     return nativeFetch(input, init);
                 }
 

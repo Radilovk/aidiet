@@ -806,6 +806,8 @@
             try { allData = JSON.parse(localStorage.getItem('gameData') || '{}'); } catch(e) {}
 
             var days = GS.buildLast7Days(allData, todayKey);
+            // Същите формули като на сървъра (решенията за плана се вземат там).
+            var summary = GS.weekSummary(allData, todayKey);
 
             // ── Core metrics ──────────────────────────────────────────────────
             var weekScores = days.map(function(d){ return d.rec ? calcDayScore(d.rec) : null; });
@@ -832,7 +834,7 @@
                 if (!d.rec) return null;
                 return calcDayScore(d.rec).calorieDelta;
             });
-            var netCalBalance = calBalanceByDay.reduce(function(s,v){return s+(v||0);},0);
+            var netCalBalance = summary.netCalBalance;
 
             var calConsumedByDay = days.map(function(d){
                 if (!d.rec) return null;
@@ -853,18 +855,7 @@
             var calPlannedByDay = days.map(function(d){
                 return d.rec ? (d.rec.plannedCalories || null) : null;
             });
-            var calAdherencePct = (function(){
-                var vals = [];
-                calConsumedByDay.forEach(function(consumed, idx){
-                    if (!consumed) return;
-                    var plan = calPlannedByDay[idx];
-                    if (!plan) return;
-                    vals.push(Math.min(100, Math.round(consumed / plan * 100)));
-                });
-                return vals.length > 0
-                    ? Math.round(vals.reduce(function(a,b){return a+b;},0) / vals.length)
-                    : null;
-            })();
+            var calAdherencePct = summary.calAdherence;
 
             var balanceByDay = days.map(function(d){
                 if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.emotionalBalance==null) return null;
@@ -910,14 +901,8 @@
                 (firstHalf.reduce(function(a,s){return a+s.score;},0)/firstHalf.length) >
                 (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length + 0.3);
 
-            var healthScore = GS.computeHealthIndex({
-                engagementPct: engagementPct,
-                sleepPct: sleepPct,
-                balancePct: balancePct,
-                actPct: actPct,
-                waterPct: waterPct,
-                totalExtraCals: totalExtraCals
-            });
+            var healthScore = summary.healthIndex;
+            var mealAdherencePct = summary.mealAdherence;
 
             // ── Correlation insights ──────────────────────────────────────────
             var insights = [];
@@ -1172,6 +1157,14 @@
                 '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
                 '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
+            '</div>';
+
+            // Спазените хранения са числото, по което седмичният преглед коригира плана.
+            if (mealAdherencePct != null) html += '<div class="game-index-row">' +
+                '<div class="game-index-label"><span><i class="fas fa-circle-check" style="color:#0F766E"></i> Спазени хранения</span><span>'+mealAdherencePct+'%</span></div>' +
+                '<div class="game-index-hint">'+(mealAdherencePct>=75?'<i class="fas fa-check-circle" style="color:#10b981"></i> Планът се спазва — корекциите по теглото са точни':mealAdherencePct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Частично — калориите не се пипат, докато не стане над 75%':'<i class="fas fa-circle" style="color:#ef4444"></i> Под 60% — следващото меню ще е по-просто')+'</div>' +
+                pBar(mealAdherencePct,'linear-gradient(90deg,#0F766E,#14B8A6)') +
+                miniBarChart(days.map(function(d){ return GS.dayMealAdherence(d.rec); }),100,'#0F766E') +
             '</div>';
 
             var hasDeficit = calBalanceByDay.some(function(v){ return v!==null && v<-50; });

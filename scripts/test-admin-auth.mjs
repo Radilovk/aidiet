@@ -75,13 +75,23 @@ check('липсващ ADMIN_SECRET дава 503, не достъп', () => {
   assert(/401/.test(fn[0]), 'requireAdminAuth не връща 401 при грешна тайна');
 });
 
-check('клиентските admin маршрути са явно изброени', () => {
-  for (const route of [
-    '/api/admin/update-client-plan',
-    '/api/admin/get-blacklist',
-    '/api/admin/get-all-protocol-images',
-  ]) {
-    assert(bundle.includes(route), `${route} липсва от allowlist-а`);
+check('клиентските admin маршрути са само за четене', () => {
+  const src = readFileSync(join(root, 'worker.entry.js'), 'utf8');
+  const set = src.match(/const CLIENT_REACHABLE_ADMIN_ROUTES = new Set\(\[([\s\S]*?)\]\)/);
+  assert(set, 'CLIENT_REACHABLE_ADMIN_ROUTES липсва');
+  for (const route of ['/api/admin/get-blacklist', '/api/admin/get-all-protocol-images']) {
+    assert(set[1].includes(route), `${route} липсва от allowlist-а`);
+  }
+  // Подмяна на чужд план без админ тайна — не.
+  assert(!set[1].includes('update-client-plan'), 'update-client-plan е достъпен без админ тайна');
+  const adminOnly = src.match(/const ADMIN_ONLY_ROUTES = new Set\(\[([\s\S]*?)\]\)/);
+  assert(adminOnly && adminOnly[1].includes('/api/push/send'), '/api/push/send не е заключен');
+});
+
+check('клиентските страници не пишат в клиентския запис', () => {
+  for (const f of ['analysis.html', 'questionnaire2.html', 'plan-pending.html', 'plan-sync.js']) {
+    const src = readFileSync(join(root, f), 'utf8');
+    assert(!/fetch\([^)]*update-client-plan/.test(src), `${f} още вика update-client-plan`);
   }
 });
 
