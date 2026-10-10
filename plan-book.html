@@ -2098,8 +2098,18 @@
             'Critical': 'Критично'
         };
 
+        /** Слотовете на двигателя („Хранене 1…5“) → имената, които клиентът вижда в приложението. */
+        const BOOK_MEAL_LABELS = {
+            'Хранене 1': 'Закуска', 'Хранене 2': 'Обяд', 'Хранене 3': 'Следобедна закуска',
+            'Хранене 4': 'Вечеря', 'Хранене 5': 'Късна закуска', 'Напитка': 'Сутрешна напитка',
+            'Свободно хранене': 'Свободно хранене'
+        };
+        function bookMealLabel(type) {
+            return BOOK_MEAL_LABELS[type] || type || '';
+        }
+
         function getMealTypeIcon(type) {
-            const t = (type || '').toLowerCase();
+            const t = bookMealLabel(type).toLowerCase();
             if (t.includes('закуска')) return 'breakfast';
             if (t.includes('обяд')) return 'lunch';
             if (t.includes('вечеря')) return 'dinner';
@@ -2108,7 +2118,7 @@
         }
 
         function getMealTypeEmoji(type) {
-            const t = (type || '').toLowerCase();
+            const t = bookMealLabel(type).toLowerCase();
             if (t.includes('закуска')) return '<i class="fas fa-coffee"></i>';
             if (t.includes('обяд')) return '<i class="fas fa-sun"></i>';
             if (t.includes('вечеря')) return '<i class="fas fa-moon"></i>';
@@ -2391,7 +2401,7 @@
                 cards.push({ label: 'Хидратация', icon: 'fa-tint', text: s.hydrationStrategy });
             }
             if (s.breakfastStrategy) {
-                cards.push({ label: 'Сутрешен детокс', icon: 'fa-coffee', text: s.breakfastStrategy });
+                cards.push({ label: 'Закуска', icon: 'fa-coffee', text: s.breakfastStrategy });
             }
             // communicationStyle removed per requirements
 
@@ -2424,7 +2434,8 @@
 
                 if (isFreeDayByStrategy && !hasFreeMeal) {
                     var freeEntry = { type: 'Свободно хранене', name: 'Свободно хранене', weight: '-' };
-                    var li = meals.findIndex(function(m) { return m.type === 'Обяд'; });
+                    // Свободното хранене заменя обяда („Хранене 2“ в плана от двигателя).
+                    var li = meals.findIndex(function(m) { return m.type === 'Хранене 2' || m.type === 'Обяд'; });
                     if (li >= 0) {
                         meals.splice(li, 1, freeEntry);
                     } else if (meals.length > 1) {
@@ -2473,7 +2484,7 @@
                     html += '<div class="meal-card-header">';
                     html += '<div class="meal-type-icon ' + typeClass + '">' + typeEmoji + '</div>';
                     html += '<div>';
-                    html += '<div class="meal-type-label">' + esc(meal.type) + '</div>';
+                    html += '<div class="meal-type-label">' + esc(bookMealLabel(meal.type)) + '</div>';
                     html += '<div class="meal-name-text">' + esc(isFreeMeal ? 'Свободно хранене' : (meal.name || '')) + '</div>';
                     html += '</div>';
 
@@ -2652,7 +2663,7 @@
         function renderUserData(userData, qaData) {
             var page = document.getElementById('userDataPage');
             // Merge both sources so no field is lost regardless of which storage was used
-            var data = Object.assign({}, userData, qaData);
+            var data = Object.assign({}, qaData, userData);
 
             if (!data || Object.keys(data).length === 0) {
                 page.style.display = 'none';

@@ -1992,7 +1992,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Възраст</label>
-                <input type="number" class="form-input" id="age" data-field="age" data-diet-related="false" disabled>
+                <input type="number" class="form-input" id="age" data-field="age" data-diet-related="true" disabled>
             </div>
             <div class="form-group">
                 <label class="form-label">Ръст (см)</label>
@@ -2742,6 +2742,19 @@
         };
 
         // --- Data Loading ---
+        /** Състоянието на нов план по промените в профила — видимо, а не тайно. */
+        function showPlanReplaceState() {
+            try {
+                if (localStorage.getItem('npPlanRegenFailed') === '1') {
+                    localStorage.removeItem('npPlanRegenFailed');
+                    showAlert('Новият план по промените ви не можа да се изготви. Сегашният ви план остава — опитайте отново с „Запази и регенерирай план“.', 'warning');
+                } else if (localStorage.getItem('planReplacePending') === '1') {
+                    showAlert('Новият план по промените ви очаква одобрение от специалист. Дотогава ползвате сегашния си план.', 'info');
+                }
+            } catch (_) {}
+        }
+        setTimeout(showPlanReplaceState, 600);
+
         function loadUserData() {
             try {
                 const userDataStr = localStorage.getItem('userData');
@@ -3055,21 +3068,21 @@
                 return;
             }
 
-            const fullRegenMessage = 'Ще се генерира изцяло нов хранителен план (анализ → стратегия → седмично меню → обобщение). Процесът отнема няколко минути.';
-
-            if (!replacingExistingPlan) {
-                if (!confirm(fullRegenMessage + '\n\nСигурни ли сте, че искате да продължите?')) {
-                    return;
-                }
+            // Винаги потвърждение: замяната на плана не е действие с едно докосване.
+            const fullRegenMessage = replacingExistingPlan
+                ? 'Ще се изготви нов хранителен план по новите данни. Той ще замени сегашния, след като специалист го прегледа и одобри — дотогава ползвате сегашния план.'
+                : 'Ще се изготви нов хранителен план по новите данни. Отнема около минута.';
+            if (!confirm(fullRegenMessage + '\n\nПродължаване?')) {
+                return;
             }
 
             let authContext = null;
+            let needsApproval = replacingExistingPlan;
             if (replacingExistingPlan && sync && typeof sync.ensureReplacementAuth === 'function') {
                 try {
-                    authContext = (await sync.ensureReplacementAuth(
-                        email,
-                        PLAN_REVIEW_SYSTEM_MSG
-                    )).authContext;
+                    const auth = await sync.ensureReplacementAuth(email, PLAN_REVIEW_SYSTEM_MSG);
+                    authContext = auth.authContext;
+                    if (auth && typeof auth.requireApproval === 'boolean') needsApproval = auth.requireApproval;
                 } catch (_) {
                     return;
                 }
@@ -3093,7 +3106,7 @@
                 btn.innerHTML = '<div class="spinner"></div> Регенериране на план...';
 
                 const jobId = crypto.randomUUID();
-                const requireApproval = replacingExistingPlan;
+                const requireApproval = needsApproval;
                 localStorage.setItem('planJobId', jobId);
                 localStorage.setItem('planJobSource', requireApproval ? 'profile-regen' : 'questionnaire');
                 localStorage.setItem('pendingPlanPayload', JSON.stringify(updatedData));
@@ -3324,13 +3337,18 @@
         const PLAN_REVIEW_SYSTEM_MSG = 'Планът предстои да бъде преразгледан и активиран от специалист. Ще получите известие на имейл, когато новият план е готов.';
 
         let _alertDismissTimer = null;
+        /** Текст от сървъра/анализа — като текст, не като HTML. */
+        function escProfileHtml(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
         function showAlert(message, type) {
             if (_alertDismissTimer) { clearTimeout(_alertDismissTimer); _alertDismissTimer = null; }
             const container = document.getElementById('alertContainer');
             container.innerHTML = `
                 <div class="alert alert-${type}">
                     <i class="fas fa-${type === 'info' ? 'check-circle' : 'exclamation-triangle'}"></i>
-                    <span>${message}</span>
+                    <span>${escProfileHtml(message)}</span>
                 </div>
             `;
             // Auto-dismiss after 6 seconds
@@ -3396,8 +3414,8 @@
                                 <div style="display: flex; align-items: flex-start; gap: 10px;">
                                     <i class="fas ${severityIcon}" style="color: ${severityColor}; margin-top: 2px; font-size: 1.1rem;"></i>
                                     <div style="flex: 1;">
-                                        <strong style="color: var(--text-dark);">${problem.title || 'Проблем'}</strong>
-                                        <p style="margin: 5px 0 0 0; color: var(--text-light); font-size: 0.9rem;">${problem.description || ''}</p>
+                                        <strong style="color: var(--text-dark);">${escProfileHtml(problem.title || 'Проблем')}</strong>
+                                        <p style="margin: 5px 0 0 0; color: var(--text-light); font-size: 0.9rem;">${escProfileHtml(problem.description || '')}</p>
                                     </div>
                                 </div>
                             </li>

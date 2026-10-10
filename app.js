@@ -916,11 +916,11 @@
             // signed out and cleared already, but the shell owns the storage the
             // next screen reads — leaving that to the caller is how logout came
             // to be "navigate only" inside the app.
-            // Излязъл потребител не получава повече напомняния за плана.
-            try {
-                if (window.GameNotifier && typeof window.GameNotifier.cancelAll === 'function') window.GameNotifier.cancelAll();
-            } catch (_) {}
             clearShellSession().then(function() {
+                // Излязъл потребител не получава повече напомняния за плана.
+                try {
+                    if (window.GameNotifier && typeof window.GameNotifier.cancelAll === 'function') window.GameNotifier.cancelAll();
+                } catch (_) {}
                 window.location.replace('index.html?stay=1&login=1');
             });
             return;

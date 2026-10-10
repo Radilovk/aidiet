@@ -1840,6 +1840,23 @@
             }
         })();
 
+        // Нов план по промените в профила чака одобрение — насоките са още за сегашния.
+        (function showPendingReplaceNote() {
+            try {
+                if (localStorage.getItem('planReplacePending') !== '1') return;
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (document.getElementById('npPendingReplaceNote')) return;
+                    var note = document.createElement('div');
+                    note.id = 'npPendingReplaceNote';
+                    note.setAttribute('role', 'status');
+                    note.style.cssText = 'margin:12px 16px;padding:12px 14px;border-radius:12px;background:#FEF3C7;color:#78350F;font-size:.9rem;line-height:1.45';
+                    note.textContent = 'Новият план по промените ви очаква одобрение от специалист. Насоките по-долу са за сегашния ви план.';
+                    var main = document.querySelector('main, .container, body');
+                    if (main) main.insertBefore(note, main.firstChild);
+                });
+            } catch (_) {}
+        })();
+
         window.addEventListener('NUTRIPLAN_APP_DATA_READY', function() {
             refreshGuidelinesFromShellData('shell-data-ready');
         });

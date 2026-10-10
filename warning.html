@@ -529,9 +529,9 @@
                         <i class="${icon} risk-icon" style="color: ${severityVar};"></i>
                         <div>
                             <div style="font-weight: 700; color: ${severityVar}; font-size: 0.85rem; margin-bottom: 4px;">
-                                ${issue.category} <span style="font-weight: 400; opacity: 0.8;">(${severityLabel})</span>
+                                ${escHtml(issue.category)} <span style="font-weight: 400; opacity: 0.8;">(${severityLabel})</span>
                             </div>
-                            <span class="risk-text">${issue.description}</span>
+                            <span class="risk-text">${escHtml(issue.description)}</span>
                         </div>
                     </li>
                 `;
@@ -547,7 +547,7 @@
                 document.getElementById('recommendationText').textContent =
                     'Описаните по-долу забележки са с умерена важност. ' +
                     'Препоръчваме да ги вземете предвид и при нужда да консултирате лекар. ' +
-                    'Можете да продължите с генерирането на план, като AI ще вземе предвид вашата специфична ситуация.';
+                    'Можете да продължите: планът ще отчете вашата ситуация и ще бъде прегледан от специалист преди да го получите.';
 
                 // Add "Continue anyway" button (guarded against duplicates)
                 const actionButtons = document.querySelector('.action-buttons');
@@ -567,6 +567,11 @@
             }
         }
 
+        /** Текстът идва от сървъра/AI и може да повтаря свободния текст на клиента. */
+        function escHtml(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
         // Display legacy warning data (goal contradictions)
         function displayWarningData(data) {
             // Fill info section
@@ -574,15 +579,15 @@
             infoSection.innerHTML = `
                 <div class="info-row">
                     <span class="info-label">Текущо състояние:</span>
-                    <span class="info-value">${data.currentCategory}</span>
+                    <span class="info-value">${escHtml(data.currentCategory)}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">BMI (Индекс на телесна маса):</span>
-                    <span class="info-value">${data.bmi}</span>
+                    <span class="info-value">${escHtml(data.bmi)}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Избрана цел:</span>
-                    <span class="info-value">${data.goalCategory}</span>
+                    <span class="info-value">${escHtml(data.goalCategory)}</span>
                 </div>
             `;
 
@@ -591,7 +596,7 @@
             risksList.innerHTML = data.risks.map((risk, index) => `
                 <li class="risk-item" style="animation-delay: ${index * 0.1}s">
                     <i class="fas fa-exclamation-circle risk-icon"></i>
-                    <span class="risk-text">${risk}</span>
+                    <span class="risk-text">${escHtml(risk)}</span>
                 </li>
             `).join('');
 

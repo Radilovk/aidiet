@@ -1036,6 +1036,11 @@
             }
             if (data.status === 'failed' || data.status === 'not_found') {
                 clearProfileRegenJobKeys();
+                // Без следа клиентът чакаше обновление, което никога няма да дойде.
+                try {
+                    localStorage.removeItem('planReplacePending');
+                    localStorage.setItem('npPlanRegenFailed', '1');
+                } catch (_) {}
                 return { done: true, failed: true };
             }
             return { done: false };

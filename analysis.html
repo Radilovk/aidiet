@@ -2544,7 +2544,7 @@
             if (state === 'ready') {
                 if (icon) icon.className = 'fas fa-hourglass-half';
                 if (strong) strong.textContent = 'Планът ви предстои да бъде одобрен';
-                if (text) text.textContent = 'AI планът е готов и е изпратен към специалист за преглед. Ще получите известие по имейл.';
+                if (text) text.textContent = 'Планът е готов и е изпратен към специалист за преглед. Ще получите известие по имейл.';
             } else if (state === 'error') {
                 if (icon) icon.className = 'fas fa-exclamation-triangle';
                 if (strong) strong.textContent = 'Планът се забави';
@@ -2665,16 +2665,19 @@
                 const ctaTitle = document.getElementById('ctaTitle');
                 const ctaSubtitle = document.getElementById('ctaSubtitle');
                 if (ctaTitle) ctaTitle.textContent = 'Анализът ви е готов!';
-                if (ctaSubtitle) ctaSubtitle.textContent = 'Нашият специалист ще прегледа данните ви и ще изготви напълно персонализиран хранителен пакет.';
+                if (ctaSubtitle) ctaSubtitle.textContent = 'Планът ви се изготвя автоматично и преди да го получите, се преглежда и одобрява от специалист.';
 
                 // Inject a pending-plan notice above the CTA (only when plan is ready for review)
                 const ctaSection = document.getElementById('ctaSection');
                 if (ctaSection) {
                     const partialPlan = getStoredPlan();
                     const isGenerating = partialPlan && partialPlan._partial && localStorage.getItem('planJobId');
-                    if (!isGenerating) {
+                    // Известието винаги е в страницата (скрито, докато планът се изготвя),
+                    // за да могат „готов“ и „неуспешен“ от фоновата проверка да се покажат.
+                    {
                         const notice = document.createElement('div');
                         notice.className = 'pending-notice';
+                        if (isGenerating) notice.style.display = 'none';
                         notice.innerHTML = `
                         <div class="pending-notice-inner">
                             <i class="fas fa-hourglass-half"></i>

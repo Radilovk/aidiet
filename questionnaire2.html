@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Въпросник 2.0 - Попълнете детайлен въпросник за персонален здравен план. Информацията ще бъде обработена от нашия екип.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
@@ -1170,8 +1170,8 @@
             <i class="fas fa-bolt"></i>
         </div>
         <div class="quick-complete-text">
-            <div class="quick-complete-title">Към последната стъпка</div>
-            <div class="quick-complete-subtitle">Вече сте попълнили въпросника</div>
+            <div class="quick-complete-title">Продължете откъдето спряхте</div>
+            <div class="quick-complete-subtitle">Отговорите ви са запазени</div>
         </div>
         <div class="quick-complete-close" onclick="hideQuickCompleteBanner(event)">
             <i class="fas fa-times"></i>
@@ -1195,7 +1195,7 @@
     <!-- Floating "Назад" button — sticky bottom-left, undo arrow icon -->
     <div class="footer-glass" aria-hidden="true"></div>
     <button class="btn btn-prev" id="prevBtn" onclick="prevStep()" aria-label="Назад">
-        <i class="fas fa-rotate-left"></i>
+        <i class="fas fa-arrow-left"></i>
     </button>
     <!-- Floating "Напред" button — sticky bottom-right, stays above keyboard -->
     <button class="btn btn-next" id="nextBtn" onclick="nextStep()" disabled>
@@ -1280,7 +1280,7 @@
             { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна", "Нито една"], "negativeOption": "Нито една" },
             { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true, "negativeOption": "Не" },
             { "id": "socialComparison", "text": "Колко често се сравнявате с други хора (вкл. социални мрежи)?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
-            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Балансирана", "Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго" ], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
+            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Нямам предпочитания", "Балансирана", "Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго" ], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
             { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [], "optional": true },
             { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
             { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
@@ -2474,6 +2474,31 @@
             }
         }
 
+        function isAnswerEmpty(v) {
+            if (v === undefined || v === null) return true;
+            if (Array.isArray(v)) return v.length === 0;
+            return String(v).trim() === '';
+        }
+
+        /** Въпросът се показва при текущите отговори (showWhen/skipWhen — както в nextStep). */
+        function isQuestionVisibleNow(q) {
+            if (!q) return false;
+            if (q.showWhen) {
+                let shouldShow = false;
+                for (const [field, requiredValue] of Object.entries(q.showWhen)) {
+                    const ans = answers[field];
+                    if (Array.isArray(ans) ? ans.includes(requiredValue) : ans === requiredValue) { shouldShow = true; break; }
+                }
+                if (!shouldShow) return false;
+            }
+            if (q.skipWhen) {
+                for (const [field, skipValues] of Object.entries(q.skipWhen)) {
+                    if (answers[field] && skipValues.includes(answers[field])) return false;
+                }
+            }
+            return true;
+        }
+
         function jumpToLastStep() {
             hideQuickCompleteBanner();
             
@@ -2502,8 +2527,16 @@
                     injectDynamicSubQuestions();
                 }
                 
-                // Jump to the last question, skipping any that shouldn't be shown
-                // based on showWhen/skipWhen (mirrors the logic in nextStep)
+                // Към първия задължителен въпрос без отговор — не директно към края,
+                // което позволяваше изпращане на почти празен въпросник.
+                const firstMissing = currentQueue.findIndex(function(q) {
+                    return isQuestionVisibleNow(q) && !q.optional && q.type !== 'file' && isAnswerEmpty(answers[q.id]);
+                });
+                if (firstMissing >= 0) {
+                    currentIndex = firstMissing;
+                    renderStep();
+                    return;
+                }
                 currentIndex = currentQueue.length - 1;
                 while (currentIndex > 0) {
                     const q = currentQueue[currentIndex];
@@ -2551,11 +2584,15 @@
             // Update Progress
             // Use a stable "base" count (questions without injected sub-questions) to avoid
             // the counter jumping from e.g. "5 от 28" to "6 от 35" when sub-questions are added.
-            const baseCount = currentQueue.filter(q => !q._isDynamicSubQuestion).length;
-            const displayTotal = Math.max(baseCount, currentIndex + 1);
-            const percent = ((currentIndex + 1) / displayTotal) * 100;
+            // Брои се само това, което реално ще бъде попитано при текущите отговори
+            // (с подвъпросите) — иначе лентата стоеше на 100% при оставащи въпроси.
+            const visibleQueue = currentQueue.filter(isQuestionVisibleNow);
+            const visibleIndex = Math.max(0, visibleQueue.indexOf(currentQueue[currentIndex]));
+            const displayTotal = Math.max(visibleQueue.length, visibleIndex + 1);
+            const displayStep = visibleIndex + 1;
+            const percent = (displayStep / displayTotal) * 100;
             progressBar.style.width = `${percent}%`;
-            stepIndicator.textContent = `Стъпка ${currentIndex + 1} от ${displayTotal}`;
+            stepIndicator.textContent = `Стъпка ${displayStep} от ${displayTotal}`;
             
             // Clear content and reset scroll position to top
             container.scrollTop = 0;
@@ -2582,7 +2619,7 @@
             } else {
                 prevBtn.style.visibility = 'visible';
                 prevBtn.setAttribute('aria-label', 'Назад');
-                prevBtn.innerHTML = '<i class="fas fa-rotate-left"></i>';
+                prevBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
             }
             
             if(currentIndex === currentQueue.length - 1) {
@@ -2603,25 +2640,25 @@
             // Determine input type
             if (['text', 'number', 'email'].includes(step.type)) {
                 const input = document.createElement('input');
-                input.type = step.type;
+                // Числата са текстово поле с цифрова клавиатура: type=number отхвърля
+                // „72,5“ от българската клавиатура мълчаливо (стойността става празна).
+                input.type = step.type === 'number' ? 'text' : step.type;
                 input.className = 'modern-input';
                 input.placeholder = 'Вашият отговор...';
+                input.setAttribute('aria-label', step.text || 'Отговор');
                 input.value = answers[step.id] || '';
                 
-                // PHASE 3 - Issue #33: Add maxlength for text fields (200 char limit)
+                // Подробностите за лекарства, промени в теглото, бележки и алергии
+                // имат нужда от повече място; останалите текстови полета — 200 знака.
                 if (step.type === 'text') {
-                    input.setAttribute('maxlength', '200');
+                    const longText = /Details$|Notes$|dietDislike|dietLove|medications/i.test(step.id);
+                    input.setAttribute('maxlength', longText ? '1000' : '200');
                 }
 
-                // Set numeric keyboard and browser-level min/max hints for number fields
                 if (step.type === 'number') {
-                    input.setAttribute('inputmode', 'decimal');
                     const rule = FIELD_RULES[step.id];
-                    if (rule) {
-                        input.setAttribute('min', rule.min);
-                        input.setAttribute('max', rule.max);
-                        if (rule.integer) input.setAttribute('step', '1');
-                    }
+                    input.setAttribute('inputmode', rule && rule.integer ? 'numeric' : 'decimal');
+                    input.setAttribute('autocomplete', 'off');
                 }
 
                 // Email keyboard hint
@@ -2631,10 +2668,12 @@
                 }
                 
                 input.oninput = (e) => {
-                    saveAnswer(step.id, e.target.value);
+                    const raw = e.target.value;
+                    saveAnswer(step.id, step.type === 'number' ? raw.replace(',', '.').trim() : raw);
                     validateInput();
-                    // Test mode activation: when name is "kakadu" or "какаду"
-                    if (step.id === 'name') {
+                    // Тестов режим — само локално или с ?debug=1, не за реални клиенти.
+                    const debugAllowed = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('debug');
+                    if (debugAllowed && step.id === 'name') {
                         const lowerValue = e.target.value.toLowerCase();
                         if (lowerValue === 'kakadu' || lowerValue === 'какаду') {
                             activateTestMode();
@@ -3074,8 +3113,10 @@
             if (!strVal) return { valid: false, message: '' };
             if (type === 'number' && FIELD_RULES[id]) {
                 const rule = FIELD_RULES[id];
-                const num = rule.integer ? parseInt(strVal, 10) : parseFloat(strVal);
-                if (isNaN(num)) return { valid: false, message: 'Моля, въведете число.' };
+                const normalized = strVal.replace(',', '.');
+                if (!/^\d+(\.\d+)?$/.test(normalized)) return { valid: false, message: rule.integer ? 'Моля, въведете цяло число.' : 'Моля, въведете число (напр. 72.5).' };
+                const num = rule.integer ? parseInt(normalized, 10) : parseFloat(normalized);
+                if (rule.integer && normalized.includes('.')) return { valid: false, message: 'Моля, въведете цяло число.' };
                 if (num < rule.min || num > rule.max) {
                     return { valid: false, message: `${rule.label} трябва да бъде между ${rule.min} и ${rule.max} ${rule.unit}.` };
                 }
@@ -3228,21 +3269,8 @@
 
                 // Remove any children that were injected into the queue based on this
                 // question's old answer, and clear their answers recursively.
-                if (targetQ.children && answers[targetQ.id]) {
-                    const oldAnswerVal = answers[targetQ.id];
-                    const injectedChildren = targetQ.children[oldAnswerVal];
-                    if (injectedChildren && injectedChildren.length > 0) {
-                        removeInjectedChildren(injectedChildren, currentIndex + 1);
-                    }
-                }
-
-                // Clear the answer for the question we're returning to so it appears fresh
-                delete answers[targetQ.id];
-
-                // Persist the deletions above (children + this question's answer) to
-                // localStorage so that a page refresh or the "quick complete" banner
-                // don't restore stale answers for the question the user navigated back to.
-                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                // „Назад“ не изтрива: потребителят се връща да провери отговора си.
+                // Ако го смени, nextStep маха старите подвъпроси и добавя новите.
                 
                 // SHOW WHEN LOGIC (reverse): Skip questions whose showWhen condition is not met
                 const prevQ = currentQueue[currentIndex];
@@ -3919,7 +3947,46 @@
             if (idx >= 0) currentIndex = idx;
         }
 
+        /**
+         * Съгласие за обработка на здравни данни (GDPR, чл. 9) — задължително преди
+         * изпращане. Пази се с дата в отговорите, за да остане и при специалиста.
+         */
+        function ensureHealthDataConsent() {
+            if (answers.consentHealthData) return Promise.resolve(true);
+            return new Promise(function(resolve) {
+                var overlay = document.createElement('div');
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.setAttribute('aria-labelledby', 'consentTitle');
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:20000;background:rgba(10,26,26,.6);display:flex;align-items:flex-end;justify-content:center;padding:16px;';
+                overlay.innerHTML =
+                    '<div style="background:#fff;color:#0F2F2E;border-radius:18px;padding:20px 18px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);font-size:.92rem;line-height:1.5">' +
+                    '<h2 id="consentTitle" style="margin:0 0 10px;font-size:1.08rem">Преди да изпратите</h2>' +
+                    '<p style="margin:0 0 12px">Отговорите ви съдържат здравна информация. Използваме я само за изготвяне и наблюдение на хранителния ви план; планът се преглежда от специалист.</p>' +
+                    '<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;cursor:pointer">' +
+                    '<input type="checkbox" id="consentCheck" style="width:22px;height:22px;flex-shrink:0;margin-top:2px">' +
+                    '<span>Съгласен/на съм здравните ми данни да бъдат обработвани за тази цел. Прочетох <a href="privacy-policy.html" target="_blank" rel="noopener">политиката за поверителност</a> и <a href="terms.html" target="_blank" rel="noopener">условията</a>.</span></label>' +
+                    '<div style="display:flex;gap:10px">' +
+                    '<button type="button" id="consentCancel" style="flex:1;min-height:46px;border-radius:12px;border:1.5px solid #cbd5e1;background:#fff;font-weight:600">Назад</button>' +
+                    '<button type="button" id="consentOk" disabled style="flex:1;min-height:46px;border-radius:12px;border:none;background:#0D9488;color:#fff;font-weight:700;opacity:.5">Изпрати</button>' +
+                    '</div></div>';
+                document.body.appendChild(overlay);
+                var check = overlay.querySelector('#consentCheck');
+                var ok = overlay.querySelector('#consentOk');
+                check.addEventListener('change', function() { ok.disabled = !check.checked; ok.style.opacity = check.checked ? '1' : '.5'; });
+                overlay.querySelector('#consentCancel').addEventListener('click', function() { overlay.remove(); resolve(false); });
+                ok.addEventListener('click', function() {
+                    answers.consentHealthData = new Date().toISOString();
+                    localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                    overlay.remove();
+                    resolve(true);
+                });
+                check.focus();
+            });
+        }
+
         async function finishQuiz() {
+            if (!(await ensureHealthDataConsent())) return;
             console.log("Final JSON:", JSON.stringify(answers, null, 2));
             
             renderDiagnosticLoading(false);
@@ -4035,7 +4102,11 @@
                     document.getElementById('nextBtn').style.display = '';
                     document.querySelector('.progress-container').style.display = '';
                     document.body.classList.remove('diagnostic-lock');
-                    if (authErr && authErr.message === 'cancelled') return;
+                    if (authErr && authErr.message === 'cancelled') {
+                        // Обратно към последния въпрос, не към замразения екран на зареждането.
+                        renderStep();
+                        return;
+                    }
                     throw authErr;
                 }
 
