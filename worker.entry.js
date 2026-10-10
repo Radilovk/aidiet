@@ -15792,6 +15792,45 @@ function xbodyPhoneKey(phone) {
   return String(phone || '').replace(/\D/g, '').slice(-9);
 }
 
+/** a package / coupon code as Acuity takes it ("FULLPASS"), or '' */
+function xbodyCode(v) {
+  const code = String(v || '').trim().toUpperCase();
+  return /^[A-Z0-9_-]{2,40}$/.test(code) ? code : '';
+}
+
+/**
+ * POST /api/xbody/code { email, code } — is this package / coupon code good for an XBODY Burgas hour (Acuity's
+ * own check)? → { ok, code, name } or { error: 'bad_code' }. The app keeps a good code and books with it.
+ */
+async function handleXbodyCode(request, env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return jsonResponse({ error: 'Acuity API не е конфигуриран.' }, 503);
+  let body;
+  try {
+    const raw = await request.text();
+    if (raw.length > 1024) return jsonResponse({ error: 'Твърде голяма заявка.' }, 413);
+    body = JSON.parse(raw);
+  } catch (_) {
+    return jsonResponse({ error: 'Невалидна заявка.' }, 400);
+  }
+  const code = xbodyCode(body && body.code);
+  const email = String((body && body.email) || '').trim().toLowerCase();
+  if (!code) return jsonResponse({ error: 'bad_code' }, 400);
+  const u = new URL('https://acuityscheduling.com/api/v1/certificates/check');
+  u.searchParams.set('certificate', code);
+  u.searchParams.set('appointmentTypeID', XBODY_ACUITY_BOOKING.appointmentTypeID);
+  if (email.includes('@')) u.searchParams.set('email', email);
+  const resp = await fetch(u.toString(), {
+    headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` },
+  }).catch(() => null);
+  if (!resp) return jsonResponse({ error: 'Няма връзка със системата за записване.' }, 502);
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    console.warn('[xbody-code] Acuity refused', resp.status, JSON.stringify(data).slice(0, 200));
+    return jsonResponse({ error: resp.status >= 500 ? 'Проверката не е възможна в момента.' : 'bad_code' }, resp.status >= 500 ? 502 : 400);
+  }
+  return jsonResponse({ ok: true, code, name: String((data && data.name) || '').slice(0, 80) });
+}
+
 async function xbodyReadBooking(request) {
   let body;
   try {
@@ -15809,6 +15848,7 @@ async function xbodyReadBooking(request) {
     setupIntent: String((body && body.setupIntent) || ''),
     paymentMethod: String((body && body.paymentMethod) || ''),
     newCard: Boolean(body && body.newCard === true),
+    code: xbodyCode(body && body.code),
     sms: !(body && body.sms === false),
     terms: Boolean(body && body.terms === true),
     times: [...new Set((Array.isArray(body && body.times) ? body.times : []).map(String))]
@@ -16026,7 +16066,7 @@ async function handleXbodyBook(request, env) {
       }
     }
   }
-  if (!previous) fields.push({ id: 3583430, value: 'yes' });   // the terms, accepted in the app (as the ?field:3583430=yes link)
+  if (!previous) fields.push({ id: 3583430, value: 'yes' });   // the terms, accepted in the app ("Запази" with the notice)
   const names = b.name.split(' ');
   const booked = [];
   const failed = [];
@@ -16039,12 +16079,14 @@ async function handleXbodyBook(request, env) {
           datetime: time,
           appointmentTypeID: Number(XBODY_ACUITY_BOOKING.appointmentTypeID),
           calendarID: Number(XBODY_ACUITY_BOOKING.calendarID),
-          firstName: (previous && previous.firstName) || names[0] || '',
-          lastName: (previous && previous.lastName) || names.slice(1).join(' '),
+          // the client as registered in the app (not a name from an earlier booking, e.g. a card holder's)
+          firstName: names[0] || (previous && previous.firstName) || '',
+          lastName: (names[0] ? names.slice(1).join(' ') : '') || (previous && previous.lastName) || '',
           email: (previous && previous.email) || email,
           phone: (previous && previous.phone) || b.phone,
           timezone: XBODY_ACUITY_BOOKING.timezone,
           smsOptIn: b.sms,
+          certificate: b.code || undefined,   // a package / coupon (Fullpass…): Acuity counts it on this hour
           fields,
           notes: guarantee ? guarantee.note : undefined,
         }),
@@ -16058,7 +16100,8 @@ async function handleXbodyBook(request, env) {
         // client rule) is what Acuity's own form asks for: the app sends the client there for this hour
         const why = `${(data && data.error) || ''} ${(data && data.message) || ''}`;
         const taken = /not[_ ]?available|unavailable|no longer|already booked|time.*taken/i.test(why);
-        failed.push({ time, error: taken ? 'taken' : 'form' });
+        const badCode = !taken && b.code && /certificate|coupon|package|code/i.test(why);
+        failed.push({ time, error: taken ? 'taken' : badCode ? 'code' : 'form' });
       }
     } catch (err) {
       failed.push({ time, error: 'form' });
@@ -16121,7 +16164,10 @@ async function xbodyOwnAppointment(env, b) {
   const mine = appt && String(appt.calendarID || '') === XBODY_ACUITY_BOOKING.calendarID &&
     String(appt.email || '').trim().toLowerCase() === b.email && xbodyPhoneKey(appt.phone) === xbodyPhoneKey(b.phone);
   if (!mine) return { error: jsonResponse({ error: 'not_found' }, 404) };
-  if (appt.canceled) return { error: jsonResponse({ error: 'already_canceled' }, 409) };
+  if (appt.canceled) {   // canceled elsewhere (Acuity's page, the studio): the client's cached list is stale
+    await dropXbodyApptCache(env, b.email);
+    return { error: jsonResponse({ error: 'already_canceled' }, 409) };
+  }
   return { appt, auth };
 }
 
@@ -16219,7 +16265,7 @@ async function handleXbodyAppointments(request, env) {
         if (!payload.version) {
           payload.version = computeXbodyApptVersion(payload.upcoming, payload.past);
         }
-        return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
+        return jsonResponse(payload, 200, { cacheControl: 'private, no-store' });   // a cancel must show at once
       }
     } catch (err) {
       console.warn('[xbody-appointments] KV cache read failed:', err.message);
@@ -16289,7 +16335,7 @@ async function handleXbodyAppointments(request, env) {
     }
   }
 
-  return jsonResponse(payload, 200, { cacheControl: 'private, max-age=300' });
+  return jsonResponse(payload, 200, { cacheControl: 'private, no-store' });
 }
 
 /** FitPlan AI routes — delegated to fitness/worker.js (uses FITNESS_KV or page_content). */
@@ -16645,6 +16691,10 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'XBODY_APPOINTMENTS');
         if (rlErr) return rlErr;
         return await handleXbodyAppointmentsVersion(request, env);
+      } else if (url.pathname === '/api/xbody/code' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'XBODY_MANAGE');
+        if (rlErr) return rlErr;
+        return await handleXbodyCode(request, env);
       } else if (url.pathname === '/api/xbody/guarantee' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'XBODY_BOOK');
         if (rlErr) return rlErr;

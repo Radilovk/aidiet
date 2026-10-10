@@ -1298,6 +1298,17 @@
         .xb-saved-card i { color: #d32f2f; }
         .xb-saved-card small { margin-left: auto; font-size: 12px; font-weight: 500; color: #16a34a; }
         html[data-theme="dark"] .xb-saved-card { border-color: #3a353f; }
+        .xb-code { display: flex; gap: 8px; margin: 6px 0 2px; }
+        .xb-code.hidden { display: none; }
+        .xb-code input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #dcd9df; font: inherit; font-size: 16px; text-transform: uppercase; background: transparent; color: inherit; }
+        html[data-theme="dark"] .xb-code input { border-color: #3a353f; }
+        .xb-sheet .xb-code .xb-code-go { width: auto; min-height: 44px; margin: 0; padding: 0 16px; border: 0; border-radius: 12px; background: #16141a; color: #fff; font-size: 14px; }
+        html[data-theme="dark"] .xb-sheet .xb-code .xb-code-go { background: #f3f1f4; color: #16141a; }
+        .xb-policy { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 4px; padding: 11px 12px; border-radius: 12px;
+            background: rgba(211, 47, 47, .06); border: 1px solid rgba(211, 47, 47, .18); font-size: 13px; line-height: 1.5; }
+        .xb-policy i { margin-top: 2px; color: #d32f2f; }
+        .xb-policy b { font-weight: 700; }
+        html[data-theme="dark"] .xb-policy { background: rgba(229, 57, 53, .1); border-color: rgba(229, 57, 53, .28); }
         .xb-sheet .xb-notice { margin: 10px 0 2px; font-size: 13px; font-weight: 400; line-height: 1.45; color: #8a8590; }
         .xb-sheet .xb-link { display: inline; width: auto; min-height: 0; margin: 0; padding: 0; border: 0; background: none; color: #d32f2f; font: inherit; font-size: inherit; font-weight: 600; text-decoration: underline; }
         .xb-sheet .xb-notice .xb-info { vertical-align: middle; margin-left: 4px; }
@@ -1616,7 +1627,7 @@
             const titleEl = document.getElementById('xb-slots-title');
             const nextEl = document.getElementById('xb-next');
             const moveEl = document.getElementById('xb-move');
-            const LATE_MS = 12 * 3600 * 1000;
+            const LATE_MS = 24 * 3600 * 1000;   // free change / cancel until 24 h before the training
 
             let bookingUrl = '';
             let fallback = null;
@@ -1887,6 +1898,8 @@
                 let rest = q < 0 ? '' : bookingUrl.slice(q);
                 try {   // the terms accepted at "Запази" are ticked on Acuity's form too
                     if ((JSON.parse(localStorage.getItem('xbody_consents') || 'null') || {}).terms && rest.indexOf('field:3583430') < 0) rest += '&field:3583430=yes';
+                    const k = JSON.parse(localStorage.getItem('xbody_code') || 'null');   // the code goes into Acuity's form too
+                    if (k && k.code && rest.indexOf('certificate=') < 0) rest += (rest ? '&' : '?') + 'certificate=' + encodeURIComponent(k.code);
                 } catch (_) {}
                 openInFrame(!iso ? bookingUrl : (q < 0 ? bookingUrl : bookingUrl.slice(0, q)) + '/datetime/' +
                     encodeURIComponent(String(iso).replace(/([+-]\d{2})(\d{2})$/, '$1:$2')) + rest);
@@ -1994,6 +2007,17 @@
                     }
                     if (what === 'card') { if (cardStep) cardStep(); return; }
                     if (what === 'new-card') { cardStep = null; bookCart(true); return; }
+                    if (what === 'code-open') {
+                        const box = sheet.querySelector('#xb-code-box');
+                        const row = sheet.querySelector('#xb-code-row');
+                        if (box) box.classList.remove('hidden');
+                        if (row) row.classList.add('hidden');
+                        const input = sheet.querySelector('#xb-code-in');
+                        if (input) input.focus();
+                        return;
+                    }
+                    if (what === 'code-apply') { applyCode(); return; }
+                    if (what === 'code-off') { forgetCode(); openCartSheet(); return; }
                     if (what === 'cancel-card') { cardStep = null; openCartSheet(); return; }
                     if (what === 'move') {   // Промени часа: a free hour is chosen in the calendar
                         sheet.classList.add('hidden');
@@ -2012,7 +2036,10 @@
                     if (what === 'move-no') { sheet.classList.add('hidden'); return; }
                     if (what === 'move-yes') {
                         const from = moving.iso, to = sheetMoveTo;
-                        manageCall('/api/xbody/reschedule', { id: moving.id, time: to }, 'move-yes', function () {
+                        manageCall('/api/xbody/reschedule', { id: moving.id, time: to }, 'move-yes', function (d) {
+                            const A = window.XBodyAppointments;
+                            const at = (d && d.time) || to;
+                            if (A && A.change) A.change(moving.id, { datetime: at, time: at.slice(11, 16) });
                             moving = null;
                             afterManage([from, to], 'Часът е променен ✓',
                                 '<li><span>' + esc(dayLabel(to.slice(0, 10))) + ' · <b>' + esc(to.slice(11, 16)) + '</b></span></li>',
@@ -2025,6 +2052,8 @@
                     if (what === 'cancel-yes') {
                         const o = sheetOwn;
                         manageCall('/api/xbody/cancel', { id: o.item.id }, 'cancel-yes', function () {
+                            const A = window.XBodyAppointments;
+                            if (A && A.change) A.change(o.item.id, { canceled: true });
                             if (moving && moving.id === o.item.id) moving = null;
                             afterManage([o.iso], 'Часът е отказан ✓',
                                 '<li><span>' + esc(dayLabel(o.iso.slice(0, 10))) + ' · <b>' + esc(o.hm) + '</b></span></li>',
@@ -2119,8 +2148,8 @@
                 if (consents()) return '';
                 return '<p class="xb-notice">Със „Запази“ приемате условията за резервация и SMS напомняния за часовете. ' +
                         '<button type="button" class="xb-info" data-info="xb-terms-info" aria-label="Какво включват условията" aria-expanded="false">i</button></p>' +
-                    '<p class="xb-info-text hidden" id="xb-terms-info">При отмяна, промяна или неявяване по-малко от 12 часа преди тренировката ' +
-                        'тя се заплаща от картата Ви, без възможност за възстановяване на сумата. Картата е само гаранция — при записване не се тегли нищо. ' +
+                    '<p class="xb-info-text hidden" id="xb-terms-info">Промяна или отказ — безплатно до 24 часа преди тренировката. ' +
+                        'По-късно или при неявяване тя се таксува автоматично от картата Ви и сумата не се възстановява. Картата е само гаранция — при записване не се тегли нищо. ' +
                         'SMS напомнянията са кратки съобщения преди тренировката.</p>';
             }
 
@@ -2151,6 +2180,44 @@
                 return k ? '<p class="xb-cart-who"><i class="fas fa-credit-card"></i> ' + esc(BRANDS[k.brand] || k.brand || 'Карта') + ' •••• ' + esc(k.last4 || '') +
                     ' · <button type="button" class="xb-link" data-go="new-card">друга карта</button></p>' : '';
             }
+            /* a package / coupon code (Fullpass…): checked once with Acuity, kept on the phone, sent with each booking */
+            const CODE_KEY = 'xbody_code';
+            function savedCode(email) {
+                try {
+                    const v = JSON.parse(localStorage.getItem(CODE_KEY) || 'null');
+                    return v && v.code && v.email === email ? v : null;
+                } catch (_) { return null; }
+            }
+            function keepCode(email, code, name) {
+                try { localStorage.setItem(CODE_KEY, JSON.stringify({ email: email, code: code, name: name || '' })); } catch (_) {}
+            }
+            function forgetCode() {
+                try { localStorage.removeItem(CODE_KEY); } catch (_) {}
+            }
+            function codeLine(c) {
+                const k = savedCode(c.email);
+                if (k) return '<p class="xb-cart-who"><i class="fas fa-ticket"></i> Код <b>' + esc(k.code) + '</b>' + (k.name ? ' (' + esc(k.name) + ')' : '') +
+                    ' · <button type="button" class="xb-link" data-go="code-off">махни</button></p>';
+                return '<p class="xb-cart-who" id="xb-code-row"><button type="button" class="xb-link" data-go="code-open">Имам код (карта, пакет, ваучер)</button></p>' +
+                    '<div class="xb-code hidden" id="xb-code-box"><input id="xb-code-in" type="text" autocomplete="off" autocapitalize="characters" ' +
+                        'spellcheck="false" maxlength="40" placeholder="Код" aria-label="Код"><button type="button" class="xb-code-go" data-go="code-apply">Приложи</button></div>' +
+                    '<p class="xb-cart-note" id="xb-code-err" role="alert"></p>';
+            }
+            function applyCode() {
+                const c = contact();
+                const input = sheet.querySelector('#xb-code-in');
+                const err = sheet.querySelector('#xb-code-err');
+                const code = String((input && input.value) || '').trim().toUpperCase();
+                if (!/^[A-Z0-9_-]{2,40}$/.test(code)) { if (err) err.textContent = 'Въведете кода, както е даден.'; return; }
+                booking = true;
+                busyButton('[data-go="code-apply"]', '…');
+                postJson('/api/xbody/code', { email: c.email, code: code }).then(function (res) {
+                    booking = false;
+                    if (res.status === 200 && res.d.ok) { keepCode(c.email, res.d.code || code, res.d.name); openCartSheet(); return; }
+                    openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
+                        : res.status === 400 ? 'Кодът „' + esc(code) + '“ не важи за този час.' : 'Кодът не може да се провери в момента.');
+                }).catch(function () { booking = false; openCartSheet('Няма връзка. Опитайте отново.'); });
+            }
             function openCartSheet(note) {
                 ensureSheet();
                 const c = contact();
@@ -2162,7 +2229,9 @@
                     }).join('') + '</ul>' +
                     '<p class="xb-cart-who">' + esc([c.name, c.phone].filter(Boolean).join(' · ')) + '</p>' +
                     (savedLine(c) || '') +
+                    codeLine(c) +
                     consentBoxes() +
+                    (savedCard(c.email) ? policyBox() : '<p class="xb-notice"><i class="far fa-clock" aria-hidden="true"></i> Промяна или отказ — безплатно до 24 ч преди часа.</p>') +
                     (note ? '<p class="xb-cart-note">' + note + '</p>' : '') +
                     '<button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Запази ' +
                         (cart.length === 1 ? '1 час' : cart.length + ' часа') + '</button>' +
@@ -2227,9 +2296,16 @@
                 }
                 return stripeLoad;
             }
+            /* the guarantee in two lines: nothing now; free change / cancel until 24 h, after that charged */
+            function policyBox(extra) {
+                return '<div class="xb-policy"><i class="fas fa-shield-halved" aria-hidden="true"></i><div>' +
+                    '<b>Сега не се тегли нищо</b> — картата е гаранция' + (extra || '') + '.<br>' +
+                    'Промяна или отказ — безплатно до <b>24 ч</b> преди часа. След това часът се таксува автоматично и не се възстановява.</div></div>';
+            }
             function sumTable(times, g) {
-                return '<p class="xb-cart-msg">Картата е само гаранция — сега не се тегли нищо' +
-                    (g.total !== null && g.total !== undefined ? '; плащате на място ' + money(g.total) : '') + '. Запомня се за следващия път.</p>';
+                const k = savedCode(contact().email);
+                return policyBox(k ? '; часът се отчита по код ' + esc(k.code)
+                    : g.total !== null && g.total !== undefined ? '; плащате ' + money(g.total) + ' на място' : '');
             }
             function openCardSheet(c, times, g) {
                 const dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -2288,7 +2364,8 @@
                 const agreed = consents();
                 return postJson('/api/xbody/book', {
                     email: c.email, phone: c.phone, name: c.name, times: times, setupIntent: setupIntent || undefined,
-                    paymentMethod: paymentMethod || undefined, sms: agreed ? agreed.sms : undefined, terms: agreed ? true : undefined
+                    paymentMethod: paymentMethod || undefined, sms: agreed ? agreed.sms : undefined, terms: agreed ? true : undefined,
+                    code: (savedCode(c.email) || {}).code || undefined
                 }).then(function (res) {
                     booking = false;
                     if (res.d.card) keepCard(c.email, res.d.card);
@@ -2310,6 +2387,11 @@
                     const failed = (res.d.failed || []).filter(function (f) { return f.error === 'taken'; }).map(function (f) { return f.time; });
                     /* not taken but refused (Acuity wants its own form: a required field, payment details): that hour goes
                        through the studio's form, so the client can always book */
+                    if ((res.d.failed || []).some(function (f) { return f.error === 'code'; }) && !(res.d.booked || []).length) {
+                        forgetCode();   // used up / not for this hour: booked without it next time, or with another one
+                        openCartSheet('Кодът вече не важи (изчерпан или не е за този час). Махнах го — запазете отново или въведете друг.');
+                        return;
+                    }
                     const viaForm = (res.d.failed || []).filter(function (f) { return f.error !== 'taken'; }).map(function (f) { return f.time; });
                     if (!booked.length && !failed.length && !viaForm.length) {
                         openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
@@ -2357,7 +2439,7 @@
                 const hours = Math.max(0, (isoTime(iso) - Date.now()) / 3600000);
                 const left = hours < 1 ? 'по-малко от час' : 'около ' + Math.round(hours) + (Math.round(hours) === 1 ? ' час' : ' часа');
                 return '<p class="xb-late-text"><b>До тренировката остава ' + left + '.</b> Според условията за резервация при ' +
-                    '<b>отмяна, промяна или неявяване</b> по-малко от 12 часа преди тренировката тя се заплаща от картата Ви, ' +
+                    '<b>отмяна, промяна или неявяване</b> по-малко от 24 часа преди тренировката тя се заплаща от картата Ви, ' +
                     '<b>без възможност за възстановяване на сумата</b>.</p>';
             }
             /* an XBODY Burgas hour the app can change (the other studio's hours keep their own Acuity page) */
@@ -2418,6 +2500,12 @@
                     booking = false;
                     if (res.status === 200 && res.d && res.d.ok) { done(res.d); return; }
                     const e = res.d && res.d.error;
+                    if (e === 'already_canceled') {   // canceled elsewhere: the list and the calendar follow at once
+                        const A = window.XBodyAppointments;
+                        if (A && A.change) A.change(payload.id, { canceled: true });
+                        window.dispatchEvent(new CustomEvent('xbody-appt-invalidate', { detail: { email: c.email } }));
+                        render();
+                    }
                     manageError(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
                         : e === 'too_late' ? 'Този час вече не може да се мести или отказва онлайн. За промяна се обадете на студиото.'
                         : e === 'taken' ? 'Новият час не може да бъде зает (току-що е записан от друг или е извън правилата) — изберете друг.'
@@ -2565,11 +2653,11 @@
             };
         })();
 
-        /* ── Late change / cancellation: under 12 h before the training, a clear warning before Acuity's page ──
+        /* ── Late change / cancellation: under 24 h before the training, a clear warning before Acuity's page ──
            Any link to an appointment's page (Промяна in Моите часове, Промяна или отказ in the calendar) carries
-           data-start (ms); inside 12 h it first shows the booking terms, then opens the page if the client goes on. */
+           data-start (ms); inside 24 h it first shows the booking terms, then opens the page if the client goes on. */
         (function () {
-            const LATE_MS = 12 * 3600 * 1000;
+            const LATE_MS = 24 * 3600 * 1000;   // free change / cancel until 24 h before the training
             /* the appointment's page inside the app (the list is closed first); a new tab if that is not possible */
             function openPage(href) {
                 const list = document.getElementById('appointments-overlay');
@@ -2600,7 +2688,7 @@
                 back.innerHTML = '<div class="xb-sheet xb-late" role="alertdialog" aria-modal="true" aria-labelledby="xb-late-t">' +
                     '<div class="xb-sheet-handle"></div>' +
                     '<h3 id="xb-late-t"><i class="fas fa-exclamation-triangle"></i> Внимание: до тренировката остава ' + left + '</h3>' +
-                    '<p class="xb-late-text">Според условията за резервация при <b>отмяна, промяна или неявяване</b> по-малко от 12 часа ' +
+                    '<p class="xb-late-text">Според условията за резервация при <b>отмяна, промяна или неявяване</b> по-малко от 24 часа ' +
                         'преди тренировката тя се заплаща от картата Ви, <b>без възможност за възстановяване на сумата</b>.</p>' +
                     '<button type="button" class="xb-secondary" data-close="1">Назад — запазвам часа</button>' +
                     '<button type="button" class="xb-primary" data-go="' + String(href).replace(/"/g, '&quot;') + '">Разбирам, продължи</button>' +
@@ -3392,12 +3480,36 @@
                 applyCache(payload, Date.now(), true, false, null);
             }
 
+            function changeAppt(id, patch) {
+                const contact = getUserContact();
+                if (!contact || !id) return;
+                const local = memoryCache || (readLocalCache(contact.email) || {}).data;
+                if (!local) return;
+                const all = [].concat(local.upcoming || [], local.past || []).map(function (a) {
+                    return String(a.id) === String(id) ? Object.assign({}, a, patch) : a;
+                });
+                const now = Date.now();
+                const payload = { upcoming: [], past: [] };
+                all.forEach(function (a) {
+                    const t = Date.parse(String(a.datetime || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2'));   // "+0200" → "+02:00" (Safari)
+                    (!a.canceled && t >= now ? payload.upcoming : payload.past).push(a);
+                });
+                payload.upcoming.sort(function (a, b) { return String(a.datetime).localeCompare(String(b.datetime)); });
+                try {   // a just-booked hour must not come back as booked
+                    localStorage.setItem(BOOKED_KEY, JSON.stringify(justBooked().map(function (x) {
+                        return String(x.item.id) === String(id) ? { item: Object.assign({}, x.item, patch), at: x.at } : x;
+                    })));
+                } catch (_) {}
+                writeLocalCache(contact.email, payload, now, null);
+                applyCache(payload, now, true, false, null);
+            }
+
             async function fetchFromServer(contact, force) {
                 const params = new URLSearchParams({ email: contact.email });
                 if (force) {
                     params.set('refresh', '1');
                 }
-                const resp = await fetch(WORKER_URL + '/api/xbody/appointments?' + params.toString());
+                const resp = await fetch(WORKER_URL + '/api/xbody/appointments?' + params.toString(), { cache: 'no-store' });
                 const data = await resp.json().catch(function () { return {}; });
                 if (!resp.ok) {
                     throw new Error(data.error || 'Грешка при зареждане.');
@@ -3415,7 +3527,7 @@
 
             async function fetchServerVersion(contact) {
                 const params = new URLSearchParams({ email: contact.email });
-                const resp = await fetch(WORKER_URL + '/api/xbody/appointments/version?' + params.toString());
+                const resp = await fetch(WORKER_URL + '/api/xbody/appointments/version?' + params.toString(), { cache: 'no-store' });
                 const data = await resp.json().catch(function () { return {}; });
                 if (!resp.ok) {
                     throw new Error(data.error || 'Грешка при проверка.');
@@ -3645,6 +3757,8 @@
                 lastStart: lastStart,
                 /* hours just booked (as the server created them): in the list and on the calendar at once */
                 add: addBooked,
+                /* an hour just canceled or moved in the app: changed in the list and on the calendar at once */
+                change: changeAppt,
                 markDirty: function (email) {
                     markDirty((email || '').trim().toLowerCase() || (getUserContact() && getUserContact().email));
                 }
