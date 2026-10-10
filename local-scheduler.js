@@ -129,7 +129,8 @@ const GameNotifier = {
         return this.CALENDAR_URL.replace('https://', 'webcal://');
     },
 
-    async init() {
+    async init(options) {
+        this._forcePermissionPrompt = !!(options && options.askPermission);
         if (this._initialized) {
             console.log('[GameNotifier] Already ready – skipping re-init.');
             return true;
@@ -220,6 +221,10 @@ const GameNotifier = {
      */
     async refreshConfig() {
         if (!this._initialized || this._hasLocalConfig()) return false;
+        // Най-много веднъж на 30 минути — настройките на известията се сменят рядко.
+        const now = Date.now();
+        if (now - (this._lastConfigRefreshAt || 0) < 30 * 60 * 1000) return false;
+        this._lastConfigRefreshAt = now;
         const prevVersion = localStorage.getItem(this.LS_VERSION_KEY) || '0';
         const configChanged = await this._maybeSyncBackendConfig();
         const newVersion = localStorage.getItem(this.LS_VERSION_KEY) || '0';
@@ -231,6 +236,41 @@ const GameNotifier = {
             return true;
         }
         return false;
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  Еднократни известия по плана (ново седмично меню, седмичен преглед) */
+    /*  Пазят се локално и влизат в графика при всяко пренасрочване —       */
+    /*  без сървър, без разход.                                             */
+    /* ------------------------------------------------------------------ */
+    LS_PLAN_REMINDERS_KEY: 'np_plan_reminders',
+
+    _planReminders() {
+        try {
+            const list = JSON.parse(localStorage.getItem(this.LS_PLAN_REMINDERS_KEY) || '[]');
+            const now = Date.now();
+            return Array.isArray(list) ? list.filter(r => r && r.ts > now && r.key) : [];
+        } catch (_) {
+            return [];
+        }
+    },
+
+    /**
+     * @param {{ key: string, ts: number, title: string, body: string, url?: string }} reminder
+     *   key е уникален за вида (повторно добавяне го заменя)
+     */
+    async addPlanReminder(reminder) {
+        if (!reminder || !reminder.key || !(reminder.ts > Date.now())) return;
+        const list = this._planReminders().filter(r => r.key !== reminder.key);
+        list.push({ key: reminder.key, ts: reminder.ts, title: reminder.title, body: reminder.body, url: reminder.url || '/plan.html' });
+        try { localStorage.setItem(this.LS_PLAN_REMINDERS_KEY, JSON.stringify(list.slice(-6))); } catch (_) {}
+        try { await this.scheduleNotifications(); } catch (e) { console.warn('[GameNotifier] plan reminder schedule failed:', e); }
+    },
+
+    _planReminderId(key) {
+        let h = 0;
+        for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0;
+        return 7000 + (Math.abs(h) % 900);
     },
 
     async scheduleNotifications() {
@@ -450,12 +490,14 @@ const GameNotifier = {
                 typeof window.NutriPlanPlatform.exitNativeApp === 'function') {
                 if (window.NutriPlanPlatform.exitNativeApp()) return true;
             }
-            if (typeof document !== 'undefined' && document.documentElement) {
-                document.documentElement.style.visibility = 'hidden';
-                document.documentElement.style.background = '#0A1A1A';
-            }
             const app = this._getCapacitorPlugin('App');
             if (app && typeof app.exitApp === 'function') {
+                // Скриване само когато наистина излизаме (APK) — в браузъра
+                // скриването оставяше празен тъмен екран.
+                if (typeof document !== 'undefined' && document.documentElement) {
+                    document.documentElement.style.visibility = 'hidden';
+                    document.documentElement.style.background = '#0A1A1A';
+                }
                 app.exitApp().catch(() => {});
                 return true;
             }
@@ -793,12 +835,38 @@ const GameNotifier = {
         return /huawei/i.test(navigator.userAgent) || /harmony/i.test(navigator.userAgent);
     },
 
+    /**
+     * Системният въпрос за известия не се показва при първото отваряне (клиентът
+     * още не знае защо му трябват), а след първия ден и най-много веднъж на 7 дни.
+     * Бутонът „Разреши“ в плана го показва веднага.
+     */
+    _mayPromptPermission() {
+        if (this._forcePermissionPrompt) return true;
+        try {
+            const now = Date.now();
+            const firstOpen = Number(localStorage.getItem('np_first_open_at') || 0);
+            if (!firstOpen) {
+                localStorage.setItem('np_first_open_at', String(now));
+                return false;
+            }
+            if (now - firstOpen < 20 * 60 * 60 * 1000) return false;
+            const askedAt = Number(localStorage.getItem('np_notif_perm_asked_at') || 0);
+            return !askedAt || now - askedAt >= 7 * 24 * 60 * 60 * 1000;
+        } catch (_) {
+            return false;
+        }
+    },
+
     async _requestCapacitorPermission() {
         try {
             const { LocalNotifications } = this._capacitor;
             const current = typeof LocalNotifications.checkPermissions === 'function'
                 ? await LocalNotifications.checkPermissions()
                 : {};
+            if (current.display !== 'granted' && !this._mayPromptPermission()) return false;
+            if (current.display !== 'granted') {
+                try { localStorage.setItem('np_notif_perm_asked_at', String(Date.now())); } catch (_) {}
+            }
             const status = current.display === 'granted'
                 ? current
                 : await LocalNotifications.requestPermissions();
@@ -1401,6 +1469,18 @@ const GameNotifier = {
             }
         });
 
+        this._planReminders().forEach((r) => {
+            notifications.push({
+                id: this._planReminderId(r.key),
+                channelId: this.CHANNEL_ID,
+                title: r.title,
+                body: r.body,
+                schedule: { at: new Date(r.ts), allowWhileIdle: true },
+                extra: { url: r.url, type: 'plan_' + r.key },
+                iconColor: this.BRAND_TEAL
+            });
+        });
+
         try {
             await LocalNotifications.schedule({ notifications });
             this._markScheduleWindowFresh();
@@ -1493,6 +1573,19 @@ const GameNotifier = {
                     });
                 }
             }
+        });
+
+        this._planReminders().forEach((r) => {
+            schedule.push({
+                ts: r.ts,
+                title: r.title,
+                body: r.body,
+                tag: 'gn-plan-' + r.key,
+                type: 'plan_' + r.key,
+                url: r.url,
+                vibrate: [200, 100, 200],
+                requireInteraction: false
+            });
         });
 
         navigator.serviceWorker.controller.postMessage({

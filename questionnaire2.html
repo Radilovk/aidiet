@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Въпросник 2.0 - Попълнете детайлен въпросник за персонален здравен план. Информацията ще бъде обработена от нашия екип.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
@@ -1170,8 +1170,8 @@
             <i class="fas fa-bolt"></i>
         </div>
         <div class="quick-complete-text">
-            <div class="quick-complete-title">Към последната стъпка</div>
-            <div class="quick-complete-subtitle">Вече сте попълнили въпросника</div>
+            <div class="quick-complete-title">Продължете откъдето спряхте</div>
+            <div class="quick-complete-subtitle">Отговорите ви са запазени</div>
         </div>
         <div class="quick-complete-close" onclick="hideQuickCompleteBanner(event)">
             <i class="fas fa-times"></i>
@@ -1195,7 +1195,7 @@
     <!-- Floating "Назад" button — sticky bottom-left, undo arrow icon -->
     <div class="footer-glass" aria-hidden="true"></div>
     <button class="btn btn-prev" id="prevBtn" onclick="prevStep()" aria-label="Назад">
-        <i class="fas fa-rotate-left"></i>
+        <i class="fas fa-arrow-left"></i>
     </button>
     <!-- Floating "Напред" button — sticky bottom-right, stays above keyboard -->
     <button class="btn btn-next" id="nextBtn" onclick="nextStep()" disabled>
@@ -1280,7 +1280,7 @@
             { "id": "eatingHabits", "text": "Кои от следните хранителни навици присъстват при вас?", "type": "checkbox", "options": ["Не закусвам", "Хапвам на крак", "Храня се предимно вечер", "Хапвам сладко между храненията", "Хапвам пред телевизора", "На периоди съм", "Поръчвам храна или ям навън", "Комбинирам напитки и храна", "Нито една"], "negativeOption": "Нито една" },
             { "id": "compensationMethods", "text": "Използвате ли методи за компенсация след прекомерно хранене?", "type": "checkbox", "options": ["Гладуване", "Спорт", "Хапчета за отслабване", "Друго", "Не"], "hasOtherInput": true, "negativeOption": "Не" },
             { "id": "socialComparison", "text": "Колко често се сравнявате с други хора (вкл. социални мрежи)?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
-            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Балансирана", "Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго" ], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
+            { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Нямам предпочитания", "Балансирана", "Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго" ], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
             { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [], "optional": true },
             { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
             { "id": "medications", "text": "Приемате ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
@@ -2474,6 +2474,31 @@
             }
         }
 
+        function isAnswerEmpty(v) {
+            if (v === undefined || v === null) return true;
+            if (Array.isArray(v)) return v.length === 0;
+            return String(v).trim() === '';
+        }
+
+        /** Въпросът се показва при текущите отговори (showWhen/skipWhen — както в nextStep). */
+        function isQuestionVisibleNow(q) {
+            if (!q) return false;
+            if (q.showWhen) {
+                let shouldShow = false;
+                for (const [field, requiredValue] of Object.entries(q.showWhen)) {
+                    const ans = answers[field];
+                    if (Array.isArray(ans) ? ans.includes(requiredValue) : ans === requiredValue) { shouldShow = true; break; }
+                }
+                if (!shouldShow) return false;
+            }
+            if (q.skipWhen) {
+                for (const [field, skipValues] of Object.entries(q.skipWhen)) {
+                    if (answers[field] && skipValues.includes(answers[field])) return false;
+                }
+            }
+            return true;
+        }
+
         function jumpToLastStep() {
             hideQuickCompleteBanner();
             
@@ -2502,8 +2527,16 @@
                     injectDynamicSubQuestions();
                 }
                 
-                // Jump to the last question, skipping any that shouldn't be shown
-                // based on showWhen/skipWhen (mirrors the logic in nextStep)
+                // Към първия задължителен въпрос без отговор — не директно към края,
+                // което позволяваше изпращане на почти празен въпросник.
+                const firstMissing = currentQueue.findIndex(function(q) {
+                    return isQuestionVisibleNow(q) && !q.optional && q.type !== 'file' && isAnswerEmpty(answers[q.id]);
+                });
+                if (firstMissing >= 0) {
+                    currentIndex = firstMissing;
+                    renderStep();
+                    return;
+                }
                 currentIndex = currentQueue.length - 1;
                 while (currentIndex > 0) {
                     const q = currentQueue[currentIndex];
@@ -2535,6 +2568,76 @@
             }
         }
 
+        // --- MEDICAL FILES ---
+        // Файловете отиват в клиентския запис (KV) като base64 — затова снимките се
+        // смаляват, а общият размер е ограничен. Държат се в паметта, не в localStorage
+        // (там лимитът е ~5 MB и би спрял запазването на всички отговори).
+        const MEDICAL_FILES_MAX_COUNT = 5;
+        const MEDICAL_FILES_MAX_TOTAL_MB = 8;
+        const MEDICAL_FILE_MAX_DOC_MB = 4;
+        let medicalFilesData = [];
+        let medicalFilesErrors = [];
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('read'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function shrinkImage(file) {
+            const url = await readFileAsDataUrl(file);
+            const img = await new Promise((resolve, reject) => {
+                const el = new Image();
+                el.onload = () => resolve(el);
+                el.onerror = () => reject(new Error('image'));
+                el.src = url;
+            });
+            const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            const data = canvas.toDataURL('image/jpeg', 0.82);
+            const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+            return { name, type: 'image/jpeg', size: Math.round(data.length * 0.75), data };
+        }
+
+        async function prepareMedicalFiles(files) {
+            const out = [];
+            const errors = [];
+            let total = 0;
+            for (const file of files) {
+                if (out.length >= MEDICAL_FILES_MAX_COUNT) {
+                    errors.push(`${file.name}: най-много ${MEDICAL_FILES_MAX_COUNT} файла`);
+                    continue;
+                }
+                try {
+                    let item;
+                    if (/^image\//.test(file.type) && !/gif|svg/.test(file.type)) {
+                        item = await shrinkImage(file);
+                    } else {
+                        if (file.size > MEDICAL_FILE_MAX_DOC_MB * 1024 * 1024) {
+                            errors.push(`${file.name}: над ${MEDICAL_FILE_MAX_DOC_MB} MB — снимайте страниците или изпратете по-малък файл`);
+                            continue;
+                        }
+                        item = { name: file.name, type: file.type || 'application/octet-stream', size: file.size, data: await readFileAsDataUrl(file) };
+                    }
+                    if (total + item.size > MEDICAL_FILES_MAX_TOTAL_MB * 1024 * 1024) {
+                        errors.push(`${file.name}: общият размер надхвърля ${MEDICAL_FILES_MAX_TOTAL_MB} MB`);
+                        continue;
+                    }
+                    total += item.size;
+                    out.push(item);
+                } catch (_) {
+                    errors.push(`${file.name}: файлът не може да бъде прочетен`);
+                }
+            }
+            return { files: out, errors };
+        }
+
         // --- CORE RENDER FUNCTION ---
         function renderStep() {
             const step = currentQueue[currentIndex];
@@ -2551,11 +2654,15 @@
             // Update Progress
             // Use a stable "base" count (questions without injected sub-questions) to avoid
             // the counter jumping from e.g. "5 от 28" to "6 от 35" when sub-questions are added.
-            const baseCount = currentQueue.filter(q => !q._isDynamicSubQuestion).length;
-            const displayTotal = Math.max(baseCount, currentIndex + 1);
-            const percent = ((currentIndex + 1) / displayTotal) * 100;
+            // Брои се само това, което реално ще бъде попитано при текущите отговори
+            // (с подвъпросите) — иначе лентата стоеше на 100% при оставащи въпроси.
+            const visibleQueue = currentQueue.filter(isQuestionVisibleNow);
+            const visibleIndex = Math.max(0, visibleQueue.indexOf(currentQueue[currentIndex]));
+            const displayTotal = Math.max(visibleQueue.length, visibleIndex + 1);
+            const displayStep = visibleIndex + 1;
+            const percent = (displayStep / displayTotal) * 100;
             progressBar.style.width = `${percent}%`;
-            stepIndicator.textContent = `Стъпка ${currentIndex + 1} от ${displayTotal}`;
+            stepIndicator.textContent = `Стъпка ${displayStep} от ${displayTotal}`;
             
             // Clear content and reset scroll position to top
             container.scrollTop = 0;
@@ -2582,7 +2689,7 @@
             } else {
                 prevBtn.style.visibility = 'visible';
                 prevBtn.setAttribute('aria-label', 'Назад');
-                prevBtn.innerHTML = '<i class="fas fa-rotate-left"></i>';
+                prevBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
             }
             
             if(currentIndex === currentQueue.length - 1) {
@@ -2603,25 +2710,25 @@
             // Determine input type
             if (['text', 'number', 'email'].includes(step.type)) {
                 const input = document.createElement('input');
-                input.type = step.type;
+                // Числата са текстово поле с цифрова клавиатура: type=number отхвърля
+                // „72,5“ от българската клавиатура мълчаливо (стойността става празна).
+                input.type = step.type === 'number' ? 'text' : step.type;
                 input.className = 'modern-input';
                 input.placeholder = 'Вашият отговор...';
+                input.setAttribute('aria-label', step.text || 'Отговор');
                 input.value = answers[step.id] || '';
                 
-                // PHASE 3 - Issue #33: Add maxlength for text fields (200 char limit)
+                // Подробностите за лекарства, промени в теглото, бележки и алергии
+                // имат нужда от повече място; останалите текстови полета — 200 знака.
                 if (step.type === 'text') {
-                    input.setAttribute('maxlength', '200');
+                    const longText = /Details$|Notes$|dietDislike|dietLove|medications/i.test(step.id);
+                    input.setAttribute('maxlength', longText ? '1000' : '200');
                 }
 
-                // Set numeric keyboard and browser-level min/max hints for number fields
                 if (step.type === 'number') {
-                    input.setAttribute('inputmode', 'decimal');
                     const rule = FIELD_RULES[step.id];
-                    if (rule) {
-                        input.setAttribute('min', rule.min);
-                        input.setAttribute('max', rule.max);
-                        if (rule.integer) input.setAttribute('step', '1');
-                    }
+                    input.setAttribute('inputmode', rule && rule.integer ? 'numeric' : 'decimal');
+                    input.setAttribute('autocomplete', 'off');
                 }
 
                 // Email keyboard hint
@@ -2631,10 +2738,12 @@
                 }
                 
                 input.oninput = (e) => {
-                    saveAnswer(step.id, e.target.value);
+                    const raw = e.target.value;
+                    saveAnswer(step.id, step.type === 'number' ? raw.replace(',', '.').trim() : raw);
                     validateInput();
-                    // Test mode activation: when name is "kakadu" or "какаду"
-                    if (step.id === 'name') {
+                    // Тестов режим — само локално или с ?debug=1, не за реални клиенти.
+                    const debugAllowed = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('debug');
+                    if (debugAllowed && step.id === 'name') {
                         const lowerValue = e.target.value.toLowerCase();
                         if (lowerValue === 'kakadu' || lowerValue === 'какаду') {
                             activateTestMode();
@@ -2694,49 +2803,55 @@
                 fileList.className = 'file-list';
                 fileList.style.cssText = 'margin-top: 15px; text-align: left;';
                 
-                fileInput.onchange = (e) => {
-                    const files = Array.from(e.target.files);
-                    if (files.length > 0) {
-                        answers[step.id] = files;
-                        fileList.innerHTML = '';
-                        files.forEach((file, index) => {
-                            const fileItem = document.createElement('div');
-                            fileItem.style.cssText = 'padding: 8px 12px; background: var(--soft-red); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;';
-                            fileItem.innerHTML = `
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="fas fa-file" style="color: var(--primary-red);"></i>
-                                    <span style="color: var(--text-dark); font-size: 0.9rem;">${file.name}</span>
-                                    <span style="color: var(--text-gray); font-size: 0.8rem;">(${(file.size / 1024).toFixed(1)} KB)</span>
-                                </div>
-                            `;
-                            fileList.appendChild(fileItem);
-                        });
-                        fileLabel.querySelector(`#fileUploadText_${step.id}`).textContent = `${files.length} файл(а) избрани`;
-                    }
+                const renderFileList = () => {
+                    const ready = medicalFilesData.map(f => ({ name: f.name, size: f.size, ok: true }));
+                    // След презареждане файловете не са в паметта — показваме кои да се прикачат отново.
+                    const names = Array.isArray(answers[step.id]) ? answers[step.id].filter(n => typeof n === 'string') : [];
+                    const lost = names.filter(n => !medicalFilesData.some(f => f.name === n)).map(n => ({ name: n, lost: true }));
+                    const rows = ready.concat(lost, medicalFilesErrors.map(err => ({ name: err, error: true })));
+                    fileList.innerHTML = '';
+                    rows.forEach(row => {
+                        const fileItem = document.createElement('div');
+                        fileItem.style.cssText = 'padding: 8px 12px; background: var(--soft-red); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;';
+                        const icon = document.createElement('i');
+                        icon.className = row.error ? 'fas fa-exclamation-circle' : (row.lost ? 'fas fa-redo' : 'fas fa-file');
+                        icon.style.color = 'var(--primary-red)';
+                        const label = document.createElement('span');
+                        label.style.cssText = 'color: var(--text-dark); font-size: 0.9rem; word-break: break-word;';
+                        label.textContent = row.error ? row.name
+                            : row.lost ? `${row.name} — прикачете отново`
+                            : `${row.name} (${(row.size / 1024).toFixed(0)} KB)`;
+                        fileItem.appendChild(icon);
+                        fileItem.appendChild(label);
+                        fileList.appendChild(fileItem);
+                    });
+                    const text = fileLabel.querySelector(`#fileUploadText_${step.id}`);
+                    text.textContent = medicalFilesData.length ? `${medicalFilesData.length} файл(а) готови` : 'Изберете файлове';
                 };
-                
+
+                fileInput.onchange = async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (!files.length) return;
+                    const text = fileLabel.querySelector(`#fileUploadText_${step.id}`);
+                    text.textContent = 'Обработка…';
+                    const result = await prepareMedicalFiles(files);
+                    medicalFilesData = result.files;
+                    medicalFilesErrors = result.errors;
+                    answers[step.id] = medicalFilesData.map(f => f.name);
+                    saveAnswer(step.id, answers[step.id]);
+                    renderFileList();
+                    fileInput.value = '';
+                };
+
                 fileContainer.appendChild(fileInput);
                 fileContainer.appendChild(fileLabel);
                 card.appendChild(fileContainer);
+                const limitsNote = document.createElement('div');
+                limitsNote.style.cssText = 'margin-top: 8px; color: var(--text-gray); font-size: 0.8rem; text-align: center;';
+                limitsNote.textContent = `До ${MEDICAL_FILES_MAX_COUNT} файла, общо до ${MEDICAL_FILES_MAX_TOTAL_MB} MB. Снимките се смаляват автоматично.`;
+                card.appendChild(limitsNote);
                 card.appendChild(fileList);
-                
-                // Restore previous files if any
-                if (answers[step.id]) {
-                    const files = answers[step.id];
-                    fileList.innerHTML = '';
-                    files.forEach((file) => {
-                        const fileItem = document.createElement('div');
-                        fileItem.style.cssText = 'padding: 8px 12px; background: var(--soft-red); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;';
-                        fileItem.innerHTML = `
-                            <i class="fas fa-file" style="color: var(--primary-red);"></i>
-                            <span style="color: var(--text-dark); font-size: 0.9rem;">${file.name}</span>
-                        `;
-                        fileList.appendChild(fileItem);
-                    });
-                    if (files.length > 0) {
-                        fileLabel.querySelector(`#fileUploadText_${step.id}`).textContent = `${files.length} файл(а) избрани`;
-                    }
-                }
+                renderFileList();
             }
             else if (['radio', 'checkbox'].includes(step.type)) {
                 const grid = document.createElement('div');
@@ -3074,8 +3189,10 @@
             if (!strVal) return { valid: false, message: '' };
             if (type === 'number' && FIELD_RULES[id]) {
                 const rule = FIELD_RULES[id];
-                const num = rule.integer ? parseInt(strVal, 10) : parseFloat(strVal);
-                if (isNaN(num)) return { valid: false, message: 'Моля, въведете число.' };
+                const normalized = strVal.replace(',', '.');
+                if (!/^\d+(\.\d+)?$/.test(normalized)) return { valid: false, message: rule.integer ? 'Моля, въведете цяло число.' : 'Моля, въведете число (напр. 72.5).' };
+                const num = rule.integer ? parseInt(normalized, 10) : parseFloat(normalized);
+                if (rule.integer && normalized.includes('.')) return { valid: false, message: 'Моля, въведете цяло число.' };
                 if (num < rule.min || num > rule.max) {
                     return { valid: false, message: `${rule.label} трябва да бъде между ${rule.min} и ${rule.max} ${rule.unit}.` };
                 }
@@ -3228,21 +3345,8 @@
 
                 // Remove any children that were injected into the queue based on this
                 // question's old answer, and clear their answers recursively.
-                if (targetQ.children && answers[targetQ.id]) {
-                    const oldAnswerVal = answers[targetQ.id];
-                    const injectedChildren = targetQ.children[oldAnswerVal];
-                    if (injectedChildren && injectedChildren.length > 0) {
-                        removeInjectedChildren(injectedChildren, currentIndex + 1);
-                    }
-                }
-
-                // Clear the answer for the question we're returning to so it appears fresh
-                delete answers[targetQ.id];
-
-                // Persist the deletions above (children + this question's answer) to
-                // localStorage so that a page refresh or the "quick complete" banner
-                // don't restore stale answers for the question the user navigated back to.
-                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                // „Назад“ не изтрива: потребителят се връща да провери отговора си.
+                // Ако го смени, nextStep маха старите подвъпроси и добавя новите.
                 
                 // SHOW WHEN LOGIC (reverse): Skip questions whose showWhen condition is not met
                 const prevQ = currentQueue[currentIndex];
@@ -3283,27 +3387,29 @@
         const DIAGNOSTIC_TOTAL_MS = 50000;
         const MIN_LOG_INTERVAL_MS = 2200;
 
+        // Стъпките описват това, което алгоритъмът реално прави — без обещания
+        // за анализи, които не се извършват.
         const DIAGNOSTIC_LOG_LINES = [
-            { at: 400,    progress: 4,  phase: 'cold',     tag: 'Старт',    text: 'Стартиране на AI здравния анализатор...', haptic: true },
-            { at: 2600,   progress: 9,  phase: 'cold',     tag: 'Данни',    text: 'Обработка на ръст, тегло, възраст и пол' },
-            { at: 4800,   progress: 14, phase: 'cold',     tag: 'Метаболизъм', text: 'Изчисляване на базален и дневен калориен разход' },
-            { at: 7000,   progress: 19, phase: 'cold',     tag: 'Цел',      text: 'Определяне на целева скорост и хоризонт на промяната' },
-            { at: 9200,   progress: 24, phase: 'cold',     tag: 'Профил',   text: 'Компилиране на начален хранителен профил' },
-            { at: 11400,  progress: 30, phase: 'amber',    tag: 'Здраве',   text: 'Сканиране на здравни състояния и рискови фактори', haptic: true },
-            { at: 13600,  progress: 36, phase: 'amber',    tag: 'Метаболизъм', text: 'Анализ на метаболитен индекс и енергийни колебания' },
-            { at: 15800,  progress: 42, phase: 'amber',    tag: 'Лаборатория', text: 'Интерпретация на лабораторни и клинични показатели' },
-            { at: 18000,  progress: 48, phase: 'amber',    tag: 'Филтри',   text: 'Прилагане на клинични филтри и ограничения' },
-            { at: 20200,  progress: 54, phase: 'amber',    tag: 'Лекарства', text: 'Проверка за взаимодействия с медикаменти' },
-            { at: 22400,  progress: 60, phase: 'critical', tag: 'Сън',      text: 'Моделиране на циркаден ритъм и качество на съня', haptic: true },
-            { at: 24800,  progress: 66, phase: 'critical', tag: 'Поведение', text: 'Картографиране на хранителни тригери и стресови модели' },
-            { at: 27200,  progress: 72, phase: 'critical', tag: 'Възстановяване', text: 'Оценка на съотношението натоварване / почивка' },
-            { at: 29600,  progress: 78, phase: 'critical', tag: 'Рискове',  text: 'Класификация на критични, умерени и ниски рискове' },
-            { at: 32000,  progress: 83, phase: 'critical', tag: 'Черва',    text: 'Анализ на чревната среда и хранителни модулатори' },
-            { at: 34400,  progress: 87, phase: 'success',  tag: 'Макроси',  text: 'Синтез на макронутриентна матрица и калории', haptic: true },
-            { at: 36800,  progress: 90, phase: 'success',  tag: 'Алергени', text: 'Сканиране за алергени и хранителни изключения' },
-            { at: 39200,  progress: 92, phase: 'success',  tag: 'Меню',     text: 'Генериране на 7-дневен цикъл с разнообразие на ястията' },
-            { at: 41600,  progress: 94, phase: 'success',  tag: 'Проверка', text: 'Валидация на резултатите — без грешки' },
-            { at: 44000,  progress: 96, phase: 'success',  tag: 'Готово',   text: 'Анализът е завършен — очакване на потвърждение от сървъра' }
+            { at: 400,    progress: 4,  phase: 'cold',     tag: 'Старт',      text: 'Отговорите са получени', haptic: true },
+            { at: 2600,   progress: 9,  phase: 'cold',     tag: 'Данни',      text: 'Ръст, тегло, възраст и пол' },
+            { at: 4800,   progress: 14, phase: 'cold',     tag: 'Енергия',    text: 'Базален и дневен разход на енергия' },
+            { at: 7000,   progress: 19, phase: 'cold',     tag: 'Цел',        text: 'Безопасно темпо на промяна според целта' },
+            { at: 9200,   progress: 24, phase: 'cold',     tag: 'Активност',  text: 'Корекция според работа, спорт и стъпки' },
+            { at: 11400,  progress: 30, phase: 'amber',    tag: 'Здраве',     text: 'Хранителни правила при посочените здравословни състояния', haptic: true },
+            { at: 13600,  progress: 36, phase: 'amber',    tag: 'Режим',      text: 'Подходящ хранителен режим (напр. средиземноморски, вегетариански)' },
+            { at: 15800,  progress: 42, phase: 'amber',    tag: 'Изключения', text: 'Алергии, непоносимости и храни, които не ядете' },
+            { at: 18000,  progress: 48, phase: 'amber',    tag: 'Храносмилане', text: 'Ограничения при чувствителен стомах (лактоза, FODMAP)' },
+            { at: 20200,  progress: 54, phase: 'amber',    tag: 'Макроси',    text: 'Белтъчини, мазнини и въглехидрати за деня' },
+            { at: 22400,  progress: 60, phase: 'critical', tag: 'Хранения',   text: 'Брой и часове на храненията според съня и работата', haptic: true },
+            { at: 24800,  progress: 66, phase: 'critical', tag: 'Порции',     text: 'Разпределяне на храните по групи и хранения' },
+            { at: 27200,  progress: 72, phase: 'critical', tag: 'Ястия',      text: 'Избор на ястия според вкусовете ви' },
+            { at: 29600,  progress: 78, phase: 'critical', tag: 'Седмица',    text: 'Седмично меню с разнообразие' },
+            { at: 32000,  progress: 83, phase: 'critical', tag: 'Грамажи',    text: 'Изчисляване на грамажите' },
+            { at: 34400,  progress: 87, phase: 'success',  tag: 'Проверка',   text: 'Сверка на калориите и белтъка за всеки ден', haptic: true },
+            { at: 36800,  progress: 90, phase: 'success',  tag: 'Насоки',     text: 'Персонални насоки и стратегия' },
+            { at: 39200,  progress: 92, phase: 'success',  tag: 'Запис',      text: 'Запазване на плана' },
+            { at: 41600,  progress: 94, phase: 'success',  tag: 'Специалист', text: 'Планът отива за преглед от специалист' },
+            { at: 44000,  progress: 96, phase: 'success',  tag: 'Изчакване',  text: 'Изчакваме потвърждение от сървъра' }
         ];
 
         function triggerDiagnosticHaptic() {
@@ -3323,9 +3429,9 @@
                                 <div class="ai-hex-loader"></div>
                             </div>
                         </div>
-                        <div class="diagnostic-kicker">AI здравен анализ</div>
-                        <h2 class="q-text" id="loadingTitle">Структуриране на Био-масива...</h2>
-                        <p class="diagnostic-subtitle" id="loadingSubtitle">${isResume ? 'Продължаваме анализа от активна сесия' : 'Hexagon MED AI обработва въведените данни'}</p>
+                        <div class="diagnostic-kicker">Изготвяне на плана</div>
+                        <h2 class="q-text" id="loadingTitle">Изчисляваме нуждите ви...</h2>
+                        <p class="diagnostic-subtitle" id="loadingSubtitle">${isResume ? 'Продължаваме анализа от активна сесия' : 'Обработваме въведените данни'}</p>
                         <div id="progressPercentage" class="diagnostic-percent">0%</div>
                         <div class="diagnostic-progress-track">
                             <div id="aiProgressBar" class="diagnostic-progress-fill"></div>
@@ -3337,7 +3443,7 @@
                             <span class="diagnostic-step-dot"></span>
                         </div>
                         <p id="safeCloseMsg" class="diagnostic-safe">
-                            <i class="fas fa-shield-alt"></i> Генерирането продължава защитено във фонов режим
+                            <i class="fas fa-shield-alt"></i> Може да затворите приложението — планът продължава да се изготвя
                         </p>
                     </div>
                     <div class="diagnostic-terminal-wrap">
@@ -3640,10 +3746,10 @@
             const MAX_VISIBLE_LOGS = 5;
 
             const stages = [
-                { minTime: 0,     maxTime: 11250, from: 0,  to: 28, phase: 'cold',     title: 'Структуриране на Био-масива...',   subtitle: 'Парсираме антропометрия, демография и целеви вектор' },
-                { minTime: 11250, maxTime: 23750, from: 28, to: 52, phase: 'amber',    title: 'Сканиране на здравен статус...',   subtitle: 'Кръстосан анализ на клинични и метаболитни променливи' },
-                { minTime: 23750, maxTime: 37500, from: 52, to: 75, phase: 'critical', title: 'Невро-хормонален анализ...',        subtitle: 'Локализираме поведенчески тригъри, сън и стрес' },
-                { minTime: 37500, maxTime: DIAGNOSTIC_TOTAL_MS, from: 75, to: 94, phase: 'success',  title: 'Синтез на алгоритъма...',           subtitle: 'Калибрираме макронутриентната матрица и TDEE' }
+                { minTime: 0,     maxTime: 11250, from: 0,  to: 28, phase: 'cold',     title: 'Изчисляваме нуждите ви...',   subtitle: 'Енергиен разход, цел и активност' },
+                { minTime: 11250, maxTime: 23750, from: 28, to: 52, phase: 'amber',    title: 'Прилагаме здравните правила...',   subtitle: 'Състояния, алергии и храни, които не ядете' },
+                { minTime: 23750, maxTime: 37500, from: 52, to: 75, phase: 'critical', title: 'Подреждаме храненията...',        subtitle: 'Часове, порции и любими ястия' },
+                { minTime: 37500, maxTime: DIAGNOSTIC_TOTAL_MS, from: 75, to: 94, phase: 'success',  title: 'Сглобяваме седмицата...',           subtitle: 'Грамажи, проверка и насоки' }
             ];
 
             function setPhase(phase) {
@@ -3919,7 +4025,46 @@
             if (idx >= 0) currentIndex = idx;
         }
 
+        /**
+         * Съгласие за обработка на здравни данни (GDPR, чл. 9) — задължително преди
+         * изпращане. Пази се с дата в отговорите, за да остане и при специалиста.
+         */
+        function ensureHealthDataConsent() {
+            if (answers.consentHealthData) return Promise.resolve(true);
+            return new Promise(function(resolve) {
+                var overlay = document.createElement('div');
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.setAttribute('aria-labelledby', 'consentTitle');
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:20000;background:rgba(10,26,26,.6);display:flex;align-items:flex-end;justify-content:center;padding:16px;';
+                overlay.innerHTML =
+                    '<div style="background:#fff;color:#0F2F2E;border-radius:18px;padding:20px 18px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);font-size:.92rem;line-height:1.5">' +
+                    '<h2 id="consentTitle" style="margin:0 0 10px;font-size:1.08rem">Преди да изпратите</h2>' +
+                    '<p style="margin:0 0 12px">Отговорите ви съдържат здравна информация. Използваме я само за изготвяне и наблюдение на хранителния ви план; планът се преглежда от специалист.</p>' +
+                    '<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;cursor:pointer">' +
+                    '<input type="checkbox" id="consentCheck" style="width:22px;height:22px;flex-shrink:0;margin-top:2px">' +
+                    '<span>Съгласен/на съм здравните ми данни да бъдат обработвани за тази цел. Прочетох <a href="privacy-policy.html" target="_blank" rel="noopener">политиката за поверителност</a> и <a href="terms.html" target="_blank" rel="noopener">условията</a>.</span></label>' +
+                    '<div style="display:flex;gap:10px">' +
+                    '<button type="button" id="consentCancel" style="flex:1;min-height:46px;border-radius:12px;border:1.5px solid #cbd5e1;background:#fff;font-weight:600">Назад</button>' +
+                    '<button type="button" id="consentOk" disabled style="flex:1;min-height:46px;border-radius:12px;border:none;background:#0D9488;color:#fff;font-weight:700;opacity:.5">Изпрати</button>' +
+                    '</div></div>';
+                document.body.appendChild(overlay);
+                var check = overlay.querySelector('#consentCheck');
+                var ok = overlay.querySelector('#consentOk');
+                check.addEventListener('change', function() { ok.disabled = !check.checked; ok.style.opacity = check.checked ? '1' : '.5'; });
+                overlay.querySelector('#consentCancel').addEventListener('click', function() { overlay.remove(); resolve(false); });
+                ok.addEventListener('click', function() {
+                    answers.consentHealthData = new Date().toISOString();
+                    localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                    overlay.remove();
+                    resolve(true);
+                });
+                check.focus();
+            });
+        }
+
         async function finishQuiz() {
+            if (!(await ensureHealthDataConsent())) return;
             console.log("Final JSON:", JSON.stringify(answers, null, 2));
             
             renderDiagnosticLoading(false);
@@ -3933,39 +4078,32 @@
             // Save client data (with files) in background — non-blocking
             let savedClientId = null;
             try {
+                // clientId се пази само ако сървърът реално е записал клиента —
+                // иначе „чакане на одобрение“ проверява несъществуващ запис.
                 const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-                savedClientId = clientId;
                 const cleanAnswers = {};
                 for (const [key, val] of Object.entries(answers)) {
                     if (key === 'medicalFiles') continue;
                     cleanAnswers[key] = val;
                 }
                 const clientData = { id: clientId, timestamp: new Date().toISOString(), answers: cleanAnswers };
-                if (answers.medicalFiles && answers.medicalFiles.length > 0) {
-                    try {
-                        const filePromises = Array.from(answers.medicalFiles).map(file => {
-                            return new Promise((resolve) => {
-                                const reader = new FileReader();
-                                reader.onload = (e) => resolve({ name: file.name, type: file.type, size: file.size, data: e.target.result });
-                                reader.onerror = () => resolve({ name: file.name || 'unknown', type: file.type || 'unknown', size: file.size || 0, error: `File '${file.name || 'unknown'}' could not be read` });
-                                reader.readAsDataURL(file);
-                            });
-                        });
-                        clientData.files = await Promise.all(filePromises);
-                    } catch (fileError) {
-                        console.warn('Could not process uploaded files:', fileError);
-                    }
+                if (medicalFilesData.length > 0) {
+                    clientData.files = medicalFilesData.map(f => ({ name: f.name, type: f.type, size: f.size, data: f.data }));
                 }
-                const clientResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
+                const postClient = () => fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(clientData)
                 });
+                // Един повторен опит при прекъсната връзка или временна грешка на сървъра.
+                let clientResponse = await postClient().catch(() => null);
+                if (!clientResponse || clientResponse.status >= 500) {
+                    await new Promise(r => setTimeout(r, 1500));
+                    clientResponse = await postClient();
+                }
                 if (clientResponse.ok) {
-                    const clientResult = await clientResponse.json();
-                    if (clientResult && clientResult.clientId) {
-                        savedClientId = clientResult.clientId;
-                    }
+                    const clientResult = await clientResponse.json().catch(() => null);
+                    savedClientId = (clientResult && clientResult.clientId) || clientId;
                     console.log('Client data saved:', savedClientId);
                 } else {
                     console.warn('Could not save client data before generation:', clientResponse.status);
@@ -4035,7 +4173,11 @@
                     document.getElementById('nextBtn').style.display = '';
                     document.querySelector('.progress-container').style.display = '';
                     document.body.classList.remove('diagnostic-lock');
-                    if (authErr && authErr.message === 'cancelled') return;
+                    if (authErr && authErr.message === 'cancelled') {
+                        // Обратно към последния въпрос, не към замразения екран на зареждането.
+                        renderStep();
+                        return;
+                    }
                     throw authErr;
                 }
 
@@ -4293,18 +4435,8 @@
 
             if (savedClientId) {
                 localStorage.setItem('pendingClientId', savedClientId);
-                const forcePending = localStorage.getItem('planReplacePending') === '1';
-                fetch('https://aidiet.radilov-k.workers.dev/api/admin/update-client-plan', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: savedClientId,
-                        plan: result.plan,
-                        userId: fbUserId || result.userId,
-                        ...(forcePending ? { forcePending: true } : {})
-                    })
-                }).catch(e => console.error('Error saving plan to client record:', e));
-                if (forcePending) localStorage.removeItem('planReplacePending');
+                // Клиентският запис се обновява от сървъра при завършване на задачата.
+                localStorage.removeItem('planReplacePending');
             }
 
             localStorage.removeItem('hasSeenPlanJustification');
@@ -4442,7 +4574,7 @@
                         } else if (data.status === 'completed') {
                             done = true;
                             try {
-                                await applyPlanResult(data, planPayload, savedClientId);
+                                await applyPlanResult(data, planPayload, data.clientId || savedClientId);
                                 resolve();
                             } catch (applyErr) {
                                 reject(applyErr);

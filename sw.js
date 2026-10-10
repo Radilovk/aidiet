@@ -2,14 +2,13 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v13';
+const CACHE_NAME = 'nutriplan-v16';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
 const DEFAULT_BODY = 'Ново напомняне от NutriPlan';
 const STATIC_CACHE = [
   `${BASE_PATH}/index.html`,
-  `${BASE_PATH}/questionnaire.html`,
   `${BASE_PATH}/questionnaire2.html`,
   `${BASE_PATH}/plan.html`,
   `${BASE_PATH}/plan-update.html`,
@@ -28,6 +27,13 @@ const STATIC_CACHE = [
   `${BASE_PATH}/notification-launch.js`,
   `${BASE_PATH}/platform.js`,
   `${BASE_PATH}/platform-compat.js`,
+  `${BASE_PATH}/app.js`,
+  `${BASE_PATH}/plan-sync.js`,
+  `${BASE_PATH}/session-utils.js`,
+  `${BASE_PATH}/auth-guard.js`,
+  `${BASE_PATH}/game-scoring.js`,
+  `${BASE_PATH}/game-analytics.html`,
+  `${BASE_PATH}/plan-pending.html`,
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
@@ -122,7 +128,7 @@ function resolveNotificationTarget(data = {}, action = '') {
   if (data.url && String(data.url).indexOf('quick-answer') !== -1) {
     return data.url.startsWith('http') ? data.url : `${BASE_PATH}${data.url}`;
   }
-  return data.url || `${BASE_PATH}/plan.html`;
+  return data.url || `${BASE_PATH}/index.html?app=1&tab=plan`;
 }
 
 function toAbsoluteAppUrl(url) {
@@ -202,7 +208,8 @@ self.addEventListener('fetch', (event) => {
   if (acceptHeader && acceptHeader.includes('text/html')) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
-        return cache.match(request).then((cachedResponse) => {
+        // plan.html?embedded=1 и plan.html са една страница — при липса се търси без параметрите.
+        return cache.match(request).then((exact) => exact || cache.match(request, { ignoreSearch: true })).then((cachedResponse) => {
           // Always kick off a background network request to refresh the cache
           const networkFetch = fetch(request)
             .then((response) => {
@@ -267,7 +274,7 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
 
-  let data = { title: DEFAULT_TITLE, body: DEFAULT_BODY, url: '/plan.html' };
+  let data = { title: DEFAULT_TITLE, body: DEFAULT_BODY, url: '/index.html?app=1&tab=plan' };
   if (event.data) {
     try { data = Object.assign(data, event.data.json()); } catch (_) {
       data.body = event.data.text() || DEFAULT_BODY;
@@ -310,7 +317,7 @@ self.addEventListener('push', (event) => {
               ? '/index.html?app=1&tab=plan'
               : (data.notificationType
                 ? buildQuickAnswerUrl(data.notificationType, { date: data.recordKey || '' })
-                : '/plan.html')),
+                : '/index.html?app=1&tab=plan')),
             type: data.notificationType || '',
             recordKey: data.recordKey || '',
             planUpdatedAt: data.planUpdatedAt || ''

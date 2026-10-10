@@ -116,11 +116,17 @@
                 state.raw[key] = value;
                 state.parsed[key] = safeParse(value);
                 if (!localValue) localStorage.setItem(key, value);
-                if (localValue) writes.push(writePreference(preferences, key, localValue));
+                if (localValue) writes.push([key, localValue]);
             }
         }
 
-        await Promise.all(writes);
+        // Резервното копие в Preferences (целият план минава през моста към Android)
+        // не бива да бави показването на плана — записва се след като се отвори.
+        if (writes.length && preferences) {
+            setTimeout(function () {
+                writes.forEach(function (entry) { writePreference(preferences, entry[0], entry[1]); });
+            }, 3000);
+        }
         if (window.NutriPlanDiagnostics) {
             window.NutriPlanDiagnostics.ok('shell', 'cache-startup-data', Object.keys(state.raw).length + ' keys');
         }
@@ -161,9 +167,10 @@
         }
     }
 
-    function applyTheme(theme) {
+    function applyTheme(theme, persist) {
         theme = theme || getPreferredTheme();
-        localStorage.setItem('theme', theme);
+        // Записва се само изричен избор — иначе темата следва телефона (светла/тъмна).
+        if (persist) localStorage.setItem('theme', theme);
         state.raw.theme = theme;
         state.parsed.theme = theme;
         setDocumentTheme(document, theme);
@@ -443,7 +450,15 @@
             if (!params.has('app')) return;
             if (!state.initialized) {
                 runOpenAppCatchUpFlow();
+                return;
             }
+            // Приложението е било на заден план: ново седмично меню или промяна от
+            // специалиста се показва веднага (известие в приложението), без logout.
+            // Най-много веднъж на 15 минути — едно KV четене на проверка.
+            var nowMs = Date.now();
+            if (nowMs - (window.__nutriplanResumeCheckAt || 0) < 15 * 60 * 1000) return;
+            window.__nutriplanResumeCheckAt = nowMs;
+            runPlanUpdateCatchUp().catch(function () {});
         });
     }
 
@@ -687,10 +702,41 @@
         return tab !== 'plan';
     }
 
+    /** Отстъпите за изреза/статус лентата на телефона, измерени в горния прозорец. */
+    function readSafeAreaInsets() {
+        var probe = document.createElement('div');
+        probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;' +
+            'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);';
+        document.body.appendChild(probe);
+        var cs = getComputedStyle(probe);
+        var insets = { top: cs.paddingTop, right: cs.paddingRight, bottom: cs.paddingBottom, left: cs.paddingLeft };
+        probe.remove();
+        return insets;
+    }
+
+    /**
+     * В iframe env(safe-area-inset-*) винаги е 0 — без това заглавията на табовете
+     * влизат под статус лентата/изреза на телефона. Табовете свършват над долната
+     * навигация, затова долният отстъп им е 0; чатът е на цял екран и го получава.
+     */
+    function applyFrameSafeArea(frame) {
+        try {
+            var root = frame.contentDocument && frame.contentDocument.documentElement;
+            if (!root) return;
+            var insets = readSafeAreaInsets();
+            var fullScreen = frame.id === 'spaShellChatFrame';
+            root.style.setProperty('--safe-area-inset-top', insets.top);
+            root.style.setProperty('--safe-area-inset-right', insets.right);
+            root.style.setProperty('--safe-area-inset-left', insets.left);
+            if (fullScreen) root.style.setProperty('--safe-area-inset-bottom', insets.bottom);
+        } catch (_) {}
+    }
+
     function patchFrame(frame) {
         var frameWindow = frame.contentWindow;
         var frameDocument = frame.contentDocument;
         if (!frameWindow || !frameDocument) return;
+        applyFrameSafeArea(frame);
 
         try {
             var frameUrl = new URL(frameWindow.location.href, window.location.href);
@@ -783,6 +829,7 @@
             shellChatFrame.setAttribute('src', nextSrc);
             shellChatFrame.addEventListener('load', function onShellChatLoad() {
                 shellChatFrame.removeEventListener('load', onShellChatLoad);
+                applyFrameSafeArea(shellChatFrame);
                 try {
                     if (shellChatFrame.contentWindow) {
                         shellChatFrame.contentWindow.NutriPlanAppData = window.NutriPlanAppData;
@@ -857,7 +904,7 @@
         if (!isTrustedShellMessage(event)) return;
         var data = event.data;
         if (data.type === 'NUTRIPLAN_THEME_CHANGE') {
-            applyTheme(data.theme);
+            applyTheme(data.theme, true);
             return;
         }
         if (data.type === 'NUTRIPLAN_OPEN_CHAT') {
@@ -908,6 +955,10 @@
             // next screen reads — leaving that to the caller is how logout came
             // to be "navigate only" inside the app.
             clearShellSession().then(function() {
+                // Излязъл потребител не получава повече напомняния за плана.
+                try {
+                    if (window.GameNotifier && typeof window.GameNotifier.cancelAll === 'function') window.GameNotifier.cancelAll();
+                } catch (_) {}
                 window.location.replace('index.html?stay=1&login=1');
             });
             return;
@@ -1120,6 +1171,30 @@
         initApkGameNotifier();
         runPlanUpdateCatchUp();
     }
+
+    /** Android „Назад“ в обвивката: чат → прозорец в таба → към плана. */
+    function handleShellBack() {
+        if (!state.initialized) return false;
+        if (shellChatFrame && shellChatFrame.style.display !== 'none') {
+            try {
+                var chatWin = shellChatFrame.contentWindow;
+                if (chatWin && typeof chatWin.NutriPlanHandleBack === 'function' && chatWin.NutriPlanHandleBack({ keepChat: true })) return true;
+            } catch (_) {}
+            closeShellChat();
+            return true;
+        }
+        var frame = state.activeTab ? document.querySelector('[data-tab-view="' + state.activeTab + '"]') : null;
+        try {
+            var win = frame && frame.contentWindow;
+            if (win && typeof win.NutriPlanHandleBack === 'function' && win.NutriPlanHandleBack()) return true;
+        } catch (_) {}
+        if (state.activeTab && state.activeTab !== 'plan') {
+            switchTab('plan', true);
+            return true;
+        }
+        return false;
+    }
+    window.NutriPlanShellBack = handleShellBack;
 
     window.NutriPlanSPA = {
         switchTab: function (tab) { switchTab(tab, true); },

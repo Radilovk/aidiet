@@ -37,7 +37,21 @@ export function planDayIndex(dateKey, dietStartDate) {
   return diff + 1;
 }
 
-export function buildFoodLedger(weekPlan, gameData = {}, gameWeeklyAI = {}) {
+const SOFIA_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Sofia', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+function shiftDateKey(key, n) {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** Ден от плана по деня от седмицата: понеделник = 1 … неделя = 7. */
+export function weekdayPlanDay(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const js = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return js === 0 ? 7 : js;
+}
+
+export function buildFoodLedger(weekPlan, gameData = {}, gameWeeklyAI = {}, options = {}) {
   const prescribed = new Map();
   const eaten = new Map();
   if (!weekPlan || typeof weekPlan !== 'object') {
@@ -54,15 +68,23 @@ export function buildFoodLedger(weekPlan, gameData = {}, gameWeeklyAI = {}) {
     }
   }
 
-  const dietStart = gameWeeklyAI?.dietStartDate || gameWeeklyAI?.startDate || '';
+  // Приложението показва деня от плана по деня от седмицата (понеделник = day1),
+  // затова и изяденото се чете така — за последните 7 дни, не само за първата
+  // седмица от началото на диетата.
+  const today = SOFIA_DATE.format(options.now || new Date());
+  const from = shiftDateKey(today, -6);
   for (const [dateKey, rec] of Object.entries(gameData || {})) {
-    const dayNum = planDayIndex(dateKey, dietStart);
-    if (!dayNum) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || dateKey < from || dateKey > today) continue;
+    const dayNum = weekdayPlanDay(dateKey);
     const dayPlan = weekPlan[`day${dayNum}`];
     if (!dayPlan?.meals?.length) continue;
+    const seenTypes = {};
     for (const meal of dayPlan.meals) {
+      // Втора карта от същия вид е „<вид>_2“ в отметките (както в plan.html).
+      seenTypes[meal.type] = (seenTypes[meal.type] || 0) + 1;
+      const tickKey = seenTypes[meal.type] === 1 ? meal.type : `${meal.type}_${seenTypes[meal.type]}`;
       if (meal.type === 'Свободно хранене' || meal.type === 'Напитка') continue;
-      if (rec?.meals?.[meal.type] !== true) continue;
+      if (rec?.meals?.[tickKey] !== true) continue;
       for (const key of productsFromMeal(meal)) {
         eaten.set(key, (eaten.get(key) || 0) + 1);
       }

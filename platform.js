@@ -220,6 +220,71 @@
 
     bindNotificationCatchUpBootstrap();
 
+    // ── Бутон „Назад“ на Android (APK) ──────────────────────────────────────
+    // Без собствен слушател Capacitor затваря приложението, ако няма история —
+    // клиентът губи отворения прозорец. Редът: страницата затваря свой прозорец
+    // (NutriPlanHandleBack), обвивката връща към плана (NutriPlanShellBack),
+    // иначе предишната страница; накрая приложението само се минимизира.
+    function handleHardwareBack(event) {
+        try {
+            if (typeof global.NutriPlanShellBack === 'function' && global.NutriPlanShellBack()) return;
+            if (typeof global.NutriPlanHandleBack === 'function' && global.NutriPlanHandleBack()) return;
+        } catch (_) {}
+        if ((event && event.canGoBack) || global.history.length > 1) {
+            global.history.back();
+            return;
+        }
+        var app = getPlugin('App');
+        if (app && typeof app.minimizeApp === 'function') {
+            app.minimizeApp().catch(function () {});
+        } else if (app && typeof app.exitApp === 'function') {
+            app.exitApp().catch(function () {});
+        }
+    }
+
+    function bindHardwareBack() {
+        if (global.top !== global || global.__nutriplanBackBound || !isAPK()) return;
+        var app = getPlugin('App');
+        if (!app || typeof app.addListener !== 'function') return;
+        global.__nutriplanBackBound = true;
+        try { app.addListener('backButton', handleHardwareBack); } catch (_) {}
+    }
+
+    bindHardwareBack();
+
+    // ── Лента „Без връзка“ ─────────────────────────────────────────────────
+    // Само в горния прозорец (обвивката или самостоятелна страница), за да не
+    // се дублира във всеки таб. Планът е записан локално и продължава да работи.
+    function bindOfflineBar() {
+        if (global.top !== global || global.__nutriplanOfflineBound || !global.document) return;
+        global.__nutriplanOfflineBound = true;
+        var bar = null;
+        function show() {
+            if (bar || !global.document.body) return;
+            bar = global.document.createElement('div');
+            bar.id = 'npOfflineBar';
+            bar.setAttribute('role', 'status');
+            bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:10050;' +
+                'padding:calc(6px + env(safe-area-inset-top,0px)) 16px 6px;' +
+                'background:#334155;color:#fff;font:600 13px/1.4 system-ui,sans-serif;text-align:center;';
+            bar.textContent = 'Без връзка — показваме последно запазения план. Отметките се пазят на телефона.';
+            global.document.body.appendChild(bar);
+        }
+        function hide() {
+            if (bar) { bar.remove(); bar = null; }
+        }
+        global.addEventListener('offline', show);
+        global.addEventListener('online', hide);
+        function initial() { if (global.navigator && global.navigator.onLine === false) show(); }
+        if (global.document.readyState === 'loading') {
+            global.document.addEventListener('DOMContentLoaded', initial, { once: true });
+        } else {
+            initial();
+        }
+    }
+
+    bindOfflineBar();
+
     // ── Публично API ────────────────────────────────────────────────────────
 
     global.NutriPlanPlatform = {

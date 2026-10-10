@@ -17,8 +17,43 @@ const JUNK_PENALTY_PER_MEAL = 7;
 
 function zp(n) { return n < 10 ? `0${n}` : `${n}`; }
 
+/** Клиентите са в България — денят се брои по софийско време, не по UTC на Worker-а. */
+export const CLIENT_TIME_ZONE = 'Europe/Sofia';
+const sofiaDate = new Intl.DateTimeFormat('en-CA', { timeZone: CLIENT_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
+const sofiaHour = new Intl.DateTimeFormat('en-GB', { timeZone: CLIENT_TIME_ZONE, hour: '2-digit', hourCycle: 'h23' });
+
 export function dateKey(d = new Date()) {
-  return `${d.getFullYear()}-${zp(d.getMonth() + 1)}-${zp(d.getDate())}`;
+  return sofiaDate.format(d);
+}
+
+function localHour(d = new Date()) {
+  return Number(sofiaHour.format(d)) || 0;
+}
+
+/** Ключ на деня, отместен с n дни (календарно, без часови зони). */
+function shiftKey(key, n) {
+  const [y, m, dd] = key.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, dd + n));
+  return `${t.getUTCFullYear()}-${zp(t.getUTCMonth() + 1)}-${zp(t.getUTCDate())}`;
+}
+
+/** Слотове, които се броят за спазване на плана: без свободното хранене и сутрешната напитка. */
+function planMealSlots(rec) {
+  const freeKey = rec?.freeMeal?.mealKey || null;
+  return getMealSlots(rec).filter((m) => m !== freeKey && !/^Напитка|^Свободно хранене/.test(m));
+}
+
+/**
+ * Спазване на храненията за деня (0–100) — само ако денят има някаква отметка
+ * или проверка; ден, който е само отворен, не е данни.
+ */
+function dayMealAdherence(rec) {
+  if (!rec) return null;
+  const slots = planMealSlots(rec);
+  if (!slots.length) return null;
+  const ticked = slots.filter((m) => rec.meals?.[m] === true).length;
+  const touched = ticked > 0 || rec.morningCheck || rec.eveningCheck || (rec.extraMeals || []).length > 0;
+  return touched ? Math.round(ticked / slots.length * 100) : null;
 }
 
 function emptyDayScore() {
@@ -41,7 +76,8 @@ function getPlannedCalories(rec) {
  */
 export function calcDayScore(rec, todayKey) {
   if (!rec) return emptyDayScore();
-  const meals = getMealSlots(rec);
+  // Звездите — по храненията от плана (без свободното и напитката), както ангажираността.
+  const meals = planMealSlots(rec);
   let mealPts = 0;
   const mealMax = meals.length * 10;
 
@@ -81,7 +117,7 @@ export function calcDayScore(rec, todayKey) {
     else if (excessPct > 0) { calorieBalance = 'surplus'; }
     else if (excessPct < -0.10 && completedPlanCals > 0 && (rec.morningCheck || rec.eveningCheck)) {
       const recDate = rec.date || todayKey;
-      const dayIsDone = recDate < todayKey || new Date().getHours() >= 20;
+      const dayIsDone = recDate < todayKey || localHour() >= 20;
       if (dayIsDone) calorieBalance = 'deficit';
     }
   } else if (extraCalSum > 0 && (!planned || planned === 0)) {
@@ -95,18 +131,23 @@ export function calcDayScore(rec, todayKey) {
   const activityPts = rec.eveningCheck?.activityLevel != null ? ([0, 0, 5, 10][rec.eveningCheck.activityLevel] || 0) : null;
   const balancePts = rec.eveningCheck?.emotionalBalance != null ? ([0, 0, 5, 10][rec.eveningCheck.emotionalBalance] || 0) : null;
   const wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
-  const wellnessMax = 40;
+  // Само отговорените въпроси са в знаменателя; петата звезда иска поне една проверка.
+  const answered = [sleepPts, waterPts, activityPts, balancePts].filter((v) => v != null).length;
+  const wellnessMax = answered * 10;
 
   const allMealsOk = meals.length > 0 && meals.every((m) => rec.meals[m] === true);
-  const has5StarBlocker = !allMealsOk || excessCalories ||
+  const has5StarBlocker = !allMealsOk || excessCalories || answered === 0 ||
     (rec.morningCheck?.sleptWell === false) ||
     (rec.eveningCheck?.waterIntake === false) ||
     (rec.eveningCheck?.activityLevel === 1) ||
     (rec.eveningCheck?.emotionalBalance === 1) ||
     junkCount > 0;
 
-  const done = meals.filter((m) => rec.meals[m] === true).length;
-  const mealEngPct = meals.length > 0 ? (done / meals.length) * 50 : 0;
+  // Половината от ангажираността са спазените хранения от плана (без
+  // свободното и сутрешната напитка) — същото число, по което се коригира планът.
+  const planMeals = planMealSlots(rec);
+  const done = planMeals.filter((m) => rec.meals[m] === true).length;
+  const mealEngPct = planMeals.length > 0 ? (done / planMeals.length) * 50 : 0;
   const mornEngPct = rec.morningCheck ? 15 : 0;
   const eveEngPct = (rec.eveningCheck && (
     rec.eveningCheck.activityLevel != null ||
@@ -149,7 +190,9 @@ export function computeHealthIndex(m) {
   if (m.actPct != null) { healthScore += m.actPct * HEALTH_WEIGHTS.activity; totalWeight += HEALTH_WEIGHTS.activity; }
   if (m.waterPct != null) { healthScore += m.waterPct * HEALTH_WEIGHTS.water; totalWeight += HEALTH_WEIGHTS.water; }
 
-  const extraCalsWeight = Math.max(0, 100 - Math.round((m.totalExtraCals || 0) / 700 * 100));
+  // Извънплановите калории на ден (средно за записаните дни): 0 → 100, 350+ kcal/ден → 0.
+  const perDay = m.extraCalsPerDay ?? ((m.totalExtraCals || 0) / 7);
+  const extraCalsWeight = Math.max(0, 100 - Math.round(perDay / 350 * 100));
   healthScore += extraCalsWeight * HEALTH_WEIGHTS.extraCals;
   totalWeight += HEALTH_WEIGHTS.extraCals;
 
@@ -159,10 +202,8 @@ export function computeHealthIndex(m) {
 function buildLast7Days(allData, todayKey) {
   const days = [];
   for (let i = 6; i >= 0; i--) {
-    const dd = new Date();
-    dd.setDate(dd.getDate() - i);
-    const key = dateKey(dd);
-    if (key <= todayKey) days.push({ key, rec: allData?.[key] || null });
+    const key = shiftKey(todayKey, -i);
+    days.push({ key, rec: allData?.[key] || null });
   }
   return days;
 }
@@ -226,8 +267,17 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
   });
   const totalExtraCals = extraCalsByDay.reduce((s, v) => s + v, 0);
 
-  const calBalanceByDay = days.map((d) => (d.rec ? calcDayScore(d.rec, todayKey).calorieDelta : 0));
+  // Само завършени дни с поне половината хранения отметнати: неотметнато не значи неизядено.
+  const calBalanceByDay = days.map((d) => {
+    const adh = d.key < todayKey ? dayMealAdherence(d.rec) : null;
+    return adh != null && adh >= 50 ? calcDayScore(d.rec, todayKey).calorieDelta : 0;
+  });
   const netCalBalance = calBalanceByDay.reduce((s, v) => s + v, 0);
+
+  // Спазване на храненията (отметнати / планирани, без свободното и напитката) —
+  // това е числото за седмичното решение; ангажираността е отделен показател.
+  const mealAdh = days.map((d) => dayMealAdherence(d.rec)).filter((v) => v != null);
+  const mealAdherence = mealAdh.length ? Math.round(mealAdh.reduce((a, b) => a + b, 0) / mealAdh.length) : null;
 
   const sleepByDay = days.map((d) => (
     d.rec?.morningCheck?.sleptWell != null ? (d.rec.morningCheck.sleptWell ? 100 : 0) : null
@@ -262,7 +312,8 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
       }, 0);
       const total = consumed + extra;
       const plan = getPlannedCalories(d.rec);
-      if (total > 0 && plan) vals.push(Math.min(100, Math.round(total / plan * 100)));
+      // Симетрично: 10% над плана тежи колкото 10% под него (таванът 100 криеше излишъка).
+      if (total > 0 && plan) vals.push(Math.max(0, 100 - Math.round(Math.abs(total / plan - 1) * 100)));
     });
     return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
   })();
@@ -293,6 +344,7 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     actPct: pctAvg(actByDay),
     waterPct: pctAvg(waterByDay),
     totalExtraCals,
+    extraCalsPerDay: totalExtraCals / Math.max(1, days.filter((d) => d.rec).length),
   });
 
   const daysWithData = days.filter((d) => d.rec).length;
@@ -310,6 +362,8 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     avgScore,
     streak: calcStreak(days, todayKey),
     adherence: engagementPct,
+    mealAdherence,
+    mealDays: mealAdh.length,
     calAdherence: calAdherencePct,
     junk7,
     netCalBalance,
@@ -348,7 +402,7 @@ export function serializeAnalyticsBlock(analytics) {
     '#AX v1 status=active',
     // days=N/7 is the denominator behind avg and adh — without it the model cannot tell a
     // solid week from two recorded days and has to guess at the confidence of the numbers.
-    `days=${analytics.daysRecorded}/7|hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? '—'}|str=${analytics.streak}|adh=${analytics.adherence}`,
+    `days=${analytics.daysRecorded}/7|hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? '—'}|str=${analytics.streak}|adh=${analytics.adherence}|meal=${analytics.mealAdherence ?? '—'}`,
     `cal=${analytics.calAdherence ?? '—'}|junk7=${analytics.junk7}|net=${analytics.netCalBalance}|tr=${analytics.trend}`,
     `dim|eng=${dim.eng ?? '—'}|slp=${dim.slp ?? '—'}|bal=${dim.bal ?? '—'}|act=${dim.act ?? '—'}|wtr=${dim.wtr ?? '—'}`,
     `d7|${analytics.last7}`,

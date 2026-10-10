@@ -30,7 +30,7 @@ const FAT_SHARE_BY_STYLE = {
   high_protein: 0.27,
   dash: 0.27,
   low_fodmap: 0.30,
-  paleo: 0.35,
+  paleo: 0.42,
   anti_inflammatory: 0.33,
 };
 
@@ -109,8 +109,12 @@ export function macroTargetsFor(profile, kcal) {
   const style = profile.diet?.style || 'balanced';
   const maxProteinShare = style === 'high_protein' ? 0.40 : 0.35;
 
-  let protein = Math.round(Math.min(refKg * perKg, energy * maxProteinShare / 4));
-  const minFat = Math.round(refKg * MIN_FAT_G_PER_KG);
+  // Кето: при много калории белтъкът расте (≥20% от енергията), иначе мазнината
+  // трябва да е над 75% — повече, отколкото ястията реално носят.
+  const ketoFloor = style === 'keto' ? energy * 0.20 / 4 : 0;
+  let protein = Math.round(Math.min(Math.max(refKg * perKg, ketoFloor), energy * maxProteinShare / 4));
+  // Минимумът мазнини е за хормонална функция — по реалното тегло, не по коригираното.
+  const minFat = Math.round((Number(profile.weightKg) || refKg) * MIN_FAT_G_PER_KG);
   let carbs;
   let fats;
 

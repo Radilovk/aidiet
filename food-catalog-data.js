@@ -74,6 +74,8 @@ export const FOOD_CATALOG = [
   item('pro_sardines', 'Сардини', 'сардини', 'protein', ['PRO', 'FAT'], ['main', 'snack'], 3, { genericOf: 'pro_fish' }),
   item('pro_tempeh', 'Темпе', 'темпе', 'protein', ['PRO'], ['main'], 2, { vegan: true, vegetarian: true }),
   item('pro_whey', 'Протеин (суроватка)', 'протеин суроватка', 'protein', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegetarian: true }),
+  item('pro_lamb', 'Агнешко', 'агнешко', 'protein', ['PRO'], ['main'], 2),
+  item('pro_soy_mince', 'Соева кайма (суха)', 'соева кайма', 'protein', ['PRO'], ['main'], 3, { vegan: true, vegetarian: true, aliases: ['соева кайма', 'текстуриран соев протеин'] }),
   item('pro_plant_protein', 'Протеин (растителен)', 'протеин растителен', 'protein', ['PRO'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true }),
 
   // ── DAIRY ──
@@ -89,11 +91,13 @@ export const FOOD_CATALOG = [
   item('dairy_ricotta', 'Рикота', 'рикота', 'dairy', ['PRO', 'FAT'], ['main', 'snack'], 3, { vegetarian: true }),
   item('dairy_milk', 'Мляко', 'мляко', 'dairy', ['PRO'], ['breakfast', 'snack'], 4, { vegetarian: true }),
   item('dairy_milk_2', 'Мляко (2%)', 'мляко 2', 'dairy', ['PRO'], ['breakfast', 'snack'], 4, { vegetarian: true, genericOf: 'dairy_milk' }),
-  item('dairy_plant_milk', 'Растително мляко', 'растително мляко', 'dairy', ['ENG'], ['breakfast', 'snack'], 4, { vegan: true, vegetarian: true }),
-  item('dairy_soy_yogurt', 'Соево кисело мляко', 'соево кисело мляко', 'dairy', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegan: true, vegetarian: true }),
-  item('dairy_soy_milk', 'Соево мляко', 'соево мляко', 'dairy', ['PRO'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true }),
+  item('dairy_plant_milk', 'Растителен напитък', 'растително мляко', 'dairy', ['ENG'], ['breakfast', 'snack'], 4, { vegan: true, vegetarian: true, aliases: ['растително мляко'] }),
+  item('dairy_soy_yogurt', 'Соево кисело', 'соево кисело мляко', 'dairy', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegan: true, vegetarian: true, aliases: ['соево кисело мляко'] }),
+  item('dairy_soy_milk', 'Соев напитък', 'соево мляко', 'dairy', ['PRO'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true, aliases: ['соево мляко'] }),
   item('dairy_parmesan', 'Пармезан', 'пармезан', 'dairy', ['PRO', 'FAT'], ['main'], 3, { vegetarian: true }),
   item('dairy_mozzarella', 'Моцарела', 'моцарела', 'dairy', ['PRO', 'FAT'], ['main', 'snack'], 3, { vegetarian: true }),
+  item('dairy_yogurt_lf', 'Кисело мляко без лактоза', 'кисело мляко без лактоза', 'dairy', ['PRO', 'FAT'], ['breakfast', 'snack', 'late_snack'], 3, { vegetarian: true }),
+  item('dairy_milk_lf', 'Мляко без лактоза', 'мляко без лактоза', 'dairy', ['PRO'], ['breakfast', 'snack'], 3, { vegetarian: true }),
   item('dairy_kefir', 'Кефир', 'кефир', 'dairy', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegetarian: true }),
 
   // ── VEG — generic + common ──
@@ -142,6 +146,7 @@ export const FOOD_CATALOG = [
   item('eng_corn', 'Царевица', 'царевица', 'carb', ['ENG'], ['main', 'snack'], 4, { vegan: true, vegetarian: true }),
   item('eng_couscous', 'Кус-кус', 'кус-кус', 'carb', ['ENG'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('eng_lentil_pasta', 'Паста от леща', 'паста от леща', 'carb', ['ENG', 'PRO'], ['main'], 3, { vegan: true, vegetarian: true }),
+  item('eng_rice_cakes', 'Оризови галети', 'оризови крекери', 'carb', ['ENG'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true }),
   item('eng_porridge', 'Каша', 'каша', 'carb', ['ENG'], ['breakfast'], 4, { vegan: true, vegetarian: true }),
 
   // ── LEGUMES ──
@@ -201,11 +206,12 @@ export const FOOD_CATALOG = [
   item('cond_lemon_juice', 'Лимонов сок', 'лимонов сок', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('cond_vinegar', 'Оцет', 'оцет', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
   item('cond_tomato_paste', 'Доматено пюре', 'доматено пюре', 'condiment', ['VOL'], ['main'], 4, { vegan: true, vegetarian: true }),
-  item('cond_coconut_milk', 'Кокосово мляко', 'кокосово мляко', 'condiment', ['FAT'], ['main'], 3, { vegan: true, vegetarian: true }),
+  item('cond_coconut_milk', 'Кокосова сметана', 'кокосово мляко', 'condiment', ['FAT'], ['main'], 3, { vegan: true, vegetarian: true, aliases: ['кокосово мляко'] }),
   item('cond_cinnamon', 'Канела', 'канела', 'condiment', ['VOL'], ['breakfast'], 3, { vegan: true, vegetarian: true }),
   item('cond_turmeric', 'Куркума', 'куркума', 'condiment', ['VOL'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('cond_ginger', 'Джинджифил', 'джинджифил', 'condiment', ['VOL'], ['main'], 3, { vegan: true, vegetarian: true }),
   item('cond_honey', 'Мед', 'мед', 'condiment', ['ENG'], ['breakfast', 'snack'], 4, { vegetarian: true }),
+  item('sw_dark_chocolate', 'Черен шоколад', 'тъмен шоколад', 'condiment', ['FAT'], ['main', 'snack'], 3, { vegan: true, vegetarian: true }),
 
 ];
 

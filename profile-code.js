@@ -476,10 +476,11 @@ function readConditions(userData, unmapped) {
  */
 function clinicalDefaultStyle(clinical, protocolId) {
   if (clinical.has('IBS') || clinical.has('SIBO') || protocolId === 'gi_issues') return 'low_fodmap';
-  // Общ храносмилателен проблем без уточнение — щадящо, както досега.
-  if (clinical.has('GI')) return 'low_fodmap';
+  // Общ храносмилателен дискомфорт без диагноза IBS: първа линия (BSG 2021) е
+  // щадящо хранене — правилото GI; ниско FODMAP е само при поставен IBS.
   if (clinical.has('HTN')) return 'dash';
-  if (protocolId === 'insulin_resistance' || clinical.has('IR') || clinical.has('T2D') || clinical.has('PCOS')) {
+  // СПКЯ без инсулинова резистентност: PCOS 2023 не препоръчва конкретна диета.
+  if (protocolId === 'insulin_resistance' || clinical.has('IR') || clinical.has('T2D')) {
     return 'low_carb';
   }
   if (protocolId === 'autoimmune_aip') return 'anti_inflammatory';
@@ -571,11 +572,18 @@ export function compileProfile(userData = {}, overrides = {}) {
   // Полето от протоколните въпросници за непоносимости.
   for (const label of asList(data.foodSensitivities)) addAll(exclusions, exclusionsFromText(label));
 
-  const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns]);
+  // Подсказките от AI (свободен текст) само ДОБАВЯТ — ограничения, състояния, навици.
+  const hints = data._aiHints && typeof data._aiHints === 'object' ? data._aiHints : null;
+  if (hints) {
+    addAll(exclusions, hints.exclusions || []);
+    addAll(clinical, hints.clinical || []);
+  }
+  const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns, ...(hints?.pattern ? [hints.pattern] : [])]);
   const adjustments = [];
   const style = resolveConflicts(
     firstStyle(modifier.styles)
       || firstStyle(prefs.styles.filter(s => s !== 'balanced'))
+      || (hints?.style && hints.style !== 'balanced' ? hints.style : null)
       || clinicalDefaultStyle(clinical, protocolId)
       || 'balanced',
     pattern,
@@ -591,7 +599,7 @@ export function compileProfile(userData = {}, overrides = {}) {
     exclusions.add('EGG');
   }
 
-  const behaviors = new Set([...prefs.behaviors, ...modifier.behaviors]);
+  const behaviors = new Set([...prefs.behaviors, ...modifier.behaviors, ...(hints?.behaviors || [])]);
   for (const label of asList(data.eatingHabits)) {
     const code = EATING_HABIT_LABELS.get(normLabel(label));
     if (code) behaviors.add(code);
@@ -639,6 +647,7 @@ export function compileProfile(userData = {}, overrides = {}) {
     slots,
     unmapped: [...new Set(unmapped)],
     adjustments,
+    aiNotes: hints?.cautions || [],
   };
 }
 

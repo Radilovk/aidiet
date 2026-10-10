@@ -49,6 +49,7 @@ const MEAL_TYPE_SHORT = {
   'Хранене 4': 'H4',
   'Хранене 5': 'H5',
   'Свободно хранене': 'SF',
+  'Напитка': 'DR',
 };
 
 const DAY_KEY_SHORT = {
@@ -323,8 +324,30 @@ export function serializeStrategyForMealPlan(strategy) {
     strategy.calorieDistribution ? `cd=${esc(String(strategy.calorieDistribution).slice(0, 200))}` : '',
     strategy.macroDistribution ? `md=${esc(String(strategy.macroDistribution).slice(0, 200))}` : '',
     strategy.freeDayNumber != null ? `free=D${strategy.freeDayNumber}` : '',
-    strategy.includeDessert === false ? 'dessert=0' : '',
+    strategy.includeDessert != null ? `dessert=${strategy.includeDessert ? 1 : 0}` : '',
+    strategy.exchangePlan?.daily ? `sch=${exchangeLine(strategy.exchangePlan.daily)}` : '',
+    strategy.breakfastStrategy ? `bf=${esc(String(strategy.breakfastStrategy).slice(0, 200))}` : '',
+    strategy.modifierReasoning ? `why=${esc(String(strategy.modifierReasoning).slice(0, 500))}` : '',
   ].filter(Boolean).join('\n');
+}
+
+const EXCHANGE_SHORT = { STA: 'зърн', PRO: 'белт', VEG: 'зел', FRU: 'плод', MLK: 'мляко', FAT: 'мазн', LEG: 'боб', SWT: 'сл' };
+
+/** Хранителната схема в порции: „зърн6+белт9+зел5…“. */
+function exchangeLine(daily) {
+  return Object.entries(daily || {})
+    .filter(([, n]) => Number(n) > 0)
+    .map(([g, n]) => `${EXCHANGE_SHORT[g] || g}${n}`)
+    .join('+');
+}
+
+/** Състав на храненето за чата: съставките, десертът и подправките. */
+function mealItemsFor(m) {
+  if (m.type === 'Свободно хранене') return `свободно(бюджет~${Number(m._plannedCalories) || 0}kcal)`;
+  const parts = [compactMealItems(m.description)];
+  if (m.dessert) parts.push(`десерт:${esc(m.dessert.name)}${Number(m.dessert.calories) ? `(${m.dessert.calories}kcal)` : ''}`);
+  if (m.recipe) parts.push(esc(m.recipe));
+  return parts.filter(Boolean).join('+');
 }
 
 /**
@@ -438,13 +461,12 @@ export function serializeWeekPlanClient(weekPlan, options = {}) {
     if (!dayData?.meals?.length) continue;
     for (const m of dayData.meals) {
       const type = MEAL_TYPE_SHORT[m.type] || esc(String(m.type || '?').slice(0, 3));
-      const kcal = Number(m.calories) || 0;
+      const kcal = Number(m.calories ?? m._plannedCalories) || 0;
       const g = parseInt(String(m.weight || '0').replace(/[^\d]/g, ''), 10) || 0;
       const p = Number(m.macros?.protein) || 0;
       const c = Number(m.macros?.carbs) || 0;
       const f = Number(m.macros?.fats ?? m.macros?.fat) || 0;
-      const items = compactMealItems(m.description);
-      lines.push(`${dayKey}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${items}`);
+      lines.push(`${dayKey}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${mealItemsFor(m)}`);
     }
   }
   return lines.length > 1 ? lines.join('\n') : '';
@@ -456,7 +478,7 @@ export function serializeWeekPlanClient(weekPlan, options = {}) {
  */
 export function serializeWeekPlanAdmin(weekPlan) {
   if (!weekPlan) return '';
-  const lines = ['#PL v2 admin|day|idx|type|name|kcal|g|P|C|F|patch'];
+  const lines = ['#PL v2 admin|day|idx|type|name|kcal|g|P|C|F|patch|items'];
   for (const [dayKey, dayData] of Object.entries(weekPlan)) {
     if (!dayData?.meals?.length) continue;
     const meals = dayData.meals;
@@ -467,7 +489,7 @@ export function serializeWeekPlanAdmin(weekPlan) {
     for (let i = 0; i < meals.length; i++) {
       const m = meals[i];
       const type = MEAL_TYPE_SHORT[m.type] || esc(String(m.type || '?').slice(0, 3));
-      const kcal = Number(m.calories) || 0;
+      const kcal = Number(m.calories ?? m._plannedCalories) || 0;
       const g = parseInt(String(m.weight || '0').replace(/[^\d]/g, ''), 10) || 0;
       const p = Number(m.macros?.protein) || 0;
       const c = Number(m.macros?.carbs) || 0;
@@ -477,7 +499,7 @@ export function serializeWeekPlanAdmin(weekPlan) {
       dayC += c;
       dayF += f;
       const patch = `/plan/weekPlan/${dayKey}/meals/${i}`;
-      lines.push(`${dayKey}|${i}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${patch}`);
+      lines.push(`${dayKey}|${i}|${type}|${esc(m.name)}|${kcal}|${g}|${p}|${c}|${f}|${patch}|${mealItemsFor(m)}`);
     }
     lines.push(`${dayKey}|T|—|ден_общо|${dayKcal}|—|${dayP}|${dayC}|${dayF}|`);
   }

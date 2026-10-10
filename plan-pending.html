@@ -524,7 +524,7 @@
 
         <div class="pp-title">
             <h1>Информацията ви е получена успешно!</h1>
-            <p>Нашият специалист ще прегледа вашите данни и ще изготви напълно персонализиран хранителен пакет, съобразен с вашите нужди.</p>
+            <p>Планът ви се изготвя автоматично според отговорите ви и преди да го получите, се преглежда и одобрява от специалист.</p>
         </div>
 
         <div class="system-notice" id="systemNotice" hidden>
@@ -708,21 +708,12 @@
                     .then(data => {
                         if (data.status === 'completed' && data.success && data.plan) {
                             localStorage.removeItem('planJobId');
-                            const userId = localStorage.getItem('userId') || data.userId || null;
-                            const forcePending = localStorage.getItem('planSource') === 'questionnaire2'
-                                || localStorage.getItem('planReplacePending') === '1';
-                            fetch(WORKER + '/api/admin/update-client-plan', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    clientId,
-                                    plan: data.plan,
-                                    userId,
-                                    ...(forcePending ? { forcePending: true } : {})
-                                })
-                            }).catch(e => console.warn('update-client-plan failed:', e));
+                            // Клиентският запис се обновява от сървъра при завършване на задачата.
+                            localStorage.removeItem('planReplacePending');
                         } else if (data.status === 'failed' || data.status === 'not_found') {
                             localStorage.removeItem('planJobId');
+                            // Без това клиентът чакаше специалист за план, който не е изготвен.
+                            showPendingProblem('Изготвянето на плана не успя. Отговорите ви са запазени — изпратете въпросника отново.', 'questionnaire2.html', 'Изпрати отново');
                         } else {
                             setTimeout(poll, 10000);
                         }
@@ -732,9 +723,40 @@
             poll();
         }
 
+        function showPendingProblem(text, href, label) {
+            const notice = document.getElementById('systemNotice');
+            const noticeText = document.getElementById('systemNoticeText');
+            if (!notice || !noticeText) return;
+            notice.hidden = false;
+            noticeText.textContent = text;
+            if (href && !notice.querySelector('.pp-problem-link')) {
+                const a = document.createElement('a');
+                a.className = 'pp-problem-link';
+                a.href = href;
+                a.textContent = label || 'Продължи';
+                a.style.cssText = 'display:inline-block;margin-top:8px;font-weight:700';
+                noticeText.after(a);
+            }
+        }
+
+        // Проверка на одобрението и сама: на 3 минути докато страницата е отворена
+        // и при връщане към нея (най-много веднъж в минута) — едно четене, без запис.
+        let _lastPendingCheck = 0;
+        function scheduledPendingCheck() {
+            if (document.hidden) return;
+            if (Date.now() - _lastPendingCheck < 60000) return;
+            _lastPendingCheck = Date.now();
+            autoCheckPlanStatus();
+        }
+        setInterval(scheduledPendingCheck, 3 * 60 * 1000);
+        document.addEventListener('visibilitychange', scheduledPendingCheck);
+
         async function autoCheckPlanStatus() {
             const clientId = localStorage.getItem('pendingClientId');
-            if (!clientId) return;
+            if (!clientId) {
+                showPendingProblem('Не намираме заявката ви на това устройство. Влезте в профила си или се свържете с нас.', 'index.html?stay=1&login=1', 'Вход');
+                return;
+            }
             
             try {
                 const resp = await fetch('https://aidiet.radilov-k.workers.dev/api/client-plan-status?clientId=' + encodeURIComponent(clientId));
@@ -787,12 +809,8 @@
                     if (userId) {
                         const planPayload = data.plan || JSON.parse(localStorage.getItem('dietPlan') || 'null');
                         const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-                        if (planPayload) {
-                            fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId, plan: planPayload, userData, planSource: '', clientId })
-                            }).catch(() => {});
+                        if (planPayload && window.NutriPlanPlanSync) {
+                            window.NutriPlanPlanSync.saveUserProfile(userId, planPayload, userData, '', null, clientId);
                         }
                     }
 

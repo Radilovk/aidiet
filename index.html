@@ -72,7 +72,7 @@
             var src = localStorage.getItem('planJobSource');
             var planSync = window.NutriPlanPlanSync;
             if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
-                location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                location.replace('questionnaire2.html');
                 return;
             }
         }
@@ -85,13 +85,11 @@
         var planTarget;
         var planSource = localStorage.getItem('planSource');
         
-        if (planSource === 'questionnaire2') {
-            if (localStorage.getItem('pendingClientId') && !dietPlan) {
-                planTarget = 'plan-pending.html';
-            } else {
-                try { localStorage.removeItem('planSource'); } catch (_) {}
-                planTarget = 'index.html?app=1&tab=plan';
-            }
+        // Заявка, която чака одобрение на специалист: към страницата за изчакване,
+        // дори ако планът вече е на телефона (неодобреният план не се показва).
+        // planSource се маха само от проверката на статуса при одобрение.
+        if (planSource === 'questionnaire2' && localStorage.getItem('pendingClientId')) {
+            planTarget = 'plan-pending.html';
         } else {
             planTarget = 'index.html?app=1&tab=plan';
         }
@@ -2832,18 +2830,16 @@
         }
 
         function getPlanTargetFromState() {
-            if (localStorage.getItem('planSource') === 'questionnaire2') {
-                if (localStorage.getItem('pendingClientId') && !localStorage.getItem('dietPlan')) {
-                    return 'plan-pending.html';
-                }
-                try { localStorage.removeItem('planSource'); } catch (_) {}
-            } else if (localStorage.getItem('pendingClientId') && !localStorage.getItem('dietPlan')) {
+            var pendingClientId = localStorage.getItem('pendingClientId');
+            var hasPlan = !!localStorage.getItem('dietPlan');
+            // Чака одобрение само който има заявка (pendingClientId) — не всеки без план.
+            if (pendingClientId && (localStorage.getItem('planSource') === 'questionnaire2' || !hasPlan)) {
                 return 'plan-pending.html';
             }
-            if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
-                return 'plan-pending.html';
-            }
-            return localStorage.getItem('dietPlan') ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';
+            if (hasPlan) return 'index.html?app=1&tab=plan';
+            // Влязъл, но планът не се зареди (мрежа) — табът с плана опитва отново;
+            // без профил — към въпросника.
+            return localStorage.getItem('userData') ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';
         }
 
         function normalizeShellTarget(target) {
@@ -2939,7 +2935,7 @@
                     const restoredSource = localStorage.getItem('planJobSource');
                     const planSync = window.NutriPlanPlanSync;
                     if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
-                        window.location.replace(restoredSource === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                        window.location.replace('questionnaire2.html');
                         return;
                     }
                 }
@@ -2981,7 +2977,7 @@
                 const src = localStorage.getItem('planJobSource');
                 const planSync = window.NutriPlanPlanSync;
                 if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
-                    window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                    window.location.replace('questionnaire2.html');
                     return;
                 }
             }
@@ -4180,26 +4176,11 @@
                     planSource: localStorage.getItem('planSource') || '',
                     ...(idToken ? { idToken } : {})
                 });
-                let resp = await fetch(WORKER_URL + '/api/user/save-profile', {
+                const resp = await fetch(WORKER_URL + '/api/user/save-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body
                 });
-                // If token verification was rejected by the server (FIREBASE_PROJECT_ID not
-                // configured or transient JWKS error), retry without the idToken.
-                if ((resp.status === 401 || resp.status === 403) && idToken) {
-                    console.warn('[plan-sync] Token rejected (', resp.status, '), retrying without token');
-                    resp = await fetch(WORKER_URL + '/api/user/save-profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            userId:   fbUserId,
-                            plan:     JSON.parse(planStr),
-                            userData: userStr ? JSON.parse(userStr) : {},
-                            planSource: localStorage.getItem('planSource') || ''
-                        })
-                    });
-                }
                 if (resp.ok) {
                     localStorage.removeItem('planSyncPending');
                 } else {

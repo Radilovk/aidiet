@@ -52,6 +52,8 @@
     <script>(function(){if(new URLSearchParams(window.location.search).get('shellChat')==='1'){document.documentElement.setAttribute('data-shell-chat','1');}})();</script>
     <!-- Detect embedded iframe mode before first paint (enables haptic relay to shell via postMessage) -->
     <script>(function(){if(new URLSearchParams(window.location.search).has('embedded')){document.documentElement.setAttribute('data-embedded-tab','1');}})();</script>
+    <!-- Вътре в приложението навигацията е на обвивката — собствената не мига при зареждане. -->
+    <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}</style>
     <!-- In shellChat mode: hide everything except #chatWindow so only the chat drawer shows -->
     <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow):not(.game-modal-overlay){display:none!important;}html[data-shell-chat="1"] .game-modal-overlay{display:flex!important;z-index:10010!important;}html[data-shell-chat="1"] #chatWindow{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0!important;}</style>
     <style>
@@ -2345,11 +2347,13 @@
         #dailyScoreCard.sc-anim-3 { animation: starCelebBounce 0.65s cubic-bezier(0.34,1.56,0.64,1); }
         #dailyScoreCard.sc-anim-4 { animation: starCelebGlow4  0.9s ease-out; }
         #dailyScoreCard.sc-anim-5 { animation: starCelebGlow5  1.1s ease-out; }
+        /* Основното ежедневно действие — зона за докосване поне 44px (бутонът остава 34px). */
+        .meal-check-btn, .meal-describe-btn { position: relative; }
+        .meal-check-btn::after, .meal-describe-btn::after { content: ''; position: absolute; inset: -6px; }
         /* time-locked meal check button state */
         .meal-check-btn.locked {
             opacity: 0.35 !important;
             cursor: not-allowed !important;
-            pointer-events: none;
         }
         /* Free meal rating badge — shown when no photo has been documented yet */
         .free-meal-rating-badge {
@@ -2405,7 +2409,8 @@
             background: rgba(0,0,0,0.55);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            z-index: 2000;
+            /* Над чата (9999) и банера — прозорец под чата остава невидим. */
+            z-index: 10020;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -4095,7 +4100,7 @@
     <input type="file" id="foodImageInput" accept="image/*" capture="environment" style="display:none" aria-label="Избор на изображение на храна">
 
     <!-- Food Analysis Modal -->
-    <div class="food-analysis-overlay" id="foodAnalysisOverlay">
+    <div class="food-analysis-overlay" id="foodAnalysisOverlay" role="dialog" aria-modal="true">
         <div class="food-analysis-modal">
             <div class="food-analysis-header">
                 <h3 id="foodAnalysisTitle"><i class="fas fa-utensils"></i> Анализ на Храна</h3>
@@ -4145,7 +4150,7 @@
     </div>
 
     <!-- INFO MODAL -->
-    <div class="modal-overlay" id="infoModal">
+    <div class="modal-overlay" id="infoModal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
         <div class="modal-card">
                 <div class="modal-drag-handle"></div>
             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
@@ -4190,7 +4195,7 @@
     </div>
 
     <!-- WELCOME MODAL - Shows on first visit to plan.html -->
-    <div class="modal-overlay" id="welcomeModal">
+    <div class="modal-overlay" id="welcomeModal" role="dialog" aria-modal="true">
         <div class="modal-card welcome-modal-card">
             <div class="welcome-modal-content">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -4243,8 +4248,6 @@
         
         // Enhancement #1: Retry mechanism state
         let isSending = false;
-        const MAX_RETRIES = 2;
-        const RETRY_DELAYS = [2000, 5000]; // Exponential backoff delays in ms
         let typingHapticsEnabled = true;
         const activeTypingTimers = new Set();
         const activeTypingFinalizers = new Set();
@@ -4464,9 +4467,9 @@
             if (!isCapacitorApp) {
                 if (!('Notification' in window) || Notification.permission !== 'granted') return;
             }
-            return window.GameNotifier.init()
+            return window.GameNotifier.init({ askPermission: options.showPrompt === false })
                 .then((ready) => {
-                    if (!ready && isCapacitorApp && options.showPrompt !== false) {
+                    if (!ready && isCapacitorApp && options.showPrompt !== false && notifPromptDayPassed()) {
                         showNotificationBanner();
                         showApkBatteryHintIfNeeded();
                     }
@@ -4474,7 +4477,7 @@
                 })
                 .catch(e => {
                     console.warn('[Notifications] GameNotifier.init error:', e);
-                    if (isCapacitorApp && options.showPrompt !== false) {
+                    if (isCapacitorApp && options.showPrompt !== false && notifPromptDayPassed()) {
                         showNotificationBanner();
                     }
                     return false;
@@ -4536,20 +4539,25 @@
         function handleOffline() {
             isOnline = false;
             console.log('Connection lost');
-            addMessageToChat('⚠️ Няма връзка с интернет. Съобщенията ще бъдат изпратени при възстановяване на връзката.', 'assistant');
+            // Общата лента „Без връзка“ показва състоянието; в чата — само ако е отворен.
+            if (chatVisible) addMessageToChat('⚠️ Няма връзка с интернет. Съобщенията ще бъдат изпратени при възстановяване на връзката.', 'assistant', false);
         }
         
         async function processOfflineQueue() {
             if (offlineMessageQueue.length === 0) return;
             
-            addMessageToChat('✓ Връзката е възстановена. Изпращам запазени съобщения...', 'assistant');
+            addMessageToChat('✓ Връзката е възстановена. Изпращам запазени съобщения...', 'assistant', false);
             
             const queue = [...offlineMessageQueue];
             offlineMessageQueue = [];
             
             for (const messageObj of queue) {
-                // Start with retry count 0 for queued messages (fresh attempt)
-                await sendMessageInternal(messageObj.text, 0, messageObj.id);
+                // Съобщението вече е в чата (показано при запазването) — не се дублира.
+                try {
+                    await sendMessageInternal(messageObj.text, 1, messageObj.id);
+                } catch (_) {
+                    showChatSendError(messageObj.text, 'Съобщението не беше изпратено.', true);
+                }
                 await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
             }
             
@@ -4789,13 +4797,19 @@
         // frame owns the Capacitor bridge and triggers the native haptic from there.
         // Standalone APK: uses NutriPlanPlatform.getPlugin('Haptics') directly.
         // Web fallback: navigator.vibrate.
+        /** Вибрация само след докосване от потребителя — иначе браузърът я блокира, а приложението вибрира при отваряне. */
+        function userHasInteracted() {
+            try { return !navigator.userActivation || navigator.userActivation.hasBeenActive; } catch (_) { return true; }
+        }
+        window.userHasInteracted = userHasInteracted;
+
         var hapticCtrl = (function() {
             var lastTime = 0;
             var INTERVAL = 50; // minimum ms between vibrations (hardware throttle)
             var PUNCT = /[.,!?;:\-]/;
             return {
                 trigger: function(ch) {
-                    if (!typingHapticsEnabled) return;
+                    if (!typingHapticsEnabled || !userHasInteracted()) return;
                     var now = Date.now();
                     if (now - lastTime < INTERVAL) return;
                     lastTime = now;
@@ -4902,7 +4916,7 @@
                         _loadDietDataCalled = true;
                         const sync = window.NutriPlanPlanSync;
                         if (!sync || typeof sync.restoreProfileFromServer !== 'function') {
-                            showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                            showError('Не открихме план за този профил. Ако вече имате план, опитайте отново; иначе попълнете въпросника.', true);
                             return;
                         }
                         let restoreEmail = '';
@@ -4916,11 +4930,11 @@
                                     console.log('[PWA] Plan restored from backend in plan.html');
                                     loadDietData();
                                 } else {
-                                    showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                                    showError('Не открихме план за този профил. Ако вече имате план, опитайте отново; иначе попълнете въпросника.', true);
                                 }
                             })
                             .catch(function () {
-                                showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                                showError('Няма връзка със сървъра. Проверете интернета и опитайте отново.', false);
                             });
                         return;
                     }
@@ -4928,7 +4942,7 @@
                     if (window.NutriPlanDiagnostics) {
                         window.NutriPlanDiagnostics.fail('plan', 'load-diet-data', 'Missing plan or userId');
                     }
-                    showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                    showError('Не открихме план за този профил. Ако вече имате план, опитайте отново; иначе попълнете въпросника.', true);
                     return;
                 }
 
@@ -4963,7 +4977,9 @@
 
                 // Render initial data – use the day already set by the inline script
                 // This prevents flashing from Monday to the actual current day
-                const initialDateKey = window._initialPlanDateKey || todayDateKey();
+                // При обновяване на плана (force) остава денят, който клиентът гледа.
+                const keepViewed = options.force && typeof currentViewDateKey === 'string' && currentViewDateKey;
+                const initialDateKey = keepViewed ? currentViewDateKey : (window._initialPlanDateKey || todayDateKey());
                 const initialDay = dateKeyToPlanDay(initialDateKey);
                 selectDay(initialDay, null, initialDateKey);
                 
@@ -4988,7 +5004,7 @@
                 if (window.NutriPlanDiagnostics) {
                         window.NutriPlanDiagnostics.fail('plan', 'load-diet-data', error.message || 'Unknown error');
                 }
-                showError('Грешка при зареждане на данните. Моля, генерирайте нов план.', true);
+                showError('Възникна грешка при показването на плана. Опитайте отново; ако се повтаря, пишете ни от профила.', false);
             }
         }
 
@@ -5061,30 +5077,35 @@
         }
 
         // Show error message
-        function showError(message, redirect = false) {
+        /**
+         * Грешка при зареждане: обяснение и „Опитай отново“ — без автоматично
+         * пренасочване (то пращаше клиент с план към въпросника при грешка в мрежата).
+         * withQuestionnaire — само когато наистина няма план.
+         */
+        function showError(message, withQuestionnaire = false) {
             const container = document.querySelector('.container');
-            if (container) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px 20px;">
-                        <div style="font-size: 3rem; color: #e74c3c; margin-bottom: 20px;">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <h2 style="color: var(--text-dark); margin-bottom: 15px;">Грешка</h2>
-                        <p style="color: var(--text-light); margin-bottom: 30px;">${message}</p>
-                        <button onclick="navigateTopLevel('questionnaire.html')" 
-                                style="background: var(--primary-red); color: white; border: none; 
-                                       padding: 15px 30px; border-radius: 25px; font-size: 1rem; 
-                                       font-weight: 600; cursor: pointer;">
-                            Към въпросника
-                        </button>
+            if (!container) return;
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <div style="font-size: 3rem; color: #e74c3c; margin-bottom: 20px;">
+                        <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                `;
-            }
-            if (redirect) {
-                setTimeout(() => {
-                    navigateTopLevel('questionnaire.html');
-                }, 3000);
-            }
+                    <h2 style="color: var(--text-dark); margin-bottom: 15px;">Планът не се зареди</h2>
+                    <p style="color: var(--text-light); margin-bottom: 26px;">${escapeHtml(message)}</p>
+                    <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+                        <button type="button" onclick="window.location.reload()"
+                                style="background: var(--primary-red); color: white; border: none; min-height:44px;
+                                       padding: 12px 28px; border-radius: 25px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                            Опитай отново
+                        </button>
+                        ${withQuestionnaire ? `<button type="button" onclick="navigateTopLevel('questionnaire2.html')"
+                                style="background: transparent; color: var(--primary-red); border: 1.5px solid var(--primary-red); min-height:44px;
+                                       padding: 10px 24px; border-radius: 25px; font-size: .95rem; font-weight: 600; cursor: pointer;">
+                            Попълни въпросника
+                        </button>` : ''}
+                    </div>
+                </div>
+            `;
         }
 
         // --- Meal alignment: Step 2 mealBreakdown is authoritative for per-meal macros/calories ---
@@ -5211,6 +5232,9 @@
                         // Budget the free meal at its realistic cost, not at the cost of the
                         // lunch it replaces — otherwise the free day silently understates intake.
                         var freeBudget = freeCal > 0 ? Math.round(freeCal * FREE_MEAL_OVERAGE) : 0;
+                        // Планът от двигателя носи бюджета си — същият като в книгата и сървъра.
+                        var engineBudget = (plan.planEngine === 'exchange-v4' || (plan.strategy && plan.strategy.engine === 'exchange-v4')) ? (parseInt(meal._plannedCalories) || 0) : 0;
+                        if (engineBudget > 0) freeBudget = engineBudget;
                         if (freeBudget > 0) meal._plannedCalories = freeBudget;
                         totalCal += freeBudget;
                         if (plan.strategy && plan.strategy.weeklyScheme && weekdayKey) {
@@ -5221,9 +5245,10 @@
                                 });
                                 if (freeEntry) {
                                     // Scale macros with the calories so daily totals stay coherent
-                                    totalProtein += (parseFloat(freeEntry.protein) || 0) * FREE_MEAL_OVERAGE;
-                                    totalCarbs += (parseFloat(freeEntry.carbs) || 0) * FREE_MEAL_OVERAGE;
-                                    totalFats += (parseFloat(freeEntry.fats) || 0) * FREE_MEAL_OVERAGE;
+                                    var macroScale = engineBudget > 0 ? 1 : FREE_MEAL_OVERAGE;
+                                    totalProtein += (parseFloat(freeEntry.protein) || 0) * macroScale;
+                                    totalCarbs += (parseFloat(freeEntry.carbs) || 0) * macroScale;
+                                    totalFats += (parseFloat(freeEntry.fats) || 0) * macroScale;
                                 }
                             }
                         }
@@ -5257,6 +5282,32 @@
         }
 
         /** Parse description into ingredient rows with gram weights for modal display. */
+        /** Кратко съобщение долу над навигацията (изчезва само). */
+        function showToast(message, ms) {
+            var t = document.getElementById('npToast');
+            if (!t) {
+                t = document.createElement('div');
+                t.id = 'npToast';
+                t.setAttribute('role', 'status');
+                t.setAttribute('aria-live', 'polite');
+                t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));max-width:calc(100% - 32px);background:rgba(15,47,46,.92);color:#fff;padding:10px 16px;border-radius:12px;font-size:.88rem;z-index:10050;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .2s;opacity:0;pointer-events:none;text-align:center';
+                document.body.appendChild(t);
+            }
+            t.textContent = message;
+            t.style.opacity = '1';
+            clearTimeout(t._hide);
+            t._hide = setTimeout(function() { t.style.opacity = '0'; }, ms || 2200);
+        }
+        window.showToast = showToast;
+
+        document.addEventListener('click', function(e) {
+            var lockedBtn = e.target && e.target.closest && e.target.closest('.meal-check-btn.locked');
+            if (!lockedBtn) return;
+            e.stopPropagation();
+            e.preventDefault();
+            showToast(lockedBtn.getAttribute('data-lock-hint') || lockedBtn.title || 'Отбелязването още не е отключено');
+        }, true);
+
         function renderMealDescriptionHtml(description) {
             if (!description) return '';
             var items = [];
@@ -5264,11 +5315,14 @@
             if (lines.length === 1 && lines[0].indexOf(';') >= 0) {
                 lines = lines[0].split(';').map(function(s) { return s.trim(); }).filter(Boolean);
             }
+            var extras = [];
             lines.forEach(function(line) {
                 var chunks = line.split(';').map(function(s) { return s.replace(/^[•\-\*]\s*/, '').trim(); }).filter(Boolean);
                 chunks.forEach(function(sp) {
-                    var m = sp.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|г)\b(?:\s*[—\-]\s*(.+))?$/i);
-                    if (m) items.push({ name: m[1].trim(), grams: m[2] + 'g', note: (m[4] || '').trim() });
+                    // g, г или гр — и без ASCII \b, който не работи с кирилица.
+                    var m = sp.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:g|гр|г)(?![\p{L}\p{N}])(?:\s*[—\-]\s*(.+))?$/iu);
+                    if (m) items.push({ name: m[1].trim(), grams: m[2] + 'g', note: (m[3] || '').trim() });
+                    else extras.push(sp);
                 });
             });
             if (!items.length) return escapeHtmlWithBreaks(description);
@@ -5279,6 +5333,8 @@
                     '</span><span class="ingredient-grams">' + escapeHtml(it.grams) + '</span></li>';
             });
             html += '</ul>';
+            // Редовете без грамаж (рецептата „Овкусете с: …“, бележки) — под състава, не изгубени.
+            if (extras.length) html += '<p class="modal-recipe" style="margin:10px 0 0;font-size:.88rem;opacity:.85">' + escapeHtml(extras.join(' ')) + '</p>';
             return html;
         }
 
@@ -5391,6 +5447,9 @@
             
             if (!dayData || !dayData.meals) {
                 console.warn(`No data for ${dayKey}`);
+                // Без стари хранения под новия ден — празно състояние.
+                const emptyContainer = document.getElementById('mealContainer');
+                if (emptyContainer) emptyContainer.innerHTML = '<div class="meal-card" style="text-align:center;opacity:.8"><div class="meal-info"><div class="meal-name">Няма меню за този ден</div></div></div>';
                 return;
             }
 
@@ -5421,8 +5480,10 @@
             // Build breakfast-note element if strategy includes one
             const bs = dietPlan.strategy && dietPlan.strategy.breakfastStrategy;
             const skipsBreakfast = userData && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
+            // Планът от двигателя показва сутрешната напитка като собствена карта („Напитка“).
+            const isEnginePlanView = dietPlan.planEngine === 'exchange-v4' || (dietPlan.strategy && dietPlan.strategy.engine === 'exchange-v4');
             let bsEl = null;
-            if (bs) {
+            if (bs && !isEnginePlanView) {
                 bsEl = document.createElement('div');
                 bsEl.className = 'meal-card breakfast-note-card meal-card--clickable';
                 bsEl.innerHTML =
@@ -5501,7 +5562,7 @@
                     var addedInfo = document.createElement('div');
                     addedInfo.className = 'meal-info';
                     addedInfo.innerHTML =
-                        '<div class="meal-type"><i class="fas fa-camera" style="font-size:0.75em;margin-right:4px;opacity:0.7"></i>' + escapeHtmlWithBreaks(addedMeal.type) + '</div>' +
+                        '<div class="meal-type"><i class="fas fa-camera" style="font-size:0.75em;margin-right:4px;opacity:0.7"></i>' + escapeHtmlWithBreaks(getMealDisplayLabel(addedMeal.type)) + '</div>' +
                         '<div class="meal-name">' + escapeHtmlWithBreaks(addedMeal.name) + '</div>' +
                         (addedMeal.calories > 0 ? '<div class="added-meal-kcal">' + Math.round(addedMeal.calories) + ' kcal</div>' : '');
 
@@ -5828,7 +5889,7 @@
                 loadDietData({ force: true });
             }
             consumePendingPlanUiAction();
-            if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
+            if (window.gameModule && typeof window.gameModule.checkOpenAppPrompts === 'function') window.gameModule.checkOpenAppPrompts();
             maybeCheckWeeklyAdaptNotice();
         });
 
@@ -5854,13 +5915,18 @@
                 loadDietData({ force: true });
             }
             setTimeout(function() {
-                showWeeklyAdaptNoticeModal(notice);
+                var gm = window.gameModule;
+                if (gm && typeof gm.showWeeklyAdaptNoticeModal === 'function') gm.showWeeklyAdaptNoticeModal(notice);
             }, notice.planApplied === false ? 0 : 350);
         });
 
+        var _weeklyNoticeCheckedAt = 0;
         function maybeCheckWeeklyAdaptNotice() {
             var sync = window.NutriPlanPlanSync;
             var uid = localStorage.getItem('userId') || '';
+            // При смяна на таб — най-много веднъж на 10 минути (KV четене при всяка смяна е излишно).
+            if (Date.now() - _weeklyNoticeCheckedAt < 10 * 60 * 1000) return;
+            _weeklyNoticeCheckedAt = Date.now();
             if (sync && typeof sync.maybeCheckWeeklyAdaptNotice === 'function' && uid) {
                 sync.maybeCheckWeeklyAdaptNotice(uid, buildPlanSyncOpts());
             }
@@ -5889,8 +5955,9 @@
             } else {
                 try {
                     var dirtyKey = localStorage.getItem('gameDataDirtyKey');
-                    if (dirtyKey && typeof recalcAndShowScore === 'function') {
-                        recalcAndShowScore(dirtyKey);
+                    var gmr = window.gameModule;
+                    if (dirtyKey && gmr && typeof gmr.recalcAndShowScore === 'function') {
+                        gmr.recalcAndShowScore(dirtyKey);
                         localStorage.removeItem('gameDataDirtyKey');
                     }
                 } catch (_) {}
@@ -5900,7 +5967,7 @@
                     // to 24 hours) so schedule changes from the admin panel reach all users.
                     window.GameNotifier.refreshConfig().catch(function() {});
                 }
-                if (typeof checkOpenAppPrompts === 'function') checkOpenAppPrompts();
+                if (window.gameModule && typeof window.gameModule.checkOpenAppPrompts === 'function') window.gameModule.checkOpenAppPrompts();
             }
         });
         window.addEventListener('pagehide', function() {
@@ -6143,7 +6210,7 @@
                 }
                 openModal(
                     meal.name,
-                    meal.description || '',
+                    (meal.description || '') + (meal.recipe ? '\n' + meal.recipe : ''),
                     meal.benefits || '',
                     meal.macros || null,
                     meal.dessert || null,
@@ -6180,11 +6247,11 @@
             const mWeightBadge = document.getElementById('mWeightBadge');
             const mWeightText  = document.getElementById('mWeightText');
             if (mWeightBadge && mWeightText) {
-                if (weight) {
+                if (weight || calories || macros) {
                     // For plans generated before the backend started adding dessert weight to
                     // meal.weight, add the dessert weight here at display time.
                     // New plans have dessert._weightAddedToMeal = true so we skip the addition.
-                    let displayWeight = weight;
+                    let displayWeight = weight || '';
                     if (dessert && dessert.weight && !dessert._weightAddedToMeal) {
                         const mainMatch = String(weight).match(/(\d+(?:\.\d+)?)/);
                         const dessertMatch = String(dessert.weight).match(/(\d+(?:\.\d+)?)/);
@@ -6201,9 +6268,9 @@
                     } else if (calories) {
                         displayCalories = Math.round(calories);
                     }
-                    const calText = displayCalories ? ` • ${displayCalories} kcal` : '';
-                    mWeightText.textContent = `${displayWeight}${calText}`;
-                    mWeightBadge.style.display = 'inline-flex';
+                    const parts = [displayWeight, displayCalories ? `${displayCalories} kcal` : ''].filter(Boolean);
+                    mWeightText.textContent = parts.join(' • ');
+                    mWeightBadge.style.display = parts.length ? 'inline-flex' : 'none';
                 } else {
                     mWeightBadge.style.display = 'none';
                 }
@@ -6212,6 +6279,8 @@
             // Display description — structured ingredient grams when present
             mDesc.innerHTML = renderMealDescriptionHtml(description);
             mBenefit.textContent = benefit;
+            // Без ползи — без празно заглавие „Ползи:“.
+            if (mBenefit.parentElement) mBenefit.parentElement.style.display = benefit ? '' : 'none';
             
             // Render dessert component section if present (as part of meal description)
             // Using new ROW layout structure
@@ -6460,7 +6529,7 @@
                 });
             } else {
                 // Show welcome message
-                addMessageToChat(`Здравейте, ${userData.name || 'приятелю'}! 👋\n\nАз съм вашият AI диетолог асистент. Как мога да ви помогна днес?`, 'assistant', false);
+                addMessageToChat(`Здравейте, ${(userData && userData.name) || 'приятелю'}! 👋\n\nАз съм вашият асистент по хранителния план. Как мога да ви помогна днес?`, 'assistant', false);
             }
 
             // Show Demo mode warning
@@ -6776,9 +6845,12 @@
                 return;
             }
             
-            // Enhancement #2: Debouncing - Clear any pending send
-            if (sendMessageTimeout) {
-                clearTimeout(sendMessageTimeout);
+            // Отговорът на предишното съобщение още идва — текстът остава в полето, не се губи.
+            if (isSending || sendMessageTimeout) {
+                var prevPlaceholder = input.getAttribute('data-ph') || input.placeholder;
+                input.setAttribute('data-ph', prevPlaceholder);
+                showToast('Изчакайте отговора на предишното съобщение');
+                return;
             }
             
             // Enhancement #7: Rate limiting check
@@ -6792,6 +6864,7 @@
 
             // Enhancement #2: Debounce - Wait before actually sending
             sendMessageTimeout = setTimeout(() => {
+                sendMessageTimeout = null;
                 sendMessageWithRetry(message);
             }, DEBOUNCE_DELAY);
         }
@@ -6822,7 +6895,7 @@
                 if (!alreadyQueued) {
                     offlineMessageQueue.push({ id: messageId, text: message, timestamp: Date.now() });
                     addMessageToChat(message, 'user');
-                    addMessageToChat('📤 Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant');
+                    addMessageToChat('📤 Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant', false);
                     // Save to localStorage for persistence
                     saveOfflineQueue();
                 }
@@ -6834,24 +6907,50 @@
             } catch (error) {
                 console.error('Message send failed:', error);
                 
-                // Enhancement #1: Retry logic
-                if (retryCount < MAX_RETRIES) {
-                    const delay = RETRY_DELAYS[retryCount];
-                    addMessageToChat(`⚠️ Грешка при изпращане. Опитвам отново след ${delay/1000} секунди... (опит ${retryCount + 1}/${MAX_RETRIES})`, 'assistant');
-                    
-                    setTimeout(() => {
-                        sendMessageWithRetry(message, retryCount + 1);
-                    }, delay);
-                } else {
-                    // All retries exhausted - add to offline queue if not already there
+                // Без автоматичен повторен опит: заявка за промяна, изпратена два пъти,
+                // може да промени плана два пъти. Едно съобщение с бутон, не поредица балончета.
+                if (!navigator.onLine) {
                     const alreadyQueued = offlineMessageQueue.some(m => m.id === messageId);
                     if (!alreadyQueued) {
                         offlineMessageQueue.push({ id: messageId, text: message, timestamp: Date.now() });
                         saveOfflineQueue();
                     }
-                    addMessageToChat('❌ Не успях да изпратя съобщението след няколко опита. Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant');
+                    showChatSendError(message, 'Няма връзка. Съобщението ще се изпрати, когато връзката се върне.', false);
+                } else {
+                    showChatSendError(message, 'Съобщението не беше изпратено.', true);
                 }
             }
+        }
+
+        /** Една бележка за неуспешно изпращане (не влиза в историята на чата). */
+        function showChatSendError(message, text, canRetry) {
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) return;
+            chatMessages.querySelectorAll('.chat-send-error').forEach(el => el.remove());
+            const row = document.createElement('div');
+            row.className = 'chat-message assistant chat-send-error';
+            row.setAttribute('role', 'alert');
+            row.style.cssText = 'display:flex;justify-content:flex-start;margin-bottom:10px;';
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.style.cssText = 'background:var(--card-bg);color:var(--text-dark);padding:10px 15px;border-radius:12px;max-width:80%;font-size:0.9rem;line-height:1.5;display:flex;flex-direction:column;gap:8px;align-items:flex-start;';
+            const label = document.createElement('span');
+            label.textContent = '⚠️ ' + text;
+            bubble.appendChild(label);
+            if (canRetry) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = 'Изпрати отново';
+                btn.style.cssText = 'background:var(--primary-red);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;min-height:40px;';
+                btn.onclick = () => {
+                    row.remove();
+                    sendMessageWithRetry(message, 1);
+                };
+                bubble.appendChild(btn);
+            }
+            row.appendChild(bubble);
+            chatMessages.appendChild(row);
+            scrollChatToBottom();
         }
         
         // Core send message logic (Enhancement #1: Extracted for retry)
@@ -6965,9 +7064,7 @@
                                     planSourceSync,
                                     _idToken
                                 ).then(function (resp) {
-                                    if (resp && resp.ok && window.NutriPlanPlanSync.markPlanSavedLocally) {
-                                        window.NutriPlanPlanSync.markPlanSavedLocally();
-                                    }
+                                    // saveUserProfile вече записа версията от сървъра.
                                 }).catch(function (e) {
                                     console.warn('[PWA] Backend plan update save failed:', e);
                                 });
@@ -6985,7 +7082,6 @@
                         }, 1000);
                     }
                 } else {
-                    addMessageToChat('Съжалявам, имаше проблем. Моля, опитайте отново.', 'assistant');
                     throw new Error('Backend returned error');
                 }
             } catch (error) {
@@ -7012,7 +7108,7 @@
                     },
                     body: JSON.stringify({
                         userId: userId,
-                        userName: userData.name || 'Anonymous',
+                        userName: (userData && userData.name) || 'Anonymous',
                         message: message,
                         timestamp: new Date().toISOString(),
                         userAgent: navigator.userAgent
@@ -7091,6 +7187,9 @@
             
             const snapshot = {
                 plan: JSON.parse(JSON.stringify(dietPlan)),
+                // Промените от чата са и в отговорите (кодове, отказани храни) —
+                // отмяната ги връща, иначе следващото генериране ги прилага отново.
+                userData: userData ? JSON.parse(JSON.stringify(userData)) : null,
                 timestamp: Date.now()
             };
             
@@ -7118,12 +7217,25 @@
             
             const lastSnapshot = planHistory.pop();
             dietPlan = lastSnapshot.plan;
+            if (lastSnapshot.userData) {
+                userData = lastSnapshot.userData;
+                localStorage.setItem('userData', JSON.stringify(userData));
+            }
             migrateMealTypes(dietPlan);
             alignPlanMealsToStrategy(dietPlan);
             correctPlanCalories(dietPlan);
             
             // Save to localStorage and backend
             localStorage.setItem('dietPlan', JSON.stringify(dietPlan));
+            if (userId && window.NutriPlanPlanSync) {
+                (async () => {
+                    const _idToken = (userId.startsWith('fb_') && auth.currentUser)
+                        ? await auth.currentUser.getIdToken().catch(() => null)
+                        : null;
+                    window.NutriPlanPlanSync.saveUserProfile(userId, dietPlan, userData, localStorage.getItem('planSource') || '', _idToken)
+                        .catch(function (e) { console.warn('[PWA] Undo save failed:', e); });
+                })();
+            }
             
             // Update UI
             renderDay(currentDay);
@@ -7480,7 +7592,7 @@
                 cancelActiveTyping({ complete: true });
                 chatMessages.innerHTML = '';
                 // Show welcome message
-                addMessageToChat(`Здравейте, ${userData.name || 'приятелю'}! 👋\n\nАз съм вашият AI диетолог асистент. Как мога да ви помогна днес?`, 'assistant', false);
+                addMessageToChat(`Здравейте, ${(userData && userData.name) || 'приятелю'}! 👋\n\nАз съм вашият асистент по хранителния план. Как мога да ви помогна днес?`, 'assistant', false);
             }
             
             // Reset mode UI
@@ -7514,6 +7626,8 @@
         let foodAnalysisInProgress = false;
         let foodAnalysisMode = 'food';     // 'food' | 'menu'
         let _lastFoodAnalysis = null;      // Stores latest analysis for "add to my menu"
+        // Какво да се запише в дневника — едва когато клиентът натисне „Добави в моето меню“.
+        let _pendingFoodLog = null;
         // When set, the analysis dialog is capturing the day's free meal rather than extra
         // food: { dayKey, mealKey }. The result then replaces the plan's estimate for that
         // slot instead of being logged as an additional meal.
@@ -7624,6 +7738,30 @@
             }
             clearFreeMealCapture();
         }
+
+        /**
+         * „Назад“ на Android и Escape: затваря най-горния прозорец така, както би го
+         * затворило докосване извън него. Задължителните (седмичен преглед, зареждане)
+         * не се затварят, но и не пускат приложението да излезе под тях.
+         */
+        function handleBackNavigation(opts) {
+            var gameOverlays = document.querySelectorAll('.game-modal-overlay');
+            if (gameOverlays.length) {
+                var top = gameOverlays[gameOverlays.length - 1];
+                top.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                return true;
+            }
+            var food = document.getElementById('foodAnalysisOverlay');
+            if (food && food.classList.contains('active')) { closeFoodAnalysis(); return true; }
+            if (welcomeModal && welcomeModal.classList.contains('active')) { closeWelcomeModal(); return true; }
+            if (modal && modal.classList.contains('active')) { closeModal(); return true; }
+            if (chatVisible && !(opts && opts.keepChat)) { closeChatWindow(); return true; }
+            return false;
+        }
+        window.NutriPlanHandleBack = handleBackNavigation;
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !e.defaultPrevented) handleBackNavigation();
+        });
 
         function resetFoodAnalysis() {
             foodAnalysisInProgress = false;
@@ -7823,7 +7961,7 @@
 
                 // Prepare compact user data and plan for context
                 const compactUserData = userData ? {
-                    name: userData.name,
+                    name: userData && userData.name,
                     goal: userData.goal,
                     weight: userData.weight,
                     height: userData.height,
@@ -7988,7 +8126,12 @@
             // Append "Add to my menu" / "не добавяй" action buttons
             const actionDiv = document.createElement('div');
             actionDiv.className = 'food-action-btns';
-            actionDiv.innerHTML = `
+            // Свободното хранене: снимката е описанието му — записва се веднага, без „добави в менюто“.
+            actionDiv.innerHTML = _freeMealTarget ? `
+                <button class="food-add-menu-btn" onclick="closeFoodAnalysis()">
+                    <i class="fas fa-check"></i> Готово
+                </button>
+            ` : `
                 <button class="food-add-menu-btn" onclick="addToMyMenu()">
                     <i class="fas fa-plus"></i> Добави в моето меню
                 </button>
@@ -7996,7 +8139,7 @@
             `;
             resultsDiv.appendChild(actionDiv);
 
-            // Log consumed food to game data if game is enabled
+            _pendingFoodLog = null;
             if (window.gameModule && window.gameModule.isEnabled() && analysis.foods && analysis.foods.length > 0) {
                 const foodNames = analysis.foods.map(function(f) { return f.name; }).join(', ');
                 const totalCals = analysis.totalCalories || 0;
@@ -8009,9 +8152,9 @@
                         _freeMealTarget.dayKey, _freeMealTarget.mealKey, foodNames, totalCals
                     );
                 } else {
+                    // Не се брои, преди клиентът да реши — „не добавяй“ не оставя следа.
                     const mealCtxEl = document.getElementById('foodMealContext');
-                    const context = mealCtxEl ? mealCtxEl.value : '';
-                    window.gameModule.logExtraFood(foodNames, totalCals, suitScore, context);
+                    _pendingFoodLog = { name: foodNames, calories: totalCals, score: suitScore, context: mealCtxEl ? mealCtxEl.value : '' };
                 }
             }
 
@@ -8060,7 +8203,7 @@
                 const mealContext = document.getElementById('foodMealContext')?.value || 'Обяд';
 
                 const compactUserData = userData ? {
-                    name: userData.name,
+                    name: userData && userData.name,
                     goal: userData.goal,
                     weight: userData.weight,
                     height: userData.height,
@@ -8141,7 +8284,7 @@
                 starsHtml += `<span class="menu-star${i <= score ? ' filled' : ''}">★</span>`;
             }
 
-            const scoreLabels = ['Абсолютно неподходящо', 'Неподходящо', 'Слабо подходящо', 'Частично подходящо', 'Добро избор', 'Отлично избор'];
+            const scoreLabels = ['Абсолютно неподходящо', 'Неподходящо', 'Слабо подходящо', 'Частично подходящо', 'Добър избор', 'Отличен избор'];
             const scoreLabel = scoreLabels[score] || '';
 
             let html = `<div class="menu-result-card">
@@ -8211,15 +8354,11 @@
             // estimate portion weights or calorie totals from a menu listing, so calories are 0.
             // The suitability score (isJunk flag) is still captured so that low-rated menu choices
             // correctly affect junkCount / engPct without inflating the calorie total.
+            // Сканирането на меню не значи, че ястието е изядено — записва се при „Добави“.
+            _pendingFoodLog = null;
             if (window.gameModule && window.gameModule.isEnabled()) {
                 const menuCtxEl = document.getElementById('foodMealContext');
-                const menuContext = menuCtxEl ? menuCtxEl.value : '';
-                window.gameModule.logExtraFood(
-                    analysis.recommendedDish || 'Препоръчано ястие',
-                    0,
-                    score,
-                    menuContext
-                );
+                _pendingFoodLog = { name: analysis.recommendedDish || 'Препоръчано ястие', calories: 0, score: score, context: menuCtxEl ? menuCtxEl.value : '' };
             }
 
             setTimeout(function() {
@@ -8298,7 +8437,11 @@
 
             // Link the newly-added plan entry to the most recently logged extraMeals entry in the
             // game record. This lets the check button toggle calorie inclusion for this meal.
-            if (window.gameModule && window.gameModule.isEnabled()) {
+            if (window.gameModule && window.gameModule.isEnabled() && _pendingFoodLog) {
+                var pending = _pendingFoodLog;
+                _pendingFoodLog = null;
+                window.gameModule.logExtraFood(pending.name, pending.calories, pending.score, pending.context);
+                // Току-що записаният ред е последният — свързва се с тази карта, не с чужд.
                 var gRec = window.gameModule.getTodayRecord();
                 if (gRec && gRec.extraMeals && gRec.extraMeals.length > 0) {
                     var gEntry = gRec.extraMeals[gRec.extraMeals.length - 1];
@@ -8833,7 +8976,7 @@
                 console.log('📱 Notification permission already granted');
                 scheduleNotifications();
                 registerServerPush(registration);
-            } else if (Notification.permission !== 'denied') {
+            } else if (Notification.permission !== 'denied' && notifPromptDayPassed()) {
                 // Wait a bit before showing the banner so the user isn't overwhelmed on load
                 setTimeout(() => {
                     showNotificationBanner();
@@ -8870,7 +9013,7 @@
                 : 'webcal://aidiet.radilov-k.workers.dev/api/calendar.ics';
             const banner = document.createElement('div');
             banner.id = 'notif-banner';
-            banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#0D9488;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
+            banner.style.cssText = 'position:fixed;bottom:calc(76px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:9000;background:#0D9488;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
             banner.innerHTML = '<span>📅 Напомняния чрез календар (всички телефони)</span>';
             const btn = document.createElement('a');
             btn.textContent = 'Абонирай се';
@@ -8879,15 +9022,33 @@
             btn.onclick = () => banner.remove();
             const close = document.createElement('button');
             close.textContent = '✕';
-            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0 4px;';
-            close.onclick = () => banner.remove();
+            close.setAttribute('aria-label', 'Затвори');
+            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;min-width:44px;min-height:44px;margin:-10px -8px -10px 0;';
+            close.onclick = () => {
+                try { localStorage.setItem('notifBannerDismissedAt', String(Date.now())); } catch (_) {}
+                banner.remove();
+            };
             banner.appendChild(btn);
             banner.appendChild(close);
             document.body.appendChild(banner);
         }
 
+        /** Банерът за известия идва след първия ден с плана, не при първото отваряне. */
+        function notifPromptDayPassed() {
+            try {
+                var first = Number(localStorage.getItem('np_first_open_at') || 0);
+                if (!first) { localStorage.setItem('np_first_open_at', String(Date.now())); return false; }
+                return Date.now() - first >= 20 * 60 * 60 * 1000;
+            } catch (_) { return false; }
+        }
+
         function showNotificationBanner() {
             if (document.getElementById('notif-banner')) return;
+            // „✕“ се помни 7 дни — банерът не досажда при всяко отваряне.
+            try {
+                var dismissedAt = Number(localStorage.getItem('notifBannerDismissedAt') || 0);
+                if (dismissedAt && Date.now() - dismissedAt < 7 * 24 * 60 * 60 * 1000) return;
+            } catch (_) {}
             const isCapacitorApp = isCapacitorAppRuntime();
             const banner = document.createElement('div');
             banner.id = 'notif-banner';
@@ -8913,8 +9074,12 @@
             };
             const close = document.createElement('button');
             close.textContent = '✕';
-            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0 4px;';
-            close.onclick = () => banner.remove();
+            close.setAttribute('aria-label', 'Затвори');
+            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;min-width:44px;min-height:44px;margin:-10px -8px -10px 0;';
+            close.onclick = () => {
+                try { localStorage.setItem('notifBannerDismissedAt', String(Date.now())); } catch (_) {}
+                banner.remove();
+            };
             banner.appendChild(btn);
             banner.appendChild(close);
             document.body.appendChild(banner);
@@ -9111,6 +9276,7 @@
                 }
                 if (getMealUnlockHour(mealType) <= currentHour) {
                     btn.classList.remove('locked');
+                    btn.removeAttribute('data-lock-hint');
                     btn.title = '';
                     btn.setAttribute('aria-label', '\u041E\u0442\u0431\u0435\u043B\u0435\u0436\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435');
                 }
@@ -9204,7 +9370,7 @@
             saveWeeklyAIState(weeklyAI);
 
             var latestKey = keys.sort().pop();
-            var sig = uid + ':' + keys.length + ':' + latestKey + ':' + (gameData[latestKey]?.dailyScore || '')
+            var sig = uid + ':' + keys.length + ':' + latestKey + ':' + JSON.stringify(gameData[latestKey] || {}).length + ':' + JSON.stringify((gameData[latestKey] || {}).meals || {})
                 + ':' + (planSlice?.sourceMeta?.catalogVersion || '')
                 + ':' + (planSlice?.weekPlan ? Object.keys(planSlice.weekPlan).length : 0);
             if (localStorage.getItem('np_analytics_sig') === sig) return;
@@ -9237,8 +9403,10 @@
         // Invalidate cache when another tab or external code modifies the same key
         window.addEventListener('storage', function(e) {
             if (e.key === GAME_DATA_KEY) invalidateGameDataCache();
+            // dietPlan и planUpdatedAt се записват едно след друго — едно прерисуване, не няколко.
             if ((e.key === 'dietPlan' || e.key === 'planUpdatedAt') && typeof loadDietData === 'function') {
-                loadDietData({ force: true });
+                clearTimeout(window._planStorageReloadTimer);
+                window._planStorageReloadTimer = setTimeout(function() { loadDietData({ force: true }); }, 300);
             }
         });
         window.addEventListener('NUTRIPLAN_APP_DATA_READY', function(e) {
@@ -9550,7 +9718,7 @@
             setTimeout(function() { card.classList.remove('sc-anim-' + starCount); }, 1200);
 
             // Haptic feedback: escalating pattern
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            if (typeof navigator !== 'undefined' && navigator.vibrate && (!window.userHasInteracted || window.userHasInteracted())) {
                 if      (starCount === 1) navigator.vibrate(60);
                 else if (starCount === 2) navigator.vibrate([60, 40, 80]);
                 else if (starCount === 3) navigator.vibrate([80, 40, 80, 40, 120]);
@@ -9646,17 +9814,9 @@
 
         // ── Streak: consecutive days with ≥3 stars (includes today if scored) ─
         function calcStreak() {
-            var allData = getGameData();
-            var streak = 0;
-            var d = new Date();
-            for (var i = 0; i < 30; i++) {
-                var k = dateKey(d);
-                var r = allData[k];
-                if (!r || !r.dailyScore || (r.dailyScore.score || 0) < 3) break;
-                streak++;
-                d.setDate(d.getDate() - 1);
-            }
-            return streak;
+            // Поредни отлични дни (4+ звезди) — като в анализа и на сървъра; до 30 дни назад.
+            var GS = window.GameScoring;
+            return GS.streakOf(getGameData(), GS.dateKey(new Date()), 30);
         }
 
         // ── Meal checkmarks ───────────────────────────────────────────────────
@@ -9690,8 +9850,9 @@
             // Only count planned meals (not added-meal-cards which lack data-meal-calories)
             var plannedCals = 0;
             container.querySelectorAll('.meal-card:not(.added-meal-card)').forEach(function(card) {
-                var calEl = card.querySelector('[data-meal-calories]');
-                if (calEl) { plannedCals += parseFloat(calEl.getAttribute('data-meal-calories')) || 0; }
+                // Атрибутът е на самата карта, не в нея.
+                var calAttr = card.getAttribute('data-meal-calories');
+                if (calAttr) { plannedCals += parseFloat(calAttr) || 0; }
             });
             if (!schemaFrozen && plannedCals > 0 && (!rec.plannedCalories || (rec.plannedCalories > 0 && Math.abs(rec.plannedCalories - plannedCals) > rec.plannedCalories * 0.05))) {
                 rec.plannedCalories = Math.round(plannedCals);
@@ -9708,7 +9869,8 @@
                     var typeEl = card.querySelector('.meal-type');
                     mealType = typeEl ? typeEl.textContent.replace(/\(.*\)/,'').trim() : '';
                 }
-                if (!mealType) return;
+                // Сутрешната напитка е по желание — не е хранене за отмятане.
+                if (!mealType || mealType === 'Напитка') return;
                 card.setAttribute('data-ge','1');
                 var isFreeMeal = card.classList.contains('free-day');
 
@@ -9749,8 +9911,9 @@
                     checkBtn.title = 'Не може да се редактира ден, по-стар от 2 дни';
                     checkBtn.setAttribute('aria-label', 'Отбелязването е заключено за дни по-стари от 2 дни');
                 } else if (isTimeLocked) {
-                    checkBtn.title = 'Ще се отключи по-късно';
-                    checkBtn.setAttribute('aria-label', 'Отбелязването ще се отключи по-късно');
+                    checkBtn.title = 'Ще се отключи в ' + unlockHour + ':00';
+                    checkBtn.setAttribute('data-lock-hint', 'Отбелязването за това хранене се отключва в ' + unlockHour + ':00');
+                    checkBtn.setAttribute('aria-label', 'Отбелязването ще се отключи в ' + unlockHour + ':00');
                 }
 
                 checkBtn.innerHTML = '<i class="fas fa-check"></i>';
@@ -9873,7 +10036,8 @@
                     addedCheckBtn.title = 'Не може да се редактира ден, по-стар от 2 дни';
                     addedCheckBtn.setAttribute('aria-label', 'Отбелязването е заключено за дни по-стари от 2 дни');
                 } else if (isLockedAdded) {
-                    addedCheckBtn.title = 'Ще се отключи по-късно';
+                    addedCheckBtn.title = 'Ще се отключи в ' + unlockHAdded + ':00';
+                    addedCheckBtn.setAttribute('data-lock-hint', 'Отбелязването се отключва в ' + unlockHAdded + ':00');
                     addedCheckBtn.setAttribute('aria-label', 'Отбелязването ще се отключи по-късно');
                 } else {
                     addedCheckBtn.setAttribute('aria-label', 'Отбележи хранене');
@@ -10044,8 +10208,21 @@
             fabPos.style.removeProperty('top');
         }
 
+        /** Отворен прозорец (приветствие, хранене, седмичен преглед, обновление) — балонът изчаква. */
+        function _blockingModalOpen() {
+            return !!document.querySelector('.modal-overlay.active, .game-modal-overlay, #npPlanUpdateOverlay:not([hidden])');
+        }
+
         function showBubble(question, answers, onAnswer, opts) {
             opts = opts || {};
+            // Не върху друг прозорец: двата заедно се застъпват и не може да се отговори на нито един.
+            if (_blockingModalOpen()) {
+                var waited = (opts._waited || 0) + 1;
+                if (waited <= 40) {
+                    setTimeout(function() { showBubble(question, answers, onAnswer, Object.assign({}, opts, { _waited: waited })); }, 1500);
+                }
+                return;
+            }
             var seq = ++_bubbleSeq;
             // Cancel pending lower animation — new question is coming
             if (_fabLowerTimer) { clearTimeout(_fabLowerTimer); _fabLowerTimer = null; }
@@ -10127,6 +10304,18 @@
                                  (opts.showName && name) ? 'Здравейте, '+name+'!' :
                                  'AI Асистент';
                 hdr.appendChild(av); hdr.appendChild(gr);
+                // Затваряне без отговор — въпросите за този кръг спират.
+                var closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'game-bubble-close';
+                closeBtn.setAttribute('aria-label', 'Затвори');
+                closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                closeBtn.style.cssText = 'margin-left:auto;min-width:36px;min-height:36px';
+                closeBtn.addEventListener('click', function() {
+                    _queueDepth = 0;
+                    removeBubble();
+                });
+                hdr.appendChild(closeBtn);
 
                 // Body
                 var body = document.createElement('div');
@@ -10485,7 +10674,7 @@
             }
             var overlay = document.createElement('div');
             overlay.id = 'gameDayEndModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
 
             var modal = document.createElement('div');
@@ -10540,45 +10729,19 @@
         function calcWeeklyScore() {
             var allData = getGameData();
             var GS = window.GameScoring;
-            var todayKey = GS ? GS.dateKey(new Date()) : getTodayKey();
-            var days = GS
-                ? GS.buildLast7Days(allData, todayKey)
-                : (function() {
-                    var out = [];
-                    for (var i = 6; i >= 0; i--) {
-                        var d = new Date(); d.setDate(d.getDate() - i);
-                        var key = dateKey(d);
-                        out.push({ key: key, rec: allData[key] || null });
-                    }
-                    return out;
-                })();
-
-            var engSum = 0, scoreSum = 0, scoreCount = 0, engCount = 0, noDataDays = 0;
-            days.forEach(function(day) {
-                var rec = day.rec;
-                if (!rec) {
-                    noDataDays++;
-                    return;
-                }
-                var ds = rec.dailyScore || calcDayScore(rec);
-                if (ds.score === null && (ds.engPct || 0) === 0) noDataDays++;
-                engSum += ds.engPct || 0;
-                engCount++;
-                if (ds.score != null) {
-                    scoreSum += ds.score;
-                    scoreCount++;
-                }
-            });
-
-            var daysRecorded = GS && GS.countDaysWithRecords
-                ? GS.countDaysWithRecords(days)
-                : days.filter(function(d) { return !!d.rec; }).length;
-
+            // Същите формули като на сървъра и екрана с анализа (game-scoring.js).
+            var sum = GS.weekSummary(allData, GS.dateKey(new Date()));
+            var noDataDays = sum.days.filter(function(day) {
+                if (!day.rec) return true;
+                var ds = GS.calcDayScore(day.rec);
+                return ds.score === null && (ds.engPct || 0) === 0;
+            }).length;
             return {
-                days: days,
-                avgScore: scoreCount > 0 ? Math.round(scoreSum / scoreCount * 10) / 10 : 0,
-                avgEngPct: engCount > 0 ? Math.round(engSum / engCount) : 0,
-                daysRecorded: daysRecorded,
+                days: sum.days,
+                avgScore: sum.avgScore != null ? sum.avgScore : 0,
+                avgEngPct: sum.engagementPct,
+                mealAdherence: sum.mealAdherence,
+                daysRecorded: sum.daysRecorded,
                 noDataDays: noDataDays
             };
         }
@@ -10595,7 +10758,7 @@
 
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
 
             var modal = document.createElement('div');
             modal.className = 'game-modal';
@@ -10632,7 +10795,7 @@
             var primaryBtn = document.createElement('button');
             primaryBtn.className = 'game-modal-btn';
             primaryBtn.style.cssText = 'width:100%;background:linear-gradient(135deg,'+color+',#0F766E);color:white;';
-            primaryBtn.innerHTML = 'Настрой следващата седмица<span class="game-weekly-primary-sub">5 бързи въпроса · около 30 сек</span>';
+            primaryBtn.innerHTML = 'Настрой следващата седмица<span class="game-weekly-primary-sub">няколко бързи въпроса · около 30 сек</span>';
             primaryBtn.onclick = function(){
                 overlay.remove();
                 startWeeklyFeedbackFlow(wd);
@@ -10724,7 +10887,7 @@
 
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyQAModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
 
             var modal = document.createElement('div');
             modal.className = 'game-modal';
@@ -10759,14 +10922,88 @@
             };
             modal.appendChild(skipBtn);
 
+            // Следващ въпрос; въпрос със skipIfAnswered отпада, ако онзи вече е отговорен
+            // (напр. „как се промени теглото“ не се пита, щом теглото е въведено).
+            function advance() {
+                idx++;
+                while (idx < questions.length && questions[idx].skipIfAnswered &&
+                       answers.some(function(a) { return a.questionId === questions[idx].skipIfAnswered; })) {
+                    idx++;
+                }
+                if (idx >= questions.length) {
+                    overlay.remove();
+                    onComplete(answers);
+                } else {
+                    renderStep();
+                }
+            }
+
             function renderStep() {
                 var q = questions[idx];
-                stepEl.textContent = (idx + 1) + ' от ' + total;
+                // Брои се само това, което реално ще бъде попитано (без пропуснатите въпроси).
+                var isVisibleQ = function(qq) {
+                    return !qq.skipIfAnswered || !answers.some(function(a) { return a.questionId === qq.skipIfAnswered; });
+                };
+                var visibleQs = questions.filter(isVisibleQ);
+                stepEl.textContent = (visibleQs.indexOf(q) + 1) + ' от ' + visibleQs.length;
                 qEl.textContent = q.text;
                 optsWrap.innerHTML = '';
                 progress.querySelectorAll('.game-qa-dot').forEach(function(dot, i) {
                     dot.className = 'game-qa-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
                 });
+                if (q.type === 'number') {
+                    var inp = document.createElement('input');
+                    inp.type = 'number';
+                    inp.inputMode = 'decimal';
+                    inp.step = '0.1';
+                    inp.min = String(q.min || 30);
+                    inp.max = String(q.max || 300);
+                    inp.placeholder = q.placeholder || 'напр. 72.4';
+                    inp.style.cssText = 'width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:1.1rem;margin-bottom:10px;text-align:center';
+                    optsWrap.appendChild(inp);
+                    var ok = document.createElement('button');
+                    ok.type = 'button';
+                    ok.className = 'game-qa-option';
+                    ok.textContent = 'Напред';
+                    ok.onclick = function() {
+                        var v = parseFloat(String(inp.value).replace(',', '.'));
+                        if (!(v >= (q.min || 30) && v <= (q.max || 300))) {
+                            inp.style.borderColor = '#ef4444';
+                            inp.focus();
+                            return;
+                        }
+                        answers.push({ questionId: q.id, value: String(Math.round(v * 10) / 10) });
+                        advance();
+                    };
+                    optsWrap.appendChild(ok);
+                    var none = document.createElement('button');
+                    none.type = 'button';
+                    none.className = 'game-qa-option';
+                    none.textContent = q.skipLabel || 'Не съм се теглил/а';
+                    none.onclick = advance;
+                    optsWrap.appendChild(none);
+                    return;
+                }
+                if (q.type === 'text') {
+                    var ta = document.createElement('textarea');
+                    ta.className = 'game-qa-text';
+                    ta.rows = 3;
+                    ta.maxLength = 400;
+                    ta.placeholder = 'Напишете свободно (може да оставите празно)';
+                    ta.style.cssText = 'width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;margin-bottom:10px';
+                    optsWrap.appendChild(ta);
+                    var next = document.createElement('button');
+                    next.type = 'button';
+                    next.className = 'game-qa-option';
+                    next.textContent = 'Напред';
+                    next.onclick = function() {
+                        var text = ta.value.trim();
+                        if (text) answers.push({ questionId: q.id, value: text });
+                        advance();
+                    };
+                    optsWrap.appendChild(next);
+                    return;
+                }
                 (q.options || ['Да', 'Не']).forEach(function(opt) {
                     var btn = document.createElement('button');
                     btn.type = 'button';
@@ -10774,13 +11011,7 @@
                     btn.textContent = opt;
                     btn.onclick = function() {
                         answers.push({ questionId: q.id, value: opt });
-                        idx++;
-                        if (idx >= questions.length) {
-                            overlay.remove();
-                            onComplete(answers);
-                        } else {
-                            renderStep();
-                        }
+                        advance();
                     };
                     optsWrap.appendChild(btn);
                 });
@@ -10796,7 +11027,7 @@
             if (old) old.remove();
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div style="margin:8px 0 16px"><i class="fas fa-spinner fa-spin" style="color:#0D9488;font-size:1.6rem"></i></div>'
@@ -10819,7 +11050,7 @@
 
             var overlay = document.createElement('div');
             overlay.id = 'gameFreeMealModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-title">Свободното хранене</div>';
@@ -10914,7 +11145,7 @@
             if (old) old.remove();
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-title">Не успяхме</div>';
@@ -10937,14 +11168,14 @@
             if (old) old.remove();
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-emoji"><i class="fas fa-paper-plane" style="color:#6366f1"></i></div>'
                 + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = 'Информацията е изпратена за преглед. Новият план ще е активен от понеделник — ще го видите при следващото отваряне след това.';
+            msg.textContent = 'Отговорите са изпратени. Новото меню за седмицата влиза от утре сутрин — ще получите известие.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -10961,7 +11192,7 @@
             if (old) old.remove();
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
 
@@ -11042,14 +11273,58 @@
             info.adaptationHistory = hist;
             delete info.pendingQuestions;
             saveWeeklyAIState(info);
+            scheduleWeeklyPlanReminders(info);
+        }
+
+        /**
+         * Локални известия (без сървър): новото меню влиза от полунощ — известие
+         * сутринта в 8:00; и напомняне за следващия седмичен преглед в 9:00.
+         */
+        function scheduleWeeklyPlanReminders(info) {
+            var gn = window.GameNotifier;
+            if (!gn || typeof gn.addPlanReminder !== 'function') return;
+            var tomorrow8 = new Date();
+            tomorrow8.setDate(tomorrow8.getDate() + 1);
+            tomorrow8.setHours(8, 0, 0, 0);
+            gn.addPlanReminder({
+                key: 'weekly_release',
+                ts: tomorrow8.getTime(),
+                title: 'Новото ви меню е готово',
+                body: 'Планът за седмицата е обновен според прегледа ви. Отворете го, за да видите промените.',
+                url: '/plan.html'
+            });
+            if (info && info.nextDue) {
+                var due = new Date(info.nextDue);
+                due.setHours(9, 0, 0, 0);
+                gn.addPlanReminder({
+                    key: 'weekly_checkin',
+                    ts: due.getTime(),
+                    title: 'Седмичен преглед',
+                    body: 'Претеглете се сутрин на гладно и отговорете на няколко кратки въпроса — планът се настройва по резултата.',
+                    url: '/plan.html'
+                });
+            }
         }
 
         function markWeeklySkipped() {
             var info = ensureWeeklyMeta(getWeeklyAIState());
             info.feedbackStatus = 'skipped';
-            info.lastRun = new Date().toISOString();
-            info.nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            // „По-късно“ = утре, не след седмица: пропуснатият преглед е пропусната корекция.
+            info.lastRun = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
+            info.nextDue = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
             saveWeeklyAIState(info);
+            var gn = window.GameNotifier;
+            if (gn && typeof gn.addPlanReminder === 'function') {
+                var due = new Date(info.nextDue);
+                due.setHours(9, 0, 0, 0);
+                gn.addPlanReminder({
+                    key: 'weekly_checkin',
+                    ts: due.getTime(),
+                    title: 'Седмичен преглед',
+                    body: 'Отговорете на няколко кратки въпроса — планът за следващата седмица се настройва по тях.',
+                    url: '/plan.html'
+                });
+            }
         }
 
         async function startWeeklyFeedbackFlow(wd) {
@@ -11074,9 +11349,9 @@
                 showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
                     var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
                     try {
-                        await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        var adaptResp = await submitWeeklyAdaptation(questions, answers, cycleNumber);
                         sendingOverlay.remove();
-                        finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber);
+                        finalizeWeeklyCycleOnSubmit(questions, answers, (adaptResp && adaptResp.cycleNumber) || cycleNumber);
                         showWeeklySubmittedModal();
                     } catch (err) {
                         sendingOverlay.remove();
@@ -11106,9 +11381,9 @@
                 showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
                     var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
                     try {
-                        await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        var adaptResp = await submitWeeklyAdaptation(questions, answers, cycleNumber);
                         sendingOverlay.remove();
-                        finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber);
+                        finalizeWeeklyCycleOnSubmit(questions, answers, (adaptResp && adaptResp.cycleNumber) || cycleNumber);
                         showWeeklySubmittedModal();
                     } catch (err) {
                         sendingOverlay.remove();
@@ -11172,6 +11447,13 @@
                 resumeWeeklyFeedbackIfNeeded();
                 return;
             }
+            // Първият преглед — след седмица с текущия план, не на третия ден:
+            // оценява се седмица, а не няколко дни вода и гликоген.
+            if (!info.lastRun) {
+                var planStartRaw = localStorage.getItem('planUpdatedAt') || info.dietStartDate;
+                var planStartMs = planStartRaw ? new Date(planStartRaw).getTime() : NaN;
+                if (planStartMs && now - planStartMs < 6 * 24 * 60 * 60 * 1000) return;
+            }
             var wd = calcWeeklyScore();
             if (wd.daysRecorded >= 3) {
                 var shownKey = 'gameWeeklyRecapShown_' + getTodayKey();
@@ -11234,6 +11516,8 @@
             calcDayScore:            calcDayScore,
             calcWeeklyScore:         calcWeeklyScore,
             recalcAndShowScore:      recalcAndShowScore,
+            checkOpenAppPrompts:     checkOpenAppPrompts,
+            showWeeklyAdaptNoticeModal: showWeeklyAdaptNoticeModal,
             triggerWeeklyTestFlow:   triggerWeeklyTestFlow
         };
         window._gameTriggerWeeklyTest = triggerWeeklyTestFlow;
@@ -11289,8 +11573,9 @@
     <!-- Swipe navigation between tabs -->
     <script>
     (function() {
-        var tabKeys = ['plan', 'guidelines', 'profile', 'analytics'];
-        var tabUrls = ['index.html?app=1&tab=plan', 'index.html?app=1&tab=guidelines', 'index.html?app=1&tab=profile', 'index.html?app=1&tab=analytics'];
+        // Същата поредност като долната навигация.
+        var tabKeys = ['plan', 'guidelines', 'analytics', 'profile'];
+        var tabUrls = ['index.html?app=1&tab=plan', 'index.html?app=1&tab=guidelines', 'index.html?app=1&tab=analytics', 'index.html?app=1&tab=profile'];
         var currentIndex = 0;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
@@ -11299,6 +11584,9 @@
             touchStartY = e.changedTouches[0].clientY;
         }, { passive: true });
         document.addEventListener('touchend', function(e) {
+            // Плъзгането по деня, в чата, в прозорец или балон не сменя таба.
+            if (e.target && e.target.closest && e.target.closest('#dayBannerContainer, #chatWindow, .modal-overlay, .modal, .game-modal-overlay, .food-analysis-overlay, .game-bubble, input, textarea, [role="dialog"]')) return;
+            if (document.querySelector('.game-modal-overlay, #infoModal.show, #infoModal[style*="flex"]')) return;
             var dx = e.changedTouches[0].clientX - touchStartX;
             var dy = e.changedTouches[0].clientY - touchStartY;
             if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
@@ -11325,13 +11613,13 @@
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
-            <i class="fas fa-user"></i>
-            <span>Профил</span>
-        </a>
         <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
             <i class="fas fa-chart-bar"></i>
             <span>Анализ</span>
+        </a>
+        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
+            <i class="fas fa-user"></i>
+            <span>Профил</span>
         </a>
     </nav>
     <!-- GameNotifier: gamification-based notification scheduling -->

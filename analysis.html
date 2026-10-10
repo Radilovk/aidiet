@@ -1924,7 +1924,7 @@
             </h3>
             <p id="errorDetailsText" style="color: var(--text-gray); font-size: 0.85rem; line-height: 1.5;"></p>
         </div>
-        <button class="btn-primary" onclick="navigateTopLevel('questionnaire.html')">
+        <button class="btn-primary" onclick="navigateTopLevel('questionnaire2.html')">
             Назад към въпросника
         </button>
     </div>
@@ -2544,7 +2544,7 @@
             if (state === 'ready') {
                 if (icon) icon.className = 'fas fa-hourglass-half';
                 if (strong) strong.textContent = 'Планът ви предстои да бъде одобрен';
-                if (text) text.textContent = 'AI планът е готов и е изпратен към специалист за преглед. Ще получите известие по имейл.';
+                if (text) text.textContent = 'Планът е готов и е изпратен към специалист за преглед. Ще получите известие по имейл.';
             } else if (state === 'error') {
                 if (icon) icon.className = 'fas fa-exclamation-triangle';
                 if (strong) strong.textContent = 'Планът се забави';
@@ -2555,7 +2555,8 @@
         async function applyCompletedBackgroundPlan(data) {
             if (!data || !data.success || !data.plan) return;
             const planPayload = JSON.parse(localStorage.getItem('pendingPlanPayload') || localStorage.getItem('userData') || '{}');
-            const savedClientId = localStorage.getItem('pendingClientId') || null;
+            const savedClientId = data.clientId || localStorage.getItem('pendingClientId') || null;
+            if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
             const fbUserId = (function() {
                 const uid = localStorage.getItem('userId');
                 return (uid && uid.startsWith('fb_')) ? uid : null;
@@ -2572,27 +2573,13 @@
             localStorage.removeItem('hasSeenPlanJustification');
             localStorage.removeItem('questionnaireAnswers');
 
-            fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, plan: data.plan, userData: planPayload, planSource: 'questionnaire2', clientId: savedClientId })
-            }).catch(e => console.error('Error saving completed background plan:', e));
-
-            if (savedClientId) {
-                const forcePending = localStorage.getItem('planReplacePending') === '1'
-                    || localStorage.getItem('planSource') === 'questionnaire2';
-                fetch('https://aidiet.radilov-k.workers.dev/api/admin/update-client-plan', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clientId: savedClientId,
-                        plan: data.plan,
-                        userId,
-                        ...(forcePending ? { forcePending: true } : {})
-                    })
-                }).catch(e => console.error('Error saving completed plan to client record:', e));
-                if (forcePending) localStorage.removeItem('planReplacePending');
+            if (userId && window.NutriPlanPlanSync) {
+                window.NutriPlanPlanSync.saveUserProfile(userId, data.plan, planPayload, 'questionnaire2', null, savedClientId);
             }
+
+            // Клиентският запис се обновява от сървъра при завършване на задачата
+            // (с „чака одобрение“) — браузърът не пише в него.
+            localStorage.removeItem('planReplacePending');
 
             updateQuestionnaire2PendingNotice('ready');
         }
@@ -2677,16 +2664,19 @@
                 const ctaTitle = document.getElementById('ctaTitle');
                 const ctaSubtitle = document.getElementById('ctaSubtitle');
                 if (ctaTitle) ctaTitle.textContent = 'Анализът ви е готов!';
-                if (ctaSubtitle) ctaSubtitle.textContent = 'Нашият специалист ще прегледа данните ви и ще изготви напълно персонализиран хранителен пакет.';
+                if (ctaSubtitle) ctaSubtitle.textContent = 'Планът ви се изготвя автоматично и преди да го получите, се преглежда и одобрява от специалист.';
 
                 // Inject a pending-plan notice above the CTA (only when plan is ready for review)
                 const ctaSection = document.getElementById('ctaSection');
                 if (ctaSection) {
                     const partialPlan = getStoredPlan();
                     const isGenerating = partialPlan && partialPlan._partial && localStorage.getItem('planJobId');
-                    if (!isGenerating) {
+                    // Известието винаги е в страницата (скрито, докато планът се изготвя),
+                    // за да могат „готов“ и „неуспешен“ от фоновата проверка да се покажат.
+                    {
                         const notice = document.createElement('div');
                         notice.className = 'pending-notice';
+                        if (isGenerating) notice.style.display = 'none';
                         notice.innerHTML = `
                         <div class="pending-notice-inner">
                             <i class="fas fa-hourglass-half"></i>
