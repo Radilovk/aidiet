@@ -2,11 +2,19 @@ name = "aidiet"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
+# Променливи, зададени ръчно в Cloudflare Dashboard, не се трият при деплой.
+keep_vars = true
+
 # Default configuration (used when no environment is specified)
 # For this project, we prefer explicit environments [env.staging] and [env.production]
 
 [env.staging]
 name = "aidiet-staging"
+
+# Публичен идентификатор на Firebase проекта (не е тайна; същият е във всички страници).
+# Сървърът го ползва за проверка на входа при записване на профил и аналитика.
+[env.staging.vars]
+FIREBASE_PROJECT_ID = "nutriplan-c460a"
 
 [[env.staging.kv_namespaces]]
 binding = "page_content"
@@ -26,6 +34,11 @@ id = "81fc0991b2764918b682f9ca170abd4b"
 
 [env.production]
 name = "aidiet"
+
+# Публичен идентификатор на Firebase проекта (не е тайна; същият е във всички страници).
+# Сървърът го ползва за проверка на входа при записване на профил и аналитика.
+[env.production.vars]
+FIREBASE_PROJECT_ID = "nutriplan-c460a"
 # workers.dev URL is assigned automatically (aidiet.radilov-k.workers.dev).
 # Do NOT use `route` here — that syntax is for custom domains in a Cloudflare zone.
 
