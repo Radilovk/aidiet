@@ -489,12 +489,14 @@ const GameNotifier = {
                 typeof window.NutriPlanPlatform.exitNativeApp === 'function') {
                 if (window.NutriPlanPlatform.exitNativeApp()) return true;
             }
-            if (typeof document !== 'undefined' && document.documentElement) {
-                document.documentElement.style.visibility = 'hidden';
-                document.documentElement.style.background = '#0A1A1A';
-            }
             const app = this._getCapacitorPlugin('App');
             if (app && typeof app.exitApp === 'function') {
+                // Скриване само когато наистина излизаме (APK) — в браузъра
+                // скриването оставяше празен тъмен екран.
+                if (typeof document !== 'undefined' && document.documentElement) {
+                    document.documentElement.style.visibility = 'hidden';
+                    document.documentElement.style.background = '#0A1A1A';
+                }
                 app.exitApp().catch(() => {});
                 return true;
             }

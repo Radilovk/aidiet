@@ -153,13 +153,13 @@
             overlay.setAttribute('role', 'alertdialog');
             overlay.setAttribute('aria-modal', 'true');
             overlay.setAttribute('aria-labelledby', 'npPlanEditingTitle');
-            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,26,26,.72);backdrop-filter:blur(8px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,26,26,.72);backdrop-filter:blur(8px);z-index:10010;display:flex;align-items:center;justify-content:center;padding:24px;';
             overlay.innerHTML = [
                 '<div style="background:var(--card-bg,rgba(255,255,255,.95));border:1px solid rgba(13,148,136,.18);border-radius:24px;padding:32px 28px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.28);">',
                 '<div style="width:56px;height:56px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(135deg,rgba(13,148,136,.15),rgba(6,182,212,.12));display:flex;align-items:center;justify-content:center;">',
                 '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
                 '</div>',
-                '<h2 id="npPlanEditingTitle" style="margin:0 0 10px;font-size:1.15rem;font-weight:700;color:var(--text-dark,#0F2F2E);">План в процес на редакция</h2>',
+                '<h2 id="npPlanEditingTitle" style="margin:0 0 10px;font-size:1.15rem;font-weight:700;color:#0F2F2E;">План в процес на редакция</h2>',
                 '<p id="npPlanEditingMessage" style="margin:0 0 20px;font-size:.92rem;line-height:1.55;color:var(--text-light,#6b7280);"></p>',
                 '<a href="index.html?stay=1" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 20px;border-radius:14px;font-weight:700;text-decoration:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;">Към началото</a>',
                 '</div>'
@@ -192,9 +192,8 @@
                 !!localStorage.getItem('pendingClientId') ||
                 localStorage.getItem('planSource') === 'questionnaire2';
         } catch (_) {}
-        if (options.clearPlan !== false && hadPlan) {
-            clearBlockedPlanSession();
-        }
+        // Нищо не се изтрива: изтриването губеше заявката на нов клиент
+        // (pendingClientId, planJobId) и плана на съществуващ без обяснение.
         if (options.showOverlay !== false && (hadPlan || options.forceOverlay)) {
             if (document.body) {
                 ensurePlanEditingOverlay(options.message);
@@ -369,7 +368,7 @@
         overlay.setAttribute('aria-modal', 'true');
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:5000;display:none;align-items:center;justify-content:center;padding:20px;';
         overlay.innerHTML = [
-            '<div style="background:var(--card-bg,#fff);border-radius:20px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);">',
+            '<div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);">',
             '<h3 id="npPlanReplaceTitle" style="margin:0 0 8px;font-size:1.05rem;color:var(--text-dark,#111);">Потвърдете новия план</h3>',
             '<p id="npPlanReplaceMessage" style="margin:0 0 16px;font-size:.85rem;color:var(--text-light,#6b7280);line-height:1.5;"></p>',
             '<input id="npPlanReplaceEmail" type="email" readonly aria-label="Имейл" style="width:100%;padding:12px 14px;border:1.5px solid rgba(13,148,136,.25);border-radius:12px;font-size:.9rem;margin-bottom:10px;box-sizing:border-box;background:rgba(13,148,136,.06);color:var(--text-light,#6b7280);">',
@@ -838,10 +837,10 @@
         overlay.setAttribute('aria-modal', 'true');
         overlay.setAttribute('aria-labelledby', 'npPlanUpdateTitle');
         overlay.hidden = true;
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:6000;display:flex;align-items:flex-end;justify-content:center;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));background:rgba(15,47,46,.28);backdrop-filter:blur(3px);';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:10010;display:flex;align-items:flex-end;justify-content:center;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));background:rgba(15,47,46,.28);backdrop-filter:blur(3px);';
         overlay.innerHTML = [
-            '<div style="background:var(--card-bg,#fff);border-radius:18px;padding:18px 16px 14px;max-width:420px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.18);">',
-            '<p id="npPlanUpdateTitle" style="margin:0 0 14px;font-size:.92rem;line-height:1.45;color:var(--text-dark,#0F2F2E);">Има обновение на плана от специалиста.</p>',
+            '<div style="background:#fff;border-radius:18px;padding:18px 16px 14px;max-width:420px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.18);">',
+            '<p id="npPlanUpdateTitle" style="margin:0 0 14px;font-size:.92rem;line-height:1.45;color:#0F2F2E;">Има обновение на плана от специалиста.</p>',
             '<p id="npPlanUpdateError" style="display:none;margin:0 0 10px;font-size:.78rem;color:#dc2626;"></p>',
             '<div style="display:flex;gap:10px;">',
             '<button type="button" id="npPlanUpdateLater" style="flex:1;padding:11px 12px;border-radius:12px;font-weight:600;font-size:.86rem;border:1.5px solid rgba(13,148,136,.28);background:transparent;color:var(--text-light,#6b7280);cursor:pointer;">По-късно</button>',
@@ -959,13 +958,13 @@
         overlay.setAttribute('aria-modal', 'true');
         overlay.setAttribute('aria-labelledby', 'npProfileRegenTitle');
         overlay.hidden = true;
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:6000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,47,46,.32);backdrop-filter:blur(4px);';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:10010;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,47,46,.32);backdrop-filter:blur(4px);';
         overlay.innerHTML = [
-            '<div style="background:var(--card-bg,#fff);border-radius:20px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.22);text-align:center;">',
+            '<div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.22);text-align:center;">',
             '<div style="width:52px;height:52px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,rgba(13,148,136,.14),rgba(6,182,212,.1));display:flex;align-items:center;justify-content:center;">',
             '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
             '</div>',
-            '<h3 id="npProfileRegenTitle" style="margin:0 0 10px;font-size:1.05rem;font-weight:700;color:var(--text-dark,#0F2F2E);">Промените са приети</h3>',
+            '<h3 id="npProfileRegenTitle" style="margin:0 0 10px;font-size:1.05rem;font-weight:700;color:#0F2F2E;">Промените са приети</h3>',
             '<p id="npProfileRegenMessage" style="margin:0 0 18px;font-size:.88rem;line-height:1.55;color:var(--text-light,#6b7280);"></p>',
             '<button type="button" id="npProfileRegenOk" style="width:100%;padding:12px;border-radius:12px;font-weight:700;font-size:.9rem;border:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;cursor:pointer;">Разбрах</button>',
             '</div>'
@@ -1155,6 +1154,11 @@
 
     (function initPlanEditingLock() {
         if (!PLAN_EDITING_LOCK_ENABLED || isPlanEditingAllowedLocally()) return;
+        // Клиент, който току-що е попълнил въпросника и чака одобрение, не е засегнат:
+        // заключването е за редакция на одобрени планове.
+        try {
+            if (localStorage.getItem('planSource') === 'questionnaire2' && localStorage.getItem('pendingClientId')) return;
+        } catch (_) {}
         var path = global.location.pathname || '';
         var isPlanPage = /\/plan\.html$/i.test(path);
         var isProfilePage = /\/profile\.html$/i.test(path);
@@ -1172,8 +1176,6 @@
             enforcePlanEditingLock({ forceOverlay: true });
         } else if (isIndexPlanTab && hasClientSession) {
             enforcePlanEditingLock({ forceOverlay: true });
-        } else if (hasClientSession) {
-            enforcePlanEditingLock({ showOverlay: false, clearPlan: true });
         }
     }());
 }(window));

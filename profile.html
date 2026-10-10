@@ -31,6 +31,8 @@
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Detect embedded context before first paint -->
     <script>(function(){if(new URLSearchParams(window.location.search).get('embedded')==='1')document.documentElement.setAttribute('data-embedded-tab','1');})();</script>
+    <!-- Вътре в приложението навигацията е на обвивката — собствената не мига при зареждане. -->
+    <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}</style>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
     <style>body{opacity:0}</style>
     <style>
@@ -2779,18 +2781,18 @@
                                     loadUserData();
                                 } else {
                                     showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
-                                    setTimeout(() => { navigateTopLevel('questionnaire.html'); }, 2000);
+                                    setTimeout(() => { navigateTopLevel('questionnaire2.html'); }, 2000);
                                 }
                             })
                             .catch(() => {
-                                showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
-                                setTimeout(() => { navigateTopLevel('questionnaire.html'); }, 2000);
+                                // Мрежова грешка ≠ няма профил: без пренасочване към въпросника.
+                                showAlert('Няма връзка със сървъра. Проверете интернета и опитайте отново.', 'warning');
                             });
                         return;
                     }
                     showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
                     setTimeout(() => {
-                        navigateTopLevel('questionnaire.html');
+                        navigateTopLevel('questionnaire2.html');
                     }, 2000);
                     return;
                 }

@@ -52,6 +52,8 @@
     <script>(function(){if(new URLSearchParams(window.location.search).get('shellChat')==='1'){document.documentElement.setAttribute('data-shell-chat','1');}})();</script>
     <!-- Detect embedded iframe mode before first paint (enables haptic relay to shell via postMessage) -->
     <script>(function(){if(new URLSearchParams(window.location.search).has('embedded')){document.documentElement.setAttribute('data-embedded-tab','1');}})();</script>
+    <!-- Вътре в приложението навигацията е на обвивката — собствената не мига при зареждане. -->
+    <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}</style>
     <!-- In shellChat mode: hide everything except #chatWindow so only the chat drawer shows -->
     <style>html[data-shell-chat="1"] body{background:transparent!important;overflow:hidden!important;opacity:1!important;}html[data-shell-chat="1"] body>*:not(#chatWindow):not(.game-modal-overlay){display:none!important;}html[data-shell-chat="1"] .game-modal-overlay{display:flex!important;z-index:10010!important;}html[data-shell-chat="1"] #chatWindow{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0!important;}</style>
     <style>
@@ -4792,13 +4794,19 @@
         // frame owns the Capacitor bridge and triggers the native haptic from there.
         // Standalone APK: uses NutriPlanPlatform.getPlugin('Haptics') directly.
         // Web fallback: navigator.vibrate.
+        /** Вибрация само след докосване от потребителя — иначе браузърът я блокира, а приложението вибрира при отваряне. */
+        function userHasInteracted() {
+            try { return !navigator.userActivation || navigator.userActivation.hasBeenActive; } catch (_) { return true; }
+        }
+        window.userHasInteracted = userHasInteracted;
+
         var hapticCtrl = (function() {
             var lastTime = 0;
             var INTERVAL = 50; // minimum ms between vibrations (hardware throttle)
             var PUNCT = /[.,!?;:\-]/;
             return {
                 trigger: function(ch) {
-                    if (!typingHapticsEnabled) return;
+                    if (!typingHapticsEnabled || !userHasInteracted()) return;
                     var now = Date.now();
                     if (now - lastTime < INTERVAL) return;
                     lastTime = now;
@@ -4905,7 +4913,7 @@
                         _loadDietDataCalled = true;
                         const sync = window.NutriPlanPlanSync;
                         if (!sync || typeof sync.restoreProfileFromServer !== 'function') {
-                            showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                            showError('Не открихме план за този профил. Ако вече имате план, опитайте отново; иначе попълнете въпросника.', true);
                             return;
                         }
                         let restoreEmail = '';
@@ -4919,11 +4927,11 @@
                                     console.log('[PWA] Plan restored from backend in plan.html');
                                     loadDietData();
                                 } else {
-                                    showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                                    showError('Не открихме план за този профил. Ако вече имате план, опитайте отново; иначе попълнете въпросника.', true);
                                 }
                             })
                             .catch(function () {
-                                showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                                showError('Няма връзка със сървъра. Проверете интернета и опитайте отново.', false);
                             });
                         return;
                     }
@@ -4931,7 +4939,7 @@
                     if (window.NutriPlanDiagnostics) {
                         window.NutriPlanDiagnostics.fail('plan', 'load-diet-data', 'Missing plan or userId');
                     }
-                    showError('Няма намерен план. Моля, попълнете въпросника.', true);
+                    showError('Не открихме план за този профил. Ако вече имате план, опитайте отново; иначе попълнете въпросника.', true);
                     return;
                 }
 
@@ -4966,7 +4974,9 @@
 
                 // Render initial data – use the day already set by the inline script
                 // This prevents flashing from Monday to the actual current day
-                const initialDateKey = window._initialPlanDateKey || todayDateKey();
+                // При обновяване на плана (force) остава денят, който клиентът гледа.
+                const keepViewed = options.force && typeof currentViewDateKey === 'string' && currentViewDateKey;
+                const initialDateKey = keepViewed ? currentViewDateKey : (window._initialPlanDateKey || todayDateKey());
                 const initialDay = dateKeyToPlanDay(initialDateKey);
                 selectDay(initialDay, null, initialDateKey);
                 
@@ -4991,7 +5001,7 @@
                 if (window.NutriPlanDiagnostics) {
                         window.NutriPlanDiagnostics.fail('plan', 'load-diet-data', error.message || 'Unknown error');
                 }
-                showError('Грешка при зареждане на данните. Моля, генерирайте нов план.', true);
+                showError('Възникна грешка при показването на плана. Опитайте отново; ако се повтаря, пишете ни от профила.', false);
             }
         }
 
@@ -5064,30 +5074,35 @@
         }
 
         // Show error message
-        function showError(message, redirect = false) {
+        /**
+         * Грешка при зареждане: обяснение и „Опитай отново“ — без автоматично
+         * пренасочване (то пращаше клиент с план към въпросника при грешка в мрежата).
+         * withQuestionnaire — само когато наистина няма план.
+         */
+        function showError(message, withQuestionnaire = false) {
             const container = document.querySelector('.container');
-            if (container) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px 20px;">
-                        <div style="font-size: 3rem; color: #e74c3c; margin-bottom: 20px;">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <h2 style="color: var(--text-dark); margin-bottom: 15px;">Грешка</h2>
-                        <p style="color: var(--text-light); margin-bottom: 30px;">${message}</p>
-                        <button onclick="navigateTopLevel('questionnaire.html')" 
-                                style="background: var(--primary-red); color: white; border: none; 
-                                       padding: 15px 30px; border-radius: 25px; font-size: 1rem; 
-                                       font-weight: 600; cursor: pointer;">
-                            Към въпросника
-                        </button>
+            if (!container) return;
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <div style="font-size: 3rem; color: #e74c3c; margin-bottom: 20px;">
+                        <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                `;
-            }
-            if (redirect) {
-                setTimeout(() => {
-                    navigateTopLevel('questionnaire.html');
-                }, 3000);
-            }
+                    <h2 style="color: var(--text-dark); margin-bottom: 15px;">Планът не се зареди</h2>
+                    <p style="color: var(--text-light); margin-bottom: 26px;">${escapeHtml(message)}</p>
+                    <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+                        <button type="button" onclick="window.location.reload()"
+                                style="background: var(--primary-red); color: white; border: none; min-height:44px;
+                                       padding: 12px 28px; border-radius: 25px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                            Опитай отново
+                        </button>
+                        ${withQuestionnaire ? `<button type="button" onclick="navigateTopLevel('questionnaire2.html')"
+                                style="background: transparent; color: var(--primary-red); border: 1.5px solid var(--primary-red); min-height:44px;
+                                       padding: 10px 24px; border-radius: 25px; font-size: .95rem; font-weight: 600; cursor: pointer;">
+                            Попълни въпросника
+                        </button>` : ''}
+                    </div>
+                </div>
+            `;
         }
 
         // --- Meal alignment: Step 2 mealBreakdown is authoritative for per-meal macros/calories ---
@@ -7583,6 +7598,8 @@
         let foodAnalysisInProgress = false;
         let foodAnalysisMode = 'food';     // 'food' | 'menu'
         let _lastFoodAnalysis = null;      // Stores latest analysis for "add to my menu"
+        // Какво да се запише в дневника — едва когато клиентът натисне „Добави в моето меню“.
+        let _pendingFoodLog = null;
         // When set, the analysis dialog is capturing the day's free meal rather than extra
         // food: { dayKey, mealKey }. The result then replaces the plan's estimate for that
         // slot instead of being logged as an additional meal.
@@ -8057,7 +8074,12 @@
             // Append "Add to my menu" / "не добавяй" action buttons
             const actionDiv = document.createElement('div');
             actionDiv.className = 'food-action-btns';
-            actionDiv.innerHTML = `
+            // Свободното хранене: снимката е описанието му — записва се веднага, без „добави в менюто“.
+            actionDiv.innerHTML = _freeMealTarget ? `
+                <button class="food-add-menu-btn" onclick="closeFoodAnalysis()">
+                    <i class="fas fa-check"></i> Готово
+                </button>
+            ` : `
                 <button class="food-add-menu-btn" onclick="addToMyMenu()">
                     <i class="fas fa-plus"></i> Добави в моето меню
                 </button>
@@ -8065,7 +8087,7 @@
             `;
             resultsDiv.appendChild(actionDiv);
 
-            // Log consumed food to game data if game is enabled
+            _pendingFoodLog = null;
             if (window.gameModule && window.gameModule.isEnabled() && analysis.foods && analysis.foods.length > 0) {
                 const foodNames = analysis.foods.map(function(f) { return f.name; }).join(', ');
                 const totalCals = analysis.totalCalories || 0;
@@ -8078,9 +8100,9 @@
                         _freeMealTarget.dayKey, _freeMealTarget.mealKey, foodNames, totalCals
                     );
                 } else {
+                    // Не се брои, преди клиентът да реши — „не добавяй“ не оставя следа.
                     const mealCtxEl = document.getElementById('foodMealContext');
-                    const context = mealCtxEl ? mealCtxEl.value : '';
-                    window.gameModule.logExtraFood(foodNames, totalCals, suitScore, context);
+                    _pendingFoodLog = { name: foodNames, calories: totalCals, score: suitScore, context: mealCtxEl ? mealCtxEl.value : '' };
                 }
             }
 
@@ -8280,15 +8302,11 @@
             // estimate portion weights or calorie totals from a menu listing, so calories are 0.
             // The suitability score (isJunk flag) is still captured so that low-rated menu choices
             // correctly affect junkCount / engPct without inflating the calorie total.
+            // Сканирането на меню не значи, че ястието е изядено — записва се при „Добави“.
+            _pendingFoodLog = null;
             if (window.gameModule && window.gameModule.isEnabled()) {
                 const menuCtxEl = document.getElementById('foodMealContext');
-                const menuContext = menuCtxEl ? menuCtxEl.value : '';
-                window.gameModule.logExtraFood(
-                    analysis.recommendedDish || 'Препоръчано ястие',
-                    0,
-                    score,
-                    menuContext
-                );
+                _pendingFoodLog = { name: analysis.recommendedDish || 'Препоръчано ястие', calories: 0, score: score, context: menuCtxEl ? menuCtxEl.value : '' };
             }
 
             setTimeout(function() {
@@ -8367,7 +8385,11 @@
 
             // Link the newly-added plan entry to the most recently logged extraMeals entry in the
             // game record. This lets the check button toggle calorie inclusion for this meal.
-            if (window.gameModule && window.gameModule.isEnabled()) {
+            if (window.gameModule && window.gameModule.isEnabled() && _pendingFoodLog) {
+                var pending = _pendingFoodLog;
+                _pendingFoodLog = null;
+                window.gameModule.logExtraFood(pending.name, pending.calories, pending.score, pending.context);
+                // Току-що записаният ред е последният — свързва се с тази карта, не с чужд.
                 var gRec = window.gameModule.getTodayRecord();
                 if (gRec && gRec.extraMeals && gRec.extraMeals.length > 0) {
                     var gEntry = gRec.extraMeals[gRec.extraMeals.length - 1];
@@ -9316,8 +9338,10 @@
         // Invalidate cache when another tab or external code modifies the same key
         window.addEventListener('storage', function(e) {
             if (e.key === GAME_DATA_KEY) invalidateGameDataCache();
+            // dietPlan и planUpdatedAt се записват едно след друго — едно прерисуване, не няколко.
             if ((e.key === 'dietPlan' || e.key === 'planUpdatedAt') && typeof loadDietData === 'function') {
-                loadDietData({ force: true });
+                clearTimeout(window._planStorageReloadTimer);
+                window._planStorageReloadTimer = setTimeout(function() { loadDietData({ force: true }); }, 300);
             }
         });
         window.addEventListener('NUTRIPLAN_APP_DATA_READY', function(e) {
@@ -9629,7 +9653,7 @@
             setTimeout(function() { card.classList.remove('sc-anim-' + starCount); }, 1200);
 
             // Haptic feedback: escalating pattern
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            if (typeof navigator !== 'undefined' && navigator.vibrate && (!window.userHasInteracted || window.userHasInteracted())) {
                 if      (starCount === 1) navigator.vibrate(60);
                 else if (starCount === 2) navigator.vibrate([60, 40, 80]);
                 else if (starCount === 3) navigator.vibrate([80, 40, 80, 40, 120]);

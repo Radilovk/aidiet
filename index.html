@@ -85,13 +85,11 @@
         var planTarget;
         var planSource = localStorage.getItem('planSource');
         
-        if (planSource === 'questionnaire2') {
-            if (localStorage.getItem('pendingClientId') && !dietPlan) {
-                planTarget = 'plan-pending.html';
-            } else {
-                try { localStorage.removeItem('planSource'); } catch (_) {}
-                planTarget = 'index.html?app=1&tab=plan';
-            }
+        // Заявка, която чака одобрение на специалист: към страницата за изчакване,
+        // дори ако планът вече е на телефона (неодобреният план не се показва).
+        // planSource се маха само от проверката на статуса при одобрение.
+        if (planSource === 'questionnaire2' && localStorage.getItem('pendingClientId')) {
+            planTarget = 'plan-pending.html';
         } else {
             planTarget = 'index.html?app=1&tab=plan';
         }
@@ -2832,18 +2830,16 @@
         }
 
         function getPlanTargetFromState() {
-            if (localStorage.getItem('planSource') === 'questionnaire2') {
-                if (localStorage.getItem('pendingClientId') && !localStorage.getItem('dietPlan')) {
-                    return 'plan-pending.html';
-                }
-                try { localStorage.removeItem('planSource'); } catch (_) {}
-            } else if (localStorage.getItem('pendingClientId') && !localStorage.getItem('dietPlan')) {
+            var pendingClientId = localStorage.getItem('pendingClientId');
+            var hasPlan = !!localStorage.getItem('dietPlan');
+            // Чака одобрение само който има заявка (pendingClientId) — не всеки без план.
+            if (pendingClientId && (localStorage.getItem('planSource') === 'questionnaire2' || !hasPlan)) {
                 return 'plan-pending.html';
             }
-            if (!localStorage.getItem('dietPlan') && localStorage.getItem('userData')) {
-                return 'plan-pending.html';
-            }
-            return localStorage.getItem('dietPlan') ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';
+            if (hasPlan) return 'index.html?app=1&tab=plan';
+            // Влязъл, но планът не се зареди (мрежа) — табът с плана опитва отново;
+            // без профил — към въпросника.
+            return localStorage.getItem('userData') ? 'index.html?app=1&tab=plan' : 'questionnaire2.html';
         }
 
         function normalizeShellTarget(target) {

@@ -410,9 +410,6 @@
         function closeFlow() {
             if (closing) return;
             closing = true;
-            document.documentElement.style.visibility = 'hidden';
-            document.documentElement.style.background = '#0A1A1A';
-
             if (window.NutriPlanPlatform && typeof window.NutriPlanPlatform.exitNativeApp === 'function') {
                 if (window.NutriPlanPlatform.exitNativeApp()) return;
             }
@@ -420,25 +417,28 @@
             if (gn && typeof gn.exitAppSilently === 'function' && gn.exitAppSilently()) {
                 return;
             }
-
             try { window.close(); } catch (_) {}
             if (window.history.length > 1) {
                 window.history.back();
                 return;
             }
+            // В браузъра прозорецът не може да се затвори сам — към плана, не празен екран.
+            closing = false;
+            if (typeof viewPlan === 'function') viewPlan();
+            else window.location.replace('index.html?app=1&tab=plan');
         }
 
-        function exitAfterAnswer() {
+        function exitAfterAnswer(actionId) {
             vibrate([20, 30, 20]);
             if (isCatchUpQueue) {
-                proceedCatchUpAfterAnswer(null);
+                proceedCatchUpAfterAnswer(actionId || null);
                 return;
             }
             if (window.NutriPlanPlatform && window.NutriPlanPlatform.isAPK && window.NutriPlanPlatform.isAPK()) {
                 closeFlow();
                 return;
             }
-            finishEncouragement(null, 500, viewPlan);
+            finishEncouragement(actionId || null, 900, viewPlan);
         }
 
         function queueProgressHint() {
@@ -557,10 +557,9 @@
                     '<div class="footer-actions"><button class="solid" id="openPlanBtn">Отвори приложението</button></div>'
                 );
                 document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
-                setTimeout(closeFlow, 1200);
                 return;
             }
-            exitAfterAnswer();
+            exitAfterAnswer(actionId);
         }
         function finishEncouragement(actionId, closeMs, onClose) {
             closeMs = closeMs || 500;
@@ -589,22 +588,28 @@
                 notificationType: notifType,
                 action: actionId,
                 recordKey: recordKey
-            });
-            if (!outcome.saved && outcome.ack !== 'skip') {
+            }) || {};
+            if (!outcome.saved) {
                 if (isCatchUpQueue) {
                     proceedCatchUpAfterAnswer(null);
                     return;
                 }
-                renderAlreadyAnswered('Вече е записано', 'За ' + dateLabel(recordKey) + ' вече има отговор.');
-                setTimeout(closeFlow, 900);
+                // Пропуснато, вече отговорено или неуспешен запис — различни неща, различни думи.
+                if (actionId === 'skip' || outcome.needsApp) {
+                    renderAlreadyAnswered('Пропуснато', 'Можете да отговорите по-късно от приложението.');
+                } else if (gn._isQuestionAnswered && gn._isQuestionAnswered(recordKey, notifType)) {
+                    renderAlreadyAnswered('Вече е записано', 'За ' + dateLabel(recordKey) + ' вече има отговор.');
+                } else {
+                    renderAlreadyAnswered('Неуспешен запис', 'Отворете приложението и отговорете отново.');
+                }
                 return;
             }
             if (typeof gn.notifyAnswerSaved === 'function') gn.notifyAnswerSaved(recordKey);
-            exitAfterAnswer();
+            exitAfterAnswer(actionId);
         }
         function renderAlreadyAnswered(title, message) {
             render(
-                '<div class="badge">🛡️ Вече е записано</div>' +
+                '<div class="badge">' + (title === 'Вече е записано' ? '🛡️' : title === 'Пропуснато' ? '⏭️' : '⚠️') + '</div>' +
                 '<h1 class="title">' + escapeHtml(title) + '</h1>' +
                 '<p class="subtitle">' + escapeHtml(message) + '</p>' +
                 '<div class="footer-actions">' +
@@ -659,7 +664,6 @@
                     return;
                 }
                 renderAlreadyAnswered('Вече е записано', 'За ' + dateLabel(recordKey) + ' вече има запазен отговор.');
-                setTimeout(closeFlow, 1200);
                 return;
             }
             var display = getQuestionDisplaySafe(notifType);

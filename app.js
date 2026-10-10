@@ -161,9 +161,10 @@
         }
     }
 
-    function applyTheme(theme) {
+    function applyTheme(theme, persist) {
         theme = theme || getPreferredTheme();
-        localStorage.setItem('theme', theme);
+        // Записва се само изричен избор — иначе темата следва телефона (светла/тъмна).
+        if (persist) localStorage.setItem('theme', theme);
         state.raw.theme = theme;
         state.parsed.theme = theme;
         setDocumentTheme(document, theme);
@@ -865,7 +866,7 @@
         if (!isTrustedShellMessage(event)) return;
         var data = event.data;
         if (data.type === 'NUTRIPLAN_THEME_CHANGE') {
-            applyTheme(data.theme);
+            applyTheme(data.theme, true);
             return;
         }
         if (data.type === 'NUTRIPLAN_OPEN_CHAT') {
@@ -915,6 +916,10 @@
             // signed out and cleared already, but the shell owns the storage the
             // next screen reads — leaving that to the caller is how logout came
             // to be "navigate only" inside the app.
+            // Излязъл потребител не получава повече напомняния за плана.
+            try {
+                if (window.GameNotifier && typeof window.GameNotifier.cancelAll === 'function') window.GameNotifier.cancelAll();
+            } catch (_) {}
             clearShellSession().then(function() {
                 window.location.replace('index.html?stay=1&login=1');
             });
