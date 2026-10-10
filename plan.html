@@ -7711,6 +7711,30 @@
             clearFreeMealCapture();
         }
 
+        /**
+         * „Назад“ на Android и Escape: затваря най-горния прозорец така, както би го
+         * затворило докосване извън него. Задължителните (седмичен преглед, зареждане)
+         * не се затварят, но и не пускат приложението да излезе под тях.
+         */
+        function handleBackNavigation(opts) {
+            var gameOverlays = document.querySelectorAll('.game-modal-overlay');
+            if (gameOverlays.length) {
+                var top = gameOverlays[gameOverlays.length - 1];
+                top.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                return true;
+            }
+            var food = document.getElementById('foodAnalysisOverlay');
+            if (food && food.classList.contains('active')) { closeFoodAnalysis(); return true; }
+            if (welcomeModal && welcomeModal.classList.contains('active')) { closeWelcomeModal(); return true; }
+            if (modal && modal.classList.contains('active')) { closeModal(); return true; }
+            if (chatVisible && !(opts && opts.keepChat)) { closeChatWindow(); return true; }
+            return false;
+        }
+        window.NutriPlanHandleBack = handleBackNavigation;
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !e.defaultPrevented) handleBackNavigation();
+        });
+
         function resetFoodAnalysis() {
             foodAnalysisInProgress = false;
             foodAnalysisMode = 'food';

@@ -220,6 +220,38 @@
 
     bindNotificationCatchUpBootstrap();
 
+    // ── Бутон „Назад“ на Android (APK) ──────────────────────────────────────
+    // Без собствен слушател Capacitor затваря приложението, ако няма история —
+    // клиентът губи отворения прозорец. Редът: страницата затваря свой прозорец
+    // (NutriPlanHandleBack), обвивката връща към плана (NutriPlanShellBack),
+    // иначе предишната страница; накрая приложението само се минимизира.
+    function handleHardwareBack(event) {
+        try {
+            if (typeof global.NutriPlanShellBack === 'function' && global.NutriPlanShellBack()) return;
+            if (typeof global.NutriPlanHandleBack === 'function' && global.NutriPlanHandleBack()) return;
+        } catch (_) {}
+        if ((event && event.canGoBack) || global.history.length > 1) {
+            global.history.back();
+            return;
+        }
+        var app = getPlugin('App');
+        if (app && typeof app.minimizeApp === 'function') {
+            app.minimizeApp().catch(function () {});
+        } else if (app && typeof app.exitApp === 'function') {
+            app.exitApp().catch(function () {});
+        }
+    }
+
+    function bindHardwareBack() {
+        if (global.top !== global || global.__nutriplanBackBound || !isAPK()) return;
+        var app = getPlugin('App');
+        if (!app || typeof app.addListener !== 'function') return;
+        global.__nutriplanBackBound = true;
+        try { app.addListener('backButton', handleHardwareBack); } catch (_) {}
+    }
+
+    bindHardwareBack();
+
     // ── Публично API ────────────────────────────────────────────────────────
 
     global.NutriPlanPlatform = {

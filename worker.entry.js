@@ -5812,6 +5812,20 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
 }
 
 /**
+ * Запис в чужд fb_ профил е невъзможен: без валиден токен на същия потребител → 401/403.
+ * Анонимните (не-fb_) идентификатори остават без вход, както досега.
+ */
+async function checkFirebaseOwner(userId, idToken, env, request) {
+  try {
+    await verifyWeeklyRequestAuth(userId, idToken, env, request);
+    return null;
+  } catch (error) {
+    const mismatch = /does not match/.test(error?.message || '');
+    return jsonResponse({ error: mismatch ? 'Token does not match userId' : 'Invalid or missing Firebase ID token' }, mismatch ? 403 : 401);
+  }
+}
+
+/**
  * Седмичният контролен преглед — стандартните въпроси на диетолога
  * (тегло, придържане, глад, енергия, трудности). Без AI.
  */
@@ -6225,16 +6239,8 @@ async function handleSyncAnalytics(request, env) {
     const { userId, gameData, gameWeeklyAI, clientId, idToken, plan } = await request.json();
     if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
 
-    if (userId.startsWith('fb_') && idToken && env.FIREBASE_PROJECT_ID) {
-      try {
-        const firebaseUser = await verifyFirebaseIdToken(idToken, env);
-        if (`fb_${firebaseUser.uid}` !== userId) {
-          return jsonResponse({ error: 'Token does not match userId' }, 403);
-        }
-      } catch {
-        return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
-      }
-    }
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
 
     const summary = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
     const ledger = plan?.weekPlan && gameData
@@ -13493,20 +13499,9 @@ async function handleSaveUserProfile(request, env) {
       return jsonResponse({ error: 'Missing userId or plan' }, 400);
     }
 
-    // Verify the Firebase ID token when the caller is authenticated as a Firebase user.
-    // This prevents one user from overwriting another user's profile.
-    // Only attempt verification when FIREBASE_PROJECT_ID is configured; without it
-    // verifyFirebaseIdToken always throws "Invalid audience" causing unnecessary 401s.
-    if (userId.startsWith('fb_') && idToken && env.FIREBASE_PROJECT_ID) {
-      try {
-        const firebaseUser = await verifyFirebaseIdToken(idToken, env);
-        if ('fb_' + firebaseUser.uid !== userId) {
-          return jsonResponse({ error: 'Token does not match userId' }, 403);
-        }
-      } catch (_) {
-        return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
-      }
-    }
+    // Чужд Firebase профил не може да бъде презаписан.
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
 
     const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
     const planChanged = !existingProfile?.plan ||

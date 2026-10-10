@@ -2572,11 +2572,9 @@
             localStorage.removeItem('hasSeenPlanJustification');
             localStorage.removeItem('questionnaireAnswers');
 
-            fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, plan: data.plan, userData: planPayload, planSource: 'questionnaire2', clientId: savedClientId })
-            }).catch(e => console.error('Error saving completed background plan:', e));
+            if (userId && window.NutriPlanPlanSync) {
+                window.NutriPlanPlanSync.saveUserProfile(userId, data.plan, planPayload, 'questionnaire2', null, savedClientId);
+            }
 
             // Клиентският запис се обновява от сървъра при завършване на задачата
             // (с „чака одобрение“) — браузърът не пише в него.

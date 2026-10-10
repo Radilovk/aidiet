@@ -507,8 +507,42 @@
         return clientId;
     }
 
-    function saveUserProfile(userId, plan, userData, planSource, idToken, clientId) {
+    var FIREBASE_WEB_CONFIG = {
+        apiKey: 'AIzaSyAZvIAAzP-6CBzQlQvoJTy-Iq24fBAPrJY',
+        authDomain: 'nutriplan-c460a.firebaseapp.com',
+        projectId: 'nutriplan-c460a',
+        storageBucket: 'nutriplan-c460a.firebasestorage.app',
+        messagingSenderId: '556207268794',
+        appId: '1:556207268794:web:4fa968491413abd4873383'
+    };
+
+    /**
+     * Токен на вписания Firebase потребител — сървърът не приема запис за fb_
+     * профил без него. Страници без собствен Firebase модул го зареждат при нужда
+     * (сесията е обща за целия сайт, пази се в IndexedDB).
+     */
+    async function getFirebaseIdToken(userId) {
+        if (!userId || String(userId).indexOf('fb_') !== 0) return null;
+        try {
+            var auth = global.__npPlanAuth;
+            if (!auth) {
+                var appMod = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+                var authMod = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+                var app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(FIREBASE_WEB_CONFIG);
+                auth = authMod.getAuth(app);
+            }
+            if (typeof auth.authStateReady === 'function') await auth.authStateReady();
+            var user = auth.currentUser;
+            if (!user || 'fb_' + user.uid !== userId) return null;
+            return await user.getIdToken();
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function saveUserProfile(userId, plan, userData, planSource, idToken, clientId) {
         refreshUidCookie(userId);
+        if (!idToken) idToken = await getFirebaseIdToken(userId);
         return fetch(WORKER_URL + '/api/user/save-profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1124,6 +1158,7 @@
         ensureReplacementAuth: ensureReplacementAuth,
         syncClientAnswers: syncClientAnswers,
         saveUserProfile: saveUserProfile,
+        getFirebaseIdToken: getFirebaseIdToken,
         syncPendingPlanActivation: syncPendingPlanActivation,
         claimPlanFromToken: claimPlanFromToken,
         markPlanUpdatePending: markPlanUpdatePending,

@@ -44778,6 +44778,15 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
     throw new Error("Token does not match userId");
   }
 }
+async function checkFirebaseOwner(userId, idToken, env, request) {
+  try {
+    await verifyWeeklyRequestAuth(userId, idToken, env, request);
+    return null;
+  } catch (error) {
+    const mismatch = /does not match/.test(error?.message || "");
+    return jsonResponse2({ error: mismatch ? "Token does not match userId" : "Invalid or missing Firebase ID token" }, mismatch ? 403 : 401);
+  }
+}
 function generateWeeklyQuestions() {
   return { questions: WEEKLY_CHECKIN_QUESTIONS.map((q) => ({ ...q, options: [...q.options] })), contextNote: "" };
 }
@@ -45128,16 +45137,8 @@ async function handleSyncAnalytics(request, env) {
     }
     const { userId, gameData, gameWeeklyAI, clientId, idToken, plan } = await request.json();
     if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
-    if (userId.startsWith("fb_") && idToken && env.FIREBASE_PROJECT_ID) {
-      try {
-        const firebaseUser = await verifyFirebaseIdToken(idToken, env);
-        if (`fb_${firebaseUser.uid}` !== userId) {
-          return jsonResponse2({ error: "Token does not match userId" }, 403);
-        }
-      } catch {
-        return jsonResponse2({ error: "Invalid Firebase ID token" }, 401);
-      }
-    }
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
     const summary = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
     const ledger = plan?.weekPlan && gameData ? serializeFoodLedger(buildFoodLedger(plan.weekPlan, gameData, gameWeeklyAI || {})) : null;
     await persistAnalyticsAndLedger(env, userId, summary, ledger, clientId || "");
@@ -50699,16 +50700,8 @@ async function handleSaveUserProfile(request, env) {
     if (!userId || !plan) {
       return jsonResponse2({ error: "Missing userId or plan" }, 400);
     }
-    if (userId.startsWith("fb_") && idToken && env.FIREBASE_PROJECT_ID) {
-      try {
-        const firebaseUser = await verifyFirebaseIdToken(idToken, env);
-        if ("fb_" + firebaseUser.uid !== userId) {
-          return jsonResponse2({ error: "Token does not match userId" }, 403);
-        }
-      } catch (_) {
-        return jsonResponse2({ error: "Invalid Firebase ID token" }, 401);
-      }
-    }
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
     const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
     const planChanged = !existingProfile?.plan || JSON.stringify(existingProfile.plan) !== JSON.stringify(plan);
     const userDataChanged = JSON.stringify(existingProfile?.userData || {}) !== JSON.stringify(userData || {});

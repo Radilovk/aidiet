@@ -1022,6 +1022,16 @@
                     text:'Обобщена оценка на навиците ти тази седмица — ангажираност, сън, хидратация, активност, емоционален баланс и извънпланови калории. Не е медицинска оценка.\n\nЦел: минимум 70.',
                     why:'Добрите навици се подсилват взаимно: по-добрият сън и по-малкото напрежение улесняват спазването на плана.' }
             };
+            // „Назад“ на Android и Escape затварят най-горното обяснение.
+            window.NutriPlanHandleBack = function () {
+                var open = document.querySelectorAll('.game-explain-overlay');
+                if (!open.length) return false;
+                open[open.length - 1].remove();
+                return true;
+            };
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') window.NutriPlanHandleBack();
+            });
             function showExplanation(key) {
                 var info = EXPLANATIONS[key]; if(!info) return;
                 var old = document.getElementById('gameExplainOverlay'); if(old) old.remove();

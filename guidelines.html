@@ -1784,6 +1784,16 @@
             }
         }
 
+        // „Назад“ на Android и Escape затварят прозореца със стратегията.
+        window.NutriPlanHandleBack = function () {
+            const modal = document.getElementById('strategyModal');
+            if (modal && modal.classList.contains('active')) { closeStrategyModal(); return true; }
+            return false;
+        };
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') window.NutriPlanHandleBack();
+        });
+
         function handleStrategyModalClick(event) {
             if (event.target === document.getElementById('strategyModal')) {
                 closeStrategyModal();

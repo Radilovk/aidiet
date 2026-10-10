@@ -809,12 +809,8 @@
                     if (userId) {
                         const planPayload = data.plan || JSON.parse(localStorage.getItem('dietPlan') || 'null');
                         const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-                        if (planPayload) {
-                            fetch('https://aidiet.radilov-k.workers.dev/api/user/save-profile', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId, plan: planPayload, userData, planSource: '', clientId })
-                            }).catch(() => {});
+                        if (planPayload && window.NutriPlanPlanSync) {
+                            window.NutriPlanPlanSync.saveUserProfile(userId, planPayload, userData, '', null, clientId);
                         }
                     }
 

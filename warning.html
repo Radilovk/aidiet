@@ -453,14 +453,14 @@
                     console.error('No warning or validation data found');
                     const fallbackSource = localStorage.getItem('validationSource');
                     localStorage.removeItem('validationSource');
-                    window.location.href = fallbackSource === 'questionnaire2' ? 'questionnaire2.html' : 'questionnaire.html';
+                    window.location.href = 'questionnaire2.html';
                     return;
                 }
             } catch (error) {
                 console.error('Error loading page data:', error);
                 const fallbackSource = localStorage.getItem('validationSource');
                 localStorage.removeItem('validationSource');
-                window.location.href = fallbackSource === 'questionnaire2' ? 'questionnaire2.html' : 'questionnaire.html';
+                window.location.href = 'questionnaire2.html';
             }
         }
 
@@ -607,7 +607,7 @@
         function goBackToQuestionnaire() {
             const source = localStorage.getItem('validationSource') || 'questionnaire2';
             localStorage.setItem('validationSource', source);
-            window.location.href = source === 'questionnaire2' ? 'questionnaire2.html' : 'questionnaire.html';
+            window.location.href = 'questionnaire2.html';
         }
 
         function proceedDespiteWarnings() {
@@ -616,11 +616,7 @@
             // Return to the correct questionnaire (answers are already saved in localStorage)
             const source = localStorage.getItem('validationSource');
             localStorage.removeItem('validationSource');
-            if (source === 'questionnaire2') {
-                window.location.href = 'questionnaire2.html';
-            } else {
-                window.location.href = 'questionnaire.html';
-            }
+            window.location.href = 'questionnaire2.html';
         }
 
         function goToHome() {

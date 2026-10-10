@@ -72,7 +72,7 @@
             var src = localStorage.getItem('planJobSource');
             var planSync = window.NutriPlanPlanSync;
             if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
-                location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                location.replace('questionnaire2.html');
                 return;
             }
         }
@@ -2935,7 +2935,7 @@
                     const restoredSource = localStorage.getItem('planJobSource');
                     const planSync = window.NutriPlanPlanSync;
                     if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
-                        window.location.replace(restoredSource === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                        window.location.replace('questionnaire2.html');
                         return;
                     }
                 }
@@ -2977,7 +2977,7 @@
                 const src = localStorage.getItem('planJobSource');
                 const planSync = window.NutriPlanPlanSync;
                 if (!(planSync && typeof planSync.isProfileRegenJobActive === 'function' && planSync.isProfileRegenJobActive())) {
-                    window.location.replace(src === 'questionnaire' ? 'questionnaire.html' : 'questionnaire2.html');
+                    window.location.replace('questionnaire2.html');
                     return;
                 }
             }
@@ -4176,26 +4176,11 @@
                     planSource: localStorage.getItem('planSource') || '',
                     ...(idToken ? { idToken } : {})
                 });
-                let resp = await fetch(WORKER_URL + '/api/user/save-profile', {
+                const resp = await fetch(WORKER_URL + '/api/user/save-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body
                 });
-                // If token verification was rejected by the server (FIREBASE_PROJECT_ID not
-                // configured or transient JWKS error), retry without the idToken.
-                if ((resp.status === 401 || resp.status === 403) && idToken) {
-                    console.warn('[plan-sync] Token rejected (', resp.status, '), retrying without token');
-                    resp = await fetch(WORKER_URL + '/api/user/save-profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            userId:   fbUserId,
-                            plan:     JSON.parse(planStr),
-                            userData: userStr ? JSON.parse(userStr) : {},
-                            planSource: localStorage.getItem('planSource') || ''
-                        })
-                    });
-                }
                 if (resp.ok) {
                     localStorage.removeItem('planSyncPending');
                 } else {
