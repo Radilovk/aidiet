@@ -121,8 +121,11 @@
         var has5StarBlocker = !allMealsOk || excessCalories ||
             badSleep || badWater || lowActivity || lowBalance || junkCount > 0;
 
-        var done = meals.filter(function (m) { return rec.meals[m] === true; }).length;
-        var mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
+        // Половината от ангажираността са спазените хранения от плана (без
+        // свободното и сутрешната напитка) — същото число, по което се коригира планът.
+        var planMeals = planMealSlots(rec);
+        var done = planMeals.filter(function (m) { return rec.meals[m] === true; }).length;
+        var mealEngPct = planMeals.length > 0 ? done / planMeals.length * 50 : 0;
         var mornEngPct = rec.morningCheck ? 15 : 0;
         var eveEngPct = (rec.eveningCheck && (
             rec.eveningCheck.activityLevel != null ||
@@ -247,13 +250,18 @@
         }, 0);
     }
 
+    /** Слотовете, които се броят за спазване: без свободното хранене и напитката. */
+    function planMealSlots(rec) {
+        var freeKey = rec && rec.freeMeal && rec.freeMeal.mealKey;
+        return getMealSlots(rec).filter(function (m) {
+            return m !== freeKey && !/^Напитка|^Свободно хранене/.test(m);
+        });
+    }
+
     /** Спазени хранения за деня (без свободното и напитката); null за ден само отворен. */
     function dayMealAdherence(rec) {
         if (!rec) return null;
-        var freeKey = rec.freeMeal && rec.freeMeal.mealKey;
-        var slots = getMealSlots(rec).filter(function (m) {
-            return m !== freeKey && !/^Напитка|^Свободно хранене/.test(m);
-        });
+        var slots = planMealSlots(rec);
         if (!slots.length) return null;
         var ticked = slots.filter(function (m) { return rec.meals && rec.meals[m] === true; }).length;
         var touched = ticked > 0 || rec.morningCheck || rec.eveningCheck || ((rec.extraMeals || []).length > 0);

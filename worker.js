@@ -971,8 +971,9 @@ function calcDayScore(rec, todayKey) {
   const wellnessMax = 40;
   const allMealsOk = meals.length > 0 && meals.every((m) => rec.meals[m] === true);
   const has5StarBlocker = !allMealsOk || excessCalories || rec.morningCheck?.sleptWell === false || rec.eveningCheck?.waterIntake === false || rec.eveningCheck?.activityLevel === 1 || rec.eveningCheck?.emotionalBalance === 1 || junkCount > 0;
-  const done = meals.filter((m) => rec.meals[m] === true).length;
-  const mealEngPct = meals.length > 0 ? done / meals.length * 50 : 0;
+  const planMeals = planMealSlots(rec);
+  const done = planMeals.filter((m) => rec.meals[m] === true).length;
+  const mealEngPct = planMeals.length > 0 ? done / planMeals.length * 50 : 0;
   const mornEngPct = rec.morningCheck ? 15 : 0;
   const eveEngPct = rec.eveningCheck && (rec.eveningCheck.activityLevel != null || rec.eveningCheck.emotionalBalance != null || rec.eveningCheck.waterIntake != null) ? 15 : 0;
   const hasAnyEngagement = mealEngPct > 0 || mornEngPct > 0 || eveEngPct > 0 || junkCount > 0;

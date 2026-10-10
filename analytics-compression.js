@@ -140,8 +140,11 @@ export function calcDayScore(rec, todayKey) {
     (rec.eveningCheck?.emotionalBalance === 1) ||
     junkCount > 0;
 
-  const done = meals.filter((m) => rec.meals[m] === true).length;
-  const mealEngPct = meals.length > 0 ? (done / meals.length) * 50 : 0;
+  // Половината от ангажираността са спазените хранения от плана (без
+  // свободното и сутрешната напитка) — същото число, по което се коригира планът.
+  const planMeals = planMealSlots(rec);
+  const done = planMeals.filter((m) => rec.meals[m] === true).length;
+  const mealEngPct = planMeals.length > 0 ? (done / planMeals.length) * 50 : 0;
   const mornEngPct = rec.morningCheck ? 15 : 0;
   const eveEngPct = (rec.eveningCheck && (
     rec.eveningCheck.activityLevel != null ||

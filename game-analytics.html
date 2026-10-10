@@ -989,7 +989,7 @@
             // ── Explanation modal ─────────────────────────────────────────────
             var EXPLANATIONS = {
                 engagement: { title:'Ангажираност към плана',
-                    text:'Показва колко редовно следваш плана си тази седмица — хранения, чек-ини и избягване на вредни храни.\n\nЦел: минимум 80%.',
+                    text:'Показва колко редовно следваш плана си тази седмица:\n• спазени хранения от плана — половината от оценката (свободното хранене и сутрешната напитка не се броят);\n• сутрешна и вечерна проверка — по 15%;\n• без вредни хранения — 20%.\n\nСпазените хранения решават и седмичната корекция: над 75% — калориите се настройват по теглото ти; под 60% — следващото меню става по-просто.\n\nЦел: минимум 80%.',
                     why:'Проучване в American Journal of Preventive Medicine (2019) показва, че хората, които следват хранителен план поне 80% от времето, постигат 3× по-добри резултати за отслабване. Всеки пропуснат ден увеличава риска от пълно отказване с 27%.' },
                 calories: { title:'Калориен баланс',
                     text:'Следи дали приемаш правилното количество калории спрямо твоя таргет.\n\nЦел: баланс в рамките на ±100 kcal дневно.',
@@ -1155,17 +1155,10 @@
 
             html += '<div class="game-index-row" data-explain="engagement">' +
                 '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+(mealAdherencePct!=null?' · спазени хранения '+mealAdherencePct+'%':'')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
             '</div>';
 
-            // Спазените хранения са числото, по което седмичният преглед коригира плана.
-            if (mealAdherencePct != null) html += '<div class="game-index-row">' +
-                '<div class="game-index-label"><span><i class="fas fa-circle-check" style="color:#0F766E"></i> Спазени хранения</span><span>'+mealAdherencePct+'%</span></div>' +
-                '<div class="game-index-hint">'+(mealAdherencePct>=75?'<i class="fas fa-check-circle" style="color:#10b981"></i> Планът се спазва — корекциите по теглото са точни':mealAdherencePct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Частично — калориите не се пипат, докато не стане над 75%':'<i class="fas fa-circle" style="color:#ef4444"></i> Под 60% — следващото меню ще е по-просто')+'</div>' +
-                pBar(mealAdherencePct,'linear-gradient(90deg,#0F766E,#14B8A6)') +
-                miniBarChart(days.map(function(d){ return GS.dayMealAdherence(d.rec); }),100,'#0F766E') +
-            '</div>';
 
             var hasDeficit = calBalanceByDay.some(function(v){ return v!==null && v<-50; });
             var calBalanceLabel;
