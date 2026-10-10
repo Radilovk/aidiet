@@ -107,6 +107,8 @@ export function buildFoodPolicy(profile, options = {}) {
     if (ok && excludeFoods.has(id)) ok = false;
     if (ok && f.kind && excludeKinds.has(f.kind)) ok = false;
     if (ok) for (const flag of f.flags) if (excludeFlags.has(flag)) { ok = false; break; }
+    // Безлактозните млечни са заместител там, където обикновените са изключени (low-FODMAP).
+    if (ok && f.flags.has('lactose_free') && !excludeFlags.has('high_fodmap')) ok = false;
     if (ok && blocked.some(term => matchesTerm(f, term))) ok = false;
     if (ok && onlyByGroup.has(f.group) && !onlyByGroup.get(f.group).has(id)) ok = false;
     allowedCache.set(id, ok);
@@ -157,6 +159,9 @@ export function buildFoodPolicy(profile, options = {}) {
   if (style === 'keto') noSweets = true;
 
   const sport = (profile.activity?.sportBand || 0) >= 2 || profile.goal === 'GAIN' || style === 'high_protein' || pattern === 'vegan';
+  // Растителен модел: белтъкът на храните е по-рядък (и с по-ниска усвояемост) —
+  // една мерителна лъжица протеин дневно в каша/кисело мляко/шейк допълва целта.
+  const proteinBoost = pattern === 'vegan' || pattern === 'vegetarian';
 
   // Свободно хранене в събота/неделя за всички — освен при категорични правила.
   const noFree = new Set(['T2D', 'IR', 'CEL', 'GOUT', 'IBD']);
@@ -190,5 +195,6 @@ export function buildFoodPolicy(profile, options = {}) {
     fruitWithProtein,
     sweets: !!options.sweetsCraving && !noSweets,
     sport,
+    proteinBoost,
   };
 }

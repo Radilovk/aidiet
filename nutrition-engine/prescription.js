@@ -131,6 +131,13 @@ const SLOT_ORDER = ['Хранене 1', 'Хранене 2', 'Хранене 3', 
  * @param {ReturnType<typeof import('./policy.js').buildFoodPolicy>} policy
  * @param {{ skipsBreakfast?: boolean, kcal?: number }} [options]
  */
+/**
+ * Растителен модел: основните ястия не носят целия белтък без излишни
+ * въглехидрати — част от него минава в закуската и междинното хранене
+ * (соево кисело с протеин, шейк, едамаме), както разпределя диетологът.
+ */
+const PLANT_PROTEIN_SHIFT = { 'Хранене 1': 0.05, 'Хранене 2': -0.07, 'Хранене 3': 0.12, 'Хранене 4': -0.07 };
+
 export function distributeExchanges(daily, slots, policy, options = {}) {
   const dist = DISTRIBUTIONS[policy.distribution] || DISTRIBUTIONS.standard;
   // По-голям енергиен разход — по-големи хранения: таваните растат над 2400 kcal.
@@ -144,7 +151,7 @@ export function distributeExchanges(daily, slots, policy, options = {}) {
     let overflow = 0;
     for (const g of PLANNED_GROUPS) {
       const total = daily[g] || 0;
-      const weights = current.map(s => dist[s]?.[g] ?? 0);
+      const weights = current.map(s => Math.max(0, (dist[s]?.[g] ?? 0) + (g === 'PRO' && policy.proteinBoost ? PLANT_PROTEIN_SHIFT[s] || 0 : 0)));
       const bounds = current.map(s => {
         const [lo, base] = MEAL_BOUNDS[s]?.[g] || [0, 0];
         // При кето и нисковъглехидратно мазнините носят енергията — таванът им расте.

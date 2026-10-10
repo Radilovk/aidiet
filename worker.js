@@ -9040,6 +9040,8 @@ var FOOD_NUTRITION_PER_100G = {
   "\u0441\u043A\u0430\u0440\u0438\u0434\u0438": [99, 24, 0.2, 0.3],
   // Твърдо тофу (каквото се продава у нас); мекото е ~76 kcal / 8 г протеин.
   "\u0442\u043E\u0444\u0443": [124, 13, 2, 7],
+  // Текстуриран соев протеин, сух (етикетите в търговската мрежа: ~340 kcal, 50 г белтък).
+  "\u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430": [340, 50, 18, 1.5],
   "\u0442\u0435\u043C\u043F\u0435": [193, 19, 9, 11],
   "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430": [400, 80, 8, 5],
   "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D": [370, 75, 10, 4],
@@ -9064,6 +9066,8 @@ var FOOD_NUTRITION_PER_100G = {
   "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B": [350, 25, 2, 27],
   "\u0440\u0438\u043A\u043E\u0442\u0430": [174, 11, 3, 13],
   "\u043C\u043B\u044F\u043A\u043E 2": [50, 3.3, 5, 2],
+  "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430": [60, 3.5, 4.5, 3],
+  "\u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430": [46, 3.3, 4.8, 1.5],
   "\u043C\u043B\u044F\u043A\u043E": [50, 3.3, 5, 2],
   "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E": [45, 1, 7, 1.5],
   "\u0441\u043A\u0438\u0440": [62, 11, 4, 0.2],
@@ -9330,6 +9334,7 @@ var FOOD_CATALOG = [
   item("pro_tempeh", "\u0422\u0435\u043C\u043F\u0435", "\u0442\u0435\u043C\u043F\u0435", "protein", ["PRO"], ["main"], 2, { vegan: true, vegetarian: true }),
   item("pro_whey", "\u041F\u0440\u043E\u0442\u0435\u0438\u043D (\u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430)", "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430", "protein", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegetarian: true }),
   item("pro_lamb", "\u0410\u0433\u043D\u0435\u0448\u043A\u043E", "\u0430\u0433\u043D\u0435\u0448\u043A\u043E", "protein", ["PRO"], ["main"], 2),
+  item("pro_soy_mince", "\u0421\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430 (\u0441\u0443\u0445\u0430)", "\u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430", "protein", ["PRO"], ["main"], 3, { vegan: true, vegetarian: true, aliases: ["\u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430", "\u0442\u0435\u043A\u0441\u0442\u0443\u0440\u0438\u0440\u0430\u043D \u0441\u043E\u0435\u0432 \u043F\u0440\u043E\u0442\u0435\u0438\u043D"] }),
   item("pro_plant_protein", "\u041F\u0440\u043E\u0442\u0435\u0438\u043D (\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D)", "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D", "protein", ["PRO"], ["breakfast", "snack"], 3, { vegan: true, vegetarian: true }),
   // ── DAIRY ──
   item("dairy_yogurt", "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO", "FAT"], ["breakfast", "snack", "main", "late_snack"], 5, { vegetarian: true }),
@@ -9349,6 +9354,8 @@ var FOOD_CATALOG = [
   item("dairy_soy_milk", "\u0421\u043E\u0435\u0432 \u043D\u0430\u043F\u0438\u0442\u044A\u043A", "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack"], 3, { vegan: true, vegetarian: true, aliases: ["\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E"] }),
   item("dairy_parmesan", "\u041F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "dairy", ["PRO", "FAT"], ["main"], 3, { vegetarian: true }),
   item("dairy_mozzarella", "\u041C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", "dairy", ["PRO", "FAT"], ["main", "snack"], 3, { vegetarian: true }),
+  item("dairy_yogurt_lf", "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", "dairy", ["PRO", "FAT"], ["breakfast", "snack", "late_snack"], 3, { vegetarian: true }),
+  item("dairy_milk_lf", "\u041C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", "\u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", "dairy", ["PRO"], ["breakfast", "snack"], 3, { vegetarian: true }),
   item("dairy_kefir", "\u041A\u0435\u0444\u0438\u0440", "\u043A\u0435\u0444\u0438\u0440", "dairy", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegetarian: true }),
   // ── VEG — generic + common ──
   item("veg_generic", "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", "\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A", "vegetable", ["VOL"], ["breakfast", "main", "snack"], 5, { vegan: true, vegetarian: true, aliases: ["\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A"] }),
@@ -25963,6 +25970,7 @@ var ITEM_MAX_PORTION_G = {
   "\u043E\u0432\u0435\u0441": 100,
   "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0441\u0443\u0440\u043E\u0432\u0430\u0442\u043A\u0430": 50,
   "\u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D": 50,
+  "\u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430": 60,
   // Sweeteners and spreads.
   "\u043C\u0435\u0434": 20,
   // Berries are a garnish portion, not a bowl of fruit.
@@ -26763,23 +26771,26 @@ var foods_default = {
     pro_eggs: { group: "PRO", label: "\u044F\u0439\u0446\u0430", kind: "egg", flags: ["keto"], unit: { one: "\u044F\u0439\u0446\u0435", many: "\u044F\u0439\u0446\u0430", grams: 50 } },
     pro_egg_whites: { group: "PRO", label: "\u0431\u0435\u043B\u0442\u044A\u0446\u0438", kind: "egg", flags: ["keto"], unit: { one: "\u0431\u0435\u043B\u0442\u044A\u043A", many: "\u0431\u0435\u043B\u0442\u044A\u043A\u0430", grams: 35 } },
     pro_tofu: { group: "PRO", label: "\u0442\u043E\u0444\u0443", kind: "plant", flags: ["keto", "soy", "legume"] },
+    pro_soy_mince: { group: "PRO", label: "\u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430", kind: "plant", flags: ["soy", "legume", "high_fodmap"] },
     pro_tempeh: { group: "PRO", label: "\u0442\u0435\u043C\u043F\u0435", kind: "plant", flags: ["soy", "legume"] },
     leg_edamame: { group: "PRO", label: "\u0435\u0434\u0430\u043C\u0430\u043C\u0435", kind: "plant", flags: ["soy", "legume"] },
     pro_whey: { group: "PRO", label: "\u0441\u0443\u0440\u043E\u0432\u0430\u0442\u044A\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D", kind: "supplement", flags: ["keto", "lactose", "supplement"], unit: { one: "\u043C\u0435\u0440\u0438\u0442\u0435\u043B\u043D\u0430 \u043B\u044A\u0436\u0438\u0446\u0430", many: "\u043C\u0435\u0440\u0438\u0442\u0435\u043B\u043D\u0438 \u043B\u044A\u0436\u0438\u0446\u0438", grams: 30 } },
     pro_plant_protein: { group: "PRO", label: "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D", kind: "supplement", flags: ["keto", "supplement"], unit: { one: "\u043C\u0435\u0440\u0438\u0442\u0435\u043B\u043D\u0430 \u043B\u044A\u0436\u0438\u0446\u0430", many: "\u043C\u0435\u0440\u0438\u0442\u0435\u043B\u043D\u0438 \u043B\u044A\u0436\u0438\u0446\u0438", grams: 30 } },
     dairy_cheese: { group: "PRO", label: "\u0441\u0438\u0440\u0435\u043D\u0435", kind: "dairy", flags: ["keto", "lactose", "salty"] },
     dairy_kashkaval: { group: "PRO", label: "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B", kind: "dairy", flags: ["keto", "lactose", "salty"] },
-    dairy_cottage: { group: "PRO", label: "\u0438\u0437\u0432\u0430\u0440\u0430", kind: "dairy", flags: ["keto", "lactose"] },
-    dairy_cottage_low: { group: "PRO", label: "\u043D\u0438\u0441\u043A\u043E\u043C\u0430\u0441\u043B\u0435\u043D\u0430 \u0438\u0437\u0432\u0430\u0440\u0430", kind: "dairy", flags: ["keto", "lactose"] },
-    dairy_ricotta: { group: "PRO", label: "\u0440\u0438\u043A\u043E\u0442\u0430", kind: "dairy", flags: ["keto", "lactose"] },
+    dairy_cottage: { group: "PRO", label: "\u0438\u0437\u0432\u0430\u0440\u0430", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"] },
+    dairy_cottage_low: { group: "PRO", label: "\u043D\u0438\u0441\u043A\u043E\u043C\u0430\u0441\u043B\u0435\u043D\u0430 \u0438\u0437\u0432\u0430\u0440\u0430", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"] },
+    dairy_ricotta: { group: "PRO", label: "\u0440\u0438\u043A\u043E\u0442\u0430", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"] },
     dairy_mozzarella: { group: "PRO", label: "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", kind: "dairy", flags: ["keto", "lactose"] },
     dairy_parmesan: { group: "PRO", label: "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", kind: "dairy", flags: ["keto", "lactose", "salty"] },
-    dairy_yogurt: { group: "MLK", label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose"], serving: 200 },
-    dairy_yogurt_2: { group: "MLK", label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose"], serving: 200 },
-    dairy_yogurt_0: { group: "MLK", label: "\u043E\u0431\u0435\u0437\u043C\u0430\u0441\u043B\u0435\u043D\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose"], serving: 200 },
-    dairy_greek: { group: "MLK", label: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["keto", "lactose"], serving: 150 },
-    dairy_skyr: { group: "MLK", label: "\u0441\u043A\u0438\u0440", kind: "dairy", flags: ["keto", "lactose"], serving: 150 },
-    dairy_kefir: { group: "MLK", label: "\u043A\u0435\u0444\u0438\u0440", kind: "dairy", flags: ["lactose"], serving: 250 },
+    dairy_yogurt: { group: "MLK", label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 200 },
+    dairy_yogurt_2: { group: "MLK", label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 200 },
+    dairy_yogurt_0: { group: "MLK", label: "\u043E\u0431\u0435\u0437\u043C\u0430\u0441\u043B\u0435\u043D\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 200 },
+    dairy_greek: { group: "MLK", label: "\u0433\u0440\u044A\u0446\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"], serving: 150 },
+    dairy_skyr: { group: "MLK", label: "\u0441\u043A\u0438\u0440", kind: "dairy", flags: ["keto", "lactose", "high_fodmap"], serving: 150 },
+    dairy_yogurt_lf: { group: "MLK", label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", kind: "dairy", flags: ["lactose_free"], serving: 200 },
+    dairy_milk_lf: { group: "MLK", label: "\u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", kind: "dairy", flags: ["lactose_free"], serving: 250 },
+    dairy_kefir: { group: "MLK", label: "\u043A\u0435\u0444\u0438\u0440", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
     dairy_milk: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
     dairy_milk_2: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
     dairy_soy_yogurt: { group: "MLK", label: "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E", kind: "plant", flags: ["soy", "legume"], serving: 200 },
@@ -27332,7 +27343,7 @@ var diet_patterns_default = {
     },
     low_fodmap: {
       label: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u043D\u0438\u0441\u043A\u043E FODMAP",
-      basis: "Monash University Low FODMAP Diet \u2014 \u0444\u0430\u0437\u0430 \u043D\u0430 \u0435\u043B\u0438\u043C\u0438\u043D\u0438\u0440\u0430\u043D\u0435",
+      basis: "Monash University Low FODMAP Diet \u2014 \u0444\u0430\u0437\u0430 \u043D\u0430 \u0435\u043B\u0438\u043C\u0438\u043D\u0438\u0440\u0430\u043D\u0435 (2\u20136 \u0441\u0435\u0434\u043C\u0438\u0446\u0438): \u0431\u0435\u0437 \u043F\u0448\u0435\u043D\u0438\u0446\u0430/\u0440\u044A\u0436, \u043B\u0443\u043A, \u0447\u0435\u0441\u044A\u043D, \u0431\u043E\u0431\u043E\u0432\u0438 \u0432 \u0433\u043E\u043B\u0435\u043C\u0438 \u043F\u043E\u0440\u0446\u0438\u0438 \u0438 \u043B\u0430\u043A\u0442\u043E\u0437\u0430; \u0431\u0435\u0437\u043B\u0430\u043A\u0442\u043E\u0437\u043D\u0438 \u043C\u043B\u0435\u0447\u043D\u0438, \u0442\u0432\u044A\u0440\u0434\u0438 \u0441\u0438\u0440\u0435\u043D\u0430, \u0442\u0432\u044A\u0440\u0434\u043E \u0442\u043E\u0444\u0443",
       anchors: {
         VEG: [
           3,
@@ -27355,14 +27366,14 @@ var diet_patterns_default = {
           3
         ],
         MLK: [
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0
+          1,
+          1,
+          1,
+          1.5,
+          1.5,
+          1.5,
+          2,
+          2
         ]
       },
       bounds: {
@@ -31485,11 +31496,7 @@ var dishes_default = {
         {
           group: "FAT",
           options: [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_olives"
           ],
           range: [
             0,
@@ -31573,11 +31580,7 @@ var dishes_default = {
         {
           group: "FAT",
           options: [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_olives"
           ],
           range: [
             0,
@@ -31657,11 +31660,8 @@ var dishes_default = {
         {
           group: "FAT",
           options: [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_avocado"
           ],
           range: [
             0,
@@ -31907,11 +31907,7 @@ var dishes_default = {
         {
           group: "FAT",
           options: [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_olives"
           ],
           range: [
             0,
@@ -33753,7 +33749,8 @@ var dishes_default = {
           group: "MLK",
           options: [
             "dairy_yogurt",
-            "dairy_yogurt_2"
+            "dairy_yogurt_2",
+            "dairy_yogurt_lf"
           ],
           range: [
             0.5,
@@ -33858,7 +33855,8 @@ var dishes_default = {
           options: [
             "dairy_yogurt",
             "dairy_yogurt_2",
-            "dairy_greek"
+            "dairy_greek",
+            "dairy_yogurt_lf"
           ],
           range: [
             1,
@@ -34241,26 +34239,6 @@ var dishes_default = {
             0.5,
             1.5
           ]
-        },
-        {
-          group: "PRO",
-          options: [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          range: [
-            0,
-            3
-          ],
-          onlyPatterns: [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       sides: []
@@ -34288,7 +34266,8 @@ var dishes_default = {
           options: [
             "dairy_milk_2",
             "dairy_milk",
-            "dairy_soy_milk"
+            "dairy_soy_milk",
+            "dairy_milk_lf"
           ],
           range: [
             0.5,
@@ -34469,7 +34448,8 @@ var dishes_default = {
           group: "MLK",
           options: [
             "dairy_milk_2",
-            "dairy_soy_milk"
+            "dairy_soy_milk",
+            "dairy_milk_lf"
           ],
           range: [
             0.5,
@@ -34551,7 +34531,8 @@ var dishes_default = {
           group: "MLK",
           options: [
             "dairy_milk_2",
-            "dairy_soy_milk"
+            "dairy_soy_milk",
+            "dairy_milk_lf"
           ],
           range: [
             0.5,
@@ -34623,7 +34604,8 @@ var dishes_default = {
         {
           group: "MLK",
           options: [
-            "dairy_milk_2"
+            "dairy_milk_2",
+            "dairy_milk_lf"
           ],
           range: [
             0.5,
@@ -34648,26 +34630,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "PRO",
-          options: [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          range: [
-            0,
-            3
-          ],
-          onlyPatterns: [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
           ]
         }
       ],
@@ -34931,6 +34893,20 @@ var dishes_default = {
           ]
         },
         {
+          group: "PRO",
+          options: [
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true,
+          onlyPatterns: [
+            "vegan"
+          ]
+        },
+        {
           group: "VEG",
           options: [
             [
@@ -35184,26 +35160,6 @@ var dishes_default = {
             0.5,
             2
           ]
-        },
-        {
-          group: "PRO",
-          options: [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          range: [
-            0,
-            3
-          ],
-          onlyPatterns: [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       sides: []
@@ -35224,7 +35180,8 @@ var dishes_default = {
             "dairy_yogurt_2",
             "dairy_skyr",
             "dairy_greek",
-            "dairy_soy_yogurt"
+            "dairy_soy_yogurt",
+            "dairy_yogurt_lf"
           ],
           range: [
             0.5,
@@ -35535,7 +35492,8 @@ var dishes_default = {
           group: "MLK",
           options: [
             "dairy_milk_2",
-            "dairy_soy_milk"
+            "dairy_soy_milk",
+            "dairy_milk_lf"
           ],
           range: [
             0,
@@ -35689,26 +35647,6 @@ var dishes_default = {
             0.5,
             1.5
           ]
-        },
-        {
-          group: "PRO",
-          options: [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          range: [
-            0,
-            3
-          ],
-          onlyPatterns: [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       sides: []
@@ -35813,7 +35751,8 @@ var dishes_default = {
           group: "MLK",
           options: [
             "dairy_yogurt",
-            "dairy_yogurt_2"
+            "dairy_yogurt_2",
+            "dairy_yogurt_lf"
           ],
           range: [
             1,
@@ -35840,26 +35779,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "PRO",
-          options: [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          range: [
-            0,
-            3
-          ],
-          onlyPatterns: [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
           ]
         }
       ],
@@ -35913,26 +35832,6 @@ var dishes_default = {
           range: [
             0,
             1
-          ]
-        },
-        {
-          group: "PRO",
-          options: [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          range: [
-            0,
-            3
-          ],
-          onlyPatterns: [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
           ]
         }
       ],
@@ -36110,26 +36009,6 @@ var dishes_default = {
             0.5,
             3
           ]
-        },
-        {
-          group: "PRO",
-          options: [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          range: [
-            0,
-            3
-          ],
-          onlyPatterns: [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       sides: []
@@ -36225,7 +36104,8 @@ var dishes_default = {
             "dairy_yogurt_2",
             "dairy_greek",
             "dairy_skyr",
-            "dairy_soy_yogurt"
+            "dairy_soy_yogurt",
+            "dairy_yogurt_lf"
           ],
           range: [
             0.5,
@@ -36370,26 +36250,6 @@ var dishes_default = {
             1
           ],
           with: true
-        },
-        {
-          group: "PRO",
-          options: [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          range: [
-            0,
-            3
-          ],
-          onlyPatterns: [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       sides: []
@@ -36535,6 +36395,380 @@ var dishes_default = {
             2
           ]
         }
+      ],
+      sides: []
+    },
+    {
+      id: "m_soy_bolognese",
+      meals: [
+        "main"
+      ],
+      category: "plant",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0431\u043E\u043B\u043E\u043D\u0435\u0437\u0435 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_pasta",
+            "eng_lentil_pasta"
+          ],
+          range: [
+            2,
+            6
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_soy_mince"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "low_carb"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "m_soy_stuffed_peppers",
+      meals: [
+        "main"
+      ],
+      category: "plant",
+      name: "\u041F\u044A\u043B\u043D\u0435\u043D\u0438 \u0447\u0443\u0448\u043A\u0438 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430 \u0438 \u043E\u0440\u0438\u0437",
+      parts: [
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_soy_mince"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            0.5,
+            6
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "low_carb"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "m_soy_moussaka",
+      meals: [
+        "main"
+      ],
+      category: "plant",
+      name: "\u041F\u043E\u0441\u0442\u043D\u0430 \u043C\u0443\u0441\u0430\u043A\u0430 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_soy_mince"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            2,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "m_veg_bake_mozzarella",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u0417\u0430\u043F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0441 \u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430",
+      parts: [
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_zucchini",
+              "veg_eggplant"
+            ],
+            [
+              "veg_pepper",
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_mozzarella"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives",
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "low_carb"
+          ]
+        }
+      ],
+      fixed: [],
+      sides: []
+    },
+    {
+      id: "m_quinoa_cheese_salad",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u0422\u043E\u043F\u043B\u0430 \u0441\u0430\u043B\u0430\u0442\u0430 \u0441 \u043A\u0438\u043D\u043E\u0430 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_quinoa"
+          ],
+          range: [
+            1.5,
+            6
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "dairy_mozzarella"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_pepper",
+              "veg_spinach"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_pumpkin_seeds"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ]
       ],
       sides: []
     }
@@ -36875,6 +37109,14 @@ var MORNING_DRINK = {
   name: "\u0421\u0443\u0442\u0440\u0435\u0448\u043D\u0430 \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F (\u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435)",
   description: "\u2022 \u0427\u0430\u0448\u0430 \u0430\u0439\u0440\u0430\u043D \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440\n\u2022 \u041F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u0448\u0435\u0439\u043A\n\u2022 \u0412\u043E\u0434\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438\u043B\u0438 \u0431\u0438\u043B\u043A\u043E\u0432 \u0447\u0430\u0439"
 };
+function morningDrinkFor(can) {
+  const lines = [];
+  if (can.dairy) lines.push("\u2022 \u0427\u0430\u0448\u0430 \u0430\u0439\u0440\u0430\u043D \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440");
+  else if (can.plantMilk) lines.push("\u2022 \u0427\u0430\u0448\u0430 \u0441\u043E\u0435\u0432 \u0438\u043B\u0438 \u0434\u0440\u0443\u0433 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u043D\u0430\u043F\u0438\u0442\u044A\u043A");
+  if (can.shake) lines.push("\u2022 \u041F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u0448\u0435\u0439\u043A");
+  lines.push("\u2022 \u0412\u043E\u0434\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438\u043B\u0438 \u0431\u0438\u043B\u043A\u043E\u0432 \u0447\u0430\u0439");
+  return { ...MORNING_DRINK, description: lines.join("\n") };
+}
 var DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 var LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:g|гр|г)(?![\p{L}\p{N}])(?:\s*[—-]\s*(.+))?$/iu;
 function isEnginePlan(plan) {
@@ -38074,6 +38316,7 @@ function buildFoodPolicy(profile, options = {}) {
         break;
       }
     }
+    if (ok && f.flags.has("lactose_free") && !excludeFlags.has("high_fodmap")) ok = false;
     if (ok && blocked.some((term) => matchesTerm(f, term))) ok = false;
     if (ok && onlyByGroup.has(f.group) && !onlyByGroup.get(f.group).has(id)) ok = false;
     allowedCache.set(id, ok);
@@ -38118,6 +38361,7 @@ function buildFoodPolicy(profile, options = {}) {
   }
   if (style === "keto") noSweets = true;
   const sport = (profile.activity?.sportBand || 0) >= 2 || profile.goal === "GAIN" || style === "high_protein" || pattern === "vegan";
+  const proteinBoost = pattern === "vegan" || pattern === "vegetarian";
   const noFree = /* @__PURE__ */ new Set(["T2D", "IR", "CEL", "GOUT", "IBD"]);
   const allergic = ["NUT", "PNT", "SHF", "FSH", "EGG", "SOY"];
   const allowsFreeMeal = style !== "keto" && profile.protocol !== "autoimmune_aip" && !(profile.clinical || []).some((c) => noFree.has(c)) && !(profile.exclusions || []).some((c) => allergic.includes(c));
@@ -38144,7 +38388,8 @@ function buildFoodPolicy(profile, options = {}) {
     noSweets,
     fruitWithProtein,
     sweets: !!options.sweetsCraving && !noSweets,
-    sport
+    sport,
+    proteinBoost
   };
 }
 
@@ -38232,6 +38477,7 @@ function extraSlot(slots, skipsBreakfast) {
 }
 var BOUNDS_BASE_KCAL = 2400;
 var SLOT_ORDER = ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
+var PLANT_PROTEIN_SHIFT = { "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": 0.05, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": -0.07, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": 0.12, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": -0.07 };
 function distributeExchanges(daily, slots, policy, options = {}) {
   const dist = DISTRIBUTIONS[policy.distribution] || DISTRIBUTIONS.standard;
   const appetite = Math.max(1, (Number(options.kcal) || 0) / BOUNDS_BASE_KCAL);
@@ -38242,7 +38488,7 @@ function distributeExchanges(daily, slots, policy, options = {}) {
     let overflow = 0;
     for (const g of PLANNED_GROUPS) {
       const total = daily[g] || 0;
-      const weights = current.map((s) => dist[s]?.[g] ?? 0);
+      const weights = current.map((s) => Math.max(0, (dist[s]?.[g] ?? 0) + (g === "PRO" && policy.proteinBoost ? PLANT_PROTEIN_SHIFT[s] || 0 : 0)));
       const bounds = current.map((s) => {
         const [lo, base] = MEAL_BOUNDS[s]?.[g] || [0, 0];
         const fatScale = g === "FAT" ? policy.styleDef.fatPartScale || 1 : 1;
@@ -38520,7 +38766,8 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
       if (optional) continue;
       return null;
     }
-    if (optional && !(quota[spec.group] > 0) && spec.group !== "LEG") continue;
+    const boost = spec.group === "PRO" && ctx.policy.proteinBoost && option.every((id) => food(id).flags.has("supplement"));
+    if (optional && !(quota[spec.group] > 0) && spec.group !== "LEG" && !boost) continue;
     const carb = option.find((id) => food(id).catalogGroup === "carb");
     if (carb) {
       if (carbId && carbId !== carb) {
@@ -38890,6 +39137,11 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
   };
   const snackCtx = { ...ctx, policy: snackPolicy, preferenceOf: (id) => policy.preference(id) };
   const slots = prescription.slots;
+  const drink = morningDrinkFor({
+    dairy: policy.allowed("dairy_kefir") || policy.allowed("dairy_yogurt"),
+    plantMilk: policy.allowed("dairy_soy_milk"),
+    shake: policy.allowed("pro_whey") || policy.allowed("pro_plant_protein")
+  });
   const mainSlots = [];
   for (let day = 1; day <= 7; day++) {
     for (const type of slots) {
@@ -38921,15 +39173,17 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     lastMealFoods: /* @__PURE__ */ new Set(),
     mainFoodsToday: /* @__PURE__ */ new Set(),
     yesterdayDishes: /* @__PURE__ */ new Set(),
+    supplementToday: false,
     previousWeek
   };
   const days = [];
   let relaxed = null;
   for (let day = 1; day <= 7; day++) {
     const meals = [];
-    if (morningDrink) meals.push({ ...MORNING_DRINK });
+    if (morningDrink) meals.push({ ...drink });
     const todayDishes = /* @__PURE__ */ new Set();
     state.mainFoodsToday = /* @__PURE__ */ new Set();
+    state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
     for (const type of slots) {
       const plan = prescription.meals[type];
@@ -38943,6 +39197,8 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       if (kind === "main") {
         const inCategory = pool.filter((d) => d.category === category);
         if (inCategory.length) pool = inCategory;
+        const withProtein = pool.filter((d) => proteinCapacity(d) >= 3);
+        if (withProtein.length) pool = withProtein;
       }
       const maxUses = (MAX_USES_PER_WEEK[kind] ?? 3) + (simplify ? 1 : 0) - (variety && kind === "main" ? 1 : 0);
       pool = pool.filter((d) => !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !(kind === "main" && state.yesterdayDishes.has(d.id)));
@@ -38975,6 +39231,10 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       };
       const avoid = slotAvoid.filter((a) => a.day === day && a.type === type).flatMap((a) => a.avoid);
       let slotCtx = kind === "snack" ? snackCtx : ctx;
+      if (state.supplementToday) {
+        const basePolicy = slotCtx.policy;
+        slotCtx = { ...slotCtx, policy: { ...basePolicy, allowed: (id) => basePolicy.allowed(id) && !food(id).flags.has("supplement") } };
+      }
       let slotPool = ranked.map((r) => r.d);
       if (avoid.length) {
         const terms = avoid.map((t) => normalizeFoodKey(t));
@@ -38996,6 +39256,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       }
       if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
       recordUse(best.dish, best.built, state);
+      if ([...mealFoods(best.built)].some((id) => food(id).flags.has("supplement"))) state.supplementToday = true;
       todayDishes.add(best.dish.id);
       if (kind === "main") {
         const proteinPart = best.built.parts.find((p) => p.group === "PRO" || p.group === "LEG");

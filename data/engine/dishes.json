@@ -3330,11 +3330,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_olives"
           ],
           "range": [
             0,
@@ -3418,11 +3414,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_olives"
           ],
           "range": [
             0,
@@ -3502,11 +3494,8 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_avocado"
           ],
           "range": [
             0,
@@ -3752,11 +3741,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_olives"
           ],
           "range": [
             0,
@@ -5598,7 +5583,8 @@
           "group": "MLK",
           "options": [
             "dairy_yogurt",
-            "dairy_yogurt_2"
+            "dairy_yogurt_2",
+            "dairy_yogurt_lf"
           ],
           "range": [
             0.5,
@@ -5703,7 +5689,8 @@
           "options": [
             "dairy_yogurt",
             "dairy_yogurt_2",
-            "dairy_greek"
+            "dairy_greek",
+            "dairy_yogurt_lf"
           ],
           "range": [
             1,
@@ -6086,26 +6073,6 @@
             0.5,
             1.5
           ]
-        },
-        {
-          "group": "PRO",
-          "options": [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          "range": [
-            0,
-            3
-          ],
-          "onlyPatterns": [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       "sides": []
@@ -6133,7 +6100,8 @@
           "options": [
             "dairy_milk_2",
             "dairy_milk",
-            "dairy_soy_milk"
+            "dairy_soy_milk",
+            "dairy_milk_lf"
           ],
           "range": [
             0.5,
@@ -6314,7 +6282,8 @@
           "group": "MLK",
           "options": [
             "dairy_milk_2",
-            "dairy_soy_milk"
+            "dairy_soy_milk",
+            "dairy_milk_lf"
           ],
           "range": [
             0.5,
@@ -6396,7 +6365,8 @@
           "group": "MLK",
           "options": [
             "dairy_milk_2",
-            "dairy_soy_milk"
+            "dairy_soy_milk",
+            "dairy_milk_lf"
           ],
           "range": [
             0.5,
@@ -6468,7 +6438,8 @@
         {
           "group": "MLK",
           "options": [
-            "dairy_milk_2"
+            "dairy_milk_2",
+            "dairy_milk_lf"
           ],
           "range": [
             0.5,
@@ -6493,26 +6464,6 @@
           "range": [
             0,
             1
-          ]
-        },
-        {
-          "group": "PRO",
-          "options": [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          "range": [
-            0,
-            3
-          ],
-          "onlyPatterns": [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
           ]
         }
       ],
@@ -6776,6 +6727,20 @@
           ]
         },
         {
+          "group": "PRO",
+          "options": [
+            "pro_tofu"
+          ],
+          "range": [
+            0,
+            3
+          ],
+          "with": true,
+          "onlyPatterns": [
+            "vegan"
+          ]
+        },
+        {
           "group": "VEG",
           "options": [
             [
@@ -7029,26 +6994,6 @@
             0.5,
             2
           ]
-        },
-        {
-          "group": "PRO",
-          "options": [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          "range": [
-            0,
-            3
-          ],
-          "onlyPatterns": [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       "sides": []
@@ -7069,7 +7014,8 @@
             "dairy_yogurt_2",
             "dairy_skyr",
             "dairy_greek",
-            "dairy_soy_yogurt"
+            "dairy_soy_yogurt",
+            "dairy_yogurt_lf"
           ],
           "range": [
             0.5,
@@ -7380,7 +7326,8 @@
           "group": "MLK",
           "options": [
             "dairy_milk_2",
-            "dairy_soy_milk"
+            "dairy_soy_milk",
+            "dairy_milk_lf"
           ],
           "range": [
             0,
@@ -7534,26 +7481,6 @@
             0.5,
             1.5
           ]
-        },
-        {
-          "group": "PRO",
-          "options": [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          "range": [
-            0,
-            3
-          ],
-          "onlyPatterns": [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       "sides": []
@@ -7658,7 +7585,8 @@
           "group": "MLK",
           "options": [
             "dairy_yogurt",
-            "dairy_yogurt_2"
+            "dairy_yogurt_2",
+            "dairy_yogurt_lf"
           ],
           "range": [
             1,
@@ -7685,26 +7613,6 @@
           "range": [
             0,
             1
-          ]
-        },
-        {
-          "group": "PRO",
-          "options": [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          "range": [
-            0,
-            3
-          ],
-          "onlyPatterns": [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
           ]
         }
       ],
@@ -7758,26 +7666,6 @@
           "range": [
             0,
             1
-          ]
-        },
-        {
-          "group": "PRO",
-          "options": [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          "range": [
-            0,
-            3
-          ],
-          "onlyPatterns": [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
           ]
         }
       ],
@@ -7955,26 +7843,6 @@
             0.5,
             3
           ]
-        },
-        {
-          "group": "PRO",
-          "options": [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          "range": [
-            0,
-            3
-          ],
-          "onlyPatterns": [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       "sides": []
@@ -8070,7 +7938,8 @@
             "dairy_yogurt_2",
             "dairy_greek",
             "dairy_skyr",
-            "dairy_soy_yogurt"
+            "dairy_soy_yogurt",
+            "dairy_yogurt_lf"
           ],
           "range": [
             0.5,
@@ -8215,26 +8084,6 @@
             1
           ],
           "with": true
-        },
-        {
-          "group": "PRO",
-          "options": [
-            [
-              "pro_plant_protein"
-            ],
-            [
-              "pro_whey"
-            ]
-          ],
-          "range": [
-            0,
-            3
-          ],
-          "onlyPatterns": [
-            "vegan",
-            "vegetarian",
-            "pescatarian"
-          ]
         }
       ],
       "sides": []
@@ -8380,6 +8229,380 @@
             2
           ]
         }
+      ],
+      "sides": []
+    },
+    {
+      "id": "m_soy_bolognese",
+      "meals": [
+        "main"
+      ],
+      "category": "plant",
+      "name": "Паста болонезе със соева кайма",
+      "parts": [
+        {
+          "group": "STA",
+          "options": [
+            "eng_pasta",
+            "eng_lentil_pasta"
+          ],
+          "range": [
+            2,
+            6
+          ]
+        },
+        {
+          "group": "PRO",
+          "options": [
+            "pro_soy_mince"
+          ],
+          "range": [
+            2,
+            5
+          ]
+        },
+        {
+          "group": "VEG",
+          "options": [
+            [
+              "veg_tomato",
+              "veg_carrot"
+            ]
+          ],
+          "range": [
+            1,
+            2
+          ]
+        },
+        {
+          "group": "FAT",
+          "options": [
+            "fat_oil"
+          ],
+          "range": [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          "group": "FAT",
+          "options": [
+            "fat_avocado",
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts"
+          ],
+          "range": [
+            0,
+            6
+          ],
+          "onlyStyles": [
+            "low_carb"
+          ]
+        }
+      ],
+      "fixed": [
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      "sides": []
+    },
+    {
+      "id": "m_soy_stuffed_peppers",
+      "meals": [
+        "main"
+      ],
+      "category": "plant",
+      "name": "Пълнени чушки със соева кайма и ориз",
+      "parts": [
+        {
+          "group": "VEG",
+          "options": [
+            [
+              "veg_pepper"
+            ]
+          ],
+          "range": [
+            1.5,
+            3
+          ]
+        },
+        {
+          "group": "PRO",
+          "options": [
+            "pro_soy_mince"
+          ],
+          "range": [
+            2,
+            5
+          ]
+        },
+        {
+          "group": "STA",
+          "options": [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          "range": [
+            0.5,
+            6
+          ]
+        },
+        {
+          "group": "FAT",
+          "options": [
+            "fat_oil"
+          ],
+          "range": [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          "group": "FAT",
+          "options": [
+            "fat_avocado",
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts"
+          ],
+          "range": [
+            0,
+            6
+          ],
+          "onlyStyles": [
+            "low_carb"
+          ]
+        }
+      ],
+      "fixed": [
+        [
+          "veg_onion",
+          20
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      "sides": []
+    },
+    {
+      "id": "m_soy_moussaka",
+      "meals": [
+        "main"
+      ],
+      "category": "plant",
+      "name": "Постна мусака със соева кайма",
+      "parts": [
+        {
+          "group": "PRO",
+          "options": [
+            "pro_soy_mince"
+          ],
+          "range": [
+            2,
+            5
+          ]
+        },
+        {
+          "group": "STA",
+          "options": [
+            "eng_potato"
+          ],
+          "range": [
+            2,
+            6
+          ]
+        },
+        {
+          "group": "VEG",
+          "options": [
+            [
+              "veg_carrot",
+              "veg_pepper"
+            ]
+          ],
+          "range": [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          "group": "FAT",
+          "options": [
+            "fat_oil"
+          ],
+          "range": [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      "fixed": [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      "sides": []
+    },
+    {
+      "id": "m_veg_bake_mozzarella",
+      "meals": [
+        "main"
+      ],
+      "category": "veggie",
+      "name": "Запечени зеленчуци с моцарела",
+      "parts": [
+        {
+          "group": "VEG",
+          "options": [
+            [
+              "veg_zucchini",
+              "veg_eggplant"
+            ],
+            [
+              "veg_pepper",
+              "veg_zucchini"
+            ]
+          ],
+          "range": [
+            1.5,
+            3
+          ],
+          "with": true
+        },
+        {
+          "group": "PRO",
+          "options": [
+            "dairy_mozzarella"
+          ],
+          "range": [
+            1.5,
+            3
+          ]
+        },
+        {
+          "group": "STA",
+          "options": [
+            "eng_potato",
+            "eng_rice"
+          ],
+          "range": [
+            0,
+            6
+          ],
+          "with": true
+        },
+        {
+          "group": "FAT",
+          "options": [
+            "fat_oil"
+          ],
+          "range": [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          "group": "FAT",
+          "options": [
+            "fat_olives",
+            "fat_walnuts"
+          ],
+          "range": [
+            0,
+            6
+          ],
+          "onlyStyles": [
+            "low_carb"
+          ]
+        }
+      ],
+      "fixed": [],
+      "sides": []
+    },
+    {
+      "id": "m_quinoa_cheese_salad",
+      "meals": [
+        "main"
+      ],
+      "category": "veggie",
+      "name": "Топла салата с киноа и сирене",
+      "parts": [
+        {
+          "group": "STA",
+          "options": [
+            "eng_quinoa"
+          ],
+          "range": [
+            1.5,
+            6
+          ]
+        },
+        {
+          "group": "PRO",
+          "options": [
+            "dairy_cheese",
+            "dairy_mozzarella"
+          ],
+          "range": [
+            1,
+            2.5
+          ]
+        },
+        {
+          "group": "VEG",
+          "options": [
+            [
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_pepper",
+              "veg_spinach"
+            ]
+          ],
+          "range": [
+            1,
+            2
+          ],
+          "with": true
+        },
+        {
+          "group": "FAT",
+          "options": [
+            "fat_oil"
+          ],
+          "range": [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          "group": "FAT",
+          "options": [
+            "fat_walnuts",
+            "fat_pumpkin_seeds"
+          ],
+          "range": [
+            0,
+            1
+          ]
+        }
+      ],
+      "fixed": [
+        [
+          "cond_lemon_juice",
+          10
+        ]
       ],
       "sides": []
     }

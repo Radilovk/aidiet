@@ -31,6 +31,20 @@ export const MORNING_DRINK = {
   description: '• Чаша айран или кефир\n• Протеинов шейк\n• Вода с лимон или билков чай',
 };
 
+/**
+ * Сутрешната напитка — само каквото клиентът може: без айран при „без
+ * млечни“, без шейк при протокол без добавки.
+ * @param {{ dairy: boolean, shake: boolean, plantMilk: boolean }} can
+ */
+export function morningDrinkFor(can) {
+  const lines = [];
+  if (can.dairy) lines.push('• Чаша айран или кефир');
+  else if (can.plantMilk) lines.push('• Чаша соев или друг растителен напитък');
+  if (can.shake) lines.push('• Протеинов шейк');
+  lines.push('• Вода с лимон или билков чай');
+  return { ...MORNING_DRINK, description: lines.join('\n') };
+}
+
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const LINE_RE = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:g|гр|г)(?![\p{L}\p{N}])(?:\s*[—-]\s*(.+))?$/iu;
 

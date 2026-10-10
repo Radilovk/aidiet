@@ -14,7 +14,7 @@
 import { DISHES, SIDES, food, nutrientsOf, PATTERNS, VEGAN_BREAKFASTS } from './knowledge.js';
 import { buildMeal, describeMeal, portionLine } from './meal-builder.js';
 import { normalizeFoodKey } from '../food-utils.js';
-import { FREE_MEAL, FIXED_DESSERT, FIXED_DESSERT_WEIGHT_GRAMS, MORNING_DRINK } from './plan-shape.js';
+import { FREE_MEAL, FIXED_DESSERT, FIXED_DESSERT_WEIGHT_GRAMS, morningDrinkFor } from './plan-shape.js';
 import { mealBenefits } from './benefits.js';
 
 export const MEAL_KIND = {
@@ -358,6 +358,11 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
   const snackCtx = { ...ctx, policy: snackPolicy, preferenceOf: id => policy.preference(id) };
 
   const slots = prescription.slots;
+  const drink = morningDrinkFor({
+    dairy: policy.allowed('dairy_kefir') || policy.allowed('dairy_yogurt'),
+    plantMilk: policy.allowed('dairy_soy_milk'),
+    shake: policy.allowed('pro_whey') || policy.allowed('pro_plant_protein'),
+  });
   const mainSlots = [];
   for (let day = 1; day <= 7; day++) {
     for (const type of slots) {
@@ -393,6 +398,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     lastMealFoods: new Set(),
     mainFoodsToday: new Set(),
     yesterdayDishes: new Set(),
+    supplementToday: false,
     previousWeek,
   };
 
@@ -401,9 +407,10 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
   for (let day = 1; day <= 7; day++) {
     const meals = [];
     // Без закуска не се натиска за закуска — предлага се напитка за хидратация.
-    if (morningDrink) meals.push({ ...MORNING_DRINK });
+    if (morningDrink) meals.push({ ...drink });
     const todayDishes = new Set();
     state.mainFoodsToday = new Set();
+    state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
 
     for (const type of slots) {
@@ -418,6 +425,9 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       if (kind === 'main') {
         const inCategory = pool.filter(d => d.category === category);
         if (inCategory.length) pool = inCategory;
+        // Основното хранене има белтъчен източник — „спанак с ориз“ сам не е обяд.
+        const withProtein = pool.filter(d => proteinCapacity(d) >= 3);
+        if (withProtein.length) pool = withProtein;
       }
       // Едно ястие — най-много два пъти седмично и не в два поредни дни.
       // По-просто меню: същите ястия по-често; повече разнообразие: всяко основно веднъж.
@@ -469,6 +479,11 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       };
       const avoid = slotAvoid.filter(a => a.day === day && a.type === type).flatMap(a => a.avoid);
       let slotCtx = kind === 'snack' ? snackCtx : ctx;
+      // Протеин на прах — най-много веднъж на ден.
+      if (state.supplementToday) {
+        const basePolicy = slotCtx.policy;
+        slotCtx = { ...slotCtx, policy: { ...basePolicy, allowed: id => basePolicy.allowed(id) && !food(id).flags.has('supplement') } };
+      }
       let slotPool = ranked.map(r => r.d);
       if (avoid.length) {
         // Замяна по искане на AI прегледа: храните се избягват само в това хранене.
@@ -493,6 +508,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       if (!best) throw new Error(`Няма подходящо ястие за ${type} (ден ${day}) при тази диета`);
 
       recordUse(best.dish, best.built, state);
+      if ([...mealFoods(best.built)].some(id => food(id).flags.has('supplement'))) state.supplementToday = true;
       todayDishes.add(best.dish.id);
       if (kind === 'main') {
         const proteinPart = best.built.parts.find(p => p.group === 'PRO' || p.group === 'LEG');

@@ -256,7 +256,9 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
       if (optional) continue;
       return null;
     }
-    if (optional && !(quota[spec.group] > 0) && spec.group !== 'LEG') continue;
+    // Протеинът на прах при растителен модел допълва белтъка и без PRO порция в храненето.
+    const boost = spec.group === 'PRO' && ctx.policy.proteinBoost && option.every(id => food(id).flags.has('supplement'));
+    if (optional && !(quota[spec.group] > 0) && spec.group !== 'LEG' && !boost) continue;
     // Един въглехидратен източник в хранене (ориз ИЛИ хляб): втори, различен, отпада.
     const carb = option.find(id => food(id).catalogGroup === 'carb');
     if (carb) {

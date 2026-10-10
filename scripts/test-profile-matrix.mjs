@@ -145,7 +145,7 @@ for (let i = 0; i < N; i++) {
     continue;
   }
   const { weekPlan, macros, policy } = res;
-  if (process.env.ONLY) { console.log('цел', kcal, JSON.stringify(macros)); for (const m of weekPlan.day1.meals) console.log(m.type, m.calories, m.targetCalories, '|', m.name, '|', (m.description || '').replace(/\n/g, ' ')); console.log(JSON.stringify(res.prescription.daily)); }
+  if (process.env.ONLY) { console.log('цел', kcal, JSON.stringify(macros)); for (const m of (process.env.WEEK ? Object.values(weekPlan).flatMap(d => d.meals) : weekPlan.day1.meals)) console.log(m.type, m.calories, m.targetCalories, '|', m.name, '|', (m.description || '').replace(/\n/g, ' ')); console.log(JSON.stringify(res.prescription.daily)); }
   const meals = Object.values(weekPlan).flatMap(d => d.meals);
   const plated = meals.filter(m => m.macros && m.description);
   const text = plated.map(m => `${m.name}\n${m.description}`).join('\n');
@@ -162,8 +162,8 @@ for (let i = 0; i < N; i++) {
   if (prof.exclusions.includes('LAC') && DAIRY.test(desc)) fail('забранено: млечно при „без млечни“');
   if (meta.allergy && meta.allergy.re.test(desc)) fail(`забранено: ${meta.allergy.excl}`, (desc.match(meta.allergy.re) || [])[0]);
   if (prof.clinical.includes('GOUT') && PURINE.test(desc)) fail('забранено: много пурини при подагра', (desc.match(PURINE) || [])[0]);
-  if ((prof.clinical.includes('IBS') || prof.diet.style === 'low_fodmap') && FODMAP_FOODS.some(n => desc.includes(`• ${n} `))) {
-    fail('забранено: висок FODMAP', FODMAP_FOODS.find(n => desc.includes(`• ${n} `)));
+  if ((prof.clinical.includes('IBS') || prof.diet.style === 'low_fodmap') && FODMAP_FOODS.some(n => new RegExp(`• ${n} \\d`).test(desc))) {
+    fail('забранено: висок FODMAP', FODMAP_FOODS.find(n => new RegExp(`• ${n} \\d`).test(desc)));
   }
   if (prof.clinical.includes('HTN')) {
     const salty = plated.filter(m => /(Сирене|Кашкавал|Маслини|Сардини|Пармезан)/.test(m.description)).length;
