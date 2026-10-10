@@ -116,11 +116,17 @@
                 state.raw[key] = value;
                 state.parsed[key] = safeParse(value);
                 if (!localValue) localStorage.setItem(key, value);
-                if (localValue) writes.push(writePreference(preferences, key, localValue));
+                if (localValue) writes.push([key, localValue]);
             }
         }
 
-        await Promise.all(writes);
+        // Резервното копие в Preferences (целият план минава през моста към Android)
+        // не бива да бави показването на плана — записва се след като се отвори.
+        if (writes.length && preferences) {
+            setTimeout(function () {
+                writes.forEach(function (entry) { writePreference(preferences, entry[0], entry[1]); });
+            }, 3000);
+        }
         if (window.NutriPlanDiagnostics) {
             window.NutriPlanDiagnostics.ok('shell', 'cache-startup-data', Object.keys(state.raw).length + ' keys');
         }

@@ -2568,6 +2568,76 @@
             }
         }
 
+        // --- MEDICAL FILES ---
+        // Файловете отиват в клиентския запис (KV) като base64 — затова снимките се
+        // смаляват, а общият размер е ограничен. Държат се в паметта, не в localStorage
+        // (там лимитът е ~5 MB и би спрял запазването на всички отговори).
+        const MEDICAL_FILES_MAX_COUNT = 5;
+        const MEDICAL_FILES_MAX_TOTAL_MB = 8;
+        const MEDICAL_FILE_MAX_DOC_MB = 4;
+        let medicalFilesData = [];
+        let medicalFilesErrors = [];
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('read'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function shrinkImage(file) {
+            const url = await readFileAsDataUrl(file);
+            const img = await new Promise((resolve, reject) => {
+                const el = new Image();
+                el.onload = () => resolve(el);
+                el.onerror = () => reject(new Error('image'));
+                el.src = url;
+            });
+            const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            const data = canvas.toDataURL('image/jpeg', 0.82);
+            const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+            return { name, type: 'image/jpeg', size: Math.round(data.length * 0.75), data };
+        }
+
+        async function prepareMedicalFiles(files) {
+            const out = [];
+            const errors = [];
+            let total = 0;
+            for (const file of files) {
+                if (out.length >= MEDICAL_FILES_MAX_COUNT) {
+                    errors.push(`${file.name}: най-много ${MEDICAL_FILES_MAX_COUNT} файла`);
+                    continue;
+                }
+                try {
+                    let item;
+                    if (/^image\//.test(file.type) && !/gif|svg/.test(file.type)) {
+                        item = await shrinkImage(file);
+                    } else {
+                        if (file.size > MEDICAL_FILE_MAX_DOC_MB * 1024 * 1024) {
+                            errors.push(`${file.name}: над ${MEDICAL_FILE_MAX_DOC_MB} MB — снимайте страниците или изпратете по-малък файл`);
+                            continue;
+                        }
+                        item = { name: file.name, type: file.type || 'application/octet-stream', size: file.size, data: await readFileAsDataUrl(file) };
+                    }
+                    if (total + item.size > MEDICAL_FILES_MAX_TOTAL_MB * 1024 * 1024) {
+                        errors.push(`${file.name}: общият размер надхвърля ${MEDICAL_FILES_MAX_TOTAL_MB} MB`);
+                        continue;
+                    }
+                    total += item.size;
+                    out.push(item);
+                } catch (_) {
+                    errors.push(`${file.name}: файлът не може да бъде прочетен`);
+                }
+            }
+            return { files: out, errors };
+        }
+
         // --- CORE RENDER FUNCTION ---
         function renderStep() {
             const step = currentQueue[currentIndex];
@@ -2733,49 +2803,55 @@
                 fileList.className = 'file-list';
                 fileList.style.cssText = 'margin-top: 15px; text-align: left;';
                 
-                fileInput.onchange = (e) => {
-                    const files = Array.from(e.target.files);
-                    if (files.length > 0) {
-                        answers[step.id] = files;
-                        fileList.innerHTML = '';
-                        files.forEach((file, index) => {
-                            const fileItem = document.createElement('div');
-                            fileItem.style.cssText = 'padding: 8px 12px; background: var(--soft-red); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;';
-                            fileItem.innerHTML = `
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="fas fa-file" style="color: var(--primary-red);"></i>
-                                    <span style="color: var(--text-dark); font-size: 0.9rem;">${file.name}</span>
-                                    <span style="color: var(--text-gray); font-size: 0.8rem;">(${(file.size / 1024).toFixed(1)} KB)</span>
-                                </div>
-                            `;
-                            fileList.appendChild(fileItem);
-                        });
-                        fileLabel.querySelector(`#fileUploadText_${step.id}`).textContent = `${files.length} файл(а) избрани`;
-                    }
+                const renderFileList = () => {
+                    const ready = medicalFilesData.map(f => ({ name: f.name, size: f.size, ok: true }));
+                    // След презареждане файловете не са в паметта — показваме кои да се прикачат отново.
+                    const names = Array.isArray(answers[step.id]) ? answers[step.id].filter(n => typeof n === 'string') : [];
+                    const lost = names.filter(n => !medicalFilesData.some(f => f.name === n)).map(n => ({ name: n, lost: true }));
+                    const rows = ready.concat(lost, medicalFilesErrors.map(err => ({ name: err, error: true })));
+                    fileList.innerHTML = '';
+                    rows.forEach(row => {
+                        const fileItem = document.createElement('div');
+                        fileItem.style.cssText = 'padding: 8px 12px; background: var(--soft-red); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;';
+                        const icon = document.createElement('i');
+                        icon.className = row.error ? 'fas fa-exclamation-circle' : (row.lost ? 'fas fa-redo' : 'fas fa-file');
+                        icon.style.color = 'var(--primary-red)';
+                        const label = document.createElement('span');
+                        label.style.cssText = 'color: var(--text-dark); font-size: 0.9rem; word-break: break-word;';
+                        label.textContent = row.error ? row.name
+                            : row.lost ? `${row.name} — прикачете отново`
+                            : `${row.name} (${(row.size / 1024).toFixed(0)} KB)`;
+                        fileItem.appendChild(icon);
+                        fileItem.appendChild(label);
+                        fileList.appendChild(fileItem);
+                    });
+                    const text = fileLabel.querySelector(`#fileUploadText_${step.id}`);
+                    text.textContent = medicalFilesData.length ? `${medicalFilesData.length} файл(а) готови` : 'Изберете файлове';
                 };
-                
+
+                fileInput.onchange = async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (!files.length) return;
+                    const text = fileLabel.querySelector(`#fileUploadText_${step.id}`);
+                    text.textContent = 'Обработка…';
+                    const result = await prepareMedicalFiles(files);
+                    medicalFilesData = result.files;
+                    medicalFilesErrors = result.errors;
+                    answers[step.id] = medicalFilesData.map(f => f.name);
+                    saveAnswer(step.id, answers[step.id]);
+                    renderFileList();
+                    fileInput.value = '';
+                };
+
                 fileContainer.appendChild(fileInput);
                 fileContainer.appendChild(fileLabel);
                 card.appendChild(fileContainer);
+                const limitsNote = document.createElement('div');
+                limitsNote.style.cssText = 'margin-top: 8px; color: var(--text-gray); font-size: 0.8rem; text-align: center;';
+                limitsNote.textContent = `До ${MEDICAL_FILES_MAX_COUNT} файла, общо до ${MEDICAL_FILES_MAX_TOTAL_MB} MB. Снимките се смаляват автоматично.`;
+                card.appendChild(limitsNote);
                 card.appendChild(fileList);
-                
-                // Restore previous files if any
-                if (answers[step.id]) {
-                    const files = answers[step.id];
-                    fileList.innerHTML = '';
-                    files.forEach((file) => {
-                        const fileItem = document.createElement('div');
-                        fileItem.style.cssText = 'padding: 8px 12px; background: var(--soft-red); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;';
-                        fileItem.innerHTML = `
-                            <i class="fas fa-file" style="color: var(--primary-red);"></i>
-                            <span style="color: var(--text-dark); font-size: 0.9rem;">${file.name}</span>
-                        `;
-                        fileList.appendChild(fileItem);
-                    });
-                    if (files.length > 0) {
-                        fileLabel.querySelector(`#fileUploadText_${step.id}`).textContent = `${files.length} файл(а) избрани`;
-                    }
-                }
+                renderFileList();
             }
             else if (['radio', 'checkbox'].includes(step.type)) {
                 const grid = document.createElement('div');
@@ -3311,27 +3387,29 @@
         const DIAGNOSTIC_TOTAL_MS = 50000;
         const MIN_LOG_INTERVAL_MS = 2200;
 
+        // Стъпките описват това, което алгоритъмът реално прави — без обещания
+        // за анализи, които не се извършват.
         const DIAGNOSTIC_LOG_LINES = [
-            { at: 400,    progress: 4,  phase: 'cold',     tag: 'Старт',    text: 'Стартиране на AI здравния анализатор...', haptic: true },
-            { at: 2600,   progress: 9,  phase: 'cold',     tag: 'Данни',    text: 'Обработка на ръст, тегло, възраст и пол' },
-            { at: 4800,   progress: 14, phase: 'cold',     tag: 'Метаболизъм', text: 'Изчисляване на базален и дневен калориен разход' },
-            { at: 7000,   progress: 19, phase: 'cold',     tag: 'Цел',      text: 'Определяне на целева скорост и хоризонт на промяната' },
-            { at: 9200,   progress: 24, phase: 'cold',     tag: 'Профил',   text: 'Компилиране на начален хранителен профил' },
-            { at: 11400,  progress: 30, phase: 'amber',    tag: 'Здраве',   text: 'Сканиране на здравни състояния и рискови фактори', haptic: true },
-            { at: 13600,  progress: 36, phase: 'amber',    tag: 'Метаболизъм', text: 'Анализ на метаболитен индекс и енергийни колебания' },
-            { at: 15800,  progress: 42, phase: 'amber',    tag: 'Лаборатория', text: 'Интерпретация на лабораторни и клинични показатели' },
-            { at: 18000,  progress: 48, phase: 'amber',    tag: 'Филтри',   text: 'Прилагане на клинични филтри и ограничения' },
-            { at: 20200,  progress: 54, phase: 'amber',    tag: 'Лекарства', text: 'Проверка за взаимодействия с медикаменти' },
-            { at: 22400,  progress: 60, phase: 'critical', tag: 'Сън',      text: 'Моделиране на циркаден ритъм и качество на съня', haptic: true },
-            { at: 24800,  progress: 66, phase: 'critical', tag: 'Поведение', text: 'Картографиране на хранителни тригери и стресови модели' },
-            { at: 27200,  progress: 72, phase: 'critical', tag: 'Възстановяване', text: 'Оценка на съотношението натоварване / почивка' },
-            { at: 29600,  progress: 78, phase: 'critical', tag: 'Рискове',  text: 'Класификация на критични, умерени и ниски рискове' },
-            { at: 32000,  progress: 83, phase: 'critical', tag: 'Черва',    text: 'Анализ на чревната среда и хранителни модулатори' },
-            { at: 34400,  progress: 87, phase: 'success',  tag: 'Макроси',  text: 'Синтез на макронутриентна матрица и калории', haptic: true },
-            { at: 36800,  progress: 90, phase: 'success',  tag: 'Алергени', text: 'Сканиране за алергени и хранителни изключения' },
-            { at: 39200,  progress: 92, phase: 'success',  tag: 'Меню',     text: 'Генериране на 7-дневен цикъл с разнообразие на ястията' },
-            { at: 41600,  progress: 94, phase: 'success',  tag: 'Проверка', text: 'Валидация на резултатите — без грешки' },
-            { at: 44000,  progress: 96, phase: 'success',  tag: 'Готово',   text: 'Анализът е завършен — очакване на потвърждение от сървъра' }
+            { at: 400,    progress: 4,  phase: 'cold',     tag: 'Старт',      text: 'Отговорите са получени', haptic: true },
+            { at: 2600,   progress: 9,  phase: 'cold',     tag: 'Данни',      text: 'Ръст, тегло, възраст и пол' },
+            { at: 4800,   progress: 14, phase: 'cold',     tag: 'Енергия',    text: 'Базален и дневен разход на енергия' },
+            { at: 7000,   progress: 19, phase: 'cold',     tag: 'Цел',        text: 'Безопасно темпо на промяна според целта' },
+            { at: 9200,   progress: 24, phase: 'cold',     tag: 'Активност',  text: 'Корекция според работа, спорт и стъпки' },
+            { at: 11400,  progress: 30, phase: 'amber',    tag: 'Здраве',     text: 'Хранителни правила при посочените здравословни състояния', haptic: true },
+            { at: 13600,  progress: 36, phase: 'amber',    tag: 'Режим',      text: 'Подходящ хранителен режим (напр. средиземноморски, вегетариански)' },
+            { at: 15800,  progress: 42, phase: 'amber',    tag: 'Изключения', text: 'Алергии, непоносимости и храни, които не ядете' },
+            { at: 18000,  progress: 48, phase: 'amber',    tag: 'Храносмилане', text: 'Ограничения при чувствителен стомах (лактоза, FODMAP)' },
+            { at: 20200,  progress: 54, phase: 'amber',    tag: 'Макроси',    text: 'Белтъчини, мазнини и въглехидрати за деня' },
+            { at: 22400,  progress: 60, phase: 'critical', tag: 'Хранения',   text: 'Брой и часове на храненията според съня и работата', haptic: true },
+            { at: 24800,  progress: 66, phase: 'critical', tag: 'Порции',     text: 'Разпределяне на храните по групи и хранения' },
+            { at: 27200,  progress: 72, phase: 'critical', tag: 'Ястия',      text: 'Избор на ястия според вкусовете ви' },
+            { at: 29600,  progress: 78, phase: 'critical', tag: 'Седмица',    text: 'Седмично меню с разнообразие' },
+            { at: 32000,  progress: 83, phase: 'critical', tag: 'Грамажи',    text: 'Изчисляване на грамажите' },
+            { at: 34400,  progress: 87, phase: 'success',  tag: 'Проверка',   text: 'Сверка на калориите и белтъка за всеки ден', haptic: true },
+            { at: 36800,  progress: 90, phase: 'success',  tag: 'Насоки',     text: 'Персонални насоки и стратегия' },
+            { at: 39200,  progress: 92, phase: 'success',  tag: 'Запис',      text: 'Запазване на плана' },
+            { at: 41600,  progress: 94, phase: 'success',  tag: 'Специалист', text: 'Планът отива за преглед от специалист' },
+            { at: 44000,  progress: 96, phase: 'success',  tag: 'Изчакване',  text: 'Изчакваме потвърждение от сървъра' }
         ];
 
         function triggerDiagnosticHaptic() {
@@ -3351,9 +3429,9 @@
                                 <div class="ai-hex-loader"></div>
                             </div>
                         </div>
-                        <div class="diagnostic-kicker">AI здравен анализ</div>
-                        <h2 class="q-text" id="loadingTitle">Структуриране на Био-масива...</h2>
-                        <p class="diagnostic-subtitle" id="loadingSubtitle">${isResume ? 'Продължаваме анализа от активна сесия' : 'Hexagon MED AI обработва въведените данни'}</p>
+                        <div class="diagnostic-kicker">Изготвяне на плана</div>
+                        <h2 class="q-text" id="loadingTitle">Изчисляваме нуждите ви...</h2>
+                        <p class="diagnostic-subtitle" id="loadingSubtitle">${isResume ? 'Продължаваме анализа от активна сесия' : 'Обработваме въведените данни'}</p>
                         <div id="progressPercentage" class="diagnostic-percent">0%</div>
                         <div class="diagnostic-progress-track">
                             <div id="aiProgressBar" class="diagnostic-progress-fill"></div>
@@ -3365,7 +3443,7 @@
                             <span class="diagnostic-step-dot"></span>
                         </div>
                         <p id="safeCloseMsg" class="diagnostic-safe">
-                            <i class="fas fa-shield-alt"></i> Генерирането продължава защитено във фонов режим
+                            <i class="fas fa-shield-alt"></i> Може да затворите приложението — планът продължава да се изготвя
                         </p>
                     </div>
                     <div class="diagnostic-terminal-wrap">
@@ -3668,10 +3746,10 @@
             const MAX_VISIBLE_LOGS = 5;
 
             const stages = [
-                { minTime: 0,     maxTime: 11250, from: 0,  to: 28, phase: 'cold',     title: 'Структуриране на Био-масива...',   subtitle: 'Парсираме антропометрия, демография и целеви вектор' },
-                { minTime: 11250, maxTime: 23750, from: 28, to: 52, phase: 'amber',    title: 'Сканиране на здравен статус...',   subtitle: 'Кръстосан анализ на клинични и метаболитни променливи' },
-                { minTime: 23750, maxTime: 37500, from: 52, to: 75, phase: 'critical', title: 'Невро-хормонален анализ...',        subtitle: 'Локализираме поведенчески тригъри, сън и стрес' },
-                { minTime: 37500, maxTime: DIAGNOSTIC_TOTAL_MS, from: 75, to: 94, phase: 'success',  title: 'Синтез на алгоритъма...',           subtitle: 'Калибрираме макронутриентната матрица и TDEE' }
+                { minTime: 0,     maxTime: 11250, from: 0,  to: 28, phase: 'cold',     title: 'Изчисляваме нуждите ви...',   subtitle: 'Енергиен разход, цел и активност' },
+                { minTime: 11250, maxTime: 23750, from: 28, to: 52, phase: 'amber',    title: 'Прилагаме здравните правила...',   subtitle: 'Състояния, алергии и храни, които не ядете' },
+                { minTime: 23750, maxTime: 37500, from: 52, to: 75, phase: 'critical', title: 'Подреждаме храненията...',        subtitle: 'Часове, порции и любими ястия' },
+                { minTime: 37500, maxTime: DIAGNOSTIC_TOTAL_MS, from: 75, to: 94, phase: 'success',  title: 'Сглобяваме седмицата...',           subtitle: 'Грамажи, проверка и насоки' }
             ];
 
             function setPhase(phase) {
@@ -4000,39 +4078,32 @@
             // Save client data (with files) in background — non-blocking
             let savedClientId = null;
             try {
+                // clientId се пази само ако сървърът реално е записал клиента —
+                // иначе „чакане на одобрение“ проверява несъществуващ запис.
                 const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-                savedClientId = clientId;
                 const cleanAnswers = {};
                 for (const [key, val] of Object.entries(answers)) {
                     if (key === 'medicalFiles') continue;
                     cleanAnswers[key] = val;
                 }
                 const clientData = { id: clientId, timestamp: new Date().toISOString(), answers: cleanAnswers };
-                if (answers.medicalFiles && answers.medicalFiles.length > 0) {
-                    try {
-                        const filePromises = Array.from(answers.medicalFiles).map(file => {
-                            return new Promise((resolve) => {
-                                const reader = new FileReader();
-                                reader.onload = (e) => resolve({ name: file.name, type: file.type, size: file.size, data: e.target.result });
-                                reader.onerror = () => resolve({ name: file.name || 'unknown', type: file.type || 'unknown', size: file.size || 0, error: `File '${file.name || 'unknown'}' could not be read` });
-                                reader.readAsDataURL(file);
-                            });
-                        });
-                        clientData.files = await Promise.all(filePromises);
-                    } catch (fileError) {
-                        console.warn('Could not process uploaded files:', fileError);
-                    }
+                if (medicalFilesData.length > 0) {
+                    clientData.files = medicalFilesData.map(f => ({ name: f.name, type: f.type, size: f.size, data: f.data }));
                 }
-                const clientResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
+                const postClient = () => fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(clientData)
                 });
+                // Един повторен опит при прекъсната връзка или временна грешка на сървъра.
+                let clientResponse = await postClient().catch(() => null);
+                if (!clientResponse || clientResponse.status >= 500) {
+                    await new Promise(r => setTimeout(r, 1500));
+                    clientResponse = await postClient();
+                }
                 if (clientResponse.ok) {
-                    const clientResult = await clientResponse.json();
-                    if (clientResult && clientResult.clientId) {
-                        savedClientId = clientResult.clientId;
-                    }
+                    const clientResult = await clientResponse.json().catch(() => null);
+                    savedClientId = (clientResult && clientResult.clientId) || clientId;
                     console.log('Client data saved:', savedClientId);
                 } else {
                     console.warn('Could not save client data before generation:', clientResponse.status);
@@ -4503,7 +4574,7 @@
                         } else if (data.status === 'completed') {
                             done = true;
                             try {
-                                await applyPlanResult(data, planPayload, savedClientId);
+                                await applyPlanResult(data, planPayload, data.clientId || savedClientId);
                                 resolve();
                             } catch (applyErr) {
                                 reject(applyErr);

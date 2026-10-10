@@ -129,7 +129,8 @@ const GameNotifier = {
         return this.CALENDAR_URL.replace('https://', 'webcal://');
     },
 
-    async init() {
+    async init(options) {
+        this._forcePermissionPrompt = !!(options && options.askPermission);
         if (this._initialized) {
             console.log('[GameNotifier] Already ready – skipping re-init.');
             return true;
@@ -834,12 +835,38 @@ const GameNotifier = {
         return /huawei/i.test(navigator.userAgent) || /harmony/i.test(navigator.userAgent);
     },
 
+    /**
+     * Системният въпрос за известия не се показва при първото отваряне (клиентът
+     * още не знае защо му трябват), а след първия ден и най-много веднъж на 7 дни.
+     * Бутонът „Разреши“ в плана го показва веднага.
+     */
+    _mayPromptPermission() {
+        if (this._forcePermissionPrompt) return true;
+        try {
+            const now = Date.now();
+            const firstOpen = Number(localStorage.getItem('np_first_open_at') || 0);
+            if (!firstOpen) {
+                localStorage.setItem('np_first_open_at', String(now));
+                return false;
+            }
+            if (now - firstOpen < 20 * 60 * 60 * 1000) return false;
+            const askedAt = Number(localStorage.getItem('np_notif_perm_asked_at') || 0);
+            return !askedAt || now - askedAt >= 7 * 24 * 60 * 60 * 1000;
+        } catch (_) {
+            return false;
+        }
+    },
+
     async _requestCapacitorPermission() {
         try {
             const { LocalNotifications } = this._capacitor;
             const current = typeof LocalNotifications.checkPermissions === 'function'
                 ? await LocalNotifications.checkPermissions()
                 : {};
+            if (current.display !== 'granted' && !this._mayPromptPermission()) return false;
+            if (current.display !== 'granted') {
+                try { localStorage.setItem('np_notif_perm_asked_at', String(Date.now())); } catch (_) {}
+            }
             const status = current.display === 'granted'
                 ? current
                 : await LocalNotifications.requestPermissions();

@@ -1260,7 +1260,7 @@
         </div>
 
         <!-- Strategy Detail Modal -->
-        <div class="strategy-modal-overlay" id="strategyModal" onclick="handleStrategyModalClick(event)">
+        <div class="strategy-modal-overlay" id="strategyModal" role="dialog" aria-modal="true" onclick="handleStrategyModalClick(event)">
             <div class="strategy-modal-card" id="strategyModalCard">
                 <div class="strategy-modal-header">
                     <div class="strategy-modal-title">
@@ -1922,8 +1922,8 @@
         var tabs = [
             { tab: 'plan', url: 'index.html?app=1&tab=plan' },
             { tab: 'guidelines', url: 'index.html?app=1&tab=guidelines' },
-            { tab: 'profile', url: 'index.html?app=1&tab=profile' },
-            { tab: 'analytics', url: 'index.html?app=1&tab=analytics' }
+            { tab: 'analytics', url: 'index.html?app=1&tab=analytics' },
+            { tab: 'profile', url: 'index.html?app=1&tab=profile' }
         ];
         var currentIndex = 1;
         var touchStartX = 0, touchStartY = 0;
@@ -1933,6 +1933,7 @@
             touchStartY = e.changedTouches[0].clientY;
         }, { passive: true });
         document.addEventListener('touchend', function(e) {
+            if (document.querySelector('#strategyModal.active')) return;
             var dx = e.changedTouches[0].clientX - touchStartX;
             var dy = e.changedTouches[0].clientY - touchStartY;
             if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
@@ -1965,13 +1966,13 @@
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
-            <i class="fas fa-user"></i>
-            <span>Профил</span>
-        </a>
         <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
             <i class="fas fa-chart-bar"></i>
             <span>Анализ</span>
+        </a>
+        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
+            <i class="fas fa-user"></i>
+            <span>Профил</span>
         </a>
     </nav>
 </body>

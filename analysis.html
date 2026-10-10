@@ -2555,7 +2555,8 @@
         async function applyCompletedBackgroundPlan(data) {
             if (!data || !data.success || !data.plan) return;
             const planPayload = JSON.parse(localStorage.getItem('pendingPlanPayload') || localStorage.getItem('userData') || '{}');
-            const savedClientId = localStorage.getItem('pendingClientId') || null;
+            const savedClientId = data.clientId || localStorage.getItem('pendingClientId') || null;
+            if (savedClientId) localStorage.setItem('pendingClientId', savedClientId);
             const fbUserId = (function() {
                 const uid = localStorage.getItem('userId');
                 return (uid && uid.startsWith('fb_')) ? uid : null;

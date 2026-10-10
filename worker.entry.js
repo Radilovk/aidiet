@@ -3322,13 +3322,9 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
       );
       console.log(`generatePlanAndSave: job ${jobId} analysis saved to KV`);
     });
-    await env.page_content.put(
-      PLAN_JOB_PREFIX + jobId,
-      JSON.stringify({ status: 'completed', completedAt: Date.now(), ...result, userId }),
-      { expirationTtl: PLAN_JOB_TTL_SEC }
-    );
-    console.log(`generatePlanAndSave: job ${jobId} completed and saved to KV`);
-
+    // Клиентският запис се синхронизира преди статуса „готово“, за да върне
+    // задачата реалния clientId (браузърът може да не е успял да запише клиента).
+    let resolvedClientId = clientId || '';
     if (result.success && result.plan) {
       let clientHint = null;
       if (clientId) clientHint = await kvGetJSON(env, `client:${clientId}`);
@@ -3345,6 +3341,7 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
             clientId: clientId || '',
             requireApproval: needsApproval,
           });
+          if (syncResult?.clientId) resolvedClientId = syncResult.clientId;
           console.log(`generatePlanAndSave: job ${jobId} synced to email store`, syncResult);
         } catch (e) {
           console.warn(`generatePlanAndSave: failed to sync plan by email for job ${jobId}:`, e.message);
@@ -3383,6 +3380,12 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
         }
       }
     }
+    await env.page_content.put(
+      PLAN_JOB_PREFIX + jobId,
+      JSON.stringify({ status: 'completed', completedAt: Date.now(), ...result, userId, ...(resolvedClientId ? { clientId: resolvedClientId } : {}) }),
+      { expirationTtl: PLAN_JOB_TTL_SEC }
+    );
+    console.log(`generatePlanAndSave: job ${jobId} completed and saved to KV`);
   } catch (error) {
     console.error(`generatePlanAndSave: job ${jobId} failed:`, error);
     // Use try/catch instead of .catch() so a synchronous throw (e.g. env.page_content

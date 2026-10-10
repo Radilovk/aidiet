@@ -4100,7 +4100,7 @@
     <input type="file" id="foodImageInput" accept="image/*" capture="environment" style="display:none" aria-label="Избор на изображение на храна">
 
     <!-- Food Analysis Modal -->
-    <div class="food-analysis-overlay" id="foodAnalysisOverlay">
+    <div class="food-analysis-overlay" id="foodAnalysisOverlay" role="dialog" aria-modal="true">
         <div class="food-analysis-modal">
             <div class="food-analysis-header">
                 <h3 id="foodAnalysisTitle"><i class="fas fa-utensils"></i> Анализ на Храна</h3>
@@ -4150,7 +4150,7 @@
     </div>
 
     <!-- INFO MODAL -->
-    <div class="modal-overlay" id="infoModal">
+    <div class="modal-overlay" id="infoModal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
         <div class="modal-card">
                 <div class="modal-drag-handle"></div>
             <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
@@ -4195,7 +4195,7 @@
     </div>
 
     <!-- WELCOME MODAL - Shows on first visit to plan.html -->
-    <div class="modal-overlay" id="welcomeModal">
+    <div class="modal-overlay" id="welcomeModal" role="dialog" aria-modal="true">
         <div class="modal-card welcome-modal-card">
             <div class="welcome-modal-content">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -4248,8 +4248,6 @@
         
         // Enhancement #1: Retry mechanism state
         let isSending = false;
-        const MAX_RETRIES = 2;
-        const RETRY_DELAYS = [2000, 5000]; // Exponential backoff delays in ms
         let typingHapticsEnabled = true;
         const activeTypingTimers = new Set();
         const activeTypingFinalizers = new Set();
@@ -4469,9 +4467,9 @@
             if (!isCapacitorApp) {
                 if (!('Notification' in window) || Notification.permission !== 'granted') return;
             }
-            return window.GameNotifier.init()
+            return window.GameNotifier.init({ askPermission: options.showPrompt === false })
                 .then((ready) => {
-                    if (!ready && isCapacitorApp && options.showPrompt !== false) {
+                    if (!ready && isCapacitorApp && options.showPrompt !== false && notifPromptDayPassed()) {
                         showNotificationBanner();
                         showApkBatteryHintIfNeeded();
                     }
@@ -4479,7 +4477,7 @@
                 })
                 .catch(e => {
                     console.warn('[Notifications] GameNotifier.init error:', e);
-                    if (isCapacitorApp && options.showPrompt !== false) {
+                    if (isCapacitorApp && options.showPrompt !== false && notifPromptDayPassed()) {
                         showNotificationBanner();
                     }
                     return false;
@@ -4541,20 +4539,25 @@
         function handleOffline() {
             isOnline = false;
             console.log('Connection lost');
-            addMessageToChat('⚠️ Няма връзка с интернет. Съобщенията ще бъдат изпратени при възстановяване на връзката.', 'assistant');
+            // Общата лента „Без връзка“ показва състоянието; в чата — само ако е отворен.
+            if (chatVisible) addMessageToChat('⚠️ Няма връзка с интернет. Съобщенията ще бъдат изпратени при възстановяване на връзката.', 'assistant', false);
         }
         
         async function processOfflineQueue() {
             if (offlineMessageQueue.length === 0) return;
             
-            addMessageToChat('✓ Връзката е възстановена. Изпращам запазени съобщения...', 'assistant');
+            addMessageToChat('✓ Връзката е възстановена. Изпращам запазени съобщения...', 'assistant', false);
             
             const queue = [...offlineMessageQueue];
             offlineMessageQueue = [];
             
             for (const messageObj of queue) {
-                // Start with retry count 0 for queued messages (fresh attempt)
-                await sendMessageInternal(messageObj.text, 0, messageObj.id);
+                // Съобщението вече е в чата (показано при запазването) — не се дублира.
+                try {
+                    await sendMessageInternal(messageObj.text, 1, messageObj.id);
+                } catch (_) {
+                    showChatSendError(messageObj.text, 'Съобщението не беше изпратено.', true);
+                }
                 await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
             }
             
@@ -6892,7 +6895,7 @@
                 if (!alreadyQueued) {
                     offlineMessageQueue.push({ id: messageId, text: message, timestamp: Date.now() });
                     addMessageToChat(message, 'user');
-                    addMessageToChat('📤 Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant');
+                    addMessageToChat('📤 Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant', false);
                     // Save to localStorage for persistence
                     saveOfflineQueue();
                 }
@@ -6904,24 +6907,50 @@
             } catch (error) {
                 console.error('Message send failed:', error);
                 
-                // Enhancement #1: Retry logic
-                if (retryCount < MAX_RETRIES) {
-                    const delay = RETRY_DELAYS[retryCount];
-                    addMessageToChat(`⚠️ Грешка при изпращане. Опитвам отново след ${delay/1000} секунди... (опит ${retryCount + 1}/${MAX_RETRIES})`, 'assistant');
-                    
-                    setTimeout(() => {
-                        sendMessageWithRetry(message, retryCount + 1);
-                    }, delay);
-                } else {
-                    // All retries exhausted - add to offline queue if not already there
+                // Без автоматичен повторен опит: заявка за промяна, изпратена два пъти,
+                // може да промени плана два пъти. Едно съобщение с бутон, не поредица балончета.
+                if (!navigator.onLine) {
                     const alreadyQueued = offlineMessageQueue.some(m => m.id === messageId);
                     if (!alreadyQueued) {
                         offlineMessageQueue.push({ id: messageId, text: message, timestamp: Date.now() });
                         saveOfflineQueue();
                     }
-                    addMessageToChat('❌ Не успях да изпратя съобщението след няколко опита. Съобщението е запазено и ще бъде изпратено при възстановяване на връзката.', 'assistant');
+                    showChatSendError(message, 'Няма връзка. Съобщението ще се изпрати, когато връзката се върне.', false);
+                } else {
+                    showChatSendError(message, 'Съобщението не беше изпратено.', true);
                 }
             }
+        }
+
+        /** Една бележка за неуспешно изпращане (не влиза в историята на чата). */
+        function showChatSendError(message, text, canRetry) {
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) return;
+            chatMessages.querySelectorAll('.chat-send-error').forEach(el => el.remove());
+            const row = document.createElement('div');
+            row.className = 'chat-message assistant chat-send-error';
+            row.setAttribute('role', 'alert');
+            row.style.cssText = 'display:flex;justify-content:flex-start;margin-bottom:10px;';
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.style.cssText = 'background:var(--card-bg);color:var(--text-dark);padding:10px 15px;border-radius:12px;max-width:80%;font-size:0.9rem;line-height:1.5;display:flex;flex-direction:column;gap:8px;align-items:flex-start;';
+            const label = document.createElement('span');
+            label.textContent = '⚠️ ' + text;
+            bubble.appendChild(label);
+            if (canRetry) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = 'Изпрати отново';
+                btn.style.cssText = 'background:var(--primary-red);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;min-height:40px;';
+                btn.onclick = () => {
+                    row.remove();
+                    sendMessageWithRetry(message, 1);
+                };
+                bubble.appendChild(btn);
+            }
+            row.appendChild(bubble);
+            chatMessages.appendChild(row);
+            scrollChatToBottom();
         }
         
         // Core send message logic (Enhancement #1: Extracted for retry)
@@ -7053,7 +7082,6 @@
                         }, 1000);
                     }
                 } else {
-                    addMessageToChat('Съжалявам, имаше проблем. Моля, опитайте отново.', 'assistant');
                     throw new Error('Backend returned error');
                 }
             } catch (error) {
@@ -8948,7 +8976,7 @@
                 console.log('📱 Notification permission already granted');
                 scheduleNotifications();
                 registerServerPush(registration);
-            } else if (Notification.permission !== 'denied') {
+            } else if (Notification.permission !== 'denied' && notifPromptDayPassed()) {
                 // Wait a bit before showing the banner so the user isn't overwhelmed on load
                 setTimeout(() => {
                     showNotificationBanner();
@@ -9005,6 +9033,15 @@
             document.body.appendChild(banner);
         }
 
+        /** Банерът за известия идва след първия ден с плана, не при първото отваряне. */
+        function notifPromptDayPassed() {
+            try {
+                var first = Number(localStorage.getItem('np_first_open_at') || 0);
+                if (!first) { localStorage.setItem('np_first_open_at', String(Date.now())); return false; }
+                return Date.now() - first >= 20 * 60 * 60 * 1000;
+            } catch (_) { return false; }
+        }
+
         function showNotificationBanner() {
             if (document.getElementById('notif-banner')) return;
             // „✕“ се помни 7 дни — банерът не досажда при всяко отваряне.
@@ -9037,8 +9074,12 @@
             };
             const close = document.createElement('button');
             close.textContent = '✕';
-            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0 4px;';
-            close.onclick = () => banner.remove();
+            close.setAttribute('aria-label', 'Затвори');
+            close.style.cssText = 'background:none;border:none;color:#fff;font-size:16px;cursor:pointer;min-width:44px;min-height:44px;margin:-10px -8px -10px 0;';
+            close.onclick = () => {
+                try { localStorage.setItem('notifBannerDismissedAt', String(Date.now())); } catch (_) {}
+                banner.remove();
+            };
             banner.appendChild(btn);
             banner.appendChild(close);
             document.body.appendChild(banner);
@@ -10633,7 +10674,7 @@
             }
             var overlay = document.createElement('div');
             overlay.id = 'gameDayEndModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
 
             var modal = document.createElement('div');
@@ -10717,7 +10758,7 @@
 
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
 
             var modal = document.createElement('div');
             modal.className = 'game-modal';
@@ -10846,7 +10887,7 @@
 
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyQAModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
 
             var modal = document.createElement('div');
             modal.className = 'game-modal';
@@ -10986,7 +11027,7 @@
             if (old) old.remove();
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div style="margin:8px 0 16px"><i class="fas fa-spinner fa-spin" style="color:#0D9488;font-size:1.6rem"></i></div>'
@@ -11009,7 +11050,7 @@
 
             var overlay = document.createElement('div');
             overlay.id = 'gameFreeMealModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-title">Свободното хранене</div>';
@@ -11104,7 +11145,7 @@
             if (old) old.remove();
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-title">Не успяхме</div>';
@@ -11127,7 +11168,7 @@
             if (old) old.remove();
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-emoji"><i class="fas fa-paper-plane" style="color:#6366f1"></i></div>'
@@ -11151,7 +11192,7 @@
             if (old) old.remove();
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyAdaptModal';
-            overlay.className = 'game-modal-overlay';
+            overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             var modal = document.createElement('div');
             modal.className = 'game-modal';
 
@@ -11532,8 +11573,9 @@
     <!-- Swipe navigation between tabs -->
     <script>
     (function() {
-        var tabKeys = ['plan', 'guidelines', 'profile', 'analytics'];
-        var tabUrls = ['index.html?app=1&tab=plan', 'index.html?app=1&tab=guidelines', 'index.html?app=1&tab=profile', 'index.html?app=1&tab=analytics'];
+        // Същата поредност като долната навигация.
+        var tabKeys = ['plan', 'guidelines', 'analytics', 'profile'];
+        var tabUrls = ['index.html?app=1&tab=plan', 'index.html?app=1&tab=guidelines', 'index.html?app=1&tab=analytics', 'index.html?app=1&tab=profile'];
         var currentIndex = 0;
         var touchStartX = 0, touchStartY = 0;
         var THRESHOLD = 60;
@@ -11571,13 +11613,13 @@
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
-            <i class="fas fa-user"></i>
-            <span>Профил</span>
-        </a>
         <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
             <i class="fas fa-chart-bar"></i>
             <span>Анализ</span>
+        </a>
+        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
+            <i class="fas fa-user"></i>
+            <span>Профил</span>
         </a>
     </nav>
     <!-- GameNotifier: gamification-based notification scheduling -->
