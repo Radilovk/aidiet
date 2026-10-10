@@ -1833,6 +1833,17 @@
             refreshGuidelinesFromShellData('shell-data-ready');
         });
 
+        // Планът е обновен в друг таб/рамка (седмично меню, промяна от специалиста, чат) —
+        // насоките се преначертават, без презареждане и без logout.
+        (function() {
+            var t = null;
+            window.addEventListener('storage', function(e) {
+                if (e.key !== 'dietPlan' && e.key !== 'planUpdatedAt') return;
+                clearTimeout(t);
+                t = setTimeout(function() { refreshGuidelinesFromShellData('plan-updated'); }, 300);
+            });
+        })();
+
         // ── UI Zone Images ────────────────────────────────────────────────────────
         (function applyUIImages() {
             const WORKER = 'https://aidiet.radilov-k.workers.dev';

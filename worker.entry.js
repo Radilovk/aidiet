@@ -1279,9 +1279,23 @@ const RATE_LIMIT = {
  * Returns a 429 Response if the IP exceeds the allowed rate, or null if OK.
  * Uses keys of the form `rl:{endpoint}:{ip}:{windowMinute}` with a 2-minute TTL.
  */
-async function checkRateLimit(env, request, endpoint) {
-  if (!env.page_content) return null; // KV not available – skip limiting
+/**
+ * Броячите на заявки в паметта на Worker-а — безплатни. KV (1 четене + 1 запис
+ * на заявка, а безплатните KV записи са 1000 на ден) остава само за скъпите
+ * или чувствителни операции: генериране на план, анализ на снимка, вход,
+ * забравена парола.
+ */
+const KV_RATE_LIMITED = new Set(['GENERATE_PLAN', 'FOOD_ANALYSIS', 'SOCIAL_AUTH', 'FORGOT_PASSWORD']);
+const memoryRateCounters = new Map();
 
+function rateLimitedResponse(config) {
+  return new Response(
+    JSON.stringify({ error: 'Твърде много заявки. Моля, изчакайте малко и опитайте отново.', rateLimited: true }),
+    { status: 429, headers: { ...CORS_HEADERS, 'Retry-After': String(config.windowSec) } }
+  );
+}
+
+async function checkRateLimit(env, request, endpoint) {
   const ip = request.headers.get('CF-Connecting-IP')
            || request.headers.get('X-Forwarded-For')
            || 'unknown';
@@ -1292,16 +1306,27 @@ async function checkRateLimit(env, request, endpoint) {
   const window = Math.floor(Date.now() / (config.windowSec * 1000));
   const key = `rl:${endpoint}:${ip}:${window}`;
 
+  // Първо в паметта (без разход); при натоварване старите прозорци се чистят.
+  const memCount = (memoryRateCounters.get(key) || 0) + 1;
+  memoryRateCounters.set(key, memCount);
+  if (memoryRateCounters.size > 5000) {
+    for (const k of memoryRateCounters.keys()) {
+      if (!k.endsWith(`:${window}`)) memoryRateCounters.delete(k);
+    }
+  }
+  if (memCount > config.maxRequests) {
+    console.warn(`Rate limit exceeded for ${endpoint} by IP ${ip} (memory)`);
+    return rateLimitedResponse(config);
+  }
+  if (!KV_RATE_LIMITED.has(endpoint) || !env.page_content) return null;
+
   try {
     const raw = await env.page_content.get(key);
     const count = raw ? parseInt(raw, 10) : 0;
 
     if (count >= config.maxRequests) {
       console.warn(`Rate limit exceeded for ${endpoint} by IP ${ip}`);
-      return new Response(
-        JSON.stringify({ error: 'Твърде много заявки. Моля, изчакайте малко и опитайте отново.', rateLimited: true }),
-        { status: 429, headers: { ...CORS_HEADERS, 'Retry-After': String(config.windowSec) } }
-      );
+      return rateLimitedResponse(config);
     }
 
     // Increment counter; expire after 2 windows so the key cleans itself up
@@ -2723,7 +2748,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   };
 
   // Log AI request only when logging is enabled (saves Cache API subrequests when disabled)
-  const loggingEnabled = await isAILoggingEnabled(env);
+  // Чатът не се записва в KV лога: всяко съобщение струваше 2 KV записа, а
+  // безплатният лимит е 1000 на ден. Генерирането на план се логва както досега.
+  const loggingEnabled = await isAILoggingEnabled(env) && !/^chat/.test(String(stepName || ''));
   const logId = loggingEnabled ? await logAIRequest(env, stepName, requestData) : null;
 
   const startTime = Date.now();
@@ -3085,13 +3112,26 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 // KV key prefix and TTL for async plan generation jobs
 const PLAN_JOB_PREFIX = 'plan_job:';
 const PLAN_JOB_TTL_SEC = 86400; // 24 hours
-// Weekly adaptation releases at the next Monday 00:00 UTC so one calendar week maps to one plan.
+/**
+ * Новият седмичен план влиза от началото на следващия ден (00:00 софийско време):
+ * прегледът е в края на седмицата с текущия план, а не 1–7 дни по-късно в
+ * понеделник UTC — така следващият преглед оценява пълна седмица с новия план.
+ */
+const SOFIA_PARTS = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/Sofia', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23',
+});
 function computeWeeklyReleaseVisibleAt(nowMs = Date.now()) {
-  const d = new Date(nowMs);
-  const utcDay = d.getUTCDay(); // 0 Sun .. 6 Sat
-  let daysUntilMonday = (8 - utcDay) % 7;
-  if (daysUntilMonday === 0) daysUntilMonday = 7;
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + daysUntilMonday, 0, 0, 0, 0);
+  const part = (d, type) => Number(SOFIA_PARTS.formatToParts(d).find(p => p.type === type)?.value);
+  const now = new Date(nowMs);
+  const y = part(now, 'year');
+  const m = part(now, 'month');
+  const day = part(now, 'day');
+  // Полунощ в София е 21:00 или 22:00 UTC предния ден (лятно/зимно време).
+  for (const offsetH of [3, 2]) {
+    const candidate = Date.UTC(y, m - 1, day + 1, 0, 0, 0, 0) - offsetH * 3600000;
+    if (part(new Date(candidate), 'hour') === 0) return candidate;
+  }
+  return Date.UTC(y, m - 1, day + 1, 0, 0, 0, 0) - 2 * 3600000;
 }
 // Regex for validating client-provided jobIds (UUID v4 format)
 const JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -3135,32 +3175,6 @@ async function loadAdherenceRatioForGeneration(env, data, userIdHint = '') {
   return null;
 }
 
-async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = '') {
-  if (!userId || !env?.page_content) return;
-  const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
-  const existing = (await kvGetJSON(env, `user_profile:${userId}`)) || {};
-  existing.foodLedger = ledgerSerialized;
-  existing.foodLedgerSyncedAt = ledgerSerialized.updatedAt;
-  await kvPutJSON(env, `user_profile:${userId}`, existing, ttl);
-
-  let clientId = clientIdHint || existing.clientId || '';
-  if (!clientId) {
-    const email = normalizeEmail(existing.userData?.email || userId);
-    if (email.includes('@')) clientId = (await findClientByEmail(env, email))?.clientId || '';
-  }
-  if (clientId) {
-    try {
-      const clientData = await kvGetJSON(env, `client:${clientId}`);
-      if (clientData) {
-        clientData.foodLedger = ledgerSerialized;
-        clientData.foodLedgerSyncedAt = ledgerSerialized.updatedAt;
-        await kvPutJSON(env, `client:${clientId}`, clientData, null);
-      }
-    } catch (e) {
-      console.warn(`[FoodLedger] client sync failed ${clientId}:`, e.message);
-    }
-  }
-}
 
 /** Post-generation validation (shared by plan gen + weekly adapt). */
 async function finalizeValidatedPlan(env, structuredPlan, data) {
@@ -4522,6 +4536,15 @@ async function findClientByEmail(env, email) {
     }
   }
 
+  // Пълното сканиране е до 500 KV четения — при потребител без клиентски запис
+  // се повтаряше при всяко отваряне. Отрицателният резултат се помни 24 часа
+  // (в паметта и в KV); нов клиент си записва email_index и го прескача.
+  if (emailScanMisses.has(normalizedEmail)) return null;
+  if (await env.page_content.get(`email_miss:${normalizedEmail}`)) {
+    emailScanMisses.add(normalizedEmail);
+    return null;
+  }
+
   const clientIds = await kvGetJSON(env, 'clients_list') || [];
   for (const clientId of clientIds.slice(0, 500)) {
     const clientData = await kvGetJSON(env, `client:${clientId}`);
@@ -4536,8 +4559,14 @@ async function findClientByEmail(env, email) {
     }
   }
 
+  emailScanMisses.add(normalizedEmail);
+  try {
+    await env.page_content.put(`email_miss:${normalizedEmail}`, '1', { expirationTtl: 24 * 60 * 60 });
+  } catch (_) {}
   return null;
 }
+
+const emailScanMisses = new Set();
 
 async function getEmailIndex(env, email) {
   const normalizedEmail = normalizeEmail(email);
@@ -5024,8 +5053,8 @@ ${Object.entries(PLAN_MODIFICATION_CODES).map(([code, label]) => `   - "${code}"
   ред T = дневен тотал (сумарни kcal и макроси за деня)
 
 Секция #AX (аналитика от gamification модула) — READ-ONLY, но ЗАДЪЛЖИТЕЛНО я вземай предвид:
-- hi=health index (0–100), avg=средна дневна оценка (1–5), str=серия отлични дни, adh=ангажираност %
-- cal=калориен adherence, junk7=вредни хранения за 7 дни, net=нетен калориен баланс, tr=тренд (up/down/flat)
+- hi=health index (0–100), avg=средна дневна оценка (1–5), str=серия отлични дни, adh=ангажираност %, meal=спазени хранения % (за решения по плана)
+- cal=близост на калориите до плана (100 = точно, симетрично за излишък и недостиг), junk7=вредни хранения за 7 дни, net=нетен калориен баланс, tr=тренд (up/down/flat)
 - dim=eng/slp/bal/act/wtr — измерения (сън, баланс, активност, вода)
 - d7=последни 7 дни: MM-DD:stars/eng%/junk/calΔ
 
@@ -5647,55 +5676,72 @@ async function callGeminiAssistantResilient(env, session, card, message, planUpd
  * Load analytics summary for client card (from client record or linked profile).
  */
 async function loadClientAnalytics(env, clientData) {
-  if (clientData?.analytics?.status === 'active' || clientData?.analytics?.status === 'empty') {
-    return clientData.analytics;
+  const valid = (a) => a?.status === 'active' || a?.status === 'empty';
+  // Профилът е източникът (обновява се при всяка синхронизация); клиентският
+  // запис е копие, което се опреснява рядко, за да се пестят KV записи.
+  if (clientData?.userId && env.page_content) {
+    try {
+      const profile = await kvGetJSON(env, `user_profile:${clientData.userId}`);
+      if (valid(profile?.analytics)) {
+        if (!valid(clientData.analytics) || String(profile.analytics.syncedAt || '') >= String(clientData.analytics.syncedAt || '')) {
+          return profile.analytics;
+        }
+      }
+    } catch (_) {}
   }
-  if (!clientData?.userId || !env.page_content) return null;
-  try {
-    const profile = await kvGetJSON(env, `user_profile:${clientData.userId}`);
-    if (profile?.analytics?.status === 'active' || profile?.analytics?.status === 'empty') {
-      return profile.analytics;
-    }
-  } catch {
-    return null;
-  }
-  return null;
+  return valid(clientData?.analytics) ? clientData.analytics : null;
 }
 
+/** Аналитиката без часа на синхронизация — за сравнение „има ли нещо ново“. */
+function analyticsFingerprint(a) {
+  if (!a) return '';
+  const { syncedAt, weeklyAI, ...rest } = a;
+  return JSON.stringify(rest);
+}
+
+/** Копието в клиентския запис (за админа) — най-много веднъж на 12 часа. */
+const CLIENT_ANALYTICS_MIRROR_MS = 12 * 60 * 60 * 1000;
+
 /**
- * Persist analytics summary to user profile and linked client record.
+ * Аналитика и хранителен дневник в ЕДИН запис на профила — и само ако нещо се
+ * е променило. Безплатният план има 1000 KV записа на ден; отметка на хранене
+ * не бива да струва 4–5 записа.
  */
-async function persistAnalyticsSummary(env, userId, summary, clientIdHint = '') {
+async function persistAnalyticsAndLedger(env, userId, summary, ledger, clientIdHint = '') {
   const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   const existing = (await kvGetJSON(env, `user_profile:${userId}`)) || {};
-  const profile = {
-    ...existing,
-    userId,
-    analytics: summary,
-    analyticsSyncedAt: summary.syncedAt,
-    savedAt: existing.savedAt || summary.syncedAt,
-  };
+  const analyticsChanged = analyticsFingerprint(existing.analytics) !== analyticsFingerprint(summary);
+  const ledgerChanged = ledger
+    && JSON.stringify({ p: existing.foodLedger?.prescribed, e: existing.foodLedger?.eaten }) !== JSON.stringify({ p: ledger.prescribed, e: ledger.eaten });
+  if (!analyticsChanged && !ledgerChanged) return { profile: existing, written: false };
+
+  const profile = { ...existing, userId, savedAt: existing.savedAt || summary.syncedAt };
+  if (analyticsChanged) {
+    profile.analytics = summary;
+    profile.analyticsSyncedAt = summary.syncedAt;
+  }
+  if (ledgerChanged) {
+    profile.foodLedger = ledger;
+    profile.foodLedgerSyncedAt = ledger.updatedAt;
+  }
   await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
 
-  let clientId = clientIdHint || existing.clientId || '';
-  if (!clientId) {
-    const email = normalizeEmail(existing.userData?.email);
-    if (email) clientId = (await findClientByEmail(env, email))?.clientId || '';
-  }
-  if (clientId) {
+  const clientId = clientIdHint || existing.clientId || '';
+  if (analyticsChanged && clientId) {
     try {
       const clientData = await kvGetJSON(env, `client:${clientId}`);
-      if (clientData) {
+      const lastMirror = Date.parse(clientData?.analyticsSyncedAt || '') || 0;
+      if (clientData && (Date.now() - lastMirror > CLIENT_ANALYTICS_MIRROR_MS || clientData.analytics?.status !== summary.status)) {
         clientData.analytics = summary;
         clientData.analyticsSyncedAt = summary.syncedAt;
         if (!clientData.userId) clientData.userId = userId;
         await kvPutJSON(env, `client:${clientId}`, clientData, null);
       }
     } catch (e) {
-      console.warn(`[Analytics] Failed to sync to client ${clientId}:`, e.message);
+      console.warn(`[Analytics] client mirror failed ${clientId}:`, e.message);
     }
   }
-  return { profile, clientId };
+  return { profile, written: true };
 }
 
 async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, gameData, gameWeeklyAI }) {
@@ -5741,13 +5787,25 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
   };
 }
 
+/** Номерът на следващия седмичен преглед — по историята на сървъра. */
+function nextWeeklyCycle(history, gameWeeklyAI) {
+  const fromHistory = Math.max(0, ...(history || []).map(h => Number(h?.cycleNumber) || 0));
+  // Без история (стар профил): броячът на клиента е последният завършен цикъл.
+  const fromClient = fromHistory ? 0 : Math.max(0, Number(gameWeeklyAI?.cycleNumber) || 0);
+  return Math.max(fromHistory, fromClient) + 1;
+}
+
 function mergeWeeklyModifications(existing, decisionMods) {
   return mergePlanModifications(existing, decisionMods).merged;
 }
 
-async function verifyWeeklyRequestAuth(userId, idToken, env) {
-  if (!userId?.startsWith('fb_') || !idToken || !env.FIREBASE_PROJECT_ID) return;
-  const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
+  if (!userId?.startsWith('fb_') || !env.FIREBASE_PROJECT_ID) return;
+  const header = request?.headers?.get?.('Authorization') || '';
+  const token = idToken || (header.startsWith('Bearer ') ? header.slice(7) : '');
+  // Профил на Firebase потребител не се пипа без доказателство, че е неговият.
+  if (!token) throw new Error('Missing auth token');
+  const firebaseUser = await verifyFirebaseIdToken(token, env);
   if (`fb_${firebaseUser.uid}` !== userId) {
     throw new Error('Token does not match userId');
   }
@@ -5761,32 +5819,54 @@ function generateWeeklyQuestions() {
   return { questions: WEEKLY_CHECKIN_QUESTIONS.map(q => ({ ...q, options: [...q.options] })), contextNote: '' };
 }
 
-/** Безопасният минимум на приема: по пол, а при отслабване — до 25% дефицит. */
-function weeklyFloorKcal(userData, tdee) {
+/**
+ * Безопасният минимум на приема: по пол; при цел с отслабване — до 25% дефицит;
+ * при кърмене — поне 90% от разхода и 300 kcal над минимума (същото като
+ * enforceCalorieGuardrails, за да не се разминават решението и приложеното).
+ */
+function weeklyFloorKcal(userData, tdee, goalCode) {
   const minCal = getMinRecommendedCalories(userData?.gender);
-  const losing = goalIncludes(userData?.goal, 'Отслабване');
+  if (userData?.clinicalProtocol === 'postpartum_lactation' && tdee > 0) {
+    return Math.max(minCal + 300, Math.round(tdee * 0.9));
+  }
+  const losing = ['LOSS', 'VISC', 'CELL', 'PP'].includes(goalCode) || goalIncludes(userData?.goal, 'Отслабване');
   return losing && tdee > 0 ? Math.max(minCal, Math.round(tdee * 0.75)) : minCal;
+}
+
+/** Последното измерено тегло: от предишния преглед, иначе от въпросника (с датата на плана). */
+function previousWeighIn(userData, plan, history) {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    if (Number(h?.weightKg) > 0) return { kg: Number(h.weightKg), at: h.at };
+  }
+  const kg = parseFloat(String(userData?.weight || '').replace(',', '.'));
+  return kg > 0 ? { kg, at: plan?._meta?.generatedAt || plan?.createdAt || null } : null;
 }
 
 /**
  * Решението за следващата седмица — по правилата в nutrition-engine/monitoring.js.
  * @returns {{ adaptationLevel: number, calorieAdjust: number, kcal: number, modifications: string[],
  *   reasoning: string, changeSummary: string[], headline: string, motivationMessage: string,
- *   weight: string|null, adherence: number|null }}
+ *   weight: string|null, weightKg: number|null, weeklyChangeKg: number|null, followed: boolean, adherence: number|null }}
  */
 function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history) {
+  const prev = previousWeighIn(userData, plan, history || []);
+  const daysSincePrev = prev?.at ? (Date.now() - Date.parse(prev.at)) / 86400000 : null;
+  const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev });
+  // Измереното тегло става текущото: разходът, белтъкът и минимумите се смятат с него.
+  if (checkin.weightKg && userData) userData.weight = String(checkin.weightKg);
   const profile = compileProfile(userData || {});
   const { tdee } = computeBackendEnergyInputs(userData);
   const kcal = parseFinalCalories(plan?.analysis?.Final_Calories);
-  const checkin = readCheckin(answers, analytics);
   const decision = decideWeeklyAdjustment({
     checkin,
     goal: profile.goal,
     kcal,
     tdee,
-    floorKcal: weeklyFloorKcal(userData, tdee),
+    floorKcal: weeklyFloorKcal(userData, tdee, profile.goal),
     weightKg: profile.weightKg,
     baseKcal: Number(plan?.analysis?._baseCalories) || kcal,
+    lactating: userData?.clinicalProtocol === 'postpartum_lactation',
     history,
   });
   const message = weeklyMessage(decision, checkin);
@@ -5836,6 +5916,8 @@ function releasePendingWeeklyIfDue(profile) {
       at: pending.notice.at || new Date().toISOString(),
       // За правилото „две поредни седмици“ в monitoring.js.
       weight: pending.monitoring?.weight ?? null,
+      weightKg: pending.monitoring?.weightKg ?? null,
+      followed: pending.monitoring?.followed ?? null,
       calorieAdjust: pending.monitoring?.calorieAdjust ?? 0,
     });
     profile.weeklyAdaptHistory = hist.slice(-5);
@@ -5925,6 +6007,14 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       analysis.Final_Calories = decision.kcal;
       analysis.recommendedCalories = decision.kcal;
       enforceCalorieGuardrails(analysis, enrichedData, tdee);
+      // Записва се приложеното след защитите, не предложеното.
+      const applied = parseFinalCalories(analysis.Final_Calories);
+      if (applied && applied !== decision.kcal) {
+        decision.calorieAdjust = applied - caloriesBefore;
+        decision.kcal = applied;
+        decision.changeSummary = decision.changeSummary.map(c => (/^Калории:/.test(c)
+          ? `Калории: ${decision.calorieAdjust > 0 ? '+' : ''}${decision.calorieAdjust} kcal на ден` : c));
+      }
     }
     const previousWeek = Object.values(plan.weekPlan)
       .flatMap(d => d?.meals || [])
@@ -5956,7 +6046,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       plan: newPlan,
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel,
-      monitoring: { weight: decision.weight, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence },
+      monitoring: { weight: decision.weight, weightKg: decision.weightKg, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence },
     });
     await writeAdaptJob({
       status: 'completed',
@@ -6002,7 +6092,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
       return jsonResponse({ error: 'Недостатъчно данни за седмичен feedback (минимум 3 дни)' }, 400);
     }
 
-    const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const cycleNumber = nextWeeklyCycle(weeklyAdaptHistory, gameWeeklyAI);
     const result = generateWeeklyQuestions();
 
     return jsonResponse({
@@ -6050,7 +6140,7 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
     }
 
     const jobId = crypto.randomUUID();
-    const resolvedCycle = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const resolvedCycle = nextWeeklyCycle(existingProfile?.weeklyAdaptHistory, null);
     const payload = {
       userId,
       clientId: clientId || '',
@@ -6093,7 +6183,7 @@ async function handleWeeklyAckNotice(request, env) {
       return jsonResponse({ error: 'Missing userId or noticeId' }, 400);
     }
     try {
-      await verifyWeeklyRequestAuth(userId, idToken, env);
+      await verifyWeeklyRequestAuth(userId, idToken, env, request);
     } catch (e) {
       return jsonResponse({ error: e.message }, 401);
     }
@@ -6147,12 +6237,10 @@ async function handleSyncAnalytics(request, env) {
     }
 
     const summary = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
-    await persistAnalyticsSummary(env, userId, summary, clientId || '');
-
-    if (plan?.weekPlan && gameData) {
-      const ledger = buildFoodLedger(plan.weekPlan, gameData, gameWeeklyAI || {});
-      await persistFoodLedger(env, userId, serializeFoodLedger(ledger), clientId || '');
-    }
+    const ledger = plan?.weekPlan && gameData
+      ? serializeFoodLedger(buildFoodLedger(plan.weekPlan, gameData, gameWeeklyAI || {}))
+      : null;
+    await persistAnalyticsAndLedger(env, userId, summary, ledger, clientId || '');
 
     return jsonResponse({
       success: true,
@@ -12868,9 +12956,14 @@ async function handlePushSubscribe(request, env) {
       return jsonResponse({ error: 'KV storage not configured' }, 500);
     }
 
-    // Store subscription in KV with user ID as key
+    // Същият абонамент идва при всяко отваряне на приложението — записва се само нов.
     const subscriptionKey = `push_subscription_${userId}`;
-    await env.page_content.put(subscriptionKey, JSON.stringify(subscription));
+    const serialized = JSON.stringify(subscription);
+    const existingSubscription = await env.page_content.get(subscriptionKey);
+    if (existingSubscription === serialized) {
+      return jsonResponse({ success: true, message: 'Subscription unchanged' });
+    }
+    await env.page_content.put(subscriptionKey, serialized);
     
     // Maintain a list of all subscribed users for cron job processing
     const listKey = 'push_subscriptions_list';
@@ -13418,8 +13511,16 @@ async function handleSaveUserProfile(request, env) {
     const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
     const planChanged = !existingProfile?.plan ||
       JSON.stringify(existingProfile.plan) !== JSON.stringify(plan);
+    const userDataChanged = JSON.stringify(existingProfile?.userData || {}) !== JSON.stringify(userData || {});
+    // Нищо ново — без запис (KV записите са най-ограниченият ресурс в безплатния план).
+    if (existingProfile && !planChanged && !userDataChanged && (!clientId || existingProfile.clientId === clientId)) {
+      return jsonResponse({ success: true, unchanged: true, planUpdatedAt: existingProfile.planUpdatedAt || existingProfile.savedAt });
+    }
     const now = new Date().toISOString();
     const profileData = {
+      // Седмичната адаптация, известията, аналитиката и хранителният дневник
+      // живеят в същия запис — презаписът на плана не бива да ги изтрива.
+      ...(existingProfile || {}),
       userId,
       plan,
       userData: userData || {},

@@ -220,6 +220,10 @@ const GameNotifier = {
      */
     async refreshConfig() {
         if (!this._initialized || this._hasLocalConfig()) return false;
+        // Най-много веднъж на 30 минути — настройките на известията се сменят рядко.
+        const now = Date.now();
+        if (now - (this._lastConfigRefreshAt || 0) < 30 * 60 * 1000) return false;
+        this._lastConfigRefreshAt = now;
         const prevVersion = localStorage.getItem(this.LS_VERSION_KEY) || '0';
         const configChanged = await this._maybeSyncBackendConfig();
         const newVersion = localStorage.getItem(this.LS_VERSION_KEY) || '0';
@@ -231,6 +235,41 @@ const GameNotifier = {
             return true;
         }
         return false;
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  Еднократни известия по плана (ново седмично меню, седмичен преглед) */
+    /*  Пазят се локално и влизат в графика при всяко пренасрочване —       */
+    /*  без сървър, без разход.                                             */
+    /* ------------------------------------------------------------------ */
+    LS_PLAN_REMINDERS_KEY: 'np_plan_reminders',
+
+    _planReminders() {
+        try {
+            const list = JSON.parse(localStorage.getItem(this.LS_PLAN_REMINDERS_KEY) || '[]');
+            const now = Date.now();
+            return Array.isArray(list) ? list.filter(r => r && r.ts > now && r.key) : [];
+        } catch (_) {
+            return [];
+        }
+    },
+
+    /**
+     * @param {{ key: string, ts: number, title: string, body: string, url?: string }} reminder
+     *   key е уникален за вида (повторно добавяне го заменя)
+     */
+    async addPlanReminder(reminder) {
+        if (!reminder || !reminder.key || !(reminder.ts > Date.now())) return;
+        const list = this._planReminders().filter(r => r.key !== reminder.key);
+        list.push({ key: reminder.key, ts: reminder.ts, title: reminder.title, body: reminder.body, url: reminder.url || '/plan.html' });
+        try { localStorage.setItem(this.LS_PLAN_REMINDERS_KEY, JSON.stringify(list.slice(-6))); } catch (_) {}
+        try { await this.scheduleNotifications(); } catch (e) { console.warn('[GameNotifier] plan reminder schedule failed:', e); }
+    },
+
+    _planReminderId(key) {
+        let h = 0;
+        for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0;
+        return 7000 + (Math.abs(h) % 900);
     },
 
     async scheduleNotifications() {
@@ -1401,6 +1440,18 @@ const GameNotifier = {
             }
         });
 
+        this._planReminders().forEach((r) => {
+            notifications.push({
+                id: this._planReminderId(r.key),
+                channelId: this.CHANNEL_ID,
+                title: r.title,
+                body: r.body,
+                schedule: { at: new Date(r.ts), allowWhileIdle: true },
+                extra: { url: r.url, type: 'plan_' + r.key },
+                iconColor: this.BRAND_TEAL
+            });
+        });
+
         try {
             await LocalNotifications.schedule({ notifications });
             this._markScheduleWindowFresh();
@@ -1493,6 +1544,19 @@ const GameNotifier = {
                     });
                 }
             }
+        });
+
+        this._planReminders().forEach((r) => {
+            schedule.push({
+                ts: r.ts,
+                title: r.title,
+                body: r.body,
+                tag: 'gn-plan-' + r.key,
+                type: 'plan_' + r.key,
+                url: r.url,
+                vibrate: [200, 100, 200],
+                requireInteraction: false
+            });
         });
 
         navigator.serviceWorker.controller.postMessage({

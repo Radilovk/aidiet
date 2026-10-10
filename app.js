@@ -443,7 +443,15 @@
             if (!params.has('app')) return;
             if (!state.initialized) {
                 runOpenAppCatchUpFlow();
+                return;
             }
+            // Приложението е било на заден план: ново седмично меню или промяна от
+            // специалиста се показва веднага (известие в приложението), без logout.
+            // Най-много веднъж на 15 минути — едно KV четене на проверка.
+            var nowMs = Date.now();
+            if (nowMs - (window.__nutriplanResumeCheckAt || 0) < 15 * 60 * 1000) return;
+            window.__nutriplanResumeCheckAt = nowMs;
+            runPlanUpdateCatchUp().catch(function () {});
         });
     }
 

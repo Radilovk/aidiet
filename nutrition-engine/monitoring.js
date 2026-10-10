@@ -13,9 +13,20 @@
 
 export const WEEKLY_CHECKIN_QUESTIONS = [
   {
+    id: 'weightKg',
+    text: 'Колко е теглото ви днес? Претеглете се сутрин, на гладно, след тоалетна (кг).',
+    type: 'number',
+    min: 30,
+    max: 300,
+    placeholder: 'напр. 72.4',
+    skipLabel: 'Не съм се теглил/а',
+    options: [],
+  },
+  {
     id: 'weight',
     text: 'Как се промени теглото ви спрямо миналата седмица?',
     type: 'choice',
+    skipIfAnswered: 'weightKg',
     options: ['Отслабнах повече от 1 кг', 'Отслабнах до 1 кг', 'Без промяна', 'Качих', 'Не съм се теглил/а'],
   },
   {
@@ -69,23 +80,53 @@ function answerOf(answers, id) {
   return hit ? String(hit.value) : null;
 }
 
+/** Под тази промяна за седмица кантарът не различава тренд от вода и храна в червата. */
+const FLAT_KG = 0.2;
+/** Над 1% от теглото седмично при отслабване — губи се мускулна маса (ACSM, NICE). */
+const FAST_LOSS_RATE = 0.01;
+/** При кърмене — до ~0.5 кг седмично, за да не пада млекото (IOM/ACOG). */
+const LACTATION_MAX_LOSS_KG = 0.5;
+/** Мускулна маса: до 0.5% от теглото седмично; над това качването е предимно мазнини. */
+const FAST_GAIN_RATE = 0.005;
+/** Под 40% от очакваното отслабване при спазен план — застой. */
+const SLOW_LOSS_SHARE = 0.4;
+
 /**
  * Отговорите и аналитиката → една картина на седмицата.
  * @param {Array<{questionId: string, value: string}>} answers
  * @param {object|null} analytics  buildAnalyticsSummary()
+ * @param {{ prevWeightKg?: number|null, daysSincePrev?: number|null }} [previous]
+ *   последното измерено тегло (от предишния преглед или въпросника) и преди колко дни
  */
-export function readCheckin(answers, analytics) {
+export function readCheckin(answers, analytics, previous = {}) {
   const weightAnswer = answerOf(answers, 'weight');
   const adherenceAnswer = answerOf(answers, 'adherence');
-  const fromApp = analytics?.status === 'active' && (analytics.daysRecorded || 0) >= 3
-    ? Number(analytics.adherence) || null
+  // Спазване на храненията от приложението (не ангажираност) — от поне 3 дни с отметки.
+  const appValue = analytics?.status === 'active' && (analytics.mealDays || 0) >= 3 && analytics.mealAdherence != null
+    ? Number(analytics.mealAdherence)
     : null;
   const fromAnswer = adherenceAnswer ? ADHERENCE_ANSWERS[adherenceAnswer] ?? null : null;
-  // Приложението и клиентът често се разминават — по-ниското е по-вярното.
-  const adherence = [fromApp, fromAnswer].filter(v => v != null);
+  // Отговорът е за цялата седмица; отметките — за дните, в които са правени.
+  // При двата източника — средното; само единият — той.
+  let adherence = null;
+  if (fromAnswer != null && appValue != null) adherence = Math.round((fromAnswer + appValue) / 2);
+  else adherence = fromAnswer ?? appValue;
+
+  const kg = Number(String(answerOf(answers, 'weightKg') || '').replace(',', '.'));
+  const weightKg = kg >= 30 && kg <= 300 ? kg : null;
+  let weeklyChangeKg = null;
+  const prev = Number(previous.prevWeightKg) || null;
+  if (weightKg && prev) {
+    const days = Number(previous.daysSincePrev);
+    // Промяната се води към седмица; без дата — приема се една седмица.
+    const span = days >= 4 && days <= 28 ? days : 7;
+    weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
+  }
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
-    adherence: adherence.length ? Math.min(...adherence) : null,
+    weightKg,
+    weeklyChangeKg,
+    adherence,
     hunger: LEVEL_ANSWERS[answerOf(answers, 'hunger')] || null,
     energy: LEVEL_ANSWERS[answerOf(answers, 'energy')] || null,
     difficulty: answerOf(answers, 'difficulty'),
@@ -93,15 +134,52 @@ export function readCheckin(answers, analytics) {
   };
 }
 
-/** Колко поредни предишни седмици са имали същия резултат по теглото. */
-function streak(history, weight) {
+/**
+ * Резултатът по теглото: от измерването (кг/седмица спрямо очакваното и
+ * теглото), иначе от отговора на клиента.
+ * @returns {'fast_loss'|'loss'|'slow'|'flat'|'gain'|'fast_gain'|null}
+ */
+export function weightOutcome(checkin, { goalKind, expectedLossKg = 0, weightKg = 0, lactating = false }) {
+  const change = checkin.weeklyChangeKg;
+  if (change == null) {
+    // „Над 1 кг“ без измерване: над 100 кг това е под 1% от теглото — нормален темп.
+    if (checkin.weight === 'fast_loss' && !lactating && weightKg >= 100 && checkin.energy !== 3) return 'loss';
+    return checkin.weight;
+  }
+  const base = checkin.weightKg || weightKg || 70;
+  const loss = -change;
+  if (loss > 0 && (loss >= base * FAST_LOSS_RATE || (lactating && loss > LACTATION_MAX_LOSS_KG))) return 'fast_loss';
+  if (change >= FLAT_KG) return goalKind === 'gain' && change > base * FAST_GAIN_RATE ? 'fast_gain' : 'gain';
+  if (Math.abs(change) < FLAT_KG) return 'flat';
+  // Отслабва, но под 40% от очакваното — застой, ако дефицитът е реален.
+  if (goalKind === 'loss' && expectedLossKg >= 0.25 && loss < expectedLossKg * SLOW_LOSS_SHARE) return 'slow';
+  return 'loss';
+}
+
+/** Еднакви за решението резултати — „без промяна“ и „качих“ са един застой при отслабване. */
+const OUTCOME_CLASS = {
+  loss: { fast_loss: 'down', loss: 'down', slow: 'stall', flat: 'stall', gain: 'stall', fast_gain: 'stall' },
+  gain: { fast_loss: 'down', loss: 'down', slow: 'down', flat: 'stall', gain: 'up', fast_gain: 'fast' },
+  keep: { fast_loss: 'down', loss: 'down', slow: 'down', flat: 'flat', gain: 'up', fast_gain: 'up' },
+};
+
+/**
+ * Колко поредни предишни седмици са били от същия клас — само седмици, в
+ * които планът е спазван (иначе резултатът не казва нищо за калориите).
+ */
+function streak(history, goalKind, cls) {
   let n = 0;
   for (let i = history.length - 1; i >= 0; i--) {
-    if (history[i]?.weight === weight) n++;
+    const h = history[i];
+    if (h?.followed === false) break;
+    const c = h?.weight ? OUTCOME_CLASS[goalKind][h.weight] : null;
+    if (c === cls) n++;
     else break;
   }
   return n;
 }
+
+const LOSING_GOALS = new Set(['LOSS', 'VISC', 'CELL', 'PP']);
 
 /**
  * Решението за следващата седмица.
@@ -110,68 +188,95 @@ function streak(history, weight) {
  * @param {ReturnType<typeof readCheckin>} args.checkin
  * @param {'LOSS'|'VISC'|'GAIN'|'MAINT'|string} args.goal
  * @param {number} args.kcal          текущият дневен прием
- * @param {number} args.tdee          разходът по формула
+ * @param {number} args.tdee          разходът по формула (с текущото тегло)
  * @param {number} args.floorKcal     безопасният минимум
  * @param {number} args.weightKg
  * @param {number} [args.baseKcal]    първоначалното предписание (за общия таван на промените)
- * @param {Array<{weight?: string|null, calorieAdjust?: number}>} [args.history]
+ * @param {boolean} [args.lactating]
+ * @param {Array<{weight?: string|null, followed?: boolean, calorieAdjust?: number}>} [args.history]
  */
-export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg, baseKcal = kcal, history = [] }) {
+export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg, baseKcal = kcal, lactating = false, history = [] }) {
   const reasons = [];
   const changes = [];
   const modifications = [];
   let delta = 0;
-  const losing = goal === 'LOSS' || goal === 'VISC' || goal === 'CELL';
+  const losing = LOSING_GOALS.has(goal);
   const gaining = goal === 'GAIN';
+  const goalKind = losing ? 'loss' : gaining ? 'gain' : 'keep';
   const adherence = checkin.adherence;
   const followed = adherence != null && adherence >= 75;
+  const expectedLoss = Math.max(0, (tdee - kcal) * 7 / KCAL_PER_KG);
+  const outcome = weightOutcome(checkin, { goalKind, expectedLossKg: expectedLoss, weightKg, lactating });
+  const cls = outcome ? OUTCOME_CLASS[goalKind][outcome] : null;
+  const measured = checkin.weeklyChangeKg != null
+    ? `${checkin.weeklyChangeKg > 0 ? '+' : ''}${checkin.weeklyChangeKg.toFixed(1)} кг за седмица`
+    : null;
 
   if (adherence != null && adherence < 60) {
     // Планът не е изпробван — калориите остават, менюто става по-просто.
     modifications.push('simplify_meals');
     reasons.push(`Придържане около ${adherence}% — калориите остават, менюто се опростява, за да се спазва по-лесно.`);
     changes.push('По-прости и повтарящи се ястия');
-  } else if (checkin.weight && followed) {
-    const expectedLoss = Math.max(0, (tdee - kcal) * 7 / KCAL_PER_KG);
+  } else if (outcome && !followed) {
+    reasons.push(`Придържане около ${adherence ?? '?'}% — резултатът по теглото още не показва дали калориите са верни; приемът остава.`);
+  } else if (outcome && followed) {
+    const weeks = streak(history, goalKind, cls) + 1;
     if (losing) {
-      // Над 1 кг седмично е над 1% от теглото за всеки под 100 кг.
-      const tooFast = checkin.weight === 'fast_loss' && ((weightKg > 0 && weightKg < 100) || checkin.energy === 3);
-      if (tooFast) {
+      if (outcome === 'fast_loss') {
         delta = +MAX_WEEKLY_STEP;
-        reasons.push('Отслабването е над 1% от теглото седмично — темпото се забавя, за да се пази мускулната маса.');
-      } else if (checkin.weight === 'flat' || checkin.weight === 'gain') {
-        const weeks = streak(history, checkin.weight) + 1;
+        reasons.push(lactating
+          ? 'Отслабването е над 0.5 кг седмично при кърмене — приемът се увеличава, за да се пази кърмата.'
+          : `Отслабването е над 1% от теглото седмично${measured ? ` (${measured})` : ''} — темпото се забавя, за да се пази мускулната маса.`);
+      } else if (cls === 'stall') {
         if (weeks >= 2) {
-          delta = checkin.weight === 'gain' ? -MAX_WEEKLY_STEP : -100;
-          reasons.push(`${weeks} поредни седмици без спад при спазен план — приемът се намалява леко.`);
+          delta = outcome === 'gain' ? -MAX_WEEKLY_STEP : -100;
+          reasons.push(`${weeks} поредни седмици ${outcome === 'slow' ? 'с много бавен спад' : 'без спад'} при спазен план${measured ? ` (${measured})` : ''} — приемът се намалява леко.`);
         } else {
-          reasons.push('Една седмица без промяна е обичайна (вода, гликоген) — приемът остава, следим и следващата.');
+          reasons.push(`${measured ? `${measured}. ` : ''}Една седмица без спад е обичайна (вода, гликоген, цикъл) — приемът остава, следим и следващата.`);
         }
       } else {
-        reasons.push(`Темпото отговаря на очакваното (около ${expectedLoss.toFixed(1)} кг седмично) — приемът остава.`);
+        reasons.push(`Темпото отговаря на очакваното (около ${expectedLoss.toFixed(1)} кг седмично${measured ? `; измерено ${measured}` : ''}) — приемът остава.`);
       }
     } else if (gaining) {
-      if (checkin.weight === 'flat' || checkin.weight === 'loss' || checkin.weight === 'fast_loss') {
+      if (cls === 'fast') {
+        delta = -100;
+        reasons.push(`Теглото расте над 0.5% седмично${measured ? ` (${measured})` : ''} — излишъкът отива в мазнини; приемът се намалява леко.`);
+      } else if (cls === 'down') {
         delta = +MAX_WEEKLY_STEP;
-        reasons.push('Теглото не расте при спазен план — приемът се увеличава.');
+        reasons.push('Теглото пада при цел мускулна маса — приемът се увеличава.');
+      } else if (cls === 'stall') {
+        if (weeks >= 2) {
+          delta = +MAX_WEEKLY_STEP;
+          reasons.push(`${weeks} поредни седмици без покачване при спазен план — приемът се увеличава.`);
+        } else {
+          reasons.push('Една седмица без покачване — приемът остава, следим и следващата.');
+        }
       } else {
         reasons.push('Теглото расте по план — приемът остава.');
       }
-    } else if (checkin.weight === 'gain' && streak(history, 'gain') >= 1) {
+    } else if (cls === 'up' && weeks >= 2) {
       delta = -100;
       reasons.push('Теглото расте втора поредна седмица при цел поддържане — приемът се намалява леко.');
-    } else if ((checkin.weight === 'loss' || checkin.weight === 'fast_loss') && streak(history, 'loss') >= 1) {
+    } else if (cls === 'down' && weeks >= 2) {
       delta = +100;
-      reasons.push('Теглото пада при цел поддържане — приемът се увеличава леко.');
+      reasons.push('Теглото пада втора поредна седмица при цел поддържане — приемът се увеличава леко.');
+    } else {
+      reasons.push(`Теглото се задържа в нормалните граници${measured ? ` (${measured})` : ''} — приемът остава.`);
     }
-  } else if (!checkin.weight) {
-    reasons.push('Без данни за теглото калориите остават — претеглете се в началото на седмицата.');
+  } else if (!outcome) {
+    reasons.push('Без данни за теглото калориите остават — претеглете се сутрин на гладно преди следващия преглед.');
   }
 
-  // Глад и умора при дефицит: първо обем, после калории.
-  if (losing && delta <= 0 && checkin.hunger === 3 && checkin.energy === 3) {
-    delta = Math.max(delta, +100);
-    reasons.push('Чест глад и ниска енергия — дефицитът се смекчава.');
+  // Чест глад и ниска енергия при дефицит и спазен план: не се реже повече,
+  // а ако няма корекция — дефицитът се смекчава.
+  if (losing && adherence != null && adherence >= 60 && checkin.hunger === 3 && checkin.energy === 3) {
+    if (delta < 0) {
+      delta = 0;
+      reasons.push('Чест глад и ниска енергия — калориите не се намаляват тази седмица.');
+    } else if (delta === 0) {
+      delta = +100;
+      reasons.push('Чест глад и ниска енергия — дефицитът се смекчава.');
+    }
   } else if (checkin.hunger === 3) {
     modifications.push('more_volume');
     changes.push('Повече зеленчуци и белтък за ситост');
@@ -209,7 +314,11 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
     modifications: [...new Set(modifications)],
     reasoning: reasons.join(' '),
     changeSummary: changes.slice(0, 4),
-    weight: checkin.weight,
+    // За историята: резултатът по теглото, измереното тегло и дали планът е спазван.
+    weight: outcome,
+    weightKg: checkin.weightKg,
+    weeklyChangeKg: checkin.weeklyChangeKg,
+    followed,
     adherence,
   };
 }
@@ -225,7 +334,7 @@ export function weeklyMessage(decision, checkin) {
   if (decision.calorieAdjust < 0) {
     return {
       headline: 'Малка корекция за следващата седмица',
-      message: 'Спазихте плана — браво. Теглото стои, затова приемът намалява леко. Продължавайте със същото темпо.',
+      message: 'Спазихте плана — браво. Резултатът се разминава с очаквания, затова приемът се коригира леко. Продължавайте със същото темпо.',
     };
   }
   if (decision.calorieAdjust > 0) {

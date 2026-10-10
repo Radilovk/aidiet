@@ -9,6 +9,7 @@
     var LOGIN_FETCH_FLAG = 'np_fetch_plan_on_next_auth';
     var PLAN_UPDATE_PENDING_KEY = 'np_plan_refresh_pending';
     var PLAN_VERSION_CHECK_DATE_KEY = 'np_plan_version_check_date';
+    var PLAN_VERSION_CHECK_INTERVAL_MS = 15 * 60 * 1000;
     var PLAN_EDITING_LOCK_ENABLED = true;
     var PLAN_EDITING_MESSAGE = 'Вашият хранителен план е в процес на редакция. Моля, опитайте по-късно.';
     var PLAN_EDITING_ALLOWED = {
@@ -520,6 +521,13 @@
                 idToken: idToken || undefined,
                 clientId: clientId || undefined
             })
+        }).then(function (resp) {
+            // Версията на плана е тази на сървъра — часовникът на телефона може да
+            // избързва или изостава и тогава обновления се пропускат или се „намират“ фалшиво.
+            return resp.clone().json().then(function (d) {
+                if (resp.ok && d && d.planUpdatedAt) markPlanSavedLocally(d.planUpdatedAt);
+                return resp;
+            }).catch(function () { return resp; });
         }).catch(function () {});
     }
 
@@ -770,12 +778,16 @@
             return { checked: false, reason: 'no-user' };
         }
         options = buildPlanSyncOptions(options || {});
-        var today = localCalendarDate();
+        // Проверка при всяко отваряне/връщане в приложението, но не по-често от
+        // веднъж на 15 минути: едно KV четене, без запис — безплатният лимит не се усеща.
+        var nowMs = Date.now();
         try {
-            if (localStorage.getItem(PLAN_VERSION_CHECK_DATE_KEY) === today) {
-                return { checked: false, reason: 'already-today' };
+            var lastRaw = localStorage.getItem(PLAN_VERSION_CHECK_DATE_KEY) || '';
+            var lastMs = /^\d+$/.test(lastRaw) ? Number(lastRaw) : 0;
+            if (!options.force && lastMs && nowMs - lastMs < PLAN_VERSION_CHECK_INTERVAL_MS) {
+                return { checked: false, reason: 'recent' };
             }
-            localStorage.setItem(PLAN_VERSION_CHECK_DATE_KEY, today);
+            localStorage.setItem(PLAN_VERSION_CHECK_DATE_KEY, String(nowMs));
         } catch (_) {
             return { checked: false, reason: 'storage' };
         }

@@ -49,11 +49,12 @@ const weekPlan = {
   day1: { meals: [{ type: 'Хранене 2', description: '• пилешко месо\n• ориз' }] },
   day2: { meals: [{ type: 'Хранене 4', description: '• риба\n• зеленчук' }] },
 };
+// 2026-08-10 е понеделник → day1 (както приложението показва деня по деня от седмицата).
 const gameData = {
-  '2026-08-11': { meals: { 'Хранене 2': true } },
+  '2026-08-10': { meals: { 'Хранене 2': true } },
 };
 ok(planDayIndex('2026-08-11', '2026-08-11') === 1, 'plan day index');
-const ledger = buildFoodLedger(weekPlan, gameData, { dietStartDate: '2026-08-11' });
+const ledger = buildFoodLedger(weekPlan, gameData, {}, { now: new Date('2026-08-12T10:00:00Z') });
 const ratio = buildAdherenceRatio(ledger);
 ok(ratio.get('пилешко месо') === 1, 'eaten/prescribed for checked meal');
 ok(ratio.get('ориз') === 1, 'all products in checked meal count as eaten');
@@ -69,7 +70,7 @@ const ranked = rankCatalogCandidates(
 );
 ok(ranked[0]?.nutritionKey === 'пилешко месо', 'ranking boosts high-adherence product');
 
-ok(worker.includes('persistFoodLedger'), 'worker persists ledger');
+ok(worker.includes('persistAnalyticsAndLedger') && worker.includes('profile.foodLedger = ledger'), 'worker persists ledger');
 ok(worker.includes('loadAdherenceRatioForGeneration'), 'worker loads adherence');
 ok(worker.includes('handleGetFoodCatalogOverlay'), 'worker admin food catalog');
 ok(readFileSync(new URL('../nutrition-engine/index.js', import.meta.url), 'utf8').includes('_adherenceRatio'), 'engine uses adherence');

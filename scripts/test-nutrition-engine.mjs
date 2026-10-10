@@ -174,6 +174,36 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(fast.calorieAdjust === 150, 'твърде бързо — +150 kcal');
   const low = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Без промяна', 'Малко'), null), history: [{ weight: 'flat' }] });
   ok(low.calorieAdjust === 0 && low.modifications.includes('simplify_meals'), 'ниско придържане — по-прост план, не по-малко калории');
+
+  // Измерено тегло: темпото спрямо очакваното и теглото, не субективен отговор.
+  const kgAns = (kg, adh = 'Почти всички', extra = []) => [{ questionId: 'weightKg', value: String(kg) }, { questionId: 'adherence', value: adh }, ...extra];
+  const m1 = readCheckin(kgAns(89.0), null, { prevWeightKg: 90, daysSincePrev: 7 });
+  ok(m1.weeklyChangeKg === -1 && m1.weightKg === 89, 'измерване: промяна за седмица от двете претегляния');
+  const lossBase = { goal: 'LOSS', kcal: 1800, tdee: 2300, floorKcal: 1500, weightKg: 90, baseKcal: 1800 };
+  const fast90 = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin(kgAns(88.8), null, { prevWeightKg: 90, daysSincePrev: 7 }) });
+  ok(fast90.calorieAdjust === 150 && fast90.weight === 'fast_loss', 'измерване: над 1% седмично — забавяне (+150)');
+  const big = decideWeeklyAdjustment({ ...lossBase, weightKg: 130, checkin: readCheckin(kgAns(128.9), null, { prevWeightKg: 130, daysSincePrev: 7 }) });
+  ok(big.calorieAdjust === 0 && big.weight === 'loss', 'измерване: 1.1 кг при 130 кг е под 1% — нормален темп');
+  const slowW = readCheckin(kgAns(89.9), null, { prevWeightKg: 90, daysSincePrev: 7 });
+  const slow1 = decideWeeklyAdjustment({ ...lossBase, checkin: slowW, history: [] });
+  const slow2 = decideWeeklyAdjustment({ ...lossBase, checkin: slowW, history: [{ weight: 'flat', followed: true }] });
+  ok(slow1.calorieAdjust === 0 && slow2.calorieAdjust === -100, 'измерване: застой — корекция едва на втората седмица');
+  const notFollowed = decideWeeklyAdjustment({ ...lossBase, checkin: slowW, history: [{ weight: 'flat', followed: false }] });
+  ok(notFollowed.calorieAdjust === 0, 'история: неспазена седмица не се брои за застой');
+  const partial = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin(kgAns(90, 'Повечето'), { status: 'active', mealDays: 5, mealAdherence: 50 }, { prevWeightKg: 90 }) });
+  ok(partial.calorieAdjust === 0 && /Придържане около 65%/.test(partial.reasoning), 'частично спазване — без корекция, с обяснение');
+  const zeroApp = readCheckin([{ questionId: 'adherence', value: 'Почти всички' }], { status: 'active', mealDays: 4, mealAdherence: 0 });
+  ok(zeroApp.adherence === 48, 'спазване: 0% от приложението се отчита (не се губи като null)');
+  const gainBase = { goal: 'GAIN', kcal: 2800, tdee: 2550, floorKcal: 1500, weightKg: 75, baseKcal: 2800 };
+  const fastGain = decideWeeklyAdjustment({ ...gainBase, checkin: readCheckin(kgAns(75.8), null, { prevWeightKg: 75, daysSincePrev: 7 }) });
+  ok(fastGain.calorieAdjust === -100, 'мускулна маса: над 0.5% седмично — излишъкът се намалява');
+  const gainFlat1 = decideWeeklyAdjustment({ ...gainBase, checkin: readCheckin(kgAns(75.1), null, { prevWeightKg: 75, daysSincePrev: 7 }) });
+  ok(gainFlat1.calorieAdjust === 0, 'мускулна маса: една седмица без покачване — без промяна');
+  const lact = decideWeeklyAdjustment({ ...lossBase, goal: 'PP', lactating: true, weightKg: 72, checkin: readCheckin(kgAns(71.3), null, { prevWeightKg: 72, daysSincePrev: 7 }) });
+  ok(lact.calorieAdjust === 150, 'кърмене: над 0.5 кг седмично — приемът се увеличава');
+  const hungry = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin(kgAns(90, 'Почти всички', [{ questionId: 'hunger', value: 'Често' }, { questionId: 'energy', value: 'Ниска' }]), null, { prevWeightKg: 90 }), history: [{ weight: 'flat', followed: true }] });
+  ok(hungry.calorieAdjust === 0, 'глад и умора — калориите не се режат дори при застой');
+  ok(WEEKLY_CHECKIN_QUESTIONS[0].type === 'number' && WEEKLY_CHECKIN_QUESTIONS[1].skipIfAnswered === 'weightKg', 'седмичен преглед: първо реално тегло, субективният въпрос — само без него');
 }
 
 // 4. AI помощникът: затворен речник, само добавя ограничения, замените ги изпълнява алгоритъмът.

@@ -5864,9 +5864,13 @@
             }, notice.planApplied === false ? 0 : 350);
         });
 
+        var _weeklyNoticeCheckedAt = 0;
         function maybeCheckWeeklyAdaptNotice() {
             var sync = window.NutriPlanPlanSync;
             var uid = localStorage.getItem('userId') || '';
+            // При смяна на таб — най-много веднъж на 10 минути (KV четене при всяка смяна е излишно).
+            if (Date.now() - _weeklyNoticeCheckedAt < 10 * 60 * 1000) return;
+            _weeklyNoticeCheckedAt = Date.now();
             if (sync && typeof sync.maybeCheckWeeklyAdaptNotice === 'function' && uid) {
                 sync.maybeCheckWeeklyAdaptNotice(uid, buildPlanSyncOpts());
             }
@@ -6971,9 +6975,7 @@
                                     planSourceSync,
                                     _idToken
                                 ).then(function (resp) {
-                                    if (resp && resp.ok && window.NutriPlanPlanSync.markPlanSavedLocally) {
-                                        window.NutriPlanPlanSync.markPlanSavedLocally();
-                                    }
+                                    // saveUserProfile вече записа версията от сървъра.
                                 }).catch(function (e) {
                                     console.warn('[PWA] Backend plan update save failed:', e);
                                 });
@@ -10782,6 +10784,22 @@
             };
             modal.appendChild(skipBtn);
 
+            // Следващ въпрос; въпрос със skipIfAnswered отпада, ако онзи вече е отговорен
+            // (напр. „как се промени теглото“ не се пита, щом теглото е въведено).
+            function advance() {
+                idx++;
+                while (idx < questions.length && questions[idx].skipIfAnswered &&
+                       answers.some(function(a) { return a.questionId === questions[idx].skipIfAnswered; })) {
+                    idx++;
+                }
+                if (idx >= questions.length) {
+                    overlay.remove();
+                    onComplete(answers);
+                } else {
+                    renderStep();
+                }
+            }
+
             function renderStep() {
                 var q = questions[idx];
                 stepEl.textContent = (idx + 1) + ' от ' + total;
@@ -10790,6 +10808,39 @@
                 progress.querySelectorAll('.game-qa-dot').forEach(function(dot, i) {
                     dot.className = 'game-qa-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
                 });
+                if (q.type === 'number') {
+                    var inp = document.createElement('input');
+                    inp.type = 'number';
+                    inp.inputMode = 'decimal';
+                    inp.step = '0.1';
+                    inp.min = String(q.min || 30);
+                    inp.max = String(q.max || 300);
+                    inp.placeholder = q.placeholder || 'напр. 72.4';
+                    inp.style.cssText = 'width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:1.1rem;margin-bottom:10px;text-align:center';
+                    optsWrap.appendChild(inp);
+                    var ok = document.createElement('button');
+                    ok.type = 'button';
+                    ok.className = 'game-qa-option';
+                    ok.textContent = 'Напред';
+                    ok.onclick = function() {
+                        var v = parseFloat(String(inp.value).replace(',', '.'));
+                        if (!(v >= (q.min || 30) && v <= (q.max || 300))) {
+                            inp.style.borderColor = '#ef4444';
+                            inp.focus();
+                            return;
+                        }
+                        answers.push({ questionId: q.id, value: String(Math.round(v * 10) / 10) });
+                        advance();
+                    };
+                    optsWrap.appendChild(ok);
+                    var none = document.createElement('button');
+                    none.type = 'button';
+                    none.className = 'game-qa-option';
+                    none.textContent = q.skipLabel || 'Не съм се теглил/а';
+                    none.onclick = advance;
+                    optsWrap.appendChild(none);
+                    return;
+                }
                 if (q.type === 'text') {
                     var ta = document.createElement('textarea');
                     ta.className = 'game-qa-text';
@@ -10805,13 +10856,7 @@
                     next.onclick = function() {
                         var text = ta.value.trim();
                         if (text) answers.push({ questionId: q.id, value: text });
-                        idx++;
-                        if (idx >= questions.length) {
-                            overlay.remove();
-                            onComplete(answers);
-                        } else {
-                            renderStep();
-                        }
+                        advance();
                     };
                     optsWrap.appendChild(next);
                     return;
@@ -10823,13 +10868,7 @@
                     btn.textContent = opt;
                     btn.onclick = function() {
                         answers.push({ questionId: q.id, value: opt });
-                        idx++;
-                        if (idx >= questions.length) {
-                            overlay.remove();
-                            onComplete(answers);
-                        } else {
-                            renderStep();
-                        }
+                        advance();
                     };
                     optsWrap.appendChild(btn);
                 });
@@ -11091,14 +11130,58 @@
             info.adaptationHistory = hist;
             delete info.pendingQuestions;
             saveWeeklyAIState(info);
+            scheduleWeeklyPlanReminders(info);
+        }
+
+        /**
+         * Локални известия (без сървър): новото меню влиза от полунощ — известие
+         * сутринта в 8:00; и напомняне за следващия седмичен преглед в 9:00.
+         */
+        function scheduleWeeklyPlanReminders(info) {
+            var gn = window.GameNotifier;
+            if (!gn || typeof gn.addPlanReminder !== 'function') return;
+            var tomorrow8 = new Date();
+            tomorrow8.setDate(tomorrow8.getDate() + 1);
+            tomorrow8.setHours(8, 0, 0, 0);
+            gn.addPlanReminder({
+                key: 'weekly_release',
+                ts: tomorrow8.getTime(),
+                title: 'Новото ви меню е готово',
+                body: 'Планът за седмицата е обновен според прегледа ви. Отворете го, за да видите промените.',
+                url: '/plan.html'
+            });
+            if (info && info.nextDue) {
+                var due = new Date(info.nextDue);
+                due.setHours(9, 0, 0, 0);
+                gn.addPlanReminder({
+                    key: 'weekly_checkin',
+                    ts: due.getTime(),
+                    title: 'Седмичен преглед',
+                    body: 'Претеглете се сутрин на гладно и отговорете на 5 кратки въпроса — планът се настройва по резултата.',
+                    url: '/plan.html'
+                });
+            }
         }
 
         function markWeeklySkipped() {
             var info = ensureWeeklyMeta(getWeeklyAIState());
             info.feedbackStatus = 'skipped';
-            info.lastRun = new Date().toISOString();
-            info.nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            // „По-късно“ = утре, не след седмица: пропуснатият преглед е пропусната корекция.
+            info.lastRun = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
+            info.nextDue = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
             saveWeeklyAIState(info);
+            var gn = window.GameNotifier;
+            if (gn && typeof gn.addPlanReminder === 'function') {
+                var due = new Date(info.nextDue);
+                due.setHours(9, 0, 0, 0);
+                gn.addPlanReminder({
+                    key: 'weekly_checkin',
+                    ts: due.getTime(),
+                    title: 'Седмичен преглед',
+                    body: 'Отговорете на 5 кратки въпроса — планът за следващата седмица се настройва по тях.',
+                    url: '/plan.html'
+                });
+            }
         }
 
         async function startWeeklyFeedbackFlow(wd) {
@@ -11123,9 +11206,9 @@
                 showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
                     var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
                     try {
-                        await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        var adaptResp = await submitWeeklyAdaptation(questions, answers, cycleNumber);
                         sendingOverlay.remove();
-                        finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber);
+                        finalizeWeeklyCycleOnSubmit(questions, answers, (adaptResp && adaptResp.cycleNumber) || cycleNumber);
                         showWeeklySubmittedModal();
                     } catch (err) {
                         sendingOverlay.remove();
@@ -11155,9 +11238,9 @@
                 showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
                     var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
                     try {
-                        await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                        var adaptResp = await submitWeeklyAdaptation(questions, answers, cycleNumber);
                         sendingOverlay.remove();
-                        finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber);
+                        finalizeWeeklyCycleOnSubmit(questions, answers, (adaptResp && adaptResp.cycleNumber) || cycleNumber);
                         showWeeklySubmittedModal();
                     } catch (err) {
                         sendingOverlay.remove();
@@ -11220,6 +11303,13 @@
             if (info.lastRun && now - new Date(info.lastRun).getTime() < 7 * 24 * 60 * 60 * 1000) {
                 resumeWeeklyFeedbackIfNeeded();
                 return;
+            }
+            // Първият преглед — след седмица с текущия план, не на третия ден:
+            // оценява се седмица, а не няколко дни вода и гликоген.
+            if (!info.lastRun) {
+                var planStartRaw = localStorage.getItem('planUpdatedAt') || info.dietStartDate;
+                var planStartMs = planStartRaw ? new Date(planStartRaw).getTime() : NaN;
+                if (planStartMs && now - planStartMs < 6 * 24 * 60 * 60 * 1000) return;
             }
             var wd = calcWeeklyScore();
             if (wd.daysRecorded >= 3) {

@@ -873,8 +873,31 @@ var JUNK_PENALTY_PER_MEAL = 7;
 function zp(n) {
   return n < 10 ? `0${n}` : `${n}`;
 }
+var CLIENT_TIME_ZONE = "Europe/Sofia";
+var sofiaDate = new Intl.DateTimeFormat("en-CA", { timeZone: CLIENT_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" });
+var sofiaHour = new Intl.DateTimeFormat("en-GB", { timeZone: CLIENT_TIME_ZONE, hour: "2-digit", hourCycle: "h23" });
 function dateKey(d = /* @__PURE__ */ new Date()) {
-  return `${d.getFullYear()}-${zp(d.getMonth() + 1)}-${zp(d.getDate())}`;
+  return sofiaDate.format(d);
+}
+function localHour(d = /* @__PURE__ */ new Date()) {
+  return Number(sofiaHour.format(d)) || 0;
+}
+function shiftKey(key, n) {
+  const [y, m, dd] = key.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1, dd + n));
+  return `${t.getUTCFullYear()}-${zp(t.getUTCMonth() + 1)}-${zp(t.getUTCDate())}`;
+}
+function planMealSlots(rec) {
+  const freeKey = rec?.freeMeal?.mealKey || null;
+  return getMealSlots(rec).filter((m) => m !== freeKey && !/^Напитка|^Свободно хранене/.test(m));
+}
+function dayMealAdherence(rec) {
+  if (!rec) return null;
+  const slots = planMealSlots(rec);
+  if (!slots.length) return null;
+  const ticked = slots.filter((m) => rec.meals?.[m] === true).length;
+  const touched = ticked > 0 || rec.morningCheck || rec.eveningCheck || (rec.extraMeals || []).length > 0;
+  return touched ? Math.round(ticked / slots.length * 100) : null;
 }
 function emptyDayScore() {
   return { score: null, engPct: 0, junkCount: 0, calorieDelta: 0, calorieBalance: "balanced" };
@@ -928,7 +951,7 @@ function calcDayScore(rec, todayKey) {
       calorieBalance = "surplus";
     } else if (excessPct < -0.1 && completedPlanCals > 0 && (rec.morningCheck || rec.eveningCheck)) {
       const recDate = rec.date || todayKey;
-      const dayIsDone = recDate < todayKey || (/* @__PURE__ */ new Date()).getHours() >= 20;
+      const dayIsDone = recDate < todayKey || localHour() >= 20;
       if (dayIsDone) calorieBalance = "deficit";
     }
   } else if (extraCalSum > 0 && (!planned || planned === 0)) {
@@ -991,7 +1014,8 @@ function computeHealthIndex(m) {
     healthScore2 += m.waterPct * HEALTH_WEIGHTS.water;
     totalWeight += HEALTH_WEIGHTS.water;
   }
-  const extraCalsWeight = Math.max(0, 100 - Math.round((m.totalExtraCals || 0) / 700 * 100));
+  const perDay = m.extraCalsPerDay ?? (m.totalExtraCals || 0) / 7;
+  const extraCalsWeight = Math.max(0, 100 - Math.round(perDay / 350 * 100));
   healthScore2 += extraCalsWeight * HEALTH_WEIGHTS.extraCals;
   totalWeight += HEALTH_WEIGHTS.extraCals;
   return Math.round(Math.max(0, Math.min(100, healthScore2 / totalWeight)));
@@ -999,10 +1023,8 @@ function computeHealthIndex(m) {
 function buildLast7Days(allData, todayKey) {
   const days = [];
   for (let i = 6; i >= 0; i--) {
-    const dd = /* @__PURE__ */ new Date();
-    dd.setDate(dd.getDate() - i);
-    const key = dateKey(dd);
-    if (key <= todayKey) days.push({ key, rec: allData?.[key] || null });
+    const key = shiftKey(todayKey, -i);
+    days.push({ key, rec: allData?.[key] || null });
   }
   return days;
 }
@@ -1045,8 +1067,10 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     }, 0);
   });
   const totalExtraCals = extraCalsByDay.reduce((s, v) => s + v, 0);
-  const calBalanceByDay = days.map((d) => d.rec ? calcDayScore(d.rec, todayKey).calorieDelta : 0);
+  const calBalanceByDay = days.map((d) => d.rec && d.key < todayKey ? calcDayScore(d.rec, todayKey).calorieDelta : 0);
   const netCalBalance = calBalanceByDay.reduce((s, v) => s + v, 0);
+  const mealAdh = days.map((d) => dayMealAdherence(d.rec)).filter((v) => v != null);
+  const mealAdherence = mealAdh.length ? Math.round(mealAdh.reduce((a, b) => a + b, 0) / mealAdh.length) : null;
   const sleepByDay = days.map((d) => d.rec?.morningCheck?.sleptWell != null ? d.rec.morningCheck.sleptWell ? 100 : 0 : null);
   const balanceByDay = days.map((d) => d.rec?.eveningCheck?.emotionalBalance != null ? Math.round((d.rec.eveningCheck.emotionalBalance - 1) / 2 * 100) : null);
   const actByDay = days.map((d) => d.rec?.eveningCheck?.activityLevel != null ? Math.round((d.rec.eveningCheck.activityLevel - 1) / 2 * 100) : null);
@@ -1069,7 +1093,7 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
       }, 0);
       const total = consumed + extra;
       const plan = getPlannedCalories(d.rec);
-      if (total > 0 && plan) vals.push(Math.min(100, Math.round(total / plan * 100)));
+      if (total > 0 && plan) vals.push(Math.max(0, 100 - Math.round(Math.abs(total / plan - 1) * 100)));
     });
     return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
   })();
@@ -1096,7 +1120,8 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     balancePct: pctAvg(balanceByDay),
     actPct: pctAvg(actByDay),
     waterPct: pctAvg(waterByDay),
-    totalExtraCals
+    totalExtraCals,
+    extraCalsPerDay: totalExtraCals / Math.max(1, days.filter((d) => d.rec).length)
   });
   const daysWithData = days.filter((d) => d.rec).length;
   if (daysWithData === 0) {
@@ -1112,6 +1137,8 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     avgScore,
     streak: calcStreak(days, todayKey),
     adherence: engagementPct,
+    mealAdherence,
+    mealDays: mealAdh.length,
     calAdherence: calAdherencePct,
     junk7,
     netCalBalance,
@@ -1145,7 +1172,7 @@ function serializeAnalyticsBlock(analytics) {
     "#AX v1 status=active",
     // days=N/7 is the denominator behind avg and adh — without it the model cannot tell a
     // solid week from two recorded days and has to guess at the confidence of the numbers.
-    `days=${analytics.daysRecorded}/7|hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? "\u2014"}|str=${analytics.streak}|adh=${analytics.adherence}`,
+    `days=${analytics.daysRecorded}/7|hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? "\u2014"}|str=${analytics.streak}|adh=${analytics.adherence}|meal=${analytics.mealAdherence ?? "\u2014"}`,
     `cal=${analytics.calAdherence ?? "\u2014"}|junk7=${analytics.junk7}|net=${analytics.netCalBalance}|tr=${analytics.trend}`,
     `dim|eng=${dim.eng ?? "\u2014"}|slp=${dim.slp ?? "\u2014"}|bal=${dim.bal ?? "\u2014"}|act=${dim.act ?? "\u2014"}|wtr=${dim.wtr ?? "\u2014"}`,
     `d7|${analytics.last7}`,
@@ -26624,16 +26651,17 @@ function productsFromMeal(meal) {
   }
   return keys;
 }
-function planDayIndex(dateKey2, dietStartDate) {
-  if (!dateKey2 || !dietStartDate) return null;
-  const start = /* @__PURE__ */ new Date(`${dietStartDate}T00:00:00Z`);
-  const d = /* @__PURE__ */ new Date(`${dateKey2}T00:00:00Z`);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(d.getTime())) return null;
-  const diff = Math.floor((d.getTime() - start.getTime()) / 864e5);
-  if (diff < 0 || diff > 6) return null;
-  return diff + 1;
+var SOFIA_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Sofia", year: "numeric", month: "2-digit", day: "2-digit" });
+function shiftDateKey(key, n) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
-function buildFoodLedger(weekPlan, gameData = {}, gameWeeklyAI = {}) {
+function weekdayPlanDay(dateKey2) {
+  const [y, m, d] = dateKey2.split("-").map(Number);
+  const js = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return js === 0 ? 7 : js;
+}
+function buildFoodLedger(weekPlan, gameData = {}, gameWeeklyAI = {}, options = {}) {
   const prescribed = /* @__PURE__ */ new Map();
   const eaten = /* @__PURE__ */ new Map();
   if (!weekPlan || typeof weekPlan !== "object") {
@@ -26648,15 +26676,19 @@ function buildFoodLedger(weekPlan, gameData = {}, gameWeeklyAI = {}) {
       }
     }
   }
-  const dietStart = gameWeeklyAI?.dietStartDate || gameWeeklyAI?.startDate || "";
+  const today = SOFIA_DATE.format(options.now || /* @__PURE__ */ new Date());
+  const from = shiftDateKey(today, -6);
   for (const [dateKey2, rec] of Object.entries(gameData || {})) {
-    const dayNum = planDayIndex(dateKey2, dietStart);
-    if (!dayNum) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey2) || dateKey2 < from || dateKey2 > today) continue;
+    const dayNum = weekdayPlanDay(dateKey2);
     const dayPlan = weekPlan[`day${dayNum}`];
     if (!dayPlan?.meals?.length) continue;
+    const seenTypes = {};
     for (const meal of dayPlan.meals) {
+      seenTypes[meal.type] = (seenTypes[meal.type] || 0) + 1;
+      const tickKey = seenTypes[meal.type] === 1 ? meal.type : `${meal.type}_${seenTypes[meal.type]}`;
       if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
-      if (rec?.meals?.[meal.type] !== true) continue;
+      if (rec?.meals?.[tickKey] !== true) continue;
       for (const key of productsFromMeal(meal)) {
         eaten.set(key, (eaten.get(key) || 0) + 1);
       }
@@ -39956,9 +39988,20 @@ function normalizeSwaps(raw, weekPlan, max = 6) {
 // nutrition-engine/monitoring.js
 var WEEKLY_CHECKIN_QUESTIONS = [
   {
+    id: "weightKg",
+    text: "\u041A\u043E\u043B\u043A\u043E \u0435 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0432\u0438 \u0434\u043D\u0435\u0441? \u041F\u0440\u0435\u0442\u0435\u0433\u043B\u0435\u0442\u0435 \u0441\u0435 \u0441\u0443\u0442\u0440\u0438\u043D, \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E, \u0441\u043B\u0435\u0434 \u0442\u043E\u0430\u043B\u0435\u0442\u043D\u0430 (\u043A\u0433).",
+    type: "number",
+    min: 30,
+    max: 300,
+    placeholder: "\u043D\u0430\u043F\u0440. 72.4",
+    skipLabel: "\u041D\u0435 \u0441\u044A\u043C \u0441\u0435 \u0442\u0435\u0433\u043B\u0438\u043B/\u0430",
+    options: []
+  },
+  {
     id: "weight",
     text: "\u041A\u0430\u043A \u0441\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0432\u0438 \u0441\u043F\u0440\u044F\u043C\u043E \u043C\u0438\u043D\u0430\u043B\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430?",
     type: "choice",
+    skipIfAnswered: "weightKg",
     options: ["\u041E\u0442\u0441\u043B\u0430\u0431\u043D\u0430\u0445 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 1 \u043A\u0433", "\u041E\u0442\u0441\u043B\u0430\u0431\u043D\u0430\u0445 \u0434\u043E 1 \u043A\u0433", "\u0411\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430", "\u041A\u0430\u0447\u0438\u0445", "\u041D\u0435 \u0441\u044A\u043C \u0441\u0435 \u0442\u0435\u0433\u043B\u0438\u043B/\u0430"]
   },
   {
@@ -40008,80 +40051,143 @@ function answerOf(answers, id) {
   const hit = (answers || []).find((a) => a.questionId === id);
   return hit ? String(hit.value) : null;
 }
-function readCheckin(answers, analytics) {
+var FLAT_KG = 0.2;
+var FAST_LOSS_RATE = 0.01;
+var LACTATION_MAX_LOSS_KG = 0.5;
+var FAST_GAIN_RATE = 5e-3;
+var SLOW_LOSS_SHARE = 0.4;
+function readCheckin(answers, analytics, previous = {}) {
   const weightAnswer = answerOf(answers, "weight");
   const adherenceAnswer = answerOf(answers, "adherence");
-  const fromApp = analytics?.status === "active" && (analytics.daysRecorded || 0) >= 3 ? Number(analytics.adherence) || null : null;
+  const appValue = analytics?.status === "active" && (analytics.mealDays || 0) >= 3 && analytics.mealAdherence != null ? Number(analytics.mealAdherence) : null;
   const fromAnswer = adherenceAnswer ? ADHERENCE_ANSWERS[adherenceAnswer] ?? null : null;
-  const adherence = [fromApp, fromAnswer].filter((v) => v != null);
+  let adherence = null;
+  if (fromAnswer != null && appValue != null) adherence = Math.round((fromAnswer + appValue) / 2);
+  else adherence = fromAnswer ?? appValue;
+  const kg = Number(String(answerOf(answers, "weightKg") || "").replace(",", "."));
+  const weightKg = kg >= 30 && kg <= 300 ? kg : null;
+  let weeklyChangeKg = null;
+  const prev = Number(previous.prevWeightKg) || null;
+  if (weightKg && prev) {
+    const days = Number(previous.daysSincePrev);
+    const span = days >= 4 && days <= 28 ? days : 7;
+    weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
+  }
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
-    adherence: adherence.length ? Math.min(...adherence) : null,
+    weightKg,
+    weeklyChangeKg,
+    adherence,
     hunger: LEVEL_ANSWERS[answerOf(answers, "hunger")] || null,
     energy: LEVEL_ANSWERS[answerOf(answers, "energy")] || null,
     difficulty: answerOf(answers, "difficulty"),
     junk: analytics?.junk7 || 0
   };
 }
-function streak(history, weight) {
+function weightOutcome(checkin, { goalKind, expectedLossKg = 0, weightKg = 0, lactating = false }) {
+  const change = checkin.weeklyChangeKg;
+  if (change == null) {
+    if (checkin.weight === "fast_loss" && !lactating && weightKg >= 100 && checkin.energy !== 3) return "loss";
+    return checkin.weight;
+  }
+  const base = checkin.weightKg || weightKg || 70;
+  const loss = -change;
+  if (loss > 0 && (loss >= base * FAST_LOSS_RATE || lactating && loss > LACTATION_MAX_LOSS_KG)) return "fast_loss";
+  if (change >= FLAT_KG) return goalKind === "gain" && change > base * FAST_GAIN_RATE ? "fast_gain" : "gain";
+  if (Math.abs(change) < FLAT_KG) return "flat";
+  if (goalKind === "loss" && expectedLossKg >= 0.25 && loss < expectedLossKg * SLOW_LOSS_SHARE) return "slow";
+  return "loss";
+}
+var OUTCOME_CLASS = {
+  loss: { fast_loss: "down", loss: "down", slow: "stall", flat: "stall", gain: "stall", fast_gain: "stall" },
+  gain: { fast_loss: "down", loss: "down", slow: "down", flat: "stall", gain: "up", fast_gain: "fast" },
+  keep: { fast_loss: "down", loss: "down", slow: "down", flat: "flat", gain: "up", fast_gain: "up" }
+};
+function streak(history, goalKind, cls) {
   let n = 0;
   for (let i = history.length - 1; i >= 0; i--) {
-    if (history[i]?.weight === weight) n++;
+    const h = history[i];
+    if (h?.followed === false) break;
+    const c = h?.weight ? OUTCOME_CLASS[goalKind][h.weight] : null;
+    if (c === cls) n++;
     else break;
   }
   return n;
 }
-function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg, baseKcal = kcal, history = [] }) {
+var LOSING_GOALS = /* @__PURE__ */ new Set(["LOSS", "VISC", "CELL", "PP"]);
+function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg, baseKcal = kcal, lactating = false, history = [] }) {
   const reasons = [];
   const changes = [];
   const modifications = [];
   let delta = 0;
-  const losing = goal === "LOSS" || goal === "VISC" || goal === "CELL";
+  const losing = LOSING_GOALS.has(goal);
   const gaining = goal === "GAIN";
+  const goalKind = losing ? "loss" : gaining ? "gain" : "keep";
   const adherence = checkin.adherence;
   const followed = adherence != null && adherence >= 75;
+  const expectedLoss = Math.max(0, (tdee - kcal) * 7 / KCAL_PER_KG);
+  const outcome = weightOutcome(checkin, { goalKind, expectedLossKg: expectedLoss, weightKg, lactating });
+  const cls = outcome ? OUTCOME_CLASS[goalKind][outcome] : null;
+  const measured = checkin.weeklyChangeKg != null ? `${checkin.weeklyChangeKg > 0 ? "+" : ""}${checkin.weeklyChangeKg.toFixed(1)} \u043A\u0433 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430` : null;
   if (adherence != null && adherence < 60) {
     modifications.push("simplify_meals");
     reasons.push(`\u041F\u0440\u0438\u0434\u044A\u0440\u0436\u0430\u043D\u0435 \u043E\u043A\u043E\u043B\u043E ${adherence}% \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0441\u0442\u0430\u0432\u0430\u0442, \u043C\u0435\u043D\u044E\u0442\u043E \u0441\u0435 \u043E\u043F\u0440\u043E\u0441\u0442\u044F\u0432\u0430, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u0441\u043F\u0430\u0437\u0432\u0430 \u043F\u043E-\u043B\u0435\u0441\u043D\u043E.`);
     changes.push("\u041F\u043E-\u043F\u0440\u043E\u0441\u0442\u0438 \u0438 \u043F\u043E\u0432\u0442\u0430\u0440\u044F\u0449\u0438 \u0441\u0435 \u044F\u0441\u0442\u0438\u044F");
-  } else if (checkin.weight && followed) {
-    const expectedLoss = Math.max(0, (tdee - kcal) * 7 / KCAL_PER_KG);
+  } else if (outcome && !followed) {
+    reasons.push(`\u041F\u0440\u0438\u0434\u044A\u0440\u0436\u0430\u043D\u0435 \u043E\u043A\u043E\u043B\u043E ${adherence ?? "?"}% \u2014 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u044A\u0442 \u043F\u043E \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u043E\u0449\u0435 \u043D\u0435 \u043F\u043E\u043A\u0430\u0437\u0432\u0430 \u0434\u0430\u043B\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432\u0435\u0440\u043D\u0438; \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430.`);
+  } else if (outcome && followed) {
+    const weeks = streak(history, goalKind, cls) + 1;
     if (losing) {
-      const tooFast = checkin.weight === "fast_loss" && (weightKg > 0 && weightKg < 100 || checkin.energy === 3);
-      if (tooFast) {
+      if (outcome === "fast_loss") {
         delta = +MAX_WEEKLY_STEP;
-        reasons.push("\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 1% \u043E\u0442 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u2014 \u0442\u0435\u043C\u043F\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u0431\u0430\u0432\u044F, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430\u0442\u0430 \u043C\u0430\u0441\u0430.");
-      } else if (checkin.weight === "flat" || checkin.weight === "gain") {
-        const weeks = streak(history, checkin.weight) + 1;
+        reasons.push(lactating ? "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 0.5 \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043F\u0440\u0438 \u043A\u044A\u0440\u043C\u0435\u043D\u0435 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043A\u044A\u0440\u043C\u0430\u0442\u0430." : `\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 1% \u043E\u0442 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${measured ? ` (${measured})` : ""} \u2014 \u0442\u0435\u043C\u043F\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u0431\u0430\u0432\u044F, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430\u0442\u0430 \u043C\u0430\u0441\u0430.`);
+      } else if (cls === "stall") {
         if (weeks >= 2) {
-          delta = checkin.weight === "gain" ? -MAX_WEEKLY_STEP : -100;
-          reasons.push(`${weeks} \u043F\u043E\u0440\u0435\u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u0431\u0435\u0437 \u0441\u043F\u0430\u0434 \u043F\u0440\u0438 \u0441\u043F\u0430\u0437\u0435\u043D \u043F\u043B\u0430\u043D \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u043B\u0435\u043A\u043E.`);
+          delta = outcome === "gain" ? -MAX_WEEKLY_STEP : -100;
+          reasons.push(`${weeks} \u043F\u043E\u0440\u0435\u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 ${outcome === "slow" ? "\u0441 \u043C\u043D\u043E\u0433\u043E \u0431\u0430\u0432\u0435\u043D \u0441\u043F\u0430\u0434" : "\u0431\u0435\u0437 \u0441\u043F\u0430\u0434"} \u043F\u0440\u0438 \u0441\u043F\u0430\u0437\u0435\u043D \u043F\u043B\u0430\u043D${measured ? ` (${measured})` : ""} \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u043B\u0435\u043A\u043E.`);
         } else {
-          reasons.push("\u0415\u0434\u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0431\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0435 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0430 (\u0432\u043E\u0434\u0430, \u0433\u043B\u0438\u043A\u043E\u0433\u0435\u043D) \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430, \u0441\u043B\u0435\u0434\u0438\u043C \u0438 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430.");
+          reasons.push(`${measured ? `${measured}. ` : ""}\u0415\u0434\u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0431\u0435\u0437 \u0441\u043F\u0430\u0434 \u0435 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0430 (\u0432\u043E\u0434\u0430, \u0433\u043B\u0438\u043A\u043E\u0433\u0435\u043D, \u0446\u0438\u043A\u044A\u043B) \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430, \u0441\u043B\u0435\u0434\u0438\u043C \u0438 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430.`);
         }
       } else {
-        reasons.push(`\u0422\u0435\u043C\u043F\u043E\u0442\u043E \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F \u043D\u0430 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u043E\u0442\u043E (\u043E\u043A\u043E\u043B\u043E ${expectedLoss.toFixed(1)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E) \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430.`);
+        reasons.push(`\u0422\u0435\u043C\u043F\u043E\u0442\u043E \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F \u043D\u0430 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u043E\u0442\u043E (\u043E\u043A\u043E\u043B\u043E ${expectedLoss.toFixed(1)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${measured ? `; \u0438\u0437\u043C\u0435\u0440\u0435\u043D\u043E ${measured}` : ""}) \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430.`);
       }
     } else if (gaining) {
-      if (checkin.weight === "flat" || checkin.weight === "loss" || checkin.weight === "fast_loss") {
+      if (cls === "fast") {
+        delta = -100;
+        reasons.push(`\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0440\u0430\u0441\u0442\u0435 \u043D\u0430\u0434 0.5% \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${measured ? ` (${measured})` : ""} \u2014 \u0438\u0437\u043B\u0438\u0448\u044A\u043A\u044A\u0442 \u043E\u0442\u0438\u0432\u0430 \u0432 \u043C\u0430\u0437\u043D\u0438\u043D\u0438; \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u043B\u0435\u043A\u043E.`);
+      } else if (cls === "down") {
         delta = +MAX_WEEKLY_STEP;
-        reasons.push("\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u043D\u0435 \u0440\u0430\u0441\u0442\u0435 \u043F\u0440\u0438 \u0441\u043F\u0430\u0437\u0435\u043D \u043F\u043B\u0430\u043D \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430.");
+        reasons.push("\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u043F\u0430\u0434\u0430 \u043F\u0440\u0438 \u0446\u0435\u043B \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430.");
+      } else if (cls === "stall") {
+        if (weeks >= 2) {
+          delta = +MAX_WEEKLY_STEP;
+          reasons.push(`${weeks} \u043F\u043E\u0440\u0435\u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u0431\u0435\u0437 \u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043F\u0440\u0438 \u0441\u043F\u0430\u0437\u0435\u043D \u043F\u043B\u0430\u043D \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430.`);
+        } else {
+          reasons.push("\u0415\u0434\u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0431\u0435\u0437 \u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430, \u0441\u043B\u0435\u0434\u0438\u043C \u0438 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430.");
+        }
       } else {
         reasons.push("\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0440\u0430\u0441\u0442\u0435 \u043F\u043E \u043F\u043B\u0430\u043D \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430.");
       }
-    } else if (checkin.weight === "gain" && streak(history, "gain") >= 1) {
+    } else if (cls === "up" && weeks >= 2) {
       delta = -100;
       reasons.push("\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0440\u0430\u0441\u0442\u0435 \u0432\u0442\u043E\u0440\u0430 \u043F\u043E\u0440\u0435\u0434\u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043F\u0440\u0438 \u0446\u0435\u043B \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430\u043D\u0435 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u043B\u0435\u043A\u043E.");
-    } else if ((checkin.weight === "loss" || checkin.weight === "fast_loss") && streak(history, "loss") >= 1) {
+    } else if (cls === "down" && weeks >= 2) {
       delta = 100;
-      reasons.push("\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u043F\u0430\u0434\u0430 \u043F\u0440\u0438 \u0446\u0435\u043B \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430\u043D\u0435 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u043B\u0435\u043A\u043E.");
+      reasons.push("\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u043F\u0430\u0434\u0430 \u0432\u0442\u043E\u0440\u0430 \u043F\u043E\u0440\u0435\u0434\u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043F\u0440\u0438 \u0446\u0435\u043B \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430\u043D\u0435 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u043B\u0435\u043A\u043E.");
+    } else {
+      reasons.push(`\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u0434\u044A\u0440\u0436\u0430 \u0432 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438\u0442\u0435 \u0433\u0440\u0430\u043D\u0438\u0446\u0438${measured ? ` (${measured})` : ""} \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430.`);
     }
-  } else if (!checkin.weight) {
-    reasons.push("\u0411\u0435\u0437 \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0441\u0442\u0430\u0432\u0430\u0442 \u2014 \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u0435\u0442\u0435 \u0441\u0435 \u0432 \u043D\u0430\u0447\u0430\u043B\u043E\u0442\u043E \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430.");
+  } else if (!outcome) {
+    reasons.push("\u0411\u0435\u0437 \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0441\u0442\u0430\u0432\u0430\u0442 \u2014 \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u0435\u0442\u0435 \u0441\u0435 \u0441\u0443\u0442\u0440\u0438\u043D \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E \u043F\u0440\u0435\u0434\u0438 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u043F\u0440\u0435\u0433\u043B\u0435\u0434.");
   }
-  if (losing && delta <= 0 && checkin.hunger === 3 && checkin.energy === 3) {
-    delta = Math.max(delta, 100);
-    reasons.push("\u0427\u0435\u0441\u0442 \u0433\u043B\u0430\u0434 \u0438 \u043D\u0438\u0441\u043A\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u2014 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u0441\u0435 \u0441\u043C\u0435\u043A\u0447\u0430\u0432\u0430.");
+  if (losing && adherence != null && adherence >= 60 && checkin.hunger === 3 && checkin.energy === 3) {
+    if (delta < 0) {
+      delta = 0;
+      reasons.push("\u0427\u0435\u0441\u0442 \u0433\u043B\u0430\u0434 \u0438 \u043D\u0438\u0441\u043A\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430\u0442 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430.");
+    } else if (delta === 0) {
+      delta = 100;
+      reasons.push("\u0427\u0435\u0441\u0442 \u0433\u043B\u0430\u0434 \u0438 \u043D\u0438\u0441\u043A\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u2014 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u0441\u0435 \u0441\u043C\u0435\u043A\u0447\u0430\u0432\u0430.");
+    }
   } else if (checkin.hunger === 3) {
     modifications.push("more_volume");
     changes.push("\u041F\u043E\u0432\u0435\u0447\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0431\u0435\u043B\u0442\u044A\u043A \u0437\u0430 \u0441\u0438\u0442\u043E\u0441\u0442");
@@ -40115,7 +40221,11 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
     modifications: [...new Set(modifications)],
     reasoning: reasons.join(" "),
     changeSummary: changes.slice(0, 4),
-    weight: checkin.weight,
+    // За историята: резултатът по теглото, измереното тегло и дали планът е спазван.
+    weight: outcome,
+    weightKg: checkin.weightKg,
+    weeklyChangeKg: checkin.weeklyChangeKg,
+    followed,
     adherence
   };
 }
@@ -40129,7 +40239,7 @@ function weeklyMessage(decision, checkin) {
   if (decision.calorieAdjust < 0) {
     return {
       headline: "\u041C\u0430\u043B\u043A\u0430 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u0437\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
-      message: "\u0421\u043F\u0430\u0437\u0438\u0445\u0442\u0435 \u043F\u043B\u0430\u043D\u0430 \u2014 \u0431\u0440\u0430\u0432\u043E. \u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0442\u043E\u0438, \u0437\u0430\u0442\u043E\u0432\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u043B\u0435\u043A\u043E. \u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0439\u0442\u0435 \u0441\u044A\u0441 \u0441\u044A\u0449\u043E\u0442\u043E \u0442\u0435\u043C\u043F\u043E."
+      message: "\u0421\u043F\u0430\u0437\u0438\u0445\u0442\u0435 \u043F\u043B\u0430\u043D\u0430 \u2014 \u0431\u0440\u0430\u0432\u043E. \u0420\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u044A\u0442 \u0441\u0435 \u0440\u0430\u0437\u043C\u0438\u043D\u0430\u0432\u0430 \u0441 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u0438\u044F, \u0437\u0430\u0442\u043E\u0432\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430 \u043B\u0435\u043A\u043E. \u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0439\u0442\u0435 \u0441\u044A\u0441 \u0441\u044A\u0449\u043E\u0442\u043E \u0442\u0435\u043C\u043F\u043E."
     };
   }
   if (decision.calorieAdjust > 0) {
@@ -41192,22 +41302,38 @@ var RATE_LIMIT = {
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
   WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 }
 };
+var KV_RATE_LIMITED = /* @__PURE__ */ new Set(["GENERATE_PLAN", "FOOD_ANALYSIS", "SOCIAL_AUTH", "FORGOT_PASSWORD"]);
+var memoryRateCounters = /* @__PURE__ */ new Map();
+function rateLimitedResponse(config) {
+  return new Response(
+    JSON.stringify({ error: "\u0422\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u0437\u0430\u044F\u0432\u043A\u0438. \u041C\u043E\u043B\u044F, \u0438\u0437\u0447\u0430\u043A\u0430\u0439\u0442\u0435 \u043C\u0430\u043B\u043A\u043E \u0438 \u043E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E.", rateLimited: true }),
+    { status: 429, headers: { ...CORS_HEADERS2, "Retry-After": String(config.windowSec) } }
+  );
+}
 async function checkRateLimit(env, request, endpoint) {
-  if (!env.page_content) return null;
   const ip = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
   const config = RATE_LIMIT[endpoint];
   if (!config) return null;
   const window = Math.floor(Date.now() / (config.windowSec * 1e3));
   const key = `rl:${endpoint}:${ip}:${window}`;
+  const memCount = (memoryRateCounters.get(key) || 0) + 1;
+  memoryRateCounters.set(key, memCount);
+  if (memoryRateCounters.size > 5e3) {
+    for (const k of memoryRateCounters.keys()) {
+      if (!k.endsWith(`:${window}`)) memoryRateCounters.delete(k);
+    }
+  }
+  if (memCount > config.maxRequests) {
+    console.warn(`Rate limit exceeded for ${endpoint} by IP ${ip} (memory)`);
+    return rateLimitedResponse(config);
+  }
+  if (!KV_RATE_LIMITED.has(endpoint) || !env.page_content) return null;
   try {
     const raw = await env.page_content.get(key);
     const count = raw ? parseInt(raw, 10) : 0;
     if (count >= config.maxRequests) {
       console.warn(`Rate limit exceeded for ${endpoint} by IP ${ip}`);
-      return new Response(
-        JSON.stringify({ error: "\u0422\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u0437\u0430\u044F\u0432\u043A\u0438. \u041C\u043E\u043B\u044F, \u0438\u0437\u0447\u0430\u043A\u0430\u0439\u0442\u0435 \u043C\u0430\u043B\u043A\u043E \u0438 \u043E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E.", rateLimited: true }),
-        { status: 429, headers: { ...CORS_HEADERS2, "Retry-After": String(config.windowSec) } }
-      );
+      return rateLimitedResponse(config);
     }
     await env.page_content.put(key, String(count + 1), { expirationTtl: config.windowSec * 2 });
   } catch (e) {
@@ -42272,7 +42398,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
     calculatedData,
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
   };
-  const loggingEnabled = await isAILoggingEnabled(env);
+  const loggingEnabled = await isAILoggingEnabled(env) && !/^chat/.test(String(stepName || ""));
   const logId = loggingEnabled ? await logAIRequest(env, stepName, requestData) : null;
   const startTime = Date.now();
   let response;
@@ -42543,12 +42669,25 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 }
 var PLAN_JOB_PREFIX = "plan_job:";
 var PLAN_JOB_TTL_SEC = 86400;
+var SOFIA_PARTS = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Sofia",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  hourCycle: "h23"
+});
 function computeWeeklyReleaseVisibleAt(nowMs = Date.now()) {
-  const d = new Date(nowMs);
-  const utcDay = d.getUTCDay();
-  let daysUntilMonday = (8 - utcDay) % 7;
-  if (daysUntilMonday === 0) daysUntilMonday = 7;
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + daysUntilMonday, 0, 0, 0, 0);
+  const part = (d, type) => Number(SOFIA_PARTS.formatToParts(d).find((p) => p.type === type)?.value);
+  const now = new Date(nowMs);
+  const y = part(now, "year");
+  const m = part(now, "month");
+  const day = part(now, "day");
+  for (const offsetH of [3, 2]) {
+    const candidate = Date.UTC(y, m - 1, day + 1, 0, 0, 0, 0) - offsetH * 36e5;
+    if (part(new Date(candidate), "hour") === 0) return candidate;
+  }
+  return Date.UTC(y, m - 1, day + 1, 0, 0, 0, 0) - 2 * 36e5;
 }
 var JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function loadCatalogRegistryOverlay(env) {
@@ -42582,31 +42721,6 @@ async function loadAdherenceRatioForGeneration(env, data, userIdHint = "") {
     }
   }
   return null;
-}
-async function persistFoodLedger(env, userId, ledgerSerialized, clientIdHint = "") {
-  if (!userId || !env?.page_content) return;
-  const ttl = userId.startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
-  const existing = await kvGetJSON(env, `user_profile:${userId}`) || {};
-  existing.foodLedger = ledgerSerialized;
-  existing.foodLedgerSyncedAt = ledgerSerialized.updatedAt;
-  await kvPutJSON(env, `user_profile:${userId}`, existing, ttl);
-  let clientId = clientIdHint || existing.clientId || "";
-  if (!clientId) {
-    const email = normalizeEmail(existing.userData?.email || userId);
-    if (email.includes("@")) clientId = (await findClientByEmail(env, email))?.clientId || "";
-  }
-  if (clientId) {
-    try {
-      const clientData = await kvGetJSON(env, `client:${clientId}`);
-      if (clientData) {
-        clientData.foodLedger = ledgerSerialized;
-        clientData.foodLedgerSyncedAt = ledgerSerialized.updatedAt;
-        await kvPutJSON(env, `client:${clientId}`, clientData, null);
-      }
-    } catch (e) {
-      console.warn(`[FoodLedger] client sync failed ${clientId}:`, e.message);
-    }
-  }
 }
 async function finalizeValidatedPlan(env, structuredPlan, data) {
   await reconcilePlanStructure(structuredPlan, data, env);
@@ -43657,6 +43771,11 @@ async function findClientByEmail(env, email) {
       return { clientId: emailIndex.clientId, clientData };
     }
   }
+  if (emailScanMisses.has(normalizedEmail)) return null;
+  if (await env.page_content.get(`email_miss:${normalizedEmail}`)) {
+    emailScanMisses.add(normalizedEmail);
+    return null;
+  }
   const clientIds = await kvGetJSON(env, "clients_list") || [];
   for (const clientId of clientIds.slice(0, 500)) {
     const clientData = await kvGetJSON(env, `client:${clientId}`);
@@ -43670,8 +43789,14 @@ async function findClientByEmail(env, email) {
       return { clientId, clientData };
     }
   }
+  emailScanMisses.add(normalizedEmail);
+  try {
+    await env.page_content.put(`email_miss:${normalizedEmail}`, "1", { expirationTtl: 24 * 60 * 60 });
+  } catch (_) {
+  }
   return null;
 }
+var emailScanMisses = /* @__PURE__ */ new Set();
 async function getEmailIndex(env, email) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !env.page_content) return null;
@@ -44050,8 +44175,8 @@ ${Object.entries(PLAN_MODIFICATION_CODES).map(([code, label]) => `   - "${code}"
   \u0440\u0435\u0434 T = \u0434\u043D\u0435\u0432\u0435\u043D \u0442\u043E\u0442\u0430\u043B (\u0441\u0443\u043C\u0430\u0440\u043D\u0438 kcal \u0438 \u043C\u0430\u043A\u0440\u043E\u0441\u0438 \u0437\u0430 \u0434\u0435\u043D\u044F)
 
 \u0421\u0435\u043A\u0446\u0438\u044F #AX (\u0430\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430 \u043E\u0442 gamification \u043C\u043E\u0434\u0443\u043B\u0430) \u2014 READ-ONLY, \u043D\u043E \u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E \u044F \u0432\u0437\u0435\u043C\u0430\u0439 \u043F\u0440\u0435\u0434\u0432\u0438\u0434:
-- hi=health index (0\u2013100), avg=\u0441\u0440\u0435\u0434\u043D\u0430 \u0434\u043D\u0435\u0432\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430 (1\u20135), str=\u0441\u0435\u0440\u0438\u044F \u043E\u0442\u043B\u0438\u0447\u043D\u0438 \u0434\u043D\u0438, adh=\u0430\u043D\u0433\u0430\u0436\u0438\u0440\u0430\u043D\u043E\u0441\u0442 %
-- cal=\u043A\u0430\u043B\u043E\u0440\u0438\u0435\u043D adherence, junk7=\u0432\u0440\u0435\u0434\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0437\u0430 7 \u0434\u043D\u0438, net=\u043D\u0435\u0442\u0435\u043D \u043A\u0430\u043B\u043E\u0440\u0438\u0435\u043D \u0431\u0430\u043B\u0430\u043D\u0441, tr=\u0442\u0440\u0435\u043D\u0434 (up/down/flat)
+- hi=health index (0\u2013100), avg=\u0441\u0440\u0435\u0434\u043D\u0430 \u0434\u043D\u0435\u0432\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430 (1\u20135), str=\u0441\u0435\u0440\u0438\u044F \u043E\u0442\u043B\u0438\u0447\u043D\u0438 \u0434\u043D\u0438, adh=\u0430\u043D\u0433\u0430\u0436\u0438\u0440\u0430\u043D\u043E\u0441\u0442 %, meal=\u0441\u043F\u0430\u0437\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F % (\u0437\u0430 \u0440\u0435\u0448\u0435\u043D\u0438\u044F \u043F\u043E \u043F\u043B\u0430\u043D\u0430)
+- cal=\u0431\u043B\u0438\u0437\u043E\u0441\u0442 \u043D\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0434\u043E \u043F\u043B\u0430\u043D\u0430 (100 = \u0442\u043E\u0447\u043D\u043E, \u0441\u0438\u043C\u0435\u0442\u0440\u0438\u0447\u043D\u043E \u0437\u0430 \u0438\u0437\u043B\u0438\u0448\u044A\u043A \u0438 \u043D\u0435\u0434\u043E\u0441\u0442\u0438\u0433), junk7=\u0432\u0440\u0435\u0434\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0437\u0430 7 \u0434\u043D\u0438, net=\u043D\u0435\u0442\u0435\u043D \u043A\u0430\u043B\u043E\u0440\u0438\u0435\u043D \u0431\u0430\u043B\u0430\u043D\u0441, tr=\u0442\u0440\u0435\u043D\u0434 (up/down/flat)
 - dim=eng/slp/bal/act/wtr \u2014 \u0438\u0437\u043C\u0435\u0440\u0435\u043D\u0438\u044F (\u0441\u044A\u043D, \u0431\u0430\u043B\u0430\u043D\u0441, \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442, \u0432\u043E\u0434\u0430)
 - d7=\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438 7 \u0434\u043D\u0438: MM-DD:stars/eng%/junk/cal\u0394
 
@@ -44539,50 +44664,58 @@ async function callGeminiAssistantResilient(env, session, card, message, planUpd
   }
 }
 async function loadClientAnalytics(env, clientData) {
-  if (clientData?.analytics?.status === "active" || clientData?.analytics?.status === "empty") {
-    return clientData.analytics;
-  }
-  if (!clientData?.userId || !env.page_content) return null;
-  try {
-    const profile = await kvGetJSON(env, `user_profile:${clientData.userId}`);
-    if (profile?.analytics?.status === "active" || profile?.analytics?.status === "empty") {
-      return profile.analytics;
+  const valid = (a) => a?.status === "active" || a?.status === "empty";
+  if (clientData?.userId && env.page_content) {
+    try {
+      const profile = await kvGetJSON(env, `user_profile:${clientData.userId}`);
+      if (valid(profile?.analytics)) {
+        if (!valid(clientData.analytics) || String(profile.analytics.syncedAt || "") >= String(clientData.analytics.syncedAt || "")) {
+          return profile.analytics;
+        }
+      }
+    } catch (_) {
     }
-  } catch {
-    return null;
   }
-  return null;
+  return valid(clientData?.analytics) ? clientData.analytics : null;
 }
-async function persistAnalyticsSummary(env, userId, summary, clientIdHint = "") {
+function analyticsFingerprint(a) {
+  if (!a) return "";
+  const { syncedAt, weeklyAI, ...rest } = a;
+  return JSON.stringify(rest);
+}
+var CLIENT_ANALYTICS_MIRROR_MS = 12 * 60 * 60 * 1e3;
+async function persistAnalyticsAndLedger(env, userId, summary, ledger, clientIdHint = "") {
   const ttl = userId.startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   const existing = await kvGetJSON(env, `user_profile:${userId}`) || {};
-  const profile = {
-    ...existing,
-    userId,
-    analytics: summary,
-    analyticsSyncedAt: summary.syncedAt,
-    savedAt: existing.savedAt || summary.syncedAt
-  };
-  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
-  let clientId = clientIdHint || existing.clientId || "";
-  if (!clientId) {
-    const email = normalizeEmail(existing.userData?.email);
-    if (email) clientId = (await findClientByEmail(env, email))?.clientId || "";
+  const analyticsChanged = analyticsFingerprint(existing.analytics) !== analyticsFingerprint(summary);
+  const ledgerChanged = ledger && JSON.stringify({ p: existing.foodLedger?.prescribed, e: existing.foodLedger?.eaten }) !== JSON.stringify({ p: ledger.prescribed, e: ledger.eaten });
+  if (!analyticsChanged && !ledgerChanged) return { profile: existing, written: false };
+  const profile = { ...existing, userId, savedAt: existing.savedAt || summary.syncedAt };
+  if (analyticsChanged) {
+    profile.analytics = summary;
+    profile.analyticsSyncedAt = summary.syncedAt;
   }
-  if (clientId) {
+  if (ledgerChanged) {
+    profile.foodLedger = ledger;
+    profile.foodLedgerSyncedAt = ledger.updatedAt;
+  }
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  const clientId = clientIdHint || existing.clientId || "";
+  if (analyticsChanged && clientId) {
     try {
       const clientData = await kvGetJSON(env, `client:${clientId}`);
-      if (clientData) {
+      const lastMirror = Date.parse(clientData?.analyticsSyncedAt || "") || 0;
+      if (clientData && (Date.now() - lastMirror > CLIENT_ANALYTICS_MIRROR_MS || clientData.analytics?.status !== summary.status)) {
         clientData.analytics = summary;
         clientData.analyticsSyncedAt = summary.syncedAt;
         if (!clientData.userId) clientData.userId = userId;
         await kvPutJSON(env, `client:${clientId}`, clientData, null);
       }
     } catch (e) {
-      console.warn(`[Analytics] Failed to sync to client ${clientId}:`, e.message);
+      console.warn(`[Analytics] client mirror failed ${clientId}:`, e.message);
     }
   }
-  return { profile, clientId };
+  return { profile, written: true };
 }
 async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, gameData, gameWeeklyAI }) {
   let resolvedUserData = userData;
@@ -44622,12 +44755,20 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
     weeklyAdaptHistory: profile?.weeklyAdaptHistory || []
   };
 }
+function nextWeeklyCycle(history, gameWeeklyAI) {
+  const fromHistory = Math.max(0, ...(history || []).map((h) => Number(h?.cycleNumber) || 0));
+  const fromClient = fromHistory ? 0 : Math.max(0, Number(gameWeeklyAI?.cycleNumber) || 0);
+  return Math.max(fromHistory, fromClient) + 1;
+}
 function mergeWeeklyModifications(existing, decisionMods) {
   return mergePlanModifications(existing, decisionMods).merged;
 }
-async function verifyWeeklyRequestAuth(userId, idToken, env) {
-  if (!userId?.startsWith("fb_") || !idToken || !env.FIREBASE_PROJECT_ID) return;
-  const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
+  if (!userId?.startsWith("fb_") || !env.FIREBASE_PROJECT_ID) return;
+  const header = request?.headers?.get?.("Authorization") || "";
+  const token = idToken || (header.startsWith("Bearer ") ? header.slice(7) : "");
+  if (!token) throw new Error("Missing auth token");
+  const firebaseUser = await verifyFirebaseIdToken(token, env);
   if (`fb_${firebaseUser.uid}` !== userId) {
     throw new Error("Token does not match userId");
   }
@@ -44635,24 +44776,39 @@ async function verifyWeeklyRequestAuth(userId, idToken, env) {
 function generateWeeklyQuestions() {
   return { questions: WEEKLY_CHECKIN_QUESTIONS.map((q) => ({ ...q, options: [...q.options] })), contextNote: "" };
 }
-function weeklyFloorKcal(userData, tdee) {
+function weeklyFloorKcal(userData, tdee, goalCode) {
   const minCal = getMinRecommendedCalories(userData?.gender);
-  const losing = goalIncludes3(userData?.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435");
+  if (userData?.clinicalProtocol === "postpartum_lactation" && tdee > 0) {
+    return Math.max(minCal + 300, Math.round(tdee * 0.9));
+  }
+  const losing = ["LOSS", "VISC", "CELL", "PP"].includes(goalCode) || goalIncludes3(userData?.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435");
   return losing && tdee > 0 ? Math.max(minCal, Math.round(tdee * 0.75)) : minCal;
 }
+function previousWeighIn(userData, plan, history) {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    if (Number(h?.weightKg) > 0) return { kg: Number(h.weightKg), at: h.at };
+  }
+  const kg = parseFloat(String(userData?.weight || "").replace(",", "."));
+  return kg > 0 ? { kg, at: plan?._meta?.generatedAt || plan?.createdAt || null } : null;
+}
 function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history) {
+  const prev = previousWeighIn(userData, plan, history || []);
+  const daysSincePrev = prev?.at ? (Date.now() - Date.parse(prev.at)) / 864e5 : null;
+  const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev });
+  if (checkin.weightKg && userData) userData.weight = String(checkin.weightKg);
   const profile = compileProfile(userData || {});
   const { tdee } = computeBackendEnergyInputs(userData);
   const kcal = parseFinalCalories(plan?.analysis?.Final_Calories);
-  const checkin = readCheckin(answers, analytics);
   const decision = decideWeeklyAdjustment({
     checkin,
     goal: profile.goal,
     kcal,
     tdee,
-    floorKcal: weeklyFloorKcal(userData, tdee),
+    floorKcal: weeklyFloorKcal(userData, tdee, profile.goal),
     weightKg: profile.weightKg,
     baseKcal: Number(plan?.analysis?._baseCalories) || kcal,
+    lactating: userData?.clinicalProtocol === "postpartum_lactation",
     history
   });
   const message = weeklyMessage(decision, checkin);
@@ -44700,6 +44856,8 @@ function releasePendingWeeklyIfDue(profile) {
       at: pending.notice.at || (/* @__PURE__ */ new Date()).toISOString(),
       // За правилото „две поредни седмици“ в monitoring.js.
       weight: pending.monitoring?.weight ?? null,
+      weightKg: pending.monitoring?.weightKg ?? null,
+      followed: pending.monitoring?.followed ?? null,
       calorieAdjust: pending.monitoring?.calorieAdjust ?? 0
     });
     profile.weeklyAdaptHistory = hist.slice(-5);
@@ -44783,6 +44941,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       analysis.Final_Calories = decision.kcal;
       analysis.recommendedCalories = decision.kcal;
       enforceCalorieGuardrails(analysis, enrichedData, tdee);
+      const applied = parseFinalCalories(analysis.Final_Calories);
+      if (applied && applied !== decision.kcal) {
+        decision.calorieAdjust = applied - caloriesBefore;
+        decision.kcal = applied;
+        decision.changeSummary = decision.changeSummary.map((c) => /^Калории:/.test(c) ? `\u041A\u0430\u043B\u043E\u0440\u0438\u0438: ${decision.calorieAdjust > 0 ? "+" : ""}${decision.calorieAdjust} kcal \u043D\u0430 \u0434\u0435\u043D` : c);
+      }
     }
     const previousWeek = Object.values(plan.weekPlan).flatMap((d) => d?.meals || []).map((m) => m.dishId).filter(Boolean);
     let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
@@ -44808,7 +44972,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       plan: newPlan,
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel,
-      monitoring: { weight: decision.weight, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence }
+      monitoring: { weight: decision.weight, weightKg: decision.weightKg, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence }
     });
     await writeAdaptJob({
       status: "completed",
@@ -44848,7 +45012,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
     if ((analytics.daysRecorded || 0) < 3) {
       return jsonResponse2({ error: "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D feedback (\u043C\u0438\u043D\u0438\u043C\u0443\u043C 3 \u0434\u043D\u0438)" }, 400);
     }
-    const cycleNumber = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const cycleNumber = nextWeeklyCycle(weeklyAdaptHistory, gameWeeklyAI);
     const result = generateWeeklyQuestions();
     return jsonResponse2({
       success: true,
@@ -44888,7 +45052,7 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       return jsonResponse2({ error: "\u0410\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0432\u0435\u0447\u0435 \u0435 \u0432 \u043F\u0440\u043E\u0446\u0435\u0441. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0441\u043B\u0435\u0434 \u043C\u0430\u043B\u043A\u043E." }, 409);
     }
     const jobId = crypto.randomUUID();
-    const resolvedCycle = (gameWeeklyAI?.cycleNumber || 0) + 1;
+    const resolvedCycle = nextWeeklyCycle(existingProfile?.weeklyAdaptHistory, null);
     const payload = {
       userId,
       clientId: clientId || "",
@@ -44925,7 +45089,7 @@ async function handleWeeklyAckNotice(request, env) {
       return jsonResponse2({ error: "Missing userId or noticeId" }, 400);
     }
     try {
-      await verifyWeeklyRequestAuth(userId, idToken, env);
+      await verifyWeeklyRequestAuth(userId, idToken, env, request);
     } catch (e) {
       return jsonResponse2({ error: e.message }, 401);
     }
@@ -44970,11 +45134,8 @@ async function handleSyncAnalytics(request, env) {
       }
     }
     const summary = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
-    await persistAnalyticsSummary(env, userId, summary, clientId || "");
-    if (plan?.weekPlan && gameData) {
-      const ledger = buildFoodLedger(plan.weekPlan, gameData, gameWeeklyAI || {});
-      await persistFoodLedger(env, userId, serializeFoodLedger(ledger), clientId || "");
-    }
+    const ledger = plan?.weekPlan && gameData ? serializeFoodLedger(buildFoodLedger(plan.weekPlan, gameData, gameWeeklyAI || {})) : null;
+    await persistAnalyticsAndLedger(env, userId, summary, ledger, clientId || "");
     return jsonResponse2({
       success: true,
       analytics: summary,
@@ -50201,7 +50362,12 @@ async function handlePushSubscribe(request, env) {
       return jsonResponse2({ error: "KV storage not configured" }, 500);
     }
     const subscriptionKey = `push_subscription_${userId}`;
-    await env.page_content.put(subscriptionKey, JSON.stringify(subscription));
+    const serialized = JSON.stringify(subscription);
+    const existingSubscription = await env.page_content.get(subscriptionKey);
+    if (existingSubscription === serialized) {
+      return jsonResponse2({ success: true, message: "Subscription unchanged" });
+    }
+    await env.page_content.put(subscriptionKey, serialized);
     const listKey = "push_subscriptions_list";
     let userIdsList = [];
     const existingListData = await env.page_content.get(listKey);
@@ -50540,8 +50706,15 @@ async function handleSaveUserProfile(request, env) {
     }
     const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
     const planChanged = !existingProfile?.plan || JSON.stringify(existingProfile.plan) !== JSON.stringify(plan);
+    const userDataChanged = JSON.stringify(existingProfile?.userData || {}) !== JSON.stringify(userData || {});
+    if (existingProfile && !planChanged && !userDataChanged && (!clientId || existingProfile.clientId === clientId)) {
+      return jsonResponse2({ success: true, unchanged: true, planUpdatedAt: existingProfile.planUpdatedAt || existingProfile.savedAt });
+    }
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const profileData = {
+      // Седмичната адаптация, известията, аналитиката и хранителният дневник
+      // живеят в същия запис — презаписът на плана не бива да ги изтрива.
+      ...existingProfile || {},
       userId,
       plan,
       userData: userData || {},
