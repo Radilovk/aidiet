@@ -9640,6 +9640,18 @@ var BEHAVIORS = [
   "IF",
   "SEAS"
 ];
+var GOALS = {
+  LOSS: "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435",
+  VISC: "\u0418\u0437\u0447\u0438\u0441\u0442\u0432\u0430\u043D\u0435 \u043D\u0430 \u043A\u043E\u0440\u0435\u043C\u043D\u0438\u0442\u0435 \u043C\u0430\u0437\u043D\u0438\u043D\u0438",
+  GAIN: "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430",
+  TONE: "\u0421\u0442\u044F\u0433\u0430\u043D\u0435 \u0438 \u043E\u0444\u043E\u0440\u043C\u044F\u043D\u0435 \u043D\u0430 \u0442\u044F\u043B\u043E\u0442\u043E",
+  HLTH: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E",
+  AGE: "\u0410\u043D\u0442\u0438\u0435\u0439\u0434\u0436\u0438\u043D\u0433",
+  DTX: "\u0414\u0435\u0442\u043E\u043A\u0441 \u0438 \u043F\u0440\u043E\u0447\u0438\u0441\u0442\u0432\u0430\u043D\u0435",
+  CELL: "\u0410\u043D\u0442\u0438\u0446\u0435\u043B\u0443\u043B\u0438\u0442\u043D\u0430 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430",
+  PP: "\u0412\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0442\u044F\u043B\u043E\u0442\u043E \u0441\u043B\u0435\u0434 \u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442",
+  MAINT: "\u041F\u043E\u0434\u0434\u044A\u0440\u0436\u0430\u043D\u0435"
+};
 var PROTOCOL_CODES = {
   insulin_resistance: "PIR",
   autoimmune_aip: "PAIP",
@@ -26770,8 +26782,8 @@ var foods_default = {
     dairy_kefir: { group: "MLK", label: "\u043A\u0435\u0444\u0438\u0440", kind: "dairy", flags: ["lactose"], serving: 250 },
     dairy_milk: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
     dairy_milk_2: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
-    dairy_soy_yogurt: { group: "MLK", label: "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E", kind: "plant", flags: ["soy"], serving: 200 },
-    dairy_soy_milk: { group: "MLK", label: "\u0441\u043E\u0435\u0432 \u043D\u0430\u043F\u0438\u0442\u044A\u043A", kind: "plant", flags: ["soy"], serving: 250 },
+    dairy_soy_yogurt: { group: "MLK", label: "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E", kind: "plant", flags: ["soy", "legume"], serving: 200 },
+    dairy_soy_milk: { group: "MLK", label: "\u0441\u043E\u0435\u0432 \u043D\u0430\u043F\u0438\u0442\u044A\u043A", kind: "plant", flags: ["soy", "legume"], serving: 250 },
     dairy_plant_milk: { group: "STA", label: "\u043E\u0432\u0435\u0441\u0435\u043D \u043D\u0430\u043F\u0438\u0442\u044A\u043A", kind: "plant", flags: ["oats"], serving: 200 },
     eng_bread_whole: { group: "STA", label: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", flags: ["gluten", "grain", "whole_grain", "low_gi"], unit: { one: "\u0444\u0438\u043B\u0438\u044F", many: "\u0444\u0438\u043B\u0438\u0438", grams: 35 } },
     eng_rye_bread: { group: "STA", label: "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431", flags: ["gluten", "grain", "whole_grain", "low_gi"], unit: { one: "\u0444\u0438\u043B\u0438\u044F", many: "\u0444\u0438\u043B\u0438\u0438", grams: 30 } },
@@ -28279,7 +28291,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            4
+            6
           ],
           with: true
         },
@@ -28323,15 +28335,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -28396,7 +28412,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            4
+            6
           ],
           with: true
         },
@@ -28414,15 +28430,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -28457,7 +28477,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            4
+            6
           ],
           with: true
         },
@@ -28497,15 +28517,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -28541,7 +28565,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            4
+            6
           ]
         },
         {
@@ -28571,15 +28595,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -28637,7 +28665,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -28655,15 +28683,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -28704,7 +28736,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3.5
+            6
           ],
           with: true
         },
@@ -28740,15 +28772,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -28811,7 +28847,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2
+            6
           ]
         },
         {
@@ -28828,15 +28864,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -28906,7 +28946,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -28924,15 +28964,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29003,7 +29047,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2
+            6
           ],
           with: true
         },
@@ -29011,15 +29055,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29042,7 +29090,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            6
           ]
         },
         {
@@ -29087,15 +29135,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29153,7 +29205,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            4
+            6
           ],
           with: true
         },
@@ -29173,15 +29225,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29229,7 +29285,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            4
+            6
           ]
         },
         {
@@ -29263,15 +29319,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29307,7 +29367,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -29346,15 +29406,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29418,7 +29482,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -29436,15 +29500,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29516,7 +29584,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -29534,15 +29602,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29596,7 +29668,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -29614,15 +29686,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29680,7 +29756,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2.5
+            6
           ],
           with: true
         },
@@ -29698,15 +29774,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29758,7 +29838,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2
+            6
           ],
           with: true
         },
@@ -29776,15 +29856,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29828,7 +29912,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            4
+            6
           ]
         },
         {
@@ -29858,15 +29942,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -29924,7 +30012,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2.5
+            6
           ],
           with: true
         },
@@ -29942,15 +30030,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30014,7 +30106,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -30032,15 +30124,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30074,7 +30170,7 @@ var dishes_default = {
           ],
           range: [
             2,
-            4
+            6
           ]
         },
         {
@@ -30091,15 +30187,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30158,7 +30258,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            2.5
+            6
           ]
         },
         {
@@ -30175,15 +30275,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30239,7 +30343,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            2.5
+            6
           ]
         },
         {
@@ -30256,15 +30360,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30294,7 +30402,7 @@ var dishes_default = {
           ],
           range: [
             2,
-            4
+            6
           ]
         },
         {
@@ -30335,15 +30443,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30390,7 +30502,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3
+            6
           ],
           with: true
         },
@@ -30418,15 +30530,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30472,7 +30588,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            4
+            6
           ],
           with: true
         },
@@ -30518,15 +30634,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30594,7 +30714,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -30612,15 +30732,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30676,7 +30800,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3
+            6
           ],
           with: true
         },
@@ -30694,15 +30818,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30763,7 +30891,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2
+            6
           ]
         },
         {
@@ -30780,15 +30908,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30863,7 +30995,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2
+            6
           ],
           with: true
         },
@@ -30883,15 +31015,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -30924,7 +31060,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            2.5
+            5
           ]
         },
         {
@@ -30962,15 +31098,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31004,7 +31144,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            6
           ],
           with: true
         },
@@ -31044,15 +31184,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31075,7 +31219,7 @@ var dishes_default = {
           ],
           range: [
             2,
-            4
+            6
           ]
         },
         {
@@ -31120,15 +31264,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31190,7 +31338,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -31208,15 +31356,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31245,7 +31397,7 @@ var dishes_default = {
           ],
           range: [
             2,
-            4.5
+            5
           ]
         },
         {
@@ -31262,15 +31414,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31313,7 +31469,7 @@ var dishes_default = {
           ],
           range: [
             2,
-            4.5
+            5
           ]
         },
         {
@@ -31330,15 +31486,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31381,7 +31541,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            3.5
+            5
           ]
         },
         {
@@ -31414,15 +31574,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31453,7 +31617,7 @@ var dishes_default = {
           ],
           range: [
             2,
-            4
+            5
           ]
         },
         {
@@ -31476,7 +31640,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2
+            6
           ],
           with: true
         },
@@ -31494,15 +31658,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31536,7 +31704,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            3.5
+            5
           ]
         },
         {
@@ -31547,7 +31715,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2.5
+            6
           ],
           with: true
         },
@@ -31589,15 +31757,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31621,7 +31793,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            3.5
+            5
           ]
         },
         {
@@ -31667,15 +31839,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31704,7 +31880,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            3
+            5
           ]
         },
         {
@@ -31715,7 +31891,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            2.5
+            6
           ]
         },
         {
@@ -31732,15 +31908,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31781,7 +31961,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            3.5
+            6
           ]
         },
         {
@@ -31810,15 +31990,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31852,7 +32036,7 @@ var dishes_default = {
           ],
           range: [
             2,
-            4
+            6
           ]
         },
         {
@@ -31897,15 +32081,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -31988,15 +32176,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32063,15 +32255,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32143,15 +32339,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32214,15 +32414,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32259,7 +32463,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            6
           ]
         },
         {
@@ -32287,15 +32491,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32338,7 +32546,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2
+            6
           ],
           with: true
         },
@@ -32356,15 +32564,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32423,7 +32635,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2
+            6
           ],
           with: true
         },
@@ -32453,15 +32665,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32503,7 +32719,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            2.5
+            6
           ]
         },
         {
@@ -32520,15 +32736,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32566,7 +32786,7 @@ var dishes_default = {
           ],
           range: [
             2,
-            4
+            6
           ]
         },
         {
@@ -32614,15 +32834,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32651,7 +32875,7 @@ var dishes_default = {
           ],
           range: [
             2,
-            4
+            6
           ]
         },
         {
@@ -32694,15 +32918,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32772,15 +33000,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32845,15 +33077,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32887,7 +33123,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            3.5
+            6
           ]
         },
         {
@@ -32915,15 +33151,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -32980,7 +33220,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -32998,15 +33238,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -33068,7 +33312,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3.5
+            6
           ],
           with: true
         },
@@ -33088,15 +33332,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -33145,7 +33393,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3
+            6
           ],
           with: true
         },
@@ -33185,15 +33433,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -33227,7 +33479,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3
+            6
           ],
           with: true
         },
@@ -33264,15 +33516,19 @@ var dishes_default = {
           group: "FAT",
           options: [
             "fat_avocado",
-            "fat_olives"
+            "fat_olives",
+            "fat_almonds",
+            "fat_walnuts",
+            "fat_butter"
           ],
           range: [
             0,
-            4
+            6
           ],
           onlyStyles: [
             "keto",
-            "low_carb"
+            "low_carb",
+            "paleo"
           ]
         }
       ],
@@ -33306,7 +33562,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            5
+            6
           ],
           with: true
         },
@@ -33395,7 +33651,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            5
+            6
           ],
           with: true
         },
@@ -33432,7 +33688,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -33512,7 +33768,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ],
           with: true
         }
@@ -33616,7 +33872,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            5
+            6
           ]
         },
         {
@@ -33660,6 +33916,26 @@ var dishes_default = {
             2
           ],
           with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       sides: []
@@ -33727,9 +34003,29 @@ var dishes_default = {
           ],
           range: [
             0,
-            5
+            6
           ],
           with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       sides: [
@@ -33761,7 +34057,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            5
+            6
           ]
         },
         {
@@ -33793,6 +34089,26 @@ var dishes_default = {
             1
           ],
           with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       sides: []
@@ -33850,6 +34166,26 @@ var dishes_default = {
             0,
             1.5
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       fixed: [
@@ -33905,6 +34241,26 @@ var dishes_default = {
             0.5,
             1.5
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       sides: []
@@ -33924,7 +34280,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -33974,6 +34330,26 @@ var dishes_default = {
             2
           ],
           with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       fixed: [
@@ -33999,7 +34375,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -34037,6 +34413,26 @@ var dishes_default = {
             2
           ],
           with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       fixed: [
@@ -34066,7 +34462,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -34107,6 +34503,26 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
           ]
         }
       ],
@@ -34162,6 +34578,26 @@ var dishes_default = {
             0.5,
             3
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       sides: []
@@ -34181,7 +34617,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            5
+            6
           ]
         },
         {
@@ -34213,6 +34649,26 @@ var dishes_default = {
             0,
             1
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       seasonsOnly: [
@@ -34238,7 +34694,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -34294,7 +34750,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -34350,7 +34806,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -34411,7 +34867,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -34421,7 +34877,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1.5
+            5
           ]
         },
         {
@@ -34461,7 +34917,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -34520,7 +34976,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -34565,7 +35021,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            5
+            6
           ]
         },
         {
@@ -34645,7 +35101,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            5
+            6
           ],
           with: true
         },
@@ -34728,6 +35184,26 @@ var dishes_default = {
             0.5,
             2
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       sides: []
@@ -34795,6 +35271,26 @@ var dishes_default = {
             0,
             1
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       sides: []
@@ -34852,6 +35348,26 @@ var dishes_default = {
             0,
             1
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       sides: []
@@ -34871,7 +35387,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            1.5
+            5
           ]
         },
         {
@@ -34946,7 +35462,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            1.5
+            6
           ],
           with: true
         }
@@ -34970,6 +35486,26 @@ var dishes_default = {
           range: [
             0.5,
             2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
           ]
         }
       ],
@@ -35098,7 +35634,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            2
+            6
           ]
         },
         {
@@ -35152,6 +35688,26 @@ var dishes_default = {
           range: [
             0.5,
             1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
           ]
         }
       ],
@@ -35285,6 +35841,26 @@ var dishes_default = {
             0,
             1
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       fixed: [
@@ -35337,6 +35913,26 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
           ]
         }
       ],
@@ -35428,7 +36024,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            5
+            6
           ],
           with: true
         },
@@ -35513,6 +36109,26 @@ var dishes_default = {
           range: [
             0.5,
             3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
           ]
         }
       ],
@@ -35629,6 +36245,26 @@ var dishes_default = {
             0,
             1.5
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
         }
       ],
       sides: []
@@ -35662,6 +36298,26 @@ var dishes_default = {
           range: [
             0,
             1
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
           ]
         }
       ],
@@ -35714,6 +36370,170 @@ var dishes_default = {
             1
           ],
           with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      sides: []
+    },
+    {
+      id: "b_quinoa_fruit",
+      meals: [
+        "breakfast"
+      ],
+      category: "porridge",
+      name: "\u041A\u0438\u043D\u043E\u0430 \u0441 {FRU} \u0438 {FAT}",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_quinoa"
+          ],
+          range: [
+            1,
+            6
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_pear"
+            ]
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds",
+            "fat_chia"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "b_chickpea_breakfast",
+      meals: [
+        "breakfast"
+      ],
+      category: "plant",
+      name: "\u041D\u0430\u0445\u0443\u0442 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u0437\u0435\u0445\u0442\u0438\u043D",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_chickpeas"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cherry_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_tomato",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_sweet_potato",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            4
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil",
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            2
+          ]
         }
       ],
       sides: []
@@ -36006,7 +36826,7 @@ function normalizePart(dishId, part) {
   }
   const [min, max] = part.range;
   if (!(min >= 0 && max >= min)) throw new Error(`\u042F\u0441\u0442\u0438\u0435 ${dishId}: \u043D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D ${part.range}`);
-  return { group: part.group, options, range: [min, max], with: !!part.with, onlyStyles: part.onlyStyles || null };
+  return { group: part.group, options, range: [min, max], with: !!part.with, onlyStyles: part.onlyStyles || null, onlyPatterns: part.onlyPatterns || null };
 }
 var DISHES = dishesDoc.dishes.map((d) => {
   for (const [id] of d.fixed || []) food(id);
@@ -36200,7 +37020,7 @@ var FAT_SHARE_BY_STYLE = {
   high_protein: 0.27,
   dash: 0.27,
   low_fodmap: 0.3,
-  paleo: 0.35,
+  paleo: 0.42,
   anti_inflammatory: 0.33
 };
 var LOW_CARB_SHARE = 0.25;
@@ -36254,7 +37074,8 @@ function macroTargetsFor(profile, kcal) {
   const refKg = referenceWeightKg(profile);
   const style = profile.diet?.style || "balanced";
   const maxProteinShare = style === "high_protein" ? 0.4 : 0.35;
-  let protein = Math.round(Math.min(refKg * perKg, energy * maxProteinShare / 4));
+  const ketoFloor = style === "keto" ? energy * 0.2 / 4 : 0;
+  let protein = Math.round(Math.min(Math.max(refKg * perKg, ketoFloor), energy * maxProteinShare / 4));
   const minFat = Math.round((Number(profile.weightKg) || refKg) * MIN_FAT_G_PER_KG);
   let carbs;
   let fats;
@@ -37296,7 +38117,7 @@ function buildFoodPolicy(profile, options = {}) {
     if (rule.fruitWithProtein) fruitWithProtein = true;
   }
   if (style === "keto") noSweets = true;
-  const sport = (profile.activity?.sportBand || 0) >= 2 || profile.goal === "GAIN" || style === "high_protein";
+  const sport = (profile.activity?.sportBand || 0) >= 2 || profile.goal === "GAIN" || style === "high_protein" || pattern === "vegan";
   const noFree = /* @__PURE__ */ new Set(["T2D", "IR", "CEL", "GOUT", "IBD"]);
   const allergic = ["NUT", "PNT", "SHF", "FSH", "EGG", "SOY"];
   const allowsFreeMeal = style !== "keto" && profile.protocol !== "autoimmune_aip" && !(profile.clinical || []).some((c) => noFree.has(c)) && !(profile.exclusions || []).some((c) => allergic.includes(c));
@@ -37526,6 +38347,7 @@ function portionLine(foodId, grams) {
 
 // nutrition-engine/meal-builder.js
 var COOKING_FAT_COOK_MAX_G = 20;
+var COOKING_FAT_KETO_MAX_G = 30;
 var ADJUSTABLE = /* @__PURE__ */ new Set(["STA", "LEG", "PRO", "FAT"]);
 var APPETITE_GROUPS = /* @__PURE__ */ new Set(["STA", "LEG", "PRO", "VEG"]);
 function totalsOf(parts, fixed) {
@@ -37563,7 +38385,7 @@ function partTotal(part) {
 }
 function foodCap(id, fatScale, appetite = 1) {
   const f = food(id);
-  if (isCookingFat(f.name, f.nutritionKey)) return COOKING_FAT_COOK_MAX_G;
+  if (isCookingFat(f.name, f.nutritionKey)) return fatScale > 1 ? COOKING_FAT_KETO_MAX_G : COOKING_FAT_COOK_MAX_G;
   return Math.round(maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP2[f.group] }) * Math.min(2, appetite) / 10) * 10;
 }
 var CATALOG_GROUP2 = {
@@ -37585,7 +38407,8 @@ function makePart(group, foods, range, extra = {}, fatScale = 1, appetite = 1) {
     foods,
     grams: foods.map(() => 0),
     lo: Math.min(range[0] * serving, cap),
-    hi: Math.min(range[1] * serving, cap),
+    // Кето/палео: мазнината носи енергията — таванът на порцията е реалистичният максимум.
+    hi: group === "FAT" && fatScale > 1 ? cap : Math.min(range[1] * serving, cap),
     with: false,
     adjustable: ADJUSTABLE.has(group),
     side: null,
@@ -37611,19 +38434,10 @@ function initialSizing(parts, fixed, quota, target) {
     if (!list.length) return;
     list.forEach((p) => setPartGrams(p, 0));
     let need = Math.max(0, residual(key));
-    if (group === "STA") {
-      for (const p of list) {
-        const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
-        setPartGrams(p, perGram > 0 ? need / perGram : p.lo);
-        need = Math.max(0, residual(key));
-      }
-      return;
-    }
-    const wsum = list.reduce((a, p) => a + p.weight, 0);
     for (const p of list) {
       const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
-      const share = need * (p.weight / wsum);
-      setPartGrams(p, perGram > 0 ? share / perGram : p.lo);
+      setPartGrams(p, perGram > 0 ? need / perGram : p.lo);
+      need = Math.max(0, residual(key));
     }
   };
   sizeBy("LEG", "carbs");
@@ -37633,7 +38447,7 @@ function initialSizing(parts, fixed, quota, target) {
 }
 function refine(parts, fixed, target, carbsCap) {
   let best = mealError(totalsOf(parts, fixed), target, carbsCap);
-  for (let iter = 0; iter < 40; iter++) {
+  for (let iter = 0; iter < 120; iter++) {
     let move = null;
     for (const p of parts) {
       if (!p.adjustable) continue;
@@ -37699,6 +38513,7 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   for (let i = 0; i < dish.parts.length; i++) {
     const spec = dish.parts[i];
     if (spec.onlyStyles && !spec.onlyStyles.includes(ctx.policy.style)) continue;
+    if (spec.onlyPatterns && !spec.onlyPatterns.includes(ctx.policy.pattern)) continue;
     const option = spec.options[choice[i] ?? 0];
     const optional = spec.range[0] === 0;
     if (!option || !option.every((id) => ctx.policy.allowed(id))) {
@@ -38436,6 +39251,20 @@ function collectFreeText(userData = {}) {
     total += text.length;
   }
   return out;
+}
+function profileBrief(profile) {
+  const goal = GOALS[profile.goal] || profile.goal;
+  const rows = [
+    `\u043F\u043E\u043B ${profile.sex}, \u0432\u044A\u0437\u0440\u0430\u0441\u0442 ${profile.age ?? "?"}, \u0440\u044A\u0441\u0442 ${profile.heightCm ?? "?"} \u0441\u043C, \u0442\u0435\u0433\u043B\u043E ${profile.weightKg ?? "?"} \u043A\u0433`,
+    `\u0446\u0435\u043B: ${goal}${profile.pace ? ` (\u0442\u0435\u043C\u043F ${profile.pace})` : ""}`,
+    `\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442: \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0430 ${profile.activity.daily}/3, \u0441\u043F\u043E\u0440\u0442 ${profile.activity.sportDays} \u0434\u043D\u0438`,
+    `\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u0441\u0442\u0438\u043B: ${profile.diet.style}, \u043C\u043E\u0434\u0435\u043B: ${profile.diet.pattern}`,
+    `\u0438\u0437\u043A\u043B\u044E\u0447\u0432\u0430\u043D\u0438\u044F: ${profile.exclusions.join(", ") || "\u043D\u044F\u043C\u0430"}`,
+    `\u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u0438 \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u044F: ${profile.clinical.join(", ") || "\u043D\u044F\u043C\u0430"}${profile.protocol ? `; \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B ${profile.protocol}` : ""}`,
+    `\u043D\u0430\u0432\u0438\u0446\u0438 \u0438 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435: ${profile.behaviors.join(", ") || "\u043D\u044F\u043C\u0430"}`,
+    `\u0441\u044A\u043D ${profile.sleepHours ?? "?"} \u0447, \u0441\u0442\u0440\u0435\u0441 ${profile.stress ?? "?"}/3`
+  ];
+  return rows.join("\n");
 }
 function textHash(items) {
   const s = items.map((i) => `${i.field}:${i.text}`).join("|");
@@ -44723,14 +45552,19 @@ async function aiHelperJson(env, promptKey, vars, data, stepName) {
 var freeTextBlock = (items) => items.length ? items.map((i) => `- ${i.text}`).join("\n") : "\u043D\u044F\u043C\u0430";
 async function applyIntakeHints(env, data) {
   const items = collectFreeText(data);
-  if (!items.length) {
+  const { _aiHints: previous, ...rest } = data;
+  const profile = compileProfile(rest);
+  const unmapped = profile.unmapped || [];
+  if (!items.length && !unmapped.length) {
     delete data._aiHints;
     return;
   }
-  const hash = textHash(items);
-  if (data._aiHints?.hash === hash) return;
+  const hash = textHash([...items, ...unmapped.map((u) => ({ field: "unmapped", text: u }))]);
+  if (previous?.hash === hash) return;
   const raw = await aiHelperJson(env, "admin_intake_hints_prompt", {
     freeText: freeTextBlock(items),
+    profileSummary: profileBrief(profile),
+    unmapped: unmapped.length ? unmapped.map((u) => `- ${u}`).join("\n") : "\u043D\u044F\u043C\u0430",
     exclusionsList: VOCABULARY.exclusions.join(", "),
     clinicalList: VOCABULARY.clinical.join(", "),
     behaviorsList: VOCABULARY.behaviors.join(", "),

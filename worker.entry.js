@@ -74,6 +74,7 @@ import {
   normalizeFeedbackHints,
   normalizeSwaps,
   weekDigest,
+  profileBrief,
 } from './nutrition-engine/ai-assist.js';
 import { compileProfile } from './profile-code.js';
 import {
@@ -7647,17 +7648,26 @@ async function aiHelperJson(env, promptKey, vars, data, stepName) {
 
 const freeTextBlock = (items) => (items.length ? items.map(i => `- ${i.text}`).join('\n') : 'няма');
 
-/** Свободният текст при приемане → допълнителни ограничения и подход (кеширано по текста). */
+/**
+ * Приемане на клиента: AI чете свободния текст и неразпознатите отговори В
+ * КОНТЕКСТА на вече разбрания профил и връща допълнителни кодове (кеш по текста).
+ */
 async function applyIntakeHints(env, data) {
   const items = collectFreeText(data);
-  if (!items.length) {
+  // Профилът без старите подсказки — за да се чете същото при всяко извикване.
+  const { _aiHints: previous, ...rest } = data;
+  const profile = compileProfile(rest);
+  const unmapped = profile.unmapped || [];
+  if (!items.length && !unmapped.length) {
     delete data._aiHints;
     return;
   }
-  const hash = textHash(items);
-  if (data._aiHints?.hash === hash) return;
+  const hash = textHash([...items, ...unmapped.map(u => ({ field: 'unmapped', text: u }))]);
+  if (previous?.hash === hash) return;
   const raw = await aiHelperJson(env, 'admin_intake_hints_prompt', {
     freeText: freeTextBlock(items),
+    profileSummary: profileBrief(profile),
+    unmapped: unmapped.length ? unmapped.map(u => `- ${u}`).join('\n') : 'няма',
     exclusionsList: VOCABULARY.exclusions.join(', '),
     clinicalList: VOCABULARY.clinical.join(', '),
     behaviorsList: VOCABULARY.behaviors.join(', '),

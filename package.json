@@ -22,6 +22,7 @@
     "test:plan-adequacy:matrix": "node scripts/plan-adequacy/run-matrix-live.mjs",
     "test:solver": "node scripts/test-solver.mjs",
     "test:engine": "node scripts/test-nutrition-engine.mjs",
+    "test:matrix": "node scripts/test-profile-matrix.mjs",
     "test:registry-arch": "node scripts/test-registry-arch.mjs",
     "test:rebuild-stage2-week": "node scripts/test-rebuild-stage2-week.mjs",
     "test:stage3-food": "node scripts/test-stage3-food.mjs",

@@ -16,6 +16,7 @@ import { portionSteps, snapPortion, neighbourPortion, portionLine } from './port
 import { maxPortionGrams, isCookingFat } from '../portion-limits.js';
 
 const COOKING_FAT_COOK_MAX_G = 20;
+const COOKING_FAT_KETO_MAX_G = 30;
 
 /** @typedef {import('./knowledge.js').Dish} Dish */
 /** @typedef {{ protein: number, carbs: number, fats: number, kcal?: number }} Target */
@@ -94,7 +95,7 @@ function partTotal(part) {
 function foodCap(id, fatScale, appetite = 1) {
   const f = food(id);
   // Олио или зехтин — лъжица до 20 г (15–20 г в салатата или тигана).
-  if (isCookingFat(f.name, f.nutritionKey)) return COOKING_FAT_COOK_MAX_G;
+  if (isCookingFat(f.name, f.nutritionKey)) return fatScale > 1 ? COOKING_FAT_KETO_MAX_G : COOKING_FAT_COOK_MAX_G;
   // По-голям разход — по-голяма порция, но най-много два пъти.
   return Math.round(maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP[f.group] }) * Math.min(2, appetite) / 10) * 10;
 }
@@ -113,7 +114,8 @@ function makePart(group, foods, range, extra = {}, fatScale = 1, appetite = 1) {
     foods,
     grams: foods.map(() => 0),
     lo: Math.min(range[0] * serving, cap),
-    hi: Math.min(range[1] * serving, cap),
+    // Кето/палео: мазнината носи енергията — таванът на порцията е реалистичният максимум.
+    hi: group === 'FAT' && fatScale > 1 ? cap : Math.min(range[1] * serving, cap),
     with: false,
     adjustable: ADJUSTABLE.has(group),
     side: null,
@@ -144,20 +146,11 @@ function initialSizing(parts, fixed, quota, target) {
     if (!list.length) return;
     list.forEach(p => setPartGrams(p, 0));
     let need = Math.max(0, residual(key));
-    if (group === 'STA') {
-      // Основната гарнитура първо до тавана си; хлябът допълва само остатъка.
-      for (const p of list) {
-        const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
-        setPartGrams(p, perGram > 0 ? need / perGram : p.lo);
-        need = Math.max(0, residual(key));
-      }
-      return;
-    }
-    const wsum = list.reduce((a, p) => a + p.weight, 0);
+    // Първата част до тавана си; следващите допълват само остатъка.
     for (const p of list) {
       const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
-      const share = need * (p.weight / wsum);
-      setPartGrams(p, perGram > 0 ? share / perGram : p.lo);
+      setPartGrams(p, perGram > 0 ? need / perGram : p.lo);
+      need = Math.max(0, residual(key));
     }
   };
   sizeBy('LEG', 'carbs');
@@ -169,7 +162,7 @@ function initialSizing(parts, fixed, quota, target) {
 /** Донастройка: по една кухненска стъпка, докато грешката пада. */
 function refine(parts, fixed, target, carbsCap) {
   let best = mealError(totalsOf(parts, fixed), target, carbsCap);
-  for (let iter = 0; iter < 40; iter++) {
+  for (let iter = 0; iter < 120; iter++) {
     let move = null;
     for (const p of parts) {
       if (!p.adjustable) continue;
@@ -256,6 +249,7 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   for (let i = 0; i < dish.parts.length; i++) {
     const spec = dish.parts[i];
     if (spec.onlyStyles && !spec.onlyStyles.includes(ctx.policy.style)) continue;
+    if (spec.onlyPatterns && !spec.onlyPatterns.includes(ctx.policy.pattern)) continue;
     const option = spec.options[choice[i] ?? 0];
     const optional = spec.range[0] === 0;
     if (!option || !option.every(id => ctx.policy.allowed(id))) {

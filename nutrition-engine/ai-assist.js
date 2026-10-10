@@ -5,7 +5,7 @@
  * отхвърля. AI не пише калории, макроси или грамове и не маха ограничения.
  */
 
-import { CLINICAL, EXCLUSIONS, BEHAVIORS, DIET_STYLES, DIET_PATTERNS } from '../profile-code.js';
+import { CLINICAL, EXCLUSIONS, BEHAVIORS, DIET_STYLES, DIET_PATTERNS, GOALS } from '../profile-code.js';
 
 /** Промените в менюто, които двигателят разбира. */
 export const APPROACH_CODES = ['simplify_meals', 'more_variety', 'gentle_digestion', 'more_volume', 'smaller_portions'];
@@ -37,6 +37,26 @@ export function collectFreeText(userData = {}) {
     total += text.length;
   }
   return out;
+}
+
+/**
+ * Каквото системата вече е разбрала за клиента — за да чете AI свободния текст
+ * В КОНТЕКСТА на целия профил (цел, здраве, навици), а не изолирано.
+ * @param {ReturnType<typeof import('../profile-code.js').compileProfile>} profile
+ */
+export function profileBrief(profile) {
+  const goal = GOALS[profile.goal] || profile.goal;
+  const rows = [
+    `пол ${profile.sex}, възраст ${profile.age ?? '?'}, ръст ${profile.heightCm ?? '?'} см, тегло ${profile.weightKg ?? '?'} кг`,
+    `цел: ${goal}${profile.pace ? ` (темп ${profile.pace})` : ''}`,
+    `активност: ежедневна ${profile.activity.daily}/3, спорт ${profile.activity.sportDays} дни`,
+    `хранителен стил: ${profile.diet.style}, модел: ${profile.diet.pattern}`,
+    `изключвания: ${profile.exclusions.join(', ') || 'няма'}`,
+    `здравословни състояния: ${profile.clinical.join(', ') || 'няма'}${profile.protocol ? `; протокол ${profile.protocol}` : ''}`,
+    `навици и поведение: ${profile.behaviors.join(', ') || 'няма'}`,
+    `сън ${profile.sleepHours ?? '?'} ч, стрес ${profile.stress ?? '?'}/3`,
+  ];
+  return rows.join('\n');
 }
 
 /** Кратък хеш — за да не викаме AI повторно за същия текст. */

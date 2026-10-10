@@ -23,7 +23,7 @@ import { validateWeekPlanNutrition } from './plan-adequacy/validators/nutrition.
 import { validateWeekPlanFoods } from './plan-adequacy/validators/foods.mjs';
 import { validateWeekPlanCombinations } from './plan-adequacy/validators/combinations.mjs';
 import { validateWeekPlanDayCoherence, validateWeeklyDishVariety } from '../meal-combinations.js';
-import { normalizeIntakeHints, normalizeFeedbackHints, normalizeSwaps, collectFreeText } from '../nutrition-engine/ai-assist.js';
+import { profileBrief, normalizeIntakeHints, normalizeFeedbackHints, normalizeSwaps, collectFreeText } from '../nutrition-engine/ai-assist.js';
 import { compileProfile } from '../profile-code.js';
 import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment } from '../nutrition-engine/monitoring.js';
 
@@ -194,6 +194,8 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const avoided = buildNutritionPlan(structuredClone(PROFILES[0]), { kcal: 1800, seed: 'ai', slotAvoid: [{ day: target.day, type: target.type, avoid: ['пилешк', 'пиле'] }] });
   const meal = avoided.weekPlan[`day${target.day}`].meals.find(m => m.type === target.type);
   ok(meal && !/Пилешк/.test(meal.description), `AI: замяната е изпълнена от алгоритъма (${meal?.name})`);
+  const brief = profileBrief(compileProfile({ ...PROFILES[0], medicalConditions: ['Диабет'] }));
+  ok(/цел:/.test(brief) && /T2D/.test(brief) && /изключвания/.test(brief), 'AI: получава разбрания профил като контекст');
   ok(WEEKLY_CHECKIN_QUESTIONS.some(q => q.type === 'text'), 'седмичен преглед: свободен коментар');
 }
 

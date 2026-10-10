@@ -84,6 +84,11 @@ check('nutrition engine (схема, меню, преглед)', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
+check('матрица от профили', () => {
+  const r = run('node', ['scripts/test-profile-matrix.mjs', '120']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
 check('plan adequacy (offline)', () => {
   const r = run('node', ['scripts/plan-adequacy/run-offline.mjs']);
   if (!r.ok) throw new Error(r.out.split('\n').slice(-15).join('\n'));

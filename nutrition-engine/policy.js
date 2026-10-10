@@ -156,7 +156,7 @@ export function buildFoodPolicy(profile, options = {}) {
   // Кето вече държи въглехидратите под 30 г; равномерното им разпределение е без значение.
   if (style === 'keto') noSweets = true;
 
-  const sport = (profile.activity?.sportBand || 0) >= 2 || profile.goal === 'GAIN' || style === 'high_protein';
+  const sport = (profile.activity?.sportBand || 0) >= 2 || profile.goal === 'GAIN' || style === 'high_protein' || pattern === 'vegan';
 
   // Свободно хранене в събота/неделя за всички — освен при категорични правила.
   const noFree = new Set(['T2D', 'IR', 'CEL', 'GOUT', 'IBD']);

@@ -81,8 +81,8 @@
     "dairy_kefir": { "group": "MLK", "label": "кефир", "kind": "dairy", "flags": ["lactose"], "serving": 250 },
     "dairy_milk": { "group": "MLK", "label": "прясно мляко", "kind": "dairy", "flags": ["lactose", "high_fodmap"], "serving": 250 },
     "dairy_milk_2": { "group": "MLK", "label": "прясно мляко 2%", "kind": "dairy", "flags": ["lactose", "high_fodmap"], "serving": 250 },
-    "dairy_soy_yogurt": { "group": "MLK", "label": "соево кисело", "kind": "plant", "flags": ["soy"], "serving": 200 },
-    "dairy_soy_milk": { "group": "MLK", "label": "соев напитък", "kind": "plant", "flags": ["soy"], "serving": 250 },
+    "dairy_soy_yogurt": { "group": "MLK", "label": "соево кисело", "kind": "plant", "flags": ["soy", "legume"], "serving": 200 },
+    "dairy_soy_milk": { "group": "MLK", "label": "соев напитък", "kind": "plant", "flags": ["soy", "legume"], "serving": 250 },
     "dairy_plant_milk": { "group": "STA", "label": "овесен напитък", "kind": "plant", "flags": ["oats"], "serving": 200 },
 
     "eng_bread_whole": { "group": "STA", "label": "пълнозърнест хляб", "flags": ["gluten", "grain", "whole_grain", "low_gi"], "unit": { "one": "филия", "many": "филии", "grams": 35 } },
