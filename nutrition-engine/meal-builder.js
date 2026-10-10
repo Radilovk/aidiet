@@ -95,8 +95,8 @@ function foodCap(id, fatScale, appetite = 1) {
   const f = food(id);
   // Олио или зехтин — лъжица до 20 г (15–20 г в салатата или тигана).
   if (isCookingFat(f.name, f.nutritionKey)) return COOKING_FAT_COOK_MAX_G;
-  // По-голям разход — по-голяма порция, но най-много с 40%.
-  return Math.round(maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP[f.group] }) * Math.min(1.4, appetite) / 10) * 10;
+  // По-голям разход — по-голяма порция, но най-много два пъти.
+  return Math.round(maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP[f.group] }) * Math.min(2, appetite) / 10) * 10;
 }
 
 /** Обменна група → група на каталога (за таваните на порциите). */

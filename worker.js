@@ -33306,7 +33306,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3
+            5
           ],
           with: true
         },
@@ -33395,7 +33395,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            3
+            5
           ],
           with: true
         },
@@ -33432,7 +33432,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            2.5
+            5
           ]
         },
         {
@@ -33512,7 +33512,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            2.5
+            5
           ],
           with: true
         }
@@ -33616,7 +33616,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            2.5
+            5
           ]
         },
         {
@@ -33727,7 +33727,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            1.5
+            5
           ],
           with: true
         }
@@ -33761,7 +33761,7 @@ var dishes_default = {
           ],
           range: [
             0.5,
-            2.5
+            5
           ]
         },
         {
@@ -33924,7 +33924,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            5
           ]
         },
         {
@@ -33999,7 +33999,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            5
           ]
         },
         {
@@ -34066,7 +34066,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            5
           ]
         },
         {
@@ -34181,7 +34181,7 @@ var dishes_default = {
           ],
           range: [
             1.5,
-            3
+            5
           ]
         },
         {
@@ -34238,7 +34238,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            5
           ]
         },
         {
@@ -34294,7 +34294,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            5
           ]
         },
         {
@@ -34350,7 +34350,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            5
           ]
         },
         {
@@ -34411,7 +34411,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            5
           ]
         },
         {
@@ -34461,7 +34461,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            3
+            5
           ]
         },
         {
@@ -34520,7 +34520,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            2.5
+            5
           ]
         },
         {
@@ -34565,7 +34565,7 @@ var dishes_default = {
           ],
           range: [
             1,
-            2
+            5
           ]
         },
         {
@@ -34645,7 +34645,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2.5
+            5
           ],
           with: true
         },
@@ -35428,7 +35428,7 @@ var dishes_default = {
           ],
           range: [
             0,
-            2
+            5
           ],
           with: true
         },
@@ -37564,7 +37564,7 @@ function partTotal(part) {
 function foodCap(id, fatScale, appetite = 1) {
   const f = food(id);
   if (isCookingFat(f.name, f.nutritionKey)) return COOKING_FAT_COOK_MAX_G;
-  return Math.round(maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP2[f.group] }) * Math.min(1.4, appetite) / 10) * 10;
+  return Math.round(maxPortionGrams({ name: f.name, nutritionKey: f.nutritionKey, group: CATALOG_GROUP2[f.group] }) * Math.min(2, appetite) / 10) * 10;
 }
 var CATALOG_GROUP2 = {
   STA: "carb",
