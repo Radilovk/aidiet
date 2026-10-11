@@ -10,13 +10,8 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err) => function __init() {
-  if (err) throw err[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -10054,10 +10049,38 @@ function readConditions(userData, unmapped) {
   for (const [terms, code] of MEDICATION_TERMS) {
     if (terms.some((t) => meds.includes(t))) codes.add(code);
   }
+  readProtocolFindings(userData, codes);
   if (codes.has("PCOS") || codes.has("HORM") || codes.has("ADR")) codes.delete("ENDO");
   if (codes.has("HTN")) codes.delete("CVD");
   if (codes.has("OSTEO") || codes.has("JOINT")) codes.delete("MSK");
   return codes;
+}
+function readProtocolFindings(userData, codes) {
+  const ms = new Set(asList(userData.metabolicSyndrome).map(normLabel));
+  const pressure = ms.has("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u043E \u043A\u0440\u044A\u0432\u043D\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435");
+  const triglycerides = ms.has("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0438 \u0442\u0440\u0438\u0433\u043B\u0438\u0446\u0435\u0440\u0438\u0434\u0438");
+  const lowHdl = ms.has("\u043D\u0438\u0441\u044A\u043A hdl \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B");
+  const glucose = ms.has("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440");
+  if (pressure) codes.add("HTN");
+  if (triglycerides || lowHdl) codes.add("DYSL");
+  if (glucose) codes.add("IR");
+  const waist = num(userData.waistCircumference);
+  const waistLimit = userData.gender === "\u041C\u044A\u0436" ? 94 : 80;
+  const waistHigh = waist != null && waist >= waistLimit;
+  const criteria = [waistHigh, pressure, triglycerides, lowHdl, glucose].filter(Boolean).length;
+  if (criteria >= 3) codes.add("METS");
+  if (asList(userData.giSymptoms).some((s) => normLabel(s) === "\u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0438/\u0440\u0435\u0444\u043B\u0443\u043A\u0441")) codes.add("GERD");
+}
+function reproductiveStatus(userData = {}) {
+  const none = { pregnant: false, lactating: false, lactationKcal: 0 };
+  if (userData?.clinicalProtocol !== "postpartum_lactation") return none;
+  const status = normLabel(userData.postpartumStatus);
+  if (status === "\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u0430") return { pregnant: true, lactating: false, lactationKcal: 0 };
+  const frequency = normLabel(userData.breastfeedingFrequency);
+  if (status.startsWith("\u043D\u0435 \u043A\u044A\u0440\u043C\u044F") || frequency === "\u043D\u0435 \u043A\u044A\u0440\u043C\u044F") return none;
+  const net = status.includes("6-12") ? 400 : status.includes("\u043D\u0430\u0434 12") ? 300 : 330;
+  const share = frequency.startsWith("\u0441\u043C\u0435\u0441\u0435\u043D\u043E") ? 0.6 : frequency.startsWith("1-3") ? 0.3 : 1;
+  return { pregnant: false, lactating: true, lactationKcal: Math.round(net * share) };
 }
 function clinicalDefaultStyle(clinical, protocolId) {
   if (clinical.has("IBS") || clinical.has("SIBO") || protocolId === "gi_issues") return "low_fodmap";
@@ -37553,10 +37576,13 @@ function nutrientsOf(id, grams) {
   const k = (Number(grams) || 0) / 100;
   return { kcal: p.kcal * k, protein: p.protein * k, carbs: p.carbs * k, fats: p.fats * k };
 }
-var foodByName = new Map([...FOODS.values()].flatMap((f) => [
-  ...(catalogById.get(f.id)?.aliases || []).map((a) => [String(a).toLowerCase(), f]),
-  [f.name.toLowerCase(), f]
-]));
+var foodByName = new Map([...FOODS.values()].flatMap((f) => (
+  /** @type {Array<[string, Food]>} */
+  [
+    ...(catalogById.get(f.id)?.aliases || []).map((a) => [String(a).toLowerCase(), f]),
+    [f.name.toLowerCase(), f]
+  ]
+)));
 function foodByCatalogName(name) {
   return foodByName.get(String(name || "").trim().toLowerCase()) || null;
 }
@@ -40110,6 +40136,82 @@ var VOCABULARY = {
   patterns: Object.keys(DIET_PATTERNS),
   approach: APPROACH_CODES
 };
+var CODE_MEANING = {
+  // изключвания
+  GLU: "\u0431\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D",
+  LAC: "\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438/\u043B\u0430\u043A\u0442\u043E\u0437\u0430",
+  EGG: "\u0431\u0435\u0437 \u044F\u0439\u0446\u0430",
+  NUT: "\u0431\u0435\u0437 \u044F\u0434\u043A\u0438",
+  PNT: "\u0431\u0435\u0437 \u0444\u044A\u0441\u0442\u044A\u0446\u0438",
+  FSH: "\u0431\u0435\u0437 \u0440\u0438\u0431\u0430",
+  SHF: "\u0431\u0435\u0437 \u043C\u043E\u0440\u0441\u043A\u0438 \u0434\u0430\u0440\u043E\u0432\u0435",
+  SOY: "\u0431\u0435\u0437 \u0441\u043E\u044F",
+  PORK: "\u0431\u0435\u0437 \u0441\u0432\u0438\u043D\u0441\u043A\u043E",
+  // състояния
+  IR: "\u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442",
+  T2D: "\u0434\u0438\u0430\u0431\u0435\u0442 \u0442\u0438\u043F 2",
+  HYPO: "\u0445\u0438\u043F\u043E\u0442\u0438\u0440\u0435\u043E\u0438\u0434\u0438\u0437\u044A\u043C",
+  HYPER: "\u0445\u0438\u043F\u0435\u0440\u0442\u0438\u0440\u0435\u043E\u0438\u0434\u0438\u0437\u044A\u043C",
+  AI: "\u0430\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+  CEL: "\u0446\u044C\u043E\u043B\u0438\u0430\u043A\u0438\u044F",
+  GI: "\u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u0435\u043D \u0434\u0438\u0441\u043A\u043E\u043C\u0444\u043E\u0440\u0442 \u0431\u0435\u0437 \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0430",
+  IBS: "\u0441\u0438\u043D\u0434\u0440\u043E\u043C \u043D\u0430 \u0440\u0430\u0437\u0434\u0440\u0430\u0437\u043D\u0435\u043D\u043E\u0442\u043E \u0447\u0435\u0440\u0432\u043E",
+  IBD: "\u041A\u0440\u043E\u043D / \u0443\u043B\u0446\u0435\u0440\u043E\u0437\u0435\u043D \u043A\u043E\u043B\u0438\u0442",
+  GERD: "\u0440\u0435\u0444\u043B\u0443\u043A\u0441",
+  SIBO: "SIBO",
+  GAST: "\u0433\u0430\u0441\u0442\u0440\u0438\u0442",
+  HTN: "\u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F",
+  CVD: "\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+  ENDO: "\u0434\u0440\u0443\u0433\u043E \u0435\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u043E",
+  PCOS: "\u0421\u041F\u041A\u042F",
+  HORM: "\u0445\u043E\u0440\u043C\u043E\u043D\u0430\u043B\u0435\u043D \u0434\u0438\u0441\u0431\u0430\u043B\u0430\u043D\u0441",
+  ADR: "\u043D\u0430\u0434\u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E\u0441\u0442",
+  METS: "\u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u0435\u043D \u0441\u0438\u043D\u0434\u0440\u043E\u043C",
+  NAFLD: "\u043C\u0430\u0441\u0442\u0435\u043D \u0447\u0435\u0440\u0435\u043D \u0434\u0440\u043E\u0431",
+  DYSL: "\u0432\u0438\u0441\u043E\u043A \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B/\u0442\u0440\u0438\u0433\u043B\u0438\u0446\u0435\u0440\u0438\u0434\u0438",
+  GOUT: "\u043F\u043E\u0434\u0430\u0433\u0440\u0430/\u0432\u0438\u0441\u043E\u043A\u0430 \u043F\u0438\u043A\u043E\u0447\u043D\u0430 \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0430",
+  MSK: "\u043C\u0443\u0441\u043A\u0443\u043B\u043D\u043E-\u0441\u043A\u0435\u043B\u0435\u0442\u043D\u043E",
+  OSTEO: "\u043E\u0441\u0442\u0435\u043E\u043F\u043E\u0440\u043E\u0437\u0430",
+  JOINT: "\u0441\u0442\u0430\u0432\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438",
+  DEP: "\u0434\u0435\u043F\u0440\u0435\u0441\u0438\u044F",
+  ANX: "\u0442\u0440\u0435\u0432\u043E\u0436\u043D\u043E\u0441\u0442",
+  ALG: "\u0430\u043B\u0435\u0440\u0433\u0438\u0438/\u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442\u0438",
+  ANEM: "\u0430\u043D\u0435\u043C\u0438\u044F",
+  SKIN: "\u043A\u043E\u0436\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438",
+  SLP: "\u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438 \u0441\u044A\u0441 \u0441\u044A\u043D\u044F",
+  COG: "\u043A\u043E\u0433\u043D\u0438\u0442\u0438\u0432\u0435\u043D \u0441\u043F\u0430\u0434",
+  INFL: "\u0445\u0440\u043E\u043D\u0438\u0447\u043D\u043E \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435/\u0441\u043B\u0430\u0431 \u0438\u043C\u0443\u043D\u0438\u0442\u0435\u0442",
+  MENO: "\u043C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430",
+  PP: "\u0441\u043B\u0435\u0434 \u0440\u0430\u0436\u0434\u0430\u043D\u0435/\u043A\u044A\u0440\u043C\u0435\u043D\u0435",
+  // навици
+  NBF: "\u043D\u0435 \u0437\u0430\u043A\u0443\u0441\u0432\u0430",
+  EVE: "\u0445\u0440\u0430\u043D\u0438 \u0441\u0435 \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u0432\u0435\u0447\u0435\u0440",
+  SWS: "\u0441\u043B\u0430\u0434\u043A\u043E \u043C\u0435\u0436\u0434\u0443 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430",
+  OUT: "\u044F\u0434\u0435 \u043D\u0430\u0432\u044A\u043D/\u043F\u043E\u0440\u044A\u0447\u0432\u0430",
+  IRR: "\u043D\u0435\u0440\u0435\u0434\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+  RUSH: "\u044F\u0434\u0435 \u043D\u0430 \u043A\u0440\u0430\u043A",
+  TV: "\u044F\u0434\u0435 \u043F\u0440\u0435\u0434 \u0435\u043A\u0440\u0430\u043D",
+  SWT: "\u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E",
+  DOUGH: "\u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0442\u0435\u0441\u0442\u0435\u043D\u0438",
+  FASTF: "\u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0431\u0443\u0440\u0433\u0435\u0440\u0438/\u0434\u044E\u043D\u0435\u0440\u0438",
+  SALT: "\u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0441\u043E\u043B\u0435\u043D\u043E",
+  OVR: "\u043F\u0440\u0435\u044F\u0436\u0434\u0430\u043D\u0435",
+  EMO: "\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+  CMP: "\u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0438\u0440\u0430\u043D\u0435 \u0441 \u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435/\u0445\u0430\u043F\u0447\u0435\u0442\u0430",
+  SDR: "\u0441\u043B\u0430\u0434\u043A\u0438 \u043D\u0430\u043F\u0438\u0442\u043A\u0438",
+  ALC: "\u0430\u043B\u043A\u043E\u0445\u043E\u043B",
+  IF: "\u043F\u0435\u0440\u0438\u043E\u0434\u0438\u0447\u043D\u043E \u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435",
+  SEAS: "\u0441\u0435\u0437\u043E\u043D\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+  // промени в менюто
+  simplify_meals: "\u043F\u043E-\u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F (\u043D\u044F\u043C\u0430 \u0432\u0440\u0435\u043C\u0435)",
+  more_variety: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435",
+  gentle_digestion: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E (\u043F\u043E\u0434\u0443\u0432\u0430\u043D\u0435/\u0442\u0435\u0436\u0435\u0441\u0442)",
+  more_volume: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0431\u0435\u043C \u0437\u0430 \u0441\u0438\u0442\u043E\u0441\u0442 (\u0431\u044A\u0440\u0437 \u0433\u043B\u0430\u0434)",
+  smaller_portions: "\u043F\u043E-\u043C\u0430\u043B\u043A\u0438 \u043F\u043E\u0440\u0446\u0438\u0438 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435"
+};
+function describeCodes(codes) {
+  return codes.map((c) => CODE_MEANING[c] ? `${c} (${CODE_MEANING[c]})` : c).join(", ");
+}
 var SKIP_KEY = /^(_|dq_)|name|email|phone|password|token|id$|date|birth|city|address|userId|uid/i;
 var MAX_TEXT_CHARS = 1800;
 function collectFreeText(userData = {}) {
@@ -40120,6 +40222,24 @@ function collectFreeText(userData = {}) {
     const text = value.trim().replace(/\s+/g, " ");
     if (text.length < 12 || !/\s/.test(text)) continue;
     if (total + text.length > MAX_TEXT_CHARS) break;
+    out.push({ field, text });
+    total += text.length;
+  }
+  return out;
+}
+var EMPTY_ANSWER = /^(не|нито едно|нищо от изброените|не знам|не съм сигурн[аи]?|никога|рядко)$/i;
+var MAX_ANSWER_CHARS = 3500;
+function collectQuestionAnswers(userData = {}, protocolLabels = {}) {
+  const textMap = userData?._dq_text_map || {};
+  const out = [];
+  let total = 0;
+  for (const [field, value] of Object.entries(userData || {})) {
+    const question = field.startsWith("dq_") ? textMap[field] : protocolLabels[field];
+    if (!question) continue;
+    const answer = (Array.isArray(value) ? value : [value]).map((v) => String(v ?? "").trim()).filter((v) => v && !EMPTY_ANSWER.test(v)).join(", ");
+    if (!answer) continue;
+    const text = `${String(question).trim()} \u2192 ${answer}`.replace(/\s+/g, " ");
+    if (total + text.length > MAX_ANSWER_CHARS) break;
     out.push({ field, text });
     total += text.length;
   }
@@ -41360,6 +41480,9 @@ var PROTOCOL_SPECIFIC_FIELDS = {
     { id: "liverSymptoms", label: "\u0421\u0438\u043C\u043F\u0442\u043E\u043C\u0438 \u0441\u0432\u044A\u0440\u0437\u0430\u043D\u0438 \u0441 \u0447\u0435\u0440\u043D\u0438\u044F \u0434\u0440\u043E\u0431" }
   ]
 };
+function protocolQuestionLabels(protocolId) {
+  return Object.fromEntries((PROTOCOL_SPECIFIC_FIELDS[protocolId] || []).map((f) => [f.id, f.label]));
+}
 function buildProtocolSpecificAnswersText(data) {
   if (!data.clinicalProtocol) return "";
   const fields = PROTOCOL_SPECIFIC_FIELDS[data.clinicalProtocol];
@@ -43140,6 +43263,7 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
     if (data.clinicalProtocol === "postpartum_lactation" && data.postpartumGoal) {
       data.goal = Array.isArray(data.postpartumGoal) ? data.postpartumGoal.join(" + ") : data.postpartumGoal;
     }
+    if (reproductiveStatus(data).pregnant) data.goal = "\u041F\u043E\u0434\u0434\u044A\u0440\u0436\u0430\u043D\u0435";
     if (!data.goal) data.goal = clinicalProtocol.goalMapping;
     if (!data.medicalConditions || data.medicalConditions.length === 0) {
       data.medicalConditions = [clinicalProtocol.name];
@@ -45171,11 +45295,18 @@ async function checkFirebaseOwner(userId, idToken, env, request) {
 function generateWeeklyQuestions() {
   return { questions: WEEKLY_CHECKIN_QUESTIONS.map((q) => ({ ...q, options: [...q.options] })), contextNote: "" };
 }
+function reproductiveFloorKcal(userData, tdee) {
+  const repro = reproductiveStatus(userData);
+  if (!(tdee > 0) || !repro.pregnant && !repro.lactating) return null;
+  if (repro.pregnant) return Math.round(tdee);
+  const minCal = getMinRecommendedCalories(userData?.gender);
+  const losing = goalIncludes3(userData?.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435");
+  return Math.max(minCal + 300, Math.round(tdee + repro.lactationKcal - (losing ? 300 : 0)));
+}
 function weeklyFloorKcal(userData, tdee, goalCode) {
   const minCal = getMinRecommendedCalories(userData?.gender);
-  if (userData?.clinicalProtocol === "postpartum_lactation" && tdee > 0) {
-    return Math.max(minCal + 300, Math.round(tdee * 0.9));
-  }
+  const reproFloor = reproductiveFloorKcal(userData, tdee);
+  if (reproFloor) return reproFloor;
   const losing = ["LOSS", "VISC", "CELL", "PP"].includes(goalCode) || goalIncludes3(userData?.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435");
   return losing && tdee > 0 ? Math.max(minCal, Math.round(tdee * 0.75)) : minCal;
 }
@@ -45203,7 +45334,7 @@ function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history
     floorKcal: weeklyFloorKcal(userData, tdee, profile.goal),
     weightKg: profile.weightKg,
     baseKcal: Number(plan?.analysis?._baseCalories) || kcal,
-    lactating: userData?.clinicalProtocol === "postpartum_lactation",
+    lactating: reproductiveStatus(userData).lactating,
     history
   });
   const message = weeklyMessage(decision, checkin);
@@ -45313,8 +45444,8 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (note.length >= 6) {
       const hints = normalizeFeedbackHints(await aiHelperJson(env, "admin_feedback_hints_prompt", {
         freeText: note.slice(0, 500),
-        approachList: VOCABULARY.approach.join(", "),
-        exclusionsList: VOCABULARY.exclusions.join(", ")
+        approachList: describeCodes(VOCABULARY.approach),
+        exclusionsList: describeCodes(VOCABULARY.exclusions)
       }, enrichedData, "feedback_hints"));
       if (hints) {
         decision.modifications = [.../* @__PURE__ */ new Set([...decision.modifications, ...hints.modifications, ...hints.blockedTerms.map((t) => `exclude_food:${t}`)])];
@@ -45951,7 +46082,8 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   if (fc <= 0 && tdee > 0) fc = tdee;
   const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
   const minCal = getMinRecommendedCalories(data.gender);
-  const isLactation = data.clinicalProtocol === "postpartum_lactation";
+  const repro = reproductiveStatus(data);
+  const isLactation = repro.lactating || repro.pregnant;
   const maxDeficitRatio = 0.25;
   const corrections = [];
   if (tdee > 0 && fc > 0 && goalIncludes3(data.goal, "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435") && !isLactation) {
@@ -45961,12 +46093,10 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
       corrections.push("\u0414\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D \u0434\u043E \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438 25%.");
     }
   }
-  if (isLactation && tdee > 0 && fc > 0) {
-    const lactationFloor = Math.max(minCal + 300, Math.round(tdee * 0.9));
-    if (fc < lactationFloor) {
-      fc = lactationFloor;
-      corrections.push("\u041F\u043E\u0432\u0434\u0438\u0433\u043D\u0430\u0442\u043E \u0434\u043E \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u043F\u0440\u0438 \u043B\u0430\u043A\u0442\u0430\u0446\u0438\u044F.");
-    }
+  const reproFloor = reproductiveFloorKcal(data, tdee);
+  if (reproFloor && fc > 0 && fc < reproFloor) {
+    fc = reproFloor;
+    corrections.push(repro.pregnant ? "\u0411\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442: \u0431\u0435\u0437 \u043A\u0430\u043B\u043E\u0440\u0438\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u043E\u043D\u0435 \u043A\u043E\u043B\u043A\u043E\u0442\u043E \u0440\u0430\u0437\u0445\u043E\u0434\u0430." : "\u041A\u044A\u0440\u043C\u0435\u043D\u0435: \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0432\u043A\u043B\u044E\u0447\u0432\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0437\u0430 \u043A\u044A\u0440\u043C\u0430\u0442\u0430.");
   }
   if (fc > 0 && fc < minCal) {
     fc = minCal;
@@ -46796,25 +46926,28 @@ function personalHacks(plan, baseHacks, protocolHacks = null) {
 }
 async function applyIntakeHints(env, data) {
   const items = collectFreeText(data);
+  const freeFields = new Set(items.map((i) => i.field));
+  const answers = collectQuestionAnswers(data, protocolQuestionLabels(data.clinicalProtocol)).filter((a) => !freeFields.has(a.field));
   const { _aiHints: previous, ...rest } = data;
   const profile = compileProfile(rest);
   const unmapped = profile.unmapped || [];
-  if (!items.length && !unmapped.length) {
+  if (!items.length && !unmapped.length && !answers.length) {
     delete data._aiHints;
     return;
   }
-  const hash = textHash([...items, ...unmapped.map((u) => ({ field: "unmapped", text: u }))]);
+  const hash = textHash([...items, ...answers, ...unmapped.map((u) => ({ field: "unmapped", text: u }))]);
   if (previous?.hash === hash) return;
   const raw = await aiHelperJson(env, "admin_intake_hints_prompt", {
     freeText: freeTextBlock(items),
+    answers: freeTextBlock(answers),
     profileSummary: profileBrief(profile),
     unmapped: unmapped.length ? unmapped.map((u) => `- ${u}`).join("\n") : "\u043D\u044F\u043C\u0430",
-    exclusionsList: VOCABULARY.exclusions.join(", "),
-    clinicalList: VOCABULARY.clinical.join(", "),
-    behaviorsList: VOCABULARY.behaviors.join(", "),
+    exclusionsList: describeCodes(VOCABULARY.exclusions),
+    clinicalList: describeCodes(VOCABULARY.clinical),
+    behaviorsList: describeCodes(VOCABULARY.behaviors),
     stylesList: VOCABULARY.styles.join(", "),
     patternsList: VOCABULARY.patterns.join(", "),
-    approachList: VOCABULARY.approach.join(", ")
+    approachList: describeCodes(VOCABULARY.approach)
   }, data, "intake_hints");
   const hints = normalizeIntakeHints(raw);
   if (hints) data._aiHints = { ...hints, hash };

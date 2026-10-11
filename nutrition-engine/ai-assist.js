@@ -19,6 +19,39 @@ export const VOCABULARY = {
   approach: APPROACH_CODES,
 };
 
+/** Значението на всеки код — AI избира от тях, затова трябва да знае какво означават. */
+const CODE_MEANING = {
+  // изключвания
+  GLU: 'без глутен', LAC: 'без млечни/лактоза', EGG: 'без яйца', NUT: 'без ядки', PNT: 'без фъстъци',
+  FSH: 'без риба', SHF: 'без морски дарове', SOY: 'без соя', PORK: 'без свинско',
+  // състояния
+  IR: 'инсулинова резистентност', T2D: 'диабет тип 2', HYPO: 'хипотиреоидизъм', HYPER: 'хипертиреоидизъм',
+  AI: 'автоимунно заболяване', CEL: 'цьолиакия', GI: 'храносмилателен дискомфорт без диагноза',
+  IBS: 'синдром на раздразненото черво', IBD: 'Крон / улцерозен колит', GERD: 'рефлукс', SIBO: 'SIBO',
+  GAST: 'гастрит', HTN: 'хипертония', CVD: 'сърдечно-съдово заболяване', ENDO: 'друго ендокринно',
+  PCOS: 'СПКЯ', HORM: 'хормонален дисбаланс', ADR: 'надбъбречна недостатъчност', METS: 'метаболитен синдром',
+  NAFLD: 'мастен черен дроб', DYSL: 'висок холестерол/триглицериди', GOUT: 'подагра/висока пикочна киселина',
+  MSK: 'мускулно-скелетно', OSTEO: 'остеопороза', JOINT: 'ставни проблеми', DEP: 'депресия',
+  ANX: 'тревожност', ALG: 'алергии/непоносимости', ANEM: 'анемия', SKIN: 'кожни проблеми',
+  SLP: 'проблеми със съня', COG: 'когнитивен спад', INFL: 'хронично възпаление/слаб имунитет',
+  MENO: 'менопауза', PP: 'след раждане/кърмене',
+  // навици
+  NBF: 'не закусва', EVE: 'храни се предимно вечер', SWS: 'сладко между храненията', OUT: 'яде навън/поръчва',
+  IRR: 'нередовно хранене', RUSH: 'яде на крак', TV: 'яде пред екран', SWT: 'желание за сладко',
+  DOUGH: 'желание за тестени', FASTF: 'желание за бургери/дюнери', SALT: 'желание за солено',
+  OVR: 'преяждане', EMO: 'емоционално хранене', CMP: 'компенсиране с гладуване/хапчета',
+  SDR: 'сладки напитки', ALC: 'алкохол', IF: 'периодично гладуване', SEAS: 'сезонно хранене',
+  // промени в менюто
+  simplify_meals: 'по-прости ястия (няма време)', more_variety: 'повече разнообразие',
+  gentle_digestion: 'щадящо храносмилането (подуване/тежест)', more_volume: 'повече обем за ситост (бърз глад)',
+  smaller_portions: 'по-малки порции на хранене',
+};
+
+/** „КОД (значение)“ за списъците в промпта. */
+export function describeCodes(codes) {
+  return codes.map(c => (CODE_MEANING[c] ? `${c} (${CODE_MEANING[c]})` : c)).join(', ');
+}
+
 /** Полета, които не са свободен текст за хранене. */
 const SKIP_KEY = /^(_|dq_)|name|email|phone|password|token|id$|date|birth|city|address|userId|uid/i;
 const MAX_TEXT_CHARS = 1800;
@@ -33,6 +66,39 @@ export function collectFreeText(userData = {}) {
     // Ключови думи и етикети от въпросника са кратки; свободният текст е по-дълъг.
     if (text.length < 12 || !/\s/.test(text)) continue;
     if (total + text.length > MAX_TEXT_CHARS) break;
+    out.push({ field, text });
+    total += text.length;
+  }
+  return out;
+}
+
+/** Отговори без информация за плана. */
+const EMPTY_ANSWER = /^(не|нито едно|нищо от изброените|не знам|не съм сигурн[аи]?|никога|рядко)$/i;
+const MAX_ANSWER_CHARS = 3500;
+
+/**
+ * Отговорите на динамичните (цел × състояние) и протоколните въпроси — заедно с
+ * текста на въпроса, за да ги разбере AI. Двигателят не ги чете директно: те са
+ * стотици и нюансирани, затова AI ги превежда в затворения речник, а алгоритъмът
+ * проверява всеки код. Отрицателните отговори не носят информация и се пропускат.
+ * @param {object} userData
+ * @param {Record<string, string>} [protocolLabels] id → текст на протоколния въпрос
+ * @returns {Array<{ field: string, text: string }>}
+ */
+export function collectQuestionAnswers(userData = {}, protocolLabels = {}) {
+  const textMap = userData?._dq_text_map || {};
+  const out = [];
+  let total = 0;
+  for (const [field, value] of Object.entries(userData || {})) {
+    const question = field.startsWith('dq_') ? textMap[field] : protocolLabels[field];
+    if (!question) continue;
+    const answer = (Array.isArray(value) ? value : [value])
+      .map(v => String(v ?? '').trim())
+      .filter(v => v && !EMPTY_ANSWER.test(v))
+      .join(', ');
+    if (!answer) continue;
+    const text = `${String(question).trim()} → ${answer}`.replace(/\s+/g, ' ');
+    if (total + text.length > MAX_ANSWER_CHARS) break;
     out.push({ field, text });
     total += text.length;
   }

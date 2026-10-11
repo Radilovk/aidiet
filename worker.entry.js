@@ -74,11 +74,13 @@ import {
   textHash,
   normalizeIntakeHints,
   normalizeFeedbackHints,
+  collectQuestionAnswers,
+  describeCodes,
   normalizeSwaps,
   weekDigest,
   profileBrief,
 } from './nutrition-engine/ai-assist.js';
-import { compileProfile } from './profile-code.js';
+import { compileProfile, reproductiveStatus } from './profile-code.js';
 import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSummary } from './nutrition-engine/ai-voice.js';
 import { DEFAULT_PLAN_VOICE_PROMPT } from './nutrition-engine/plan-voice-prompt.js';
 import {
@@ -799,6 +801,11 @@ const PROTOCOL_SPECIFIC_FIELDS = {
     { id: 'liverSymptoms', label: 'Симптоми свързани с черния дроб' }
   ]
 };
+
+/** id → текст на протоколния въпрос (за AI помощника). */
+function protocolQuestionLabels(protocolId) {
+  return Object.fromEntries((PROTOCOL_SPECIFIC_FIELDS[protocolId] || []).map(f => [f.id, f.label]));
+}
 
 /**
  * Build a formatted text of protocol-specific answers from user data.
@@ -3221,6 +3228,8 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
         ? data.postpartumGoal.join(' + ')
         : data.postpartumGoal;
     }
+    // По време на бременност не се отслабва (ACOG) — целта е поддържане.
+    if (reproductiveStatus(data).pregnant) data.goal = 'Поддържане';
     if (!data.goal) data.goal = clinicalProtocol.goalMapping;
     if (!data.medicalConditions || data.medicalConditions.length === 0) {
       data.medicalConditions = [clinicalProtocol.name];
@@ -5840,15 +5849,30 @@ function generateWeeklyQuestions() {
 }
 
 /**
+ * Долната граница на приема при бременност и кърмене (иначе null).
+ *  - Бременност: без дефицит — поне разхода (ACOG/IOM: отслабване по време на
+ *    бременност не се препоръчва; от 2-ри триместър нуждите растат с +340/+450 kcal).
+ *  - Кърмене: разходът + енергията за кърмата (виж reproductiveStatus); при цел
+ *    отслабване до 300 kcal под това — около 0.5 кг на месец, без да пада млекото.
+ */
+function reproductiveFloorKcal(userData, tdee) {
+  const repro = reproductiveStatus(userData);
+  if (!(tdee > 0) || (!repro.pregnant && !repro.lactating)) return null;
+  if (repro.pregnant) return Math.round(tdee);
+  const minCal = getMinRecommendedCalories(userData?.gender);
+  const losing = goalIncludes(userData?.goal, 'Отслабване');
+  return Math.max(minCal + 300, Math.round(tdee + repro.lactationKcal - (losing ? 300 : 0)));
+}
+
+/**
  * Безопасният минимум на приема: по пол; при цел с отслабване — до 25% дефицит;
- * при кърмене — поне 90% от разхода и 300 kcal над минимума (същото като
+ * при бременност и кърмене — reproductiveFloorKcal (същото като
  * enforceCalorieGuardrails, за да не се разминават решението и приложеното).
  */
 function weeklyFloorKcal(userData, tdee, goalCode) {
   const minCal = getMinRecommendedCalories(userData?.gender);
-  if (userData?.clinicalProtocol === 'postpartum_lactation' && tdee > 0) {
-    return Math.max(minCal + 300, Math.round(tdee * 0.9));
-  }
+  const reproFloor = reproductiveFloorKcal(userData, tdee);
+  if (reproFloor) return reproFloor;
   const losing = ['LOSS', 'VISC', 'CELL', 'PP'].includes(goalCode) || goalIncludes(userData?.goal, 'Отслабване');
   return losing && tdee > 0 ? Math.max(minCal, Math.round(tdee * 0.75)) : minCal;
 }
@@ -5886,7 +5910,7 @@ function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history
     floorKcal: weeklyFloorKcal(userData, tdee, profile.goal),
     weightKg: profile.weightKg,
     baseKcal: Number(plan?.analysis?._baseCalories) || kcal,
-    lactating: userData?.clinicalProtocol === 'postpartum_lactation',
+    lactating: reproductiveStatus(userData).lactating,
     history,
   });
   const message = weeklyMessage(decision, checkin);
@@ -6002,8 +6026,8 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (note.length >= 6) {
       const hints = normalizeFeedbackHints(await aiHelperJson(env, 'admin_feedback_hints_prompt', {
         freeText: note.slice(0, 500),
-        approachList: VOCABULARY.approach.join(', '),
-        exclusionsList: VOCABULARY.exclusions.join(', '),
+        approachList: describeCodes(VOCABULARY.approach),
+        exclusionsList: describeCodes(VOCABULARY.exclusions),
       }, enrichedData, 'feedback_hints'));
       if (hints) {
         decision.modifications = [...new Set([...decision.modifications, ...hints.modifications, ...hints.blockedTerms.map(t => `exclude_food:${t}`)])];
@@ -6783,7 +6807,8 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
 
   const cm = analysis.correctedMetabolism || (analysis.correctedMetabolism = {});
   const minCal = getMinRecommendedCalories(data.gender);
-  const isLactation = data.clinicalProtocol === 'postpartum_lactation';
+  const repro = reproductiveStatus(data);
+  const isLactation = repro.lactating || repro.pregnant;
   const maxDeficitRatio = 0.25;
   const corrections = [];
 
@@ -6795,12 +6820,12 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
     }
   }
 
-  if (isLactation && tdee > 0 && fc > 0) {
-    const lactationFloor = Math.max(minCal + 300, Math.round(tdee * 0.9));
-    if (fc < lactationFloor) {
-      fc = lactationFloor;
-      corrections.push('Повдигнато до безопасен прием при лактация.');
-    }
+  const reproFloor = reproductiveFloorKcal(data, tdee);
+  if (reproFloor && fc > 0 && fc < reproFloor) {
+    fc = reproFloor;
+    corrections.push(repro.pregnant
+      ? 'Бременност: без калориен дефицит — приемът е поне колкото разхода.'
+      : 'Кърмене: приемът включва енергията за кърмата.');
   }
 
   if (fc > 0 && fc < minCal) {
@@ -7832,26 +7857,31 @@ function personalHacks(plan, baseHacks, protocolHacks = null) {
  */
 async function applyIntakeHints(env, data) {
   const items = collectFreeText(data);
+  // Динамичните и протоколните въпроси — с текста на въпроса (без дублиране на свободния текст).
+  const freeFields = new Set(items.map(i => i.field));
+  const answers = collectQuestionAnswers(data, protocolQuestionLabels(data.clinicalProtocol))
+    .filter(a => !freeFields.has(a.field));
   // Профилът без старите подсказки — за да се чете същото при всяко извикване.
   const { _aiHints: previous, ...rest } = data;
   const profile = compileProfile(rest);
   const unmapped = profile.unmapped || [];
-  if (!items.length && !unmapped.length) {
+  if (!items.length && !unmapped.length && !answers.length) {
     delete data._aiHints;
     return;
   }
-  const hash = textHash([...items, ...unmapped.map(u => ({ field: 'unmapped', text: u }))]);
+  const hash = textHash([...items, ...answers, ...unmapped.map(u => ({ field: 'unmapped', text: u }))]);
   if (previous?.hash === hash) return;
   const raw = await aiHelperJson(env, 'admin_intake_hints_prompt', {
     freeText: freeTextBlock(items),
+    answers: freeTextBlock(answers),
     profileSummary: profileBrief(profile),
     unmapped: unmapped.length ? unmapped.map(u => `- ${u}`).join('\n') : 'няма',
-    exclusionsList: VOCABULARY.exclusions.join(', '),
-    clinicalList: VOCABULARY.clinical.join(', '),
-    behaviorsList: VOCABULARY.behaviors.join(', '),
+    exclusionsList: describeCodes(VOCABULARY.exclusions),
+    clinicalList: describeCodes(VOCABULARY.clinical),
+    behaviorsList: describeCodes(VOCABULARY.behaviors),
     stylesList: VOCABULARY.styles.join(', '),
     patternsList: VOCABULARY.patterns.join(', '),
-    approachList: VOCABULARY.approach.join(', '),
+    approachList: describeCodes(VOCABULARY.approach),
   }, data, 'intake_hints');
   const hints = normalizeIntakeHints(raw);
   if (hints) data._aiHints = { ...hints, hash };

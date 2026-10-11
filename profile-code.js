@@ -464,10 +464,55 @@ function readConditions(userData, unmapped) {
   for (const [terms, code] of MEDICATION_TERMS) {
     if (terms.some(t => meds.includes(t))) codes.add(code);
   }
+  readProtocolFindings(userData, codes);
   if (codes.has('PCOS') || codes.has('HORM') || codes.has('ADR')) codes.delete('ENDO');
   if (codes.has('HTN')) codes.delete('CVD');
   if (codes.has('OSTEO') || codes.has('JOINT')) codes.delete('MSK');
   return codes;
+}
+
+/**
+ * Отговорите от протоколните въпросници с еднозначно клинично значение.
+ * Метаболитен синдром по IDF/AHA/NHLBI 2009 (хармонизирани критерии): 3 от 5 —
+ * обиколка на талията (≥ 94 см мъже / ≥ 80 см жени, европейски прагове), кръвно,
+ * триглицериди, нисък HDL, кръвна захар.
+ */
+function readProtocolFindings(userData, codes) {
+  const ms = new Set(asList(userData.metabolicSyndrome).map(normLabel));
+  const pressure = ms.has('повишено кръвно налягане');
+  const triglycerides = ms.has('повишени триглицериди');
+  const lowHdl = ms.has('нисък hdl холестерол');
+  const glucose = ms.has('повишена кръвна захар');
+  if (pressure) codes.add('HTN');
+  if (triglycerides || lowHdl) codes.add('DYSL');
+  if (glucose) codes.add('IR');
+  const waist = num(userData.waistCircumference);
+  const waistLimit = userData.gender === 'Мъж' ? 94 : 80;
+  const waistHigh = waist != null && waist >= waistLimit;
+  const criteria = [waistHigh, pressure, triglycerides, lowHdl, glucose].filter(Boolean).length;
+  if (criteria >= 3) codes.add('METS');
+  // Рефлукс от въпросника за храносмилането — правилото GERD (без късно хранене, щадящо).
+  if (asList(userData.giSymptoms).some(s => normLabel(s) === 'киселини/рефлукс')) codes.add('GERD');
+}
+
+/**
+ * Бременност и кърмене от въпросника „след раждане“ — двете искат различна енергия.
+ * Нетната добавка при кърмене е по IOM (DRI 2005): 0–6 месеца +500 kcal за кърмата
+ * минус ~170 kcal от мобилизираните запаси = +330; 7–12 месеца +400; след година
+ * кърмата е по-малко (~+300). При смесено хранене добавката е пропорционално по-малка.
+ * @returns {{ pregnant: boolean, lactating: boolean, lactationKcal: number }}
+ */
+export function reproductiveStatus(userData = {}) {
+  const none = { pregnant: false, lactating: false, lactationKcal: 0 };
+  if (userData?.clinicalProtocol !== 'postpartum_lactation') return none;
+  const status = normLabel(userData.postpartumStatus);
+  if (status === 'бременна') return { pregnant: true, lactating: false, lactationKcal: 0 };
+  const frequency = normLabel(userData.breastfeedingFrequency);
+  if (status.startsWith('не кърмя') || frequency === 'не кърмя') return none;
+  // Без отговор — приема се кърмене в първите месеци (по-безопасната страна).
+  const net = status.includes('6-12') ? 400 : status.includes('над 12') ? 300 : 330;
+  const share = frequency.startsWith('смесено') ? 0.6 : frequency.startsWith('1-3') ? 0.3 : 1;
+  return { pregnant: false, lactating: true, lactationKcal: Math.round(net * share) };
 }
 
 /**
