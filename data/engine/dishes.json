@@ -6172,6 +6172,7 @@
           "options": [
             "dairy_milk_2",
             "dairy_milk",
+            "dairy_soy_milk",
             "dairy_milk_lf"
           ],
           "range": [
@@ -6355,6 +6356,7 @@
           "group": "MLK",
           "options": [
             "dairy_milk_2",
+            "dairy_soy_milk",
             "dairy_milk_lf"
           ],
           "range": [
@@ -6438,6 +6440,7 @@
           "group": "MLK",
           "options": [
             "dairy_milk_2",
+            "dairy_soy_milk",
             "dairy_milk_lf"
           ],
           "range": [
@@ -7414,6 +7417,7 @@
           "group": "MLK",
           "options": [
             "dairy_milk_2",
+            "dairy_soy_milk",
             "dairy_milk_lf"
           ],
           "range": [

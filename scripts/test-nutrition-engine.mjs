@@ -121,12 +121,14 @@ for (const prof of profiles) {
   const analysis = { ...buildDeterministicAnalysis(data), Final_Calories: kcal, macroGrams: { ...macros } };
   const strategy = buildEngineStrategy(res, data, { kcal, freeDayNumber: res.freeDayNumber });
   const wrapped = { analysis, strategy, weekPlan };
-  validatorIssues += [
+  const issues = [
     ...validateDietetic(wrapped, data), ...validateProfileRules(wrapped, data),
     ...validateWeekPlanNutrition(weekPlan, strategy), ...validateWeekPlanFoods(weekPlan),
     ...validateWeekPlanCombinations(weekPlan), ...validateWeekPlanDayCoherence(weekPlan),
     ...(validateWeeklyDishVariety(weekPlan).issues || []),
-  ].filter(i => !(userSkipsBreakfast(data) && /Хранене 1 при „Не закусвам“/.test(i)) && !/ready_meal в description|различни основни ястия|≠ схема/.test(i)).length;
+  ].filter(i => !(userSkipsBreakfast(data) && /Хранене 1 при „Не закусвам“/.test(i)) && !/ready_meal в description|различни основни ястия|≠ схема/.test(i));
+  if (process.env.SHOW_ISSUES) for (const i of issues) console.log(`  ${prof.id}: ${i}`);
+  validatorIssues += issues.length;
   const kDev = dev.k / dev.n;
   ok(kDev < (profile.diet.style === 'keto' ? 0.12 : 0.12), `${prof.id}: калории ±${(kDev * 100).toFixed(1)}%`);
   total.k += kDev; total.p += dev.p / dev.n; total.c += dev.c / dev.n; total.f += dev.f / dev.n; total.n++;
@@ -286,10 +288,18 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(/EVE \(храни се предимно вечер\)/.test(describeCodes(['EVE'])), 'кодовете за AI са с описание');
 }
 
-// Соева напитка не се предлага (решение на собственика) — нито в базата, нито в ястията.
+// Соевото мляко е само за вегани (решение на собственика).
 {
-  const dishesText = JSON.stringify([...DISHES_BY_ID.values()]);
-  ok(!foodByCatalogName('Соева напитка') && !/dairy_soy_milk/.test(dishesText), 'няма соева напитка в плана');
+  const base = { gender: 'Жена', age: 35, height: 165, weight: 65, goal: 'Поддържане' };
+  const veganPolicy = buildFoodPolicy(compileProfile({ ...base, dietPreference: ['Веган'] }), {});
+  const omniPolicy = buildFoodPolicy(compileProfile(base), {});
+  const vegetarianPolicy = buildFoodPolicy(compileProfile({ ...base, dietPreference: ['Вегетарианска'] }), {});
+  const lactoseFreePolicy = buildFoodPolicy(compileProfile({ ...base, dietPreference: ['Без млечни'] }), {});
+  ok(veganPolicy.allowed('dairy_soy_milk'), 'соево мляко: позволено при веганско хранене');
+  ok(!omniPolicy.allowed('dairy_soy_milk') && !vegetarianPolicy.allowed('dairy_soy_milk') && !lactoseFreePolicy.allowed('dairy_soy_milk'),
+    'соево мляко: не се предлага на невегани');
+  ok(foodByCatalogName('Соево мляко')?.id === 'dairy_soy_milk' && foodByCatalogName('Соева напитка')?.id === 'dairy_soy_milk',
+    'соево мляко: старото име в съществуващи планове се разпознава');
 }
 
 console.log(`\n=== nutrition engine: ${pass} pass, ${fail} fail ===`);

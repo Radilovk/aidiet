@@ -9412,6 +9412,7 @@ var FOOD_CATALOG = [
   item("dairy_milk_2", "\u041C\u043B\u044F\u043A\u043E (2%)", "\u043C\u043B\u044F\u043A\u043E 2", "dairy", ["PRO"], ["breakfast", "snack"], 4, { vegetarian: true, genericOf: "dairy_milk" }),
   item("dairy_plant_milk", "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u0430 \u043D\u0430\u043F\u0438\u0442\u043A\u0430", "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["ENG"], ["breakfast", "snack"], 4, { vegan: true, vegetarian: true, aliases: ["\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E", "\u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u043D\u0430\u043F\u0438\u0442\u044A\u043A"] }),
   item("dairy_soy_yogurt", "\u0421\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E", "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack", "late_snack"], 3, { vegan: true, vegetarian: true, aliases: ["\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E"] }),
+  item("dairy_soy_milk", "\u0421\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", "dairy", ["PRO"], ["breakfast", "snack"], 3, { vegan: true, vegetarian: true, aliases: ["\u0441\u043E\u0435\u0432\u0430 \u043D\u0430\u043F\u0438\u0442\u043A\u0430", "\u0441\u043E\u0435\u0432 \u043D\u0430\u043F\u0438\u0442\u044A\u043A"] }),
   item("dairy_parmesan", "\u041F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "dairy", ["PRO", "FAT"], ["main"], 3, { vegetarian: true }),
   item("dairy_mozzarella", "\u041C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", "\u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430", "dairy", ["PRO", "FAT"], ["main", "snack"], 3, { vegetarian: true }),
   item("dairy_yogurt_lf", "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0431\u0435\u0437 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", "dairy", ["PRO", "FAT"], ["breakfast", "snack", "late_snack"], 3, { vegetarian: true }),
@@ -13120,6 +13121,16 @@ var plate_formulas_default = {
               ]
             },
             {
+              key: "soy_milk",
+              label: "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+                  200
+                ]
+              ]
+            },
+            {
               key: "yogurt",
               label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
               products: [
@@ -13594,6 +13605,16 @@ var plate_formulas_default = {
               ]
             },
             {
+              key: "soy_milk",
+              label: "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+                  200
+                ]
+              ]
+            },
+            {
               key: "yogurt",
               label: "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
               products: [
@@ -13784,6 +13805,16 @@ var plate_formulas_default = {
               products: [
                 [
                   "\u043C\u043B\u044F\u043A\u043E",
+                  300
+                ]
+              ]
+            },
+            {
+              key: "soy_milk",
+              label: "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
+              products: [
+                [
+                  "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E",
                   300
                 ]
               ]
@@ -26825,7 +26856,8 @@ var foods_default = {
     lactose: "\u043C\u043B\u0435\u0447\u043D\u043E",
     legume: "\u0431\u043E\u0431\u043E\u0432\u043E",
     grain: "\u0437\u044A\u0440\u043D\u0435\u043D\u043E",
-    supplement: "\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0434\u043E\u0431\u0430\u0432\u043A\u0430"
+    supplement: "\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0434\u043E\u0431\u0430\u0432\u043A\u0430",
+    vegan_only: "\u0441\u0430\u043C\u043E \u043F\u0440\u0438 \u0432\u0435\u0433\u0430\u043D\u0441\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"
   },
   foods: {
     pro_chicken_breast: { group: "PRO", label: "\u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", kind: "poultry", flags: ["keto"] },
@@ -26875,6 +26907,7 @@ var foods_default = {
     dairy_milk: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E", kind: "dairy", flags: ["lactose", "high_fodmap"], serving: 250 },
     dairy_milk_2: { group: "MLK", label: "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E 2%", kind: "dairy", flags: ["lactose", "high_fodmap", "lowfat_dairy"], serving: 250 },
     dairy_soy_yogurt: { group: "MLK", label: "\u0441\u043E\u0435\u0432\u043E \u043A\u0438\u0441\u0435\u043B\u043E", kind: "plant", flags: ["soy", "legume"], serving: 200 },
+    dairy_soy_milk: { group: "MLK", label: "\u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E", kind: "plant", flags: ["soy", "legume", "vegan_only"], serving: 250 },
     dairy_plant_milk: { group: "STA", label: "\u043E\u0432\u0435\u0441\u0435\u043D\u0430 \u043D\u0430\u043F\u0438\u0442\u043A\u0430", kind: "plant", flags: ["oats"], serving: 200 },
     eng_bread_whole: { group: "STA", label: "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431", flags: ["gluten", "grain", "whole_grain", "low_gi"], unit: { one: "\u0444\u0438\u043B\u0438\u044F", many: "\u0444\u0438\u043B\u0438\u0438", grams: 35 } },
     eng_rye_bread: { group: "STA", label: "\u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431", flags: ["gluten", "grain", "whole_grain", "low_gi"], unit: { one: "\u0444\u0438\u043B\u0438\u044F", many: "\u0444\u0438\u043B\u0438\u0438", grams: 30 } },
@@ -34724,6 +34757,7 @@ var dishes_default = {
           options: [
             "dairy_milk_2",
             "dairy_milk",
+            "dairy_soy_milk",
             "dairy_milk_lf"
           ],
           range: [
@@ -34907,6 +34941,7 @@ var dishes_default = {
           group: "MLK",
           options: [
             "dairy_milk_2",
+            "dairy_soy_milk",
             "dairy_milk_lf"
           ],
           range: [
@@ -34990,6 +35025,7 @@ var dishes_default = {
           group: "MLK",
           options: [
             "dairy_milk_2",
+            "dairy_soy_milk",
             "dairy_milk_lf"
           ],
           range: [
@@ -35966,6 +36002,7 @@ var dishes_default = {
           group: "MLK",
           options: [
             "dairy_milk_2",
+            "dairy_soy_milk",
             "dairy_milk_lf"
           ],
           range: [
@@ -37615,7 +37652,7 @@ var MORNING_DRINK = {
 function morningDrinkFor(can) {
   const lines = [];
   if (can.dairy) lines.push("\u2022 \u0427\u0430\u0448\u0430 \u0430\u0439\u0440\u0430\u043D \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440");
-  else if (can.plantMilk) lines.push("\u2022 \u0427\u0430\u0448\u0430 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u0430 \u043D\u0430\u043F\u0438\u0442\u043A\u0430 (\u043D\u0430\u043F\u0440. \u043E\u0432\u0435\u0441\u0435\u043D\u0430)");
+  else if (can.plantMilk) lines.push("\u2022 \u0427\u0430\u0448\u0430 \u0441\u043E\u0435\u0432\u043E \u043C\u043B\u044F\u043A\u043E");
   if (can.shake) lines.push("\u2022 \u041F\u0440\u043E\u0442\u0435\u0438\u043D\u043E\u0432 \u0448\u0435\u0439\u043A");
   lines.push("\u2022 \u0412\u043E\u0434\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438\u043B\u0438 \u0431\u0438\u043B\u043A\u043E\u0432 \u0447\u0430\u0439");
   return { ...MORNING_DRINK, description: lines.join("\n") };
@@ -38820,6 +38857,7 @@ function buildFoodPolicy(profile, options = {}) {
       }
     }
     if (ok && f.flags.has("lactose_free") && !excludeFlags.has("high_fodmap")) ok = false;
+    if (ok && f.flags.has("vegan_only") && pattern !== "vegan") ok = false;
     if (ok && blocked.some((term) => matchesTerm(f, term))) ok = false;
     if (ok && onlyByGroup.has(f.group) && !onlyByGroup.get(f.group).has(id)) ok = false;
     allowedCache.set(id, ok);
@@ -39651,7 +39689,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
   const slots = prescription.slots;
   const drink = morningDrinkFor({
     dairy: policy.allowed("dairy_kefir") || policy.allowed("dairy_yogurt"),
-    plantMilk: policy.allowed("dairy_plant_milk"),
+    plantMilk: policy.allowed("dairy_soy_milk"),
     shake: policy.allowed("pro_whey") || policy.allowed("pro_plant_protein")
   });
   const mainSlots = [];
