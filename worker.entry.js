@@ -81,6 +81,8 @@ import {
   profileBrief,
 } from './nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from './profile-code.js';
+import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSummary } from './nutrition-engine/ai-voice.js';
+import { DEFAULT_PLAN_VOICE_PROMPT } from './nutrition-engine/plan-voice-prompt.js';
 import {
   WEEKLY_CHECKIN_QUESTIONS,
   readCheckin,
@@ -3264,9 +3266,9 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
 
   const cleanPlan = removeInternalJustifications(structuredPlan);
   if (clinicalProtocol && clinicalProtocol.hacks) {
-    cleanPlan.hacks = clinicalProtocol.hacks;
+    cleanPlan.hacks = personalHacks(cleanPlan, clinicalProtocol.hacks, clinicalProtocol.hacks);
   } else {
-    cleanPlan.hacks = await getGoalHacks(env, data.goal);
+    cleanPlan.hacks = personalHacks(cleanPlan, await getGoalHacks(env, data.goal));
   }
   if (clinicalProtocol) cleanPlan.clinicalProtocol = { id: clinicalProtocol.id, name: clinicalProtocol.name };
 
@@ -3295,6 +3297,7 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   const cycleNumber = currentPlan._meta?.cycleNumber || 1;
   let plan = assembleEnginePlan(data, analysis, { cycleNumber });
   plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps }));
+  plan = await writePlanVoice(env, data, plan, { reuse: currentPlan.aiVoice || null });
   try {
     await finalizeValidatedPlan(env, plan, data);
   } catch (validationErr) {
@@ -6064,6 +6067,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
     newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) =>
       assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps }));
+    // Новото меню получава свои бележки; тонът и портретът се пишат наново с данните от седмицата.
+    newPlan = await writePlanVoice(env, enrichedData, newPlan);
+    if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
+    // Клиничният протокол пази своите хакове; иначе личните навици на новата седмица.
+    if (newPlan.personalHabits?.length && !plan.clinicalProtocol) newPlan.hacks = [...newPlan.personalHabits];
+    else if (plan.hacks) newPlan.hacks = plan.hacks;
 
     try {
       await finalizeValidatedPlan(env, newPlan, enrichedData);
@@ -7795,6 +7804,53 @@ async function aiHelperJson(env, promptKey, vars, data, stepName) {
 
 const freeTextBlock = (items) => (items.length ? items.map(i => `- ${i.text}`).join('\n') : 'няма');
 
+/** PLAN_AI_VOICE=0 изключва гласа на плана (по подразбиране е включен). */
+function planVoiceEnabled(env = {}) {
+  const v = env?.PLAN_AI_VOICE;
+  return !(v === '0' || v === 'false' || v === false);
+}
+
+/**
+ * Гласът на плана: AI чете човека (портрет, тригери, стил) и пише писмото,
+ * насоките, навиците и бележките към ястията в подходящ за него тон. Числата и
+ * храните не се пипат; всеки текст минава през normalizePlanVoice. При грешка
+ * планът остава с детерминистичните текстове.
+ * @param {{ reuse?: object|null }} [options] reuse — гласът от предишната версия (промяна от чата)
+ */
+async function writePlanVoice(env, data, plan, options = {}) {
+  if (!plan?.weekPlan || !planVoiceEnabled(env)) return plan;
+  const blockedTerms = [...(plan.strategy?.foodsToAvoid || []), ...(data?._engineBlockedTerms || [])];
+  if (options.reuse && typeof options.reuse === 'object') {
+    // Същият човек, същият тон — бележките остават само за ястията, които са в новото меню.
+    const voice = normalizePlanVoice({ ...options.reuse, mealNotes: Object.entries(options.reuse.mealNotes || {}).map(([dishId, note]) => ({ dishId, note })) },
+      { dishIds: planDishIds(plan.weekPlan), blockedTerms });
+    if (voice) applyPlanVoice(plan, voice);
+    return plan;
+  }
+  try {
+    const template = (await getCustomPrompt(env, 'admin_plan_voice_prompt')) || DEFAULT_PLAN_VOICE_PROMPT;
+    const vars = planVoiceVars(compileProfile(data), data, plan);
+    const prompt = Object.entries(vars).reduce((s, [k, v]) => s.split(`{${k}}`).join(String(v)), String(template));
+    const response = await callAIModel(env, prompt, 3500, 'plan_voice', null, data, null);
+    const voice = normalizePlanVoice(parseAIResponse(response), { dishIds: planDishIds(plan.weekPlan), blockedTerms });
+    if (voice) {
+      applyPlanVoice(plan, voice);
+      if (plan._meta) plan._meta.voice = voiceSummary(voice);
+    }
+    console.log(`plan_voice: ${voiceSummary(voice)}`);
+  } catch (error) {
+    console.warn(`plan_voice: гласът е пропуснат — ${error.message}`);
+  }
+  return plan;
+}
+
+/** Хаковете в Насоки: личните навици заменят общите по цел; клиничният протокол остава отпред. */
+function personalHacks(plan, baseHacks, protocolHacks = null) {
+  const personal = Array.isArray(plan?.personalHabits) ? plan.personalHabits : [];
+  if (Array.isArray(protocolHacks) && protocolHacks.length) return [...protocolHacks.slice(0, 3), ...personal.slice(0, 4)];
+  return personal.length ? [...personal] : baseHacks;
+}
+
 /**
  * Приемане на клиента: AI чете свободния текст и неразпознатите отговори В
  * КОНТЕКСТА на вече разбрания профил и връща допълнителни кодове (кеш по текста).
@@ -7870,6 +7926,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
     }
     let plan = assembleEnginePlan(data, analysis);
     plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { slotAvoid: swaps }));
+    plan = await writePlanVoice(env, data, plan);
     plan._meta.tokenUsage = tokens;
     await finalizeAISessionLogs(env, sessionId);
     return plan;
