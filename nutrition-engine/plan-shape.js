@@ -39,7 +39,7 @@ export const MORNING_DRINK = {
 export function morningDrinkFor(can) {
   const lines = [];
   if (can.dairy) lines.push('• Чаша айран или кефир');
-  else if (can.plantMilk) lines.push('• Чаша соева или друга растителна напитка');
+  else if (can.plantMilk) lines.push('• Чаша растителна напитка (напр. овесена)');
   if (can.shake) lines.push('• Протеинов шейк');
   lines.push('• Вода с лимон или билков чай');
   return { ...MORNING_DRINK, description: lines.join('\n') };

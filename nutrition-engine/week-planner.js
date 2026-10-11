@@ -363,7 +363,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
   const slots = prescription.slots;
   const drink = morningDrinkFor({
     dairy: policy.allowed('dairy_kefir') || policy.allowed('dairy_yogurt'),
-    plantMilk: policy.allowed('dairy_soy_milk'),
+    plantMilk: policy.allowed('dairy_plant_milk'),
     shake: policy.allowed('pro_whey') || policy.allowed('pro_plant_protein'),
   });
   const mainSlots = [];

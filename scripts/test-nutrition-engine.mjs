@@ -286,5 +286,11 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(/EVE \(храни се предимно вечер\)/.test(describeCodes(['EVE'])), 'кодовете за AI са с описание');
 }
 
+// Соева напитка не се предлага (решение на собственика) — нито в базата, нито в ястията.
+{
+  const dishesText = JSON.stringify([...DISHES_BY_ID.values()]);
+  ok(!foodByCatalogName('Соева напитка') && !/dairy_soy_milk/.test(dishesText), 'няма соева напитка в плана');
+}
+
 console.log(`\n=== nutrition engine: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);
