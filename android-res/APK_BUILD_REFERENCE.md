@@ -73,6 +73,11 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
 > **Правило:** Splash screen е еднакъв за светъл и тъмен режим — тъмен фон `#042F2E`.
 > НЕ добавяйте бяло, рамки или overlay ефекти върху логото.
 
+**Без бяло мигване (2026-10-11):** `@capacitor/splash-screen` държи системния splash ~900 ms
+(`launchShowDuration`), а фонът на WebView (`android.backgroundColor`) е `#042F2E` — не светъл.
+След това уеб стартовият екран в `index.html` (`html.app-booting`, същият цвят и икона) го поема,
+докато обвивката зареди първия таб. Трите слоя са в един цвят — сменяте ли единия, сменете и другите.
+
 ---
 
 ## 6. Навигационна лента (navigation bar) — ЗАКЛЮЧЕНО ПОВЕДЕНИЕ
@@ -136,6 +141,8 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
 | `@capacitor/cli` | ^8.3.1 |
 | `@capacitor/local-notifications` | ^8.0.2 |
 | `@capacitor/motion` | ^8.0.0 |
+| `@capacitor/splash-screen` | ^8.0.2 |
+| `@capacitor/status-bar` | ^8.0.4 |
 | Java (JDK) | 21 (Temurin) |
 | Node.js | 22 |
 
@@ -183,3 +190,5 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
 | 2026-05-05 | Иконата на APK = PWA иконата (`icon-512x512.png`), без overlay | Иконата трябва да е идентична с PWA |
 | 2026-05-05 | Навигационна лента следва темата (values/values-night) | Лентата беше постоянно бяла, сега следва light/dark режима |
 | 2026-10-10 | `NutriPrintPlugin` + `patch-print-plugin.py` | `window.print()` не работи в WebView — книгата с плана не можеше да се запази като PDF в APK |
+| 2026-10-11 | `@capacitor/status-bar` + `@capacitor/splash-screen`; `android.backgroundColor` → `#042F2E` | Статус барът следва темата и отворените листове (`NutriPlanPlatform.setSystemBars`); без бяло мигване при старт |
+| 2026-10-11 | `publish-release` само от `main` | Пробни build-ове от клонове не бива да подменят публичния release |

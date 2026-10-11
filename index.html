@@ -53,28 +53,27 @@
         html.app-booting::before, html.app-booting::after { content: ''; position: fixed; z-index: 20000; pointer-events: none; }
         html.app-booting::before {
             inset: 0;
-            background: radial-gradient(60% 45% at 50% 42%, rgba(20,184,166,0.18), transparent 70%), #F0FDFA;
+            /* Същият цвят като системния splash (#042F2E) — преходът е без мигване. */
+            background: radial-gradient(60% 45% at 50% 40%, rgba(45,212,191,0.18), transparent 70%), #042F2E;
         }
-        html[data-theme="dark"].app-booting::before { background: radial-gradient(60% 45% at 50% 42%, rgba(45,212,191,0.16), transparent 70%), #0A1A1A; }
         html.app-booting::after {
-            left: 50%; top: 40%;
-            width: 88px; height: 88px; margin: -44px 0 0 -44px;
-            border-radius: 26px;
-            background: #ffffff url("./icon-192x192.png") center / 64px no-repeat;
-            box-shadow: 0 22px 50px -18px rgba(13,148,136,0.75), 0 0 0 1px rgba(13,148,136,0.12);
+            left: 50%; top: 50%;
+            width: 120px; height: 120px; margin: -60px 0 0 -60px;
+            background: url("./icon-512x512.png") center / contain no-repeat;
             animation: appBootPulse 1.6s ease-in-out infinite;
         }
         html.app-booting body::after {
             content: 'NutriPlan';
-            position: fixed; z-index: 20001; left: 0; right: 0; top: calc(40% + 64px);
+            position: fixed; z-index: 20001; left: 0; right: 0; top: calc(50% + 78px);
             text-align: center;
-            font: 800 1.35rem/1 'Inter', -apple-system, sans-serif;
+            font: 800 1.3rem/1 'Inter', -apple-system, sans-serif;
             letter-spacing: -0.03em;
-            color: #0B2B2A;
+            color: #E3F4F1;
             visibility: visible;
+            animation: appBootName 0.6s ease 0.2s both;
         }
-        html[data-theme="dark"].app-booting body::after { color: #E3F4F1; }
-        @keyframes appBootPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.92); opacity: 0.82; } }
+        @keyframes appBootName { from { opacity: 0; transform: translateY(6px); } to { opacity: 0.92; transform: none; } }
+        @keyframes appBootPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(0.94); } }
         #spaShell { transition: opacity 0.35s ease; }
         @media (prefers-reduced-motion: reduce) { html.app-booting::after { animation: none; } }
     </style>
@@ -2689,13 +2688,23 @@
         function setThemeColor(theme) {
             var c = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) { m.setAttribute('content', c); });
-                if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-                    var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
-                    if (navBar && navBar.setNavigationBarColor) {
-                        navBar.setNavigationBarColor({ color: c });
-                    }
-                }
+            var applyBars = function () {
+                var platform = window.NutriPlanPlatform;
+                if (platform && typeof platform.setSystemBars === 'function') platform.setSystemBars(c, theme !== 'dark');
+            };
+            // Докато е видим стартовият екран, лентите са в неговия цвят; обвивката решава след това.
+            var rootEl = document.documentElement;
+            if (rootEl.classList.contains('app-booting')) {
+                var obs = new MutationObserver(function () {
+                    if (rootEl.classList.contains('app-booting')) return;
+                    obs.disconnect();
+                    if (!document.body.classList.contains('spa-mode')) applyBars();
+                });
+                obs.observe(rootEl, { attributes: true, attributeFilter: ['class'] });
+                return;
             }
+            applyBars();
+        }
         function toggleTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';

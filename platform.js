@@ -121,6 +121,32 @@
         } catch (_) {}
     }
 
+    // ── Статус бар (APK-only) ──────────────────────────────────────────────
+
+    /**
+     * Цвят и стил на статус бара — горната лента следва екрана под нея.
+     * На APK използва @capacitor/status-bar; на PWA/Web — no-op.
+     *
+     * @param {string} color  HEX цвят на фона
+     * @param {boolean} lightBackground  true = светъл фон (тъмни икони)
+     */
+    function setStatusBar(color, lightBackground) {
+        if (!isAPK()) return;
+        try {
+            var sb = getPlugin('StatusBar');
+            if (!sb) return;
+            // 'LIGHT' = тъмен текст върху светъл фон; 'DARK' = светъл текст върху тъмен.
+            if (typeof sb.setStyle === 'function') sb.setStyle({ style: lightBackground ? 'LIGHT' : 'DARK' }).catch(function () {});
+            if (typeof sb.setBackgroundColor === 'function') sb.setBackgroundColor({ color: color }).catch(function () {});
+        } catch (_) {}
+    }
+
+    /** Двете системни ленти наведнъж — един цвят и контраст за целия екран. */
+    function setSystemBars(color, lightBackground) {
+        setStatusBar(color, lightBackground);
+        setNavBar(color, !!lightBackground);
+    }
+
     // ── Вибрация / хаптика ─────────────────────────────────────────────────
 
     /**
@@ -297,6 +323,8 @@
         getPlugin: getPlugin,
         exitNativeApp: exitNativeApp,
         setNavBar: setNavBar,
+        setStatusBar: setStatusBar,
+        setSystemBars: setSystemBars,
         vibrate: vibrate,
         apply: apply,
         runNotificationCatchUpIfReady: runNotificationCatchUpIfReady

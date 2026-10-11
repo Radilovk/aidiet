@@ -20,11 +20,27 @@
       ],
       "serverClientId": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com",
       "forceCodeForRefreshToken": true
+    },
+    "SplashScreen": {
+      "_note": "Системният splash покрива празния кадър на WebView; уеб стартовият екран (index.html, същият цвят и икона) го поема без мигване.",
+      "launchShowDuration": 900,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 220,
+      "backgroundColor": "#042F2E",
+      "showSpinner": false,
+      "splashFullScreen": false,
+      "splashImmersive": false
+    },
+    "StatusBar": {
+      "_note": "Начален цвят = splash; после app.js го сменя според темата и отворените листове.",
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#042F2E"
     }
   },
   "android": {
     "minWebViewVersion": 60,
     "allowMixedContent": false,
-    "backgroundColor": "#F0FDFA"
+    "backgroundColor": "#042F2E"
   }
 }

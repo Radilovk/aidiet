@@ -457,6 +457,9 @@ jobs:
 
   publish-release:
     needs: build-apk
+    # Само main публикува release (бутонът „Свали APK“ сочи към последния).
+    # Пробните build-ове от други клонове остават като артефакт NutriPlan-APK.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # APK is already in Actions artifacts — do not fail the whole pipeline when GitHub Releases API is flaky.
     continue-on-error: true

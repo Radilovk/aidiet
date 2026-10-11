@@ -168,13 +168,29 @@
         }
     }
 
-    /** Системната навигационна лента на Android следва екрана (тема, отворен лист). */
+    /**
+     * Системните ленти на Android (статус бар и навигация) следват екрана —
+     * тема, отворен лист. Докато се вижда стартовият екран, остават в неговия
+     * цвят; последната заявка се прилага, щом той изчезне.
+     */
+    var pendingBars = null;
     function setSystemNavColor(color) {
-        if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return;
-        var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
-        if (navBar && navBar.setNavigationBarColor) {
-            try { navBar.setNavigationBarColor({ color: color }); } catch (_) {}
+        var light = color === '#F0FDFA';
+        if (document.documentElement.classList.contains('app-booting')) {
+            if (!pendingBars) {
+                // Стартовият екран може да изчезне и по резервния таймер в index.html.
+                var obs = new MutationObserver(function () {
+                    if (document.documentElement.classList.contains('app-booting')) return;
+                    obs.disconnect();
+                    if (pendingBars) { var b = pendingBars; pendingBars = null; setSystemNavColor(b.color); }
+                });
+                obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+            }
+            pendingBars = { color: color, light: light };
+            return;
         }
+        var platform = window.NutriPlanPlatform;
+        if (platform && typeof platform.setSystemBars === 'function') platform.setSystemBars(color, light);
     }
 
     function themeNavColor() {
@@ -1238,6 +1254,11 @@
 
     function endBoot() {
         document.documentElement.classList.remove('app-booting');
+        if (pendingBars) {
+            var bars = pendingBars;
+            pendingBars = null;
+            setSystemNavColor(bars.color);
+        }
     }
 
     async function initShell() {
