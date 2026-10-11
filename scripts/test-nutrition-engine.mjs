@@ -24,8 +24,8 @@ import { validateWeekPlanNutrition } from './plan-adequacy/validators/nutrition.
 import { validateWeekPlanFoods } from './plan-adequacy/validators/foods.mjs';
 import { validateWeekPlanCombinations } from './plan-adequacy/validators/combinations.mjs';
 import { validateWeekPlanDayCoherence, validateWeeklyDishVariety } from '../meal-combinations.js';
-import { profileBrief, normalizeIntakeHints, normalizeFeedbackHints, normalizeSwaps, collectFreeText } from '../nutrition-engine/ai-assist.js';
-import { compileProfile } from '../profile-code.js';
+import { profileBrief, normalizeIntakeHints, normalizeFeedbackHints, normalizeSwaps, collectFreeText, collectQuestionAnswers, describeCodes } from '../nutrition-engine/ai-assist.js';
+import { compileProfile, reproductiveStatus } from '../profile-code.js';
 import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment } from '../nutrition-engine/monitoring.js';
 
 let validatorIssues = 0;
@@ -121,12 +121,14 @@ for (const prof of profiles) {
   const analysis = { ...buildDeterministicAnalysis(data), Final_Calories: kcal, macroGrams: { ...macros } };
   const strategy = buildEngineStrategy(res, data, { kcal, freeDayNumber: res.freeDayNumber });
   const wrapped = { analysis, strategy, weekPlan };
-  validatorIssues += [
+  const issues = [
     ...validateDietetic(wrapped, data), ...validateProfileRules(wrapped, data),
     ...validateWeekPlanNutrition(weekPlan, strategy), ...validateWeekPlanFoods(weekPlan),
     ...validateWeekPlanCombinations(weekPlan), ...validateWeekPlanDayCoherence(weekPlan),
     ...(validateWeeklyDishVariety(weekPlan).issues || []),
-  ].filter(i => !(userSkipsBreakfast(data) && /Хранене 1 при „Не закусвам“/.test(i)) && !/ready_meal в description|различни основни ястия|≠ схема/.test(i)).length;
+  ].filter(i => !(userSkipsBreakfast(data) && /Хранене 1 при „Не закусвам“/.test(i)) && !/ready_meal в description|различни основни ястия|≠ схема/.test(i));
+  if (process.env.SHOW_ISSUES) for (const i of issues) console.log(`  ${prof.id}: ${i}`);
+  validatorIssues += issues.length;
   const kDev = dev.k / dev.n;
   ok(kDev < (profile.diet.style === 'keto' ? 0.12 : 0.12), `${prof.id}: калории ±${(kDev * 100).toFixed(1)}%`);
   total.k += kDev; total.p += dev.p / dev.n; total.c += dev.c / dev.n; total.f += dev.f / dev.n; total.n++;
@@ -251,6 +253,53 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const st = serializeStrategyForMealPlan(strategy);
   ok(/sch=/.test(st) && /dessert=[01]/.test(st), 'чат: стратегията носи схемата в порции и десерта');
   ok(!/айран/i.test(strategy.breakfastStrategy) || res.policy.allowed('dairy_kefir'), 'стратегия: напитката е според клиента');
+}
+
+// Протоколните отговори с еднозначно клинично значение и статусът при бременност/кърмене.
+{
+  const pp = (extra) => ({ gender: 'Жена', age: 31, height: 165, weight: 72, goal: 'Отслабване', clinicalProtocol: 'postpartum_lactation', ...extra });
+  ok(reproductiveStatus(pp({ postpartumStatus: 'Бременна' })).pregnant, 'бременност: разпозната от протокола след раждане');
+  ok(!reproductiveStatus(pp({ postpartumStatus: 'Не кърмя, но наскоро родих (до 1 година)' })).lactating, 'не кърми: без добавка за кърма');
+  ok(!reproductiveStatus(pp({ postpartumStatus: 'Кърмя (до 6 месеца след раждане)', breastfeedingFrequency: 'Не кърмя' })).lactating, 'честота „Не кърмя“ печели');
+  const excl = reproductiveStatus(pp({ postpartumStatus: 'Кърмя (до 6 месеца след раждане)', breastfeedingFrequency: 'Изцяло на гърда (6+ пъти дневно)' }));
+  const mixed = reproductiveStatus(pp({ postpartumStatus: 'Кърмя (до 6 месеца след раждане)', breastfeedingFrequency: 'Смесено хранене' }));
+  const late = reproductiveStatus(pp({ postpartumStatus: 'Кърмя (6-12 месеца след раждане)', breastfeedingFrequency: 'Изцяло на гърда (6+ пъти дневно)' }));
+  ok(excl.lactationKcal === 330 && mixed.lactationKcal < excl.lactationKcal && late.lactationKcal === 400, 'кърмене: добавката е по IOM и пада при смесено хранене');
+  ok(reproductiveStatus(pp({})).lactationKcal === 330, 'кърмене без отговор: по-безопасната страна (0–6 месеца)');
+  ok(!reproductiveStatus({ gender: 'Жена', postpartumStatus: 'Бременна' }).pregnant, 'бременност: само в протокола след раждане');
+
+  const ms = compileProfile({ gender: 'Мъж', age: 50, height: 178, weight: 98, goal: 'Отслабване', waistCircumference: '104',
+    metabolicSyndrome: ['Повишено кръвно налягане', 'Повишени триглицериди'] });
+  ok(ms.clinical.includes('HTN') && ms.clinical.includes('DYSL') && ms.clinical.includes('METS'), 'метаболитен синдром: 3 от 5 критерия (талия + кръвно + триглицериди)');
+  const ms2 = compileProfile({ gender: 'Жена', age: 40, height: 165, weight: 70, goal: 'Отслабване', metabolicSyndrome: ['Повишена кръвна захар'] });
+  ok(ms2.clinical.includes('IR') && !ms2.clinical.includes('METS'), 'един критерий: само съответното състояние, без синдром');
+  const gerd = compileProfile({ gender: 'Жена', age: 40, height: 165, weight: 70, goal: 'Отслабване', clinicalProtocol: 'gi_issues', giSymptoms: ['Подуване', 'Киселини/рефлукс'] });
+  ok(gerd.clinical.includes('GERD'), 'рефлукс от въпросника за храносмилането → GERD');
+
+  const qa = collectQuestionAnswers({
+    dq_slim_diab_1: 'Като внезапен силен глад', dq_slim_diab_2: 'Не', dq_x: 'Да',
+    _dq_text_map: { dq_slim_diab_1: 'Как описвате настъпването на глада?', dq_slim_diab_2: 'Сънливост след хранене?' },
+    waterRetention: 'Да, често', postpartumGoal: ['Нито едно'],
+  }, { waterRetention: 'Задържане на течности', postpartumGoal: 'Цел след раждане' });
+  ok(qa.some(a => a.text === 'Как описвате настъпването на глада? → Като внезапен силен глад'), 'динамичен въпрос: стига до AI с текста на въпроса');
+  ok(!qa.some(a => a.field === 'dq_slim_diab_2') && !qa.some(a => a.field === 'postpartumGoal'), 'отрицателните отговори не се пращат');
+  ok(!qa.some(a => a.field === 'dq_x'), 'отговор без текст на въпроса не се праща');
+  ok(qa.some(a => a.text.startsWith('Задържане на течности → Да, често')), 'протоколен въпрос: стига до AI с етикета');
+  ok(/EVE \(храни се предимно вечер\)/.test(describeCodes(['EVE'])), 'кодовете за AI са с описание');
+}
+
+// Соевото мляко е само за вегани (решение на собственика).
+{
+  const base = { gender: 'Жена', age: 35, height: 165, weight: 65, goal: 'Поддържане' };
+  const veganPolicy = buildFoodPolicy(compileProfile({ ...base, dietPreference: ['Веган'] }), {});
+  const omniPolicy = buildFoodPolicy(compileProfile(base), {});
+  const vegetarianPolicy = buildFoodPolicy(compileProfile({ ...base, dietPreference: ['Вегетарианска'] }), {});
+  const lactoseFreePolicy = buildFoodPolicy(compileProfile({ ...base, dietPreference: ['Без млечни'] }), {});
+  ok(veganPolicy.allowed('dairy_soy_milk'), 'соево мляко: позволено при веганско хранене');
+  ok(!omniPolicy.allowed('dairy_soy_milk') && !vegetarianPolicy.allowed('dairy_soy_milk') && !lactoseFreePolicy.allowed('dairy_soy_milk'),
+    'соево мляко: не се предлага на невегани');
+  ok(foodByCatalogName('Соево мляко')?.id === 'dairy_soy_milk' && foodByCatalogName('Соева напитка')?.id === 'dairy_soy_milk',
+    'соево мляко: старото име в съществуващи планове се разпознава');
 }
 
 console.log(`\n=== nutrition engine: ${pass} pass, ${fail} fail ===`);

@@ -111,10 +111,10 @@ export function nutrientsOf(id, grams) {
 /** Храна по каталожно име — за преизчисляване на план от описанието му. */
 // Псевдонимите пазят старите имена („Соев напитък“) — описанията на вече
 // генерирани планове се преизчисляват и след преименуване.
-const foodByName = new Map([...FOODS.values()].flatMap(f => [
+const foodByName = new Map([...FOODS.values()].flatMap(f => /** @type {Array<[string, Food]>} */ ([
   ...(catalogById.get(f.id)?.aliases || []).map(a => [String(a).toLowerCase(), f]),
   [f.name.toLowerCase(), f],
-]));
+])));
 export function foodByCatalogName(name) {
   return foodByName.get(String(name || '').trim().toLowerCase()) || null;
 }
@@ -145,6 +145,7 @@ export function foodByCatalogName(name) {
  * @property {string|null} requires
  * @property {boolean} fruitPaired
  * @property {boolean} fruitAlone    плод без белтък/мазнина — не и при инсулинова резистентност
+ * @property {string} prep           кратко приготвяне (празно, ако ястието няма)
  */
 
 function normalizePart(dishId, part) {

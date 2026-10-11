@@ -93,7 +93,7 @@ export const FOOD_CATALOG = [
   item('dairy_milk_2', 'Мляко (2%)', 'мляко 2', 'dairy', ['PRO'], ['breakfast', 'snack'], 4, { vegetarian: true, genericOf: 'dairy_milk' }),
   item('dairy_plant_milk', 'Растителна напитка', 'растително мляко', 'dairy', ['ENG'], ['breakfast', 'snack'], 4, { vegan: true, vegetarian: true, aliases: ['растително мляко', 'растителен напитък'] }),
   item('dairy_soy_yogurt', 'Соево кисело', 'соево кисело мляко', 'dairy', ['PRO'], ['breakfast', 'snack', 'late_snack'], 3, { vegan: true, vegetarian: true, aliases: ['соево кисело мляко'] }),
-  item('dairy_soy_milk', 'Соева напитка', 'соево мляко', 'dairy', ['PRO'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true, aliases: ['соево мляко', 'соев напитък'] }),
+  item('dairy_soy_milk', 'Соево мляко', 'соево мляко', 'dairy', ['PRO'], ['breakfast', 'snack'], 3, { vegan: true, vegetarian: true, aliases: ['соева напитка', 'соев напитък'] }),
   item('dairy_parmesan', 'Пармезан', 'пармезан', 'dairy', ['PRO', 'FAT'], ['main'], 3, { vegetarian: true }),
   item('dairy_mozzarella', 'Моцарела', 'моцарела', 'dairy', ['PRO', 'FAT'], ['main', 'snack'], 3, { vegetarian: true }),
   item('dairy_yogurt_lf', 'Кисело мляко без лактоза', 'кисело мляко без лактоза', 'dairy', ['PRO', 'FAT'], ['breakfast', 'snack', 'late_snack'], 3, { vegetarian: true }),

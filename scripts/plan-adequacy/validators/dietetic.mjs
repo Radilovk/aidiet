@@ -116,7 +116,9 @@ export function validateWeekPlanDietetic(weekPlan, strategy, profile = {}) {
       const text = `${meal.name || ''} ${meal.description || ''}`.toLowerCase();
 
       if (isVeganProfile(profile)) {
-        if (ANIMAL_PATTERNS.some(p => p.test(text))) {
+        // Растителните „млека“ (соево мляко, соево кисело…) не са животински продукти.
+        const animalText = text.replace(/(соев|растител|овес|бадемов|кокосов|оризов)\S*\s+(кисело\s+)?(мляко|йогурт|сирене)/g, '');
+        if (ANIMAL_PATTERNS.some(p => p.test(animalText))) {
           issues.push(`day${d} ${meal.type}: животински продукт при веган профил`);
         }
       }
