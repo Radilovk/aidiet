@@ -61,6 +61,7 @@
     var state = {
         initialized: false,
         activeTab: 'plan',
+        scroll: Object.create(null),
         raw: Object.create(null),
         parsed: Object.create(null)
     };
@@ -167,6 +168,41 @@
         }
     }
 
+    /** Системната навигационна лента на Android следва екрана (тема, отворен лист). */
+    function setSystemNavColor(color) {
+        if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return;
+        var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
+        if (navBar && navBar.setNavigationBarColor) {
+            try { navBar.setNavigationBarColor({ color: color }); } catch (_) {}
+        }
+    }
+
+    function themeNavColor() {
+        return (state.raw.theme || getPreferredTheme()) === 'dark' ? '#0A1A1A' : '#F0FDFA';
+    }
+
+    /** Дърпане за обновяване в плана: принудителна проверка за нова версия. */
+    function runPullRefresh(sourceWindow) {
+        var frame = document.querySelector('[data-tab-view="plan"]');
+        var reply = function (status) {
+            if (frame) dispatchFrameEvent(frame, 'NUTRIPLAN_PULL_REFRESH_DONE', { status: status });
+        };
+        var sync = window.NutriPlanPlanSync;
+        var uid = getStoredValue('userId') || '';
+        if (!sync || !uid || typeof sync.maybeDailyPlanVersionCheck !== 'function') { reply('current'); return; }
+        sync.maybeDailyPlanVersionCheck(uid, Object.assign({}, buildPlanSyncOptions(), { force: true }))
+            .then(function (result) {
+                if (result && result.weeklyShown) { reply('updated'); return; }
+                if (result && result.pending) {
+                    reply('updated');
+                    promptAdminPlanUpdate(result.planUpdatedAt || '');
+                    return;
+                }
+                reply(result && result.checked === false && result.reason !== 'recent' ? 'error' : 'current');
+            })
+            .catch(function () { reply('error'); });
+    }
+
     function applyTheme(theme, persist) {
         theme = theme || getPreferredTheme();
         // Записва се само изричен избор — иначе темата следва телефона (светла/тъмна).
@@ -175,12 +211,7 @@
         state.parsed.theme = theme;
         setDocumentTheme(document, theme);
 
-        if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-            var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
-            if (navBar && navBar.setNavigationBarColor) {
-                navBar.setNavigationBarColor({ color: theme === 'dark' ? '#0A1A1A' : '#F0FDFA' });
-            }
-        }
+        setSystemNavColor(theme === 'dark' ? '#0A1A1A' : '#F0FDFA');
 
         document.querySelectorAll('[data-tab-view]').forEach(function (frame) {
             try {
@@ -961,6 +992,15 @@
             openShellChat();
             return;
         }
+        if (data.type === 'NUTRIPLAN_SHEET_STATE') {
+            // Под отворен лист фонът е затъмнен — лентата отдолу също.
+            setSystemNavColor(data.state === 'open' ? '#050C0C' : themeNavColor());
+            return;
+        }
+        if (data.type === 'NUTRIPLAN_PULL_REFRESH') {
+            runPullRefresh(event.source);
+            return;
+        }
         if (data.type === 'NUTRIPLAN_WEEKLY_TEST') {
             closeShellChat();
             switchTab('plan', true);
@@ -1131,6 +1171,10 @@
         }
 
         if (previousTab && previousTab !== tab) {
+            // Всеки таб помни докъде е стигнат — връщането не започва отгоре.
+            try {
+                if (previousFrame && previousFrame.contentWindow) state.scroll[previousTab] = previousFrame.contentWindow.scrollY || 0;
+            } catch (_) {}
             triggerTabHaptic();
             if (previousFrame) {
                 dispatchFrameEvent(previousFrame, 'NUTRIPLAN_TAB_DEACTIVATED', {
@@ -1148,6 +1192,15 @@
             frame.setAttribute('aria-hidden', String(!isActive));
             if (isActive && shouldReplayTabAnimations(tab)) replayTabAnimations(frame);
         });
+        var savedScroll = state.scroll[tab];
+        if (activeFrame && savedScroll && previousTab !== tab) {
+            requestAnimationFrame(function () {
+                try {
+                    var w = activeFrame.contentWindow;
+                    if (w && (w.scrollY || 0) < 4) w.scrollTo(0, savedScroll);
+                } catch (_) {}
+            });
+        }
 
         document.querySelectorAll('[data-tab-target]').forEach(function (button) {
             var isActive = button.getAttribute('data-tab-target') === tab;
@@ -1183,6 +1236,10 @@
         return !!getStoredValue('dietPlan');
     }
 
+    function endBoot() {
+        document.documentElement.classList.remove('app-booting');
+    }
+
     async function initShell() {
         var shell = document.getElementById('spaShell');
         if (!shell || state.initialized) return;
@@ -1197,13 +1254,14 @@
             try { await window._indexAuthUser; } catch (_) {}
         }
         if (!shouldOpenShell()) {
+            endBoot();
             if (window.NutriPlanDiagnostics) {
                 window.NutriPlanDiagnostics.info('shell', 'init-skip', 'No local plan available');
             }
             return;
         }
 
-        if (await runOpenAppCatchUpFlow()) return;
+        if (await runOpenAppCatchUpFlow()) { endBoot(); return; }
 
         state.initialized = true;
         document.body.classList.add('spa-mode');
@@ -1250,6 +1308,10 @@
         });
 
         switchTab(initialTab, true);
+        // Стартовият екран се маха, щом активният таб е зареден (или до секунда и половина).
+        var bootFrame = document.querySelector('[data-tab-view="' + state.activeTab + '"]');
+        var bootTimer = setTimeout(endBoot, 1500);
+        if (bootFrame) bootFrame.addEventListener('load', function () { clearTimeout(bootTimer); setTimeout(endBoot, 120); }, { once: true });
         window.addEventListener('resize', function () { syncNavPill(false); });
         initApkGameNotifier();
         runPlanUpdateCatchUp();

@@ -46,6 +46,38 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
+    <!-- Стартов екран на приложението: докато обвивката зарежда плана, не се вижда landing-ът. -->
+    <script>(function(){try{if(new URLSearchParams(location.search).has('app')){document.documentElement.classList.add('app-booting');setTimeout(function(){document.documentElement.classList.remove('app-booting');},9000);}}catch(e){}})();</script>
+    <style>
+        html.app-booting body > *:not(#spaShell) { visibility: hidden !important; }
+        html.app-booting::before, html.app-booting::after { content: ''; position: fixed; z-index: 20000; pointer-events: none; }
+        html.app-booting::before {
+            inset: 0;
+            background: radial-gradient(60% 45% at 50% 42%, rgba(20,184,166,0.18), transparent 70%), #F0FDFA;
+        }
+        html[data-theme="dark"].app-booting::before { background: radial-gradient(60% 45% at 50% 42%, rgba(45,212,191,0.16), transparent 70%), #0A1A1A; }
+        html.app-booting::after {
+            left: 50%; top: 40%;
+            width: 88px; height: 88px; margin: -44px 0 0 -44px;
+            border-radius: 26px;
+            background: #ffffff url("./icon-192x192.png") center / 64px no-repeat;
+            box-shadow: 0 22px 50px -18px rgba(13,148,136,0.75), 0 0 0 1px rgba(13,148,136,0.12);
+            animation: appBootPulse 1.6s ease-in-out infinite;
+        }
+        html.app-booting body::after {
+            content: 'NutriPlan';
+            position: fixed; z-index: 20001; left: 0; right: 0; top: calc(40% + 64px);
+            text-align: center;
+            font: 800 1.35rem/1 'Inter', -apple-system, sans-serif;
+            letter-spacing: -0.03em;
+            color: #0B2B2A;
+            visibility: visible;
+        }
+        html[data-theme="dark"].app-booting body::after { color: #E3F4F1; }
+        @keyframes appBootPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.92); opacity: 0.82; } }
+        #spaShell { transition: opacity 0.35s ease; }
+        @media (prefers-reduced-motion: reduce) { html.app-booting::after { animation: none; } }
+    </style>
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
