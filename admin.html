@@ -10399,6 +10399,19 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 html += '</div>';
             }
 
+            // Портретът на клиента от гласа на плана — само за екипа, клиентът не го вижда.
+            const voice = plan.aiVoice;
+            if (voice && voice.portrait) {
+                const pr = voice.portrait;
+                const row = (label, value) => value ? `<div style="margin-bottom:8px;"><strong style="color:var(--text-dark);font-size:0.85rem;">${label}</strong><div style="color:var(--text-gray);font-size:0.85rem;margin-top:2px;line-height:1.5;">${escapeHtml(Array.isArray(value) ? value.join(' · ') : value)}</div></div>` : '';
+                html += `<div style="margin-bottom:16px;padding:14px;border-radius:12px;background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.18);">
+                    <div style="font-weight:700;color:var(--text-dark);font-size:0.95rem;margin-bottom:10px;"><i class="fas fa-user-check"></i> Портрет на клиента <span style="font-weight:500;color:var(--text-gray);font-size:0.8rem;">(AI, вътрешно)</span></div>
+                    ${row('Човекът', pr.summary)}${row('Емоционално', pr.emotional)}${row('Социален контекст', pr.social)}
+                    ${row('Тригери', pr.triggers)}${row('Стил на личността (хипотеза)', pr.personality)}${row('Мотивация', pr.motivation)}${row('Внимание', pr.risks)}
+                    ${row('Тон', `обръщение „${voice.tone?.address || 'ти'}“${voice.tone?.style ? ' — ' + voice.tone.style : ''}`)}
+                </div>`;
+            }
+
             // Weekly plan days
             const weekPlan = plan.weekPlan || {};
             const DAY_NAMES = ['', 'Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя'];

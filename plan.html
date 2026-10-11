@@ -1218,6 +1218,13 @@
             margin-top: 16px;
         }
 
+        .modal-prep-title { margin-top: 18px; }
+        .modal-recipe {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            opacity: 0.92;
+        }
         .modal-ingredients-title {
             font-size: 0.82rem;
             font-weight: 700;
@@ -1330,6 +1337,23 @@
         }
         
         /* Welcome modal specific styles — mobile base */
+        .specialist-note {
+            margin-top: 4px;
+            padding: 16px 18px;
+            border-radius: 16px;
+            background: rgba(13, 148, 136, 0.08);
+            border-left: 3px solid var(--primary-red);
+        }
+        .specialist-note-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary-red);
+            margin-bottom: 6px;
+        }
+        .specialist-note p { margin: 0; line-height: 1.65; }
+        .meal-personal-note { margin: 16px 0 4px; }
         .welcome-modal-card {
             max-width: 600px;
             max-height: calc(92vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
@@ -4161,6 +4185,10 @@
             </div>
             <div class="modal-body">
                 <p id="mDesc">Описание...</p>
+                <div class="specialist-note meal-personal-note" id="mPersonalNote" hidden>
+                    <div class="specialist-note-label"><i class="fas fa-user-doctor" aria-hidden="true"></i> <span id="mPersonalNoteLabel">Лично за теб</span></div>
+                    <p id="mPersonalNoteText"></p>
+                </div>
                 <div class="modal-benefit">
                     <strong><i class="fas fa-heartbeat"></i> Ползи:</strong> <span id="mBenefit">Текст ползи...</span>
                 </div>
@@ -4202,19 +4230,23 @@
                     <div style="font-size: 3.5rem; color: var(--primary-red); margin-bottom: 10px;">
                         <i class="fas fa-award"></i>
                     </div>
-                    <h3 class="modal-title" style="text-align: center; padding-right: 0;">
-                        Вашият Персонализиран План е Готов!
+                    <h3 class="modal-title" id="welcomeModalTitle" style="text-align: center; padding-right: 0;">
+                        Планът е готов
                     </h3>
                 </div>
                 <div class="modal-body welcome-modal-body" id="welcomeModalContent">
                     <div id="aiWelcomeMessage" style="line-height: 1.8; margin-bottom: 20px; white-space: pre-line;">
                         Зареждане...
                     </div>
+                    <div class="specialist-note" id="specialistNote" hidden>
+                        <div class="specialist-note-label"><i class="fas fa-user-doctor" aria-hidden="true"></i> Бележка от специалиста</div>
+                        <p id="specialistNoteText"></p>
+                    </div>
                 </div>
             </div>
             <div style="text-align: center; padding-top: 20px; border-top: 2px solid var(--soft-red); margin-top: 20px;">
                 <button class="btn-primary" onclick="closeWelcomeModal()" style="width: 100%; max-width: 300px; margin: 0 auto; padding: 14px 24px; font-size: 1.05rem;">
-                    <i class="fas fa-check"></i> Разбрах, нека започваме!
+                    <i class="fas fa-check"></i> <span id="welcomeModalBtnText">Да започваме</span>
                 </button>
             </div>
         </div>
@@ -5037,10 +5069,9 @@
                         const modifier = strategy.dietaryModifier || 'Балансиран';
                         const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
 
-                        welcomeMessage = `Здравейте, ${userData && userData.name ? userData.name : ''}!\n\n`;
-                        welcomeMessage += `Този ${modifier.toLowerCase()} план е създаден специално за Вас, базиран на вашата уникална комбинация от фактори. `;
-                        welcomeMessage += `Целта ви за ${goal.toLowerCase()} е водеща при изграждането на плана.\n\n`;
-                        welcomeMessage += `Всяка калория, всеки макронутриент и всяко хранене са прецизно подбрани, за да Ви помогнат да постигнете желаните резултати по здравословен и устойчив начин.`;
+                        welcomeMessage = `Здравейте${userData && userData.name ? ', ' + userData.name : ''}.\n\n`;
+                        welcomeMessage += `Планът е ${modifier.toLowerCase()} и е изграден около целта Ви — ${goal.toLowerCase()}. `;
+                        welcomeMessage += `Следвайте го спокойно през първата седмица и отбелязвайте храненията — според това ще го настройваме.`;
                     }
                 }
 
@@ -5074,6 +5105,21 @@
                     const welcomeMessageElement = document.getElementById('aiWelcomeMessage');
                     if (welcomeMessageElement) {
                         welcomeMessageElement.textContent = welcomeMessage;
+                    }
+                    // Обръщението от гласа на плана („ти“ или „Вие“) важи и за заглавието и бутона.
+                    const informal = strategy.addressForm === 'ти';
+                    const firstName = userData && userData.name ? String(userData.name).trim().split(/\s+/)[0] : '';
+                    const titleEl = document.getElementById('welcomeModalTitle');
+                    if (titleEl) {
+                        titleEl.textContent = firstName
+                            ? `${firstName}, ${informal ? 'твоят' : 'Вашият'} план е готов`
+                            : `${informal ? 'Твоят' : 'Вашият'} план е готов`;
+                    }
+                    const noteBox = document.getElementById('specialistNote');
+                    const noteText = document.getElementById('specialistNoteText');
+                    if (noteBox && noteText) {
+                        noteText.textContent = strategy.specialistNote || '';
+                        noteBox.hidden = !strategy.specialistNote;
                     }
                     welcomeModal.classList.add('active');
                     // Note: hasSeenPlanJustification is set when user closes the modal
@@ -5341,8 +5387,11 @@
                     '</span><span class="ingredient-grams">' + escapeHtml(it.grams) + '</span></li>';
             });
             html += '</ul>';
-            // Редовете без грамаж (рецептата „Овкусете с: …“, бележки) — под състава, не изгубени.
-            if (extras.length) html += '<p class="modal-recipe" style="margin:10px 0 0;font-size:.88rem;opacity:.85">' + escapeHtml(extras.join(' ')) + '</p>';
+            // Редовете без грамаж (приготвяне, „Овкусете с: …“) — отделна секция под състава.
+            if (extras.length) {
+                html += '<div class="modal-ingredients-title modal-prep-title">Приготвяне</div>' +
+                    '<p class="modal-recipe">' + escapeHtml(extras.join(' ')) + '</p>';
+            }
             return html;
         }
 
@@ -5490,23 +5539,25 @@
             const skipsBreakfast = userData && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
             // Планът от двигателя показва сутрешната напитка като собствена карта („Напитка“).
             const isEnginePlanView = dietPlan.planEngine === 'exchange-v4' || (dietPlan.strategy && dietPlan.strategy.engine === 'exchange-v4');
+            // Картата е само вместо закуска: при закуска или отделна „Напитка“ в деня тя дублира.
+            const dayHasMorningSlot = effectiveMeals.some(m => m && (m.type === 'Хранене 1' || m.type === 'Закуска' || m.type === 'Напитка'));
             let bsEl = null;
-            if (bs && !isEnginePlanView) {
+            if (bs && !isEnginePlanView && skipsBreakfast && !dayHasMorningSlot) {
                 bsEl = document.createElement('div');
                 bsEl.className = 'meal-card breakfast-note-card meal-card--clickable';
                 bsEl.innerHTML =
                     '<div class="meal-info">' +
-                    '<div class="meal-type"><i class="fas fa-mug-hot" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>Сутрешен детокс</div>' +
-                    '<div class="meal-name">Хидратация и детокс</div>' +
+                    '<div class="meal-type"><i class="fas fa-mug-hot" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>Сутрин</div>' +
+                    '<div class="meal-name">Вода или топла напитка</div>' +
                     '</div>';
                 bsEl.setAttribute('role', 'button');
                 bsEl.setAttribute('tabindex', '0');
-                bsEl.setAttribute('aria-label', 'Детайли за сутрешен детокс и хидратация');
+                bsEl.setAttribute('aria-label', 'Детайли за сутрешната напитка');
                 const openBreakfastNote = function() {
                     openModal(
-                        'Сутрешен детокс и хидратация',
+                        'Сутрин',
                         bs,
-                        'Активира метаболизма и подкрепя естественото пречистване на тялото.',
+                        '',
                         null, null, null, null
                     );
                 };
@@ -6207,6 +6258,40 @@
             );
         }
 
+        // Начинът на приготвяне е в данните на ястието. По-старите планове нямат
+        // meal.recipe с него — взима се по dishId, без регенерация на плана.
+        var _dishPrepById = null;
+        (function loadDishPrep() {
+            try {
+                fetch('data/engine/dishes.json', { cache: 'force-cache' })
+                    .then(function(r) { return r.ok ? r.json() : null; })
+                    .then(function(doc) {
+                        if (!doc || !Array.isArray(doc.dishes)) return;
+                        _dishPrepById = {};
+                        doc.dishes.forEach(function(d) { if (d && d.id && d.prep) _dishPrepById[d.id] = d.prep; });
+                    })
+                    .catch(function() {});
+            } catch (_) {}
+        })();
+
+        function mealRecipeText(meal) {
+            var recipe = String(meal.recipe || '').trim();
+            var prep = meal.dishId && _dishPrepById ? _dishPrepById[meal.dishId] : '';
+            if (prep && recipe.indexOf(prep) === -1) recipe = (prep + ' ' + recipe).trim();
+            return recipe ? '\n' + recipe : '';
+        }
+
+        // Личната бележка на специалиста към ястието (от гласа на плана); без нея блокът е скрит.
+        function showMealPersonalNote(note) {
+            const box = document.getElementById('mPersonalNote');
+            const text = document.getElementById('mPersonalNoteText');
+            const label = document.getElementById('mPersonalNoteLabel');
+            if (!box || !text) return;
+            text.textContent = note || '';
+            if (label) label.textContent = dietPlan && dietPlan.strategy && dietPlan.strategy.addressForm === 'Вие' ? 'Лично за Вас' : 'Лично за теб';
+            box.hidden = !note;
+        }
+
         function bindMealCardDetailOpen(card, meal, isFreeMeal) {
             card.classList.add('meal-card--clickable');
             card.setAttribute('role', 'button');
@@ -6219,13 +6304,14 @@
                 }
                 openModal(
                     meal.name,
-                    (meal.description || '') + (meal.recipe ? '\n' + meal.recipe : ''),
+                    (meal.description || '') + mealRecipeText(meal),
                     meal.benefits || '',
                     meal.macros || null,
                     meal.dessert || null,
                     meal.weight || null,
                     meal.calories || null
                 );
+                showMealPersonalNote(meal.personalNote || '');
             };
             card.addEventListener('click', function(e) {
                 if (e.target.closest('.meal-check-btn, .meal-describe-btn')) return;
@@ -6240,6 +6326,7 @@
         }
 
         function openModal(title, description, benefit, macros, dessert, weight, calories) {
+            showMealPersonalNote('');
             // Strip dessert name from title to avoid duplication with the mDessert section below
             let displayTitle = title;
             if (dessert && dessert.name) {

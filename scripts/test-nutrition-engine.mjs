@@ -112,7 +112,10 @@ for (const prof of profiles) {
   }
   // Без закуска — предложение за хидратация; свободно хранене в неделя, освен при категорични правила.
   const day1 = weekPlan.day1.meals;
-  ok(profile.skipsBreakfast === day1.some(m => m.type === 'Напитка'), `${prof.id}: сутрешна напитка точно при „не закусвам“`);
+  // Напитката е вместо закуска — не и когато закуската е върната заради размера на порциите.
+  const noBreakfast = profile.skipsBreakfast && !day1.some(m => m.type === 'Хранене 1');
+  ok(noBreakfast === day1.some(m => m.type === 'Напитка'), `${prof.id}: сутрешна напитка точно когато няма закуска`);
+  ok(!(day1.some(m => m.type === 'Напитка') && day1.some(m => m.type === 'Хранене 1')), `${prof.id}: напитка и закуска едновременно`);
   ok(Object.values(weekPlan).some(d => d.meals.some(m => m.type === 'Свободно хранене')) === policy.allowsFreeMeal, `${prof.id}: свободно хранене според правилата`);
   // Правилата на валидаторите (един въглехидратен източник, лека закуска, универсални продукти…).
   const analysis = { ...buildDeterministicAnalysis(data), Final_Calories: kcal, macroGrams: { ...macros } };

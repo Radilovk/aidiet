@@ -7,11 +7,14 @@
 export const QUESTIONNAIRE_FOOD_BLOCK_FIELD_IDS = [
   'dietDislike',
   'medicalConditions_Алергии',
-  'foodTriggers',
   'triggerFoods',
   'giTriggers',
-  'foodSensitivities',
 ];
+// Не са списъци с храни: foodTriggers са ситуации („Скука“, „Напрежение“),
+// а foodSensitivities е отговор Да/Не — иначе стават „Без скука“, „Без да“.
+
+/** Отговори „няма такива“ — не са храна и не бива да стават забрана. */
+const NO_ANSWER_RE = /^(нито едно|нито една|нищо|няма|не|без|не знам|не съм сигурен\/?а?|не съм сигурна|none|no|n\/a|-+|—)\.?$/i;
 
 /** Dynamic question key / label fragments that indicate food exclusion answers. */
 const DQ_FOOD_KEY_PATTERN = /food|trigger|allerg|intoler|хран|избяг|алерг|не\s*тoler/i;
@@ -45,7 +48,7 @@ function pushTermsFromValue(terms, seen, val) {
   const parts = Array.isArray(val) ? val : String(val).split(/[,;|\n]/);
   for (const part of parts) {
     const t = String(part).trim();
-    if (t.length < 2) continue;
+    if (t.length < 2 || NO_ANSWER_RE.test(t)) continue;
     const key = t.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);

@@ -154,7 +154,8 @@ export function buildNutritionPlan(userData, options) {
     policy,
     seed,
     freeDayNumber,
-    morningDrink: profile.skipsBreakfast,
+    // Напитката е вместо закуска — не и когато закуската е върната заради порциите.
+    morningDrink: profile.skipsBreakfast && !prescription.slots.includes('Хранене 1'),
     previousWeek: new Set(options.previousWeek || []),
     slotAvoid: options.slotAvoid || [],
     simplify: mods.includes('simplify_meals'),

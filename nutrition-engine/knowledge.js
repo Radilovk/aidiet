@@ -109,7 +109,12 @@ export function nutrientsOf(id, grams) {
 }
 
 /** Храна по каталожно име — за преизчисляване на план от описанието му. */
-const foodByName = new Map([...FOODS.values()].map(f => [f.name.toLowerCase(), f]));
+// Псевдонимите пазят старите имена („Соев напитък“) — описанията на вече
+// генерирани планове се преизчисляват и след преименуване.
+const foodByName = new Map([...FOODS.values()].flatMap(f => [
+  ...(catalogById.get(f.id)?.aliases || []).map(a => [String(a).toLowerCase(), f]),
+  [f.name.toLowerCase(), f],
+]));
 export function foodByCatalogName(name) {
   return foodByName.get(String(name || '').trim().toLowerCase()) || null;
 }
@@ -166,6 +171,7 @@ export const DISHES = dishesDoc.dishes.map(d => {
     category: d.category,
     breakfastCategory: d.breakfastCategory || null,
     name: d.name,
+    prep: d.prep || '',
     parts: d.parts.map(p => normalizePart(d.id, p)),
     fixed: d.fixed || [],
     sides: d.sides || [],
