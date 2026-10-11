@@ -312,7 +312,10 @@ function toPlanMeal(type, dish, built, withDessert = false) {
     calories: round(macros.protein * 4 + macros.carbs * 4 + macros.fats * 9),
     benefits: mealBenefits(built),
   };
-  if (built.flavour?.length) meal.recipe = `Овкусете с: ${built.flavour.join(', ')}.`;
+  // Кратко приготвяне от ястието + подправките с грамаж 0 — да звучи като рецепта, не като списък.
+  const recipe = [dish.prep, built.flavour?.length ? `Овкусете с: ${built.flavour.join(', ')}.` : '']
+    .filter(Boolean).join(' ');
+  if (recipe) meal.recipe = recipe;
   if (dessert) meal.dessert = dessert;
   return meal;
 }

@@ -1218,6 +1218,13 @@
             margin-top: 16px;
         }
 
+        .modal-prep-title { margin-top: 18px; }
+        .modal-recipe {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            opacity: 0.92;
+        }
         .modal-ingredients-title {
             font-size: 0.82rem;
             font-weight: 700;
@@ -5341,8 +5348,11 @@
                     '</span><span class="ingredient-grams">' + escapeHtml(it.grams) + '</span></li>';
             });
             html += '</ul>';
-            // Редовете без грамаж (рецептата „Овкусете с: …“, бележки) — под състава, не изгубени.
-            if (extras.length) html += '<p class="modal-recipe" style="margin:10px 0 0;font-size:.88rem;opacity:.85">' + escapeHtml(extras.join(' ')) + '</p>';
+            // Редовете без грамаж (приготвяне, „Овкусете с: …“) — отделна секция под състава.
+            if (extras.length) {
+                html += '<div class="modal-ingredients-title modal-prep-title">Приготвяне</div>' +
+                    '<p class="modal-recipe">' + escapeHtml(extras.join(' ')) + '</p>';
+            }
             return html;
         }
 
@@ -5490,23 +5500,25 @@
             const skipsBreakfast = userData && Array.isArray(userData.eatingHabits) && userData.eatingHabits.includes('Не закусвам');
             // Планът от двигателя показва сутрешната напитка като собствена карта („Напитка“).
             const isEnginePlanView = dietPlan.planEngine === 'exchange-v4' || (dietPlan.strategy && dietPlan.strategy.engine === 'exchange-v4');
+            // Картата е само вместо закуска: при закуска или отделна „Напитка“ в деня тя дублира.
+            const dayHasMorningSlot = effectiveMeals.some(m => m && (m.type === 'Хранене 1' || m.type === 'Закуска' || m.type === 'Напитка'));
             let bsEl = null;
-            if (bs && !isEnginePlanView) {
+            if (bs && !isEnginePlanView && skipsBreakfast && !dayHasMorningSlot) {
                 bsEl = document.createElement('div');
                 bsEl.className = 'meal-card breakfast-note-card meal-card--clickable';
                 bsEl.innerHTML =
                     '<div class="meal-info">' +
-                    '<div class="meal-type"><i class="fas fa-mug-hot" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>Сутрешен детокс</div>' +
-                    '<div class="meal-name">Хидратация и детокс</div>' +
+                    '<div class="meal-type"><i class="fas fa-mug-hot" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>Сутрин</div>' +
+                    '<div class="meal-name">Вода или топла напитка</div>' +
                     '</div>';
                 bsEl.setAttribute('role', 'button');
                 bsEl.setAttribute('tabindex', '0');
-                bsEl.setAttribute('aria-label', 'Детайли за сутрешен детокс и хидратация');
+                bsEl.setAttribute('aria-label', 'Детайли за сутрешната напитка');
                 const openBreakfastNote = function() {
                     openModal(
-                        'Сутрешен детокс и хидратация',
+                        'Сутрин',
                         bs,
-                        'Активира метаболизма и подкрепя естественото пречистване на тялото.',
+                        '',
                         null, null, null, null
                     );
                 };
@@ -6207,6 +6219,29 @@
             );
         }
 
+        // Начинът на приготвяне е в данните на ястието. По-старите планове нямат
+        // meal.recipe с него — взима се по dishId, без регенерация на плана.
+        var _dishPrepById = null;
+        (function loadDishPrep() {
+            try {
+                fetch('data/engine/dishes.json', { cache: 'force-cache' })
+                    .then(function(r) { return r.ok ? r.json() : null; })
+                    .then(function(doc) {
+                        if (!doc || !Array.isArray(doc.dishes)) return;
+                        _dishPrepById = {};
+                        doc.dishes.forEach(function(d) { if (d && d.id && d.prep) _dishPrepById[d.id] = d.prep; });
+                    })
+                    .catch(function() {});
+            } catch (_) {}
+        })();
+
+        function mealRecipeText(meal) {
+            var recipe = String(meal.recipe || '').trim();
+            var prep = meal.dishId && _dishPrepById ? _dishPrepById[meal.dishId] : '';
+            if (prep && recipe.indexOf(prep) === -1) recipe = (prep + ' ' + recipe).trim();
+            return recipe ? '\n' + recipe : '';
+        }
+
         function bindMealCardDetailOpen(card, meal, isFreeMeal) {
             card.classList.add('meal-card--clickable');
             card.setAttribute('role', 'button');
@@ -6219,7 +6254,7 @@
                 }
                 openModal(
                     meal.name,
-                    (meal.description || '') + (meal.recipe ? '\n' + meal.recipe : ''),
+                    (meal.description || '') + mealRecipeText(meal),
                     meal.benefits || '',
                     meal.macros || null,
                     meal.dessert || null,
