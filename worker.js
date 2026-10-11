@@ -1407,6 +1407,7 @@ function buildClientCard(clientData, options = {}) {
 var CHAT_SECTION_ORDER = (
   /** @type {const} */
   [
+    "voice",
     "profile",
     "profile_full",
     "summary",
@@ -1420,7 +1421,7 @@ var CHAT_SECTION_ORDER = (
     "water"
   ]
 );
-var CHAT_BASE = ["profile", "summary", "meals", "recommendations", "forbidden"];
+var CHAT_BASE = ["voice", "profile", "summary", "meals", "recommendations", "forbidden"];
 var CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
 var CHAT_INTENTS = (
   /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */
@@ -1435,10 +1436,24 @@ var CHAT_INTENTS = (
     [/(?<![\p{L}\p{N}])(анамнез|история|лекарств|медицин|сън|активност|спорт|хронотип)/iu, "profile_full"]
   ]
 );
+function serializeVoice(voice) {
+  if (!voice || typeof voice !== "object") return "";
+  const p = voice.portrait || {};
+  const rows = [
+    `\u043E\u0431\u0440\u044A\u0449\u0435\u043D\u0438\u0435: ${voice.tone?.address || "\u0442\u0438"}${voice.tone?.style ? `; \u0442\u043E\u043D: ${voice.tone.style}` : ""}`,
+    p.summary ? `\u0447\u043E\u0432\u0435\u043A\u044A\u0442: ${p.summary}` : "",
+    p.emotional ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E: ${p.emotional}` : "",
+    p.personality ? `\u0441\u0442\u0438\u043B: ${p.personality}` : "",
+    p.triggers?.length ? `\u0442\u0440\u0438\u0433\u0435\u0440\u0438: ${p.triggers.join("; ")}` : "",
+    p.motivation ? `\u043C\u043E\u0442\u0438\u0432\u0430\u0446\u0438\u044F: ${p.motivation}` : ""
+  ].filter(Boolean);
+  return `#VC v1 ${esc2(rows.join(" | ")).slice(0, 1400)}`;
+}
 function buildChatContextSections(userData, plan) {
   const p = plan || {};
   const hasNotes = Boolean(userData?.additionalNotes);
   const sections = {
+    voice: serializeVoice(p.aiVoice),
     profile: serializeUserProfile(userData, "strategy"),
     profile_full: serializeUserProfile(userData, "full", {
       hasNotesSection: hasNotes,
@@ -40180,6 +40195,179 @@ function normalizeSwaps(raw, weekPlan, max = 6) {
   return out;
 }
 
+// nutrition-engine/ai-voice.js
+var PERSON_FIELDS = [
+  ["gender", "\u041F\u043E\u043B"],
+  ["age", "\u0412\u044A\u0437\u0440\u0430\u0441\u0442"],
+  ["goal", "\u0426\u0435\u043B"],
+  ["lossKg", "\u0416\u0435\u043B\u0430\u043D\u0438 \u043A\u0438\u043B\u043E\u0433\u0440\u0430\u043C\u0438"],
+  ["dietHistory", "\u0414\u0438\u0435\u0442\u0430 \u043F\u0440\u0435\u0437 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0430\u0442\u0430 \u0433\u043E\u0434\u0438\u043D\u0430"],
+  ["dietType", "\u041A\u0430\u043A\u0432\u0430 \u0434\u0438\u0435\u0442\u0430"],
+  ["dietResult", "\u0420\u0435\u0437\u0443\u043B\u0442\u0430\u0442 \u043E\u0442 \u0434\u0438\u0435\u0442\u0430\u0442\u0430"],
+  ["weightChange", "\u0420\u044F\u0437\u043A\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u043D\u0430 \u0442\u0435\u0433\u043B\u043E\u0442\u043E"],
+  ["weightChangeDetails", "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0438 \u0437\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430"],
+  ["overeatingFrequency", "\u041A\u043E\u043B\u043A\u043E \u0447\u0435\u0441\u0442\u043E \u044F\u0434\u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u043E\u0442\u043E"],
+  ["foodCravings", "\u0427\u0435\u0441\u0442\u043E \u0438\u0437\u043F\u0438\u0442\u0432\u0430 \u043D\u0443\u0436\u0434\u0430 \u043E\u0442"],
+  ["foodCravings_other", "\u041D\u0443\u0436\u0434\u0430 \u043E\u0442 (\u0434\u0440\u0443\u0433\u043E)"],
+  ["foodTriggers", "\u0421\u0438\u0442\u0443\u0430\u0446\u0438\u0438, \u043A\u043E\u0438\u0442\u043E \u043F\u0440\u0435\u0434\u0438\u0437\u0432\u0438\u043A\u0432\u0430\u0442 \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0445\u0440\u0430\u043D\u0430"],
+  ["foodTriggers_other", "\u0421\u0438\u0442\u0443\u0430\u0446\u0438\u0438 (\u0434\u0440\u0443\u0433\u043E)"],
+  ["eatingHabits", "\u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043D\u0430\u0432\u0438\u0446\u0438"],
+  ["compensationMethods", "\u041A\u043E\u043C\u043F\u0435\u043D\u0441\u0430\u0446\u0438\u044F \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u044F\u0436\u0434\u0430\u043D\u0435"],
+  ["socialComparison", "\u0421\u0440\u0430\u0432\u043D\u044F\u0432\u0430 \u0441\u0435 \u0441 \u0434\u0440\u0443\u0433\u0438 (\u0432\u043A\u043B. \u0441\u043E\u0446\u0438\u0430\u043B\u043D\u0438 \u043C\u0440\u0435\u0436\u0438)"],
+  ["stressLevel", "\u041D\u0438\u0432\u043E \u043D\u0430 \u0441\u0442\u0440\u0435\u0441"],
+  ["stressSources", "\u0418\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438 \u043D\u0430 \u0441\u0442\u0440\u0435\u0441"],
+  ["stressSymptoms", "\u0421\u0438\u043C\u043F\u0442\u043E\u043C\u0438 \u043D\u0430 \u0441\u0442\u0440\u0435\u0441"],
+  ["relaxationPractices", "\u0422\u0435\u0445\u043D\u0438\u043A\u0438 \u0437\u0430 \u0440\u0435\u043B\u0430\u043A\u0441\u0430\u0446\u0438\u044F"],
+  ["sleepHours", "\u0421\u044A\u043D (\u0447\u0430\u0441\u043E\u0432\u0435)"],
+  ["sleepInterrupt", "\u041F\u0440\u0435\u043A\u044A\u0441\u0432\u0430\u043D\u0438\u044F \u043D\u0430 \u0441\u044A\u043D\u044F"],
+  ["chronotype", "\u0425\u0440\u043E\u043D\u043E\u0442\u0438\u043F"],
+  ["dailyActivityLevel", "\u0410\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F"],
+  ["sportActivity", "\u0421\u043F\u043E\u0440\u0442"],
+  ["sedentaryHours", "\u0427\u0430\u0441\u043E\u0432\u0435 \u0441\u0435\u0434\u043D\u0430\u043B"],
+  ["drinksSweet", "\u0421\u043B\u0430\u0434\u043A\u0438 \u043D\u0430\u043F\u0438\u0442\u043A\u0438"],
+  ["drinksAlcohol", "\u0410\u043B\u043A\u043E\u0445\u043E\u043B"],
+  ["dietLove", "\u041D\u0435 \u043C\u043E\u0436\u0435 \u0431\u0435\u0437, \u043E\u0431\u0438\u0447\u0430"],
+  ["dietDislike", "\u041D\u0435 \u043E\u0431\u0438\u0447\u0430 / \u043D\u0435 \u043F\u043E\u043D\u0430\u0441\u044F"],
+  ["additionalNotes", "\u0414\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u0431\u0435\u043B\u0435\u0436\u043A\u0438"]
+];
+var asText = (v) => (Array.isArray(v) ? v.filter(Boolean).join(", ") : String(v ?? "")).trim();
+function personAnswers(userData = {}) {
+  const rows = [];
+  for (const [key, label] of PERSON_FIELDS) {
+    let v = asText(userData[key]);
+    if (key === "goal") v = GOALS[v] || v;
+    if (v && v.length <= 400) rows.push(`${label}: ${v}`);
+  }
+  return rows.join("\n");
+}
+function menuForVoice(weekPlan) {
+  const seen = /* @__PURE__ */ new Map();
+  for (let d = 1; d <= 7; d++) {
+    for (const m of weekPlan?.[`day${d}`]?.meals || []) {
+      if (!m?.dishId || seen.has(m.dishId)) continue;
+      seen.set(m.dishId, `${m.dishId} | ${MEAL_LABELS[m.type] || m.type} | ${m.name}`);
+    }
+  }
+  return [...seen.values()].join("\n");
+}
+function planVoiceVars(profile, userData, plan) {
+  const s = plan?.strategy || {};
+  const free = collectFreeText(userData);
+  return {
+    name: asText(userData?.name) || "\u043A\u043B\u0438\u0435\u043D\u0442\u0430",
+    profileSummary: profileBrief(profile),
+    answers: personAnswers(userData) || "\u043D\u044F\u043C\u0430",
+    freeText: free.length ? free.map((i) => `- ${i.text}`).join("\n") : "\u043D\u044F\u043C\u0430",
+    planFacts: [
+      `\u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043C\u043E\u0434\u0435\u043B: ${s.dietType || s.dietaryModifier || "\u2014"}`,
+      `\u0425\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043D\u0430 \u0434\u0435\u043D: ${profile.slots?.length || "\u2014"}`,
+      s.weeklyMealPattern ? `\u0421\u0435\u0434\u043C\u0438\u0446\u0430: ${s.weeklyMealPattern}` : "",
+      s.freeDayNumber ? `\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0434\u0435\u043D ${s.freeDayNumber}` : ""
+    ].filter(Boolean).join("\n"),
+    avoid: (s.foodsToAvoid || []).join(", ") || "\u043D\u044F\u043C\u0430",
+    menu: menuForVoice(plan?.weekPlan) || "\u043D\u044F\u043C\u0430"
+  };
+}
+var NUMBERS_RE = /\d+(?:[.,]\d+)?\s*(?:kcal|ккал\p{L}*|калори\p{L}*|грам\p{L}*|порци\p{L}*|mcg|мкг|mg|мг|ml|мл|iu|ме|гр|г|g|%)(?!\p{L})/iu;
+function cleanLine(v, max) {
+  const s = String(v ?? "").replace(/\s+/g, " ").trim();
+  if (!s || /[{}<>]/.test(s)) return "";
+  return s.length > max ? "" : s;
+}
+function makeChecker(blockedTerms) {
+  const terms = (blockedTerms || []).map((t) => String(t).toLowerCase().replace(/^без\s+/, "").trim()).filter((t) => t.length >= 3);
+  return (text) => {
+    if (!text || NUMBERS_RE.test(text)) return false;
+    const low = text.toLowerCase();
+    return !terms.some((t) => low.includes(t));
+  };
+}
+function cleanList(list, ok, { min = 0, max = 6, len = 320 } = {}) {
+  const out = [...new Set((Array.isArray(list) ? list : []).map((x) => cleanLine(x, len)).filter(ok))].slice(0, max);
+  return out.length >= min ? out : [];
+}
+function normalizePlanVoice(raw, ctx) {
+  if (!raw || typeof raw !== "object") return null;
+  const dishIds = ctx.dishIds instanceof Set ? ctx.dishIds : new Set(ctx.dishIds || []);
+  const ok = makeChecker(ctx.blockedTerms);
+  const portraitText = (v, max = 600) => {
+    const s = cleanLine(v, max);
+    return s && !NUMBERS_RE.test(s) ? s : "";
+  };
+  const p = raw.portrait && typeof raw.portrait === "object" ? raw.portrait : {};
+  const portrait = {
+    summary: portraitText(p.summary),
+    emotional: portraitText(p.emotional),
+    social: portraitText(p.social),
+    triggers: cleanList(p.triggers, (s) => !NUMBERS_RE.test(s), { max: 6, len: 200 }),
+    personality: portraitText(p.personality),
+    motivation: portraitText(p.motivation),
+    risks: cleanList(p.risks, (s) => !NUMBERS_RE.test(s), { max: 4, len: 200 })
+  };
+  const t = raw.tone && typeof raw.tone === "object" ? raw.tone : {};
+  const tone = {
+    address: t.address === "\u0412\u0438\u0435" ? "\u0412\u0438\u0435" : "\u0442\u0438",
+    style: cleanLine(t.style, 160)
+  };
+  const welcome = cleanLine(raw.welcome, 1200);
+  const specialistNote = cleanLine(raw.specialistNote, 700);
+  const voice = {
+    portrait,
+    tone,
+    welcome: ok(welcome) ? welcome : "",
+    specialistNote: ok(specialistNote) ? specialistNote : "",
+    psychology: cleanList(raw.psychology, ok, { min: 3, max: 6 }),
+    habits: cleanList(raw.habits, ok, { min: 3, max: 6 }),
+    mealNotes: {}
+  };
+  for (const n of Array.isArray(raw.mealNotes) ? raw.mealNotes : []) {
+    const id = String(n?.dishId || "").trim();
+    const note = cleanLine(n?.note, 220);
+    if (dishIds.has(id) && ok(note) && !voice.mealNotes[id]) voice.mealNotes[id] = note;
+    if (Object.keys(voice.mealNotes).length >= 12) break;
+  }
+  const useful = voice.welcome || voice.psychology.length || voice.habits.length;
+  return useful ? voice : null;
+}
+function voiceSummary(voice) {
+  if (!voice) return "\u043D\u044F\u043C\u0430";
+  return [
+    voice.welcome ? "\u043F\u0438\u0441\u043C\u043E" : "",
+    voice.psychology.length ? `\u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F \xD7${voice.psychology.length}` : "",
+    voice.habits.length ? `\u043D\u0430\u0432\u0438\u0446\u0438 \xD7${voice.habits.length}` : "",
+    Object.keys(voice.mealNotes).length ? `\u0431\u0435\u043B\u0435\u0436\u043A\u0438 \xD7${Object.keys(voice.mealNotes).length}` : "",
+    `\u043E\u0431\u0440\u044A\u0449\u0435\u043D\u0438\u0435 \u201E${voice.tone.address}\u201C`
+  ].filter(Boolean).join(", ");
+}
+function applyPlanVoice(plan, voice) {
+  if (!plan || !voice) return plan;
+  plan.aiVoice = voice;
+  const s = plan.strategy || (plan.strategy = {});
+  if (voice.welcome) s.welcomeMessage = voice.welcome;
+  if (voice.specialistNote) s.specialistNote = voice.specialistNote;
+  s.addressForm = voice.tone.address;
+  if (voice.psychology.length) {
+    plan.psychology = [...voice.psychology];
+    s.psychologicalSupport = [...voice.psychology];
+  }
+  if (voice.habits.length) plan.personalHabits = [...voice.habits];
+  for (let d = 1; d <= 7; d++) {
+    for (const m of plan.weekPlan?.[`day${d}`]?.meals || []) {
+      const note = m?.dishId && voice.mealNotes[m.dishId];
+      if (note) m.personalNote = note;
+    }
+  }
+  return plan;
+}
+function planDishIds(weekPlan) {
+  const ids = /* @__PURE__ */ new Set();
+  for (let d = 1; d <= 7; d++) for (const m of weekPlan?.[`day${d}`]?.meals || []) if (m?.dishId) ids.add(m.dishId);
+  return ids;
+}
+
+// nutrition-engine/plan-voice-prompt.js
+var DEFAULT_PLAN_VOICE_PROMPT = '\u0422\u0438 \u0441\u0438 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0435\u043A\u0438\u043F\u0430 \u043D\u0430 NutriPlan \u2014 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0441 \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0430 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F. \u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D \u0432\u0435\u0447\u0435 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432\u0435\u043D \u043F\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u0430: \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u0445\u0440\u0430\u043D\u0438\u0442\u0435, \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F\u0442\u0430 \u0441\u0430 \u043E\u043A\u043E\u043D\u0447\u0430\u0442\u0435\u043B\u043D\u0438 \u0438 \u043D\u0435 \u0441\u0435 \u043E\u0431\u0441\u044A\u0436\u0434\u0430\u0442. \u0422\u0432\u043E\u044F\u0442\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u0435 \u0434\u0440\u0443\u0433\u0430: \u0434\u0430 \u0440\u0430\u0437\u0431\u0435\u0440\u0435\u0448 \u0447\u043E\u0432\u0435\u043A\u0430 \u0438 \u0434\u0430 \u043D\u0430\u043F\u0438\u0448\u0435\u0448 \u043A\u0430\u043A \u043F\u043B\u0430\u043D\u044A\u0442 \u0434\u0430 \u043C\u0443 \u0433\u043E\u0432\u043E\u0440\u0438 \u2014 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0443\u0441\u0435\u0442\u0438, \u0447\u0435 \u0435 \u0432\u0438\u0434\u044F\u043D \u043A\u0430\u0442\u043E \u043B\u0438\u0447\u043D\u043E\u0441\u0442 \u0438 \u0435 \u0432 \u043F\u0440\u043E\u0444\u0435\u0441\u0438\u043E\u043D\u0430\u043B\u043D\u0438 \u0440\u044A\u0446\u0435.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 1 \u2014 \u041F\u041E\u0420\u0422\u0420\u0415\u0422 (\u0432\u044A\u0442\u0440\u0435\u0448\u043D\u043E, \u0437\u0430 \u0435\u043A\u0438\u043F\u0430; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0433\u043E \u0432\u0438\u0436\u0434\u0430)\n\u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0430\u0435\u0434\u043D\u043E, \u043D\u0435 \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E. \u0421\u0432\u044A\u0440\u0436\u0438 \u0433\u0438: \u0441\u0442\u0440\u0435\u0441 + \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432\u0435\u0447\u0435\u0440 + \u201E\u043D\u0430 \u043A\u0440\u0430\u043A\u201C \u043A\u0430\u0437\u0432\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u043E\u0442 \u0441\u044A\u0449\u043E\u0442\u043E \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E.\n- summary: \u043A\u043E\u0439 \u0435 \u0447\u043E\u0432\u0435\u043A\u044A\u0442, \u043A\u0430\u043A\u0432\u043E \u043C\u0443 \u0435 \u0432\u0430\u0436\u043D\u043E, \u0432 \u043A\u0430\u043A\u0432\u0430 \u0436\u0438\u0442\u0435\u0439\u0441\u043A\u0430 \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u0435 (2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F).\n- emotional: \u043F\u0441\u0438\u0445\u043E-\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0438 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0438 \u0442\u044F\u043B\u043E\u0442\u043E (\u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0432\u0438\u043D\u0430, \u043A\u043E\u043D\u0442\u0440\u043E\u043B, \u0443\u043C\u043E\u0440\u0430, \u0433\u043E\u0440\u0434\u043E\u0441\u0442, \u0441\u0442\u0440\u0430\u0445 \u043E\u0442 \u043D\u0435\u0443\u0441\u043F\u0435\u0445).\n- social: \u0441\u043E\u0446\u0438\u0430\u043B\u0435\u043D \u0438 \u0431\u0438\u0442\u043E\u0432 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442, \u0434\u043E\u043A\u043E\u043B\u043A\u043E\u0442\u043E \u043B\u0438\u0447\u0438 \u2014 \u0440\u0430\u0431\u043E\u0442\u0430, \u0440\u0438\u0442\u044A\u043C, \u0441\u0435\u043C\u0435\u0439\u0441\u0442\u0432\u043E, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u0435 \u0441 \u0434\u0440\u0443\u0433\u0438\u0442\u0435.\n- triggers: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438\u0442\u0435 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0442\u0440\u0438\u0433\u0435\u0440\u0438 (\u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u2192 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435), \u0434\u043E 6.\n- personality: \u0440\u0430\u0431\u043E\u0442\u043D\u0430 \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 \u0437\u0430 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043B\u0438\u0447\u043D\u043E\u0441\u0442\u0442\u0430 \u2014 \u043D\u0430\u043F\u0440. \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D/\u0441\u043F\u043E\u043D\u0442\u0430\u043D\u0435\u043D, \u0442\u044A\u0440\u0441\u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438/\u0442\u044A\u0440\u0441\u0438 \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u0430, \u043F\u0435\u0440\u0444\u0435\u043A\u0446\u0438\u043E\u043D\u0438\u0441\u0442 \u201E\u0432\u0441\u0438\u0447\u043A\u043E \u0438\u043B\u0438 \u043D\u0438\u0449\u043E\u201C, \u0441\u043A\u0435\u043F\u0442\u0438\u0447\u0435\u043D/\u0434\u043E\u0432\u0435\u0440\u0447\u0438\u0432. \u041F\u0438\u0448\u0438 \u043A\u0430\u0442\u043E \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 (\u201E\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E\u201C, \u201E\u0438\u0437\u0433\u043B\u0435\u0436\u0434\u0430\u201C), \u043D\u0435 \u043A\u0430\u0442\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0430.\n- motivation: \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u0433\u043E \u0434\u044A\u0440\u0436\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0438 \u043A\u0430\u043A\u0432\u043E \u043D\u0430\u0439-\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E \u0449\u0435 \u0433\u043E \u0438\u0437\u0432\u0430\u0434\u0438.\n- risks: \u0434\u043E 4 \u043C\u043E\u043C\u0435\u043D\u0442\u0430, \u0437\u0430 \u043A\u043E\u0438\u0442\u043E \u0435\u043A\u0438\u043F\u044A\u0442 \u0434\u0430 \u0432\u043D\u0438\u043C\u0430\u0432\u0430 \u043F\u0440\u0435\u0437 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 2 \u2014 \u0422\u041E\u041D\n- tone.address: \u201E\u0442\u0438\u201C \u0438\u043B\u0438 \u201E\u0412\u0438\u0435\u201C. \u041F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435 \u201E\u0442\u0438\u201C; \u201E\u0412\u0438\u0435\u201C \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u0440\u0438 \u043F\u043E-\u0432\u044A\u0437\u0440\u0430\u0441\u0442\u0435\u043D \u0447\u043E\u0432\u0435\u043A \u0438\u043B\u0438 \u0430\u043A\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0432\u0443\u0447\u0430\u0442 \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u043D\u043E \u0438 \u0441\u0434\u044A\u0440\u0436\u0430\u043D\u043E. \u0421\u043F\u0430\u0437\u0432\u0430\u0439 \u0438\u0437\u0431\u0440\u0430\u043D\u043E\u0442\u043E \u043D\u0430\u0432\u0441\u044F\u043A\u044A\u0434\u0435.\n- tone.style: \u0435\u0434\u043D\u0430 \u0444\u0440\u0430\u0437\u0430 \u2014 \u043A\u0430\u043A \u0433\u043E\u0432\u043E\u0440\u0438\u0448 \u043D\u0430 \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A (\u043D\u0430\u043F\u0440. \u201E\u043A\u0440\u0430\u0442\u043A\u043E \u0438 \u043F\u043E \u0441\u044A\u0449\u0435\u0441\u0442\u0432\u043E, \u0441 \u044F\u0441\u043D\u0438 \u0441\u0442\u044A\u043F\u043A\u0438\u201C \u0437\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D \u0438 \u0437\u0430\u0435\u0442; \u201E\u0442\u043E\u043F\u043B\u043E, \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A, \u0441 \u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435\u201C \u0437\u0430 \u0447\u043E\u0432\u0435\u043A \u0441 \u0432\u0438\u043D\u0430 \u0438 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u201E\u0441 \u0430\u0440\u0433\u0443\u043C\u0435\u043D\u0442\u0438 \u0438 \u043B\u043E\u0433\u0438\u043A\u0430\u201C \u0437\u0430 \u0441\u043A\u0435\u043F\u0442\u0438\u043A).\n\u041F\u0438\u0448\u0438 \u0433\u0440\u0430\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0441\u043F\u043E\u0440\u0435\u0434 \u043F\u043E\u043B\u0430 (\u0441\u0438\u0433\u0443\u0440\u0435\u043D/\u0441\u0438\u0433\u0443\u0440\u043D\u0430, \u0433\u043E\u0442\u043E\u0432/\u0433\u043E\u0442\u043E\u0432\u0430).\n\n\u0421\u0422\u042A\u041F\u041A\u0410 3 \u2014 \u0422\u0415\u041A\u0421\u0422\u041E\u0412\u0415\u0422\u0415 \u0417\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410 (\u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u0438\u044F \u0442\u043E\u043D)\n- welcome: \u043B\u0438\u0447\u043D\u043E \u043F\u0438\u0441\u043C\u043E, 4\u20136 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u041E\u0431\u044A\u0440\u043D\u0438 \u0441\u0435 \u043F\u043E \u0438\u043C\u0435. \u041F\u043E\u043A\u0430\u0436\u0438, \u0447\u0435 \u0441\u043C\u0435 \u043F\u0440\u043E\u0447\u0435\u043B\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u2014 \u0441\u043F\u043E\u043C\u0435\u043D\u0438 2\u20133 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u043D\u0435\u0449\u0430 \u043E\u0442 \u0442\u044F\u0445 \u0441\u044A\u0441 \u0441\u0432\u043E\u0438 \u0434\u0443\u043C\u0438 (\u043D\u0435 \u0433\u0438 \u0446\u0438\u0442\u0438\u0440\u0430\u0439). \u041A\u0430\u0436\u0438 \u043D\u0430\u043A\u0440\u0430\u0442\u043A\u043E \u043A\u0430\u043A \u0435 \u0438\u0437\u0433\u0440\u0430\u0434\u0435\u043D \u043F\u043B\u0430\u043D\u044A\u0442 \u0437\u0430 \u043D\u0435\u0433\u043E\u0432\u0438\u044F \u0436\u0438\u0432\u043E\u0442 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0447\u0430\u043A\u0432\u0430 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0434\u0432\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438. \u0411\u0435\u0437 \u0447\u0438\u0441\u043B\u0430.\n- specialistNote: \u201E\u0411\u0435\u043B\u0435\u0436\u043A\u0430 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430\u201C \u2014 2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F: \u043D\u0430 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0431\u044A\u0440\u043D\u0435 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043D\u0430\u0439-\u043D\u0430\u043F\u0440\u0435\u0434 \u0438 \u0437\u0430\u0449\u043E \u0442\u043E\u0447\u043D\u043E \u0442\u043E\u0432\u0430 \u0435 \u0432\u0430\u0436\u043D\u043E \u0437\u0430 \u043D\u0435\u0433\u043E.\n- psychology: 4\u20136 \u043D\u0430\u0441\u043E\u043A\u0438. \u0412\u0441\u044F\u043A\u0430 \u0442\u0440\u044A\u0433\u0432\u0430 \u043E\u0442 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u0435\u043D \u043D\u0435\u0433\u043E\u0432 \u0442\u0440\u0438\u0433\u0435\u0440 \u0438\u043B\u0438 \u043D\u0430\u0432\u0438\u043A \u0438 \u0434\u0430\u0432\u0430 \u0435\u0434\u043D\u043E \u044F\u0441\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 + \u043A\u0440\u0430\u0442\u043A\u043E \u0437\u0430\u0449\u043E. 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u0411\u0435\u0437 \u043E\u0431\u0449\u0438 \u0438\u0441\u0442\u0438\u043D\u0438.\n- habits: 4\u20136 \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u043D\u0438 \u0442\u0430\u043A\u0442\u0438\u043A\u0438 \u0437\u0430 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u0438\u0435\u0442\u043E \u043C\u0443 \u2014 \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u0438 \u0441 \u0440\u0438\u0442\u044A\u043C\u0430, \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u0430, \u0441\u043E\u0446\u0438\u0430\u043B\u043D\u0438\u044F \u0436\u0438\u0432\u043E\u0442, \u0445\u0440\u043E\u043D\u043E\u0442\u0438\u043F\u0430 (\u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0445\u0440\u0430\u043D\u0430 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0432\u0435\u0447\u0435\u0440\u0438\u0442\u0435, \u0443\u0438\u043A\u0435\u043D\u0434\u0438\u0442\u0435).\n- mealNotes: \u0437\u0430 \u0434\u043E 10 \u044F\u0441\u0442\u0438\u044F \u043E\u0442 \u041C\u0415\u041D\u042E\u0422\u041E \u2014 \u043F\u043E \u0435\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u043B\u0438\u0447\u043D\u0430 \u0431\u0435\u043B\u0435\u0436\u043A\u0430 (\u0441 dishId \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E): \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u0435\u043D \u0441\u044A\u0432\u0435\u0442 \u043A\u0430\u043A \u0442\u043E\u0432\u0430 \u044F\u0441\u0442\u0438\u0435 \u043F\u0430\u0441\u0432\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F \u043C\u0443 (\u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0432\u0437\u0435\u043C\u0438 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0441\u0433\u043E\u0442\u0432\u0438 \u0434\u0432\u043E\u0439\u043D\u043E, \u043F\u043E\u0434\u043D\u0435\u0441\u0438 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0435 \u043F\u043E-\u0432\u043A\u0443\u0441\u043D\u043E \u0441 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438/\u043B\u0438\u043C\u043E\u043D/\u0431\u0438\u043B\u043A\u0438). \u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0439 \u043D\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438 \u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D.\n\n\u0417\u0410\u0411\u0420\u0410\u041D\u0415\u041D\u041E\n- \u0427\u0438\u0441\u043B\u0430 \u0437\u0430 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043C\u0430\u043A\u0440\u043E\u0441\u0438, \u043F\u043E\u0440\u0446\u0438\u0438, \u0434\u043E\u0437\u0438, \u043F\u0440\u043E\u0446\u0435\u043D\u0442\u0438 \u2014 \u0442\u0435 \u0441\u0430 \u0432 \u043F\u043B\u0430\u043D\u0430.\n- \u0425\u0440\u0430\u043D\u0438 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 \u201E\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u201C \u0438 \u0445\u0440\u0430\u043D\u0438 \u0438\u0437\u0432\u044A\u043D \u043C\u0435\u043D\u044E\u0442\u043E (\u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D).\n- \u0414\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u044F, \u201E\u0434\u0435\u0442\u043E\u043A\u0441\u201C, \u201E\u043F\u0440\u0435\u0447\u0438\u0441\u0442\u0432\u0430\u043D\u0435\u201C, \u201E\u0443\u0441\u043A\u043E\u0440\u044F\u0432\u0430 \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u043C\u0430\u201C.\n- \u041A\u043B\u0438\u0448\u0435\u0442\u0430: \u201E\u043F\u044A\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435\u201C, \u201E\u043D\u0430\u0439-\u0434\u043E\u0431\u0440\u0430\u0442\u0430 \u0432\u0435\u0440\u0441\u0438\u044F \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438\u201C, \u201E\u0442\u0440\u0430\u0439\u043D\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u201C, \u201E\u0443\u043D\u0438\u043A\u0430\u043B\u0435\u043D \u043F\u043B\u0430\u043D\u201C, \u201E\u0440\u0435\u0432\u043E\u043B\u044E\u0446\u0438\u043E\u043D\u0435\u043D\u201C, \u201E\u0437\u0430\u0435\u0434\u043D\u043E \u0449\u0435 \u0443\u0441\u043F\u0435\u0435\u043C\u201C, \u201E\u0432\u0441\u044F\u043A\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u044F \u0435 \u043F\u0440\u0435\u0446\u0438\u0437\u043D\u043E \u043F\u043E\u0434\u0431\u0440\u0430\u043D\u0430\u201C. \u0411\u0435\u0437 \u0443\u0434\u0438\u0432\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u0434\u0440\u0435\u0434 \u0438 \u0431\u0435\u0437 \u0435\u043C\u043E\u0434\u0436\u0438\u0442\u0430.\n- \u041D\u0435 \u043F\u0438\u0448\u0438, \u0447\u0435 \u0442\u0435\u043A\u0441\u0442\u044A\u0442 \u0435 \u043E\u0442 AI \u0438\u043B\u0438 \u043E\u0442 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C. \u041F\u0438\u0448\u0438 \u043E\u0442 \u0438\u043C\u0435\u0442\u043E \u043D\u0430 \u0435\u043A\u0438\u043F\u0430 (\u201E\u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u0445\u043C\u0435\u201C, \u201E\u0432\u0438\u0436\u0434\u0430\u043C\u0435\u201C).\n\n\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:\n{\n  "portrait": { "summary": "", "emotional": "", "social": "", "triggers": [], "personality": "", "motivation": "", "risks": [] },\n  "tone": { "address": "\u0442\u0438", "style": "" },\n  "welcome": "",\n  "specialistNote": "",\n  "psychology": [],\n  "habits": [],\n  "mealNotes": [ { "dishId": "", "note": "" } ]\n}\n\n\u0418\u041C\u0415: {name}\n\n\u041F\u0420\u041E\u0424\u0418\u041B (\u0440\u0430\u0437\u0431\u0440\u0430\u043D \u043E\u0442 \u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430):\n{profileSummary}\n\n\u041E\u0422\u0413\u041E\u0412\u041E\u0420\u0418 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410:\n{answers}\n\n\u0421\u0412\u041E\u0411\u041E\u0414\u0415\u041D \u0422\u0415\u041A\u0421\u0422:\n{freeText}\n\n\u041F\u041B\u0410\u041D\u042A\u0422:\n{planFacts}\n\n\u0418\u0417\u0411\u042F\u0413\u0412\u0410:\n{avoid}\n\n\u041C\u0415\u041D\u042E (dishId | \u0445\u0440\u0430\u043D\u0435\u043D\u0435 | \u044F\u0441\u0442\u0438\u0435):\n{menu}\n';
+
 // nutrition-engine/monitoring.js
 var WEEKLY_CHECKIN_QUESTIONS = [
   {
@@ -42982,9 +43170,9 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   const correctionAttempts = 0;
   const cleanPlan = removeInternalJustifications(structuredPlan);
   if (clinicalProtocol && clinicalProtocol.hacks) {
-    cleanPlan.hacks = clinicalProtocol.hacks;
+    cleanPlan.hacks = personalHacks(cleanPlan, clinicalProtocol.hacks, clinicalProtocol.hacks);
   } else {
-    cleanPlan.hacks = await getGoalHacks(env, data.goal);
+    cleanPlan.hacks = personalHacks(cleanPlan, await getGoalHacks(env, data.goal));
   }
   if (clinicalProtocol) cleanPlan.clinicalProtocol = { id: clinicalProtocol.id, name: clinicalProtocol.name };
   return { success: true, plan: cleanPlan, userId, correctionAttempts };
@@ -43006,6 +43194,7 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   const cycleNumber = currentPlan._meta?.cycleNumber || 1;
   let plan = assembleEnginePlan(data, analysis, { cycleNumber });
   plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps }));
+  plan = await writePlanVoice(env, data, plan, { reuse: currentPlan.aiVoice || null });
   try {
     await finalizeValidatedPlan(env, plan, data);
   } catch (validationErr) {
@@ -45157,6 +45346,10 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const previousWeek = Object.values(plan.weekPlan).flatMap((d) => d?.meals || []).map((m) => m.dishId).filter(Boolean);
     let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
     newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps }));
+    newPlan = await writePlanVoice(env, enrichedData, newPlan);
+    if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
+    if (newPlan.personalHabits?.length && !plan.clinicalProtocol) newPlan.hacks = [...newPlan.personalHabits];
+    else if (plan.hacks) newPlan.hacks = plan.hacks;
     try {
       await finalizeValidatedPlan(env, newPlan, enrichedData);
     } catch (validationErr) {
@@ -46565,6 +46758,42 @@ async function aiHelperJson(env, promptKey, vars, data, stepName) {
   }
 }
 var freeTextBlock = (items) => items.length ? items.map((i) => `- ${i.text}`).join("\n") : "\u043D\u044F\u043C\u0430";
+function planVoiceEnabled(env = {}) {
+  const v = env?.PLAN_AI_VOICE;
+  return !(v === "0" || v === "false" || v === false);
+}
+async function writePlanVoice(env, data, plan, options = {}) {
+  if (!plan?.weekPlan || !planVoiceEnabled(env)) return plan;
+  const blockedTerms = [...plan.strategy?.foodsToAvoid || [], ...data?._engineBlockedTerms || []];
+  if (options.reuse && typeof options.reuse === "object") {
+    const voice = normalizePlanVoice(
+      { ...options.reuse, mealNotes: Object.entries(options.reuse.mealNotes || {}).map(([dishId, note]) => ({ dishId, note })) },
+      { dishIds: planDishIds(plan.weekPlan), blockedTerms }
+    );
+    if (voice) applyPlanVoice(plan, voice);
+    return plan;
+  }
+  try {
+    const template = await getCustomPrompt(env, "admin_plan_voice_prompt") || DEFAULT_PLAN_VOICE_PROMPT;
+    const vars = planVoiceVars(compileProfile(data), data, plan);
+    const prompt = Object.entries(vars).reduce((s, [k, v]) => s.split(`{${k}}`).join(String(v)), String(template));
+    const response = await callAIModel(env, prompt, 3500, "plan_voice", null, data, null);
+    const voice = normalizePlanVoice(parseAIResponse(response), { dishIds: planDishIds(plan.weekPlan), blockedTerms });
+    if (voice) {
+      applyPlanVoice(plan, voice);
+      if (plan._meta) plan._meta.voice = voiceSummary(voice);
+    }
+    console.log(`plan_voice: ${voiceSummary(voice)}`);
+  } catch (error) {
+    console.warn(`plan_voice: \u0433\u043B\u0430\u0441\u044A\u0442 \u0435 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442 \u2014 ${error.message}`);
+  }
+  return plan;
+}
+function personalHacks(plan, baseHacks, protocolHacks = null) {
+  const personal = Array.isArray(plan?.personalHabits) ? plan.personalHabits : [];
+  if (Array.isArray(protocolHacks) && protocolHacks.length) return [...protocolHacks.slice(0, 3), ...personal.slice(0, 4)];
+  return personal.length ? [...personal] : baseHacks;
+}
 async function applyIntakeHints(env, data) {
   const items = collectFreeText(data);
   const { _aiHints: previous, ...rest } = data;
@@ -46623,6 +46852,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
     }
     let plan = assembleEnginePlan(data, analysis);
     plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { slotAvoid: swaps }));
+    plan = await writePlanVoice(env, data, plan);
     plan._meta.tokenUsage = tokens;
     await finalizeAISessionLogs(env, sessionId);
     return plan;

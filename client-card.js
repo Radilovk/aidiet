@@ -156,14 +156,14 @@ export function buildClientCard(clientData, options = {}) {
   };
 }
 
-/** @typedef {'profile'|'profile_full'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
+/** @typedef {'voice'|'profile'|'profile_full'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
 
 const CHAT_SECTION_ORDER = /** @type {const} */ ([
-  'profile', 'profile_full', 'summary', 'meals', 'analysis', 'strategy',
+  'voice', 'profile', 'profile_full', 'summary', 'meals', 'analysis', 'strategy',
   'recommendations', 'forbidden', 'psychology', 'supplements', 'water',
 ]);
 
-const CHAT_BASE = ['profile', 'summary', 'meals', 'recommendations', 'forbidden'];
+const CHAT_BASE = ['voice', 'profile', 'summary', 'meals', 'recommendations', 'forbidden'];
 const CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
 
 const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */ ([
@@ -182,10 +182,29 @@ const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} 
  * @param {object|null} plan
  * @returns {Record<string, string>}
  */
+/**
+ * Как говорим на този човек — тонът и портретът от гласа на плана, за да
+ * отговаря консултантът в същия стил (обръщение, подход към тригерите).
+ */
+function serializeVoice(voice) {
+  if (!voice || typeof voice !== 'object') return '';
+  const p = voice.portrait || {};
+  const rows = [
+    `обръщение: ${voice.tone?.address || 'ти'}${voice.tone?.style ? `; тон: ${voice.tone.style}` : ''}`,
+    p.summary ? `човекът: ${p.summary}` : '',
+    p.emotional ? `емоционално: ${p.emotional}` : '',
+    p.personality ? `стил: ${p.personality}` : '',
+    p.triggers?.length ? `тригери: ${p.triggers.join('; ')}` : '',
+    p.motivation ? `мотивация: ${p.motivation}` : '',
+  ].filter(Boolean);
+  return `#VC v1 ${esc(rows.join(' | ')).slice(0, 1400)}`;
+}
+
 export function buildChatContextSections(userData, plan) {
   const p = plan || {};
   const hasNotes = Boolean(userData?.additionalNotes);
   const sections = {
+    voice: serializeVoice(p.aiVoice),
     profile: serializeUserProfile(userData, 'strategy'),
     profile_full: serializeUserProfile(userData, 'full', {
       hasNotesSection: hasNotes,

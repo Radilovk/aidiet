@@ -226,6 +226,22 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
+        .specialist-card {
+            margin: 0 0 18px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            background: linear-gradient(140deg, rgba(13, 148, 136, 0.10), rgba(13, 148, 136, 0.03));
+            border: 1px solid rgba(13, 148, 136, 0.18);
+        }
+        .specialist-card-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary-red);
+            margin-bottom: 8px;
+        }
+        .specialist-card p { margin: 0; line-height: 1.7; color: var(--text-dark); }
         .acc-header {
             padding: 20px 22px;
             display: flex;
@@ -1177,6 +1193,12 @@
             </div>
         </div>
 
+        <!-- Бележката от специалиста (от гласа на плана) — само когато я има -->
+        <div class="specialist-card" id="specialistCard" hidden>
+            <div class="specialist-card-label"><i class="fas fa-user-doctor" aria-hidden="true"></i> Бележка от специалиста</div>
+            <p id="specialistCardText"></p>
+        </div>
+
         <!-- GUIDELINES ACCORDION (moved from plan tab) -->
         <div class="accordion">
             <div class="acc-item">
@@ -1233,7 +1255,7 @@
 
             <div class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-bolt"></i> Практически хакове</span>
+                    <span><i class="fas fa-bolt"></i> <span id="hacksTitle">Практически хакове</span></span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
@@ -1587,6 +1609,19 @@
                     } else {
                         supplementsContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.supplements}</p>`;
                     }
+                }
+
+                const specialistCard = document.getElementById('specialistCard');
+                const specialistNote = dietPlan.strategy && dietPlan.strategy.specialistNote;
+                if (specialistCard) {
+                    const noteEl = document.getElementById('specialistCardText');
+                    if (noteEl) noteEl.textContent = specialistNote || '';
+                    specialistCard.hidden = !specialistNote;
+                }
+                // Личните навици (от гласа на плана) носят по-точно заглавие от общите „хакове“.
+                const hacksTitle = document.getElementById('hacksTitle');
+                if (hacksTitle && Array.isArray(dietPlan.personalHabits) && dietPlan.personalHabits.length) {
+                    hacksTitle.textContent = dietPlan.strategy && dietPlan.strategy.addressForm === 'Вие' ? 'За Вашето ежедневие' : 'За твоето ежедневие';
                 }
 
                 const hacksContent = document.getElementById('hacksContent');
