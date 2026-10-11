@@ -65,6 +65,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # По подразбиране действието иска и стария пакет „tools“, който вече го няма
+          # в хранилището на SDK (sdkmanager: Failed to find package 'tools').
+          # Gradle сам изтегля платформата и build-tools при build.
+          packages: 'platform-tools'
 
       - name: Prepare signing keystore
         id: keystore
