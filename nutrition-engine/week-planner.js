@@ -336,6 +336,59 @@ function toPlanMeal(type, dish, built, withDessert = false) {
   return meal;
 }
 
+/** Най-много толкова алтернативи на хранене. */
+export const MAX_ALTERNATIVES = 3;
+
+const kcalOf = t => t.protein * 4 + t.carbs * 4 + t.fats * 9;
+
+/**
+ * Алтернативите на храненето: следващите най-добри кандидати, които са
+ * равностойни — близки калории и белтък, друго ястие (и друг основен белтък
+ * при основно хранене), без храни със седмичен лимит (солено, яйца), които
+ * при смяна биха го надхвърлили. Всичко друго (диета, алергии, клинични
+ * правила, съчетания) вече е проверено при сглобяването.
+ * @returns {Array<{ dish: any, built: any, score: number }>}
+ */
+function pickAlternatives(best, candidates, { kind, todayDishes, state, policy, target }) {
+  const bestK = kcalOf(best.built.totals);
+  const targetK = kcalOf(target);
+  const bestP = best.built.totals.protein;
+  // Храна със седмичен лимит — само ако има място поне за още едно хранене с нея,
+  // за да не се надхвърли лимитът, когато клиентът смени няколко хранения.
+  const limited = id => {
+    const f = food(id);
+    const eggMax = policy.weeklyMax?.egg;
+    if (eggMax != null && f.kind === 'egg' && !mealFoods(best.built).has(id) && (state.kindUses.egg || 0) >= eggMax - 1) return true;
+    return Object.entries(policy.limitFlags || {}).some(([flag, max]) => f.flags.has(flag) && (state.flagUses[flag] || 0) >= max - 1);
+  };
+  const proteinOf = b => new Set((b.parts.find(p => p.group === 'PRO' || p.group === 'LEG')?.foods) || []);
+  const bestProtein = proteinOf(best.built);
+  const out = [];
+  const names = new Set([best.built.name]);
+  for (const c of [...candidates].sort((a, b) => b.score - a.score)) {
+    if (out.length >= MAX_ALTERNATIVES * 2) break;
+    if (c.dish.id === best.dish.id || todayDishes.has(c.dish.id) || names.has(c.built.name)) continue;
+    // Равностойна на целта на храненето (както и самият избор), и не далеч от избраното.
+    const k = kcalOf(c.built.totals);
+    const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
+    if (!near(k, bestK) && !near(k, targetK)) continue;
+    if (c.built.totals.protein < Math.min(bestP, target.protein) * 0.85 || c.built.totals.protein > Math.max(bestP, target.protein) * 1.3 + 5) continue;
+    if (policy.style === 'keto' && c.built.totals.carbs > best.built.totals.carbs * 1.2 + 3) continue;
+    if (limitPenalty(c.built, state, policy) > 0) continue;
+    const foods = [...mealFoods(c.built)];
+    if (foods.some(limited)) continue;
+    if (kind === 'main') {
+      const prot = proteinOf(c.built);
+      // Истинска алтернатива: друг основен белтък, и не този, който вече е днес.
+      if ([...prot].some(id => bestProtein.has(id) || state.mainFoodsToday.has(id))) continue;
+      if (out.some(o => [...proteinOf(o.built)].some(id => prot.has(id)))) continue;
+    }
+    names.add(c.built.name);
+    out.push(c);
+  }
+  return out;
+}
+
 /** @returns {{ protein: number, carbs: number, fats: number }} */
 function carryTarget(target, carry) {
   const out = { protein: 0, carbs: 0, fats: 0 };
@@ -357,10 +410,12 @@ function carryTarget(target, carry) {
  * @param {boolean} [args.simplify]  по-малко различни и по-прости ястия
  * @param {boolean} [args.variety]   всяко основно ястие най-много веднъж
  * @param {boolean} [args.morningDrink]  сутрешна напитка вместо закуска
+ * @param {Record<string, number>} [args.dishPreference]  предпочитание по ястие от изборите на клиента (−3…+3)
  * @param {Array<{ day: number, type: string, avoid: string[] }>} [args.slotAvoid]  храни, които да се избегнат в конкретно хранене (от AI прегледа)
  */
-export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [] }) {
+export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {} }) {
   const rng = rngFrom(seed);
+  const altRng = rngFrom((seed ^ 0x5bd1e995) >>> 0);
   const eligible = eligibleDishes(policy);
   // Следобедната закуска е лека: без месо, риба, ориз, паста, хляб и висок ГИ.
   const snackPolicy = {
@@ -485,8 +540,11 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
         .sort((a, b) => b.pre - a.pre)
         .slice(0, CANDIDATES_PER_MEAL);
 
+      /** Всички сглобени кандидати — от тях са и алтернативите на храненето. */
+      let candidatesBuilt = [];
       const pick = (candidates, mealCtx) => {
         let found = null;
+        candidatesBuilt = [];
         for (const d of candidates) {
           const choice = chooseOptions(d, state, mealCtx, rng, target);
           const built = buildMeal({ dish: d, choice, quota: plan.quota, target, mealKind: kind, ctx: mealCtx });
@@ -494,6 +552,9 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
           let score = scoreMeal(d, built, state, mealCtx, kind === 'breakfast' ? category : null, kind);
           // Опростено: ястия с малко съставки, повторенията не се наказват.
           if (simplify) score += (state.dishUses.get(d.id) || 0) * 3 - built.parts.length * 0.6 - d.fixed.length * 0.4;
+          // Какво клиентът е избирал или сменял в предишни седмици.
+          score += dishPreference[d.id] || 0;
+          candidatesBuilt.push({ dish: d, built, score });
           if (!found || score > found.score) found = { dish: d, built, score };
         }
         return found;
@@ -528,6 +589,19 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       }
       if (!best) throw new Error(`Няма подходящо ястие за ${type} (ден ${day}) при тази диета`);
 
+      let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
+      if (alternatives.length < 2 && !avoid.length) {
+        // Още кандидати само за алтернативите — с отделен генератор, за да не се
+        // промени самият план; основният избор вече е направен.
+        const tried = new Set(candidatesBuilt.map(c => c.dish.id));
+        const more = [];
+        for (const d of pool) {
+          if (tried.has(d.id) || more.length >= CANDIDATES_PER_MEAL) continue;
+          const built = buildMeal({ dish: d, choice: chooseOptions(d, state, slotCtx, altRng, target), quota: plan.quota, target, mealKind: kind, ctx: slotCtx });
+          if (built?.parts.length) more.push({ dish: d, built, score: scoreMeal(d, built, state, slotCtx, kind === 'breakfast' ? category : null, kind) + (dishPreference[d.id] || 0) });
+        }
+        alternatives = pickAlternatives(best, [...candidatesBuilt, ...more], { kind, todayDishes, state, policy: slotCtx.policy, target });
+      }
       recordUse(best.dish, best.built, state);
       if ([...mealFoods(best.built)].some(id => food(id).flags.has('supplement'))) state.supplementToday = true;
       todayDishes.add(best.dish.id);
@@ -539,7 +613,24 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       const meal = toPlanMeal(type, best.dish, best.built, dessertToday);
       // Целта на храненето е тази след пренесения остатък и десерта.
       meal.targetCalories = round(target.protein * 4 + target.carbs * 4 + target.fats * 9 + (dessertToday ? FIXED_DESSERT.calories : 0));
+      // Проверката е върху крайните калории (след кухненските грамажи), както ги вижда клиентът.
+      const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
+      const altMeals = alternatives
+        .map(a => ({ ...toPlanMeal(type, a.dish, a.built, dessertToday), targetCalories: meal.targetCalories }))
+        .filter(a => near(a.calories, meal.calories) || near(a.calories, meal.targetCalories))
+        .slice(0, MAX_ALTERNATIVES);
+      if (altMeals.length) meal.alternatives = altMeals;
       meals.push(meal);
+    }
+    // Ястие се среща веднъж в деня — и сред алтернативите: нито повторение на
+    // друго хранене от деня, нито една и съща алтернатива на две хранения.
+    const dayMeals = /** @type {any[]} */ (meals);
+    const offered = new Set(dayMeals.map(m => m.dishId).filter(Boolean));
+    for (const m of dayMeals) {
+      if (!m.alternatives) continue;
+      m.alternatives = m.alternatives.filter(a => !offered.has(a.dishId));
+      m.alternatives.forEach(a => offered.add(a.dishId));
+      if (!m.alternatives.length) delete m.alternatives;
     }
     state.yesterdayDishes = todayDishes;
     days.push({ meals });

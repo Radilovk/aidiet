@@ -1219,6 +1219,84 @@
         }
 
         .modal-prep-title { margin-top: 18px; }
+        .meal-swap-btn {
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            border-radius: 999px;
+            border: 1px solid rgba(13, 148, 136, 0.25);
+            background: rgba(13, 148, 136, 0.06);
+            color: var(--primary-red);
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .meal-swap-btn:active { transform: scale(0.96); }
+        .swap-sheet-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10050;
+            background: rgba(4, 20, 20, 0.45);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .swap-sheet-overlay.open { opacity: 1; }
+        .swap-sheet {
+            width: 100%;
+            max-width: 560px;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: var(--bg-color);
+            color: var(--text-dark);
+            border-radius: 22px 22px 0 0;
+            padding: 18px 16px calc(18px + var(--safe-area-inset-bottom));
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.18);
+            transform: translateY(24px);
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .swap-sheet-overlay.open .swap-sheet { transform: translateY(0); }
+        .swap-sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .swap-sheet-head h3 { margin: 2px 0 0; font-size: 1.1rem; }
+        .swap-sheet-kicker { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--primary-red); }
+        .swap-sheet-close { border: 0; background: transparent; color: var(--text-light); font-size: 1.1rem; padding: 6px; cursor: pointer; }
+        .swap-sheet-note { margin: 8px 0 14px; font-size: 0.85rem; color: var(--text-light); line-height: 1.45; }
+        .swap-sheet-list { display: flex; flex-direction: column; gap: 10px; }
+        .swap-option {
+            position: relative;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 13px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            background: var(--card-bg);
+            color: var(--text-dark);
+            font: inherit;
+            cursor: pointer;
+        }
+        .swap-option.is-current { border-color: var(--primary-red); box-shadow: inset 0 0 0 1px var(--primary-red); cursor: default; }
+        .swap-option-name { font-weight: 650; font-size: 0.95rem; padding-right: 64px; line-height: 1.35; }
+        .swap-option-meta { font-size: 0.8rem; color: var(--text-light); }
+        .swap-option-tag {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: var(--primary-red);
+            color: #fff;
+        }
+        .swap-option-tag--orig { background: transparent; color: var(--primary-red); border: 1px solid var(--primary-red); }
         .modal-steps {
             margin: 0;
             padding-left: 1.3em;
@@ -3681,6 +3759,7 @@
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script src="./platform-compat.js"></script>
+    <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
     <script type="module">
         import { buildChatContextSections, selectChatSections, assembleChatContextPrompt } from './client-card.js';
@@ -5004,6 +5083,8 @@
                 }
 
                 dietPlan = JSON.parse(planData);
+                // Изборите на алтернативи от клиента — върху всеки нов екземпляр на плана.
+                if (window.NutriMealSwaps) window.NutriMealSwaps.apply(dietPlan);
                 migrateMealTypes(dietPlan);
                 alignPlanMealsToStrategy(dietPlan);
                 correctPlanCalories(dietPlan);
@@ -5615,6 +5696,20 @@
                     <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
                     ${meal.dessert && typeof meal.dessert === 'object' && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}
                 `;
+                    // Смяна с равностойна алтернатива — за днес и бъдещите дни.
+                    const planIdx = dayData.meals.indexOf(meal);
+                    if (planIdx >= 0 && Array.isArray(meal.alternatives) && meal.alternatives.length && !isViewedDayPast(dayNum)) {
+                        const swapBtn = document.createElement('button');
+                        swapBtn.type = 'button';
+                        swapBtn.className = 'meal-swap-btn';
+                        swapBtn.setAttribute('aria-label', 'Друго ястие за ' + (meal.name || 'това хранене'));
+                        swapBtn.innerHTML = '<i class="fas fa-shuffle" aria-hidden="true"></i> ' + (meal._originalDishId ? 'Сменено' : 'Друго ястие');
+                        swapBtn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            openMealSwapSheet(dayNum, planIdx);
+                        });
+                        mealInfo.appendChild(swapBtn);
+                    }
                 }
 
                 mealCard.appendChild(mealInfo);
@@ -6301,6 +6396,72 @@
             return recipe ? '\n' + recipe : '';
         }
 
+        // Минал ден не се сменя — той вече е отчетен.
+        function isViewedDayPast(dayNum) {
+            try {
+                var key = currentViewDateKey || planDayToDateKey(dayNum);
+                return !!(window.gameModule && typeof window.gameModule.isPastDayKey === 'function' && window.gameModule.isPastDayKey(key));
+            } catch (_) { return false; }
+        }
+
+        // Избор на алтернатива: текущото ястие и равностойните му варианти от двигателя.
+        function openMealSwapSheet(dayNum, planIdx) {
+            var dayKey = 'day' + dayNum;
+            var meal = dietPlan && dietPlan.weekPlan && dietPlan.weekPlan[dayKey] && dietPlan.weekPlan[dayKey].meals[planIdx];
+            if (!meal || !Array.isArray(meal.alternatives) || !meal.alternatives.length) return;
+            var originalId = window.NutriMealSwaps ? window.NutriMealSwaps.originalOf(meal) : meal.dishId;
+            var options = [meal].concat(meal.alternatives);
+            closeMealSwapSheet();
+            var overlay = document.createElement('div');
+            overlay.className = 'swap-sheet-overlay';
+            overlay.id = 'mealSwapSheet';
+            var html = '<div class="swap-sheet" role="dialog" aria-modal="true" aria-labelledby="swapSheetTitle">' +
+                '<div class="swap-sheet-head"><div><div class="swap-sheet-kicker">' + escapeHtml(getMealDisplayLabel(meal.type)) + '</div>' +
+                '<h3 id="swapSheetTitle">Изберете ястие</h3></div>' +
+                '<button type="button" class="swap-sheet-close" aria-label="Затвори"><i class="fas fa-times"></i></button></div>' +
+                '<p class="swap-sheet-note">Вариантите са със сходни калории и белтък и следват Вашия режим.</p><div class="swap-sheet-list">';
+            options.forEach(function(opt, i) {
+                var current = i === 0;
+                var isOriginal = opt.dishId === originalId;
+                var p = opt.macros && opt.macros.protein ? Math.round(opt.macros.protein) : null;
+                html += '<button type="button" class="swap-option' + (current ? ' is-current' : '') + '" data-dish="' + escapeHtml(opt.dishId || '') + '"' + (current ? ' aria-current="true"' : '') + '>' +
+                    '<span class="swap-option-name">' + escapeHtml(opt.name || '') + '</span>' +
+                    '<span class="swap-option-meta">' + (opt.calories ? Math.round(opt.calories) + ' kcal' : '') + (p ? ' · ' + p + ' г белтък' : '') +
+                    (opt.prepTime ? ' · ~' + Math.round(opt.prepTime) + ' мин' : '') + '</span>' +
+                    (current ? '<span class="swap-option-tag">Сега</span>' : isOriginal ? '<span class="swap-option-tag swap-option-tag--orig">По план</span>' : '') +
+                    '</button>';
+            });
+            html += '</div></div>';
+            overlay.innerHTML = html;
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay || e.target.closest('.swap-sheet-close')) { closeMealSwapSheet(); return; }
+                var btn = e.target.closest('.swap-option');
+                if (!btn || btn.classList.contains('is-current')) return;
+                chooseMealAlternative(dayNum, planIdx, btn.getAttribute('data-dish'));
+            });
+            document.body.appendChild(overlay);
+            requestAnimationFrame(function() { overlay.classList.add('open'); });
+            var first = overlay.querySelector('.swap-option:not(.is-current)');
+            if (first) first.focus();
+        }
+
+        function closeMealSwapSheet() {
+            var el = document.getElementById('mealSwapSheet');
+            if (el) el.remove();
+        }
+
+        function chooseMealAlternative(dayNum, planIdx, dishId) {
+            if (!window.NutriMealSwaps || !dishId) return;
+            if (!window.NutriMealSwaps.choose(dietPlan, 'day' + dayNum, planIdx, dishId)) return;
+            correctPlanCalories(dietPlan);
+            try { localStorage.setItem('dietPlan', JSON.stringify(dietPlan)); } catch (_) {}
+            invalidateChatContextCache();
+            closeMealSwapSheet();
+            renderDay(dayNum, currentViewDateKey);
+            var chosen = dietPlan.weekPlan['day' + dayNum].meals[planIdx];
+            if (typeof showToast === 'function' && chosen) showToast('Сменено: ' + chosen.name);
+        }
+
         // Рецептата по стъпки — под състава, с времето за приготвяне и съвет.
         function showMealRecipeSteps(meal) {
             var steps = Array.isArray(meal.recipeSteps) ? meal.recipeSteps.filter(Boolean) : [];
@@ -6346,7 +6507,7 @@
                 showMealPersonalNote(meal.personalNote || '');
             };
             card.addEventListener('click', function(e) {
-                if (e.target.closest('.meal-check-btn, .meal-describe-btn')) return;
+                if (e.target.closest('.meal-check-btn, .meal-describe-btn, .meal-swap-btn')) return;
                 openDetail();
             });
             card.addEventListener('keydown', function(e) {
@@ -7164,6 +7325,7 @@
                         
                         // Update dietPlan and userData from server response
                         dietPlan = result.updatedPlan;
+                        if (window.NutriMealSwaps) window.NutriMealSwaps.apply(dietPlan);
                         migrateMealTypes(dietPlan);
                         alignPlanMealsToStrategy(dietPlan);
                         correctPlanCalories(dietPlan);
@@ -7345,6 +7507,7 @@
             
             const lastSnapshot = planHistory.pop();
             dietPlan = lastSnapshot.plan;
+            if (window.NutriMealSwaps) window.NutriMealSwaps.apply(dietPlan);
             if (lastSnapshot.userData) {
                 userData = lastSnapshot.userData;
                 localStorage.setItem('userData', JSON.stringify(userData));
@@ -7879,6 +8042,7 @@
                 top.dispatchEvent(new MouseEvent('click', { bubbles: true }));
                 return true;
             }
+            if (document.getElementById('mealSwapSheet')) { closeMealSwapSheet(); return true; }
             var food = document.getElementById('foodAnalysisOverlay');
             if (food && food.classList.contains('active')) { closeFoodAnalysis(); return true; }
             if (welcomeModal && welcomeModal.classList.contains('active')) { closeWelcomeModal(); return true; }
@@ -9479,7 +9643,7 @@
                 else p = JSON.parse(localStorage.getItem('dietPlan') || 'null');
             } catch (e) { return null; }
             if (!p || !p.weekPlan) return null;
-            return { weekPlan: p.weekPlan, sourceMeta: p.sourceMeta || null };
+            return { weekPlan: p.weekPlan, sourceMeta: p.sourceMeta || null, ...(p.dishPreference ? { dishPreference: p.dishPreference } : {}) };
         }
 
         function scheduleAnalyticsSync() {

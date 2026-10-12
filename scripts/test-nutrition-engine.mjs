@@ -16,6 +16,7 @@ import { buildFoodPolicy } from '../nutrition-engine/policy.js';
 import { prescribe } from '../nutrition-engine/prescription.js';
 import { foodByCatalogName, DISHES_BY_ID, DISHES, food, AVOID_PAIRS, hasAvoidedPair } from '../nutrition-engine/knowledge.js';
 import { renderRecipe, RECIPES } from '../nutrition-engine/recipes.js';
+import { mealSwapsOf, learnDishPreference } from '../nutrition-engine/dish-learning.js';
 import { validateRecipes } from './culinary/validate.mjs';
 import { KITCHEN_GRID } from '../nutrition-engine/portions.js';
 import { buildEngineStrategy } from '../nutrition-engine/strategy.js';
@@ -60,6 +61,7 @@ function intakeOf(data) {
 const seen = new Set();
 const profiles = [...HARD_PROFILES, ...EXTENDED_PROFILES, ...PROFILES].filter(p => !seen.has(p.id) && seen.add(p.id));
 const total = { k: 0, p: 0, c: 0, f: 0, n: 0 };
+let alternativeIssues = 0;
 const started = Date.now();
 for (const prof of profiles) {
   const data = structuredClone(prof);
@@ -132,6 +134,19 @@ for (const prof of profiles) {
   ].filter(i => !(userSkipsBreakfast(data) && /Хранене 1 при „Не закусвам“/.test(i)) && !/ready_meal в description|различни основни ястия|≠ схема/.test(i));
   if (process.env.SHOW_ISSUES) for (const i of issues) console.log(`  ${prof.id}: ${i}`);
   validatorIssues += issues.length;
+  // Клиентът може да смени всяко хранене с алтернатива: планът с първите (и с последните)
+  // алтернативи минава същите правила — диета, клинични, съчетания, денят като цяло.
+  for (const pickAlt of [alts => alts[0], alts => alts[alts.length - 1]]) {
+    const swapped = Object.fromEntries(Object.entries(weekPlan).map(([k, d]) => [k, { ...d, meals: d.meals.map(m => (m.alternatives?.length ? pickAlt(m.alternatives) : m)) }]));
+    const sw = { analysis, strategy, weekPlan: swapped };
+    const swIssues = [
+      ...validateDietetic(sw, data), ...validateProfileRules(sw, data),
+      ...validateWeekPlanFoods(swapped), ...validateWeekPlanCombinations(swapped), ...validateWeekPlanDayCoherence(swapped),
+    ].filter(i => !(userSkipsBreakfast(data) && /Хранене 1 при „Не закусвам“/.test(i)) && !/ready_meal в description|различни основни ястия|≠ схема/.test(i))
+      .filter(i => !issues.includes(i));
+    if (process.env.SHOW_ISSUES) for (const i of swIssues) console.log(`  ${prof.id} (алтернативи): ${i}`);
+    alternativeIssues += swIssues.length;
+  }
   const kDev = dev.k / dev.n;
   ok(kDev < (profile.diet.style === 'keto' ? 0.12 : 0.12), `${prof.id}: калории ±${(kDev * 100).toFixed(1)}%`);
   total.k += kDev; total.p += dev.p / dev.n; total.c += dev.c / dev.n; total.f += dev.f / dev.n; total.n++;
@@ -147,6 +162,7 @@ const avg = k => total[k] / total.n;
 console.log(`Средно: kcal ${(avg('k') * 100).toFixed(1)}%  P ${(avg('p') * 100).toFixed(1)}%  C ${(avg('c') * 100).toFixed(1)}%  F ${(avg('f') * 100).toFixed(1)}%  (${profiles.length} профила, ${Date.now() - started} ms)`);
 ok(total.n === profiles.length, 'всички профили дават план');
 ok(validatorIssues <= 10, `забележки от валидаторите (без отклонение на малки хранения): ${validatorIssues}`);
+ok(alternativeIssues === 0, `алтернативите минават същите правила (нови забележки: ${alternativeIssues})`);
 ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'средното отклонение е в праговете');
 
 // 2. Изменения от чата/прегледа и избор на храни.
@@ -376,6 +392,75 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   }
   ok(meals > 0 && withSteps === meals, `планове: всяко ястие е с рецепта по стъпки (${withSteps}/${meals})`);
   ok(!problems.length, `планове: рецептите са чисти (${problems.slice(0, 3).join('; ')})`);
+}
+
+// Алтернативи и учене от изборите.
+{
+  const data = { gender: 'Жена', age: 35, height: 165, weight: 70, goal: 'Отслабване' };
+  enrichUserDataEngineContext(data);
+  const res = buildNutritionPlan(data, { kcal: 1700, seed: 11 });
+  const meals = Object.values(res.weekPlan).flatMap(d => d.meals).filter(m => m.dishId);
+  const withAlt = meals.filter(m => m.alternatives?.length);
+  ok(withAlt.length >= meals.length * 0.6, `алтернативи: поне 60% от храненията имат избор (${withAlt.length}/${meals.length})`);
+  ok(withAlt.every(m => m.alternatives.length <= 3 && m.alternatives.every(a => a.dishId !== m.dishId && !a.alternatives && a.recipeSteps?.length)),
+    'алтернативи: до 3, друго ястие, с рецепта, без вложени');
+  for (const [k, d] of Object.entries(res.weekPlan)) {
+    const ids = d.meals.flatMap(m => [m.dishId, ...(m.alternatives || []).map(a => a.dishId)]).filter(Boolean);
+    ok(new Set(ids).size === ids.length, `алтернативи: ястие веднъж в деня, и сред вариантите (${k})`);
+  }
+  // Алтернативите не променят самия план.
+  const again = buildNutritionPlan(data, { kcal: 1700, seed: 11 });
+  const names = r => JSON.stringify(Object.values(r.weekPlan).flatMap(d => d.meals.map(m => m.name)));
+  ok(names(again) === names(res), 'алтернативи: планът е същият при същото семе');
+
+  // Учене: избраното — плюс, смененото — минус; старото избледнява; таван ±3.
+  const swaps = [{ from: 'b_cottage_sandwich', to: 'b_kefir_oats' }, { from: 'b_cottage_sandwich', to: 'b_kefir_oats' }];
+  const p1 = learnDishPreference({}, swaps);
+  ok(p1.b_kefir_oats === 2 && p1.b_cottage_sandwich === -2, `учене: избор и отказ (${JSON.stringify(p1)})`);
+  ok(learnDishPreference(p1, []).b_kefir_oats === 1.4, 'учене: без нови избори предпочитанието избледнява');
+  ok(learnDishPreference(p1, [], () => true, 1).b_kefir_oats === 2, 'учене: промяна от чата в същата седмица не избледнява');
+  ok(learnDishPreference({ x: 10 }, []).x === 3, 'учене: таван ±3');
+  ok(!('ghost' in learnDishPreference({}, [{ from: 'ghost', to: 'ghost2' }], id => !id.startsWith('ghost'))), 'учене: само познати ястия');
+  const swapped = structuredClone(res.weekPlan);
+  const m0 = swapped.day1.meals.find(m => m.alternatives?.length);
+  m0._originalDishId = m0.dishId; m0.dishId = m0.alternatives[0].dishId;
+  ok(mealSwapsOf(swapped).length === 1, 'учене: смените се четат от плана');
+  // Силно нежелано ястие се среща по-рядко, без да се нарушат правилата.
+  const used = new Map();
+  for (const m of meals) used.set(m.dishId, (used.get(m.dishId) || 0) + 1);
+  const top = [...used].sort((a, b) => b[1] - a[1])[0][0];
+  const disliked = buildNutritionPlan(data, { kcal: 1700, seed: 11, dishPreference: { [top]: -3 } });
+  const after = Object.values(disliked.weekPlan).flatMap(d => d.meals).filter(m => m.dishId === top).length;
+  ok(after < used.get(top), `учене: отказаното ястие (${top}) се среща по-рядко (${used.get(top)} → ${after})`);
+}
+
+// Смяната в приложението (meal-swaps.js): размяна, памет, връщане.
+{
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  await import('../meal-swaps.js');
+  const S = globalThis.NutriMealSwaps;
+  const data = { gender: 'Мъж', age: 40, height: 180, weight: 85, goal: 'Отслабване' };
+  enrichUserDataEngineContext(data);
+  const build = seed => ({ weekPlan: buildNutritionPlan(data, { kcal: 2100, seed }).weekPlan });
+  const plan = build(4);
+  const idx = plan.weekPlan.day2.meals.findIndex(m => m.alternatives?.length);
+  const orig = plan.weekPlan.day2.meals[idx];
+  const target = orig.alternatives[0].dishId;
+  const kcalBefore = plan.weekPlan.day2.dailyTotals.calories;
+  ok(S.choose(plan, 'day2', idx, target), 'смяна: изборът минава');
+  const now = plan.weekPlan.day2.meals[idx];
+  ok(now.dishId === target && now._originalDishId === orig.dishId && now.alternatives.some(a => a.dishId === orig.dishId), 'смяна: първоначалното остава сред вариантите');
+  ok(plan.weekPlan.day2.dailyTotals.calories === Math.round(kcalBefore + now.calories - orig.calories), 'смяна: дневният сбор следва избора');
+  const fresh = build(4);
+  S.apply(fresh);
+  ok(fresh.weekPlan.day2.meals[idx].dishId === target, 'смяна: изборът се прилага върху нов екземпляр на плана');
+  ok(S.choose(fresh, 'day2', idx, orig.dishId) && !fresh.weekPlan.day2.meals[idx]._originalDishId && !JSON.parse(store.get('mealSwaps'))[`day2:${idx}`], 'смяна: връщане към плана изтрива избора');
+  S.choose(fresh, 'day2', idx, target);
+  const other = build(99);
+  const otherMeal = other.weekPlan.day2.meals[idx];
+  S.apply(other);
+  ok(otherMeal.dishId === orig.dishId ? other.weekPlan.day2.meals[idx].dishId === target : !other.weekPlan.day2.meals[idx]._originalDishId, 'смяна: изборът не се прилага към друг план');
 }
 
 console.log(`\n=== nutrition engine: ${pass} pass, ${fail} fail ===`);

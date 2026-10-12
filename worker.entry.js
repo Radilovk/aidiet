@@ -82,6 +82,8 @@ import {
 } from './nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from './profile-code.js';
 import { guardClientText } from './nutrition-engine/text-guard.js';
+import { mealSwapsOf, learnDishPreference } from './nutrition-engine/dish-learning.js';
+import { DISHES_BY_ID } from './nutrition-engine/knowledge.js';
 import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSummary, voiceRepairPrompt, mergeVoiceRepair } from './nutrition-engine/ai-voice.js';
 import { DEFAULT_PLAN_VOICE_PROMPT } from './nutrition-engine/plan-voice-prompt.js';
 import {
@@ -3296,8 +3298,10 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   await applyIntakeHints(env, data);
   const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
   const cycleNumber = currentPlan._meta?.cycleNumber || 1;
-  let plan = assembleEnginePlan(data, analysis, { cycleNumber });
-  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps }));
+  // Изборите на клиента (смени с алтернативи) остават в сила и при промяна от чата.
+  const dishPreference = learnDishPreference(currentPlan.dishPreference, mealSwapsOf(currentPlan.weekPlan), id => DISHES_BY_ID.has(id), 1);
+  let plan = assembleEnginePlan(data, analysis, { cycleNumber, dishPreference });
+  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps, dishPreference }));
   plan = await writePlanVoice(env, data, plan, { reuse: currentPlan.aiVoice || null });
   try {
     await finalizeValidatedPlan(env, plan, data);
@@ -6070,9 +6074,13 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       .flatMap(d => d?.meals || [])
       .map(m => m.dishId)
       .filter(Boolean);
-    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
+    // Какво клиентът е сменял през седмицата: избраните ястия — по-често, сменените — по-рядко.
+    const swapsThisWeek = mealSwapsOf(plan.weekPlan);
+    const dishPreference = learnDishPreference(plan.dishPreference, swapsThisWeek, id => DISHES_BY_ID.has(id));
+    if (swapsThisWeek.length) console.log(`[WeeklyAdapt] смени през седмицата: ${swapsThisWeek.length}; предпочитания: ${Object.keys(dishPreference).length}`);
+    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
     newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) =>
-      assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps }));
+      assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
     // Новото меню получава свои бележки; тонът и портретът се пишат наново с данните от седмицата.
     newPlan = await writePlanVoice(env, enrichedData, newPlan);
     if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
@@ -7679,6 +7687,15 @@ function validatePlan(plan, userData, substitutions = []) {
       const day = plan.weekPlan[dayKey];
       if (day && day.meals && Array.isArray(day.meals)) {
         day.meals.forEach((meal, mealIndex) => {
+          // Алтернатива със забранена храна не се предлага — тя не се поправя, просто отпада.
+          if (Array.isArray(meal.alternatives)) {
+            meal.alternatives = meal.alternatives.filter(alt => {
+              const text = `${alt.name || ''} ${alt.description || ''}`.toLowerCase();
+              if (/грах|peas/.test(text) && /риба|fish/.test(text)) return false;
+              return applyFoodSubstitutions(structuredClone(alt), substitutions).length === 0;
+            });
+            if (!meal.alternatives.length) delete meal.alternatives;
+          }
           // Apply substitutions from KV blacklist in one pass
           const fixes = applyFoodSubstitutions(meal, substitutions);
           if (fixes.length > 0) {
@@ -7743,7 +7760,7 @@ function planSeedOf(data, cycleNumber = 0) {
  *
  * @param {object} data
  * @param {object} analysis
- * @param {{ cycleNumber?: number, previousWeek?: string[], slotAvoid?: Array<{ day: number, type: string, avoid: string[] }> }} [options]
+ * @param {{ cycleNumber?: number, previousWeek?: string[], slotAvoid?: Array<{ day: number, type: string, avoid: string[] }>, dishPreference?: Record<string, number> }} [options]
  */
 function assembleEnginePlan(data, analysis, options = {}) {
   const kcal = parseFinalCalories(analysis.Final_Calories || analysis.recommendedCalories);
@@ -7753,6 +7770,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
     seed: planSeedOf(data, options.cycleNumber),
     previousWeek: options.previousWeek || [],
     slotAvoid: options.slotAvoid || [],
+    dishPreference: options.dishPreference || {},
   });
   analysis.macroGrams = { ...engine.macros };
   analysis.macroRatios = {
@@ -7780,6 +7798,8 @@ function assembleEnginePlan(data, analysis, options = {}) {
   }, strategy);
   plan.analysis = analysis;
   plan.strategy = strategy;
+  // Паметта за изборите на клиента пътува с плана (без отделен запис).
+  if (options.dishPreference && Object.keys(options.dishPreference).length) plan.dishPreference = options.dishPreference;
   plan._meta = {
     generatedAt: new Date().toISOString(),
     cycleNumber: options.cycleNumber || 1,

@@ -40901,6 +40901,43 @@ function toPlanMeal(type, dish, built, withDessert = false) {
   if (dessert) meal.dessert = dessert;
   return meal;
 }
+var MAX_ALTERNATIVES2 = 3;
+var kcalOf = (t) => t.protein * 4 + t.carbs * 4 + t.fats * 9;
+function pickAlternatives(best, candidates, { kind, todayDishes, state, policy, target }) {
+  const bestK = kcalOf(best.built.totals);
+  const targetK = kcalOf(target);
+  const bestP = best.built.totals.protein;
+  const limited = (id) => {
+    const f = food(id);
+    const eggMax = policy.weeklyMax?.egg;
+    if (eggMax != null && f.kind === "egg" && !mealFoods(best.built).has(id) && (state.kindUses.egg || 0) >= eggMax - 1) return true;
+    return Object.entries(policy.limitFlags || {}).some(([flag, max]) => f.flags.has(flag) && (state.flagUses[flag] || 0) >= max - 1);
+  };
+  const proteinOf = (b) => new Set(b.parts.find((p) => p.group === "PRO" || p.group === "LEG")?.foods || []);
+  const bestProtein = proteinOf(best.built);
+  const out = [];
+  const names = /* @__PURE__ */ new Set([best.built.name]);
+  for (const c of [...candidates].sort((a, b) => b.score - a.score)) {
+    if (out.length >= MAX_ALTERNATIVES2 * 2) break;
+    if (c.dish.id === best.dish.id || todayDishes.has(c.dish.id) || names.has(c.built.name)) continue;
+    const k = kcalOf(c.built.totals);
+    const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
+    if (!near(k, bestK) && !near(k, targetK)) continue;
+    if (c.built.totals.protein < Math.min(bestP, target.protein) * 0.85 || c.built.totals.protein > Math.max(bestP, target.protein) * 1.3 + 5) continue;
+    if (policy.style === "keto" && c.built.totals.carbs > best.built.totals.carbs * 1.2 + 3) continue;
+    if (limitPenalty(c.built, state, policy) > 0) continue;
+    const foods = [...mealFoods(c.built)];
+    if (foods.some(limited)) continue;
+    if (kind === "main") {
+      const prot = proteinOf(c.built);
+      if ([...prot].some((id) => bestProtein.has(id) || state.mainFoodsToday.has(id))) continue;
+      if (out.some((o) => [...proteinOf(o.built)].some((id) => prot.has(id)))) continue;
+    }
+    names.add(c.built.name);
+    out.push(c);
+  }
+  return out;
+}
 function carryTarget(target, carry) {
   const out = { protein: 0, carbs: 0, fats: 0 };
   for (const k of ["protein", "carbs", "fats"]) {
@@ -40910,8 +40947,9 @@ function carryTarget(target, carry) {
   }
   return out;
 }
-function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [] }) {
+function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {} }) {
   const rng = rngFrom(seed);
+  const altRng = rngFrom((seed ^ 1540483477) >>> 0);
   const eligible = eligibleDishes(policy);
   const snackPolicy = {
     ...policy,
@@ -41008,14 +41046,18 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         d,
         pre: -dishFit(d, plan.quota, policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 - (state.yesterdayDishes.has(d.id) ? 2 : 0) + rng() * 1.5
       })).sort((a, b) => b.pre - a.pre).slice(0, CANDIDATES_PER_MEAL);
+      let candidatesBuilt = [];
       const pick = (candidates, mealCtx) => {
         let found = null;
+        candidatesBuilt = [];
         for (const d of candidates) {
           const choice = chooseOptions(d, state, mealCtx, rng, target);
           const built = buildMeal({ dish: d, choice, quota: plan.quota, target, mealKind: kind, ctx: mealCtx });
           if (!built || !built.parts.length) continue;
           let score = scoreMeal(d, built, state, mealCtx, kind === "breakfast" ? category : null, kind);
           if (simplify) score += (state.dishUses.get(d.id) || 0) * 3 - built.parts.length * 0.6 - d.fixed.length * 0.4;
+          score += dishPreference[d.id] || 0;
+          candidatesBuilt.push({ dish: d, built, score });
           if (!found || score > found.score) found = { dish: d, built, score };
         }
         return found;
@@ -41046,6 +41088,17 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         best = pick((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
       }
       if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
+      let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
+      if (alternatives.length < 2 && !avoid.length) {
+        const tried = new Set(candidatesBuilt.map((c) => c.dish.id));
+        const more = [];
+        for (const d of pool) {
+          if (tried.has(d.id) || more.length >= CANDIDATES_PER_MEAL) continue;
+          const built = buildMeal({ dish: d, choice: chooseOptions(d, state, slotCtx, altRng, target), quota: plan.quota, target, mealKind: kind, ctx: slotCtx });
+          if (built?.parts.length) more.push({ dish: d, built, score: scoreMeal(d, built, state, slotCtx, kind === "breakfast" ? category : null, kind) + (dishPreference[d.id] || 0) });
+        }
+        alternatives = pickAlternatives(best, [...candidatesBuilt, ...more], { kind, todayDishes, state, policy: slotCtx.policy, target });
+      }
       recordUse(best.dish, best.built, state);
       if ([...mealFoods(best.built)].some((id) => food(id).flags.has("supplement"))) state.supplementToday = true;
       todayDishes.add(best.dish.id);
@@ -41056,7 +41109,21 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       for (const k of ["protein", "carbs", "fats"]) carry[k] = target[k] - best.built.totals[k];
       const meal = toPlanMeal(type, best.dish, best.built, dessertToday);
       meal.targetCalories = round(target.protein * 4 + target.carbs * 4 + target.fats * 9 + (dessertToday ? FIXED_DESSERT.calories : 0));
+      const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
+      const altMeals = alternatives.map((a) => ({ ...toPlanMeal(type, a.dish, a.built, dessertToday), targetCalories: meal.targetCalories })).filter((a) => near(a.calories, meal.calories) || near(a.calories, meal.targetCalories)).slice(0, MAX_ALTERNATIVES2);
+      if (altMeals.length) meal.alternatives = altMeals;
       meals.push(meal);
+    }
+    const dayMeals = (
+      /** @type {any[]} */
+      meals
+    );
+    const offered = new Set(dayMeals.map((m) => m.dishId).filter(Boolean));
+    for (const m of dayMeals) {
+      if (!m.alternatives) continue;
+      m.alternatives = m.alternatives.filter((a) => !offered.has(a.dishId));
+      m.alternatives.forEach((a) => offered.add(a.dishId));
+      if (!m.alternatives.length) delete m.alternatives;
     }
     state.yesterdayDishes = todayDishes;
     days.push({ meals });
@@ -41181,7 +41248,8 @@ function buildNutritionPlan(userData, options) {
     previousWeek: new Set(options.previousWeek || []),
     slotAvoid: options.slotAvoid || [],
     simplify: mods.includes("simplify_meals"),
-    variety: mods.includes("more_variety")
+    variety: mods.includes("more_variety"),
+    dishPreference: options.dishPreference || {}
   });
   const weekPlan = {};
   week.days.forEach((day, i) => {
@@ -41557,6 +41625,35 @@ function normalizeSwaps(raw, weekPlan, max = 6) {
     if (out.length >= max) break;
   }
   return out;
+}
+
+// nutrition-engine/dish-learning.js
+var DECAY = 0.7;
+var LIMIT = 3;
+var MAX_DISHES = 60;
+function mealSwapsOf(weekPlan) {
+  const out = [];
+  for (const day of Object.values(weekPlan || {})) {
+    for (const m of day?.meals || []) {
+      const from = typeof m?._originalDishId === "string" ? m._originalDishId : "";
+      const to = typeof m?.dishId === "string" ? m.dishId : "";
+      if (from && to && from !== to) out.push({ from, to });
+    }
+  }
+  return out;
+}
+function learnDishPreference(previous, swaps, isDish = () => true, decay = DECAY) {
+  const pref = {};
+  for (const [id, v] of Object.entries(previous && typeof previous === "object" ? previous : {})) {
+    const n = Number(v);
+    if (isDish(id) && Number.isFinite(n)) pref[id] = n * decay;
+  }
+  for (const { from, to } of swaps || []) {
+    if (isDish(to)) pref[to] = (pref[to] || 0) + 1;
+    if (isDish(from)) pref[from] = (pref[from] || 0) - 1;
+  }
+  const kept = Object.entries(pref).map(([id, v]) => [id, Math.round(Math.max(-LIMIT, Math.min(LIMIT, v)) * 100) / 100]).filter(([, v]) => Math.abs(Number(v)) >= 0.2).sort((a, b) => Math.abs(Number(b[1])) - Math.abs(Number(a[1]))).slice(0, MAX_DISHES);
+  return Object.fromEntries(kept);
 }
 
 // nutrition-engine/ai-voice.js
@@ -44634,8 +44731,9 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   await applyIntakeHints(env, data);
   const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
   const cycleNumber = currentPlan._meta?.cycleNumber || 1;
-  let plan = assembleEnginePlan(data, analysis, { cycleNumber });
-  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps }));
+  const dishPreference = learnDishPreference(currentPlan.dishPreference, mealSwapsOf(currentPlan.weekPlan), (id) => DISHES_BY_ID.has(id), 1);
+  let plan = assembleEnginePlan(data, analysis, { cycleNumber, dishPreference });
+  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps, dishPreference }));
   plan = await writePlanVoice(env, data, plan, { reuse: currentPlan.aiVoice || null });
   try {
     await finalizeValidatedPlan(env, plan, data);
@@ -46796,8 +46894,11 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       }
     }
     const previousWeek = Object.values(plan.weekPlan).flatMap((d) => d?.meals || []).map((m) => m.dishId).filter(Boolean);
-    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
-    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps }));
+    const swapsThisWeek = mealSwapsOf(plan.weekPlan);
+    const dishPreference = learnDishPreference(plan.dishPreference, swapsThisWeek, (id) => DISHES_BY_ID.has(id));
+    if (swapsThisWeek.length) console.log(`[WeeklyAdapt] \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430: ${swapsThisWeek.length}; \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0438\u044F: ${Object.keys(dishPreference).length}`);
+    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
+    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
     newPlan = await writePlanVoice(env, enrichedData, newPlan);
     if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
     if (newPlan.personalHabits?.length && !plan.clinicalProtocol) newPlan.hacks = [...newPlan.personalHabits];
@@ -48107,6 +48208,14 @@ function validatePlan(plan, userData, substitutions = []) {
       const day = plan.weekPlan[dayKey];
       if (day && day.meals && Array.isArray(day.meals)) {
         day.meals.forEach((meal, mealIndex) => {
+          if (Array.isArray(meal.alternatives)) {
+            meal.alternatives = meal.alternatives.filter((alt) => {
+              const text = `${alt.name || ""} ${alt.description || ""}`.toLowerCase();
+              if (/грах|peas/.test(text) && /риба|fish/.test(text)) return false;
+              return applyFoodSubstitutions(structuredClone(alt), substitutions).length === 0;
+            });
+            if (!meal.alternatives.length) delete meal.alternatives;
+          }
           const fixes = applyFoodSubstitutions(meal, substitutions);
           if (fixes.length > 0) {
             warnings.push(`\u0414\u0435\u043D ${dayKey}, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 ${mealIndex + 1}: \u0430\u0432\u0442\u043E\u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F: ${fixes.join(", ")}`);
@@ -48159,7 +48268,8 @@ function assembleEnginePlan(data, analysis, options = {}) {
     kcal,
     seed: planSeedOf(data, options.cycleNumber),
     previousWeek: options.previousWeek || [],
-    slotAvoid: options.slotAvoid || []
+    slotAvoid: options.slotAvoid || [],
+    dishPreference: options.dishPreference || {}
   });
   analysis.macroGrams = { ...engine.macros };
   analysis.macroRatios = {
@@ -48187,6 +48297,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
   }, strategy);
   plan.analysis = analysis;
   plan.strategy = strategy;
+  if (options.dishPreference && Object.keys(options.dishPreference).length) plan.dishPreference = options.dishPreference;
   plan._meta = {
     generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
     cycleNumber: options.cycleNumber || 1,
