@@ -3739,6 +3739,9 @@
         #planAuthError { color: #ef4444; font-size: 0.8rem; margin-top: 12px; display: none; }
 
     </style>
+    <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
+    <link rel="stylesheet" href="./app-ui.css">
+    <script src="./app-ui.js" defer></script>
     <div id="planAuthOverlay" style="display:none">
         <div class="pa-spinner"></div>
         <div id="planAuthForm"></div>
@@ -5474,7 +5477,7 @@
                 chunks.forEach(function(sp) {
                     // g, г или гр — и без ASCII \b, който не работи с кирилица.
                     var m = sp.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:g|гр|г)(?![\p{L}\p{N}])(?:\s*[—\-]\s*(.+))?$/iu);
-                    if (m) items.push({ name: m[1].trim(), grams: m[2] + 'g', note: (m[3] || '').trim() });
+                    if (m) items.push({ name: m[1].trim(), grams: m[2] + ' г', note: (m[3] || '').trim() });
                     else extras.push(sp);
                 });
             });
@@ -5694,6 +5697,7 @@
                     mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(getMealDisplayLabel(meal.type))}</div>
                     <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
+                    ${mealMetaHtml(meal)}
                     ${meal.dessert && typeof meal.dessert === 'object' && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}
                 `;
                     // Смяна с равностойна алтернатива — за днес и бъдещите дни.
@@ -6029,7 +6033,7 @@
                 let hacksHTML = '<ul class="info-list">';
                 dietPlan.hacks.forEach((hack) => {
                     // Escape HTML to prevent XSS
-                    const safeHack = String(hack).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const safeHack = String(hack).replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\s]+/u, '').replace(/\s-\s/g, ' — ').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     hacksHTML += `<li><i class="fas fa-bolt" style="color: var(--accent-yellow); margin-right: 8px;"></i>${safeHack}</li>`;
                 });
                 hacksHTML += '</ul>';
@@ -6396,6 +6400,16 @@
             return recipe ? '\n' + recipe : '';
         }
 
+        // Втори ред на картата: калории и грамаж — числата, без да отварят детайлите.
+        function mealMetaHtml(meal) {
+            var parts = [];
+            var kcal = Math.round(Number(meal && meal.calories) || 0);
+            if (kcal > 0) parts.push('<span>' + kcal + ' kcal</span>');
+            var w = meal && meal.weight ? String(meal.weight).replace(/\s*(g|гр|г)\.?$/i, ' г') : '';
+            if (w && /\d/.test(w)) parts.push('<span>' + escapeHtml(w) + '</span>');
+            return parts.length ? '<div class="meal-meta">' + parts.join('') + '</div>' : '';
+        }
+
         // Минал ден не се сменя — той вече е отчетен.
         function isViewedDayPast(dayNum) {
             try {
@@ -6557,6 +6571,7 @@
                     } else if (calories) {
                         displayCalories = Math.round(calories);
                     }
+                    displayWeight = String(displayWeight).replace(/^(\d+(?:[.,]\d+)?)\s*(?:g|гр|г)\.?$/i, '$1 г');
                     const parts = [displayWeight, displayCalories ? `${displayCalories} kcal` : ''].filter(Boolean);
                     mWeightText.textContent = parts.join(' • ');
                     mWeightBadge.style.display = parts.length ? 'inline-flex' : 'none';
@@ -9904,7 +9919,11 @@
 
             var rec = getRecord(dayKey);
             var ds = rec.dailyScore || calcDayScore(rec);
-            if (!rec || (ds.score === null && (ds.engPct || 0) === 0 && !(rec.meals && Object.keys(rec.meals).length))) {
+            var mealsTotal = document.querySelectorAll('#mealContainer .meal-check-btn').length;
+            var mealsDone = Object.keys((rec && rec.meals) || {}).filter(function(k) { return rec.meals[k] === true; }).length;
+            var isEmptyDay = !rec || (ds.score === null && (ds.engPct || 0) === 0 && !mealsDone);
+            // Днес без отметки — подкана вместо празна лента; другите празни дни остават скрити.
+            if (isEmptyDay && !(dayKey === getTodayKey() && mealsTotal > 0)) {
                 card.style.display='none';
                 return;
             }
@@ -9973,7 +9992,10 @@
             card.innerHTML = '<div class="daily-score-info">' +
                     '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F</div>' +
                     (showLabel ? '<div class="daily-score-value">' + esc(ds.label) + '</div>' : '') +
-                    '<div class="daily-score-stars">' + starsHtml + '</div>' +
+                    (mealsDone === 0
+                        ? '<div class="daily-score-hint">Отбележи първото хранене — оценката се събира през деня</div>'
+                        : '<div class="daily-score-stars">' + starsHtml + '</div>') +
+                    (mealsTotal > 0 ? '<div class="daily-score-count">' + mealsDone + ' от ' + mealsTotal + ' хранения</div>' : '') +
                     warningsBadge +
                     '<div class="daily-score-progress"><div class="daily-score-progress-fill" style="width:' + (prevProgPct >= 0 ? prevProgPct : 0) + '%"></div></div>' +
                     streakBadge +

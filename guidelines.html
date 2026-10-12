@@ -1140,6 +1140,9 @@
         })();
     </script>
     <script src="./ui-images-cache.js"></script>
+    <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
+    <link rel="stylesheet" href="./app-ui.css">
+    <script src="./app-ui.js" defer></script>
 </head>
 <body>
     <script src="./session-utils.js"></script>
@@ -1217,7 +1220,7 @@
 
             <div class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-ban"></i> Да избягвате</span>
+                    <span><i class="fas fa-ban"></i> За ограничаване</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
@@ -1629,7 +1632,8 @@
                     if (Array.isArray(dietPlan.hacks) && dietPlan.hacks.length > 0) {
                         let html = '<ul class="info-list">';
                         dietPlan.hacks.forEach(hack => {
-                            const safeHack = escapeHtml(hack);
+                            // Без водещи емоджита и с истинско тире — едно визуално семейство с иконите.
+                            const safeHack = escapeHtml(String(hack).replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\s]+/u, '').replace(/\s-\s/g, ' — '));
                             html += `<li><i class="fas fa-bolt" style="color: var(--primary-red);"></i>${safeHack}</li>`;
                         });
                         html += '</ul>';
