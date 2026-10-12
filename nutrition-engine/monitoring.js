@@ -18,7 +18,7 @@ export const WEEKLY_CHECKIN_QUESTIONS = [
     type: 'number',
     min: 30,
     max: 300,
-    placeholder: 'напр. 72.4',
+    placeholder: 'напр. 72,4',
     skipLabel: 'Не съм се теглил/а',
     options: [],
   },
@@ -209,23 +209,23 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
   const outcome = weightOutcome(checkin, { goalKind, expectedLossKg: expectedLoss, weightKg, lactating });
   const cls = outcome ? OUTCOME_CLASS[goalKind][outcome] : null;
   const measured = checkin.weeklyChangeKg != null
-    ? `${checkin.weeklyChangeKg > 0 ? '+' : ''}${checkin.weeklyChangeKg.toFixed(1)} кг за седмица`
+    ? `${checkin.weeklyChangeKg > 0 ? '+' : ''}${checkin.weeklyChangeKg.toFixed(1).replace('.', ',')} кг за седмица`
     : null;
 
   if (adherence != null && adherence < 60) {
     // Планът не е изпробван — калориите остават, менюто става по-просто.
     modifications.push('simplify_meals');
-    reasons.push(`Придържане около ${adherence}% — калориите остават, менюто се опростява, за да се спазва по-лесно.`);
+    reasons.push(`Спазване на плана: около ${adherence}% — калориите остават, менюто се опростява, за да се спазва по-лесно.`);
     changes.push('По-прости и повтарящи се ястия');
   } else if (outcome && !followed) {
-    reasons.push(`Придържане около ${adherence ?? '?'}% — резултатът по теглото още не показва дали калориите са верни; приемът остава.`);
+    reasons.push(`Спазване на плана: около ${adherence ?? '?'}% — резултатът по теглото още не показва дали калориите са верни; приемът остава.`);
   } else if (outcome && followed) {
     const weeks = streak(history, goalKind, cls) + 1;
     if (losing) {
       if (outcome === 'fast_loss') {
         delta = +MAX_WEEKLY_STEP;
         reasons.push(lactating
-          ? 'Отслабването е над 0.5 кг седмично при кърмене — приемът се увеличава, за да се пази кърмата.'
+          ? 'Отслабването е над 0,5 кг седмично при кърмене — приемът се увеличава, за да се пази кърмата.'
           : `Отслабването е над 1% от теглото седмично${measured ? ` (${measured})` : ''} — темпото се забавя, за да се пази мускулната маса.`);
       } else if (cls === 'stall') {
         if (weeks >= 2) {
@@ -235,15 +235,15 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
           reasons.push(`${measured ? `${measured}. ` : ''}Една седмица без спад е обичайна (вода, гликоген, цикъл) — приемът остава, следим и следващата.`);
         }
       } else {
-        reasons.push(`Темпото отговаря на очакваното (около ${expectedLoss.toFixed(1)} кг седмично${measured ? `; измерено ${measured}` : ''}) — приемът остава.`);
+        reasons.push(`Темпото отговаря на очакваното (около ${expectedLoss.toFixed(1).replace('.', ',')} кг седмично${measured ? `; измерено ${measured}` : ''}) — приемът остава.`);
       }
     } else if (gaining) {
       if (cls === 'fast') {
         delta = -100;
-        reasons.push(`Теглото расте над 0.5% седмично${measured ? ` (${measured})` : ''} — излишъкът отива в мазнини; приемът се намалява леко.`);
+        reasons.push(`Теглото расте над 0,5% седмично${measured ? ` (${measured})` : ''} — излишъкът отива в мазнини; приемът се намалява леко.`);
       } else if (cls === 'down') {
         delta = +MAX_WEEKLY_STEP;
-        reasons.push('Теглото пада при цел мускулна маса — приемът се увеличава.');
+        reasons.push('Теглото пада при цел покачване на мускулна маса — приемът се увеличава.');
       } else if (cls === 'stall') {
         if (weeks >= 2) {
           delta = +MAX_WEEKLY_STEP;
@@ -296,7 +296,7 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
   }
   if (checkin.difficulty === 'Храносмилането (подуване, тежест)') {
     modifications.push('gentle_digestion');
-    changes.push('Храни с ниско FODMAP за следващата седмица');
+    changes.push('Щадящи храни с ниско съдържание на FODMAP за следващата седмица');
   }
 
   // Граници: стъпка, общ таван спрямо първоначалното и безопасен минимум.
@@ -328,23 +328,23 @@ export function weeklyMessage(decision, checkin) {
   if (checkin.adherence != null && checkin.adherence < 60) {
     return {
       headline: 'Нова седмица — по-лесен план',
-      message: 'Тази седмица е трудно да се спазва — нормално е. Следващата е по-проста: по-малко различни ястия и по-бързо приготвяне. Целта е постоянство, не съвършенство.',
+      message: 'Тази седмица планът беше труден за спазване — това е нормално. Следващата е по-проста: по-малко различни ястия и по-бързо приготвяне. Целта е постоянство, не съвършенство.',
     };
   }
   if (decision.calorieAdjust < 0) {
     return {
       headline: 'Малка корекция за следващата седмица',
-      message: 'Спазихте плана — браво. Резултатът се разминава с очаквания, затова приемът се коригира леко. Продължавайте със същото темпо.',
+      message: 'Спазихте плана — браво. Резултатът се разминава с очакваното, затова приемът се коригира леко. Продължавайте със същото темпо.',
     };
   }
   if (decision.calorieAdjust > 0) {
     return {
       headline: 'Новата седмица е по-щедра',
-      message: 'Приемът се увеличава леко — за енергия и за запазване на мускулната маса. Продължавайте със спазването на плана.',
+      message: 'Приемът се увеличава леко — за енергия и за запазване на мускулната маса. Продължавайте да спазвате плана.',
     };
   }
   return {
     headline: 'Отлична седмица — продължаваме',
-    message: 'Вървите по план. Новото меню е със същите калории и нови ястия за разнообразие.',
+    message: 'Вървите по плана. Новото меню е със същите калории и нови ястия за разнообразие.',
   };
 }

@@ -44,6 +44,7 @@ capacitor-shell/*
 !setup.py
 !android-res/patch-local-notifications.py
 !android-res/patch-app-exit.py
+!android-res/patch-print-plugin.py
 
 # Test files
 test-*.js

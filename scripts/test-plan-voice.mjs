@@ -9,7 +9,7 @@ import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { buildNutritionPlan } from '../nutrition-engine/index.js';
 import { buildEngineStrategy } from '../nutrition-engine/strategy.js';
 import { compileProfile } from '../profile-code.js';
-import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, personAnswers } from '../nutrition-engine/ai-voice.js';
+import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, personAnswers, voiceRepairPrompt, mergeVoiceRepair } from '../nutrition-engine/ai-voice.js';
 import { DEFAULT_PLAN_VOICE_PROMPT } from '../nutrition-engine/plan-voice-prompt.js';
 
 let pass = 0;
@@ -65,6 +65,34 @@ ok(Object.values(engine.weekPlan).flatMap(d => d.meals).some(m => m.personalNote
 const kcalBefore = JSON.stringify(Object.values(engine.weekPlan).flatMap(d => d.meals.map(m => [m.calories, m.description])));
 applyPlanVoice(plan, voice);
 ok(kcalBefore === JSON.stringify(Object.values(engine.weekPlan).flatMap(d => d.meals.map(m => [m.calories, m.description]))), 'гласът не пипа калории и състав');
+
+// Поправка: отхвърленото се връща с причината; поправеното минава същата проверка.
+{
+  const ctx = { dishIds: ['d1'], blockedTerms: ['Без гъби'] };
+  const rejected = [];
+  const first = normalizePlanVoice({
+    welcome: 'Като езиков модел ще ви кажа: яжте 200 г пиле.',
+    psychology: ['Хранете се бавно и без екран.', 'Пийте вода преди хранене.', 'Спете поне седем часа.'],
+    habits: ['Подгответе обяда вечерта.', 'Носете вода със себе си.', 'Яжте гъби всеки ден.', 'Пазарувайте със списък.'],
+    mealNotes: [{ dishId: 'd1', note: 'Това ястие ще излекува диабета ви.' }],
+  }, ctx, rejected);
+  ok(first && !first.welcome && first.habits.length === 3, 'поправка: лошите текстове са отхвърлени, добрите остават');
+  const fields = rejected.map(r => r.field);
+  ok(fields.includes('welcome') && fields.includes('habits') && fields.includes('mealNotes:d1'), `поправка: причините са събрани (${fields.join(', ')})`);
+  ok(rejected.every(r => r.reason && r.reason.length > 3), 'поправка: всяка причина е обяснена');
+  const prompt = voiceRepairPrompt(rejected, { address: 'Вие' });
+  ok(prompt.includes('Причина:') && prompt.includes('"items"'), 'поправка: промптът носи причините и формата');
+  const merged = mergeVoiceRepair(first, { items: [
+    { field: 'welcome', text: 'Здравейте! Планът е подреден около вашия ритъм — започнете спокойно.' },
+    { field: 'habits', text: 'Яжте гъби на обяд.' },
+    { field: 'mealNotes:d1', text: 'Ястието е леко и засища за дълго.' },
+    { field: 'mealNotes:чуждо', text: 'Бележка към ястие извън менюто.' },
+  ] }, ctx);
+  ok(merged.welcome.startsWith('Здравейте'), 'поправка: поправеното писмо влиза');
+  ok(!merged.habits.some(h => /гъби/.test(h)), 'поправка: поправеният текст пак минава проверката (гъби остават забранени)');
+  ok(merged.mealNotes.d1 && !merged.mealNotes['чуждо'], 'поправка: бележка само към ястие от менюто');
+  ok(mergeVoiceRepair(first, null, ctx) === first, 'поправка: празен отговор не променя нищо');
+}
 
 console.log(`\n=== plan voice: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

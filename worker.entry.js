@@ -81,7 +81,10 @@ import {
   profileBrief,
 } from './nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from './profile-code.js';
-import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSummary } from './nutrition-engine/ai-voice.js';
+import { guardClientText } from './nutrition-engine/text-guard.js';
+import { mealSwapsOf, learnDishPreference } from './nutrition-engine/dish-learning.js';
+import { DISHES_BY_ID } from './nutrition-engine/knowledge.js';
+import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSummary, voiceRepairPrompt, mergeVoiceRepair } from './nutrition-engine/ai-voice.js';
 import { DEFAULT_PLAN_VOICE_PROMPT } from './nutrition-engine/plan-voice-prompt.js';
 import {
   WEEKLY_CHECKIN_QUESTIONS,
@@ -3295,8 +3298,10 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   await applyIntakeHints(env, data);
   const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
   const cycleNumber = currentPlan._meta?.cycleNumber || 1;
-  let plan = assembleEnginePlan(data, analysis, { cycleNumber });
-  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps }));
+  // Изборите на клиента (смени с алтернативи) остават в сила и при промяна от чата.
+  const dishPreference = learnDishPreference(currentPlan.dishPreference, mealSwapsOf(currentPlan.weekPlan), id => DISHES_BY_ID.has(id), 1);
+  let plan = assembleEnginePlan(data, analysis, { cycleNumber, dishPreference });
+  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps, dishPreference }));
   plan = await writePlanVoice(env, data, plan, { reuse: currentPlan.aiVoice || null });
   try {
     await finalizeValidatedPlan(env, plan, data);
@@ -3749,6 +3754,11 @@ async function handleChat(request, env) {
       }
     }
     
+    // Нищо неадекватно към клиента: „като AI…“, шаблони, обещания за лечение, спиране на лекарства, обидни думи.
+    const guarded = guardClientText(finalResponse);
+    if (guarded.removed.length) console.warn('[chat] махнати изречения:', guarded.removed.join(', '));
+    finalResponse = guarded.text;
+
     // Build updated conversation history for client to store
     const updatedHistory = [...chatHistory];
     updatedHistory.push(
@@ -6064,9 +6074,13 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       .flatMap(d => d?.meals || [])
       .map(m => m.dishId)
       .filter(Boolean);
-    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek });
+    // Какво клиентът е сменял през седмицата: избраните ястия — по-често, сменените — по-рядко.
+    const swapsThisWeek = mealSwapsOf(plan.weekPlan);
+    const dishPreference = learnDishPreference(plan.dishPreference, swapsThisWeek, id => DISHES_BY_ID.has(id));
+    if (swapsThisWeek.length) console.log(`[WeeklyAdapt] смени през седмицата: ${swapsThisWeek.length}; предпочитания: ${Object.keys(dishPreference).length}`);
+    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
     newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) =>
-      assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps }));
+      assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
     // Новото меню получава свои бележки; тонът и портретът се пишат наново с данните от седмицата.
     newPlan = await writePlanVoice(env, enrichedData, newPlan);
     if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
@@ -7673,6 +7687,15 @@ function validatePlan(plan, userData, substitutions = []) {
       const day = plan.weekPlan[dayKey];
       if (day && day.meals && Array.isArray(day.meals)) {
         day.meals.forEach((meal, mealIndex) => {
+          // Алтернатива със забранена храна не се предлага — тя не се поправя, просто отпада.
+          if (Array.isArray(meal.alternatives)) {
+            meal.alternatives = meal.alternatives.filter(alt => {
+              const text = `${alt.name || ''} ${alt.description || ''}`.toLowerCase();
+              if (/грах|peas/.test(text) && /риба|fish/.test(text)) return false;
+              return applyFoodSubstitutions(structuredClone(alt), substitutions).length === 0;
+            });
+            if (!meal.alternatives.length) delete meal.alternatives;
+          }
           // Apply substitutions from KV blacklist in one pass
           const fixes = applyFoodSubstitutions(meal, substitutions);
           if (fixes.length > 0) {
@@ -7737,7 +7760,7 @@ function planSeedOf(data, cycleNumber = 0) {
  *
  * @param {object} data
  * @param {object} analysis
- * @param {{ cycleNumber?: number, previousWeek?: string[], slotAvoid?: Array<{ day: number, type: string, avoid: string[] }> }} [options]
+ * @param {{ cycleNumber?: number, previousWeek?: string[], slotAvoid?: Array<{ day: number, type: string, avoid: string[] }>, dishPreference?: Record<string, number> }} [options]
  */
 function assembleEnginePlan(data, analysis, options = {}) {
   const kcal = parseFinalCalories(analysis.Final_Calories || analysis.recommendedCalories);
@@ -7747,6 +7770,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
     seed: planSeedOf(data, options.cycleNumber),
     previousWeek: options.previousWeek || [],
     slotAvoid: options.slotAvoid || [],
+    dishPreference: options.dishPreference || {},
   });
   analysis.macroGrams = { ...engine.macros };
   analysis.macroRatios = {
@@ -7774,6 +7798,8 @@ function assembleEnginePlan(data, analysis, options = {}) {
   }, strategy);
   plan.analysis = analysis;
   plan.strategy = strategy;
+  // Паметта за изборите на клиента пътува с плана (без отделен запис).
+  if (options.dishPreference && Object.keys(options.dishPreference).length) plan.dishPreference = options.dishPreference;
   plan._meta = {
     generatedAt: new Date().toISOString(),
     cycleNumber: options.cycleNumber || 1,
@@ -7832,7 +7858,22 @@ async function writePlanVoice(env, data, plan, options = {}) {
     const vars = planVoiceVars(compileProfile(data), data, plan);
     const prompt = Object.entries(vars).reduce((s, [k, v]) => s.split(`{${k}}`).join(String(v)), String(template));
     const response = await callAIModel(env, prompt, 3500, 'plan_voice', null, data, null);
-    const voice = normalizePlanVoice(parseAIResponse(response), { dishIds: planDishIds(plan.weekPlan), blockedTerms });
+    const ctx = { dishIds: planDishIds(plan.weekPlan), blockedTerms };
+    /** @type {Array<{ field: string, text: string, reason: string }>} */
+    const rejected = [];
+    let voice = normalizePlanVoice(parseAIResponse(response), ctx, rejected);
+    // Отхвърленото не се изхвърля веднага: един опит AI да го поправи по причината.
+    // Поправеното минава през същата проверка; иначе остават текстовете на двигателя.
+    if (rejected.length) {
+      try {
+        const repairPrompt = voiceRepairPrompt(rejected, { address: voice?.tone?.address });
+        const repaired = await callAIModel(env, repairPrompt, 1500, 'plan_voice_repair', null, data, null);
+        voice = mergeVoiceRepair(voice, parseAIResponse(repaired), ctx);
+        console.log(`plan_voice: поправка на ${rejected.length} текста (${[...new Set(rejected.map(r => r.reason))].join('; ')})`);
+      } catch (error) {
+        console.warn(`plan_voice: поправката е пропусната — ${error.message}`);
+      }
+    }
     if (voice) {
       applyPlanVoice(plan, voice);
       if (plan._meta) plan._meta.voice = voiceSummary(voice);
@@ -9124,9 +9165,8 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
       return jsonResponse({
         success: true,
         analysis: null,
-        rawResponse: aiResponse,
         parseError: true,
-        message: 'AI анализът е готов, но не успяхме да го структурираме. Вижте суровия отговор.'
+        message: 'Снимката не беше разпозната. Опитайте отново с по-ясна снимка.'
       });
     }
 
@@ -9281,9 +9321,8 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
       return jsonResponse({
         success: true,
         analysis: null,
-        rawResponse: aiResponse,
         parseError: true,
-        message: 'AI анализът е готов, но не успяхме да го структурираме. Вижте суровия отговор.'
+        message: 'Снимката не беше разпозната. Опитайте отново с по-ясна снимка.'
       });
     }
 
@@ -9440,7 +9479,6 @@ async function handleAnalyzeKidsFoodImage(request, env) {
       return jsonResponse({
         success: true,
         analysis: null,
-        rawResponse: aiResponse,
         parseError: true,
         message: 'AI анализът е готов, но не успяхме да го структурираме.'
       });
@@ -12786,17 +12824,17 @@ async function handleGetCalendarIcs(request, env) {
   // Read global notification config from KV (same data store as /api/notification-config)
   const defaults = {
     morningTime:  '07:00',
-    morningTitle: 'AI Асистент',
+    morningTitle: 'NutriPlan',
     morningBody:  'Спахте ли добре тази нощ?',
     eveningActivityTime:  '20:00',
-    eveningActivityTitle: 'AI Асистент',
-    eveningActivityBody:  'Ниво на активност?',
+    eveningActivityTitle: 'NutriPlan',
+    eveningActivityBody:  'Колко се движихте днес?',
     eveningBalanceTime:   '20:05',
-    eveningBalanceTitle:  'AI Асистент',
-    eveningBalanceBody:   'Емоционален баланс?',
+    eveningBalanceTitle:  'NutriPlan',
+    eveningBalanceBody:   'Как се чувствахте днес?',
     eveningWaterTime:     '20:10',
-    eveningWaterTitle:    'AI Асистент',
-    eveningWaterBody:     'Изпихте ли поне 2 л вода?',
+    eveningWaterTitle:    'NutriPlan',
+    eveningWaterBody:     'Пихте ли достатъчно вода днес?',
     eveningTime:  '20:00',
   };
   let cfg = Object.assign({}, defaults);
@@ -12806,6 +12844,16 @@ async function handleGetCalendarIcs(request, env) {
       if (raw) cfg = Object.assign(cfg, JSON.parse(raw));
     }
   } catch (_) {}
+  // Старите текстове от запазени настройки → новите (същото като local-scheduler.js).
+  const LEGACY_COPY = {
+    'AI Асистент': 'NutriPlan',
+    'Ниво на активност?': 'Колко се движихте днес?',
+    'Емоционален баланс?': 'Как се чувствахте днес?',
+    'Изпихте ли поне 2 л вода?': 'Пихте ли достатъчно вода днес?',
+  };
+  for (const key of Object.keys(cfg)) {
+    if (/(Title|Body)$/.test(key) && typeof cfg[key] === 'string' && LEGACY_COPY[cfg[key].trim()]) cfg[key] = LEGACY_COPY[cfg[key].trim()];
+  }
 
   const pad = n => String(n).padStart(2, '0');
   function offsetTimeString(timeStr, addMinutes) {
@@ -13974,7 +14022,7 @@ async function handleAdminSendMessage(request, env) {
     // Send notification to user by calling handlePushSend directly
     const pushPayload = {
       userId: userId,
-      title: 'AI Асистент - NutriPlan',
+      title: 'Съобщение от NutriPlan',
       body: message,
       url: '/plan.html',
       notificationType: 'chat'
