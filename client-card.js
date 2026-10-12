@@ -113,7 +113,9 @@ export function buildClientCard(clientData, options = {}) {
   const meta = [
     '#CC v1 — Клиентски картон',
     `META|id=${esc(clientData?.id)}|st=${esc(clientData?.planStatus || 'none')}|sub=${esc((clientData?.submittedAt || clientData?.timestamp || '').slice(0, 10))}|act=${esc((clientData?.planActivatedAt || '').slice(0, 10) || '—')}|uid=${esc(clientData?.userId || '—')}|upd=${esc((clientData?.planUpdatedAt || '').slice(0, 10) || '—')}`,
-    clientData?.planGenerationError ? `ERR|${esc(clientData.planGenerationError)}` : '',
+    // Грешката от генериране важи само докато планът е в състояние „failed“ — след
+    // успешно генериране старият текст подвеждаше AI асистента, че планът е провален.
+    clientData?.planGenerationError && clientData?.planStatus === 'failed' ? `ERR|${esc(clientData.planGenerationError)}` : '',
     answers.email ? `EM|${esc(answers.email)}` : '',
     answers.additionalNotes ? `NT|${esc(String(answers.additionalNotes).slice(0, 500))}` : '',
     (clientData?.files?.length) ? `FL|count=${clientData.files.length}|names=${clientData.files.slice(0, 5).map(f => esc(f.name)).join('+')}` : '',

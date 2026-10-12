@@ -1265,6 +1265,14 @@ function applyJsonPatches(doc, patches) {
     const parentPath = segments.slice(0, -1);
     const key = segments[segments.length - 1];
     const parent = parentPath.length ? getAtPath(document, parentPath) : document;
+    if (parentPath.length === 1 && parentPath[0] === "adminNotes" && (typeof parent === "string" || parent == null)) {
+      const line2 = `${key}: ${typeof patch.value === "string" ? patch.value : JSON.stringify(patch.value)}`;
+      document.adminNotes = [String(parent || "").trim(), line2].filter(Boolean).join("\n");
+      continue;
+    }
+    if (parent == null || typeof parent !== "object") {
+      throw new Error(`\u041F\u044A\u0442\u044F\u0442 ${patch.path} \u0441\u043E\u0447\u0438 \u0432\u044A\u0442\u0440\u0435 \u0432 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442, \u043A\u043E\u044F\u0442\u043E \u043D\u0435 \u0435 \u043E\u0431\u0435\u043A\u0442 \u2014 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u0439\u0442\u0435 replace \u043D\u0430 ${"/" + parentPath.join("/")}`);
+    }
     if (patch.op === "add") {
       if (Array.isArray(parent)) {
         if (key === "-") parent.push(patch.value);
@@ -1361,7 +1369,9 @@ function buildClientCard(clientData, options = {}) {
   const meta = [
     "#CC v1 \u2014 \u041A\u043B\u0438\u0435\u043D\u0442\u0441\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u043D",
     `META|id=${esc2(clientData?.id)}|st=${esc2(clientData?.planStatus || "none")}|sub=${esc2((clientData?.submittedAt || clientData?.timestamp || "").slice(0, 10))}|act=${esc2((clientData?.planActivatedAt || "").slice(0, 10) || "\u2014")}|uid=${esc2(clientData?.userId || "\u2014")}|upd=${esc2((clientData?.planUpdatedAt || "").slice(0, 10) || "\u2014")}`,
-    clientData?.planGenerationError ? `ERR|${esc2(clientData.planGenerationError)}` : "",
+    // Грешката от генериране важи само докато планът е в състояние „failed“ — след
+    // успешно генериране старият текст подвеждаше AI асистента, че планът е провален.
+    clientData?.planGenerationError && clientData?.planStatus === "failed" ? `ERR|${esc2(clientData.planGenerationError)}` : "",
     answers.email ? `EM|${esc2(answers.email)}` : "",
     answers.additionalNotes ? `NT|${esc2(String(answers.additionalNotes).slice(0, 500))}` : "",
     clientData?.files?.length ? `FL|count=${clientData.files.length}|names=${clientData.files.slice(0, 5).map((f) => esc2(f.name)).join("+")}` : ""
@@ -44795,6 +44805,7 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
             const approval = needsApproval;
             clientData.plan = result.plan;
             clientData.planUpdatedAt = now;
+            delete clientData.planGenerationError;
             if (approval) {
               clientData.planStatus = "pending";
               clientData.planActivatedAt = null;
@@ -45794,6 +45805,7 @@ async function syncPlanToEmailCanonicalStore(env, {
   if (plan) {
     clientData.plan = plan;
     clientData.planUpdatedAt = now;
+    delete clientData.planGenerationError;
     if (requireApproval || clientData.planReplacementPending) {
       clientData.planStatus = "pending";
       clientData.planActivatedAt = null;
@@ -45949,7 +45961,7 @@ async function handleGetClientsList(request, env) {
             planStatus: clientData.planStatus || "none",
             planUpdatedAt: clientData.planUpdatedAt || null,
             planActivatedAt: clientData.planActivatedAt || null,
-            planGenerationError: clientData.planGenerationError || ""
+            planGenerationError: clientData.planStatus === "failed" ? clientData.planGenerationError || "" : ""
           };
         }
         return null;
@@ -47317,6 +47329,7 @@ async function handleUpdateClientPlan(request, env, ctx) {
       await reconcilePlanStructure(plan, clientData.answers, env);
     }
     clientData.plan = plan;
+    delete clientData.planGenerationError;
     if (userId) clientData.userId = userId;
     clientData.planUpdatedAt = (/* @__PURE__ */ new Date()).toISOString();
     if (forcePending || clientData.planReplacementPending) {
@@ -47386,6 +47399,7 @@ async function handleActivateClientPlan(request, env, ctx) {
     clientData.planStatus = "activated";
     clientData.planActivatedAt = (/* @__PURE__ */ new Date()).toISOString();
     delete clientData.planReplacementPending;
+    delete clientData.planGenerationError;
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
     clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
     let emailSent = false;
