@@ -7,7 +7,10 @@
 # на админ панела; нови ключове също могат да се създават). Клиенти, профили, имейли,
 # абонаменти и чакащи планове (admin_plan_pending) са недостъпни — и за четене, и за запис.
 #
-# Употреба: scripts/kv-bridge.sh <list|get|put|delete|diff> [ключ|префикс] [стойност]
+# Изключение само за четене: plan-errors показва САМО датата и текста на грешката при
+# провалено генериране на план (planGenerationError) — без имена, имейли и отговори.
+#
+# Употреба: scripts/kv-bridge.sh <list|get|put|delete|diff|plan-errors> [ключ|префикс] [стойност]
 set -euo pipefail
 
 NAMESPACE_ID="${KV_NAMESPACE_ID:-81fc0991b2764918b682f9ca170abd4b}"
@@ -98,6 +101,29 @@ case "$action" in
     old="$(kv_get "$arg" 2>/dev/null || true)"
     echo "Изтривам '$arg'. Съдържание до сега (${#old} знака):"; printf '%s\n' "${old:0:2000}"
     wr kv key delete --namespace-id="$NAMESPACE_ID" "$arg" --remote
+    ;;
+  plan-errors)
+    # Провалените генерирания: само кога и защо. Клиентите не се назовават.
+    keys="$(mktemp)"
+    wr kv key list --namespace-id="$NAMESPACE_ID" --prefix="client:" --remote \
+      | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=s.match(/\[[\s\S]*\]/);const a=m?JSON.parse(m[0]):[];process.stdout.write(JSON.stringify(a.map(k=>k.name)))})' > "$keys"
+    echo "Клиентски записи: $(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).length)' "$keys")"
+    wr kv bulk get --namespace-id="$NAMESPACE_ID" "$keys" --remote 2>/dev/null \
+      | node -e '
+          let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
+            const m=s.match(/\{[\s\S]*\}/); const all=m?JSON.parse(m[0]):{};
+            const rows=[];
+            for (const v of Object.values(all)) {
+              let c=v; try { if (typeof c==="string") c=JSON.parse(c); } catch { continue; }
+              if (!c || !c.planGenerationError) continue;
+              const msg=String(c.planGenerationError).replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,"[имейл]").slice(0,2000);
+              rows.push({ at: c.planUpdatedAt||"", status: c.planStatus||"", msg });
+            }
+            rows.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+            console.log(`С грешка при генериране: ${rows.length}`);
+            for (const r of rows.slice(0,10)) console.log(`\n— ${r.at} [${r.status}]\n${r.msg}`);
+          });'
+    rm -f "$keys"
     ;;
   diff)
     # Сравнява файловете в репото с живите стойности в KV (напр. редактирани от админ панела).
