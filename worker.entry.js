@@ -82,7 +82,7 @@ import {
 } from './nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from './profile-code.js';
 import { guardClientText } from './nutrition-engine/text-guard.js';
-import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSummary } from './nutrition-engine/ai-voice.js';
+import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSummary, voiceRepairPrompt, mergeVoiceRepair } from './nutrition-engine/ai-voice.js';
 import { DEFAULT_PLAN_VOICE_PROMPT } from './nutrition-engine/plan-voice-prompt.js';
 import {
   WEEKLY_CHECKIN_QUESTIONS,
@@ -7838,7 +7838,22 @@ async function writePlanVoice(env, data, plan, options = {}) {
     const vars = planVoiceVars(compileProfile(data), data, plan);
     const prompt = Object.entries(vars).reduce((s, [k, v]) => s.split(`{${k}}`).join(String(v)), String(template));
     const response = await callAIModel(env, prompt, 3500, 'plan_voice', null, data, null);
-    const voice = normalizePlanVoice(parseAIResponse(response), { dishIds: planDishIds(plan.weekPlan), blockedTerms });
+    const ctx = { dishIds: planDishIds(plan.weekPlan), blockedTerms };
+    /** @type {Array<{ field: string, text: string, reason: string }>} */
+    const rejected = [];
+    let voice = normalizePlanVoice(parseAIResponse(response), ctx, rejected);
+    // Отхвърленото не се изхвърля веднага: един опит AI да го поправи по причината.
+    // Поправеното минава през същата проверка; иначе остават текстовете на двигателя.
+    if (rejected.length) {
+      try {
+        const repairPrompt = voiceRepairPrompt(rejected, { address: voice?.tone?.address });
+        const repaired = await callAIModel(env, repairPrompt, 1500, 'plan_voice_repair', null, data, null);
+        voice = mergeVoiceRepair(voice, parseAIResponse(repaired), ctx);
+        console.log(`plan_voice: поправка на ${rejected.length} текста (${[...new Set(rejected.map(r => r.reason))].join('; ')})`);
+      } catch (error) {
+        console.warn(`plan_voice: поправката е пропусната — ${error.message}`);
+      }
+    }
     if (voice) {
       applyPlanVoice(plan, voice);
       if (plan._meta) plan._meta.voice = voiceSummary(voice);

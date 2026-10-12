@@ -1219,6 +1219,21 @@
         }
 
         .modal-prep-title { margin-top: 18px; }
+        .modal-steps {
+            margin: 0;
+            padding-left: 1.3em;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .modal-steps li { margin-bottom: 6px; padding-left: 2px; }
+        .modal-steps li::marker { color: var(--primary-red); font-weight: 700; }
+        .modal-recipe-tip {
+            margin: 10px 0 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            opacity: 0.85;
+        }
+        .modal-recipe-tip i { color: var(--primary-red); margin-right: 4px; }
         .modal-recipe {
             margin: 0;
             font-size: 0.95rem;
@@ -6278,10 +6293,23 @@
         })();
 
         function mealRecipeText(meal) {
+            // Рецептата по стъпки се показва отделно (showMealRecipeSteps).
+            if (Array.isArray(meal.recipeSteps) && meal.recipeSteps.length) return '';
             var recipe = String(meal.recipe || '').trim();
             var prep = meal.dishId && _dishPrepById ? _dishPrepById[meal.dishId] : '';
             if (prep && recipe.indexOf(prep) === -1) recipe = (prep + ' ' + recipe).trim();
             return recipe ? '\n' + recipe : '';
+        }
+
+        // Рецептата по стъпки — под състава, с времето за приготвяне и съвет.
+        function showMealRecipeSteps(meal) {
+            var steps = Array.isArray(meal.recipeSteps) ? meal.recipeSteps.filter(Boolean) : [];
+            if (!steps.length || !mDesc) return;
+            var mins = Number(meal.prepTime) > 0 ? ' · около ' + Math.round(meal.prepTime) + ' мин' : '';
+            var html = '<div class="modal-ingredients-title modal-prep-title">Приготвяне' + escapeHtml(mins) + '</div>' +
+                '<ol class="modal-steps">' + steps.map(function(st) { return '<li>' + escapeHtml(st) + '</li>'; }).join('') + '</ol>';
+            if (meal.recipeTip) html += '<p class="modal-recipe-tip"><i class="fas fa-lightbulb" aria-hidden="true"></i> ' + escapeHtml(meal.recipeTip) + '</p>';
+            mDesc.insertAdjacentHTML('beforeend', html);
         }
 
         // Личната бележка на специалиста към ястието (от гласа на плана); без нея блокът е скрит.
@@ -6314,6 +6342,7 @@
                     meal.weight || null,
                     meal.calories || null
                 );
+                showMealRecipeSteps(meal);
                 showMealPersonalNote(meal.personalNote || '');
             };
             card.addEventListener('click', function(e) {

@@ -9,7 +9,7 @@
  * е в менюто, се изпуска. При грешка планът остава с детерминистичните текстове.
  */
 
-import { isCleanClientText } from './text-guard.js';
+import { textIssues } from './text-guard.js';
 import { GOALS } from '../profile-code.js';
 import { profileBrief, collectFreeText } from './ai-assist.js';
 import { MEAL_LABELS } from './strategy.js';
@@ -106,15 +106,45 @@ function cleanLine(v, max) {
   return s.length > max ? '' : s;
 }
 
-function makeChecker(blockedTerms) {
+/** Защо текстът от AI не става — с думи, които AI разбира при поправката. */
+const ISSUE_REASONS = {
+  ai_self: 'говори за себе си като AI/модел',
+  placeholder: 'съдържа незапълнен шаблон',
+  cure_claim: 'обещава лечение или гарантиран резултат',
+  stop_meds: 'съветва за спиране или промяна на лекарство',
+  shaming: 'съдържа обидна или засрамваща дума',
+  markup: 'съдържа код или разметка',
+  english: 'е на английски',
+};
+
+function makeReason(blockedTerms) {
   const terms = (blockedTerms || [])
     .map(t => String(t).toLowerCase().replace(/^без\s+/, '').trim())
     .filter(t => t.length >= 3);
+  /** @returns {string} празно, ако текстът става */
   return (text) => {
-    if (!text || NUMBERS_RE.test(text) || !isCleanClientText(text)) return false;
+    if (!text) return 'празен';
+    if (NUMBERS_RE.test(text)) return 'съдържа количества или калории (те са работа на програмата)';
+    const issues = textIssues(text);
+    if (issues.length) return issues.map(c => ISSUE_REASONS[c] || c).join('; ');
     const low = text.toLowerCase();
-    return !terms.some(t => low.includes(t));
+    const term = terms.find(t => low.includes(t));
+    return term ? `споменава „${term}“, което клиентът не бива да яде` : '';
   };
+}
+
+function makeChecker(blockedTerms) {
+  const reason = makeReason(blockedTerms);
+  return (text) => !reason(text);
+}
+
+/** Суровият текст и защо е отхвърлен (дълъг, с шаблон, с числа…). */
+function rejectReason(raw, max, reason) {
+  const s = String(raw ?? '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  if (s.length > max) return `твърде дълъг (над ${max} знака)`;
+  if (/[{}<>]/.test(s)) return 'съдържа символи от код или шаблон';
+  return reason(s);
 }
 
 function cleanList(list, ok, { min = 0, max = 6, len = 320 } = {}) {
@@ -126,8 +156,9 @@ function cleanList(list, ok, { min = 0, max = 6, len = 320 } = {}) {
  * Отговорът на AI → проверен глас на плана или null.
  * @param {any} raw
  * @param {{ dishIds: Set<string>|string[], blockedTerms?: string[] }} ctx
+ * @param {Array<{ field: string, text: string, reason: string }>} [rejected]  тук се записва отхвърленото — за поправката
  */
-export function normalizePlanVoice(raw, ctx) {
+export function normalizePlanVoice(raw, ctx, rejected = []) {
   if (!raw || typeof raw !== 'object') return null;
   const dishIds = ctx.dishIds instanceof Set ? ctx.dishIds : new Set(ctx.dishIds || []);
   const ok = makeChecker(ctx.blockedTerms);
@@ -153,8 +184,20 @@ export function normalizePlanVoice(raw, ctx) {
     style: cleanLine(t.style, 160),
   };
 
+  const reason = makeReason(ctx.blockedTerms);
+  const reject = (field, text, max) => {
+    const why = rejectReason(text, max, reason);
+    if (why) rejected.push({ field, text: String(text).slice(0, max + 200), reason: why });
+  };
   const welcome = cleanLine(raw.welcome, 1200);
   const specialistNote = cleanLine(raw.specialistNote, 700);
+  if (!ok(welcome)) reject('welcome', raw.welcome, 1200);
+  if (!ok(specialistNote)) reject('specialistNote', raw.specialistNote, 700);
+  for (const key of ['psychology', 'habits']) {
+    for (const item of Array.isArray(raw[key]) ? raw[key] : []) {
+      if (!ok(cleanLine(item, 320))) reject(key, item, 320);
+    }
+  }
   const voice = {
     portrait,
     tone,
@@ -168,11 +211,66 @@ export function normalizePlanVoice(raw, ctx) {
     const id = String(n?.dishId || '').trim();
     const note = cleanLine(n?.note, 220);
     if (dishIds.has(id) && ok(note) && !voice.mealNotes[id]) voice.mealNotes[id] = note;
+    else if (dishIds.has(id) && !voice.mealNotes[id] && n?.note) reject(`mealNotes:${id}`, n.note, 220);
     if (Object.keys(voice.mealNotes).length >= 12) break;
   }
 
   const useful = voice.welcome || voice.psychology.length || voice.habits.length;
   return useful ? voice : null;
+}
+
+/** Най-много толкова текста се връщат на AI за поправка — една заявка, кратка. */
+const REPAIR_LIMIT = 8;
+
+/**
+ * Промптът за поправка: отхвърлените текстове с причината. AI връща само тях,
+ * пренаписани; новият отговор минава през същата проверка.
+ * @param {Array<{ field: string, text: string, reason: string }>} rejected
+ * @param {{ name?: string, address?: string }} [ctx]
+ */
+export function voiceRepairPrompt(rejected, ctx = {}) {
+  const items = rejected.slice(0, REPAIR_LIMIT).map((r, i) => `${i + 1}. [${r.field}] Причина: ${r.reason}\nТекст: ${r.text}`).join('\n\n');
+  return [
+    'Ти си редактор в екипа на NutriPlan. Следните текстове към клиент бяха отхвърлени от автоматичната проверка.',
+    `Пренапиши всеки така, че да запази смисъла и топлия тон, но да няма посочения проблем. Обръщение: ${ctx.address === 'ти' ? 'на „ти“' : 'учтиво, на „Вие“'}.`,
+    'Правила: без числа за грамове, калории, порции, дози и проценти; без продукти, които клиентът не бива да яде; без обещания за лечение; без съвети за лекарства; без код, шаблони и английски; естествен български.',
+    'Ако текстът не може да се поправи, пропусни го.',
+    '',
+    items,
+    '',
+    'Върни САМО JSON: {"items":[{"field":"<същото поле>","text":"<поправеният текст>"}]}',
+  ].join('\n');
+}
+
+/**
+ * Поправените текстове влизат там, където първият отговор е бил отхвърлен.
+ * Всеки минава отново през пълната проверка (normalizePlanVoice).
+ * @param {object} voice  гласът от първия отговор (може да е null)
+ * @param {any} raw       отговорът на поправката
+ * @param {{ dishIds: Set<string>|string[], blockedTerms?: string[] }} ctx
+ */
+export function mergeVoiceRepair(voice, raw, ctx) {
+  const items = Array.isArray(raw?.items) ? raw.items : [];
+  if (!items.length) return voice;
+  const draft = { psychology: [], habits: [], mealNotes: [], portrait: voice?.portrait, tone: voice?.tone };
+  for (const it of items) {
+    const field = String(it?.field || '');
+    const text = String(it?.text || '');
+    if (field === 'welcome' || field === 'specialistNote') draft[field] = text;
+    else if (field === 'psychology' || field === 'habits') draft[field].push(text);
+    else if (field.startsWith('mealNotes:')) draft.mealNotes.push({ dishId: field.slice(10), note: text });
+  }
+  // Списъците минават проверката поотделно (minimum 3 важи само за целия списък).
+  const fixed = normalizePlanVoice({ ...draft, psychology: [...(voice?.psychology || []), ...draft.psychology], habits: [...(voice?.habits || []), ...draft.habits] }, ctx);
+  if (!fixed) return voice;
+  if (!voice) return fixed;
+  const out = { ...voice, mealNotes: { ...voice.mealNotes } };
+  if (!out.welcome && fixed.welcome) out.welcome = fixed.welcome;
+  if (!out.specialistNote && fixed.specialistNote) out.specialistNote = fixed.specialistNote;
+  if (fixed.psychology.length > out.psychology.length) out.psychology = fixed.psychology;
+  if (fixed.habits.length > out.habits.length) out.habits = fixed.habits;
+  for (const [id, note] of Object.entries(fixed.mealNotes)) if (!out.mealNotes[id]) out.mealNotes[id] = note;
+  return out;
 }
 
 /** Дали отговорът на AI е бил използваем — за лога и админа. */

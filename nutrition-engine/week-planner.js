@@ -16,6 +16,7 @@ import { buildMeal, describeMeal, portionLine } from './meal-builder.js';
 import { normalizeFoodKey } from '../food-utils.js';
 import { FREE_MEAL, FIXED_DESSERT, FIXED_DESSERT_WEIGHT_GRAMS, morningDrinkFor } from './plan-shape.js';
 import { mealBenefits } from './benefits.js';
+import { renderRecipe } from './recipes.js';
 
 export const MEAL_KIND = {
   'Хранене 1': 'breakfast',
@@ -312,10 +313,25 @@ function toPlanMeal(type, dish, built, withDessert = false) {
     calories: round(macros.protein * 4 + macros.carbs * 4 + macros.fats * 9),
     benefits: mealBenefits(built),
   };
-  // Кратко приготвяне от ястието + подправките с грамаж 0 — да звучи като рецепта, не като списък.
-  const recipe = [dish.prep, built.flavour?.length ? `Овкусете с: ${built.flavour.join(', ')}.` : '']
-    .filter(Boolean).join(' ');
-  if (recipe) meal.recipe = recipe;
+  // Рецептата по стъпки с избраните продукти; без нея — краткото приготвяне от ястието.
+  /** @type {Record<string, string[]>} */
+  const labelsByRef = {};
+  for (const p of built.parts) {
+    if (p.ref && !p.side) (labelsByRef[p.ref] ||= []).push(...p.foods.map(id => food(id).label));
+  }
+  // Продуктите на частите, които ги няма в това хранене — съветът за тях отпада.
+  const absent = dish.parts.flatMap(p => p.options.flat()).filter(id => !built.parts.some(p => p.foods.includes(id)));
+  const steps = renderRecipe(dish.id, labelsByRef, built.flavour || [], absent.map(id => food(id).label));
+  if (steps) {
+    meal.recipeSteps = steps.steps;
+    meal.prepTime = steps.time;
+    if (steps.tip) meal.recipeTip = steps.tip;
+    meal.recipe = steps.steps.join(' ');
+  } else {
+    const recipe = [dish.prep, built.flavour?.length ? `Овкусете с: ${built.flavour.join(', ')}.` : '']
+      .filter(Boolean).join(' ');
+    if (recipe) meal.recipe = recipe;
+  }
   if (dessert) meal.dessert = dessert;
   return meal;
 }
@@ -357,6 +373,8 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     appetite: Math.max(1, (prescription.kcal || 0) / APPETITE_BASE_KCAL),
     preferenceOf: id => policy.preference(id),
     usageOf: key => state.foodUses.get(key) || 0,
+    // Седмичният лимит на флаг (солено при хипертония) е изчерпан — незадължителна добавка с него отпада.
+    limitReached: flag => policy.limitFlags[flag] != null && (state.flagUses[flag] || 0) >= policy.limitFlags[flag],
   };
   const snackCtx = { ...ctx, policy: snackPolicy, preferenceOf: id => policy.preference(id) };
 

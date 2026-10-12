@@ -621,9 +621,9 @@ const GameNotifier = {
             balance_1:    { title: 'Записано', message: 'Утре е нов ден — полека.', confetti: 10 },
             balance_2:    { title: 'Добре! 🙂', message: 'Спокойствието си струва.', confetti: 18 },
             balance_3:    { title: 'Чудесно! ✨', message: 'Позитивният заряд помага.', confetti: 30 },
-            water_yes:    { title: 'Браво! 💧', message: 'Хидратацията е на място.', confetti: 26 },
-            water_no:     { title: 'Записано', message: 'Утре е нов шанс за вода.', confetti: 10 },
-            skip:         { title: 'Ок', message: 'Пропуснато за днес.', confetti: 0 }
+            water_yes:    { title: 'Браво! 💧', message: 'Пиете достатъчно вода — чудесно.', confetti: 26 },
+            water_no:     { title: 'Записано', message: 'Утре опитайте да пиете малко повече.', confetti: 10 },
+            skip:         { title: 'Добре', message: 'Пропуснато за днес.', confetti: 0 }
         };
         return map[actionId] || { title: 'Готово ✨', message: 'Отговорът е записан.', confetti: 16 };
     },
@@ -765,7 +765,7 @@ const GameNotifier = {
         const recordKey = this._dateKeyForTimestamp(fireAtTs);
         const cfg = this._getConfig();
         const title = cfg.eveningTitle || 'Вечерна проверка';
-        const body = cfg.eveningBody || 'Как мина денят ти?';
+        const body = cfg.eveningBody || 'Как мина денят Ви?';
         const url = this._buildQuickAnswerUrl('evening_check', { date: recordKey });
 
         if (this._capacitor) {

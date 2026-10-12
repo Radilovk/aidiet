@@ -182,8 +182,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -278,8 +276,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -366,8 +362,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -445,8 +439,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -534,8 +526,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -624,8 +614,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -717,8 +705,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -818,8 +804,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -991,8 +975,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1177,8 +1159,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1265,8 +1245,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1360,8 +1338,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1463,8 +1439,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1548,8 +1522,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1637,8 +1609,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1720,8 +1690,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1807,8 +1775,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1896,8 +1862,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -1991,8 +1955,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2055,8 +2017,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2144,8 +2104,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2228,10 +2186,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2312,10 +2267,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2402,8 +2354,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2507,8 +2457,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2606,8 +2554,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2691,10 +2637,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2782,10 +2725,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -2893,8 +2833,7 @@
             "fat_avocado",
             "fat_olives",
             "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_walnuts"
           ],
           "range": [
             0,
@@ -2977,8 +2916,7 @@
             "fat_avocado",
             "fat_olives",
             "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_walnuts"
           ],
           "range": [
             0,
@@ -3064,8 +3002,7 @@
             "fat_avocado",
             "fat_olives",
             "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_walnuts"
           ],
           "range": [
             0,
@@ -3144,8 +3081,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -3237,8 +3172,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -3294,10 +3227,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -3633,8 +3563,7 @@
             "fat_avocado",
             "fat_olives",
             "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_walnuts"
           ],
           "range": [
             0,
@@ -3716,8 +3645,7 @@
             "fat_avocado",
             "fat_olives",
             "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_walnuts"
           ],
           "range": [
             0,
@@ -3862,10 +3790,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -3956,8 +3881,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4052,8 +3975,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4132,8 +4053,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4215,10 +4134,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4291,10 +4207,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4369,10 +4282,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4443,10 +4353,6 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4545,10 +4451,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4617,11 +4520,8 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_walnuts"
           ],
           "range": [
             0,
@@ -4716,10 +4616,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4801,10 +4698,6 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -4887,8 +4780,7 @@
             "fat_avocado",
             "fat_olives",
             "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_walnuts"
           ],
           "range": [
             0,
@@ -4962,11 +4854,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_olives"
           ],
           "range": [
             0,
@@ -5039,8 +4927,6 @@
           "options": [
             "fat_avocado",
             "fat_olives",
-            "fat_almonds",
-            "fat_walnuts",
             "fat_butter"
           ],
           "range": [
@@ -5125,8 +5011,6 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
             "fat_almonds",
             "fat_walnuts",
             "fat_butter"
@@ -5220,8 +5104,6 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
             "fat_almonds",
             "fat_walnuts",
             "fat_butter"
@@ -5325,8 +5207,7 @@
             "fat_avocado",
             "fat_olives",
             "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_walnuts"
           ],
           "range": [
             0,
@@ -5409,8 +5290,7 @@
             "fat_avocado",
             "fat_olives",
             "fat_almonds",
-            "fat_walnuts",
-            "fat_butter"
+            "fat_walnuts"
           ],
           "range": [
             0,
@@ -8273,7 +8153,7 @@
         "main"
       ],
       "category": "plant",
-      "name": "Нахут с домати и зехтин",
+      "name": "Топла салата с нахут и зеленчуци",
       "prep": "Затоплете отцедения нахут, смесете го с нарязаните зеленчуци и гарнитурата и овкусете с мазнината, лимонов сок и кимион.",
       "parts": [
         {
@@ -8385,10 +8265,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts"
+            "fat_olives"
           ],
           "range": [
             0,
@@ -8466,10 +8343,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_avocado",
-            "fat_olives",
-            "fat_almonds",
-            "fat_walnuts"
+            "fat_olives"
           ],
           "range": [
             0,
@@ -8615,8 +8489,7 @@
         {
           "group": "FAT",
           "options": [
-            "fat_olives",
-            "fat_walnuts"
+            "fat_olives"
           ],
           "range": [
             0,

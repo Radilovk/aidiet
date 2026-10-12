@@ -14,7 +14,9 @@ import { buildNutritionPlan, reconcileEnginePlan, mergePlanModifications } from 
 import { serializeWeekPlanClient, serializeStrategyForMealPlan } from '../context-compression.js';
 import { buildFoodPolicy } from '../nutrition-engine/policy.js';
 import { prescribe } from '../nutrition-engine/prescription.js';
-import { foodByCatalogName, DISHES_BY_ID } from '../nutrition-engine/knowledge.js';
+import { foodByCatalogName, DISHES_BY_ID, DISHES, food, AVOID_PAIRS, hasAvoidedPair } from '../nutrition-engine/knowledge.js';
+import { renderRecipe, RECIPES } from '../nutrition-engine/recipes.js';
+import { validateRecipes } from './culinary/validate.mjs';
 import { KITCHEN_GRID } from '../nutrition-engine/portions.js';
 import { buildEngineStrategy } from '../nutrition-engine/strategy.js';
 import { buildDeterministicAnalysis } from '../analysis-deterministic.js';
@@ -197,7 +199,7 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const notFollowed = decideWeeklyAdjustment({ ...lossBase, checkin: slowW, history: [{ weight: 'flat', followed: false }] });
   ok(notFollowed.calorieAdjust === 0, 'история: неспазена седмица не се брои за застой');
   const partial = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin(kgAns(90, 'Повечето'), { status: 'active', mealDays: 5, mealAdherence: 50 }, { prevWeightKg: 90 }) });
-  ok(partial.calorieAdjust === 0 && /Придържане около 65%/.test(partial.reasoning), 'частично спазване — без корекция, с обяснение');
+  ok(partial.calorieAdjust === 0 && /Спазване на плана: около 65%/.test(partial.reasoning), 'частично спазване — без корекция, с обяснение');
   const zeroApp = readCheckin([{ questionId: 'adherence', value: 'Почти всички' }], { status: 'active', mealDays: 4, mealAdherence: 0 });
   ok(zeroApp.adherence === 48, 'спазване: 0% от приложението се отчита (не се губи като null)');
   const gainBase = { goal: 'GAIN', kcal: 2800, tdee: 2550, floorKcal: 1500, weightKg: 75, baseKcal: 2800 };
@@ -331,6 +333,49 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
       `${id}: изварата е само с горски плодове (${fruits.join(', ')})`);
   }
   ok(!DISHES_BY_ID.get('b_chickpea_breakfast')?.meals.includes('breakfast'), 'нахут с домати не е закуска');
+}
+
+// Рецептите: всяко ястие има рецепта, която минава проверката (без грамове,
+// без продукти извън ястието, без незапълнени места).
+{
+  const bad = validateRecipes(RECIPES);
+  ok(!Object.keys(bad).length, `рецепти: всички минават проверката (${Object.entries(bad).slice(0, 3).map(([id, i]) => `${id}: ${i[0]}`).join('; ')})`);
+  ok(DISHES.every(d => RECIPES[d.id]), 'рецепти: всяко ястие има рецепта');
+  // Незадължителна част липсва → стъпката ѝ отпада; няколко продукта → без „… и … и …“.
+  const r = renderRecipe('m_chicken_skewers', { PRO: ['пилешко филе'], VEG: ['чушки', 'тиквички'], STA: ['киноа'], FAT: ['зехтин'] });
+  ok(r && !r.steps.some(s => /\{|\}/.test(s)), 'рецепта: всички места са попълнени');
+  ok(r && r.steps[0].includes('пилешко филе, чушки и тиквички'), `рецепта: няколко продукта със запетая, без „… и … и …“ (${r?.steps[0]})`);
+  ok(r && !r.steps.some(s => /изпечете киноа/i.test(s)), 'рецепта: киноата се вари, не се пече');
+  ok(renderRecipe('няма_такова', {}) === null, 'рецепта: непознато ястие → без рецепта (остава краткото приготвяне)');
+}
+
+// Съчетания: правилата от pairings.json се спазват; същата храна не влиза два пъти като добавка.
+{
+  ok(!hasAvoidedPair(['dairy_cottage', 'fruit_strawberry']), 'съчетания: извара с ягоди е позволена');
+  for (const [a, set] of AVOID_PAIRS) for (const b of set) ok(hasAvoidedPair([a, b]), `съчетания: ${a} + ${b} се отхвърля`);
+}
+
+// Сглобените планове: рецепта по стъпки, без остатъци и без забранени двойки.
+{
+  const base = { gender: 'Жена', age: 35, height: 165, weight: 70, goal: 'Отслабване' };
+  const variants = [{}, { dietPreference: ['Кетогенна'] }, { dietPreference: ['Веган'] }, { dietPreference: ['Вегетарианска'] }];
+  let meals = 0; let withSteps = 0; const problems = [];
+  for (const [i, extra] of variants.entries()) {
+    const data = { ...base, ...extra };
+    enrichUserDataEngineContext(data);
+    const { weekPlan } = buildNutritionPlan(data, { kcal: 1700, seed: 7 + i });
+    for (const day of Object.values(weekPlan)) for (const m of day.meals || []) {
+      if (!m.dishId) continue;
+      meals++;
+      if (m.recipeSteps?.length) withSteps++;
+      const text = (m.recipeSteps || []).join(' ') + ' ' + (m.recipeTip || '');
+      if (/\{|\}|undefined|null|NaN/.test(text)) problems.push(`${m.name}: остатък в рецептата`);
+      if (/(^|\s)с\s[сзСЗ]/.test(text)) problems.push(`${m.name}: „с“ вместо „със“`);
+      if (/(^|\s)(и|с)\s+\2\s/.test(`${m.name} ${text}`)) problems.push(`${m.name}: повторен предлог`);
+    }
+  }
+  ok(meals > 0 && withSteps === meals, `планове: всяко ястие е с рецепта по стъпки (${withSteps}/${meals})`);
+  ok(!problems.length, `планове: рецептите са чисти (${problems.slice(0, 3).join('; ')})`);
 }
 
 console.log(`\n=== nutrition engine: ${pass} pass, ${fail} fail ===`);
