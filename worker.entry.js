@@ -10178,7 +10178,12 @@ function getPromptKVKey(type) {
     'menu_analysis': 'admin_menu_analysis_prompt',
     'validation': 'admin_validation_prompt',
     'weekly_questions': 'admin_weekly_questions_prompt',
-    'weekly_adaptation': 'admin_weekly_adaptation_prompt'
+    'weekly_adaptation': 'admin_weekly_adaptation_prompt',
+    // Промптовете на новия двигател (AI пише само текстове и разчита свободния текст).
+    'plan_voice': 'admin_plan_voice_prompt',
+    'intake_hints': 'admin_intake_hints_prompt',
+    'menu_review': 'admin_menu_review_prompt',
+    'feedback_hints': 'admin_feedback_hints_prompt'
   };
   
   return keyMap[type] || null;
@@ -10255,7 +10260,11 @@ async function handleGetDefaultPrompt(request, env) {
       'menu_analysis': 'admin_menu_analysis_prompt',
       'validation': 'admin_validation_prompt',
       'weekly_questions': 'admin_weekly_questions_prompt',
-      'weekly_adaptation': 'admin_weekly_adaptation_prompt'
+      'weekly_adaptation': 'admin_weekly_adaptation_prompt',
+      'plan_voice': 'admin_plan_voice_prompt',
+      'intake_hints': 'admin_intake_hints_prompt',
+      'menu_review': 'admin_menu_review_prompt',
+      'feedback_hints': 'admin_feedback_hints_prompt'
     };
     
     const kvKey = promptKeyMap[type];
@@ -10280,6 +10289,8 @@ async function handleGetDefaultPrompt(request, env) {
       // "Виж Текущ Промпт" button always shows something useful.
       if (type === 'validation') {
         prompt = DEFAULT_VALIDATION_PROMPT_TEMPLATE;
+      } else if (type === 'plan_voice') {
+        prompt = DEFAULT_PLAN_VOICE_PROMPT;
       } else {
         return jsonResponse({ 
           error: `Prompt not found in KV storage. Please upload prompts using ./KV/upload-kv-keys.sh`,
@@ -10288,9 +10299,8 @@ async function handleGetDefaultPrompt(request, env) {
       }
     }
     
-    return jsonResponse({ success: true, prompt: prompt }, 200, {
-      cacheControl: 'public, max-age=1800' // Cache for 30 minutes
-    });
+    // Без кеш: след запис админът трябва да види новия текст веднага.
+    return jsonResponse({ success: true, prompt: prompt }, 200, { cacheControl: 'no-store' });
   } catch (error) {
     console.error('Error getting default prompt:', error);
     return jsonResponse({ error: 'Failed to get default prompt: ' + error.message }, 500);

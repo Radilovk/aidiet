@@ -1922,6 +1922,49 @@
 
             <!-- AI Prompts Tab -->
             <div id="tab-ai-prompts" class="tab-content">
+            <!-- Активните AI промптове (новият двигател) -->
+            <div class="card" id="activePromptsCard">
+                <h2><i class="fas fa-wand-magic-sparkles"></i> Активни AI промптове</h2>
+                <p style="color:var(--text-gray);margin:0 0 12px;font-size:0.9rem;">Тези промптове се ползват сега. Менюто, калориите и количествата ги прави двигателят — AI пише само текстовете и разчита свободния текст. Записът е веднага в сила (KV); при следващ деплой на KV/ файлът от репото презаписва ключа, затова трайна промяна правете и в <a href="https://github.com/Radilovk/aidiet/tree/main/KV/prompts" target="_blank" rel="noopener">KV/prompts</a>.</p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+                    <select id="activePromptType" style="flex:1;min-width:240px;padding:10px;border-radius:10px;border:1px solid var(--border-color,#ddd);">
+                        <option value="plan_voice">Писмо, бележки и съвети към плана (глас на плана)</option>
+                        <option value="intake_hints">Разчитане на въпросника (свободен текст → кодове)</option>
+                        <option value="menu_review">Преглед на менюто (замени по свободния текст)</option>
+                        <option value="feedback_hints">Коментар от седмичния преглед</option>
+                        <option value="weekly_adaptation">Седмична корекция</option>
+                        <option value="consultation">Чат — консултация</option>
+                        <option value="modification">Чат — промяна на плана</option>
+                        <option value="food_analysis">Анализ на храна от снимка</option>
+                        <option value="menu_analysis">Анализ на меню от ресторант</option>
+                        <option value="emoeat">Емоционално хранене</option>
+                        <option value="validation">Предупреждения към въпросника</option>
+                        <option value="analysis">Анализ (текст към анализа)</option>
+                    </select>
+                    <button class="btn" type="button" onclick="loadActivePrompt()"><i class="fas fa-download"></i> Зареди</button>
+                    <button class="btn" type="button" style="background:#0D9488;" onclick="saveActivePrompt()"><i class="fas fa-save"></i> Запази</button>
+                </div>
+                <textarea id="activePromptText" rows="18" style="width:100%;font-family:ui-monospace,Menlo,monospace;font-size:0.82rem;line-height:1.45;padding:12px;border-radius:10px;border:1px solid var(--border-color,#ddd);" placeholder="Изберете промпт и натиснете „Зареди“."></textarea>
+                <div id="activePromptStatus" style="margin-top:6px;font-size:0.85rem;color:var(--text-gray);"></div>
+                <details style="margin-top:12px;"><summary style="cursor:pointer;color:var(--text-gray);font-size:0.85rem;">Кои промптове по-долу вече не се ползват?</summary>
+                    <p style="font-size:0.85rem;color:var(--text-gray);margin:8px 0 0;">„Генериране на план“, „Стратегия (Стъпка 2)“, „Хранителен план (Стъпка 3)“, „Обогатяване (Стъпка 5)“, „Обобщение (Стъпка 4)“ и „Корекция на план“ са от стария AI генератор. Новият двигател сглобява менюто по правила и не ги чете — промяната им няма ефект.</p>
+                </details>
+            </div>
+
+            <!-- Храни, ястия и рецепти на двигателя -->
+            <div class="card" id="engineDataCard">
+                <h2><i class="fas fa-carrot"></i> Храни, ястия и рецепти</h2>
+                <p style="color:var(--text-gray);margin:0 0 12px;font-size:0.9rem;">Данните, от които двигателят сглобява менюто. Промяна — с „Редактирай“ (GitHub); след сливане в main се качват автоматично и тестовете ги проверяват.</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                    <button class="btn" type="button" onclick="showEngineData('foods')"><i class="fas fa-apple-whole"></i> Храни</button>
+                    <button class="btn" type="button" onclick="showEngineData('dishes')"><i class="fas fa-utensils"></i> Ястия</button>
+                    <button class="btn" type="button" onclick="showEngineData('recipes')"><i class="fas fa-book-open"></i> Рецепти</button>
+                    <button class="btn" type="button" onclick="showEngineData('pairings')"><i class="fas fa-ban"></i> Забранени съчетания</button>
+                    <input id="engineDataSearch" type="search" placeholder="Търсене…" oninput="renderEngineData()" style="flex:1;min-width:160px;padding:9px 12px;border-radius:10px;border:1px solid var(--border-color,#ddd);">
+                </div>
+                <div id="engineDataMeta" style="font-size:0.85rem;color:var(--text-gray);margin-bottom:8px;"></div>
+                <div id="engineDataView" style="max-height:520px;overflow:auto;border:1px solid var(--border-color,#eee);border-radius:10px;"></div>
+            </div>
             <!-- AI Prompt Editor -->
             <div class="card">
                 <h2><i class="fas fa-pen-fancy"></i> AI Промпт за Генериране на План</h2>
@@ -7015,6 +7058,82 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 console.error('Error saving step token limits:', error);
                 showError('Грешка при записване: ' + error.message);
             }
+        }
+
+        // ── Активни AI промптове ─────────────────────────────────────────
+        async function loadActivePrompt() {
+            const type = document.getElementById('activePromptType').value;
+            const status = document.getElementById('activePromptStatus');
+            status.textContent = 'Зареждане…';
+            try {
+                const r = await fetch(WORKER_URL + '/api/admin/get-default-prompt?type=' + encodeURIComponent(type) + '&t=' + Date.now(), { cache: 'no-store' });
+                const d = await r.json();
+                if (!r.ok || !d.success) throw new Error(d.error || ('HTTP ' + r.status));
+                document.getElementById('activePromptText').value = d.prompt || '';
+                status.textContent = 'Заредено: ' + (d.prompt || '').length + ' знака.';
+            } catch (e) { status.textContent = 'Грешка: ' + e.message; }
+        }
+
+        async function saveActivePrompt() {
+            const type = document.getElementById('activePromptType').value;
+            const prompt = document.getElementById('activePromptText').value;
+            const status = document.getElementById('activePromptStatus');
+            if (prompt.trim().length < 50) { status.textContent = 'Промптът е твърде кратък — не е записан.'; return; }
+            if (!confirm('Записване на промпта? Влиза в сила веднага.')) return;
+            status.textContent = 'Записване…';
+            try {
+                const r = await fetch(WORKER_URL + '/api/admin/save-prompt', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, prompt })
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+                status.textContent = 'Записано. Трайна промяна — и във файла в KV/prompts.';
+            } catch (e) { status.textContent = 'Грешка: ' + e.message; }
+        }
+
+        // ── Храни, ястия, рецепти (само преглед; промяна през GitHub) ───────
+        const ENGINE_DATA_FILES = {
+            foods: 'data/engine/foods.json', dishes: 'data/engine/dishes.json',
+            recipes: 'data/engine/recipes.json', pairings: 'data/engine/pairings.json'
+        };
+        let engineDataKind = null, engineDataDoc = null;
+        async function showEngineData(kind) {
+            engineDataKind = kind;
+            const meta = document.getElementById('engineDataMeta');
+            meta.textContent = 'Зареждане…';
+            try {
+                const r = await fetch(ENGINE_DATA_FILES[kind] + '?t=' + Date.now(), { cache: 'no-store' });
+                engineDataDoc = await r.json();
+                renderEngineData();
+            } catch (e) { meta.textContent = 'Грешка: ' + e.message; }
+        }
+        function renderEngineData() {
+            if (!engineDataDoc) return;
+            const q = (document.getElementById('engineDataSearch').value || '').toLowerCase().trim();
+            const edit = 'https://github.com/Radilovk/aidiet/edit/main/' + ENGINE_DATA_FILES[engineDataKind];
+            let rows = [];
+            if (engineDataKind === 'foods') {
+                rows = Object.entries(engineDataDoc.foods || {}).map(([id, f]) => [id, f.label, f.group, (f.flags || []).join(', '), f.serving ? f.serving + ' г' : '']);
+                rows.unshift(['id', 'име', 'група', 'флагове', 'порция']);
+            } else if (engineDataKind === 'dishes') {
+                rows = (engineDataDoc.dishes || []).map(d => [d.id, d.name, (d.meals || []).join(', '), (d.parts || []).map(p => p.group + ': ' + (p.options || []).map(o => [].concat(o).join('+')).join(' / ')).join(' · ')]);
+                rows.unshift(['id', 'име', 'хранене', 'части и варианти']);
+            } else if (engineDataKind === 'recipes') {
+                rows = Object.entries(engineDataDoc.recipes || {}).map(([id, r]) => [id, (r.time || '') + ' мин', (r.steps || []).map((s, i) => (i + 1) + '. ' + s).join(' '), r.tip || '']);
+                rows.unshift(['ястие', 'време', 'стъпки', 'съвет']);
+            } else {
+                rows = (engineDataDoc.avoid || []).map(a => [(a.foods || []).join(' + '), a.reason || '']);
+                rows.unshift(['двойка храни', 'причина']);
+            }
+            const head = rows.shift();
+            const shown = q ? rows.filter(r => r.join(' ').toLowerCase().includes(q)) : rows;
+            document.getElementById('engineDataMeta').innerHTML = shown.length + ' от ' + rows.length + ' · <a href="' + edit + '" target="_blank" rel="noopener"><i class="fas fa-pen"></i> Редактирай в GitHub</a>';
+            const esc = v => escapeHtml(String(v == null ? '' : v));
+            document.getElementById('engineDataView').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">' +
+                '<thead><tr>' + head.map(h => '<th style="text-align:left;padding:8px;position:sticky;top:0;background:var(--white,#fff);border-bottom:1px solid #ddd;">' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' +
+                shown.map(r => '<tr>' + r.map(c => '<td style="padding:7px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;">' + esc(c) + '</td>').join('') + '</tr>').join('') +
+                '</tbody></table>';
         }
 
         async function saveAIPrompt() {
