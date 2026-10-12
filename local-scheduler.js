@@ -49,7 +49,7 @@ const GameNotifier = {
     // Same wording as the in-app AI assistant bubbles (plan.html showBubble).
     COPY: {
         morning: {
-            title: 'AI Асистент',
+            title: 'NutriPlan',
             body:  'Спахте ли добре тази нощ?',
             actions: [
                 { id: 'sleep_yes', title: 'Да', value: true },
@@ -57,26 +57,26 @@ const GameNotifier = {
             ]
         },
         eveningActivity: {
-            title: 'AI Асистент',
-            body:  'Ниво на активност?',
+            title: 'NutriPlan',
+            body:  'Колко се движихте днес?',
             actions: [
-                { id: 'activity_1', title: 'Ниска', value: 1 },
-                { id: 'activity_2', title: 'Умерена', value: 2 },
-                { id: 'activity_3', title: 'Висока', value: 3 }
+                { id: 'activity_1', title: 'Малко', value: 1 },
+                { id: 'activity_2', title: 'Умерено', value: 2 },
+                { id: 'activity_3', title: 'Много', value: 3 }
             ]
         },
         eveningBalance: {
-            title: 'AI Асистент',
-            body:  'Емоционален баланс?',
+            title: 'NutriPlan',
+            body:  'Как се чувствахте днес?',
             actions: [
-                { id: 'balance_1', title: 'Напрегнат', value: 1 },
-                { id: 'balance_2', title: 'Спокоен', value: 2 },
-                { id: 'balance_3', title: 'Позитивен', value: 3 }
+                { id: 'balance_1', title: 'Напрегнато', value: 1 },
+                { id: 'balance_2', title: 'Спокойно', value: 2 },
+                { id: 'balance_3', title: 'Позитивно', value: 3 }
             ]
         },
         eveningWater: {
-            title: 'AI Асистент',
-            body:  'Изпихте ли поне 2 л вода?',
+            title: 'NutriPlan',
+            body:  'Пихте ли достатъчно вода днес?',
             actions: [
                 { id: 'water_no',  title: 'Не', value: false },
                 { id: 'water_yes', title: 'Да', value: true }
@@ -347,13 +347,13 @@ const GameNotifier = {
         const activityIcons = {
             1: '<i class="fas fa-couch" style="color:#fff;font-size:1em"></i>',
             2: '<i class="fas fa-person-walking" style="color:#fff;font-size:1em"></i>',
-            3: '<i class="fas fa-fire" style="color:#fff;font-size:1em"></i>',
+            3: '<i class="fas fa-person-running" style="color:#fff;font-size:1em"></i>',
         };
         const activityCls = { 1: 'tier-low', 2: 'tier-mid', 3: 'tier-high' };
         const balanceIcons = {
-            1: '<i class="fas fa-cloud-rain" style="color:#fff;font-size:1em"></i>',
-            2: '<i class="fas fa-leaf" style="color:#fff;font-size:1em"></i>',
-            3: '<i class="fas fa-sun" style="color:#fff;font-size:1em"></i>',
+            1: '<i class="fas fa-face-grimace" style="color:#fff;font-size:1.15em"></i>',
+            2: '<i class="fas fa-face-smile" style="color:#fff;font-size:1.15em"></i>',
+            3: '<i class="fas fa-face-grin-beam" style="color:#fff;font-size:1.15em"></i>',
         };
         const balanceCls = { 1: 'tier-calm', 2: 'tier-mid', 3: 'tier-high' };
 
@@ -455,11 +455,20 @@ const GameNotifier = {
         try { localStorage.removeItem(this.LS_SILENT_APPLY_UNTIL_KEY); } catch (_) {}
     },
 
+    /** Лице или човече пред отговора в системното известие (там бутоните са само текст). */
+    ACTION_EMOJI: {
+        activity_1: '🛋️', activity_2: '🚶', activity_3: '🏃',
+        balance_1: '😣', balance_2: '🙂', balance_3: '😄'
+    },
+
+    _notificationActionTitle(item) {
+        const title = String(item && item.title || '').trim();
+        const emoji = item && this.ACTION_EMOJI[item.id];
+        return emoji && title.indexOf(emoji) !== 0 ? emoji + ' ' + title : title;
+    },
+
     _capacitorActionTitle(title) {
         const compact = {
-            'Напрегнат': 'Напрег.',
-            'Позитивен': 'Позит.',
-            'Умерена': 'Умер.',
             'Пропуск': 'Проп.'
         };
         const raw = String(title || '').trim();
@@ -596,7 +605,7 @@ const GameNotifier = {
         const bodyKey = 'evening' + cap + 'Body';
         const copy = this.COPY[meta.copyKey] || {};
         return {
-            title: cfg[titleKey] || copy.title || 'AI Асистент',
+            title: cfg[titleKey] || copy.title || 'NutriPlan',
             body:  cfg[bodyKey] || copy.body || '',
             actions: this._actionsFromConfig(cfg, meta)
         };
@@ -923,7 +932,7 @@ const GameNotifier = {
                 {
                     id: this.MORNING_ACTION_TYPE_ID,
                     actions: this._actionsFromConfig(cfg, this.MORNING_META).map((item) => ({
-                        id: item.id, title: this._capacitorActionTitle(item.title), foreground: false
+                        id: item.id, title: this._capacitorActionTitle(this._notificationActionTitle(item)), foreground: false
                     }))
                 }
             ];
@@ -931,7 +940,7 @@ const GameNotifier = {
                 types.push({
                     id: this[def.actionTypeKey],
                     actions: this._actionsFromConfig(cfg, def).map((item) => ({
-                        id: item.id, title: this._capacitorActionTitle(item.title), foreground: false
+                        id: item.id, title: this._capacitorActionTitle(this._notificationActionTitle(item)), foreground: false
                     }))
                 });
             });
@@ -1259,9 +1268,32 @@ const GameNotifier = {
         } catch (_) {}
     },
 
+    /** Старите текстове от запазени настройки → новите (същите стойности, по-човешки думи). */
+    LEGACY_COPY: {
+        'AI Асистент': 'NutriPlan',
+        'Ниво на активност?': 'Колко се движихте днес?',
+        'Емоционален баланс?': 'Как се чувствахте днес?',
+        'Изпихте ли поне 2 л вода?': 'Пихте ли достатъчно вода днес?',
+        'Ниска': 'Малко', 'Умерена': 'Умерено', 'Висока': 'Много',
+        'Напрегнат': 'Напрегнато', 'Спокоен': 'Спокойно', 'Позитивен': 'Позитивно'
+    },
+
+    _migrateLegacyCopy(cfg) {
+        const map = this.LEGACY_COPY;
+        const fix = (v) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(map, v.trim()) ? map[v.trim()] : v);
+        Object.keys(cfg).forEach((key) => {
+            const v = cfg[key];
+            if (typeof v === 'string' && /(Title|Body)$/.test(key)) cfg[key] = fix(v);
+            else if (Array.isArray(v) && /Actions$/.test(key)) {
+                cfg[key] = v.map((a) => (a && typeof a === 'object' ? Object.assign({}, a, { title: fix(a.title) }) : a));
+            }
+        });
+        return cfg;
+    },
+
     normalizeConfig(raw) {
         const defaults = this._getConfigDefaults();
-        const merged = Object.assign({}, defaults, raw || {});
+        const merged = this._migrateLegacyCopy(Object.assign({}, defaults, raw || {}));
         if (!Array.isArray(merged.extraNotifications)) merged.extraNotifications = [];
 
         const legacyTime = merged.eveningTime || '20:00';
@@ -1328,7 +1360,7 @@ const GameNotifier = {
             return {
                 type: def.type,
                 time: normalized[timeKey] || this._offsetTimeString('20:00', def.defaultOffsetMin),
-                title: normalized[titleKey] || copy.title || 'AI Асистент',
+                title: normalized[titleKey] || copy.title || 'NutriPlan',
                 body: normalized[bodyKey] || copy.body || '',
                 actions: this._actionsFromConfig(normalized, def),
                 actionTypeId: this[def.actionTypeKey],
@@ -1689,7 +1721,7 @@ const GameNotifier = {
 
     _swActionsFromList(actions) {
         if (!Array.isArray(actions) || !actions.length) return undefined;
-        return actions.map((item) => ({ action: item.id, title: item.title }));
+        return actions.map((item) => ({ action: item.id, title: this._notificationActionTitle(item) }));
     },
 
     _saveMorningAnswer(recordKey, sleptWell) {

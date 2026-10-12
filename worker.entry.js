@@ -81,6 +81,7 @@ import {
   profileBrief,
 } from './nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from './profile-code.js';
+import { guardClientText } from './nutrition-engine/text-guard.js';
 import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSummary } from './nutrition-engine/ai-voice.js';
 import { DEFAULT_PLAN_VOICE_PROMPT } from './nutrition-engine/plan-voice-prompt.js';
 import {
@@ -3749,6 +3750,11 @@ async function handleChat(request, env) {
       }
     }
     
+    // Нищо неадекватно към клиента: „като AI…“, шаблони, обещания за лечение, спиране на лекарства, обидни думи.
+    const guarded = guardClientText(finalResponse);
+    if (guarded.removed.length) console.warn('[chat] махнати изречения:', guarded.removed.join(', '));
+    finalResponse = guarded.text;
+
     // Build updated conversation history for client to store
     const updatedHistory = [...chatHistory];
     updatedHistory.push(
@@ -9124,9 +9130,8 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
       return jsonResponse({
         success: true,
         analysis: null,
-        rawResponse: aiResponse,
         parseError: true,
-        message: 'AI анализът е готов, но не успяхме да го структурираме. Вижте суровия отговор.'
+        message: 'Снимката не беше разпозната. Опитайте отново с по-ясна снимка.'
       });
     }
 
@@ -9281,9 +9286,8 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
       return jsonResponse({
         success: true,
         analysis: null,
-        rawResponse: aiResponse,
         parseError: true,
-        message: 'AI анализът е готов, но не успяхме да го структурираме. Вижте суровия отговор.'
+        message: 'Снимката не беше разпозната. Опитайте отново с по-ясна снимка.'
       });
     }
 
@@ -9440,7 +9444,6 @@ async function handleAnalyzeKidsFoodImage(request, env) {
       return jsonResponse({
         success: true,
         analysis: null,
-        rawResponse: aiResponse,
         parseError: true,
         message: 'AI анализът е готов, но не успяхме да го структурираме.'
       });
@@ -12786,17 +12789,17 @@ async function handleGetCalendarIcs(request, env) {
   // Read global notification config from KV (same data store as /api/notification-config)
   const defaults = {
     morningTime:  '07:00',
-    morningTitle: 'AI Асистент',
+    morningTitle: 'NutriPlan',
     morningBody:  'Спахте ли добре тази нощ?',
     eveningActivityTime:  '20:00',
-    eveningActivityTitle: 'AI Асистент',
-    eveningActivityBody:  'Ниво на активност?',
+    eveningActivityTitle: 'NutriPlan',
+    eveningActivityBody:  'Колко се движихте днес?',
     eveningBalanceTime:   '20:05',
-    eveningBalanceTitle:  'AI Асистент',
-    eveningBalanceBody:   'Емоционален баланс?',
+    eveningBalanceTitle:  'NutriPlan',
+    eveningBalanceBody:   'Как се чувствахте днес?',
     eveningWaterTime:     '20:10',
-    eveningWaterTitle:    'AI Асистент',
-    eveningWaterBody:     'Изпихте ли поне 2 л вода?',
+    eveningWaterTitle:    'NutriPlan',
+    eveningWaterBody:     'Пихте ли достатъчно вода днес?',
     eveningTime:  '20:00',
   };
   let cfg = Object.assign({}, defaults);
@@ -12806,6 +12809,16 @@ async function handleGetCalendarIcs(request, env) {
       if (raw) cfg = Object.assign(cfg, JSON.parse(raw));
     }
   } catch (_) {}
+  // Старите текстове от запазени настройки → новите (същото като local-scheduler.js).
+  const LEGACY_COPY = {
+    'AI Асистент': 'NutriPlan',
+    'Ниво на активност?': 'Колко се движихте днес?',
+    'Емоционален баланс?': 'Как се чувствахте днес?',
+    'Изпихте ли поне 2 л вода?': 'Пихте ли достатъчно вода днес?',
+  };
+  for (const key of Object.keys(cfg)) {
+    if (/(Title|Body)$/.test(key) && typeof cfg[key] === 'string' && LEGACY_COPY[cfg[key].trim()]) cfg[key] = LEGACY_COPY[cfg[key].trim()];
+  }
 
   const pad = n => String(n).padStart(2, '0');
   function offsetTimeString(timeStr, addMinutes) {
@@ -13974,7 +13987,7 @@ async function handleAdminSendMessage(request, env) {
     // Send notification to user by calling handlePushSend directly
     const pushPayload = {
       userId: userId,
-      title: 'AI Асистент - NutriPlan',
+      title: 'Съобщение от NutriPlan',
       body: message,
       url: '/plan.html',
       notificationType: 'chat'

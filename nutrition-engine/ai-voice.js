@@ -9,6 +9,7 @@
  * е в менюто, се изпуска. При грешка планът остава с детерминистичните текстове.
  */
 
+import { isCleanClientText } from './text-guard.js';
 import { GOALS } from '../profile-code.js';
 import { profileBrief, collectFreeText } from './ai-assist.js';
 import { MEAL_LABELS } from './strategy.js';
@@ -110,7 +111,7 @@ function makeChecker(blockedTerms) {
     .map(t => String(t).toLowerCase().replace(/^без\s+/, '').trim())
     .filter(t => t.length >= 3);
   return (text) => {
-    if (!text || NUMBERS_RE.test(text)) return false;
+    if (!text || NUMBERS_RE.test(text) || !isCleanClientText(text)) return false;
     const low = text.toLowerCase();
     return !terms.some(t => low.includes(t));
   };

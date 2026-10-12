@@ -2078,6 +2078,7 @@
             justify-content: center;
             font-size: 15px;
             flex-shrink: 0;
+            overflow: hidden;
         }
         .game-bubble-greeting {
             color: white;
@@ -2116,8 +2117,10 @@
         .game-bubble-answers.visible { opacity: 1; transform: translateY(0); }
         /* Yes / No buttons */
         .game-answer-btn {
-            flex: 1;
+            /* Ширината е според текста — при голям шрифт бутоните минават на нов ред, не излизат от балона. */
+            flex: 1 1 auto;
             min-width: 80px;
+            white-space: nowrap;
             padding: 10px 12px;
             border: none;
             border-radius: 12px;
@@ -8093,13 +8096,13 @@
                 if (result.success && result.analysis) {
                     incrementDailyImageCount();
                     renderFoodAnalysisResults(result.analysis);
-                } else if (result.parseError && result.rawResponse) {
-                    // Fallback: show raw AI response
+                } else if (result.parseError) {
+                    // Неразчетен отговор — ясно какво да направи клиентът, не суровия текст на AI.
                     if (resultsDiv) {
                         resultsDiv.innerHTML = `
                             <div class="food-result-section">
-                                <h4><i class="fas fa-robot"></i> AI Анализ</h4>
-                                <p style="font-size:0.88rem;line-height:1.6;white-space:pre-line;">${escapeHtmlWithBreaks(result.rawResponse)}</p>
+                                <h4><i class="fas fa-camera"></i> Снимката не беше разпозната</h4>
+                                <p style="font-size:0.88rem;line-height:1.6;">Опитайте със снимка отгоре, на добра светлина, с цялата чиния в кадъра — или изберете храната ръчно.</p>
                             </div>
                         `;
                         resultsDiv.classList.add('visible');
@@ -8333,12 +8336,12 @@
                 if (result.success && result.analysis) {
                     incrementDailyImageCount();
                     renderMenuAnalysisResults(result.analysis);
-                } else if (result.parseError && result.rawResponse) {
+                } else if (result.parseError) {
                     if (resultsDiv) {
                         resultsDiv.innerHTML = `
                             <div class="food-result-section">
-                                <h4><i class="fas fa-robot"></i> AI Анализ на менюто</h4>
-                                <p style="font-size:0.88rem;line-height:1.6;white-space:pre-line;">${escapeHtmlWithBreaks(result.rawResponse)}</p>
+                                <h4><i class="fas fa-camera"></i> Менюто не беше разчетено</h4>
+                                <p style="font-size:0.88rem;line-height:1.6;">Опитайте с по-близка и ясна снимка на менюто, без отблясъци.</p>
                             </div>
                         `;
                         resultsDiv.classList.add('visible');
@@ -10230,14 +10233,14 @@
             { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' }
         ];
         var ACTIVITY_1_3 = [
-            { label:'Ниска',   icon:'<i class="fas fa-couch" style="color:#fff;font-size:1em"></i>', value:1, cls:'tier-low' },
-            { label:'Умерена', icon:'<i class="fas fa-person-walking" style="color:#fff;font-size:1em"></i>', value:2, cls:'tier-mid' },
-            { label:'Висока',  icon:'<i class="fas fa-fire" style="color:#fff;font-size:1em"></i>', value:3, cls:'tier-high' }
+            { label:'Малко',   icon:'<i class="fas fa-couch" style="color:#fff;font-size:1em"></i>', value:1, cls:'tier-low' },
+            { label:'Умерено', icon:'<i class="fas fa-person-walking" style="color:#fff;font-size:1em"></i>', value:2, cls:'tier-mid' },
+            { label:'Много',  icon:'<i class="fas fa-person-running" style="color:#fff;font-size:1em"></i>', value:3, cls:'tier-high' }
         ];
         var BALANCE_1_3 = [
-            { label:'Напрегнат', icon:'<i class="fas fa-cloud-rain" style="color:#fff;font-size:1em"></i>', value:1, cls:'tier-calm' },
-            { label:'Спокоен',   icon:'<i class="fas fa-leaf" style="color:#fff;font-size:1em"></i>', value:2, cls:'tier-mid' },
-            { label:'Позитивен', icon:'<i class="fas fa-sun" style="color:#fff;font-size:1em"></i>', value:3, cls:'tier-high' }
+            { label:'Напрегнато', icon:'<i class="fas fa-face-grimace" style="color:#fff;font-size:1.15em"></i>', value:1, cls:'tier-calm' },
+            { label:'Спокойно',   icon:'<i class="fas fa-face-smile" style="color:#fff;font-size:1.15em"></i>', value:2, cls:'tier-mid' },
+            { label:'Позитивно', icon:'<i class="fas fa-face-grin-beam" style="color:#fff;font-size:1.15em"></i>', value:3, cls:'tier-high' }
         ];
 
         var _fabLowerTimer = null;
@@ -10355,7 +10358,7 @@
                     existing.classList.remove('game-bubble--exit'); // cancel any exit animation
                     var name = getUserName();
                     grEl.textContent = opts.greeting ? opts.greeting :
-                                       (opts.showName && name) ? 'Здравейте, '+name+'!' : 'AI Асистент';
+                                       (opts.showName && name) ? 'Здравейте, '+name+'!' : 'Вашият асистент';
                     awEl.classList.remove('visible');
                     fillAnswers(awEl);
                     qEl.textContent = question;
@@ -10394,13 +10397,13 @@
                 hdr.className = 'game-bubble-header';
                 var av = document.createElement('div');
                 av.className = 'game-bubble-avatar';
-                av.innerHTML = '<i class="fas fa-robot"></i>';
+                av.innerHTML = '<img src="./docs/Chat2.png" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
                 var gr = document.createElement('div');
                 gr.className = 'game-bubble-greeting';
                 var name = getUserName();
                 gr.textContent = opts.greeting ? opts.greeting :
                                  (opts.showName && name) ? 'Здравейте, '+name+'!' :
-                                 'AI Асистент';
+                                 'Вашият асистент';
                 hdr.appendChild(av); hdr.appendChild(gr);
                 // Затваряне без отговор — въпросите за този кръг спират.
                 var closeBtn = document.createElement('button');
@@ -10536,21 +10539,21 @@
             }
             if (step === 'activity') {
                 if (rec.eveningCheck.activityLevel != null) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Ниво на активност?'),
+                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движихте днес?'),
                     gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
                     function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
                 return;
             }
             if (step === 'balance') {
                 if (rec.eveningCheck.emotionalBalance != null) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + gameNotifyQuestion('evening_balance', 'Емоционален баланс?'),
+                showBubble(prefix + gameNotifyQuestion('evening_balance', 'Как се чувствахте днес?'),
                     gameNotifyAnswers('evening_balance', BALANCE_1_3),
                     function(v){ saveField('emotionalBalance', v, doneCb); }, hdrOpts);
                 return;
             }
             if (step === 'water') {
                 if (rec.eveningCheck.waterIntake != null) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + gameNotifyQuestion('evening_water', 'Изпихте ли поне 2 л вода?'),
+                showBubble(prefix + gameNotifyQuestion('evening_water', 'Пихте ли достатъчно вода днес?'),
                     gameNotifyAnswers('evening_water', NO_YES),
                     function(v){ saveField('waterIntake', v, doneCb); }, hdrOpts);
             }
@@ -10597,19 +10600,19 @@
             }
             function q3() {
                 if (eveData.waterIntake != null) { finish(); return; }
-                showBubble(prefix+'Изпихте ли поне 2 л вода?', NO_YES, function(v) {
+                showBubble(prefix+'Пихте ли достатъчно вода днес?', NO_YES, function(v) {
                     eveData.waterIntake = v;
                     finish();
                 }, hdrOpts);
             }
             function q2() {
                 if (eveData.emotionalBalance != null) { q3(); return; }
-                showBubble(prefix+'Емоционален баланс?', BALANCE_1_3,
+                showBubble(prefix+'Как се чувствахте днес?', BALANCE_1_3,
                     function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
             }
             function q1() {
                 if (eveData.activityLevel != null) { q2(); return; }
-                showBubble(prefix+'Ниво на активност?', ACTIVITY_1_3,
+                showBubble(prefix+'Колко се движихте днес?', ACTIVITY_1_3,
                     function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
             }
             q1();

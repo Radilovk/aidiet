@@ -2,7 +2,7 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v17';
+const CACHE_NAME = 'nutriplan-v18';
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -55,16 +55,16 @@ function getGameNotificationActions(type) {
   }
   if (type === 'evening_activity') {
     return [
-      { action: 'activity_1', title: 'Ниска' },
-      { action: 'activity_2', title: 'Умерена' },
-      { action: 'activity_3', title: 'Висока' }
+      { action: 'activity_1', title: '🛋️ Малко' },
+      { action: 'activity_2', title: '🚶 Умерено' },
+      { action: 'activity_3', title: '🏃 Много' }
     ];
   }
   if (type === 'evening_balance') {
     return [
-      { action: 'balance_1', title: 'Напрегнат' },
-      { action: 'balance_2', title: 'Спокоен' },
-      { action: 'balance_3', title: 'Позитивен' }
+      { action: 'balance_1', title: '😣 Напрегнато' },
+      { action: 'balance_2', title: '🙂 Спокойно' },
+      { action: 'balance_3', title: '😄 Позитивно' }
     ];
   }
   if (type === 'evening_water' || type === 'evening_check') {

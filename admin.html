@@ -2956,9 +2956,9 @@
                         <li><strong>Сутрешна нотификация (morning_check)</strong>: „Спахте ли добре тази нощ?" Бутоните <strong>Да / Не / Пропуск</strong> записват отговора веднага — <em>без</em> отваряне на приложението. Tap извън бутоните отваря плана с AI въпросника.</li>
                         <li><strong>Три вечерни нотификации</strong> — отделни AI въпроси със silent бутони:
                             <ul style="margin: 4px 0 0 16px;">
-                                <li><code>evening_activity</code> — „Ниво на активност?" · Ниска / Умерена / Висока</li>
-                                <li><code>evening_balance</code> — „Емоционален баланс?" · Напрегнат / Спокоен / Позитивен</li>
-                                <li><code>evening_water</code> — „Изпихте ли поне 2 л вода?" · Не / Да / Пропуск</li>
+                                <li><code>evening_activity</code> — „Колко се движихте днес?" · Малко / Умерено / Много</li>
+                                <li><code>evening_balance</code> — „Как се чувствахте днес?" · Напрегнато / Спокойно / Позитивно</li>
+                                <li><code>evening_water</code> — „Пихте ли достатъчно вода днес?" · Не / Да / Пропуск</li>
                             </ul>
                         </li>
                         <li>Tap извън бутоните отваря съответния AI въпрос в приложението.</li>
@@ -3075,13 +3075,13 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningActivityTitle" placeholder="AI Асистент"
+                            <input type="text" id="gnEveningActivityTitle" placeholder="NutriPlan"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
                     <div style="margin-top: 12px;">
                         <label>Текст (AI въпрос)</label>
-                        <input type="text" id="gnEveningActivityBody" placeholder="Ниво на активност?"
+                        <input type="text" id="gnEveningActivityBody" placeholder="Колко се движихте днес?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                     </div>
                     <div style="margin-top: 12px;">
@@ -3104,13 +3104,13 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningBalanceTitle" placeholder="AI Асистент"
+                            <input type="text" id="gnEveningBalanceTitle" placeholder="NutriPlan"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
                     <div style="margin-top: 12px;">
                         <label>Текст (AI въпрос)</label>
-                        <input type="text" id="gnEveningBalanceBody" placeholder="Емоционален баланс?"
+                        <input type="text" id="gnEveningBalanceBody" placeholder="Как се чувствахте днес?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                     </div>
                     <div style="margin-top: 12px;">
@@ -3133,13 +3133,13 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningWaterTitle" placeholder="AI Асистент"
+                            <input type="text" id="gnEveningWaterTitle" placeholder="NutriPlan"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
                     <div style="margin-top: 12px;">
                         <label>Текст (AI въпрос)</label>
-                        <input type="text" id="gnEveningWaterBody" placeholder="Изпихте ли поне 2 л вода?"
+                        <input type="text" id="gnEveningWaterBody" placeholder="Пихте ли достатъчно вода днес?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                     </div>
                     <div style="margin-top: 12px;">
@@ -7784,17 +7784,17 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     : (data.config || {});
 
                 document.getElementById('gnMorningTime').value  = cfg.morningTime  || '07:00';
-                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'AI Асистент';
+                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'NutriPlan';
                 document.getElementById('gnMorningBody').value  = cfg.morningBody  || 'Спахте ли добре тази нощ?';
                 document.getElementById('gnEveningActivityTime').value  = cfg.eveningActivityTime  || '20:00';
-                document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'AI Асистент';
-                document.getElementById('gnEveningActivityBody').value  = cfg.eveningActivityBody  || 'Ниво на активност?';
+                document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'NutriPlan';
+                document.getElementById('gnEveningActivityBody').value  = cfg.eveningActivityBody  || 'Колко се движихте днес?';
                 document.getElementById('gnEveningBalanceTime').value  = cfg.eveningBalanceTime  || '20:05';
-                document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'AI Асистент';
-                document.getElementById('gnEveningBalanceBody').value  = cfg.eveningBalanceBody  || 'Емоционален баланс?';
+                document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'NutriPlan';
+                document.getElementById('gnEveningBalanceBody').value  = cfg.eveningBalanceBody  || 'Как се чувствахте днес?';
                 document.getElementById('gnEveningWaterTime').value  = cfg.eveningWaterTime  || '20:10';
-                document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'AI Асистент';
-                document.getElementById('gnEveningWaterBody').value  = cfg.eveningWaterBody  || 'Изпихте ли поне 2 л вода?';
+                document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'NutriPlan';
+                document.getElementById('gnEveningWaterBody').value  = cfg.eveningWaterBody  || 'Пихте ли достатъчно вода днес?';
 
                 renderAllGnActionRows(cfg);
 
@@ -7879,17 +7879,17 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
             const cfg = {
                 morningTime:  document.getElementById('gnMorningTime').value  || '07:00',
-                morningTitle: document.getElementById('gnMorningTitle').value || 'AI Асистент',
+                morningTitle: document.getElementById('gnMorningTitle').value || 'NutriPlan',
                 morningBody:  document.getElementById('gnMorningBody').value  || 'Спахте ли добре тази нощ?',
                 eveningActivityTime:  document.getElementById('gnEveningActivityTime').value  || '20:00',
-                eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'AI Асистент',
-                eveningActivityBody:  document.getElementById('gnEveningActivityBody').value  || 'Ниво на активност?',
+                eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'NutriPlan',
+                eveningActivityBody:  document.getElementById('gnEveningActivityBody').value  || 'Колко се движихте днес?',
                 eveningBalanceTime:   document.getElementById('gnEveningBalanceTime').value  || '20:05',
-                eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'AI Асистент',
-                eveningBalanceBody:   document.getElementById('gnEveningBalanceBody').value  || 'Емоционален баланс?',
+                eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'NutriPlan',
+                eveningBalanceBody:   document.getElementById('gnEveningBalanceBody').value  || 'Как се чувствахте днес?',
                 eveningWaterTime:     document.getElementById('gnEveningWaterTime').value  || '20:10',
-                eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'AI Асистент',
-                eveningWaterBody:     document.getElementById('gnEveningWaterBody').value  || 'Изпихте ли поне 2 л вода?',
+                eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'NutriPlan',
+                eveningWaterBody:     document.getElementById('gnEveningWaterBody').value  || 'Пихте ли достатъчно вода днес?',
                 morningActions: (window.GnActionsUI && GnActionsUI.collect('gnMorningActions')) || [],
                 eveningActivityActions: (window.GnActionsUI && GnActionsUI.collect('gnEveningActivityActions')) || [],
                 eveningBalanceActions: (window.GnActionsUI && GnActionsUI.collect('gnEveningBalanceActions')) || [],
@@ -7964,11 +7964,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 }
 
                 const typeLabels = {
-                    morning_check: { title: 'AI Асистент', body: 'Спахте ли добре тази нощ?', url: '/plan.html?action=morning_check' },
-                    evening_activity: { title: 'AI Асистент', body: 'Ниво на активност?', url: '/plan.html?action=evening_activity' },
-                    evening_balance: { title: 'AI Асистент', body: 'Емоционален баланс?', url: '/plan.html?action=evening_balance' },
-                    evening_water: { title: 'AI Асистент', body: 'Изпихте ли поне 2 л вода?', url: '/plan.html?action=evening_water' },
-                    evening_check: { title: 'AI Асистент', body: 'Изпихте ли поне 2 л вода?', url: '/plan.html?action=evening_water' }
+                    morning_check: { title: 'NutriPlan', body: 'Спахте ли добре тази нощ?', url: '/plan.html?action=morning_check' },
+                    evening_activity: { title: 'NutriPlan', body: 'Колко се движихте днес?', url: '/plan.html?action=evening_activity' },
+                    evening_balance: { title: 'NutriPlan', body: 'Как се чувствахте днес?', url: '/plan.html?action=evening_balance' },
+                    evening_water: { title: 'NutriPlan', body: 'Пихте ли достатъчно вода днес?', url: '/plan.html?action=evening_water' },
+                    evening_check: { title: 'NutriPlan', body: 'Пихте ли достатъчно вода днес?', url: '/plan.html?action=evening_water' }
                 };
                 const tpl = typeLabels[type] || { title: 'Тестово известие от NutriPlan', body: 'Това е тестово известие.', url: '/plan.html' };
 

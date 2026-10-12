@@ -40317,6 +40317,54 @@ function normalizeSwaps(raw, weekPlan, max = 6) {
   return out;
 }
 
+// nutrition-engine/text-guard.js
+var RULES = [
+  // AI говори за себе си вместо като асистента на NutriPlan.
+  ["ai_self", /(като|аз съм)\s+(ai|ии|изкуствен[а-я]*\s+интелект|езиков[а-я]*\s+модел|чатбот|бот)|\b(as an ai|i am an ai|language model|chatgpt|openai|gemini|claude|anthropic)\b/i],
+  // Незапълнен шаблон.
+  ["placeholder", /\{\{?\s*[a-z_а-я]+\s*\}?\}|\[(име|name|клиент|client|храна|food)[^\]]{0,20}\]|<(име|name)>/i],
+  // Обещание за лечение или за резултат.
+  ["cure_claim", /(ще\s+)?(излекува|лекува)[а-я]*\s+(\S+\s+){0,3}(диабет|рак|болест|заболяван|хашимото|синдром)|гарантира[а-я]*\s+(\S+\s+){0,2}(резултат|отслабване|излекуване)|100\s*%\s+(сигурно|гарантирано)/i],
+  // Съвет да се спре или смени лекарство — само от лекар.
+  ["stop_meds", /(спрете|спри|прекратете|прекрати|намалете|намали|откажете\s+се\s+от)\s+(\S+\s+){0,2}(лекарств|медикамент|инсулин|метформин|левотироксин|таблетк)/i],
+  // Обидно или засрамващо за тялото и храненето.
+  // \b в JS не познава кирилицата — границите на думата са с букви.
+  ["shaming", /(?<![а-яa-z])(дебел(а|и|ак|ана)?|шишко|мързелив[а-я]*|отвратител[а-я]*|срамно|провал(ихте|и сте)|нямате\s+воля)(?![а-я])/i],
+  // Остатъци от код, разметка или JSON.
+  ["markup", /```|<\/?(div|span|script|br|p|b|i|html)\b[^>]*>|^\s*[{[]\s*"/i]
+];
+function mostlyLatin(sentence) {
+  const latin = (sentence.match(/[a-z]/gi) || []).length;
+  const cyr = (sentence.match(/[а-яё]/gi) || []).length;
+  return latin >= 12 && latin > cyr * 1.5;
+}
+function textIssues(text) {
+  const s = String(text ?? "");
+  const out = RULES.filter(([, re]) => re.test(s)).map(([code]) => code);
+  if (s.split(/(?<=[.!?])\s+|\n+/).some(mostlyLatin)) out.push("english");
+  return out;
+}
+function isCleanClientText(text) {
+  return textIssues(text).length === 0;
+}
+function guardClientText(text, options = {}) {
+  const fallback = options.fallback || "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
+  const src = String(text ?? "");
+  if (!src.trim()) return { text: fallback, removed: [] };
+  const removed = [];
+  const lines = src.split("\n").map((line2) => {
+    const parts = line2.split(/(?<=[.!?…])\s+/);
+    const kept = parts.filter((p) => {
+      const bad = textIssues(p);
+      if (bad.length) removed.push(...bad);
+      return !bad.length;
+    });
+    return kept.join(" ");
+  });
+  const out = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return { text: out || fallback, removed: [...new Set(removed)] };
+}
+
 // nutrition-engine/ai-voice.js
 var PERSON_FIELDS = [
   ["gender", "\u041F\u043E\u043B"],
@@ -40399,7 +40447,7 @@ function cleanLine(v, max) {
 function makeChecker(blockedTerms) {
   const terms = (blockedTerms || []).map((t) => String(t).toLowerCase().replace(/^без\s+/, "").trim()).filter((t) => t.length >= 3);
   return (text) => {
-    if (!text || NUMBERS_RE.test(text)) return false;
+    if (!text || NUMBERS_RE.test(text) || !isCleanClientText(text)) return false;
     const low = text.toLowerCase();
     return !terms.some((t) => low.includes(t));
   };
@@ -43669,6 +43717,9 @@ async function handleChat(request, env) {
         finalResponse = cleanResponseFromRegenerate(aiResponse, regenerateIndex);
       }
     }
+    const guarded = guardClientText(finalResponse);
+    if (guarded.removed.length) console.warn("[chat] \u043C\u0430\u0445\u043D\u0430\u0442\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F:", guarded.removed.join(", "));
+    finalResponse = guarded.text;
     const updatedHistory = [...chatHistory];
     updatedHistory.push(
       { role: "user", content: message },
@@ -47905,9 +47956,8 @@ ${planContext ? `\u0422\u0415\u041A\u0423\u0429 \u0414\u0418\u0415\u0422\u0418\u
       return jsonResponse2({
         success: true,
         analysis: null,
-        rawResponse: aiResponse,
         parseError: true,
-        message: "AI \u0430\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0435 \u0433\u043E\u0442\u043E\u0432, \u043D\u043E \u043D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0433\u043E \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043C\u0435. \u0412\u0438\u0436\u0442\u0435 \u0441\u0443\u0440\u043E\u0432\u0438\u044F \u043E\u0442\u0433\u043E\u0432\u043E\u0440."
+        message: "\u0421\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0435 \u0431\u0435\u0448\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0442\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430."
       });
     }
     if (analysisResult && Array.isArray(analysisResult.foods)) {
@@ -48034,9 +48084,8 @@ ${planContext ? `\u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u
       return jsonResponse2({
         success: true,
         analysis: null,
-        rawResponse: aiResponse,
         parseError: true,
-        message: "AI \u0430\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0435 \u0433\u043E\u0442\u043E\u0432, \u043D\u043E \u043D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0433\u043E \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043C\u0435. \u0412\u0438\u0436\u0442\u0435 \u0441\u0443\u0440\u043E\u0432\u0438\u044F \u043E\u0442\u0433\u043E\u0432\u043E\u0440."
+        message: "\u0421\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0435 \u0431\u0435\u0448\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0442\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430."
       });
     }
     return jsonResponse2({
@@ -48160,7 +48209,6 @@ async function handleAnalyzeKidsFoodImage(request, env) {
       return jsonResponse2({
         success: true,
         analysis: null,
-        rawResponse: aiResponse,
         parseError: true,
         message: "AI \u0430\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0435 \u0433\u043E\u0442\u043E\u0432, \u043D\u043E \u043D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0433\u043E \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043C\u0435."
       });
@@ -50743,17 +50791,17 @@ async function handleGetCalendarIcs(request, env) {
   const DAYS = 60;
   const defaults = {
     morningTime: "07:00",
-    morningTitle: "AI \u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442",
+    morningTitle: "NutriPlan",
     morningBody: "\u0421\u043F\u0430\u0445\u0442\u0435 \u043B\u0438 \u0434\u043E\u0431\u0440\u0435 \u0442\u0430\u0437\u0438 \u043D\u043E\u0449?",
     eveningActivityTime: "20:00",
-    eveningActivityTitle: "AI \u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442",
-    eveningActivityBody: "\u041D\u0438\u0432\u043E \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442?",
+    eveningActivityTitle: "NutriPlan",
+    eveningActivityBody: "\u041A\u043E\u043B\u043A\u043E \u0441\u0435 \u0434\u0432\u0438\u0436\u0438\u0445\u0442\u0435 \u0434\u043D\u0435\u0441?",
     eveningBalanceTime: "20:05",
-    eveningBalanceTitle: "AI \u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442",
-    eveningBalanceBody: "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u0431\u0430\u043B\u0430\u043D\u0441?",
+    eveningBalanceTitle: "NutriPlan",
+    eveningBalanceBody: "\u041A\u0430\u043A \u0441\u0435 \u0447\u0443\u0432\u0441\u0442\u0432\u0430\u0445\u0442\u0435 \u0434\u043D\u0435\u0441?",
     eveningWaterTime: "20:10",
-    eveningWaterTitle: "AI \u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442",
-    eveningWaterBody: "\u0418\u0437\u043F\u0438\u0445\u0442\u0435 \u043B\u0438 \u043F\u043E\u043D\u0435 2 \u043B \u0432\u043E\u0434\u0430?",
+    eveningWaterTitle: "NutriPlan",
+    eveningWaterBody: "\u041F\u0438\u0445\u0442\u0435 \u043B\u0438 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0441?",
     eveningTime: "20:00"
   };
   let cfg = Object.assign({}, defaults);
@@ -50763,6 +50811,15 @@ async function handleGetCalendarIcs(request, env) {
       if (raw) cfg = Object.assign(cfg, JSON.parse(raw));
     }
   } catch (_) {
+  }
+  const LEGACY_COPY = {
+    "AI \u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442": "NutriPlan",
+    "\u041D\u0438\u0432\u043E \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442?": "\u041A\u043E\u043B\u043A\u043E \u0441\u0435 \u0434\u0432\u0438\u0436\u0438\u0445\u0442\u0435 \u0434\u043D\u0435\u0441?",
+    "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u0431\u0430\u043B\u0430\u043D\u0441?": "\u041A\u0430\u043A \u0441\u0435 \u0447\u0443\u0432\u0441\u0442\u0432\u0430\u0445\u0442\u0435 \u0434\u043D\u0435\u0441?",
+    "\u0418\u0437\u043F\u0438\u0445\u0442\u0435 \u043B\u0438 \u043F\u043E\u043D\u0435 2 \u043B \u0432\u043E\u0434\u0430?": "\u041F\u0438\u0445\u0442\u0435 \u043B\u0438 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0441?"
+  };
+  for (const key of Object.keys(cfg)) {
+    if (/(Title|Body)$/.test(key) && typeof cfg[key] === "string" && LEGACY_COPY[cfg[key].trim()]) cfg[key] = LEGACY_COPY[cfg[key].trim()];
   }
   const pad = (n) => String(n).padStart(2, "0");
   function offsetTimeString(timeStr, addMinutes) {
@@ -51556,7 +51613,7 @@ async function handleAdminSendMessage(request, env) {
     }
     const pushPayload = {
       userId,
-      title: "AI \u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 - NutriPlan",
+      title: "\u0421\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043E\u0442 NutriPlan",
       body: message,
       url: "/plan.html",
       notificationType: "chat"

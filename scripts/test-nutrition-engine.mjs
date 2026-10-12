@@ -26,6 +26,7 @@ import { validateWeekPlanCombinations } from './plan-adequacy/validators/combina
 import { validateWeekPlanDayCoherence, validateWeeklyDishVariety } from '../meal-combinations.js';
 import { profileBrief, normalizeIntakeHints, normalizeFeedbackHints, normalizeSwaps, collectFreeText, collectQuestionAnswers, describeCodes } from '../nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from '../profile-code.js';
+import { textIssues, isCleanClientText, guardClientText } from '../nutrition-engine/text-guard.js';
 import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment } from '../nutrition-engine/monitoring.js';
 
 let validatorIssues = 0;
@@ -286,6 +287,26 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(!qa.some(a => a.field === 'dq_x'), 'отговор без текст на въпроса не се праща');
   ok(qa.some(a => a.text.startsWith('Задържане на течности → Да, често')), 'протоколен въпрос: стига до AI с етикета');
   ok(/EVE \(храни се предимно вечер\)/.test(describeCodes(['EVE'])), 'кодовете за AI са с описание');
+}
+
+// Пазачът на AI текстовете към клиента.
+{
+  const bad = {
+    ai_self: 'Като езиков модел не мога да преценя това.',
+    placeholder: 'Здравейте, {name}! Ето вашия план.',
+    cure_claim: 'Тази диета ще излекува диабета ви напълно.',
+    stop_meds: 'Спрете метформина, щом започнете плана.',
+    shaming: 'Не бъдете мързелива, а следвайте плана.',
+    markup: '```json {"a":1}```',
+  };
+  for (const [code, text] of Object.entries(bad)) ok(textIssues(text).includes(code), `пазач: разпознава ${code}`);
+  ok(textIssues('This plan is designed to help you lose weight safely and fast.').includes('english'), 'пазач: английски текст');
+  const good = 'Започнете деня с белтъчна закуска. Пийте вода между храненията — така гладът е по-малък.';
+  ok(isCleanClientText(good), 'пазач: нормален текст минава');
+  ok(isCleanClientText('Овесени ядки с кисело мляко и боровинки (kcal се смятат от плана).'), 'пазач: отделна латинска дума не е проблем');
+  const mixed = guardClientText('Добър въпрос! Като AI нямам тяло. Опитайте печена риба с броколи.');
+  ok(mixed.text === 'Добър въпрос! Опитайте печена риба с броколи.' && mixed.removed.includes('ai_self'), 'пазач: маха само лошото изречение');
+  ok(guardClientText('Като езиков модел не мога.').text.length > 10, 'пазач: празен отговор → резервен текст');
 }
 
 // Соевото мляко е само за вегани (решение на собственика).
