@@ -155,7 +155,7 @@ export function buildEngineStrategy(engine, userData, options) {
   const { profile, policy, prescription, weekPlan, stats, macros } = engine;
   const label = dietLabelOf(profile);
   const slots = prescription.slots;
-  const name = userData?.name || 'Вашият план';
+  const name = String(userData?.name || '').trim();
   const perKg = profile.weightKg ? (macros.protein / profile.weightKg).toFixed(1).replace('.', ',') : null;
 
   const dailyText = ['STA', 'PRO', 'VEG', 'FRU', 'MLK', 'FAT', 'SWT']
@@ -184,7 +184,8 @@ export function buildEngineStrategy(engine, userData, options) {
       ...rules.map(r => `${r.label}: ${r.basis}.`),
       ...(profile.adjustments || []).map(a => a.split(': ').slice(1).join(': ') || a),
     ].join(' '),
-    welcomeMessage: `${name}, планът е ${label.toLowerCase()} — ${options.kcal} kcal дневно в ${slots.length} хранения, изградени по хранителна схема в порции, както я съставя диетолог.`,
+    // Етикетите са в различен род („Балансирано“, „Веган“, „Кетогенна диета“) — затова с двоеточие, не „планът е …“.
+    welcomeMessage: `${name ? `${name}, в` : 'В'}ашият план е готов. Тип хранене: ${label}. Около ${options.kcal} kcal на ден, разпределени в ${slots.length} хранения.`,
     planJustification: `Дневната схема е: ${dailyText} порции. Всяко хранене получава своя дял от порциите и ястията се оразмеряват по него — затова калориите и макросите съвпадат с целта с реални, кухненски количества.`,
     longTermStrategy: 'Всяка седмица — кратък контролен преглед: тегло, придържане, глад и енергия. Калориите се коригират с до 150 kcal само когато планът е спазван и резултатът се разминава с очаквания две поредни седмици; иначе се сменя само менюто.',
     mealCountJustification: `${slots.length} хранения: ${slots.map(s => MEAL_LABELS[s] || s).join(', ')}. ${addedNote}`.trim(),

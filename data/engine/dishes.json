@@ -6021,7 +6021,7 @@
       ],
       "category": "dairy",
       "name": "Извара с {FRU} и {FAT}",
-      "prep": "Разбъркайте изварата до кремообразно с лъжица вода или мляко. Добавете нарязания плод и ядките.",
+      "prep": "Разбъркайте изварата до кремообразно с лъжица вода или мляко. Добавете плода и ядките.",
       "parts": [
         {
           "group": "PRO",
@@ -6041,13 +6041,7 @@
               "fruit_strawberry"
             ],
             [
-              "fruit_peach"
-            ],
-            [
               "fruit_raspberry"
-            ],
-            [
-              "fruit_apple"
             ],
             [
               "fruit_blueberry"
@@ -7179,7 +7173,7 @@
       ],
       "category": "dairy",
       "name": "Извара с {FRU}",
-      "prep": "Разбъркайте изварата до кремообразно и добавете плода и орехите.",
+      "prep": "Разбъркайте изварата до кремообразно с лъжица вода или мляко. Добавете плода и ядките.",
       "fruitPaired": true,
       "parts": [
         {
@@ -7200,16 +7194,10 @@
               "fruit_strawberry"
             ],
             [
-              "fruit_peach"
-            ],
-            [
               "fruit_raspberry"
             ],
             [
               "fruit_blueberry"
-            ],
-            [
-              "fruit_apple"
             ]
           ],
           "range": [
@@ -8282,7 +8270,7 @@
     {
       "id": "b_chickpea_breakfast",
       "meals": [
-        "breakfast"
+        "main"
       ],
       "category": "plant",
       "name": "Нахут с домати и зехтин",

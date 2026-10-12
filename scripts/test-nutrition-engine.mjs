@@ -323,5 +323,15 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
     'соево мляко: старото име в съществуващи планове се разпознава');
 }
 
+// Несъществуващи съчетания: изварата върви с горски плодове, не с праскова или ябълка.
+{
+  for (const id of ['b_cottage_bowl', 's_cottage_fruit']) {
+    const fruits = DISHES_BY_ID.get(id)?.parts.find(p => p.group === 'FRU')?.options.flat() || [];
+    ok(fruits.length && fruits.every(f => ['fruit_strawberry', 'fruit_raspberry', 'fruit_blueberry'].includes(f)),
+      `${id}: изварата е само с горски плодове (${fruits.join(', ')})`);
+  }
+  ok(!DISHES_BY_ID.get('b_chickpea_breakfast')?.meals.includes('breakfast'), 'нахут с домати не е закуска');
+}
+
 console.log(`\n=== nutrition engine: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

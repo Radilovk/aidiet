@@ -34606,7 +34606,7 @@ var dishes_default = {
       ],
       category: "dairy",
       name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 {FRU} \u0438 {FAT}",
-      prep: "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439\u0442\u0435 \u0438\u0437\u0432\u0430\u0440\u0430\u0442\u0430 \u0434\u043E \u043A\u0440\u0435\u043C\u043E\u043E\u0431\u0440\u0430\u0437\u043D\u043E \u0441 \u043B\u044A\u0436\u0438\u0446\u0430 \u0432\u043E\u0434\u0430 \u0438\u043B\u0438 \u043C\u043B\u044F\u043A\u043E. \u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438\u044F \u043F\u043B\u043E\u0434 \u0438 \u044F\u0434\u043A\u0438\u0442\u0435.",
+      prep: "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439\u0442\u0435 \u0438\u0437\u0432\u0430\u0440\u0430\u0442\u0430 \u0434\u043E \u043A\u0440\u0435\u043C\u043E\u043E\u0431\u0440\u0430\u0437\u043D\u043E \u0441 \u043B\u044A\u0436\u0438\u0446\u0430 \u0432\u043E\u0434\u0430 \u0438\u043B\u0438 \u043C\u043B\u044F\u043A\u043E. \u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043F\u043B\u043E\u0434\u0430 \u0438 \u044F\u0434\u043A\u0438\u0442\u0435.",
       parts: [
         {
           group: "PRO",
@@ -34626,13 +34626,7 @@ var dishes_default = {
               "fruit_strawberry"
             ],
             [
-              "fruit_peach"
-            ],
-            [
               "fruit_raspberry"
-            ],
-            [
-              "fruit_apple"
             ],
             [
               "fruit_blueberry"
@@ -35764,7 +35758,7 @@ var dishes_default = {
       ],
       category: "dairy",
       name: "\u0418\u0437\u0432\u0430\u0440\u0430 \u0441 {FRU}",
-      prep: "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439\u0442\u0435 \u0438\u0437\u0432\u0430\u0440\u0430\u0442\u0430 \u0434\u043E \u043A\u0440\u0435\u043C\u043E\u043E\u0431\u0440\u0430\u0437\u043D\u043E \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043F\u043B\u043E\u0434\u0430 \u0438 \u043E\u0440\u0435\u0445\u0438\u0442\u0435.",
+      prep: "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439\u0442\u0435 \u0438\u0437\u0432\u0430\u0440\u0430\u0442\u0430 \u0434\u043E \u043A\u0440\u0435\u043C\u043E\u043E\u0431\u0440\u0430\u0437\u043D\u043E \u0441 \u043B\u044A\u0436\u0438\u0446\u0430 \u0432\u043E\u0434\u0430 \u0438\u043B\u0438 \u043C\u043B\u044F\u043A\u043E. \u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043F\u043B\u043E\u0434\u0430 \u0438 \u044F\u0434\u043A\u0438\u0442\u0435.",
       fruitPaired: true,
       parts: [
         {
@@ -35785,16 +35779,10 @@ var dishes_default = {
               "fruit_strawberry"
             ],
             [
-              "fruit_peach"
-            ],
-            [
               "fruit_raspberry"
             ],
             [
               "fruit_blueberry"
-            ],
-            [
-              "fruit_apple"
             ]
           ],
           range: [
@@ -36867,7 +36855,7 @@ var dishes_default = {
     {
       id: "b_chickpea_breakfast",
       meals: [
-        "breakfast"
+        "main"
       ],
       category: "plant",
       name: "\u041D\u0430\u0445\u0443\u0442 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u0437\u0435\u0445\u0442\u0438\u043D",
@@ -39295,7 +39283,8 @@ function dishName2(dish, parts) {
   const unique = [...new Set(labels)].filter((l) => !name.toLowerCase().includes(l));
   if (unique.length) {
     if (/(^|\s)(с|със)\s/i.test(name)) {
-      name = unique.length === 1 ? `${name} \u0438 ${unique[0]}` : `${name}, ${joinList2(unique)}`;
+      if (unique.length === 1) name = `${name.replace(/ и (?!.* и )/, ", ")} \u0438 ${unique[0]}`;
+      else name = `${name}, ${joinList2(unique)}`;
     } else {
       name = `${name} ${withPreposition2(unique[0])} ${joinList2(unique)}`;
     }
@@ -40070,7 +40059,7 @@ function buildEngineStrategy(engine, userData, options) {
   const { profile, policy, prescription, weekPlan, stats, macros } = engine;
   const label = dietLabelOf(profile);
   const slots = prescription.slots;
-  const name = userData?.name || "\u0412\u0430\u0448\u0438\u044F\u0442 \u043F\u043B\u0430\u043D";
+  const name = String(userData?.name || "").trim();
   const perKg = profile.weightKg ? (macros.protein / profile.weightKg).toFixed(1).replace(".", ",") : null;
   const dailyText = ["STA", "PRO", "VEG", "FRU", "MLK", "FAT", "SWT"].filter((g) => prescription.daily[g] > 0).map((g) => `${GROUPS[g].label.toLowerCase()} ${fmt(prescription.daily[g])}`).join(", ");
   const mealsText = slots.map((s) => `${MEAL_LABELS[s] || s} ~${round2(prescription.meals[s].target.kcal)} kcal`).join(" \xB7 ");
@@ -40088,7 +40077,8 @@ function buildEngineStrategy(engine, userData, options) {
       ...rules.map((r) => `${r.label}: ${r.basis}.`),
       ...(profile.adjustments || []).map((a) => a.split(": ").slice(1).join(": ") || a)
     ].join(" "),
-    welcomeMessage: `${name}, \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 ${label.toLowerCase()} \u2014 ${options.kcal} kcal \u0434\u043D\u0435\u0432\u043D\u043E \u0432 ${slots.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F, \u0438\u0437\u0433\u0440\u0430\u0434\u0435\u043D\u0438 \u043F\u043E \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u0432 \u043F\u043E\u0440\u0446\u0438\u0438, \u043A\u0430\u043A\u0442\u043E \u044F \u0441\u044A\u0441\u0442\u0430\u0432\u044F \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433.`,
+    // Етикетите са в различен род („Балансирано“, „Веган“, „Кетогенна диета“) — затова с двоеточие, не „планът е …“.
+    welcomeMessage: `${name ? `${name}, \u0432` : "\u0412"}\u0430\u0448\u0438\u044F\u0442 \u043F\u043B\u0430\u043D \u0435 \u0433\u043E\u0442\u043E\u0432. \u0422\u0438\u043F \u0445\u0440\u0430\u043D\u0435\u043D\u0435: ${label}. \u041E\u043A\u043E\u043B\u043E ${options.kcal} kcal \u043D\u0430 \u0434\u0435\u043D, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u0432 ${slots.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F.`,
     planJustification: `\u0414\u043D\u0435\u0432\u043D\u0430\u0442\u0430 \u0441\u0445\u0435\u043C\u0430 \u0435: ${dailyText} \u043F\u043E\u0440\u0446\u0438\u0438. \u0412\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0430\u0432\u0430 \u0441\u0432\u043E\u044F \u0434\u044F\u043B \u043E\u0442 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0438 \u044F\u0441\u0442\u0438\u044F\u0442\u0430 \u0441\u0435 \u043E\u0440\u0430\u0437\u043C\u0435\u0440\u044F\u0432\u0430\u0442 \u043F\u043E \u043D\u0435\u0433\u043E \u2014 \u0437\u0430\u0442\u043E\u0432\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0438 \u043C\u0430\u043A\u0440\u043E\u0441\u0438\u0442\u0435 \u0441\u044A\u0432\u043F\u0430\u0434\u0430\u0442 \u0441 \u0446\u0435\u043B\u0442\u0430 \u0441 \u0440\u0435\u0430\u043B\u043D\u0438, \u043A\u0443\u0445\u043D\u0435\u043D\u0441\u043A\u0438 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0430.`,
     longTermStrategy: "\u0412\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u2014 \u043A\u0440\u0430\u0442\u044A\u043A \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0435\u043D \u043F\u0440\u0435\u0433\u043B\u0435\u0434: \u0442\u0435\u0433\u043B\u043E, \u043F\u0440\u0438\u0434\u044A\u0440\u0436\u0430\u043D\u0435, \u0433\u043B\u0430\u0434 \u0438 \u0435\u043D\u0435\u0440\u0433\u0438\u044F. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0435 \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430\u0442 \u0441 \u0434\u043E 150 kcal \u0441\u0430\u043C\u043E \u043A\u043E\u0433\u0430\u0442\u043E \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 \u0441\u043F\u0430\u0437\u0432\u0430\u043D \u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u044A\u0442 \u0441\u0435 \u0440\u0430\u0437\u043C\u0438\u043D\u0430\u0432\u0430 \u0441 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u0438\u044F \u0434\u0432\u0435 \u043F\u043E\u0440\u0435\u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0438; \u0438\u043D\u0430\u0447\u0435 \u0441\u0435 \u0441\u043C\u0435\u043D\u044F \u0441\u0430\u043C\u043E \u043C\u0435\u043D\u044E\u0442\u043E.",
     mealCountJustification: `${slots.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F: ${slots.map((s) => MEAL_LABELS[s] || s).join(", ")}. ${addedNote}`.trim(),

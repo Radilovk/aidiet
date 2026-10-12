@@ -222,7 +222,9 @@ function dishName(dish, parts) {
   const unique = [...new Set(labels)].filter(l => !name.toLowerCase().includes(l));
   if (unique.length) {
     if (/(^|\s)(с|със)\s/i.test(name)) {
-      name = unique.length === 1 ? `${name} и ${unique[0]}` : `${name}, ${joinList(unique)}`;
+      // „с овесени ядки и семена“ + банан → „с овесени ядки, семена и банан“, не „… и семена и банан“.
+      if (unique.length === 1) name = `${name.replace(/ и (?!.* и )/, ', ')} и ${unique[0]}`;
+      else name = `${name}, ${joinList(unique)}`;
     } else {
       name = `${name} ${withPreposition(unique[0])} ${joinList(unique)}`;
     }
