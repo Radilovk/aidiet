@@ -114,7 +114,7 @@ case "$action" in
     for ((i=0; i<n; i+=100)); do
       part="$(mktemp)"
       node -e 'const a=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write(JSON.stringify(a.slice(+process.argv[2],+process.argv[2]+100)))' "$keys" "$i" > "$part"
-      wr kv bulk get --namespace-id="$NAMESPACE_ID" "$part" --remote 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=s.match(/\{[\s\S]*\}/);process.stdout.write((m?m[0]:"{}")+"\n")})' >> "$out"
+      wr kv bulk get --namespace-id="$NAMESPACE_ID" "$part" --remote 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=s.match(/\{[\s\S]*\}/);let o={};try{o=JSON.parse(m?m[0]:"{}")}catch{}process.stdout.write(JSON.stringify(o)+"\n")})' >> "$out"
       rm -f "$part"
     done
     node -e '
