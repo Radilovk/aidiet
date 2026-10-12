@@ -85,7 +85,7 @@
     "dairy_kefir": { "group": "MLK", "label": "кефир", "kind": "dairy", "flags": ["lactose", "high_fodmap"], "serving": 250 },
     "dairy_milk": { "group": "MLK", "label": "прясно мляко", "kind": "dairy", "flags": ["lactose", "high_fodmap"], "serving": 250 },
     "dairy_milk_2": { "group": "MLK", "label": "прясно мляко 2%", "kind": "dairy", "flags": ["lactose", "high_fodmap", "lowfat_dairy"], "serving": 250 },
-    "dairy_soy_yogurt": { "group": "MLK", "label": "соево кисело", "kind": "plant", "flags": ["soy", "legume"], "serving": 200 },
+    "dairy_soy_yogurt": { "group": "MLK", "label": "соев йогурт", "kind": "plant", "flags": ["soy", "legume", "vegan_only"], "serving": 200 },
     "dairy_soy_milk": { "group": "MLK", "label": "соево мляко", "kind": "plant", "flags": ["soy", "legume", "vegan_only"], "serving": 250 },
     "dairy_plant_milk": { "group": "STA", "label": "овесена напитка", "kind": "plant", "flags": ["oats"], "serving": 200 },
 

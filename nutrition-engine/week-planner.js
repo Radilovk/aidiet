@@ -336,6 +336,13 @@ function toPlanMeal(type, dish, built, withDessert = false) {
   return meal;
 }
 
+/**
+ * Тежест на предпочитанието от изборите на клиента (±3 → ±9 точки). Колкото
+ * отклонение от целта около 20% — изборите решават между равностойни ястия,
+ * но не пробиват точността на калориите.
+ */
+const PREFERENCE_WEIGHT = 3;
+
 /** Най-много толкова алтернативи на хранене. */
 export const MAX_ALTERNATIVES = 3;
 
@@ -553,7 +560,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
           // Опростено: ястия с малко съставки, повторенията не се наказват.
           if (simplify) score += (state.dishUses.get(d.id) || 0) * 3 - built.parts.length * 0.6 - d.fixed.length * 0.4;
           // Какво клиентът е избирал или сменял в предишни седмици.
-          score += dishPreference[d.id] || 0;
+          score += (dishPreference[d.id] || 0) * PREFERENCE_WEIGHT;
           candidatesBuilt.push({ dish: d, built, score });
           if (!found || score > found.score) found = { dish: d, built, score };
         }
@@ -598,7 +605,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
         for (const d of pool) {
           if (tried.has(d.id) || more.length >= CANDIDATES_PER_MEAL) continue;
           const built = buildMeal({ dish: d, choice: chooseOptions(d, state, slotCtx, altRng, target), quota: plan.quota, target, mealKind: kind, ctx: slotCtx });
-          if (built?.parts.length) more.push({ dish: d, built, score: scoreMeal(d, built, state, slotCtx, kind === 'breakfast' ? category : null, kind) + (dishPreference[d.id] || 0) });
+          if (built?.parts.length) more.push({ dish: d, built, score: scoreMeal(d, built, state, slotCtx, kind === 'breakfast' ? category : null, kind) + (dishPreference[d.id] || 0) * PREFERENCE_WEIGHT });
         }
         alternatives = pickAlternatives(best, [...candidatesBuilt, ...more], { kind, todayDishes, state, policy: slotCtx.policy, target });
       }

@@ -5160,7 +5160,11 @@
                 const strategy = dietPlan.strategy;
 
                 // Get AI-generated welcome message from strategy
-                let welcomeMessage = strategy.welcomeMessage || '';
+                // По-старите планове: без „както я съставя диетолог“ и без жаргона „калораж“.
+                let welcomeMessage = String(strategy.welcomeMessage || '')
+                    .replace(/,?\s*изградени по хранителна схема в порции, както я съставя диетолог/g, '')
+                    .replace(/,?\s*както (го|я) съставя (един )?диетолог/g, '')
+                    .replace(/калораж(ът|а)?/gi, 'дневният прием');
 
                 // Fallback to planJustification if welcomeMessage is not available (backward compatibility)
                 if (!welcomeMessage || welcomeMessage.length < 50) {
@@ -5624,7 +5628,8 @@
             const isFreeDayByStrategy = strategyFreeDayNumber !== null && strategyFreeDayNumber === dayNum;
 
             // If strategy marks this as free day but AI didn't generate the free meal entry, inject it at the lunch slot
-            let effectiveMeals = dayData.meals;
+            // Картата „Напитка“ отпадна — в по-старите планове също не се показва.
+            let effectiveMeals = dayData.meals.filter(m => m && m.type !== 'Напитка');
             if (isFreeDayByStrategy && !hasFreeMeal) {
                 const freeMealEntry = {type: 'Свободно хранене', name: 'Свободно хранене', weight: '-'};
                 const lunchIdx = effectiveMeals.findIndex(m => m.type === 'Хранене 2' || m.type === 'Обяд');

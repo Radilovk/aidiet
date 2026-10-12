@@ -119,8 +119,9 @@ for (const prof of profiles) {
   const day1 = weekPlan.day1.meals;
   // Напитката е вместо закуска — не и когато закуската е върната заради размера на порциите.
   const noBreakfast = profile.skipsBreakfast && !day1.some(m => m.type === 'Хранене 1');
-  ok(noBreakfast === day1.some(m => m.type === 'Напитка'), `${prof.id}: сутрешна напитка точно когато няма закуска`);
-  ok(!(day1.some(m => m.type === 'Напитка') && day1.some(m => m.type === 'Хранене 1')), `${prof.id}: напитка и закуска едновременно`);
+  // Без отделна карта „Напитка“ (решение на собственика): без закуска денят започва с първото хранене.
+  ok(!Object.values(weekPlan).some(d => d.meals.some(m => m.type === 'Напитка')), `${prof.id}: без карта „Напитка“`);
+  if (noBreakfast) ok(day1.length >= 2, `${prof.id}: без закуска — останалите хранения са в плана`);
   ok(Object.values(weekPlan).some(d => d.meals.some(m => m.type === 'Свободно хранене')) === policy.allowsFreeMeal, `${prof.id}: свободно хранене според правилата`);
   // Правилата на валидаторите (един въглехидратен източник, лека закуска, универсални продукти…).
   const analysis = { ...buildDeterministicAnalysis(data), Final_Calories: kcal, macroGrams: { ...macros } };
@@ -266,7 +267,7 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const res = buildNutritionPlan({ ...data, foodCravings: ['Сладко'], eatingHabits: ['Не закусвам'] }, { kcal: 2000, seed: 'chat' });
   const strategy = buildEngineStrategy(res, data, { kcal: 2000, freeDayNumber: res.freeDayNumber });
   const text = serializeWeekPlanClient(res.weekPlan);
-  ok(/\|DR\|/.test(text), 'чат: сутрешната напитка се вижда като DR');
+  ok(!/\|DR\|/.test(text) && /\|H2\|/.test(text), 'чат: без карта „Напитка“, храненията се виждат');
   ok(!res.policy.sweets || /десерт:/.test(text), 'чат: десертът е в състава на храненето');
   ok(!res.freeDayNumber || /свободно\(бюджет~[1-9]/.test(text), 'чат: свободното хранене е с бюджет');
   const st = serializeStrategyForMealPlan(strategy);
@@ -316,7 +317,10 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
     stop_meds: 'Спрете метформина, щом започнете плана.',
     shaming: 'Не бъдете мързелива, а следвайте плана.',
     markup: '```json {"a":1}```',
+    imitation: 'Планът е съставен така, както го съставя диетолог.',
+    jargon: 'Калоражът е разпределен равномерно през деня.',
   };
+  ok(!textIssues('Вашият диетолог ще прегледа седмицата с Вас.').length, 'пазач: „диетолог“ без сравнение е позволено');
   for (const [code, text] of Object.entries(bad)) ok(textIssues(text).includes(code), `пазач: разпознава ${code}`);
   ok(textIssues('This plan is designed to help you lose weight safely and fast.').includes('english'), 'пазач: английски текст');
   const good = 'Започнете деня с белтъчна закуска. Пийте вода между храненията — така гладът е по-малък.';
@@ -425,13 +429,16 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const m0 = swapped.day1.meals.find(m => m.alternatives?.length);
   m0._originalDishId = m0.dishId; m0.dishId = m0.alternatives[0].dishId;
   ok(mealSwapsOf(swapped).length === 1, 'учене: смените се четат от плана');
-  // Силно нежелано ястие се среща по-рядко, без да се нарушат правилата.
-  const used = new Map();
-  for (const m of meals) used.set(m.dishId, (used.get(m.dishId) || 0) + 1);
-  const top = [...used].sort((a, b) => b[1] - a[1])[0][0];
-  const disliked = buildNutritionPlan(data, { kcal: 1700, seed: 11, dishPreference: { [top]: -3 } });
-  const after = Object.values(disliked.weekPlan).flatMap(d => d.meals).filter(m => m.dishId === top).length;
-  ok(after < used.get(top), `учене: отказаното ястие (${top}) се среща по-рядко (${used.get(top)} → ${after})`);
+  // Силно нежелано ястие се среща по-рядко (сбор от няколко седмици), без да се нарушат правилата.
+  const usesOf = (id, pref) => [11, 12, 13, 14, 15].reduce((n, seed) => n + Object.values(buildNutritionPlan(data, { kcal: 1700, seed, dishPreference: pref }).weekPlan)
+    .flatMap(d => d.meals).filter(m => m.dishId === id).length, 0);
+  const mains = meals.filter(m => m.type === 'Хранене 2' || m.type === 'Хранене 4').map(m => m.dishId);
+  // Ястие от категория с избор — иначе седмичната рамка по категории законно го запазва.
+  const roomy = id => DISHES.filter(d => d.category === DISHES_BY_ID.get(id)?.category && d.meals.includes('main')).length >= 4;
+  const top = mains.filter(roomy).sort((a, b) => mains.filter(x => x === b).length - mains.filter(x => x === a).length)[0];
+  const before = usesOf(top, {});
+  const after = usesOf(top, { [top]: -3 });
+  ok(after < before, `учене: отказаното ястие (${top}) се среща по-рядко (${before} → ${after})`);
 }
 
 // Смяната в приложението (meal-swaps.js): размяна, памет, връщане.
@@ -474,6 +481,29 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const otherMeal = other.weekPlan.day2.meals[idx];
   S.apply(other);
   ok(otherMeal.dishId === orig.dishId ? other.weekPlan.day2.meals[idx].dishId === target : !other.weekPlan.day2.meals[idx]._originalDishId, 'смяна: изборът не се прилага към друг план');
+}
+
+// Универсални храни за България: без гръцко кисело мляко и едамаме; соев йогурт само за вегани; без карта „Напитка“.
+{
+  const texts = [];
+  for (const prof of [...HARD_PROFILES, ...PROFILES]) {
+    const data = structuredClone(prof);
+    enrichUserDataEngineContext(data);
+    let res; try { res = buildNutritionPlan(data, { kcal: 1900, seed: prof.id }); } catch { continue; }
+    for (const m of Object.values(res.weekPlan).flatMap(d => d.meals)) {
+      texts.push(`${m.type}|${m.name}|${m.description || ''}`);
+      for (const a of m.alternatives || []) texts.push(`${a.name}|${a.description || ''}`);
+    }
+    const strategy = buildEngineStrategy(res, data, { kcal: 1900, freeDayNumber: res.freeDayNumber });
+    texts.push(strategy.welcomeMessage, strategy.planJustification, strategy.breakfastStrategy);
+  }
+  const all = texts.join('\n');
+  ok(!/гръцко/i.test(all), 'храни: без гръцко кисело мляко');
+  ok(!/едамаме/i.test(all), 'храни: без едамаме');
+  ok(!/соево кисело/i.test(all), 'храни: „соев йогурт“, не „соево кисело“');
+  ok(!/^Напитка\|/m.test(all), 'план: без карта „Напитка“');
+  ok(!/калораж|както (го|я) съставя|диетолог/i.test(texts.filter(t => !t.includes('|')).join(' ')), 'стратегия: без „калораж“ и без сравнения с диетолог');
+  ok(!foodByCatalogName('Соево кисело') || foodByCatalogName('Соево кисело').id === 'dairy_soy_yogurt', 'храни: старото име „Соево кисело“ се разпознава в стари планове');
 }
 
 console.log(`\n=== nutrition engine: ${pass} pass, ${fail} fail ===`);

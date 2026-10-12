@@ -9554,7 +9554,7 @@ function generateMockResponse(prompt) {
           meals: [
             {
               type: "Хранене 1",
-              name: "Гръцко кисело мляко с мюсли",
+              name: "Кисело мляко с мюсли",
               weight: "200g",
               description: "Протеини и пробиотици за добро храносмилане.",
               benefits: "Подпомага чревното здраве.",

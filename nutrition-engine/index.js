@@ -155,7 +155,8 @@ export function buildNutritionPlan(userData, options) {
     seed,
     freeDayNumber,
     // Напитката е вместо закуска — не и когато закуската е върната заради порциите.
-    morningDrink: profile.skipsBreakfast && !prescription.slots.includes('Хранене 1'),
+    // Без отделна карта „Напитка“: който не закусва, просто започва с първото хранене.
+    morningDrink: false,
     previousWeek: new Set(options.previousWeek || []),
     slotAvoid: options.slotAvoid || [],
     simplify: mods.includes('simplify_meals'),
