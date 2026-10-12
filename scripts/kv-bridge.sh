@@ -10,7 +10,7 @@
 # Изключение само за четене: plan-errors показва САМО датата и текста на грешката при
 # провалено генериране на план (planGenerationError) — без имена, имейли и отговори.
 #
-# Употреба: scripts/kv-bridge.sh <list|get|put|delete|diff|plan-errors> [ключ|префикс] [стойност]
+# Употреба: scripts/kv-bridge.sh <list|get|put|delete|diff|plan-errors|pending-list|archive-pending> [ключ|префикс] [стойност]
 set -euo pipefail
 
 NAMESPACE_ID="${KV_NAMESPACE_ID:-81fc0991b2764918b682f9ca170abd4b}"
@@ -136,6 +136,46 @@ case "$action" in
     ' "$out"
     rm -f "$out"
     rm -f "$keys"
+    ;;
+  pending-list|archive-pending)
+    # Списъкът „чакащи за проверка“ (pending/failed/generating) — само дати и състояния.
+    # archive-pending ги маха от списъка (planStatus → archived, с дата); данните на
+    # клиента остават и могат да се върнат с „Активирай“ от картона.
+    keys="$(mktemp)"; out="$(mktemp)"; : > "$out"
+    wr kv key list --namespace-id="$NAMESPACE_ID" --prefix="client:" --remote \
+      | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=s.match(/\[[\s\S]*\]/);const a=m?JSON.parse(m[0]):[];process.stdout.write(JSON.stringify(a.map(k=>k.name)))})' > "$keys"
+    n="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).length)' "$keys")"
+    for ((i=0; i<n; i+=100)); do
+      part="$(mktemp)"
+      node -e 'const a=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write(JSON.stringify(a.slice(+process.argv[2],+process.argv[2]+100)))' "$keys" "$i" > "$part"
+      wr kv bulk get --namespace-id="$NAMESPACE_ID" "$part" --remote 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=s.match(/\{[\s\S]*\}/);let o={};try{o=JSON.parse(m?m[0]:"{}")}catch{}process.stdout.write(JSON.stringify(o)+"\n")})' >> "$out"
+      rm -f "$part"
+    done
+    upd="$(mktemp)"
+    node -e '
+      const fs=require("fs"); const archive=process.argv[3]==="archive-pending";
+      const lines=fs.readFileSync(process.argv[1],"utf8").split("\n").filter(Boolean);
+      const rows=[]; const puts=[]; const now=new Date().toISOString();
+      for (const l of lines) for (const [k,v] of Object.entries(JSON.parse(l))) {
+        let c=v; try { if (typeof c==="string") c=JSON.parse(c); else if (c && typeof c.value==="string") c=JSON.parse(c.value); } catch { continue; }
+        if (!c || !["pending","failed","generating"].includes(c.planStatus)) continue;
+        rows.push({ at: c.planUpdatedAt||c.submittedAt||c.timestamp||"", st: c.planStatus, plan: !!c.plan });
+        if (archive) { c.planArchivedFrom=c.planStatus; c.planStatus="archived"; c.planArchivedAt=now; puts.push({ key:k, value: JSON.stringify(c) }); }
+      }
+      rows.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+      console.log(`Чакащи за проверка: ${rows.length}`);
+      for (const r of rows) console.log(`  ${String(r.at).slice(0,10)}  ${r.st}${r.plan?"":" (без план)"}`);
+      fs.writeFileSync(process.argv[2], JSON.stringify(puts));
+      if (archive) console.log(`За архивиране: ${puts.length}`);
+    ' "$out" "$upd" "$action"
+    if [[ "$action" == "archive-pending" ]]; then
+      cnt="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).length)' "$upd")"
+      if [[ "$cnt" -gt 0 ]]; then
+        wr kv bulk put --namespace-id="$NAMESPACE_ID" "$upd" --remote > /dev/null
+        echo "Архивирани: $cnt (данните на клиентите са запазени)."
+      fi
+    fi
+    rm -f "$keys" "$out" "$upd"
     ;;
   diff)
     # Сравнява файловете в репото с живите стойности в KV (напр. редактирани от админ панела).
