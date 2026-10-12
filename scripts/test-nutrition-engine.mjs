@@ -452,6 +452,19 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const now = plan.weekPlan.day2.meals[idx];
   ok(now.dishId === target && now._originalDishId === orig.dishId && now.alternatives.some(a => a.dishId === orig.dishId), 'смяна: първоначалното остава сред вариантите');
   ok(plan.weekPlan.day2.dailyTotals.calories === Math.round(kcalBefore + now.calories - orig.calories), 'смяна: дневният сбор следва избора');
+  // Схемата на деня следва смяната — сървърната проверка „калории ≠ цел“ не я отчита като грешка.
+  {
+    const data2 = { gender: 'Мъж', age: 40, height: 180, weight: 85, goal: 'Отслабване' };
+    enrichUserDataEngineContext(data2);
+    const eng = buildNutritionPlan(data2, { kcal: 2100, seed: 4 });
+    const full = { weekPlan: eng.weekPlan, strategy: buildEngineStrategy(eng, data2, { kcal: 2100, freeDayNumber: eng.freeDayNumber }) };
+    const i2 = full.weekPlan.day2.meals.findIndex(m => m.alternatives?.length);
+    const m2 = full.weekPlan.day2.meals[i2];
+    S.choose(full, 'day2', i2, m2.alternatives[0].dishId);
+    const chosen = full.weekPlan.day2.meals[i2];
+    const slot = full.strategy.weeklyScheme.tuesday.mealBreakdown.find(b => b.type === chosen.type);
+    ok(slot.calories === chosen.calories && full.strategy.weeklyScheme.tuesday.calories === full.weekPlan.day2.dailyTotals.calories, 'смяна: схемата на деня следва избраното хранене');
+  }
   const fresh = build(4);
   S.apply(fresh);
   ok(fresh.weekPlan.day2.meals[idx].dishId === target, 'смяна: изборът се прилага върху нов екземпляр на плана');

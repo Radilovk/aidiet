@@ -10,10 +10,10 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'list | get | put | delete | diff'
+        description: 'list | get | put | delete | diff | plan-errors'
         required: true
         type: choice
-        options: [list, get, put, delete, diff]
+        options: [list, get, put, delete, diff, plan-errors]
       key:
         description: 'Ключ (get/put/delete) или префикс (list), напр. admin_ai_provider'
         required: false

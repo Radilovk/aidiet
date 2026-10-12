@@ -3371,6 +3371,8 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
             const approval = needsApproval;
             clientData.plan = result.plan;
             clientData.planUpdatedAt = now;
+            // Успешен план — старата грешка от генериране вече не важи.
+            delete clientData.planGenerationError;
             if (approval) {
               clientData.planStatus = 'pending';
               clientData.planActivatedAt = null;
@@ -4671,6 +4673,7 @@ async function syncPlanToEmailCanonicalStore(env, {
     if (plan) {
     clientData.plan = plan;
     clientData.planUpdatedAt = now;
+    delete clientData.planGenerationError;
     if (requireApproval || clientData.planReplacementPending) {
       clientData.planStatus = 'pending';
       clientData.planActivatedAt = null;
@@ -4897,7 +4900,7 @@ async function handleGetClientsList(request, env) {
             planStatus: clientData.planStatus || 'none',
             planUpdatedAt: clientData.planUpdatedAt || null,
             planActivatedAt: clientData.planActivatedAt || null,
-            planGenerationError: clientData.planGenerationError || ''
+            planGenerationError: clientData.planStatus === 'failed' ? (clientData.planGenerationError || '') : ''
           };
         }
         return null;
@@ -6581,6 +6584,7 @@ async function handleUpdateClientPlan(request, env, ctx) {
       await reconcilePlanStructure(plan, clientData.answers, env);
     }
     clientData.plan = plan;
+    delete clientData.planGenerationError;
     if (userId) clientData.userId = userId;
     clientData.planUpdatedAt = new Date().toISOString();
     
@@ -6657,6 +6661,7 @@ async function handleActivateClientPlan(request, env, ctx) {
     clientData.planStatus = 'activated';
     clientData.planActivatedAt = new Date().toISOString();
     delete clientData.planReplacementPending;
+    delete clientData.planGenerationError;
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
 
     clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;

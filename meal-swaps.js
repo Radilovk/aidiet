@@ -59,14 +59,27 @@
     next.alternatives = [strip(meal)].concat(rest);
     if (dishId !== originalId) next._originalDishId = originalId;
     plan.weekPlan[dayKey].meals[idx] = next;
-    var t = plan.weekPlan[dayKey].dailyTotals;
-    if (t && typeof t === 'object') {
-      // Дневният сбор следва избраното хранене.
-      var diff = function (a, b) { return (Number(a) || 0) - (Number(b) || 0); };
+    var diff = function (a, b) { return (Number(a) || 0) - (Number(b) || 0); };
+    var shift = function (t) {
+      if (!t || typeof t !== 'object') return;
       t.calories = Math.round((Number(t.calories) || 0) + diff(next.calories, meal.calories));
       ['protein', 'carbs', 'fats'].forEach(function (k) {
         t[k] = Math.round((Number(t[k]) || 0) + diff(next.macros && next.macros[k], meal.macros && meal.macros[k]));
       });
+    };
+    // Дневният сбор следва избраното хранене.
+    shift(plan.weekPlan[dayKey].dailyTotals);
+    // Схемата на деня (strategy.weeklyScheme) също — иначе сървърната проверка
+    // „калории ≠ цел“ / „дневни ≠ схема“ отчита смяната като грешка в плана.
+    var names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    var scheme = plan.strategy && plan.strategy.weeklyScheme && plan.strategy.weeklyScheme[names[Number(String(dayKey).replace('day', '')) - 1]];
+    if (scheme) {
+      shift(scheme);
+      var slot = Array.isArray(scheme.mealBreakdown) ? scheme.mealBreakdown.filter(function (b) { return b && b.type === meal.type; })[0] : null;
+      if (slot) {
+        slot.calories = Number(next.calories) || slot.calories;
+        ['protein', 'carbs', 'fats'].forEach(function (k) { if (next.macros && next.macros[k] != null) slot[k] = next.macros[k]; });
+      }
     }
     return true;
   }

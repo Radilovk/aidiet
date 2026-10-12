@@ -101,6 +101,17 @@ export function applyJsonPatches(doc, patches) {
     const key = segments[segments.length - 1];
     const parent = parentPath.length ? getAtPath(document, parentPath) : document;
 
+    // Бележките на админа са текст: „/adminNotes/калории“ от AI се записва като нов ред,
+    // вместо да се опитва да създаде поле в низ (TypeError: Cannot create property … on string).
+    if (parentPath.length === 1 && parentPath[0] === 'adminNotes' && (typeof parent === 'string' || parent == null)) {
+      const line = `${key}: ${typeof patch.value === 'string' ? patch.value : JSON.stringify(patch.value)}`;
+      document.adminNotes = [String(parent || '').trim(), line].filter(Boolean).join('\n');
+      continue;
+    }
+    if (parent == null || typeof parent !== 'object') {
+      throw new Error(`Пътят ${patch.path} сочи вътре в стойност, която не е обект — използвайте replace на ${'/' + parentPath.join('/')}`);
+    }
+
     if (patch.op === 'add') {
       if (Array.isArray(parent)) {
         if (key === '-') parent.push(patch.value);
