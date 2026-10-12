@@ -3937,7 +3937,9 @@
                     return;
                 }
                 try {
-                    const body = {};
+                    // the server finds only this studio's cards (1.1.330): without the code it answers 400 and
+                    // no client ever saw a training, a report or the scale
+                    const body = { studio: studio() };
                     if (c.email) body.ek = await sha(c.email);
                     if (c.phone) body.pk = await sha(c.phone);
                     const res = await fetch(API + '/v1/card/find', {
