@@ -151,6 +151,7 @@
             min-width: 28px;
         }
         .choice-icons .ico-star { color: var(--amber); font-size: 15px; line-height: 1; }
+        .choice-icons .ico-face { font-size: 22px; line-height: 1; }
         .choice-icons .ico-yes { color: #10b981; font-size: 18px; line-height: 1; font-weight: 700; }
         .choice-icons .ico-no { color: #ef4444; font-size: 18px; line-height: 1; font-weight: 700; }
         .choice-label { flex: 1; line-height: 1.3; }
@@ -293,7 +294,7 @@
 
         var FALLBACK_COPY = {
             morning_check: {
-                title: 'AI Асистент',
+                title: 'NutriPlan',
                 body: 'Спахте ли добре тази нощ?',
                 actions: [
                     { id: 'sleep_yes', title: 'Да' },
@@ -301,26 +302,26 @@
                 ]
             },
             evening_activity: {
-                title: 'AI Асистент',
-                body: 'Ниво на активност?',
+                title: 'NutriPlan',
+                body: 'Колко се движихте днес?',
                 actions: [
-                    { id: 'activity_1', title: 'Ниска' },
-                    { id: 'activity_2', title: 'Умерена' },
-                    { id: 'activity_3', title: 'Висока' }
+                    { id: 'activity_1', title: 'Малко' },
+                    { id: 'activity_2', title: 'Умерено' },
+                    { id: 'activity_3', title: 'Много' }
                 ]
             },
             evening_balance: {
-                title: 'AI Асистент',
-                body: 'Емоционален баланс?',
+                title: 'NutriPlan',
+                body: 'Как се чувствахте днес?',
                 actions: [
-                    { id: 'balance_1', title: 'Напрегнат' },
-                    { id: 'balance_2', title: 'Спокоен' },
-                    { id: 'balance_3', title: 'Позитивен' }
+                    { id: 'balance_1', title: 'Напрегнато' },
+                    { id: 'balance_2', title: 'Спокойно' },
+                    { id: 'balance_3', title: 'Позитивно' }
                 ]
             },
             evening_water: {
-                title: 'AI Асистент',
-                body: 'Изпихте ли поне 2 л вода?',
+                title: 'NutriPlan',
+                body: 'Пихте ли достатъчно вода днес?',
                 actions: [
                     { id: 'water_no', title: 'Не' },
                     { id: 'water_yes', title: 'Да' }
@@ -635,12 +636,14 @@
         }
         function choiceIconMarkup(notifType, action) {
             var val = actionValueForIcon(action);
-            if (notifType === 'evening_activity' || notifType === 'evening_balance') {
-                var stars = Number(val) || 1;
-                var html = '<span class="choice-icons">';
-                for (var i = 0; i < stars; i++) html += '<span class="ico-star">★</span>';
-                html += '</span>';
-                return html;
+            // Лице / човече според отговора — не звезди (настроението не е оценка).
+            var FACES = {
+                evening_activity: { 1: '🛋️', 2: '🚶', 3: '🏃' },
+                evening_balance: { 1: '😣', 2: '🙂', 3: '😄' }
+            };
+            if (FACES[notifType]) {
+                var face = FACES[notifType][Number(val)] || FACES[notifType][2];
+                return '<span class="choice-icons"><span class="ico-face" aria-hidden="true">' + face + '</span></span>';
             }
             if (val === true) return '<span class="choice-icons"><span class="ico-yes">✓</span></span>';
             if (val === false) return '<span class="choice-icons"><span class="ico-no">✗</span></span>';

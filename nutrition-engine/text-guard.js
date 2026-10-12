@@ -1,0 +1,70 @@
+/**
+ * Пазач на текстовете от AI, преди да стигнат до клиента (чат, бележки, съвети,
+ * анализ на храна). AI понякога пише неща, които не бива да вижда клиент:
+ * „като езиков модел…“, празни шаблони „{name}“, обещания за лечение, съвет да
+ * спре лекарство, обидни думи за тялото, остатъци от код или JSON, английски.
+ * Изреченията с такъв проблем се махат; ако не остане нищо — резервен текст.
+ * Правилата са детерминистични и не зависят от промпта.
+ */
+
+/** @type {Array<[string, RegExp]>} */
+const RULES = [
+  // AI говори за себе си вместо като асистента на NutriPlan.
+  ['ai_self', /(като|аз съм)\s+(ai|ии|изкуствен[а-я]*\s+интелект|езиков[а-я]*\s+модел|чатбот|бот)|\b(as an ai|i am an ai|language model|chatgpt|openai|gemini|claude|anthropic)\b/i],
+  // Незапълнен шаблон.
+  ['placeholder', /\{\{?\s*[a-z_а-я]+\s*\}?\}|\[(име|name|клиент|client|храна|food)[^\]]{0,20}\]|<(име|name)>/i],
+  // Обещание за лечение или за резултат.
+  ['cure_claim', /(ще\s+)?(излекува|лекува)[а-я]*\s+(\S+\s+){0,3}(диабет|рак|болест|заболяван|хашимото|синдром)|гарантира[а-я]*\s+(\S+\s+){0,2}(резултат|отслабване|излекуване)|100\s*%\s+(сигурно|гарантирано)/i],
+  // Съвет да се спре или смени лекарство — само от лекар.
+  ['stop_meds', /(спрете|спри|прекратете|прекрати|намалете|намали|откажете\s+се\s+от)\s+(\S+\s+){0,2}(лекарств|медикамент|инсулин|метформин|левотироксин|таблетк)/i],
+  // Обидно или засрамващо за тялото и храненето.
+  // \b в JS не познава кирилицата — границите на думата са с букви.
+  ['shaming', /(?<![а-яa-z])(дебел(а|и|ак|ана)?|шишко|мързелив[а-я]*|отвратител[а-я]*|срамно|провал(ихте|и сте)|нямате\s+воля)(?![а-я])/i],
+  // Остатъци от код, разметка или JSON.
+  ['markup', /```|<\/?(div|span|script|br|p|b|i|html)\b[^>]*>|^\s*[{[]\s*"/i],
+];
+
+/** Изречение предимно на латиница (английски) — не е за български клиент. */
+function mostlyLatin(sentence) {
+  const latin = (sentence.match(/[a-z]/gi) || []).length;
+  const cyr = (sentence.match(/[а-яё]/gi) || []).length;
+  return latin >= 12 && latin > cyr * 1.5;
+}
+
+/** Проблемите в текст — за тестове и логове. */
+export function textIssues(text) {
+  const s = String(text ?? '');
+  const out = RULES.filter(([, re]) => re.test(s)).map(([code]) => code);
+  if (s.split(/(?<=[.!?])\s+|\n+/).some(mostlyLatin)) out.push('english');
+  return out;
+}
+
+/** Едно кратко поле (бележка, съвет): годно ли е изцяло. */
+export function isCleanClientText(text) {
+  return textIssues(text).length === 0;
+}
+
+/**
+ * Изчиства по-дълъг текст (отговор в чата): маха само изреченията с проблем.
+ * @param {string} text
+ * @param {{ fallback?: string }} [options]
+ * @returns {{ text: string, removed: string[] }}
+ */
+export function guardClientText(text, options = {}) {
+  const fallback = options.fallback || 'Не успях да отговоря добре на това. Опитайте да зададете въпроса по друг начин.';
+  const src = String(text ?? '');
+  if (!src.trim()) return { text: fallback, removed: [] };
+  const removed = [];
+  const lines = src.split('\n').map((line) => {
+    // Изреченията в реда — пазят се разделителите.
+    const parts = line.split(/(?<=[.!?…])\s+/);
+    const kept = parts.filter((p) => {
+      const bad = textIssues(p);
+      if (bad.length) removed.push(...bad);
+      return !bad.length;
+    });
+    return kept.join(' ');
+  });
+  const out = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return { text: out || fallback, removed: [...new Set(removed)] };
+}

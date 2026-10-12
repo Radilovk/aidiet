@@ -9,6 +9,7 @@ import foodsJson from '../data/engine/foods.json' with { type: 'json' };
 import patternsJson from '../data/engine/diet-patterns.json' with { type: 'json' };
 import clinicalJson from '../data/engine/clinical.json' with { type: 'json' };
 import dishesJson from '../data/engine/dishes.json' with { type: 'json' };
+import pairingsJson from '../data/engine/pairings.json' with { type: 'json' };
 import { FOOD_CATALOG } from '../food-catalog-data.js';
 import { FOOD_NUTRITION_PER_100G } from '../food-nutrition-data.js';
 
@@ -111,10 +112,10 @@ export function nutrientsOf(id, grams) {
 /** Храна по каталожно име — за преизчисляване на план от описанието му. */
 // Псевдонимите пазят старите имена („Соев напитък“) — описанията на вече
 // генерирани планове се преизчисляват и след преименуване.
-const foodByName = new Map([...FOODS.values()].flatMap(f => [
+const foodByName = new Map([...FOODS.values()].flatMap(f => /** @type {Array<[string, Food]>} */ ([
   ...(catalogById.get(f.id)?.aliases || []).map(a => [String(a).toLowerCase(), f]),
   [f.name.toLowerCase(), f],
-]));
+])));
 export function foodByCatalogName(name) {
   return foodByName.get(String(name || '').trim().toLowerCase()) || null;
 }
@@ -145,6 +146,7 @@ export function foodByCatalogName(name) {
  * @property {string|null} requires
  * @property {boolean} fruitPaired
  * @property {boolean} fruitAlone    плод без белтък/мазнина — не и при инсулинова резистентност
+ * @property {string} prep           кратко приготвяне (празно, ако ястието няма)
  */
 
 function normalizePart(dishId, part) {
@@ -196,3 +198,23 @@ for (const [key, side] of Object.entries(SIDES)) {
 }
 
 export const DISHES_BY_ID = new Map(DISHES.map(d => [d.id, d]));
+
+/**
+ * Двойки храни, които не влизат в едно хранене (извара + праскова…).
+ * @type {Map<string, Set<string>>}
+ */
+export const AVOID_PAIRS = new Map();
+for (const rule of /** @type {any} */ (pairingsJson).avoid || []) {
+  const [a, b] = rule.foods || [];
+  food(a); food(b);
+  if (!AVOID_PAIRS.has(a)) AVOID_PAIRS.set(a, new Set());
+  if (!AVOID_PAIRS.has(b)) AVOID_PAIRS.set(b, new Set());
+  AVOID_PAIRS.get(a).add(b);
+  AVOID_PAIRS.get(b).add(a);
+}
+
+/** Има ли в списъка храни двойка, която не се съчетава. */
+export function hasAvoidedPair(ids) {
+  const list = [...new Set(ids)];
+  return list.some((a, i) => list.slice(i + 1).some(b => AVOID_PAIRS.get(a)?.has(b)));
+}

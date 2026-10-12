@@ -109,6 +109,8 @@ export function buildFoodPolicy(profile, options = {}) {
     if (ok) for (const flag of f.flags) if (excludeFlags.has(flag)) { ok = false; break; }
     // Безлактозните млечни са заместител там, където обикновените са изключени (low-FODMAP).
     if (ok && f.flags.has('lactose_free') && !excludeFlags.has('high_fodmap')) ok = false;
+    // Соевото мляко е само за вегани (решение на собственика).
+    if (ok && f.flags.has('vegan_only') && pattern !== 'vegan') ok = false;
     if (ok && blocked.some(term => matchesTerm(f, term))) ok = false;
     if (ok && onlyByGroup.has(f.group) && !onlyByGroup.get(f.group).has(id)) ok = false;
     allowedCache.set(id, ok);

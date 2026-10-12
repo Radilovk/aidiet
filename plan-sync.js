@@ -221,6 +221,7 @@
             var serverOk = planHasRenderableMeals(data.plan);
             var localOk = planHasRenderableMeals(localPlan);
             if (serverOk || !localOk) {
+                if (window.NutriMealSwaps) window.NutriMealSwaps.apply(data.plan);
                 localStorage.setItem('dietPlan', JSON.stringify(data.plan));
                 updated = true;
             }
@@ -584,6 +585,7 @@
             if (!data.success || data.planStatus !== 'activated') return { activated: false };
 
             if (data.plan) {
+                if (window.NutriMealSwaps) window.NutriMealSwaps.apply(data.plan);
                 localStorage.setItem('dietPlan', JSON.stringify(data.plan));
             }
             if (data.planUpdatedAt) {

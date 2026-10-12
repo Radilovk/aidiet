@@ -11,7 +11,8 @@
  * хранене.
  */
 
-import { food, nutrientsOf } from './knowledge.js';
+import { food, nutrientsOf, hasAvoidedPair } from './knowledge.js';
+import { partRefs } from './recipes.js';
 import { portionSteps, snapPortion, neighbourPortion, portionLine } from './portions.js';
 import { maxPortionGrams, isCookingFat } from '../portion-limits.js';
 
@@ -33,6 +34,7 @@ const COOKING_FAT_KETO_MAX_G = 30;
  * @property {string|null} side
  * @property {string|null} sideName
  * @property {number} weight
+ * @property {string} [ref]   името на частта в ястието (PRO, FAT2…) — за рецептата
  */
 
 /** Групите, чиито количества се донастройват по целта. */
@@ -222,7 +224,9 @@ function dishName(dish, parts) {
   const unique = [...new Set(labels)].filter(l => !name.toLowerCase().includes(l));
   if (unique.length) {
     if (/(^|\s)(с|със)\s/i.test(name)) {
-      name = unique.length === 1 ? `${name} и ${unique[0]}` : `${name}, ${joinList(unique)}`;
+      // „с овесени ядки и семена“ + банан → „с овесени ядки, семена и банан“, не „… и семена и банан“.
+      if (unique.length === 1) name = `${name.replace(/ и (?!.* и )/, ', ')} и ${unique[0]}`;
+      else name = `${name}, ${joinList(unique)}`;
     } else {
       name = `${name} ${withPreposition(unique[0])} ${joinList(unique)}`;
     }
@@ -246,6 +250,7 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   /** @type {PartInstance[]} */
   const parts = [];
   let carbId = null;
+  const refs = partRefs(dish);
   for (let i = 0; i < dish.parts.length; i++) {
     const spec = dish.parts[i];
     if (spec.onlyStyles && !spec.onlyStyles.includes(ctx.policy.style)) continue;
@@ -256,6 +261,10 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
       if (optional) continue;
       return null;
     }
+    // Добавка със солено при изчерпан седмичен лимит (маслини при хипертония) — пропуска се.
+    if (optional && ctx.limitReached && option.some(id => [...food(id).flags].some(f => ctx.limitReached(f)))) continue;
+    // Същата храна вече е в ястието (авокадо и като мазнина, и като добавка) — допълнението отпада.
+    if (optional && option.some(id => parts.some(p => p.foods.includes(id)))) continue;
     // Протеинът на прах при растителен модел допълва белтъка и без PRO порция в храненето.
     const boost = spec.group === 'PRO' && ctx.policy.proteinBoost && option.every(id => food(id).flags.has('supplement'));
     if (optional && !(quota[spec.group] > 0) && spec.group !== 'LEG' && !boost) continue;
@@ -273,6 +282,7 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
     const sizeScale = APPETITE_GROUPS.has(spec.group) ? (ctx.appetite || 1) : fatScale;
     parts.push(makePart(spec.group, option, [spec.range[0], spec.range[1] * sizeScale], {
       with: spec.with,
+      ref: refs[i],
       weight: parts.some(p => p.group === spec.group) ? 0.5 : 1,
     }, fatScale, APPETITE_GROUPS.has(spec.group) ? (ctx.appetite || 1) : 1));
   }
@@ -281,6 +291,8 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   const fixedAll = dish.fixed.filter(([id]) => ctx.policy.allowed(id));
   const flavour = fixedAll.filter(([id]) => food(id).group === 'FREE').map(([id]) => food(id).label);
   const fixed = fixedAll.filter(([id]) => food(id).group !== 'FREE');
+  // Несъществуващо съчетание (извара с праскова) — този избор не става; плановикът опитва друг.
+  if (hasAvoidedPair([...parts.flatMap(p => p.foods), ...fixedAll.map(([id]) => id)])) return null;
 
   initialSizing(parts, fixed, quota, target);
   const carbsCap = ctx.policy.style === 'keto' || ctx.policy.style === 'low_carb';

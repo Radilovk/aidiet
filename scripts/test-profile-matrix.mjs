@@ -148,8 +148,10 @@ for (let i = 0; i < N; i++) {
   if (process.env.ONLY) { console.log('цел', kcal, JSON.stringify(macros)); for (const m of (process.env.WEEK ? Object.values(weekPlan).flatMap(d => d.meals) : weekPlan.day1.meals)) console.log(m.type, m.calories, m.targetCalories, '|', m.name, '|', (m.description || '').replace(/\n/g, ' ')); console.log(JSON.stringify(res.prescription.daily)); }
   const meals = Object.values(weekPlan).flatMap(d => d.meals);
   const plated = meals.filter(m => m.macros && m.description);
-  const text = plated.map(m => `${m.name}\n${m.description}`).join('\n');
-  const desc = plated.map(m => m.description).join('\n');
+  // Алтернативите на храненията минават същите забрани — клиентът може да избере всяка от тях.
+  const withAlternatives = [...plated, ...plated.flatMap(m => m.alternatives || [])];
+  const text = withAlternatives.map(m => `${m.name}\n${m.description}`).join('\n');
+  const desc = withAlternatives.map(m => m.description).join('\n');
 
   // 3. Забранени храни.
   const pattern = prof.diet.pattern;
@@ -191,7 +193,7 @@ for (let i = 0; i < N; i++) {
   const dev = devSum / nd;
   if (dev > (prof.diet.style === 'keto' ? 0.16 : 0.11)) fail('точност: калории', `${(dev * 100).toFixed(1)}% ${kcal} kcal ${prof.diet.style}/${pattern}${prof.clinical.length ? ' ' + prof.clinical.join('+') : ''}${prof.exclusions.length ? ' X:' + prof.exclusions.join('+') : ''}`);
   if (protSum / nd < 0.85) fail('точност: белтък под 85% от целта', `${((protSum / nd) * 100).toFixed(0)}% ${kcal} kcal ${prof.diet.style}/${pattern}${prof.exclusions.length ? ' X:' + prof.exclusions.join('+') : ''}`);
-  for (const m of plated) for (const line of m.description.split('\n')) {
+  for (const m of withAlternatives) for (const line of m.description.split('\n')) {
     const g = Number((line.match(/ (\d+)g/) || [])[1]);
     if (g && !KITCHEN_GRID.includes(g)) fail('мрежа: грамаж извън кухненската мрежа', line);
     if (g && foodByCatalogName(line.replace(/^• /, '').replace(/ \d+g.*$/, '')) == null) fail('продукт извън двигателя', line);
@@ -203,6 +205,11 @@ for (let i = 0; i < N; i++) {
   if (hasFreeMeal !== policy.allowsFreeMeal) fail('структура: свободно хранене срещу правилата');
   if (meta.sweets && policy.sweets && !plated.some(m => m.dessert)) fail('структура: липсва десерт при сладкоежец');
   if (!policy.sweets && plated.some(m => m.dessert)) fail('структура: десерт там, където е забранен');
+  // Алтернатива: друго ястие, близки калории, без вложени алтернативи.
+  for (const m of plated) for (const a of m.alternatives || []) {
+    if (a.dishId === m.dishId || a.alternatives) fail('алтернатива: същото ястие или вложени алтернативи', m.name);
+    if (Math.abs(a.calories - m.calories) > Math.max(m.calories * 0.12, 40) && Math.abs(a.calories - m.targetCalories) > Math.max(m.targetCalories * 0.12, 40)) fail('алтернатива: калориите са далеч', `${m.name} ${m.calories} → ${a.name} ${a.calories}`);
+  }
 }
 
 console.log(`Профили: ${N}`);

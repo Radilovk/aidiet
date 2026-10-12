@@ -111,7 +111,7 @@ function increaseProtein(macros, profile) {
 
 /**
  * @param {object} userData
- * @param {{ kcal: number, macros?: { protein: number, carbs: number, fats: number }, seed?: number|string, slotAvoid?: Array<{ day: number, type: string, avoid: string[] }>,
+ * @param {{ kcal: number, macros?: { protein: number, carbs: number, fats: number }, seed?: number|string, slotAvoid?: Array<{ day: number, type: string, avoid: string[] }>, dishPreference?: Record<string, number>,
  *   freeDayNumber?: number|null, previousWeek?: Iterable<string>, date?: Date, dietaryModifier?: string }} options
  */
 export function buildNutritionPlan(userData, options) {
@@ -160,6 +160,7 @@ export function buildNutritionPlan(userData, options) {
     slotAvoid: options.slotAvoid || [],
     simplify: mods.includes('simplify_meals'),
     variety: mods.includes('more_variety'),
+    dishPreference: options.dishPreference || {},
   });
 
   const weekPlan = {};

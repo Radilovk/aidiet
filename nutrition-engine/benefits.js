@@ -23,7 +23,7 @@ export function mealBenefits(built) {
   const items = present(built);
   const facts = [];
   const protein = Math.round(built.totals.protein);
-  if (protein >= 25) facts.push(`${protein} г белтък — дълга ситост и запазване на мускулите.`);
+  if (protein >= 25) facts.push(`${protein} г белтък — дълга ситост и запазване на мускулната маса.`);
   const oily = items.filter(x => x.f.flags.has('oily_fish')).map(x => x.f.label);
   if (oily.length) facts.push(`Омега-3 мастни киселини от ${join(oily)}.`);
   const legumes = items.filter(x => x.f.group === 'LEG' || x.f.id === 'leg_peas').map(x => x.f.label);
