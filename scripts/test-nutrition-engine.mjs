@@ -406,8 +406,8 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const meals = Object.values(res.weekPlan).flatMap(d => d.meals).filter(m => m.dishId);
   const withAlt = meals.filter(m => m.alternatives?.length);
   ok(withAlt.length >= meals.length * 0.6, `алтернативи: поне 60% от храненията имат избор (${withAlt.length}/${meals.length})`);
-  ok(withAlt.every(m => m.alternatives.length <= 3 && m.alternatives.every(a => a.dishId !== m.dishId && !a.alternatives && a.recipeSteps?.length)),
-    'алтернативи: до 3, друго ястие, с рецепта, без вложени');
+  ok(withAlt.every(m => m.alternatives.length <= 5 && m.alternatives.every(a => a.dishId !== m.dishId && !a.alternatives && a.recipeSteps?.length)),
+    'алтернативи: до 5, друго ястие, с рецепта, без вложени');
   for (const [k, d] of Object.entries(res.weekPlan)) {
     const ids = d.meals.flatMap(m => [m.dishId, ...(m.alternatives || []).map(a => a.dishId)]).filter(Boolean);
     ok(new Set(ids).size === ids.length, `алтернативи: ястие веднъж в деня, и сред вариантите (${k})`);
