@@ -5,6 +5,7 @@ Patch the generated Capacitor Android project for NutriPrintPlugin.
 - Copies android-res/java/com/biocode/nutriplan/NutriPrintPlugin.java into the
   app sources (same package as MainActivity).
 - Registers the plugin in MainActivity before super.onCreate().
+- Draws the app edge-to-edge (system bar insets applied once, by SystemBars).
 
 window.print() does nothing in Android WebView; the plan book (plan-book.html)
 calls NutriPrint.print() instead, which opens the system print dialog with
@@ -27,6 +28,7 @@ MAIN_ACTIVITY = PACKAGE_DIR / "MainActivity.java"
 PATCHED_ACTIVITY = """package com.biocode.nutriplan;
 
 import android.os.Bundle;
+import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -35,6 +37,12 @@ public class MainActivity extends BridgeActivity {
         // Local plugins must be registered before the bridge starts.
         registerPlugin(NutriPrintPlugin.class);
         super.onCreate(savedInstanceState);
+        // Edge-to-edge on every Android version, as Android 15+ already enforces.
+        // Capacitor's SystemBars applies the status/navigation bar insets once
+        // (CSS env() or padding); with the old fitted window Android 14 and
+        // below added them a second time — a grey band under the status bar
+        // and above the navigation bar.
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     }
 }
 """
