@@ -301,6 +301,7 @@
         .xems-body.stagger .xems-menu > :nth-child(1) { animation-delay: .1s; }
         .xems-body.stagger .xems-menu > :nth-child(2) { animation-delay: .15s; }
         .xems-body.stagger .xems-menu > :nth-child(3) { animation-delay: .2s; }
+        .xems-body.stagger .xems-menu > :nth-child(4) { animation-delay: .25s; }
         @keyframes xemsFwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
         @keyframes xemsBwd { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
         @keyframes xemsRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -411,6 +412,32 @@
         .xems-row span { color: #64748b; flex-shrink: 0; }
         .xems-row b { color: #0f172a; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
         .xems-label.xems-sep { margin: 20px 0 8px; }
+        /* Хранене: three numbers for the day, then the training-day tips */
+        .xems-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .xems-tile { border-radius: 14px; background: #f8fafc; padding: 14px 6px 12px; text-align: center; min-width: 0; }
+        .xems-tile > i { display: block; font-size: 16px; margin-bottom: 6px; }
+        .xems-tile b { display: block; font-size: 1.45rem; font-weight: 700; color: #0f172a; line-height: 1.1; white-space: nowrap; }
+        .xems-tile b em { font-style: normal; font-size: .8rem; font-weight: 600; margin-left: 2px; }
+        .xems-tile small { display: block; color: #64748b; font-size: .74rem; margin-top: 4px; line-height: 1.25; }
+        .xems-tile.kcal > i { color: #b91c1c; }
+        .xems-tile.prot > i { color: #b45309; }
+        .xems-tile.water > i { color: #0369a1; }
+        .xems-src { display: flex; align-items: center; gap: 6px; margin: 10px 2px 0; color: #64748b; font-size: .78rem; }
+        .xems-info {
+            flex-shrink: 0; margin-left: auto; width: 32px; height: 32px; border: none; border-radius: 50%;
+            background: #f1f5f9; color: #64748b; font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer;
+            -webkit-tap-highlight-color: transparent; transition: transform .12s ease;
+        }
+        .xems-info:active { transform: scale(0.92); }
+        .xems-info[aria-expanded="true"] { background: #fee2e2; color: #b91c1c; }
+        .xems-why { margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: #f8fafc; color: #4b5563; font-size: .8rem; line-height: 1.45; }
+        .xems-tips { display: flex; flex-direction: column; gap: 2px; border-radius: 14px; background: #f8fafc; padding: 4px 14px; }
+        .xems-tip { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-top: 1px solid #eef2f6; font-size: .86rem; line-height: 1.4; color: #0f172a; }
+        .xems-tip:first-child { border-top: none; }
+        .xems-tip > i { flex-shrink: 0; width: 22px; text-align: center; margin-top: 2px; color: #b91c1c; }
+        .xems-tip small { display: block; color: #64748b; font-size: .78rem; margin-top: 1px; }
+        .xems-note-box { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: #fffbeb; color: #78350f; font-size: .86rem; line-height: 1.4; }
+        .xems-note-box > i { margin-top: 2px; color: #b45309; }
         .xems-label.xems-first { margin: 2px 0 8px; }
         .xems-sep-cta { margin-top: 16px; }
         .xems-hello + .xems-done { margin: 0 0 12px; }
@@ -1051,6 +1078,24 @@
         html[data-theme="dark"] .xems-item.off b { color: #a8a2ab; }
         html[data-theme="dark"] .xems-row { border-top-color: #34303a; }
         html[data-theme="dark"] .xems-row b { color: #f3f1f4; }
+        html[data-theme="dark"] .xems-tile,
+        html[data-theme="dark"] .xems-tips,
+        html[data-theme="dark"] .xems-why { background: #26232a; }
+        html[data-theme="dark"] .xems-tile b,
+        html[data-theme="dark"] .xems-tip { color: #f3f1f4; }
+        html[data-theme="dark"] .xems-tile small,
+        html[data-theme="dark"] .xems-tip small,
+        html[data-theme="dark"] .xems-src,
+        html[data-theme="dark"] .xems-why { color: #a8a2ab; }
+        html[data-theme="dark"] .xems-tile.kcal > i,
+        html[data-theme="dark"] .xems-tip > i { color: #f87171; }
+        html[data-theme="dark"] .xems-tile.prot > i { color: #fbbf24; }
+        html[data-theme="dark"] .xems-tile.water > i { color: #38bdf8; }
+        html[data-theme="dark"] .xems-tip { border-top-color: #34303a; }
+        html[data-theme="dark"] .xems-info { background: #26232a; color: #a8a2ab; }
+        html[data-theme="dark"] .xems-info[aria-expanded="true"] { background: rgba(239, 68, 68, 0.16); color: #f87171; }
+        html[data-theme="dark"] .xems-note-box { background: rgba(245, 158, 11, 0.12); color: #fde68a; }
+        html[data-theme="dark"] .xems-note-box > i { color: #fbbf24; }
         html[data-theme="dark"] .xems-who { background: #26232a; color: #e7e3e9; }
         html[data-theme="dark"] .xems-link { color: #f87171; }
         html[data-theme="dark"] .xems-input { background: #26232a; border-color: #3a353f; color: #f3f1f4; }
@@ -3723,7 +3768,24 @@
                 })[0];
                 if (!next) return { none: true };
                 const labels = formatAppointmentBg(next);
-                return { date: labels.dateValue, time: labels.timeValue };
+                const at = parseApptDate(next);
+                return { date: labels.dateValue, time: labels.timeValue, at: at ? at.getTime() : 0 };
+            }
+
+            /* trainings a week over the last 4 weeks (from the cache): null = the appointments are not known */
+            function perWeek() {
+                const contact = getUserContact();
+                const local = contact ? readLocalCache(contact.email) : null;
+                const data = memoryCache || (local && local.data);
+                if (!data) return null;
+                const now = Date.now();
+                let n = 0;
+                [].concat(data.upcoming || [], data.past || []).forEach(function (item) {
+                    const dt = item && !item.canceled ? parseApptDate(item) : null;
+                    const t = dt ? dt.getTime() : 0;
+                    if (t && t <= now && t > now - 28 * 864e5) n++;
+                });
+                return n / 4;
             }
 
             /* when the latest appointment began (ms, from the cache): 0 = none yet, -1 = the appointments are not known
@@ -3755,6 +3817,7 @@
                 refresh: syncIfChanged,
                 next: nextAppointment,
                 lastStart: lastStart,
+                perWeek: perWeek,
                 /* hours just booked (as the server created them): in the list and on the calendar at once */
                 add: addBooked,
                 /* an hour just canceled or moved in the app: changed in the list and on the calendar at once */
@@ -3796,6 +3859,8 @@
             const AROUND_MS = 4 * 60 * 60 * 1000;      // a training began this recently: look until its report is there
             const NEWS_MS = 3 * 24 * 60 * 60 * 1000;   // a report this fresh and not opened yet is shown as news
             const SEEN_KEY = 'xbody_progress_seen';
+            const FOOD_KEY = 'xbody_food_src';         // the card's last weigh-in + trainings a week, for Хранене
+            const FOOD_TTL_MS = 6 * 60 * 60 * 1000;    // read the card again after 6 h (or when it changed)
             const NUDGE_AWAY_MS = 30 * 60 * 1000;      // back in the app after this long = a new opening
             const GOALS = [['tone', 'Стягане и тонус'], ['fat', 'Отслабване'], ['cellulite', 'Целулит'], ['drain', 'Отводняване'], ['massage', 'Възстановяване']];
             const FITNESS = [['low', 'Рядко'], ['mid', '1–2 пъти седмично'], ['high', 'Тренирам редовно']];
@@ -3830,7 +3895,8 @@
             let cardUrl = null;
             let cardUpd = 0;        // the card's last update (ms)
             let cardN = null;       // trainings on the card (0 = the studio scale's measurements only)
-            let view = 'menu';      // 'menu' | 'nudge' (the reminder on opening) | 'data'
+            let view = 'menu';      // 'menu' | 'nudge' (the reminder on opening) | 'data' | 'food'
+            let whyOpen = false;    // Хранене: "how is this counted" unfolded
             let editing = false;    // Моите данни: the form is open
             let contactOpen = false; // first filling: the contact (already typed at the start) stays one line until "Промени"
             let fromMenuCta = false; // the first registration started from the menu → back to the menu when done
@@ -4049,9 +4115,10 @@
             /* anim: 'fwd' (deeper), 'bwd' (back), 'stagger' (sheet opens), none (in-place update) */
             function render(anim) {
                 if (editing && document.getElementById('xems-name')) collect();   // keep what was typed
-                backBtn.classList.toggle('hidden', view !== 'data');
+                backBtn.classList.toggle('hidden', view !== 'data' && view !== 'food');
                 const oldTitle = titleEl.textContent;
-                if (view === 'menu') renderMenu(); else if (view === 'nudge') renderNudge(); else renderData();
+                if (view === 'menu') renderMenu(); else if (view === 'nudge') renderNudge();
+                else if (view === 'food') renderFood(); else renderData();
                 bodyEl.classList.remove('fwd', 'bwd', 'stagger');
                 if (anim) {
                     void bodyEl.offsetWidth;   // restart the animation
@@ -4134,6 +4201,7 @@
                     item('card', 'fa-chart-line', 'Моят прогрес', !cardUrl ? 'Ще се появи след първата Ви тренировка или измерване'
                         : cardN === 0 ? (news() ? 'Ново измерване' : 'Измерванията Ви на кантара')
                         : news() ? 'Нов анализ от тренировката' : 'Всички тренировки и измервания', !cardUrl) +
+                    item('food', 'fa-utensils', 'Хранене', foodSub()) +
                     item('data', 'fa-id-card', 'Моите данни', [c.name, c.email || c.phoneRaw].filter(Boolean).join(' · ')) +
                     '</div>';
                 bodyEl.innerHTML = html;
@@ -4194,6 +4262,222 @@
                 }
                 bodyEl.innerHTML = html;
                 foot.classList.remove('hidden');
+            }
+
+            /* ─── Хранене: calories, protein and water for the day + training-day tips. No AI, no request of its own
+               beyond the card the client already has: the last weigh-in and the trainings come from the card
+               (GET /v1/history/<id>, read at most every 6 h and only when Хранене is opened), the rest from the
+               profile on this device. The same rules as NutriPlan (energy.js: Mifflin–St Jeor; macro-targets.js:
+               protein in g/kg by goal on the BMI-adjusted weight, ≤ 2.2 g/kg; a loss deficit ≤ 25 %), with the
+               lean mass from the scale when there is one (Katch–McArdle). Pregnancy or a kidney disease → no
+               numbers, a specialist decides. */
+            function foodSrc() {
+                try { return JSON.parse(localStorage.getItem(FOOD_KEY) || 'null'); } catch (e) { return null; }
+            }
+
+            function cardId() {
+                const m = cardUrl && /\/c\/([A-Za-z0-9_-]+)/.exec(cardUrl);
+                return m ? m[1] : '';
+            }
+
+            let foodInflight = null;
+            function loadFood() {
+                const id = cardId();
+                const cached = foodSrc();
+                if (!id || (cached && cached.v === 2 && cached.id === id && Date.now() - cached.at < FOOD_TTL_MS && cached.at >= cardUpd)) {
+                    return Promise.resolve(false);
+                }
+                if (!foodInflight) {
+                    foodInflight = fetch(API + '/v1/history/' + id).then(function (r) {
+                        return r.ok ? r.json() : null;
+                    }).then(function (d) {
+                        if (!d || !d.ok) return false;
+                        const raw = Array.isArray(d.body) ? d.body : [];
+                        const gone = raw.filter(function (m) { return m && m.del; }).map(function (m) { return m.t; });
+                        const body = raw.filter(function (m) { return m && m.w > 0 && !m.del && gone.indexOf(m.t) < 0; })
+                            .sort(function (a, b) { return a.t - b.t; });
+                        const last = body[body.length - 1] || null;
+                        /* the weight's direction: a least-squares line over the last 5 weeks (kg a week), only when
+                           the weigh-ins span 2 weeks or more — one step-on says nothing about a trend */
+                        const win = last ? body.filter(function (m) { return m.t > last.t - 35 * 864e5; }) : [];
+                        let trend = 0, span = 0;
+                        if (win.length >= 2) {
+                            span = (win[win.length - 1].t - win[0].t) / 864e5;
+                            if (span >= 14) {
+                                const mx = win.reduce(function (a, m) { return a + m.t; }, 0) / win.length;
+                                const my = win.reduce(function (a, m) { return a + m.w; }, 0) / win.length;
+                                let sxy = 0, sxx = 0;
+                                win.forEach(function (m) { sxy += (m.t - mx) * (m.w - my); sxx += (m.t - mx) * (m.t - mx); });
+                                trend = sxx > 0 ? Math.round(sxy / sxx * 7 * 864e5 * 100) / 100 : 0;
+                            }
+                        }
+                        const since = Date.now() - 28 * 864e5;
+                        const recent = (Array.isArray(d.sessions) ? d.sessions : []).filter(function (x) {
+                            return x && (x.start || x.id) > since;
+                        });
+                        const kcals = recent.map(function (x) { return x.scores && x.scores.kcal > 0 ? x.scores.kcal : 0; })
+                            .filter(Boolean);
+                        const src = {
+                            v: 2, id: id, at: Date.now(),
+                            t: last ? last.t : 0, w: last ? last.w : 0, fat: last && last.fat > 0 ? last.fat : 0,
+                            water: last && last.water > 0 ? last.water : 0, visc: last && last.visc > 0 ? last.visc : 0,
+                            trend: span >= 14 ? trend : null, span: Math.round(span),
+                            wk: recent.length / 4,
+                            kcal: kcals.length ? Math.round(kcals.reduce(function (a, b) { return a + b; }, 0) / kcals.length) : 0
+                        };
+                        localStorage.setItem(FOOD_KEY, JSON.stringify(src));
+                        return true;
+                    }).catch(function () { return false; }).finally(function () { foodInflight = null; });
+                }
+                return foodInflight;
+            }
+
+            function round(v, step) { return Math.round(v / step) * step; }
+
+            function thousands(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+
+            /* the day's numbers from what is known; .miss = what the profile still needs, .stop = a specialist decides */
+            function foodPlan() {
+                const p = Object.assign({ cond: [], contra: [] }, saved());
+                const contra = p.contra || [];
+                if (contra.indexOf('pregnancy') >= 0 || contra.indexOf('kidney') >= 0) {
+                    return { stop: contra.indexOf('pregnancy') >= 0 ? 'бременност' : 'бъбречно заболяване' };
+                }
+                const src = foodSrc();
+                const own = src && src.id === cardId() ? src : null;
+                const scaleFresh = own && own.w > 0 && Date.now() - own.t < 120 * 864e5;
+                const w = scaleFresh ? own.w : (p.w || (own && own.w) || 0);
+                const fat = scaleFresh && own.fat > 0 ? own.fat : 0;
+                const age = p.by ? new Date().getFullYear() - p.by : 0;
+                let bmr = 0;
+                if (w && fat) bmr = 370 + 21.6 * w * (1 - fat / 100);
+                else if (w && p.sex && age && p.h) bmr = 10 * w + 6.25 * p.h - 5 * age + (p.sex === 'M' ? 5 : -161);
+                if (!bmr) {
+                    const miss = [['sex', 'пол'], ['by', 'година на раждане'], ['h', 'ръст'], ['w', 'тегло']]
+                        .filter(function (f) { return !p[f[0]] && !(f[0] === 'w' && w); }).map(function (f) { return f[1]; });
+                    return { miss: miss };
+                }
+                /* the day without EMS by how often they do sport, then the EMS trainings on top (measured kcal, else ~200) */
+                const factor = { low: 1.3, mid: 1.4, high: 1.55 }[p.fit] || 1.35;
+                const apptWk = window.XBodyAppointments && window.XBodyAppointments.perWeek ? window.XBodyAppointments.perWeek() : null;
+                const wk = own && own.wk > 0 ? own.wk : (apptWk || 0);
+                const ems = wk * (own && own.kcal > 0 ? own.kcal : 200) * 0.8 / 7;   // 0.8: the resting part is in the BMR already
+                const tdee = bmr * factor + ems;
+                const postpartum = (p.cond || []).indexOf('postpartum') >= 0;
+                const young = age > 0 && age < 18;
+                const cut = postpartum || young ? 0 : ({ fat: 0.18, tone: 0.1, cellulite: 0.1 }[p.goal] || 0);
+                /* the scale says how it really goes: losing over 1 % of the weight a week → more food (the muscles
+                   go too); on a loss goal and the weight standing for 3+ weeks → 100 kcal less (never under the floor) */
+                const trend = scaleFresh && typeof own.trend === 'number' ? own.trend : null;
+                const pct = trend !== null && w ? trend / w * 100 : null;
+                let adj = 0;
+                if (pct !== null && pct < -1) adj = 150;
+                else if (pct !== null && cut && p.goal === 'fat' && pct > -0.1 && own.span >= 21) adj = -100;
+                const kcal = round(Math.max(tdee * (1 - cut) + adj, bmr * 1.1, tdee * 0.75), 50);
+                /* protein: g/kg by goal on the BMI-adjusted weight (NutriPlan's referenceWeightKg) */
+                let ref = w;
+                if (p.h) {
+                    const m = p.h / 100;
+                    if (w / (m * m) > 27) ref = 23 * m * m + 0.25 * (w - 23 * m * m);
+                }
+                let perKg = { fat: 1.6, tone: 1.6, cellulite: 1.6 }[p.goal] || 1.3;
+                if (p.fit === 'high') perKg += 0.3; else if (p.fit === 'mid') perKg += 0.2;
+                if (age >= 60) perKg = Math.max(perKg, 1.4);
+                if (postpartum) perKg = Math.max(perKg, 1.5);
+                perKg = Math.min(2.2, perKg);
+                const protein = round(Math.min(ref * perKg, kcal * 0.35 / 4), 5);
+                /* the scale's body water under the usual range (women ~45–60 %, men ~50–65 %) → 0.3 l more a day */
+                const lowWater = scaleFresh && own.water > 0 && own.water < (p.sex === 'M' ? 50 : 45);
+                const water = Math.min(3.5, Math.max(1.5, Math.round((w * 0.033 + (lowWater ? 0.3 : 0)) * 10) / 10));
+                return {
+                    kcal: kcal, protein: protein, water: water, cut: cut, wk: wk,
+                    meal: Math.min(40, Math.max(20, round(protein / 4, 5))),
+                    scaleAt: scaleFresh ? own.t : 0, fat: fat, goal: p.goal,
+                    trend: trend, adj: adj, lowWater: lowWater, highVisc: scaleFresh && own.visc >= 10
+                };
+            }
+
+            function foodSub() {
+                const f = foodPlan();
+                if (f.stop) return 'Насоки за Вас';
+                if (!f.kcal) return 'Калории, протеин и вода за Вас';
+                return '≈ ' + thousands(f.kcal) + ' kcal · ' + f.protein + ' г протеин на ден';
+            }
+
+            const GOAL_TIP = {
+                fat: ['fa-scale-balanced', 'Отслабването идва от по-малко захар и тестени, не от пропуснати хранения.'],
+                tone: ['fa-dumbbell', 'Разделете протеина в 3–4 хранения — така мускулите го използват най-добре.'],
+                cellulite: ['fa-carrot', 'По-малко сол и готови храни, повече вода и зеленчуци.'],
+                drain: ['fa-leaf', 'По-малко сол, повече вода, зеленчуци и плодове — те изкарват водата навън.'],
+                massage: ['fa-bed', 'Вода и протеин и на следващия ден помагат на мускулите да се възстановят.']
+            };
+
+            function tip(icon, text, sub) {
+                return '<div class="xems-tip"><i class="fas ' + icon + '"></i><span>' + text + (sub ? '<small>' + sub + '</small>' : '') + '</span></div>';
+            }
+
+            /* "днес · 18:00" / "утре · 18:00" / "пт, 17 окт · 18:00" */
+            function whenNext(nx) {
+                if (!nx || nx.none || !nx.at) return '';
+                const d = new Date(nx.at);
+                const day = new Date(); day.setHours(0, 0, 0, 0);
+                const diff = Math.round((new Date(d).setHours(0, 0, 0, 0) - day.getTime()) / 864e5);
+                return (diff === 0 ? 'днес' : diff === 1 ? 'утре' : nx.date) + ' · ' + nx.time;
+            }
+
+            function renderFood() {
+                titleEl.textContent = 'Хранене';
+                const f = foodPlan();
+                const goal = f.goal || (saved().goal || '');
+                const nx = window.XBodyAppointments && window.XBodyAppointments.next ? window.XBodyAppointments.next() : null;
+                const when = whenNext(nx);
+                let html = '';
+                if (f.stop) {
+                    html += '<div class="xems-note-box"><i class="fas fa-user-doctor"></i><span>При ' + f.stop +
+                        ' храненето се определя заедно със специалист. Попитайте треньора си при следващата тренировка.</span></div>' +
+                        '<p class="xems-label xems-sep">В деня на тренировка</p><div class="xems-tips">' +
+                        tip('fa-clock', 'Хапнете леко 1–2 часа преди — не на гладно и не на пълен стомах.') + '</div>';
+                    bodyEl.innerHTML = html;
+                    foot.classList.add('hidden');
+                    return;
+                }
+                if (f.kcal) {
+                    html += '<div class="xems-tiles">' +
+                        '<div class="xems-tile kcal"><i class="fas fa-fire"></i><b>' + thousands(f.kcal) + '</b><small>kcal ' +
+                        (f.cut ? (goal === 'fat' ? 'за отслабване' : 'за стягане') : 'на ден') + '</small></div>' +
+                        '<div class="xems-tile prot"><i class="fas fa-egg"></i><b>' + f.protein + '<em>г</em></b><small>протеин</small></div>' +
+                        '<div class="xems-tile water"><i class="fas fa-droplet"></i><b>' + String(f.water).replace('.', ',') +
+                        '<em>л</em></b><small>вода на ден</small></div></div>';
+                    const src = [];
+                    if (f.scaleAt) src.push('по измерването от ' + new Date(f.scaleAt).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' }));
+                    if (f.trend !== null && Math.abs(f.trend) >= 0.1) {
+                        src.push('теглото ' + (f.trend < 0 ? '−' : '+') + String(Math.abs(f.trend).toFixed(1)).replace('.', ',') + ' кг седмично');
+                    }
+                    if (f.wk >= 0.5) src.push(Math.round(f.wk) + ' ' + (Math.round(f.wk) === 1 ? 'тренировка' : 'тренировки') + ' седмично');
+                    html += '<div class="xems-src"><span>' + esc(src.length ? src.join(' · ') : 'по данните в профила Ви') + '</span>' +
+                        '<button type="button" class="xems-info" data-go="food-why" aria-expanded="' + whyOpen + '" aria-label="Как го смятаме">i</button></div>';
+                    if (whyOpen) {
+                        html += '<p class="xems-why xems-reveal">' + (f.fat ? 'Изходът е мускулната Ви маса от кантара' : 'Изходът са теглото, ръстът и възрастта Ви') +
+                            ', колко често спортувате и тренировките с EMS' + (f.cut ? ', с умерен дефицит за целта Ви' : '') +
+                            (f.adj > 0 ? '. Губите над 1 % от теглото си на седмица, затова добавихме малко храна — така пазите мускулите'
+                                : f.adj < 0 ? '. Теглото стои от няколко седмици, затова свалихме около 100 kcal' : '') +
+                            '. Протеинът е според целта, водата — според теглото' + (f.lowWater ? ' и водата в тялото от кантара' : '') + '. Това е ориентир за деня, не диета — за план с ястия попитайте студиото.</p>';
+                    }
+                } else {
+                    html += '<button type="button" class="xems-cta" data-go="register"><i class="fas fa-calculator"></i><span><b>Нека сметнем калориите Ви</b>' +
+                        '<small>Остава: ' + esc((f.miss || []).join(', ')) + '</small></span><span class="xems-go">›</span></button>';
+                }
+                const g = GOAL_TIP[goal] || GOAL_TIP.tone;
+                html += '<p class="xems-label xems-sep">' + (when ? 'Тренировка ' + esc(when) : 'В деня на тренировка') + '</p><div class="xems-tips">' +
+                    tip('fa-clock', 'Хапнете леко 1–2 часа преди — не на гладно и не на пълен стомах.') +
+                    tip('fa-droplet', 'Половин литър вода в повече — чаша преди и след.', 'Мускулите с повече вода реагират по-добре на импулса.') +
+                    tip('fa-egg', 'До час след нея — протеин' + (f.meal ? ', около ' + f.meal + ' г' : '') + '.', 'Кисело мляко, яйца, извара, риба или пиле.') +
+                    tip(g[0], g[1]) +
+                    (f.lowWater ? tip('fa-droplet', 'Кантарът показва малко вода в тялото — пийте по малко през целия ден.') : '') +
+                    (f.highVisc && goal !== 'fat' ? tip('fa-heart-pulse', 'Мазнините около органите са високи — падат най-бързо с по-малко захар и алкохол.') : '') +
+                    '</div>';
+                bodyEl.innerHTML = html;
+                foot.classList.add('hidden');
             }
 
             /* five parts: about you, goal, activity, zones, the health answer ("what to mind" and the note may stay empty) */
@@ -4299,6 +4583,20 @@
                     if (view === 'nudge') closeSheet(); else render();
                     const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
                     window.open(target + (target.indexOf('?') < 0 ? '?' : '&') + 'theme=' + t, '_blank', 'noopener');
+                    return;
+                }
+                if (where === 'food-why') {
+                    whyOpen = !whyOpen;
+                    render();
+                    return;
+                }
+                if (where === 'food') {
+                    view = 'food';
+                    whyOpen = false;
+                    render('fwd');
+                    loadFood().then(function (changed) {
+                        if (changed && view === 'food' && !overlay.classList.contains('hidden')) render();
+                    });
                     return;
                 }
                 if (where === 'contact') {
@@ -4443,6 +4741,9 @@
                     Promise.all([lookup(false), appts]).then(function () {
                         update();
                         if (!overlay.classList.contains('hidden') && view === 'menu') render();
+                        return loadFood();   // Хранене's line in the menu counts from the last weigh-in
+                    }).then(function (changed) {
+                        if (changed && !overlay.classList.contains('hidden') && view === 'menu') render();
                     });
                 }
             }
