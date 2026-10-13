@@ -40916,7 +40916,7 @@ function toPlanMeal(type, dish, built, withDessert = false) {
   return meal;
 }
 var PREFERENCE_WEIGHT = 3;
-var MAX_ALTERNATIVES2 = 3;
+var MAX_ALTERNATIVES2 = 5;
 var kcalOf = (t) => t.protein * 4 + t.carbs * 4 + t.fats * 9;
 function pickAlternatives(best, candidates, { kind, todayDishes, state, policy, target }) {
   const bestK = kcalOf(best.built.totals);
@@ -41007,6 +41007,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
   const available = new Set(eligible.main.filter((d) => proteinCapacity(d) >= 3).map((d) => d.category));
   const frame = sequenceMains(mainsCounts(policy, mainSlots.length, available), mainSlots, rng);
   const frameOf = new Map(mainSlots.map((s, i) => [`${s.day}:${s.type}`, frame[i]]));
+  const swappable = new Set(frame.filter((c) => c !== "red" && c !== "fish" && !(c in policy.mainsMin) && !(c in policy.mainsMax)));
   const bCounts = breakfastCounts(policy);
   const bFrame = sequenceMains(bCounts, [1, 2, 3, 4, 5, 6, 7].map((day) => ({ day, type: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" })), rng);
   const state = {
@@ -41104,11 +41105,12 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       }
       if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
       let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
-      if (alternatives.length < 2 && !avoid.length) {
+      if (alternatives.length < MAX_ALTERNATIVES2 && !avoid.length) {
         const tried = new Set(candidatesBuilt.map((c) => c.dish.id));
+        const wider = kind === "main" && swappable.has(category) ? (eligible.main || []).filter((d) => d.category !== category && swappable.has(d.category) && proteinCapacity(d) >= 3 && !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !state.yesterdayDishes.has(d.id)) : [];
         const more = [];
-        for (const d of pool) {
-          if (tried.has(d.id) || more.length >= CANDIDATES_PER_MEAL) continue;
+        for (const d of [...pool, ...wider]) {
+          if (tried.has(d.id) || more.length >= CANDIDATES_PER_MEAL * 2) continue;
           const built = buildMeal({ dish: d, choice: chooseOptions(d, state, slotCtx, altRng, target), quota: plan.quota, target, mealKind: kind, ctx: slotCtx });
           if (built?.parts.length) more.push({ dish: d, built, score: scoreMeal(d, built, state, slotCtx, kind === "breakfast" ? category : null, kind) + (dishPreference[d.id] || 0) * PREFERENCE_WEIGHT });
         }

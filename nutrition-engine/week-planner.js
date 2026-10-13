@@ -344,7 +344,7 @@ function toPlanMeal(type, dish, built, withDessert = false) {
 const PREFERENCE_WEIGHT = 3;
 
 /** Най-много толкова алтернативи на хранене. */
-export const MAX_ALTERNATIVES = 3;
+export const MAX_ALTERNATIVES = 5;
 
 const kcalOf = t => t.protein * 4 + t.carbs * 4 + t.fats * 9;
 
@@ -469,6 +469,10 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
   const available = new Set(eligible.main.filter(d => proteinCapacity(d) >= 3).map(d => d.category));
   const frame = sequenceMains(mainsCounts(policy, mainSlots.length, available), mainSlots, rng);
   const frameOf = new Map(mainSlots.map((s, i) => [`${s.day}:${s.type}`, frame[i]]));
+  // Категории основни, между които клиентът може да сменя свободно: тези от
+  // седмицата без клинично правило за брой. Червеното месо и рибата остават
+  // в своята категория — смяната не бива да надхвърли червеното или да изгуби рибата.
+  const swappable = new Set(frame.filter(c => c !== 'red' && c !== 'fish' && !(c in policy.mainsMin) && !(c in policy.mainsMax)));
 
   const bCounts = breakfastCounts(policy);
   const bFrame = sequenceMains(bCounts, [1, 2, 3, 4, 5, 6, 7].map(day => ({ day, type: 'Хранене 1' })), rng);
@@ -597,13 +601,18 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       if (!best) throw new Error(`Няма подходящо ястие за ${type} (ден ${day}) при тази диета`);
 
       let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
-      if (alternatives.length < 2 && !avoid.length) {
+      if (alternatives.length < MAX_ALTERNATIVES && !avoid.length) {
         // Още кандидати само за алтернативите — с отделен генератор, за да не се
-        // промени самият план; основният избор вече е направен.
+        // промени самият план; основният избор вече е направен. Основното хранене
+        // от свободна категория търси и в другите свободни категории (пиле ↔ бобово ↔ …).
         const tried = new Set(candidatesBuilt.map(c => c.dish.id));
+        const wider = kind === 'main' && swappable.has(category)
+          ? (eligible.main || []).filter(d => d.category !== category && swappable.has(d.category) && proteinCapacity(d) >= 3
+            && !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !state.yesterdayDishes.has(d.id))
+          : [];
         const more = [];
-        for (const d of pool) {
-          if (tried.has(d.id) || more.length >= CANDIDATES_PER_MEAL) continue;
+        for (const d of [...pool, ...wider]) {
+          if (tried.has(d.id) || more.length >= CANDIDATES_PER_MEAL * 2) continue;
           const built = buildMeal({ dish: d, choice: chooseOptions(d, state, slotCtx, altRng, target), quota: plan.quota, target, mealKind: kind, ctx: slotCtx });
           if (built?.parts.length) more.push({ dish: d, built, score: scoreMeal(d, built, state, slotCtx, kind === 'breakfast' ? category : null, kind) + (dishPreference[d.id] || 0) * PREFERENCE_WEIGHT });
         }
