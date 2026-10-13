@@ -199,8 +199,7 @@ for (let i = 0; i < N; i++) {
     if (g && foodByCatalogName(line.replace(/^• /, '').replace(/ \d+g.*$/, '')) == null) fail('продукт извън двигателя', line);
   }
   const hasDrink = meals.some(m => m.type === 'Напитка');
-  const noBreakfast = prof.skipsBreakfast && !meals.some(m => m.type === 'Хранене 1');
-  if (noBreakfast !== hasDrink) fail('структура: сутрешна напитка точно когато няма закуска');
+  if (hasDrink) fail('структура: карта „Напитка“ (не се показва — без закуска денят започва с първото хранене)');
   const hasFreeMeal = meals.some(m => m.type === 'Свободно хранене');
   if (hasFreeMeal !== policy.allowsFreeMeal) fail('структура: свободно хранене срещу правилата');
   if (meta.sweets && policy.sweets && !plated.some(m => m.dessert)) fail('структура: липсва десерт при сладкоежец');

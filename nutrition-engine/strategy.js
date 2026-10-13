@@ -4,7 +4,7 @@
  * тези, които приложението показва (plan.html, guidelines, plan-book).
  */
 
-import { dietLabelOf, encodeProfileCode, libraryDietProfileOf } from '../profile-code.js';
+import { dietLabelOf, encodeProfileCode, libraryDietProfileOf, GOALS } from '../profile-code.js';
 import { waterNeedLiters } from '../analysis-deterministic.js';
 import { GROUPS } from './knowledge.js';
 import { weeklySchemeFromPlan, ENGINE_ID } from './plan-shape.js';
@@ -144,11 +144,24 @@ function psychologyTipsOf(profile, userData) {
  * @param {object} userData
  * @param {{ freeDayNumber?: number|null, kcal: number }} options
  */
-/** Сутрешната напитка от плана — със същите варианти, които клиентът вижда. */
-function morningDrinkText(weekPlan) {
-  const drink = Object.values(weekPlan || {}).flatMap(d => d?.meals || []).find(m => m.type === 'Напитка');
-  const lines = String(drink?.description || '').split('\n').map(l => l.replace(/^•\s*/, '').trim()).filter(Boolean);
-  return lines.length ? lines.join(', ').toLowerCase() : 'вода с лимон или билков чай';
+const DAY_NAMES = ['понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота', 'неделя'];
+
+/**
+ * Приветствието, когато AI не е написал лично писмо. Говори от името на
+ * специалиста, който води клиента — без сравнения „като диетолог“ и без жаргон.
+ * Етикетите на храненето са в различен род („Балансирано“, „Веган“), затова
+ * стоят след двоеточие.
+ */
+function welcomeText({ name, goal, label, kcal, meals, freeDay, weekPlan }) {
+  const hasAlternatives = Object.values(weekPlan || {}).some(d => (d?.meals || []).some(m => m?.alternatives?.length));
+  const free = freeDay ? `, а в ${DAY_NAMES[freeDay - 1]} имате едно свободно хранене` : '';
+  return [
+    `${name ? `Здравейте, ${name}!` : 'Здравейте!'} Вашият хранителен план е готов.`,
+    `Изграден е според ${goal ? `целта Ви — ${goal.toLowerCase()} — и според` : ''} това, което споделихте с нас: навиците, ограниченията и предпочитанията Ви.`,
+    `Тип хранене: ${label}. Дневният прием е около ${kcal} kcal, разпределен в ${meals} хранения${free}.`,
+    `Всяко ястие е с точни количества и рецепта стъпка по стъпка${hasAlternatives ? '; ако нещо не Ви допада, изберете равностойна алтернатива направо от картата на храненето' : ''}.`,
+    'Отбелязвайте храненията си — в края на седмицата преглеждаме резултата заедно и настройваме плана според него.',
+  ].join(' ').replace(/\s+/g, ' ');
 }
 
 export function buildEngineStrategy(engine, userData, options) {
@@ -184,8 +197,7 @@ export function buildEngineStrategy(engine, userData, options) {
       ...rules.map(r => `${r.label}: ${r.basis}.`),
       ...(profile.adjustments || []).map(a => a.split(': ').slice(1).join(': ') || a),
     ].join(' '),
-    // Етикетите са в различен род („Балансирано“, „Веган“, „Кетогенна диета“) — затова с двоеточие, не „планът е …“.
-    welcomeMessage: `${name ? `${name}, в` : 'В'}ашият план е готов. Тип хранене: ${label}. Около ${options.kcal} kcal на ден, разпределени в ${slots.length} хранения.`,
+    welcomeMessage: welcomeText({ name, goal: GOALS[profile.goal] || '', label, kcal: options.kcal, meals: slots.length, freeDay: options.freeDayNumber, weekPlan }),
     planJustification: `Дневната схема (в порции): ${dailyText}. Всяко хранене получава своя дял от порциите и ястията се оразмеряват по него — затова калориите и макронутриентите съвпадат с целта при реални, кухненски количества.`,
     longTermStrategy: 'Всяка седмица — кратък контролен преглед: тегло, спазване на плана, глад и енергия. Калориите се коригират с до 150 kcal само когато планът е спазван и резултатът се разминава с очакваното две поредни седмици; иначе се сменя само менюто.',
     mealCountJustification: `${slots.length} хранения: ${slots.map(s => MEAL_LABELS[s] || s).join(', ')}. ${addedNote}`.trim(),
@@ -196,7 +208,7 @@ export function buildEngineStrategy(engine, userData, options) {
     calorieDistribution: mealsText,
     macroDistribution: `Белтък ${round(macros.protein)} г${perKg ? ` (${perKg} г/кг)` : ''}, въглехидрати ${round(macros.carbs)} г, мазнини ${round(macros.fats)} г — според модела „${policy.styleDef.label}“.`,
     breakfastStrategy: !slots.includes('Хранене 1')
-      ? `Без закуска — не е необходима. Сутрин по желание: ${morningDrinkText(weekPlan)}; порциите са разпределени в останалите хранения.`
+      ? 'Без закуска — денят започва с първото хранене, а порциите са разпределени в останалите хранения. Сутрин пийте вода.'
       : (added.includes('Хранене 1')
         ? 'Лека закуска — разпределя храната равномерно през деня, така че обядът и вечерята да са нормални порции.'
         : 'Закуската съчетава белтък, зърнени и плод или зеленчук.'),
