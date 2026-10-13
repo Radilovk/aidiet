@@ -31,9 +31,14 @@
       "splashFullScreen": false,
       "splashImmersive": false
     },
+    "SystemBars": {
+      "_note": "Отстъпите за статус/навигационната лента се прилагат веднъж: CSS env()/--safe-area-inset-* (страниците са viewport-fit=cover), а при стар WebView — padding. MainActivity е edge-to-edge на всички версии.",
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
+    },
     "StatusBar": {
-      "_note": "Начален цвят = splash; после app.js го сменя според темата и отворените листове.",
-      "overlaysWebView": false,
+      "_note": "Начален цвят = splash; после app.js го сменя според темата и отворените листове. WebView-то е под лентата (edge-to-edge), отстъпът идва от SystemBars.",
+      "overlaysWebView": true,
       "style": "DARK",
       "backgroundColor": "#042F2E"
     }
