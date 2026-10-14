@@ -2276,7 +2276,8 @@
                     (savedLine(c) || '') +
                     codeLine(c) +
                     consentBoxes() +
-                    (savedCard(c.email) ? policyBox() : '<p class="xb-notice"><i class="far fa-clock" aria-hidden="true"></i> Промяна или отказ — безплатно до 24 ч преди часа.</p>') +
+                    (savedCode(c.email) ? '<p class="xb-notice"><i class="fas fa-ticket" aria-hidden="true"></i> Часът се отчита по кода — без карта. Промяна или отказ — безплатно до 24 ч преди часа.</p>'
+                        : savedCard(c.email) ? policyBox() : '<p class="xb-notice"><i class="far fa-clock" aria-hidden="true"></i> Промяна или отказ — безплатно до 24 ч преди часа.</p>') +
                     (note ? '<p class="xb-cart-note">' + note + '</p>' : '') +
                     '<button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Запази ' +
                         (cart.length === 1 ? '1 час' : cart.length + ' часа') + '</button>' +
@@ -2307,6 +2308,7 @@
                 const saved = fresh ? null : savedCard(c.email);
                 booking = true;
                 busyButton('[data-go="book"]', 'Момент…');
+                if (!fresh && savedCode(c.email)) return sendBooking(c, times, '');   // a code (Fullpass…) pays: no card step
                 busyButton('[data-go="new-card"]', 'Момент…');
                 postJson('/api/xbody/guarantee', {
                     email: c.email, phone: c.phone, name: c.name, times: times, paymentMethod: saved ? saved.pm : undefined, newCard: fresh ? true : undefined
