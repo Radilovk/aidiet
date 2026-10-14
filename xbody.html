@@ -2244,7 +2244,7 @@
                 if (k) return '<p class="xb-cart-who"><i class="fas fa-ticket"></i> Код <b>' + esc(k.code) + '</b>' + (k.name ? ' (' + esc(k.name) + ')' : '') +
                     ' · <button type="button" class="xb-link" data-go="code-off">махни</button></p>';
                 return '<p class="xb-cart-who" id="xb-code-row"><button type="button" class="xb-link" data-go="code-open">Имам код (карта, пакет, ваучер)</button></p>' +
-                    '<div class="xb-code hidden" id="xb-code-box"><input id="xb-code-in" type="text" autocomplete="off" autocapitalize="characters" ' +
+                    '<div class="xb-code hidden" id="xb-code-box"><input id="xb-code-in" type="text" autocomplete="off" autocapitalize="off" ' +
                         'spellcheck="false" maxlength="40" placeholder="Код" aria-label="Код"><button type="button" class="xb-code-go" data-go="code-apply">Приложи</button></div>' +
                     '<p class="xb-cart-note" id="xb-code-err" role="alert"></p>';
             }
@@ -2252,8 +2252,8 @@
                 const c = contact();
                 const input = sheet.querySelector('#xb-code-in');
                 const err = sheet.querySelector('#xb-code-err');
-                const code = String((input && input.value) || '').trim().toUpperCase();
-                if (!/^[A-Z0-9_-]{2,40}$/.test(code)) { if (err) err.textContent = 'Въведете кода, както е даден.'; return; }
+                const code = String((input && input.value) || '').trim();   // as typed: Acuity tells the spelling it knows
+                if (!/^[A-Za-z0-9_-]{2,40}$/.test(code)) { if (err) err.textContent = 'Въведете кода, както е даден.'; return; }
                 booking = true;
                 busyButton('[data-go="code-apply"]', '…');
                 postJson('/api/xbody/code', { email: c.email, code: code }).then(function (res) {
@@ -2439,7 +2439,13 @@
                         openCartSheet('Кодът вече не важи (изчерпан или не е за този час). Махнах го — запазете отново или въведете друг.');
                         return;
                     }
-                    const viaForm = (res.d.failed || []).filter(function (f) { return f.error !== 'taken'; }).map(function (f) { return f.time; });
+                    /* with a code nothing goes to Acuity's form (it asks for payment): a refused hour stays chosen, to try again */
+                    const notBooked = (res.d.failed || []).filter(function (f) { return f.error === 'failed'; }).map(function (f) { return f.time; });
+                    const viaForm = (res.d.failed || []).filter(function (f) { return f.error === 'form'; }).map(function (f) { return f.time; });
+                    if (notBooked.length && !booked.length && !failed.length) {
+                        openCartSheet('Записването с кода не успя. Опитайте отново.');
+                        return;
+                    }
                     if (!booked.length && !failed.length && !viaForm.length) {
                         openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
                             : res.status === 402 ? 'Картата не беше потвърдена. Опитайте отново.' : 'Записването не успя. Опитайте отново.');

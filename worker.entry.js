@@ -14823,8 +14823,8 @@ function xbodyPhoneKey(phone) {
 
 /** a package / coupon code as Acuity takes it ("FULLPASS"), or '' */
 function xbodyCode(v) {
-  const code = String(v || '').trim().toUpperCase();
-  return /^[A-Z0-9_-]{2,40}$/.test(code) ? code : '';
+  const code = String(v || '').trim();   // as typed: Acuity's codes are case sensitive (Fullpass ≠ FULLPASS)
+  return /^[A-Za-z0-9_-]{2,40}$/.test(code) ? code : '';
 }
 
 /**
@@ -14847,24 +14847,39 @@ async function handleXbodyCode(request, env) {
   const r = await xbodyCheckCode(env, code, email);
   if (!r) return jsonResponse({ error: 'Няма връзка със системата за записване.' }, 502);
   if (!r.ok) {
-    console.warn('[xbody-code] Acuity refused', r.status, JSON.stringify(r.data).slice(0, 200));
+    console.warn('[xbody-code] Acuity refused', code, r.status, JSON.stringify(r.data).slice(0, 200));
     return jsonResponse({ error: r.status >= 500 ? 'Проверката не е възможна в момента.' : 'bad_code' }, r.status >= 500 ? 502 : 400);
   }
-  return jsonResponse({ ok: true, code, name: String((r.data && r.data.name) || '').slice(0, 80) });
+  return jsonResponse({ ok: true, code: r.code, name: String((r.data && r.data.name) || '').slice(0, 80) });
 }
 
-/** Acuity's own check of a package / coupon code for an XBODY Burgas hour → { ok, status, data } or null (no link). */
+/**
+ * Acuity's own check of a package / coupon code for an XBODY Burgas hour → { ok, status, data, code } or null (no
+ * link). Acuity compares codes letter for letter, so the code is tried as typed, then UPPER / lower / Capitalized;
+ * first for the client's email (a package bought by them), then without it (a coupon / a code bought under another
+ * email). `code` is the spelling Acuity knows — the one sent with the booking.
+ */
 async function xbodyCheckCode(env, code, email) {
-  const u = new URL('https://acuityscheduling.com/api/v1/certificates/check');
-  u.searchParams.set('certificate', code);
-  u.searchParams.set('appointmentTypeID', XBODY_ACUITY_BOOKING.appointmentTypeID);
-  if (String(email || '').includes('@')) u.searchParams.set('email', email);
-  const resp = await fetch(u.toString(), {
-    headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` },
-  }).catch(() => null);
-  if (!resp) return null;
-  const data = await resp.json().catch(() => ({}));
-  return { ok: resp.ok, status: resp.status, data };
+  const spellings = [...new Set([code, code.toUpperCase(), code.toLowerCase(),
+    code.charAt(0).toUpperCase() + code.slice(1).toLowerCase()])];
+  const emails = String(email || '').includes('@') ? [email, ''] : [''];
+  let last = null;
+  for (const e of emails) {
+    for (const c of spellings) {
+      const u = new URL('https://acuityscheduling.com/api/v1/certificates/check');
+      u.searchParams.set('certificate', c);
+      u.searchParams.set('appointmentTypeID', XBODY_ACUITY_BOOKING.appointmentTypeID);
+      if (e) u.searchParams.set('email', e);
+      const resp = await fetch(u.toString(), {
+        headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` },
+      }).catch(() => null);
+      if (!resp) return last;
+      const data = await resp.json().catch(() => ({}));
+      last = { ok: resp.ok, status: resp.status, data, code: c };
+      if (resp.ok || resp.status >= 500) return last;
+    }
+  }
+  return last;
 }
 
 async function xbodyReadBooking(request) {
@@ -15043,6 +15058,7 @@ async function handleXbodyBook(request, env) {
     const r = await xbodyCheckCode(env, b.code, email);
     if (!r || r.status >= 500) return jsonResponse({ error: 'Кодът не може да се провери в момента.' }, 502);
     if (!r.ok) return jsonResponse({ error: 'code', failed: times.map((time) => ({ time, error: 'code' })) }, 400);
+    b.code = r.code;   // the spelling Acuity knows
     paidByCode = true;
   }
 
@@ -15118,7 +15134,25 @@ async function handleXbodyBook(request, env) {
   const failed = [];
   for (const time of times) {   // one by one, as separate bookings
     try {
-      const resp = await fetch('https://acuityscheduling.com/api/v1/appointments', {
+      // a code pays for the hour: booked as the studio (admin) — Acuity asks for no form fields and no payment —
+      // so the hour is checked free first (admin bookings skip Acuity's availability check)
+      if (paidByCode) {
+        const chk = await fetch('https://acuityscheduling.com/api/v1/availability/check-times', {
+          method: 'POST',
+          headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify([{
+            datetime: time,
+            appointmentTypeID: Number(XBODY_ACUITY_BOOKING.appointmentTypeID),
+            calendarID: Number(XBODY_ACUITY_BOOKING.calendarID),
+          }]),
+        });
+        const list = await chk.json().catch(() => null);
+        if (!chk.ok || !Array.isArray(list) || !list[0] || list[0].valid !== true) {
+          failed.push({ time, error: 'taken' });
+          continue;
+        }
+      }
+      const resp = await fetch('https://acuityscheduling.com/api/v1/appointments' + (paidByCode ? '?admin=true' : ''), {
         method: 'POST',
         headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -15147,10 +15181,10 @@ async function handleXbodyBook(request, env) {
         const why = `${(data && data.error) || ''} ${(data && data.message) || ''}`;
         const taken = /not[_ ]?available|unavailable|no longer|already booked|time.*taken/i.test(why);
         const badCode = !taken && b.code && /certificate|coupon|package|code/i.test(why);
-        failed.push({ time, error: taken ? 'taken' : badCode ? 'code' : 'form' });
+        failed.push({ time, error: taken ? 'taken' : badCode ? 'code' : paidByCode ? 'failed' : 'form' });
       }
     } catch (err) {
-      failed.push({ time, error: 'form' });
+      failed.push({ time, error: paidByCode ? 'failed' : 'form' });
     }
   }
   if (guarantee && guarantee.id) {   // the guarantee is used: it names its bookings and cannot book again
