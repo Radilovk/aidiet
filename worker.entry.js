@@ -14844,20 +14844,27 @@ async function handleXbodyCode(request, env) {
   const code = xbodyCode(body && body.code);
   const email = String((body && body.email) || '').trim().toLowerCase();
   if (!code) return jsonResponse({ error: 'bad_code' }, 400);
+  const r = await xbodyCheckCode(env, code, email);
+  if (!r) return jsonResponse({ error: 'Няма връзка със системата за записване.' }, 502);
+  if (!r.ok) {
+    console.warn('[xbody-code] Acuity refused', r.status, JSON.stringify(r.data).slice(0, 200));
+    return jsonResponse({ error: r.status >= 500 ? 'Проверката не е възможна в момента.' : 'bad_code' }, r.status >= 500 ? 502 : 400);
+  }
+  return jsonResponse({ ok: true, code, name: String((r.data && r.data.name) || '').slice(0, 80) });
+}
+
+/** Acuity's own check of a package / coupon code for an XBODY Burgas hour → { ok, status, data } or null (no link). */
+async function xbodyCheckCode(env, code, email) {
   const u = new URL('https://acuityscheduling.com/api/v1/certificates/check');
   u.searchParams.set('certificate', code);
   u.searchParams.set('appointmentTypeID', XBODY_ACUITY_BOOKING.appointmentTypeID);
-  if (email.includes('@')) u.searchParams.set('email', email);
+  if (String(email || '').includes('@')) u.searchParams.set('email', email);
   const resp = await fetch(u.toString(), {
     headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` },
   }).catch(() => null);
-  if (!resp) return jsonResponse({ error: 'Няма връзка със системата за записване.' }, 502);
+  if (!resp) return null;
   const data = await resp.json().catch(() => ({}));
-  if (!resp.ok) {
-    console.warn('[xbody-code] Acuity refused', resp.status, JSON.stringify(data).slice(0, 200));
-    return jsonResponse({ error: resp.status >= 500 ? 'Проверката не е възможна в момента.' : 'bad_code' }, resp.status >= 500 ? 502 : 400);
-  }
-  return jsonResponse({ ok: true, code, name: String((data && data.name) || '').slice(0, 80) });
+  return { ok: resp.ok, status: resp.status, data };
 }
 
 async function xbodyReadBooking(request) {
@@ -15029,16 +15036,26 @@ async function handleXbodyBook(request, env) {
   const auth = btoa(`${userId}:${apiKey}`);
   const stripeOn = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
 
+  // a package / coupon code (Fullpass…) good for this hour pays for it: no card guarantee, no first booking via
+  // Acuity's page — booked at once
+  let paidByCode = false;
+  if (b.code) {
+    const r = await xbodyCheckCode(env, b.code, email);
+    if (!r || r.status >= 500) return jsonResponse({ error: 'Кодът не може да се провери в момента.' }, 502);
+    if (!r.ok) return jsonResponse({ error: 'code', failed: times.map((time) => ({ time, error: 'code' })) }, 400);
+    paidByCode = true;
+  }
+
   // the card guarantee: a SetupIntent of this client, for these hours, confirmed, not used yet
   let guarantee = null;
-  const saved = stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
+  const saved = !paidByCode && stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
   if (saved) {
     guarantee = {
       id: '',
       card: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
       note: `Гаранция с карта (приложение XBODY, запазена карта): Stripe ${saved.customer}, ${saved.brand} •••• ${saved.last4}. Нищо не е изтеглено.`,
     };
-  } else if (stripeOn) {
+  } else if (stripeOn && !paidByCode) {
     if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse({ error: 'card_required' }, 402);
     try {
       const si = await xbodyStripe(env, 'GET', `setup_intents/${b.setupIntent}`, { 'expand[]': 'payment_method' });
@@ -15081,7 +15098,7 @@ async function handleXbodyBook(request, env) {
     console.error('[xbody-book] lookup failed:', err.message);
     return jsonResponse({ error: 'Записването не е възможно в момента.' }, 502);
   }
-  if (!previous && !guarantee) {
+  if (!previous && !guarantee && !paidByCode) {
     // no card taken here and not a known client: nobody books without leaving payment details, so the first
     // booking goes through Acuity's page (its card form)
     return jsonResponse({ error: 'first_booking' }, 403);
