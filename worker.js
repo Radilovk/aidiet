@@ -53506,8 +53506,8 @@ function xbodyPhoneKey(phone) {
   return String(phone || "").replace(/\D/g, "").slice(-9);
 }
 function xbodyCode(v) {
-  const code = String(v || "").trim().toUpperCase();
-  return /^[A-Z0-9_-]{2,40}$/.test(code) ? code : "";
+  const code = String(v || "").trim();
+  return /^[A-Za-z0-9_-]{2,40}$/.test(code) ? code : "";
 }
 async function handleXbodyCode(request, env) {
   if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return jsonResponse2({ error: "Acuity API \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D." }, 503);
@@ -53525,22 +53525,36 @@ async function handleXbodyCode(request, env) {
   const r = await xbodyCheckCode(env, code, email);
   if (!r) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0432\u0440\u044A\u0437\u043A\u0430 \u0441\u044A\u0441 \u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430 \u0437\u0430 \u0437\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435." }, 502);
   if (!r.ok) {
-    console.warn("[xbody-code] Acuity refused", r.status, JSON.stringify(r.data).slice(0, 200));
+    console.warn("[xbody-code] Acuity refused", code, r.status, JSON.stringify(r.data).slice(0, 200));
     return jsonResponse2({ error: r.status >= 500 ? "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u0442\u0430 \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u0430 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." : "bad_code" }, r.status >= 500 ? 502 : 400);
   }
-  return jsonResponse2({ ok: true, code, name: String(r.data && r.data.name || "").slice(0, 80) });
+  return jsonResponse2({ ok: true, code: r.code, name: String(r.data && r.data.name || "").slice(0, 80) });
 }
 async function xbodyCheckCode(env, code, email) {
-  const u = new URL("https://acuityscheduling.com/api/v1/certificates/check");
-  u.searchParams.set("certificate", code);
-  u.searchParams.set("appointmentTypeID", XBODY_ACUITY_BOOKING.appointmentTypeID);
-  if (String(email || "").includes("@")) u.searchParams.set("email", email);
-  const resp = await fetch(u.toString(), {
-    headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` }
-  }).catch(() => null);
-  if (!resp) return null;
-  const data = await resp.json().catch(() => ({}));
-  return { ok: resp.ok, status: resp.status, data };
+  const spellings = [.../* @__PURE__ */ new Set([
+    code,
+    code.toUpperCase(),
+    code.toLowerCase(),
+    code.charAt(0).toUpperCase() + code.slice(1).toLowerCase()
+  ])];
+  const emails = String(email || "").includes("@") ? [email, ""] : [""];
+  let last = null;
+  for (const e of emails) {
+    for (const c of spellings) {
+      const u = new URL("https://acuityscheduling.com/api/v1/certificates/check");
+      u.searchParams.set("certificate", c);
+      u.searchParams.set("appointmentTypeID", XBODY_ACUITY_BOOKING.appointmentTypeID);
+      if (e) u.searchParams.set("email", e);
+      const resp = await fetch(u.toString(), {
+        headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` }
+      }).catch(() => null);
+      if (!resp) return last;
+      const data = await resp.json().catch(() => ({}));
+      last = { ok: resp.ok, status: resp.status, data, code: c };
+      if (resp.ok || resp.status >= 500) return last;
+    }
+  }
+  return last;
 }
 async function xbodyReadBooking(request) {
   let body;
@@ -53704,6 +53718,7 @@ async function handleXbodyBook(request, env) {
     const r = await xbodyCheckCode(env, b.code, email);
     if (!r || r.status >= 500) return jsonResponse2({ error: "\u041A\u043E\u0434\u044A\u0442 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
     if (!r.ok) return jsonResponse2({ error: "code", failed: times.map((time) => ({ time, error: "code" })) }, 400);
+    b.code = r.code;
     paidByCode = true;
   }
   let guarantee = null;
@@ -53765,7 +53780,23 @@ async function handleXbodyBook(request, env) {
   const failed = [];
   for (const time of times) {
     try {
-      const resp = await fetch("https://acuityscheduling.com/api/v1/appointments", {
+      if (paidByCode) {
+        const chk = await fetch("https://acuityscheduling.com/api/v1/availability/check-times", {
+          method: "POST",
+          headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+          body: JSON.stringify([{
+            datetime: time,
+            appointmentTypeID: Number(XBODY_ACUITY_BOOKING.appointmentTypeID),
+            calendarID: Number(XBODY_ACUITY_BOOKING.calendarID)
+          }])
+        });
+        const list = await chk.json().catch(() => null);
+        if (!chk.ok || !Array.isArray(list) || !list[0] || list[0].valid !== true) {
+          failed.push({ time, error: "taken" });
+          continue;
+        }
+      }
+      const resp = await fetch("https://acuityscheduling.com/api/v1/appointments" + (paidByCode ? "?admin=true" : ""), {
         method: "POST",
         headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -53793,10 +53824,10 @@ async function handleXbodyBook(request, env) {
         const why = `${data && data.error || ""} ${data && data.message || ""}`;
         const taken = /not[_ ]?available|unavailable|no longer|already booked|time.*taken/i.test(why);
         const badCode = !taken && b.code && /certificate|coupon|package|code/i.test(why);
-        failed.push({ time, error: taken ? "taken" : badCode ? "code" : "form" });
+        failed.push({ time, error: taken ? "taken" : badCode ? "code" : paidByCode ? "failed" : "form" });
       }
     } catch (err) {
-      failed.push({ time, error: "form" });
+      failed.push({ time, error: paidByCode ? "failed" : "form" });
     }
   }
   if (guarantee && guarantee.id) {
