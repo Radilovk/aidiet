@@ -575,8 +575,9 @@
             border: none;
             background: transparent;
             color: var(--text-light);
+            min-height: 52px;
             font-family: inherit;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 500;
             text-decoration: none;
             cursor: pointer;
@@ -972,7 +973,7 @@
             if(validScores.length>=3){
                 var projected = Math.min(5, Math.round((avgScore + (trendUp?0.5:trendDown?-0.3:0))*10)/10);
                 if(trendUp && projected>=4) scenario = '<i class="fas fa-chart-line" style="color:#10b981"></i> Ако запазите текущата тенденция, ще достигнете средна оценка <strong>'+projected+'/5</strong> за седмицата — отлично!';
-                else if(trendDown) scenario = '<i class="fas fa-chart-line" style="color:#ef4444;transform:rotate(90deg);display:inline-block"></i> Наблюдаваме спад в последните дни. Малко повече внимание към плана ще обърне тенденцията.';
+                else if(trendDown) scenario = '<i class="fas fa-chart-line" style="color:#ea580c;transform:rotate(90deg);display:inline-block"></i> Последните дни оценката леко спада. Малка стъпка за днес: отбележете следващото си хранене — отнема 1 минута.';
                 else if(avgScore>=4) scenario = '<i class="fas fa-star" style="color:#fbbf24"></i> Стабилна и силна седмица! Ако запазите ритъма, ще затвърдите навиците дългосрочно.';
                 else if(engagementPct<50) scenario = '<i class="fas fa-lightbulb" style="color:#0D9488"></i> Увеличете ангажираността с 20% (отбелязвайте хранения редовно) и оценката ви ще скочи значително.';
             }
@@ -984,10 +985,10 @@
                 var s = calcDayScore(d.rec);
                 return s.score !== null && s.score < 2;
             });
-            if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни имате ниска ангажираност — проверете дали имате нужда от промяна в плана.');
-            if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> Открихме '+junkCount7+' вредни хранения за седмицата. Опитайте да намалите до 1-2 максимум.');
-            if(waterPct!=null&&waterPct<40) alerts.push('<i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратацията ви е ниска тази седмица — достатъчният прием на вода подпомага метаболизма и енергията.');
-            if(sleepPct!=null&&sleepPct<30) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Качеството на съня е ниско тази седмица — това пряко влияе на метаболизма и избора на храна.');
+            if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#d97706"></i> Последните 2 дни са по-тихи. Ако планът не ви пасва, кажете на асистента — 2 минути разговор стигат.');
+            if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ea580c"></i> Тази седмица има '+junkCount7+' хранения извън плана. Малка стъпка: подгответе си една закуска от плана за утре — 2 минути.');
+            if(waterPct!=null&&waterPct<40) alerts.push('<i class="fas fa-droplet" style="color:#06B6D4"></i> Водата тази седмица е под нормата. Малка стъпка: чаша вода сега и една до леглото за сутринта.');
+            if(sleepPct!=null&&sleepPct<30) alerts.push('<i class="fas fa-moon" style="color:#6366f1"></i> Сънят тази седмица е под нормата, а той влияе и на апетита. Малка стъпка: 10 минути без екран преди лягане.');
 
             // ── Encouragement ─────────────────────────────────────────────────
             var leadingCriterion='', encourageText='<i class="fas fa-dumbbell" style="color:#0D9488"></i> Последователността е ключът към успеха!';
@@ -1171,7 +1172,7 @@
             '</div>';
 
             if(trendUp)   html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#10b981;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line"></i> Тенденцията е нагоре — вие се подобрявате!</div>';
-            if(trendDown) html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#ef4444;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line" style="transform:rotate(90deg)"></i> Леко затихване — малко повече фокус ще промени всичко</div>';
+            if(trendDown) html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#c2410c;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line" style="transform:rotate(90deg)"></i> Леко затихване — една отметка днес е достатъчна за начало</div>';
 
             if(alerts.length>0){
                 alerts.forEach(function(a, ai){ html += '<div class="game-alert-card ga-card-enter" style="animation-delay:'+(0.22+ai*0.06)+'s">'+a+'</div>'; });
@@ -1185,7 +1186,7 @@
 
             html += '<div class="game-index-row" data-explain="engagement">' +
                 '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+(mealAdherencePct!=null?' · спазени хранения '+mealAdherencePct+'%':'')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle-half-stroke" style="color:#d97706"></i> Добре':'<i class="fas fa-circle-minus" style="color:#ea580c"></i> Нисък')+(mealAdherencePct!=null?' · спазени хранения '+mealAdherencePct+'%':'')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
             '</div>';
 
@@ -1196,39 +1197,39 @@
                 calBalanceLabel = '<i class="fas fa-check-circle" style="color:#10b981"></i> Балансиран';
             } else if (netCalBalance > 0) {
                 calBalanceLabel = netCalBalance < 700
-                    ? '<i class="fas fa-circle" style="color:#f59e0b"></i> Нетен излишък'
-                    : '<i class="fas fa-circle" style="color:#ef4444"></i> Голям излишък';
+                    ? '<i class="fas fa-circle-half-stroke" style="color:#d97706"></i> Нетен излишък'
+                    : '<i class="fas fa-circle-minus" style="color:#ea580c"></i> Голям излишък';
             } else {
                 calBalanceLabel = '<i class="fas fa-arrow-down" style="color:#3b82f6"></i> Нетен дефицит';
             }
             html += '<div class="game-index-row" data-explain="calories">' +
                 '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span>'+(netCalBalance>0?'+':'')+netCalBalance+' kcal</span></div>' +
                 '<div class="game-index-hint">'+calBalanceLabel+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(calAdherencePct, netCalBalance>700?'linear-gradient(90deg,#ef4444,#f97316)':netCalBalance>0?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#3b82f6,#06B6D4)') +
-                calTargetBarChart(calConsumedByDay, calPlannedByDay, netCalBalance>700?'#ef4444':'#f59e0b', '#3b82f6') +
+                pBar(calAdherencePct, netCalBalance>700?'linear-gradient(90deg,#ea580c,#f97316)':netCalBalance>0?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#3b82f6,#06B6D4)') +
+                calTargetBarChart(calConsumedByDay, calPlannedByDay, netCalBalance>700?'#ea580c':'#f59e0b', '#3b82f6') +
             '</div>';
 
             if(balancePct!=null) html += '<div class="game-index-row" data-explain="stress">' +
                 '<div class="game-index-label"><span><i class="fas fa-heart-pulse" style="color:#10b981"></i> Емоционален баланс</span><span>'+balancePct+'%</span></div>' +
-                '<div class="game-index-hint">'+(balancePct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висок баланс':balancePct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък баланс')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(balancePct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висок баланс':balancePct>=40?'<i class="fas fa-circle-half-stroke" style="color:#d97706"></i> Умерен':'<i class="fas fa-circle-minus" style="color:#ea580c"></i> Нисък баланс')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(balancePct,'linear-gradient(90deg,#10b981,#06B6D4)') + miniBarChart(balanceByDay,100,'#10b981') +
             '</div>';
 
             if(sleepPct!=null) html += '<div class="game-index-row" data-explain="sleep">' +
                 '<div class="game-index-label"><span><i class="fas fa-bed" style="color:#6366f1"></i> Сън</span><span>'+sleepPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добър сън':sleepPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добър сън':sleepPct>=40?'<i class="fas fa-circle-half-stroke" style="color:#d97706"></i> Умерен':'<i class="fas fa-circle-minus" style="color:#ea580c"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1') +
             '</div>';
 
             if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
                 '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle-half-stroke" style="color:#d97706"></i> Умерена':'<i class="fas fa-circle-minus" style="color:#ea580c"></i> Ниска')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(actPct,'linear-gradient(90deg,#f59e0b,#fbbf24)') + miniBarChart(actByDay,100,'#f59e0b') +
             '</div>';
 
             if(waterPct!=null) html += '<div class="game-index-row" data-explain="water">' +
                 '<div class="game-index-label"><span><i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратация</span><span>'+waterPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(waterPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добра':waterPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(waterPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добра':waterPct>=40?'<i class="fas fa-circle-half-stroke" style="color:#d97706"></i> Умерена':'<i class="fas fa-circle-minus" style="color:#ea580c"></i> Ниска')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(waterPct,'linear-gradient(90deg,#06B6D4,#0284C7)') + miniBarChart(waterByDay,100,'#06B6D4') +
             '</div>';
 

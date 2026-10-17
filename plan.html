@@ -1640,8 +1640,8 @@
         }
         
         .macro-segment.carbs {
-            background: linear-gradient(90deg, #f87171, #ef4444);
-            box-shadow: 0 0 12px rgba(248, 113, 113, 0.4);
+            background: linear-gradient(90deg, #38bdf8, #0284c7);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
         }
         
         .macro-segment.fiber {
@@ -1713,7 +1713,7 @@
         }
         
         .macro-dot.carbs {
-            background: linear-gradient(135deg, #f87171, #ef4444);
+            background: linear-gradient(135deg, #38bdf8, #0284c7);
         }
         
         .macro-dot.fiber {
@@ -2234,9 +2234,9 @@
             box-shadow: 0 4px 12px rgba(16,185,129,0.35);
         }
         .game-answer-btn.no {
-            background: linear-gradient(135deg, #f87171, #ef4444);
+            background: linear-gradient(135deg, #94a3b8, #64748b);
             color: white;
-            box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+            box-shadow: 0 4px 12px rgba(100,116,139,0.3);
         }
         .game-answer-btn.tier-low {
             background: linear-gradient(135deg, #94a3b8, #64748b);
@@ -3091,7 +3091,7 @@
         }
         .food-macro-segment.protein { background: #6366f1; }
         .food-macro-segment.fats { background: #fbbf24; }
-        .food-macro-segment.carbs { background: #f87171; }
+        .food-macro-segment.carbs { background: #0ea5e9; }
         .food-macro-segment.fiber { background: #0D9488; }
         .food-macros-legend {
             display: flex;
@@ -3112,7 +3112,7 @@
         }
         .food-macro-dot.protein { background: #6366f1; }
         .food-macro-dot.fats { background: #fbbf24; }
-        .food-macro-dot.carbs { background: #f87171; }
+        .food-macro-dot.carbs { background: #0ea5e9; }
         .food-macro-dot.fiber { background: #0D9488; }
 
         /* Suitability badge */
@@ -3133,8 +3133,8 @@
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
         .food-suitability.unsuitable {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            background: rgba(234, 88, 12, 0.1);
+            border: 1px solid rgba(234, 88, 12, 0.3);
         }
         .food-suitability-score {
             font-size: 1.8rem;
@@ -3143,7 +3143,7 @@
         }
         .food-suitability.suitable .food-suitability-score { color: #0D9488; }
         .food-suitability.partial .food-suitability-score { color: #f59e0b; }
-        .food-suitability.unsuitable .food-suitability-score { color: #ef4444; }
+        .food-suitability.unsuitable .food-suitability-score { color: #c2410c; }
         .food-suitability-info {
             flex: 1;
         }
@@ -3370,7 +3370,7 @@
         }
         .food-confidence.high { background: rgba(13,148,136,0.15); color: #0F766E; }
         .food-confidence.medium { background: rgba(245,158,11,0.15); color: #d97706; }
-        .food-confidence.low { background: rgba(239,68,68,0.15); color: #dc2626; }
+        .food-confidence.low { background: rgba(234,88,12,0.14); color: #c2410c; }
 
         /* --- МОИТЕ ХРАНИ И ПРОДУКТИ BANNER --- */
         .my-foods-banner {
@@ -3503,8 +3503,9 @@
             border: none;
             background: transparent;
             color: var(--text-light);
+            min-height: 52px;
             font-family: inherit;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 500;
             text-decoration: none;
             cursor: pointer;
@@ -8587,7 +8588,7 @@
             if (!resultsDiv) return;
 
             const score = Math.min(5, Math.max(0, Math.round(analysis.suitabilityScore != null ? analysis.suitabilityScore : 3)));
-            const scoreColors = ['#6b7280', '#ef4444', '#f97316', '#fbbf24', '#84cc16', '#0D9488'];
+            const scoreColors = ['#6b7280', '#c2410c', '#f97316', '#fbbf24', '#84cc16', '#0D9488'];
             const scoreColor = scoreColors[score] || '#0D9488';
 
             // Build stars HTML
@@ -10445,11 +10446,11 @@
         // ── Bubble UI ─────────────────────────────────────────────────────────
         var YES_NO = [
             { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' },
-            { label:'Не', icon:'<i class="fas fa-xmark" style="color:#ef4444"></i>', value:false, cls:'no'  }
+            { label:'Не', icon:'<i class="fas fa-xmark" style="color:#64748b"></i>', value:false, cls:'no'  }
         ];
         // Reversed order for hydration question (Не left, Да right per UX spec)
         var NO_YES = [
-            { label:'Не', icon:'<i class="fas fa-xmark" style="color:#ef4444"></i>', value:false, cls:'no'  },
+            { label:'Не', icon:'<i class="fas fa-xmark" style="color:#64748b"></i>', value:false, cls:'no'  },
             { label:'Да', icon:'<i class="fas fa-check" style="color:#10b981"></i>', value:true,  cls:'yes' }
         ];
         var ACTIVITY_1_3 = [
@@ -11107,7 +11108,7 @@
                 var dot = document.createElement('div');
                 var ds2 = day.rec ? (day.rec.dailyScore||calcDayScore(day.rec)) : null;
                 var bg = '#e5e7eb';
-                if (ds2 && ds2.score !== null) bg = ds2.score>=4?'#10b981':ds2.score>=3?'#f59e0b':'#f87171';
+                if (ds2 && ds2.score !== null) bg = ds2.score>=4?'#10b981':ds2.score>=3?'#f59e0b':'#fb923c';
                 dot.style.cssText = 'width:20px;height:20px;border-radius:50%;background:'+bg+';';
                 dotsWrap.appendChild(dot);
             });

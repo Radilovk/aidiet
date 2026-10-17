@@ -614,15 +614,15 @@ const GameNotifier = {
     encouragementForAction(actionId) {
         const map = {
             sleep_yes:    { title: 'Супер! ✨', message: 'Добър старт на деня!', confetti: 28 },
-            sleep_no:     { title: 'Записано', message: 'Благодарим за честността.', confetti: 12 },
+            sleep_no:     { title: 'Записано', message: 'Тази вечер опитайте 10 минути без екран преди лягане.', confetti: 12 },
             activity_1:   { title: 'Записано', message: 'Спокоен ден — важно е да се отдъхнете.', confetti: 14 },
             activity_2:   { title: 'Браво! 💪', message: 'Умерен ритъм — точно в целта.', confetti: 22 },
             activity_3:   { title: 'Страхотно! 🔥', message: 'Висока активност — блестящо!', confetti: 32 },
-            balance_1:    { title: 'Записано', message: 'Утре е нов ден — полека.', confetti: 10 },
+            balance_1:    { title: 'Записано', message: '2 минути бавно дишане помагат. Полека.', confetti: 10 },
             balance_2:    { title: 'Добре! 🙂', message: 'Спокойствието си струва.', confetti: 18 },
             balance_3:    { title: 'Чудесно! ✨', message: 'Позитивният заряд помага.', confetti: 30 },
             water_yes:    { title: 'Браво! 💧', message: 'Пиете достатъчно вода — чудесно.', confetti: 26 },
-            water_no:     { title: 'Записано', message: 'Утре опитайте да пиете малко повече.', confetti: 10 },
+            water_no:     { title: 'Записано', message: 'Една чаша вода сега — отнема минута.', confetti: 10 },
             skip:         { title: 'Добре', message: 'Пропуснато за днес.', confetti: 0 }
         };
         return map[actionId] || { title: 'Готово ✨', message: 'Отговорът е записан.', confetti: 16 };
