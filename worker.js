@@ -53766,6 +53766,9 @@ async function handleXbodyBook(request, env) {
   if (!previous && !guarantee && !paidByCode) {
     return jsonResponse2({ error: "first_booking" }, 403);
   }
+  if (!previous && !b.terms) {
+    return jsonResponse2({ error: "terms" }, 403);
+  }
   const fields = [];
   for (const form of Array.isArray(previous && previous.forms) ? previous.forms : []) {
     for (const v of Array.isArray(form && form.values) ? form.values : []) {

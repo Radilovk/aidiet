@@ -302,6 +302,7 @@
         .xems-body.stagger .xems-menu > :nth-child(2) { animation-delay: .15s; }
         .xems-body.stagger .xems-menu > :nth-child(3) { animation-delay: .2s; }
         .xems-body.stagger .xems-menu > :nth-child(4) { animation-delay: .25s; }
+        .xems-body.stagger .xems-menu > :nth-child(5) { animation-delay: .3s; }
         @keyframes xemsFwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
         @keyframes xemsBwd { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
         @keyframes xemsRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -1180,7 +1181,7 @@
         .xb-pills a {
             flex: 1 1 0; max-width: 200px; min-height: 40px; display: flex; align-items: center; justify-content: center;
             border-radius: 999px; background: var(--xb-soft); border: 1px solid var(--xb-soft-line); color: var(--xb-red);
-            font-size: 14px; font-weight: 500; text-decoration: none; transition: transform .12s ease;
+            padding: 0 8px; font-size: 14px; font-weight: 500; line-height: 1.2; text-align: center; text-decoration: none; transition: transform .12s ease;
         }
         html[data-theme="dark"] .xb-pills a { color: #fca5a5; }
         .xb-pills a:active { transform: scale(.96); }
@@ -1356,14 +1357,22 @@
         html[data-theme="dark"] .xb-policy { background: rgba(229, 57, 53, .1); border-color: rgba(229, 57, 53, .28); }
         .xb-sheet .xb-notice { margin: 10px 0 2px; font-size: 13px; font-weight: 400; line-height: 1.45; color: #8a8590; }
         .xb-sheet .xb-link { display: inline; width: auto; min-height: 0; margin: 0; padding: 0; border: 0; background: none; color: #d32f2f; font: inherit; font-size: inherit; font-weight: 600; text-decoration: underline; }
-        .xb-sheet .xb-notice .xb-info { vertical-align: middle; margin-left: 4px; }
-        .xb-consent { display: flex; align-items: center; gap: 10px; margin: 10px 0 2px; font-size: 14px; line-height: 1.4; }
-        .xb-consent label { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; }
-        .xb-consent input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: #d32f2f; }
-        .xb-sheet .xb-info { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; min-height: 0; margin: 0;
-            padding: 0; border-radius: 50%; border: 1px solid #b9b4be; background: transparent; color: inherit; font: italic 700 14px/1 Georgia, serif; }
-        .xb-sheet .xb-info-text { margin: 4px 0 6px; font-size: 13px; font-weight: 400; line-height: 1.5; color: #8a8590; }
-        .xb-sheet .xb-info-text.hidden { display: none; }
+        /* Правила и условия: the tick (first registration / booking) and the rules sheet */
+        .xb-terms-box { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0 4px; font-size: 14px; font-weight: 400; line-height: 1.45; cursor: pointer; text-align: left; }
+        .xb-terms-box input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: #d32f2f; }
+        .xb-terms-box a, .xb-sheet .xb-terms-box a, .xb-sheet.xb-terms-doc a {
+            display: inline; width: auto; min-height: 0; margin: 0; border-radius: 0; color: #d32f2f; font: inherit; font-weight: 600; text-decoration: underline; }
+        .xb-terms-box.bad { animation: xbTermsShake .4s; }
+        .xb-terms-box.bad span { color: #dc2626; }
+        @keyframes xbTermsShake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .xb-terms-back { z-index: 1100; }
+        .xb-sheet.xb-terms-doc h4 { margin: 16px 0 6px; font-size: 15px; font-weight: 700; }
+        .xb-sheet.xb-terms-doc ul { margin: 0; padding-left: 20px; }
+        .xb-sheet.xb-terms-doc li, .xb-sheet.xb-terms-doc .xb-terms-text, .xb-sheet.xb-terms-doc .xb-terms-more {
+            margin: 0 0 6px; font-size: 14px; font-weight: 400; line-height: 1.5; }
+        .xb-sheet.xb-terms-doc .xb-terms-lead { margin: 0 0 4px; font-size: 18px; }
+        .xb-sheet.xb-terms-doc .xb-primary { margin-top: 18px; }
+        html[data-theme="dark"] .xb-terms-box a, html[data-theme="dark"] .xb-sheet.xb-terms-doc a { color: #fca5a5; }
         .xb-sheet .xb-cart-msg { font-size: 14px; line-height: 1.5; }
         /* changing an hour: the bar above the calendar while a new hour is chosen */
         .xb-move {
@@ -1469,6 +1478,7 @@
             </div>
             <div class="xbody-appt-body xems-body" id="xems-body"></div>
             <div class="xems-foot hidden" id="xems-foot">
+                <div id="xems-terms-slot"></div>
                 <button type="button" class="xems-send" id="xems-send">Регистрирай ме</button>
                 <p class="xems-msg" id="xems-msg">Данните отиват само в твоето студио.</p>
             </div>
@@ -1510,6 +1520,7 @@
                     <input id="xbody-phone" class="xbody-form-input" name="phone" type="tel" autocomplete="tel" inputmode="tel" required>
                 </div>
 
+                <div id="xbody-terms-slot"></div>
                 <p class="xbody-form-error" id="xbody-form-error" aria-live="polite"></p>
                 <button class="xbody-submit-btn" type="submit">Продължи</button>
             </form>
@@ -1526,6 +1537,7 @@
             <div class="xb-pills">
                 <a href="https://radilovk.github.io/storage/faq.html" target="_blank" rel="noopener">Чести въпроси</a>
                 <a href="https://radilovk.github.io/storage/effects.html" target="_blank" rel="noopener">Ефекти от EMS</a>
+                <a href="#" data-terms="rules">Правила и условия</a>
             </div>
             <div class="xb-card xb-info">
                 <h1>Запазване на часове</h1>
@@ -1638,6 +1650,93 @@
             sc.scrollTop = saved + 1;
             setTimeout(function () { sc.scrollTop = saved; }, WEBKIT_COMPOSITOR_RECOVERY_DELAY_MS);
         });
+
+        /* ── Правила и условия: one tick at the first registration / booking, then never asked again; the rules stay
+           one tap away ("Правила и условия" by the pills, in Моят профил). SMS reminders are part of the service:
+           always on, never asked. ── */
+        (function () {
+            const KEY = 'xbody_consents';
+            const EFFECTS = 'https://radilovk.github.io/storage/effects.html';
+            const FAQ = 'https://radilovk.github.io/storage/faq.html';
+            const CONTRA = ['Бременност', 'Пейсмейкър, друг имплантиран електронен уред или метален имплант', 'Сърдечно-съдово заболяване',
+                'Тромбоза или разширени вени', 'Херния', 'Онкологично заболяване', 'Склонност към кървене', 'Епилепсия',
+                'Неврологично заболяване', 'Скорошна операция', 'Рани или кожни проблеми в зоните на електродите',
+                'Бъбречно заболяване', 'Туберкулоза'];
+            let back = null;
+
+            function accepted() {
+                try {
+                    const v = JSON.parse(localStorage.getItem(KEY) || 'null');
+                    return Boolean(v && v.terms);
+                } catch (_) {
+                    return false;
+                }
+            }
+            function accept() {
+                const v = { terms: true, sms: true, at: Date.now() };
+                try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (_) {}
+                return v;
+            }
+            /* the tick (required): the links open the rules, they do not tick it */
+            function box(id, checked) {
+                return '<label class="xb-terms-box"><input type="checkbox" id="' + id + '" required' + (checked ? ' checked' : '') + '>' +
+                    '<span>Прочетох и приемам <a href="#" data-terms="rules">правилата и условията</a>, ' +
+                    '<a href="#" data-terms="effects">ефектите</a> и <a href="#" data-terms="contra">противопоказанията</a> на EMS тренировката.</span></label>';
+            }
+            function open(part) {
+                if (!back) {
+                    back = document.createElement('div');
+                    back.className = 'xb-sheet-back xb-terms-back hidden';
+                    back.innerHTML = '<div class="xb-sheet xb-terms-doc" role="dialog" aria-modal="true" aria-labelledby="xb-terms-t">' +
+                        '<div class="xb-sheet-handle"></div><h3 id="xb-terms-t">Правила и условия</h3>' +
+                        '<p class="xb-terms-lead">XBODY Burgas · EMS тренировки</p>' +
+                        '<h4 id="xb-terms-rules">Записване на час</h4><ul>' +
+                            '<li>Часовете се записват в приложението или във формата на студиото.</li>' +
+                            '<li>При първото записване се дава карта като гаранция. При записване от нея <b>не се тегли нищо</b>.</li>' +
+                            '<li>С код (Fullpass и др.) часът се отчита по кода.</li></ul>' +
+                        '<h4>Промяна, отказ и неявяване</h4><ul>' +
+                            '<li>Промяна или отказ — <b>безплатно до 24 часа</b> преди тренировката.</li>' +
+                            '<li>При промяна, отказ или неявяване по-малко от 24 часа преди тренировката тя се таксува автоматично от картата Ви ' +
+                                'и <b>сумата не се възстановява</b>.</li></ul>' +
+                        '<h4>SMS напомняния</h4><ul>' +
+                            '<li>Преди всяка тренировка получавате кратко SMS напомняне на посочения телефон. Напомнянията са част от услугата.</li></ul>' +
+                        '<h4 id="xb-terms-effects">Ефекти</h4><ul>' +
+                            '<li>20 минути активна част се равняват на около 90 минути стандартна тренировка.</li>' +
+                            '<li>Тонизира дълбоките мускули, засилва изгарянето на калории, подобрява кръвообращението и лимфния дренаж.</li>' +
+                            '<li>Усеща се като ритмично стягане на мускулите; интензитетът се регулира според Вас. Резултатите са индивидуални.</li>' +
+                            '<li>Препоръчват се 2 тренировки седмично. След тренировка пийте достатъчно вода.</li></ul>' +
+                        '<p class="xb-terms-more"><a href="' + EFFECTS + '" target="_blank" rel="noopener">Ефекти от EMS — подробно</a> · ' +
+                            '<a href="' + FAQ + '" target="_blank" rel="noopener">Чести въпроси</a></p>' +
+                        '<h4 id="xb-terms-contra">Противопоказания</h4>' +
+                        '<p class="xb-terms-text">EMS тренировка не се провежда при:</p><ul>' +
+                            CONTRA.map(function (c) { return '<li>' + c + '</li>'; }).join('') + '</ul>' +
+                        '<p class="xb-terms-text">Ако имате някое от тях или не сте сигурни, кажете на треньора преди тренировката и се посъветвайте с лекар. ' +
+                            'Ако по време на тренировка почувствате неразположение, кажете веднага.</p>' +
+                        '<h4>Лични данни</h4><ul>' +
+                            '<li>Името, имейлът и телефонът Ви се ползват само за записванията, напомнянията и връзка с Вас.</li></ul>' +
+                        '<button type="button" class="xb-primary" data-terms-close="1">Разбрах</button></div>';
+                    back.addEventListener('click', function (e) {
+                        if (e.target === back || e.target.closest('[data-terms-close]')) back.classList.add('hidden');
+                    });
+                    document.addEventListener('keydown', function (e) {
+                        if (e.key === 'Escape' && back && !back.classList.contains('hidden')) back.classList.add('hidden');
+                    });
+                    document.body.appendChild(back);
+                }
+                back.classList.remove('hidden');
+                const doc = back.querySelector('.xb-sheet');
+                const at = part && part !== 'rules' ? back.querySelector('#xb-terms-' + part) : null;
+                doc.scrollTop = 0;
+                if (at) doc.scrollTop = at.getBoundingClientRect().top - doc.getBoundingClientRect().top - 12;
+            }
+            document.addEventListener('click', function (e) {
+                const link = e.target.closest && e.target.closest('[data-terms]');
+                if (!link) return;
+                e.preventDefault();   // inside the tick's label: opens the rules, does not tick
+                open(link.dataset.terms);
+            });
+            window.XBodyTerms = { accepted: accepted, accept: accept, box: box, open: open };
+        })();
 
         /* ── Own booking calendar (the first step) ──
            Free hours: GET /api/xbody/availability?month=YYYY-MM — one answer for the whole month, the same for every
@@ -2009,10 +2108,19 @@
             let sheet = null;
             let sheetIso = '';
             let booking = false;
+            let termsTicked = false;   // the rules' tick, kept while the sheet is drawn again (an hour added or removed)
             function ensureSheet() {
                 if (sheet) return;
                 sheet = document.createElement('div');
                 sheet.className = 'xb-sheet-back hidden';
+                sheet.addEventListener('change', function (e) {
+                    if (e.target.id !== 'xb-terms') return;
+                    termsTicked = e.target.checked;
+                    const box = sheet.querySelector('.xb-terms-box');
+                    const err = sheet.querySelector('#xb-terms-err');
+                    if (box) box.classList.remove('bad');
+                    if (err) err.textContent = '';
+                });
                 sheet.addEventListener('click', function (e) {
                     if (booking) return;
                     const go = e.target.closest('[data-go]');
@@ -2020,15 +2128,6 @@
                     if (e.target.closest('[data-list]')) {
                         sheet.classList.add('hidden');
                         if (window.XBodyAppointments && window.XBodyAppointments.open) window.XBodyAppointments.open();
-                    }
-                    const info = e.target.closest('[data-info]');
-                    if (info) {   // the short checkbox text explains itself on the "i" button
-                        const box = sheet.querySelector('#' + info.dataset.info);
-                        if (box) {
-                            const open = box.classList.toggle('hidden') === false;
-                            info.setAttribute('aria-expanded', open ? 'true' : 'false');
-                        }
-                        return;
                     }
                     const rm = e.target.closest('[data-rm]');
                     if (rm) { toggleCart(rm.dataset.rm); if (cart.length) openCartSheet(); else sheet.classList.add('hidden'); return; }
@@ -2046,7 +2145,17 @@
                     }
                     if (what === 'more') { sheet.classList.add('hidden'); toggleCart(sheetIso); return; }
                     if (what === 'book') {
-                        if (!consents()) saveConsents(true);   // "Запази" is the acceptance (the notice above it says so)
+                        if (!consents()) {   // the first booking: the rules must be ticked
+                            const tick = sheet.querySelector('#xb-terms');
+                            if (!tick || !tick.checked) {
+                                const box = sheet.querySelector('.xb-terms-box');
+                                const err = sheet.querySelector('#xb-terms-err');
+                                if (box) { box.classList.remove('bad'); void box.offsetWidth; box.classList.add('bad'); }
+                                if (err) err.textContent = 'Моля, прочетете и приемете правилата и условията.';
+                                return;
+                            }
+                            saveConsents();
+                        }
                         bookCart();
                         return;
                     }
@@ -2172,30 +2281,20 @@
                 const get = function (k) { return (sessionStorage.getItem(k) || localStorage.getItem(k) || '').trim(); };
                 return { email: get('xbody_booking_email').toLowerCase(), phone: get('xbody_booking_phone'), name: get('xbody_booking_full_name') };
             }
-            /* SMS reminders and the booking terms: asked once (here, or on Acuity's form at an earlier booking), then
-               never again on this phone */
-            const CONSENT_KEY = 'xbody_consents';
-            function saveConsents(sms) {
-                const v = { terms: true, sms: sms !== false, at: Date.now() };
-                try { localStorage.setItem(CONSENT_KEY, JSON.stringify(v)); } catch (_) {}
-                return v;
+            /* the rules: ticked once (at the first registration or booking, or on Acuity's form at an earlier booking),
+               then never asked again on this phone. SMS reminders are always on — never asked. */
+            function saveConsents() {
+                return window.XBodyTerms.accept();
             }
             function consents() {
-                try {
-                    const v = JSON.parse(localStorage.getItem(CONSENT_KEY) || 'null');
-                    if (v && v.terms) return v;
-                } catch (_) {}
-                if (Object.keys(ownByDay()).length) return saveConsents(true);   // an earlier XBODY Burgas booking: answered then
+                if (window.XBodyTerms.accepted()) return { terms: true, sms: true };
+                if (Object.keys(ownByDay()).length) return saveConsents();   // an earlier XBODY Burgas booking: accepted then
                 return null;
             }
-            /* no boxes: a line above the button (first time only); the "i" explains it */
+            /* the tick above "Запази" (the first booking only); the links open the rules */
             function consentBoxes() {
                 if (consents()) return '';
-                return '<p class="xb-notice">Със „Запази“ приемате условията за резервация и SMS напомняния за часовете. ' +
-                        '<button type="button" class="xb-info" data-info="xb-terms-info" aria-label="Какво включват условията" aria-expanded="false">i</button></p>' +
-                    '<p class="xb-info-text hidden" id="xb-terms-info">Промяна или отказ — безплатно до 24 часа преди тренировката. ' +
-                        'По-късно или при неявяване тя се таксува автоматично от картата Ви и сумата не се възстановява. Картата е само гаранция — при записване не се тегли нищо. ' +
-                        'SMS напомнянията са кратки съобщения преди тренировката.</p>';
+                return window.XBodyTerms.box('xb-terms', termsTicked) + '<p class="xb-cart-note" id="xb-terms-err" role="alert"></p>';
             }
 
             /* the card given once (Stripe keeps it for the client): the phone keeps only its id and last digits, so the
@@ -2411,7 +2510,7 @@
                 const agreed = consents();
                 return postJson('/api/xbody/book', {
                     email: c.email, phone: c.phone, name: c.name, times: times, setupIntent: setupIntent || undefined,
-                    paymentMethod: paymentMethod || undefined, sms: agreed ? agreed.sms : undefined, terms: agreed ? true : undefined,
+                    paymentMethod: paymentMethod || undefined, sms: true, terms: agreed ? true : undefined,
                     code: (savedCode(c.email) || {}).code || undefined
                 }).then(function (res) {
                     booking = false;
@@ -2419,6 +2518,12 @@
                     if (paymentMethod && res.status === 402) {   // the saved card is no longer valid: the card form
                         forgetCard();
                         bookCart(true);
+                        return;
+                    }
+                    if (res.status === 403 && res.d.error === 'terms') {   // the server has no tick for this client: ask for it
+                        try { localStorage.removeItem('xbody_consents'); } catch (_) {}
+                        termsTicked = false;
+                        openCartSheet('Моля, прочетете и приемете правилата и условията.');
                         return;
                     }
                     if (res.status === 403 && res.d.error === 'first_booking') {   // no card step here: Acuity's form takes the payment details
@@ -2775,7 +2880,8 @@
             const fullNameInput = document.getElementById('xbody-full-name');
             const emailInput = document.getElementById('xbody-email');
             const phoneInput = document.getElementById('xbody-phone');
-                        const errorEl = document.getElementById('xbody-form-error');
+            const errorEl = document.getElementById('xbody-form-error');
+            const termsSlot = document.getElementById('xbody-terms-slot');
             const scrollContainer = document.getElementById('acuity-scroll-container');
             var frame = document.querySelector('iframe');
             if (!onboarding || !form || !fullNameInput || !emailInput || !phoneInput || !errorEl || !scrollContainer || !frame) {
@@ -2848,7 +2954,7 @@
                 try {
                     const p = JSON.parse(localStorage.getItem('xbody_xems_profile_sent') || 'null');
                     if (!p || !p.name || !p.email || !p.phone) return null;
-                    return { fullName: p.name, email: p.email, phone: p.phone, consented: true };
+                    return { fullName: p.name, email: p.email, phone: p.phone, consented: termsAccepted() };
                 } catch (_) {
                     return null;
                 }
@@ -2869,15 +2975,23 @@
             }
 
             function termsAccepted() {
-                try { return Boolean((JSON.parse(localStorage.getItem('xbody_consents') || 'null') || {}).terms); } catch (_) { return false; }
+                return Boolean(window.XBodyTerms && window.XBodyTerms.accepted());
             }
+            /* the first registration: the rules are ticked here (once on this phone) */
+            if (termsSlot && window.XBodyTerms && !termsAccepted()) termsSlot.innerHTML = window.XBodyTerms.box('xbody-terms');
+            if (termsSlot) termsSlot.addEventListener('change', function () {
+                const box = termsSlot.querySelector('.xb-terms-box');
+                if (box) box.classList.remove('bad');
+                errorEl.textContent = '';
+            });
 
             function readFormData() {
+                const tick = document.getElementById('xbody-terms');
                 return {
                     fullName: fullNameInput.value.trim(),
                     email: emailInput.value.trim(),
                     phone: phoneInput.value.trim(),
-                    consented: termsAccepted()
+                    consented: termsAccepted() || Boolean(tick && tick.checked)
                 };
             }
 
@@ -2887,6 +3001,11 @@
                 }
                 if (!userData.email.includes('@')) {
                     return 'Въведи валиден имейл адрес.';
+                }
+                if (!userData.consented) {
+                    const box = termsSlot && termsSlot.querySelector('.xb-terms-box');
+                    if (box) { box.classList.remove('bad'); void box.offsetWidth; box.classList.add('bad'); }
+                    return 'Моля, прочетете и приемете правилата и условията, за да продължите.';
                 }
                 return '';
             }
@@ -2926,7 +3045,9 @@
                     return;
                 }
 
-                saveUserData(userData);   // always kept: nothing to tick, the next visit goes straight on
+                if (window.XBodyTerms && !window.XBodyTerms.accepted()) window.XBodyTerms.accept();   // ticked above: never asked again
+                if (termsSlot) termsSlot.innerHTML = '';
+                saveUserData(userData);   // always kept: the next visit goes straight on
 
                 window.dispatchEvent(new CustomEvent('xbody-appt-invalidate', {
                     detail: { email: userData.email.trim().toLowerCase() }
@@ -4211,6 +4332,7 @@
                         : news() ? 'Нов анализ от тренировката' : 'Всички тренировки и измервания', !cardUrl) +
                     item('food', 'fa-utensils', 'Хранене', foodSub()) +
                     item('data', 'fa-id-card', 'Моите данни', [c.name, c.email || c.phoneRaw].filter(Boolean).join(' · ')) +
+                    item('terms', 'fa-file-contract', 'Правила и условия', 'Записване, отказ, ефекти и противопоказания') +
                     '</div>';
                 bodyEl.innerHTML = html;
                 foot.classList.add('hidden');
@@ -4555,7 +4677,17 @@
                 };
             }
 
+            /* the first registration here: the rules ticked once (unless already accepted at a booking) */
+            function termsSlot() {
+                const slot = document.getElementById('xems-terms-slot');
+                if (!slot || !window.XBodyTerms) return;
+                const ask = editing && !window.XBodyTerms.accepted();
+                if (!ask) slot.innerHTML = '';
+                else if (!slot.firstChild) slot.innerHTML = window.XBodyTerms.box('xems-terms');
+            }
+
             function refreshSend() {
+                termsSlot();
                 if (foot.classList.contains('hidden')) return;
                 if (!editing) {
                     sendBtn.disabled = false;
@@ -4574,6 +4706,10 @@
             }
 
             function go(where) {
+                if (where === 'terms') {
+                    if (window.XBodyTerms) window.XBodyTerms.open('rules');
+                    return;
+                }
                 if (where === 'appts') {
                     closeSheet();
                     if (window.XBodyAppointments && window.XBodyAppointments.open) window.XBodyAppointments.open();
@@ -4662,6 +4798,12 @@
                 if (e.target.classList) e.target.classList.remove('bad');
                 refreshSend();
             });
+            foot.addEventListener('change', function (e) {
+                if (e.target.id !== 'xems-terms') return;
+                const box = foot.querySelector('.xb-terms-box');
+                if (box) box.classList.remove('bad');
+                say(MSG_DEFAULT);
+            });
 
             sendBtn.addEventListener('click', async function () {
                 if (!editing) {
@@ -4684,6 +4826,17 @@
                     bad[0].focus({ preventScroll: true });
                     say('Моля, попълнете име, имейл и телефон — нужни са на студиото за връзка с Вас.', 'err');
                     return;
+                }
+                if (window.XBodyTerms && !window.XBodyTerms.accepted()) {
+                    const tick = document.getElementById('xems-terms');
+                    if (!tick || !tick.checked) {
+                        const box = foot.querySelector('.xb-terms-box');
+                        if (box) { box.classList.remove('bad'); void box.offsetWidth; box.classList.add('bad'); }
+                        say('Моля, прочетете и приемете правилата и условията.', 'err');
+                        return;
+                    }
+                    window.XBodyTerms.accept();
+                    termsSlot();
                 }
                 const c = contact() || {};
                 if (p.name !== c.name || p.email !== c.email || p.phone !== c.phoneRaw) {
