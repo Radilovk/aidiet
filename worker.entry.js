@@ -15119,6 +15119,10 @@ async function handleXbodyBook(request, env) {
     // booking goes through Acuity's page (its card form)
     return jsonResponse({ error: 'first_booking' }, 403);
   }
+  if (!previous && !b.terms) {
+    // a new client books only with the rules ticked in the app (the tick at the first registration / booking)
+    return jsonResponse({ error: 'terms' }, 403);
+  }
 
   const fields = [];
   for (const form of Array.isArray(previous && previous.forms) ? previous.forms : []) {
@@ -15128,7 +15132,7 @@ async function handleXbodyBook(request, env) {
       }
     }
   }
-  if (!previous) fields.push({ id: 3583430, value: 'yes' });   // the terms, accepted in the app ("Запази" with the notice)
+  if (!previous) fields.push({ id: 3583430, value: 'yes' });   // the terms, ticked in the app
   const names = b.name.split(' ');
   const booked = [];
   const failed = [];
