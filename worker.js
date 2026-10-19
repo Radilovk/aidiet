@@ -10,12 +10,12 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err) => function __init() {
-  if (err) throw err[0];
+var __esm = (fn, res, err2) => function __init() {
+  if (err2) throw err2[0];
   try {
     return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
   } catch (e) {
-    throw err = [e], e;
+    throw err2 = [e], e;
   }
 };
 var __export = (target, all) => {
@@ -4856,8 +4856,8 @@ async function callGeminiTranslate(apiKey, user, model = DEFAULT_TRANSLATE_MODEL
     })
   });
   if (!res.ok) {
-    const err = await res.text().catch(() => "");
-    throw new Error(`Gemini ${res.status}: ${err.slice(0, 400)}`);
+    const err2 = await res.text().catch(() => "");
+    throw new Error(`Gemini ${res.status}: ${err2.slice(0, 400)}`);
   }
   const data = await res.json();
   const finish = data.candidates?.[0]?.finishReason;
@@ -5028,8 +5028,8 @@ async function callGeminiClassify(apiKey, user, model = DEFAULT_CLASSIFY_MODEL) 
     })
   });
   if (!res.ok) {
-    const err = await res.text().catch(() => "");
-    throw new Error(`Gemini ${res.status}: ${err.slice(0, 400)}`);
+    const err2 = await res.text().catch(() => "");
+    throw new Error(`Gemini ${res.status}: ${err2.slice(0, 400)}`);
   }
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.filter((p) => !p.thought)?.map((p) => p.text).join("") || "";
@@ -7379,12 +7379,12 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
     throw new Error(`Gemini: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440${finishReason ? ` (${finishReason})` : ""}`);
   }
   if (finishReason === "MAX_TOKENS") {
-    const err = (
+    const err2 = (
       /** @type {WorkerError} */
       new Error("Gemini: \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044A\u0442 \u0435 \u043E\u0442\u0440\u044F\u0437\u0430\u043D (MAX_TOKENS)")
     );
-    err.truncated = true;
-    throw err;
+    err2.truncated = true;
+    throw err2;
   }
   return text;
 }
@@ -7417,12 +7417,12 @@ async function callOpenAI(env, { system, user, temperature = 0.4, maxOutputToken
   const finishReason = choice?.finish_reason || "";
   if (!text) throw new Error("OpenAI: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
   if (finishReason === "length") {
-    const err = (
+    const err2 = (
       /** @type {WorkerError} */
       new Error("OpenAI: \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044A\u0442 \u0435 \u043E\u0442\u0440\u044F\u0437\u0430\u043D (length)")
     );
-    err.truncated = true;
-    throw err;
+    err2.truncated = true;
+    throw err2;
   }
   return text;
 }
@@ -7465,8 +7465,8 @@ function parseAiJson(text) {
   }
   throw new Error("AI \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044A\u0442 \u043D\u0435 \u0435 \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON");
 }
-function isPlanParseError(err) {
-  return /JSON|Планът|дни|отрязан|MAX_TOKENS/i.test(String(err?.message || "")) || Boolean(err?.truncated);
+function isPlanParseError(err2) {
+  return /JSON|Планът|дни|отрязан|MAX_TOKENS/i.test(String(err2?.message || "")) || Boolean(err2?.truncated);
 }
 var DAY_NAMES4 = ["\u041F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A", "\u0412\u0442\u043E\u0440\u043D\u0438\u043A", "\u0421\u0440\u044F\u0434\u0430", "\u0427\u0435\u0442\u0432\u044A\u0440\u0442\u044A\u043A", "\u041F\u0435\u0442\u044A\u043A", "\u0421\u044A\u0431\u043E\u0442\u0430", "\u041D\u0435\u0434\u0435\u043B\u044F"];
 function normalizePlan(plan) {
@@ -9093,6 +9093,1099 @@ var worker_default = {
     }
   }
 };
+
+// studio-platform/settings.js
+var DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+var DEFAULT_SETTINGS = {
+  brand: { name: "\u0421\u0442\u0443\u0434\u0438\u043E", tagline: "", color: "#d32f2f", logo: 0 },
+  // logo: its version (0 = none)
+  address: "",
+  phone: "",
+  mapUrl: "",
+  texts: { hero: "", message: "", terms: "" },
+  price: 0,
+  currency: "EUR",
+  timezone: "Europe/Sofia",
+  slot: { minutes: 30, buffer: 0, step: 0 },
+  // step 0: minutes + buffer
+  hours: {
+    mon: [["08:00", "20:00"]],
+    tue: [["08:00", "20:00"]],
+    wed: [["08:00", "20:00"]],
+    thu: [["08:00", "20:00"]],
+    fri: [["08:00", "20:00"]],
+    sat: [],
+    sun: []
+  },
+  closed: [],
+  // 'YYYY-MM-DD' days off
+  rules: { minNoticeMin: 120, daysAhead: 30, maxPerDay: 1, maxUpcoming: 8, freeCancelHours: 24 },
+  guarantee: "card_or_code",
+  // card | card_or_code | none (a card needs the studio's Stripe)
+  google: { calendarId: "" },
+  viber: true
+};
+var str = (v, max) => String(v == null ? "" : v).trim().slice(0, max);
+var int = (v, min, max, dflt) => {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt;
+};
+var hm = (v) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(v)) ? String(v) : "";
+function normalizeSettings(raw) {
+  const s = raw && typeof raw === "object" ? raw : {};
+  const d = DEFAULT_SETTINGS;
+  const b = s.brand || {};
+  const t = s.texts || {};
+  const sl = s.slot || {};
+  const r = s.rules || {};
+  const hours = {};
+  for (const day of DAYS) {
+    const list = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
+    hours[day] = list.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
+  }
+  let tz = str(s.timezone, 64) || d.timezone;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+  } catch (_) {
+    tz = d.timezone;
+  }
+  return {
+    brand: {
+      name: str(b.name, 80) || d.brand.name,
+      tagline: str(b.tagline, 160),
+      color: /^#[0-9a-fA-F]{6}$/.test(String(b.color)) ? String(b.color) : d.brand.color,
+      logo: int(b.logo, 0, 1e9, 0)
+    },
+    address: str(s.address, 200),
+    phone: str(s.phone, 40),
+    mapUrl: /^https:\/\//.test(String(s.mapUrl || "")) ? str(s.mapUrl, 500) : "",
+    texts: { hero: str(t.hero, 600), message: str(t.message, 1200), terms: str(t.terms, 8e3) },
+    price: Math.max(0, Math.round(Number(s.price) * 100) / 100 || 0),
+    currency: /^[A-Z]{3}$/.test(String(s.currency)) ? String(s.currency) : d.currency,
+    timezone: tz,
+    slot: {
+      minutes: int(sl.minutes, 10, 240, d.slot.minutes),
+      buffer: int(sl.buffer, 0, 120, 0),
+      step: int(sl.step, 0, 240, 0)
+    },
+    hours,
+    closed: (Array.isArray(s.closed) ? s.closed : []).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(String(x))).slice(0, 400),
+    rules: {
+      minNoticeMin: int(r.minNoticeMin, 0, 7 * 1440, d.rules.minNoticeMin),
+      daysAhead: int(r.daysAhead, 1, 365, d.rules.daysAhead),
+      maxPerDay: int(r.maxPerDay, 1, 20, d.rules.maxPerDay),
+      maxUpcoming: int(r.maxUpcoming, 1, 100, d.rules.maxUpcoming),
+      freeCancelHours: int(r.freeCancelHours, 0, 168, d.rules.freeCancelHours)
+    },
+    guarantee: ["card", "card_or_code", "none"].includes(s.guarantee) ? s.guarantee : d.guarantee,
+    google: { calendarId: str(s.google && s.google.calendarId, 200) },
+    viber: s.viber !== false
+  };
+}
+function publicSettings(st, version, hasStripe2) {
+  const { google, ...rest } = st;
+  return { ...rest, version, card: hasStripe2 && st.guarantee !== "none", calendar: Boolean(google.calendarId) };
+}
+
+// studio-platform/slots.js
+var offsetFmt = /* @__PURE__ */ new Map();
+function tzOffset(tz, ms) {
+  let f = offsetFmt.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+    offsetFmt.set(tz, f);
+  }
+  const p = {};
+  for (const x of f.formatToParts(new Date(ms))) p[x.type] = x.value;
+  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+  return Math.round((asUtc - Math.floor(ms / 1e3) * 1e3) / 6e4);
+}
+function zonedMs(ymd, time, tz) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const [h, mi] = time.split(":").map(Number);
+  const wall = Date.UTC(y, m - 1, d, h, mi);
+  let ms = wall - tzOffset(tz, wall) * 6e4;
+  ms = wall - tzOffset(tz, ms) * 6e4;
+  return ms;
+}
+function zonedParts(ms, tz) {
+  const t = new Date(ms + tzOffset(tz, ms) * 6e4).toISOString();
+  return { ymd: t.slice(0, 10), hm: t.slice(11, 16) };
+}
+var toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+var toHm = (n) => `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
+function dayStarts(st, ymd) {
+  if (st.closed.includes(ymd)) return [];
+  const [y, m, d] = ymd.split("-").map(Number);
+  const day = DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  const step = st.slot.step || st.slot.minutes + st.slot.buffer;
+  const out = [];
+  for (const [open, close] of st.hours[day] || []) {
+    for (let t = toMin(open); t + st.slot.minutes <= toMin(close); t += step) out.push(toHm(t));
+  }
+  return out;
+}
+function isFree(st, start, taken) {
+  const end = start + st.slot.minutes * 6e4;
+  const pad = st.slot.buffer * 6e4;
+  return !taken.some((x) => x.start < end + pad && x.end + pad > start);
+}
+function inWindow(st, start, now) {
+  return start >= now + st.rules.minNoticeMin * 6e4 && start <= now + st.rules.daysAhead * 864e5;
+}
+function slotsForMonth(st, ym, taken, now = Date.now()) {
+  const [y, m] = ym.split("-").map(Number);
+  const daysIn = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const out = {};
+  for (let d = 1; d <= daysIn; d++) {
+    const ymd = `${ym}-${String(d).padStart(2, "0")}`;
+    const free = dayStarts(st, ymd).filter((t) => {
+      const start = zonedMs(ymd, t, st.timezone);
+      return inWindow(st, start, now) && isFree(st, start, taken);
+    });
+    if (free.length) out[ymd] = free;
+  }
+  return out;
+}
+function isOfferedStart(st, start) {
+  const { ymd, hm: hm2 } = zonedParts(start, st.timezone);
+  return dayStarts(st, ymd).includes(hm2) && zonedMs(ymd, hm2, st.timezone) === start;
+}
+
+// studio-platform/google.js
+var SCOPE = "https://www.googleapis.com/auth/calendar.events";
+var tokenMemo = null;
+function account(env) {
+  const raw = env.GOOGLE_SERVICE_ACCOUNT || env.FIREBASE_SERVICE_ACCOUNT;
+  if (!raw) return null;
+  try {
+    const sa = JSON.parse(raw);
+    return sa.private_key && sa.client_email ? sa : null;
+  } catch (_) {
+    return null;
+  }
+}
+function serviceAccountEmail(env) {
+  const sa = account(env);
+  return sa ? sa.client_email : "";
+}
+var b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+var b64json = (o) => b64url(new TextEncoder().encode(JSON.stringify(o)));
+async function accessToken(env) {
+  if (tokenMemo && tokenMemo.exp > Date.now() + 6e4) return tokenMemo.token;
+  const sa = account(env);
+  if (!sa) throw new Error("google: no service account");
+  const der = Uint8Array.from(atob(sa.private_key.replace(/-----[^-]+-----/g, "").replace(/\s/g, "")), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("pkcs8", der, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+  const now = Math.floor(Date.now() / 1e3);
+  const unsigned = `${b64json({ alg: "RS256", typ: "JWT" })}.${b64json({
+    iss: sa.client_email,
+    scope: SCOPE,
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600
+  })}`;
+  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned));
+  const resp = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${unsigned}.${b64url(sig)}` })
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data.access_token) throw new Error(`google token ${resp.status}`);
+  tokenMemo = { token: data.access_token, exp: Date.now() + (data.expires_in || 3600) * 1e3 };
+  return tokenMemo.token;
+}
+async function gcal(env, method, path, body) {
+  const resp = await fetch(`https://www.googleapis.com/calendar/v3/${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${await accessToken(env)}`, ...body ? { "Content-Type": "application/json" } : {} },
+    body: body ? JSON.stringify(body) : void 0
+  });
+  if (resp.status === 204 || resp.status === 410) return {};
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(`google ${method} ${resp.status} ${data.error && data.error.message || ""}`.trim());
+  return data;
+}
+var cal = (id) => `calendars/${encodeURIComponent(id)}/events`;
+async function busyTimes(env, calendarId, fromMs, toMs, tz) {
+  const out = [];
+  let page = "";
+  for (let i = 0; i < 5; i++) {
+    const q = new URLSearchParams({
+      timeMin: new Date(fromMs).toISOString(),
+      timeMax: new Date(toMs).toISOString(),
+      singleEvents: "true",
+      maxResults: "500",
+      fields: "nextPageToken,items(status,transparency,start,end,extendedProperties/private)"
+    });
+    if (page) q.set("pageToken", page);
+    const data = await gcal(env, "GET", `${cal(calendarId)}?${q}`);
+    for (const ev of data.items || []) {
+      if (ev.status === "cancelled" || ev.transparency === "transparent") continue;
+      if (ev.extendedProperties && ev.extendedProperties.private && ev.extendedProperties.private.studioBooking) continue;
+      const at = (x) => x && x.dateTime ? Date.parse(x.dateTime) : x && x.date ? zonedMs(x.date, "00:00", tz) : NaN;
+      const start = at(ev.start);
+      const end = at(ev.end);
+      if (Number.isFinite(start) && Number.isFinite(end)) out.push({ start, end });
+    }
+    page = data.nextPageToken || "";
+    if (!page) break;
+  }
+  return out;
+}
+async function addEvent(env, calendarId, b, studioName) {
+  const ev = await gcal(env, "POST", cal(calendarId), {
+    summary: `${studioName}: ${b.name || b.phone}`,
+    description: `\u0422\u0435\u043B.: ${b.phone}${b.code ? `
+\u041A\u043E\u0434: ${b.code}` : ""}${b.card_last4 ? `
+\u041A\u0430\u0440\u0442\u0430 (\u0433\u0430\u0440\u0430\u043D\u0446\u0438\u044F): \u2022\u2022\u2022\u2022 ${b.card_last4}` : ""}
+\u0417\u0430\u043F\u0438\u0441\u0430\u043D\u043E \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E.`,
+    start: { dateTime: new Date(b.start_ms).toISOString() },
+    end: { dateTime: new Date(b.end_ms).toISOString() },
+    extendedProperties: { private: { studioBooking: b.id } }
+  });
+  return ev.id || "";
+}
+async function moveEvent(env, calendarId, eventId, b) {
+  await gcal(env, "PATCH", `${cal(calendarId)}/${encodeURIComponent(eventId)}`, {
+    start: { dateTime: new Date(b.start_ms).toISOString() },
+    end: { dateTime: new Date(b.end_ms).toISOString() }
+  });
+}
+async function deleteEvent(env, calendarId, eventId) {
+  await gcal(env, "DELETE", `${cal(calendarId)}/${encodeURIComponent(eventId)}`);
+}
+async function checkCalendar(env, calendarId) {
+  try {
+    const now = Date.now();
+    await busyTimes(env, calendarId, now, now + 864e5, "UTC");
+    return "";
+  } catch (err2) {
+    return err2.message;
+  }
+}
+
+// studio-platform/index.js
+var CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Master-Key",
+  "Content-Type": "application/json"
+};
+var json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { ...CORS, "Cache-Control": "no-store", ...extra } });
+var err = (error, status = 400) => json({ error }, status);
+var MAX_TIMES = 8;
+var ADMIN_SESSION_MS = 12 * 36e5;
+var BUSY_TTL = 300;
+var AVAIL_TTL = 300;
+var enc = new TextEncoder();
+var hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+async function sha256(s) {
+  return hex(await crypto.subtle.digest("SHA-256", enc.encode(s)));
+}
+function randomToken(bytes = 24) {
+  return hex(crypto.getRandomValues(new Uint8Array(bytes)));
+}
+function newId() {
+  return randomToken(10);
+}
+async function pinHash(pin, salt = randomToken(8)) {
+  const key = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: enc.encode(salt), iterations: 1e5 }, key, 256);
+  return `${salt}:${hex(bits)}`;
+}
+async function pinOk(pin, stored) {
+  const salt = String(stored || "").split(":")[0];
+  if (!salt) return false;
+  const got = await pinHash(pin, salt);
+  let diff = got.length ^ stored.length;
+  for (let i = 0; i < Math.min(got.length, stored.length); i++) diff |= got.charCodeAt(i) ^ stored.charCodeAt(i);
+  return diff === 0;
+}
+async function sealKey(env) {
+  const raw = env.STUDIO_SECRET_KEY ? Uint8Array.from(atob(env.STUDIO_SECRET_KEY), (c) => c.charCodeAt(0)) : null;
+  if (!raw || raw.length !== 32) return null;
+  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+async function seal(env, text) {
+  const key = await sealKey(env);
+  if (!key) throw new Error("no STUDIO_SECRET_KEY");
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(text));
+  return `${btoa(String.fromCharCode(...iv))}.${btoa(String.fromCharCode(...new Uint8Array(ct)))}`;
+}
+async function unseal(env, sealed) {
+  const key = await sealKey(env);
+  const [iv, ct] = String(sealed || "").split(".");
+  if (!key || !iv || !ct) return "";
+  try {
+    const bytes = (b) => Uint8Array.from(atob(b), (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes(iv) }, key, bytes(ct)));
+  } catch (_) {
+    return "";
+  }
+}
+function normPhone(phone) {
+  const d = String(phone || "").replace(/[^\d+]/g, "");
+  if (/^\+\d{9,15}$/.test(d)) return d;
+  if (/^00\d{9,15}$/.test(d)) return "+" + d.slice(2);
+  if (/^0\d{8,9}$/.test(d)) return "+359" + d.slice(1);
+  if (/^359\d{8,9}$/.test(d)) return "+" + d;
+  return "";
+}
+async function readBody(request, max = 8192) {
+  const raw = await request.text();
+  if (raw.length > max) return null;
+  try {
+    const b = JSON.parse(raw);
+    return b && typeof b === "object" ? b : null;
+  } catch (_) {
+    return null;
+  }
+}
+var studioMemo = /* @__PURE__ */ new Map();
+function slugFrom(env, url, body) {
+  const given = String(body && body.studio || url.searchParams.get("studio") || "").toLowerCase();
+  if (/^[a-z0-9-]{2,40}$/.test(given)) return given;
+  const root = String(env.STUDIO_ROOT_DOMAIN || "").toLowerCase();
+  const host = url.hostname.toLowerCase();
+  if (root && host.endsWith("." + root)) {
+    const sub = host.slice(0, -(root.length + 1));
+    if (/^[a-z0-9-]{2,40}$/.test(sub)) return sub;
+  }
+  return "";
+}
+async function loadStudio(env, id, fresh = false) {
+  const m = studioMemo.get(id);
+  if (!fresh && m && Date.now() - m.at < 3e4) return m.row;
+  const row = await env.STUDIO_DB.prepare("SELECT id, settings, secrets, pin_hash, version FROM studios WHERE id = ?").bind(id).first();
+  const out = row ? {
+    id: row.id,
+    version: row.version,
+    pinHash: row.pin_hash,
+    settings: normalizeSettings(JSON.parse(row.settings || "{}")),
+    secrets: JSON.parse(row.secrets || "{}")
+  } : null;
+  studioMemo.set(id, { at: Date.now(), row: out });
+  return out;
+}
+function hasStripe(studio) {
+  return Boolean(studio.secrets.pk && studio.secrets.sk);
+}
+function guaranteeOf(studio) {
+  return hasStripe(studio) ? studio.settings.guarantee : "none";
+}
+async function bumpRev(env, id) {
+  if (!env.page_content) return;
+  try {
+    await env.page_content.put(`studio:rev:${id}`, String(Date.now()));
+  } catch (_) {
+  }
+}
+async function stripe(env, studio, method, path, params) {
+  const sk = await unseal(env, studio.secrets.sk);
+  if (!sk) throw new Error("stripe: no key");
+  const form = new URLSearchParams();
+  for (const [k, v] of Object.entries(params || {})) if (v !== void 0 && v !== null && v !== "") form.append(k, String(v));
+  let url = `https://api.stripe.com/v1/${path}`;
+  const init = { method, headers: { Authorization: `Bearer ${sk}` } };
+  if (method === "GET") {
+    if (params) url += "?" + form;
+  } else {
+    init.body = form.toString();
+    init.headers["Content-Type"] = "application/x-www-form-urlencoded";
+  }
+  const resp = await fetch(url, init);
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(`stripe ${path.split("/")[0]} ${resp.status} ${data.error && data.error.code || ""}`);
+  return data;
+}
+function cardLive(c) {
+  const now = /* @__PURE__ */ new Date();
+  return c && !(c.exp_year < now.getUTCFullYear() || c.exp_year === now.getUTCFullYear() && c.exp_month < now.getUTCMonth() + 1);
+}
+async function getClient(env, studioId, phone) {
+  return env.STUDIO_DB.prepare("SELECT * FROM clients WHERE studio_id = ? AND phone = ?").bind(studioId, phone).first();
+}
+async function tokenOk(client, token) {
+  if (!client || !token) return false;
+  const list = JSON.parse(client.token_hash || "[]");
+  return Array.isArray(list) && list.includes(await sha256(String(token)));
+}
+async function issueToken(env, studioId, phone) {
+  const token = randomToken();
+  const c = await getClient(env, studioId, phone);
+  const list = JSON.parse(c && c.token_hash || "[]");
+  const next = [...Array.isArray(list) ? list : [], await sha256(token)].slice(-5);
+  await env.STUDIO_DB.prepare("UPDATE clients SET token_hash = ? WHERE studio_id = ? AND phone = ?").bind(JSON.stringify(next), studioId, phone).run();
+  return token;
+}
+async function upsertClient(env, studioId, phone, fields) {
+  await env.STUDIO_DB.prepare(
+    `INSERT INTO clients (studio_id, phone, name, email, created_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT (studio_id, phone) DO UPDATE SET name = excluded.name, email = CASE WHEN excluded.email <> '' THEN excluded.email ELSE clients.email END`
+  ).bind(studioId, phone, fields.name || "", fields.email || "", Date.now()).run();
+}
+async function findCode(env, studioId, code, phone, count, now = Date.now()) {
+  const c = await env.STUDIO_DB.prepare("SELECT * FROM codes WHERE studio_id = ? AND code = ? AND active = 1").bind(studioId, code).first();
+  if (!c || c.valid_to && c.valid_to < now) return { error: "code" };
+  if (c.uses_left !== null && c.uses_left < count) return { error: "code_used" };
+  if (c.per_client !== null) {
+    const used = await env.STUDIO_DB.prepare(
+      "SELECT COUNT(*) AS n FROM bookings WHERE studio_id = ? AND phone = ? AND code = ? AND (status <> 'canceled' OR late_cancel = 1)"
+    ).bind(studioId, phone, c.code).first();
+    if ((used ? used.n : 0) + count > c.per_client) return { error: "code_used" };
+  }
+  return { code: c };
+}
+function codeOut(c) {
+  return { code: c.code, label: c.label, expires: c.valid_to || null, usesLeft: c.uses_left };
+}
+var BG_DAYS = ["\u043D\u0435\u0434\u0435\u043B\u044F", "\u043F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A", "\u0432\u0442\u043E\u0440\u043D\u0438\u043A", "\u0441\u0440\u044F\u0434\u0430", "\u0447\u0435\u0442\u0432\u044A\u0440\u0442\u044A\u043A", "\u043F\u0435\u0442\u044A\u043A", "\u0441\u044A\u0431\u043E\u0442\u0430"];
+function whenText(ms, tz) {
+  const { ymd, hm: hm2 } = zonedParts(ms, tz);
+  const [y, m, d] = ymd.split("-").map(Number);
+  return { day: `${BG_DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]}, ${ymd.slice(8)}.${ymd.slice(5, 7)}`, hm: hm2, ymd };
+}
+var outKey = (at, id, kind) => `xbody:out:${String(Math.floor(at)).padStart(13, "0")}:${id}:${kind}`;
+function viberOn(env, studio) {
+  return Boolean(env.page_content) && studio.settings.viber && env.STUDIO_VIBER !== "off";
+}
+async function viberBooking(env, studio, event, b, now = Date.now()) {
+  if (!viberOn(env, studio)) return;
+  const kv = env.page_content;
+  const st = studio.settings;
+  const id = `s${b.id}`;
+  const w = whenText(b.start_ms, st.timezone);
+  const first = String(b.name || "").trim().split(/\s+/)[0];
+  const hi = first ? `\u0417\u0434\u0440\u0430\u0432\u0435\u0439\u0442\u0435, ${first}!` : "\u0417\u0434\u0440\u0430\u0432\u0435\u0439\u0442\u0435!";
+  const at = `${w.day} \u043E\u0442 ${w.hm} \u0447.`;
+  const where = st.address ? ` (${st.address})` : "";
+  const sign = `
+\u2014 ${st.brand.name}`;
+  const free = st.rules.freeCancelHours;
+  const msgs = [];
+  if (event === "canceled") msgs.push({ kind: "canceled", at: now, text: `${hi} \u0427\u0430\u0441\u044A\u0442 \u0412\u0438 \u0432 ${st.brand.name} \u0437\u0430 ${at} \u0435 \u043E\u0442\u043A\u0430\u0437\u0430\u043D.${sign}` });
+  else {
+    msgs.push({ kind: event === "moved" ? "moved" : "booked", at: now, text: event === "moved" ? `${hi} \u0427\u0430\u0441\u044A\u0442 \u0412\u0438 \u0432 ${st.brand.name}${where} \u0435 \u043F\u0440\u0435\u043C\u0435\u0441\u0442\u0435\u043D \u0437\u0430 ${at}${sign}` : `${hi} \u0412\u0430\u0448\u0438\u044F\u0442 \u0447\u0430\u0441 \u0432 ${st.brand.name}${where} \u0435 \u0437\u0430\u043F\u0430\u0437\u0435\u043D: ${at}${free ? ` \u041F\u0440\u043E\u043C\u044F\u043D\u0430 \u0438\u043B\u0438 \u043E\u0442\u043A\u0430\u0437 \u2014 \u0431\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u043E \u0434\u043E ${free} \u0447 \u043F\u0440\u0435\u0434\u0438 \u0447\u0430\u0441\u0430, \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E.` : ""}${sign}` });
+    const prev = zonedMs(new Date(Date.parse(`${w.ymd}T12:00:00Z`) - 864e5).toISOString().slice(0, 10), "19:00", st.timezone);
+    if (prev > now + 30 * 6e4 && b.start_ms - prev > 6 * 36e5) {
+      msgs.push({ kind: "eve", at: prev, text: `${hi} \u041D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0435: \u0443\u0442\u0440\u0435 (${at}) \u0412\u0438 \u043E\u0447\u0430\u043A\u0432\u0430\u043C\u0435 \u0432 ${st.brand.name}${where}.${sign}` });
+    }
+    const soon = b.start_ms - 2 * 36e5;
+    const h = Number(zonedParts(soon, st.timezone).hm.slice(0, 2));
+    if (soon > now + 15 * 6e4 && h >= 8 && h < 21) {
+      msgs.push({ kind: "soon", at: soon, text: `${hi} \u041D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0435: \u0434\u043D\u0435\u0441 \u043E\u0442 ${w.hm} \u0447. \u0435 \u0412\u0430\u0448\u0438\u044F\u0442 \u0447\u0430\u0441 \u0432 ${st.brand.name}.${sign}` });
+    }
+  }
+  try {
+    const old = JSON.parse(await kv.get(`xbody:outidx:${id}`) || "[]");
+    await Promise.all((Array.isArray(old) ? old : []).map((k) => kv.delete(k)));
+    const keep = [];
+    for (const m of msgs) {
+      const key = outKey(m.at, id, m.kind);
+      await kv.put(key, JSON.stringify({ to: b.phone, text: m.text, tries: 0 }), { expirationTtl: Math.max(86400, Math.ceil((m.at - now) / 1e3) + 3 * 86400) });
+      if (m.kind === "eve" || m.kind === "soon") keep.push(key);
+    }
+    if (keep.length) await kv.put(`xbody:outidx:${id}`, JSON.stringify(keep), { expirationTtl: 400 * 86400 });
+    else await kv.delete(`xbody:outidx:${id}`);
+  } catch (e) {
+    console.warn("[studio-viber] queue failed:", e.message);
+  }
+}
+async function busyForMonth(env, studio, ym) {
+  const cal2 = studio.settings.google.calendarId;
+  if (!cal2) return [];
+  const key = `studio:busy:${studio.id}:${ym}`;
+  if (env.page_content) {
+    const hit = await env.page_content.get(key).catch(() => null);
+    if (hit) return JSON.parse(hit);
+  }
+  const tz = studio.settings.timezone;
+  const [y, m] = ym.split("-").map(Number);
+  const from = zonedMs(`${ym}-01`, "00:00", tz);
+  const to = zonedMs(new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10), "00:00", tz);
+  const busy = await busyTimes(env, cal2, from, to, tz);
+  if (env.page_content) await env.page_content.put(key, JSON.stringify(busy), { expirationTtl: BUSY_TTL }).catch(() => {
+  });
+  return busy;
+}
+async function bookedBetween(env, studioId, from, to, exceptId = "") {
+  const r = await env.STUDIO_DB.prepare(
+    "SELECT id, start_ms AS start, end_ms AS end FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms < ? AND end_ms > ? AND id <> ?"
+  ).bind(studioId, to, from, exceptId).all();
+  return r.results || [];
+}
+async function handleAvailability(env, ctx, studio, url) {
+  const ym = String(url.searchParams.get("month") || "");
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(ym)) return err("month");
+  const rev = env.page_content ? await env.page_content.get(`studio:rev:${studio.id}`).catch(() => "") || "0" : "0";
+  const cacheKey = new Request(`https://studio-cache.invalid/${studio.id}/${ym}/${studio.version}/${rev}`);
+  const cache = typeof caches !== "undefined" ? caches.default : null;
+  if (cache) {
+    const hit = await cache.match(cacheKey).catch(() => null);
+    if (hit) return new Response(hit.body, { status: 200, headers: { ...CORS, "Cache-Control": "public, max-age=30" } });
+  }
+  const st = studio.settings;
+  const [y, m] = ym.split("-").map(Number);
+  const from = zonedMs(`${ym}-01`, "00:00", st.timezone) - 864e5;
+  const to = zonedMs(new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10), "00:00", st.timezone) + 864e5;
+  let busy = [];
+  let calendarOk = true;
+  try {
+    busy = await busyForMonth(env, studio, ym);
+  } catch (e) {
+    calendarOk = false;
+    console.warn("[studio] google busy failed:", e.message);
+  }
+  const taken = [...await bookedBetween(env, studio.id, from, to), ...busy];
+  const body = JSON.stringify({ month: ym, days: calendarOk ? slotsForMonth(st, ym, taken) : {}, calendarOk, at: Date.now() });
+  const resp = new Response(body, { status: 200, headers: { ...CORS, "Cache-Control": "public, max-age=30" } });
+  if (cache && calendarOk) ctx.waitUntil(cache.put(cacheKey, new Response(body, { headers: { "Cache-Control": `public, max-age=${AVAIL_TTL}` } })).catch(() => {
+  }));
+  return resp;
+}
+function startOf(st, t, now) {
+  const m = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$/.exec(String(t || ""));
+  if (!m) return null;
+  const ms = zonedMs(m[1], m[2], st.timezone);
+  return isOfferedStart(st, ms) && inWindow(st, ms, now) ? ms : null;
+}
+function readWho(b) {
+  return {
+    phone: normPhone(b.phone),
+    name: String(b.name || "").trim().slice(0, 80),
+    email: String(b.email || "").trim().toLowerCase().slice(0, 120),
+    token: String(b.token || "").slice(0, 64)
+  };
+}
+async function handleGuarantee(env, studio, b) {
+  if (!hasStripe(studio)) return err("no_stripe", 503);
+  const who = readWho(b);
+  if (!who.phone || !who.name) return err("who");
+  const times = (Array.isArray(b.times) ? b.times : []).slice(0, MAX_TIMES).map(String);
+  if (!times.length) return err("times");
+  const client = await getClient(env, studio.id, who.phone);
+  if (!b.newCard && client && client.card_pm && await tokenOk(client, who.token)) {
+    try {
+      const pm = await stripe(env, studio, "GET", `payment_methods/${client.card_pm}`, {});
+      if (pm.customer === client.stripe_customer && cardLive(pm.card)) {
+        return json({ saved: { brand: pm.card.brand, last4: pm.card.last4 }, price: studio.settings.price });
+      }
+    } catch (e) {
+      console.warn("[studio] saved card check failed:", e.message);
+    }
+  }
+  try {
+    let customer = client && client.stripe_customer;
+    if (!customer) {
+      const c = await stripe(env, studio, "POST", "customers", { name: who.name, phone: who.phone, email: who.email || void 0, "metadata[studio]": studio.id });
+      customer = c.id;
+    }
+    const si = await stripe(env, studio, "POST", "setup_intents", {
+      customer,
+      usage: "off_session",
+      "payment_method_types[]": "card",
+      description: `${studio.settings.brand.name} \u2014 \u0433\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0437\u0430 ${times.length} \u0447.`,
+      "metadata[studio]": studio.id,
+      "metadata[phone]": who.phone,
+      "metadata[times]": times.join(",")
+    });
+    return json({ clientSecret: si.client_secret, publishableKey: studio.secrets.pk, price: studio.settings.price });
+  } catch (e) {
+    console.error("[studio] guarantee failed:", e.message);
+    return err("stripe", 502);
+  }
+}
+async function handleBook(env, ctx, studio, b) {
+  const st = studio.settings;
+  const now = Date.now();
+  const who = readWho(b);
+  if (!who.phone || !who.name) return err("who");
+  const raw = (Array.isArray(b.times) ? b.times : []).slice(0, MAX_TIMES).map(String);
+  if (!raw.length) return err("times");
+  const starts = raw.map((t) => ({ t, ms: startOf(st, t, now) }));
+  let client = await getClient(env, studio.id, who.phone);
+  if (!client && !b.terms) return err("terms", 403);
+  const ok = starts.filter((x) => x.ms);
+  const failed = starts.filter((x) => !x.ms).map((x) => ({ time: x.t, error: "not_offered" }));
+  if (!ok.length) return json({ booked: [], failed }, 409);
+  const mine = (await env.STUDIO_DB.prepare("SELECT start_ms FROM bookings WHERE studio_id = ? AND phone = ? AND status = 'booked' AND start_ms > ?").bind(studio.id, who.phone, now).all()).results || [];
+  if (mine.length + ok.length > st.rules.maxUpcoming) return json({ error: "max_upcoming", max: st.rules.maxUpcoming }, 409);
+  const perDay = {};
+  for (const x of [...mine.map((r) => r.start_ms), ...ok.map((x2) => x2.ms)]) {
+    const d = zonedParts(x, st.timezone).ymd;
+    perDay[d] = (perDay[d] || 0) + 1;
+    if (perDay[d] > st.rules.maxPerDay) return json({ error: "max_per_day", max: st.rules.maxPerDay, day: d }, 409);
+  }
+  let code = null;
+  if (b.code) {
+    const r = await findCode(env, studio.id, String(b.code).trim().slice(0, 40), who.phone, ok.length, now);
+    if (r.error) return json({ error: r.error }, 400);
+    code = r.code;
+  }
+  const need = guaranteeOf(studio);
+  let card = null;
+  if (need === "card" || need === "card_or_code" && !code) {
+    if (b.useSaved && client && client.card_pm && await tokenOk(client, who.token)) {
+      card = { pm: client.card_pm, last4: client.card_last4, brand: client.card_brand, customer: client.stripe_customer };
+    } else if (/^seti_\w+$/.test(String(b.setupIntent || ""))) {
+      try {
+        const si = await stripe(env, studio, "GET", `setup_intents/${b.setupIntent}`, { "expand[]": "payment_method" });
+        const chosen = String(si.metadata && si.metadata.times || "").split(",");
+        const good = si.status === "succeeded" && si.metadata && si.metadata.studio === studio.id && si.metadata.phone === who.phone && !si.metadata.used && ok.every((x) => chosen.includes(x.t)) && now / 1e3 - (si.created || 0) < 3600;
+        const pm = si.payment_method;
+        if (good && pm && pm.card) card = { pm: pm.id, last4: pm.card.last4, brand: pm.card.brand, customer: si.customer, si: si.id };
+      } catch (e) {
+        console.error("[studio] setup intent check failed:", e.message);
+        return err("stripe", 502);
+      }
+    }
+    if (!card) return err("card_required", 402);
+  }
+  let busy = [];
+  if (st.google.calendarId) {
+    try {
+      busy = await busyTimes(env, st.google.calendarId, Math.min(...ok.map((x) => x.ms)) - 864e5, Math.max(...ok.map((x) => x.ms)) + 864e5, st.timezone);
+    } catch (e) {
+      console.error("[studio] google check failed:", e.message);
+      return err("calendar", 503);
+    }
+  }
+  const pad = st.slot.buffer * 6e4;
+  const len = st.slot.minutes * 6e4;
+  const booked = [];
+  for (const x of ok) {
+    if (!isFree(st, x.ms, busy)) {
+      failed.push({ time: x.t, error: "taken" });
+      continue;
+    }
+    if (code && code.uses_left !== null) {
+      const u = await env.STUDIO_DB.prepare("UPDATE codes SET uses_left = uses_left - 1 WHERE studio_id = ? AND code = ? AND uses_left > 0").bind(studio.id, code.code).run();
+      if (!u.meta || !u.meta.changes) {
+        failed.push({ time: x.t, error: "code_used" });
+        continue;
+      }
+    }
+    const id = newId();
+    const r = await env.STUDIO_DB.prepare(
+      `INSERT INTO bookings (id, studio_id, start_ms, end_ms, status, phone, name, code, card_pm, card_last4, stripe_customer, source, created_at, changed_at)
+       SELECT ?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?, ?, 'app', ?, ?
+       WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms < ? AND end_ms > ?)`
+    ).bind(
+      id,
+      studio.id,
+      x.ms,
+      x.ms + len,
+      who.phone,
+      who.name,
+      code ? code.code : "",
+      card ? card.pm : "",
+      card ? card.last4 : "",
+      card ? card.customer : "",
+      now,
+      now,
+      studio.id,
+      x.ms + len + pad,
+      x.ms - pad
+    ).run();
+    if (r.meta && r.meta.changes) {
+      booked.push({ id, time: x.t, start_ms: x.ms, end_ms: x.ms + len, phone: who.phone, name: who.name, code: code ? code.code : "", card_last4: card ? card.last4 : "" });
+    } else {
+      failed.push({ time: x.t, error: "taken" });
+      if (code && code.uses_left !== null) await env.STUDIO_DB.prepare("UPDATE codes SET uses_left = uses_left + 1 WHERE studio_id = ? AND code = ?").bind(studio.id, code.code).run();
+    }
+  }
+  await upsertClient(env, studio.id, who.phone, who);
+  if (card && booked.length) {
+    await env.STUDIO_DB.prepare("UPDATE clients SET stripe_customer = ?, card_pm = ?, card_brand = ?, card_last4 = ? WHERE studio_id = ? AND phone = ?").bind(card.customer, card.pm, card.brand, card.last4, studio.id, who.phone).run();
+    if (card.si) await stripe(env, studio, "POST", `setup_intents/${card.si}`, { "metadata[used]": "1" }).catch(() => {
+    });
+  }
+  if (code && booked.length) await env.STUDIO_DB.prepare("UPDATE clients SET code = ? WHERE studio_id = ? AND phone = ?").bind(code.code, studio.id, who.phone).run();
+  client = await getClient(env, studio.id, who.phone);
+  let token;
+  if (booked.length && !await tokenOk(client, who.token) && JSON.parse(client.token_hash || "[]").length === 0) {
+    token = await issueToken(env, studio.id, who.phone);
+  }
+  if (booked.length) {
+    await bumpRev(env, studio.id);
+    ctx.waitUntil((async () => {
+      for (const bk of booked) {
+        await viberBooking(env, studio, "booked", bk);
+        if (st.google.calendarId) {
+          try {
+            const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name);
+            await env.STUDIO_DB.prepare("UPDATE bookings SET gcal_event = ? WHERE id = ?").bind(ev, bk.id).run();
+          } catch (e) {
+            console.warn("[studio] google event failed:", e.message);
+          }
+        }
+      }
+    })());
+  }
+  return json({
+    booked: booked.map((x) => ({ id: x.id, time: x.time })),
+    failed,
+    token,
+    card: card && booked.length ? { brand: card.brand, last4: card.last4 } : void 0,
+    code: code && booked.length ? codeOut({ ...code, uses_left: code.uses_left === null ? null : code.uses_left - booked.length }) : void 0
+  }, booked.length || !failed.length ? 200 : 409);
+}
+async function handleCode(env, studio, b) {
+  const phone = normPhone(b.phone);
+  const code = String(b.code || "").trim().slice(0, 40);
+  if (!phone || !/^[\p{L}\p{N}_-]{2,40}$/u.test(code)) return err("code");
+  const r = await findCode(env, studio.id, code, phone, 1);
+  return r.error ? err(r.error) : json({ ok: true, ...codeOut(r.code) });
+}
+async function ownClient(env, studio, b) {
+  const who = readWho(b);
+  const client = who.phone ? await getClient(env, studio.id, who.phone) : null;
+  return await tokenOk(client, who.token) ? client : null;
+}
+async function handleMine(env, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return err("token", 401);
+  const st = studio.settings;
+  const rows = (await env.STUDIO_DB.prepare(
+    "SELECT id, start_ms, status FROM bookings WHERE studio_id = ? AND phone = ? AND start_ms > ? ORDER BY start_ms LIMIT 60"
+  ).bind(studio.id, client.phone, Date.now() - 60 * 864e5).all()).results || [];
+  const now = Date.now();
+  let code = null;
+  if (client.code) {
+    const c = await env.STUDIO_DB.prepare("SELECT * FROM codes WHERE studio_id = ? AND code = ? AND active = 1").bind(studio.id, client.code).first();
+    if (c && !(c.valid_to && c.valid_to < now) && c.uses_left !== 0) code = codeOut(c);
+  }
+  return json({
+    name: client.name,
+    card: client.card_pm ? { brand: client.card_brand, last4: client.card_last4 } : null,
+    code,
+    hours: rows.filter((r) => r.status !== "canceled" || r.start_ms > now).map((r) => {
+      const p = zonedParts(r.start_ms, st.timezone);
+      return {
+        id: r.id,
+        time: `${p.ymd} ${p.hm}`,
+        status: r.start_ms < now && r.status === "booked" ? "done" : r.status,
+        late: r.start_ms - now < st.rules.freeCancelHours * 36e5
+      };
+    })
+  });
+}
+async function ownBooking(env, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return { error: err("token", 401) };
+  const bk = await env.STUDIO_DB.prepare("SELECT * FROM bookings WHERE id = ? AND studio_id = ? AND phone = ? AND status = 'booked'").bind(String(b.id || ""), studio.id, client.phone).first();
+  if (!bk || bk.start_ms < Date.now()) return { error: err("not_found", 404) };
+  return { client, bk };
+}
+async function afterCancel(env, ctx, studio, bk, late) {
+  if (bk.code && !late) await env.STUDIO_DB.prepare("UPDATE codes SET uses_left = uses_left + 1 WHERE studio_id = ? AND code = ? AND uses_left IS NOT NULL").bind(studio.id, bk.code).run();
+  await bumpRev(env, studio.id);
+  ctx.waitUntil((async () => {
+    await viberBooking(env, studio, "canceled", bk);
+    if (bk.gcal_event && studio.settings.google.calendarId) {
+      await deleteEvent(env, studio.settings.google.calendarId, bk.gcal_event).catch((e) => console.warn("[studio] google delete failed:", e.message));
+    }
+  })());
+}
+async function handleCancel(env, ctx, studio, b) {
+  const o = await ownBooking(env, studio, b);
+  if (o.error) return o.error;
+  const late = o.bk.start_ms - Date.now() < studio.settings.rules.freeCancelHours * 36e5;
+  const r = await env.STUDIO_DB.prepare("UPDATE bookings SET status = 'canceled', late_cancel = ?, changed_at = ? WHERE id = ? AND status = 'booked'").bind(late ? 1 : 0, Date.now(), o.bk.id).run();
+  if (!r.meta || !r.meta.changes) return err("not_found", 404);
+  await afterCancel(env, ctx, studio, o.bk, late);
+  return json({ ok: true, late });
+}
+async function handleMove(env, ctx, studio, b) {
+  const st = studio.settings;
+  const o = await ownBooking(env, studio, b);
+  if (o.error) return o.error;
+  if (o.bk.start_ms - Date.now() < st.rules.freeCancelHours * 36e5) return err("too_late", 409);
+  const ms = startOf(st, b.time, Date.now());
+  if (!ms) return err("not_offered", 409);
+  if (st.google.calendarId) {
+    try {
+      if (!isFree(st, ms, await busyTimes(env, st.google.calendarId, ms - 864e5, ms + 864e5, st.timezone))) return err("taken", 409);
+    } catch (e) {
+      return err("calendar", 503);
+    }
+  }
+  const len = st.slot.minutes * 6e4;
+  const pad = st.slot.buffer * 6e4;
+  const r = await env.STUDIO_DB.prepare(
+    `UPDATE bookings SET start_ms = ?, end_ms = ?, changed_at = ? WHERE id = ? AND status = 'booked'
+     AND NOT EXISTS (SELECT 1 FROM bookings WHERE studio_id = ? AND status = 'booked' AND id <> ? AND start_ms < ? AND end_ms > ?)`
+  ).bind(ms, ms + len, Date.now(), o.bk.id, studio.id, o.bk.id, ms + len + pad, ms - pad).run();
+  if (!r.meta || !r.meta.changes) return err("taken", 409);
+  const moved = { ...o.bk, start_ms: ms, end_ms: ms + len };
+  await bumpRev(env, studio.id);
+  ctx.waitUntil((async () => {
+    await viberBooking(env, studio, "moved", moved);
+    if (o.bk.gcal_event && st.google.calendarId) await moveEvent(env, st.google.calendarId, o.bk.gcal_event, moved).catch(() => {
+    });
+  })());
+  return json({ ok: true, time: String(b.time) });
+}
+async function handleVerifyStart(env, studio, b) {
+  const phone = normPhone(b.phone);
+  if (!phone || !env.page_content) return err("who");
+  const client = await getClient(env, studio.id, phone);
+  if (!client) return json({ ok: true });
+  const key = `studio:verify:${studio.id}:${phone}`;
+  const prev = JSON.parse(await env.page_content.get(key) || "null");
+  if (prev && Date.now() - prev.at < 6e4) return err("wait", 429);
+  const pin = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1e4).padStart(4, "0");
+  await env.page_content.put(key, JSON.stringify({ h: await sha256(`${phone}:${pin}`), tries: 0, at: Date.now() }), { expirationTtl: 900 });
+  await env.page_content.put(
+    outKey(Date.now(), `v${randomToken(6)}`, "pin"),
+    JSON.stringify({ to: phone, text: `\u041A\u043E\u0434 \u0437\u0430 \u0432\u0445\u043E\u0434 \u0432 ${studio.settings.brand.name}: ${pin}
+\u0412\u0430\u0436\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438.`, tries: 0 }),
+    { expirationTtl: 3600 }
+  );
+  return json({ ok: true });
+}
+async function handleVerifyFinish(env, studio, b) {
+  const phone = normPhone(b.phone);
+  const pin = String(b.pin || "");
+  if (!phone || !/^\d{4}$/.test(pin) || !env.page_content) return err("pin");
+  const key = `studio:verify:${studio.id}:${phone}`;
+  const v = JSON.parse(await env.page_content.get(key) || "null");
+  if (!v || v.tries >= 5) return err("pin");
+  if (v.h !== await sha256(`${phone}:${pin}`)) {
+    await env.page_content.put(key, JSON.stringify({ ...v, tries: v.tries + 1 }), { expirationTtl: 900 });
+    return err("pin");
+  }
+  await env.page_content.delete(key);
+  return json({ ok: true, token: await issueToken(env, studio.id, phone) });
+}
+async function adminStudio(env, request, studio) {
+  const token = String(request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!/^[0-9a-f]{48}$/.test(token)) return false;
+  const s = await env.STUDIO_DB.prepare("SELECT studio_id, expires_ms FROM admin_sessions WHERE token_hash = ?").bind(await sha256(token)).first();
+  return Boolean(s && s.studio_id === studio.id && s.expires_ms > Date.now());
+}
+async function handleLogin(env, studio, b) {
+  const pin = String(b.pin || "");
+  if (!/^\d{5}$/.test(pin)) return err("pin");
+  const failKey = `studio:pinfail:${studio.id}`;
+  const fails = env.page_content ? Number(await env.page_content.get(failKey) || 0) : 0;
+  if (fails >= 5) return err("locked", 429);
+  if (!await pinOk(pin, studio.pinHash)) {
+    if (env.page_content) await env.page_content.put(failKey, String(fails + 1), { expirationTtl: 900 });
+    return err("pin", 401);
+  }
+  if (env.page_content && fails) await env.page_content.delete(failKey);
+  const token = randomToken();
+  await env.STUDIO_DB.batch([
+    env.STUDIO_DB.prepare("DELETE FROM admin_sessions WHERE expires_ms < ?").bind(Date.now()),
+    env.STUDIO_DB.prepare("INSERT INTO admin_sessions (token_hash, studio_id, expires_ms) VALUES (?, ?, ?)").bind(await sha256(token), studio.id, Date.now() + ADMIN_SESSION_MS)
+  ]);
+  return json({ token, expires: Date.now() + ADMIN_SESSION_MS });
+}
+async function adminState(env, studio) {
+  const codes = (await env.STUDIO_DB.prepare("SELECT * FROM codes WHERE studio_id = ? ORDER BY created_at DESC LIMIT 200").bind(studio.id).all()).results || [];
+  const cal2 = studio.settings.google.calendarId;
+  return json({
+    settings: studio.settings,
+    version: studio.version,
+    stripe: { set: hasStripe(studio), pk: studio.secrets.pk || "" },
+    google: { serviceAccount: serviceAccountEmail(env), calendarError: cal2 ? await checkCalendar(env, cal2) : "none" },
+    codes
+  });
+}
+async function saveSettings(env, studio, next) {
+  const st = normalizeSettings(next);
+  await env.STUDIO_DB.prepare("UPDATE studios SET settings = ?, version = version + 1 WHERE id = ?").bind(JSON.stringify(st), studio.id).run();
+  studioMemo.delete(studio.id);
+  if (env.page_content) {
+    const now = /* @__PURE__ */ new Date();
+    for (let i = 0; i < 13; i++) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1)).toISOString().slice(0, 7);
+      await env.page_content.delete(`studio:busy:${studio.id}:${d}`).catch(() => {
+      });
+    }
+  }
+  await bumpRev(env, studio.id);
+  return st;
+}
+async function handleAdmin(env, ctx, studio, request, path, b, url) {
+  if (path === "state") return adminState(env, studio);
+  if (path === "settings") return json({ settings: await saveSettings(env, studio, b.settings) });
+  if (path === "logo") {
+    const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(b.dataUrl || ""));
+    if (!m || m[2].length > 56e4) return err("logo");
+    await env.page_content.put(`studio:logo:${studio.id}`, JSON.stringify({ type: m[1], b64: m[2] }));
+    const st = { ...studio.settings, brand: { ...studio.settings.brand, logo: Date.now() % 1e9 } };
+    return json({ settings: await saveSettings(env, studio, st) });
+  }
+  if (path === "stripe") {
+    const pk = String(b.publishableKey || "").trim();
+    const sk = String(b.secretKey || "").trim();
+    let secrets = {};
+    if (pk || sk) {
+      if (!/^pk_(live|test)_\w+$/.test(pk) || !/^(sk|rk)_(live|test)_\w+$/.test(sk) || pk.split("_")[1] !== sk.split("_")[1]) return err("stripe_keys");
+      try {
+        secrets = { pk, sk: await seal(env, sk) };
+      } catch (e) {
+        return err("no_secret_key", 503);
+      }
+      try {
+        await stripe(env, { secrets }, "GET", "customers", { limit: 1 });
+      } catch (e) {
+        return err("stripe_refused");
+      }
+    }
+    await env.STUDIO_DB.prepare("UPDATE studios SET secrets = ?, version = version + 1 WHERE id = ?").bind(JSON.stringify(secrets), studio.id).run();
+    studioMemo.delete(studio.id);
+    return json({ ok: true, set: Boolean(pk) });
+  }
+  if (path === "pin") {
+    if (!/^\d{5}$/.test(String(b.newPin || "")) || !await pinOk(String(b.pin || ""), studio.pinHash)) return err("pin");
+    await env.STUDIO_DB.prepare("UPDATE studios SET pin_hash = ? WHERE id = ?").bind(await pinHash(String(b.newPin)), studio.id).run();
+    studioMemo.delete(studio.id);
+    return json({ ok: true });
+  }
+  if (path === "bookings") {
+    const from = Number(url.searchParams.get("from")) || Date.now() - 7 * 864e5;
+    const to = Number(url.searchParams.get("to")) || Date.now() + 60 * 864e5;
+    const rows = (await env.STUDIO_DB.prepare(
+      "SELECT id, start_ms, end_ms, status, phone, name, code, card_last4, stripe_customer, card_pm, late_cancel, source FROM bookings WHERE studio_id = ? AND start_ms >= ? AND start_ms < ? ORDER BY start_ms LIMIT 1000"
+    ).bind(studio.id, from, to).all()).results || [];
+    return json({ bookings: rows });
+  }
+  if (path === "booking") {
+    const bk = await env.STUDIO_DB.prepare("SELECT * FROM bookings WHERE id = ? AND studio_id = ?").bind(String(b.id || ""), studio.id).first();
+    if (!bk) return err("not_found", 404);
+    if (b.action === "cancel" && bk.status === "booked") {
+      await env.STUDIO_DB.prepare("UPDATE bookings SET status = 'canceled', changed_at = ? WHERE id = ?").bind(Date.now(), bk.id).run();
+      await afterCancel(env, ctx, studio, bk, false);
+    } else if (b.action === "noshow" && bk.status === "booked") {
+      await env.STUDIO_DB.prepare("UPDATE bookings SET status = 'noshow', changed_at = ? WHERE id = ?").bind(Date.now(), bk.id).run();
+    } else if (b.action === "restore" && bk.status === "noshow") {
+      await env.STUDIO_DB.prepare("UPDATE bookings SET status = 'booked', changed_at = ? WHERE id = ?").bind(Date.now(), bk.id).run();
+    } else return err("action");
+    return json({ ok: true });
+  }
+  if (path === "charge") {
+    const bk = await env.STUDIO_DB.prepare("SELECT * FROM bookings WHERE id = ? AND studio_id = ?").bind(String(b.id || ""), studio.id).first();
+    const amount = Math.round(Number(b.amount) * 100);
+    if (!bk || !bk.card_pm || !bk.stripe_customer || !(amount >= 50)) return err("charge");
+    if (!(bk.status === "noshow" || bk.status === "canceled" && bk.late_cancel)) return err("not_chargeable");
+    try {
+      const pi = await stripe(env, studio, "POST", "payment_intents", {
+        amount,
+        currency: studio.settings.currency.toLowerCase(),
+        customer: bk.stripe_customer,
+        payment_method: bk.card_pm,
+        off_session: "true",
+        confirm: "true",
+        description: `${studio.settings.brand.name} \u2014 ${bk.status === "noshow" ? "\u043D\u0435\u044F\u0432\u044F\u0432\u0430\u043D\u0435" : "\u043A\u044A\u0441\u0435\u043D \u043E\u0442\u043A\u0430\u0437"}`,
+        "metadata[booking]": bk.id
+      });
+      return json({ ok: pi.status === "succeeded", status: pi.status });
+    } catch (e) {
+      return json({ error: "stripe", detail: e.message }, 402);
+    }
+  }
+  if (path === "code") {
+    const code = String(b.code || "").trim();
+    if (!/^[\p{L}\p{N}_-]{2,40}$/u.test(code)) return err("code");
+    const n = (v) => v === null || v === void 0 || v === "" ? null : Math.max(0, Math.round(Number(v)));
+    await env.STUDIO_DB.prepare(
+      `INSERT INTO codes (studio_id, code, label, uses_left, per_client, valid_to, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (studio_id, code) DO UPDATE SET label = excluded.label, uses_left = excluded.uses_left, per_client = excluded.per_client,
+       valid_to = excluded.valid_to, active = excluded.active`
+    ).bind(studio.id, code, String(b.label || "").slice(0, 80), n(b.usesLeft), n(b.perClient), n(b.validTo), b.active === false ? 0 : 1, Date.now()).run();
+    return json({ ok: true });
+  }
+  return err("not_found", 404);
+}
+async function handleMaster(env, request, b) {
+  const want = String(env.STUDIO_MASTER_KEY || "");
+  const got = String(request.headers.get("X-Master-Key") || "");
+  if (want.length < 16 || got !== want) return err("unauthorized", 401);
+  const id = String(b.id || "").toLowerCase();
+  if (!/^[a-z0-9-]{2,40}$/.test(id) || !/^\d{5}$/.test(String(b.pin || ""))) return err("id_or_pin");
+  const exists = await env.STUDIO_DB.prepare("SELECT id FROM studios WHERE id = ?").bind(id).first();
+  if (exists) {
+    await env.STUDIO_DB.prepare("UPDATE studios SET pin_hash = ? WHERE id = ?").bind(await pinHash(String(b.pin)), id).run();
+  } else {
+    const st = normalizeSettings({ ...b.settings || {}, brand: { name: b.name || id } });
+    await env.STUDIO_DB.prepare("INSERT INTO studios (id, settings, secrets, pin_hash, version, created_at) VALUES (?, ?, ?, ?, 1, ?)").bind(id, JSON.stringify(st), "{}", await pinHash(String(b.pin)), Date.now()).run();
+  }
+  studioMemo.delete(id);
+  return json({ ok: true, id, created: !exists });
+}
+async function handleStudioApi(request, env, ctx, opts = {}) {
+  const url = new URL(request.url);
+  if (!url.pathname.startsWith("/api/s/")) return null;
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  if (!env.STUDIO_DB) return err("not_configured", 503);
+  const path = url.pathname.slice("/api/s/".length);
+  const limit = (name) => opts.rateLimit ? opts.rateLimit(name) : null;
+  try {
+    const body = request.method === "GET" ? {} : await readBody(request, path === "admin/logo" ? 6e5 : 8192);
+    if (!body) return err("body");
+    if (path === "master/studio" && request.method === "POST") return await handleMaster(env, request, body);
+    const id = slugFrom(env, url, body);
+    const studio = id ? await loadStudio(env, id) : null;
+    if (!studio) return err("studio", 404);
+    if (request.method === "GET" && path === "config") {
+      return json(publicSettings(studio.settings, studio.version, hasStripe(studio)), 200, { "Cache-Control": "public, max-age=60" });
+    }
+    if (request.method === "GET" && path === "logo") {
+      const v = env.page_content ? JSON.parse(await env.page_content.get(`studio:logo:${studio.id}`) || "null") : null;
+      if (!v) return new Response("", { status: 404, headers: CORS });
+      const bytes = Uint8Array.from(atob(v.b64), (c) => c.charCodeAt(0));
+      return new Response(bytes, { headers: { "Access-Control-Allow-Origin": "*", "Content-Type": v.type, "Cache-Control": "public, max-age=31536000, immutable" } });
+    }
+    if (request.method === "GET" && path === "availability") return await handleAvailability(env, ctx, studio, url);
+    if (path.startsWith("admin/")) {
+      const sub = path.slice(6);
+      if (sub === "login" && request.method === "POST") return await limit("STUDIO_LOGIN") || await handleLogin(env, studio, body);
+      if (!await adminStudio(env, request, studio)) return err("unauthorized", 401);
+      return await handleAdmin(env, ctx, studio, request, sub, body, url);
+    }
+    if (request.method !== "POST") return err("not_found", 404);
+    const rl = await limit(path === "book" || path === "guarantee" ? "STUDIO_BOOK" : path.startsWith("verify") ? "STUDIO_VERIFY" : "STUDIO_MANAGE");
+    if (rl) return rl;
+    switch (path) {
+      case "guarantee":
+        return await handleGuarantee(env, studio, body);
+      case "book":
+        return await handleBook(env, ctx, studio, body);
+      case "code":
+        return await handleCode(env, studio, body);
+      case "mine":
+        return await handleMine(env, studio, body);
+      case "cancel":
+        return await handleCancel(env, ctx, studio, body);
+      case "move":
+        return await handleMove(env, ctx, studio, body);
+      case "verify/start":
+        return await handleVerifyStart(env, studio, body);
+      case "verify/finish":
+        return await handleVerifyFinish(env, studio, body);
+      default:
+        return err("not_found", 404);
+    }
+  } catch (e) {
+    console.error("[studio] failed:", path, e && e.message);
+    return err("server", 500);
+  }
+}
 
 // food-nutrition-data.js
 var FOOD_NUTRITION_PER_100G = {
@@ -40499,9 +41592,9 @@ function refine(parts, fixed, target, carbsCap) {
           }
           if (next == null || next === current) continue;
           p.grams[i] = next;
-          const err = mealError(totalsOf(parts, fixed), target, carbsCap);
+          const err2 = mealError(totalsOf(parts, fixed), target, carbsCap);
           p.grams[i] = current;
-          if (err < best - 1e-6 && (!move || err < move.err)) move = { p, i, next, err };
+          if (err2 < best - 1e-6 && (!move || err2 < move.err)) move = { p, i, next, err: err2 };
         }
       }
     }
@@ -43252,9 +44345,17 @@ var RATE_LIMIT = {
   ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 },
   // debounced client sync burst
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
-  WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 }
+  WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 },
+  STUDIO_BOOK: { maxRequests: 10, windowSec: 600 },
+  // studio platform: card guarantee + booking
+  STUDIO_MANAGE: { maxRequests: 30, windowSec: 600 },
+  // studio platform: my hours, cancel, move, a code
+  STUDIO_VERIFY: { maxRequests: 5, windowSec: 3600 },
+  // studio platform: a Viber login code
+  STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 }
+  // studio platform: the admin's 5-digit code
 };
-var KV_RATE_LIMITED = /* @__PURE__ */ new Set(["GENERATE_PLAN", "FOOD_ANALYSIS", "SOCIAL_AUTH", "FORGOT_PASSWORD"]);
+var KV_RATE_LIMITED = /* @__PURE__ */ new Set(["GENERATE_PLAN", "FOOD_ANALYSIS", "SOCIAL_AUTH", "FORGOT_PASSWORD", "STUDIO_VERIFY", "STUDIO_LOGIN"]);
 var memoryRateCounters = /* @__PURE__ */ new Map();
 function rateLimitedResponse(config) {
   return new Response(
@@ -44168,8 +45269,8 @@ function generateUniqueId(prefix = "id") {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 }
 function generateUserId(data) {
-  const str = `${data.name}_${data.age}_${data.email || Date.now()}`;
-  const bytes = new TextEncoder().encode(str);
+  const str2 = `${data.name}_${data.age}_${data.email || Date.now()}`;
+  const bytes = new TextEncoder().encode(str2);
   let binary = "";
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
   return btoa(binary).replace(/[^a-zA-Z0-9]/g, "").substring(0, 32);
@@ -44411,10 +45512,10 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
         throw new Error("No AI provider configured. Please configure at least one provider.");
       }
     }
-  } catch (err) {
-    console.error("Error calling AI model:", err);
-    error = err.message || "Unknown error";
-    throw err;
+  } catch (err2) {
+    console.error("Error calling AI model:", err2);
+    error = err2.message || "Unknown error";
+    throw err2;
   } finally {
     if (loggingEnabled) {
       await logAIResponse(env, logId, stepName, {
@@ -44718,12 +45819,12 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   const valConfig = await getValidationConfig(env);
   const dataValidation = validateDataAdequacy(data, valConfig);
   if (!dataValidation.isValid) {
-    const err = (
+    const err2 = (
       /** @type {any} */
       new Error(dataValidation.errorMessage)
     );
-    err.validationFailed = true;
-    throw err;
+    err2.validationFailed = true;
+    throw err2;
   }
   const { hasContradiction, canProceed: contradictionCanProceed, warningData } = detectGoalContradiction(data, valConfig);
   if (hasContradiction && !contradictionCanProceed) {
@@ -45170,8 +46271,8 @@ function notifyMake(ctx, telegramMessage) {
   }).catch((e) => console.warn("Make webhook notification failed:", e));
   if (ctx?.waitUntil) ctx.waitUntil(p);
 }
-function escapeHtml(str) {
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function escapeHtml(str2) {
+  return String(str2).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 var DEFAULT_EMAIL_TEMPLATE = {
   subject: "\u0412\u0430\u0448\u0438\u044F\u0442 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D \u0435 \u0433\u043E\u0442\u043E\u0432! \u{1F957}",
@@ -45406,10 +46507,10 @@ async function getFirebaseAdminToken(env) {
     false,
     ["sign"]
   );
-  const b64url = (obj) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const b64url2 = (obj) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   const now = Math.floor(Date.now() / 1e3);
-  const header = b64url({ alg: "RS256", typ: "JWT" });
-  const payload = b64url({
+  const header = b64url2({ alg: "RS256", typ: "JWT" });
+  const payload = b64url2({
     iss: sa.client_email,
     sub: sa.client_email,
     aud: "https://oauth2.googleapis.com/token",
@@ -45427,8 +46528,8 @@ async function getFirebaseAdminToken(env) {
     body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`
   });
   if (!tokenRes.ok) {
-    const err = await tokenRes.text().catch(() => "");
-    throw new Error(`Google OAuth token exchange failed (${tokenRes.status}): ${err}`);
+    const err2 = await tokenRes.text().catch(() => "");
+    throw new Error(`Google OAuth token exchange failed (${tokenRes.status}): ${err2}`);
   }
   const { access_token } = await tokenRes.json();
   if (!access_token) throw new Error("\u041D\u0435 \u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D access_token \u043E\u0442 Google OAuth.");
@@ -45554,8 +46655,8 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
     })
   });
   if (!response.ok) {
-    const err = await response.text().catch(() => "");
-    throw new Error(`[Email] Resend API error ${response.status}: ${err}`);
+    const err2 = await response.text().catch(() => "");
+    throw new Error(`[Email] Resend API error ${response.status}: ${err2}`);
   }
   console.log(`[Email] Sent successfully to ${to}`);
 }
@@ -45986,8 +47087,8 @@ async function handleGetClientsList(request, env) {
           };
         }
         return null;
-      } catch (err) {
-        console.error(`Error fetching client ${clientId}:`, err);
+      } catch (err2) {
+        console.error(`Error fetching client ${clientId}:`, err2);
         return null;
       }
     });
@@ -47822,8 +48923,8 @@ var DEFAULT_FOOD_BLACKLIST = [
   { item: "goose", mode: "substitute", substitute: "chicken" },
   { item: "venison", mode: "substitute", substitute: "beef" }
 ];
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeRegex(str2) {
+  return str2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function applyFoodSubstitutions(meal, fixes) {
   const applied = [];
@@ -47855,9 +48956,9 @@ var PLAN_VALIDATION_BLOCKING = [
 function splitPlanValidationErrors(allErrors) {
   const blockingErrors = [];
   const errors = [];
-  for (const err of allErrors) {
-    if (PLAN_VALIDATION_BLOCKING.some((p) => p.test(err))) blockingErrors.push(err);
-    else errors.push(err);
+  for (const err2 of allErrors) {
+    if (PLAN_VALIDATION_BLOCKING.some((p) => p.test(err2))) blockingErrors.push(err2);
+    else errors.push(err2);
   }
   return { blockingErrors, errors };
 }
@@ -47952,22 +49053,22 @@ function validatePlan(plan, userData, substitutions = []) {
           const schemeKey = DAY_NUMBER_TO_KEY[i - 1];
           const dayTarget = plan.strategy.weeklyScheme[schemeKey];
           if (dayTarget) {
-            for (const err of validateMealTypesAgainstBreakdown(day, dayTarget, i, userData)) {
-              errors.push(err);
-              stepErrors.step3_mealplan.push(err);
+            for (const err2 of validateMealTypesAgainstBreakdown(day, dayTarget, i, userData)) {
+              errors.push(err2);
+              stepErrors.step3_mealplan.push(err2);
             }
-            for (const err of validateMealsAgainstScheme(day, dayTarget, i)) {
-              errors.push(err);
-              stepErrors.step3_mealplan.push(err);
+            for (const err2 of validateMealsAgainstScheme(day, dayTarget, i)) {
+              errors.push(err2);
+              stepErrors.step3_mealplan.push(err2);
             }
             const dayKcal = Number(day.dailyTotals?.calories) || day.meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
             const schemeKcal = Number(dayTarget.calories) || 0;
             if (dayKcal > 0 && schemeKcal > 0) {
               const tol = calorieTolerance(schemeKcal);
               if (Math.abs(dayKcal - schemeKcal) > tol * 2) {
-                const err = `\u0414\u0435\u043D ${i}: \u0434\u043D\u0435\u0432\u043D\u0438 ${dayKcal} kcal \u2260 \u0441\u0445\u0435\u043C\u0430 ${schemeKcal}`;
-                errors.push(err);
-                stepErrors.step3_mealplan.push(err);
+                const err2 = `\u0414\u0435\u043D ${i}: \u0434\u043D\u0435\u0432\u043D\u0438 ${dayKcal} kcal \u2260 \u0441\u0445\u0435\u043C\u0430 ${schemeKcal}`;
+                errors.push(err2);
+                stepErrors.step3_mealplan.push(err2);
               }
             }
           }
@@ -49172,9 +50273,9 @@ async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, max
     } else {
       throw new Error("No AI provider configured for vision analysis.");
     }
-  } catch (err) {
-    console.error("Vision AI call failed:", err);
-    throw err;
+  } catch (err2) {
+    console.error("Vision AI call failed:", err2);
+    throw err2;
   }
   console.log(`Vision AI call completed in ${Date.now() - startTime}ms`);
   return response;
@@ -49972,8 +51073,8 @@ async function finalizeAISessionLogs(env, sessionId) {
     console.error("[Cache API] Failed to finalize session logs:", error);
   }
 }
-function utf8ToBase64(str) {
-  const bytes = new TextEncoder().encode(str);
+function utf8ToBase64(str2) {
+  const bytes = new TextEncoder().encode(str2);
   let binary = "";
   const chunkSize = 8192;
   for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -50167,8 +51268,8 @@ async function saveLogsToGitHub(env, structuredPlan) {
       "ai-logs/latest/final_plan.json": planJson
     }, `ai-logs: ${timestamp.substring(0, 19).replace("T", " ")} UTC`);
     console.log("[GitHub Save] Logs committed to repo successfully");
-  } catch (err) {
-    console.error("[GitHub Save] Failed to save logs to GitHub:", err.message);
+  } catch (err2) {
+    console.error("[GitHub Save] Failed to save logs to GitHub:", err2.message);
   }
 }
 function getPromptKVKey(type) {
@@ -52222,7 +53323,7 @@ async function handleSaveNotificationConfig(request, env) {
 }
 async function handleGetCalendarIcs(request, env) {
   const WORKER_BASE = new URL(request.url).origin;
-  const DAYS = 60;
+  const DAYS2 = 60;
   const defaults = {
     morningTime: "07:00",
     morningTitle: "NutriPlan",
@@ -52310,7 +53411,7 @@ async function handleGetCalendarIcs(request, env) {
   }
   const events = [];
   const today = /* @__PURE__ */ new Date();
-  for (let i = 0; i < DAYS; i++) {
+  for (let i = 0; i < DAYS2; i++) {
     const day = new Date(today);
     day.setDate(day.getDate() + i);
     events.push(makeEvent("morning", day, mH, mM, cfg.morningTitle, cfg.morningBody));
@@ -52689,9 +53790,9 @@ async function handleSocialAuth(request, env) {
     let firebaseUser;
     try {
       firebaseUser = await verifyFirebaseIdToken(idToken, env);
-    } catch (err) {
-      console.warn("Social auth \u2013 token verification failed:", err.message);
-      return jsonResponse2({ error: "Token verification failed: " + err.message }, 401);
+    } catch (err2) {
+      console.warn("Social auth \u2013 token verification failed:", err2.message);
+      return jsonResponse2({ error: "Token verification failed: " + err2.message }, 401);
     }
     const { uid, email, name, picture, provider } = firebaseUser;
     const kvKey = `auth:${uid}`;
@@ -53296,8 +54397,8 @@ async function handleAIXChat(request, env) {
     })
   });
   if (!orRes.ok) {
-    const err = await orRes.text();
-    return jsonResponse2({ error: err }, orRes.status);
+    const err2 = await orRes.text();
+    return jsonResponse2({ error: err2 }, orRes.status);
   }
   if (stream === true) {
     return new Response(orRes.body, {
@@ -53320,10 +54421,10 @@ function computeXbodyApptVersion(upcoming, past) {
     parts.push(String(item2.id) + ":" + (item2.datetime || "") + ":" + (item2.canceled ? "1" : "0"));
   }
   parts.sort();
-  const str = parts.join("|");
+  const str2 = parts.join("|");
   let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i) | 0;
+  for (let i = 0; i < str2.length; i++) {
+    hash = (hash << 5) - hash + str2.charCodeAt(i) | 0;
   }
   return "v" + (hash >>> 0).toString(36);
 }
@@ -53347,8 +54448,8 @@ async function handleXbodyAppointmentsVersion(request, env) {
       version,
       fetchedAt: payload.fetchedAt || null
     }, 200, { cacheControl: "private, no-cache" });
-  } catch (err) {
-    console.warn("[xbody-appointments] version check failed:", err.message);
+  } catch (err2) {
+    console.warn("[xbody-appointments] version check failed:", err2.message);
     return jsonResponse2({ version: null, fetchedAt: null }, 200, { cacheControl: "private, no-cache" });
   }
 }
@@ -53391,7 +54492,7 @@ async function handleXbodyAcuityWebhook(request, env) {
     method: "PUT",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
     body: JSON.stringify({ smsOptIn: true })
-  }).catch((err) => new Response(String(err && err.message), { status: 502 }));
+  }).catch((err2) => new Response(String(err2 && err2.message), { status: 502 }));
   if (!resp.ok) {
     const body = await resp.text().catch(() => "");
     console.error("[xbody-acuity-webhook] smsOptIn update failed:", resp.status, String(body).slice(0, 200));
@@ -53476,8 +54577,8 @@ async function xbodyViberQueue(env, event, appt) {
     }
     if (keys.length) await kv.put(`xbody:outidx:${id}`, JSON.stringify(keys), { expirationTtl: 130 * 86400 });
     else await kv.delete(`xbody:outidx:${id}`);
-  } catch (err) {
-    console.warn("[xbody-viber] queue failed:", err.message);
+  } catch (err2) {
+    console.warn("[xbody-viber] queue failed:", err2.message);
   }
 }
 async function xbodyViberAuth(request, env) {
@@ -53534,8 +54635,8 @@ async function dropXbodyApptCache(env, email) {
   if (!env.page_content || !e.includes("@")) return;
   try {
     await env.page_content.delete(`xbody:appt:${e}`);
-  } catch (err) {
-    console.warn("[xbody-acuity-webhook] cache drop failed:", err.message);
+  } catch (err2) {
+    console.warn("[xbody-acuity-webhook] cache drop failed:", err2.message);
   }
 }
 async function verifyAcuitySignature(body, signature, apiKey) {
@@ -53584,8 +54685,8 @@ async function handleXbodyAvailability(request, env, ctx) {
           return jsonResponse2(body2, 200, cacheHeaders);
         }
       }
-    } catch (err) {
-      console.warn("[xbody-availability] cache read failed:", err.message);
+    } catch (err2) {
+      console.warn("[xbody-availability] cache read failed:", err2.message);
     }
   }
   const auth = btoa(`${userId}:${apiKey}`);
@@ -53614,8 +54715,8 @@ async function handleXbodyAvailability(request, env, ctx) {
         if (times.length) days[date] = times;
       }));
     }
-  } catch (err) {
-    console.error("[xbody-availability] Acuity error:", err.message);
+  } catch (err2) {
+    console.error("[xbody-availability] Acuity error:", err2.message);
     if (memo) return jsonResponse2(memo.body, 200, cacheHeaders);
     return jsonResponse2({ error: "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u0442\u0435 \u0447\u0430\u0441\u043E\u0432\u0435 \u043D\u0435 \u043C\u043E\u0433\u0430\u0442 \u0434\u0430 \u0441\u0435 \u0437\u0430\u0440\u0435\u0434\u044F\u0442." }, 502);
   }
@@ -53680,8 +54781,8 @@ async function xbodyKeepCode(env, email, phone, kept) {
   if (left < 60) return;
   try {
     await env.page_content.put(key, JSON.stringify(kept), { expirationTtl: left });
-  } catch (err) {
-    console.warn("[xbody-code] keep failed:", err.message);
+  } catch (err2) {
+    console.warn("[xbody-code] keep failed:", err2.message);
   }
 }
 async function xbodyDropCode(env, email, phone) {
@@ -53689,8 +54790,8 @@ async function xbodyDropCode(env, email, phone) {
   if (!env.page_content || !key) return;
   try {
     await env.page_content.delete(key);
-  } catch (err) {
-    console.warn("[xbody-code] drop failed:", err.message);
+  } catch (err2) {
+    console.warn("[xbody-code] drop failed:", err2.message);
   }
 }
 async function xbodyKeptCode(env, email, phone) {
@@ -53812,8 +54913,8 @@ async function xbodySavedCard(env, pm, email) {
     const now = /* @__PURE__ */ new Date();
     if (card.exp_year < now.getUTCFullYear() || card.exp_year === now.getUTCFullYear() && card.exp_month < now.getUTCMonth() + 1) return null;
     return { pm: m.id, customer: owner.id, brand: card.brand || "", last4: card.last4 || "" };
-  } catch (err) {
-    console.warn("[xbody-book] saved card check failed:", err.message);
+  } catch (err2) {
+    console.warn("[xbody-book] saved card check failed:", err2.message);
     return null;
   }
 }
@@ -53831,8 +54932,8 @@ async function xbodyFindCard(env, email, phone) {
         return { pm: m.id, customer: cust.id, brand: c.brand || "", last4: c.last4 || "" };
       }
     }
-  } catch (err) {
-    console.warn("[xbody-book] card lookup failed:", err.message);
+  } catch (err2) {
+    console.warn("[xbody-book] card lookup failed:", err2.message);
   }
   return null;
 }
@@ -53847,8 +54948,8 @@ async function xbodyPrice(env) {
     const type = (Array.isArray(list) ? list : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
     const n = type ? Number(type.price) : NaN;
     if (Number.isFinite(n)) price = n;
-  } catch (err) {
-    console.warn("[xbody-book] price lookup failed:", err.message);
+  } catch (err2) {
+    console.warn("[xbody-book] price lookup failed:", err2.message);
   }
   xbodyPriceMemo = { at: Date.now(), price };
   return price;
@@ -53897,8 +54998,8 @@ async function handleXbodyGuarantee(request, env) {
       price,
       total: price === null ? null : Math.round(price * b.times.length * 100) / 100
     });
-  } catch (err) {
-    console.error("[xbody-guarantee] failed:", err.message);
+  } catch (err2) {
+    console.error("[xbody-guarantee] failed:", err2.message);
     return jsonResponse2({ error: "\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F\u0442\u0430 \u0441 \u043A\u0430\u0440\u0442\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u0437\u0430\u043F\u043E\u0447\u043D\u0435 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
   }
 }
@@ -53946,8 +55047,8 @@ async function handleXbodyBook(request, env) {
         card: card2 && si.payment_method.id ? { pm: si.payment_method.id, brand: card2.brand || "", last4: card2.last4 || "" } : null,
         note: `\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u0430 (\u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 XBODY): Stripe ${si.customer}` + (card2 ? `, ${card2.brand} \u2022\u2022\u2022\u2022 ${card2.last4}` : "") + ". \u041D\u0438\u0449\u043E \u043D\u0435 \u0435 \u0438\u0437\u0442\u0435\u0433\u043B\u0435\u043D\u043E."
       };
-    } catch (err) {
-      console.error("[xbody-book] setup intent check failed:", err.message);
+    } catch (err2) {
+      console.error("[xbody-book] setup intent check failed:", err2.message);
       return jsonResponse2({ error: "\u041A\u0430\u0440\u0442\u0430\u0442\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
     }
   }
@@ -53963,8 +55064,8 @@ async function handleXbodyBook(request, env) {
     const list = await resp.json();
     const complete = (a) => /Гаранция с карта/.test(String(a.notes || "")) || (Array.isArray(a.forms) ? a.forms : []).some((f) => (Array.isArray(f && f.values) ? f.values : []).some((v) => v && v.fieldID && Number(v.fieldID) !== 3583430 && v.value !== void 0 && v.value !== null && v.value !== ""));
     previous = (Array.isArray(list) ? list : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
-  } catch (err) {
-    console.error("[xbody-book] lookup failed:", err.message);
+  } catch (err2) {
+    console.error("[xbody-book] lookup failed:", err2.message);
     return jsonResponse2({ error: "\u0417\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
   }
   if (!previous && !guarantee && !paidByCode) {
@@ -54033,14 +55134,14 @@ async function handleXbodyBook(request, env) {
         const badCode = !taken && b.code && /certificate|coupon|package|code/i.test(why);
         failed.push({ time, error: taken ? "taken" : badCode ? "code" : paidByCode ? "failed" : "form" });
       }
-    } catch (err) {
+    } catch (err2) {
       failed.push({ time, error: paidByCode ? "failed" : "form" });
     }
   }
   if (guarantee && guarantee.id) {
     await xbodyStripe(env, "POST", `setup_intents/${guarantee.id}`, {
       "metadata[acuity]": booked.map((x) => x.id).join(",") || "none"
-    }).catch((err) => console.warn("[xbody-book] setup intent mark failed:", err.message));
+    }).catch((err2) => console.warn("[xbody-book] setup intent mark failed:", err2.message));
   }
   if (failed.some((f) => f.error === "code") && !booked.length) await xbodyDropCode(env, email, b.phone);
   else if (codeKept && booked.length) await xbodyKeepCode(env, email, b.phone, codeKept);
@@ -54179,8 +55280,8 @@ async function handleXbodyAppointments(request, env) {
         }
         return jsonResponse2(payload2, 200, { cacheControl: "private, no-store" });
       }
-    } catch (err) {
-      console.warn("[xbody-appointments] KV cache read failed:", err.message);
+    } catch (err2) {
+      console.warn("[xbody-appointments] KV cache read failed:", err2.message);
     }
   }
   const acuityUrl = new URL("https://acuityscheduling.com/api/v1/appointments");
@@ -54195,8 +55296,8 @@ async function handleXbodyAppointments(request, env) {
     resp = await fetch(acuityUrl.toString(), {
       headers: { Authorization: `Basic ${auth}` }
     });
-  } catch (err) {
-    console.error("[xbody-appointments] fetch error:", err.message);
+  } catch (err2) {
+    console.error("[xbody-appointments] fetch error:", err2.message);
     return jsonResponse2({ error: "\u041D\u0435\u0443\u0441\u043F\u0435\u0448\u043D\u0430 \u0432\u0440\u044A\u0437\u043A\u0430 \u0441 Acuity." }, 502);
   }
   if (!resp.ok) {
@@ -54232,8 +55333,8 @@ async function handleXbodyAppointments(request, env) {
       await env.page_content.put(cacheKey, JSON.stringify(payload), {
         expirationTtl: XBODY_APPT_CACHE_TTL_SEC
       });
-    } catch (err) {
-      console.warn("[xbody-appointments] KV cache write failed:", err.message);
+    } catch (err2) {
+      console.warn("[xbody-appointments] KV cache write failed:", err2.message);
     }
   }
   return jsonResponse2(payload, 200, { cacheControl: "private, no-store" });
@@ -54274,6 +55375,8 @@ var worker_entry_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     console.log(`${request.method} ${url.pathname}`);
+    const studioResp = await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name) });
+    if (studioResp) return studioResp;
     if (request.method === "OPTIONS") {
       console.log("CORS preflight request");
       return new Response(null, {
@@ -54633,8 +55736,8 @@ var worker_entry_default = {
         }
         message.ack();
         console.log(`Queue consumer: acked job ${jobId}`);
-      } catch (err) {
-        console.error(`Queue consumer: job ${jobId} unexpected error, scheduling retry:`, err);
+      } catch (err2) {
+        console.error(`Queue consumer: job ${jobId} unexpected error, scheduling retry:`, err2);
         message.retry();
       }
     }

@@ -16,6 +16,7 @@ import {
 } from './json-patch.js';
 import { buildClientCard, buildChatContext } from './client-card.js';
 import fitnessWorker from './fitness/worker.js';
+import { handleStudioApi } from './studio-platform/index.js';
 import { MEAL_CARRY_MAX_DISTORTION } from './meal-day-sync.js';
 import {
   parseMealDescription,
@@ -1284,6 +1285,10 @@ const RATE_LIMIT = {
   ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 }, // debounced client sync burst
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
   WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 },
+  STUDIO_BOOK: { maxRequests: 10, windowSec: 600 },    // studio platform: card guarantee + booking
+  STUDIO_MANAGE: { maxRequests: 30, windowSec: 600 },  // studio platform: my hours, cancel, move, a code
+  STUDIO_VERIFY: { maxRequests: 5, windowSec: 3600 },  // studio platform: a Viber login code
+  STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },   // studio platform: the admin's 5-digit code
 };
 
 /**
@@ -1297,7 +1302,7 @@ const RATE_LIMIT = {
  * или чувствителни операции: генериране на план, анализ на снимка, вход,
  * забравена парола.
  */
-const KV_RATE_LIMITED = new Set(['GENERATE_PLAN', 'FOOD_ANALYSIS', 'SOCIAL_AUTH', 'FORGOT_PASSWORD']);
+const KV_RATE_LIMITED = new Set(['GENERATE_PLAN', 'FOOD_ANALYSIS', 'SOCIAL_AUTH', 'FORGOT_PASSWORD', 'STUDIO_VERIFY', 'STUDIO_LOGIN']);
 const memoryRateCounters = new Map();
 
 function rateLimitedResponse(config) {
@@ -15719,6 +15724,10 @@ export default {
     const url = new URL(request.url);
     
     console.log(`${request.method} ${url.pathname}`);
+
+    // the studio platform (many studios: /api/s/…) answers its own preflight and routes
+    const studioResp = await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name) });
+    if (studioResp) return studioResp;
 
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
