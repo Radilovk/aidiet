@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d32f2f">
+<title>Записване</title>
+<style>
+/* the studio's page: its brand (name, logo, color, texts), its free hours, booking, my hours; the admin behind
+   7 taps on the logo. One file, served on the studio's own subdomain (the worker proxies it). */
+:root {
+  --brand: #d32f2f; --bg: #f6f6f8; --card: #fff; --text: #16141a; --muted: #6f6a75; --line: #e7e5ea;
+  --ok: #15803d; --bad: #c62828; --warn: #b45309; --soft: #f1eff3; --r: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #111013; --card: #1c1a1f; --text: #f3f1f4; --muted: #a8a2ab; --line: #2e2a32; --soft: #26232a; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--brand); }
+.wrap { max-width: 560px; margin: 0 auto; padding: 0 16px; }
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+/* header + studio card */
+.top { display: flex; align-items: center; gap: 12px; padding: 18px 0 12px; }
+.logo { width: 52px; height: 52px; border-radius: 14px; flex: none; background: var(--brand); color: #fff; display: grid; place-items: center;
+  font-weight: 800; font-size: 22px; overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent; }
+.logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.top h1 { margin: 0; font-size: 20px; line-height: 1.2; }
+.top p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; margin: 12px 0; }
+.hero { white-space: pre-line; margin: 0 0 8px; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--muted); }
+.facts a { color: inherit; text-decoration: none; }
+.facts b { color: var(--text); }
+.note { border-left: 4px solid var(--brand); white-space: pre-line; }
+.alert { padding: 10px 14px; border-radius: 12px; margin: 10px 0; font-size: 14px; background: #fdecea; color: #8a1c1c; }
+.alert.ok { background: #e7f6ec; color: #14532d; }
+@media (prefers-color-scheme: dark) { .alert { background: #3a1f20; color: #ffb4ab; } .alert.ok { background: #16301f; color: #9be2b0; } }
+
+/* my hours */
+.mine { list-style: none; margin: 0; padding: 0; }
+.mine li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.mine li:first-child { border-top: 0; }
+.mine .when { flex: 1; }
+.mine .when small { display: block; color: var(--muted); font-size: 12px; }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 99px; background: var(--soft); font-size: 12px; color: var(--muted); }
+.chip.ok { color: var(--ok); } .chip.bad { color: var(--bad); } .chip.warn { color: var(--warn); }
+
+/* calendar */
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-head h2 { margin: 0; font-size: 17px; text-transform: capitalize; }
+.icon-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 18px; }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.grid .wd { font-size: 12px; color: var(--muted); padding: 4px 0; }
+.day { aspect-ratio: 1; border: 0; border-radius: 12px; background: transparent; cursor: pointer; position: relative; font-weight: 600; }
+.day:disabled { color: var(--muted); opacity: .4; cursor: default; font-weight: 400; }
+.day.has::after { content: ""; position: absolute; left: 50%; bottom: 6px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--brand); }
+.day.mine-day { box-shadow: inset 0 0 0 2px var(--brand); }
+.day.sel { background: var(--brand); color: #fff; }
+.day.sel::after { background: #fff; }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; margin-top: 12px; }
+.slot { padding: 12px 0; border-radius: 12px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 700; }
+.slot.picked { background: var(--brand); border-color: var(--brand); color: #fff; }
+.empty { color: var(--muted); padding: 14px 0; text-align: center; font-size: 14px; }
+
+/* buttons, fields */
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px 16px; border-radius: 14px; border: 0;
+  background: var(--brand); color: #fff; font-weight: 700; cursor: pointer; text-decoration: none; margin-top: 10px; }
+.btn.sec { background: var(--soft); color: var(--text); }
+.btn.danger { background: var(--bad); }
+.btn.mini { width: auto; display: inline-flex; padding: 8px 12px; margin: 0; font-size: 14px; border-radius: 10px; }
+.btn:disabled { opacity: .55; cursor: default; }
+.link { background: none; border: 0; color: var(--brand); padding: 0; cursor: pointer; text-decoration: underline; font-size: 14px; }
+label.f { display: block; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+label.f input, label.f select, label.f textarea { display: block; width: 100%; margin-top: 4px; padding: 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 16px; }
+label.f textarea { min-height: 90px; resize: vertical; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > * { flex: 1; }
+.tick { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 0; font-size: 14px; }
+.tick input { width: 22px; height: 22px; flex: none; accent-color: var(--brand); margin: 0; }
+
+/* the bar at the bottom + sheets */
+.bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--card);
+  border-top: 1px solid var(--line); z-index: 20; }
+.bar .wrap { display: flex; align-items: center; gap: 12px; padding: 0; }
+.bar .txt { flex: 1; font-size: 14px; }
+.bar .btn { width: auto; margin: 0; padding: 12px 22px; }
+.back { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; background: var(--card); border-radius: 22px 22px 0 0;
+  padding: 10px 18px calc(18px + env(safe-area-inset-bottom)); }
+.sheet::before { content: ""; display: block; width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 0 auto 10px; }
+.sheet h3 { margin: 4px 0 8px; font-size: 19px; }
+.list { list-style: none; padding: 0; margin: 6px 0; }
+.list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.pay { min-height: 60px; margin-top: 12px; }
+.err { color: var(--bad); font-size: 14px; min-height: 0; margin: 8px 0 0; }
+.policy { font-size: 13px; color: var(--muted); background: var(--soft); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+
+/* admin */
+.adm { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+.adm-top { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); }
+.adm-top .wrap { display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
+.adm-top h2 { margin: 0; font-size: 17px; flex: 1; }
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; display: flex; background: var(--card); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom); }
+.tabs button { flex: 1; border: 0; background: none; padding: 10px 0 12px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.tabs button b { display: block; font-size: 20px; line-height: 1.2; }
+.tabs button.on { color: var(--brand); font-weight: 700; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; }
+.stat b { display: block; font-size: 22px; }
+.stat span { font-size: 12px; color: var(--muted); }
+.days { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; }
+.days button { flex: none; min-width: 56px; padding: 8px 6px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 12px; }
+.days button b { display: block; font-size: 16px; }
+.days button.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+.days button i { display: block; font-style: normal; font-size: 11px; opacity: .8; }
+.bk { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); align-items: flex-start; }
+.bk:first-child { border-top: 0; }
+.bk .t { font-weight: 800; min-width: 52px; }
+.bk .who { flex: 1; min-width: 0; }
+.bk .who a { text-decoration: none; }
+.bk .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.bk.off { opacity: .55; }
+details.sec { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); margin: 10px 0; padding: 0 16px; }
+details.sec summary { padding: 14px 0; font-weight: 700; cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+details.sec summary::after { content: "▾"; color: var(--muted); }
+details.sec[open] summary::after { content: "▴"; }
+details.sec > div { padding-bottom: 14px; }
+.dayrow { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 8px; align-items: center; margin: 8px 0; }
+.dayrow input[type=time] { padding: 9px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); width: 100%; }
+.dayrow label { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+.pin { display: flex; gap: 8px; justify-content: center; margin: 14px 0; }
+.pin input { width: 48px; height: 58px; text-align: center; font-size: 26px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); }
+.copy { display: flex; gap: 8px; align-items: center; background: var(--soft); border-radius: 10px; padding: 8px 10px; font-size: 13px; word-break: break-all; }
+.toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #222; color: #fff;
+  padding: 10px 16px; border-radius: 12px; z-index: 60; font-size: 14px; max-width: 90vw; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo" id="logo" aria-label="Лого"></div>
+    <div><h1 id="s-name">Зареждане…</h1><p id="s-tag"></p></div>
+  </header>
+
+  <div id="offline" class="alert hidden">Няма връзка. Показаните часове може да не са актуални.</div>
+
+  <section class="card hidden" id="studio-card">
+    <p class="hero" id="s-hero"></p>
+    <div class="facts" id="s-facts"></div>
+  </section>
+  <section class="card note hidden" id="s-msg"></section>
+
+  <section class="card hidden" id="mine-card">
+    <div class="row" style="justify-content:space-between"><b>Моите часове</b><span class="small muted" id="mine-extra"></span></div>
+    <ul class="mine" id="mine"></ul>
+  </section>
+
+  <div id="move-banner" class="alert hidden"></div>
+
+  <section class="card" id="cal-card">
+    <div class="cal-head">
+      <button class="icon-btn" id="prev" aria-label="Предишен месец">‹</button>
+      <h2 id="month"></h2>
+      <button class="icon-btn" id="next" aria-label="Следващ месец">›</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div id="day-title" class="small muted" style="margin-top:12px"></div>
+    <div class="slots" id="slots"></div>
+  </section>
+
+  <p class="small muted" style="text-align:center">
+    <button class="link" id="old-client">Вече съм клиент — влез с телефона си</button>
+  </p>
+</div>
+
+<div class="bar hidden" id="bar"><div class="wrap"><div class="txt" id="bar-txt"></div><button class="btn" id="bar-go">Запази</button></div></div>
+
+<script>
+(function () {
+  'use strict';
+  /* ── where: the studio (its subdomain, or ?s= for a test) and the API ── */
+  const ROOT = 'biocode-bg.com';
+  const host = location.hostname.toLowerCase();
+  const SUB = host.endsWith('.' + ROOT) ? host.slice(0, -(ROOT.length + 1)) : '';
+  const STUDIO = (new URLSearchParams(location.search).get('s') || SUB || '').toLowerCase();
+  const API = SUB ? '' : 'https://aidiet.radilov-k.workers.dev';
+  const MAX_PICK = 8;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  /* ── the phone's memory (per studio): settings copy, the client, the chosen hours ── */
+  const K = (k) => `st:${STUDIO}:${k}`;
+  const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(K(k)) || 'null'); return v == null ? d : v; } catch (_) { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(K(k), JSON.stringify(v)); } catch (_) {} };
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (_) {}
+
+  let cfg = load('cfg', null);           // the studio's public settings
+  let me = load('me', {});               // { name, phone, email, token, card, code }
+  let picked = load('picked', []);       // ['YYYY-MM-DD HH:MM']
+  let mine = [];                         // my hours (from the server)
+  const months = {};                     // 'YYYY-MM' → { days, at }
+  let view = null;                       // { y, m }
+  let selDay = '';
+  let moving = null;                     // { id, time } — a booking being moved
+  let stripeJs = null;
+
+  async function api(method, path, body, extra) {
+    const url = `${API}/api/s/${path}${path.includes('?') ? '&' : '?'}studio=${encodeURIComponent(STUDIO)}`;
+    const resp = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json', ...(extra || {}) },
+      body: method === 'GET' ? undefined : JSON.stringify({ studio: STUDIO, ...(body || {}) }),
+    });
+    const d = await resp.json().catch(() => ({}));
+    return { status: resp.status, d };
+  }
+  function toast(msg, ms) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), ms || 2800);
+  }
+
+  /* ── time on the studio's clock (the same as the worker's) ── */
+  const fmtCache = {};
+  function tzOffset(tz, ms) {
+    const f = fmtCache[tz] || (fmtCache[tz] = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric',
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    const p = {};
+    f.formatToParts(new Date(ms)).forEach((x) => { p[x.type] = x.value; });
+    return Math.round((Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - Math.floor(ms / 1000) * 1000) / 60000);
+  }
+  function zonedMs(ymd, hm, tz) {
+    const [y, m, d] = ymd.split('-').map(Number);
+    const [h, mi] = hm.split(':').map(Number);
+    const wall = Date.UTC(y, m - 1, d, h, mi);
+    let ms = wall - tzOffset(tz, wall) * 60000;
+    return wall - tzOffset(tz, ms) * 60000;
+  }
+  function zonedParts(ms, tz) {
+    const t = new Date(ms + tzOffset(tz, ms) * 60000).toISOString();
+    return { ymd: t.slice(0, 10), hm: t.slice(11, 16) };
+  }
+  const tz = () => (cfg && cfg.timezone) || 'Europe/Sofia';
+  const todayYmd = () => zonedParts(Date.now(), tz()).ymd;
+  const WD = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  const MONTHS = ['януари', 'февруари', 'март', 'април', 'май', 'юни', 'юли', 'август', 'септември', 'октомври', 'ноември', 'декември'];
+  function dayLabel(ymd) {
+    const [y, m, d] = ymd.split('-').map(Number);
+    const wd = ['неделя', 'понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота'][new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+    return `${wd}, ${d} ${MONTHS[m - 1]}`;
+  }
+  const timeLabel = (t) => `${dayLabel(t.slice(0, 10))} · ${t.slice(11)}`;
+  function money(n) {
+    if (!n) return '';
+    try { return new Intl.NumberFormat('bg-BG', { style: 'currency', currency: (cfg && cfg.currency) || 'EUR' }).format(n); } catch (_) { return `${n} ${cfg.currency}`; }
+  }
+  function brandLogo(el) {
+    el.innerHTML = cfg && cfg.brand.logo ? `<img alt="" src="${API}/api/s/logo?studio=${encodeURIComponent(STUDIO)}&v=${cfg.brand.logo}">`
+      : esc(((cfg && cfg.brand.name) || '?').trim().charAt(0).toUpperCase());
+  }
+
+  /* ── the studio ── */
+  function renderStudio() {
+    if (!cfg) return;
+    const b = cfg.brand;
+    document.documentElement.style.setProperty('--brand', b.color);
+    document.querySelector('meta[name=theme-color]').setAttribute('content', b.color);
+    document.title = `${b.name} — записване`;
+    $('s-name').textContent = b.name;
+    $('s-tag').textContent = b.tagline || '';
+    brandLogo($('logo'));
+    $('s-hero').textContent = cfg.texts.hero || '';
+    $('s-hero').classList.toggle('hidden', !cfg.texts.hero);
+    const facts = [];
+    if (cfg.price) facts.push(`<span><b>${esc(money(cfg.price))}</b> / ${cfg.slot.minutes} мин</span>`);
+    else facts.push(`<span><b>${cfg.slot.minutes} мин</b> час</span>`);
+    if (cfg.address) facts.push(cfg.mapUrl ? `<a href="${esc(cfg.mapUrl)}" target="_blank" rel="noopener">📍 ${esc(cfg.address)}</a>` : `<span>📍 ${esc(cfg.address)}</span>`);
+    if (cfg.phone) facts.push(`<a href="tel:${esc(cfg.phone.replace(/[^\d+]/g, ''))}">📞 ${esc(cfg.phone)}</a>`);
+    $('s-facts').innerHTML = facts.join('');
+    $('studio-card').classList.remove('hidden');
+    $('s-msg').textContent = cfg.texts.message || '';
+    $('s-msg').classList.toggle('hidden', !cfg.texts.message);
+  }
+
+  async function loadConfig() {
+    if (!STUDIO) { $('s-name').textContent = 'Няма избрано студио'; return false; }
+    try {
+      const r = await api('GET', 'config');
+      if (r.status === 404) { $('s-name').textContent = 'Студиото не е намерено'; return false; }
+      if (r.status === 200) { cfg = r.d; save('cfg', cfg); }
+    } catch (_) {
+      $('offline').classList.remove('hidden');
+    }
+    renderStudio();
+    return Boolean(cfg);
+  }
+
+  /* ── the calendar ── */
+  const ymOf = (y, m) => `${y}-${String(m + 1).padStart(2, '0')}`;
+  function lastBookable() { return Date.now() + ((cfg && cfg.rules.daysAhead) || 30) * 864e5; }
+  async function ensureMonth(ym, fresh) {
+    const m = months[ym];
+    if (!fresh && m && Date.now() - m.at < 120e3) return m;
+    try {
+      const r = await api('GET', `availability?month=${ym}`);
+      if (r.status === 200) {
+        months[ym] = { days: r.d.days || {}, at: Date.now(), calendarOk: r.d.calendarOk !== false };
+        $('offline').classList.add('hidden');
+      }
+    } catch (_) { $('offline').classList.remove('hidden'); }
+    return months[ym] || { days: {}, at: 0 };
+  }
+  function mineDays() {
+    const set = {};
+    mine.filter((h) => h.status === 'booked').forEach((h) => { set[h.time.slice(0, 10)] = true; });
+    return set;
+  }
+  function renderCal() {
+    if (!view) return;
+    const ym = ymOf(view.y, view.m);
+    $('month').textContent = `${MONTHS[view.m]} ${view.y}`;
+    const now = new Date();
+    $('prev').disabled = view.y * 12 + view.m <= now.getFullYear() * 12 + now.getMonth();
+    const last = new Date(lastBookable());
+    $('next').disabled = view.y * 12 + view.m >= last.getFullYear() * 12 + last.getMonth();
+    const data = (months[ym] && months[ym].days) || {};
+    const md = mineDays();
+    const first = new Date(Date.UTC(view.y, view.m, 1)).getUTCDay();
+    const days = new Date(Date.UTC(view.y, view.m + 1, 0)).getUTCDate();
+    let html = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'].map((d) => `<div class="wd">${d}</div>`).join('');
+    for (let i = 0; i < (first + 6) % 7; i++) html += '<div></div>';
+    for (let d = 1; d <= days; d++) {
+      const ymd = `${ym}-${String(d).padStart(2, '0')}`;
+      const has = (data[ymd] || []).length > 0;
+      html += `<button class="day${has ? ' has' : ''}${md[ymd] ? ' mine-day' : ''}${selDay === ymd ? ' sel' : ''}" data-day="${ymd}"${has || md[ymd] ? '' : ' disabled'}>${d}</button>`;
+    }
+    $('grid').innerHTML = html;
+    renderSlots();
+  }
+  function renderSlots() {
+    const ym = selDay.slice(0, 7);
+    const list = selDay && months[ym] ? (months[ym].days[selDay] || []) : [];
+    if (!selDay) {
+      const m = months[ymOf(view.y, view.m)];
+      $('day-title').textContent = m && m.calendarOk === false ? 'Календарът на студиото не отговаря в момента — опитайте след малко.'
+        : m && !Object.keys(m.days).length ? 'Няма свободни часове този месец.' : 'Изберете ден с точка.';
+      $('slots').innerHTML = '';
+      return;
+    }
+    $('day-title').textContent = dayLabel(selDay);
+    const own = mine.filter((h) => h.status === 'booked' && h.time.startsWith(selDay));
+    $('slots').innerHTML = own.map((h) => `<button class="slot picked" data-own="${esc(h.id)}">${esc(h.time.slice(11))}<br><small>ваш час</small></button>`).join('') +
+      (list.length ? list.map((t) => {
+        const key = `${selDay} ${t}`;
+        return `<button class="slot${picked.includes(key) ? ' picked' : ''}" data-slot="${esc(key)}">${esc(t)}</button>`;
+      }).join('') : (own.length ? '' : '<div class="empty">Няма свободни часове в този ден.</div>'));
+  }
+  async function showMonth(y, m) {
+    view = { y, m };
+    renderCal();
+    await ensureMonth(ymOf(y, m));
+    if (!selDay || !selDay.startsWith(ymOf(y, m))) {   // the first day with free hours
+      const d = (months[ymOf(y, m)] || { days: {} }).days;
+      selDay = Object.keys(d).sort()[0] || '';
+    }
+    renderCal();
+  }
+  $('prev').onclick = () => { const d = new Date(view.y, view.m - 1, 1); selDay = ''; showMonth(d.getFullYear(), d.getMonth()); };
+  $('next').onclick = () => { const d = new Date(view.y, view.m + 1, 1); selDay = ''; showMonth(d.getFullYear(), d.getMonth()); };
+  $('grid').onclick = (e) => { const b = e.target.closest('[data-day]'); if (!b) return; selDay = b.dataset.day; renderCal(); };
+  $('slots').onclick = (e) => {
+    const own = e.target.closest('[data-own]');
+    if (own) { openOwn(mine.find((h) => h.id === own.dataset.own)); return; }
+    const s = e.target.closest('[data-slot]');
+    if (!s) return;
+    const t = s.dataset.slot;
+    if (moving) { confirmMove(t); return; }
+    const i = picked.indexOf(t);
+    if (i >= 0) picked.splice(i, 1);
+    else if (picked.length >= MAX_PICK) { toast(`Най-много ${MAX_PICK} часа наведнъж.`); return; }
+    else picked.push(t);
+    picked.sort();
+    save('picked', picked);
+    renderSlots();
+    renderBar();
+  };
+
+  /* the chosen hours that are still free (others leave the list) */
+  function tidyPicked() {
+    const now = Date.now();
+    picked = picked.filter((t) => {
+      if (zonedMs(t.slice(0, 10), t.slice(11), tz()) <= now) return false;
+      const m = months[t.slice(0, 7)];
+      return !m || (m.days[t.slice(0, 10)] || []).includes(t.slice(11));
+    });
+    save('picked', picked);
+  }
+  function renderBar() {
+    const show = picked.length > 0 && !moving;
+    $('bar').classList.toggle('hidden', !show);
+    if (!show) return;
+    const total = cfg && cfg.price ? ` · ${money(cfg.price * picked.length)}` : '';
+    $('bar-txt').innerHTML = `<b>${picked.length === 1 ? '1 избран час' : picked.length + ' избрани часа'}</b>${esc(total)}<br><span class="muted small">${esc(picked.map((t) => t.slice(8, 10) + '.' + t.slice(5, 7) + ' ' + t.slice(11)).join(' · '))}</span>`;
+  }
+  $('bar-go').onclick = () => openBook();
+
+  /* ── sheets ── */
+  let back = null;
+  function sheet(html, onClick) {
+    closeSheet();
+    back = document.createElement('div');
+    back.className = 'back';
+    back.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+    back.addEventListener('click', (e) => {
+      if (e.target === back || e.target.closest('[data-close]')) { closeSheet(); return; }
+      if (onClick) onClick(e);
+    });
+    document.body.appendChild(back);
+    return back.firstChild;
+  }
+  function closeSheet() { if (back) { back.remove(); back = null; } }
+  function busy(btn, text) { if (btn) { btn.disabled = true; btn.dataset.label = btn.innerHTML; btn.textContent = text; } }
+  function unbusy(btn) { if (btn && btn.dataset.label) { btn.disabled = false; btn.innerHTML = btn.dataset.label; } }
+
+  const codeOk = (c) => c && c.code && !(c.expires && c.expires < Date.now()) && c.usesLeft !== 0;
+  function needCard() {
+    if (!cfg || !cfg.card) return false;
+    return cfg.guarantee === 'card' || (cfg.guarantee === 'card_or_code' && !codeOk(me.code));
+  }
+  function endDate(ms) { const d = new Date(ms); return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`; }
+  function codeLine() {
+    if (codeOk(me.code)) {
+      const c = me.code;
+      return `<p class="small">🎟 Код <b>${esc(c.code)}</b>${c.label ? ` (${esc(c.label)})` : ''}${c.expires ? ` · до ${endDate(c.expires)}` : ''}${c.usesLeft != null ? ` · остават ${c.usesLeft}` : ''} · <button class="link" data-go="code-off">махни</button></p>`;
+    }
+    return `<p class="small" id="code-row"><button class="link" data-go="code-open">Имам код (промокод, пакет, ваучер)</button></p>
+      <div class="row hidden" id="code-box"><label class="f" style="margin:0"><input id="code-in" autocomplete="off" autocapitalize="characters" maxlength="40" placeholder="Код"></label>
+      <button class="btn mini" data-go="code-apply" style="flex:none">Приложи</button></div><p class="err" id="code-err"></p>`;
+  }
+  function policy() {
+    const free = cfg.rules.freeCancelHours;
+    const card = needCard() || (me.card && cfg.card);
+    return `<div class="policy">${card ? '<b>Сега не се тегли нищо</b> — картата е гаранция. ' : ''}${cfg.price ? `Плащате ${esc(money(cfg.price))} на час в студиото. ` : ''}` +
+      (free ? `Промяна или отказ — безплатно до ${free} ч преди часа.${card ? ' След това или при неявяване студиото може да таксува часа от картата.' : ''}` : '') + '</div>';
+  }
+
+  function openBook(note) {
+    tidyPicked();
+    renderBar();
+    if (!picked.length) { renderSlots(); return; }
+    const first = !me.token;
+    const el = sheet(`<h3>${picked.length === 1 ? 'Вашият час' : 'Вашите часове'}</h3>
+      <ul class="list">${picked.map((t) => `<li><span>${esc(timeLabel(t))}</span><button class="link" data-rm="${esc(t)}">махни</button></li>`).join('')}</ul>
+      <label class="f">Име и фамилия<input id="b-name" autocomplete="name" value="${esc(me.name || '')}"></label>
+      <label class="f">Телефон (Viber — тук идват потвържденията)<input id="b-phone" type="tel" autocomplete="tel" value="${esc(me.phone || '')}" placeholder="0888 123 456"></label>
+      ${first ? `<label class="f">Имейл (по желание)<input id="b-email" type="email" autocomplete="email" value="${esc(me.email || '')}"></label>` : ''}
+      ${codeLine()}
+      ${me.card && cfg.card && needCard() ? `<p class="small">💳 ${esc(cardName(me.card))} · <button class="link" data-go="new-card">друга карта</button></p>` : ''}
+      ${first ? `<label class="tick"><input type="checkbox" id="b-terms"><span>Приемам <button class="link" data-go="terms">условията на студиото</button>${cfg.texts.terms ? '' : ''}.</span></label>` : ''}
+      ${policy()}
+      <p class="err" id="b-err">${esc(note || '')}</p>
+      <button class="btn" data-go="book">${needCard() && !(me.card && me.token) ? 'Напред — карта като гаранция' : `Запази ${picked.length === 1 ? 'часа' : picked.length + ' часа'}`}</button>
+      <button class="btn sec" data-close>Добави още часове</button>`, bookClick);
+    return el;
+  }
+  const cardName = (c) => `${({ visa: 'Visa', mastercard: 'Mastercard', amex: 'Amex', maestro: 'Maestro' }[c.brand] || c.brand || 'Карта')} •••• ${c.last4}`;
+
+  function readWho() {
+    const name = ($('b-name') || {}).value || me.name || '';
+    const phone = ($('b-phone') || {}).value || me.phone || '';
+    const email = ($('b-email') || {}).value || me.email || '';
+    return { name: name.trim(), phone: phone.trim(), email: email.trim() };
+  }
+  function keepWho() {
+    const w = readWho();
+    if (me.phone && w.phone.replace(/\D/g, '').slice(-9) !== me.phone.replace(/\D/g, '').slice(-9)) {   // another person on this phone
+      me = { name: w.name, phone: w.phone, email: w.email };
+    } else Object.assign(me, w);
+    save('me', me);
+  }
+
+  async function bookClick(e) {
+    const go = e.target.closest('[data-go]');
+    const rm = e.target.closest('[data-rm]');
+    if (rm) { picked = picked.filter((t) => t !== rm.dataset.rm); save('picked', picked); renderSlots(); renderBar(); if (picked.length) openBook(); else closeSheet(); return; }
+    if (!go) return;
+    const what = go.dataset.go;
+    if (what === 'terms') { e.preventDefault(); showTerms(); return; }
+    if (what === 'code-open') { $('code-row').classList.add('hidden'); $('code-box').classList.remove('hidden'); $('code-in').focus(); return; }
+    if (what === 'code-off') { keepWho(); me.code = null; save('me', me); openBook(); return; }
+    if (what === 'code-apply') {
+      keepWho();
+      const code = $('code-in').value.trim();
+      if (!me.phone) { $('code-err').textContent = 'Първо въведете телефон.'; return; }
+      busy(go, '…');
+      const r = await api('POST', 'code', { phone: me.phone, code }).catch(() => ({ status: 0 }));
+      if (r.status === 200) { me.code = { code: r.d.code, label: r.d.label, expires: r.d.expires, usesLeft: r.d.usesLeft }; save('me', me); openBook(); return; }
+      unbusy(go);
+      $('code-err').textContent = r.status === 0 ? 'Няма връзка.' : r.d.error === 'code_used' ? 'Кодът е изчерпан.' : 'Кодът не важи.';
+      return;
+    }
+    if (what === 'new-card') { keepWho(); cardStep(true); return; }
+    if (what === 'book') {
+      keepWho();
+      const err = $('b-err');
+      if (me.name.length < 2) { err.textContent = 'Въведете име.'; return; }
+      if (me.phone.replace(/\D/g, '').length < 9) { err.textContent = 'Въведете телефон.'; return; }
+      if ($('b-terms') && !$('b-terms').checked) { err.textContent = 'Моля, приемете условията.'; return; }
+      me.terms = true;
+      if (needCard() && !(me.card && me.token)) { cardStep(false); return; }
+      busy(go, 'Записване…');
+      await sendBook(needCard() ? { useSaved: true } : {});
+    }
+  }
+
+  /* the card: Stripe's form (saved cards of the phone, Google Pay, Apple Pay), loaded only now */
+  function loadStripe() {
+    if (window.Stripe) return Promise.resolve(window.Stripe);
+    return stripeJs || (stripeJs = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://js.stripe.com/v3/';
+      s.onload = () => (window.Stripe ? res(window.Stripe) : rej());
+      s.onerror = () => { stripeJs = null; rej(); };
+      document.head.appendChild(s);
+    }));
+  }
+  async function cardStep(fresh) {
+    const el = sheet(`<h3>Карта като гаранция</h3>${policy()}<div class="pay" id="pay"><p class="muted small">Зареждане…</p></div>
+      <p class="err" id="c-err"></p><button class="btn" id="c-go" disabled>🔒 Запази ${picked.length === 1 ? 'часа' : picked.length + ' часа'}</button>
+      <button class="btn sec" id="c-back">Назад</button>`);
+    el.querySelector('#c-back').onclick = () => openBook();
+    const r = await api('POST', 'guarantee', { ...me, times: picked, token: me.token, newCard: fresh || undefined }).catch(() => ({ status: 0 }));
+    if (r.status === 200 && r.d.saved) { me.card = r.d.saved; save('me', me); await sendBook({ useSaved: true }); return; }
+    if (r.status !== 200 || !r.d.clientSecret) { openBook(r.status === 0 ? 'Няма връзка.' : r.status === 429 ? 'Твърде много опити — след малко.' : 'Формата за карта не се отвори. Опитайте отново.'); return; }
+    try {
+      const S = await loadStripe();
+      const stripe = S(r.d.publishableKey, { locale: 'bg' });
+      const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+      const elements = stripe.elements({ clientSecret: r.d.clientSecret, appearance: { theme: dark ? 'night' : 'stripe', variables: { colorPrimary: cfg.brand.color, borderRadius: '12px' } } });
+      const pay = elements.create('payment', { layout: 'tabs' });
+      el.querySelector('#pay').innerHTML = '';
+      pay.mount('#pay');
+      pay.on('ready', () => { el.querySelector('#c-go').disabled = false; });
+      el.querySelector('#c-go').onclick = async (ev) => {
+        const btn = ev.currentTarget;
+        busy(btn, 'Проверка на картата…');
+        const res = await stripe.confirmSetup({ elements, redirect: 'if_required',
+          confirmParams: { return_url: location.href.split('#')[0], payment_method_data: { billing_details: { name: me.name, phone: me.phone, email: me.email || undefined } } } });
+        if (res.error || !res.setupIntent || res.setupIntent.status !== 'succeeded') {
+          unbusy(btn);
+          el.querySelector('#c-err').textContent = (res.error && res.error.message) || 'Картата не беше потвърдена.';
+          return;
+        }
+        btn.textContent = 'Записване…';
+        await sendBook({ setupIntent: res.setupIntent.id });
+      };
+    } catch (_) {
+      el.querySelector('#pay').innerHTML = '<p class="err">Формата за карта не се зареди. Проверете връзката.</p>';
+    }
+  }
+
+  async function sendBook(extra) {
+    const times = picked.slice();
+    const r = await api('POST', 'book', { ...me, times, token: me.token, terms: me.terms || undefined,
+      code: codeOk(me.code) ? me.code.code : undefined, ...extra }).catch(() => ({ status: 0, d: {} }));
+    const d = r.d || {};
+    if (d.token) me.token = d.token;
+    if (d.card) me.card = d.card;
+    if (d.code) me.code = d.code;
+    save('me', me);
+    if (r.status === 0) { openBook('Няма връзка. Опитайте отново.'); return; }
+    const errs = { terms: 'Моля, приемете условията.', card_required: 'Нужна е карта като гаранция.', code: 'Кодът не важи — махнах го.',
+      code_used: 'Кодът е изчерпан — махнах го.', calendar: 'Календарът на студиото не отговаря. Опитайте след малко.', stripe: 'Проблем с картата. Опитайте отново.',
+      who: 'Проверете името и телефона.', max_per_day: `Най-много ${cfg.rules.maxPerDay} час(а) на ден.`, max_upcoming: `Най-много ${cfg.rules.maxUpcoming} предстоящи часа.` };
+    if (d.error) {
+      if (d.error === 'code' || d.error === 'code_used') { me.code = null; save('me', me); }
+      if (d.error === 'card_required') { if (me.card) { me.card = null; save('me', me); } cardStep(true); return; }
+      if (d.error === 'terms') { me.token = ''; save('me', me); }
+      openBook(errs[d.error] || (r.status === 429 ? 'Твърде много опити — след малко.' : 'Записването не успя. Опитайте отново.'));
+      return;
+    }
+    const booked = (d.booked || []).map((x) => x.time);
+    const failed = d.failed || [];
+    picked = picked.filter((t) => !booked.includes(t) && !failed.some((f) => f.time === t));
+    save('picked', picked);
+    Object.keys(months).forEach((k) => { months[k].at = 0; });
+    await Promise.all([refreshMine(), ensureMonth(ymOf(view.y, view.m), true)]);
+    renderCal();
+    renderBar();
+    showDone(booked, failed);
+  }
+
+  /* ── done: the hours + add to the phone's calendar ── */
+  function icsFor(times) {
+    const st = cfg;
+    const z = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//studio//bg', 'CALSCALE:GREGORIAN'];
+    times.forEach((t, i) => {
+      const s = zonedMs(t.slice(0, 10), t.slice(11), tz());
+      lines.push('BEGIN:VEVENT', `UID:${STUDIO}-${s}-${i}@studio`, `DTSTAMP:${z(Date.now())}`, `DTSTART:${z(s)}`, `DTEND:${z(s + st.slot.minutes * 60000)}`,
+        `SUMMARY:${st.brand.name.replace(/[,;]/g, ' ')}`, `LOCATION:${(st.address || '').replace(/[,;]/g, ' ')}`,
+        'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:Напомняне', 'END:VALARM', 'END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(lines.join('\r\n'));
+  }
+  function gcalLink(t) {
+    const s = zonedMs(t.slice(0, 10), t.slice(11), tz());
+    const z = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(cfg.brand.name) +
+      `&dates=${z(s)}/${z(s + cfg.slot.minutes * 60000)}&location=` + encodeURIComponent(cfg.address || '');
+  }
+  function showDone(booked, failed) {
+    const taken = failed.filter((f) => f.error === 'taken' || f.error === 'not_offered').map((f) => f.time);
+    sheet(`${booked.length ? `<h3>Записани ✓</h3><ul class="list">${booked.map((t) => `<li><span>${esc(timeLabel(t))}</span><a class="small" href="${esc(gcalLink(t))}" target="_blank" rel="noopener">Google Календар</a></li>`).join('')}</ul>
+      <p class="small muted">Потвърждение идва по Viber на ${esc(me.phone)}.</p>
+      <a class="btn sec" href="${icsFor(booked)}" download="${esc(STUDIO)}-chasove.ics">📅 Добави в календара на телефона</a>` : ''}
+      ${taken.length ? `<h3>${booked.length ? 'Тези не бяха записани' : 'Часът току-що беше зает'}</h3><ul class="list">${taken.map((t) => `<li>${esc(timeLabel(t))}</li>`).join('')}</ul><p class="small muted">Изберете друг свободен час.</p>` : ''}
+      <button class="btn" data-close>Готово</button>`);
+  }
+
+  function showTerms() {
+    const t = (cfg.texts.terms || '').trim();
+    const free = cfg.rules.freeCancelHours;
+    const own = t ? `<div style="white-space:pre-line">${esc(t)}</div>` : '';
+    const el = document.createElement('div');
+    el.className = 'back';
+    el.style.zIndex = 50;
+    el.innerHTML = `<div class="sheet"><h3>Условия</h3>${own}
+      <ul class="small">${free ? `<li>Промяна или отказ — безплатно до ${free} ч преди часа.</li>` : ''}
+      ${cfg.card ? '<li>Картата е гаранция: при записване не се тегли нищо. При късен отказ или неявяване студиото може да таксува часа и сумата не се възстановява.</li>' : ''}
+      <li>Потвърждения и напомняния идват по Viber на посочения телефон.</li>
+      <li>Име и телефон се ползват само за записванията и връзка с Вас.</li></ul>
+      <button class="btn" data-x>Разбрах</button></div>`;
+    el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-x]')) el.remove(); });
+    document.body.appendChild(el);
+  }
+
+  /* ── my hours: list, cancel, move ── */
+  async function refreshMine() {
+    if (!me.token || !me.phone) { renderMine(); return; }
+    const r = await api('POST', 'mine', { phone: me.phone, token: me.token }).catch(() => null);
+    if (r && r.status === 200) {
+      mine = r.d.hours || [];
+      me.card = r.d.card || null;
+      me.code = r.d.code || null;
+      if (r.d.name) me.name = r.d.name;
+      save('me', me);
+    } else if (r && r.status === 401) { me.token = ''; save('me', me); mine = []; }
+    renderMine();
+  }
+  function renderMine() {
+    const now = Date.now();
+    const ahead = mine.filter((h) => h.status === 'booked' && zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) > now);
+    $('mine-card').classList.toggle('hidden', !ahead.length && !me.token);
+    $('old-client').parentNode.classList.toggle('hidden', Boolean(me.token));
+    $('mine-extra').textContent = [me.card ? '💳 ' + cardName(me.card) : '', codeOk(me.code) ? '🎟 ' + me.code.code : ''].filter(Boolean).join(' · ');
+    $('mine').innerHTML = ahead.length ? ahead.map((h) => `<li><div class="when"><b>${esc(timeLabel(h.time))}</b>${h.late ? '<small>под ' + cfg.rules.freeCancelHours + ' ч до часа</small>' : ''}</div>
+      <button class="btn mini sec" data-own="${esc(h.id)}">Промени</button></li>`).join('') : '<li class="muted small">Нямате предстоящи часове.</li>';
+  }
+  $('mine').onclick = (e) => { const b = e.target.closest('[data-own]'); if (b) openOwn(mine.find((h) => h.id === b.dataset.own)); };
+
+  function openOwn(h) {
+    if (!h) return;
+    const late = h.late;
+    const free = cfg.rules.freeCancelHours;
+    sheet(`<h3>Вашият час</h3><p>${esc(timeLabel(h.time))}</p>
+      ${late ? `<div class="alert">До часа остават по-малко от ${free} ч. Промяна вече не е възможна онлайн; при отказ часът се счита за проведен${cfg.card ? ' и може да бъде таксуван от картата Ви' : ''}.</div>` : ''}
+      ${late ? '' : '<button class="btn" data-go="move">Премести в друг час</button>'}
+      <a class="btn sec" href="${esc(gcalLink(h.time))}" target="_blank" rel="noopener">📅 Google Календар</a>
+      <button class="btn danger" data-go="cancel">Откажи часа</button>
+      <button class="btn sec" data-close>Затвори</button>`, async (e) => {
+      const go = e.target.closest('[data-go]');
+      if (!go) return;
+      if (go.dataset.go === 'move') {
+        closeSheet();
+        moving = { id: h.id, time: h.time };
+        $('move-banner').innerHTML = `Изберете нов час за <b>${esc(timeLabel(h.time))}</b> · <button class="link" id="move-x">откажи</button>`;
+        $('move-banner').classList.remove('hidden');
+        $('move-x').onclick = () => { moving = null; $('move-banner').classList.add('hidden'); renderBar(); };
+        renderBar();
+        $('cal-card').scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      if (go.dataset.go === 'cancel') {
+        if (!go.dataset.sure) { go.dataset.sure = '1'; go.textContent = late ? 'Да, откажи (без възстановяване)' : 'Да, откажи часа'; return; }
+        busy(go, 'Отказване…');
+        const r = await api('POST', 'cancel', { phone: me.phone, token: me.token, id: h.id }).catch(() => ({ status: 0 }));
+        if (r.status !== 200) { unbusy(go); toast(r.status === 0 ? 'Няма връзка.' : 'Отказът не успя.'); return; }
+        closeSheet();
+        toast('Часът е отказан ✓');
+        Object.keys(months).forEach((k) => { months[k].at = 0; });
+        await Promise.all([refreshMine(), ensureMonth(ymOf(view.y, view.m), true)]);
+        renderCal();
+      }
+    });
+  }
+  function confirmMove(t) {
+    const h = moving;
+    sheet(`<h3>Преместване</h3><ul class="list"><li><span class="muted">от</span><span>${esc(timeLabel(h.time))}</span></li><li><span class="muted">на</span><b>${esc(timeLabel(t))}</b></li></ul>
+      <p class="err" id="m-err"></p><button class="btn" data-go="ok">Премести</button><button class="btn sec" data-close>Назад</button>`, async (e) => {
+      const go = e.target.closest('[data-go]');
+      if (!go) return;
+      busy(go, 'Преместване…');
+      const r = await api('POST', 'move', { phone: me.phone, token: me.token, id: h.id, time: t }).catch(() => ({ status: 0, d: {} }));
+      if (r.status !== 200) {
+        unbusy(go);
+        $('m-err').textContent = { taken: 'Часът току-що беше зает.', too_late: 'Вече е късно за промяна онлайн.', calendar: 'Календарът не отговаря — след малко.' }[r.d.error] || 'Не успя.';
+        return;
+      }
+      moving = null;
+      $('move-banner').classList.add('hidden');
+      closeSheet();
+      toast('Часът е преместен ✓');
+      Object.keys(months).forEach((k) => { months[k].at = 0; });
+      await Promise.all([refreshMine(), ensureMonth(ymOf(view.y, view.m), true)]);
+      renderCal();
+      renderBar();
+    });
+  }
+
+  /* ── a new phone: the Viber code ── */
+  $('old-client').onclick = () => {
+    sheet(`<h3>Вход с телефон</h3><p class="small muted">Ще получите 4-цифрен код по Viber (до 2–3 минути).</p>
+      <label class="f">Телефон<input id="v-phone" type="tel" value="${esc(me.phone || '')}" placeholder="0888 123 456"></label>
+      <div id="v-step2" class="hidden"><label class="f">Кодът от Viber<input id="v-pin" inputmode="numeric" maxlength="4" autocomplete="one-time-code"></label></div>
+      <p class="err" id="v-err"></p><button class="btn" data-go="send">Изпрати код</button><button class="btn sec" data-close>Затвори</button>`, async (e) => {
+      const go = e.target.closest('[data-go]');
+      if (!go) return;
+      const phone = $('v-phone').value.trim();
+      if (go.dataset.go === 'send') {
+        busy(go, '…');
+        const r = await api('POST', 'verify/start', { phone }).catch(() => ({ status: 0 }));
+        unbusy(go);
+        if (r.status !== 200) { $('v-err').textContent = r.status === 429 ? 'Изчакайте минута и опитайте пак.' : 'Проверете телефона.'; return; }
+        $('v-step2').classList.remove('hidden');
+        go.dataset.go = 'check';
+        go.textContent = 'Влез';
+        $('v-err').textContent = 'Ако сте записвали час с този телефон, кодът идва по Viber.';
+        $('v-pin').focus();
+        return;
+      }
+      busy(go, '…');
+      const r = await api('POST', 'verify/finish', { phone, pin: $('v-pin').value.trim() }).catch(() => ({ status: 0 }));
+      unbusy(go);
+      if (r.status !== 200) { $('v-err').textContent = 'Грешен или изтекъл код.'; return; }
+      me = { ...me, phone, token: r.d.token };
+      save('me', me);
+      closeSheet();
+      await refreshMine();
+      renderCal();
+      toast('Влязохте ✓');
+    });
+  };
+
+  /* ══════════ ADMIN (7 taps on the logo → the 5-digit code) ══════════ */
+  let taps = [];
+  $('logo').addEventListener('click', () => {
+    const now = Date.now();
+    taps = taps.filter((t) => now - t < 3000).concat(now);
+    if (taps.length >= 7) { taps = []; openAdmin(); }
+  });
+  const AK = () => `st:${STUDIO}:admin`;
+  let adm = null;   // { token, state, bookings, clients, tab, day }
+  function admToken() { try { const v = JSON.parse(sessionStorage.getItem(AK()) || 'null'); return v && v.expires > Date.now() ? v.token : ''; } catch (_) { return ''; } }
+  const aapi = (method, path, body) => api(method, path, body, { Authorization: `Bearer ${adm.token}` });
+
+  function openAdmin() {
+    const token = admToken();
+    if (token) { startAdmin(token); return; }
+    const el = sheet(`<h3>Вход за студиото</h3><p class="small muted">5-цифреният код на студиото.</p>
+      <div class="pin">${[0, 1, 2, 3, 4].map((i) => `<input inputmode="numeric" maxlength="1" data-i="${i}" aria-label="цифра ${i + 1}">`).join('')}</div>
+      <p class="err" id="p-err"></p><button class="btn sec" data-close>Затвори</button>`);
+    const boxes = [...el.querySelectorAll('.pin input')];
+    boxes[0].focus();
+    const tryIt = async () => {
+      const pin = boxes.map((b) => b.value).join('');
+      if (!/^\d{5}$/.test(pin)) return;
+      boxes.forEach((b) => { b.disabled = true; });
+      const r = await api('POST', 'admin/login', { pin }).catch(() => ({ status: 0 }));
+      if (r.status === 200) {
+        try { sessionStorage.setItem(AK(), JSON.stringify(r.d)); } catch (_) {}
+        closeSheet();
+        startAdmin(r.d.token);
+        return;
+      }
+      boxes.forEach((b) => { b.disabled = false; b.value = ''; });
+      boxes[0].focus();
+      $('p-err').textContent = r.status === 429 ? 'Твърде много грешни опити — заключено за 15 минути.' : r.status === 0 ? 'Няма връзка.' : 'Грешен код.';
+    };
+    boxes.forEach((b, i) => {
+      b.addEventListener('input', () => { b.value = b.value.replace(/\D/g, '').slice(-1); if (b.value && boxes[i + 1]) boxes[i + 1].focus(); tryIt(); });
+      b.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && !b.value && boxes[i - 1]) boxes[i - 1].focus(); });
+      b.addEventListener('paste', (e) => {
+        const d = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 5);
+        if (d.length === 5) { e.preventDefault(); d.split('').forEach((c, j) => { boxes[j].value = c; }); tryIt(); }
+      });
+    });
+  }
+
+  async function startAdmin(token) {
+    adm = { token, tab: 'today', day: todayYmd(), bookings: [], clients: null, state: null };
+    let root = $('adm');
+    if (!root) {
+      root = document.createElement('div');
+      root.id = 'adm';
+      root.className = 'adm';
+      document.body.appendChild(root);
+    }
+    root.innerHTML = `<div class="adm-top"><div class="wrap"><div class="logo" style="width:36px;height:36px;border-radius:10px;font-size:16px" id="a-logo"></div>
+      <h2>${esc(cfg.brand.name)} · admin</h2><button class="btn mini sec" id="a-out">Изход</button></div></div>
+      <div class="wrap" id="a-body"><p class="muted">Зареждане…</p></div>
+      <nav class="tabs"><button data-tab="today"><b>📅</b>График</button><button data-tab="clients"><b>👥</b>Клиенти</button>
+      <button data-tab="codes"><b>🎟</b>Кодове</button><button data-tab="settings"><b>⚙️</b>Настройки</button></nav>`;
+    brandLogo($('a-logo'));
+    root.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    $('a-out').onclick = closeAdmin;
+    root.querySelector('.tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (b) { adm.tab = b.dataset.tab; renderAdmin(); } };
+    const [st] = await Promise.all([aapi('GET', 'admin/state'), loadBookings()]);
+    if (st.status === 401) { try { sessionStorage.removeItem(AK()); } catch (_) {} closeAdmin(); openAdmin(); return; }
+    adm.state = st.d;
+    renderAdmin();
+  }
+  function closeAdmin() {
+    const root = $('adm');
+    if (root) root.classList.add('hidden');
+    document.body.style.overflow = '';
+    adm = null;
+    loadConfig().then(() => { Object.keys(months).forEach((k) => { months[k].at = 0; }); showMonth(view.y, view.m); });
+  }
+  async function loadBookings() {
+    const r = await aapi('GET', `admin/bookings?from=${Date.now() - 31 * 864e5}&to=${Date.now() + 120 * 864e5}`);
+    if (r.status === 200) adm.bookings = r.d.bookings || [];
+  }
+  function renderAdmin() {
+    if (!adm) return;
+    $('adm').querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === adm.tab));
+    ({ today: admToday, clients: admClients, codes: admCodes, settings: admSettings })[adm.tab]();
+  }
+
+  /* — the schedule: today first, the next 2 weeks, actions on each hour — */
+  function bkDay(b) { return zonedParts(b.start_ms, tz()).ymd; }
+  function admToday() {
+    const now = Date.now();
+    const list = adm.bookings;
+    const live = list.filter((b) => b.status === 'booked');
+    const week = live.filter((b) => b.start_ms >= now && b.start_ms < now + 7 * 864e5).length;
+    const today = live.filter((b) => bkDay(b) === todayYmd()).length;
+    const missed = list.filter((b) => (b.status === 'noshow' || b.late_cancel) && b.start_ms > now - 30 * 864e5).length;
+    const days = [];
+    for (let i = -1; i < 14; i++) {
+      const ymd = zonedParts(now + i * 864e5, tz()).ymd;
+      days.push({ ymd, n: live.filter((b) => bkDay(b) === ymd).length });
+    }
+    const closed = (adm.state.settings.closed || []).includes(adm.day);
+    const dayList = list.filter((b) => bkDay(b) === adm.day).sort((a, b) => a.start_ms - b.start_ms);
+    $('a-body').innerHTML = `<div class="stats"><div class="stat"><b>${today}</b><span>днес</span></div><div class="stat"><b>${week}</b><span>7 дни</span></div>
+      <div class="stat"><b>${missed}</b><span>неявявания</span></div></div>
+      ${adm.state.google.calendarError && adm.state.google.calendarError !== 'none' ? '<div class="alert">Google Calendar не е свързан правилно — виж Настройки → Google Calendar.</div>' : ''}
+      <div class="days">${days.map((d) => `<button data-day="${d.ymd}" class="${d.ymd === adm.day ? 'on' : ''}"><i>${WD[new Date(d.ymd + 'T12:00:00Z').getUTCDay()]}</i><b>${+d.ymd.slice(8)}</b><i>${d.n ? d.n + ' ч.' : '—'}</i></button>`).join('')}</div>
+      <div class="card"><div class="row" style="justify-content:space-between"><b>${esc(dayLabel(adm.day))}</b>
+      <button class="btn mini sec" data-a="refresh" style="flex:none" aria-label="Обнови">↻</button></div>
+      ${closed ? '<div class="alert">Почивен ден — не се предлагат часове.</div>' : ''}
+      <div>${dayList.length ? dayList.map(bkRow).join('') : '<p class="empty">Няма записани часове.</p>'}</div>
+      <button class="btn" data-a="add">＋ Запиши клиент</button>
+      <button class="btn sec" data-a="close-day">${closed ? 'Отвори деня отново' : 'Затвори деня (почивка)'}</button></div>`;
+    $('a-body').onclick = todayClick;
+  }
+  function bkRow(b) {
+    const p = zonedParts(b.start_ms, tz());
+    const past = b.start_ms < Date.now();
+    const st = b.status === 'canceled' ? `<span class="chip bad">отказан${b.late_cancel ? ' късно' : ''}</span>` : b.status === 'noshow' ? '<span class="chip bad">не дойде</span>' : past ? '<span class="chip ok">проведен</span>' : '';
+    const tags = [b.code ? `<span class="chip">🎟 ${esc(b.code)}</span>` : '', b.card_last4 ? `<span class="chip">💳 ${esc(b.card_last4)}</span>` : '', b.source === 'admin' ? '<span class="chip">ръчно</span>' : ''].join(' ');
+    const phone = esc(b.phone);
+    const chargeable = b.card_pm && (b.status === 'noshow' || (b.status === 'canceled' && b.late_cancel));
+    return `<div class="bk${b.status === 'canceled' ? ' off' : ''}"><div class="t">${p.hm}</div><div class="who"><b>${esc(b.name || '—')}</b> ${st}<br>
+      <a href="tel:${phone}">${phone}</a> · <a href="viber://chat?number=${encodeURIComponent(b.phone)}">Viber</a><div class="small">${tags}</div>
+      <div class="acts">${b.status === 'booked' && past ? `<button class="btn mini sec" data-b="noshow" data-id="${b.id}">Не дойде</button>` : ''}
+      ${b.status === 'booked' && !past ? `<button class="btn mini sec" data-b="cancel" data-id="${b.id}">Откажи</button>` : ''}
+      ${b.status === 'noshow' ? `<button class="btn mini sec" data-b="restore" data-id="${b.id}">Дойде</button>` : ''}
+      ${chargeable ? `<button class="btn mini" data-b="charge" data-id="${b.id}">Таксувай</button>` : ''}</div></div></div>`;
+  }
+  async function todayClick(e) {
+    const d = e.target.closest('[data-day]');
+    if (d) { adm.day = d.dataset.day; admToday(); return; }
+    const a = e.target.closest('[data-a]');
+    const bt = e.target.closest('[data-b]');
+    if (a && a.dataset.a === 'refresh') { await loadBookings(); admToday(); toast('Обновено'); return; }
+    if (a && a.dataset.a === 'add') { admAdd(); return; }
+    if (a && a.dataset.a === 'close-day') {
+      const st = adm.state.settings;
+      const set = new Set(st.closed || []);
+      if (set.has(adm.day)) set.delete(adm.day); else set.add(adm.day);
+      const r = await aapi('POST', 'admin/settings', { settings: { ...st, closed: [...set].sort() } });
+      if (r.status === 200) { adm.state.settings = r.d.settings; admToday(); toast(set.has(adm.day) ? 'Денят е затворен' : 'Денят е отворен'); }
+      return;
+    }
+    if (!bt) return;
+    const b = adm.bookings.find((x) => x.id === bt.dataset.id);
+    if (bt.dataset.b === 'charge') {
+      const amount = prompt('Сума за таксуване (' + (cfg.currency || 'EUR') + ')', String(cfg.price || ''));
+      if (!amount) return;
+      busy(bt, '…');
+      const r = await aapi('POST', 'admin/charge', { id: b.id, amount: Number(String(amount).replace(',', '.')) });
+      unbusy(bt);
+      toast(r.d.ok ? 'Таксувано ✓' : r.d.status === 'requires_action' ? 'Банката иска потвърждение от клиента — таксувай от Stripe.' : 'Таксуването не мина: ' + (r.d.detail || r.d.error || ''), 5000);
+      return;
+    }
+    if (bt.dataset.b === 'cancel' && !confirm('Да откажа ли часа? Клиентът получава съобщение по Viber.')) return;
+    busy(bt, '…');
+    const r = await aapi('POST', 'admin/booking', { id: b.id, action: bt.dataset.b });
+    if (r.status === 200) { await loadBookings(); admToday(); } else { unbusy(bt); toast('Не успя'); }
+  }
+  async function admAdd() {
+    const day = adm.day;
+    const m = await ensureMonth(day.slice(0, 7), true);
+    const free = (m.days[day] || []);
+    sheet(`<h3>Запиши клиент</h3><p class="small muted">${esc(dayLabel(day))}</p>
+      <label class="f">Час${free.length ? '' : ' (в графика няма свободен — въведи час)'}<select id="n-time">${free.map((t) => `<option>${t}</option>`).join('')}<option value="">друг час…</option></select></label>
+      <label class="f hidden" id="n-other">Час (ЧЧ:ММ)<input id="n-hm" type="time" step="300"></label>
+      <label class="f">Име<input id="n-name"></label><label class="f">Телефон<input id="n-phone" type="tel" placeholder="0888 123 456"></label>
+      <label class="tick"><input type="checkbox" id="n-viber" checked><span>Прати потвърждение и напомняне по Viber</span></label>
+      <p class="err" id="n-err"></p><button class="btn" data-go="save">Запиши</button><button class="btn sec" data-close>Затвори</button>`, async (e) => {
+      if (!e.target.closest('[data-go]')) return;
+      const t = $('n-time').value || $('n-hm').value;
+      const r = await aapi('POST', 'admin/book', { time: `${day} ${t}`, name: $('n-name').value, phone: $('n-phone').value, viber: $('n-viber').checked });
+      if (r.status !== 200) { $('n-err').textContent = r.d.error === 'taken' ? 'Часът се застъпва с друг.' : r.d.error === 'past' ? 'Часът вече е минал.' : 'Проверете часа, името и телефона.'; return; }
+      closeSheet();
+      await loadBookings();
+      admToday();
+      toast('Записан ✓');
+    });
+    $('n-time').onchange = () => $('n-other').classList.toggle('hidden', $('n-time').value !== '');
+    if (!free.length) $('n-other').classList.remove('hidden');
+  }
+
+  /* — clients: search, call, Viber — */
+  async function admClients() {
+    if (!adm.clients) {
+      $('a-body').innerHTML = '<p class="muted">Зареждане…</p>';
+      const r = await aapi('GET', 'admin/clients');
+      adm.clients = (r.d && r.d.clients) || [];
+    }
+    $('a-body').innerHTML = `<label class="f"><input id="c-q" placeholder="Търси по име или телефон" autocomplete="off"></label><div class="card" id="c-list"></div>
+      <p class="small muted">Общо: ${adm.clients.length}</p>`;
+    const draw = () => {
+      const q = $('c-q').value.trim().toLowerCase();
+      const list = adm.clients.filter((c) => !q || c.name.toLowerCase().includes(q) || c.phone.includes(q.replace(/\D/g, '') || '~'));
+      $('c-list').innerHTML = list.slice(0, 200).map((c) => `<div class="bk"><div class="who"><b>${esc(c.name || '—')}</b>
+        ${c.missed ? `<span class="chip bad">${c.missed} неявяв.</span>` : ''}<br><a href="tel:${esc(c.phone)}">${esc(c.phone)}</a> · <a href="viber://chat?number=${encodeURIComponent(c.phone)}">Viber</a>
+        <div class="small muted">${c.done} проведени · ${c.ahead} предстоящи${c.card_last4 ? ' · 💳 ' + esc(c.card_last4) : ''}${c.code ? ' · 🎟 ' + esc(c.code) : ''}</div></div></div>`).join('') || '<p class="empty">Няма клиенти.</p>';
+    };
+    $('c-q').oninput = draw;
+    draw();
+  }
+
+  /* — codes — */
+  function admCodes() {
+    const codes = adm.state.codes || [];
+    const now = Date.now();
+    $('a-body').innerHTML = `<button class="btn" id="k-new">＋ Нов код</button><div class="card">${codes.length ? codes.map((c) => {
+      const dead = !c.active || (c.valid_to && c.valid_to < now) || c.uses_left === 0;
+      return `<div class="bk${dead ? ' off' : ''}"><div class="who"><b>${esc(c.code)}</b> ${c.label ? esc(c.label) : ''} ${dead ? '<span class="chip bad">неактивен</span>' : '<span class="chip ok">активен</span>'}
+        <div class="small muted">${c.uses_left == null ? 'без лимит' : 'остават ' + c.uses_left}${c.per_client != null ? ' · до ' + c.per_client + ' на клиент' : ''}${c.valid_to ? ' · до ' + endDate(c.valid_to) : ''}</div>
+        <div class="acts"><button class="btn mini sec" data-k="${esc(c.code)}">Промени</button></div></div></div>`;
+    }).join('') : '<p class="empty">Няма кодове. С код клиентът записва без карта (ако гаранцията е „карта или код“).</p>'}</div>`;
+    $('k-new').onclick = () => codeSheet(null);
+    $('a-body').querySelectorAll('[data-k]').forEach((b) => { b.onclick = () => codeSheet(codes.find((c) => c.code === b.dataset.k)); });
+  }
+  function codeSheet(c) {
+    const rand = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (x) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[x % 32]).join('');
+    const vt = c && c.valid_to ? new Date(c.valid_to).toISOString().slice(0, 10) : '';
+    sheet(`<h3>${c ? 'Код ' + esc(c.code) : 'Нов код'}</h3>
+      ${c ? '' : `<div class="row"><label class="f">Код<input id="k-code" value="${rand()}" autocapitalize="characters"></label><button class="btn mini sec" id="k-rand" style="flex:none;margin-top:28px">🎲</button></div>`}
+      <label class="f">Описание (вижда се от клиента)<input id="k-label" value="${esc(c ? c.label : '')}" placeholder="напр. Пакет 10 тренировки"></label>
+      <div class="row"><label class="f">Общо ползвания<input id="k-uses" type="number" min="0" value="${c && c.uses_left != null ? c.uses_left : ''}" placeholder="без лимит"></label>
+      <label class="f">На клиент<input id="k-per" type="number" min="0" value="${c && c.per_client != null ? c.per_client : ''}" placeholder="без лимит"></label></div>
+      <label class="f">Важи до<input id="k-to" type="date" value="${vt}"></label>
+      <label class="tick"><input type="checkbox" id="k-on" ${!c || c.active ? 'checked' : ''}><span>Активен</span></label>
+      <p class="small muted">Пакет за един човек: „на клиент“ = броя тренировки. Общ промокод: остави „на клиент“ 1.</p>
+      <button class="btn" data-go="save">Запази</button><button class="btn sec" data-close>Затвори</button>`, async (e) => {
+      if (e.target.id === 'k-rand') { $('k-code').value = rand(); return; }
+      if (!e.target.closest('[data-go]')) return;
+      const to = $('k-to').value;
+      const r = await aapi('POST', 'admin/code', { code: c ? c.code : $('k-code').value.trim(), label: $('k-label').value, usesLeft: $('k-uses').value, perClient: $('k-per').value,
+        validTo: to ? zonedMs(to, '23:59', tz()) : null, active: $('k-on').checked });
+      if (r.status !== 200) { toast('Кодът не е валиден (букви, цифри, тире).'); return; }
+      closeSheet();
+      adm.state = (await aapi('GET', 'admin/state')).d;
+      admCodes();
+      toast('Запазено ✓');
+    });
+  }
+
+  /* — settings: the most used first; one Save — */
+  const DAYS = [['mon', 'Пн'], ['tue', 'Вт'], ['wed', 'Ср'], ['thu', 'Чт'], ['fri', 'Пт'], ['sat', 'Сб'], ['sun', 'Нд']];
+  function admSettings() {
+    const s = adm.state.settings;
+    const g = adm.state.google;
+    const f = (id, label, val, type, extra) => `<label class="f">${label}<input id="${id}" type="${type || 'text'}" value="${esc(val)}" ${extra || ''}></label>`;
+    const dayRows = DAYS.map(([k, n]) => {
+      const iv = s.hours[k] || [];
+      const a = iv[0] || ['', ''];
+      const b = iv[1] || ['', ''];
+      return `<div class="dayrow"><label><input type="checkbox" data-open="${k}" ${iv.length ? 'checked' : ''}>${n}</label>
+        <input type="time" data-h="${k}0" value="${a[0]}"><input type="time" data-h="${k}1" value="${a[1]}"></div>
+        <div class="dayrow ${b[0] ? '' : 'hidden'}" data-second="${k}"><span class="small muted">след</span><input type="time" data-h="${k}2" value="${b[0]}"><input type="time" data-h="${k}3" value="${b[1]}"></div>`;
+    }).join('');
+    $('a-body').innerHTML = `
+      <details class="sec" open><summary>🕑 Часове и график</summary><div>
+        <div class="row">${f('s-min', 'Продължителност (мин)', s.slot.minutes, 'number', 'min=10 max=240')}${f('s-buf', 'Буфер след часа (мин)', s.slot.buffer, 'number', 'min=0 max=120')}</div>
+        <p class="small muted">Нов час на всеки ${s.slot.step || s.slot.minutes + s.slot.buffer} мин. Отметни ден, за да е работен; „+ почивка“ дава втори интервал.</p>
+        ${dayRows}<p class="small"><button class="link" id="s-break">+ почивка в средата на деня</button> · <button class="link" id="s-copy">часовете на Пн за всички отметнати дни</button></p>
+      </div></details>
+      <details class="sec"><summary>📋 Правила за записване</summary><div>
+        <div class="row">${f('r-notice', 'Най-късно преди часа (ч)', Math.round(s.rules.minNoticeMin / 60 * 10) / 10, 'number', 'min=0 step=0.5')}${f('r-ahead', 'До колко дни напред', s.rules.daysAhead, 'number', 'min=1 max=365')}</div>
+        <div class="row">${f('r-day', 'Часове на ден (клиент)', s.rules.maxPerDay, 'number', 'min=1 max=20')}${f('r-up', 'Предстоящи общо (клиент)', s.rules.maxUpcoming, 'number', 'min=1 max=100')}</div>
+        ${f('r-free', 'Безплатен отказ до (ч преди часа)', s.rules.freeCancelHours, 'number', 'min=0 max=168')}
+        <label class="f">Гаранция при записване<select id="r-g">
+          <option value="card_or_code" ${s.guarantee === 'card_or_code' ? 'selected' : ''}>Карта или код (препоръчително)</option>
+          <option value="card" ${s.guarantee === 'card' ? 'selected' : ''}>Винаги карта (и с код)</option>
+          <option value="none" ${s.guarantee === 'none' ? 'selected' : ''}>Без гаранция</option></select></label>
+        ${adm.state.stripe.set ? '' : '<p class="small muted">Картата се иска само когато е свързан Stripe (по-долу).</p>'}
+        <label class="tick"><input type="checkbox" id="r-viber" ${s.viber ? 'checked' : ''}><span>Viber потвърждения и напомняния</span></label>
+      </div></details>
+      <details class="sec"><summary>🏷 Студио и външен вид</summary><div>
+        ${f('b-name2', 'Име на студиото', s.brand.name)}${f('b-tag', 'Подзаглавие', s.brand.tagline)}
+        <div class="row">${f('b-color', 'Цвят', s.brand.color, 'color')}${f('b-price', 'Цена на час', s.price, 'number', 'min=0 step=0.01')}${f('b-cur', 'Валута', s.currency, 'text', 'maxlength=3')}</div>
+        <label class="f">Лого (PNG/JPG, квадратно)<input id="b-logo" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        ${f('b-addr', 'Адрес', s.address)}${f('b-map', 'Линк към карта (Google Maps)', s.mapUrl, 'url')}${f('b-phone', 'Телефон на студиото', s.phone, 'tel')}
+        <label class="f">Текст на началната страница<textarea id="t-hero">${esc(s.texts.hero)}</textarea></label>
+        <label class="f">Послание / съобщение (подчертано)<textarea id="t-msg">${esc(s.texts.message)}</textarea></label>
+        <label class="f">Условия и правила на студиото<textarea id="t-terms">${esc(s.texts.terms)}</textarea></label>
+      </div></details>
+      <details class="sec"><summary>📆 Почивни дни</summary><div>
+        <div class="row">${f('c-day', 'Дата', '', 'date')}<button class="btn mini" id="c-add" style="flex:none;margin-top:28px">Добави</button></div>
+        <div id="c-days" class="small" style="margin-top:8px">${(s.closed || []).filter((d) => d >= todayYmd()).map((d) => `<span class="chip">${esc(d.split('-').reverse().join('.'))} <button class="link" data-rmday="${d}">×</button></span>`).join(' ') || '<span class="muted">Няма.</span>'}</div>
+      </div></details>
+      <details class="sec"><summary>📅 Google Calendar ${g.calendarError ? (g.calendarError === 'none' ? '' : '⚠️') : '✓'}</summary><div>
+        <ol class="small"><li>Google Calendar (компютър) → настройки на календара → <b>Споделяне с конкретни хора</b>.</li>
+        <li>Добави този имейл с право <b>„Промяна на събития“</b>:</li></ol>
+        <div class="copy"><span style="flex:1" id="g-sa">${esc(g.serviceAccount || '— (не е настроен в сървъра)')}</span><button class="btn mini sec" id="g-copy">Копирай</button></div>
+        <ol class="small" start="3"><li>Там, в „Интегриране на календара“, копирай <b>ID на календара</b> и го постави тук.</li></ol>
+        ${f('g-id', 'ID на календара', s.google.calendarId, 'text', 'placeholder="...@group.calendar.google.com или имейл"')}
+        <p class="small ${g.calendarError && g.calendarError !== 'none' ? 'err' : 'muted'}">${g.calendarError === 'none' ? 'Не е свързан: часовете се смятат само от графика.' : g.calendarError ? 'Няма достъп: ' + esc(g.calendarError) : '✓ Свързан: заетото в календара не се предлага, записванията влизат в него.'}</p>
+      </div></details>
+      <details class="sec"><summary>💳 Stripe (карта като гаранция) ${adm.state.stripe.set ? '✓' : ''}</summary><div>
+        <p class="small muted">Stripe Dashboard → Developers → API keys. Ключовете се пазят криптирани. Празни полета + Запази = изключване.</p>
+        ${f('p-pk', 'Publishable key', adm.state.stripe.pk, 'text', 'placeholder="pk_live_…" autocomplete="off"')}${f('p-sk', 'Secret key', '', 'password', 'placeholder="' + (adm.state.stripe.set ? '•••• запазен' : 'sk_live_… или rk_live_…') + '" autocomplete="off"')}
+        <button class="btn sec" id="p-save">Запази Stripe ключовете</button>
+      </div></details>
+      <details class="sec"><summary>🔒 Сигурност</summary><div>
+        <div class="row">${f('x-old', 'Сегашен код', '', 'password', 'inputmode=numeric maxlength=5')}${f('x-new', 'Нов код (5 цифри)', '', 'password', 'inputmode=numeric maxlength=5')}</div>
+        <button class="btn sec" id="x-save">Смени кода</button>
+      </div></details>
+      <button class="btn" id="s-save" style="position:sticky;bottom:calc(76px + env(safe-area-inset-bottom))">Запази настройките</button>`;
+    const body = $('a-body');
+    body.onclick = null;
+    $('s-break').onclick = () => body.querySelectorAll('[data-second]').forEach((r) => r.classList.remove('hidden'));
+    $('s-copy').onclick = () => {
+      const mon = [0, 1, 2, 3].map((i) => body.querySelector(`[data-h="mon${i}"]`).value);
+      DAYS.forEach(([k]) => {
+        if (k === 'mon' || !body.querySelector(`[data-open="${k}"]`).checked) return;
+        mon.forEach((v, i) => { body.querySelector(`[data-h="${k}${i}"]`).value = v; });
+        if (mon[2]) body.querySelector(`[data-second="${k}"]`).classList.remove('hidden');
+      });
+      toast('Копирано — натисни „Запази настройките“');
+    };
+    $('g-copy').onclick = () => { navigator.clipboard && navigator.clipboard.writeText($('g-sa').textContent); toast('Копирано'); };
+    $('c-add').onclick = async () => { const d = $('c-day').value; if (!d) return; await saveSettings({ closed: [...new Set([...(s.closed || []), d])].sort() }); admSettings(); };
+    body.querySelectorAll('[data-rmday]').forEach((b) => { b.onclick = async () => { await saveSettings({ closed: (s.closed || []).filter((x) => x !== b.dataset.rmday) }); admSettings(); }; });
+    $('b-logo').onchange = uploadLogo;
+    $('p-save').onclick = async () => {
+      const pk = $('p-pk').value.trim();
+      const sk = $('p-sk').value.trim();
+      if (pk && !sk) { toast('Въведи и secret key.'); return; }
+      const r = await aapi('POST', 'admin/stripe', { publishableKey: pk, secretKey: sk });
+      toast(r.status === 200 ? (r.d.set ? 'Stripe е свързан ✓' : 'Stripe е изключен') : ({ stripe_keys: 'Ключовете не си подхождат (live/test).', stripe_refused: 'Stripe отказа ключа.' }[r.d.error] || 'Не успя'), 4000);
+      if (r.status === 200) { adm.state = (await aapi('GET', 'admin/state')).d; admSettings(); }
+    };
+    $('x-save').onclick = async () => {
+      const r = await aapi('POST', 'admin/pin', { pin: $('x-old').value, newPin: $('x-new').value });
+      toast(r.status === 200 ? 'Кодът е сменен ✓' : 'Грешен сегашен код или новият не е 5 цифри.');
+    };
+    $('s-save').onclick = async (e) => {
+      busy(e.currentTarget, 'Запазване…');
+      const hours = {};
+      DAYS.forEach(([k]) => {
+        const v = (i) => (body.querySelector(`[data-h="${k}${i}"]`) || {}).value || '';
+        hours[k] = body.querySelector(`[data-open="${k}"]`).checked ? [[v(0), v(1)], [v(2), v(3)]].filter((p) => p[0] && p[1] && p[0] < p[1]) : [];
+      });
+      const num = (id) => Number($(id).value);
+      await saveSettings({
+        slot: { minutes: num('s-min'), buffer: num('s-buf'), step: 0 }, hours,
+        rules: { minNoticeMin: Math.round(num('r-notice') * 60), daysAhead: num('r-ahead'), maxPerDay: num('r-day'), maxUpcoming: num('r-up'), freeCancelHours: num('r-free') },
+        guarantee: $('r-g').value, viber: $('r-viber').checked,
+        brand: { ...s.brand, name: $('b-name2').value, tagline: $('b-tag').value, color: $('b-color').value },
+        price: num('b-price'), currency: $('b-cur').value.toUpperCase(), address: $('b-addr').value, mapUrl: $('b-map').value, phone: $('b-phone').value,
+        texts: { hero: $('t-hero').value, message: $('t-msg').value, terms: $('t-terms').value },
+        google: { calendarId: $('g-id').value.trim() },
+      });
+      adm.state = (await aapi('GET', 'admin/state')).d;
+      admSettings();
+      toast('Запазено ✓');
+    };
+  }
+  async function saveSettings(part) {
+    const r = await aapi('POST', 'admin/settings', { settings: { ...adm.state.settings, ...part } });
+    if (r.status === 200) { adm.state.settings = r.d.settings; cfg = { ...cfg, ...r.d.settings, google: undefined }; save('cfg', cfg); renderStudio(); }
+    else toast('Не се запази');
+    return r;
+  }
+  /* the logo: made square and small on the phone (≤ 512 px), then sent */
+  function uploadLogo(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = async () => {
+      const size = Math.min(512, Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const x = c.getContext('2d');
+      const k = size / Math.max(img.width, img.height);
+      x.drawImage(img, (size - img.width * k) / 2, (size - img.height * k) / 2, img.width * k, img.height * k);
+      const dataUrl = c.toDataURL('image/png');
+      const r = await aapi('POST', 'admin/logo', { dataUrl: dataUrl.length > 540000 ? c.toDataURL('image/jpeg', 0.85) : dataUrl });
+      URL.revokeObjectURL(img.src);
+      if (r.status === 200) { adm.state.settings = r.d.settings; cfg = { ...cfg, brand: r.d.settings.brand }; save('cfg', cfg); renderStudio(); brandLogo($('a-logo')); toast('Логото е качено ✓'); }
+      else toast('Логото не се качи (до 400 KB, PNG/JPG).');
+    };
+    img.src = URL.createObjectURL(file);
+  }
+
+  /* ── start: the cached copy at once, then fresh ── */
+  renderStudio();
+  window.addEventListener('online', () => $('offline').classList.add('hidden'));
+  window.addEventListener('offline', () => $('offline').classList.remove('hidden'));
+  (async () => {
+    if (!(await loadConfig())) { $('cal-card').classList.add('hidden'); return; }
+    const t = todayYmd();
+    await Promise.all([refreshMine(), showMonth(+t.slice(0, 4), +t.slice(5, 7) - 1)]);
+    tidyPicked();
+    renderBar();
+  })();
+  /* back from another app (e.g. Viber): the hours fresh, at most every 2 minutes */
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && view && !adm) ensureMonth(ymOf(view.y, view.m)).then(renderCal);
+  });
+})();
+</script>
+</body>
+</html>

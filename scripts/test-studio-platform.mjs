@@ -246,6 +246,14 @@ await t('another studio is separate (its own hours, nothing of burgas)', async (
   assert.equal((await api('GET', 'config?studio=nope')).status, 404);
 });
 
+await t('admin: a client who called (no card), overlap refused, clients list', async () => {
+  const r = await api('POST', 'admin/book', { studio: 'burgas', time: `${next} 11:30`, name: 'По телефона', phone: '0877 555 666' }, H(admin));
+  assert.equal(r.d.ok, true);
+  assert.equal((await api('POST', 'admin/book', { studio: 'burgas', time: `${next} 11:40`, name: 'X', phone: '0877 555 667' }, H(admin))).status, 409);
+  const c = (await api('GET', 'admin/clients?studio=burgas', null, H(admin))).d.clients;
+  assert.ok(c.some((x) => x.name === 'По телефона' && x.ahead === 1));
+});
+
 await t('a code made by scripts/studio-admin.mjs (Node PBKDF2) opens the admin (WebCrypto)', async () => {
   const { pbkdf2Sync } = await import('node:crypto');
   const salt = 'a1b2c3d4e5f60718';

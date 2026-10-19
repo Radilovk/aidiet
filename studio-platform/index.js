@@ -724,6 +724,48 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
       return json({ error: 'stripe', detail: e.message }, 402);
     }
   }
+  if (path === 'book') {   // { phone, name, time } — a client who called: any free time, no card / code asked
+    const st = studio.settings;
+    const phone = normPhone(b.phone);
+    const name = String(b.name || '').trim().slice(0, 80);
+    const m = /^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):([0-5]\d)$/.exec(String(b.time || ''));
+    if (!phone || !name || !m) return err('who');
+    const ms = zonedMs(m[1], `${m[2]}:${m[3]}`, st.timezone);
+    if (ms < Date.now() - 3600e3) return err('past');
+    const len = st.slot.minutes * 60000;
+    const pad = st.slot.buffer * 60000;
+    const id = newId();
+    const now = Date.now();
+    const r = await env.STUDIO_DB.prepare(
+      `INSERT INTO bookings (id, studio_id, start_ms, end_ms, status, phone, name, source, created_at, changed_at)
+       SELECT ?, ?, ?, ?, 'booked', ?, ?, 'admin', ?, ?
+       WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms < ? AND end_ms > ?)`,
+    ).bind(id, studio.id, ms, ms + len, phone, name, now, now, studio.id, ms + len + pad, ms - pad).run();
+    if (!r.meta || !r.meta.changes) return err('taken', 409);
+    await upsertClient(env, studio.id, phone, { name });
+    await bumpRev(env, studio.id);
+    const bk = { id, start_ms: ms, end_ms: ms + len, phone, name };
+    ctx.waitUntil((async () => {
+      if (b.viber !== false) await viberBooking(env, studio, 'booked', bk);
+      if (st.google.calendarId) {
+        try {
+          const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name);
+          await env.STUDIO_DB.prepare('UPDATE bookings SET gcal_event = ? WHERE id = ?').bind(ev, id).run();
+        } catch (e) { console.warn('[studio] google event failed:', e.message); }
+      }
+    })());
+    return json({ ok: true, id });
+  }
+  if (path === 'clients') {   // the studio's clients, newest first, with their hours
+    const rows = (await env.STUDIO_DB.prepare(
+      `SELECT c.phone, c.name, c.email, c.card_last4, c.code, c.created_at,
+         (SELECT COUNT(*) FROM bookings x WHERE x.studio_id = c.studio_id AND x.phone = c.phone AND x.status = 'booked' AND x.start_ms < ?) AS done,
+         (SELECT COUNT(*) FROM bookings x WHERE x.studio_id = c.studio_id AND x.phone = c.phone AND x.status = 'booked' AND x.start_ms >= ?) AS ahead,
+         (SELECT COUNT(*) FROM bookings x WHERE x.studio_id = c.studio_id AND x.phone = c.phone AND (x.status = 'noshow' OR x.late_cancel = 1)) AS missed
+       FROM clients c WHERE c.studio_id = ? ORDER BY c.created_at DESC LIMIT 1000`,
+    ).bind(Date.now(), Date.now(), studio.id).all()).results || [];
+    return json({ clients: rows });
+  }
   if (path === 'code') {   // upsert { code, label, usesLeft, perClient, validTo, active }
     const code = String(b.code || '').trim();
     if (!/^[\p{L}\p{N}_-]{2,40}$/u.test(code)) return err('code');
