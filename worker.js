@@ -53618,25 +53618,6 @@ async function xbodySavedCard(env, pm, email) {
     return null;
   }
 }
-async function xbodyFindCard(env, email, phone) {
-  try {
-    const key = xbodyPhoneKey(phone);
-    const found = await xbodyStripe(env, "GET", "customers", { email, limit: 5 });
-    for (const cust of found && Array.isArray(found.data) ? found.data : []) {
-      if (xbodyPhoneKey(cust.phone) !== key) continue;
-      const list = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
-      const now = /* @__PURE__ */ new Date();
-      for (const m of list && Array.isArray(list.data) ? list.data : []) {
-        const c = m.card;
-        if (!c || c.exp_year < now.getUTCFullYear() || c.exp_year === now.getUTCFullYear() && c.exp_month < now.getUTCMonth() + 1) continue;
-        return { pm: m.id, customer: cust.id, brand: c.brand || "", last4: c.last4 || "" };
-      }
-    }
-  } catch (err) {
-    console.warn("[xbody-book] card lookup failed:", err.message);
-  }
-  return null;
-}
 async function xbodyPrice(env) {
   if (xbodyPriceMemo && Date.now() - xbodyPriceMemo.at < 6 * 3600 * 1e3) return xbodyPriceMemo.price;
   let price = null;
@@ -53660,8 +53641,7 @@ async function handleXbodyGuarantee(request, env) {
   const b = await xbodyReadBooking(request);
   if (b.error) return b.error;
   if (!b.newCard) {
-    let saved = b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, b.email) : null;
-    if (!saved) saved = await xbodyFindCard(env, b.email, b.phone);
+    const saved = b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, b.email) : null;
     if (saved) {
       const price = await xbodyPrice(env);
       return jsonResponse2({
@@ -53722,14 +53702,14 @@ async function handleXbodyBook(request, env) {
     paidByCode = true;
   }
   let guarantee = null;
-  const saved = !paidByCode && stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
+  const saved = stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
   if (saved) {
     guarantee = {
       id: "",
       card: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
       note: `\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u0430 (\u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 XBODY, \u0437\u0430\u043F\u0430\u0437\u0435\u043D\u0430 \u043A\u0430\u0440\u0442\u0430): Stripe ${saved.customer}, ${saved.brand} \u2022\u2022\u2022\u2022 ${saved.last4}. \u041D\u0438\u0449\u043E \u043D\u0435 \u0435 \u0438\u0437\u0442\u0435\u0433\u043B\u0435\u043D\u043E.`
     };
-  } else if (stripeOn && !paidByCode) {
+  } else if (stripeOn) {
     if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse2({ error: "card_required" }, 402);
     try {
       const si = await xbodyStripe(env, "GET", `setup_intents/${b.setupIntent}`, { "expand[]": "payment_method" });
