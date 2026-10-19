@@ -4,23 +4,18 @@
 Google Calendar и Stripe (по желание). Общи са сървърът (worker-ът) и Viber изпращачът (`viber-sender/`).
 Бургас (Acuity) не се засяга: новото е само под `/api/s/…`.
 
-## Настройка (веднъж)
-1. База: `npx wrangler d1 create studios`. Добави в `wrangler.toml` под `[env.production]`:
-   ```
-   [[env.production.d1_databases]]
-   binding = "STUDIO_DB"
-   database_name = "studios"
-   database_id = "<id от командата>"
-   ```
-   После: `npx wrangler d1 execute studios --remote --env production --file=studio-platform/schema.sql`
-2. Secrets в Cloudflare (worker `aidiet`):
-   - `STUDIO_MASTER_KEY` — твоят ключ за създаване на студиа (поне 16 знака).
-   - `STUDIO_SECRET_KEY` — 32 случайни байта в base64 (`openssl rand -base64 32`): с него се пазят Stripe ключовете на студиата.
-   - `GOOGLE_SERVICE_ACCOUNT` — JSON на service account (Google Cloud → IAM → Service accounts) с включен Google Calendar API.
-     Ако го няма, се ползва `FIREBASE_SERVICE_ACCOUNT` (тогава включи Calendar API в проекта на Firebase).
-   - `STUDIO_ROOT_DOMAIN` (променлива) — домейнът на поддомейните, напр. `studios.bg` → `burgas.studios.bg`.
-3. Ново студио: `POST /api/s/master/studio` с `X-Master-Key` и `{ "id": "burgas", "name": "XBODY Burgas", "pin": "12345" }`
-   (същата заявка със съществуващо `id` сменя 5-цифрения код).
+## Настройка — всичко минава през GitHub Actions (секретите CLOUDFLARE_API_TOKEN / _ACCOUNT_ID)
+- **База и ключ**: при всеки деплой на worker-а (`deploy-worker.yml`) базата D1 `studios` се създава, ако я няма,
+  таблиците се допълват, тя се свързва като `STUDIO_DB`, а `STUDIO_SECRET_KEY` (пази Stripe ключовете на
+  студиата) се създава веднъж — никой не го вижда.
+- **Ново студио**: Actions → „Студиа“ → Run workflow → `create`, `id` (поддомейн, напр. `burgas`), име, телефон.
+  Става `https://burgas.biocode-bg.com`, а 5-цифреният admin код идва по Viber (не се печата — репото е публично).
+  Телефонът може да е GitHub секрет `STUDIO_ADMIN_PHONE`, за да не се вижда в лога.
+- **Нов код**: `reset-pin`. **Списък**: `list`. **Поддомейн наново**: `domain`.
+- **Google**: ползва се `FIREBASE_SERVICE_ACCOUNT` (или `GOOGLE_SERVICE_ACCOUNT`). Веднъж: включи Google Calendar
+  API за проекта `nutriplan-c460a`.
+- **Токенът** трябва да има D1:Edit, Workers KV Storage:Edit, Workers Scripts:Edit, а за поддомейните и
+  Zone:Read + Workers Routes:Edit за `biocode-bg.com`.
 
 ## Всяко студио само (admin: 7 пъти логото → 5-цифрения код)
 - **Google Calendar**: в Google Calendar → настройки на календара → „Споделяне с конкретни хора“ → имейлът на

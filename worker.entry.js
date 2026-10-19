@@ -16,7 +16,7 @@ import {
 } from './json-patch.js';
 import { buildClientCard, buildChatContext } from './client-card.js';
 import fitnessWorker from './fitness/worker.js';
-import { handleStudioApi } from './studio-platform/index.js';
+import { handleStudioApi, handleStudioSite } from './studio-platform/index.js';
 import { MEAL_CARRY_MAX_DISTORTION } from './meal-day-sync.js';
 import {
   parseMealDescription,
@@ -15726,7 +15726,8 @@ export default {
     console.log(`${request.method} ${url.pathname}`);
 
     // the studio platform (many studios: /api/s/…) answers its own preflight and routes
-    const studioResp = await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name) });
+    const studioResp = (await handleStudioSite(request, env)) ||
+      (await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name) }));
     if (studioResp) return studioResp;
 
     // Handle CORS preflight

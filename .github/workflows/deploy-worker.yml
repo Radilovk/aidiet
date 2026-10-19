@@ -21,6 +21,9 @@ on:
       - 'analytics-compression.js'
       - 'json-patch.js'
       - 'client-card.js'
+      - 'studio-platform/**'
+      - 'scripts/studio-admin.mjs'
+      - 'scripts/studio-bind.sh'
       - 'types/worker.d.ts'
       - 'tsconfig.worker.json'
       - 'scripts/typecheck-worker.mjs'
@@ -51,6 +54,9 @@ on:
       - 'analytics-compression.js'
       - 'json-patch.js'
       - 'client-card.js'
+      - 'studio-platform/**'
+      - 'scripts/studio-admin.mjs'
+      - 'scripts/studio-bind.sh'
       - 'types/worker.d.ts'
       - 'tsconfig.worker.json'
       - 'scripts/typecheck-worker.mjs'
@@ -117,6 +123,23 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # The studio platform: its D1 database (made once), its tables, the STUDIO_DB binding and the key that
+      # seals the studios' Stripe keys (made once, nobody sees it). Never stops the deploy: without them only
+      # /api/s/… answers "not configured".
+      - name: Studio platform (database + key)
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        run: |
+          id=$(node scripts/studio-admin.mjs ensure-db) && bash scripts/studio-bind.sh "$id" \
+            || echo "::warning::Базата на студиата не е готова (CLOUDFLARE_API_TOKEN има ли D1:Edit?) — деплойва се без нея."
+          if ! npx wrangler secret list --env production --format json 2>/dev/null | grep -q '"STUDIO_SECRET_KEY"'; then
+            bash scripts/cf-bridge.sh secret-generate STUDIO_SECRET_KEY || echo "::warning::STUDIO_SECRET_KEY не се създаде"
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_ENV: production
 
       - name: Deploy worker
         run: |

@@ -48,9 +48,13 @@ async function pinOk(pin, stored) {
   return diff === 0;
 }
 
-/* the studio's Stripe secret key, sealed with STUDIO_SECRET_KEY (base64, 32 bytes) */
+/* the studio's Stripe secret key, sealed with STUDIO_SECRET_KEY (32 bytes, base64 or base64url) */
 async function sealKey(env) {
-  const raw = env.STUDIO_SECRET_KEY ? Uint8Array.from(atob(env.STUDIO_SECRET_KEY), (c) => c.charCodeAt(0)) : null;
+  let raw = null;
+  try {
+    const b64 = String(env.STUDIO_SECRET_KEY || '').replace(/-/g, '+').replace(/_/g, '/');
+    raw = b64 ? Uint8Array.from(atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4)), (c) => c.charCodeAt(0)) : null;
+  } catch (_) { raw = null; }
   if (!raw || raw.length !== 32) return null;
   return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
@@ -751,6 +755,21 @@ async function handleMaster(env, request, b) {
   }
   studioMemo.delete(id);
   return json({ ok: true, id, created: !exists });
+}
+
+/* ── a studio's own address (burgas.<STUDIO_ROOT_DOMAIN>): its page, from the site (cached at the edge) ── */
+export async function handleStudioSite(request, env) {
+  const root = String(env.STUDIO_ROOT_DOMAIN || '').toLowerCase();
+  const url = new URL(request.url);
+  const host = url.hostname.toLowerCase();
+  if (!root || !host.endsWith('.' + root) || url.pathname.startsWith('/api/')) return null;
+  if (!/^[a-z0-9-]{2,40}$/.test(host.slice(0, -(root.length + 1)))) return null;
+  const page = env.STUDIO_PAGE_URL || 'https://biocode.website/studio.html';
+  const resp = await fetch(page, { cf: { cacheTtl: 300, cacheEverything: true } });
+  return new Response(resp.body, {
+    status: resp.status,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300', 'X-Content-Type-Options': 'nosniff' },
+  });
 }
 
 /* ── the router ── */

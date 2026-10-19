@@ -10,13 +10,8 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err2) => function __init() {
-  if (err2) throw err2[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err2 = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -9413,7 +9408,13 @@ async function pinOk(pin, stored) {
   return diff === 0;
 }
 async function sealKey(env) {
-  const raw = env.STUDIO_SECRET_KEY ? Uint8Array.from(atob(env.STUDIO_SECRET_KEY), (c) => c.charCodeAt(0)) : null;
+  let raw = null;
+  try {
+    const b64 = String(env.STUDIO_SECRET_KEY || "").replace(/-/g, "+").replace(/_/g, "/");
+    raw = b64 ? Uint8Array.from(atob(b64 + "=".repeat((4 - b64.length % 4) % 4)), (c) => c.charCodeAt(0)) : null;
+  } catch (_) {
+    raw = null;
+  }
   if (!raw || raw.length !== 32) return null;
   return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
@@ -10127,6 +10128,19 @@ async function handleMaster(env, request, b) {
   }
   studioMemo.delete(id);
   return json({ ok: true, id, created: !exists });
+}
+async function handleStudioSite(request, env) {
+  const root = String(env.STUDIO_ROOT_DOMAIN || "").toLowerCase();
+  const url = new URL(request.url);
+  const host = url.hostname.toLowerCase();
+  if (!root || !host.endsWith("." + root) || url.pathname.startsWith("/api/")) return null;
+  if (!/^[a-z0-9-]{2,40}$/.test(host.slice(0, -(root.length + 1)))) return null;
+  const page = env.STUDIO_PAGE_URL || "https://biocode.website/studio.html";
+  const resp = await fetch(page, { cf: { cacheTtl: 300, cacheEverything: true } });
+  return new Response(resp.body, {
+    status: resp.status,
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300", "X-Content-Type-Options": "nosniff" }
+  });
 }
 async function handleStudioApi(request, env, ctx, opts = {}) {
   const url = new URL(request.url);
@@ -55375,7 +55389,7 @@ var worker_entry_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     console.log(`${request.method} ${url.pathname}`);
-    const studioResp = await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name) });
+    const studioResp = await handleStudioSite(request, env) || await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name) });
     if (studioResp) return studioResp;
     if (request.method === "OPTIONS") {
       console.log("CORS preflight request");

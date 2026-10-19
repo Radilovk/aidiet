@@ -254,6 +254,11 @@ check('admin auth контракт', () => {
   if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
 });
 
+check('платформа за студиа', () => {
+  const r = run('node', ['scripts/test-studio-platform.mjs']);
+  if (!r.ok) throw new Error(r.out.split('\n').slice(-12).join('\n'));
+});
+
 console.log('');
 if (failures.length) {
   console.error(`❌ ${failures.length} проверки се провалиха: ${failures.join(', ')}`);

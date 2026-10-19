@@ -1,0 +1,64 @@
+name: Студиа
+
+# Платформата за студиа без команди: Actions → „Студиа“ → Run workflow.
+#  * create     — ново студио (id = поддомейнът, напр. burgas → https://burgas.biocode-bg.com) + 5-цифрен admin
+#                 код, който отива по Viber на телефона (не се печата: репото е публично).
+#  * reset-pin  — нов admin код по Viber (старите входове се затварят).
+#  * domain     — поддомейнът на студио наново (ако при create не е станал).
+#  * list       — студиата.
+#  * ensure-db  — базата и таблиците (прави се и при всеки деплой).
+# Телефонът: полето phone, иначе GitHub секрет STUDIO_ADMIN_PHONE (за да не се вижда в публичния лог).
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'create | reset-pin | domain | list | ensure-db'
+        required: true
+        type: choice
+        options: [create, reset-pin, domain, list, ensure-db]
+      id:
+        description: 'id на студиото = поддомейн (малки латински букви, цифри, тире), напр. burgas'
+        required: false
+        type: string
+      name:
+        description: 'Име (само за create), напр. XBODY Бургас'
+        required: false
+        type: string
+      phone:
+        description: 'Телефон за Viber с admin кода (празно = GitHub секрет STUDIO_ADMIN_PHONE)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency: studio-admin
+
+jobs:
+  run:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ACTION: ${{ inputs.action }}
+          SID: ${{ inputs.id }}
+          SNAME: ${{ inputs.name }}
+          SPHONE: ${{ inputs.phone || secrets.STUDIO_ADMIN_PHONE }}
+        run: |
+          case "$ACTION" in
+            ensure-db) node scripts/studio-admin.mjs ensure-db > /dev/null ;;
+            create)    node scripts/studio-admin.mjs ensure-db > /dev/null && node scripts/studio-admin.mjs create "$SID" "$SNAME" "$SPHONE" ;;
+            reset-pin) node scripts/studio-admin.mjs reset-pin "$SID" "$SPHONE" ;;
+            *)         node scripts/studio-admin.mjs "$ACTION" "$SID" ;;
+          esac | tee -a "$GITHUB_STEP_SUMMARY"
+          exit ${PIPESTATUS[0]}

@@ -246,4 +246,19 @@ await t('another studio is separate (its own hours, nothing of burgas)', async (
   assert.equal((await api('GET', 'config?studio=nope')).status, 404);
 });
 
+await t('a code made by scripts/studio-admin.mjs (Node PBKDF2) opens the admin (WebCrypto)', async () => {
+  const { pbkdf2Sync } = await import('node:crypto');
+  const salt = 'a1b2c3d4e5f60718';
+  const hash = `${salt}:${pbkdf2Sync('24680', salt, 100000, 32, 'sha256').toString('hex')}`;
+  db.prepare("INSERT INTO studios (id, settings, secrets, pin_hash, version, created_at) VALUES ('plovdiv', '{}', '{}', ?, 1, 0)").run(hash);
+  assert.ok((await api('POST', 'admin/login', { studio: 'plovdiv', pin: '24680' })).d.token);
+});
+
+await t('STUDIO_SECRET_KEY as base64url (cf-bridge secret-generate) seals the Stripe key', async () => {
+  env.STUDIO_SECRET_KEY = Buffer.alloc(32, 250).toString('base64url');
+  const tok = (await api('POST', 'admin/login', { studio: 'plovdiv', pin: '24680' })).d.token;
+  assert.equal((await api('POST', 'admin/stripe', { studio: 'plovdiv', publishableKey: 'pk_test_x', secretKey: 'sk_test_y' }, H(tok))).d.set, true);
+  assert.ok(!db.prepare("SELECT secrets FROM studios WHERE id = 'plovdiv'").get().secrets.includes('sk_test_y'));
+});
+
 console.log(`\n${passed} проверки минаха`);
