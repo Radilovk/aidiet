@@ -53377,6 +53377,8 @@ async function handleXbodyAcuityWebhook(request, env) {
   if (String(current.calendarID || "") !== XBODY_ACUITY_BOOKING.calendarID) {
     return new Response("ignored", { status: 200 });
   }
+  const event = (/(^|\.)(scheduled|rescheduled|canceled)$/.exec(action) || [])[2];
+  if (event) await xbodyViberQueue(env, current.canceled ? "canceled" : event, current);
   if (!/(^|\.)(scheduled|rescheduled)$/.test(action)) {
     await dropXbodyApptCache(env, current.email);
     return new Response("ok", { status: 200 });
@@ -53398,6 +53400,134 @@ async function handleXbodyAcuityWebhook(request, env) {
   const appt = await resp.json().catch(() => null);
   await dropXbodyApptCache(env, appt && appt.email);
   return new Response("ok", { status: 200 });
+}
+var XBODY_VIBER_TRIES = 5;
+var XBODY_BG_DAYS = ["\u043D\u0435\u0434\u0435\u043B\u044F", "\u043F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A", "\u0432\u0442\u043E\u0440\u043D\u0438\u043A", "\u0441\u0440\u044F\u0434\u0430", "\u0447\u0435\u0442\u0432\u044A\u0440\u0442\u044A\u043A", "\u043F\u0435\u0442\u044A\u043A", "\u0441\u044A\u0431\u043E\u0442\u0430"];
+function xbodyViberOn(env) {
+  return env.XBODY_VIBER === "on" && Boolean(env.page_content);
+}
+function xbodyViberPhone(phone) {
+  const d = String(phone || "").replace(/[^\d+]/g, "");
+  if (/^\+\d{9,15}$/.test(d)) return d;
+  if (/^00\d{9,15}$/.test(d)) return "+" + d.slice(2);
+  if (/^0\d{8,9}$/.test(d)) return "+359" + d.slice(1);
+  if (/^359\d{8,9}$/.test(d)) return "+" + d;
+  return "";
+}
+function xbodyViberWhen(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?([+-]\d{2}):?(\d{2})$/.exec(String(iso || ""));
+  if (!m) return null;
+  const offset = `${m[6]}:${m[7]}`;
+  const ms = (/* @__PURE__ */ new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00${offset}`)).getTime();
+  if (!Number.isFinite(ms)) return null;
+  const wd = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).getUTCDay();
+  return { ms, day: `${XBODY_BG_DAYS[wd]}, ${m[3]}.${m[2]}`, hm: `${m[4]}:${m[5]}`, ymd: `${m[1]}-${m[2]}-${m[3]}`, offset };
+}
+function xbodyViberPlan(event, appt, now = Date.now()) {
+  const when = xbodyViberWhen(appt && appt.datetime);
+  if (!when) return [];
+  const first = String(appt && appt.firstName || "").trim();
+  const hi = first ? `\u0417\u0434\u0440\u0430\u0432\u0435\u0439\u0442\u0435, ${first}!` : "\u0417\u0434\u0440\u0430\u0432\u0435\u0439\u0442\u0435!";
+  const at = `${when.day} \u043E\u0442 ${when.hm} \u0447.`;
+  const out = [];
+  if (event === "canceled") {
+    out.push({ kind: "canceled", sendAt: now, text: `${hi} \u0427\u0430\u0441\u044A\u0442 \u0412\u0438 \u0432 XBODY Burgas \u0437\u0430 ${at} \u0435 \u043E\u0442\u043A\u0430\u0437\u0430\u043D. \u041D\u043E\u0432 \u0447\u0430\u0441 \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0437\u0430\u043F\u0430\u0437\u0438\u0442\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E.` });
+    return out;
+  }
+  out.push({
+    kind: event === "rescheduled" ? "moved" : "booked",
+    sendAt: now,
+    text: event === "rescheduled" ? `${hi} \u0427\u0430\u0441\u044A\u0442 \u0412\u0438 \u0432 XBODY Burgas \u0435 \u043F\u0440\u0435\u043C\u0435\u0441\u0442\u0435\u043D \u0437\u0430 ${at} \u041F\u0440\u043E\u043C\u044F\u043D\u0430 \u0438\u043B\u0438 \u043E\u0442\u043A\u0430\u0437 \u2014 \u0431\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u043E \u0434\u043E 24 \u0447 \u043F\u0440\u0435\u0434\u0438 \u0447\u0430\u0441\u0430, \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E.` : `${hi} \u0412\u0430\u0448\u0438\u044F\u0442 \u0447\u0430\u0441 \u0437\u0430 EMS \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 \u0432 XBODY Burgas \u0435 \u0437\u0430\u043F\u0430\u0437\u0435\u043D: ${at} \u041F\u0440\u043E\u043C\u044F\u043D\u0430 \u0438\u043B\u0438 \u043E\u0442\u043A\u0430\u0437 \u2014 \u0431\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u043E \u0434\u043E 24 \u0447 \u043F\u0440\u0435\u0434\u0438 \u0447\u0430\u0441\u0430, \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E.`
+  });
+  const prev = new Date((/* @__PURE__ */ new Date(`${when.ymd}T12:00:00${when.offset}`)).getTime() - 864e5);
+  const eve = (/* @__PURE__ */ new Date(`${prev.toISOString().slice(0, 10)}T19:00:00${when.offset}`)).getTime();
+  if (eve > now + 30 * 6e4 && when.ms - eve > 6 * 36e5) {
+    out.push({ kind: "eve", sendAt: eve, text: `${hi} \u041D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0435: \u0443\u0442\u0440\u0435 (${at}) \u0412\u0438 \u043E\u0447\u0430\u043A\u0432\u0430\u043C\u0435 \u0432 XBODY Burgas. \u0410\u043A\u043E \u043D\u0435 \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0434\u043E\u0439\u0434\u0435\u0442\u0435, \u043E\u0442\u043A\u0430\u0436\u0435\u0442\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0434\u043E 24 \u0447 \u043F\u0440\u0435\u0434\u0438 \u0447\u0430\u0441\u0430.` });
+  }
+  const soon = when.ms - 2 * 36e5;
+  const hour = Number(new Date(soon + Number(when.offset.slice(0, 3)) * 36e5).toISOString().slice(11, 13));
+  if (soon > now + 15 * 6e4 && hour >= 8 && hour < 21) {
+    out.push({ kind: "soon", sendAt: soon, text: `${hi} \u041D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0435: \u0434\u043D\u0435\u0441 \u043E\u0442 ${when.hm} \u0447. \u0435 \u0412\u0430\u0448\u0430\u0442\u0430 EMS \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 \u0432 XBODY Burgas. \u041D\u043E\u0441\u0435\u0442\u0435 \u0432\u043E\u0434\u0430 \u0438 \u0443\u0434\u043E\u0431\u043D\u0438 \u0434\u0440\u0435\u0445\u0438.` });
+  }
+  return out;
+}
+function xbodyOutKey(sendAt, id, kind) {
+  return `xbody:out:${String(Math.floor(sendAt)).padStart(13, "0")}:${id}:${kind}`;
+}
+async function xbodyViberQueue(env, event, appt) {
+  if (!xbodyViberOn(env)) return;
+  const to = xbodyViberPhone(appt && appt.phone);
+  const id = String(appt && appt.id || "");
+  if (!to || !/^\d+$/.test(id)) return;
+  const kv = env.page_content;
+  try {
+    const seen = `${event}|${appt.datetime}`;
+    if (await kv.get(`xbody:outev:${id}`) === seen) return;
+    await kv.put(`xbody:outev:${id}`, seen, { expirationTtl: 130 * 86400 });
+    const old = JSON.parse(await kv.get(`xbody:outidx:${id}`) || "[]");
+    await Promise.all((Array.isArray(old) ? old : []).map((k) => kv.delete(k)));
+    const plan = xbodyViberPlan(event, appt);
+    const keys = [];
+    for (const m of plan) {
+      const key = xbodyOutKey(m.sendAt, id, m.kind);
+      const ttl = Math.max(86400, Math.ceil((m.sendAt - Date.now()) / 1e3) + 3 * 86400);
+      await kv.put(key, JSON.stringify({ to, text: m.text, tries: 0 }), { expirationTtl: ttl });
+      if (m.kind === "eve" || m.kind === "soon") keys.push(key);
+    }
+    if (keys.length) await kv.put(`xbody:outidx:${id}`, JSON.stringify(keys), { expirationTtl: 130 * 86400 });
+    else await kv.delete(`xbody:outidx:${id}`);
+  } catch (err) {
+    console.warn("[xbody-viber] queue failed:", err.message);
+  }
+}
+async function xbodyViberAuth(request, env) {
+  const want = String(env.XBODY_VIBER_TOKEN || "");
+  const got = String(request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  if (want.length < 16 || got.length !== want.length) return false;
+  let diff = 0;
+  for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ got.charCodeAt(i);
+  return diff === 0;
+}
+async function handleXbodyViberOutbox(request, env) {
+  if (!await xbodyViberAuth(request, env)) return jsonResponse2({ error: "unauthorized" }, 401);
+  if (!env.page_content) return jsonResponse2({ messages: [] });
+  const now = Date.now();
+  const list = await env.page_content.list({ prefix: "xbody:out:", limit: 50 });
+  const messages = [];
+  for (const k of list.keys) {
+    const at = Number(k.name.split(":")[2]);
+    if (!(at <= now)) break;
+    const v = JSON.parse(await env.page_content.get(k.name) || "null");
+    if (v && v.to && v.text) messages.push({ id: k.name, to: v.to, text: v.text });
+    if (messages.length >= 10) break;
+  }
+  return jsonResponse2({ messages, on: xbodyViberOn(env) });
+}
+async function handleXbodyViberAck(request, env) {
+  if (!await xbodyViberAuth(request, env)) return jsonResponse2({ error: "unauthorized" }, 401);
+  const b = await request.json().catch(() => null);
+  const id = String(b && b.id || "");
+  if (!/^xbody:out:\d{13}:[\w-]+:\w+$/.test(id) || !env.page_content) return jsonResponse2({ error: "bad id" }, 400);
+  const kv = env.page_content;
+  const v = JSON.parse(await kv.get(id) || "null");
+  await kv.delete(id);
+  if (!b.ok && v && v.tries + 1 < XBODY_VIBER_TRIES) {
+    const [, , , appt, kind] = id.split(":");
+    await kv.put(xbodyOutKey(Date.now() + 10 * 6e4, appt, kind), JSON.stringify({ ...v, tries: v.tries + 1 }), { expirationTtl: 86400 });
+  } else if (!b.ok) {
+    console.warn("[xbody-viber] given up:", id, String(b && b.error || "").slice(0, 200));
+  }
+  return jsonResponse2({ ok: true });
+}
+async function handleXbodyViberTest(request, env) {
+  if (!await xbodyViberAuth(request, env)) return jsonResponse2({ error: "unauthorized" }, 401);
+  const b = await request.json().catch(() => null);
+  const to = xbodyViberPhone(b && b.to);
+  const text = String(b && b.text || "\u0422\u0435\u0441\u0442 \u043E\u0442 XBODY Burgas \u2713").slice(0, 1e3);
+  if (!to || !env.page_content) return jsonResponse2({ error: "bad phone" }, 400);
+  const key = xbodyOutKey(Date.now(), `t${Date.now()}`, "test");
+  await env.page_content.put(key, JSON.stringify({ to, text, tries: 0 }), { expirationTtl: 86400 });
+  return jsonResponse2({ ok: true, id: key });
 }
 async function dropXbodyApptCache(env, email) {
   const e = String(email || "").trim().toLowerCase();
@@ -54433,6 +54563,12 @@ var worker_entry_default = {
         const rlErr = await checkRateLimit(env, request, "XBODY_MANAGE");
         if (rlErr) return rlErr;
         return await handleXbodyCode(request, env);
+      } else if (url.pathname === "/api/xbody/viber/outbox" && request.method === "GET") {
+        return await handleXbodyViberOutbox(request, env);
+      } else if (url.pathname === "/api/xbody/viber/ack" && request.method === "POST") {
+        return await handleXbodyViberAck(request, env);
+      } else if (url.pathname === "/api/xbody/viber/test" && request.method === "POST") {
+        return await handleXbodyViberTest(request, env);
       } else if (url.pathname === "/api/xbody/saved" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "XBODY_MANAGE");
         if (rlErr) return rlErr;
@@ -54506,5 +54642,8 @@ var worker_entry_default = {
 };
 export {
   worker_entry_default as default,
-  verifyAcuitySignature
+  verifyAcuitySignature,
+  xbodyViberPhone,
+  xbodyViberPlan,
+  xbodyViberWhen
 };
