@@ -16,6 +16,7 @@ import {
 } from './json-patch.js';
 import { buildClientCard, buildChatContext } from './client-card.js';
 import fitnessWorker from './fitness/worker.js';
+import { handleStudioApi, handleStudioSite } from './studio-platform/index.js';
 import { MEAL_CARRY_MAX_DISTORTION } from './meal-day-sync.js';
 import {
   parseMealDescription,
@@ -1284,6 +1285,10 @@ const RATE_LIMIT = {
   ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 }, // debounced client sync burst
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
   WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 },
+  STUDIO_BOOK: { maxRequests: 10, windowSec: 600 },    // studio platform: card guarantee + booking
+  STUDIO_MANAGE: { maxRequests: 30, windowSec: 600 },  // studio platform: my hours, cancel, move, a code
+  STUDIO_VERIFY: { maxRequests: 5, windowSec: 3600 },  // studio platform: a Viber login code
+  STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },   // studio platform: the admin's 5-digit code
 };
 
 /**
@@ -1297,7 +1302,7 @@ const RATE_LIMIT = {
  * или чувствителни операции: генериране на план, анализ на снимка, вход,
  * забравена парола.
  */
-const KV_RATE_LIMITED = new Set(['GENERATE_PLAN', 'FOOD_ANALYSIS', 'SOCIAL_AUTH', 'FORGOT_PASSWORD']);
+const KV_RATE_LIMITED = new Set(['GENERATE_PLAN', 'FOOD_ANALYSIS', 'SOCIAL_AUTH', 'FORGOT_PASSWORD', 'STUDIO_VERIFY', 'STUDIO_LOGIN']);
 const memoryRateCounters = new Map();
 
 function rateLimitedResponse(config) {
@@ -14648,6 +14653,9 @@ async function handleXbodyAcuityWebhook(request, env) {
   if (String(current.calendarID || '') !== XBODY_ACUITY_BOOKING.calendarID) {
     return new Response('ignored', { status: 200 });
   }
+  // every XBODY Burgas booking / move / cancel (from the app, Acuity's page or the studio): its Viber messages
+  const event = (/(^|\.)(scheduled|rescheduled|canceled)$/.exec(action) || [])[2];
+  if (event) await xbodyViberQueue(env, current.canceled ? 'canceled' : event, current);
   if (!/(^|\.)(scheduled|rescheduled)$/.test(action)) {
     // canceled / changed: only the client's cached list goes
     await dropXbodyApptCache(env, current.email);
@@ -14670,6 +14678,161 @@ async function handleXbodyAcuityWebhook(request, env) {
   const appt = await resp.json().catch(() => null);
   await dropXbodyApptCache(env, appt && appt.email);
   return new Response('ok', { status: 200 });
+}
+
+/* ── Viber messages (sent from the studio's own Viber account by viber-sender/ on a PC) ──
+ * The worker only queues them: KV `xbody:out:<sendAt ms>:<appt id>:<kind>` (sorted by when they are due) and, per
+ * appointment, `xbody:outidx:<id>` (its queued keys, so a cancel / move takes its reminders away). The PC asks
+ * GET /api/xbody/viber/outbox for the due ones, sends them, and acks each (POST /api/xbody/viber/ack).
+ * On only with XBODY_VIBER = "on" (while Acuity still sends its own e-mail / SMS, nothing is doubled); the PC proves
+ * itself with XBODY_VIBER_TOKEN. */
+const XBODY_VIBER_TRIES = 5;
+const XBODY_BG_DAYS = ['неделя', 'понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота'];
+
+function xbodyViberOn(env) {
+  return env.XBODY_VIBER === 'on' && Boolean(env.page_content);
+}
+
+/** a phone as Viber takes it: +359…, or '' */
+export function xbodyViberPhone(phone) {
+  const d = String(phone || '').replace(/[^\d+]/g, '');
+  if (/^\+\d{9,15}$/.test(d)) return d;
+  if (/^00\d{9,15}$/.test(d)) return '+' + d.slice(2);
+  if (/^0\d{8,9}$/.test(d)) return '+359' + d.slice(1);   // a Bulgarian number written locally
+  if (/^359\d{8,9}$/.test(d)) return '+' + d;
+  return '';
+}
+
+/** "2026-10-20T18:30:00+0300" → { ms, day: 'вторник, 20.10', hm: '18:30', ymd, offset } (the studio's own clock) */
+export function xbodyViberWhen(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?([+-]\d{2}):?(\d{2})$/.exec(String(iso || ''));
+  if (!m) return null;
+  const offset = `${m[6]}:${m[7]}`;
+  const ms = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00${offset}`).getTime();
+  if (!Number.isFinite(ms)) return null;
+  const wd = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).getUTCDay();
+  return { ms, day: `${XBODY_BG_DAYS[wd]}, ${m[3]}.${m[2]}`, hm: `${m[4]}:${m[5]}`, ymd: `${m[1]}-${m[2]}-${m[3]}`, offset };
+}
+
+/** the messages for one appointment event → [{ kind, sendAt, text }] (reminders only while still ahead, by day) */
+export function xbodyViberPlan(event, appt, now = Date.now()) {
+  const when = xbodyViberWhen(appt && appt.datetime);
+  if (!when) return [];
+  const first = String((appt && appt.firstName) || '').trim();
+  const hi = first ? `Здравейте, ${first}!` : 'Здравейте!';
+  const at = `${when.day} от ${when.hm} ч.`;
+  const out = [];
+  if (event === 'canceled') {
+    out.push({ kind: 'canceled', sendAt: now, text: `${hi} Часът Ви в XBODY Burgas за ${at} е отказан. Нов час можете да запазите в приложението.` });
+    return out;
+  }
+  out.push({
+    kind: event === 'rescheduled' ? 'moved' : 'booked',
+    sendAt: now,
+    text: event === 'rescheduled'
+      ? `${hi} Часът Ви в XBODY Burgas е преместен за ${at} Промяна или отказ — безплатно до 24 ч преди часа, в приложението.`
+      : `${hi} Вашият час за EMS тренировка в XBODY Burgas е запазен: ${at} Промяна или отказ — безплатно до 24 ч преди часа, в приложението.`,
+  });
+  // the evening before (19:00), and 2 h before when that falls in the day (08:00–21:00): never at night
+  const prev = new Date(new Date(`${when.ymd}T12:00:00${when.offset}`).getTime() - 864e5);
+  const eve = new Date(`${prev.toISOString().slice(0, 10)}T19:00:00${when.offset}`).getTime();
+  if (eve > now + 30 * 60e3 && when.ms - eve > 6 * 3600e3) {
+    out.push({ kind: 'eve', sendAt: eve, text: `${hi} Напомняне: утре (${at}) Ви очакваме в XBODY Burgas. Ако не можете да дойдете, откажете в приложението до 24 ч преди часа.` });
+  }
+  const soon = when.ms - 2 * 3600e3;
+  const hour = Number(new Date(soon + Number(when.offset.slice(0, 3)) * 3600e3).toISOString().slice(11, 13));
+  if (soon > now + 15 * 60e3 && hour >= 8 && hour < 21) {
+    out.push({ kind: 'soon', sendAt: soon, text: `${hi} Напомняне: днес от ${when.hm} ч. е Вашата EMS тренировка в XBODY Burgas. Носете вода и удобни дрехи.` });
+  }
+  return out;
+}
+
+function xbodyOutKey(sendAt, id, kind) {
+  return `xbody:out:${String(Math.floor(sendAt)).padStart(13, '0')}:${id}:${kind}`;
+}
+
+/** an appointment was booked / moved / canceled: its earlier reminders go, the new messages are queued */
+async function xbodyViberQueue(env, event, appt) {
+  if (!xbodyViberOn(env)) return;
+  const to = xbodyViberPhone(appt && appt.phone);
+  const id = String((appt && appt.id) || '');
+  if (!to || !/^\d+$/.test(id)) return;
+  const kv = env.page_content;
+  try {
+    const seen = `${event}|${appt.datetime}`;   // Acuity sends a webhook again when it got no 200: not queued twice
+    if ((await kv.get(`xbody:outev:${id}`)) === seen) return;
+    await kv.put(`xbody:outev:${id}`, seen, { expirationTtl: 130 * 86400 });
+    const old = JSON.parse((await kv.get(`xbody:outidx:${id}`)) || '[]');
+    await Promise.all((Array.isArray(old) ? old : []).map((k) => kv.delete(k)));
+    const plan = xbodyViberPlan(event, appt);
+    const keys = [];
+    for (const m of plan) {
+      const key = xbodyOutKey(m.sendAt, id, m.kind);
+      const ttl = Math.max(86400, Math.ceil((m.sendAt - Date.now()) / 1000) + 3 * 86400);
+      await kv.put(key, JSON.stringify({ to, text: m.text, tries: 0 }), { expirationTtl: ttl });
+      if (m.kind === 'eve' || m.kind === 'soon') keys.push(key);
+    }
+    if (keys.length) await kv.put(`xbody:outidx:${id}`, JSON.stringify(keys), { expirationTtl: 130 * 86400 });
+    else await kv.delete(`xbody:outidx:${id}`);
+  } catch (err) {
+    console.warn('[xbody-viber] queue failed:', err.message);
+  }
+}
+
+async function xbodyViberAuth(request, env) {
+  const want = String(env.XBODY_VIBER_TOKEN || '');
+  const got = String(request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (want.length < 16 || got.length !== want.length) return false;
+  let diff = 0;
+  for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ got.charCodeAt(i);
+  return diff === 0;
+}
+
+/** GET /api/xbody/viber/outbox — the messages due now (oldest first, at most 10): [{ id, to, text }] */
+async function handleXbodyViberOutbox(request, env) {
+  if (!(await xbodyViberAuth(request, env))) return jsonResponse({ error: 'unauthorized' }, 401);
+  if (!env.page_content) return jsonResponse({ messages: [] });
+  const now = Date.now();
+  const list = await env.page_content.list({ prefix: 'xbody:out:', limit: 50 });
+  const messages = [];
+  for (const k of list.keys) {
+    const at = Number(k.name.split(':')[2]);
+    if (!(at <= now)) break;   // sorted by when due: the rest are later
+    const v = JSON.parse((await env.page_content.get(k.name)) || 'null');
+    if (v && v.to && v.text) messages.push({ id: k.name, to: v.to, text: v.text });
+    if (messages.length >= 10) break;
+  }
+  return jsonResponse({ messages, on: xbodyViberOn(env) });
+}
+
+/** POST /api/xbody/viber/ack { id, ok, error? } — sent: gone; not sent: tried again in 10 min (5 times at most) */
+async function handleXbodyViberAck(request, env) {
+  if (!(await xbodyViberAuth(request, env))) return jsonResponse({ error: 'unauthorized' }, 401);
+  const b = await request.json().catch(() => null);
+  const id = String((b && b.id) || '');
+  if (!/^xbody:out:\d{13}:[\w-]+:\w+$/.test(id) || !env.page_content) return jsonResponse({ error: 'bad id' }, 400);
+  const kv = env.page_content;
+  const v = JSON.parse((await kv.get(id)) || 'null');
+  await kv.delete(id);
+  if (!b.ok && v && v.tries + 1 < XBODY_VIBER_TRIES) {
+    const [, , , appt, kind] = id.split(':');
+    await kv.put(xbodyOutKey(Date.now() + 10 * 60e3, appt, kind), JSON.stringify({ ...v, tries: v.tries + 1 }), { expirationTtl: 86400 });
+  } else if (!b.ok) {
+    console.warn('[xbody-viber] given up:', id, String((b && b.error) || '').slice(0, 200));
+  }
+  return jsonResponse({ ok: true });
+}
+
+/** POST /api/xbody/viber/test { to, text } — one message now, to try the PC sender */
+async function handleXbodyViberTest(request, env) {
+  if (!(await xbodyViberAuth(request, env))) return jsonResponse({ error: 'unauthorized' }, 401);
+  const b = await request.json().catch(() => null);
+  const to = xbodyViberPhone(b && b.to);
+  const text = String((b && b.text) || 'Тест от XBODY Burgas ✓').slice(0, 1000);
+  if (!to || !env.page_content) return jsonResponse({ error: 'bad phone' }, 400);
+  const key = xbodyOutKey(Date.now(), `t${Date.now()}`, 'test');
+  await env.page_content.put(key, JSON.stringify({ to, text, tries: 0 }), { expirationTtl: 86400 });
+  return jsonResponse({ ok: true, id: key });
 }
 
 /** A booking changed: the client's cached list is stale (their next opening loads it fresh). */
@@ -15562,6 +15725,11 @@ export default {
     
     console.log(`${request.method} ${url.pathname}`);
 
+    // the studio platform (many studios: /api/s/…) answers its own preflight and routes
+    const studioResp = (await handleStudioSite(request, env)) ||
+      (await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name) }));
+    if (studioResp) return studioResp;
+
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       console.log('CORS preflight request');
@@ -15864,6 +16032,12 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'XBODY_MANAGE');
         if (rlErr) return rlErr;
         return await handleXbodyCode(request, env);
+      } else if (url.pathname === '/api/xbody/viber/outbox' && request.method === 'GET') {
+        return await handleXbodyViberOutbox(request, env);
+      } else if (url.pathname === '/api/xbody/viber/ack' && request.method === 'POST') {
+        return await handleXbodyViberAck(request, env);
+      } else if (url.pathname === '/api/xbody/viber/test' && request.method === 'POST') {
+        return await handleXbodyViberTest(request, env);
       } else if (url.pathname === '/api/xbody/saved' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'XBODY_MANAGE');
         if (rlErr) return rlErr;
