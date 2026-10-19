@@ -1693,11 +1693,12 @@
                         '<h4 id="xb-terms-rules">Записване на час</h4><ul>' +
                             '<li>Часовете се записват в приложението или във формата на студиото.</li>' +
                             '<li>При първото записване се дава карта като гаранция. При записване от нея <b>не се тегли нищо</b>.</li>' +
-                            '<li>С код (Fullpass и др.) часът се отчита по кода.</li></ul>' +
+                            '<li>С код (Fullpass и др.) часът се отчита по кода, а картата остава гаранция.</li>' +
+                            '<li>Тренировката се плаща на място в студиото.</li></ul>' +
                         '<h4>Промяна, отказ и неявяване</h4><ul>' +
                             '<li>Промяна или отказ — <b>безплатно до 24 часа</b> преди тренировката.</li>' +
-                            '<li>При промяна, отказ или неявяване по-малко от 24 часа преди тренировката тя се таксува автоматично от картата Ви ' +
-                                'и <b>сумата не се възстановява</b>.</li></ul>' +
+                            '<li>При промяна или отказ по-малко от 24 часа преди тренировката, както и при неявяване, студиото може да я таксува ' +
+                                'от картата Ви и <b>сумата не се възстановява</b>.</li></ul>' +
                         '<h4>SMS напомняния</h4><ul>' +
                             '<li>Преди всяка тренировка получавате кратко SMS напомняне на посочения телефон. Напомнянията са част от услугата.</li></ul>' +
                         '<h4 id="xb-terms-effects">Ефекти</h4><ul>' +
@@ -2171,7 +2172,13 @@
                         return;
                     }
                     if (what === 'code-apply') { applyCode(); return; }
-                    if (what === 'code-off') { forgetCode(); openCartSheet(); return; }
+                    if (what === 'code-off') {   // taken off here and on the worker (not brought back next time)
+                        const c = contact();
+                        forgetCode();
+                        postJson('/api/xbody/saved', { email: c.email, phone: c.phone, forgetCode: true }).catch(function () {});
+                        openCartSheet();
+                        return;
+                    }
                     if (what === 'cancel-card') { cardStep = null; openCartSheet(); return; }
                     if (what === 'move') {   // Промени часа: a free hour is chosen in the calendar
                         sheet.classList.add('hidden');
@@ -2308,8 +2315,13 @@
                     return null;
                 }
             }
+            /* the browser is asked to keep this site's memory (not cleared on its own, e.g. Safari after 7 days) */
+            function keepStorage() {
+                try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (_) {}
+            }
             function keepCard(email, card) {
                 if (!card || !/^pm_\w+$/.test(card.pm || '')) return;
+                keepStorage();
                 try {
                     localStorage.setItem(CARD_KEY, JSON.stringify({ email: email, pm: card.pm, brand: card.brand || '', last4: card.last4 || '' }));
                 } catch (_) {}
@@ -2324,23 +2336,47 @@
                 return k ? '<p class="xb-cart-who"><i class="fas fa-credit-card"></i> ' + esc(BRANDS[k.brand] || k.brand || 'Карта') + ' •••• ' + esc(k.last4 || '') +
                     ' · <button type="button" class="xb-link" data-go="new-card">друга карта</button></p>' : '';
             }
-            /* a package / coupon code (Fullpass…): checked once with Acuity, kept on the phone, sent with each booking */
+            /* a package / coupon code (Fullpass…): checked once with Acuity, kept on the phone (and by the worker) until
+               it ends, sent with each booking */
             const CODE_KEY = 'xbody_code';
             function savedCode(email) {
                 try {
                     const v = JSON.parse(localStorage.getItem(CODE_KEY) || 'null');
+                    if (v && v.expires && v.expires < Date.now()) { forgetCode(); return null; }   // its end has come
                     return v && v.code && v.email === email ? v : null;
                 } catch (_) { return null; }
             }
-            function keepCode(email, code, name) {
-                try { localStorage.setItem(CODE_KEY, JSON.stringify({ email: email, code: code, name: name || '' })); } catch (_) {}
+            function keepCode(email, code, name, expires) {
+                keepStorage();
+                try { localStorage.setItem(CODE_KEY, JSON.stringify({ email: email, code: code, name: name || '', expires: expires || null })); } catch (_) {}
             }
             function forgetCode() {
                 try { localStorage.removeItem(CODE_KEY); } catch (_) {}
             }
+            function codeEnd(k) {
+                if (!k.expires) return '';
+                const d = new Date(k.expires);
+                return ', до ' + String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear();
+            }
+            /* a phone that lost its memory (a new phone, a cleared browser): the card and the code the worker keeps for
+               this e-mail + phone come back, once per opening, so neither is asked again */
+            let restoredFor = '';
+            function restoreSaved(c) {
+                const who = c.email + '|' + c.phone;
+                if (restoredFor === who || !c.email || !c.phone || (savedCard(c.email) && savedCode(c.email))) return;
+                restoredFor = who;
+                postJson('/api/xbody/saved', { email: c.email, phone: c.phone }).then(function (res) {
+                    if (res.status !== 200) return;
+                    let got = false;
+                    if (res.d.card && !savedCard(c.email)) { keepCard(c.email, res.d.card); got = true; }
+                    if (res.d.code && !savedCode(c.email)) { keepCode(c.email, res.d.code.code, res.d.code.name, res.d.code.expires); got = true; }
+                    /* the cart sheet, if still up and untouched, shows them */
+                    if (got && !booking && sheet && !sheet.classList.contains('hidden') && sheet.querySelector('[data-go="book"]')) openCartSheet(lastNote);
+                }).catch(function () {});
+            }
             function codeLine(c) {
                 const k = savedCode(c.email);
-                if (k) return '<p class="xb-cart-who"><i class="fas fa-ticket"></i> Код <b>' + esc(k.code) + '</b>' + (k.name ? ' (' + esc(k.name) + ')' : '') +
+                if (k) return '<p class="xb-cart-who"><i class="fas fa-ticket"></i> Код <b>' + esc(k.code) + '</b>' + (k.name ? ' (' + esc(k.name) + esc(codeEnd(k)) + ')' : esc(codeEnd(k).replace(/^, /, ' · '))) +
                     ' · <button type="button" class="xb-link" data-go="code-off">махни</button></p>';
                 return '<p class="xb-cart-who" id="xb-code-row"><button type="button" class="xb-link" data-go="code-open">Имам код (карта, пакет, ваучер)</button></p>' +
                     '<div class="xb-code hidden" id="xb-code-box"><input id="xb-code-in" type="text" autocomplete="off" autocapitalize="off" ' +
@@ -2355,16 +2391,19 @@
                 if (!/^[A-Za-z0-9_-]{2,40}$/.test(code)) { if (err) err.textContent = 'Въведете кода, както е даден.'; return; }
                 booking = true;
                 busyButton('[data-go="code-apply"]', '…');
-                postJson('/api/xbody/code', { email: c.email, code: code }).then(function (res) {
+                postJson('/api/xbody/code', { email: c.email, phone: c.phone, code: code }).then(function (res) {
                     booking = false;
-                    if (res.status === 200 && res.d.ok) { keepCode(c.email, res.d.code || code, res.d.name); openCartSheet(); return; }
+                    if (res.status === 200 && res.d.ok) { keepCode(c.email, res.d.code || code, res.d.name, res.d.expires); openCartSheet(); return; }
                     openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
                         : res.status === 400 ? 'Кодът „' + esc(code) + '“ не важи за този час.' : 'Кодът не може да се провери в момента.');
                 }).catch(function () { booking = false; openCartSheet('Няма връзка. Опитайте отново.'); });
             }
+            let lastNote = '';
             function openCartSheet(note) {
                 ensureSheet();
                 const c = contact();
+                lastNote = note || '';
+                restoreSaved(c);
                 sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Избрани часове">' +
                     '<div class="xb-sheet-handle"></div><h3>' + (cart.length === 1 ? 'Избран час' : 'Избрани часове') + '</h3>' +
                     '<ul class="xb-cart-list">' + cart.map(function (iso) {
@@ -2375,8 +2414,9 @@
                     (savedLine(c) || '') +
                     codeLine(c) +
                     consentBoxes() +
-                    (savedCode(c.email) ? '<p class="xb-notice"><i class="fas fa-ticket" aria-hidden="true"></i> Часът се отчита по кода — без карта. Промяна или отказ — безплатно до 24 ч преди часа.</p>'
-                        : savedCard(c.email) ? policyBox() : '<p class="xb-notice"><i class="far fa-clock" aria-hidden="true"></i> Промяна или отказ — безплатно до 24 ч преди часа.</p>') +
+                    (savedCard(c.email) ? policyBox(savedCode(c.email) ? '; часът се отчита по код ' + esc(savedCode(c.email).code) : '')
+                        : savedCode(c.email) ? '<p class="xb-notice"><i class="fas fa-ticket" aria-hidden="true"></i> Часът се отчита по кода; картата остава гаранция (не се тегли нищо). Промяна или отказ — безплатно до 24 ч преди часа.</p>'
+                        : '<p class="xb-notice"><i class="far fa-clock" aria-hidden="true"></i> Промяна или отказ — безплатно до 24 ч преди часа.</p>') +
                     (note ? '<p class="xb-cart-note">' + note + '</p>' : '') +
                     '<button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Запази ' +
                         (cart.length === 1 ? '1 час' : cart.length + ' часа') + '</button>' +
@@ -2398,8 +2438,9 @@
             }
             function money(n) { return '€' + Number(n).toFixed(2); }
 
-            /* Потвърди: the card guarantee first (once, for all the hours; nothing is charged), then the booking.
-               A card saved before is only confirmed; fresh = another card. */
+            /* Потвърди: the card guarantee first (once, for all the hours; nothing is charged), then the booking —
+               with a code too (the code pays the hour, the card covers a no-show). A card saved before is only
+               confirmed; fresh = another card. */
             function bookCart(fresh) {
                 const c = contact();
                 const times = cart.slice();
@@ -2407,7 +2448,6 @@
                 const saved = fresh ? null : savedCard(c.email);
                 booking = true;
                 busyButton('[data-go="book"]', 'Момент…');
-                if (!fresh && savedCode(c.email)) return sendBooking(c, times, '');   // a code (Fullpass…) pays: no card step
                 busyButton('[data-go="new-card"]', 'Момент…');
                 postJson('/api/xbody/guarantee', {
                     email: c.email, phone: c.phone, name: c.name, times: times, paymentMethod: saved ? saved.pm : undefined, newCard: fresh ? true : undefined
@@ -2442,11 +2482,12 @@
                 }
                 return stripeLoad;
             }
-            /* the guarantee in two lines: nothing now; free change / cancel until 24 h, after that charged */
+            /* the guarantee in two lines: nothing now; free change / cancel until 24 h, after that (or a no-show) the
+               studio may charge the card — by hand, nothing is charged by itself */
             function policyBox(extra) {
                 return '<div class="xb-policy"><i class="fas fa-shield-halved" aria-hidden="true"></i><div>' +
                     '<b>Сега не се тегли нищо</b> — картата е гаранция' + (extra || '') + '.<br>' +
-                    'Промяна или отказ — безплатно до <b>24 ч</b> преди часа. След това часът се таксува автоматично и не се възстановява.</div></div>';
+                    'Промяна или отказ — безплатно до <b>24 ч</b> преди часа. След това или при неявяване студиото може да таксува часа от картата и сумата не се възстановява.</div></div>';
             }
             function sumTable(times, g) {
                 const k = savedCode(contact().email);
@@ -2515,6 +2556,7 @@
                 }).then(function (res) {
                     booking = false;
                     if (res.d.card) keepCard(c.email, res.d.card);
+                    if (res.d.code && res.d.code.code) keepCode(c.email, res.d.code.code, res.d.code.name, res.d.code.expires);
                     if (paymentMethod && res.status === 402) {   // the saved card is no longer valid: the card form
                         forgetCard();
                         bookCart(true);
@@ -2597,8 +2639,8 @@
                 const hours = Math.max(0, (isoTime(iso) - Date.now()) / 3600000);
                 const left = hours < 1 ? 'по-малко от час' : 'около ' + Math.round(hours) + (Math.round(hours) === 1 ? ' час' : ' часа');
                 return '<p class="xb-late-text"><b>До тренировката остава ' + left + '.</b> Според условията за резервация при ' +
-                    '<b>отмяна, промяна или неявяване</b> по-малко от 24 часа преди тренировката тя се заплаща от картата Ви, ' +
-                    '<b>без възможност за възстановяване на сумата</b>.</p>';
+                    '<b>отмяна, промяна или неявяване</b> по-малко от 24 часа преди тренировката тя се счита за проведена: ' +
+                    'отчита се по кода Ви или студиото може да я таксува от картата Ви, <b>без възможност за възстановяване на сумата</b>.</p>';
             }
             /* an XBODY Burgas hour the app can change (the other studio's hours keep their own Acuity page) */
             function manageable(item) {

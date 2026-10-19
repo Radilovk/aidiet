@@ -53528,7 +53528,76 @@ async function handleXbodyCode(request, env) {
     console.warn("[xbody-code] Acuity refused", code, r.status, JSON.stringify(r.data).slice(0, 200));
     return jsonResponse2({ error: r.status >= 500 ? "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u0442\u0430 \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u0430 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." : "bad_code" }, r.status >= 500 ? 502 : 400);
   }
-  return jsonResponse2({ ok: true, code: r.code, name: String(r.data && r.data.name || "").slice(0, 80) });
+  const kept = { code: r.code, name: String(r.data && r.data.name || "").slice(0, 80), expires: xbodyCodeExpiry(r.data) };
+  await xbodyKeepCode(env, email, body && body.phone, kept);
+  return jsonResponse2({ ok: true, ...kept });
+}
+function xbodyCodeExpiry(data) {
+  const v = data && data.expiration;
+  if (!v) return null;
+  const ms = new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? `${v}T23:59:59+03:00` : v).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+function xbodyCodeKey(email, phone) {
+  const e = String(email || "").trim().toLowerCase();
+  const p = xbodyPhoneKey(phone);
+  return e.includes("@") && p.length >= 6 ? `xbody:code:${e}:${p}` : "";
+}
+async function xbodyKeepCode(env, email, phone, kept) {
+  const key = xbodyCodeKey(email, phone);
+  if (!env.page_content || !key) return;
+  const left = kept.expires ? Math.floor((kept.expires - Date.now()) / 1e3) : 400 * 86400;
+  if (left < 60) return;
+  try {
+    await env.page_content.put(key, JSON.stringify(kept), { expirationTtl: left });
+  } catch (err) {
+    console.warn("[xbody-code] keep failed:", err.message);
+  }
+}
+async function xbodyDropCode(env, email, phone) {
+  const key = xbodyCodeKey(email, phone);
+  if (!env.page_content || !key) return;
+  try {
+    await env.page_content.delete(key);
+  } catch (err) {
+    console.warn("[xbody-code] drop failed:", err.message);
+  }
+}
+async function xbodyKeptCode(env, email, phone) {
+  const key = xbodyCodeKey(email, phone);
+  if (!env.page_content || !key) return null;
+  try {
+    const v = JSON.parse(await env.page_content.get(key) || "null");
+    return v && v.code && !(v.expires && v.expires < Date.now()) ? v : null;
+  } catch (_) {
+    return null;
+  }
+}
+async function handleXbodySaved(request, env) {
+  let body;
+  try {
+    const raw = await request.text();
+    if (raw.length > 1024) return jsonResponse2({ error: "\u0422\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430 \u0437\u0430\u044F\u0432\u043A\u0430." }, 413);
+    body = JSON.parse(raw);
+  } catch (_) {
+    return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430 \u0437\u0430\u044F\u0432\u043A\u0430." }, 400);
+  }
+  const email = String(body && body.email || "").trim().toLowerCase();
+  const phone = String(body && body.phone || "").trim().slice(0, 40);
+  if (!xbodyCodeKey(email, phone)) return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0438 \u0434\u0430\u043D\u043D\u0438." }, 400);
+  if (body.forgetCode) {
+    await xbodyDropCode(env, email, phone);
+    return jsonResponse2({ ok: true });
+  }
+  const stripeOn = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
+  const [card, code] = await Promise.all([
+    stripeOn ? xbodyFindCard(env, email, phone) : null,
+    xbodyKeptCode(env, email, phone)
+  ]);
+  return jsonResponse2({
+    card: card ? { pm: card.pm, brand: card.brand, last4: card.last4 } : null,
+    code: code ? { code: code.code, name: code.name || "", expires: code.expires || null } : null
+  });
 }
 async function xbodyCheckCode(env, code, email) {
   const spellings = [.../* @__PURE__ */ new Set([
@@ -53714,22 +53783,27 @@ async function handleXbodyBook(request, env) {
   const auth = btoa(`${userId}:${apiKey}`);
   const stripeOn = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
   let paidByCode = false;
+  let codeKept = null;
   if (b.code) {
     const r = await xbodyCheckCode(env, b.code, email);
     if (!r || r.status >= 500) return jsonResponse2({ error: "\u041A\u043E\u0434\u044A\u0442 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
-    if (!r.ok) return jsonResponse2({ error: "code", failed: times.map((time) => ({ time, error: "code" })) }, 400);
+    if (!r.ok) {
+      await xbodyDropCode(env, email, b.phone);
+      return jsonResponse2({ error: "code", failed: times.map((time) => ({ time, error: "code" })) }, 400);
+    }
+    codeKept = { code: r.code, name: String(r.data && r.data.name || "").slice(0, 80), expires: xbodyCodeExpiry(r.data) };
     b.code = r.code;
     paidByCode = true;
   }
   let guarantee = null;
-  const saved = !paidByCode && stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
+  const saved = stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
   if (saved) {
     guarantee = {
       id: "",
       card: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
       note: `\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u0430 (\u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 XBODY, \u0437\u0430\u043F\u0430\u0437\u0435\u043D\u0430 \u043A\u0430\u0440\u0442\u0430): Stripe ${saved.customer}, ${saved.brand} \u2022\u2022\u2022\u2022 ${saved.last4}. \u041D\u0438\u0449\u043E \u043D\u0435 \u0435 \u0438\u0437\u0442\u0435\u0433\u043B\u0435\u043D\u043E.`
     };
-  } else if (stripeOn && !paidByCode) {
+  } else if (stripeOn) {
     if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse2({ error: "card_required" }, 402);
     try {
       const si = await xbodyStripe(env, "GET", `setup_intents/${b.setupIntent}`, { "expand[]": "payment_method" });
@@ -53838,12 +53912,15 @@ async function handleXbodyBook(request, env) {
       "metadata[acuity]": booked.map((x) => x.id).join(",") || "none"
     }).catch((err) => console.warn("[xbody-book] setup intent mark failed:", err.message));
   }
+  if (failed.some((f) => f.error === "code") && !booked.length) await xbodyDropCode(env, email, b.phone);
+  else if (codeKept && booked.length) await xbodyKeepCode(env, email, b.phone, codeKept);
   if (booked.length) {
     await dropXbodyApptCache(env, email);
     for (const t of booked) xbodyAvailMemo.delete(t.time.slice(0, 7));
   }
   const card = booked.length && guarantee && guarantee.card ? guarantee.card : void 0;
-  return jsonResponse2({ booked, failed, card }, booked.length || !failed.length ? 200 : 409);
+  const code = codeKept && booked.length ? codeKept : void 0;
+  return jsonResponse2({ booked, failed, card, code }, booked.length || !failed.length ? 200 : 409);
 }
 async function xbodyReadManage(request, withTime) {
   let body;
@@ -54356,6 +54433,10 @@ var worker_entry_default = {
         const rlErr = await checkRateLimit(env, request, "XBODY_MANAGE");
         if (rlErr) return rlErr;
         return await handleXbodyCode(request, env);
+      } else if (url.pathname === "/api/xbody/saved" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "XBODY_MANAGE");
+        if (rlErr) return rlErr;
+        return await handleXbodySaved(request, env);
       } else if (url.pathname === "/api/xbody/guarantee" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "XBODY_BOOK");
         if (rlErr) return rlErr;
