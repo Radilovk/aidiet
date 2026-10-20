@@ -2740,15 +2740,21 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   // Plan steps: lower temperature/topP defaults for deterministic JSON (admin KV overrides).
   const PLAN_STEP_DEFAULT_TEMPERATURE = 0.2;
   const PLAN_STEP_DEFAULT_TOP_P = 0.85;
+  // EmoEat: топъл, но не разпилян текст — умерена температура, ако админът не е задал.
+  const EMOEAT_DEFAULT_TEMPERATURE = 0.5;
   const effectiveTemp = isPlanStep
     ? (cfgTemp !== undefined ? cfgTemp : PLAN_STEP_DEFAULT_TEMPERATURE)
-    : cfgTemp;
+    : stepName === 'emoeat_analysis'
+      ? (cfgTemp !== undefined ? cfgTemp : EMOEAT_DEFAULT_TEMPERATURE)
+      : cfgTemp;
   const effectiveTopP = isPlanStep
     ? (cfgTopP !== undefined ? cfgTopP : PLAN_STEP_DEFAULT_TOP_P)
     : cfgTopP;
 
   const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
-  const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : null;
+  const planSystemInstruction = isPlanStep
+    ? getPlanSystemInstruction(stepKey)
+    : (stepName === 'emoeat_analysis' ? getPlanSystemInstruction('emoeat') : null);
 
   // Build request data object in memory (not written to cache here; combined with
   // the response in logAIResponse to reduce Cache API subrequests per call from 4 to 1).
@@ -10623,9 +10629,10 @@ async function handleGenerateProtocol(request, env) {
 }
 
 /**
- * Serialize the deterministic profile computed on the client (weight matrix over
- * the questionnaire answers) into a compact prompt block. Client-supplied, so
- * every field is validated, clamped and truncated before entering the prompt.
+ * Serialize the deterministic profile computed on the client into a compact
+ * prompt block. Client-supplied, so every field is validated, clamped and
+ * truncated before entering the prompt. Levels only — no percentages: a short
+ * questionnaire cannot carry that precision and the model must not invent it.
  */
 function serializeEmoeatProfile(profile) {
   if (!profile || typeof profile !== 'object') return '(няма изчислен профил)';
@@ -10634,60 +10641,80 @@ function serializeEmoeatProfile(profile) {
     if (typeof value !== 'string' && typeof value !== 'number') return '';
     return String(value).replace(/[\r\n]+/g, ' ').trim().slice(0, maxLen);
   };
-  const score = value => {
+  const count = value => {
     const num = Number(value);
     return Number.isFinite(num) ? Math.max(0, Math.min(100, Math.round(num))) : 0;
   };
   const list = value => (Array.isArray(value) ? value.slice(0, 8) : []);
 
   const lines = [];
+  const intensity = label(profile.intensity, 12);
+  if (intensity) lines.push(`Колко често храната поема чувства: ${intensity}`);
 
-  const factors = list(profile.factors).filter(f => f && f.name);
-  if (factors.length) {
-    lines.push('Фактори: ' + factors.map(f => `${label(f.name, 40)} ${score(f.intensity)}`).join(' | '));
+  const archetype = profile.archetype && typeof profile.archetype === 'object' ? profile.archetype : null;
+  if (archetype && archetype.name) {
+    lines.push(`Профил: ${label(archetype.name, 30)} — ${label(archetype.description, 160)}`);
+    const second = label(profile.secondArchetype, 30);
+    if (second) lines.push(`Втори по близост: ${second}`);
+  } else {
+    lines.push('Профил: няма изразен модел — храната рядко поема чувствата (не измисляй проблем).');
   }
 
-  const halt = list(profile.halt).filter(h => h && h.label);
-  if (halt.length) {
-    lines.push('HALT: ' + halt.map(h => `${label(h.label, 20)} ${score(h.score)} (${label(h.level, 12)})`).join(' | '));
-  }
+  const drivers = list(profile.drivers).map(d => label(d, 40)).filter(Boolean);
+  if (drivers.length) lines.push('Какво го захранва: ' + drivers.join(', '));
+
+  const behaviors = list(profile.behaviors).filter(b => b && b.name)
+    .map(b => `${label(b.name, 40)} (${label(b.level, 12)})`);
+  if (behaviors.length) lines.push('Как се проявява: ' + behaviors.join(', '));
 
   const patterns = list(profile.patterns)
-    .map(p => label(p && typeof p === 'object' ? (p.title || p.description || '') : p, 60))
+    .map(p => label(p && typeof p === 'object' ? (p.title || '') : p, 60))
     .filter(Boolean);
-  if (patterns.length) {
-    lines.push('Открити модели: ' + patterns.join('; '));
-  }
+  if (patterns.length) lines.push('Открити кръгове: ' + patterns.join('; '));
 
-  const archetypes = list(profile.archetypes).filter(a => a && a.name);
-  if (archetypes.length) {
-    lines.push('Архетипи по матрица: ' + archetypes.map(a => `${label(a.name, 30)} ${score(a.confidence)}%`).join(', '));
-  }
+  const body = label(profile.bodySignals, 120);
+  if (body) lines.push('Телесни сигнали: ' + body);
+
+  const need = label(profile.realNeed, 200);
+  if (need) lines.push('Истинската нужда: ' + need);
 
   const reliability = profile.reliability;
   const reliabilityLevel = reliability ? label(reliability.level, 20) : '';
   if (reliabilityLevel) {
     lines.push(
-      `Надеждност: ${reliabilityLevel} — ${score(reliability.answered)}/${score(reliability.total)} отговора, ` +
-      `${score(reliability.neutralShare)}% неутрални избора`
+      `Надеждност: ${reliabilityLevel} — ${count(reliability.answered)}/${count(reliability.total)} отговора, ` +
+      `${count(reliability.neutralShare)}% „не е за мен"`
     );
   }
 
-  return lines.length ? lines.join('\n') : '(няма изчислен профил)';
+  return lines.join('\n');
 }
 
 /**
- * Generate EmoEat emotional eating analysis using AI
- * Takes 10 questionnaire answers (projective choice + optional free text) plus the
- * deterministic profile computed from the weight matrix, and returns a deeply
- * personalized psychological analysis
+ * Answers arrive as "situation → choice" lines keyed by question id. The
+ * client already drops the figure items (they enter only via bodySignals).
+ */
+function serializeEmoeatAnswers(answers) {
+  return Object.keys(answers)
+    .filter(k => /^\d{1,3}$/.test(k))
+    .sort((a, b) => Number(a) - Number(b))
+    .map(k => String(answers[k] || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 400))
+    .filter(Boolean)
+    .slice(0, 24)
+    .map(line => '- ' + line)
+    .join('\n');
+}
+
+/**
+ * Generate the EmoEat plan: the profile is computed on the client; the model
+ * only names the cycle and writes a short, concrete week plan.
  */
 async function generateEmoeatPrompt(answers, profile, env) {
   const customPrompt = await requireKvPrompt(env, 'admin_emoeat_prompt');
-  const variables = { computedProfile: serializeEmoeatProfile(profile) };
-  for (let i = 1; i <= 10; i++) {
-    variables[`answer${i}`] = (answers[i] || '').trim() || '(без отговор)';
-  }
+  const variables = {
+    computedProfile: serializeEmoeatProfile(profile),
+    answers: serializeEmoeatAnswers(answers) || '(без отговори)'
+  };
   return replacePromptVariables(customPrompt, variables);
 }
 
@@ -10707,7 +10734,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
 
     const prompt = await generateEmoeatPrompt(data.answers, data.profile, env);
 
-    const EMOEAT_TOKEN_LIMIT = 5500;
+    const EMOEAT_TOKEN_LIMIT = 5000;
     const aiResponse = await callAIModel(
       env,
       prompt,
@@ -10719,8 +10746,9 @@ async function handleGenerateEmoeatAnalysis(request, env) {
     );
 
     const parsed = parseAIResponse(aiResponse);
+    const actions = parsed && parsed.week && Array.isArray(parsed.week.actions) ? parsed.week.actions : [];
 
-    if (!parsed || !parsed.dominantArchetype) {
+    if (!parsed || !parsed.headline || !actions.length) {
       console.error('handleGenerateEmoeatAnalysis: Failed to parse AI response');
       return jsonResponse({
         error: 'Анализът не можа да бъде генериран. Моля, опитайте отново.',
