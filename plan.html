@@ -2154,7 +2154,7 @@
             to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         .game-bubble-header {
-            background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+            background: var(--ds-fill-grad);
             padding: 10px 14px;
             display: flex;
             align-items: center;
@@ -2302,6 +2302,8 @@
             transition: background 0.15s;
         }
         .game-bubble-close:hover { background: rgba(255,255,255,0.38); }
+        /* Зона за докосване 44px около малкия видим кръг. */
+        .game-bubble-close::after { content: ''; position: absolute; inset: -12px; }
         /* Meal check button */
         .meal-check-btn {
             width: 40px; height: 40px;
@@ -2417,6 +2419,147 @@
             gap: 4px;
             box-shadow: 0 6px 24px rgba(13,148,136,0.3);
             cursor: pointer;
+        }
+        /* ── Лента на деня ── */
+        #dailyScoreCard.day-card {
+            align-items: stretch;
+            gap: 14px;
+            padding: 18px 18px 16px;
+            border-radius: 24px;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 14px 34px -16px rgba(15, 118, 110, 0.65);
+        }
+        #dailyScoreCard.day-card::after {
+            content: '';
+            position: absolute;
+            right: -60px; top: -80px;
+            width: 200px; height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(94, 234, 212, 0.22), transparent 70%);
+            pointer-events: none;
+        }
+        #dailyScoreCard.day-card--empty { background: var(--card-bg); color: var(--text-dark); box-shadow: none; border: 1px dashed var(--glass-border); }
+        #dailyScoreCard.day-card--empty::after { display: none; }
+        .dc-head { position: relative; z-index: 1; padding-right: 76px; }
+        .dc-kicker { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.9; font-variant-numeric: tabular-nums; }
+        .dc-title { font-size: 1.25rem; font-weight: 700; line-height: 1.25; margin-top: 4px; letter-spacing: -0.01em; }
+        .dc-hint { font-size: 0.8125rem; opacity: 0.9; margin-top: 4px; }
+        .dc-result { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; }
+        .dc-stars { display: inline-flex; gap: 3px; font-size: 1.25rem; }
+        .dc-stars i { color: rgba(255, 255, 255, 0.28); }
+        .dc-stars i.on { color: #FCD34D; }
+        .dc-result .dc-title { margin-top: 0; }
+        .dc-more {
+            position: absolute; top: 0; right: 0;
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 0.8125rem; font-weight: 600; opacity: 0.92;
+        }
+        .dc-more i { font-size: 0.7em; }
+        .dc-strip { position: relative; z-index: 1; display: flex; gap: 4px; }
+        .dc-seg {
+            flex: 1 1 0;
+            min-width: 0;
+            min-height: 44px;
+            padding: 6px 0 0;
+            border: none;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .dc-seg-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            transition: transform var(--ds-motion-press) var(--ds-ease-standard);
+        }
+        .dc-seg-bar::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: #5EEAD4;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform var(--ds-motion-transition) var(--ds-ease-emphasis);
+        }
+        .dc-seg--done .dc-seg-bar::after { transform: scaleX(1); }
+        .dc-seg--partial .dc-seg-bar::after { transform: scaleX(0.5); }
+        .dc-seg--missed .dc-seg-bar { background: repeating-linear-gradient(135deg, rgba(255,255,255,0.32) 0 4px, rgba(255,255,255,0.08) 4px 8px); }
+        .dc-seg--locked .dc-seg-bar { background: rgba(255, 255, 255, 0.12); }
+        .dc-seg.is-next .dc-seg-bar { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85); }
+        .dc-seg:active .dc-seg-bar { transform: scaleY(1.35); }
+        .dc-seg:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; border-radius: 6px; }
+        .dc-seg-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+        .dc-seg--locked .dc-seg-label, .dc-seg--locked .dc-seg-icon { opacity: 0.8; }
+        .dc-seg-icon { display: none; font-size: 0.9375rem; text-align: center; line-height: 1.2; }
+        .dc-strip--icons .dc-seg-label { display: none; }
+        .dc-strip--icons .dc-seg-icon { display: block; }
+        .dc-cal { position: relative; z-index: 1; }
+        .dc-cal-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+        .dc-cal-num { font-size: 1.125rem; font-weight: 700; }
+        .dc-cal-num small { font-size: 0.8125rem; font-weight: 600; opacity: 0.9; }
+        .dc-cal-note { font-size: 0.8125rem; font-weight: 600; }
+        .dc-cal-track { position: relative; height: 6px; margin-top: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.16); overflow: hidden; }
+        .dc-cal-zone { position: absolute; top: 0; bottom: 0; background: rgba(255, 255, 255, 0.32); }
+        .dc-cal-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: #ffffff; transition: width var(--ds-motion-expressive) var(--ds-ease-emphasis); }
+        .dc-cal.is-over .dc-cal-fill { background: #FCD34D; }
+        .dc-cal.is-over .dc-cal-note { color: #FFFFFF; }
+        .dc-cal.is-over .dc-cal-note::before { content: "\f062"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 0.8em; margin-right: 4px; color: #FCD34D; }
+        .dc-chips { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+        .dc-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.22);
+            font-size: 0.8125rem;
+            font-weight: 600;
+        }
+        .dc-chip i { font-size: 0.85em; opacity: 0.9; }
+        .dc-chip--streak { background: rgba(252, 211, 77, 0.2); color: #FEF3C7; }
+        .dc-chip--streak.is-new { animation: streakPop 0.5s var(--ds-ease-emphasis); }
+        #dailyScoreCard.dc-reveal .dc-stars i.on { animation: starItemPop 0.4s var(--ds-ease-emphasis) both; }
+        .meal-card.dc-focus { animation: dcFocus 1.4s var(--ds-ease-standard); }
+        @keyframes dcFocus {
+            0%, 100% { box-shadow: var(--shadow); }
+            25% { box-shadow: 0 0 0 3px var(--primary-red), var(--shadow); }
+        }
+        .dc-toast {
+            position: fixed;
+            left: 50%;
+            bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+            z-index: 960;
+            transform: translate(-50%, 12px);
+            opacity: 0;
+            max-width: calc(100vw - 32px);
+            padding: 10px 16px;
+            border-radius: 14px;
+            background: var(--text-dark);
+            color: var(--bg-color);
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: transform var(--ds-motion-standard) var(--ds-ease-emphasis), opacity var(--ds-motion-fast) linear;
+            pointer-events: none;
+        }
+        .dc-toast.is-shown { transform: translate(-50%, 0); opacity: 1; }
+        @media (max-width: 359px) {
+            .dc-strip { gap: 3px; }
+            .dc-seg-label { font-size: 0.75rem; letter-spacing: -0.01em; }
         }
         .daily-score-info { width: 100%; text-align: center; }
         .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; text-align: center; letter-spacing: 0.03em; }
@@ -2653,6 +2796,18 @@
             width: 100%;
         }
         .game-modal-btn:hover { opacity: 0.88; }
+        .game-modal-score--result { background: rgba(252, 211, 77, 0.18); color: var(--text-dark); }
+        .game-modal-score--soft { background: rgba(15, 118, 110, 0.10); color: var(--ds-accent-text); }
+        .game-modal-streak {
+            display: inline-flex; align-items: center; gap: 8px;
+            margin: 6px auto 0; padding: 8px 16px;
+            border-radius: 999px;
+            background: var(--ds-warning-bg); color: var(--ds-warning-text);
+            font-weight: 700; font-size: 0.9375rem;
+            animation: streakPop 0.5s var(--ds-ease-emphasis);
+        }
+        .game-modal-btn--fill { background: var(--ds-fill-grad); color: var(--ds-on-fill); min-height: 48px; }
+        .game-modal-btn:active { transform: scale(var(--ds-press-scale)); }
         .game-modal-btn-row { display: flex; gap: 8px; }
         /* Weekly quick-answer flow */
         .game-qa-progress {
@@ -9879,7 +10034,8 @@
                     const ch = text[i++];
                     el.textContent += ch;
                     if (i < text.length) {
-                        hapticCtrl.trigger(ch);
+                        // Без вибрация по букви: въпросите на играта са кратки и се
+                        // повтарят всеки ден — тикането се превръща в шум. Чатът я запазва.
                         scheduleTypingStep(tick, speed || 30);
                     } else {
                         // Last character typed — finalize immediately
@@ -9980,19 +10136,17 @@
                 var dayNames2 = ['\u041D\u0434','\u041F\u043D','\u0412\u0442','\u0421\u0440','\u0427\u0442','\u041F\u0442','\u0421\u0431'];
                 var dMissing = new Date(dayKey + 'T00:00:00');
                 card.style.display = 'flex';
-                card.style.background = 'linear-gradient(135deg, rgba(107,114,128,0.18) 0%, rgba(75,85,99,0.22) 100%)';
-                card.style.boxShadow = 'none';
-                card.innerHTML = '<div class="daily-score-info">' +
-                        '<div class="daily-score-label" style="opacity:0.7">\u041E\u0446\u0435\u043D\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F</div>' +
-                        '<div class="daily-score-value" style="color:var(--text-gray)">\u041B\u0438\u043F\u0441\u0432\u0430\u0442 \u0434\u0430\u043D\u043D\u0438</div>' +
-                        '<div class="daily-score-stars" style="font-size:0.75rem;color:var(--text-gray);opacity:0.72">\u041D\u0435 \u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442</div>' +
-                    '</div>';
+                card.classList.add('day-card', 'day-card--empty');
+                card.innerHTML = '<div class="dc-head"><div class="dc-kicker">Оценка за деня</div>' +
+                    '<div class="dc-title">Липсват данни</div>' +
+                    '<div class="dc-hint">Денят не е отбелязван</div></div>';
                 return;
             }
 
             var rec = getRecord(dayKey);
             var ds = rec.dailyScore || calcDayScore(rec);
-            var mealsTotal = document.querySelectorAll('#mealContainer .meal-check-btn').length;
+            // Броят се храненията от картите, не бутоните за отметка — те се добавят по-късно.
+            var mealsTotal = document.querySelectorAll('#mealContainer .meal-card[data-meal-key]:not(.added-meal-card)').length;
             var mealsDone = Object.keys((rec && rec.meals) || {}).filter(function(k) { return rec.meals[k] === true; }).length;
             var isEmptyDay = !rec || (ds.score === null && (ds.engPct || 0) === 0 && !mealsDone);
             // Днес без отметки — подкана вместо празна лента; другите празни дни остават скрити.
@@ -10003,97 +10157,213 @@
             card.style.display = 'flex';
             card.style.background = '';
             card.style.boxShadow = '';
-            var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(s){return s;};
-            // Show score label only after the day is complete:
-            // — past day: always show
-            // — today: only after the evening check is answered (or after midnight the score becomes final)
-            var isViewingToday = (dayKey === getTodayKey());
-            var showLabel = ds.score !== null && (!isViewingToday || rec.eveningCheck !== null);
-            // Build warnings list
-            var extraCals = (rec.extraMeals || []).reduce(function(s,em) {
-                if (em.isAddedToPlan && !em.countCalories) return s;
-                return s + (em.calories || 0);
-            }, 0);
-            var mCalMap = rec.mealCalories || {};
-            var dsFreeMeal = (rec.freeMeal && rec.freeMeal.calories > 0) ? rec.freeMeal : null;
-            var completedCals = Object.keys(rec.meals || {}).reduce(function(s, mt) {
-                if (rec.meals[mt] !== true) return s;
-                if (dsFreeMeal && dsFreeMeal.mealKey === mt) return s + dsFreeMeal.calories;
-                return mCalMap[mt] ? s + mCalMap[mt] : s;
-            }, 0);
-            var planCals = rec.plannedCalories || 0;
-            var totalCals = completedCals + extraCals;
-            var warningsList = [];
-            if (ds.calorieBalance === 'surplus' && totalCals > 0) {
-                var surplusKcal = planCals > 0 ? Math.round(totalCals - planCals) : extraCals;
-                if (surplusKcal > 0) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> \u0417\u0430\u0432\u0438\u0448\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u043D\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438: +' + surplusKcal + ' kcal \u043D\u0430\u0434 \u043F\u043B\u0430\u043D\u0430');
-            } else if (ds.calorieBalance === 'deficit' && planCals > 0 && totalCals > 0) {
-                var deficitKcal = Math.round(planCals - totalCals);
-                if (deficitKcal > 0) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> \u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u043D\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438: \u2212' + deficitKcal + ' kcal \u043F\u043E\u0434 \u043F\u043B\u0430\u043D\u0430');
-            }
-            if (ds.junkCount > 0) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> ' + ds.junkCount + ' \u0432\u0440\u0435\u0434\u043D\u0438 \u0445\u0440\u0430\u043D\u0438');
-            if (rec.morningCheck && rec.morningCheck.sleptWell === false) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> \u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0441\u044A\u043D');
-            if (rec.eveningCheck && rec.eveningCheck.waterIntake === false) warningsList.push('<i class="fas fa-exclamation-triangle" style="color:#fde68a"></i> \u041B\u043E\u0448\u0430 \u0445\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F');
-            var warningsBadge = warningsList.length > 0
-                ? '<div class="daily-warnings">' + warningsList.map(function(w) { return '<div class="daily-warning-item">' + w + '</div>'; }).join('') + '</div>'
-                : '';
-            var progPct = Math.max(0, Math.min(100, ds.engPct || 0));
-            // Read previously rendered pct so we can avoid animating from 0 on re-renders
-            var NO_PREV_PCT = -1;
-            var prevProgPct = parseFloat(card.getAttribute('data-prog-pct') || NO_PREV_PCT);
-            card.setAttribute('data-prog-pct', progPct);
-            var streak = (dayKey === getTodayKey()) ? calcStreak() : 0;
-            // Animate streak badge only when the streak value increases
-            var prevStreak = parseInt(card.getAttribute('data-prev-streak') || '0', 10);
-            var streakIsNew = streak > prevStreak;
-            card.setAttribute('data-prev-streak', streak >= 2 ? streak : '0');
-            var streakBadge = streak >= 2
-                ? '<div class="daily-streak-badge' + (streakIsNew ? ' streak-badge-new' : '') + '"><i class="fas fa-fire" style="font-size:0.9em"></i> ' + streak + ' \u0434\u043D\u0438 \u043F\u043E\u0440\u0435\u0434</div>'
-                : '';
-            // Build stars: stagger-pop each icon when a new tier is reached
-            var STAR_STAGGER_DELAY_MS = 55;
-            var newScore = ds.score || 0;
-            var starsHtml;
-            if (prevScore !== undefined && newScore > 0 && newScore > prevScore) {
-                starsHtml = '';
-                for (var si = 0; si < newScore; si++) {
-                    starsHtml += '<i class="fas fa-star ds-star-item" style="color:#fbbf24;font-size:0.85em;animation-delay:' + (si * STAR_STAGGER_DELAY_MS) + 'ms"></i>';
-                }
-            } else {
-                starsHtml = ds.stars;
-            }
-            card.innerHTML = '<div class="daily-score-info">' +
-                    '<div class="daily-score-label">\u041E\u0446\u0435\u043D\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F</div>' +
-                    (showLabel ? '<div class="daily-score-value">' + esc(ds.label) + '</div>' : '') +
-                    (mealsDone === 0
-                        ? '<div class="daily-score-hint">Отбележи първото хранене — оценката се събира през деня</div>'
-                        : '<div class="daily-score-stars">' + starsHtml + '</div>') +
-                    (mealsTotal > 0 ? '<div class="daily-score-count">' + mealsDone + ' от ' + mealsTotal + ' хранения</div>' : '') +
-                    warningsBadge +
-                    '<div class="daily-score-progress"><div class="daily-score-progress-fill" style="width:' + (prevProgPct >= 0 ? prevProgPct : 0) + '%"></div></div>' +
-                    streakBadge +
-                '</div>';
-            // Animate progress bar: skip transition if pct didn't change
-            (function(pct, changed) {
-                if (!changed) {
-                    // Already at correct width; set directly without transition to keep it crisp
-                    var fill = card.querySelector('.daily-score-progress-fill');
-                    if (fill) fill.style.width = pct + '%';
-                    return;
-                }
-                requestAnimationFrame(function() {
-                    requestAnimationFrame(function() {
-                        var fill = card.querySelector('.daily-score-progress-fill');
-                        if (fill) fill.style.width = pct + '%';
-                    });
-                });
-            })(progPct, progPct !== prevProgPct);
+            card.classList.add('day-card');
+            card.classList.remove('day-card--empty');
+            card.setAttribute('role', 'region');
+            card.setAttribute('aria-label', 'Денят');
+            card.removeAttribute('aria-live');
+            renderDayStrip(card, dayKey, rec, ds, prevScore);
+        }
 
-            // ── Star celebration animation ──────────────────────────────────
-            // Trigger animation only when stars increase (prevScore is passed from recalcAndShowScore)
-            if (prevScore !== undefined && newScore > 0 && newScore > prevScore) {
-                triggerStarCelebration(card, newScore);
+        // ── Лента на деня ────────────────────────────────────────────────────
+        // Сегментите са точно входовете на оценката (game-scoring.js): сутрешна
+        // проверка, храненията от плана, вечерна проверка. Пълна лента значи
+        // „денят е оценен“, не „денят е добър“ — резултатът е звездите.
+        var EVENING_UNLOCK_HOUR = 18;
+        var STREAK_MILESTONES = [3, 7, 14, 30];
+
+        function dayStripModel(dayKey, rec, ds) {
+            var GS = window.GameScoring;
+            var isToday = dayKey === getTodayKey();
+            var hour = new Date().getHours();
+            var slots = GS.planMealSlots(rec);
+            if (!slots.length) {
+                slots = Array.prototype.map.call(
+                    document.querySelectorAll('#mealContainer .meal-card[data-meal-key]:not(.added-meal-card)'),
+                    function(c) { return c.getAttribute('data-meal-key'); }
+                ).filter(function(k) { return k && !/^Напитка|^Свободно хранене/.test(k); });
             }
+            var eveningDone = isEveningComplete(rec);
+            var closed = !isToday || eveningDone;
+            var segs = [];
+            segs.push({ kind: 'morning', key: 'morning', label: 'Сутрин', icon: 'fa-sun',
+                done: !!rec.morningCheck, locked: false });
+            slots.forEach(function(slot) {
+                var mc = document.querySelector('#mealContainer .meal-card[data-meal-key="' + slot.replace(/"/g, '\\"') + '"]');
+                var typeEl = mc && mc.querySelector('.meal-type');
+                var label = typeEl ? typeEl.textContent.replace(/\(.*\)/, '').trim() : slot;
+                var short = /следобед/i.test(label) ? 'Следобед' : /късн/i.test(label) ? 'Късна' : /десерт/i.test(label) ? 'Десерт' : label.split(/\s+/)[0];
+                var icon = /закуска/i.test(label) && !/следобед|късн/i.test(label) ? 'fa-mug-hot'
+                    : /обяд/i.test(label) ? 'fa-utensils'
+                    : /следобед|десерт/i.test(label) ? 'fa-apple-whole'
+                    : /вечеря/i.test(label) ? 'fa-drumstick-bite'
+                    : /късн/i.test(label) ? 'fa-cookie' : 'fa-utensils';
+                segs.push({ kind: 'meal', key: slot, label: label, short: short, icon: icon,
+                    done: !!(rec.meals && rec.meals[slot] === true),
+                    locked: isToday && getMealUnlockHour(slot) > hour,
+                    unlockHour: getMealUnlockHour(slot) });
+            });
+            segs.push({ kind: 'evening', key: 'evening', label: 'Вечер', icon: 'fa-moon',
+                done: eveningDone,
+                partial: !eveningDone && !!(rec.eveningCheck && (rec.eveningCheck.activityLevel != null || rec.eveningCheck.emotionalBalance != null || rec.eveningCheck.waterIntake != null)),
+                locked: isToday && hour < EVENING_UNLOCK_HOUR, unlockHour: EVENING_UNLOCK_HOUR });
+            segs.forEach(function(sg) { sg.missed = closed && !sg.done; });
+
+            // Калории: баланс спрямо плана, не „пълнене“.
+            var mCalMap = rec.mealCalories || {};
+            var free = (rec.freeMeal && rec.freeMeal.calories > 0) ? rec.freeMeal : null;
+            var eaten = Object.keys(rec.meals || {}).reduce(function(sum, mt) {
+                if (rec.meals[mt] !== true) return sum;
+                if (free && free.mealKey === mt) return sum + free.calories;
+                return mCalMap[mt] ? sum + mCalMap[mt] : sum;
+            }, 0) + (rec.extraMeals || []).reduce(function(sum, em) {
+                if (em.isAddedToPlan && !em.countCalories) return sum;
+                return sum + (em.calories || 0);
+            }, 0);
+            var plan = (rec.lockedPlannedCalories > 0 ? rec.lockedPlannedCalories : rec.plannedCalories) || 0;
+
+            // Отклонения — същите условия, които спират петата звезда.
+            var flags = [];
+            var ec = rec.eveningCheck || {};
+            if (rec.morningCheck && rec.morningCheck.sleptWell === false) flags.push({ icon: 'fa-bed', text: 'Лош сън' });
+            if (ec.waterIntake === false) flags.push({ icon: 'fa-tint', text: 'Малко вода' });
+            if (ec.activityLevel === 1) flags.push({ icon: 'fa-walking', text: 'Малко движение' });
+            if (ec.emotionalBalance === 1) flags.push({ icon: 'fa-cloud', text: 'Тежък ден' });
+            if (ds.junkCount > 0) flags.push({ icon: 'fa-cookie-bite', text: ds.junkCount + (ds.junkCount === 1 ? ' вредна храна' : ' вредни храни') });
+            if (ds.excessCalories && plan > 0 && eaten > plan) flags.push({ icon: 'fa-arrow-up', text: '+' + Math.round(eaten - plan) + ' kcal над плана' });
+            if (ds.calorieBalance === 'deficit' && plan > 0) flags.push({ icon: 'fa-arrow-down', text: Math.round(plan - eaten) + ' kcal под плана' });
+            var missedMeals = segs.filter(function(sg) { return sg.kind === 'meal' && sg.missed; }).length;
+            if (missedMeals) flags.push({ icon: 'fa-circle-xmark', text: missedMeals + (missedMeals === 1 ? ' пропуснато хранене' : ' пропуснати хранения') });
+
+            var next = null;
+            if (!closed) {
+                next = segs.filter(function(sg) { return !sg.done && !sg.locked; })[0] ||
+                       segs.filter(function(sg) { return !sg.done; })[0] || null;
+            }
+            return { segs: segs, closed: closed, isToday: isToday, eaten: Math.round(eaten), plan: Math.round(plan),
+                     flags: flags, next: next,
+                     doneCount: segs.filter(function(sg) { return sg.done; }).length };
+        }
+
+        function renderDayStrip(card, dayKey, rec, ds, prevScore) {
+            var m = dayStripModel(dayKey, rec, ds);
+            var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(t){ return t; };
+            var streak = m.isToday ? calcStreak() : 0;
+            var prevStreak = parseInt(card.getAttribute('data-prev-streak') || '0', 10);
+            card.setAttribute('data-prev-streak', streak >= 2 ? streak : '0');
+
+            // Заглавие: какво следва (отворен ден) или резултатът (затворен ден).
+            var head;
+            if (m.closed && ds.score !== null) {
+                var stars = '';
+                for (var i = 0; i < 5; i++) {
+                    stars += '<i class="fas fa-star' + (i < ds.score ? ' on' : '') + '" aria-hidden="true"></i>';
+                }
+                var baseLabel = String(ds.label || '').split(' (')[0].split(' — ')[0];
+                head = '<div class="dc-kicker">' + (m.isToday ? 'Оценка за днес' : 'Оценка за деня') + '</div>' +
+                    '<div class="dc-result"><span class="dc-stars" role="img" aria-label="' + ds.score + ' от 5 звезди">' + stars + '</span>' +
+                    '<span class="dc-title">' + esc(baseLabel) + '</span></div>';
+            } else if (m.closed) {
+                head = '<div class="dc-kicker">Оценка за деня</div><div class="dc-title">Без отбелязана активност</div>';
+            } else {
+                var nx = m.next;
+                var nextText = !nx ? 'Всичко за деня е отбелязано'
+                    : nx.locked ? 'Следва: ' + nx.label + ' (от ' + nx.unlockHour + ':00)'
+                    : nx.kind === 'morning' ? 'Следва: как спахте?'
+                    : nx.kind === 'evening' ? 'Следва: вечерната проверка'
+                    : 'Следва: ' + nx.label;
+                head = '<div class="dc-kicker">Днес · ' + m.doneCount + ' от ' + m.segs.length + '</div>' +
+                    '<div class="dc-title">' + esc(nextText) + '</div>' +
+                    '<div class="dc-hint">Оценката се показва след вечерната проверка</div>';
+            }
+
+            var segHtml = m.segs.map(function(sg, idx) {
+                var st = sg.done ? 'done' : sg.missed ? 'missed' : sg.locked ? 'locked' : sg.partial ? 'partial' : 'open';
+                var stateText = sg.done ? 'отбелязано' : sg.missed ? 'пропуснато' : sg.locked ? 'от ' + sg.unlockHour + ':00' : 'предстои';
+                var isNext = m.next && m.next.key === sg.key;
+                return '<button type="button" class="dc-seg dc-seg--' + st + (isNext ? ' is-next' : '') + '" data-seg="' + idx + '"' +
+                    ' aria-label="' + esc(sg.label) + ': ' + stateText + '"' + (sg.locked && !sg.done ? ' aria-disabled="true"' : '') + '>' +
+                    '<span class="dc-seg-bar"></span><span class="dc-seg-label" aria-hidden="true">' + esc(sg.short || sg.label) + '</span>' +
+                    '<i class="fas ' + sg.icon + ' dc-seg-icon" aria-hidden="true"></i></button>';
+            }).join('');
+
+            var calHtml = '';
+            if (m.plan > 0) {
+                var scaleMax = m.plan * 1.3;
+                var fillPct = Math.min(100, m.eaten / scaleMax * 100);
+                var over = m.eaten > m.plan * 1.1;
+                var inZone = m.eaten >= m.plan * 0.9 && !over;
+                var calNote = m.eaten === 0 ? ''
+                    : over ? '+' + (m.eaten - m.plan) + ' над плана'
+                    : inZone ? 'в целевата зона'
+                    : 'до плана: ' + (m.plan - m.eaten);
+                calHtml = '<div class="dc-cal' + (over ? ' is-over' : inZone ? ' is-zone' : '') + '">' +
+                    '<div class="dc-cal-row"><span class="dc-cal-num">' + m.eaten + ' <small>/ ' + m.plan + ' kcal</small></span>' +
+                    '<span class="dc-cal-note">' + calNote + '</span></div>' +
+                    '<div class="dc-cal-track" aria-hidden="true"><span class="dc-cal-zone" style="left:' + (0.9 / 1.3 * 100).toFixed(1) + '%;width:' + (0.2 / 1.3 * 100).toFixed(1) + '%"></span>' +
+                    '<span class="dc-cal-fill" style="width:' + fillPct.toFixed(1) + '%"></span></div></div>';
+            }
+
+            var chips = m.flags.map(function(f) {
+                return '<span class="dc-chip"><i class="fas ' + f.icon + '" aria-hidden="true"></i>' + esc(f.text) + '</span>';
+            });
+            if (streak >= 2) {
+                chips.unshift('<span class="dc-chip dc-chip--streak' + (streak > prevStreak ? ' is-new' : '') + '"><i class="fas fa-fire" aria-hidden="true"></i>' + streak + ' дни поред</span>');
+            }
+
+            card.innerHTML = '<div class="dc-head" aria-live="polite">' + head +
+                    '<span class="dc-more" aria-hidden="true">Анализ <i class="fas fa-chevron-right"></i></span></div>' +
+                '<div class="dc-strip" role="group" aria-label="Стъпки на деня">' + segHtml + '</div>' +
+                calHtml +
+                (chips.length ? '<div class="dc-chips">' + chips.join('') + '</div>' : '');
+
+            // Етикетите са думи, докато се побират; иначе цялата лента минава на икони.
+            var strip = card.querySelector('.dc-strip');
+            if (strip) {
+                var tight = Array.prototype.some.call(strip.querySelectorAll('.dc-seg-label'), function(l) {
+                    return l.scrollWidth > l.clientWidth + 1;
+                });
+                strip.classList.toggle('dc-strip--icons', tight);
+            }
+            card.querySelectorAll('.dc-seg').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    onDaySegment(m.segs[+btn.getAttribute('data-seg')], dayKey);
+                });
+            });
+
+            // Звездите не се празнуват по време на деня — само при затварянето му (showDayEndModal).
+            if (m.closed && !m.isToday && prevScore !== undefined && (ds.score || 0) > prevScore) {
+                card.classList.remove('dc-reveal'); void card.offsetWidth; card.classList.add('dc-reveal');
+            }
+        }
+
+        function onDaySegment(sg, dayKey) {
+            if (!sg) return;
+            if (sg.locked && !sg.done) {
+                showDayToast(sg.label + ' се отбелязва от ' + sg.unlockHour + ':00');
+                return;
+            }
+            if (sg.kind === 'morning') { if (!sg.done) showMorningQuestion(true, dayKey, null); return; }
+            if (sg.kind === 'evening') { if (!sg.done) showEveningFlow(false, dayKey, null); return; }
+            var mc = document.querySelector('#mealContainer .meal-card[data-meal-key="' + sg.key.replace(/"/g, '\\"') + '"]');
+            if (!mc) return;
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            mc.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+            mc.classList.remove('dc-focus'); void mc.offsetWidth; mc.classList.add('dc-focus');
+            setTimeout(function() { mc.classList.remove('dc-focus'); }, 1400);
+        }
+
+        function showDayToast(text) {
+            var old = document.querySelector('.dc-toast');
+            if (old) old.remove();
+            var t = document.createElement('div');
+            t.className = 'dc-toast';
+            t.setAttribute('role', 'status');
+            t.textContent = text;
+            document.body.appendChild(t);
+            requestAnimationFrame(function() { t.classList.add('is-shown'); });
+            setTimeout(function() { t.classList.remove('is-shown'); setTimeout(function() { t.remove(); }, 300); }, 2200);
         }
 
         // ── Star celebration ──────────────────────────────────────────────────
@@ -10107,12 +10377,8 @@
             setTimeout(function() { card.classList.remove('sc-anim-' + starCount); }, 1200);
 
             // Haptic feedback: escalating pattern
-            if (typeof navigator !== 'undefined' && navigator.vibrate && (!window.userHasInteracted || window.userHasInteracted())) {
-                if      (starCount === 1) navigator.vibrate(60);
-                else if (starCount === 2) navigator.vibrate([60, 40, 80]);
-                else if (starCount === 3) navigator.vibrate([80, 40, 80, 40, 120]);
-                else if (starCount === 4) navigator.vibrate([100, 50, 100, 50, 150, 50, 150]);
-                else                     navigator.vibrate([150, 60, 150, 60, 200, 60, 200, 60, 300]);
+            if (starCount >= 4 && window.NutriPlanHaptic && window.NutriPlanHaptic.notify) {
+                window.NutriPlanHaptic.notify('success');
             }
 
             // Flying stars burst overlay
@@ -11087,16 +11353,24 @@
             modal.appendChild(titleEl);
 
             var scoreEl = document.createElement('div');
-            scoreEl.className = 'game-modal-score';
-            scoreEl.style.cssText = 'background:linear-gradient(135deg,'+lv.color+','+lv.color+'99);color:white;';
+            scoreEl.className = 'game-modal-score game-modal-score--result';
             scoreEl.innerHTML = '\u041E\u0446\u0435\u043D\u043A\u0430: <strong>' + (ds.stars||'') + '</strong>';
             modal.appendChild(scoreEl);
 
             var engEl = document.createElement('div');
-            engEl.className = 'game-modal-score';
-            engEl.style.cssText = 'background:rgba(13,148,136,0.12);color:#0D9488;';
-            engEl.innerHTML = '<i class="fas fa-chart-bar" style="color:#0D9488"></i> Ангажираност: <strong>' + (ds.engPct||0) + '%</strong>';
+            engEl.className = 'game-modal-score game-modal-score--soft';
+            engEl.innerHTML = '<i class="fas fa-chart-bar" aria-hidden="true"></i> Ангажираност: <strong>' + (ds.engPct||0) + '%</strong>';
             modal.appendChild(engEl);
+
+            // Серия: етап само на кръгли стойности, за да остане рядък момент.
+            var streakNow = calcStreak();
+            var isMilestone = (ds.score || 0) >= 4 && STREAK_MILESTONES.indexOf(streakNow) !== -1;
+            if (isMilestone) {
+                var stEl = document.createElement('div');
+                stEl.className = 'game-modal-streak';
+                stEl.innerHTML = '<i class="fas fa-fire" aria-hidden="true"></i> ' + streakNow + ' поредни дни с 4+ звезди';
+                modal.appendChild(stEl);
+            }
 
             var msgEl = document.createElement('div');
             msgEl.className = 'game-modal-msg';
@@ -11104,14 +11378,23 @@
             modal.appendChild(msgEl);
 
             var closeBtn = document.createElement('button');
-            closeBtn.className = 'game-modal-btn';
-            closeBtn.style.cssText = 'background:linear-gradient(135deg,'+lv.color+',#0F766E);color:white;';
+            closeBtn.type = 'button';
+            closeBtn.className = 'game-modal-btn game-modal-btn--fill';
             closeBtn.textContent = '\u2713 \u0421\u0442\u0440\u0430\u0445\u043E\u0442\u043D\u043E, \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0439!';
             closeBtn.onclick = function(){ overlay.remove(); };
             modal.appendChild(closeBtn);
 
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
+
+            // Стълба на наградите: етап > отличен ден > добър ден; слабият ден е спокоен, без празнуване.
+            var hp = window.NutriPlanHaptic && window.NutriPlanHaptic.notify;
+            if (isMilestone) { if (hp) hp('milestone'); }
+            else if ((ds.score || 0) >= 4) { if (hp) hp('success'); }
+            if ((ds.score || 0) >= 4) {
+                var dc = document.getElementById('dailyScoreCard');
+                if (dc) setTimeout(function() { _triggerStarBurst(dc, ds.score); }, 200);
+            }
         }
 
         // ── Weekly recap ──────────────────────────────────────────────────────

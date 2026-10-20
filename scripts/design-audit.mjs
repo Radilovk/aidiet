@@ -7,6 +7,7 @@
  *   python3 -m http.server 8765        # от корена на репото
  *   node scripts/design-audit.mjs      # → design-audit.json + design-audit-shots/
  *   node scripts/design-audit.mjs '{"plan_chat":{"url":"plan.html","acts":[{"js":"openChat()"}]}}'
+ *   „storage“ в състоянието задава допълнителни ключове в localStorage (напр. gameData).
  *
  * Нужен е пакетът playwright (не е в зависимостите на проекта).
  * Сигналите се преглеждат ръчно: скрити менюта, неактивни бутони и текст
@@ -82,7 +83,7 @@ async function setTheme(pg,t){
 async function run(page){
   const st=STATES[page], t0=Date.now();
   const ctx=await b.newContext({viewport:{width:390,height:800},deviceScaleFactor:1});
-  await ctx.addInitScript(([p,u])=>{try{if(!sessionStorage.getItem('__auditInit')){sessionStorage.setItem('__auditInit','1');localStorage.setItem('dietPlan',p);localStorage.setItem('userId','demo_1');localStorage.setItem('clientId','demo_1');localStorage.setItem('userData',u);localStorage.setItem('theme','light');localStorage.setItem('planUpdatedAt','1');}}catch(e){}},[JSON.stringify(plan),JSON.stringify(userData)]);
+  await ctx.addInitScript(([p,u,extra])=>{try{if(!sessionStorage.getItem('__auditInit')){sessionStorage.setItem('__auditInit','1');localStorage.setItem('dietPlan',p);localStorage.setItem('userId','demo_1');localStorage.setItem('clientId','demo_1');localStorage.setItem('userData',u);localStorage.setItem('theme','light');localStorage.setItem('planUpdatedAt','1');Object.entries(extra||{}).forEach(([k,v])=>localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v)));}}catch(e){}},[JSON.stringify(plan),JSON.stringify(userData),st.storage||null]);
   await ctx.route(u=>!u.href.startsWith('http://localhost')&&!/fonts\.g|cdnjs|jsdelivr|unpkg/.test(u.href),r=>r.abort());
   const pg=await ctx.newPage();
   try{await pg.goto('http://localhost:8765/'+st.url,{waitUntil:'load',timeout:15000});}catch(e){}
