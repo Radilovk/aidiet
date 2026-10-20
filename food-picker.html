@@ -16,8 +16,8 @@
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
-            --primary: #0D9488;
-            --primary-dark: #0F766E;
+            --primary: #0F766E;
+            --primary-dark: #115E59;
             --primary-light: #CCFBF1;
             --accent: #06B6D4;
             --bg: #F0FDFA;
@@ -31,7 +31,7 @@
         }
         [data-theme="dark"] {
             --primary: #2DD4BF;
-            --primary-dark: #0F766E;
+            --primary-dark: #115E59;
             --primary-light: rgba(45,212,191,0.15);
             --accent: #22d3ee;
             --bg: #0a1f1e;
@@ -54,8 +54,8 @@
 
         /* ── Header ── */
         .fp-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-            color: #fff;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
             padding: 28px 20px 24px;
             text-align: center;
             position: relative;
@@ -162,8 +162,8 @@
         .cat-badge {
             font-size: 0.75rem;
             font-weight: 600;
-            background: var(--primary);
-            color: #fff;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             border-radius: 12px;
             padding: 2px 8px;
             min-width: 22px;
@@ -254,8 +254,8 @@
         }
         .btn-submit {
             flex: 1;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-            color: #fff;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
             border: none;
             border-radius: 14px;
             padding: 15px 20px;
@@ -304,8 +304,8 @@
             top: 70px;
             left: 50%;
             transform: translateX(-50%) translateY(-20px);
-            background: var(--primary);
-            color: #fff;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             padding: 12px 22px;
             border-radius: 12px;
             font-size: 0.9rem;
@@ -448,8 +448,8 @@
         .cat-add-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(13,148,136,0.12); }
         .cat-add-btn {
             flex-shrink: 0;
-            background: var(--primary);
-            color: #fff;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             border: none;
             border-radius: 10px;
             padding: 7px 14px;

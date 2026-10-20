@@ -291,6 +291,43 @@
     --ds-mesh-1: rgba(13, 148, 136, 0.08);
     --ds-mesh-2: rgba(6, 182, 212, 0.06);
     --ds-mesh-3: rgba(34, 211, 238, 0.04);
+
+    /* === ПЛЪТЕН АКЦЕНТ И ТЕКСТ ВЪРХУ НЕГО ===
+       Фонове с бял текст ползват само тези стойности: и двата края на
+       градиента дават ≥ 4.5:1 с бяло. Светлият тюркоаз (#2DD4BF) е за текст,
+       икони и декорация върху тъмен фон — никога под бял текст. */
+    --ds-fill: #0F766E;
+    --ds-fill-strong: #115E59;
+    --ds-fill-grad: linear-gradient(135deg, #115E59 0%, #0F766E 55%, #0C8379 100%);
+    --ds-on-fill: #ffffff;
+    --ds-accent-text: #0F766E;          /* акцентен текст: 5.5:1 върху бяло */
+    --ds-text-soft: #5B6E6B;            /* помощен текст: 5.4:1 върху бяло */
+
+    /* === СЕМАНТИЧНИ ЦВЕТОВЕ (текст ≥ 4.5:1 върху своя фон) === */
+    --ds-success-text: #15803D;
+    --ds-success-bg: #DCFCE7;
+    --ds-warning-text: #9A4A06;
+    --ds-warning-bg: #FFF4E0;
+    --ds-warning-border: #F5C46B;
+    --ds-error-text: #B42318;
+    --ds-error-bg: #FEE4E2;
+    --ds-risk-fill: #C2410C;            /* бял текст: 5.2:1 */
+
+    /* === ДВИЖЕНИЕ === */
+    --ds-motion-press: 120ms;
+    --ds-motion-fast: 180ms;
+    --ds-motion-standard: 240ms;
+    --ds-motion-transition: 300ms;
+    --ds-motion-expressive: 600ms;
+    --ds-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ds-ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+    --ds-press-scale: 0.97;
+
+    /* === ДОКОСВАНЕ И ШРИФТ: долни граници === */
+    --ds-touch-min: 44px;
+    --ds-touch-primary: 48px;
+    --ds-label-min: 0.75rem;            /* 12px — етикети */
+    --ds-support-min: 0.875rem;         /* 14px — помощен текст */
 }
 
 /* ===========================
@@ -346,6 +383,18 @@
     --ds-mesh-1: rgba(45, 212, 191, 0.06);
     --ds-mesh-2: rgba(34, 211, 238, 0.05);
     --ds-mesh-3: rgba(103, 232, 249, 0.04);
+
+    /* Плътният акцент остава тъмен и в тъмна тема — отделя се от фона
+       с тон и сянка, а белият текст върху него остава четим. */
+    --ds-accent-text: #2DD4BF;
+    --ds-text-soft: #9AB3AF;
+    --ds-success-text: #4ADE80;
+    --ds-success-bg: rgba(74, 222, 128, 0.12);
+    --ds-warning-text: #FBBF24;
+    --ds-warning-bg: rgba(251, 191, 36, 0.10);
+    --ds-warning-border: rgba(251, 191, 36, 0.35);
+    --ds-error-text: #F87171;
+    --ds-error-bg: rgba(248, 113, 113, 0.12);
 }
 
 /* ===========================
@@ -596,8 +645,8 @@ body {
 
 /* Primary button */
 .ds-btn-primary {
-    background: linear-gradient(135deg, var(--ds-primary-500) 0%, var(--ds-primary-600) 100%);
-    color: var(--ds-text-inverse);
+    background: var(--ds-fill-grad);
+    color: var(--ds-on-fill);
     box-shadow: var(--ds-shadow-sm), 0 4px 12px rgba(13, 148, 136, 0.25);
 }
 
@@ -788,11 +837,11 @@ body {
     width: 28px;
     height: 28px;
     border-radius: var(--ds-radius-full);
-    background: var(--ds-primary-500);
+    background: var(--ds-fill);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--ds-on-fill);
     animation: ds-check-pop 0.3s var(--ds-ease-bounce);
 }
 
@@ -865,8 +914,8 @@ body {
     width: 64px;
     height: 64px;
     border-radius: var(--ds-radius-2xl);
-    background: linear-gradient(135deg, var(--ds-primary-500) 0%, var(--ds-primary-600) 100%);
-    color: white;
+    background: var(--ds-fill-grad);
+    color: var(--ds-on-fill);
     border: none;
     cursor: pointer;
     display: flex;
@@ -965,8 +1014,8 @@ body {
 }
 
 .ds-day-chip.active {
-    background: linear-gradient(135deg, var(--ds-primary-500) 0%, var(--ds-primary-400) 100%);
-    color: white;
+    background: var(--ds-fill-grad);
+    color: var(--ds-on-fill);
     border-color: transparent;
     box-shadow: var(--ds-shadow-primary);
     transform: translateY(-3px) scale(1.02);
@@ -1111,8 +1160,8 @@ body {
     top: -100%;
     left: var(--ds-space-4);
     padding: var(--ds-space-3) var(--ds-space-6);
-    background: var(--ds-primary-500);
-    color: white;
+    background: var(--ds-fill);
+    color: var(--ds-on-fill);
     border-radius: var(--ds-radius-lg);
     z-index: var(--ds-z-max);
     transition: top var(--ds-transition-fast) var(--ds-ease-default);
@@ -1740,4 +1789,73 @@ a.ds-btn:active:not(:disabled) {
 
 [data-theme="dark"] .ds-focus-ring:focus-visible {
     box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.3), 0 0 0 6px rgba(45, 212, 191, 0.1);
+}
+
+/* ===========================
+   ДОЛНА НАВИГАЦИЯ — един компонент за всички екрани
+   Селекторите са с „nav.“ отпред, за да надделеят над старите
+   стилове в страниците, без !important.
+   =========================== */
+nav.bottom-nav {
+    height: calc(64px + var(--ds-safe-area-inset-bottom));
+    padding: 0 6px var(--ds-safe-area-inset-bottom);
+    gap: 2px;
+}
+nav.bottom-nav .bottom-nav-item {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 52px;
+    padding: 6px 4px;
+    gap: 4px;
+    border-radius: 16px;
+    color: var(--ds-text-soft);
+    font-size: var(--ds-label-min);
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.2;
+    transition: color var(--ds-motion-fast) var(--ds-ease-standard),
+                background-color var(--ds-motion-fast) var(--ds-ease-standard),
+                transform var(--ds-motion-press) var(--ds-ease-standard);
+}
+nav.bottom-nav .bottom-nav-item span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+nav.bottom-nav .bottom-nav-item i {
+    font-size: 22px;
+    line-height: 1;
+}
+nav.bottom-nav .bottom-nav-item.active {
+    color: var(--ds-accent-text);
+    background: rgba(15, 118, 110, 0.10);
+}
+[data-theme="dark"] nav.bottom-nav .bottom-nav-item.active {
+    color: var(--ds-accent-text);
+    background: rgba(45, 212, 191, 0.14);
+}
+nav.bottom-nav .bottom-nav-item:active {
+    transform: scale(var(--ds-press-scale));
+}
+nav.bottom-nav .bottom-nav-item:focus-visible {
+    outline: 2px solid var(--ds-accent-text);
+    outline-offset: -2px;
+}
+
+/* ===========================
+   ЗОНИ ЗА ДОКОСВАНЕ — долна граница 44px
+   min-width/min-height надделяват над width/height на страницата,
+   а :where() не вдига специфичността, затова нищо друго не се променя.
+   =========================== */
+:where(.theme-toggle, .theme-toggle-btn, .theme-btn, .pp-theme-btn, .back-btn, .fp-back-btn,
+       .modal-close, .food-analysis-close, .hamburger-btn, .nav-menu-close, .site-nav-logo,
+       .nav-hamburger, .site-nav-toggle, .menu-toggle) {
+    min-width: var(--ds-touch-min);
+    min-height: var(--ds-touch-min);
+}
+:where(.btn-cat, .btn-clear-all, .cat-add-btn, .cat-add-input, .profile-contact-header,
+       .health-chip, .back-link, .btn-print, .spa-logout-btn, .game-metrics-toggle,
+       .btn-nav, .toolbar-btn, .tab-btn, .form-input, .form-select, select.form-input) {
+    min-height: var(--ds-touch-min);
 }

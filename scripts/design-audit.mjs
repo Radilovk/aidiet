@@ -55,7 +55,7 @@ for (const page of PAGES){
    function effBg(el){const {layers,base,grad}=bgs(el);const bases=base||[[255,255,255,1]];
      if(!base){const t=document.documentElement.getAttribute('data-theme');if(t==='dark'&&!layers.some(l=>l[3]>=0.98))bases[0]=[11,18,32,1];}
      return {list:bases.map(bb=>{let c=bb;for(let i=layers.length-1;i>=0;i--)c=blend(layers[i],c);return c;}),grad:!!grad};}
-   const vis=e=>{const r=e.getBoundingClientRect();if(r.width<1||r.height<1)return false;const cs=getComputedStyle(e);if(cs.visibility==='hidden'||cs.display==='none'||+cs.opacity===0)return false;let p=e;while(p){if(+getComputedStyle(p).opacity<0.05)return false;p=p.parentElement;}return true;};
+   const vis=e=>{const r=e.getBoundingClientRect();if(r.width<1||r.height<1)return false;if(r.right<=0||r.left>=window.innerWidth)return false;const cs=getComputedStyle(e);if(cs.visibility==='hidden'||cs.display==='none'||+cs.opacity===0)return false;let p=e;while(p){if(+getComputedStyle(p).opacity<0.05)return false;p=p.parentElement;}return true;};
    const contrast=[],small=[],targets=[];
    const all=[...document.body.querySelectorAll('*')];
    for(const el of all){
@@ -63,7 +63,9 @@ for (const page of PAGES){
      const txt=[...el.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent.trim()).join(' ').trim();
      if(txt&&vis(el)){
        const cs=getComputedStyle(el);const fs=parseFloat(cs.fontSize);const bold=+cs.fontWeight>=700;
-       const col=parse(cs.color); if(!col)continue;
+       const col=parse(cs.color); if(!col||col[3]===0)continue;
+       if(el.closest('[disabled],[aria-disabled="true"]'))continue;
+       if((cs.webkitBackgroundClip||cs.backgroundClip)==='text'||(cs.webkitTextFillColor&&cs.webkitTextFillColor.includes('0)')))continue;
        const {list,grad}=effBg(el); let worst=99; for(const bg of list){const c=cr(blend(col,bg),bg);worst=Math.min(worst,c);} 
        const large=fs>=24||(fs>=18.66&&bold); const need=large?3:4.5;
        const label=(el.className&&typeof el.className==='string'?'.'+el.className.trim().split(/\s+/)[0]:el.tagName.toLowerCase())+' «'+txt.slice(0,28)+'»';

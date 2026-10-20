@@ -37,8 +37,8 @@
     <style>
         :root {
             /* Teal theme — unified with main project design system */
-            --primary: #0D9488;
-            --primary-hover: #0F766E;
+            --primary: #0F766E;
+            --primary-hover: #115E59;
             --primary-light: #CCFBF1;
             --primary-dark: #115E59;
             --accent-gold: #d4a843;
@@ -49,7 +49,7 @@
             --accent-blue: #3b82f6;
             --accent-warm: #F59E0B;
             --accent-rose: #EC4899;
-            --accent-green: #0D9488;
+            --accent-green: #0F766E;
             --accent-red: #ef4444;
             --text-dark: #1F2937;
             --text-gray: #6B7280;
@@ -275,8 +275,8 @@
             margin: 10px 28px;
         }
         .site-nav-top-link {
-            background: linear-gradient(135deg, #06D6C8 0%, #0D9488 60%, #0F766E 100%) !important;
-            color: #fff !important;
+            background: var(--ds-fill-grad) !important;
+            color: var(--ds-on-fill) !important;
             border-radius: 14px;
             margin: 0 20px 8px;
             padding: 14px 20px !important;
@@ -438,8 +438,8 @@
         }
 
         .tab-btn.active {
-            background: var(--primary);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
         }
 
@@ -592,8 +592,8 @@
 
         .molecule-tag {
             padding: 6px 12px;
-            background: var(--primary);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 600;
@@ -732,8 +732,8 @@
 
         .wizard-step.active .wizard-step-num,
         .wizard-step.completed .wizard-step-num {
-            background: var(--primary);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
         }
 
         .wizard-step.completed .wizard-step-num::after {
@@ -919,8 +919,8 @@
         }
 
         .btn-primary {
-            background: var(--primary);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
         }
 

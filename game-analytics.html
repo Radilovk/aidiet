@@ -33,7 +33,7 @@
     <style>body{opacity:0}</style>
     <style>
         :root {
-            --primary-red: #0D9488;
+            --primary-red: #0F766E;
             --soft-red: #CCFBF1;
             --accent-yellow: #fbbf24;
             --accent-blue: #06B6D4;
@@ -135,7 +135,7 @@
         }
 
         .theme-toggle-btn {
-            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+            background: var(--ds-fill-grad);
             border: none;
             width: 42px;
             height: 42px;
@@ -143,11 +143,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--ds-on-fill);
             font-size: 1.05rem;
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
             position: relative;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
@@ -164,7 +164,7 @@
 
         .theme-toggle-btn:hover {
             transform: scale(1.1) rotate(-8deg);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
+            box-shadow: 0 8px 20px rgba(15, 118, 110, 0.5);
         }
 
         .theme-toggle-btn:active {
@@ -191,8 +191,8 @@
         }
         .game-analytics-header {
             padding: 14px 18px;
-            background: linear-gradient(135deg, #0D9488, #0F766E);
-            color: #fff;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -220,11 +220,11 @@
         }
         /* Weekly overview card */
         .game-week-card {
-            background: linear-gradient(135deg,#0D9488,#0F766E);
+            background: var(--ds-fill-grad);
             border-radius: 14px;
             padding: 12px 14px;
             margin-bottom: 14px;
-            color: white;
+            color: var(--ds-on-fill);
             display: flex;
             align-items: center;
             gap: 12px;
@@ -446,8 +446,8 @@
         .game-explain-close {
             margin-top:12px; width:100%; padding:10px;
             border:none; border-radius:12px;
-            background:linear-gradient(135deg,#0D9488,#0F766E);
-            color:white; font-weight:700; cursor:pointer; font-size:0.85rem;
+            background:var(--ds-fill-grad);
+            color: var(--ds-on-fill); font-weight:700; cursor:pointer; font-size:0.85rem;
         }
         .game-explain-why-btn {
             margin-top:10px; width:100%; padding:9px;
@@ -632,19 +632,19 @@
         (function() {
             const colorSchemes = {
                 'purple-pink': {
-                    light: { '--primary-red': '#0D9488', '--soft-red': '#CCFBF1' },
+                    light: { '--primary-red': '#0F766E', '--soft-red': '#CCFBF1' },
                     dark:  { '--primary-red': '#2DD4BF', '--soft-red': '#134E4A' }
                 },
                 'green-blue': {
-                    light: { '--primary-red': '#4CAF50', '--soft-red': '#E8F5E9' },
+                    light: { '--primary-red': '#2E7D32', '--soft-red': '#E8F5E9' },
                     dark:  { '--primary-red': '#66BB6A', '--soft-red': '#1B5E20' }
                 },
                 'blue-indigo': {
-                    light: { '--primary-red': '#3B82F6', '--soft-red': '#EFF6FF' },
+                    light: { '--primary-red': '#1D4ED8', '--soft-red': '#EFF6FF' },
                     dark:  { '--primary-red': '#60A5FA', '--soft-red': '#1E3A8A' }
                 },
                 'orange-red': {
-                    light: { '--primary-red': '#F97316', '--soft-red': '#FFF7ED' },
+                    light: { '--primary-red': '#C2410C', '--soft-red': '#FFF7ED' },
                     dark:  { '--primary-red': '#FB923C', '--soft-red': '#7C2D12' }
                 }
             };
@@ -1334,19 +1334,19 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
-        <a href="index.html?stay=1" class="bottom-nav-item">
-            <i class="fas fa-home"></i>
-            <span>Начало</span>
-        </a>
         <a href="index.html?app=1&tab=plan" class="bottom-nav-item">
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
         </a>
-        <a href="guidelines.html" class="bottom-nav-item">
+        <a href="index.html?app=1&tab=guidelines" class="bottom-nav-item">
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="profile.html" class="bottom-nav-item">
+        <a href="index.html?app=1&tab=analytics" class="bottom-nav-item active" aria-current="page">
+            <i class="fas fa-chart-bar"></i>
+            <span>Анализ</span>
+        </a>
+        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
