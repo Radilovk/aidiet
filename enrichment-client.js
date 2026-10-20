@@ -85,6 +85,8 @@
         try {
             if (text) localStorage.setItem('np_health_essence', text);
             else if (data && data.derived) localStorage.removeItem('np_health_essence');
+            // Отворените въпроси — за чата (асистентът пита само свързаните с темата).
+            if (data && data.derived) localStorage.setItem('np_open_questions', JSON.stringify(data.derived.questions || []));
         } catch (_) {}
         return data;
     }

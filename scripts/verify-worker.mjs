@@ -114,6 +114,11 @@ check('сверка AIRIS / EmoEat / NutriPlan', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
+check('чат: уточняващи въпроси', () => {
+  const r = run('node', ['scripts/test-chat-clarify.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
 check('матрица от профили', () => {
   const r = run('node', ['scripts/test-profile-matrix.mjs', '120']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);

@@ -28015,7 +28015,7 @@ var FLESH_STEMS = [
 var SWEETENER_STEMS = ["\u043C\u0435\u0434", "\u0437\u0430\u0445\u0430\u0440", "\u0441\u0438\u0440\u043E\u043F", "\u043A\u043E\u043D\u0444\u0438\u0442\u044E\u0440", "\u043D\u0435\u043A\u0442\u0430\u0440"];
 function matchesStem(name, stems) {
   const lower = String(name || "").toLowerCase();
-  return stems.some((stem) => lower.includes(stem));
+  return stems.some((stem2) => lower.includes(stem2));
 }
 function checkProductCompatibility(productNames, options = {}) {
   const names = (productNames || []).map((n) => String(n || "").trim()).filter(Boolean);
@@ -42825,8 +42825,8 @@ function strictOf(profile, policy, ctx, blockedTerms) {
   for (const term of blockedTerms || []) {
     const t = String(term || "").trim().toLowerCase();
     if (PATTERN_TERMS[policy.pattern]?.test(t)) continue;
-    const stem = t.slice(0, 4);
-    if (stem.length >= 4 && out.some((x) => x.food.toLowerCase().includes(stem))) continue;
+    const stem2 = t.slice(0, 4);
+    if (stem2.length >= 4 && out.some((x) => x.food.toLowerCase().includes(stem2))) continue;
     if (t && t.length <= 40) add(t, "\u043D\u0435 \u0433\u0438 \u043F\u0440\u0438\u0435\u043C\u0430\u0442\u0435");
   }
   return out;
@@ -44823,6 +44823,83 @@ function recalcLevel(prevData, nextData) {
 }
 function isUrgent(derived) {
   return !!(derived?.safety && Object.keys(derived.safety).length);
+}
+
+// chat-clarify.js
+var TOPIC_WORDS = {
+  "iris:digestive": /подув|газ(ове|ов)\b|тежест|киселин|запек|диари|стомах|корем|храносмил|черв|изхожд/i,
+  "iris:metabolic": /кръвна захар|захарта ми|инсулин|вълчи глад|силен глад|сънлив|холестерол|триглицерид|не отслабвам|не свалям|плато/i,
+  "iris:nervous": /стрес|напрежени|тревож|умор|изтощ|нерви|безсъни|не спя|сънят ми/i,
+  meds: /лекарств|хапче|таблетк|медикамент/i,
+  weight: /тегло|теглото|килограм|\bкг\b|везна|претегл/i,
+  emoeat_vs_q: /емоци|преяжд|от скука|когато съм напрегнат|не мога да спра|нощем ям|ям вечер|посягам/i
+};
+var PATTERN_WORDS = /веган|вегетариан|месо|растителн/i;
+var ALLERGY_WORDS = /алерги|непоносим/i;
+var ALLERGY_RELATED = { \u043B\u0430\u043A\u0442\u043E\u0437\u0430: /мляко|млечн|сирене|кисело мляко/i, \u0433\u043B\u0443\u0442\u0435\u043D: /глутен|хляб|пшениц|тестен/i };
+var stem = (s) => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]/gi, "").slice(0, 5);
+function matches(q, text) {
+  if (TOPIC_WORDS[q.id]) {
+    if (TOPIC_WORDS[q.id].test(text)) return true;
+    if (q.id === "meds") {
+      const name = stem((q.text.match(/„([^“]+)“/) || [])[1]);
+      return name.length >= 4 && text.toLowerCase().includes(name);
+    }
+    return false;
+  }
+  if (q.id.startsWith("pattern:")) return PATTERN_WORDS.test(text);
+  if (q.id.startsWith("allergy:")) {
+    const term = q.id.slice("allergy:".length).replace(/_/g, " ");
+    const s = stem(term);
+    return ALLERGY_WORDS.test(text) || s.length >= 4 && text.toLowerCase().includes(s) || !!ALLERGY_RELATED[term]?.test(text);
+  }
+  return false;
+}
+function sanitizeQuestions(raw) {
+  return (Array.isArray(raw) ? raw : []).slice(0, 6).filter(
+    (q) => q && typeof q.id === "string" && /^[a-z_]+(:[\p{L}\p{N}_]+)?$/u.test(q.id) && typeof q.text === "string" && Array.isArray(q.options) && q.options.length >= 2 && q.options.every((o) => o && typeof o.value === "string" && typeof o.label === "string")
+  ).map((q) => ({
+    id: q.id,
+    source: String(q.source || ""),
+    topic: String(q.topic || "").slice(0, 60),
+    text: q.text.slice(0, 400),
+    options: q.options.slice(0, 4).map((o) => ({ value: o.value.slice(0, 20), label: o.label.slice(0, 60) }))
+  }));
+}
+function relevantQuestion(questions, message, askedId = "") {
+  const text = String(message || "");
+  return questions.find((q) => q.id === askedId) || questions.find((q) => matches(q, text)) || null;
+}
+function clarifyPromptBlock(q, { asked = false } = {}) {
+  const opts = q.options.map((o) => `${o.value} = \u201E${o.label}\u201C`).join("; ");
+  return `
+
+[\u0423\u0422\u041E\u0427\u041D\u042F\u0412\u0410\u0429 \u0412\u042A\u041F\u0420\u041E\u0421 \u2014 \u0440\u0430\u0437\u043C\u0438\u043D\u0430\u0432\u0430\u043D\u0435 \u043C\u0435\u0436\u0434\u0443 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438\u0442\u0435]
+\u0422\u0435\u043C\u0430: ${q.topic}. ${q.text}
+\u041F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438: ${opts}
+${asked ? "\u0412\u0438\u0435 \u0441\u0442\u0435 \u0437\u0430\u0434\u0430\u043B\u0438 \u0442\u043E\u0437\u0438 \u0432\u044A\u043F\u0440\u043E\u0441 \u0432 \u043F\u0440\u0435\u0434\u0438\u0448\u043D\u0438\u044F \u0441\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440.\n" : ""}- \u0410\u043A\u043E \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0441\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u042F\u0421\u041D\u041E \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F \u043D\u0430 \u0432\u044A\u043F\u0440\u043E\u0441\u0430, \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0435\u0442\u0435 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u043E \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0432 \u0441\u0430\u043C\u0438\u044F \u043A\u0440\u0430\u0439 \u043C\u0430\u0440\u043A\u0435\u0440 [RESOLVE:${q.id}=<\u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442>] \u0441 \u0435\u0434\u043D\u0430 \u043E\u0442 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438\u0442\u0435 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438. \u041D\u0435 \u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E.
+- \u0410\u043A\u043E \u043D\u0435 \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F \u044F\u0441\u043D\u043E, \u043D\u043E \u0442\u0435\u043C\u0430\u0442\u0430 \u0435 \u0441\u0432\u044A\u0440\u0437\u0430\u043D\u0430, \u0437\u0430\u0434\u0430\u0439\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D\u043E, \u0441 \u0432\u0430\u0448\u0438 \u0434\u0443\u043C\u0438, \u0432 \u043A\u0440\u0430\u044F \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430 \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043C\u0430\u0440\u043A\u0435\u0440 [ASK:${q.id}].
+- \u041D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439\u0442\u0435 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0432\u043C\u0435\u0441\u0442\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041F\u0440\u0438 \u0441\u044A\u043C\u043D\u0435\u043D\u0438\u0435 \u2014 \u043F\u0438\u0442\u0430\u0439\u0442\u0435. \u041C\u0430\u0440\u043A\u0435\u0440\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u0432\u0438\u0436\u0434\u0430\u0442 \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430.`;
+}
+function extractClarify(text, q) {
+  let out = String(text || "");
+  let resolved = null;
+  let asked = null;
+  const re = /\[(RESOLVE|ASK):([^\]=]+)(?:=([^\]]+))?\]/g;
+  let m;
+  while (m = re.exec(out)) {
+    const [, kind, id, value] = m;
+    if (!q || id.trim() !== q.id) continue;
+    if (kind === "RESOLVE") {
+      const opt = q.options.find((o) => o.value === String(value || "").trim());
+      if (opt) resolved = { id: q.id, value: opt.value, label: opt.label };
+    } else {
+      asked = q.id;
+    }
+  }
+  out = out.replace(/\s*\[(RESOLVE|ASK):[^\]]*\]/g, "").trim();
+  if (resolved) asked = null;
+  return { text: out, resolved, asked };
 }
 
 // handoff.js
@@ -47869,7 +47946,7 @@ async function handleChat(request, env) {
     const chatPromptsConfig = await getChatPrompts(env);
     const modificationModeEnabled = chatPromptsConfig.modificationEnabled === true;
     const chatMode = requestedMode === "modification" && !modificationModeEnabled ? "consultation" : requestedMode;
-    const chatPrompt = await generateChatPrompt(
+    let chatPrompt = await generateChatPrompt(
       env,
       message,
       effectiveContextText,
@@ -47878,7 +47955,12 @@ async function handleChat(request, env) {
       chatMode,
       effectiveUserPlan
     );
-    const aiResponse = await callAIModel(env, chatPrompt, 2e3, "chat_consultation", null, effectiveUserData, null, true);
+    const askedId = typeof body._askedQuestionId === "string" ? body._askedQuestionId : "";
+    const clarifyQ = chatMode === "consultation" ? relevantQuestion(sanitizeQuestions(effectiveUserData._openQuestions), message, askedId) : null;
+    if (clarifyQ) chatPrompt += clarifyPromptBlock(clarifyQ, { asked: clarifyQ.id === askedId });
+    let aiResponse = await callAIModel(env, chatPrompt, 2e3, "chat_consultation", null, effectiveUserData, null, true);
+    const clarify = extractClarify(aiResponse, clarifyQ);
+    aiResponse = clarify.text;
     const regenerateIndex = aiResponse.indexOf("[REGENERATE_PLAN:");
     let finalResponse = aiResponse;
     let planWasUpdated = false;
@@ -47942,6 +48024,7 @@ async function handleChat(request, env) {
               dietDislike: Array.from(excludedFoods).join(", ")
             };
             delete modifiedUserData._healthEssence;
+            delete modifiedUserData._openQuestions;
             const newPlan = accepted.length ? await regeneratePlanFromChat(env, modifiedUserData, effectiveUserPlan) : null;
             if (!newPlan) throw new Error("\u041D\u044F\u043C\u0430 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0442\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0437\u0430 \u043F\u0440\u0438\u043B\u0430\u0433\u0430\u043D\u0435");
             planWasUpdated = true;
@@ -47989,6 +48072,9 @@ async function handleChat(request, env) {
       conversationHistory: trimmedHistory,
       planUpdated: planWasUpdated
     };
+    if (clarifyQ && (clarify.resolved || clarify.asked)) {
+      responseData.clarify = { question: clarifyQ, resolved: clarify.resolved, asked: clarify.asked };
+    }
     if (planWasUpdated) {
       responseData.updatedPlan = updatedPlan;
       responseData.updatedUserData = updatedUserData;
@@ -55750,8 +55836,13 @@ async function handleEnrichmentResolve(request, env) {
     if (authError) return authError;
     const profile = await kvGetJSON(env, `user_profile:${userId}`);
     if (!profile?.enrichment?.facts?.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u0441\u0435 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430" }, 404);
-    const data = applyEnrichment(normalizeQuestionnaireData({ ...profile.userData || {} }), profile.enrichment);
-    const q = (data._enrichment?.crossCheck?.questions || []).find((x) => x.id === questionId);
+    const base = normalizeQuestionnaireData({ ...profile.userData || {} });
+    const data = applyEnrichment(JSON.parse(JSON.stringify(base)), profile.enrichment);
+    let q = (data._enrichment?.crossCheck?.questions || []).find((x) => x.id === questionId);
+    if (!q) {
+      const without = { ...profile.enrichment, facts: profile.enrichment.facts.filter((f) => !(f.kind === "resolution" && f.key === questionId)) };
+      q = (applyEnrichment(JSON.parse(JSON.stringify(base)), without)._enrichment?.crossCheck?.questions || []).find((x) => x.id === questionId);
+    }
     if (!q) return jsonResponse2({ error: "\u0412\u044A\u043F\u0440\u043E\u0441\u044A\u0442 \u0432\u0435\u0447\u0435 \u043D\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u0435\u043D" }, 409);
     if (!q.options.some((o) => o.value === answer)) return jsonResponse2({ error: "\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440" }, 400);
     const fact = normalizeFact({ kind: "resolution", key: q.id, value: answer, at: (/* @__PURE__ */ new Date()).toISOString() });

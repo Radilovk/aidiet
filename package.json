@@ -28,6 +28,7 @@
     "test:device-import": "node scripts/test-device-import.mjs",
     "test:handoff": "node scripts/test-handoff.mjs",
     "test:crosscheck": "node scripts/test-crosscheck.mjs",
+    "test:chat-clarify": "node scripts/test-chat-clarify.mjs",
     "test:engine": "node scripts/test-nutrition-engine.mjs",
     "test:voice": "node scripts/test-plan-voice.mjs",
     "test:matrix": "node scripts/test-profile-matrix.mjs",

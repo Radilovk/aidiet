@@ -103,6 +103,7 @@ import { applyEnrichment, mergeFacts, normalizeFact, recalcLevel, deriveEnrichme
 import { essenceText, digestDue, normalizeDigest, DIGEST_APPROACH } from './health-essence.js';
 import { irisText } from './enrichment-iris.js';
 import { crossCheckText } from './cross-check.js';
+import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
 import { normalizeHandoff, handoffToFacts, airisPrefill, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { LAB_MARKERS } from './enrichment-labs.js';
@@ -3697,11 +3698,21 @@ async function handleChat(request, env) {
       ? 'consultation'
       : requestedMode;
 
-    const chatPrompt = await generateChatPrompt(
+    let chatPrompt = await generateChatPrompt(
       env, message, effectiveContextText, effectiveUserData, chatHistory, chatMode, effectiveUserPlan,
     );
 
-    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
+    // Уточняващ въпрос — само ако е свързан с това, за което клиентът пише сега,
+    // или ако асистентът го е задал в предишния си отговор.
+    const askedId = typeof body._askedQuestionId === 'string' ? body._askedQuestionId : '';
+    const clarifyQ = chatMode === 'consultation'
+      ? relevantQuestion(sanitizeQuestions(effectiveUserData._openQuestions), message, askedId)
+      : null;
+    if (clarifyQ) chatPrompt += clarifyPromptBlock(clarifyQ, { asked: clarifyQ.id === askedId });
+
+    let aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
+    const clarify = extractClarify(aiResponse, clarifyQ);
+    aiResponse = clarify.text;
     
     // Check if the response contains a plan regeneration instruction
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
@@ -3786,8 +3797,9 @@ async function handleChat(request, env) {
               planModifications: merged,
               dietDislike: Array.from(excludedFoods).join(', ')
             };
-            // Есенцията идва само за контекста на чата — не е отговор от въпросника.
+            // Есенцията и въпросите идват само за контекста на чата — не са отговори от въпросника.
             delete modifiedUserData._healthEssence;
+            delete modifiedUserData._openQuestions;
 
             // Същият път като генерирането: двигател, проверки, текущите калории и цикъл.
             const newPlan = accepted.length ? await regeneratePlanFromChat(env, modifiedUserData, effectiveUserPlan) : null;
@@ -3850,6 +3862,10 @@ async function handleChat(request, env) {
       conversationHistory: trimmedHistory,
       planUpdated: planWasUpdated,
     };
+    // Клиентът записва отговора (/api/enrichment/resolve) или показва бутоните на въпроса.
+    if (clarifyQ && (clarify.resolved || clarify.asked)) {
+      responseData.clarify = { question: clarifyQ, resolved: clarify.resolved, asked: clarify.asked };
+    }
     
     // Include updated plan and userData if plan was regenerated
     if (planWasUpdated) {
@@ -13919,8 +13935,14 @@ async function handleEnrichmentResolve(request, env) {
     if (authError) return authError;
     const profile = await kvGetJSON(env, `user_profile:${userId}`);
     if (!profile?.enrichment?.facts?.length) return jsonResponse({ error: 'Няма какво да се уточнява' }, 404);
-    const data = applyEnrichment(normalizeQuestionnaireData({ ...(profile.userData || {}) }), profile.enrichment);
-    const q = (data._enrichment?.crossCheck?.questions || []).find(x => x.id === questionId);
+    const base = normalizeQuestionnaireData({ ...(profile.userData || {}) });
+    const data = applyEnrichment(JSON.parse(JSON.stringify(base)), profile.enrichment);
+    let q = (data._enrichment?.crossCheck?.questions || []).find(x => x.id === questionId);
+    if (!q) {
+      // Промяна на вече даден отговор: въпросът, какъвто би бил без него.
+      const without = { ...profile.enrichment, facts: profile.enrichment.facts.filter(f => !(f.kind === 'resolution' && f.key === questionId)) };
+      q = (applyEnrichment(JSON.parse(JSON.stringify(base)), without)._enrichment?.crossCheck?.questions || []).find(x => x.id === questionId);
+    }
     if (!q) return jsonResponse({ error: 'Въпросът вече не е актуален' }, 409);
     if (!q.options.some(o => o.value === answer)) return jsonResponse({ error: 'Непознат отговор' }, 400);
     const fact = normalizeFact({ kind: 'resolution', key: q.id, value: answer, at: new Date().toISOString() });
