@@ -1733,7 +1733,7 @@
 
         .macro-label {
             font-weight: 600;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             color: var(--text-light);
             flex-shrink: 0;
         }
@@ -2340,7 +2340,7 @@
             padding: 0 12px;
             border: none;
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.16);
+            background: rgba(0, 0, 0, 0.18);
             color: var(--ds-on-fill);
             font-size: 0.875rem;
             font-weight: 600;
@@ -2354,7 +2354,7 @@
         .chat-head-btn--icon { background: transparent; font-size: 1.2rem; padding: 0; }
         .chat-head-btn:active, .chat-mode-btn:active, .chat-send-btn:active { transform: scale(var(--ds-press-scale)); }
         .chat-mode-btn {
-            min-height: 40px;
+            min-height: 44px;
             padding: 0 14px;
             border-radius: 12px;
             border: 1px solid transparent;
@@ -3051,7 +3051,8 @@
             margin-bottom: 10px;
         }
         .food-capture-text {
-            color: var(--text-light);
+            color: var(--text-dark);
+            opacity: 0.8;
             font-size: 0.9rem;
             line-height: 1.5;
         }
@@ -4318,7 +4319,7 @@
                 </div>
 
                 <!-- Meal Context Selector -->
-                <select id="foodMealContext" style="width:100%;padding:10px 14px;border:1px solid var(--text-light);border-radius:12px;font-size:0.9rem;background:var(--card-bg);color:var(--text-dark);margin-bottom:12px;outline:none;">
+                <select id="foodMealContext" style="width:100%;min-height:48px;padding:10px 14px;border:1px solid var(--text-light);border-radius:12px;font-size:0.9rem;background:var(--card-bg);color:var(--text-dark);margin-bottom:12px;outline:none;">
                     <option value="Хранене 1">Хранене 1 – Закуска</option>
                     <option value="Хранене 2" selected>Хранене 2 – Обяд</option>
                     <option value="Хранене 3">Хранене 3 – Следобедна закуска</option>

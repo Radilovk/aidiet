@@ -527,8 +527,9 @@
 
         .analysis-header {
             padding: 16px 20px;
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            color: #ffffff;
+            min-height: 56px;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
         }
 
         .analysis-header-toggle {
@@ -1768,7 +1769,8 @@
             background: rgba(239,68,68,0.10);
             border: 1px solid rgba(239,68,68,0.22);
             border-radius: 999px;
-            color: #ef4444;
+            color: var(--ds-error-text);
+            min-height: 44px;
             font-size: 0.9rem;
             font-weight: 700;
             font-family: inherit;
@@ -3560,10 +3562,11 @@
                 
                 analysisContent.innerHTML = html;
 
-                // Update analysis-header background to match health status color
+                // Цветът на здравния статус е ивица отляво — фонът остава плътният
+                // акцент, за да е четим белият текст при всеки статус.
                 const analysisHeader = document.querySelector('.analysis-container .analysis-header');
                 if (analysisHeader) {
-                    analysisHeader.style.background = `linear-gradient(135deg, ${profileGaugeColor}, ${profileGaugeColor}cc)`;
+                    analysisHeader.style.boxShadow = `inset 6px 0 0 ${profileGaugeColor}`;
                 }
 
                 // Animate the circular health ring after DOM is ready

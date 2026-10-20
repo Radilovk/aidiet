@@ -512,7 +512,7 @@
                 margin-bottom: 6px;
             }
             .macro-percentage {
-                font-size: 0.7rem;
+                font-size: 0.8125rem;
                 padding: 4px 8px;
             }
         }
@@ -568,12 +568,18 @@
         }
 
         .macro-card .macro-label {
-            font-size: 0.65rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: var(--text-light);
             margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0;
+            hyphens: manual;
+            line-height: 1.25;
+            min-height: 2.5em;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            text-align: center;
         }
 
         .macro-card .macro-value {
@@ -585,13 +591,13 @@
         }
 
         .macro-unit {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: var(--text-light);
             font-weight: 600;
         }
 
         .macro-percentage {
-            font-size: 0.75rem;
+            font-size: 0.8125rem;
             color: var(--macro-color);
             font-weight: 700;
             margin-top: 8px;
@@ -602,18 +608,21 @@
 
         .macro-card.protein .macro-percentage {
             background: rgba(99, 102, 241, 0.1);
-            color: #6366f1;
+            color: #4F46E5;
         }
 
         .macro-card.carbs .macro-percentage {
-            background: rgba(15, 118, 110, 0.1);
-            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            color: #1D4ED8;
         }
 
         .macro-card.fats .macro-percentage {
             background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
+            color: #B45309;
         }
+        [data-theme="dark"] .macro-card.protein .macro-percentage { color: #A5B4FC; }
+        [data-theme="dark"] .macro-card.carbs .macro-percentage { color: #93C5FD; }
+        [data-theme="dark"] .macro-card.fats .macro-percentage { color: #FCD34D; }
 
         /* === STRATEGY PANEL === */
         .plan-justification-container {
@@ -1180,7 +1189,7 @@
 
                 <div class="macro-card carbs">
                     <div class="macro-icon">🍞</div>
-                    <div class="macro-label">Въглехидрати</div>
+                    <div class="macro-label">Въгле&shy;хидрати</div>
                     <div class="macro-value" id="targetCarbs">250</div>
                     <div class="macro-unit">грама</div>
                     <div class="macro-percentage" id="carbsPercentage">50%</div>

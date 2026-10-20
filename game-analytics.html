@@ -207,8 +207,8 @@
             letter-spacing: 0.01em;
         }
         .game-analytics-badge {
-            font-size: 0.72rem;
-            background: rgba(255,255,255,0.2);
+            font-size: 0.75rem;
+            background: rgba(0,0,0,0.18);
             padding: 3px 9px;
             border-radius: 20px;
             font-weight: 600;
@@ -233,7 +233,7 @@
         .game-week-info { flex: 1; min-width: 0; }
         .game-week-title { font-size: 0.78rem; opacity: 0.85; font-weight: 500; }
         .game-week-score { font-size: 1.15rem; font-weight: 800; }
-        .game-week-sub   { font-size: 0.72rem; opacity: 0.8; margin-top: 2px; }
+        .game-week-sub   { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
         /* 7-day dot strip */
         .game-week-dots { display:flex; gap:4px; margin-top: 7px; }
         .game-week-dot  {
@@ -259,7 +259,7 @@
         .game-ring-svg { transform: rotate(-90deg); }
         .game-ring-bg  { fill: none; stroke: rgba(13,148,136,0.12); }
         .game-ring-fg  { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1); }
-        .game-ring-label { font-size: 0.68rem; font-weight: 600; color: var(--text-light); text-align: center; }
+        .game-ring-label { font-size: 0.75rem; font-weight: 600; color: var(--text-light); text-align: center; }
         /* Index rows */
         .game-index-row {
             margin-bottom: 12px;
@@ -280,7 +280,7 @@
             margin-bottom: 5px;
         }
         .game-index-hint {
-            font-size: 0.68rem;
+            font-size: 0.75rem;
             color: var(--text-light, #6b7280);
             margin-bottom: 4px;
         }
@@ -344,7 +344,7 @@
             line-height: 1.5;
         }
         .game-scenario-card .game-scenario-label {
-            font-size: 0.68rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: #6366f1;
             text-transform: uppercase;
@@ -382,14 +382,14 @@
             border-left: 3px solid #0D9488;
         }
         .game-weekly-info {
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             color: var(--text-light, #6b7280);
             margin-top: 9px;
             text-align: right;
         }
         /* Section divider */
         .game-section-title {
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: var(--text-light);
             text-transform: uppercase;
@@ -412,7 +412,7 @@
         }
         .game-metrics-toggle:hover { background: rgba(13,148,136,0.05); }
         .game-metrics-chevron {
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             color: var(--text-light);
             transition: transform 0.3s ease;
             flex-shrink: 0;
@@ -1077,7 +1077,7 @@
             var DAY_NAMES = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
             var BAR_MIN_H = 4;
             var BAR_MAX_H = 36;
-            var LABEL_STYLE = 'font-size:0.6rem;color:var(--text-light)';
+            var LABEL_STYLE = 'font-size:0.75rem;color:var(--text-light)';
             function miniBarCol(barStyle, label, dataAttr) {
                 return '<div class="game-day-col">' +
                     '<div class="game-day-dot" style="' + barStyle + '"' + (dataAttr ? ' ' + dataAttr : '') + '></div>' +
