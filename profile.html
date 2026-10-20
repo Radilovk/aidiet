@@ -1210,6 +1210,37 @@
             transform: translateY(0);
         }
 
+        /* --- Изследвания --- */
+        .labs-intro { color: var(--ds-text-soft); margin: 16px 0 12px; font-size: 0.95rem; line-height: 1.55; }
+        .labs-consent { display: flex; gap: 10px; align-items: flex-start; font-size: 0.9rem; line-height: 1.45; color: var(--text-dark); margin-bottom: 14px; cursor: pointer; }
+        .labs-consent input { width: 22px; height: 22px; flex-shrink: 0; margin-top: 1px; accent-color: var(--ds-fill); }
+        .labs-actions { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+        .labs-actions .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .labs-status { min-height: 1.4em; margin: 10px 0; font-size: 0.9rem; font-weight: 600; color: var(--ds-text-soft); }
+        .labs-status[data-tone="ok"] { color: var(--ds-success-text); }
+        .labs-status[data-tone="warn"] { color: var(--ds-warning-text); }
+        .labs-status[data-tone="error"] { color: var(--ds-error-text); }
+        .labs-sub { margin: 18px 0 8px; font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ds-text-soft); }
+        .labs-note { font-size: 0.875rem; color: var(--ds-text-soft); margin-bottom: 10px; }
+        .labs-date { display: grid; gap: 6px; font-size: 0.875rem; font-weight: 600; color: var(--text-dark); margin-bottom: 10px; }
+        .labs-row { display: grid; grid-template-columns: 44px 1.6fr 1fr 1fr; gap: 6px; align-items: center; margin-bottom: 8px; position: relative; }
+        .labs-row .form-input { min-height: 44px; padding: 8px 10px; font-size: 16px; }
+        .labs-row-check { display: grid; place-items: center; min-height: 44px; cursor: pointer; }
+        .labs-row-check input { width: 22px; height: 22px; accent-color: var(--ds-fill); }
+        .labs-row.is-unsure .labs-row-val { border-color: var(--ds-warning-border); background: var(--ds-warning-bg); }
+        .labs-row-flag { grid-column: 2 / -1; font-size: 0.8125rem; font-weight: 700; color: var(--ds-warning-text); margin-top: -4px; }
+        .labs-confirm { width: 100%; margin-top: 6px; }
+        .labs-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+        .labs-item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; border-radius: 12px; background: rgba(15, 118, 110, 0.06); border: 1px solid var(--glass-border); }
+        .labs-item-name { font-weight: 600; color: var(--text-dark); }
+        .labs-item-val { font-weight: 700; color: var(--text-dark); font-variant-numeric: tabular-nums; text-align: right; }
+        .labs-item-status { grid-column: 1 / -1; font-size: 0.8125rem; color: var(--ds-text-soft); }
+        .labs-item[data-status="high"], .labs-item[data-status="low"] { background: var(--ds-warning-bg); border-color: var(--ds-warning-border); }
+        .labs-item[data-status="high"] .labs-item-status, .labs-item[data-status="low"] .labs-item-status { color: var(--ds-warning-text); font-weight: 700; }
+        .labs-cautions { margin: 0; padding-left: 18px; font-size: 0.9rem; line-height: 1.5; color: var(--text-dark); }
+        .labs-delete { margin-top: 14px; min-height: 44px; background: none; border: none; color: var(--ds-error-text); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 0; }
+        @media (max-width: 359px) { .labs-row { grid-template-columns: 40px 1fr 1fr; } .labs-row-unit { grid-column: 2 / -1; } }
+
         /* --- CONTACT TOGGLE --- */
         .profile-contact-header {
             cursor: pointer;
@@ -1886,6 +1917,7 @@
     <script src="./session-utils.js"></script>
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
+    <script src="./enrichment-client.js"></script>
     <script type="module" src="./plan-regen-fields.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
@@ -2283,6 +2315,41 @@
             </div><!-- /.profile-contact-wrapper -->
         </div>
 
+        <div class="form-section" id="labsSection">
+            <div class="profile-contact-header" onclick="toggleLabs()" role="button" tabindex="0" aria-expanded="false" aria-controls="labsWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleLabs()">
+                <div class="section-title">
+                    <i class="fas fa-vial"></i>
+                    Изследвания
+                </div>
+                <i class="fas fa-chevron-down profile-contact-chevron" id="labsChevron"></i>
+            </div>
+            <div class="profile-contact-wrapper" id="labsWrapper">
+                <p class="labs-intro">Качете снимка на резултатите от кръвни изследвания. Разчитаме ги, Вие проверявате стойностите, и чак тогава те влизат в плана: правилата на храненето, добавките и бележките за специалиста. Изследванията не са диагноза — диагноза поставя лекар.</p>
+                <label class="labs-consent">
+                    <input type="checkbox" id="labsConsent" onchange="onLabsConsent(this.checked)">
+                    <span>Съгласен/на съм резултатите да се съхраняват и използват за хранителния ми план. Мога да ги изтрия по всяко време.</span>
+                </label>
+                <div class="labs-actions">
+                    <button type="button" class="btn btn-primary" id="labsUploadBtn" onclick="document.getElementById('labsFile').click()" disabled>
+                        <i class="fas fa-camera"></i> Снимка или PDF
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="labsManualBtn" onclick="addManualLabRow()" disabled>
+                        <i class="fas fa-keyboard"></i> Ръчно
+                    </button>
+                    <input type="file" id="labsFile" accept="image/*,application/pdf" hidden onchange="onLabsFile(this)">
+                </div>
+                <div class="labs-status" id="labsStatus" role="status"></div>
+                <div id="labsReview" hidden>
+                    <div class="labs-sub">Проверете стойностите</div>
+                    <p class="labs-note">Сравнете всяко число с бланката. Отметнатите влизат в плана; несигурно разчетените са отбелязани.</p>
+                    <label class="labs-date">Дата на изследването <input type="date" id="labsDate" class="form-input"></label>
+                    <div id="labsRows"></div>
+                    <button type="button" class="btn btn-primary labs-confirm" onclick="confirmLabs()"><i class="fas fa-check"></i> Потвърди и добави</button>
+                </div>
+                <div id="labsCurrent"></div>
+            </div>
+        </div>
+
         <div class="form-section">
             <div class="profile-contact-header" onclick="togglePlanBackup()" role="button" tabindex="0" aria-expanded="false" aria-controls="planBackupWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')togglePlanBackup()">
                 <div class="section-title">
@@ -2355,6 +2422,193 @@
             if (isOpen) {
                 // Small delay to let the CSS max-height transition begin before scrolling
                 setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }
+        }
+
+        // ── Изследвания (обогатяване на профила) ─────────────────────────────
+        let _labsCatalog = null;
+        let _labsLoaded = false;
+
+        function toggleLabs() {
+            const wrapper = document.getElementById('labsWrapper');
+            const chevron = document.getElementById('labsChevron');
+            const header = wrapper.previousElementSibling;
+            const isOpen = wrapper.classList.toggle('open');
+            chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (header) header.setAttribute('aria-expanded', String(isOpen));
+            if (isOpen && !_labsLoaded) { _labsLoaded = true; loadLabsCurrent(); }
+        }
+
+        function labsSetStatus(text, tone) {
+            const el = document.getElementById('labsStatus');
+            el.textContent = text || '';
+            el.dataset.tone = tone || '';
+        }
+
+        function onLabsConsent(checked) {
+            const E = window.NutriPlanEnrichment;
+            if (E) E.setConsent('labs', checked);
+            document.getElementById('labsUploadBtn').disabled = !checked;
+            document.getElementById('labsManualBtn').disabled = !checked;
+        }
+
+        function initLabsSection() {
+            const E = window.NutriPlanEnrichment;
+            const section = document.getElementById('labsSection');
+            if (!E || !E.hasPlanProfile()) { if (section) section.hidden = true; return; }
+            const consent = E.hasConsent('labs');
+            document.getElementById('labsConsent').checked = consent;
+            onLabsConsent(consent);
+        }
+
+        /** Снимките се смаляват до 2000 px (JPEG) — стига за четене, бързо се изпраща. */
+        function readLabFile(file) {
+            return new Promise((resolve, reject) => {
+                if (file.type === 'application/pdf') {
+                    const r = new FileReader();
+                    r.onload = () => resolve({ data: r.result, mime: 'application/pdf' });
+                    r.onerror = reject;
+                    r.readAsDataURL(file);
+                    return;
+                }
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    const scale = Math.min(1, 2000 / Math.max(img.width, img.height));
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.width * scale);
+                    c.height = Math.round(img.height * scale);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    resolve({ data: c.toDataURL('image/jpeg', 0.88), mime: 'image/jpeg' });
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Файлът не е изображение')); };
+                img.src = url;
+            });
+        }
+
+        async function onLabsFile(input) {
+            const file = input.files && input.files[0];
+            input.value = '';
+            if (!file) return;
+            const E = window.NutriPlanEnrichment;
+            labsSetStatus('Разчитаме изследването…');
+            try {
+                const { data, mime } = await readLabFile(file);
+                const res = await E.extractLabs(data, mime);
+                _labsCatalog = res.markersCatalog || _labsCatalog;
+                if (!res.markers || !res.markers.length) {
+                    labsSetStatus('Не открихме познати показатели. Опитайте с по-ясна снимка или въведете ръчно.', 'warn');
+                    return;
+                }
+                document.getElementById('labsDate').value = res.date || new Date().toISOString().slice(0, 10);
+                document.getElementById('labsRows').innerHTML = '';
+                res.markers.forEach(m => addLabRow(m));
+                document.getElementById('labsReview').hidden = false;
+                labsSetStatus(`Разчетени показатели: ${res.markers.length}. Проверете ги.`);
+            } catch (e) {
+                labsSetStatus(e.message || 'Не успяхме да прочетем изследването.', 'error');
+            }
+        }
+
+        function labCatalogOptions(selected) {
+            const cat = _labsCatalog || {};
+            return Object.entries(cat).map(([k, v]) =>
+                `<option value="${k}"${k === selected ? ' selected' : ''}>${escProfileHtml(v.label)}</option>`).join('');
+        }
+
+        function addLabRow(m) {
+            const rows = document.getElementById('labsRows');
+            const unsure = m && m.confidence != null && m.confidence < 0.7;
+            const row = document.createElement('div');
+            row.className = 'labs-row' + (unsure ? ' is-unsure' : '');
+            row.innerHTML = `
+                <label class="labs-row-check"><input type="checkbox" ${m && !unsure ? 'checked' : ''} aria-label="Включи"></label>
+                <select class="form-input labs-row-key" aria-label="Показател">${labCatalogOptions(m && m.key)}</select>
+                <input class="form-input labs-row-val" inputmode="decimal" aria-label="Стойност" value="${m && Number.isFinite(m.value) ? String(m.value).replace('.', ',') : ''}">
+                <input class="form-input labs-row-unit" aria-label="Единица" value="${escProfileHtml((m && m.unit) || '')}">
+                ${unsure ? '<span class="labs-row-flag">провери</span>' : ''}`;
+            rows.appendChild(row);
+        }
+
+        async function addManualLabRow() {
+            if (!_labsCatalog) {
+                try { const res = await window.NutriPlanEnrichment.get(); _labsCatalog = res.markers; } catch (_) {}
+            }
+            if (!_labsCatalog) { labsSetStatus('Каталогът с показатели не се зареди. Проверете връзката.', 'error'); return; }
+            const first = Object.keys(_labsCatalog)[0];
+            if (!document.getElementById('labsDate').value) document.getElementById('labsDate').value = new Date().toISOString().slice(0, 10);
+            addLabRow({ key: first, unit: _labsCatalog[first].unit });
+            document.getElementById('labsReview').hidden = false;
+        }
+
+        async function confirmLabs() {
+            const E = window.NutriPlanEnrichment;
+            const date = document.getElementById('labsDate').value || new Date().toISOString().slice(0, 10);
+            const facts = [...document.querySelectorAll('#labsRows .labs-row')]
+                .filter(r => r.querySelector('input[type=checkbox]').checked)
+                .map(r => ({
+                    kind: 'biomarker',
+                    key: r.querySelector('.labs-row-key').value,
+                    value: r.querySelector('.labs-row-val').value,
+                    unit: r.querySelector('.labs-row-unit').value,
+                    at: date + 'T08:00:00Z',
+                    source: 'lab',
+                    status: 'confirmed',
+                }))
+                .filter(f => f.key && String(f.value).trim());
+            if (!facts.length) { labsSetStatus('Отметнете поне една стойност.', 'warn'); return; }
+            labsSetStatus('Добавяме…');
+            try {
+                const res = await E.submit({ facts }, 'labs');
+                document.getElementById('labsReview').hidden = true;
+                document.getElementById('labsRows').innerHTML = '';
+                labsSetStatus(E.describeChange(res), res.urgent ? 'warn' : 'ok');
+                renderLabsCurrent(res.derived);
+            } catch (e) {
+                labsSetStatus(e.message || 'Не успяхме да добавим стойностите.', 'error');
+            }
+        }
+
+        async function loadLabsCurrent() {
+            const E = window.NutriPlanEnrichment;
+            if (!E || !E.hasPlanProfile()) return;
+            try {
+                const res = await E.get();
+                _labsCatalog = res.markers || _labsCatalog;
+                renderLabsCurrent(res.derived);
+            } catch (_) { /* без връзка — секцията остава само за качване */ }
+        }
+
+        const LAB_STATUS_TEXT = { normal: 'в норма', high: 'над нормата', low: 'под нормата' };
+
+        function renderLabsCurrent(d) {
+            const box = document.getElementById('labsCurrent');
+            if (!box) return;
+            const labs = (d && d.labs) || [];
+            if (!labs.length) { box.innerHTML = ''; return; }
+            const fmt = v => String(v).replace('.', ',');
+            box.innerHTML = `
+                <div class="labs-sub">В плана</div>
+                <ul class="labs-list">${labs.map(l => `
+                    <li class="labs-item" data-status="${l.status}">
+                        <span class="labs-item-name">${escProfileHtml(l.label)}</span>
+                        <span class="labs-item-val">${fmt(l.value)} ${escProfileHtml(l.unit)}</span>
+                        <span class="labs-item-status">${LAB_STATUS_TEXT[l.status] || ''}</span>
+                    </li>`).join('')}</ul>
+                ${(d.supplements || []).length ? `<div class="labs-sub">Добавки по изследване</div><ul class="labs-list">${d.supplements.map(s => `<li class="labs-item"><span class="labs-item-name">${escProfileHtml(s.name)} — ${escProfileHtml(s.dosage)}</span><span class="labs-item-status">${escProfileHtml(s.reason || '')}</span></li>`).join('')}</ul>` : ''}
+                ${(d.cautions || []).length ? `<div class="labs-sub">За специалиста и лекаря</div><ul class="labs-cautions">${d.cautions.map(c => `<li>${escProfileHtml(c)}</li>`).join('')}</ul>` : ''}
+                <button type="button" class="labs-delete" onclick="deleteLabs()"><i class="fas fa-trash-can"></i> Изтрий данните от изследвания</button>`;
+        }
+
+        async function deleteLabs() {
+            if (!confirm('Изследванията ще бъдат изтрити и няма да се използват за плана. Продължаване?')) return;
+            try {
+                await window.NutriPlanEnrichment.remove(['biomarker']);
+                document.getElementById('labsCurrent').innerHTML = '';
+                labsSetStatus('Изтрито. Планът ще се съобрази при следващия седмичен преглед.', 'ok');
+            } catch (e) {
+                labsSetStatus(e.message || 'Не успяхме да изтрием данните.', 'error');
             }
         }
 
@@ -3629,6 +3883,7 @@
                 loadUserData();
                 loadAnalysis(); // REQUIREMENT 1: Load analysis
                 updateQuestionnaireActionsBar();
+                initLabsSection();
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.ok('profile', 'setup-profile', 'Initial profile load complete');
                 }

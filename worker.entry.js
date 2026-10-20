@@ -13854,6 +13854,101 @@ async function handleEnrichmentSubmit(request, env) {
   }
 }
 
+const DEFAULT_LAB_EXTRACTION_PROMPT = `Прочети лабораторния резултат на изображението и върни САМО валиден JSON (без markdown):
+{"date":"YYYY-MM-DD или null","markers":[{"key":"","printedName":"","value":0,"unit":"","refLow":null,"refHigh":null,"confidence":0}]}
+
+Позволени стойности за key (всички други показатели пропусни):
+glucose — глюкоза (кръвна захар) на гладно; hba1c — гликиран хемоглобин HbA1c; ldl — LDL холестерол; hdl — HDL холестерол; tchol — общ холестерол; tg — триглицериди; uric — пикочна киселина; ferritin — феритин; hgb — хемоглобин; vitd — 25-OH витамин D; b12 — витамин B12; alt — АЛАТ/ALT; ggt — GGT; tsh — TSH; egfr — eGFR; potassium — калий.
+
+Правила:
+- value е числото точно както е отпечатано (десетичната запетая става точка).
+- unit е единицата точно както е отпечатана (напр. mmol/L, mg/dL, %, U/L, ng/mL).
+- refLow/refHigh — референтните граници от бланката, ако ги има; иначе null.
+- date — датата на вземане на пробата, ако се вижда.
+- confidence под 0.7, ако цифрата не се чете ясно.
+- Не тълкувай резултатите и не давай съвети.`;
+
+/**
+ * POST /api/enrichment/extract-labs
+ * Body: { userId, idToken?, imageData, mimeType }
+ * Разчита показателите от снимка/PDF и ги връща за потвърждение — нищо не се
+ * записва, докато клиентът не провери стойностите (POST /api/enrichment).
+ */
+async function handleLabExtract(request, env) {
+  try {
+    const { userId, idToken, imageData, mimeType } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    if (!imageData) return jsonResponse({ error: 'Липсва файл с изследването.' }, 400);
+
+    const isPdf = mimeType === 'application/pdf';
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    const effectiveMime = isPdf ? 'application/pdf' : (allowed.includes(mimeType) ? mimeType : 'image/jpeg');
+    const base64Data = String(imageData).startsWith('data:') ? String(imageData).slice(String(imageData).indexOf(',') + 1) : String(imageData);
+    if ((base64Data.length * 3) / 4 > 15 * 1024 * 1024) {
+      return jsonResponse({ error: 'Файлът е твърде голям (до 15 MB).' }, 400);
+    }
+    const prompt = (await getCustomPrompt(env, 'admin_lab_extraction_prompt')) || DEFAULT_LAB_EXTRACTION_PROMPT;
+    let response;
+    if (isPdf) {
+      // PDF се чете директно само от Gemini; иначе — снимка на страницата.
+      if (!env.GEMINI_API_KEY) {
+        return jsonResponse({ error: 'PDF не се поддържа — качете снимка на страницата с резултатите.' }, 415);
+      }
+      const config = await getAdminConfig(env);
+      response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2000, config.visionThinkingBudget);
+    } else {
+      response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2000);
+    }
+    const parsed = parseAIResponse(response) || {};
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || '')) ? parsed.date : null;
+    const markers = (Array.isArray(parsed.markers) ? parsed.markers : [])
+      .filter(m => m && LAB_MARKERS[m.key])
+      .map(m => ({
+        key: m.key,
+        label: LAB_MARKERS[m.key].label,
+        printedName: String(m.printedName || '').slice(0, 60),
+        value: Number(String(m.value).replace(',', '.')),
+        unit: String(m.unit || LAB_MARKERS[m.key].unit).slice(0, 20),
+        refLow: Number.isFinite(Number(m.refLow)) && m.refLow !== null ? Number(m.refLow) : null,
+        refHigh: Number.isFinite(Number(m.refHigh)) && m.refHigh !== null ? Number(m.refHigh) : null,
+        confidence: Math.max(0, Math.min(1, Number(m.confidence) || 0)),
+      }))
+      .filter(m => Number.isFinite(m.value));
+    return jsonResponse({ success: true, date, markers, markersCatalog: LAB_MARKERS });
+  } catch (error) {
+    console.error('Error extracting labs:', error);
+    return jsonResponse({ error: 'Не успяхме да прочетем изследването. Опитайте с по-ясна снимка.' }, 500);
+  }
+}
+
+/**
+ * POST /api/enrichment/delete — Body: { userId, idToken?, kinds?: string[] }
+ * Изтрива данните от обогатяването (всички или по вид). Промяната влиза в
+ * плана със следващия преглед, както и при добавяне.
+ */
+async function handleEnrichmentDelete(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, kinds } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (!profile?.enrichment) return jsonResponse({ success: true, removed: 0 });
+    const before = profile.enrichment.facts?.length || 0;
+    const only = Array.isArray(kinds) && kinds.length ? new Set(kinds) : null;
+    const facts = only ? (profile.enrichment.facts || []).filter(f => !only.has(f.kind)) : [];
+    profile.enrichment = { ...profile.enrichment, facts, updatedAt: new Date().toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
+    const ttl = String(userId).startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+    await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+    return jsonResponse({ success: true, removed: before - facts.length });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to delete enrichment: ' + error.message }, 500);
+  }
+}
+
 /** POST /api/enrichment/get — Body: { userId, idToken? } */
 async function handleEnrichmentGet(request, env) {
   try {
@@ -16107,6 +16202,10 @@ export default {
         return await handleEnrichmentSubmit(request, env);
       } else if (url.pathname === '/api/enrichment/get' && request.method === 'POST') {
         return await handleEnrichmentGet(request, env);
+      } else if (url.pathname === '/api/enrichment/extract-labs' && request.method === 'POST') {
+        return await handleLabExtract(request, env);
+      } else if (url.pathname === '/api/enrichment/delete' && request.method === 'POST') {
+        return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'ANALYTICS_SYNC');
         if (rlErr) return rlErr;

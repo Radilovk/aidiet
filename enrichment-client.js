@@ -94,6 +94,8 @@
         setConsent: setConsent,
         submit: submit,
         get: function () { return post('/api/enrichment/get', {}); },
+        extractLabs: function (imageData, mimeType) { return post('/api/enrichment/extract-labs', { imageData: imageData, mimeType: mimeType }); },
+        remove: function (kinds) { return post('/api/enrichment/delete', { kinds: kinds || null }); },
         describeChange: describeChange
     };
 }(window));
