@@ -2644,6 +2644,7 @@ function overlayDeterministicPresentation(mealPlan, strategy) {
     mealPlan.psychology = [...strategy.psychologicalSupport];
   }
   if (strategy.hydrationStrategy) mealPlan.waterIntake = strategy.hydrationStrategy;
+  if (strategy.foodGuide) mealPlan.foodGuide = strategy.foodGuide;
   return mealPlan;
 }
 

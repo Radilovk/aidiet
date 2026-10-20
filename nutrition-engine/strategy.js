@@ -7,6 +7,7 @@
 import { dietLabelOf, encodeProfileCode, libraryDietProfileOf, GOALS } from '../profile-code.js';
 import { waterNeedLiters } from '../analysis-deterministic.js';
 import { GROUPS } from './knowledge.js';
+import { buildFoodGuide } from './food-guide.js';
 import { weeklySchemeFromPlan, ENGINE_ID } from './plan-shape.js';
 
 export const MEAL_LABELS = {
@@ -230,6 +231,7 @@ export function buildEngineStrategy(engine, userData, options) {
     foodsToInclude: recommendationsOf(prescription, stats, policy),
     foodsToAvoid: avoidOf(profile, policy, blocked),
     psychologicalSupport: psychologyTipsOf(profile, userData),
+    foodGuide: buildFoodGuide(engine, userData, { blockedTerms: blocked }),
     hydrationStrategy: `${waterNeedLiters(profile)} л вода дневно, разпределена през деня.`,
     profileCode: encodeProfileCode(profile, { kcal: options.kcal, ...macros }),
     weeklyScheme: weeklySchemeFromPlan(weekPlan, prescription.meals['Хранене 2']?.target || null),

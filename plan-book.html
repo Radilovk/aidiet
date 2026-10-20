@@ -1001,6 +1001,10 @@
         }
 
         .food-list.good li::before { background: var(--green-500); }
+        .fg-book-sub { margin: 18px 0 8px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tx-soft); }
+        .fg-book-list { list-style: none; padding: 0; margin: 0; }
+        .fg-book-list li { padding: 8px 0; border-bottom: 1px solid var(--slate-100); font-size: 0.9rem; color: var(--slate-800); line-height: 1.5; break-inside: avoid; page-break-inside: avoid; }
+        .fg-book-list li span { color: var(--tx-soft); font-size: 0.85rem; }
         .food-list.bad li::before { background: var(--red-400); }
 
         /* Tips List */
@@ -1925,6 +1929,7 @@
                 </div>
             </div>
             <ul class="food-list good" id="bookRecommendedList"></ul>
+            <div id="bookFoodGuideCore"></div>
             <div class="page-footer">
                 <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
                 <div>Препоръчителни Храни</div>
@@ -1936,14 +1941,15 @@
             <div class="section-header">
                 <div class="section-icon red"><i class="fas fa-ban"></i></div>
                 <div>
-                    <div class="section-title">Забранени Храни</div>
-                    <div class="section-subtitle">Храни, които трябва да се избягват по време на плана</div>
+                    <div class="section-title" id="bookLimitTitle">Забранени Храни</div>
+                    <div class="section-subtitle" id="bookLimitSubtitle">Храни, които трябва да се избягват по време на плана</div>
                 </div>
             </div>
             <ul class="food-list bad" id="bookForbiddenList"></ul>
+            <div id="bookFoodGuideLimit"></div>
             <div class="page-footer">
                 <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
-                <div>Забранени Храни</div>
+                <div id="bookLimitFooter">Забранени Храни</div>
             </div>
         </div>
 
@@ -2513,7 +2519,7 @@
                     }
                     if (isFreeMeal) {
                         var freePlanned = meal._plannedCalories || 0;
-                        html += '<div class="meal-meta"><div class="meal-cal" style="color:var(--amber-500);">🏆</div><div class="meal-weight-text">Любима храна' + (freePlanned > 0 ? ' (~' + Math.round(freePlanned) + ' kcal)' : '') + '</div></div>';
+                        html += '<div class="meal-meta"><div class="meal-cal" style="color:var(--amber-500);" aria-hidden="true">🏆</div><div class="meal-weight-text">Любима храна' + (freePlanned > 0 ? ' (~' + Math.round(freePlanned) + ' kcal)' : '') + '</div></div>';
                     }
 
                     html += '</div>'; // /header
@@ -2561,7 +2567,7 @@
                     } else {
                         // Free meal body
                         html += '<div class="meal-card-body">';
-                        html += '<div class="desc-text" style="color:var(--amber-600);">Можете свободно да консумирате любимата си храна. Препоръка: преди любимата храна да се консумира зеленолистна салата, поръсена със семена или смлени ядки, подправена със зехтин и лимонов сок.</div>';
+                        html += '<div class="desc-text" style="color:var(--tx-amber);">Можете свободно да консумирате любимата си храна. Препоръка: преди любимата храна да се консумира зеленолистна салата, поръсена със семена или смлени ядки, подправена със зехтин и лимонов сок.</div>';
                         html += '</div>';
                     }
 
@@ -2589,12 +2595,61 @@
             list.innerHTML = plan.recommendations.map(function(r) {
                 return '<li>' + esc(r) + '</li>';
             }).join('');
+            var g = plan.foodGuide;
+            var core = document.getElementById('bookFoodGuideCore');
+            if (g && g.v === 1 && core) {
+                var h = '';
+                if (g.free && g.free.length) {
+                    h += '<div class="fg-book-sub">Свободно</div><ul class="food-list good">' +
+                        g.free.map(function(f) { return '<li>' + esc(cap(f)) + '</li>'; }).join('') + '</ul>';
+                }
+                if (g.moderate && g.moderate.length) {
+                    h += '<div class="fg-book-sub">Умерено — с мярка</div><ul class="fg-book-list">' +
+                        g.moderate.map(function(m) {
+                            return '<li><strong>' + esc(m.food) + '</strong> — ' + esc(m.amount) + (m.example ? '<br><span>' + esc(m.example) + '</span>' : '') + '</li>';
+                        }).join('') + '</ul>';
+                }
+                core.innerHTML = h;
+            }
         }
+
+        function cap(t) { t = String(t || ''); return t.charAt(0).toUpperCase() + t.slice(1); }
 
         // ===== FORBIDDEN FOODS =====
 
         function renderForbidden(plan) {
             var page = document.getElementById('forbiddenPage');
+            var g = plan.foodGuide;
+            if (g && g.v === 1 && ((g.occasional && g.occasional.length) || (g.strict && g.strict.length))) {
+                page.style.display = 'block';
+                document.getElementById('bookForbiddenList').style.display = 'none';
+                document.getElementById('bookLimitTitle').textContent = 'Позволено рядко и забранено';
+                document.getElementById('bookLimitSubtitle').textContent = 'Какво е позволено от време на време — и какво не, и защо';
+                document.getElementById('bookLimitFooter').textContent = 'Позволено рядко и забранено';
+                var h = '';
+                if (g.occasional && g.occasional.length) {
+                    h += '<div class="fg-book-sub">По избор, рядко</div><ul class="fg-book-list">' +
+                        g.occasional.map(function(o) {
+                            return '<li><strong>' + esc(o.food) + '</strong> — ' + esc(o.frequency) + '<br><span>' + esc(cap(o.portion)) + ' · ' + esc(o.when) + '</span></li>';
+                        }).join('') + '</ul>';
+                }
+                if (g.strict && g.strict.length) {
+                    h += '<div class="fg-book-sub">Не</div><ul class="fg-book-list">' +
+                        g.strict.map(function(x) {
+                            return '<li><strong>' + esc(cap(x.food)) + '</strong><br><span>' + esc(cap(x.reason)) + '</span></li>';
+                        }).join('') + '</ul>';
+                }
+                if (g.swaps && g.swaps.length) {
+                    h += '<div class="fg-book-sub">Замени</div><ul class="fg-book-list">' +
+                        g.swaps.map(function(x) { return '<li>' + esc(x.from) + ' → <strong>' + esc(x.to) + '</strong></li>'; }).join('') + '</ul>';
+                }
+                if (g.situations && g.situations.length) {
+                    h += '<div class="fg-book-sub">Ситуации</div><ul class="fg-book-list">' +
+                        g.situations.map(function(x) { return '<li><strong>' + esc(x.title) + '</strong><br><span>' + esc(x.text) + '</span></li>'; }).join('') + '</ul>';
+                }
+                document.getElementById('bookFoodGuideLimit').innerHTML = h;
+                return;
+            }
             if (!plan.forbidden || !Array.isArray(plan.forbidden) || plan.forbidden.length === 0) {
                 page.style.display = 'none';
                 return;
@@ -2806,7 +2861,7 @@
             }
             if (document.getElementById('forbiddenPage').style.display !== 'none') {
                 pageNum++;
-                items.push({ title: 'Забранени Храни', page: pageNum });
+                items.push({ title: document.getElementById('bookLimitTitle').textContent || 'Забранени Храни', page: pageNum });
             }
             if (document.getElementById('psychologyPage').style.display !== 'none') {
                 pageNum++;

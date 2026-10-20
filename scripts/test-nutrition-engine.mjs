@@ -127,6 +127,30 @@ for (const prof of profiles) {
   const analysis = { ...buildDeterministicAnalysis(data), Final_Calories: kcal, macroGrams: { ...macros } };
   const strategy = buildEngineStrategy(res, data, { kcal, freeDayNumber: res.freeDayNumber });
   const wrapped = { analysis, strategy, weekPlan };
+  // Ръководството за храните не противоречи на политиката: забраненото не е „по избор“.
+  {
+    const g = strategy.foodGuide;
+    ok(g && g.v === 1, `${prof.id}: foodGuide`);
+    if (g) {
+      const occ = g.occasional.map(o => o.food).join(' | ');
+      const sw = g.swaps.map(x => x.to).join(' | ');
+      const sit = g.situations.map(x => x.text).join(' ');
+      const ex = new Set(profile.exclusions);
+      ok(g.free.length >= 2 && g.moderate.length >= 1 && g.swaps.length >= 5 && g.situations.length >= 4, `${prof.id}: нивата не са празни`);
+      if (policy.noSweets) ok(!/шоколад|десерт|сладкиш|сладолед|газирана|сок/i.test(occ), `${prof.id}: сладко като „по избор“ при noSweets — ${occ}`);
+      if (ex.has('GLU')) ok(!/хляб, баница|пица/i.test(occ) && !/пълнозърнест или ръжен/.test(sw), `${prof.id}: глутен в „по избор“ или в замените`);
+      if (ex.has('LAC') || policy.pattern === 'vegan') ok(!/сладолед/i.test(occ) && !/кисело мляко/i.test(sw), `${prof.id}: млечно при LAC/веган`);
+      if (policy.pattern !== 'omnivore') ok(!/колбас/i.test(occ) && !/пилешко/i.test(sw), `${prof.id}: месо при ${policy.pattern}`);
+      if (['GOUT', 'NAFLD', 'PP'].some(c => profile.clinical.includes(c))) ok(!/алкохол/i.test(occ), `${prof.id}: алкохол при ${profile.clinical}`);
+      if (policy.style === 'keto') ok(!/плод|нахут|хляб/i.test(sw) && !/чипс|хляб|десерт/i.test(occ), `${prof.id}: въглехидрати в кето — ${sw}`);
+      if (!policy.allowsFreeMeal) ok(!/свободното хранене/.test(occ + ' ' + g.occasional.map(o => o.when).join(' ') + ' ' + sit), `${prof.id}: свободно хранене без такова в плана`);
+      for (const code of profile.exclusions) ok(g.strict.length > 0, `${prof.id}: изключение ${code} без строго „не“`);
+      const all = [...g.free, ...g.moderate.flatMap(m => [m.food, m.amount, m.example || '']), ...g.occasional.flatMap(o => [o.food, o.portion, o.frequency, o.when]),
+        ...g.strict.flatMap(x => [x.food, x.reason]), ...g.swaps.flatMap(x => [x.from, x.to]), ...g.situations.flatMap(x => [x.title, x.text])];
+      const bad = all.filter(t => textIssues(String(t)).length);
+      ok(!bad.length, `${prof.id}: текст в ръководството — ${bad.slice(0, 2).join(' / ')}`);
+    }
+  }
   const issues = [
     ...validateDietetic(wrapped, data), ...validateProfileRules(wrapped, data),
     ...validateWeekPlanNutrition(weekPlan, strategy), ...validateWeekPlanFoods(weekPlan),
