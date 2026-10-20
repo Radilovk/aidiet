@@ -71,6 +71,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.4",
+    "@capgo/capacitor-health": "^8.11.12",
     "@capgo/capacitor-navigation-bar": "^8.1.5",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
   }

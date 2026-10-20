@@ -1238,6 +1238,9 @@
         .labs-item[data-status="high"], .labs-item[data-status="low"] { background: var(--ds-warning-bg); border-color: var(--ds-warning-border); }
         .labs-item[data-status="high"] .labs-item-status, .labs-item[data-status="low"] .labs-item-status { color: var(--ds-warning-text); font-weight: 700; }
         .labs-cautions { margin: 0; padding-left: 18px; font-size: 0.9rem; line-height: 1.5; color: var(--text-dark); }
+        .devices-actions { grid-template-columns: 1fr 1fr; }
+        .devices-actions .devices-connect, .devices-actions .devices-off { grid-column: 1 / -1; }
+        .devices-off { margin-top: 2px; }
         .labs-delete { margin-top: 14px; min-height: 44px; background: none; border: none; color: var(--ds-error-text); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 0; }
         @media (max-width: 359px) { .labs-row { grid-template-columns: 40px 1fr 1fr; } .labs-row-unit { grid-column: 2 / -1; } }
 
@@ -1918,6 +1921,7 @@
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
     <script src="./enrichment-client.js"></script>
+    <script src="./health-sync.js"></script>
     <script type="module" src="./plan-regen-fields.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
@@ -2350,6 +2354,25 @@
             </div>
         </div>
 
+        <div class="form-section" id="devicesSection" hidden>
+            <div class="profile-contact-header" onclick="toggleDevices()" role="button" tabindex="0" aria-expanded="false" aria-controls="devicesWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDevices()">
+                <div class="section-title">
+                    <i class="fas fa-heart-pulse"></i>
+                    Устройства
+                </div>
+                <i class="fas fa-chevron-down profile-contact-chevron" id="devicesChevron"></i>
+            </div>
+            <div class="profile-contact-wrapper" id="devicesWrapper">
+                <p class="labs-intro">Свържете Health Connect — оттам се четат крачките, теглото, сънят и записаните калории от часовник, везна или тракер. Активността и сънят в плана се сверяват с реалните данни, а седмичният преглед ползва теглото от везната.</p>
+                <label class="labs-consent">
+                    <input type="checkbox" id="devicesConsent" onchange="onDevicesConsent(this.checked)">
+                    <span>Съгласен/на съм данните от устройствата да се използват за хранителния ми план. Мога да спра и да ги изтрия по всяко време.</span>
+                </label>
+                <div class="labs-actions devices-actions" id="devicesActions"></div>
+                <div class="labs-status" id="devicesStatus" role="status"></div>
+            </div>
+        </div>
+
         <div class="form-section">
             <div class="profile-contact-header" onclick="togglePlanBackup()" role="button" tabindex="0" aria-expanded="false" aria-controls="planBackupWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')togglePlanBackup()">
                 <div class="section-title">
@@ -2610,6 +2633,101 @@
             } catch (e) {
                 labsSetStatus(e.message || 'Не успяхме да изтрием данните.', 'error');
             }
+        }
+
+        function toggleDevices() {
+            const wrapper = document.getElementById('devicesWrapper');
+            const chevron = document.getElementById('devicesChevron');
+            const header = wrapper.previousElementSibling;
+            const isOpen = wrapper.classList.toggle('open');
+            chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (header) header.setAttribute('aria-expanded', String(isOpen));
+        }
+
+        function devicesSetStatus(text, tone) {
+            const el = document.getElementById('devicesStatus');
+            el.textContent = text || '';
+            el.dataset.tone = tone || '';
+        }
+
+        function onDevicesConsent(checked) {
+            const H = window.NutriPlanHealth;
+            if (!checked && H && H.state().connected) {
+                disconnectDevices();
+                return;
+            }
+            renderDevices();
+        }
+
+        function formatSyncTime(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            return d.toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' }) + ', ' + d.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function renderDevices() {
+            const H = window.NutriPlanHealth;
+            const box = document.getElementById('devicesActions');
+            if (!H || !box) return;
+            const st = H.state();
+            const consent = document.getElementById('devicesConsent').checked;
+            if (st.connected) {
+                box.innerHTML = `
+                    <button type="button" class="btn btn-primary" onclick="syncDevices()"><i class="fas fa-rotate"></i> Синхронизирай</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.NutriPlanHealth.openSettings()"><i class="fas fa-sliders"></i> Достъп</button>
+                    <button type="button" class="labs-delete devices-off" onclick="disconnectDevices()"><i class="fas fa-link-slash"></i> Изключи и изтрий данните</button>`;
+                if (!document.getElementById('devicesStatus').textContent && st.lastSync) {
+                    devicesSetStatus(`Последно: ${formatSyncTime(st.lastSync)} · ${st.lastCount || 0} записа`);
+                }
+            } else {
+                box.innerHTML = `<button type="button" class="btn btn-primary devices-connect" onclick="connectDevices()" ${consent ? '' : 'disabled'}><i class="fas fa-link"></i> Свържи Health Connect</button>`;
+            }
+        }
+
+        async function initDevicesSection() {
+            const H = window.NutriPlanHealth;
+            const E = window.NutriPlanEnrichment;
+            const section = document.getElementById('devicesSection');
+            if (!section || !H || !E || !H.supported() || !E.hasPlanProfile()) return;
+            section.hidden = false;
+            document.getElementById('devicesConsent').checked = E.hasConsent('device') || !!H.state().connected;
+            renderDevices();
+        }
+
+        async function connectDevices() {
+            devicesSetStatus('Свързване…');
+            try {
+                const res = await window.NutriPlanHealth.connect();
+                devicesSetStatus(res.sent ? `Изпратени ${res.sent} записа. ${res.message || ''}` : (res.message || 'Свързано.'), 'ok');
+            } catch (e) {
+                devicesSetStatus(e.message || 'Свързването не успя.', 'error');
+            }
+            renderDevices();
+        }
+
+        async function syncDevices() {
+            devicesSetStatus('Синхронизиране…');
+            try {
+                const res = await window.NutriPlanHealth.sync({ force: true });
+                devicesSetStatus(res.sent ? `Изпратени ${res.sent} записа. ${res.message || ''}` : (res.message || 'Няма нови данни.'), 'ok');
+            } catch (e) {
+                devicesSetStatus(e.message || 'Синхронизирането не успя.', 'error');
+            }
+        }
+
+        async function disconnectDevices() {
+            if (!confirm('Синхронизирането спира, а данните от устройства се изтриват от плана. Продължаване?')) {
+                document.getElementById('devicesConsent').checked = true;
+                return;
+            }
+            try {
+                await window.NutriPlanHealth.disconnect();
+                document.getElementById('devicesConsent').checked = false;
+                devicesSetStatus('Изключено. Достъпа в Health Connect можете да оттеглите от настройките му.', 'ok');
+            } catch (e) {
+                devicesSetStatus(e.message || 'Не успяхме да изтрием данните.', 'error');
+            }
+            renderDevices();
         }
 
         function togglePlanBackup() {
@@ -3884,6 +4002,7 @@
                 loadAnalysis(); // REQUIREMENT 1: Load analysis
                 updateQuestionnaireActionsBar();
                 initLabsSection();
+                initDevicesSection();
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.ok('profile', 'setup-profile', 'Initial profile load complete');
                 }

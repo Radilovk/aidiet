@@ -43585,10 +43585,12 @@ function readCheckin(answers, analytics, previous = {}) {
     const span = days >= 4 && days <= 28 ? days : 7;
     weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
   }
+  const intake = Number(answerOf(answers, "intakeKcal"));
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
     weightKg,
     weeklyChangeKg,
+    intakeKcal: intake >= 500 && intake <= 8e3 ? Math.round(intake) : null,
     adherence,
     hunger: LEVEL_ANSWERS[answerOf(answers, "hunger")] || null,
     energy: LEVEL_ANSWERS[answerOf(answers, "energy")] || null,
@@ -43640,6 +43642,8 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
   const expectedLoss = Math.max(0, (tdee - kcal) * 7 / KCAL_PER_KG);
   const outcome = weightOutcome(checkin, { goalKind, expectedLossKg: expectedLoss, weightKg, lactating });
   const cls = outcome ? OUTCOME_CLASS[goalKind][outcome] : null;
+  const overIntake = checkin.intakeKcal != null && checkin.intakeKcal > kcal * 1.1;
+  const underIntake = checkin.intakeKcal != null && checkin.intakeKcal < kcal * 0.9;
   const measured = checkin.weeklyChangeKg != null ? `${checkin.weeklyChangeKg > 0 ? "+" : ""}${checkin.weeklyChangeKg.toFixed(1).replace(".", ",")} \u043A\u0433 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430` : null;
   if (adherence != null && adherence < 60) {
     modifications.push("simplify_meals");
@@ -43653,6 +43657,8 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
       if (outcome === "fast_loss") {
         delta = +MAX_WEEKLY_STEP;
         reasons.push(lactating ? "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 0,5 \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043F\u0440\u0438 \u043A\u044A\u0440\u043C\u0435\u043D\u0435 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043A\u044A\u0440\u043C\u0430\u0442\u0430." : `\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 1% \u043E\u0442 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${measured ? ` (${measured})` : ""} \u2014 \u0442\u0435\u043C\u043F\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u0431\u0430\u0432\u044F, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430\u0442\u0430 \u043C\u0430\u0441\u0430.`);
+      } else if (cls === "stall" && overIntake) {
+        reasons.push(`\u041F\u043E \u0442\u0440\u0430\u043A\u0435\u0440\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043E\u043A\u043E\u043B\u043E ${checkin.intakeKcal} kcal \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043F\u043B\u0430\u043D ${kcal} kcal \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 \u043E\u0441\u0442\u0430\u0432\u0430\u0442; \u043F\u044A\u0440\u0432\u043E \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0434\u0430 \u0441\u0435 \u0434\u043E\u0431\u043B\u0438\u0436\u0438 \u0434\u043E \u043F\u043B\u0430\u043D\u0430.`);
       } else if (cls === "stall") {
         if (weeks >= 2) {
           delta = outcome === "gain" ? -MAX_WEEKLY_STEP : -100;
@@ -43670,6 +43676,8 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
       } else if (cls === "down") {
         delta = +MAX_WEEKLY_STEP;
         reasons.push("\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u043F\u0430\u0434\u0430 \u043F\u0440\u0438 \u0446\u0435\u043B \u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430.");
+      } else if (cls === "stall" && underIntake) {
+        reasons.push(`\u041F\u043E \u0442\u0440\u0430\u043A\u0435\u0440\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043E\u043A\u043E\u043B\u043E ${checkin.intakeKcal} kcal \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043F\u043B\u0430\u043D ${kcal} kcal \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 \u043E\u0441\u0442\u0430\u0432\u0430\u0442; \u043F\u044A\u0440\u0432\u043E \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0434\u0430 \u0441\u0442\u0438\u0433\u043D\u0435 \u043F\u043B\u0430\u043D\u0430.`);
       } else if (cls === "stall") {
         if (weeks >= 2) {
           delta = +MAX_WEEKLY_STEP;
@@ -43737,6 +43745,7 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
     weight: outcome,
     weightKg: checkin.weightKg,
     weeklyChangeKg: checkin.weeklyChangeKg,
+    intakeKcal: checkin.intakeKcal,
     followed,
     adherence
   };
@@ -48804,6 +48813,8 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (deviceKg && !(answers || []).some((a) => a.questionId === "weightKg" && String(a.value || "").trim())) {
       checkinAnswers = [...answers || [], { questionId: "weightKg", value: String(deviceKg), source: "device" }];
     }
+    const deviceIntake = enrichedData._enrichment?.checkin?.intakeKcal;
+    if (deviceIntake) checkinAnswers = [...checkinAnswers, { questionId: "intakeKcal", value: String(deviceIntake), source: "device" }];
     const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, checkinAnswers, weeklyAdaptHistory);
     const note = String((answers || []).find((a) => a.questionId === "note")?.value || "").trim();
     if (note.length >= 6) {

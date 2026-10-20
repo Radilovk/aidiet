@@ -6080,6 +6080,8 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (deviceKg && !(answers || []).some(a => a.questionId === 'weightKg' && String(a.value || '').trim())) {
       checkinAnswers = [...(answers || []), { questionId: 'weightKg', value: String(deviceKg), source: 'device' }];
     }
+    const deviceIntake = enrichedData._enrichment?.checkin?.intakeKcal;
+    if (deviceIntake) checkinAnswers = [...checkinAnswers, { questionId: 'intakeKcal', value: String(deviceIntake), source: 'device' }];
     const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, checkinAnswers, weeklyAdaptHistory);
     // Свободният коментар от прегледа → само промени в менюто, не в калориите.
     const note = String((answers || []).find(a => a.questionId === 'note')?.value || '').trim();

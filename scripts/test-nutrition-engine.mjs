@@ -219,6 +219,10 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(flat1.calorieAdjust === 0, 'една седмица без промяна — калориите остават');
   const flat2 = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Без промяна'), null), history: [{ weight: 'flat' }] });
   ok(flat2.calorieAdjust === -75, `две поредни — към безопасния минимум (${flat2.calorieAdjust})`);
+  const over = decideWeeklyAdjustment({ ...base, checkin: readCheckin([...ans('Без промяна'), { questionId: 'intakeKcal', value: '2150' }], null), history: [{ weight: 'flat' }] });
+  ok(over.calorieAdjust === 0 && /тракера/.test(over.reasoning), 'застой при прием над плана по тракер — калориите не се режат');
+  const near = decideWeeklyAdjustment({ ...base, checkin: readCheckin([...ans('Без промяна'), { questionId: 'intakeKcal', value: '1850' }], null), history: [{ weight: 'flat' }] });
+  ok(near.calorieAdjust === flat2.calorieAdjust, 'прием близо до плана — обичайното правило');
   const fast = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Отслабнах повече от 1 кг'), null) });
   ok(fast.calorieAdjust === 150, 'твърде бързо — +150 kcal');
   const low = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Без промяна', 'Малко'), null), history: [{ weight: 'flat' }] });
