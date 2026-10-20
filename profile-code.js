@@ -623,6 +623,10 @@ export function compileProfile(userData = {}, overrides = {}) {
     addAll(exclusions, hints.exclusions || []);
     addAll(clinical, hints.clinical || []);
   }
+  // Обогатяването (EmoEat, изследвания, устройства) също само ДОБАВЯ —
+  // клиничните кодове от изследвания са предпазни хранителни правила, не диагноза.
+  const enrich = data._enrichment?.hints && typeof data._enrichment.hints === 'object' ? data._enrichment.hints : null;
+  if (enrich) addAll(clinical, enrich.clinical || []);
   const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns, ...(hints?.pattern ? [hints.pattern] : [])]);
   const adjustments = [];
   const style = resolveConflicts(
@@ -644,7 +648,7 @@ export function compileProfile(userData = {}, overrides = {}) {
     exclusions.add('EGG');
   }
 
-  const behaviors = new Set([...prefs.behaviors, ...modifier.behaviors, ...(hints?.behaviors || [])]);
+  const behaviors = new Set([...prefs.behaviors, ...modifier.behaviors, ...(hints?.behaviors || []), ...(enrich?.behaviors || [])]);
   for (const label of asList(data.eatingHabits)) {
     const code = EATING_HABIT_LABELS.get(normLabel(label));
     if (code) behaviors.add(code);
@@ -692,7 +696,7 @@ export function compileProfile(userData = {}, overrides = {}) {
     slots,
     unmapped: [...new Set(unmapped)],
     adjustments,
-    aiNotes: hints?.cautions || [],
+    aiNotes: [...(hints?.cautions || []), ...(enrich?.cautions || [])],
   };
 }
 

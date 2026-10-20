@@ -74,13 +74,15 @@ export function averageMacrosFromWeek(weekPlan = {}) {
 }
 
 function supplementsFor(profile, protocolSupplements = [], now = null) {
-  const out = [...(protocolSupplements || [])].slice(0, 4);
-  const names = new Set(out.map(s => String(s.name || '').toLowerCase()));
-  const add = (name, dosage, timing) => {
-    if ([...names].some(n => n.includes(name.toLowerCase().split(' ')[0]))) return;
-    names.add(name.toLowerCase());
-    out.push({ name, dosage, timing });
+  const out = [];
+  const names = new Set();
+  const add = (name, dosage, timing, reason) => {
+    if (!name || [...names].some(n => n.includes(String(name).toLowerCase().split(' ')[0]))) return;
+    names.add(String(name).toLowerCase());
+    out.push(reason ? { name, dosage, timing, reason } : { name, dosage, timing });
   };
+  // Протоколът и изследванията (с обосновка) — първи; повторенията отпадат.
+  for (const s of protocolSupplements || []) add(s.name, s.dosage, s.timing, s.reason);
   const pattern = profile.diet?.pattern;
   const c = profile.clinical || [];
   if (pattern === 'vegan' || pattern === 'vegetarian') add('Витамин B12', '250–500 mcg', 'сутрин');
@@ -135,6 +137,6 @@ export function buildPlanSummary({
     forbidden,
     psychology: [...new Set(psychology)].slice(0, 6),
     waterIntake: `${waterNeedLiters(profile)} л вода дневно, разпределена през деня`,
-    supplements: supplementsFor(profile, protocolSupplements),
+    supplements: supplementsFor(profile, [...(protocolSupplements || []), ...(userData?._enrichment?.supplements || [])]),
   };
 }

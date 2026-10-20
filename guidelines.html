@@ -1675,6 +1675,7 @@
                 if (content.description) details += ` - ${content.description}`;
                 if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
                 if (content.intake || content.timing) details += ` - Прием: ${content.intake || content.timing}`;
+                if (content.reason) details += ` - Защо: ${content.reason}`;
                 return escapeHtml(details);
             }
             return '';

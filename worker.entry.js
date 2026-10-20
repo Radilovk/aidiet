@@ -99,6 +99,8 @@ import {
   applyBoundedMetabolicReview,
 } from './step1-deterministic.js';
 import { enrichUserDataEngineContext } from './questionnaire-engine-map.js';
+import { applyEnrichment, mergeFacts, normalizeFact, recalcLevel, deriveEnrichment, isUrgent } from './enrichment.js';
+import { LAB_MARKERS } from './enrichment-labs.js';
 import {
   readOverlayFromKv,
   writeOverlayToKv,
@@ -3200,6 +3202,21 @@ async function loadAdherenceRatioForGeneration(env, data, userIdHint = '') {
 }
 
 
+/** Обогатяването на клиента (user_profile.enrichment) — по същите идентификатори като дневника. */
+async function loadEnrichmentForGeneration(env, data, userIdHint = '') {
+  if (!env?.page_content) return null;
+  const ids = [data?.userId, data?.firebaseUid, userIdHint, data?.email, !data?.email ? generateUserId(data) : null].filter(Boolean);
+  for (const uid of [...new Set(ids)]) {
+    try {
+      const profile = await kvGetJSON(env, `user_profile:${uid}`);
+      if (profile?.enrichment?.facts?.length) return profile.enrichment;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 /** Post-generation validation (shared by plan gen + weekly adapt). */
 async function finalizeValidatedPlan(env, structuredPlan, data) {
   await reconcilePlanStructure(structuredPlan, data, env);
@@ -3234,6 +3251,9 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   const userId = data.email || generateUserId(data);
   const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
   if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
+  // Данните извън въпросника (EmoEat, изследвания, устройства) — в профила за двигателя.
+  const enrichmentStore = await loadEnrichmentForGeneration(env, data, userId);
+  if (enrichmentStore) applyEnrichment(data, enrichmentStore);
 
   // Resolve clinical protocol
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
@@ -3306,6 +3326,9 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   const userId = data.email || generateUserId(data);
   const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
   if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
+  // Данните извън въпросника (EmoEat, изследвания, устройства) — в профила за двигателя.
+  const enrichmentStore = await loadEnrichmentForGeneration(env, data, userId);
+  if (enrichmentStore) applyEnrichment(data, enrichmentStore);
   enrichUserDataEngineContext(data);
   await applyIntakeHints(env, data);
   const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
@@ -5824,6 +5847,7 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
     plan: resolvedPlan,
     analytics,
     weeklyAdaptHistory: profile?.weeklyAdaptHistory || [],
+    enrichment: profile?.enrichment || null,
   };
 }
 
@@ -5952,6 +5976,10 @@ async function savePendingWeeklyRelease(env, userId, clientId, release) {
   if (!userId) return;
   const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
+  // Новата седмица вече е сглобена с обогатяването — чакащата промяна е приложена.
+  if (profile.enrichment?.pendingLevel) {
+    profile.enrichment = { ...profile.enrichment, pendingLevel: 0, appliedAt: new Date().toISOString() };
+  }
   profile.pendingWeekly = {
     ...release,
     visibleAt: computeWeeklyReleaseVisibleAt(),
@@ -6037,7 +6065,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
   };
-  const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, payload);
+  const { userData, plan, analytics, weeklyAdaptHistory, enrichment } = await resolveWeeklyJobInputs(env, payload);
   if (!plan?.weekPlan) throw new Error('Липсва план за адаптация');
   const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
   const caloriesBefore = parseFinalCalories(plan.analysis?.Final_Calories);
@@ -6045,7 +6073,14 @@ async function runWeeklyAdaptation(env, payload, jobId) {
   try {
     const enrichedData = normalizeQuestionnaireData(userData);
     await applyIntakeHints(env, enrichedData);
-    const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, answers, weeklyAdaptHistory);
+    if (enrichment) applyEnrichment(enrichedData, enrichment);
+    // Тегло от везна, когато клиентът не е въвел сам — средно от последните 3 дни.
+    let checkinAnswers = answers;
+    const deviceKg = enrichedData._enrichment?.checkin?.weightKg;
+    if (deviceKg && !(answers || []).some(a => a.questionId === 'weightKg' && String(a.value || '').trim())) {
+      checkinAnswers = [...(answers || []), { questionId: 'weightKg', value: String(deviceKg), source: 'device' }];
+    }
+    const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, checkinAnswers, weeklyAdaptHistory);
     // Свободният коментар от прегледа → само промени в менюто, не в калориите.
     const note = String((answers || []).find(a => a.questionId === 'note')?.value || '').trim();
     if (note.length >= 6) {
@@ -13756,6 +13791,107 @@ async function handleSaveUserProfile(request, env) {
 }
 
 /**
+ * POST /api/enrichment
+ * Body: { userId, idToken?, facts?: Fact[], emoeat?: object }
+ * Слива новите факти в user_profile.enrichment и казва какво ниво на
+ * преизчисляване предизвикват. Промените влизат със седмичния преглед;
+ * тези за безопасност (изследвания) се маркират за специалиста веднага.
+ */
+async function handleEnrichmentSubmit(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const body = await request.json();
+    const { userId, idToken } = body || {};
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+
+    const incoming = Array.isArray(body.facts) ? body.facts.slice(0, 200) : [];
+    if (body.emoeat && typeof body.emoeat === 'object') {
+      incoming.push({ kind: 'emoeat', value: body.emoeat, at: new Date().toISOString(), source: 'emoeat' });
+    }
+    const facts = incoming.map(normalizeFact).filter(Boolean);
+    if (!facts.length) return jsonResponse({ error: 'Няма валидни данни' }, 400);
+
+    const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
+    const prevStore = profile.enrichment || { facts: [] };
+    const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts), updatedAt: new Date().toISOString() };
+    const base = normalizeQuestionnaireData({ ...(profile.userData || {}) });
+    const prevData = applyEnrichment(JSON.parse(JSON.stringify(base)), prevStore);
+    const nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+    const change = recalcLevel(prevData, nextData);
+    const urgent = isUrgent(nextData._enrichment)
+      && JSON.stringify(nextData._enrichment?.safety || {}) !== JSON.stringify(prevData._enrichment?.safety || {});
+    nextStore.pendingLevel = Math.max(Number(prevStore.pendingLevel) || 0, change.level);
+    nextStore.lastChange = { ...change, urgent, at: nextStore.updatedAt };
+    profile.enrichment = nextStore;
+
+    const ttl = String(userId).startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+    await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+    // Безопасност: специалистът вижда сигнала в записа на клиента, без да чака прегледа.
+    if (urgent && profile.clientId) {
+      try {
+        const client = await kvGetJSON(env, `client:${profile.clientId}`);
+        if (client) {
+          client.enrichmentAlert = { at: nextStore.updatedAt, reasons: change.reasons, cautions: nextData._enrichment?.hints?.cautions || [] };
+          await kvPutJSON(env, `client:${profile.clientId}`, client, null);
+        }
+      } catch (e) {
+        console.warn('[Enrichment] client alert failed:', e.message);
+      }
+    }
+    return jsonResponse({
+      success: true,
+      level: change.level,
+      reasons: change.reasons,
+      urgent,
+      appliesAt: urgent ? 'specialist' : (change.level > 0 ? 'weekly' : 'next_voice'),
+      derived: publicEnrichmentView(nextData._enrichment),
+    });
+  } catch (error) {
+    console.error('Error saving enrichment:', error);
+    return jsonResponse({ error: 'Failed to save enrichment: ' + error.message }, 500);
+  }
+}
+
+/** POST /api/enrichment/get — Body: { userId, idToken? } */
+async function handleEnrichmentGet(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    const store = profile?.enrichment || { facts: [] };
+    const sex = profile?.userData?.gender === 'Мъж' ? 'M' : profile?.userData?.gender === 'Жена' ? 'F' : 'X';
+    return jsonResponse({
+      success: true,
+      derived: publicEnrichmentView(deriveEnrichment(store, new Date(), sex)),
+      sources: [...new Set((store.facts || []).map(f => f.source))],
+      lastChange: store.lastChange || null,
+      markers: LAB_MARKERS,
+    });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to load enrichment: ' + error.message }, 500);
+  }
+}
+
+/** Какво клиентът вижда за обогатяването — без суровите факти. */
+function publicEnrichmentView(d) {
+  if (!d) return null;
+  return {
+    overrides: d.overrides || {},
+    checkin: d.checkin || {},
+    labs: d.labs || [],
+    supplements: d.supplements || [],
+    cautions: d.hints?.cautions || [],
+    reasons: d.reasons || [],
+    emoeat: d.voice ? { archetype: d.voice.archetype, at: d.voice.at } : null,
+  };
+}
+
+/**
  * GET /api/user/check-account?email=...
  * Lightweight check whether an email already has a plan (for auth gate before replacement).
  */
@@ -15967,6 +16103,10 @@ export default {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === '/api/enrichment' && request.method === 'POST') {
+        return await handleEnrichmentSubmit(request, env);
+      } else if (url.pathname === '/api/enrichment/get' && request.method === 'POST') {
+        return await handleEnrichmentGet(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'ANALYTICS_SYNC');
         if (rlErr) return rlErr;

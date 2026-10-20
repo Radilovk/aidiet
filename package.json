@@ -22,6 +22,7 @@
     "test:plan-adequacy:benchmark": "node scripts/plan-adequacy/run-benchmark.mjs",
     "test:plan-adequacy:matrix": "node scripts/plan-adequacy/run-matrix-live.mjs",
     "test:solver": "node scripts/test-solver.mjs",
+    "test:enrichment": "node scripts/test-enrichment.mjs",
     "test:engine": "node scripts/test-nutrition-engine.mjs",
     "test:voice": "node scripts/test-plan-voice.mjs",
     "test:matrix": "node scripts/test-profile-matrix.mjs",
