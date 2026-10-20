@@ -3011,7 +3011,7 @@
 
         function planLinkHtml() {
             const E = window.NutriPlanEnrichment;
-            if (!E || !E.hasPlanProfile()) return '';
+            if (!E || !E.hasPlanProfile()) return planInviteHtml();
             const linked = localStorage.getItem(EMOEAT_LINK_KEY) === (localStorage.getItem('emoeat_completed') || '');
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
@@ -3041,6 +3041,40 @@
             } catch (e) {
                 btn.disabled = false;
                 status.textContent = 'Не успяхме да изпратим. Проверете връзката и опитайте пак.';
+            }
+        }
+
+        // ── Към NutriPlan за посетител без план ─────────────────────────
+        // EmoEat води към плана и му предава само обобщението на профила
+        // (през пратка на сървъра, със съгласие на следващия екран). Обратно
+        // към EmoEat не идват данни от NutriPlan.
+        function planInviteHtml() {
+            return `
+                <section class="rx-plan-link rx-in" id="rxPlanLink">
+                    <div class="rx-plan-link-title"><i class="fas fa-utensils"></i> Хранителен план, съобразен с профила ти</div>
+                    <p class="rx-plan-link-text">NutriPlan ще отчете модела ти още от първия ден: кога и защо се появява гладът, какво помага вместо забрани, как да са подредени храненията. Обобщението на профила (без отделните отговори) отива с теб.</p>
+                    <button type="button" class="rx-btn" id="rxPlanInviteBtn" onclick="continueToNutriPlan()"><i class="fas fa-arrow-right"></i> Създай моя план</button>
+                    <div class="rx-plan-link-status" id="rxPlanLinkStatus" role="status"></div>
+                </section>`;
+        }
+
+        async function continueToNutriPlan() {
+            const btn = document.getElementById('rxPlanInviteBtn');
+            const status = document.getElementById('rxPlanLinkStatus');
+            if (btn) btn.disabled = true;
+            if (status) status.textContent = 'Подготвяме…';
+            try {
+                const response = await fetch(`${WORKER_URL}/api/handoff`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source: 'emoeat', v: 1, completedAt: localStorage.getItem('emoeat_completed') || undefined, profile: buildProfilePayload() }),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.url) throw new Error(data.error || 'handoff');
+                location.href = data.url;
+            } catch (e) {
+                // Без връзка — към въпросника и без пратка.
+                location.href = './questionnaire2.html?from=emoeat';
             }
         }
 

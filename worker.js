@@ -1427,6 +1427,7 @@ function buildClientCard(clientData, options = {}) {
     clientData?.planGenerationError && clientData?.planStatus === "failed" ? `ERR|${esc2(clientData.planGenerationError)}` : "",
     answers.email ? `EM|${esc2(answers.email)}` : "",
     answers.additionalNotes ? `NT|${esc2(String(answers.additionalNotes).slice(0, 500))}` : "",
+    clientData?.moduleSources && Object.keys(clientData.moduleSources).length ? `MOD|${Object.entries(clientData.moduleSources).map(([k, v]) => `${esc2(k)}=${esc2(String(v).slice(0, 10))}`).join("|")}` : "",
     clientData?.files?.length ? `FL|count=${clientData.files.length}|names=${clientData.files.slice(0, 5).map((f) => esc2(f.name)).join("+")}` : ""
   ].filter(Boolean);
   const planBlocks = [];
@@ -1521,7 +1522,7 @@ function buildChatContextSections(userData, plan) {
       hasNotesSection: hasNotes,
       hasClinicalSection: Boolean(userData?.clinicalProtocol)
     }),
-    health: userData?._healthEssence ? `#HD v1 ${esc2(String(userData._healthEssence).slice(0, 1600))}` : "",
+    health: userData?._healthEssence ? `#HD v1 ${esc2(String(userData._healthEssence).slice(0, 2400))}` : "",
     summary: serializePlanSummary(p.summary) || "",
     meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : "",
     analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || "",
@@ -4355,21 +4356,21 @@ function fitSessionTime(exercises, minutes) {
 function pickByPattern(pool, patterns, client, count, { dayUsed, weekUsed = null, filter = () => true, sortKey = null }) {
   const out = [];
   const seenTargets = /* @__PURE__ */ new Set();
-  const list = pool.map((e) => ({ e, s: exerciseShape(e) })).filter(({ e, s }) => patterns.includes(s.pattern) && !dayUsed.has(e.id) && !violatesRestrictions(e, s, client) && filter(e, s)).sort((a, b) => (weekUsed ? Number(weekUsed.has(a.e.id)) - Number(weekUsed.has(b.e.id)) : 0) || (sortKey ? sortKey(a.e) - sortKey(b.e) : 0) || oddity(a.e) - oddity(b.e) || a.e.name.localeCompare(b.e.name));
+  const list2 = pool.map((e) => ({ e, s: exerciseShape(e) })).filter(({ e, s }) => patterns.includes(s.pattern) && !dayUsed.has(e.id) && !violatesRestrictions(e, s, client) && filter(e, s)).sort((a, b) => (weekUsed ? Number(weekUsed.has(a.e.id)) - Number(weekUsed.has(b.e.id)) : 0) || (sortKey ? sortKey(a.e) - sortKey(b.e) : 0) || oddity(a.e) - oddity(b.e) || a.e.name.localeCompare(b.e.name));
   const baseName = (e) => normalizeText(e.name.replace(/\(.*?\)|\bv\.?\s*\d+\b/g, ""));
   const seenNames = /* @__PURE__ */ new Set();
   const take = (e) => {
     out.push(e);
     seenNames.add(baseName(e));
   };
-  for (const { e } of list) {
+  for (const { e } of list2) {
     if (out.length >= count) break;
     const t = e.targetNorm || e.target;
     if (seenTargets.has(t) || seenNames.has(baseName(e))) continue;
     seenTargets.add(t);
     take(e);
   }
-  for (const { e } of list) {
+  for (const { e } of list2) {
     if (out.length >= count) break;
     if (!out.includes(e) && !seenNames.has(baseName(e))) take(e);
   }
@@ -4858,8 +4859,8 @@ function buildTranslateUserPayload(batch) {
 ${JSON.stringify({ exercises: items })}`;
 }
 function normalizeBatchResult(parsed, batch) {
-  const list = parsed?.translations || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
-  const byId = new Map(list.map((row) => [String(row.id), row]));
+  const list2 = parsed?.translations || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
+  const byId = new Map(list2.map((row) => [String(row.id), row]));
   const out = {};
   for (const ex of batch) {
     const id = String(ex.id);
@@ -4878,14 +4879,14 @@ function normalizeBatchResult(parsed, batch) {
 async function fetchExerciseDataset(url = null) {
   if (!url) {
     const mod = await Promise.resolve().then(() => (init_exercise_dataset(), exercise_dataset_exports));
-    const list = mod.default || mod;
+    const list2 = mod.default || mod;
     let ins = {};
     try {
       const m = await Promise.resolve().then(() => (init_exercise_instructions(), exercise_instructions_exports));
       ins = m.default || m;
     } catch {
     }
-    return list.map((x) => ins[x.id] ? { ...x, instructions: { ...x.instructions || {}, en: ins[x.id].en, bg: ins[x.id].bg } } : x);
+    return list2.map((x) => ins[x.id] ? { ...x, instructions: { ...x.instructions || {}, en: ins[x.id].en, bg: ins[x.id].bg } } : x);
   }
   const res = await fetch(url, { headers: { "User-Agent": "aidiet-fitness-translate" } });
   if (!res.ok) throw new Error(`Dataset HTTP ${res.status}`);
@@ -5012,8 +5013,8 @@ ${CLASSIFY_RESPONSE_SCHEMA}
 ${JSON.stringify({ exercises })}`;
 }
 function normalizeClassifyResult(parsed, batch) {
-  const list = parsed?.classifications || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
-  const byId = new Map(list.map((row) => [String(row.id), row]));
+  const list2 = parsed?.classifications || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
+  const byId = new Map(list2.map((row) => [String(row.id), row]));
   const out = {};
   for (const ex of batch) {
     const id = String(ex.id);
@@ -6673,10 +6674,10 @@ function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
   const adminArchitecture = [];
   const hardcodedIndividual = [];
   const seen = /* @__PURE__ */ new Set();
-  const push = (list, text) => {
+  const push = (list2, text) => {
     if (!text || seen.has(text)) return;
     seen.add(text);
-    list.push(text);
+    list2.push(text);
   };
   for (const chunk of adminChunks) {
     if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
@@ -7304,10 +7305,10 @@ async function loadExerciseIndex(env, ctx) {
     }
   }
   try {
-    const list = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
+    const list2 = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
     const translations = await loadExerciseTranslations(env);
     const metadata = await loadExerciseMetadata(env);
-    const index = buildCompactIndex(list, translations, metadata);
+    const index = buildCompactIndex(list2, translations, metadata);
     if (index.length > 50) {
       memoryIndex = index;
       if (env.FITNESS_KV) {
@@ -8380,10 +8381,10 @@ async function handleSubmitConsultation(request, env) {
   };
   await env.FITNESS_KV.put(`fitplan_consultation:${id}`, JSON.stringify(record));
   const listRaw = await env.FITNESS_KV.get(CONSULTATIONS_LIST_KV_KEY);
-  const list = listRaw ? JSON.parse(listRaw) : [];
-  list.unshift(id);
-  if (list.length > MAX_CONSULTATIONS) list.length = MAX_CONSULTATIONS;
-  await env.FITNESS_KV.put(CONSULTATIONS_LIST_KV_KEY, JSON.stringify(list));
+  const list2 = listRaw ? JSON.parse(listRaw) : [];
+  list2.unshift(id);
+  if (list2.length > MAX_CONSULTATIONS) list2.length = MAX_CONSULTATIONS;
+  await env.FITNESS_KV.put(CONSULTATIONS_LIST_KV_KEY, JSON.stringify(list2));
   return jsonResponse({ success: true, id });
 }
 async function handleGetConsultations(request, env) {
@@ -8458,11 +8459,11 @@ async function loadClientProgram(env, id) {
 async function saveClientProgram(env, record) {
   await env.FITNESS_KV.put(clientProgramKvKey(record.id), JSON.stringify(record));
   const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
-  const list = listRaw ? JSON.parse(listRaw) : [];
-  if (!list.includes(record.id)) {
-    list.unshift(record.id);
-    if (list.length > MAX_CLIENT_PROGRAMS) list.length = MAX_CLIENT_PROGRAMS;
-    await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list));
+  const list2 = listRaw ? JSON.parse(listRaw) : [];
+  if (!list2.includes(record.id)) {
+    list2.unshift(record.id);
+    if (list2.length > MAX_CLIENT_PROGRAMS) list2.length = MAX_CLIENT_PROGRAMS;
+    await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list2));
   }
 }
 function clientProgramPublicView(record) {
@@ -8808,8 +8809,8 @@ async function deleteClientProgramRecord(env, id) {
   if (record.planId) await env.FITNESS_KV.delete(`plan:${record.planId}`);
   await env.FITNESS_KV.delete(clientProgramKvKey(id));
   const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
-  const list = listRaw ? JSON.parse(listRaw) : [];
-  await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list.filter((x) => x !== id)));
+  const list2 = listRaw ? JSON.parse(listRaw) : [];
+  await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list2.filter((x) => x !== id)));
   return jsonResponse({ success: true });
 }
 async function handleDeleteClientProgram(request, env, id) {
@@ -9193,8 +9194,8 @@ function normalizeSettings(raw) {
   const r = s.rules || {};
   const hours = {};
   for (const day of DAYS) {
-    const list = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
-    hours[day] = list.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
+    const list2 = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
+    hours[day] = list2.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
   }
   let tz = str(s.timezone, 64) || d.timezone;
   try {
@@ -9578,14 +9579,14 @@ async function getClient(env, studioId, phone) {
 }
 async function tokenOk(client, token) {
   if (!client || !token) return false;
-  const list = JSON.parse(client.token_hash || "[]");
-  return Array.isArray(list) && list.includes(await sha256(String(token)));
+  const list2 = JSON.parse(client.token_hash || "[]");
+  return Array.isArray(list2) && list2.includes(await sha256(String(token)));
 }
 async function issueToken(env, studioId, phone) {
   const token = randomToken();
   const c = await getClient(env, studioId, phone);
-  const list = JSON.parse(c && c.token_hash || "[]");
-  const next = [...Array.isArray(list) ? list : [], await sha256(token)].slice(-5);
+  const list2 = JSON.parse(c && c.token_hash || "[]");
+  const next = [...Array.isArray(list2) ? list2 : [], await sha256(token)].slice(-5);
   await env.STUDIO_DB.prepare("UPDATE clients SET token_hash = ? WHERE studio_id = ? AND phone = ?").bind(JSON.stringify(next), studioId, phone).run();
   return token;
 }
@@ -15834,7 +15835,7 @@ function optionsOf(choice, sets) {
 }
 function cartesian(lists) {
   return lists.reduce(
-    (acc, list) => acc.flatMap((prefix) => list.map((item2) => [...prefix, item2])),
+    (acc, list2) => acc.flatMap((prefix) => list2.map((item2) => [...prefix, item2])),
     [[]]
   );
 }
@@ -15852,9 +15853,9 @@ function dishName(base, labels) {
   }
   return `${base} ${withPreposition(labels[0])} ${joinList(labels)}`;
 }
-function mergeProducts(list) {
+function mergeProducts(list2) {
   const out = [];
-  for (const [name, grams] of list) {
+  for (const [name, grams] of list2) {
     const existing = out.find((p) => p.name === name);
     if (existing) existing.grams += grams;
     else out.push({ name, grams });
@@ -38907,8 +38908,8 @@ for (
   AVOID_PAIRS.get(b).add(a);
 }
 function hasAvoidedPair(ids) {
-  const list = [...new Set(ids)];
-  return list.some((a, i) => list.slice(i + 1).some((b) => AVOID_PAIRS.get(a)?.has(b)));
+  const list2 = [...new Set(ids)];
+  return list2.some((a, i) => list2.slice(i + 1).some((b) => AVOID_PAIRS.get(a)?.has(b)));
 }
 
 // nutrition-engine/plan-shape.js
@@ -39504,7 +39505,7 @@ function waterNeedLiters(profile) {
   const base = w * 0.033 + ((profile.activity?.sportBand || 0) >= 2 ? 0.5 : 0);
   return Math.round(Math.min(4, Math.max(1.5, base)) * 10) / 10;
 }
-var has2 = (list, code) => Array.isArray(list) && list.includes(code);
+var has2 = (list2, code) => Array.isArray(list2) && list2.includes(code);
 function detectProblems(profile) {
   const out = [];
   const b = profile.behaviors || [];
@@ -41845,21 +41846,21 @@ function makePart(group, foods, range, extra = {}, fatScale = 1, appetite = 1) {
 function initialSizing(parts, fixed, quota, target) {
   const byGroup = (g) => parts.filter((p) => p.group === g);
   for (const g of ["VEG", "FRU", "MLK", "SWT"]) {
-    const list = byGroup(g);
-    if (!list.length) continue;
-    let need = g === "VEG" ? Math.max(0, (quota.VEG || 0) * 100 - fixed.filter(([id]) => food(id).group === "VEG").reduce((a, [, gr]) => a + gr, 0)) : (quota[g] || 0) * servingOf(list[0].foods);
-    for (const p of list) {
+    const list2 = byGroup(g);
+    if (!list2.length) continue;
+    let need = g === "VEG" ? Math.max(0, (quota.VEG || 0) * 100 - fixed.filter(([id]) => food(id).group === "VEG").reduce((a, [, gr]) => a + gr, 0)) : (quota[g] || 0) * servingOf(list2[0].foods);
+    for (const p of list2) {
       setPartGrams(p, Math.min(p.hi, Math.max(p.lo, need)));
       need -= partTotal(p);
     }
   }
   const residual = (key) => target[key] - totalsOf(parts, fixed)[key];
   const sizeBy = (group, key) => {
-    const list = byGroup(group);
-    if (!list.length) return;
-    list.forEach((p) => setPartGrams(p, 0));
+    const list2 = byGroup(group);
+    if (!list2.length) return;
+    list2.forEach((p) => setPartGrams(p, 0));
     let need = Math.max(0, residual(key));
-    for (const p of list) {
+    for (const p of list2) {
       const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
       setPartGrams(p, perGram > 0 ? need / perGram : p.lo);
       need = Math.max(0, residual(key));
@@ -42551,8 +42552,8 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
 
 // nutrition-engine/index.js
 function hasSweetsCraving(userData) {
-  const list = Array.isArray(userData?.foodCravings) ? userData.foodCravings : [userData?.foodCravings];
-  return list.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c || "")));
+  const list2 = Array.isArray(userData?.foodCravings) ? userData.foodCravings : [userData?.foodCravings];
+  return list2.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c || "")));
 }
 function adherenceMap(raw) {
   if (raw instanceof Map) return raw;
@@ -43066,26 +43067,26 @@ function round2(n) {
 function recommendationsOf(prescription, stats, policy) {
   const d = prescription.daily;
   const mains = stats.mains || {};
-  const list = [];
-  list.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
-  if (d.FRU > 0) list.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt2(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
-  if (d.MLK > 0) list.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt2(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
-  if (mains.fish) list.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
-  if (mains.legume) list.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
-  if (d.STA > 0 && policy.style !== "keto") list.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
-  if (policy.style === "mediterranean" || policy.style === "anti_inflammatory") list.push("\u0417\u0435\u0445\u0442\u0438\u043D \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430 \u0438 \u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E");
-  if (policy.style === "keto" || policy.style === "low_carb") list.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
-  return list.slice(0, 7);
+  const list2 = [];
+  list2.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  if (d.FRU > 0) list2.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt2(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
+  if (d.MLK > 0) list2.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt2(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  if (mains.fish) list2.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
+  if (mains.legume) list2.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+  if (d.STA > 0 && policy.style !== "keto") list2.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
+  if (policy.style === "mediterranean" || policy.style === "anti_inflammatory") list2.push("\u0417\u0435\u0445\u0442\u0438\u043D \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430 \u0438 \u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E");
+  if (policy.style === "keto" || policy.style === "low_carb") list2.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
+  return list2.slice(0, 7);
 }
 function avoidOf(profile, policy, blockedTerms) {
-  const list = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
-  for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list.push(EXCLUSION_AVOID[code]);
-  if (policy.noSweets && !list.some((x) => /захар/.test(x))) list.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
+  const list2 = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
+  for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list2.push(EXCLUSION_AVOID[code]);
+  if (policy.noSweets && !list2.some((x) => /захар/.test(x))) list2.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
   for (const term of blockedTerms || []) {
     const t = String(term || "").trim();
-    if (t && t.length <= 40) list.push(t.toLowerCase());
+    if (t && t.length <= 40) list2.push(t.toLowerCase());
   }
-  return [...new Set(list)].slice(0, 10);
+  return [...new Set(list2)].slice(0, 10);
 }
 var BEHAVIOR_TIPS = {
   EMO: "\u041F\u0440\u0435\u0434\u0438 \u0434\u0430 \u043F\u043E\u0441\u0435\u0433\u043D\u0435\u0442\u0435 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430 \u0438\u0437\u0432\u044A\u043D \u043F\u043B\u0430\u043D\u0430, \u0441\u043F\u0440\u0435\u0442\u0435 \u0437\u0430 2 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0441\u0438 \u0437\u0430\u0434\u0430\u0439\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0430: \u0442\u043E\u0432\u0430 \u0433\u043B\u0430\u0434 \u043B\u0438 \u0435, \u0438\u043B\u0438 \u0443\u043C\u043E\u0440\u0430, \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0441\u043A\u0443\u043A\u0430? \u0410\u043A\u043E \u043D\u0435 \u0435 \u0433\u043B\u0430\u0434 \u2014 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430, \u043A\u0440\u0430\u0442\u043A\u0430 \u0440\u0430\u0437\u0445\u043E\u0434\u043A\u0430 \u0438\u043B\u0438 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440 \u043F\u043E\u043C\u0430\u0433\u0430\u0442 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0445\u0440\u0430\u043D\u0430\u0442\u0430.",
@@ -43347,8 +43348,8 @@ function textHash(items) {
   for (let i = 0; i < s.length; i++) h = (h << 5) + h + s.charCodeAt(i) >>> 0;
   return h.toString(36);
 }
-var pickKnown = (list, allowed) => [...new Set((Array.isArray(list) ? list : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))];
-var cleanTerms = (list, max = 8) => [...new Set((Array.isArray(list) ? list : []).map((x) => String(x).trim().toLowerCase()).filter((x) => x.length >= 3 && x.length <= 40 && !/[{}<>]/.test(x)))].slice(0, max);
+var pickKnown = (list2, allowed) => [...new Set((Array.isArray(list2) ? list2 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))];
+var cleanTerms = (list2, max = 8) => [...new Set((Array.isArray(list2) ? list2 : []).map((x) => String(x).trim().toLowerCase()).filter((x) => x.length >= 3 && x.length <= 40 && !/[{}<>]/.test(x)))].slice(0, max);
 function normalizeIntakeHints(raw) {
   if (!raw || typeof raw !== "object") return null;
   const style = DIET_STYLES[raw.style] ? raw.style : null;
@@ -43383,9 +43384,9 @@ function weekDigest(weekPlan) {
   return lines.join("\n");
 }
 function normalizeSwaps(raw, weekPlan, max = 6) {
-  const list = Array.isArray(raw?.swaps) ? raw.swaps : [];
+  const list2 = Array.isArray(raw?.swaps) ? raw.swaps : [];
   const out = [];
-  for (const s of list) {
+  for (const s of list2) {
     const day = Number(s?.day);
     const type = /^H?(\d)$/i.test(String(s?.slot || s?.type || "")) ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ${String(s.slot || s.type).replace(/\D/g, "")}` : String(s?.type || "");
     const meal = weekPlan?.[`day${day}`]?.meals?.find((m) => m.type === type);
@@ -43552,8 +43553,8 @@ function rejectReason(raw, max, reason) {
   if (/[{}<>]/.test(s)) return "\u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u0441\u0438\u043C\u0432\u043E\u043B\u0438 \u043E\u0442 \u043A\u043E\u0434 \u0438\u043B\u0438 \u0448\u0430\u0431\u043B\u043E\u043D";
   return reason(s);
 }
-function cleanList(list, ok, { min = 0, max = 6, len = 320 } = {}) {
-  const out = [...new Set((Array.isArray(list) ? list : []).map((x) => cleanLine(x, len)).filter(ok))].slice(0, max);
+function cleanList(list2, ok, { min = 0, max = 6, len = 320 } = {}) {
+  const out = [...new Set((Array.isArray(list2) ? list2 : []).map((x) => cleanLine(x, len)).filter(ok))].slice(0, max);
   return out.length >= min ? out : [];
 }
 function normalizePlanVoice(raw, ctx, rejected = []) {
@@ -44380,6 +44381,50 @@ function essenceText(essence, digest = null) {
   return lines.join(" | ").slice(0, 1600);
 }
 
+// enrichment-iris.js
+var REFERRAL_TEXT = {
+  urgent: "AIRIS: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043A\u044A\u043C \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0431\u0435\u0437 \u043E\u0442\u043B\u0430\u0433\u0430\u043D\u0435.",
+  soon: "AIRIS: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043F\u0440\u0435\u0433\u043B\u0435\u0434 \u043F\u0440\u0438 \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0432 \u0431\u043B\u0438\u0437\u043A\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438."
+};
+function deriveIris(facts) {
+  const fact = (facts || []).filter((f) => f.kind === "iris" && f.status !== "pending" && f.value?.analysis).sort((a2, b) => Date.parse(b.at) - Date.parse(a2.at))[0];
+  if (!fact) return null;
+  const a = fact.value.analysis;
+  const focus = (a.systems || []).filter((s) => s.priority).map((s) => s.label || s.key).slice(0, 3);
+  const cautions = [
+    ...(a.notices || []).map((n) => `AIRIS: ${n.title}${n.body ? ` \u2014 ${n.body}` : ""}`),
+    REFERRAL_TEXT[a.eyeReferral] || ""
+  ].filter(Boolean);
+  return {
+    summary: {
+      at: fact.at,
+      constitution: a.constitution || "",
+      focus,
+      drivers: (a.drivers || []).slice(0, 5).map((d) => d.action || d.observation),
+      eatMore: (a.eatMore || []).slice(0, 8),
+      eatLess: (a.eatLess || []).slice(0, 8),
+      recommendedTests: (a.recommendedTests || []).slice(0, 6),
+      complaints: fact.value.complaints || ""
+    },
+    hints: { behaviors: [], approach: [], clinical: [], cautions },
+    reasons: ["\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS)"]
+  };
+}
+function irisText(s) {
+  if (!s) return "";
+  const parts = [
+    `\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 ${String(s.at || "").slice(0, 10)}`,
+    s.constitution ? `\u043A\u043E\u043D\u0441\u0442\u0438\u0442\u0443\u0446\u0438\u044F: ${s.constitution}` : "",
+    s.focus.length ? `\u0444\u043E\u043A\u0443\u0441: ${s.focus.join(", ")}` : "",
+    s.drivers.length ? `\u043D\u0430\u0441\u043E\u043A\u0438: ${s.drivers.join("; ")}` : "",
+    s.eatMore.length ? `\u043F\u043E\u0432\u0435\u0447\u0435: ${s.eatMore.join(", ")}` : "",
+    s.eatLess.length ? `\u043F\u043E-\u043C\u0430\u043B\u043A\u043E: ${s.eatLess.join(", ")}` : "",
+    s.recommendedTests.length ? `\u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F: ${s.recommendedTests.join(", ")}` : "",
+    s.complaints ? `\u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F: ${s.complaints}` : ""
+  ].filter(Boolean);
+  return parts.join("; ").slice(0, 900);
+}
+
 // enrichment.js
 var ENRICHMENT_VERSION = 1;
 var DEVICE_KINDS = {
@@ -44443,6 +44488,10 @@ function normalizeFact(raw) {
     if (!raw.value || typeof raw.value !== "object") return null;
     return { kind, key: "profile", value: raw.value, unit: "", at, source: "emoeat", confidence, status };
   }
+  if (kind === "iris") {
+    if (!raw.value || typeof raw.value !== "object" || !raw.value.analysis) return null;
+    return { kind, key: "report", value: raw.value, unit: "", at, source: "airis", confidence, status };
+  }
   if (kind === "biomarker") {
     const key = String(raw.key || "").trim();
     const v = Number(String(raw.value).replace(",", "."));
@@ -44470,9 +44519,9 @@ function recent(facts, kind, days, now) {
   const from = now.getTime() - days * DAY_MS3;
   return facts.filter((f) => f.kind === kind && Date.parse(f.at) >= from && f.status !== "pending");
 }
-function dailyMean(list) {
+function dailyMean(list2) {
   const byDay = /* @__PURE__ */ new Map();
-  for (const f of list) {
+  for (const f of list2) {
     const d = dayOf2(f.at);
     if (!byDay.has(d)) byDay.set(d, []);
     byDay.get(d).push(Number(f.value));
@@ -44515,7 +44564,8 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   Object.assign(checkin, essence.checkin);
   const digest = store?.digest && typeof store.digest === "object" ? store.digest : null;
   const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
-  for (const part of [emo, labs, essence, digestPart]) {
+  const iris = deriveIris(facts);
+  for (const part of [emo, labs, essence, digestPart, iris]) {
     if (!part) continue;
     for (const k of ["behaviors", "approach", "clinical", "cautions"]) hints[k].push(...part.hints?.[k] || []);
     reasons.push(...part.reasons || []);
@@ -44532,6 +44582,7 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
     supplements: labs?.supplements || [],
     essence: { metrics: essence.metrics, signals: essence.signals, sources: essence.sources, at: essence.at },
     digest: digest ? { insights: digest.insights || [], coachNote: digest.coachNote || "", at: digest.at } : null,
+    iris: iris?.summary || null,
     reasons
   };
 }
@@ -44573,6 +44624,7 @@ function recalcLevel(prevData, nextData) {
   const aNext = nextData?._enrichment;
   const aPrev = prevData?._enrichment;
   if (JSON.stringify(aNext?.voice || null) !== JSON.stringify(aPrev?.voice || null)) bump(0, "\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B");
+  if (JSON.stringify(aNext?.iris || null) !== JSON.stringify(aPrev?.iris || null)) bump(0, "\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437");
   if (JSON.stringify(aNext?.safety || {}) !== JSON.stringify(aPrev?.safety || {})) bump(2, "\u0433\u0440\u0430\u043D\u0438\u0446\u0438 \u0437\u0430 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442 \u043E\u0442 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F");
   return { level: (
     /** @type {0|1|2|3} */
@@ -44581,6 +44633,177 @@ function recalcLevel(prevData, nextData) {
 }
 function isUrgent(derived) {
   return !!(derived?.safety && Object.keys(derived.safety).length);
+}
+
+// handoff.js
+var HANDOFF_TTL_SEC = 30 * 24 * 60 * 60;
+var HANDOFF_MAX_BYTES = 48 * 1024;
+var str2 = (v, max = 200) => typeof v === "string" || typeof v === "number" ? String(v).trim().replace(/\s+/g, " ").slice(0, max) : "";
+var list = (v, max = 12, len = 160) => Array.isArray(v) ? v.map((x) => str2(x, len)).filter(Boolean).slice(0, max) : [];
+var numIn = (v, lo, hi) => {
+  const n = Number(String(v ?? "").replace(",", "."));
+  return Number.isFinite(n) && n >= lo && n <= hi ? n : null;
+};
+var isoOr = (v, fallback) => Number.isFinite(Date.parse(v)) ? new Date(Date.parse(v)).toISOString() : fallback;
+function normalizeEmoeat(p) {
+  if (!p || typeof p !== "object") return null;
+  const level = (v) => ["\u0421\u043B\u0430\u0431\u043E", "\u041E\u0441\u0435\u0437\u0430\u0435\u043C\u043E", "\u0421\u0438\u043B\u043D\u043E"].includes(v) ? v : null;
+  const profile = {
+    intensity: level(p.intensity),
+    archetype: p.archetype && typeof p.archetype === "object" ? { name: str2(p.archetype.name, 60), description: str2(p.archetype.description, 300) } : null,
+    secondArchetype: str2(p.secondArchetype, 60) || null,
+    drivers: list(p.drivers, 3, 60),
+    behaviors: (Array.isArray(p.behaviors) ? p.behaviors : []).slice(0, 8).map((b) => ({ name: str2(b?.name, 60), level: level(b?.level) || "\u0421\u043B\u0430\u0431\u043E" })).filter((b) => b.name),
+    patterns: list(p.patterns, 4, 80),
+    bodySignals: str2(p.bodySignals, 300),
+    realNeed: str2(p.realNeed, 200),
+    reliability: p.reliability && typeof p.reliability === "object" ? { level: str2(p.reliability.level, 20) } : null
+  };
+  return profile.intensity || profile.archetype ? profile : null;
+}
+var AIRIS_GENDER = { male: "\u041C\u044A\u0436", female: "\u0416\u0435\u043D\u0430" };
+function normalizeAiris(p) {
+  if (!p || typeof p !== "object") return null;
+  const q = p.questionnaire && typeof p.questionnaire === "object" ? p.questionnaire : {};
+  const a = p.analysis && typeof p.analysis === "object" ? p.analysis : {};
+  const questionnaire = {
+    name: str2(q.name, 60),
+    age: numIn(q.age, 10, 110),
+    gender: AIRIS_GENDER[q.gender] ? q.gender : null,
+    weight: numIn(q.weight, 30, 300),
+    height: numIn(q.height, 120, 230),
+    goals: list(q.goals, 8, 60),
+    activityLevel: ["sedentary", "light", "moderate", "active", "very-active"].includes(q.activityLevel) ? q.activityLevel : null,
+    stressLevel: ["low", "moderate", "high", "very-high"].includes(q.stressLevel) ? q.stressLevel : null,
+    sleepHours: numIn(q.sleepHours, 2, 14),
+    sleepQuality: ["poor", "fair", "good", "excellent"].includes(q.sleepQuality) ? q.sleepQuality : null,
+    hydration: numIn(q.hydration, 0, 20),
+    dietaryProfile: list(q.dietaryProfile, 8, 60),
+    dietaryHabits: list(q.dietaryHabits, 8, 60),
+    foodIntolerances: str2(q.foodIntolerances, 300),
+    allergies: str2(q.allergies, 300),
+    medications: str2(q.medications, 400),
+    medicalConditions: str2(q.medicalConditions, 400),
+    complaints: str2(q.complaints, 600)
+  };
+  const analysis = {
+    constitution: str2(a.constitution, 200),
+    summary: str2(a.summary, 700),
+    systems: (Array.isArray(a.systems) ? a.systems : []).slice(0, 10).map((s) => ({
+      key: str2(s?.key, 30),
+      label: str2(s?.label, 60),
+      score: numIn(s?.score, 0, 100),
+      priority: !!s?.priority
+    })).filter((s) => s.key),
+    drivers: (Array.isArray(a.drivers) ? a.drivers : []).slice(0, 10).map((d) => ({
+      system: str2(d?.system, 30),
+      strength: ["high", "medium", "low"].includes(d?.strength) ? d.strength : "low",
+      observation: str2(d?.observation, 240),
+      action: str2(d?.action, 240),
+      source: ["questionnaire", "iris", "both"].includes(d?.source) ? d.source : "iris"
+    })).filter((d) => d.action || d.observation),
+    eatMore: list(a.eatMore, 15, 80),
+    eatLess: list(a.eatLess, 15, 80),
+    supplements: (Array.isArray(a.supplements) ? a.supplements : []).slice(0, 8).map((s) => ({ name: str2(s?.name, 80), dosage: str2(s?.dosage, 60) })).filter((s) => s.name),
+    recommendedTests: list(a.recommendedTests, 10, 120),
+    notices: (Array.isArray(a.notices) ? a.notices : []).slice(0, 6).map((n) => ({ level: n?.level === "critical" ? "critical" : "caution", title: str2(n?.title, 100), body: str2(n?.body, 300) })).filter((n) => n.title),
+    eyeReferral: ["none", "routine", "soon", "urgent"].includes(a.eyeReferral) ? a.eyeReferral : "none"
+  };
+  if (!analysis.systems.length && !analysis.drivers.length && !analysis.summary) return null;
+  return { questionnaire, analysis };
+}
+function normalizeHandoff(raw, now = /* @__PURE__ */ new Date()) {
+  if (!raw || typeof raw !== "object") return null;
+  const at = isoOr(raw.completedAt, now.toISOString());
+  if (raw.source === "emoeat") {
+    const profile = normalizeEmoeat(raw.profile);
+    return profile ? { v: 1, source: "emoeat", at, profile } : null;
+  }
+  if (raw.source === "airis") {
+    const body = normalizeAiris(raw);
+    return body ? { v: 1, source: "airis", at, ...body } : null;
+  }
+  return null;
+}
+function handoffToFacts(h) {
+  if (!h) return [];
+  if (h.source === "emoeat") return [{ kind: "emoeat", value: h.profile, at: h.at, source: "emoeat", status: "confirmed" }];
+  if (h.source === "airis") {
+    return [{ kind: "iris", value: { analysis: h.analysis, complaints: h.questionnaire?.complaints || "" }, at: h.at, source: "airis", status: "confirmed" }];
+  }
+  return [];
+}
+var SLEEP_BUCKET = (h) => h < 5 ? "\u041F\u043E\u0434 5" : h < 6 ? "5\u20136" : h < 7 ? "6\u20137" : h < 8 ? "7\u20138" : "\u041D\u0430\u0434 8";
+var WATER_BUCKET = (l) => l < 1 ? "\u043F\u043E\u0434 1 \u043B" : l < 1.5 ? "1\u20131.5 \u043B" : l < 2 ? "1.5\u20132 \u043B" : "\u043D\u0430\u0434 2 \u043B";
+var SPORT = {
+  sedentary: "\u041D\u0438\u043A\u0430\u043A\u0432\u0430 (0 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)",
+  light: "\u041D\u0438\u0441\u043A\u0430 (1\u20132 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)",
+  moderate: "\u0421\u0440\u0435\u0434\u043D\u0430 (2\u20134 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)",
+  active: "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)",
+  "very-active": "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)"
+};
+var STRESS = { low: "\u041D\u0438\u0441\u043A\u043E", moderate: "\u0421\u0440\u0435\u0434\u043D\u043E", high: "\u0412\u0438\u0441\u043E\u043A\u043E", "very-high": "\u0412\u0438\u0441\u043E\u043A\u043E" };
+var GOALS2 = { "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435": "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435", "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E": "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E" };
+var DIET = { "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0438": "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430", "\u0412\u0435\u0433\u0430\u043D": "\u0412\u0435\u0433\u0430\u043D", "\u0418\u043D\u0442\u0435\u0440\u043C\u0438\u0442\u0435\u043D\u0442\u0435\u043D \u0444\u0430\u0441\u0442\u0438\u043D\u0433": "\u0424\u0430\u0441\u0442\u0438\u043D\u0433", "\u041A\u0435\u0442\u043E": "\u041A\u0435\u0442\u043E", "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0430": "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0430" };
+var HABIT_TO = {
+  "\u041F\u0440\u0435\u0441\u043A\u0430\u0447\u0430\u043D\u0435 \u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430": ["eatingHabits", "\u041D\u0435 \u0437\u0430\u043A\u0443\u0441\u0432\u0430\u043C"],
+  "\u041A\u044A\u0441\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435": ["eatingHabits", "\u0425\u0440\u0430\u043D\u044F \u0441\u0435 \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u0432\u0435\u0447\u0435\u0440"],
+  "\u0421\u043B\u0430\u0434\u043A\u0438 \u0445\u0440\u0430\u043D\u0438": ["foodCravings", "\u0421\u043B\u0430\u0434\u043A\u043E"],
+  "\u0411\u044A\u0440\u0437\u0430 \u0445\u0440\u0430\u043D\u0430": ["foodCravings", "\u0411\u0443\u0440\u0433\u0435\u0440\u0438 / \u0434\u044E\u043D\u0435\u0440\u0438"]
+};
+function airisPrefill(q) {
+  if (!q) return {};
+  const out = {};
+  if (q.name) out.name = q.name;
+  if (AIRIS_GENDER[q.gender]) out.gender = AIRIS_GENDER[q.gender];
+  if (q.age) out.age = String(Math.round(q.age));
+  if (q.height) out.height = String(Math.round(q.height));
+  if (q.weight) out.weight = String(q.weight);
+  const goals = (q.goals || []).map((g) => GOALS2[g]).filter(Boolean);
+  if (goals.length) out.goal = [...new Set(goals)];
+  if (SPORT[q.activityLevel]) out.sportActivity = SPORT[q.activityLevel];
+  if (STRESS[q.stressLevel]) out.stressLevel = STRESS[q.stressLevel];
+  if (q.sleepHours) out.sleepHours = SLEEP_BUCKET(q.sleepHours);
+  if (q.hydration != null) out.waterIntake = WATER_BUCKET(q.hydration * 0.25);
+  const diet = (q.dietaryProfile || []).map((d) => DIET[d]).filter(Boolean);
+  if (diet.length) out.dietPreference = [...new Set(diet)];
+  const dislikes = [q.foodIntolerances, q.allergies, (q.dietaryProfile || []).includes("\u0411\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432\u0430") ? "\u0433\u043B\u0443\u0442\u0435\u043D" : ""].filter(Boolean);
+  if (dislikes.length) out.dietDislike = dislikes.join(", ");
+  for (const h of q.dietaryHabits || []) {
+    const m = HABIT_TO[h];
+    if (m) out[m[0]] = [.../* @__PURE__ */ new Set([...out[m[0]] || [], m[1]])];
+  }
+  if ((q.dietaryHabits || []).includes("\u0410\u043B\u043A\u043E\u0445\u043E\u043B")) out.drinksAlcohol = "\u0427\u0435\u0441\u0442\u043E";
+  if (q.medications) {
+    out.medications = "\u0414\u0430";
+    out.medicationsDetails = q.medications;
+  }
+  const notes = [q.complaints, q.medicalConditions].filter(Boolean).join(". ");
+  if (notes) out.additionalNotes = `\u041E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS): ${notes}`.slice(0, 800);
+  return out;
+}
+function handoffPreview(h) {
+  if (!h) return null;
+  if (h.source === "emoeat") {
+    return {
+      source: "emoeat",
+      title: "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat)",
+      lines: [h.profile.archetype?.name ? `\u0410\u0440\u0445\u0435\u0442\u0438\u043F: ${h.profile.archetype.name}` : "", h.profile.intensity ? `\u0418\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442: ${h.profile.intensity}` : "", h.profile.drivers.length ? `\u0414\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438: ${h.profile.drivers.join(", ")}` : ""].filter(Boolean),
+      at: h.at
+    };
+  }
+  const a = h.analysis;
+  return {
+    source: "airis",
+    title: "\u0418\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS)",
+    lines: [
+      a.constitution ? `\u041A\u043E\u043D\u0441\u0442\u0438\u0442\u0443\u0446\u0438\u044F: ${a.constitution}` : "",
+      a.systems.filter((s) => s.priority).length ? `\u0424\u043E\u043A\u0443\u0441: ${a.systems.filter((s) => s.priority).map((s) => s.label || s.key).join(", ")}` : "",
+      a.drivers.length ? `\u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043D\u0430\u0441\u043E\u043A\u0438: ${a.drivers.length}` : "",
+      "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u0430 NutriPlan \u2014 \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435."
+    ].filter(Boolean),
+    at: h.at
+  };
 }
 
 // admin-food-catalog.js
@@ -45639,8 +45862,12 @@ var RATE_LIMIT = {
   // studio platform: my hours, cancel, move, a code
   STUDIO_VERIFY: { maxRequests: 5, windowSec: 3600 },
   // studio platform: a Viber login code
-  STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 }
+  STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },
   // studio platform: the admin's 5-digit code
+  HANDOFF: { maxRequests: 10, windowSec: 600 },
+  // модул → NutriPlan: нова пратка
+  HANDOFF_READ: { maxRequests: 30, windowSec: 600 }
+  // преглед и прибиране на пратка
 };
 var KV_RATE_LIMITED = /* @__PURE__ */ new Set(["GENERATE_PLAN", "FOOD_ANALYSIS", "SOCIAL_AUTH", "FORGOT_PASSWORD", "STUDIO_VERIFY", "STUDIO_LOGIN"]);
 var memoryRateCounters = /* @__PURE__ */ new Map();
@@ -46556,8 +46783,8 @@ function generateUniqueId(prefix = "id") {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 }
 function generateUserId(data) {
-  const str2 = `${data.name}_${data.age}_${data.email || Date.now()}`;
-  const bytes = new TextEncoder().encode(str2);
+  const str3 = `${data.name}_${data.age}_${data.email || Date.now()}`;
+  const bytes = new TextEncoder().encode(str3);
   let binary = "";
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
   return btoa(binary).replace(/[^a-zA-Z0-9]/g, "").substring(0, 32);
@@ -47107,7 +47334,10 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   const userId = data.email || generateUserId(data);
   const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
   if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
-  const enrichmentStore = await loadEnrichmentForGeneration(env, data, userId);
+  let enrichmentStore = await loadEnrichmentForGeneration(env, data, userId);
+  if (data._handoffFacts?.length) {
+    enrichmentStore = { ...enrichmentStore || {}, facts: mergeFacts(enrichmentStore?.facts || [], data._handoffFacts) };
+  }
   if (enrichmentStore) applyEnrichment(data, enrichmentStore);
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
   if (clinicalProtocol) {
@@ -47189,6 +47419,9 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
   console.log(`generatePlanAndSave: starting job ${jobId}${clientId ? ` (clientId: ${clientId})` : ""}`);
   try {
     const userId = preferredUserId || data.email || generateUserId(data);
+    if (options.handoffToken) {
+      Object.defineProperty(data, "_handoffFacts", { value: await handoffFactsForGeneration(env, options.handoffToken), enumerable: false });
+    }
     const result = await generatePlanCore(env, data, async (analysis) => {
       await env.page_content.put(
         PLAN_JOB_PREFIX + jobId,
@@ -47307,6 +47540,8 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     const requireApproval = rawBody._requireApproval === true;
     const explicitUserId = typeof rawBody._userId === "string" ? rawBody._userId.trim() : "";
     const idToken = typeof rawBody._idToken === "string" ? rawBody._idToken : null;
+    const handoffToken = HANDOFF_TOKEN_RE.test(String(rawBody._handoff || "")) ? String(rawBody._handoff) : "";
+    delete rawBody._handoff;
     delete rawBody._jobId;
     delete rawBody._clientId;
     delete rawBody._requireApproval;
@@ -47358,7 +47593,8 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     }
     const generationOptions = {
       requireApproval,
-      userId: explicitUserId || ""
+      userId: explicitUserId || "",
+      ...handoffToken ? { handoffToken } : {}
     };
     await env.page_content.put(
       PLAN_JOB_PREFIX + jobId,
@@ -47578,8 +47814,8 @@ function notifyMake(ctx, telegramMessage) {
   }).catch((e) => console.warn("Make webhook notification failed:", e));
   if (ctx?.waitUntil) ctx.waitUntil(p);
 }
-function escapeHtml(str2) {
-  return String(str2).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function escapeHtml(str3) {
+  return String(str3).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 var DEFAULT_EMAIL_TEMPLATE = {
   subject: "\u0412\u0430\u0448\u0438\u044F\u0442 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D \u0435 \u0433\u043E\u0442\u043E\u0432! \u{1F957}",
@@ -50246,8 +50482,8 @@ var DEFAULT_FOOD_BLACKLIST = [
   { item: "goose", mode: "substitute", substitute: "chicken" },
   { item: "venison", mode: "substitute", substitute: "beef" }
 ];
-function escapeRegex(str2) {
-  return str2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeRegex(str3) {
+  return str3.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function applyFoodSubstitutions(meal, fixes) {
   const applied = [];
@@ -52396,8 +52632,8 @@ async function finalizeAISessionLogs(env, sessionId) {
     console.error("[Cache API] Failed to finalize session logs:", error);
   }
 }
-function utf8ToBase64(str2) {
-  const bytes = new TextEncoder().encode(str2);
+function utf8ToBase64(str3) {
+  const bytes = new TextEncoder().encode(str3);
   let binary = "";
   const chunkSize = 8192;
   for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -52954,7 +53190,7 @@ function serializeEmoeatProfile(profile) {
     const num2 = Number(value);
     return Number.isFinite(num2) ? Math.max(0, Math.min(100, Math.round(num2))) : 0;
   };
-  const list = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
+  const list2 = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
   const lines = [];
   const intensity = label(profile.intensity, 12);
   if (intensity) lines.push(`\u041A\u043E\u043B\u043A\u043E \u0447\u0435\u0441\u0442\u043E \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430: ${intensity}`);
@@ -52966,11 +53202,11 @@ function serializeEmoeatProfile(profile) {
   } else {
     lines.push("\u041F\u0440\u043E\u0444\u0438\u043B: \u043D\u044F\u043C\u0430 \u0438\u0437\u0440\u0430\u0437\u0435\u043D \u043C\u043E\u0434\u0435\u043B \u2014 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0440\u044F\u0434\u043A\u043E \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430\u0442\u0430 (\u043D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439 \u043F\u0440\u043E\u0431\u043B\u0435\u043C).");
   }
-  const drivers = list(profile.drivers).map((d) => label(d, 40)).filter(Boolean);
+  const drivers = list2(profile.drivers).map((d) => label(d, 40)).filter(Boolean);
   if (drivers.length) lines.push("\u041A\u0430\u043A\u0432\u043E \u0433\u043E \u0437\u0430\u0445\u0440\u0430\u043D\u0432\u0430: " + drivers.join(", "));
-  const behaviors = list(profile.behaviors).filter((b) => b && b.name).map((b) => `${label(b.name, 40)} (${label(b.level, 12)})`);
+  const behaviors = list2(profile.behaviors).filter((b) => b && b.name).map((b) => `${label(b.name, 40)} (${label(b.level, 12)})`);
   if (behaviors.length) lines.push("\u041A\u0430\u043A \u0441\u0435 \u043F\u0440\u043E\u044F\u0432\u044F\u0432\u0430: " + behaviors.join(", "));
-  const patterns = list(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || "" : p, 60)).filter(Boolean);
+  const patterns = list2(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || "" : p, 60)).filter(Boolean);
   if (patterns.length) lines.push("\u041E\u0442\u043A\u0440\u0438\u0442\u0438 \u043A\u0440\u044A\u0433\u043E\u0432\u0435: " + patterns.join("; "));
   const body = label(profile.bodySignals, 120);
   if (body) lines.push("\u0422\u0435\u043B\u0435\u0441\u043D\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438: " + body);
@@ -55249,53 +55485,144 @@ async function handleEnrichmentSubmit(request, env) {
     }
     const facts = incoming.map(normalizeFact).filter(Boolean);
     if (!facts.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u043D\u0438 \u0434\u0430\u043D\u043D\u0438" }, 400);
-    const profile = await kvGetJSON(env, `user_profile:${userId}`) || { userId };
-    const prevStore = profile.enrichment || { facts: [] };
-    const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts), updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
-    const base = normalizeQuestionnaireData({ ...profile.userData || {} });
-    const prevData = applyEnrichment(JSON.parse(JSON.stringify(base)), prevStore);
-    let nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
-    const essence = nextData._enrichment?.essence;
-    if (digestDue(essence, prevStore.digest)) {
-      const digest = await buildHealthDigest(env, nextData);
-      if (digest) {
-        nextStore.digest = digest;
-        nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
-      }
-    }
-    const change = recalcLevel(prevData, nextData);
-    const urgent = isUrgent(nextData._enrichment) && JSON.stringify(nextData._enrichment?.safety || {}) !== JSON.stringify(prevData._enrichment?.safety || {});
-    nextStore.pendingLevel = Math.max(Number(prevStore.pendingLevel) || 0, change.level);
-    nextStore.lastChange = { ...change, urgent, at: nextStore.updatedAt };
-    profile.enrichment = nextStore;
-    const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
-    await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
-    if (profile.clientId) {
-      try {
-        const client = await kvGetJSON(env, `client:${profile.clientId}`);
-        if (client) {
-          const text = essenceText(nextData._enrichment?.essence, nextData._enrichment?.digest);
-          client.healthEssence = text ? { text, at: nextStore.updatedAt, sources: nextData._enrichment?.essence?.sources || [] } : null;
-          if (urgent) {
-            client.enrichmentAlert = { at: nextStore.updatedAt, reasons: change.reasons, cautions: nextData._enrichment?.hints?.cautions || [] };
-          }
-          await kvPutJSON(env, `client:${profile.clientId}`, client, null);
-        }
-      } catch (e) {
-        console.warn("[Enrichment] client card update failed:", e.message);
-      }
-    }
-    return jsonResponse2({
-      success: true,
-      level: change.level,
-      reasons: change.reasons,
-      urgent,
-      appliesAt: urgent ? "specialist" : change.level > 0 ? "weekly" : "next_voice",
-      derived: publicEnrichmentView(nextData._enrichment)
-    });
+    return jsonResponse2(await ingestEnrichmentFacts(env, userId, facts));
   } catch (error) {
     console.error("Error saving enrichment:", error);
     return jsonResponse2({ error: "Failed to save enrichment: " + error.message }, 500);
+  }
+}
+async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
+  const profile = await kvGetJSON(env, `user_profile:${userId}`) || { userId };
+  const prevStore = profile.enrichment || { facts: [] };
+  const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts), updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+  const base = normalizeQuestionnaireData({ ...profile.userData || {} });
+  const prevData = applyEnrichment(JSON.parse(JSON.stringify(base)), prevStore);
+  let nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+  const essence = nextData._enrichment?.essence;
+  if (digestDue(essence, prevStore.digest)) {
+    const digest = await buildHealthDigest(env, nextData);
+    if (digest) {
+      nextStore.digest = digest;
+      nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+    }
+  }
+  const change = recalcLevel(prevData, nextData);
+  const urgent = isUrgent(nextData._enrichment) && JSON.stringify(nextData._enrichment?.safety || {}) !== JSON.stringify(prevData._enrichment?.safety || {});
+  nextStore.pendingLevel = Math.max(Number(prevStore.pendingLevel) || 0, change.level);
+  nextStore.lastChange = { ...change, urgent, at: nextStore.updatedAt };
+  profile.enrichment = nextStore;
+  if (meta.source) profile.moduleSources = { ...profile.moduleSources || {}, [meta.source]: nextStore.updatedAt };
+  const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (profile.clientId) {
+    try {
+      const client = await kvGetJSON(env, `client:${profile.clientId}`);
+      if (client) {
+        const text = profileContextText(nextData._enrichment);
+        client.healthEssence = text ? { text, at: nextStore.updatedAt, sources: nextData._enrichment?.essence?.sources || [] } : null;
+        if (profile.moduleSources) client.moduleSources = profile.moduleSources;
+        if (urgent) {
+          client.enrichmentAlert = { at: nextStore.updatedAt, reasons: change.reasons, cautions: nextData._enrichment?.hints?.cautions || [] };
+        }
+        await kvPutJSON(env, `client:${profile.clientId}`, client, null);
+      }
+    } catch (e) {
+      console.warn("[Enrichment] client card update failed:", e.message);
+    }
+  }
+  return {
+    success: true,
+    level: change.level,
+    reasons: change.reasons,
+    urgent,
+    appliesAt: urgent ? "specialist" : change.level > 0 ? "weekly" : "next_voice",
+    derived: publicEnrichmentView(nextData._enrichment)
+  };
+}
+var HANDOFF_PREFIX = "handoff:";
+var NUTRIPLAN_SITE = "https://biocode.website";
+function newHandoffToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+var HANDOFF_TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
+async function readHandoff(env, token) {
+  if (!HANDOFF_TOKEN_RE.test(String(token || ""))) return null;
+  return kvGetJSON(env, HANDOFF_PREFIX + token);
+}
+async function countHandoff(env, source, event) {
+  try {
+    const key = `handoff_stats:${source}:${(/* @__PURE__ */ new Date()).toISOString().slice(0, 7)}`;
+    const stats = await kvGetJSON(env, key) || {};
+    stats[event] = (stats[event] || 0) + 1;
+    await kvPutJSON(env, key, stats, 400 * 24 * 60 * 60);
+  } catch (e) {
+    console.warn("[handoff] stats skipped:", e.message);
+  }
+}
+async function handleHandoffCreate(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const text = await request.text();
+    if (text.length > HANDOFF_MAX_BYTES) return jsonResponse2({ error: "\u041F\u0440\u0430\u0442\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430." }, 413);
+    let raw;
+    try {
+      raw = JSON.parse(text);
+    } catch (_) {
+      return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON" }, 400);
+    }
+    const h = normalizeHandoff(raw);
+    if (!h) return jsonResponse2({ error: "\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442 \u043C\u043E\u0434\u0443\u043B \u0438\u043B\u0438 \u043F\u0440\u0430\u0437\u0435\u043D \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442" }, 400);
+    const token = newHandoffToken();
+    await kvPutJSON(env, HANDOFF_PREFIX + token, { h, createdAt: (/* @__PURE__ */ new Date()).toISOString() }, HANDOFF_TTL_SEC);
+    await countHandoff(env, h.source, "created");
+    return jsonResponse2({ success: true, token, url: `${NUTRIPLAN_SITE}/handoff.html?t=${token}`, expiresInDays: HANDOFF_TTL_SEC / 86400 });
+  } catch (error) {
+    console.error("handoff create failed:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u043C \u043F\u0440\u0435\u0445\u0432\u044A\u0440\u043B\u044F\u043D\u0435\u0442\u043E." }, 500);
+  }
+}
+async function handleHandoffPeek(request, env) {
+  try {
+    const { token } = await request.json();
+    const rec = await readHandoff(env, token);
+    if (!rec?.h) return jsonResponse2({ error: "\u041B\u0438\u043D\u043A\u044A\u0442 \u0435 \u0438\u0437\u0442\u0435\u043A\u044A\u043B \u0438\u043B\u0438 \u0432\u0435\u0447\u0435 \u0435 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D." }, 404);
+    return jsonResponse2({
+      success: true,
+      source: rec.h.source,
+      preview: handoffPreview(rec.h),
+      prefill: rec.h.source === "airis" ? airisPrefill(rec.h.questionnaire) : {}
+    });
+  } catch (error) {
+    return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430 \u0437\u0430\u044F\u0432\u043A\u0430" }, 400);
+  }
+}
+async function handleHandoffClaim(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { token, userId, idToken } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const rec = await readHandoff(env, token);
+    if (!rec?.h) return jsonResponse2({ error: "\u041B\u0438\u043D\u043A\u044A\u0442 \u0435 \u0438\u0437\u0442\u0435\u043A\u044A\u043B \u0438\u043B\u0438 \u0432\u0435\u0447\u0435 \u0435 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D." }, 404);
+    const facts = handoffToFacts(rec.h).map(normalizeFact).filter(Boolean);
+    if (!facts.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0434\u043E\u0431\u0430\u0432\u044F\u043D\u0435" }, 400);
+    const result = await ingestEnrichmentFacts(env, userId, facts, { source: rec.h.source });
+    await env.page_content.delete(HANDOFF_PREFIX + token);
+    await countHandoff(env, rec.h.source, "claimed");
+    return jsonResponse2({ ...result, source: rec.h.source });
+  } catch (error) {
+    console.error("handoff claim failed:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0434\u043E\u0431\u0430\u0432\u0438\u043C \u0434\u0430\u043D\u043D\u0438\u0442\u0435." }, 500);
+  }
+}
+async function handoffFactsForGeneration(env, token) {
+  try {
+    const rec = await readHandoff(env, token);
+    return rec?.h ? handoffToFacts(rec.h).map(normalizeFact).filter(Boolean) : [];
+  } catch (_) {
+    return [];
   }
 }
 var DEFAULT_LAB_EXTRACTION_PROMPT = `\u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u043B\u0430\u0431\u043E\u0440\u0430\u0442\u043E\u0440\u043D\u0438\u044F \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442 \u043D\u0430 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0438 \u0432\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown):
@@ -55453,7 +55780,8 @@ async function handleEnrichmentGet(request, env) {
       sources: [...new Set((store.facts || []).map((f) => f.source))],
       lastChange: store.lastChange || null,
       markers: LAB_MARKERS,
-      deviceKinds: publicDeviceKinds()
+      deviceKinds: publicDeviceKinds(),
+      moduleSources: profile?.moduleSources || {}
     });
   } catch (error) {
     return jsonResponse2({ error: "Failed to load enrichment: " + error.message }, 500);
@@ -55472,8 +55800,15 @@ function publicEnrichmentView(d) {
     essence: d.essence || null,
     digest: d.digest || null,
     // Готовият текст за чата на клиента (същият като в картона на специалиста).
-    essenceText: essenceText(d.essence, d.digest)
+    essenceText: profileContextText(d),
+    iris: d.iris ? { at: d.iris.at, focus: d.iris.focus } : null
   };
+}
+function profileContextText(d) {
+  if (!d) return "";
+  const v = d.voice;
+  const emo = v && (v.archetype || v.intensity) ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat): ${[v.archetype ? `\u0430\u0440\u0445\u0435\u0442\u0438\u043F ${v.archetype}` : "", v.intensity ? `\u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442 ${v.intensity}` : "", v.drivers?.length ? `\u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438 ${v.drivers.join(", ")}` : "", v.realNeed ? `\u0440\u0435\u0430\u043B\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 ${v.realNeed}` : ""].filter(Boolean).join(", ")}` : "";
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris)].filter(Boolean).join(" | ").slice(0, 2400);
 }
 var DEFAULT_HEALTH_DIGEST_PROMPT = `\u0422\u0438 \u0441\u0438 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0414\u0430\u043D\u043D\u0438 \u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0442\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A, \u0433\u0440\u0438\u0432\u043D\u0430, \u0432\u0435\u0437\u043D\u0430, \u0430\u043F\u0430\u0440\u0430\u0442 \u0437\u0430 \u043A\u0440\u044A\u0432\u043D\u043E, \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440, \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F) \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438, \u0432\u0435\u0447\u0435 \u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438:
 {essence}
@@ -56023,10 +56358,10 @@ function computeXbodyApptVersion(upcoming, past) {
     parts.push(String(item2.id) + ":" + (item2.datetime || "") + ":" + (item2.canceled ? "1" : "0"));
   }
   parts.sort();
-  const str2 = parts.join("|");
+  const str3 = parts.join("|");
   let hash = 0;
-  for (let i = 0; i < str2.length; i++) {
-    hash = (hash << 5) - hash + str2.charCodeAt(i) | 0;
+  for (let i = 0; i < str3.length; i++) {
+    hash = (hash << 5) - hash + str3.charCodeAt(i) | 0;
   }
   return "v" + (hash >>> 0).toString(36);
 }
@@ -56195,9 +56530,9 @@ async function handleXbodyViberOutbox(request, env) {
   if (!await xbodyViberAuth(request, env)) return jsonResponse2({ error: "unauthorized" }, 401);
   if (!env.page_content) return jsonResponse2({ messages: [] });
   const now = Date.now();
-  const list = await env.page_content.list({ prefix: "xbody:out:", limit: 50 });
+  const list2 = await env.page_content.list({ prefix: "xbody:out:", limit: 50 });
   const messages = [];
-  for (const k of list.keys) {
+  for (const k of list2.keys) {
     const at = Number(k.name.split(":")[2]);
     if (!(at <= now)) break;
     const v = JSON.parse(await env.page_content.get(k.name) || "null");
@@ -56526,9 +56861,9 @@ async function xbodyFindCard(env, email, phone) {
     const found = await xbodyStripe(env, "GET", "customers", { email, limit: 5 });
     for (const cust of found && Array.isArray(found.data) ? found.data : []) {
       if (xbodyPhoneKey(cust.phone) !== key) continue;
-      const list = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
+      const list2 = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
       const now = /* @__PURE__ */ new Date();
-      for (const m of list && Array.isArray(list.data) ? list.data : []) {
+      for (const m of list2 && Array.isArray(list2.data) ? list2.data : []) {
         const c = m.card;
         if (!c || c.exp_year < now.getUTCFullYear() || c.exp_year === now.getUTCFullYear() && c.exp_month < now.getUTCMonth() + 1) continue;
         return { pm: m.id, customer: cust.id, brand: c.brand || "", last4: c.last4 || "" };
@@ -56546,8 +56881,8 @@ async function xbodyPrice(env) {
     const resp = await fetch("https://acuityscheduling.com/api/v1/appointment-types", {
       headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` }
     });
-    const list = resp.ok ? await resp.json() : [];
-    const type = (Array.isArray(list) ? list : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
+    const list2 = resp.ok ? await resp.json() : [];
+    const type = (Array.isArray(list2) ? list2 : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
     const n = type ? Number(type.price) : NaN;
     if (Number.isFinite(n)) price = n;
   } catch (err2) {
@@ -56663,9 +56998,9 @@ async function handleXbodyBook(request, env) {
     u.searchParams.set("direction", "DESC");
     const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
     if (!resp.ok) throw new Error("appointments " + resp.status);
-    const list = await resp.json();
+    const list2 = await resp.json();
     const complete = (a) => /Гаранция с карта/.test(String(a.notes || "")) || (Array.isArray(a.forms) ? a.forms : []).some((f) => (Array.isArray(f && f.values) ? f.values : []).some((v) => v && v.fieldID && Number(v.fieldID) !== 3583430 && v.value !== void 0 && v.value !== null && v.value !== ""));
-    previous = (Array.isArray(list) ? list : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
+    previous = (Array.isArray(list2) ? list2 : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
   } catch (err2) {
     console.error("[xbody-book] lookup failed:", err2.message);
     return jsonResponse2({ error: "\u0417\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
@@ -56700,8 +57035,8 @@ async function handleXbodyBook(request, env) {
             calendarID: Number(XBODY_ACUITY_BOOKING.calendarID)
           }])
         });
-        const list = await chk.json().catch(() => null);
-        if (!chk.ok || !Array.isArray(list) || !list[0] || list[0].valid !== true) {
+        const list2 = await chk.json().catch(() => null);
+        if (!chk.ok || !Array.isArray(list2) || !list2[0] || list2[0].valid !== true) {
           failed.push({ time, error: "taken" });
           continue;
         }
@@ -57180,6 +57515,18 @@ var worker_entry_default = {
         return await handleEnrichmentGet(request, env);
       } else if (url.pathname === "/api/enrichment/extract-labs" && request.method === "POST") {
         return await handleLabExtract(request, env);
+      } else if (url.pathname === "/api/handoff" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "HANDOFF");
+        if (rlErr) return rlErr;
+        return await handleHandoffCreate(request, env);
+      } else if (url.pathname === "/api/handoff/peek" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "HANDOFF_READ");
+        if (rlErr) return rlErr;
+        return await handleHandoffPeek(request, env);
+      } else if (url.pathname === "/api/handoff/claim" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "HANDOFF_READ");
+        if (rlErr) return rlErr;
+        return await handleHandoffClaim(request, env);
       } else if (url.pathname === "/api/enrichment/extract-device" && request.method === "POST") {
         return await handleDeviceExtract(request, env);
       } else if (url.pathname === "/api/enrichment/delete" && request.method === "POST") {

@@ -118,6 +118,9 @@ export function buildClientCard(clientData, options = {}) {
     clientData?.planGenerationError && clientData?.planStatus === 'failed' ? `ERR|${esc(clientData.planGenerationError)}` : '',
     answers.email ? `EM|${esc(answers.email)}` : '',
     answers.additionalNotes ? `NT|${esc(String(answers.additionalNotes).slice(0, 500))}` : '',
+    clientData?.moduleSources && Object.keys(clientData.moduleSources).length
+      ? `MOD|${Object.entries(clientData.moduleSources).map(([k, v]) => `${esc(k)}=${esc(String(v).slice(0, 10))}`).join('|')}`
+      : '',
     (clientData?.files?.length) ? `FL|count=${clientData.files.length}|names=${clientData.files.slice(0, 5).map(f => esc(f.name)).join('+')}` : '',
   ].filter(Boolean);
 
@@ -217,7 +220,7 @@ export function buildChatContextSections(userData, plan) {
       hasNotesSection: hasNotes,
       hasClinicalSection: Boolean(userData?.clinicalProtocol),
     }),
-    health: userData?._healthEssence ? `#HD v1 ${esc(String(userData._healthEssence).slice(0, 1600))}` : '',
+    health: userData?._healthEssence ? `#HD v1 ${esc(String(userData._healthEssence).slice(0, 2400))}` : '',
     summary: serializePlanSummary(p.summary) || '',
     meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : '',
     analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || '',

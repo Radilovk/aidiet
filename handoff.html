@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Продължете с резултата си в NutriPlan — хранителен план, съобразен с вашия профил">
+    <meta name="robots" content="noindex">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="manifest" href="./manifest.json">
+    <title>Продължете в NutriPlan</title>
+    <link rel="stylesheet" href="./design-system.css">
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { margin: 0; min-height: 100vh; background: var(--ds-bg-primary); color: var(--ds-text-primary); font-family: var(--ds-font-family); font-size: 16px; line-height: 1.5; display: flex; justify-content: center; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+        main { width: 100%; max-width: 480px; }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.125rem; margin-bottom: 20px; color: var(--ds-accent-text); }
+        .brand img { width: 32px; height: 32px; border-radius: 8px; }
+        .card { background: var(--ds-bg-card); border: 1px solid var(--ds-border-primary); border-radius: 20px; padding: 22px 20px; box-shadow: var(--ds-shadow-md); }
+        h1 { font-size: 1.5rem; line-height: 1.25; margin: 0 0 8px; }
+        .lead { color: var(--ds-text-soft); margin: 0 0 18px; }
+        .from { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; font-weight: 700; color: var(--ds-accent-text); background: rgba(15, 118, 110, 0.08); border-radius: 999px; padding: 6px 12px; margin-bottom: 14px; }
+        ul.what { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
+        ul.what li { padding: 10px 12px; border-radius: 12px; background: rgba(15, 118, 110, 0.06); border: 1px solid var(--ds-border-primary); font-size: 0.9375rem; }
+        .note { font-size: 0.875rem; color: var(--ds-text-soft); margin: 0 0 18px; }
+        .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 52px; border-radius: 14px; border: 0; font-size: 1rem; font-weight: 700; cursor: pointer; text-decoration: none; box-sizing: border-box; padding: 12px 16px; transition: transform var(--ds-motion-fast, 120ms) var(--ds-ease-standard, ease); }
+        .btn:active { transform: scale(var(--ds-press-scale, 0.98)); }
+        .btn-primary { background: var(--ds-fill-grad); color: var(--ds-on-fill); }
+        .btn-ghost { background: transparent; color: var(--ds-text-soft); border: 1px solid var(--ds-border-accent); margin-top: 10px; }
+        .status { min-height: 1.4em; margin-top: 12px; font-size: 0.9375rem; font-weight: 600; color: var(--ds-text-soft); }
+        .status[data-tone="error"] { color: var(--ds-error-text); }
+        .status[data-tone="ok"] { color: var(--ds-success-text); }
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+<main>
+    <div class="brand"><img src="./icon-192x192.png" alt=""> NutriPlan</div>
+    <div class="card" id="card">
+        <div id="loading"><p class="lead">Зареждаме резултата…</p></div>
+        <div id="ready" hidden>
+            <div class="from" id="fromBadge"></div>
+            <h1 id="title">Хранителен план, съобразен с вашия профил</h1>
+            <p class="lead" id="lead"></p>
+            <ul class="what" id="what"></ul>
+            <p class="note">С „Продължи“ давате съгласие тези данни да се добавят към профила ви в NutriPlan и да се използват за плана и съветите. Можете да ги изтриете по всяко време от профила. Приложението, от което идвате, не получава нищо от NutriPlan.</p>
+            <button type="button" class="btn btn-primary" id="goBtn"></button>
+            <a class="btn btn-ghost" id="skipBtn" href="./index.html">Не, благодаря</a>
+            <div class="status" id="status" role="status"></div>
+        </div>
+        <div id="gone" hidden>
+            <h1>Линкът е изтекъл</h1>
+            <p class="lead">Линкът е валиден 30 дни и се използва веднъж. Можете да продължите и без него.</p>
+            <a class="btn btn-primary" href="./questionnaire2.html">Към въпросника</a>
+        </div>
+    </div>
+</main>
+<script src="./plan-sync.js"></script>
+<script src="./handoff-client.js"></script>
+<script>
+(function () {
+    var token = new URLSearchParams(location.search).get('t') || '';
+    var H = window.NutriPlanHandoff;
+    var $ = function (id) { return document.getElementById(id); };
+    var hasProfile = false;
+    try { hasProfile = !!localStorage.getItem('userId'); } catch (_) {}
+    var data = null;
+
+    function show(id) { ['loading', 'ready', 'gone'].forEach(function (x) { $(x).hidden = x !== id; }); }
+    function status(text, tone) { $('status').textContent = text || ''; $('status').dataset.tone = tone || ''; }
+
+    // Линкът не остава в историята на браузъра.
+    try { history.replaceState(null, '', location.pathname); } catch (_) {}
+
+    if (!token) { show('gone'); return; }
+    H.peek(token).then(function (res) {
+        data = res;
+        var p = res.preview || {};
+        $('fromBadge').innerHTML = '<i class="fas ' + (res.source === 'airis' ? 'fa-eye' : 'fa-heart') + '"></i> ' + (res.source === 'airis' ? 'От AIRIS — ирисов анализ' : 'От EmoEat — емоционално хранене');
+        $('lead').textContent = hasProfile
+            ? 'Резултатът ще допълни профила ви — асистентът, специалистът и следващият преглед на плана ще го отчитат.'
+            : 'Отговорите ви ще бъдат попълнени във въпросника, а резултатът ще влезе в плана още от първата седмица.';
+        $('what').innerHTML = (p.lines || []).map(function (l) { var li = document.createElement('li'); li.textContent = l; return li.outerHTML; }).join('');
+        $('goBtn').innerHTML = hasProfile ? '<i class="fas fa-plus"></i> Добави към профила ми' : '<i class="fas fa-arrow-right"></i> Продължи към въпросника';
+        show('ready');
+    }).catch(function () { show('gone'); });
+
+    $('goBtn').addEventListener('click', function () {
+        if (!data) return;
+        H.setPending({ token: token, source: data.source, prefill: data.prefill || {} });
+        if (!hasProfile) { location.href = './questionnaire2.html?from=' + encodeURIComponent(data.source); return; }
+        $('goBtn').disabled = true;
+        status('Добавяме…');
+        H.claimPending().then(function (res) {
+            if (!res) { status('Не успяхме да добавим резултата. Опитайте отново.', 'error'); $('goBtn').disabled = false; return; }
+            status('Добавено към профила.', 'ok');
+            setTimeout(function () { location.href = './index.html?app=1&tab=plan'; }, 900);
+        });
+    });
+}());
+</script>
+</body>
+</html>

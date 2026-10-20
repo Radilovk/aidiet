@@ -1241,6 +1241,15 @@
         .devices-actions { grid-template-columns: 1fr 1fr; }
         .devices-actions .devices-connect, .devices-actions .devices-off { grid-column: 1 / -1; }
         .devices-off { margin-top: 2px; }
+        .module-card { display: flex; align-items: center; gap: 14px; padding: 14px; min-height: 64px; border-radius: 16px; background: rgba(15, 118, 110, 0.06); border: 1px solid var(--glass-border); color: var(--text-dark); text-decoration: none; margin-bottom: 10px; transition: transform var(--ds-motion-fast, 120ms) var(--ds-ease-standard, ease); }
+        .module-card:active { transform: scale(var(--ds-press-scale, 0.98)); }
+        .module-icon { width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; background: var(--ds-fill-grad); color: var(--ds-on-fill); font-size: 1.125rem; }
+        .module-body { display: grid; gap: 2px; flex: 1; min-width: 0; }
+        .module-name { font-weight: 700; }
+        .module-desc { font-size: 0.875rem; color: var(--ds-text-soft); }
+        .module-status { font-size: 0.8125rem; font-weight: 600; color: var(--ds-text-soft); }
+        .module-status[data-on="1"] { color: var(--ds-success-text); }
+        .module-go { color: var(--ds-text-soft); }
         .devices-source { margin-bottom: 6px; }
         .devices-manual { grid-template-columns: 1fr 1fr; }
         .devices-row { grid-template-columns: 44px 1fr 0.8fr 1.4fr; padding-bottom: 8px; border-bottom: 1px solid var(--glass-border); }
@@ -1932,6 +1941,7 @@
     <script src="./enrichment-client.js"></script>
     <script src="./health-sync.js"></script>
     <script src="./device-import.js"></script>
+    <script src="./handoff-client.js"></script>
     <script type="module" src="./plan-regen-fields.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
@@ -2364,6 +2374,37 @@
             </div>
         </div>
 
+        <div class="form-section" id="modulesSection">
+            <div class="profile-contact-header" onclick="toggleModules()" role="button" tabindex="0" aria-expanded="false" aria-controls="modulesWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleModules()">
+                <div class="section-title">
+                    <i class="fas fa-puzzle-piece"></i>
+                    Модули
+                </div>
+                <i class="fas fa-chevron-down profile-contact-chevron" id="modulesChevron"></i>
+            </div>
+            <div class="profile-contact-wrapper" id="modulesWrapper">
+                <p class="labs-intro">Допълнителни анализи, които разширяват профила ви. Резултатът им се връща в NutriPlan и влиза в плана, в съветите на асистента и при специалиста.</p>
+                <a class="module-card" href="./emoeat.html">
+                    <span class="module-icon"><i class="fas fa-heart"></i></span>
+                    <span class="module-body">
+                        <span class="module-name">EmoEat — емоционално хранене</span>
+                        <span class="module-desc">Кога и защо се появява гладът, какво го захранва</span>
+                        <span class="module-status" id="moduleEmoeatStatus"></span>
+                    </span>
+                    <i class="fas fa-chevron-right module-go" aria-hidden="true"></i>
+                </a>
+                <a class="module-card" href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener">
+                    <span class="module-icon"><i class="fas fa-eye"></i></span>
+                    <span class="module-body">
+                        <span class="module-name">AIRIS — ирисов анализ</span>
+                        <span class="module-desc">Анализ по снимка на ириса и хранителни насоки към него</span>
+                        <span class="module-status" id="moduleAirisStatus"></span>
+                    </span>
+                    <i class="fas fa-arrow-up-right-from-square module-go" aria-hidden="true"></i>
+                </a>
+            </div>
+        </div>
+
         <div class="form-section" id="devicesSection" hidden>
             <div class="profile-contact-header" onclick="toggleDevices()" role="button" tabindex="0" aria-expanded="false" aria-controls="devicesWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDevices()">
                 <div class="section-title">
@@ -2664,6 +2705,39 @@
             } catch (e) {
                 labsSetStatus(e.message || 'Не успяхме да изтрием данните.', 'error');
             }
+        }
+
+        let _modulesLoaded = false;
+
+        function toggleModules() {
+            const wrapper = document.getElementById('modulesWrapper');
+            const chevron = document.getElementById('modulesChevron');
+            const header = wrapper.previousElementSibling;
+            const isOpen = wrapper.classList.toggle('open');
+            chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (header) header.setAttribute('aria-expanded', String(isOpen));
+            if (isOpen && !_modulesLoaded) { _modulesLoaded = true; loadModuleStatus(); }
+        }
+
+        /** Кой модул е добавен към профила и кога — само от данните на NutriPlan. */
+        async function loadModuleStatus() {
+            const E = window.NutriPlanEnrichment;
+            if (!E || !E.hasPlanProfile()) return;
+            const day = iso => (iso ? new Date(iso).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
+            try {
+                const res = await E.get();
+                const src = res.moduleSources || {};
+                const emo = res.derived && res.derived.emoeat;
+                const iris = res.derived && res.derived.iris;
+                const set = (id, at, text) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.textContent = at ? `В профила от ${day(at)}${text ? ` · ${text}` : ''}` : 'Не е добавен';
+                    el.dataset.on = at ? '1' : '';
+                };
+                set('moduleEmoeatStatus', src.emoeat || (emo && emo.at), emo && emo.archetype ? emo.archetype : '');
+                set('moduleAirisStatus', src.airis || (iris && iris.at), iris && iris.focus && iris.focus.length ? `фокус: ${iris.focus.join(', ')}` : '');
+            } catch (_) { /* без връзка — само линковете */ }
         }
 
         function toggleDevices() {

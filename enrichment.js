@@ -18,6 +18,7 @@ import { compileProfile } from './profile-code.js';
 import { deriveEmoEat } from './enrichment-emoeat.js';
 import { deriveLabs } from './enrichment-labs.js';
 import { computeEssence } from './health-essence.js';
+import { deriveIris } from './enrichment-iris.js';
 
 export const ENRICHMENT_VERSION = 1;
 
@@ -95,6 +96,10 @@ export function normalizeFact(raw) {
   if (kind === 'emoeat') {
     if (!raw.value || typeof raw.value !== 'object') return null;
     return { kind, key: 'profile', value: raw.value, unit: '', at, source: 'emoeat', confidence, status };
+  }
+  if (kind === 'iris') {
+    if (!raw.value || typeof raw.value !== 'object' || !raw.value.analysis) return null;
+    return { kind, key: 'report', value: raw.value, unit: '', at, source: 'airis', confidence, status };
   }
   if (kind === 'biomarker') {
     const key = String(raw.key || '').trim();
@@ -193,7 +198,8 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   // AI обобщението предлага само промени в менюто от речника (не калории и не диагнози).
   const digest = store?.digest && typeof store.digest === 'object' ? store.digest : null;
   const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
-  for (const part of [emo, labs, essence, digestPart]) {
+  const iris = deriveIris(facts);
+  for (const part of [emo, labs, essence, digestPart, iris]) {
     if (!part) continue;
     for (const k of ['behaviors', 'approach', 'clinical', 'cautions']) hints[k].push(...(part.hints?.[k] || []));
     reasons.push(...(part.reasons || []));
@@ -211,6 +217,7 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
     supplements: labs?.supplements || [],
     essence: { metrics: essence.metrics, signals: essence.signals, sources: essence.sources, at: essence.at },
     digest: digest ? { insights: digest.insights || [], coachNote: digest.coachNote || '', at: digest.at } : null,
+    iris: iris?.summary || null,
     reasons,
   };
 }
@@ -262,6 +269,7 @@ export function recalcLevel(prevData, nextData) {
   const aNext = nextData?._enrichment;
   const aPrev = prevData?._enrichment;
   if (JSON.stringify(aNext?.voice || null) !== JSON.stringify(aPrev?.voice || null)) bump(0, 'емоционален профил');
+  if (JSON.stringify(aNext?.iris || null) !== JSON.stringify(aPrev?.iris || null)) bump(0, 'ирисов анализ');
   if (JSON.stringify(aNext?.safety || {}) !== JSON.stringify(aPrev?.safety || {})) bump(2, 'граници за безопасност от изследвания');
   return { level: /** @type {0|1|2|3} */ (level), reasons: [...new Set(reasons)] };
 }
