@@ -73,7 +73,7 @@ export function averageMacrosFromWeek(weekPlan = {}) {
   return { protein: Math.round(p / days), carbs: Math.round(c / days), fats: Math.round(f / days) };
 }
 
-function supplementsFor(profile, protocolSupplements = []) {
+function supplementsFor(profile, protocolSupplements = [], now = null) {
   const out = [...(protocolSupplements || [])].slice(0, 4);
   const names = new Set(out.map(s => String(s.name || '').toLowerCase()));
   const add = (name, dosage, timing) => {
@@ -87,7 +87,10 @@ function supplementsFor(profile, protocolSupplements = []) {
   if (pattern === 'vegan') add('Омега-3 от водорасли (DHA/EPA)', '250–500 mg', 'с хранене');
   if (c.includes('OSTEO') || c.includes('MENO') || (profile.age || 0) >= 55) add('Витамин D3', '1000–2000 IU', 'с мазна храна');
   if (profile.diet?.style === 'keto') add('Магнезий', '200–400 mg', 'вечер');
-  if (!out.length) add('Витамин D3', '1000–2000 IU', 'с мазна храна — при малко слънце');
+  // Без друга причина D3 се предлага само октомври–март, когато слънцето не стига;
+  // извън сезона добавка „по навик“ няма — изследванията уточняват по-късно.
+  const month = (now || new Date()).getMonth();
+  if (!out.length && (month >= 9 || month <= 2)) add('Витамин D3', '1000–2000 IU', 'с мазна храна, октомври–март');
   return out.slice(0, 5);
 }
 

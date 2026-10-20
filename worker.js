@@ -39817,7 +39817,7 @@ function averageMacrosFromWeek(weekPlan = {}) {
   if (!days) return { protein: 0, carbs: 0, fats: 0 };
   return { protein: Math.round(p / days), carbs: Math.round(c / days), fats: Math.round(f / days) };
 }
-function supplementsFor(profile, protocolSupplements = []) {
+function supplementsFor(profile, protocolSupplements = [], now = null) {
   const out = [...protocolSupplements || []].slice(0, 4);
   const names = new Set(out.map((s) => String(s.name || "").toLowerCase()));
   const add = (name, dosage, timing) => {
@@ -39831,7 +39831,8 @@ function supplementsFor(profile, protocolSupplements = []) {
   if (pattern === "vegan") add("\u041E\u043C\u0435\u0433\u0430-3 \u043E\u0442 \u0432\u043E\u0434\u043E\u0440\u0430\u0441\u043B\u0438 (DHA/EPA)", "250\u2013500 mg", "\u0441 \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
   if (c.includes("OSTEO") || c.includes("MENO") || (profile.age || 0) >= 55) add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", "1000\u20132000 IU", "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430");
   if (profile.diet?.style === "keto") add("\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439", "200\u2013400 mg", "\u0432\u0435\u0447\u0435\u0440");
-  if (!out.length) add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", "1000\u20132000 IU", "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u2014 \u043F\u0440\u0438 \u043C\u0430\u043B\u043A\u043E \u0441\u043B\u044A\u043D\u0446\u0435");
+  const month = (now || /* @__PURE__ */ new Date()).getMonth();
+  if (!out.length && (month >= 9 || month <= 2)) add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", "1000\u20132000 IU", "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430, \u043E\u043A\u0442\u043E\u043C\u0432\u0440\u0438\u2013\u043C\u0430\u0440\u0442");
   return out.slice(0, 5);
 }
 function buildPlanSummary({

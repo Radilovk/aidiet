@@ -1728,7 +1728,9 @@
 
                 const supplementsContent = document.getElementById('supplementsContent');
                 if (supplementsContent) {
-                    if (dietPlan.supplements) {
+                    if (Array.isArray(dietPlan.supplements) && dietPlan.supplements.length === 0) {
+                        supplementsContent.innerHTML = '<p style="color: var(--ds-text-soft);">Към момента няма показания за добавки. Изследванията (при качване) уточняват препоръката.</p>';
+                    } else if (dietPlan.supplements) {
                         const normalized = normalizeToThreeItems(dietPlan.supplements, DEFAULT_MESSAGES.supplements);
                         if (normalized) {
                             let html = '<ul class="info-list">';

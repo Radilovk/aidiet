@@ -22,6 +22,6 @@
 
 recommendations: 10 типа храни (не ястия) за {goal}, "{dietType}", {keyProblems}, {clinicalProtocolSection}, {medications} — извън {dynamicBlacklistSection}
 forbidden: 10 типа храни (не ястия), неподходящи за {goal}, {clinicalProtocolSection}, "{dietType}", {keyProblems}, {medications} — без противоречие с {dynamicWhitelistSection}
-supplements: мин. 3 с дозировка — по {clinicalProtocolSection}, {goal}, {psychologicalProfile}, {temperament}, {keyProblems}, {medications}; БЕЗ опасни взаимодействия
+supplements: 0–5, само при ясна причина (протокол, {keyProblems}, модел на хранене, сезон, {medications}) — с дозировка и кога; без причина — празен списък; БЕЗ опасни взаимодействия
 psychology: мин. 3 кратки съвета — {goal}, {clinicalProtocolSection}, {psychologicalProfile}, {temperament}, сън, стрес, активност, {keyProblems}
 waterIntake: от {hydrationStrategy}
