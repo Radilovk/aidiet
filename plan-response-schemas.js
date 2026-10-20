@@ -77,6 +77,7 @@ export const PLAN_SYSTEM_INSTRUCTIONS = {
   step3: 'Диетолог за български хранителен план. САМО валиден JSON. Продукти САМО от каталога; имената точно както в каталога. Всяко хранене е реално ястие — 2–4 продукта, един въглехидратен източник, зеленчук на обяд и вечеря. dessert:true само на Хранене 2. Свободно хранене: само type+name, без продукти и без macros.',
   step4: 'Клиничен диетолог и психолог. САМО валиден JSON. Препоръките са персонализирани по профила — не универсални.',
   step6_director: 'Старши диетичен мениджър. САМО валиден JSON. Оценява готов deterministic план — не променя продукти, грамове, калории или scheme.',
+  emoeat: 'Психолог по хранително поведение (КПТ, осъзнато хранене). Пишеш на „ти“, на прост и топъл български. Профилът е изчислен — не го оспорваш и не добавяш числа. Без диагнози, морал и клишета. Всяко изречение носи конкретика: ситуация, действие или причина. САМО валиден JSON.',
 };
 
 export const ANALYSIS_RESPONSE_SCHEMA = {
@@ -379,8 +380,62 @@ export function buildMealPlanDaySchema(dayNum) {
  * @param {string|null|undefined} stepName
  * @returns {object|null}
  */
+const SHORT_TEXT = { type: 'string' };
+
+export const EMOEAT_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    headline: SHORT_TEXT,
+    insight: SHORT_TEXT,
+    cycle: {
+      type: 'object',
+      properties: {
+        title: SHORT_TEXT,
+        trigger: SHORT_TEXT,
+        relief: SHORT_TEXT,
+        cost: SHORT_TEXT,
+        breakPoint: SHORT_TEXT,
+      },
+      required: ['title', 'trigger', 'relief', 'cost', 'breakPoint'],
+    },
+    week: {
+      type: 'object',
+      properties: {
+        focus: SHORT_TEXT,
+        actions: {
+          type: 'array',
+          minItems: 3,
+          maxItems: 3,
+          items: {
+            type: 'object',
+            properties: { title: SHORT_TEXT, when: SHORT_TEXT, how: SHORT_TEXT },
+            required: ['title', 'when', 'how'],
+          },
+        },
+      },
+      required: ['focus', 'actions'],
+    },
+    sos: { type: 'array', minItems: 3, maxItems: 3, items: SHORT_TEXT },
+    swaps: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 2,
+      items: {
+        type: 'object',
+        properties: {
+          when: SHORT_TEXT,
+          try: { type: 'array', minItems: 3, maxItems: 3, items: SHORT_TEXT },
+        },
+        required: ['when', 'try'],
+      },
+    },
+  },
+  required: ['headline', 'insight', 'cycle', 'week', 'sos', 'swaps'],
+};
+
 export function getPlanStepResponseSchema(stepName) {
   if (!stepName) return null;
+  if (stepName === 'emoeat_analysis') return EMOEAT_RESPONSE_SCHEMA;
   if (stepName.startsWith('step1')) return ANALYSIS_RESPONSE_SCHEMA;
   if (stepName.startsWith('step2')) return STRATEGY_RESPONSE_SCHEMA;
 

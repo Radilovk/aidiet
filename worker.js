@@ -135,7 +135,8 @@ var PLAN_SYSTEM_INSTRUCTIONS = {
   step2: '\u0415\u043A\u0441\u043F\u0435\u0440\u0442\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0441\u0430 \u0444\u0438\u043D\u0430\u043B\u043D\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0439. \u0422\u0438\u043F\u043E\u0432\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F: \u0441\u0430\u043C\u043E "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"\u2013"\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" \u0438 "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435". \u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0438 display \u0438\u043C\u0435\u043D\u0430: \u0417\u0430\u043A\u0443\u0441\u043A\u0430, \u041E\u0431\u044F\u0434, \u0421\u043B\u0435\u0434\u043E\u0431\u0435\u0434\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430, \u0412\u0435\u0447\u0435\u0440\u044F, \u041A\u044A\u0441\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430. \u0417\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u043B\u0435\u0442\u0430: freeDayNumber (6|7|null), includeDessert (true|false). \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u043E\u0431\u044F\u0434 \u0432 mealBreakdown \u043D\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u044F \u0434\u0435\u043D.',
   step3: "\u0414\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0437\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0421\u0410\u041C\u041E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430. \u0412\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0435 \u0440\u0435\u0430\u043B\u043D\u043E \u044F\u0441\u0442\u0438\u0435 \u2014 2\u20134 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0430, \u0435\u0434\u0438\u043D \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0435\u043D \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A \u043D\u0430 \u043E\u0431\u044F\u0434 \u0438 \u0432\u0435\u0447\u0435\u0440\u044F. dessert:true \u0441\u0430\u043C\u043E \u043D\u0430 \u0425\u0440\u0430\u043D\u0435\u043D\u0435 2. \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0441\u0430\u043C\u043E type+name, \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0438 \u0431\u0435\u0437 macros.",
   step4: "\u041A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0441\u0430 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 \u043D\u0435 \u0443\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B\u043D\u0438.",
-  step6_director: "\u0421\u0442\u0430\u0440\u0448\u0438 \u0434\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043C\u0435\u043D\u0438\u0434\u0436\u044A\u0440. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041E\u0446\u0435\u043D\u044F\u0432\u0430 \u0433\u043E\u0442\u043E\u0432 deterministic \u043F\u043B\u0430\u043D \u2014 \u043D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438\u043B\u0438 scheme."
+  step6_director: "\u0421\u0442\u0430\u0440\u0448\u0438 \u0434\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043C\u0435\u043D\u0438\u0434\u0436\u044A\u0440. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON. \u041E\u0446\u0435\u043D\u044F\u0432\u0430 \u0433\u043E\u0442\u043E\u0432 deterministic \u043F\u043B\u0430\u043D \u2014 \u043D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438\u043B\u0438 scheme.",
+  emoeat: "\u041F\u0441\u0438\u0445\u043E\u043B\u043E\u0433 \u043F\u043E \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435 (\u041A\u041F\u0422, \u043E\u0441\u044A\u0437\u043D\u0430\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435). \u041F\u0438\u0448\u0435\u0448 \u043D\u0430 \u201E\u0442\u0438\u201C, \u043D\u0430 \u043F\u0440\u043E\u0441\u0442 \u0438 \u0442\u043E\u043F\u044A\u043B \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438. \u041F\u0440\u043E\u0444\u0438\u043B\u044A\u0442 \u0435 \u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u2014 \u043D\u0435 \u0433\u043E \u043E\u0441\u043F\u043E\u0440\u0432\u0430\u0448 \u0438 \u043D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0448 \u0447\u0438\u0441\u043B\u0430. \u0411\u0435\u0437 \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043C\u043E\u0440\u0430\u043B \u0438 \u043A\u043B\u0438\u0448\u0435\u0442\u0430. \u0412\u0441\u044F\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u043D\u043E\u0441\u0438 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u0438\u043A\u0430: \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F, \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0438\u043B\u0438 \u043F\u0440\u0438\u0447\u0438\u043D\u0430. \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON."
 };
 var ANALYSIS_RESPONSE_SCHEMA = {
   type: "object",
@@ -435,8 +436,60 @@ function buildMealPlanChunkSchema(startDay, endDay) {
 function buildMealPlanDaySchema(dayNum) {
   return buildMealPlanChunkSchema(dayNum, dayNum);
 }
+var SHORT_TEXT = { type: "string" };
+var EMOEAT_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    headline: SHORT_TEXT,
+    insight: SHORT_TEXT,
+    cycle: {
+      type: "object",
+      properties: {
+        title: SHORT_TEXT,
+        trigger: SHORT_TEXT,
+        relief: SHORT_TEXT,
+        cost: SHORT_TEXT,
+        breakPoint: SHORT_TEXT
+      },
+      required: ["title", "trigger", "relief", "cost", "breakPoint"]
+    },
+    week: {
+      type: "object",
+      properties: {
+        focus: SHORT_TEXT,
+        actions: {
+          type: "array",
+          minItems: 3,
+          maxItems: 3,
+          items: {
+            type: "object",
+            properties: { title: SHORT_TEXT, when: SHORT_TEXT, how: SHORT_TEXT },
+            required: ["title", "when", "how"]
+          }
+        }
+      },
+      required: ["focus", "actions"]
+    },
+    sos: { type: "array", minItems: 3, maxItems: 3, items: SHORT_TEXT },
+    swaps: {
+      type: "array",
+      minItems: 2,
+      maxItems: 2,
+      items: {
+        type: "object",
+        properties: {
+          when: SHORT_TEXT,
+          try: { type: "array", minItems: 3, maxItems: 3, items: SHORT_TEXT }
+        },
+        required: ["when", "try"]
+      }
+    }
+  },
+  required: ["headline", "insight", "cycle", "week", "sos", "swaps"]
+};
 function getPlanStepResponseSchema(stepName) {
   if (!stepName) return null;
+  if (stepName === "emoeat_analysis") return EMOEAT_RESPONSE_SCHEMA;
   if (stepName.startsWith("step1")) return ANALYSIS_RESPONSE_SCHEMA;
   if (stepName.startsWith("step2")) return STRATEGY_RESPONSE_SCHEMA;
   const chunkMatch = stepName.match(/^step3_meal_plan_chunk_(\d+)/);
@@ -45494,10 +45547,11 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   const cfgTopK = isChatStep ? config.chatTopK !== void 0 ? config.chatTopK : config.topK : config.topK;
   const PLAN_STEP_DEFAULT_TEMPERATURE = 0.2;
   const PLAN_STEP_DEFAULT_TOP_P = 0.85;
-  const effectiveTemp = isPlanStep ? cfgTemp !== void 0 ? cfgTemp : PLAN_STEP_DEFAULT_TEMPERATURE : cfgTemp;
+  const EMOEAT_DEFAULT_TEMPERATURE = 0.5;
+  const effectiveTemp = isPlanStep ? cfgTemp !== void 0 ? cfgTemp : PLAN_STEP_DEFAULT_TEMPERATURE : stepName === "emoeat_analysis" ? cfgTemp !== void 0 ? cfgTemp : EMOEAT_DEFAULT_TEMPERATURE : cfgTemp;
   const effectiveTopP = isPlanStep ? cfgTopP !== void 0 ? cfgTopP : PLAN_STEP_DEFAULT_TOP_P : cfgTopP;
   const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
-  const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : null;
+  const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : stepName === "emoeat_analysis" ? getPlanSystemInstruction("emoeat") : null;
   const requestData = {
     prompt: enforcedPrompt,
     estimatedInputTokens,
@@ -51685,43 +51739,50 @@ function serializeEmoeatProfile(profile) {
     if (typeof value !== "string" && typeof value !== "number") return "";
     return String(value).replace(/[\r\n]+/g, " ").trim().slice(0, maxLen);
   };
-  const score = (value) => {
+  const count = (value) => {
     const num2 = Number(value);
     return Number.isFinite(num2) ? Math.max(0, Math.min(100, Math.round(num2))) : 0;
   };
   const list = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
   const lines = [];
-  const factors = list(profile.factors).filter((f) => f && f.name);
-  if (factors.length) {
-    lines.push("\u0424\u0430\u043A\u0442\u043E\u0440\u0438: " + factors.map((f) => `${label(f.name, 40)} ${score(f.intensity)}`).join(" | "));
+  const intensity = label(profile.intensity, 12);
+  if (intensity) lines.push(`\u041A\u043E\u043B\u043A\u043E \u0447\u0435\u0441\u0442\u043E \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430: ${intensity}`);
+  const archetype = profile.archetype && typeof profile.archetype === "object" ? profile.archetype : null;
+  if (archetype && archetype.name) {
+    lines.push(`\u041F\u0440\u043E\u0444\u0438\u043B: ${label(archetype.name, 30)} \u2014 ${label(archetype.description, 160)}`);
+    const second = label(profile.secondArchetype, 30);
+    if (second) lines.push(`\u0412\u0442\u043E\u0440\u0438 \u043F\u043E \u0431\u043B\u0438\u0437\u043E\u0441\u0442: ${second}`);
+  } else {
+    lines.push("\u041F\u0440\u043E\u0444\u0438\u043B: \u043D\u044F\u043C\u0430 \u0438\u0437\u0440\u0430\u0437\u0435\u043D \u043C\u043E\u0434\u0435\u043B \u2014 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0440\u044F\u0434\u043A\u043E \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430\u0442\u0430 (\u043D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439 \u043F\u0440\u043E\u0431\u043B\u0435\u043C).");
   }
-  const halt = list(profile.halt).filter((h) => h && h.label);
-  if (halt.length) {
-    lines.push("HALT: " + halt.map((h) => `${label(h.label, 20)} ${score(h.score)} (${label(h.level, 12)})`).join(" | "));
-  }
-  const patterns = list(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || p.description || "" : p, 60)).filter(Boolean);
-  if (patterns.length) {
-    lines.push("\u041E\u0442\u043A\u0440\u0438\u0442\u0438 \u043C\u043E\u0434\u0435\u043B\u0438: " + patterns.join("; "));
-  }
-  const archetypes = list(profile.archetypes).filter((a) => a && a.name);
-  if (archetypes.length) {
-    lines.push("\u0410\u0440\u0445\u0435\u0442\u0438\u043F\u0438 \u043F\u043E \u043C\u0430\u0442\u0440\u0438\u0446\u0430: " + archetypes.map((a) => `${label(a.name, 30)} ${score(a.confidence)}%`).join(", "));
-  }
+  const drivers = list(profile.drivers).map((d) => label(d, 40)).filter(Boolean);
+  if (drivers.length) lines.push("\u041A\u0430\u043A\u0432\u043E \u0433\u043E \u0437\u0430\u0445\u0440\u0430\u043D\u0432\u0430: " + drivers.join(", "));
+  const behaviors = list(profile.behaviors).filter((b) => b && b.name).map((b) => `${label(b.name, 40)} (${label(b.level, 12)})`);
+  if (behaviors.length) lines.push("\u041A\u0430\u043A \u0441\u0435 \u043F\u0440\u043E\u044F\u0432\u044F\u0432\u0430: " + behaviors.join(", "));
+  const patterns = list(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || "" : p, 60)).filter(Boolean);
+  if (patterns.length) lines.push("\u041E\u0442\u043A\u0440\u0438\u0442\u0438 \u043A\u0440\u044A\u0433\u043E\u0432\u0435: " + patterns.join("; "));
+  const body = label(profile.bodySignals, 120);
+  if (body) lines.push("\u0422\u0435\u043B\u0435\u0441\u043D\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438: " + body);
+  const need = label(profile.realNeed, 200);
+  if (need) lines.push("\u0418\u0441\u0442\u0438\u043D\u0441\u043A\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430: " + need);
   const reliability = profile.reliability;
   const reliabilityLevel = reliability ? label(reliability.level, 20) : "";
   if (reliabilityLevel) {
     lines.push(
-      `\u041D\u0430\u0434\u0435\u0436\u0434\u043D\u043E\u0441\u0442: ${reliabilityLevel} \u2014 ${score(reliability.answered)}/${score(reliability.total)} \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430, ${score(reliability.neutralShare)}% \u043D\u0435\u0443\u0442\u0440\u0430\u043B\u043D\u0438 \u0438\u0437\u0431\u043E\u0440\u0430`
+      `\u041D\u0430\u0434\u0435\u0436\u0434\u043D\u043E\u0441\u0442: ${reliabilityLevel} \u2014 ${count(reliability.answered)}/${count(reliability.total)} \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430, ${count(reliability.neutralShare)}% \u201E\u043D\u0435 \u0435 \u0437\u0430 \u043C\u0435\u043D"`
     );
   }
-  return lines.length ? lines.join("\n") : "(\u043D\u044F\u043C\u0430 \u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B)";
+  return lines.join("\n");
+}
+function serializeEmoeatAnswers(answers) {
+  return Object.keys(answers).filter((k) => /^\d{1,3}$/.test(k)).sort((a, b) => Number(a) - Number(b)).map((k) => String(answers[k] || "").replace(/[\r\n]+/g, " ").trim().slice(0, 400)).filter(Boolean).slice(0, 24).map((line2) => "- " + line2).join("\n");
 }
 async function generateEmoeatPrompt(answers, profile, env) {
   const customPrompt = await requireKvPrompt(env, "admin_emoeat_prompt");
-  const variables = { computedProfile: serializeEmoeatProfile(profile) };
-  for (let i = 1; i <= 10; i++) {
-    variables[`answer${i}`] = (answers[i] || "").trim() || "(\u0431\u0435\u0437 \u043E\u0442\u0433\u043E\u0432\u043E\u0440)";
-  }
+  const variables = {
+    computedProfile: serializeEmoeatProfile(profile),
+    answers: serializeEmoeatAnswers(answers) || "(\u0431\u0435\u0437 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438)"
+  };
   return replacePromptVariables(customPrompt, variables);
 }
 async function handleGenerateEmoeatAnalysis(request, env) {
@@ -51735,7 +51796,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
       return jsonResponse2({ error: "\u041C\u043E\u043B\u044F, \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0435\u0442\u0435 \u043D\u0430 \u043F\u043E\u043D\u0435 4 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u0437\u0430 \u043F\u044A\u043B\u043D\u043E\u0446\u0435\u043D\u0435\u043D \u0430\u043D\u0430\u043B\u0438\u0437" }, 400);
     }
     const prompt = await generateEmoeatPrompt(data.answers, data.profile, env);
-    const EMOEAT_TOKEN_LIMIT = 5500;
+    const EMOEAT_TOKEN_LIMIT = 5e3;
     const aiResponse = await callAIModel(
       env,
       prompt,
@@ -51746,7 +51807,8 @@ async function handleGenerateEmoeatAnalysis(request, env) {
       null
     );
     const parsed = parseAIResponse(aiResponse);
-    if (!parsed || !parsed.dominantArchetype) {
+    const actions = parsed && parsed.week && Array.isArray(parsed.week.actions) ? parsed.week.actions : [];
+    if (!parsed || !parsed.headline || !actions.length) {
       console.error("handleGenerateEmoeatAnalysis: Failed to parse AI response");
       return jsonResponse2({
         error: "\u0410\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u043D\u0435 \u043C\u043E\u0436\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D. \u041C\u043E\u043B\u044F, \u043E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E.",
