@@ -940,8 +940,8 @@
         }
 
         .btn-primary {
-            background-color: var(--primary-red);
-            color: white;
+            background-color: var(--ds-fill);
+            color: var(--ds-on-fill);
             border: none;
             padding: 16px 40px;
             border-radius: 30px;
@@ -1583,9 +1583,20 @@
             border: 1px solid transparent;
         }
 
-        .health-badge.critical { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
-        .health-badge.risky    { color: #f97316; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.2); }
-        .health-badge.borderline { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); }
+        .health-badge.critical { color: #B42318; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); }
+        .health-badge.risky    { color: #C2410C; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.25); }
+        .health-badge.borderline { color: #9A4A06; background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); }
+        [data-theme="dark"] .health-badge.critical { color: #F87171; }
+        [data-theme="dark"] .health-badge.risky { color: #FB923C; }
+        [data-theme="dark"] .health-badge.borderline { color: #FBBF24; }
+        .gauge-score-value[data-tone="critical"], .gauge-score-label[data-tone="critical"] { color: #B42318; }
+        .gauge-score-value[data-tone="risky"], .gauge-score-label[data-tone="risky"] { color: #C2410C; }
+        .gauge-score-value[data-tone="borderline"], .gauge-score-label[data-tone="borderline"] { color: #9A4A06; }
+        .gauge-score-value[data-tone="good"], .gauge-score-label[data-tone="good"] { color: #0F766E; }
+        [data-theme="dark"] .gauge-score-value[data-tone="critical"], [data-theme="dark"] .gauge-score-label[data-tone="critical"] { color: #F87171; }
+        [data-theme="dark"] .gauge-score-value[data-tone="risky"], [data-theme="dark"] .gauge-score-label[data-tone="risky"] { color: #FB923C; }
+        [data-theme="dark"] .gauge-score-value[data-tone="borderline"], [data-theme="dark"] .gauge-score-label[data-tone="borderline"] { color: #FBBF24; }
+        [data-theme="dark"] .gauge-score-value[data-tone="good"], [data-theme="dark"] .gauge-score-label[data-tone="good"] { color: #2DD4BF; }
         .health-badge .badge-dot { font-size: 6px; }
 
         /* --- BOTTOM NAVIGATION --- */
@@ -2258,25 +2269,31 @@
             }
             
             // Update UI - Current health score gauge
-            let gaugeColor, healthLabel;
+            // gaugeColor е за дъгата; текстът ползва по-тъмен нюанс (светла тема),
+            // за да се чете върху бяло — жълтото и оранжевото не стигат 4.5:1.
+            let gaugeColor, healthLabel, scoreTone;
             if (healthScore < 25) {
                 gaugeColor = '#ef4444';
                 healthLabel = 'Влошено';
+                scoreTone = 'critical';
             } else if (healthScore < 50) {
                 gaugeColor = '#f97316';
                 healthLabel = 'Нуждае се от внимание';
+                scoreTone = 'risky';
             } else if (healthScore < 75) {
                 gaugeColor = '#fbbf24';
                 healthLabel = 'Умерено';
+                scoreTone = 'borderline';
             } else {
                 gaugeColor = '#0D9488';
                 healthLabel = 'Добро';
+                scoreTone = 'good';
             }
 
             document.getElementById('healthScoreValue').textContent = healthScore + '%';
-            document.getElementById('healthScoreValue').style.color = gaugeColor;
+            document.getElementById('healthScoreValue').dataset.tone = scoreTone;
             document.getElementById('healthScoreLabel').textContent = healthLabel;
-            document.getElementById('healthScoreLabel').style.color = gaugeColor;
+            document.getElementById('healthScoreLabel').dataset.tone = scoreTone;
             document.getElementById('healthGaugeTitle').textContent = 'Здравен статус: ' + healthScore + '%';
             document.getElementById('healthGaugeSvg').setAttribute('aria-label', 'Здравен статус: ' + healthScore + '% - ' + healthLabel);
 

@@ -50,7 +50,8 @@
             --kid-card: rgba(255, 255, 255, 0.85);
             --kid-text: #2D3436;
             --kid-text-light: #636E72;
-            --kid-text-muted: #B2BEC3;
+            --kid-text-muted: #6B7579;
+            --kid-pink-text: #C2185B;
             --kid-shadow: 0 8px 30px rgba(255, 107, 157, 0.15);
             --kid-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.06);
             --kid-radius: 24px;
@@ -84,7 +85,8 @@
             --kid-card: rgba(40, 25, 55, 0.85);
             --kid-text: #F0E6F6;
             --kid-text-light: #B8A9C8;
-            --kid-text-muted: #7A6B8A;
+            --kid-text-muted: #A898B8;
+            --kid-pink-text: #FF85AD;
             --kid-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
             --kid-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
             --kid-glass-border: rgba(255, 133, 173, 0.15);
@@ -204,8 +206,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 40px;
-            min-height: 40px;
+            min-width: 44px;
+            min-height: 44px;
             position: relative;
             overflow: hidden;
         }
@@ -238,8 +240,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 40px;
-            min-height: 40px;
+            min-width: 44px;
+            min-height: 44px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
@@ -439,7 +441,7 @@
         .role-btn:hover .role-emoji { transform: scale(1.15); }
         .role-btn .role-desc {
             display: block;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             color: var(--kid-text-muted);
             margin-top: 2px;
             font-weight: 500;
@@ -453,17 +455,16 @@
         .role-btn.active {
             border-color: var(--kid-pink);
             background: rgba(255, 107, 157, 0.12);
-            color: var(--kid-pink);
+            color: var(--kid-pink-text);
             box-shadow: 0 6px 20px rgba(255, 107, 157, 0.2), inset 0 0 0 1px rgba(255, 107, 157, 0.1);
             animation: scaleIn 0.3s ease;
         }
         .role-btn.active .role-desc {
-            color: var(--kid-pink);
-            opacity: 0.75;
+            color: var(--kid-pink-text);
         }
         [data-theme="dark"] .role-btn.active {
             background: rgba(255, 133, 173, 0.15);
-            color: var(--kid-pink);
+            color: var(--kid-pink-text);
         }
 
         /* ═══ AGE SELECTOR ═══ */
@@ -515,13 +516,13 @@
         .age-btn.active {
             border-color: var(--kid-pink);
             background: rgba(255, 107, 157, 0.12);
-            color: var(--kid-pink);
+            color: var(--kid-pink-text);
             box-shadow: 0 6px 20px rgba(255, 107, 157, 0.2);
             animation: scaleIn 0.3s ease;
         }
         [data-theme="dark"] .age-btn.active {
             background: rgba(255, 133, 173, 0.15);
-            color: var(--kid-pink);
+            color: var(--kid-pink-text);
         }
 
         /* ═══ HEALTH CONDITIONS ═══ */
@@ -592,6 +593,7 @@
         .health-other-input {
             width: 100%;
             padding: 12px 16px;
+            min-height: 48px;
             border: 1.5px solid var(--kid-glass-border);
             border-radius: 16px;
             background: rgba(255, 255, 255, 0.3);
@@ -690,7 +692,7 @@
             font-weight: 500;
         }
         .capture-text strong {
-            color: var(--kid-pink);
+            color: var(--kid-pink-text);
             display: block;
             font-size: 1rem;
             margin-bottom: 4px;
@@ -718,7 +720,7 @@
             padding: 16px;
             background: linear-gradient(135deg, #FF6B9D 0%, #FF9F43 50%, #FECA57 100%);
             background-size: 200% auto;
-            color: white;
+            color: #2D1B2E;
             border: none;
             border-radius: 16px;
             font-size: 1.08rem;
@@ -1170,8 +1172,8 @@
         .kids-footer {
             text-align: center;
             padding: 24px 16px;
-            font-size: 0.75rem;
-            color: var(--kid-text-muted);
+            font-size: 0.8125rem;
+            color: var(--kid-text-light);
             line-height: 1.6;
             max-width: 380px;
             margin: 0 auto;

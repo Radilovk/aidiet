@@ -1,7 +1,8 @@
 /*
  * Дизайн одит на клиентските екрани: контраст (WCAG AA), текст под 12px,
  * зони за докосване под 44px, хоризонтално преливане при 320px, бутони без име.
- * Всеки екран се зарежда при 320 и 390px, в светла и тъмна тема, с тестов план.
+ * Всеки екран се зарежда веднъж (390px, тестов план). Темата се сменя на място,
+ * а 320px се проверява само за хоризонтално преливане. Екраните вървят паралелно.
  *
  *   python3 -m http.server 8765        # от корена на репото
  *   node scripts/design-audit.mjs      # → design-audit.json + design-audit-shots/
@@ -25,21 +26,8 @@ plan.analysis={currentHealthStatus:{score:62,description:'Умерено над�
 const SCREENS=['index.html','plan.html','guidelines.html','game-analytics.html','profile.html','questionnaire2.html','warning.html','analysis-loading.html','analysis.html','plan-pending.html','plan-update.html','plan-book.html','food-picker.html','emoeat.html','longevity.html','kids.html','protocol-landing.html','features.html','privacy-policy.html','terms.html'];
 const STATES=process.argv[2]?JSON.parse(process.argv[2]):Object.fromEntries(SCREENS.map(u=>[u.replace('.html',''),{url:u,acts:[]}]));
 fs.mkdirSync('design-audit-shots',{recursive:true});const PAGES=Object.keys(STATES);
-const b=await chromium.launch();
-const out={};
-for (const page of PAGES){
- out[page]={};
- for (const theme of ['light','dark']) for (const w of [320,390]){
-  const ctx=await b.newContext({viewport:{width:w,height:800},deviceScaleFactor:2});
-  await ctx.addInitScript(([p,u,t])=>{try{localStorage.setItem('dietPlan',p);localStorage.setItem('userId','demo_1');localStorage.setItem('clientId','demo_1');localStorage.setItem('userData',u);localStorage.setItem('theme',t);localStorage.setItem('planUpdatedAt','1');}catch(e){}},[JSON.stringify(plan),JSON.stringify(userData),theme]);
-  const pg=await ctx.newPage();
-  await pg.route(u=>!u.href.startsWith('http://localhost')&&!/fonts\.g|cdnjs|jsdelivr|unpkg/.test(u.href),r=>r.abort());
-  try{await pg.goto('http://localhost:8765/'+STATES[page].url,{waitUntil:'load',timeout:20000});}catch(e){}
-  await pg.waitForTimeout(3000);
-  await pg.evaluate(()=>{document.querySelectorAll('[id^=npPlanEditing]').forEach(e=>(e.closest('[role=dialog]')||e).remove());});
-  for(const a of STATES[page].acts){try{if(a.click){await pg.click(a.click,{timeout:3000});}if(a.fill){await pg.fill(a.fill[0],a.fill[1]);}if(a.js){await pg.evaluate(a.js);}await pg.waitForTimeout(a.wait||800);}catch(e){console.error(page,'act fail',JSON.stringify(a),e.message.split('\n')[0]);}}
-  await pg.evaluate(()=>{document.querySelectorAll('[id^=npPlanEditing]').forEach(e=>(e.closest('[role=dialog]')||e).remove()); document.body.style.opacity='1';});
-  const r=await pg.evaluate(()=>{
+const PARALLEL=+(process.env.PARALLEL||4);
+const AUDIT=()=>{
    const parse=s=>{const m=s.match(/rgba?\(([^)]+)\)/);if(!m)return null;const p=m[1].split(/[ ,\/]+/).filter(Boolean).map(Number);return [p[0],p[1],p[2],p[3]===undefined?1:p[3]];};
    const lum=c=>{const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4)};return 0.2126*f(c[0])+0.7152*f(c[1])+0.0722*f(c[2]);};
    const blend=(top,bot)=>{const a=top[3];return [top[0]*a+bot[0]*(1-a),top[1]*a+bot[1]*(1-a),top[2]*a+bot[2]*(1-a),1];};
@@ -55,7 +43,7 @@ for (const page of PAGES){
    function effBg(el){const {layers,base,grad}=bgs(el);const bases=base||[[255,255,255,1]];
      if(!base){const t=document.documentElement.getAttribute('data-theme');if(t==='dark'&&!layers.some(l=>l[3]>=0.98))bases[0]=[11,18,32,1];}
      return {list:bases.map(bb=>{let c=bb;for(let i=layers.length-1;i>=0;i--)c=blend(layers[i],c);return c;}),grad:!!grad};}
-   const vis=e=>{const r=e.getBoundingClientRect();if(r.width<1||r.height<1)return false;if(r.right<=0||r.left>=window.innerWidth)return false;const cs=getComputedStyle(e);if(cs.visibility==='hidden'||cs.display==='none'||+cs.opacity===0)return false;let p=e;while(p){if(+getComputedStyle(p).opacity<0.05)return false;p=p.parentElement;}return true;};
+   const vis=e=>{const r=e.getBoundingClientRect();if(r.width<1||r.height<1)return false;if(r.right<=0||r.left>=window.innerWidth)return false;const cs=getComputedStyle(e);if(cs.visibility==='hidden'||cs.display==='none'||+cs.opacity===0)return false;let p=e;while(p){const ps=getComputedStyle(p);if(+ps.opacity<0.05)return false;if(p!==e&&ps.overflow!=='visible'){const pr=p.getBoundingClientRect();if(r.bottom<=pr.top||r.top>=pr.bottom||r.right<=pr.left||r.left>=pr.right)return false;}p=p.parentElement;}return true;};
    const contrast=[],small=[],targets=[];
    const all=[...document.body.querySelectorAll('*')];
    for(const el of all){
@@ -82,12 +70,43 @@ for (const page of PAGES){
    const unnamed=[...document.querySelectorAll('button,[role=button],a[href]')].filter(e=>vis(e)&&!(e.getAttribute('aria-label')||e.textContent.trim()||e.getAttribute('title')||e.querySelector('img[alt]:not([alt=""])'))).map(e=>'.'+(typeof e.className==='string'?e.className.split(' ')[0]:'')).slice(0,8);
    const dedupe=a=>{const m=new Map();for(const x of a){if(!m.has(x.label))m.set(x.label,x);}return [...m.values()];};
    return {title:document.title,height:document.documentElement.scrollHeight,contrast:dedupe(contrast).sort((a,b)=>a.ratio-b.ratio),small:dedupe(small),targets:dedupe(targets),overflow,offenders,unnamed,h1:[...document.querySelectorAll('h1,h2')].filter(vis).slice(0,3).map(h=>Math.round(parseFloat(getComputedStyle(h).fontSize))+'px')};
-  });
-  out[page][theme+w]=r;
-  if(w===390) await pg.screenshot({path:`design-audit-shots/${theme}-${page}.png`});
-  await ctx.close();
- }
- console.error('done',page);
+  };
+
+const b=await chromium.launch();
+const out={};
+async function setTheme(pg,t){
+  await pg.emulateMedia({colorScheme:t});
+  await pg.evaluate(t=>{if(!document.getElementById('__auditNoAnim')){const st=document.createElement('style');st.id='__auditNoAnim';st.textContent='*,*::before,*::after{transition:none!important;animation-duration:0s!important;animation-delay:0s!important}';document.head.appendChild(st);}try{localStorage.setItem('theme',t);}catch(e){}document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('[data-theme]').forEach(e=>e.setAttribute('data-theme',t));document.body&&document.body.classList.toggle('dark-theme',t==='dark');},t);
+  await pg.waitForTimeout(250); // преходите на цвета
 }
+async function run(page){
+  const st=STATES[page], t0=Date.now();
+  const ctx=await b.newContext({viewport:{width:390,height:800},deviceScaleFactor:1});
+  await ctx.addInitScript(([p,u])=>{try{if(!sessionStorage.getItem('__auditInit')){sessionStorage.setItem('__auditInit','1');localStorage.setItem('dietPlan',p);localStorage.setItem('userId','demo_1');localStorage.setItem('clientId','demo_1');localStorage.setItem('userData',u);localStorage.setItem('theme','light');localStorage.setItem('planUpdatedAt','1');}}catch(e){}},[JSON.stringify(plan),JSON.stringify(userData)]);
+  await ctx.route(u=>!u.href.startsWith('http://localhost')&&!/fonts\.g|cdnjs|jsdelivr|unpkg/.test(u.href),r=>r.abort());
+  const pg=await ctx.newPage();
+  try{await pg.goto('http://localhost:8765/'+st.url,{waitUntil:'load',timeout:15000});}catch(e){}
+  await pg.waitForFunction(()=>document.body&&document.body.innerText.trim().length>20,null,{timeout:5000}).catch(()=>{});
+  await pg.waitForTimeout(600);
+  await pg.evaluate(()=>{document.querySelectorAll('[id^=npPlanEditing]').forEach(e=>(e.closest('[role=dialog]')||e).remove());if(document.body)document.body.style.opacity='1';});
+  for(const a of st.acts||[]){try{
+    if(a.click)await pg.click(a.click,{timeout:3000});
+    if(a.fill)await pg.fill(a.fill[0],a.fill[1]);
+    if(a.js)await pg.evaluate(a.js);
+    await pg.waitForTimeout(a.wait||600);
+  }catch(e){console.error(page,'act fail',e.message.split('\n')[0]);}}
+  out[page]={};
+  for(const t of ['light','dark']){
+    await setTheme(pg,t);
+    out[page][t+'390']=await pg.evaluate(AUDIT);
+    await pg.screenshot({path:`design-audit-shots/${t}-${page}.png`});
+  }
+  await pg.setViewportSize({width:320,height:800});await pg.waitForTimeout(200);
+  out[page].overflow320=await pg.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
+  await ctx.close();
+  console.error('done',page,((Date.now()-t0)/1000).toFixed(1)+'s');
+}
+const queue=[...PAGES];
+await Promise.all(Array.from({length:PARALLEL},async()=>{while(queue.length){const p=queue.shift();try{await run(p);}catch(e){console.error('fail',p,e.message.split('\n')[0]);}}}));
 await b.close();
 fs.writeFileSync('design-audit.json',JSON.stringify(out,null,1));
