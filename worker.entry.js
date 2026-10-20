@@ -104,7 +104,7 @@ import { essenceText, digestDue, normalizeDigest, DIGEST_APPROACH } from './heal
 import { irisText } from './enrichment-iris.js';
 import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
-import { normalizeHandoff, handoffToFacts, airisPrefill, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
+import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { LAB_MARKERS } from './enrichment-labs.js';
 import {
@@ -14044,7 +14044,7 @@ async function handleHandoffPeek(request, env) {
       success: true,
       source: rec.h.source,
       preview: handoffPreview(rec.h),
-      prefill: rec.h.source === 'airis' ? airisPrefill(rec.h.questionnaire) : {},
+      prefill: prefillFor(rec.h),
     });
   } catch (error) {
     return jsonResponse({ error: 'Невалидна заявка' }, 400);
@@ -14099,7 +14099,7 @@ async function handoffFactsForGeneration(env, token) {
   }
 }
 
-const HANDOFF_SOURCES = ['emoeat', 'airis'];
+const HANDOFF_SOURCES = ['emoeat', 'airis', 'daotslabna', 'lifeprotocols'];
 
 /** GET /api/admin/handoff-stats?months=12 — фунията по модул и месец + последните насочени клиенти. */
 async function handleAdminHandoffStats(request, env) {

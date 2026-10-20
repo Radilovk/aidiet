@@ -79,7 +79,13 @@
     H.peek(token).then(function (res) {
         data = res;
         var p = res.preview || {};
-        $('fromBadge').innerHTML = '<i class="fas ' + (res.source === 'airis' ? 'fa-eye' : 'fa-heart') + '"></i> ' + (res.source === 'airis' ? 'От AIRIS — ирисов анализ' : 'От EmoEat — емоционално хранене');
+        var FROM = {
+            airis: ['fa-eye', 'От AIRIS — ирисов анализ'],
+            emoeat: ['fa-heart', 'От EmoEat — емоционално хранене'],
+            daotslabna: ['fa-clipboard-check', 'От теста на daotslabna.com'],
+            lifeprotocols: ['fa-clipboard-check', 'От теста на life-protocols.com']
+        }[res.source] || ['fa-link', 'Насочване'];
+        $('fromBadge').innerHTML = '<i class="fas ' + FROM[0] + '"></i> ' + FROM[1];
         $('lead').textContent = hasProfile
             ? 'Резултатът ще допълни профила ви — асистентът, специалистът и следващият преглед на плана ще го отчитат.'
             : 'Отговорите ви ще бъдат попълнени във въпросника, а резултатът ще влезе в плана още от първата седмица.';

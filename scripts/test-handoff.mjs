@@ -3,7 +3,7 @@
  * Пратки от модулите (handoff.js, enrichment-iris.js): бял списък на полетата,
  * факти, попълване на въпросника и пътя до профила. Без мрежа.
  */
-import { normalizeHandoff, handoffToFacts, airisPrefill, handoffPreview } from '../handoff.js';
+import { normalizeHandoff, handoffToFacts, airisPrefill, handoffPreview, prefillFor } from '../handoff.js';
 import { irisText } from '../enrichment-iris.js';
 import { normalizeFact, applyEnrichment, recalcLevel } from '../enrichment.js';
 import { compileProfile } from '../profile-code.js';
@@ -75,6 +75,31 @@ ok(pre.dietPreference.join() === 'Средиземноморска' && /лакт
 ok(pre.eatingHabits.includes('Не закусвам') && pre.foodCravings.includes('Сладко') && pre.drinksAlcohol === 'Често', 'навици');
 ok(pre.medications === 'Да' && pre.medicationsDetails === 'Еутирокс 50' && /подуване/.test(pre.additionalNotes), 'лекарства и оплаквания');
 ok(handoffPreview(h).lines.some(l => /Фокус: Храносмилане/.test(l)) && handoffPreview(emo).lines.some(l => /Утехата/.test(l)), 'преглед преди съгласие');
+
+// ── Тестовете на сайтовете (daotslabna.com, life-protocols.com) ─────────
+const site = normalizeHandoff({
+  source: 'daotslabna', completedAt: '2026-10-20T08:00:00Z',
+  answers: {
+    name: 'Ива', email: 'Iva@Example.com', sex: 'female', age_band: '35-44', height_cm: 165, weight_kg: 82, activity: 'moderate', diet: 'vegan',
+    conditions: ['thyroid', 'hypertension', 'kidney'], medications: ['thyroid_meds'], medications_other: 'Еутирокс 50',
+    allergies: ['gluten', 'evil'], symptoms: ['fatigue', 'poor_sleep'], priority: 'otshalvane', weight_goal: '10-20', stimulant_tolerance: 'sensitive',
+    budget_band: 'up30', hacker: '<script>',
+  },
+  protocol: { tier: 'Оптимален', products: [{ name: 'Berberine 500', dose: '1 капс.', timing: 'обед' }, { name: '' }] },
+});
+ok(site && site.source === 'daotslabna' && !('hacker' in site.answers) && !('budget_band' in site.answers), 'сайт: само позволените полета');
+ok(site.answers.allergies.join() === 'gluten' && site.protocol.products.length === 1 && site.answers.email === 'iva@example.com', 'сайт: непознатите стойности отпадат');
+const sp = prefillFor(site);
+ok(sp.gender === 'Жена' && sp.height === '165' && sp.weight === '82' && !sp.age && sp.email === 'iva@example.com', 'сайт: пол, ръст, тегло; възрастта не се измисля');
+ok(sp.goal.join() === 'Отслабване' && sp.sportActivity === 'Ниска (1–2 дни седмично)' && sp.dietPreference.join() === 'Веган', 'сайт: цел, активност, режим');
+ok(sp.healthConditions.includes('Щитовидна жлеза (Хашимото и др.)') && sp.healthConditions.includes('Сърдечно-съдови заболявания'), 'сайт: състояния');
+ok(sp.medications === 'Да' && /щитовидна/.test(sp.medicationsDetails) && /Еутирокс/.test(sp.medicationsDetails) && sp.dietDislike === 'глутен', 'сайт: лекарства, непоносимости');
+ok(/daotslabna\.com/.test(sp.additionalNotes) && /бъбречно/.test(sp.additionalNotes) && /умора/.test(sp.additionalNotes) && /Berberine 500/.test(sp.additionalNotes) && /стимуланти/.test(sp.additionalNotes), 'сайт: бележки — състояния без съответствие, оплаквания, протокол');
+const siteFacts = handoffToFacts(site).map(normalizeFact).filter(Boolean);
+ok(siteFacts.length === 1 && siteFacts[0].kind === 'weight' && siteFacts[0].value === 82, 'сайт → в профила влиза само теглото');
+ok(normalizeHandoff({ source: 'lifeprotocols', answers: {} }) === null && normalizeHandoff({ source: 'other', answers: { sex: 'male' } }) === null, 'празен тест или непознат сайт — отказ');
+ok(handoffPreview(site).title === 'Тест от daotslabna.com', 'сайт: преглед');
+ok(prefillFor(normalizeHandoff({ source: 'lifeprotocols', answers: { sex: 'male', priority: 'longevity', conditions: ['none'], medications: ['none'] } })).goal.join() === 'Антиейджинг', 'life: приоритет → цел');
 
 console.log(`\n=== handoff: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

@@ -42460,7 +42460,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         pre: -dishFit(d, plan.quota, policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 - (state.yesterdayDishes.has(d.id) ? 2 : 0) + rng() * 1.5
       })).sort((a, b) => b.pre - a.pre).slice(0, CANDIDATES_PER_MEAL);
       let candidatesBuilt = [];
-      const pick = (candidates, mealCtx) => {
+      const pick2 = (candidates, mealCtx) => {
         let found = null;
         candidatesBuilt = [];
         for (const d of candidates) {
@@ -42492,13 +42492,13 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         slotCtx = { ...slotCtx, policy: avoidPolicy };
         slotPool = (eligibleDishes(avoidPolicy)[kind] || []).filter((d) => !todayDishes.has(d.id)).slice(0, CANDIDATES_PER_MEAL * 2);
       }
-      let best = pick(slotPool, slotCtx);
+      let best = pick2(slotPool, slotCtx);
       if (!best && policy.withoutOnly) {
         relaxed = relaxed || (() => {
           const p = policy.withoutOnly();
           return { ctx: { ...ctx, policy: p, preferenceOf: (id) => p.preference(id) }, eligible: eligibleDishes(p) };
         })();
-        best = pick((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
+        best = pick2((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
       }
       if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
       let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
@@ -44979,6 +44979,45 @@ function normalizeAiris(p) {
   if (!analysis.systems.length && !analysis.drivers.length && !analysis.summary) return null;
   return { questionnaire, analysis };
 }
+var SITE_SOURCES = { daotslabna: "daotslabna.com", lifeprotocols: "life-protocols.com" };
+var pick = (v, allowed) => allowed.includes(v) ? v : null;
+var pickList = (v, allowed) => Array.isArray(v) ? [...new Set(v.filter((x) => allowed.includes(x)))].slice(0, 12) : [];
+var SITE_CONDITIONS = ["hypertension", "diabetes", "thyroid", "autoimmune", "kidney", "liver", "cardiovascular", "pregnancy", "breastfeeding", "none", "other"];
+var SITE_MEDS = ["anticoagulants", "statins", "ssri", "hormone_therapy", "thyroid_meds", "none", "other"];
+var SITE_ALLERGIES = ["shellfish", "soy", "gluten", "lactose", "nuts", "none", "other"];
+var SITE_SYMPTOMS = ["fatigue", "cravings", "poor_sleep", "joint_pain", "concentration", "cramps", "hair_nails", "none", "other"];
+function normalizeSiteQuiz(raw) {
+  const a = raw.answers && typeof raw.answers === "object" ? raw.answers : {};
+  const answers = {
+    name: str2(a.name, 60),
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str2(a.email, 120)) ? str2(a.email, 120).toLowerCase() : "",
+    sex: pick(a.sex, ["female", "male"]),
+    age_band: pick(a.age_band, ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"]),
+    height_cm: numIn(a.height_cm, 100, 250),
+    weight_kg: numIn(a.weight_kg, 30, 300),
+    activity: pick(a.activity, ["regular", "moderate", "rare"]),
+    diet: pick(a.diet, ["omnivore", "vegetarian", "vegan", "keto", "other"]),
+    diet_other: str2(a.diet_other, 120),
+    conditions: pickList(a.conditions, SITE_CONDITIONS),
+    conditions_other: str2(a.conditions_other, 200),
+    medications: pickList(a.medications, SITE_MEDS),
+    medications_other: str2(a.medications_other, 200),
+    allergies: pickList(a.allergies, SITE_ALLERGIES),
+    allergies_other: str2(a.allergies_other, 200),
+    symptoms: pickList(a.symptoms, SITE_SYMPTOMS),
+    symptoms_other: str2(a.symptoms_other, 200),
+    priority: pick(a.priority, ["otshalvane", "longevity", "energy", "skin", "sleep", "cognition", "joints"]),
+    weight_goal: pick(a.weight_goal, ["1-5", "5-10", "10-20", "20+"]),
+    stimulant_tolerance: pick(a.stimulant_tolerance, ["ok", "sensitive", "avoid"])
+  };
+  const p = raw.protocol && typeof raw.protocol === "object" ? raw.protocol : {};
+  const protocol = {
+    tier: str2(p.tier, 60),
+    products: (Array.isArray(p.products) ? p.products : []).slice(0, 10).map((x) => ({ name: str2(x?.name, 100), dose: str2(x?.dose, 80), timing: str2(x?.timing, 60) })).filter((x) => x.name)
+  };
+  if (!answers.sex && !answers.weight_kg) return null;
+  return { answers, protocol };
+}
 function normalizeHandoff(raw, now = /* @__PURE__ */ new Date()) {
   if (!raw || typeof raw !== "object") return null;
   const at = isoOr(raw.completedAt, now.toISOString());
@@ -44989,6 +45028,10 @@ function normalizeHandoff(raw, now = /* @__PURE__ */ new Date()) {
   if (raw.source === "airis") {
     const body = normalizeAiris(raw);
     return body ? { v: 1, source: "airis", at, ...body } : null;
+  }
+  if (SITE_SOURCES[raw.source]) {
+    const body = normalizeSiteQuiz(raw);
+    return body ? { v: 1, source: raw.source, at, ...body } : null;
   }
   return null;
 }
@@ -45009,6 +45052,9 @@ function handoffToFacts(h) {
       source: "airis",
       status: "confirmed"
     }];
+  }
+  if (SITE_SOURCES[h.source] && h.answers?.weight_kg) {
+    return [{ kind: "weight", value: h.answers.weight_kg, unit: "kg", at: h.at, source: h.source, status: "confirmed" }];
   }
   return [];
 }
@@ -45061,6 +45107,91 @@ function airisPrefill(q) {
   if (notes) out.additionalNotes = `\u041E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS): ${notes}`.slice(0, 800);
   return out;
 }
+var SITE_LABELS = {
+  conditions: {
+    hypertension: "\u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F",
+    diabetes: "\u0434\u0438\u0430\u0431\u0435\u0442 / \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442",
+    thyroid: "\u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430 \u0436\u043B\u0435\u0437\u0430",
+    autoimmune: "\u0430\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+    kidney: "\u0431\u044A\u0431\u0440\u0435\u0447\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+    liver: "\u0447\u0435\u0440\u043D\u043E\u0434\u0440\u043E\u0431\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+    cardiovascular: "\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+    pregnancy: "\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442",
+    breastfeeding: "\u043A\u044A\u0440\u043C\u0435\u043D\u0435"
+  },
+  medications: { anticoagulants: "\u0430\u043D\u0442\u0438\u043A\u043E\u0430\u0433\u0443\u043B\u0430\u043D\u0442\u0438", statins: "\u0441\u0442\u0430\u0442\u0438\u043D\u0438", ssri: "SSRI / SNRI", hormone_therapy: "\u0445\u043E\u0440\u043C\u043E\u043D\u0430\u043B\u043D\u0430 \u0442\u0435\u0440\u0430\u043F\u0438\u044F / \u043A\u043E\u043D\u0442\u0440\u0430\u0446\u0435\u043F\u0446\u0438\u044F", thyroid_meds: "\u043C\u0435\u0434\u0438\u043A\u0430\u043C\u0435\u043D\u0442\u0438 \u0437\u0430 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430 \u0436\u043B\u0435\u0437\u0430" },
+  allergies: { shellfish: "\u043C\u043E\u0440\u0441\u043A\u0438 \u0434\u0430\u0440\u043E\u0432\u0435", soy: "\u0441\u043E\u044F", gluten: "\u0433\u043B\u0443\u0442\u0435\u043D", lactose: "\u043B\u0430\u043A\u0442\u043E\u0437\u0430", nuts: "\u044F\u0434\u043A\u0438" },
+  symptoms: {
+    fatigue: "\u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u0430 \u0443\u043C\u043E\u0440\u0430",
+    cravings: "\u0441\u0438\u043B\u0435\u043D \u0430\u043F\u0435\u0442\u0438\u0442 / \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E",
+    poor_sleep: "\u043B\u043E\u0448 \u0441\u044A\u043D",
+    joint_pain: "\u0431\u043E\u043B\u043A\u0430 \u0432 \u0441\u0442\u0430\u0432\u0438\u0442\u0435",
+    concentration: "\u0437\u0430\u0442\u0440\u0443\u0434\u043D\u0435\u043D\u0430 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044F",
+    cramps: "\u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0438 \u043A\u0440\u0430\u043C\u043F\u0438",
+    hair_nails: "\u043A\u043E\u0441\u043E\u043F\u0430\u0434 / \u0447\u0443\u043F\u043B\u0438\u0432\u0438 \u043D\u043E\u043A\u0442\u0438"
+  }
+};
+var SITE_HEALTH = {
+  diabetes: "\u0414\u0438\u0430\u0431\u0435\u0442 / \u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442",
+  thyroid: "\u0429\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430 \u0436\u043B\u0435\u0437\u0430 (\u0425\u0430\u0448\u0438\u043C\u043E\u0442\u043E \u0438 \u0434\u0440.)",
+  autoimmune: "\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F",
+  hypertension: "\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F",
+  cardiovascular: "\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F"
+};
+var SITE_SPORT = { moderate: "\u041D\u0438\u0441\u043A\u0430 (1\u20132 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)", rare: "\u041D\u0438\u043A\u0430\u043A\u0432\u0430 (0 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)" };
+var SITE_DIET = { vegetarian: "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430", vegan: "\u0412\u0435\u0433\u0430\u043D", keto: "\u041A\u0435\u0442\u043E" };
+var SITE_GOAL = {
+  otshalvane: "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435",
+  longevity: "\u0410\u043D\u0442\u0438\u0435\u0439\u0434\u0436\u0438\u043D\u0433",
+  energy: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E",
+  skin: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E",
+  sleep: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E",
+  cognition: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E",
+  joints: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E"
+};
+var labelsOf = (vals, map) => (vals || []).map((v) => map[v]).filter(Boolean);
+function sitePrefill(h) {
+  const a = h?.answers;
+  if (!a) return {};
+  const out = {};
+  if (a.name) out.name = a.name;
+  if (a.email) out.email = a.email;
+  if (a.sex) out.gender = AIRIS_GENDER[a.sex];
+  if (a.height_cm) out.height = String(Math.round(a.height_cm));
+  if (a.weight_kg) out.weight = String(a.weight_kg);
+  if (SITE_GOAL[a.priority]) out.goal = [SITE_GOAL[a.priority]];
+  if (SITE_SPORT[a.activity]) out.sportActivity = SITE_SPORT[a.activity];
+  if (SITE_DIET[a.diet]) out.dietPreference = [SITE_DIET[a.diet]];
+  const health = [...new Set(labelsOf(a.conditions, SITE_HEALTH))];
+  if (health.length) out.healthConditions = health;
+  else if (a.conditions.length === 1 && a.conditions[0] === "none") out.healthConditions = ["\u041D\u044F\u043C\u0430\u043C"];
+  const dislikes = [...labelsOf(a.allergies, SITE_LABELS.allergies), a.allergies_other].filter(Boolean);
+  if (dislikes.length) out.dietDislike = dislikes.join(", ");
+  const meds = [...labelsOf(a.medications, SITE_LABELS.medications), a.medications_other].filter(Boolean);
+  if (meds.length) {
+    out.medications = "\u0414\u0430";
+    out.medicationsDetails = meds.join(", ");
+  } else if (a.medications.length === 1 && a.medications[0] === "none") {
+    out.medications = "\u041D\u0435";
+  }
+  const site = SITE_SOURCES[h.source];
+  const notes = [];
+  const other = [...labelsOf(a.conditions.filter((c) => !SITE_HEALTH[c]), SITE_LABELS.conditions), a.conditions_other].filter(Boolean);
+  if (other.length) notes.push(`\u0421\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u044F: ${other.join(", ")}`);
+  const symptoms = [...labelsOf(a.symptoms, SITE_LABELS.symptoms), a.symptoms_other].filter(Boolean);
+  if (symptoms.length) notes.push(`\u041E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F: ${symptoms.join(", ")}`);
+  if (a.stimulant_tolerance === "sensitive" || a.stimulant_tolerance === "avoid") notes.push("\u0427\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442 \u043A\u044A\u043C \u0441\u0442\u0438\u043C\u0443\u043B\u0430\u043D\u0442\u0438 (\u043A\u043E\u0444\u0435\u0438\u043D)");
+  if (a.diet === "other" && a.diet_other) notes.push(`\u0420\u0435\u0436\u0438\u043C: ${a.diet_other}`);
+  const prods = h.protocol?.products || [];
+  if (prods.length) notes.push(`\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u0434\u043E\u0431\u0430\u0432\u043A\u0438${h.protocol.tier ? ` (\u201E${h.protocol.tier}\u201C)` : ""}: ${prods.map((p) => p.name).join(", ")}`);
+  if (notes.length) out.additionalNotes = `\u041E\u0442 \u0442\u0435\u0441\u0442\u0430 \u043D\u0430 ${site}: ${notes.join(". ")}`.slice(0, 800);
+  return out;
+}
+function prefillFor(h) {
+  if (h?.source === "airis") return airisPrefill(h.questionnaire);
+  if (SITE_SOURCES[h?.source]) return sitePrefill(h);
+  return {};
+}
 function handoffPreview(h) {
   if (!h) return null;
   if (h.source === "emoeat") {
@@ -45068,6 +45199,19 @@ function handoffPreview(h) {
       source: "emoeat",
       title: "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat)",
       lines: [h.profile.archetype?.name ? `\u0410\u0440\u0445\u0435\u0442\u0438\u043F: ${h.profile.archetype.name}` : "", h.profile.intensity ? `\u0418\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442: ${h.profile.intensity}` : "", h.profile.drivers.length ? `\u0414\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438: ${h.profile.drivers.join(", ")}` : ""].filter(Boolean),
+      at: h.at
+    };
+  }
+  if (SITE_SOURCES[h.source]) {
+    const a2 = h.answers;
+    return {
+      source: h.source,
+      title: `\u0422\u0435\u0441\u0442 \u043E\u0442 ${SITE_SOURCES[h.source]}`,
+      lines: [
+        a2.weight_kg ? `\u0422\u0435\u0433\u043B\u043E: ${a2.weight_kg} \u043A\u0433` : "",
+        h.protocol?.products?.length ? `\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B: ${h.protocol.products.map((p) => p.name).slice(0, 4).join(", ")}` : "",
+        "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043E\u0442 \u0442\u0435\u0441\u0442\u0430 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u0430 NutriPlan \u2014 \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435."
+      ].filter(Boolean),
       at: h.at
     };
   }
@@ -55923,7 +56067,7 @@ async function handleHandoffPeek(request, env) {
       success: true,
       source: rec.h.source,
       preview: handoffPreview(rec.h),
-      prefill: rec.h.source === "airis" ? airisPrefill(rec.h.questionnaire) : {}
+      prefill: prefillFor(rec.h)
     });
   } catch (error) {
     return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430 \u0437\u0430\u044F\u0432\u043A\u0430" }, 400);
@@ -55973,7 +56117,7 @@ async function handoffFactsForGeneration(env, token) {
     return [];
   }
 }
-var HANDOFF_SOURCES = ["emoeat", "airis"];
+var HANDOFF_SOURCES = ["emoeat", "airis", "daotslabna", "lifeprotocols"];
 async function handleAdminHandoffStats(request, env) {
   try {
     const url = new URL(request.url);

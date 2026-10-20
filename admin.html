@@ -67,6 +67,8 @@
         .rf-root {
             --rf-emoeat: #2a78d6;
             --rf-airis: #eb6834;
+            --rf-daotslabna: #1f9d63;
+            --rf-life: #8455e0;
             --rf-grid: rgba(15, 47, 46, 0.10);
             --rf-track: rgba(15, 118, 110, 0.08);
             --rf-ink: var(--text-dark);
@@ -75,6 +77,8 @@
         [data-theme="dark"] .rf-root {
             --rf-emoeat: #3987e5;
             --rf-airis: #d95926;
+            --rf-daotslabna: #34b37a;
+            --rf-life: #9a74ec;
             --rf-grid: rgba(224, 245, 240, 0.12);
             --rf-track: rgba(45, 212, 191, 0.10);
             --rf-ink-soft: #c3c2b7;
@@ -4200,10 +4204,12 @@
             body.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
         }
 
-        // --- Насочвания от модули (EmoEat, AIRIS) ---
+        // --- Насочвания от модули и сайтове (EmoEat, AIRIS, daotslabna, life-protocols) ---
         const REFERRAL_MODULES = [
             { key: 'emoeat', label: 'EmoEat', color: 'var(--rf-emoeat)' },
             { key: 'airis', label: 'AIRIS', color: 'var(--rf-airis)' },
+            { key: 'daotslabna', label: 'daotslabna.com', color: 'var(--rf-daotslabna)' },
+            { key: 'lifeprotocols', label: 'life-protocols.com', color: 'var(--rf-life)' },
         ];
         const REFERRAL_STEPS = [
             { key: 'created', label: 'Линкове' },
