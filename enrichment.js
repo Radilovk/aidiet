@@ -19,6 +19,7 @@ import { deriveEmoEat } from './enrichment-emoeat.js';
 import { deriveLabs } from './enrichment-labs.js';
 import { computeEssence } from './health-essence.js';
 import { deriveIris } from './enrichment-iris.js';
+import { deriveSiteQuiz } from './enrichment-site.js';
 import { crossCheck, resolutionsOf } from './cross-check.js';
 
 export const ENRICHMENT_VERSION = 1;
@@ -51,7 +52,7 @@ const UNIT_CONVERT = {
   weight: { lb: v => v * 0.4536, lbs: v => v * 0.4536 },
   muscle_mass: { lb: v => v * 0.4536, lbs: v => v * 0.4536 },
   glucose: { 'mg/dl': v => v / 18 },
-  water: { ml: v => v / 1000 },
+  water: { ml: v => v / 1000, мл: v => v / 1000 },
   sleep: { min: v => v / 60, мин: v => v / 60 },
 };
 
@@ -103,6 +104,14 @@ export function normalizeFact(raw) {
     const value = String(raw.value ?? '').trim().slice(0, 40);
     if (!/^[a-z_]+(:[\p{L}\p{N}_]+)?$/u.test(key) || !value) return null;
     return { kind, key, value, unit: '', at, source: 'client', confidence: 1, status: 'confirmed' };
+  }
+  if (kind === 'site_quiz') {
+    const v = raw.value;
+    if (!v || typeof v !== 'object' || !v.site) return null;
+    const strs = (a, n, len) => (Array.isArray(a) ? a.map(x => String(x || '').trim().slice(0, len)).filter(Boolean).slice(0, n) : []);
+    const value = { site: String(v.site).slice(0, 40), lines: strs(v.lines, 12, 300), cautions: strs(v.cautions, 6, 200) };
+    if (!value.lines.length && !value.cautions.length) return null;
+    return { kind, key: 'answers', value, unit: '', at, source, confidence, status };
   }
   if (kind === 'iris') {
     if (!raw.value || typeof raw.value !== 'object' || !raw.value.analysis) return null;
@@ -206,10 +215,11 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const digest = store?.digest && typeof store.digest === 'object' ? store.digest : null;
   const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
   const iris = deriveIris(facts);
+  const siteQuiz = deriveSiteQuiz(facts);
   const resolutions = resolutionsOf(facts);
   // Клиентът не се разпознава в профила от EmoEat — остава само гласът, без кодове.
   const emoPart = emo && resolutions.emoeat_vs_q === 'rare' ? { ...emo, hints: null } : emo;
-  for (const part of [emoPart, labs, essence, digestPart, iris]) {
+  for (const part of [emoPart, labs, essence, digestPart, iris, siteQuiz]) {
     if (!part) continue;
     for (const k of ['behaviors', 'approach', 'clinical', 'cautions']) hints[k].push(...(part.hints?.[k] || []));
     reasons.push(...(part.reasons || []));
@@ -229,6 +239,7 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
     digest: digest ? { insights: digest.insights || [], coachNote: digest.coachNote || '', at: digest.at } : null,
     iris: iris?.summary || null,
     irisRaw: iris?.raw || null,
+    siteQuiz: siteQuiz?.summary || null,
     resolutions,
     reasons,
   };
@@ -290,6 +301,7 @@ export function recalcLevel(prevData, nextData) {
   const aPrev = prevData?._enrichment;
   if (JSON.stringify(aNext?.voice || null) !== JSON.stringify(aPrev?.voice || null)) bump(0, 'емоционален профил');
   if (JSON.stringify(aNext?.iris || null) !== JSON.stringify(aPrev?.iris || null)) bump(0, 'ирисов анализ');
+  if (JSON.stringify(aNext?.siteQuiz || null) !== JSON.stringify(aPrev?.siteQuiz || null)) bump(0, 'тест за протокол от сайт');
   if (JSON.stringify(aNext?.safety || {}) !== JSON.stringify(aPrev?.safety || {})) bump(2, 'граници за безопасност от изследвания');
   return { level: /** @type {0|1|2|3} */ (level), reasons: [...new Set(reasons)] };
 }

@@ -104,6 +104,7 @@ import { essenceText, digestDue, normalizeDigest, DIGEST_APPROACH } from './heal
 import { irisText } from './enrichment-iris.js';
 import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
+import { siteQuizText } from './enrichment-site.js';
 import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { LAB_MARKERS } from './enrichment-labs.js';
@@ -7666,7 +7667,8 @@ function validatePlan(plan, userData, substitutions = []) {
         userData.dietPreference && 
         (userData.dietPreference.includes('Вегетарианска') || userData.dietPreference.includes('Веган'))) {
       const supplements = plan.supplements || [];
-      const hasIronSupplement = supplements.some(s => /желязо|iron/i.test(s));
+      // Добавките са обекти { name, dosage, … } — проверява се името (не самият обект).
+      const hasIronSupplement = supplements.some(s => /желяз|желез|iron/i.test(typeof s === 'string' ? s : String(s?.name || '')));
       if (!hasIronSupplement) {
         const error = 'При анемия и вегетарианска/веган диета е задължителна добавка с желязо';
         errors.push(error);
@@ -14283,11 +14285,14 @@ async function handleEnrichmentDelete(request, env) {
     if (!hasDeviceFacts) delete profile.enrichment.digest;
     const ttl = String(userId).startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
     await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
-    if (!hasDeviceFacts && profile.clientId) {
+    // Картонът: текстът се смята наново — EmoEat, AIRIS и тестовете от сайтове остават, ако не са изтрити.
+    if (profile.clientId) {
       try {
         const client = await kvGetJSON(env, `client:${profile.clientId}`);
-        if (client?.healthEssence) {
-          client.healthEssence = null;
+        if (client) {
+          const d = facts.length ? applyEnrichment(normalizeQuestionnaireData({ ...(profile.userData || {}) }), profile.enrichment)?._enrichment : null;
+          const text = d ? profileContextText(d) : '';
+          client.healthEssence = text ? { text, at: profile.enrichment.updatedAt, sources: d?.essence?.sources || [] } : null;
           await kvPutJSON(env, `client:${profile.clientId}`, client, null);
         }
       } catch (e) {
@@ -14313,7 +14318,12 @@ async function handleEnrichmentGet(request, env) {
     const sex = profile?.userData?.gender === 'Мъж' ? 'M' : profile?.userData?.gender === 'Жена' ? 'F' : 'X';
     return jsonResponse({
       success: true,
-      derived: publicEnrichmentView(deriveEnrichment(store, new Date(), sex)),
+      // applyEnrichment — с отговорите на клиента, за да има и сверката (въпросите за разминаванията);
+      // deriveEnrichment сам не я прави.
+      derived: publicEnrichmentView(
+        applyEnrichment(normalizeQuestionnaireData({ ...(profile?.userData || {}) }), store)?._enrichment
+        || deriveEnrichment(store, new Date(), sex),
+      ),
       sources: [...new Set((store.facts || []).map(f => f.source))],
       lastChange: store.lastChange || null,
       markers: LAB_MARKERS,
@@ -14357,7 +14367,7 @@ function profileContextText(d) {
   const emo = v && (v.archetype || v.intensity)
     ? `емоционален профил (EmoEat): ${[v.archetype ? `архетип ${v.archetype}` : '', v.intensity ? `интензитет ${v.intensity}` : '', v.drivers?.length ? `двигатели ${v.drivers.join(', ')}` : '', v.realNeed ? `реална нужда ${v.realNeed}` : ''].filter(Boolean).join(', ')}`
     : '';
-  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 2800);
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 2800);
 }
 
 const DEFAULT_HEALTH_DIGEST_PROMPT = `Ти си диетолог. Данни от устройствата на клиента (часовник, гривна, везна, апарат за кръвно, глюкомер, приложения) за последните седмици, вече обобщени:

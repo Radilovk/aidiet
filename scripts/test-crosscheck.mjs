@@ -65,12 +65,16 @@ d = run(base({ dietDislike: '' }), irisFacts(['immune'], { foodIntolerances: 'л
 ok(question(d, 'allergy:лактоза'), 'непоносимост само в AIRIS → въпрос');
 d = run(base({ dietDislike: '' }), [...irisFacts(['immune'], { foodIntolerances: 'лактоза' }), answer('allergy:лактоза', 'yes')]);
 ok(/лактоза/.test(d.dietDislike) && compileProfile(d).exclusions.includes('LAC') && d._enrichment.original.dietDislike === '', 'потвърдена → изключена от плана, оригиналът е пазен');
-d = run(base({ medications: 'Не' }), [...irisFacts(['endocrine'], { medications: 'Еутирокс 50' }), answer('meds', 'yes')]);
+d = run(base({ medications: 'Не' }), [...irisFacts(['endocrine'], { medications: 'Еутирокс 50' }), answer('meds:no', 'yes')]);
 ok(d.medications === 'Да' && interactionsFor(d).ids.includes('levothyroxine'), 'лекарство от AIRIS, потвърдено → таблицата за взаимодействия се прилага');
+d = run(base({ medications: '' }), [...irisFacts(['endocrine'], { medications: 'Еутирокс 50' }), answer('meds:no', 'yes')]);
+ok(d.medications !== 'Да' && question(d, 'meds:empty'), 'профилът е сменен след отговора → въпросът наново, старият отговор не надделява');
 d = run(base({ weight: '82' }), irisFacts(['immune'], { weight: 74 }));
-ok(question(d, 'weight')?.options.length === 2, 'тегло с разлика 8 кг → въпрос кое е актуалното');
-d = run(base({ weight: '82' }), [...irisFacts(['immune'], { weight: 74 }), answer('weight', 'airis')]);
+ok(question(d, 'weight:82')?.options.length === 2, 'тегло с разлика 8 кг → въпрос кое е актуалното');
+d = run(base({ weight: '82' }), [...irisFacts(['immune'], { weight: 74 }), answer('weight:82', 'airis')]);
 ok(d.weight === '74', 'избрано теглото от AIRIS');
+d = run(base({ weight: '85' }), [...irisFacts(['immune'], { weight: 74 }), answer('weight:82', 'airis')]);
+ok(d.weight === '85' && question(d, 'weight:85'), 'ново тегло в NutriPlan → отговорът за старото не важи, нов въпрос');
 d = run(base({ dietPreference: ['Балансирана'] }), [...irisFacts(['immune'], { dietaryProfile: ['Веган'] }), answer('pattern:Веган', 'yes')]);
 ok(compileProfile(d).diet.pattern === 'vegan', 'веган режим от AIRIS, потвърден → прилага се');
 

@@ -99,7 +99,7 @@
         if (/\blbs?\b|\(lb/.test(h)) return 'lb';
         if (/mg\/dl/.test(h)) return 'mg/dl';
         if (/mmol/.test(h)) return 'mmol/l';
-        if (/\bml\b/.test(h)) return 'ml';
+        if (/\bml\b|(^|[^а-я])мл([^а-я]|$)/.test(h)) return 'ml';
         if (/\bmin|мин/.test(h)) return 'min';
         return '';
     }
