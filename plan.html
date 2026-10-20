@@ -10034,8 +10034,7 @@
                     const ch = text[i++];
                     el.textContent += ch;
                     if (i < text.length) {
-                        // Без вибрация по букви: въпросите на играта са кратки и се
-                        // повтарят всеки ден — тикането се превръща в шум. Чатът я запазва.
+                        hapticCtrl.trigger(ch);
                         scheduleTypingStep(tick, speed || 30);
                     } else {
                         // Last character typed — finalize immediately
