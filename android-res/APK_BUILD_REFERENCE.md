@@ -109,6 +109,7 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
   - action бутоните → `BroadcastReceiver` (без стартиране на WebView)
 - `android-res/patch-app-exit.py` — `App.exitApp()` → `finishAndRemoveTask()` (без фонов процес в recents)
 - `android-res/patch-print-plugin.py` — копира `NutriPrintPlugin` (системен печат / „Запази като PDF“ за книгата с плана) и го регистрира в `MainActivity`; спира билда, ако `MainActivity` не е празният клас на Capacitor
+- `android-res/patch-health-connect.py` — за `@capgo/capacitor-health`: оставя само 12-те разрешения за четене, които планът ползва (крачки, тегло, сън, хранене, телесни мазнини, пулс в покой, HRV, активни калории, тренировки, вода, кръвно, кръвна захар), всички останали маха с `tools:node="remove"` (Google Play отхвърля неизползвани здравни разрешения); вдига `minSdkVersion` до 26; задава `health_connect_privacy_policy_url`
 - AndroidManifest.xml (app) получава следните permissions (добавени идемпотентно):
   - `POST_NOTIFICATIONS`
   - `SCHEDULE_EXACT_ALARM`
@@ -190,5 +191,7 @@ Android WebView блокира cross-origin API заявките (`/api/*`) къ
 | 2026-05-05 | Иконата на APK = PWA иконата (`icon-512x512.png`), без overlay | Иконата трябва да е идентична с PWA |
 | 2026-05-05 | Навигационна лента следва темата (values/values-night) | Лентата беше постоянно бяла, сега следва light/dark режима |
 | 2026-10-10 | `NutriPrintPlugin` + `patch-print-plugin.py` | `window.print()` не работи в WebView — книгата с плана не можеше да се запази като PDF в APK |
+| 2026-10-20 | `@capgo/capacitor-health` + `patch-health-connect.py`, minSdk 26 | Health Connect: крачки, тегло, сън и прием от устройства → обогатяване на профила. В Play Console е нужна декларация за здравните разрешения |
+| 2026-10-20 | Разширени разрешения за четене (12 вида) | Общ вход за данни от гривни, часовници, везни, апарати за кръвно и глюкомери; декларацията в Play Console трябва да изброява всичките 12 |
 | 2026-10-11 | `@capacitor/status-bar` + `@capacitor/splash-screen`; `android.backgroundColor` → `#042F2E` | Статус барът следва темата и отворените листове (`NutriPlanPlatform.setSystemBars`); без бяло мигване при старт |
 | 2026-10-11 | `publish-release` само от `main` | Пробни build-ове от клонове не бива да подменят публичния release |

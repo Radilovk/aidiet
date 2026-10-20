@@ -1026,6 +1026,7 @@
     </style>
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
+    <script src="./handoff-client.js"></script>
     <script>
         // Apply color scheme from admin settings
         (function() {
@@ -2187,7 +2188,21 @@
                 console.error('Error loading saved answers:', e);
             }
         }
-        
+
+        // Пратка от модул (AIRIS): попълва само празните отговори — клиентът ги вижда и може да ги смени.
+        try {
+            const handoff = window.NutriPlanHandoff && window.NutriPlanHandoff.pending();
+            if (handoff && handoff.prefill && !handoff.prefillApplied) {
+                Object.entries(handoff.prefill).forEach(([k, v]) => {
+                    if (answers[k] == null || answers[k] === '' || (Array.isArray(answers[k]) && !answers[k].length)) answers[k] = v;
+                });
+                window.NutriPlanHandoff.setPending(Object.assign({}, handoff, { prefillApplied: true }));
+                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            }
+        } catch (e) {
+            console.warn('Handoff prefill skipped:', e);
+        }
+
         // Valid protocol IDs that can be selected from landing page
         const VALID_PROTOCOL_IDS = [
             'insulin_resistance', 'autoimmune_aip', 'gi_issues', 'menopause_sarcopenia',
@@ -2300,6 +2315,24 @@
         }
         
         handleProtocolFromURL();
+
+        // Пратка от модул или сайт: въпросите с еднозначен отговор там не се задават повторно.
+        // Здравословните състояния, лекарствата и непоносимостите остават (тук са по-подробни) — само попълнени.
+        const HANDOFF_SKIP = ['name', 'email', 'gender', 'height', 'weight', 'sportActivity', 'stressLevel', 'sleepHours', 'waterIntake', 'dietPreference'];
+        function skipHandoffAnswered() {
+            try {
+                const handoff = window.NutriPlanHandoff && window.NutriPlanHandoff.pending();
+                if (!handoff || !handoff.prefill) return;
+                const filled = (k) => !isAnswerEmpty(answers[k]) && !isAnswerEmpty(handoff.prefill[k]);
+                const skip = new Set(HANDOFF_SKIP.filter(filled));
+                // Тестът на daotslabna.com е за отслабване — целта е ясна; колко кг се пита тук.
+                if (handoff.source === 'daotslabna' && filled('goal')) skip.add('goal');
+                if (skip.size) currentQueue = currentQueue.filter(q => !skip.has(q.id));
+            } catch (e) {
+                console.warn('Handoff skip failed:', e);
+            }
+        }
+        skipHandoffAnswered();
         
         // --- DOM ELEMENTS ---
         const container = document.getElementById('questionContainer');
@@ -4208,6 +4241,8 @@
                             ...planPayload,
                             _jobId: jobId,
                             _clientId: savedClientId || undefined,
+                            // Резултатът от модул (EmoEat, AIRIS) влиза още в първия план.
+                            _handoff: (window.NutriPlanHandoff && window.NutriPlanHandoff.pending() || {}).token || undefined,
                             ...(replacementAuth.requireApproval ? {
                                 _requireApproval: true,
                                 _userId: replacementAuth.authContext.userId,

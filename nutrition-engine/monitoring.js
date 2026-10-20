@@ -122,10 +122,18 @@ export function readCheckin(answers, analytics, previous = {}) {
     const span = days >= 4 && days <= 28 ? days : 7;
     weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
   }
+  // Тенденцията от поне 5 претегляния за 2 седмици е по-точна от две точки.
+  const trend = Number(answerOf(answers, 'weightTrendKgWeek'));
+  if (answerOf(answers, 'weightTrendKgWeek') != null && Number.isFinite(trend) && Math.abs(trend) <= 3) weeklyChangeKg = trend;
+  // Среден дневен прием от тракер (Health Connect) — само при поне 4 записани дни.
+  const intake = Number(answerOf(answers, 'intakeKcal'));
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
     weightKg,
     weeklyChangeKg,
+    intakeKcal: intake >= 500 && intake <= 8000 ? Math.round(intake) : null,
+    recoveryLow: answerOf(answers, 'recoveryLow') === 'true',
+    leanLoss: answerOf(answers, 'leanLoss') === 'true',
     adherence,
     hunger: LEVEL_ANSWERS[answerOf(answers, 'hunger')] || null,
     energy: LEVEL_ANSWERS[answerOf(answers, 'energy')] || null,
@@ -208,6 +216,9 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
   const expectedLoss = Math.max(0, (tdee - kcal) * 7 / KCAL_PER_KG);
   const outcome = weightOutcome(checkin, { goalKind, expectedLossKg: expectedLoss, weightKg, lactating });
   const cls = outcome ? OUTCOME_CLASS[goalKind][outcome] : null;
+  // Измереният прием обяснява застоя по-добре от „метаболизмът се е забавил“.
+  const overIntake = checkin.intakeKcal != null && checkin.intakeKcal > kcal * 1.1;
+  const underIntake = checkin.intakeKcal != null && checkin.intakeKcal < kcal * 0.9;
   const measured = checkin.weeklyChangeKg != null
     ? `${checkin.weeklyChangeKg > 0 ? '+' : ''}${checkin.weeklyChangeKg.toFixed(1).replace('.', ',')} кг за седмица`
     : null;
@@ -227,6 +238,8 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
         reasons.push(lactating
           ? 'Отслабването е над 0,5 кг седмично при кърмене — приемът се увеличава, за да се пази кърмата.'
           : `Отслабването е над 1% от теглото седмично${measured ? ` (${measured})` : ''} — темпото се забавя, за да се пази мускулната маса.`);
+      } else if (cls === 'stall' && overIntake) {
+        reasons.push(`По тракера приемът е около ${checkin.intakeKcal} kcal дневно при план ${kcal} kcal — калориите на плана остават; първо приемът да се доближи до плана.`);
       } else if (cls === 'stall') {
         if (weeks >= 2) {
           delta = outcome === 'gain' ? -MAX_WEEKLY_STEP : -100;
@@ -244,6 +257,8 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
       } else if (cls === 'down') {
         delta = +MAX_WEEKLY_STEP;
         reasons.push('Теглото пада при цел покачване на мускулна маса — приемът се увеличава.');
+      } else if (cls === 'stall' && underIntake) {
+        reasons.push(`По тракера приемът е около ${checkin.intakeKcal} kcal дневно при план ${kcal} kcal — калориите на плана остават; първо приемът да стигне плана.`);
       } else if (cls === 'stall') {
         if (weeks >= 2) {
           delta = +MAX_WEEKLY_STEP;
@@ -299,6 +314,19 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
     changes.push('Щадящи храни с ниско съдържание на FODMAP за следващата седмица');
   }
 
+  // Сигнали от устройства: при ниско възстановяване (пулс/HRV) или загуба на
+  // мускулна маса по везната дефицитът не се задълбочава.
+  if (delta < 0 && checkin.recoveryLow) {
+    delta = 0;
+    reasons.push('Пулсът в покой и HRV показват натоварване — тази седмица калориите не се намаляват; приоритет са сънят и възстановяването.');
+  }
+  if (checkin.leanLoss) {
+    if (delta < 0) delta = 0;
+    modifications.push('increase_protein');
+    reasons.push('По везната част от загубеното тегло е мускулна маса — повече белтък, без по-голям дефицит.');
+    changes.push('Повече белтък за пазене на мускулите');
+  }
+
   // Граници: стъпка, общ таван спрямо първоначалното и безопасен минимум.
   delta = Math.max(-MAX_WEEKLY_STEP, Math.min(MAX_WEEKLY_STEP, delta));
   let next = kcal + delta;
@@ -318,6 +346,7 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
     weight: outcome,
     weightKg: checkin.weightKg,
     weeklyChangeKg: checkin.weeklyChangeKg,
+    intakeKcal: checkin.intakeKcal,
     followed,
     adherence,
   };

@@ -206,6 +206,7 @@ jobs:
           python3 android-res/patch-local-notifications.py
           python3 android-res/patch-app-exit.py
           python3 android-res/patch-print-plugin.py
+          python3 android-res/patch-health-connect.py
           # Safety: <receiver> must live inside <application>, never as a direct <manifest> child
           python3 - <<'PY_MANIFEST_SANITIZE'
           import re

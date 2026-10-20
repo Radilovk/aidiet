@@ -8,6 +8,7 @@
  */
 
 import { compileProfile } from './profile-code.js';
+import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { waterNeedLiters } from './analysis-deterministic.js';
 
 const STYLE_RECOMMENDATIONS = {
@@ -73,22 +74,42 @@ export function averageMacrosFromWeek(weekPlan = {}) {
   return { protein: Math.round(p / days), carbs: Math.round(c / days), fats: Math.round(f / days) };
 }
 
-function supplementsFor(profile, protocolSupplements = []) {
-  const out = [...(protocolSupplements || [])].slice(0, 4);
-  const names = new Set(out.map(s => String(s.name || '').toLowerCase()));
-  const add = (name, dosage, timing) => {
-    if ([...names].some(n => n.includes(name.toLowerCase().split(' ')[0]))) return;
-    names.add(name.toLowerCase());
-    out.push({ name, dosage, timing });
+function supplementsFor(profile, protocolSupplements = [], now = null) {
+  const out = [];
+  const names = new Set();
+  // Едно вещество веднъж: ключът е първите две думи („витамин d3“ ≠ „витамин b12“,
+  // „омега-3“ = „омега-3 от водорасли“).
+  const keyOf = (name) => String(name).toLowerCase().replace(/[()+,]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).join(' ');
+  const add = (name, dosage, timing, reason) => {
+    if (!name) return;
+    const key = keyOf(name);
+    if ([...names].some(n => n.startsWith(key) || key.startsWith(n))) return;
+    names.add(key);
+    out.push(reason ? { name, dosage, timing, reason } : { name, dosage, timing });
   };
+  // Протоколът и изследванията (с обосновка) — първи; повторенията отпадат.
+  for (const s of protocolSupplements || []) add(s.name, s.dosage, s.timing, s.reason);
   const pattern = profile.diet?.pattern;
   const c = profile.clinical || [];
   if (pattern === 'vegan' || pattern === 'vegetarian') add('Витамин B12', '250–500 mcg', 'сутрин');
   if (pattern === 'vegan') add('Омега-3 от водорасли (DHA/EPA)', '250–500 mg', 'с хранене');
   if (c.includes('OSTEO') || c.includes('MENO') || (profile.age || 0) >= 55) add('Витамин D3', '1000–2000 IU', 'с мазна храна');
   if (profile.diet?.style === 'keto') add('Магнезий', '200–400 mg', 'вечер');
-  if (!out.length) add('Витамин D3', '1000–2000 IU', 'с мазна храна — при малко слънце');
+  // Без друга причина D3 се предлага само октомври–март, когато слънцето не стига;
+  // извън сезона добавка „по навик“ няма — изследванията уточняват по-късно.
+  const month = (now || new Date()).getMonth();
+  if (!out.length && (month >= 9 || month <= 2)) add('Витамин D3', '1000–2000 IU', 'с мазна храна, октомври–март');
   return out.slice(0, 5);
+}
+
+/**
+ * Противопоказаните от лекарствата отпадат преди подбора (да не заемат място
+ * на други), а след него на всички се добавя отделянето във времето.
+ */
+function supplementsWithMeds(profile, userData, protocolSupplements) {
+  const ix = interactionsFor(userData || {});
+  const inputs = applySupplementInteractions([...(protocolSupplements || []), ...(userData?._enrichment?.supplements || [])], ix).kept;
+  return applySupplementInteractions(supplementsFor(profile, inputs), ix).kept;
 }
 
 /**
@@ -132,6 +153,6 @@ export function buildPlanSummary({
     forbidden,
     psychology: [...new Set(psychology)].slice(0, 6),
     waterIntake: `${waterNeedLiters(profile)} л вода дневно, разпределена през деня`,
-    supplements: supplementsFor(profile, protocolSupplements),
+    supplements: supplementsWithMeds(profile, userData, protocolSupplements),
   };
 }

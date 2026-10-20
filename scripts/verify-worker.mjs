@@ -84,6 +84,41 @@ check('nutrition engine (схема, меню, преглед)', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
+check('обогатяване (EmoEat, изследвания, устройства)', () => {
+  const r = run('node', ['scripts/test-enrichment.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
+check('лекарства ↔ храни и добавки', () => {
+  const r = run('node', ['scripts/test-interactions.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
+check('устройства: анализ, обобщение, картон, чат', () => {
+  const r = run('node', ['scripts/test-health-essence.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
+check('устройства: импорт от файл', () => {
+  const r = run('node', ['scripts/test-device-import.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
+check('модули → NutriPlan (пратки)', () => {
+  const r = run('node', ['scripts/test-handoff.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
+check('сверка AIRIS / EmoEat / NutriPlan', () => {
+  const r = run('node', ['scripts/test-crosscheck.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
+check('чат: уточняващи въпроси', () => {
+  const r = run('node', ['scripts/test-chat-clarify.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
 check('матрица от профили', () => {
   const r = run('node', ['scripts/test-profile-matrix.mjs', '120']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);

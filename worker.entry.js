@@ -99,6 +99,14 @@ import {
   applyBoundedMetabolicReview,
 } from './step1-deterministic.js';
 import { enrichUserDataEngineContext } from './questionnaire-engine-map.js';
+import { applyEnrichment, mergeFacts, normalizeFact, recalcLevel, deriveEnrichment, isUrgent, DEVICE_KINDS } from './enrichment.js';
+import { essenceText, digestDue, normalizeDigest, DIGEST_APPROACH } from './health-essence.js';
+import { irisText } from './enrichment-iris.js';
+import { crossCheckText } from './cross-check.js';
+import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
+import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
+import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
+import { LAB_MARKERS } from './enrichment-labs.js';
 import {
   readOverlayFromKv,
   writeOverlayToKv,
@@ -1289,6 +1297,8 @@ const RATE_LIMIT = {
   STUDIO_MANAGE: { maxRequests: 30, windowSec: 600 },  // studio platform: my hours, cancel, move, a code
   STUDIO_VERIFY: { maxRequests: 5, windowSec: 3600 },  // studio platform: a Viber login code
   STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },   // studio platform: the admin's 5-digit code
+  HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → NutriPlan: нова пратка
+  HANDOFF_READ: { maxRequests: 30, windowSec: 600 },   // преглед и прибиране на пратка
 };
 
 /**
@@ -2644,6 +2654,7 @@ function overlayDeterministicPresentation(mealPlan, strategy) {
     mealPlan.psychology = [...strategy.psychologicalSupport];
   }
   if (strategy.hydrationStrategy) mealPlan.waterIntake = strategy.hydrationStrategy;
+  if (strategy.foodGuide) mealPlan.foodGuide = strategy.foodGuide;
   return mealPlan;
 }
 
@@ -3199,6 +3210,21 @@ async function loadAdherenceRatioForGeneration(env, data, userIdHint = '') {
 }
 
 
+/** Обогатяването на клиента (user_profile.enrichment) — по същите идентификатори като дневника. */
+async function loadEnrichmentForGeneration(env, data, userIdHint = '') {
+  if (!env?.page_content) return null;
+  const ids = [data?.userId, data?.firebaseUid, userIdHint, data?.email, !data?.email ? generateUserId(data) : null].filter(Boolean);
+  for (const uid of [...new Set(ids)]) {
+    try {
+      const profile = await kvGetJSON(env, `user_profile:${uid}`);
+      if (profile?.enrichment?.facts?.length) return profile.enrichment;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 /** Post-generation validation (shared by plan gen + weekly adapt). */
 async function finalizeValidatedPlan(env, structuredPlan, data) {
   await reconcilePlanStructure(structuredPlan, data, env);
@@ -3233,6 +3259,12 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   const userId = data.email || generateUserId(data);
   const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
   if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
+  // Данните извън въпросника (EmoEat, изследвания, устройства) — в профила за двигателя.
+  let enrichmentStore = await loadEnrichmentForGeneration(env, data, userId);
+  if (data._handoffFacts?.length) {
+    enrichmentStore = { ...(enrichmentStore || {}), facts: mergeFacts(enrichmentStore?.facts || [], data._handoffFacts) };
+  }
+  if (enrichmentStore) applyEnrichment(data, enrichmentStore);
 
   // Resolve clinical protocol
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
@@ -3305,6 +3337,9 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   const userId = data.email || generateUserId(data);
   const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
   if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
+  // Данните извън въпросника (EmoEat, изследвания, устройства) — в профила за двигателя.
+  const enrichmentStore = await loadEnrichmentForGeneration(env, data, userId);
+  if (enrichmentStore) applyEnrichment(data, enrichmentStore);
   enrichUserDataEngineContext(data);
   await applyIntakeHints(env, data);
   const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
@@ -3336,6 +3371,10 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
   console.log(`generatePlanAndSave: starting job ${jobId}${clientId ? ` (clientId: ${clientId})` : ''}`);
   try {
     const userId = preferredUserId || data.email || generateUserId(data);
+    if (options.handoffToken) {
+      // Неизброимо поле: стига до двигателя, но не и до записите на клиента.
+      Object.defineProperty(data, '_handoffFacts', { value: await handoffFactsForGeneration(env, options.handoffToken), enumerable: false });
+    }
     const result = await generatePlanCore(env, data, async (analysis) => {
       await env.page_content.put(
         PLAN_JOB_PREFIX + jobId,
@@ -3487,6 +3526,9 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     const requireApproval = rawBody._requireApproval === true;
     const explicitUserId = typeof rawBody._userId === 'string' ? rawBody._userId.trim() : '';
     const idToken = typeof rawBody._idToken === 'string' ? rawBody._idToken : null;
+    // Пратка от модул (EmoEat, AIRIS), с която клиентът е дошъл — влиза още в първия план.
+    const handoffToken = HANDOFF_TOKEN_RE.test(String(rawBody._handoff || '')) ? String(rawBody._handoff) : '';
+    delete rawBody._handoff;
     delete rawBody._jobId;
     delete rawBody._clientId;
     delete rawBody._requireApproval;
@@ -3544,6 +3586,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     const generationOptions = {
       requireApproval,
       userId: explicitUserId || '',
+      ...(handoffToken ? { handoffToken } : {}),
     };
 
     // Write initial 'pending' marker so polling can detect the job even if the
@@ -3655,11 +3698,21 @@ async function handleChat(request, env) {
       ? 'consultation'
       : requestedMode;
 
-    const chatPrompt = await generateChatPrompt(
+    let chatPrompt = await generateChatPrompt(
       env, message, effectiveContextText, effectiveUserData, chatHistory, chatMode, effectiveUserPlan,
     );
 
-    const aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
+    // Уточняващ въпрос — само ако е свързан с това, за което клиентът пише сега,
+    // или ако асистентът го е задал в предишния си отговор.
+    const askedId = typeof body._askedQuestionId === 'string' ? body._askedQuestionId : '';
+    const clarifyQ = chatMode === 'consultation'
+      ? relevantQuestion(sanitizeQuestions(effectiveUserData._openQuestions), message, askedId)
+      : null;
+    if (clarifyQ) chatPrompt += clarifyPromptBlock(clarifyQ, { asked: clarifyQ.id === askedId });
+
+    let aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
+    const clarify = extractClarify(aiResponse, clarifyQ);
+    aiResponse = clarify.text;
     
     // Check if the response contains a plan regeneration instruction
     const regenerateIndex = aiResponse.indexOf('[REGENERATE_PLAN:');
@@ -3744,6 +3797,9 @@ async function handleChat(request, env) {
               planModifications: merged,
               dietDislike: Array.from(excludedFoods).join(', ')
             };
+            // Есенцията и въпросите идват само за контекста на чата — не са отговори от въпросника.
+            delete modifiedUserData._healthEssence;
+            delete modifiedUserData._openQuestions;
 
             // Същият път като генерирането: двигател, проверки, текущите калории и цикъл.
             const newPlan = accepted.length ? await regeneratePlanFromChat(env, modifiedUserData, effectiveUserPlan) : null;
@@ -3806,6 +3862,10 @@ async function handleChat(request, env) {
       conversationHistory: trimmedHistory,
       planUpdated: planWasUpdated,
     };
+    // Клиентът записва отговора (/api/enrichment/resolve) или показва бутоните на въпроса.
+    if (clarifyQ && (clarify.resolved || clarify.asked)) {
+      responseData.clarify = { question: clarifyQ, resolved: clarify.resolved, asked: clarify.asked };
+    }
     
     // Include updated plan and userData if plan was regenerated
     if (planWasUpdated) {
@@ -5823,6 +5883,7 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
     plan: resolvedPlan,
     analytics,
     weeklyAdaptHistory: profile?.weeklyAdaptHistory || [],
+    enrichment: profile?.enrichment || null,
   };
 }
 
@@ -5951,6 +6012,10 @@ async function savePendingWeeklyRelease(env, userId, clientId, release) {
   if (!userId) return;
   const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
+  // Новата седмица вече е сглобена с обогатяването — чакащата промяна е приложена.
+  if (profile.enrichment?.pendingLevel) {
+    profile.enrichment = { ...profile.enrichment, pendingLevel: 0, appliedAt: new Date().toISOString() };
+  }
   profile.pendingWeekly = {
     ...release,
     visibleAt: computeWeeklyReleaseVisibleAt(),
@@ -6036,7 +6101,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
   };
-  const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, payload);
+  const { userData, plan, analytics, weeklyAdaptHistory, enrichment } = await resolveWeeklyJobInputs(env, payload);
   if (!plan?.weekPlan) throw new Error('Липсва план за адаптация');
   const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
   const caloriesBefore = parseFinalCalories(plan.analysis?.Final_Calories);
@@ -6044,7 +6109,21 @@ async function runWeeklyAdaptation(env, payload, jobId) {
   try {
     const enrichedData = normalizeQuestionnaireData(userData);
     await applyIntakeHints(env, enrichedData);
-    const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, answers, weeklyAdaptHistory);
+    if (enrichment) applyEnrichment(enrichedData, enrichment);
+    // Тегло от везна, когато клиентът не е въвел сам — средно от последните 3 дни.
+    let checkinAnswers = answers;
+    const deviceKg = enrichedData._enrichment?.checkin?.weightKg;
+    if (deviceKg && !(answers || []).some(a => a.questionId === 'weightKg' && String(a.value || '').trim())) {
+      checkinAnswers = [...(answers || []), { questionId: 'weightKg', value: String(deviceKg), source: 'device' }];
+    }
+    const deviceIntake = enrichedData._enrichment?.checkin?.intakeKcal;
+    if (deviceIntake) checkinAnswers = [...checkinAnswers, { questionId: 'intakeKcal', value: String(deviceIntake), source: 'device' }];
+    // Есенцията от устройствата: тенденция на теглото, възстановяване, състав на тялото.
+    const dc = enrichedData._enrichment?.checkin || {};
+    if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: 'weightTrendKgWeek', value: String(dc.weightTrendKgWeek), source: 'device' }];
+    if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: 'recoveryLow', value: 'true', source: 'device' }];
+    if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: 'leanLoss', value: 'true', source: 'device' }];
+    const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, checkinAnswers, weeklyAdaptHistory);
     // Свободният коментар от прегледа → само промени в менюто, не в калориите.
     const note = String((answers || []).find(a => a.questionId === 'note')?.value || '').trim();
     if (note.length >= 6) {
@@ -7596,25 +7675,20 @@ function validatePlan(plan, userData, substitutions = []) {
     }
   }
   
-  // 8a. Check for medication-supplement interactions (Step 4 - Final validation)
-  if (userData.medications === 'Да' && userData.medicationsDetails && plan.supplements) {
-    const medications = userData.medicationsDetails.toLowerCase();
-    const supplements = plan.supplements.join(' ').toLowerCase();
-    
-    // Check for dangerous interactions
-    if (medications.includes('варфарин') && supplements.includes('витамин к')) {
-      const error = 'ОПАСНО: Витамин K взаимодейства с варфарин (антикоагулант) - може да намали ефективността';
-      errors.push(error);
-      stepErrors.step4_final.push(error);
-    }
-    
-    if ((medications.includes('антибиотик') || medications.includes('антибиотици')) && 
-        (supplements.includes('калций') || supplements.includes('магнезий'))) {
-      console.log('Warning: Калций/Магнезий може да намали усвояването на антибиотици - трябва да се вземат на различно време');
-    }
-    
-    if (medications.includes('антацид') && supplements.includes('желязо')) {
-      console.log('Warning: Антацидите блокират усвояването на желязо - трябва да се вземат на различно време');
+  // 8a. Лекарства ↔ добавки — по общата таблица (drug-interactions.js).
+  if (Array.isArray(plan.supplements) && plan.supplements.length) {
+    const ix = interactionsFor(userData);
+    if (ix.rules.length) {
+      const asObjects = plan.supplements.map(s => (typeof s === 'string' ? { name: s } : s));
+      const { kept, dropped } = applySupplementInteractions(asObjects, ix);
+      for (const d of dropped) {
+        const error = `ОПАСНО: ${d.name} взаимодейства с ${d.because}`;
+        errors.push(error);
+        stepErrors.step4_final.push(error);
+      }
+      kept.forEach(s => {
+        if (s.timing !== asObjects.find(o => o.name === s.name)?.timing) warnings.push(`${s.name}: ${s.timing}`);
+      });
     }
   }
   
@@ -13755,6 +13829,572 @@ async function handleSaveUserProfile(request, env) {
 }
 
 /**
+ * POST /api/enrichment
+ * Body: { userId, idToken?, facts?: Fact[], emoeat?: object }
+ * Слива новите факти в user_profile.enrichment и казва какво ниво на
+ * преизчисляване предизвикват. Промените влизат със седмичния преглед;
+ * тези за безопасност (изследвания) се маркират за специалиста веднага.
+ */
+async function handleEnrichmentSubmit(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const body = await request.json();
+    const { userId, idToken } = body || {};
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+
+    // 14 дни × ~15 вида от устройствата се побират в едно изпращане.
+    const incoming = Array.isArray(body.facts) ? body.facts.slice(0, 500) : [];
+    if (body.emoeat && typeof body.emoeat === 'object') {
+      incoming.push({ kind: 'emoeat', value: body.emoeat, at: new Date().toISOString(), source: 'emoeat' });
+    }
+    const facts = incoming.map(normalizeFact).filter(Boolean);
+    if (!facts.length) return jsonResponse({ error: 'Няма валидни данни' }, 400);
+
+    return jsonResponse(await ingestEnrichmentFacts(env, userId, facts));
+  } catch (error) {
+    console.error('Error saving enrichment:', error);
+    return jsonResponse({ error: 'Failed to save enrichment: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Нови факти → профил: сливане, AI обобщение при нужда, ниво на
+ * преизчисляване, картон на специалиста. Общо за /api/enrichment и за
+ * прибирането на пратка от модул (/api/handoff/claim).
+ * @param {{ source?: string }} [meta] откъде идват (за картона)
+ */
+async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
+  const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
+  const prevStore = profile.enrichment || { facts: [] };
+  const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts), updatedAt: new Date().toISOString() };
+  const base = normalizeQuestionnaireData({ ...(profile.userData || {}) });
+  const prevData = applyEnrichment(JSON.parse(JSON.stringify(base)), prevStore);
+  let nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+  // Седмичното AI обобщение на данните от устройствата — то също влиза в
+  // нивото на преизчисляване (може да предложи промяна в менюто).
+  const essence = nextData._enrichment?.essence;
+  if (digestDue(essence, prevStore.digest)) {
+    const digest = await buildHealthDigest(env, nextData);
+    if (digest) {
+      nextStore.digest = digest;
+      nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+    }
+  }
+  const change = recalcLevel(prevData, nextData);
+  const urgent = isUrgent(nextData._enrichment)
+    && JSON.stringify(nextData._enrichment?.safety || {}) !== JSON.stringify(prevData._enrichment?.safety || {});
+  nextStore.pendingLevel = Math.max(Number(prevStore.pendingLevel) || 0, change.level);
+  nextStore.lastChange = { ...change, urgent, at: nextStore.updatedAt };
+  profile.enrichment = nextStore;
+  if (meta.source) profile.moduleSources = { ...(profile.moduleSources || {}), [meta.source]: nextStore.updatedAt };
+
+  const ttl = String(userId).startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  // Клиентският картон: есенцията от данните винаги; при безопасност — и сигнал,
+  // който специалистът вижда, без да чака прегледа.
+  if (profile.clientId) {
+    try {
+      const client = await kvGetJSON(env, `client:${profile.clientId}`);
+      if (client) {
+        const text = profileContextText(nextData._enrichment);
+        client.healthEssence = text ? { text, at: nextStore.updatedAt, sources: nextData._enrichment?.essence?.sources || [] } : null;
+        // Откъде е дошъл клиентът и кои модули е минал — за специалиста и за отчета на насочванията.
+        if (profile.moduleSources) client.moduleSources = profile.moduleSources;
+        if (urgent) {
+          client.enrichmentAlert = { at: nextStore.updatedAt, reasons: change.reasons, cautions: nextData._enrichment?.hints?.cautions || [] };
+        }
+        await kvPutJSON(env, `client:${profile.clientId}`, client, null);
+      }
+    } catch (e) {
+      console.warn('[Enrichment] client card update failed:', e.message);
+    }
+  }
+  return {
+    success: true,
+    level: change.level,
+    reasons: change.reasons,
+    urgent,
+    appliesAt: urgent ? 'specialist' : (change.level > 0 ? 'weekly' : 'next_voice'),
+    derived: publicEnrichmentView(nextData._enrichment),
+  };
+}
+
+/**
+ * POST /api/enrichment/resolve — Body: { userId, idToken?, questionId, answer }
+ * Отговор на въпрос за разминаване между източниците. Приема се само въпрос,
+ * който в момента е отворен за клиента, и само един от предложените отговори.
+ */
+async function handleEnrichmentResolve(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, questionId, answer } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (!profile?.enrichment?.facts?.length) return jsonResponse({ error: 'Няма какво да се уточнява' }, 404);
+    const base = normalizeQuestionnaireData({ ...(profile.userData || {}) });
+    const data = applyEnrichment(JSON.parse(JSON.stringify(base)), profile.enrichment);
+    let q = (data._enrichment?.crossCheck?.questions || []).find(x => x.id === questionId);
+    if (!q) {
+      // Промяна на вече даден отговор: въпросът, какъвто би бил без него.
+      const without = { ...profile.enrichment, facts: profile.enrichment.facts.filter(f => !(f.kind === 'resolution' && f.key === questionId)) };
+      q = (applyEnrichment(JSON.parse(JSON.stringify(base)), without)._enrichment?.crossCheck?.questions || []).find(x => x.id === questionId);
+    }
+    if (!q) return jsonResponse({ error: 'Въпросът вече не е актуален' }, 409);
+    if (!q.options.some(o => o.value === answer)) return jsonResponse({ error: 'Непознат отговор' }, 400);
+    const fact = normalizeFact({ kind: 'resolution', key: q.id, value: answer, at: new Date().toISOString() });
+    if (!fact) return jsonResponse({ error: 'Невалиден въпрос' }, 400);
+    return jsonResponse(await ingestEnrichmentFacts(env, userId, [fact]));
+  } catch (error) {
+    console.error('resolve failed:', error);
+    return jsonResponse({ error: 'Не успяхме да запишем отговора.' }, 500);
+  }
+}
+
+/* ── Пратки от модулите (EmoEat, AIRIS) → NutriPlan ─────────────────────
+ * Еднопосочно: модулът оставя обобщение и получава линк; NutriPlan прибира
+ * пратката в профила само със съгласие. Към модулите не се връща нищо от
+ * NutriPlan — отговорите съдържат само това, което модулът е изпратил.
+ */
+
+const HANDOFF_PREFIX = 'handoff:';
+const NUTRIPLAN_SITE = 'https://biocode.website';
+
+function newHandoffToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+const HANDOFF_TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
+
+async function readHandoff(env, token) {
+  if (!HANDOFF_TOKEN_RE.test(String(token || ''))) return null;
+  return kvGetJSON(env, HANDOFF_PREFIX + token);
+}
+
+/** Презаписва пратката със същия краен срок (KV не пази остатъка от TTL сам). */
+async function touchHandoff(env, token, rec) {
+  const left = HANDOFF_TTL_SEC - Math.floor((Date.now() - Date.parse(rec.createdAt || 0)) / 1000);
+  if (left > 60) await kvPutJSON(env, HANDOFF_PREFIX + token, rec, left);
+}
+
+const HANDOFF_RECENT_KEY = 'handoff_recent';
+
+/** Последните 30 прибрани пратки — за таблото в админа (име, модул, нов или съществуващ клиент). */
+async function rememberHandoffClaim(env, entry) {
+  try {
+    const list = (await kvGetJSON(env, HANDOFF_RECENT_KEY)) || [];
+    await kvPutJSON(env, HANDOFF_RECENT_KEY, [entry, ...list].slice(0, 30), null);
+  } catch (e) {
+    console.warn('[handoff] recent list skipped:', e.message);
+  }
+}
+
+/**
+ * Броячи по модул и месец — фунията на насочванията:
+ * created (клик в модула) → opened (страницата в NutriPlan) → plan (първи план
+ * с данните) → claimed (данните са в профила).
+ */
+async function countHandoff(env, source, event) {
+  try {
+    const key = `handoff_stats:${source}:${new Date().toISOString().slice(0, 7)}`;
+    const stats = (await kvGetJSON(env, key)) || {};
+    stats[event] = (stats[event] || 0) + 1;
+    await kvPutJSON(env, key, stats, 400 * 24 * 60 * 60);
+  } catch (e) {
+    console.warn('[handoff] stats skipped:', e.message);
+  }
+}
+
+/** POST /api/handoff — Body: пратката на модула. Отговор: { token, url } — линкът към NutriPlan. */
+async function handleHandoffCreate(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const text = await request.text();
+    if (text.length > HANDOFF_MAX_BYTES) return jsonResponse({ error: 'Пратката е твърде голяма.' }, 413);
+    let raw;
+    try { raw = JSON.parse(text); } catch (_) { return jsonResponse({ error: 'Невалиден JSON' }, 400); }
+    const h = normalizeHandoff(raw);
+    if (!h) return jsonResponse({ error: 'Непознат модул или празен резултат' }, 400);
+    const token = newHandoffToken();
+    await kvPutJSON(env, HANDOFF_PREFIX + token, { h, createdAt: new Date().toISOString() }, HANDOFF_TTL_SEC);
+    await countHandoff(env, h.source, 'created');
+    return jsonResponse({ success: true, token, url: `${NUTRIPLAN_SITE}/handoff.html?t=${token}`, expiresInDays: HANDOFF_TTL_SEC / 86400 });
+  } catch (error) {
+    console.error('handoff create failed:', error);
+    return jsonResponse({ error: 'Не успяхме да подготвим прехвърлянето.' }, 500);
+  }
+}
+
+/** POST /api/handoff/peek — Body: { token }. Какво носи пратката + попълване на въпросника. */
+async function handleHandoffPeek(request, env) {
+  try {
+    const { token } = await request.json();
+    const rec = await readHandoff(env, token);
+    if (!rec?.h) return jsonResponse({ error: 'Линкът е изтекъл или вече е използван.' }, 404);
+    if (!rec.openedAt) {
+      rec.openedAt = new Date().toISOString();
+      await touchHandoff(env, token, rec);
+      await countHandoff(env, rec.h.source, 'opened');
+    }
+    return jsonResponse({
+      success: true,
+      source: rec.h.source,
+      preview: handoffPreview(rec.h),
+      prefill: prefillFor(rec.h),
+    });
+  } catch (error) {
+    return jsonResponse({ error: 'Невалидна заявка' }, 400);
+  }
+}
+
+/** POST /api/handoff/claim — Body: { token, userId, idToken? }. Прибира пратката в профила и я изтрива. */
+async function handleHandoffClaim(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { token, userId, idToken } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const rec = await readHandoff(env, token);
+    if (!rec?.h) return jsonResponse({ error: 'Линкът е изтекъл или вече е използван.' }, 404);
+    const facts = handoffToFacts(rec.h).map(normalizeFact).filter(Boolean);
+    if (!facts.length) return jsonResponse({ error: 'Няма данни за добавяне' }, 400);
+    const result = await ingestEnrichmentFacts(env, userId, facts, { source: rec.h.source });
+    await env.page_content.delete(HANDOFF_PREFIX + token);
+    await countHandoff(env, rec.h.source, 'claimed');
+    const profile = await kvGetJSON(env, `user_profile:${userId}`).catch(() => null);
+    await rememberHandoffClaim(env, {
+      source: rec.h.source,
+      at: new Date().toISOString(),
+      createdAt: rec.createdAt,
+      // Нов клиент — дошъл е с пратката през въпросника и първият му план я е ползвал.
+      newClient: !!rec.planAt,
+      name: String(profile?.userData?.name || '').slice(0, 60),
+      clientId: profile?.clientId || '',
+    });
+    return jsonResponse({ ...result, source: rec.h.source });
+  } catch (error) {
+    console.error('handoff claim failed:', error);
+    return jsonResponse({ error: 'Не успяхме да добавим данните.' }, 500);
+  }
+}
+
+/** Пратката по време на първото генериране: само чете — прибирането е отделно и със съгласие. */
+async function handoffFactsForGeneration(env, token) {
+  try {
+    const rec = await readHandoff(env, token);
+    if (!rec?.h) return [];
+    if (!rec.planAt) {
+      rec.planAt = new Date().toISOString();
+      await touchHandoff(env, token, rec);
+      await countHandoff(env, rec.h.source, 'plan');
+    }
+    return handoffToFacts(rec.h).map(normalizeFact).filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}
+
+const HANDOFF_SOURCES = ['emoeat', 'airis', 'daotslabna', 'lifeprotocols'];
+
+/** GET /api/admin/handoff-stats?months=12 — фунията по модул и месец + последните насочени клиенти. */
+async function handleAdminHandoffStats(request, env) {
+  try {
+    const url = new URL(request.url);
+    const count = Math.max(1, Math.min(24, parseInt(url.searchParams.get('months') || '12', 10) || 12));
+    const now = new Date();
+    const months = Array.from({ length: count }, (_, i) => {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (count - 1 - i), 1));
+      return d.toISOString().slice(0, 7);
+    });
+    const sources = {};
+    await Promise.all(HANDOFF_SOURCES.map(async (src) => {
+      const rows = await Promise.all(months.map(m => kvGetJSON(env, `handoff_stats:${src}:${m}`).catch(() => null)));
+      sources[src] = Object.fromEntries(months.map((m, i) => [m, {
+        created: rows[i]?.created || 0, opened: rows[i]?.opened || 0, plan: rows[i]?.plan || 0, claimed: rows[i]?.claimed || 0,
+      }]));
+    }));
+    const recent = (await kvGetJSON(env, HANDOFF_RECENT_KEY)) || [];
+    return jsonResponse({ success: true, months, sources, recent });
+  } catch (error) {
+    console.error('handoff stats failed:', error);
+    return jsonResponse({ error: 'Не успяхме да заредим насочванията.' }, 500);
+  }
+}
+
+const DEFAULT_LAB_EXTRACTION_PROMPT = `Прочети лабораторния резултат на изображението и върни САМО валиден JSON (без markdown):
+{"date":"YYYY-MM-DD или null","markers":[{"key":"","printedName":"","value":0,"unit":"","refLow":null,"refHigh":null,"confidence":0}]}
+
+Позволени стойности за key (всички други показатели пропусни):
+glucose — глюкоза (кръвна захар) на гладно; hba1c — гликиран хемоглобин HbA1c; ldl — LDL холестерол; hdl — HDL холестерол; tchol — общ холестерол; tg — триглицериди; uric — пикочна киселина; ferritin — феритин; hgb — хемоглобин; vitd — 25-OH витамин D; b12 — витамин B12; alt — АЛАТ/ALT; ggt — GGT; tsh — TSH; egfr — eGFR; potassium — калий.
+
+Правила:
+- value е числото точно както е отпечатано (десетичната запетая става точка).
+- unit е единицата точно както е отпечатана (напр. mmol/L, mg/dL, %, U/L, ng/mL).
+- refLow/refHigh — референтните граници от бланката, ако ги има; иначе null.
+- date — датата на вземане на пробата, ако се вижда.
+- confidence под 0.7, ако цифрата не се чете ясно.
+- Не тълкувай резултатите и не давай съвети.`;
+
+/**
+ * POST /api/enrichment/extract-labs
+ * Body: { userId, idToken?, imageData, mimeType }
+ * Разчита показателите от снимка/PDF и ги връща за потвърждение — нищо не се
+ * записва, докато клиентът не провери стойностите (POST /api/enrichment).
+ */
+async function handleLabExtract(request, env) {
+  try {
+    const { userId, idToken, imageData, mimeType } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    if (!imageData) return jsonResponse({ error: 'Липсва файл с изследването.' }, 400);
+
+    const isPdf = mimeType === 'application/pdf';
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    const effectiveMime = isPdf ? 'application/pdf' : (allowed.includes(mimeType) ? mimeType : 'image/jpeg');
+    const base64Data = String(imageData).startsWith('data:') ? String(imageData).slice(String(imageData).indexOf(',') + 1) : String(imageData);
+    if ((base64Data.length * 3) / 4 > 15 * 1024 * 1024) {
+      return jsonResponse({ error: 'Файлът е твърде голям (до 15 MB).' }, 400);
+    }
+    const prompt = (await getCustomPrompt(env, 'admin_lab_extraction_prompt')) || DEFAULT_LAB_EXTRACTION_PROMPT;
+    let response;
+    if (isPdf) {
+      // PDF се чете директно само от Gemini; иначе — снимка на страницата.
+      if (!env.GEMINI_API_KEY) {
+        return jsonResponse({ error: 'PDF не се поддържа — качете снимка на страницата с резултатите.' }, 415);
+      }
+      const config = await getAdminConfig(env);
+      response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2000, config.visionThinkingBudget);
+    } else {
+      response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2000);
+    }
+    const parsed = parseAIResponse(response) || {};
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || '')) ? parsed.date : null;
+    const markers = (Array.isArray(parsed.markers) ? parsed.markers : [])
+      .filter(m => m && LAB_MARKERS[m.key])
+      .map(m => ({
+        key: m.key,
+        label: LAB_MARKERS[m.key].label,
+        printedName: String(m.printedName || '').slice(0, 60),
+        value: Number(String(m.value).replace(',', '.')),
+        unit: String(m.unit || LAB_MARKERS[m.key].unit).slice(0, 20),
+        refLow: Number.isFinite(Number(m.refLow)) && m.refLow !== null ? Number(m.refLow) : null,
+        refHigh: Number.isFinite(Number(m.refHigh)) && m.refHigh !== null ? Number(m.refHigh) : null,
+        confidence: Math.max(0, Math.min(1, Number(m.confidence) || 0)),
+      }))
+      .filter(m => Number.isFinite(m.value));
+    return jsonResponse({ success: true, date, markers, markersCatalog: LAB_MARKERS });
+  } catch (error) {
+    console.error('Error extracting labs:', error);
+    return jsonResponse({ error: 'Не успяхме да прочетем изследването. Опитайте с по-ясна снимка.' }, 500);
+  }
+}
+
+const DEFAULT_DEVICE_EXTRACTION_PROMPT = `На изображението е екран от приложение или уред за здраве (везна с анализ на тялото, смарт часовник или гривна, Samsung Health, Garmin, Fitbit, Zepp, Mi Fitness, апарат за кръвно, глюкомер, приложение за хранене). Прочети измерванията и върни САМО валиден JSON (без markdown):
+{"date":"YYYY-MM-DD или null","readings":[{"kind":"","key":null,"value":0,"value2":null,"unit":"","date":"YYYY-MM-DD или null","confidence":0}]}
+
+Позволени стойности за kind (всичко друго пропусни):
+weight — тегло; body_fat — телесни мазнини %; muscle_mass — мускулна маса (кг); visceral_fat — висцерални мазнини (индекс); body_water — вода в тялото %; steps — крачки за деня; active_kcal — активни калории; workout — минути тренировка за деня; sleep — сън (часове за нощта); resting_hr — пулс в покой; hrv — HRV (ms); intake — приети калории за деня; water — изпита вода (литри); bp — кръвно налягане (value = систолно, value2 = диастолно); glucose — кръвна захар (key: "morning" ако е на гладно/сутрин, "peak" ако е след хранене, иначе "any").
+
+Правила:
+- value е числото точно както е показано (десетичната запетая става точка); unit — както е показана (kg, lb, %, mmol/L, mg/dL, ч, мин, ml, l).
+- Ако екранът показва няколко дни (списък или история), върни по един запис на ден с неговата дата в "date".
+- Сън, показан като „7 ч 30 мин“, става value 7.5 с unit "ч".
+- Средни стойности за седмица/месец НЕ са дневни измервания — пропусни ги.
+- confidence под 0.7, ако цифрата не се чете ясно.
+- Не тълкувай и не давай съвети.`;
+
+/**
+ * POST /api/enrichment/extract-device
+ * Body: { userId, idToken?, imageData, mimeType }
+ * Общият вход за всяко приложение или уред без пряка връзка: снимка или
+ * екранна снимка → разчетени измервания за потвърждение. Нищо не се записва
+ * без потвърждение (POST /api/enrichment, source „device_photo“).
+ */
+async function handleDeviceExtract(request, env) {
+  try {
+    const { userId, idToken, imageData, mimeType } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    if (!imageData) return jsonResponse({ error: 'Липсва снимка.' }, 400);
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    const effectiveMime = allowed.includes(mimeType) ? mimeType : 'image/jpeg';
+    const base64Data = String(imageData).startsWith('data:') ? String(imageData).slice(String(imageData).indexOf(',') + 1) : String(imageData);
+    if ((base64Data.length * 3) / 4 > 10 * 1024 * 1024) {
+      return jsonResponse({ error: 'Снимката е твърде голяма (до 10 MB).' }, 400);
+    }
+    const prompt = (await getCustomPrompt(env, 'admin_device_extraction_prompt')) || DEFAULT_DEVICE_EXTRACTION_PROMPT;
+    const response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2000);
+    const parsed = parseAIResponse(response) || {};
+    const isDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ''));
+    const date = isDate(parsed.date) ? parsed.date : null;
+    const readings = (Array.isArray(parsed.readings) ? parsed.readings : [])
+      .filter(r => r && DEVICE_KINDS[r.kind])
+      .slice(0, 60)
+      .map(r => ({
+        kind: r.kind,
+        key: r.kind === 'glucose' && ['morning', 'peak', 'any'].includes(r.key) ? r.key : undefined,
+        label: DEVICE_KINDS[r.kind].label,
+        value: Number(String(r.value).replace(',', '.')),
+        value2: r.value2 != null ? Number(String(r.value2).replace(',', '.')) : undefined,
+        unit: String(r.unit || DEVICE_KINDS[r.kind].unit).slice(0, 12),
+        date: isDate(r.date) ? r.date : date,
+        confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0)),
+      }))
+      .filter(r => Number.isFinite(r.value));
+    return jsonResponse({ success: true, date, readings, kindsCatalog: publicDeviceKinds() });
+  } catch (error) {
+    console.error('Error extracting device data:', error);
+    return jsonResponse({ error: 'Не успяхме да прочетем снимката. Опитайте с по-ясна екранна снимка.' }, 500);
+  }
+}
+
+/** Видовете измервания за избор в прегледа на клиента. */
+function publicDeviceKinds() {
+  return Object.fromEntries(Object.entries(DEVICE_KINDS).map(([k, v]) => [k, { label: v.label, unit: v.unit, two: !!v.range2 }]));
+}
+
+/**
+ * POST /api/enrichment/delete — Body: { userId, idToken?, kinds?: string[] }
+ * Изтрива данните от обогатяването (всички или по вид). Промяната влиза в
+ * плана със следващия преглед, както и при добавяне.
+ */
+async function handleEnrichmentDelete(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, kinds } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (!profile?.enrichment) return jsonResponse({ success: true, removed: 0 });
+    const before = profile.enrichment.facts?.length || 0;
+    const only = Array.isArray(kinds) && kinds.length ? new Set(kinds) : null;
+    const facts = only ? (profile.enrichment.facts || []).filter(f => !only.has(f.kind)) : [];
+    profile.enrichment = { ...profile.enrichment, facts, updatedAt: new Date().toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
+    // Без данни от устройства няма и обобщение от тях — нито в профила, нито в картона.
+    const hasDeviceFacts = facts.some(f => DEVICE_KINDS[f.kind]);
+    if (!hasDeviceFacts) delete profile.enrichment.digest;
+    const ttl = String(userId).startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+    await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+    if (!hasDeviceFacts && profile.clientId) {
+      try {
+        const client = await kvGetJSON(env, `client:${profile.clientId}`);
+        if (client?.healthEssence) {
+          client.healthEssence = null;
+          await kvPutJSON(env, `client:${profile.clientId}`, client, null);
+        }
+      } catch (e) {
+        console.warn('[Enrichment] client card cleanup failed:', e.message);
+      }
+    }
+    return jsonResponse({ success: true, removed: before - facts.length });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to delete enrichment: ' + error.message }, 500);
+  }
+}
+
+/** POST /api/enrichment/get — Body: { userId, idToken? } */
+async function handleEnrichmentGet(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    const store = profile?.enrichment || { facts: [] };
+    const sex = profile?.userData?.gender === 'Мъж' ? 'M' : profile?.userData?.gender === 'Жена' ? 'F' : 'X';
+    return jsonResponse({
+      success: true,
+      derived: publicEnrichmentView(deriveEnrichment(store, new Date(), sex)),
+      sources: [...new Set((store.facts || []).map(f => f.source))],
+      lastChange: store.lastChange || null,
+      markers: LAB_MARKERS,
+      deviceKinds: publicDeviceKinds(),
+      moduleSources: profile?.moduleSources || {},
+    });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to load enrichment: ' + error.message }, 500);
+  }
+}
+
+/** Какво клиентът вижда за обогатяването — без суровите факти. */
+function publicEnrichmentView(d) {
+  if (!d) return null;
+  return {
+    overrides: d.overrides || {},
+    checkin: d.checkin || {},
+    labs: d.labs || [],
+    supplements: d.supplements || [],
+    cautions: d.hints?.cautions || [],
+    reasons: d.reasons || [],
+    emoeat: d.voice ? { archetype: d.voice.archetype, at: d.voice.at } : null,
+    essence: d.essence || null,
+    digest: d.digest || null,
+    // Готовият текст за чата на клиента (същият като в картона на специалиста).
+    essenceText: profileContextText(d),
+    iris: d.iris ? { at: d.iris.at, focus: d.iris.focus } : null,
+    // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
+    hypotheses: d.crossCheck?.hypotheses || [],
+    questions: d.crossCheck?.questions || [],
+  };
+}
+
+/**
+ * Допълнителният профил в един кратък текст — устройства, EmoEat, AIRIS.
+ * Същият текст отива в картона на специалиста и в контекста на чата.
+ */
+function profileContextText(d) {
+  if (!d) return '';
+  const v = d.voice;
+  const emo = v && (v.archetype || v.intensity)
+    ? `емоционален профил (EmoEat): ${[v.archetype ? `архетип ${v.archetype}` : '', v.intensity ? `интензитет ${v.intensity}` : '', v.drivers?.length ? `двигатели ${v.drivers.join(', ')}` : '', v.realNeed ? `реална нужда ${v.realNeed}` : ''].filter(Boolean).join(', ')}`
+    : '';
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 2800);
+}
+
+const DEFAULT_HEALTH_DIGEST_PROMPT = `Ти си диетолог. Данни от устройствата на клиента (часовник, гривна, везна, апарат за кръвно, глюкомер, приложения) за последните седмици, вече обобщени:
+{essence}
+
+Цел на клиента: {goal}. Дневен прием по плана: {kcal} kcal.
+
+Върни САМО валиден JSON (без markdown):
+{"insights":["..."],"coachNote":"...","approach":[]}
+
+- insights: до 4 кратки изречения на български към клиента (на „ти“), всяко свързва конкретно число с конкретно действие в храненето или режима. Без повторение на числата без извод.
+- coachNote: 1–3 изречения за диетолога и чат асистента — най-важното от данните и какво да се следи.
+- approach: 0–2 кода само от списъка, и само ако данните ясно го оправдават: {approachList}
+- Не променяй калориите, не поставяй диагнози, не коментирай лекарства. Ако данните са нормални — кажи го кратко.`;
+
+/** AI обобщение на есенцията; при грешка или празен отговор — null (планът работи и без него). */
+async function buildHealthDigest(env, data) {
+  try {
+    const e = data?._enrichment?.essence;
+    if (!e) return null;
+    const template = (await getCustomPrompt(env, 'admin_health_digest_prompt')) || DEFAULT_HEALTH_DIGEST_PROMPT;
+    const vars = {
+      essence: JSON.stringify({ metrics: e.metrics, signals: (e.signals || []).map(s => s.text) }),
+      goal: String(data.goal || 'не е посочена').slice(0, 80),
+      kcal: String(data.planKcal || data.dailyCalories || 'не е изчислен'),
+      approachList: Object.entries(DIGEST_APPROACH).map(([k, v]) => `${k} (${v})`).join(', '),
+    };
+    const prompt = Object.entries(vars).reduce((t, [k, v]) => t.split(`{${k}}`).join(v), String(template));
+    const response = await callAIModel(env, prompt, 700, 'health_digest', null, data, null);
+    return normalizeDigest(parseAIResponse(response));
+  } catch (error) {
+    console.warn('[Enrichment] health digest skipped:', error.message);
+    return null;
+  }
+}
+
+/**
  * GET /api/user/check-account?email=...
  * Lightweight check whether an email already has a plan (for auth gate before replacement).
  */
@@ -15966,6 +16606,32 @@ export default {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === '/api/enrichment' && request.method === 'POST') {
+        return await handleEnrichmentSubmit(request, env);
+      } else if (url.pathname === '/api/enrichment/get' && request.method === 'POST') {
+        return await handleEnrichmentGet(request, env);
+      } else if (url.pathname === '/api/enrichment/extract-labs' && request.method === 'POST') {
+        return await handleLabExtract(request, env);
+      } else if (url.pathname === '/api/admin/handoff-stats' && request.method === 'GET') {
+        return await handleAdminHandoffStats(request, env);
+      } else if (url.pathname === '/api/handoff' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'HANDOFF');
+        if (rlErr) return rlErr;
+        return await handleHandoffCreate(request, env);
+      } else if (url.pathname === '/api/handoff/peek' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'HANDOFF_READ');
+        if (rlErr) return rlErr;
+        return await handleHandoffPeek(request, env);
+      } else if (url.pathname === '/api/handoff/claim' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'HANDOFF_READ');
+        if (rlErr) return rlErr;
+        return await handleHandoffClaim(request, env);
+      } else if (url.pathname === '/api/enrichment/resolve' && request.method === 'POST') {
+        return await handleEnrichmentResolve(request, env);
+      } else if (url.pathname === '/api/enrichment/extract-device' && request.method === 'POST') {
+        return await handleDeviceExtract(request, env);
+      } else if (url.pathname === '/api/enrichment/delete' && request.method === 'POST') {
+        return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'ANALYTICS_SYNC');
         if (rlErr) return rlErr;

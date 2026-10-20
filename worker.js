@@ -1427,6 +1427,7 @@ function buildClientCard(clientData, options = {}) {
     clientData?.planGenerationError && clientData?.planStatus === "failed" ? `ERR|${esc2(clientData.planGenerationError)}` : "",
     answers.email ? `EM|${esc2(answers.email)}` : "",
     answers.additionalNotes ? `NT|${esc2(String(answers.additionalNotes).slice(0, 500))}` : "",
+    clientData?.moduleSources && Object.keys(clientData.moduleSources).length ? `MOD|${Object.entries(clientData.moduleSources).map(([k, v]) => `${esc2(k)}=${esc2(String(v).slice(0, 10))}`).join("|")}` : "",
     clientData?.files?.length ? `FL|count=${clientData.files.length}|names=${clientData.files.slice(0, 5).map((f) => esc2(f.name)).join("+")}` : ""
   ].filter(Boolean);
   const planBlocks = [];
@@ -1444,6 +1445,9 @@ function buildClientCard(clientData, options = {}) {
     if (clientData?.adminNotes) planBlocks.push(`#AD v1 ${esc2(String(clientData.adminNotes).slice(0, 400))}`);
   } else {
     planBlocks.push("#PL v2 status=none");
+  }
+  if (clientData?.healthEssence?.text) {
+    planBlocks.push(`#HD v1 upd=${esc2(String(clientData.healthEssence.at || "").slice(0, 10))} ${esc2(clientData.healthEssence.text)}`);
   }
   planBlocks.push(serializeAnalytics(analytics));
   const card = [...meta, "", profile, "", ...planBlocks.filter(Boolean)].join("\n");
@@ -1468,6 +1472,7 @@ var CHAT_SECTION_ORDER = (
     "voice",
     "profile",
     "profile_full",
+    "health",
     "summary",
     "meals",
     "analysis",
@@ -1479,7 +1484,7 @@ var CHAT_SECTION_ORDER = (
     "water"
   ]
 );
-var CHAT_BASE = ["voice", "profile", "summary", "meals", "recommendations", "forbidden"];
+var CHAT_BASE = ["voice", "profile", "health", "summary", "meals", "recommendations", "forbidden"];
 var CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
 var CHAT_INTENTS = (
   /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */
@@ -1517,6 +1522,7 @@ function buildChatContextSections(userData, plan) {
       hasNotesSection: hasNotes,
       hasClinicalSection: Boolean(userData?.clinicalProtocol)
     }),
+    health: userData?._healthEssence ? `#HD v1 ${esc2(String(userData._healthEssence).slice(0, 2400))}` : "",
     summary: serializePlanSummary(p.summary) || "",
     meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : "",
     analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || "",
@@ -1992,10 +1998,10 @@ function fromPatterns(c) {
   if (/\bsphinx\b/.test(c)) return "\u041F\u043E\u0437\u0430 \u0441\u0444\u0438\u043D\u043A\u0441";
   return "";
 }
-function fixBadAiName(ai, canonical) {
+function fixBadAiName(ai, canonical2) {
   let t = String(ai || "").trim();
   if (!t) return t;
-  const c = norm(canonical);
+  const c = norm(canonical2);
   const looksLikeLegPress = /\bлег\s*преса\b/i.test(t) || /\bпреса\s*за\s*крака\b/i.test(t);
   const isBenchFamily = /\bbench press\b/.test(c) && !/\bleg press\b/.test(c);
   const isLegPress = /\bleg press\b/.test(c);
@@ -4350,21 +4356,21 @@ function fitSessionTime(exercises, minutes) {
 function pickByPattern(pool, patterns, client, count, { dayUsed, weekUsed = null, filter = () => true, sortKey = null }) {
   const out = [];
   const seenTargets = /* @__PURE__ */ new Set();
-  const list = pool.map((e) => ({ e, s: exerciseShape(e) })).filter(({ e, s }) => patterns.includes(s.pattern) && !dayUsed.has(e.id) && !violatesRestrictions(e, s, client) && filter(e, s)).sort((a, b) => (weekUsed ? Number(weekUsed.has(a.e.id)) - Number(weekUsed.has(b.e.id)) : 0) || (sortKey ? sortKey(a.e) - sortKey(b.e) : 0) || oddity(a.e) - oddity(b.e) || a.e.name.localeCompare(b.e.name));
+  const list2 = pool.map((e) => ({ e, s: exerciseShape(e) })).filter(({ e, s }) => patterns.includes(s.pattern) && !dayUsed.has(e.id) && !violatesRestrictions(e, s, client) && filter(e, s)).sort((a, b) => (weekUsed ? Number(weekUsed.has(a.e.id)) - Number(weekUsed.has(b.e.id)) : 0) || (sortKey ? sortKey(a.e) - sortKey(b.e) : 0) || oddity(a.e) - oddity(b.e) || a.e.name.localeCompare(b.e.name));
   const baseName = (e) => normalizeText(e.name.replace(/\(.*?\)|\bv\.?\s*\d+\b/g, ""));
   const seenNames = /* @__PURE__ */ new Set();
   const take = (e) => {
     out.push(e);
     seenNames.add(baseName(e));
   };
-  for (const { e } of list) {
+  for (const { e } of list2) {
     if (out.length >= count) break;
     const t = e.targetNorm || e.target;
     if (seenTargets.has(t) || seenNames.has(baseName(e))) continue;
     seenTargets.add(t);
     take(e);
   }
-  for (const { e } of list) {
+  for (const { e } of list2) {
     if (out.length >= count) break;
     if (!out.includes(e) && !seenNames.has(baseName(e))) take(e);
   }
@@ -4853,8 +4859,8 @@ function buildTranslateUserPayload(batch) {
 ${JSON.stringify({ exercises: items })}`;
 }
 function normalizeBatchResult(parsed, batch) {
-  const list = parsed?.translations || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
-  const byId = new Map(list.map((row) => [String(row.id), row]));
+  const list2 = parsed?.translations || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
+  const byId = new Map(list2.map((row) => [String(row.id), row]));
   const out = {};
   for (const ex of batch) {
     const id = String(ex.id);
@@ -4873,14 +4879,14 @@ function normalizeBatchResult(parsed, batch) {
 async function fetchExerciseDataset(url = null) {
   if (!url) {
     const mod = await Promise.resolve().then(() => (init_exercise_dataset(), exercise_dataset_exports));
-    const list = mod.default || mod;
+    const list2 = mod.default || mod;
     let ins = {};
     try {
       const m = await Promise.resolve().then(() => (init_exercise_instructions(), exercise_instructions_exports));
       ins = m.default || m;
     } catch {
     }
-    return list.map((x) => ins[x.id] ? { ...x, instructions: { ...x.instructions || {}, en: ins[x.id].en, bg: ins[x.id].bg } } : x);
+    return list2.map((x) => ins[x.id] ? { ...x, instructions: { ...x.instructions || {}, en: ins[x.id].en, bg: ins[x.id].bg } } : x);
   }
   const res = await fetch(url, { headers: { "User-Agent": "aidiet-fitness-translate" } });
   if (!res.ok) throw new Error(`Dataset HTTP ${res.status}`);
@@ -5007,8 +5013,8 @@ ${CLASSIFY_RESPONSE_SCHEMA}
 ${JSON.stringify({ exercises })}`;
 }
 function normalizeClassifyResult(parsed, batch) {
-  const list = parsed?.classifications || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
-  const byId = new Map(list.map((row) => [String(row.id), row]));
+  const list2 = parsed?.classifications || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
+  const byId = new Map(list2.map((row) => [String(row.id), row]));
   const out = {};
   for (const ex of batch) {
     const id = String(ex.id);
@@ -6668,10 +6674,10 @@ function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
   const adminArchitecture = [];
   const hardcodedIndividual = [];
   const seen = /* @__PURE__ */ new Set();
-  const push = (list, text) => {
+  const push = (list2, text) => {
     if (!text || seen.has(text)) return;
     seen.add(text);
-    list.push(text);
+    list2.push(text);
   };
   for (const chunk of adminChunks) {
     if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
@@ -7299,10 +7305,10 @@ async function loadExerciseIndex(env, ctx) {
     }
   }
   try {
-    const list = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
+    const list2 = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
     const translations = await loadExerciseTranslations(env);
     const metadata = await loadExerciseMetadata(env);
-    const index = buildCompactIndex(list, translations, metadata);
+    const index = buildCompactIndex(list2, translations, metadata);
     if (index.length > 50) {
       memoryIndex = index;
       if (env.FITNESS_KV) {
@@ -8375,10 +8381,10 @@ async function handleSubmitConsultation(request, env) {
   };
   await env.FITNESS_KV.put(`fitplan_consultation:${id}`, JSON.stringify(record));
   const listRaw = await env.FITNESS_KV.get(CONSULTATIONS_LIST_KV_KEY);
-  const list = listRaw ? JSON.parse(listRaw) : [];
-  list.unshift(id);
-  if (list.length > MAX_CONSULTATIONS) list.length = MAX_CONSULTATIONS;
-  await env.FITNESS_KV.put(CONSULTATIONS_LIST_KV_KEY, JSON.stringify(list));
+  const list2 = listRaw ? JSON.parse(listRaw) : [];
+  list2.unshift(id);
+  if (list2.length > MAX_CONSULTATIONS) list2.length = MAX_CONSULTATIONS;
+  await env.FITNESS_KV.put(CONSULTATIONS_LIST_KV_KEY, JSON.stringify(list2));
   return jsonResponse({ success: true, id });
 }
 async function handleGetConsultations(request, env) {
@@ -8453,11 +8459,11 @@ async function loadClientProgram(env, id) {
 async function saveClientProgram(env, record) {
   await env.FITNESS_KV.put(clientProgramKvKey(record.id), JSON.stringify(record));
   const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
-  const list = listRaw ? JSON.parse(listRaw) : [];
-  if (!list.includes(record.id)) {
-    list.unshift(record.id);
-    if (list.length > MAX_CLIENT_PROGRAMS) list.length = MAX_CLIENT_PROGRAMS;
-    await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list));
+  const list2 = listRaw ? JSON.parse(listRaw) : [];
+  if (!list2.includes(record.id)) {
+    list2.unshift(record.id);
+    if (list2.length > MAX_CLIENT_PROGRAMS) list2.length = MAX_CLIENT_PROGRAMS;
+    await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list2));
   }
 }
 function clientProgramPublicView(record) {
@@ -8803,8 +8809,8 @@ async function deleteClientProgramRecord(env, id) {
   if (record.planId) await env.FITNESS_KV.delete(`plan:${record.planId}`);
   await env.FITNESS_KV.delete(clientProgramKvKey(id));
   const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
-  const list = listRaw ? JSON.parse(listRaw) : [];
-  await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list.filter((x) => x !== id)));
+  const list2 = listRaw ? JSON.parse(listRaw) : [];
+  await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list2.filter((x) => x !== id)));
   return jsonResponse({ success: true });
 }
 async function handleDeleteClientProgram(request, env, id) {
@@ -9188,8 +9194,8 @@ function normalizeSettings(raw) {
   const r = s.rules || {};
   const hours = {};
   for (const day of DAYS) {
-    const list = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
-    hours[day] = list.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
+    const list2 = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
+    hours[day] = list2.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
   }
   let tz = str(s.timezone, 64) || d.timezone;
   try {
@@ -9573,14 +9579,14 @@ async function getClient(env, studioId, phone) {
 }
 async function tokenOk(client, token) {
   if (!client || !token) return false;
-  const list = JSON.parse(client.token_hash || "[]");
-  return Array.isArray(list) && list.includes(await sha256(String(token)));
+  const list2 = JSON.parse(client.token_hash || "[]");
+  return Array.isArray(list2) && list2.includes(await sha256(String(token)));
 }
 async function issueToken(env, studioId, phone) {
   const token = randomToken();
   const c = await getClient(env, studioId, phone);
-  const list = JSON.parse(c && c.token_hash || "[]");
-  const next = [...Array.isArray(list) ? list : [], await sha256(token)].slice(-5);
+  const list2 = JSON.parse(c && c.token_hash || "[]");
+  const next = [...Array.isArray(list2) ? list2 : [], await sha256(token)].slice(-5);
   await env.STUDIO_DB.prepare("UPDATE clients SET token_hash = ? WHERE studio_id = ? AND phone = ?").bind(JSON.stringify(next), studioId, phone).run();
   return token;
 }
@@ -10830,6 +10836,163 @@ function snapGrams(grams) {
   return Math.round(g / GRAM_STEP_LARGE) * GRAM_STEP_LARGE;
 }
 
+// drug-interactions.js
+var LEVOTHYROXINE = ["\u043B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D", "\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D", "\u0435\u0443\u0442\u0438\u0440\u043E\u043A\u0441", "euthyrox", "letrox", "\u043B\u0435\u0442\u0440\u043E\u043A\u0441", "l-thyrox", "levothyrox"];
+var METFORMIN = ["\u043C\u0435\u0442\u0444\u043E\u0440\u043C\u0438\u043D", "metformin", "\u0433\u043B\u044E\u043A\u043E\u0444\u0430\u0436", "glucophage", "\u0441\u0438\u043E\u0444\u043E\u0440", "siofor"];
+var MINERALS = /калций|calcium|желязо|iron|магнези|magnes|цинк|zinc|мултивитамин|multivit/i;
+var ST_JOHNS = /жълт кантарион|st\.?\s*john|hypericum/i;
+var VITAMIN_K = /витамин\s*[kк](?![а-яa-z])|vitamin\s*k(?![a-z])|(^|[^а-яa-z0-9])[kк][12](?![0-9])|(^|[^а-яa-z0-9])[mм][kк]\s*-?\s*[47](?![0-9])|menaquinon|менахинон|phylloquinon|филохинон/i;
+var VITAMIN_E = /витамин\s*[eе](?![а-яa-z])|vitamin\s*e(?![a-z])/i;
+var INTERACTION_RULES = [
+  {
+    id: "vka",
+    label: "\u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D / \u0430\u0446\u0435\u043D\u043E\u043A\u0443\u043C\u0430\u0440\u043E\u043B",
+    drugs: ["\u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D", "warfarin", "\u0430\u0446\u0435\u043D\u043E\u043A\u0443\u043C\u0430\u0440\u043E\u043B", "acenocoumarol", "\u0441\u0438\u043D\u0442\u0440\u043E\u043C", "sintrom", "\u0441\u0438\u043D\u043A\u0443\u043C\u0430\u0440", "sincumar", "\u043C\u0430\u0440\u0435\u0432\u0430\u043D", "marevan"],
+    drop: [VITAMIN_K, /гинко|ginkgo/i, ST_JOHNS, /куркумин|curcumin|куркума.*(капсул|екстракт)/i, VITAMIN_E],
+    caution: "\u0412\u0430\u0440\u0444\u0430\u0440\u0438\u043D/\u0430\u0446\u0435\u043D\u043E\u043A\u0443\u043C\u0430\u0440\u043E\u043B: \u0432\u0438\u0442\u0430\u043C\u0438\u043D K \u043E\u0442 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 (\u0441\u043F\u0430\u043D\u0430\u043A, \u0431\u0440\u043E\u043A\u043E\u043B\u0438, \u0437\u0435\u043B\u0435) \u2014 \u0432 \u0435\u0434\u043D\u043E \u0438 \u0441\u044A\u0449\u043E \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430, \u043D\u0435 \u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0438; \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0441 \u0432\u0438\u0442\u0430\u043C\u0438\u043D K, \u0432\u0438\u0442\u0430\u043C\u0438\u043D E, \u0433\u0438\u043D\u043A\u043E, \u043A\u0443\u0440\u043A\u0443\u043C\u0438\u043D \u0438 \u0436\u044A\u043B\u0442 \u043A\u0430\u043D\u0442\u0430\u0440\u0438\u043E\u043D."
+  },
+  {
+    id: "doac",
+    label: "\u043D\u043E\u0432 \u0430\u043D\u0442\u0438\u043A\u043E\u0430\u0433\u0443\u043B\u0430\u043D\u0442",
+    drugs: ["\u0430\u043F\u0438\u043A\u0441\u0430\u0431\u0430\u043D", "apixaban", "\u0435\u043B\u0438\u043A\u0443\u0438\u0441", "eliquis", "\u0440\u0438\u0432\u0430\u0440\u043E\u043A\u0441\u0430\u0431\u0430\u043D", "rivaroxaban", "\u043A\u0441\u0430\u0440\u0435\u043B\u0442\u043E", "xarelto", "\u0434\u0430\u0431\u0438\u0433\u0430\u0442\u0440\u0430\u043D", "dabigatran", "\u043F\u0440\u0430\u0434\u0430\u043A\u0441\u0430", "pradaxa", "\u0435\u0434\u043E\u043A\u0441\u0430\u0431\u0430\u043D", "edoxaban", "lixiana", "\u043B\u0438\u043A\u0441\u0438\u0430\u043D\u0430"],
+    drop: [/гинко|ginkgo/i, ST_JOHNS, /куркумин|curcumin/i],
+    caution: "\u0410\u043D\u0442\u0438\u043A\u043E\u0430\u0433\u0443\u043B\u0430\u043D\u0442: \u0431\u0435\u0437 \u0433\u0438\u043D\u043A\u043E, \u043A\u0443\u0440\u043A\u0443\u043C\u0438\u043D \u0438 \u0436\u044A\u043B\u0442 \u043A\u0430\u043D\u0442\u0430\u0440\u0438\u043E\u043D (\u043A\u044A\u0440\u0432\u0435\u043D\u0435 \u0438\u043B\u0438 \u043F\u043E-\u0441\u043B\u0430\u0431 \u0435\u0444\u0435\u043A\u0442 \u043D\u0430 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u043E\u0442\u043E)."
+  },
+  {
+    id: "levothyroxine",
+    label: "\u043B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D",
+    drugs: LEVOTHYROXINE,
+    timing: [{ match: MINERALS, note: "\u043F\u043E\u043D\u0435 4 \u0447\u0430\u0441\u0430 \u0441\u043B\u0435\u0434 \u043B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D\u0430" }],
+    caution: "\u041B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D: \u0441\u0443\u0442\u0440\u0438\u043D \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E \u0441 \u0432\u043E\u0434\u0430, 30\u201360 \u043C\u0438\u043D\u0443\u0442\u0438 \u043F\u0440\u0435\u0434\u0438 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0438 \u043A\u0430\u0444\u0435; \u043A\u0430\u043B\u0446\u0438\u0439, \u0436\u0435\u043B\u044F\u0437\u043E, \u0441\u043E\u044F \u0438 \u043C\u043B\u0435\u0447\u043D\u0438 \u2014 \u043F\u043E\u043D\u0435 4 \u0447\u0430\u0441\u0430 \u0441\u043B\u0435\u0434 \u043D\u0435\u0433\u043E."
+  },
+  {
+    id: "statin",
+    label: "\u0441\u0442\u0430\u0442\u0438\u043D",
+    drugs: ["\u0441\u0438\u043C\u0432\u0430\u0441\u0442\u0430\u0442\u0438\u043D", "simvastatin", "\u0432\u0430\u0437\u0438\u043B\u0438\u043F", "vasilip", "\u0437\u043E\u043A\u043E\u0440", "zocor", "\u043B\u043E\u0432\u0430\u0441\u0442\u0430\u0442\u0438\u043D", "lovastatin", "\u0430\u0442\u043E\u0440\u0432\u0430\u0441\u0442\u0430\u0442\u0438\u043D", "atorvastatin", "\u0430\u0442\u043E\u0440\u0438\u0441", "atoris", "\u0442\u043E\u0440\u0432\u0430\u043A\u0430\u0440\u0434", "torvacard", "\u0441\u043E\u0440\u0442\u0438\u0441", "sortis", "\u043B\u0438\u043F\u0438\u0442\u043E\u0440", "lipitor"],
+    blockFoods: ["\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442"],
+    drop: [/червен ферментирал ориз|червен ориз|red yeast|монаколин|monacolin/i],
+    caution: "\u0421\u0442\u0430\u0442\u0438\u043D: \u0431\u0435\u0437 \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 \u0438 \u0441\u043E\u043A \u043E\u0442 \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 (\u043F\u043E\u0432\u0438\u0448\u0430\u0432\u0430 \u043D\u0438\u0432\u043E\u0442\u043E \u043D\u0430 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u043E\u0442\u043E); \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0441 \u0447\u0435\u0440\u0432\u0435\u043D \u0444\u0435\u0440\u043C\u0435\u043D\u0442\u0438\u0440\u0430\u043B \u043E\u0440\u0438\u0437."
+  },
+  {
+    id: "ccb",
+    label: "\u0431\u043B\u043E\u043A\u0435\u0440 \u043D\u0430 \u043A\u0430\u043B\u0446\u0438\u0435\u0432\u0438\u0442\u0435 \u043A\u0430\u043D\u0430\u043B\u0438",
+    drugs: ["\u0444\u0435\u043B\u043E\u0434\u0438\u043F\u0438\u043D", "felodipin", "\u043F\u043B\u0435\u043D\u0434\u0438\u043B", "plendil", "\u043D\u0438\u0444\u0435\u0434\u0438\u043F\u0438\u043D", "nifedipin", "\u043D\u0438\u0442\u0440\u0435\u043D\u0434\u0438\u043F\u0438\u043D", "nitrendipin", "\u043B\u0435\u0440\u043A\u0430\u043D\u0438\u0434\u0438\u043F\u0438\u043D", "lercanidipin"],
+    blockFoods: ["\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442"],
+    caution: "\u0424\u0435\u043B\u043E\u0434\u0438\u043F\u0438\u043D/\u043D\u0438\u0444\u0435\u0434\u0438\u043F\u0438\u043D: \u0431\u0435\u0437 \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 (\u0440\u044F\u0437\u043A\u043E \u0441\u043F\u0430\u0434\u0430\u043D\u0435 \u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u043E\u0442\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435)."
+  },
+  {
+    id: "immuno",
+    label: "\u0438\u043C\u0443\u043D\u043E\u0441\u0443\u043F\u0440\u0435\u0441\u043E\u0440",
+    drugs: ["\u0442\u0430\u043A\u0440\u043E\u043B\u0438\u043C\u0443\u0441", "tacrolimus", "\u0446\u0438\u043A\u043B\u043E\u0441\u043F\u043E\u0440\u0438\u043D", "cyclosporin", "ciclosporin", "\u0441\u0438\u0440\u043E\u043B\u0438\u043C\u0443\u0441", "sirolimus", "\u0435\u0432\u0435\u0440\u043E\u043B\u0438\u043C\u0443\u0441", "everolimus"],
+    blockFoods: ["\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442"],
+    drop: [ST_JOHNS, /ехинацея|echinacea/i],
+    caution: "\u0418\u043C\u0443\u043D\u043E\u0441\u0443\u043F\u0440\u0435\u0441\u043E\u0440: \u0431\u0435\u0437 \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 \u0438 \u043F\u043E\u043C\u0435\u043B\u043E; \u0431\u0435\u0437 \u0436\u044A\u043B\u0442 \u043A\u0430\u043D\u0442\u0430\u0440\u0438\u043E\u043D \u0438 \u0435\u0445\u0438\u043D\u0430\u0446\u0435\u044F; \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u2014 \u043F\u0440\u044F\u0441\u043D\u043E \u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0435\u043D\u0430, \u0431\u0435\u0437 \u0441\u0443\u0440\u043E\u0432\u0438 \u044F\u0439\u0446\u0430 \u0438 \u043D\u0435\u043F\u0430\u0441\u0442\u044C\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043C\u043B\u0435\u0447\u043D\u0438."
+  },
+  {
+    id: "maoi",
+    label: "\u041C\u0410\u041E \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440",
+    drugs: ["\u043C\u043E\u043A\u043B\u043E\u0431\u0435\u043C\u0438\u0434", "moclobemid", "\u0430\u0443\u0440\u043E\u0440\u0438\u043A\u0441", "aurorix", "\u0444\u0435\u043D\u0435\u043B\u0437\u0438\u043D", "phenelzin", "\u0442\u0440\u0430\u043D\u0438\u043B\u0446\u0438\u043F\u0440\u043E\u043C\u0438\u043D", "tranylcypromin", "\u0441\u0435\u043B\u0435\u0433\u0438\u043B\u0438\u043D", "selegilin", "\u0440\u0430\u0437\u0430\u0433\u0438\u043B\u0438\u043D", "rasagilin", "\u0430\u0437\u0438\u043B\u0435\u043A\u0442", "azilect", "\u043B\u0438\u043D\u0435\u0437\u043E\u043B\u0438\u0434", "linezolid"],
+    blockFoods: ["\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B", "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "\u0441\u043E\u0435\u0432 \u0441\u043E\u0441", "\u0442\u0435\u043C\u043F\u0435"],
+    denyTreats: /колбас|алкохол/i,
+    caution: "\u041C\u0410\u041E \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440: \u0431\u0435\u0437 \u043E\u0442\u043B\u0435\u0436\u0430\u043B\u0438 \u0441\u0438\u0440\u0435\u043D\u0430 (\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B, \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D), \u043A\u043E\u043B\u0431\u0430\u0441\u0438 \u0438 \u0441\u0443\u0448\u0435\u043D\u0438 \u043C\u0435\u0441\u0430, \u0441\u043E\u0435\u0432 \u0441\u043E\u0441, \u0444\u0435\u0440\u043C\u0435\u043D\u0442\u0438\u0440\u0430\u043B\u0430 \u0441\u043E\u044F, \u043A\u0438\u0441\u0435\u043B\u043E \u0437\u0435\u043B\u0435 \u0438 \u043D\u0430\u043B\u0438\u0432\u043D\u0430 \u0431\u0438\u0440\u0430 \u2014 \u0442\u0438\u0440\u0430\u043C\u0438\u043D\u044A\u0442 \u0432\u0434\u0438\u0433\u0430 \u043A\u0440\u044A\u0432\u043D\u043E\u0442\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435."
+  },
+  {
+    id: "quinolone_tetracycline",
+    label: "\u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u043A (\u0445\u0438\u043D\u043E\u043B\u043E\u043D/\u0442\u0435\u0442\u0440\u0430\u0446\u0438\u043A\u043B\u0438\u043D)",
+    drugs: ["\u0446\u0438\u043F\u0440\u043E\u0444\u043B\u043E\u043A\u0441\u0430\u0446\u0438\u043D", "ciprofloxacin", "\u0446\u0438\u043F\u0440\u0438\u043D\u043E\u043B", "ciprinol", "\u043B\u0435\u0432\u043E\u0444\u043B\u043E\u043A\u0441\u0430\u0446\u0438\u043D", "levofloxacin", "\u0442\u0430\u0432\u0430\u043D\u0438\u043A", "tavanic", "\u043C\u043E\u043A\u0441\u0438\u0444\u043B\u043E\u043A\u0441\u0430\u0446\u0438\u043D", "moxifloxacin", "\u0434\u043E\u043A\u0441\u0438\u0446\u0438\u043A\u043B\u0438\u043D", "doxycyclin", "\u0442\u0435\u0442\u0440\u0430\u0446\u0438\u043A\u043B\u0438\u043D", "tetracyclin", "\u043C\u0438\u043D\u043E\u0446\u0438\u043A\u043B\u0438\u043D", "minocyclin"],
+    timing: [{ match: MINERALS, note: "2 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0438\u043B\u0438 4\u20136 \u0447\u0430\u0441\u0430 \u0441\u043B\u0435\u0434 \u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u043A\u0430" }],
+    caution: "\u0425\u0438\u043D\u043E\u043B\u043E\u043D/\u0442\u0435\u0442\u0440\u0430\u0446\u0438\u043A\u043B\u0438\u043D: \u043C\u043B\u044F\u043A\u043E, \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u043C\u0438\u043D\u0435\u0440\u0430\u043B\u043D\u0438 \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u2014 2 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0438\u043B\u0438 4 \u0447\u0430\u0441\u0430 \u0441\u043B\u0435\u0434 \u0442\u0430\u0431\u043B\u0435\u0442\u043A\u0430\u0442\u0430."
+  },
+  {
+    id: "bisphosphonate",
+    label: "\u0431\u0438\u0444\u043E\u0441\u0444\u043E\u043D\u0430\u0442",
+    drugs: ["\u0430\u043B\u0435\u043D\u0434\u0440\u043E\u043D\u0430\u0442", "alendron", "\u0444\u043E\u0441\u0430\u043C\u0430\u043A\u0441", "fosamax", "\u0440\u0438\u0437\u0435\u0434\u0440\u043E\u043D\u0430\u0442", "risedron", "\u0438\u0431\u0430\u043D\u0434\u0440\u043E\u043D\u0430\u0442", "ibandron", "\u0431\u043E\u043D\u0432\u0438\u0432\u0430", "bonviva"],
+    timing: [{ match: MINERALS, note: "\u043D\u0435 \u0432 \u0434\u0435\u043D\u044F/\u0447\u0430\u0441\u0430 \u043D\u0430 \u0431\u0438\u0444\u043E\u0441\u0444\u043E\u043D\u0430\u0442\u0430 \u2014 \u043F\u043E\u043D\u0435 1 \u0447\u0430\u0441 \u0441\u043B\u0435\u0434 \u043D\u0435\u0433\u043E" }],
+    caution: "\u0411\u0438\u0444\u043E\u0441\u0444\u043E\u043D\u0430\u0442: \u0441\u0443\u0442\u0440\u0438\u043D \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E \u0441 \u0447\u0430\u0448\u0430 \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u0430 \u0432\u043E\u0434\u0430, 30\u201360 \u043C\u0438\u043D\u0443\u0442\u0438 \u043F\u0440\u0435\u0434\u0438 \u0445\u0440\u0430\u043D\u0430, \u043A\u0430\u0444\u0435 \u0438 \u0434\u043E\u0431\u0430\u0432\u043A\u0438."
+  },
+  {
+    id: "raas",
+    label: "ACE \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440 / \u0441\u0430\u0440\u0442\u0430\u043D / \u0441\u043F\u0438\u0440\u043E\u043D\u043E\u043B\u0430\u043A\u0442\u043E\u043D",
+    drugs: ["\u0435\u043D\u0430\u043B\u0430\u043F\u0440\u0438\u043B", "enalapril", "\u0435\u043D\u0430\u043F", "enap", "\u043B\u0438\u0437\u0438\u043D\u043E\u043F\u0440\u0438\u043B", "lisinopril", "\u0440\u0430\u043C\u0438\u043F\u0440\u0438\u043B", "ramipril", "\u0442\u0440\u0438\u0442\u0430\u0446\u0435", "tritace", "\u043F\u0435\u0440\u0438\u043D\u0434\u043E\u043F\u0440\u0438\u043B", "perindopril", "\u043F\u0440\u0435\u0441\u0442\u0430\u0440\u0438\u0443\u043C", "prestarium", "\u043A\u0430\u043F\u0442\u043E\u043F\u0440\u0438\u043B", "captopril", "\u043B\u043E\u0437\u0430\u0440\u0442\u0430\u043D", "losartan", "\u043B\u043E\u0440\u0438\u0441\u0442\u0430", "lorista", "\u0432\u0430\u043B\u0441\u0430\u0440\u0442\u0430\u043D", "valsartan", "\u0442\u0435\u043B\u043C\u0438\u0441\u0430\u0440\u0442\u0430\u043D", "telmisartan", "\u043A\u0430\u043D\u0434\u0435\u0441\u0430\u0440\u0442\u0430\u043D", "candesartan", "\u0438\u0440\u0431\u0435\u0441\u0430\u0440\u0442\u0430\u043D", "irbesartan", "\u0441\u043F\u0438\u0440\u043E\u043D\u043E\u043B\u0430\u043A\u0442\u043E\u043D", "spironolacton", "\u0432\u0435\u0440\u043E\u0448\u043F\u0438\u0440\u043E\u043D", "veroshpiron", "\u0435\u043F\u043B\u0435\u0440\u0435\u043D\u043E\u043D", "eplerenon"],
+    drop: [/калий|potassium/i],
+    caution: "ACE \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440/\u0441\u0430\u0440\u0442\u0430\u043D/\u0441\u043F\u0438\u0440\u043E\u043D\u043E\u043B\u0430\u043A\u0442\u043E\u043D: \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0441 \u043A\u0430\u043B\u0438\u0439 \u0438 \u0431\u0435\u0437 \u0441\u043E\u043B-\u0437\u0430\u043C\u0435\u0441\u0442\u0438\u0442\u0435\u043B \u0441 \u043A\u0430\u043B\u0438\u0435\u0432 \u0445\u043B\u043E\u0440\u0438\u0434; \u043A\u0430\u043B\u0438\u044F\u0442 \u043E\u0442 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043D\u0435 \u0441\u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0430\u0432\u0430 \u0431\u0435\u0437 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435."
+  },
+  {
+    id: "lithium",
+    label: "\u043B\u0438\u0442\u0438\u0439",
+    drugs: ["\u043B\u0438\u0442\u0438\u0439", "lithium", "\u043B\u0438\u0442\u0438\u0435\u0432"],
+    caution: "\u041B\u0438\u0442\u0438\u0439: \u0435\u0434\u043D\u043E \u0438 \u0441\u044A\u0449\u043E \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0441\u043E\u043B \u0438 \u0442\u0435\u0447\u043D\u043E\u0441\u0442\u0438 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u2014 \u0431\u0435\u0437 \u0440\u044F\u0437\u043A\u043E \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0441\u043E\u043B\u0442\u0430 \u0438 \u0431\u0435\u0437 \u043E\u0431\u0435\u0437\u0432\u043E\u0434\u043D\u044F\u0432\u0430\u043D\u0435."
+  },
+  {
+    id: "sglt2",
+    label: "SGLT2 \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440",
+    drugs: ["\u0435\u043C\u043F\u0430\u0433\u043B\u0438\u0444\u043B\u043E\u0437\u0438\u043D", "empagliflozin", "\u0434\u0436\u0430\u0440\u0434\u0438\u0430\u043D\u0441", "jardiance", "\u0434\u0430\u043F\u0430\u0433\u043B\u0438\u0444\u043B\u043E\u0437\u0438\u043D", "dapagliflozin", "\u0444\u043E\u0440\u043A\u0441\u0438\u0433\u0430", "forxiga", "\u043A\u0430\u043D\u0430\u0433\u043B\u0438\u0444\u043B\u043E\u0437\u0438\u043D", "canagliflozin", "\u0435\u0440\u0442\u0443\u0433\u043B\u0438\u0444\u043B\u043E\u0437\u0438\u043D", "ertugliflozin", "\u0441\u0438\u043D\u0434\u0436\u0430\u0440\u0434\u0438", "synjardy", "\u043A\u0441\u0438\u0433\u0434\u0443\u043E", "xigduo"],
+    forbidStyles: ["keto"],
+    caution: "SGLT2 \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440: \u0431\u0435\u0437 \u043A\u0435\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u0440\u0438\u0441\u043A \u043E\u0442 \u043A\u0435\u0442\u043E\u0430\u0446\u0438\u0434\u043E\u0437\u0430 \u043F\u0440\u0438 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440."
+  },
+  {
+    id: "hypoglycemic",
+    label: "\u0438\u043D\u0441\u0443\u043B\u0438\u043D / \u0441\u0443\u043B\u0444\u0430\u043D\u0438\u043B\u0443\u0440\u0435\u0439\u043D\u043E",
+    drugs: ["\u0438\u043D\u0441\u0443\u043B\u0438\u043D", "insulin", "\u0433\u043B\u0438\u043A\u043B\u0430\u0437\u0438\u0434", "gliclazid", "\u0434\u0438\u0430\u0431\u0435\u0442\u043E\u043D", "diabeton", "\u0434\u0438\u0430\u043F\u0440\u0435\u043B", "diaprel", "\u0433\u043B\u0438\u043C\u0435\u043F\u0438\u0440\u0438\u0434", "glimepirid", "\u0430\u043C\u0430\u0440\u0438\u043B", "amaryl", "\u0433\u043B\u0438\u0431\u0435\u043D\u043A\u043B\u0430\u043C\u0438\u0434", "glibenclamid", "\u043D\u043E\u0432\u043E\u0440\u0430\u043F\u0438\u0434", "novorapid", "\u043B\u0430\u043D\u0442\u0443\u0441", "lantus", "\u0442\u0440\u0435\u0441\u0438\u0431\u0430", "tresiba", "\u0445\u0443\u043C\u0430\u043B\u043E\u0433", "humalog"],
+    noFasting: true,
+    caution: "\u0418\u043D\u0441\u0443\u043B\u0438\u043D/\u0441\u0443\u043B\u0444\u0430\u043D\u0438\u043B\u0443\u0440\u0435\u0439\u043D\u043E: \u0431\u0435\u0437 \u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435 \u0438 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F (\u0445\u0438\u043F\u043E\u0433\u043B\u0438\u043A\u0435\u043C\u0438\u044F); \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u2014 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F."
+  },
+  {
+    id: "serotonergic",
+    label: "\u0430\u043D\u0442\u0438\u0434\u0435\u043F\u0440\u0435\u0441\u0430\u043D\u0442",
+    drugs: ["\u0441\u0435\u0440\u0442\u0440\u0430\u043B\u0438\u043D", "sertralin", "\u0437\u043E\u043B\u043E\u0444\u0442", "zoloft", "\u0430\u0441\u0435\u043D\u0442\u0440\u0430", "asentra", "\u0435\u0441\u0446\u0438\u0442\u0430\u043B\u043E\u043F\u0440\u0430\u043C", "escitalopram", "\u0446\u0438\u043F\u0440\u0430\u043B\u0435\u043A\u0441", "cipralex", "\u0444\u043B\u0443\u043E\u043A\u0441\u0435\u0442\u0438\u043D", "fluoxetin", "\u043F\u0430\u0440\u043E\u043A\u0441\u0435\u0442\u0438\u043D", "paroxetin", "\u0446\u0438\u0442\u0430\u043B\u043E\u043F\u0440\u0430\u043C", "citalopram", "\u0432\u0435\u043D\u043B\u0430\u0444\u0430\u043A\u0441\u0438\u043D", "venlafaxin", "\u0434\u0443\u043B\u043E\u043A\u0441\u0435\u0442\u0438\u043D", "duloxetin", "\u0442\u0440\u0430\u0437\u043E\u0434\u043E\u043D", "trazodon", "\u0442\u0440\u0438\u0442\u0438\u043A\u043E", "trittico"],
+    drop: [ST_JOHNS, /5-htp|триптофан|tryptophan/i],
+    caution: "\u0410\u043D\u0442\u0438\u0434\u0435\u043F\u0440\u0435\u0441\u0430\u043D\u0442: \u0431\u0435\u0437 \u0436\u044A\u043B\u0442 \u043A\u0430\u043D\u0442\u0430\u0440\u0438\u043E\u043D, 5-HTP \u0438 \u0442\u0440\u0438\u043F\u0442\u043E\u0444\u0430\u043D \u043A\u0430\u0442\u043E \u0434\u043E\u0431\u0430\u0432\u043A\u0438 (\u0441\u0435\u0440\u043E\u0442\u043E\u043D\u0438\u043D\u043E\u0432 \u0441\u0438\u043D\u0434\u0440\u043E\u043C)."
+  },
+  {
+    id: "metformin",
+    label: "\u043C\u0435\u0442\u0444\u043E\u0440\u043C\u0438\u043D",
+    drugs: METFORMIN,
+    caution: "\u041C\u0435\u0442\u0444\u043E\u0440\u043C\u0438\u043D: \u043F\u0440\u0438 \u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u0432\u0438\u0442\u0430\u043C\u0438\u043D B12 \u0441\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0432\u0430 \u0432\u0435\u0434\u043D\u044A\u0436 \u0433\u043E\u0434\u0438\u0448\u043D\u043E."
+  }
+];
+function medsText(userData) {
+  const parts = [];
+  const push = (v) => {
+    if (v == null || v === "") return;
+    if (Array.isArray(v)) v.forEach(push);
+    else parts.push(String(v));
+  };
+  push(userData?.medications);
+  push(userData?.medicationsDetails);
+  return parts.join(" ").toLowerCase().replace(/ё/g, "\u0435").replace(/инсулинов\S*\s+резист\S*|insulin\s+resist\S*/g, " ");
+}
+function interactionsFor(userData) {
+  const text = medsText(userData);
+  const rules = text ? INTERACTION_RULES.filter((r) => r.drugs.some((d) => text.includes(d))) : [];
+  return {
+    ids: rules.map((r) => r.id),
+    rules,
+    blockFoods: [...new Set(rules.flatMap((r) => r.blockFoods || []))],
+    forbidStyles: [...new Set(rules.flatMap((r) => r.forbidStyles || []))],
+    noFasting: rules.some((r) => r.noFasting),
+    cautions: rules.map((r) => r.caution)
+  };
+}
+function applySupplementInteractions(supplements, ix) {
+  const kept = [];
+  const dropped = [];
+  for (const s of supplements || []) {
+    const name = `${s?.name || ""} ${s?.dosage || ""}`;
+    const blocker = ix.rules.find((r) => (r.drop || []).some((re) => re.test(name)));
+    if (blocker) {
+      dropped.push({ name: s.name, because: blocker.label });
+      continue;
+    }
+    const notes = ix.rules.flatMap((r) => (r.timing || []).filter((t) => t.match.test(name)).map((t) => t.note)).filter((n) => !String(s.timing || "").includes(n));
+    kept.push(notes.length ? { ...s, timing: [s.timing, ...new Set(notes)].filter(Boolean).join("; ") } : s);
+  }
+  return { kept, dropped };
+}
+function treatDeniedByMeds(food2, ix) {
+  return ix.rules.find((r) => r.denyTreats && r.denyTreats.test(food2)) || null;
+}
+
 // profile-code.js
 var PROFILE_CODE_VERSION = "NP1";
 var DIET_STYLES = {
@@ -11372,13 +11535,20 @@ function compileProfile(userData = {}, overrides = {}) {
     addAll(exclusions, hints.exclusions || []);
     addAll(clinical, hints.clinical || []);
   }
+  const enrich = data._enrichment?.hints && typeof data._enrichment.hints === "object" ? data._enrichment.hints : null;
+  if (enrich) addAll(clinical, enrich.clinical || []);
   const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns, ...hints?.pattern ? [hints.pattern] : []]);
   const adjustments = [];
-  const style = resolveConflicts(
+  const meds = interactionsFor(data);
+  let style = resolveConflicts(
     firstStyle(modifier.styles) || firstStyle(prefs.styles.filter((s) => s !== "balanced")) || (hints?.style && hints.style !== "balanced" ? hints.style : null) || clinicalDefaultStyle(clinical, protocolId) || "balanced",
     pattern,
     adjustments
   );
+  if (meds.forbidStyles.includes(style)) {
+    adjustments.push(`MEDS_${style.toUpperCase()}\u2192LOW_CARB: ${meds.rules.find((r) => r.forbidStyles?.includes(style))?.caution || ""}`);
+    style = "low_carb";
+  }
   if (style === "paleo") {
     exclusions.add("GLU");
     exclusions.add("LAC");
@@ -11387,7 +11557,7 @@ function compileProfile(userData = {}, overrides = {}) {
     exclusions.add("LAC");
     exclusions.add("EGG");
   }
-  const behaviors = /* @__PURE__ */ new Set([...prefs.behaviors, ...modifier.behaviors, ...hints?.behaviors || []]);
+  const behaviors = /* @__PURE__ */ new Set([...prefs.behaviors, ...modifier.behaviors, ...hints?.behaviors || [], ...enrich?.behaviors || []]);
   for (const label of asList(data.eatingHabits)) {
     const code = EATING_HABIT_LABELS.get(normLabel(label));
     if (code) behaviors.add(code);
@@ -11406,6 +11576,11 @@ function compileProfile(userData = {}, overrides = {}) {
   }
   if (FREQUENT.has(normLabel(data.drinksSweet))) behaviors.add("SDR");
   if (FREQUENT.has(normLabel(data.drinksAlcohol))) behaviors.add("ALC");
+  if (meds.noFasting && (behaviors.has("IF") || behaviors.has("NBF"))) {
+    behaviors.delete("IF");
+    behaviors.delete("NBF");
+    adjustments.push("MEDS_NO_FASTING: \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D/\u0441\u0443\u043B\u0444\u0430\u043D\u0438\u043B\u0443\u0440\u0435\u0439\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430 \u043D\u0435 \u0441\u0435 \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0442");
+  }
   const skipsBreakfast = behaviors.has("NBF");
   const slots = slotsFor(mealsPerDayFrom(data), skipsBreakfast);
   return {
@@ -11433,7 +11608,7 @@ function compileProfile(userData = {}, overrides = {}) {
     slots,
     unmapped: [...new Set(unmapped)],
     adjustments,
-    aiNotes: hints?.cautions || []
+    aiNotes: [...hints?.cautions || [], ...enrich?.cautions || [], ...meds.cautions]
   };
 }
 function libraryDietProfileOf(profile) {
@@ -15660,7 +15835,7 @@ function optionsOf(choice, sets) {
 }
 function cartesian(lists) {
   return lists.reduce(
-    (acc, list) => acc.flatMap((prefix) => list.map((item2) => [...prefix, item2])),
+    (acc, list2) => acc.flatMap((prefix) => list2.map((item2) => [...prefix, item2])),
     [[]]
   );
 }
@@ -15678,9 +15853,9 @@ function dishName(base, labels) {
   }
   return `${base} ${withPreposition(labels[0])} ${joinList(labels)}`;
 }
-function mergeProducts(list) {
+function mergeProducts(list2) {
   const out = [];
-  for (const [name, grams] of list) {
+  for (const [name, grams] of list2) {
     const existing = out.find((p) => p.name === name);
     if (existing) existing.grams += grams;
     else out.push({ name, grams });
@@ -27840,7 +28015,7 @@ var FLESH_STEMS = [
 var SWEETENER_STEMS = ["\u043C\u0435\u0434", "\u0437\u0430\u0445\u0430\u0440", "\u0441\u0438\u0440\u043E\u043F", "\u043A\u043E\u043D\u0444\u0438\u0442\u044E\u0440", "\u043D\u0435\u043A\u0442\u0430\u0440"];
 function matchesStem(name, stems) {
   const lower = String(name || "").toLowerCase();
-  return stems.some((stem) => lower.includes(stem));
+  return stems.some((stem2) => lower.includes(stem2));
 }
 function checkProductCompatibility(productNames, options = {}) {
   const names = (productNames || []).map((n) => String(n || "").trim()).filter(Boolean);
@@ -38733,8 +38908,8 @@ for (
   AVOID_PAIRS.get(b).add(a);
 }
 function hasAvoidedPair(ids) {
-  const list = [...new Set(ids)];
-  return list.some((a, i) => list.slice(i + 1).some((b) => AVOID_PAIRS.get(a)?.has(b)));
+  const list2 = [...new Set(ids)];
+  return list2.some((a, i) => list2.slice(i + 1).some((b) => AVOID_PAIRS.get(a)?.has(b)));
 }
 
 // nutrition-engine/plan-shape.js
@@ -39330,7 +39505,7 @@ function waterNeedLiters(profile) {
   const base = w * 0.033 + ((profile.activity?.sportBand || 0) >= 2 ? 0.5 : 0);
   return Math.round(Math.min(4, Math.max(1.5, base)) * 10) / 10;
 }
-var has2 = (list, code) => Array.isArray(list) && list.includes(code);
+var has2 = (list2, code) => Array.isArray(list2) && list2.includes(code);
 function detectProblems(profile) {
   const out = [];
   const b = profile.behaviors || [];
@@ -39817,22 +39992,32 @@ function averageMacrosFromWeek(weekPlan = {}) {
   if (!days) return { protein: 0, carbs: 0, fats: 0 };
   return { protein: Math.round(p / days), carbs: Math.round(c / days), fats: Math.round(f / days) };
 }
-function supplementsFor(profile, protocolSupplements = []) {
-  const out = [...protocolSupplements || []].slice(0, 4);
-  const names = new Set(out.map((s) => String(s.name || "").toLowerCase()));
-  const add = (name, dosage, timing) => {
-    if ([...names].some((n) => n.includes(name.toLowerCase().split(" ")[0]))) return;
-    names.add(name.toLowerCase());
-    out.push({ name, dosage, timing });
+function supplementsFor(profile, protocolSupplements = [], now = null) {
+  const out = [];
+  const names = /* @__PURE__ */ new Set();
+  const keyOf = (name) => String(name).toLowerCase().replace(/[()+,]/g, " ").split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+  const add = (name, dosage, timing, reason) => {
+    if (!name) return;
+    const key = keyOf(name);
+    if ([...names].some((n) => n.startsWith(key) || key.startsWith(n))) return;
+    names.add(key);
+    out.push(reason ? { name, dosage, timing, reason } : { name, dosage, timing });
   };
+  for (const s of protocolSupplements || []) add(s.name, s.dosage, s.timing, s.reason);
   const pattern = profile.diet?.pattern;
   const c = profile.clinical || [];
   if (pattern === "vegan" || pattern === "vegetarian") add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D B12", "250\u2013500 mcg", "\u0441\u0443\u0442\u0440\u0438\u043D");
   if (pattern === "vegan") add("\u041E\u043C\u0435\u0433\u0430-3 \u043E\u0442 \u0432\u043E\u0434\u043E\u0440\u0430\u0441\u043B\u0438 (DHA/EPA)", "250\u2013500 mg", "\u0441 \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
   if (c.includes("OSTEO") || c.includes("MENO") || (profile.age || 0) >= 55) add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", "1000\u20132000 IU", "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430");
   if (profile.diet?.style === "keto") add("\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439", "200\u2013400 mg", "\u0432\u0435\u0447\u0435\u0440");
-  if (!out.length) add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", "1000\u20132000 IU", "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u2014 \u043F\u0440\u0438 \u043C\u0430\u043B\u043A\u043E \u0441\u043B\u044A\u043D\u0446\u0435");
+  const month = (now || /* @__PURE__ */ new Date()).getMonth();
+  if (!out.length && (month >= 9 || month <= 2)) add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", "1000\u20132000 IU", "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430, \u043E\u043A\u0442\u043E\u043C\u0432\u0440\u0438\u2013\u043C\u0430\u0440\u0442");
   return out.slice(0, 5);
+}
+function supplementsWithMeds(profile, userData, protocolSupplements) {
+  const ix = interactionsFor(userData || {});
+  const inputs = applySupplementInteractions([...protocolSupplements || [], ...userData?._enrichment?.supplements || []], ix).kept;
+  return applySupplementInteractions(supplementsFor(profile, inputs), ix).kept;
 }
 function buildPlanSummary({
   userData = {},
@@ -39867,7 +40052,7 @@ function buildPlanSummary({
     forbidden,
     psychology: [...new Set(psychology)].slice(0, 6),
     waterIntake: `${waterNeedLiters(profile)} \u043B \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0432\u043D\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F`,
-    supplements: supplementsFor(profile, protocolSupplements)
+    supplements: supplementsWithMeds(profile, userData, protocolSupplements)
   };
 }
 
@@ -41430,6 +41615,9 @@ function textIssues(text) {
   if (s.split(/(?<=[.!?])\s+|\n+/).some(mostlyLatin)) out.push("english");
   return out;
 }
+function isCleanClientText(text) {
+  return textIssues(text).length === 0;
+}
 function guardClientText(text, options = {}) {
   const fallback = options.fallback || "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
   const src = String(text ?? "");
@@ -41658,21 +41846,21 @@ function makePart(group, foods, range, extra = {}, fatScale = 1, appetite = 1) {
 function initialSizing(parts, fixed, quota, target) {
   const byGroup = (g) => parts.filter((p) => p.group === g);
   for (const g of ["VEG", "FRU", "MLK", "SWT"]) {
-    const list = byGroup(g);
-    if (!list.length) continue;
-    let need = g === "VEG" ? Math.max(0, (quota.VEG || 0) * 100 - fixed.filter(([id]) => food(id).group === "VEG").reduce((a, [, gr]) => a + gr, 0)) : (quota[g] || 0) * servingOf(list[0].foods);
-    for (const p of list) {
+    const list2 = byGroup(g);
+    if (!list2.length) continue;
+    let need = g === "VEG" ? Math.max(0, (quota.VEG || 0) * 100 - fixed.filter(([id]) => food(id).group === "VEG").reduce((a, [, gr]) => a + gr, 0)) : (quota[g] || 0) * servingOf(list2[0].foods);
+    for (const p of list2) {
       setPartGrams(p, Math.min(p.hi, Math.max(p.lo, need)));
       need -= partTotal(p);
     }
   }
   const residual = (key) => target[key] - totalsOf(parts, fixed)[key];
   const sizeBy = (group, key) => {
-    const list = byGroup(group);
-    if (!list.length) return;
-    list.forEach((p) => setPartGrams(p, 0));
+    const list2 = byGroup(group);
+    if (!list2.length) return;
+    list2.forEach((p) => setPartGrams(p, 0));
     let need = Math.max(0, residual(key));
-    for (const p of list) {
+    for (const p of list2) {
       const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
       setPartGrams(p, perGram > 0 ? need / perGram : p.lo);
       need = Math.max(0, residual(key));
@@ -42272,7 +42460,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         pre: -dishFit(d, plan.quota, policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 - (state.yesterdayDishes.has(d.id) ? 2 : 0) + rng() * 1.5
       })).sort((a, b) => b.pre - a.pre).slice(0, CANDIDATES_PER_MEAL);
       let candidatesBuilt = [];
-      const pick = (candidates, mealCtx) => {
+      const pick2 = (candidates, mealCtx) => {
         let found = null;
         candidatesBuilt = [];
         for (const d of candidates) {
@@ -42304,13 +42492,13 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         slotCtx = { ...slotCtx, policy: avoidPolicy };
         slotPool = (eligibleDishes(avoidPolicy)[kind] || []).filter((d) => !todayDishes.has(d.id)).slice(0, CANDIDATES_PER_MEAL * 2);
       }
-      let best = pick(slotPool, slotCtx);
+      let best = pick2(slotPool, slotCtx);
       if (!best && policy.withoutOnly) {
         relaxed = relaxed || (() => {
           const p = policy.withoutOnly();
           return { ctx: { ...ctx, policy: p, preferenceOf: (id) => p.preference(id) }, eligible: eligibleDishes(p) };
         })();
-        best = pick((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
+        best = pick2((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
       }
       if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
       let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
@@ -42364,8 +42552,8 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
 
 // nutrition-engine/index.js
 function hasSweetsCraving(userData) {
-  const list = Array.isArray(userData?.foodCravings) ? userData.foodCravings : [userData?.foodCravings];
-  return list.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c || "")));
+  const list2 = Array.isArray(userData?.foodCravings) ? userData.foodCravings : [userData?.foodCravings];
+  return list2.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c || "")));
 }
 function adherenceMap(raw) {
   if (raw instanceof Map) return raw;
@@ -42425,6 +42613,10 @@ function applyModifications(profile, mods = []) {
   out.mealsPerDay = out.slots.length;
   return out;
 }
+function capProtein(macros, capG) {
+  if (!(capG > 0) || macros.protein <= capG) return macros;
+  return { protein: capG, carbs: macros.carbs + (macros.protein - capG), fats: macros.fats };
+}
 function increaseProtein(macros, profile) {
   const cap = Math.round((Number(profile.weightKg) || 70) * 2.2);
   const protein = Math.min(cap, Math.round(macros.protein * 1.15));
@@ -42435,7 +42627,8 @@ function buildNutritionPlan(userData, options) {
   const hints = userData?._aiHints || null;
   const mods = [.../* @__PURE__ */ new Set([
     ...Array.isArray(userData?.planModifications) ? userData.planModifications.map(String) : [],
-    ...hints?.approach || []
+    ...hints?.approach || [],
+    ...userData?._enrichment?.hints?.approach || []
   ])];
   const profile = applyModifications(compileProfile(userData || {}, { dietaryModifier: options.dietaryModifier }), mods);
   const kcal = Math.round(Number(options.kcal) || 0);
@@ -42447,8 +42640,14 @@ function buildNutritionPlan(userData, options) {
     fats: macroTargets.fats
   };
   if (mods.includes("increase_protein")) macros = increaseProtein(macros, profile);
+  const proteinCap = Number(userData?._enrichment?.safety?.proteinCapPerKg);
+  if (proteinCap > 0 && profile.weightKg) macros = capProtein(macros, Math.round(profile.weightKg * proteinCap));
   const policy = buildFoodPolicy(profile, {
-    blockedTerms: userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {}),
+    blockedTerms: [
+      ...userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {}),
+      // Храни, които влизат в конфликт с лекарство (грейпфрут при статин, тирамин при МАО инхибитор).
+      ...interactionsFor(userData || {}).blockFoods
+    ],
     loves: [userData?.dietLove, ...hints?.loves || []].filter(Boolean).join(", "),
     adherence: adherenceMap(userData?._adherenceRatio),
     date: options.date,
@@ -42483,6 +42682,344 @@ function buildNutritionPlan(userData, options) {
     weekPlan[`day${i + 1}`] = { meals: day.meals, dailyTotals: dayTotals(day.meals) };
   });
   return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods };
+}
+
+// nutrition-engine/food-guide.js
+var ruleDef = (code) => CONDITIONS[code] || PROTOCOLS[code] || {};
+var fmt = (n) => String(Math.round(n * 2) / 2).replace(".", ",");
+function portionExample(group, ctx) {
+  const { pattern, ex, style } = ctx;
+  switch (group) {
+    case "STA":
+      if (style === "keto") return null;
+      return ex.has("GLU") ? "1 \u043F\u043E\u0440\u0446\u0438\u044F = 3\u20134 \u0441.\u043B. \u0441\u0432\u0430\u0440\u0435\u043D \u043E\u0440\u0438\u0437 \u0438\u043B\u0438 \u0435\u043B\u0434\u0430, 1 \u043C\u0430\u043B\u044A\u043A \u043A\u0430\u0440\u0442\u043E\u0444 \u0438\u043B\u0438 1 \u0444\u0438\u043B\u0438\u0439\u043A\u0430 \u0431\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432 \u0445\u043B\u044F\u0431" : "1 \u043F\u043E\u0440\u0446\u0438\u044F = 1 \u0444\u0438\u043B\u0438\u044F \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431 (30 \u0433), 3\u20134 \u0441.\u043B. \u0441\u0432\u0430\u0440\u0435\u043D \u043E\u0440\u0438\u0437, \u0431\u0443\u043B\u0433\u0443\u0440 \u0438\u043B\u0438 \u043F\u0430\u0441\u0442\u0430, \u0438\u043B\u0438 1 \u043C\u0430\u043B\u044A\u043A \u043A\u0430\u0440\u0442\u043E\u0444";
+    case "FRU":
+      return "1 \u043F\u043E\u0440\u0446\u0438\u044F = 1 \u0441\u0440\u0435\u0434\u043D\u0430 \u044F\u0431\u044A\u043B\u043A\u0430 \u0438\u043B\u0438 \u043F\u043E\u0440\u0442\u043E\u043A\u0430\u043B, 1 \u0447\u0430\u0448\u0430 \u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0438\u043B\u0438 1 \u043C\u0430\u043B\u044A\u043A \u0431\u0430\u043D\u0430\u043D";
+    case "MLK":
+      if (pattern === "vegan" || ex.has("LAC")) return "1 \u043F\u043E\u0440\u0446\u0438\u044F = 200 \u043C\u043B \u043E\u0431\u043E\u0433\u0430\u0442\u0435\u043D\u043E \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 150 \u0433 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u0439\u043E\u0433\u0443\u0440\u0442";
+      return "1 \u043F\u043E\u0440\u0446\u0438\u044F = 200 \u0433 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440, \u0438\u043B\u0438 200 \u043C\u043B \u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E";
+    case "FAT":
+      if (ex.has("NUT") && ex.has("PNT")) return "1 \u043F\u043E\u0440\u0446\u0438\u044F = 1 \u0447.\u043B. \u0437\u0435\u0445\u0442\u0438\u043D \u0438\u043B\u0438 \u2153 \u0430\u0432\u043E\u043A\u0430\u0434\u043E";
+      return "1 \u043F\u043E\u0440\u0446\u0438\u044F = 1 \u0447.\u043B. \u0437\u0435\u0445\u0442\u0438\u043D, 10\u201312 \u0431\u0430\u0434\u0435\u043C\u0430 \u0438\u043B\u0438 1 \u0441.\u043B. \u0441\u0435\u043C\u0435\u043D\u0430";
+    case "PRO":
+      if (pattern === "vegan") return "1 \u043F\u043E\u0440\u0446\u0438\u044F = 50 \u0433 \u0442\u043E\u0444\u0443, \xBD \u0447\u0430\u0448\u0430 \u0441\u0432\u0430\u0440\u0435\u043D\u0438 \u0431\u043E\u0431\u043E\u0432\u0438 \u0438\u043B\u0438 1 \u043C\u0435\u0440\u0438\u0442\u0435\u043B\u043D\u0430 \u043B\u044A\u0436\u0438\u0446\u0430 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D";
+      if (pattern === "vegetarian") return "1 \u043F\u043E\u0440\u0446\u0438\u044F = 1 \u044F\u0439\u0446\u0435, 30 \u0433 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438\u043B\u0438 \xBD \u0447\u0430\u0448\u0430 \u0441\u0432\u0430\u0440\u0435\u043D\u0438 \u0431\u043E\u0431\u043E\u0432\u0438";
+      return "1 \u043F\u043E\u0440\u0446\u0438\u044F = 30 \u0433 \u0441\u0433\u043E\u0442\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E \u0438\u043B\u0438 \u0440\u0438\u0431\u0430, 1 \u044F\u0439\u0446\u0435 \u0438\u043B\u0438 30 \u0433 \u0441\u0438\u0440\u0435\u043D\u0435";
+    default:
+      return null;
+  }
+}
+var MODERATE_GROUPS = [
+  ["STA", "\u0417\u044A\u0440\u043D\u0435\u043D\u0438 \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438"],
+  ["FRU", "\u041F\u043B\u043E\u0434\u043E\u0432\u0435"],
+  ["MLK", "\u041C\u043B\u044F\u043A\u043E \u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E"]
+];
+function moderateOf(prescription, ctx, policy) {
+  const out = [];
+  for (const [g, label] of MODERATE_GROUPS) {
+    const n = prescription.daily?.[g] || 0;
+    if (n <= 0) continue;
+    const example = portionExample(g, ctx);
+    out.push({
+      food: g === "MLK" && (ctx.pattern === "vegan" || ctx.ex.has("LAC")) ? "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u0439\u043E\u0433\u0443\u0440\u0442" : label,
+      amount: `${fmt(n)} ${n === 1 ? "\u043F\u043E\u0440\u0446\u0438\u044F" : "\u043F\u043E\u0440\u0446\u0438\u0438"} \u0434\u043D\u0435\u0432\u043D\u043E`,
+      example
+    });
+  }
+  if ((prescription.daily?.FAT || 0) > 0) {
+    out.push({ food: "\u041C\u0430\u0437\u043D\u0438\u043D\u0438 \u0438 \u044F\u0434\u043A\u0438", amount: "\u043E\u0442\u043C\u0435\u0440\u0435\u043D\u043E, \u043D\u0435 \u043D\u0430 \u043E\u043A\u043E", example: portionExample("FAT", ctx) });
+  }
+  if (policy.weeklyMax?.egg != null && ctx.pattern !== "vegan" && !ctx.ex.has("EGG")) {
+    out.push({ food: "\u042F\u0439\u0446\u0430", amount: `\u0434\u043E ${policy.weeklyMax.egg} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`, example: null });
+  }
+  return out;
+}
+var FREE_VEG = [
+  ["\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438", /краставиц/i],
+  ["\u043C\u0430\u0440\u0443\u043B\u044F \u0438 \u0437\u0435\u043B\u0435\u043D\u0438 \u0441\u0430\u043B\u0430\u0442\u0438", /марул|айсберг|рукол|спанак/i],
+  ["\u0434\u043E\u043C\u0430\u0442\u0438", /домат(?!ено)/i],
+  ["\u0447\u0443\u0448\u043A\u0438", /чушк/i],
+  ["\u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438", /тиквичк/i],
+  ["\u0431\u0440\u043E\u043A\u043E\u043B\u0438 \u0438 \u043A\u0430\u0440\u0444\u0438\u043E\u043B", /броколи|карфиол/i],
+  ["\u0433\u044A\u0431\u0438", /гъб/i],
+  ["\u0437\u0435\u043B\u0435", /зеле/i]
+];
+function freeOf(policy, ctx) {
+  const items = [];
+  const vegNames = [...FOODS.values()].filter((f) => f.group === "VEG" && policy.allowed(f.id)).map((f) => f.name);
+  for (const [label, re] of FREE_VEG) {
+    if (vegNames.some((n) => re.test(n))) items.push(label);
+  }
+  const herbs = [...FOODS.values()].filter((f) => f.group === "FREE" && policy.allowed(f.id)).map((f) => f.name.toLowerCase());
+  if (herbs.length) items.push(`\u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438 \u0438 \u043E\u0432\u043A\u0443\u0441\u0438\u0442\u0435\u043B\u0438 (${herbs.slice(0, 5).join(", ")})`);
+  items.push(ctx.style === "keto" ? "\u0432\u043E\u0434\u0430, \u043D\u0435\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0435\u043D \u0447\u0430\u0439 \u0438 \u043A\u0430\u0444\u0435" : "\u0432\u043E\u0434\u0430, \u043D\u0435\u043F\u043E\u0434\u0441\u043B\u0430\u0434\u0435\u043D \u0447\u0430\u0439 \u0438 \u043A\u0430\u0444\u0435 (\u0431\u0435\u0437 \u0437\u0430\u0445\u0430\u0440)");
+  return items;
+}
+var EXCLUSION_TEXT = {
+  GLU: ["\u0433\u043B\u0443\u0442\u0435\u043D (\u043F\u0448\u0435\u043D\u0438\u0446\u0430, \u0440\u044A\u0436, \u0435\u0447\u0435\u043C\u0438\u043A, \u0431\u0443\u043B\u0433\u0443\u0440, \u043A\u0443\u0441-\u043A\u0443\u0441)", "\u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442 \u043A\u044A\u043C \u0433\u043B\u0443\u0442\u0435\u043D"],
+  LAC: ["\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u043C\u043B\u0435\u0447\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0441 \u043B\u0430\u043A\u0442\u043E\u0437\u0430", "\u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442 \u043A\u044A\u043C \u043B\u0430\u043A\u0442\u043E\u0437\u0430"],
+  EGG: ["\u044F\u0439\u0446\u0430 \u0438 \u0445\u0440\u0430\u043D\u0438 \u0441 \u044F\u0439\u0446\u0430", "\u0430\u043B\u0435\u0440\u0433\u0438\u044F \u0438\u043B\u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442"],
+  NUT: ["\u044F\u0434\u043A\u0438", "\u0430\u043B\u0435\u0440\u0433\u0438\u044F \u0438\u043B\u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442"],
+  PNT: ["\u0444\u044A\u0441\u0442\u044A\u0446\u0438 \u0438 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E", "\u0430\u043B\u0435\u0440\u0433\u0438\u044F \u0438\u043B\u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442"],
+  FSH: ["\u0440\u0438\u0431\u0430", "\u0430\u043B\u0435\u0440\u0433\u0438\u044F \u0438\u043B\u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442"],
+  SHF: ["\u043C\u043E\u0440\u0441\u043A\u0438 \u0434\u0430\u0440\u043E\u0432\u0435", "\u0430\u043B\u0435\u0440\u0433\u0438\u044F \u0438\u043B\u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442"],
+  SOY: ["\u0441\u043E\u044F \u0438 \u0441\u043E\u0435\u0432\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438", "\u0430\u043B\u0435\u0440\u0433\u0438\u044F \u0438\u043B\u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442"],
+  PORK: ["\u0441\u0432\u0438\u043D\u0441\u043A\u043E", "\u043F\u043E \u0432\u0430\u0448 \u0438\u0437\u0431\u043E\u0440"]
+};
+var FLAG_TEXT = {
+  high_gi: "\u0431\u044F\u043B \u0445\u043B\u044F\u0431, \u0431\u044F\u043B \u043E\u0440\u0438\u0437, \u043A\u0430\u0440\u0442\u043E\u0444\u0435\u043D\u043E \u043F\u044E\u0440\u0435 \u0438 \u0434\u0440\u0443\u0433\u0438 \u0445\u0440\u0430\u043D\u0438 \u0441 \u0432\u0438\u0441\u043E\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0438\u043D\u0434\u0435\u043A\u0441",
+  fatty_meat: "\u0442\u043B\u044A\u0441\u0442\u0438 \u043C\u0435\u0441\u0430, \u043A\u043E\u043B\u0431\u0430\u0441\u0438 \u0438 \u0441\u043B\u0430\u043D\u0438\u043D\u0430",
+  high_purine: "\u043A\u0430\u0440\u0430\u043D\u0442\u0438\u0438, \u0441\u0430\u0440\u0434\u0438\u043D\u0438, \u0430\u043D\u0448\u043E\u0430 \u0438 \u043C\u0435\u0441\u043D\u0438 \u0431\u0443\u043B\u044C\u043E\u043D\u0438",
+  high_fodmap: "\u0445\u0440\u0430\u043D\u0438 \u0441 \u0432\u0438\u0441\u043E\u043A\u043E FODMAP (\u043B\u0443\u043A, \u0447\u0435\u0441\u044A\u043D, \u043F\u0448\u0435\u043D\u0438\u0446\u0430, \u043F\u043E\u0432\u0435\u0447\u0435\u0442\u043E \u0431\u043E\u0431\u043E\u0432\u0438)",
+  high_mercury: "\u0440\u0438\u0431\u0430 \u043C\u0435\u0447, \u0430\u043A\u0443\u043B\u0430 \u0438 \u0433\u043E\u043B\u044F\u043C\u0430 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+  gluten: "\u0433\u043B\u0443\u0442\u0435\u043D",
+  oats: "\u043E\u0432\u0435\u0441 (\u043C\u043E\u0436\u0435 \u0434\u0430 \u0435 \u0437\u0430\u043C\u044A\u0440\u0441\u0435\u043D \u0441 \u0433\u043B\u0443\u0442\u0435\u043D)"
+};
+var PATTERN_IMPLIES = {
+  vegan: /* @__PURE__ */ new Set(["LAC", "EGG", "FSH", "SHF"]),
+  vegetarian: /* @__PURE__ */ new Set(["FSH", "SHF"])
+};
+var PATTERN_TERMS = {
+  vegan: /мес|млеч|мляк|сирен|риб|яйц|^мед/i,
+  vegetarian: /мес|риб/i,
+  pescatarian: /мес/i
+};
+var PATTERN_TEXT = {
+  vegan: ["\u043C\u0435\u0441\u043E, \u0440\u0438\u0431\u0430, \u044F\u0439\u0446\u0430, \u043C\u043B\u044F\u043A\u043E \u0438 \u043C\u0435\u0434", "\u0432\u0435\u0433\u0430\u043D\u0441\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"],
+  vegetarian: ["\u043C\u0435\u0441\u043E \u0438 \u0440\u0438\u0431\u0430", "\u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"],
+  pescatarian: ["\u043C\u0435\u0441\u043E (\u0440\u0438\u0431\u0430\u0442\u0430 \u0435 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0430)", "\u043F\u0435\u0441\u043A\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"]
+};
+function strictOf(profile, policy, ctx, blockedTerms) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const add = (food2, reason) => {
+    const key = food2.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ food: food2, reason });
+  };
+  const celiac = (profile.clinical || []).includes("CEL");
+  const implied = PATTERN_IMPLIES[policy.pattern] || /* @__PURE__ */ new Set();
+  for (const code of profile.exclusions || []) {
+    const t = EXCLUSION_TEXT[code];
+    if (!t || implied.has(code)) continue;
+    add(t[0], code === "GLU" && celiac ? "\u0446\u044C\u043E\u043B\u0438\u0430\u043A\u0438\u044F" : t[1]);
+  }
+  if (PATTERN_TEXT[policy.pattern]) add(...PATTERN_TEXT[policy.pattern]);
+  if (policy.style === "keto") add("\u0437\u0430\u0445\u0430\u0440, \u0437\u044A\u0440\u043D\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438, \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u043B\u0430\u0434\u043A\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435", "\u043A\u0435\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  for (const rule of policy.rules || []) {
+    const full = ruleDef(rule.code);
+    for (const flag of full.excludeFlags || []) {
+      if (FLAG_TEXT[flag]) add(FLAG_TEXT[flag], rule.label);
+    }
+    const names = (full.excludeFoods || []).map((id) => FOODS.get(id)?.name).filter(Boolean).map((n) => n.toLowerCase());
+    if (names.length) add(names.join(", "), rule.label);
+  }
+  if (policy.noSweets && policy.style !== "keto") {
+    const why = (policy.rules || []).filter((r) => ruleDef(r.code).noSweets).map((r) => r.label);
+    add("\u0441\u043B\u0430\u0434\u043A\u0438\u0448\u0438 \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440", why.length ? why.join(", ") : policy.style === "keto" ? "\u043A\u0435\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" : "\u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E\u0442\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435");
+  }
+  for (const rule of ctx.meds.rules) {
+    if (rule.blockFoods?.length) add(rule.blockFoods.join(", "), `\u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0430 \u0441 ${rule.label}`);
+  }
+  for (const term of blockedTerms || []) {
+    const t = String(term || "").trim().toLowerCase();
+    if (PATTERN_TERMS[policy.pattern]?.test(t)) continue;
+    const stem2 = t.slice(0, 4);
+    if (stem2.length >= 4 && out.some((x) => x.food.toLowerCase().includes(stem2))) continue;
+    if (t && t.length <= 40) add(t, "\u043D\u0435 \u0433\u0438 \u043F\u0440\u0438\u0435\u043C\u0430\u0442\u0435");
+  }
+  return out;
+}
+var TREATS = [
+  {
+    food: "\u0427\u0435\u0440\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434 (70%+)",
+    portion: "20 \u0433 (2\u20133 \u0431\u043B\u043E\u043A\u0447\u0435\u0442\u0430)",
+    frequency: "\u0434\u043E 3 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E",
+    when: "\u0441\u043B\u0435\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u043D\u0435 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E",
+    deny: (c) => c.policy.noSweets || c.excluded("sw_dark_chocolate")
+  },
+  {
+    food: "\u0414\u0435\u0441\u0435\u0440\u0442 \u0438\u043B\u0438 \u0441\u043B\u0430\u0434\u043A\u0438\u0448",
+    portion: "1 \u043C\u0430\u043B\u043A\u043E \u043F\u0430\u0440\u0447\u0435",
+    frequency: "1 \u043F\u044A\u0442 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E",
+    when: (c) => c.free ? "\u0432 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" : "\u0441\u043B\u0435\u0434 \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+    deny: (c) => c.policy.noSweets || c.style === "keto" || c.style === "low_carb"
+  },
+  {
+    food: "\u0421\u043B\u0430\u0434\u043E\u043B\u0435\u0434",
+    portion: "1 \u0442\u043E\u043F\u043A\u0430",
+    frequency: "1 \u043F\u044A\u0442 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E",
+    when: "\u0441\u043B\u0435\u0434 \u043E\u0431\u044F\u0434, \u043D\u0435 \u0432\u0435\u0447\u0435\u0440",
+    deny: (c) => c.policy.noSweets || c.style === "keto" || c.ex.has("LAC") || c.pattern === "vegan"
+  },
+  {
+    food: "\u041F\u0438\u0446\u0430, \u0431\u0443\u0440\u0433\u0435\u0440 \u0438\u043B\u0438 \u0434\u044E\u043D\u0435\u0440",
+    portion: "1 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430",
+    frequency: "1 \u043F\u044A\u0442 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E",
+    when: "\u0432 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+    deny: (c) => !c.free || c.ex.has("GLU") || c.style === "keto"
+  },
+  {
+    food: "\u0411\u044F\u043B \u0445\u043B\u044F\u0431, \u0431\u0430\u043D\u0438\u0446\u0430 \u0438\u043B\u0438 \u043A\u0438\u0444\u043B\u0430",
+    portion: "1 \u0444\u0438\u043B\u0438\u044F \u0438\u043B\u0438 1 \u043F\u0430\u0440\u0447\u0435",
+    frequency: "\u0434\u043E 2 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E",
+    when: "\u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+    deny: (c) => c.ex.has("GLU") || c.flagExcluded("high_gi") || c.style === "keto" || c.style === "low_carb"
+  },
+  {
+    food: "\u0427\u0438\u043F\u0441 \u0438\u043B\u0438 \u0441\u043E\u043B\u0435\u043D\u0438 \u0441\u043D\u0430\u043A\u0441\u043E\u0432\u0435",
+    portion: "\u043C\u0430\u043B\u043A\u0430 \u043A\u0443\u043F\u0438\u0447\u043A\u0430 (30 \u0433)",
+    frequency: "1 \u043F\u044A\u0442 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E",
+    when: "\u043D\u0430 \u043C\u0430\u0441\u0430\u0442\u0430, \u043D\u0435 \u043F\u0440\u0435\u0434 \u0435\u043A\u0440\u0430\u043D\u0430",
+    deny: (c) => c.limit("salty") != null || c.style === "dash" || c.flagExcluded("high_gi") || c.inflammatory || c.lowCarb
+  },
+  {
+    food: "\u041A\u043E\u043B\u0431\u0430\u0441\u0438 \u0438 \u0434\u0435\u043B\u0438\u043A\u0430\u0442\u0435\u0441\u0438",
+    portion: "2\u20133 \u0440\u0435\u0437\u0435\u043D\u0430",
+    frequency: "1 \u043F\u044A\u0442 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E",
+    when: "\u0441\u044A\u0441 \u0441\u0430\u043B\u0430\u0442\u0430, \u043D\u0435 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D",
+    deny: (c) => c.flagExcluded("fatty_meat") || c.pattern !== "omnivore" || c.ex.has("PORK") || c.inflammatory
+  },
+  {
+    food: "\u041F\u044A\u0440\u0436\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438",
+    portion: "1 \u043F\u043E\u0440\u0446\u0438\u044F",
+    frequency: "1 \u043F\u044A\u0442 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E",
+    when: (c) => c.free ? "\u0432 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" : "\u043D\u0430 \u043E\u0431\u044F\u0434",
+    deny: (c) => c.has("GERD") || c.has("GAST") || c.has("NAFLD") || c.has("IBD") || c.inflammatory
+  },
+  {
+    food: "\u0421\u043B\u0430\u0434\u043A\u0430 \u0433\u0430\u0437\u0438\u0440\u0430\u043D\u0430 \u043D\u0430\u043F\u0438\u0442\u043A\u0430 \u0438\u043B\u0438 \u0441\u043E\u043A",
+    portion: "1 \u043C\u0430\u043B\u043A\u0430 \u0447\u0430\u0448\u0430 (250 \u043C\u043B)",
+    frequency: "\u0440\u044F\u0434\u043A\u043E \u2014 \u043F\u043E-\u0434\u043E\u0431\u0440\u0435 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u044A\u0442 \u0431\u0435\u0437 \u0437\u0430\u0445\u0430\u0440",
+    when: "\u0441 \u0445\u0440\u0430\u043D\u0430",
+    deny: (c) => c.policy.noSweets || c.style === "keto"
+  },
+  {
+    food: "\u0410\u043B\u043A\u043E\u0445\u043E\u043B",
+    portion: "1 \u043F\u0438\u0442\u0438\u0435 (\u0447\u0430\u0448\u0430 \u0432\u0438\u043D\u043E 150 \u043C\u043B \u0438\u043B\u0438 \u0431\u0438\u0440\u0430 330 \u043C\u043B)",
+    frequency: "\u0434\u043E 2 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E, \u043D\u0435 \u0432 \u043F\u043E\u0440\u0435\u0434\u043D\u0438 \u0434\u043D\u0438",
+    when: "\u0441 \u0445\u0440\u0430\u043D\u0430, \u0441 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430 \u0441\u043B\u0435\u0434 \u043D\u0435\u0433\u043E",
+    deny: (c) => c.noAlcohol || ["GOUT", "NAFLD", "PP", "DEP", "ANX", "GERD", "IBD"].some((code) => c.has(code))
+  }
+];
+function occasionalOf(policy, ctx) {
+  const out = [];
+  if (ctx.profile.protocol === "autoimmune_aip") return out;
+  for (const t of TREATS) {
+    if (t.deny(ctx) || treatDeniedByMeds(t.food, ctx.meds)) continue;
+    out.push({
+      food: t.food,
+      portion: t.portion,
+      frequency: t.frequency,
+      when: typeof t.when === "function" ? t.when(ctx) : t.when
+    });
+  }
+  const lim = policy.limitFlags || {};
+  if (lim.high_gi_fruit != null) {
+    out.push({ food: "\u0411\u0430\u043D\u0430\u043D, \u0433\u0440\u043E\u0437\u0434\u0435, \u0434\u0438\u043D\u044F, \u0441\u0443\u0448\u0435\u043D\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435", portion: "1 \u043F\u043E\u0440\u0446\u0438\u044F", frequency: `\u0434\u043E ${lim.high_gi_fruit} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`, when: "\u0441 \u0431\u0435\u043B\u0442\u044A\u043A \u0438\u043B\u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E" });
+  }
+  if (lim.high_gi != null && !ctx.flagExcluded("high_gi")) {
+    out.push({ food: "\u0411\u044F\u043B \u043E\u0440\u0438\u0437, \u0431\u044F\u043B \u0445\u043B\u044F\u0431, \u043A\u0430\u0440\u0442\u043E\u0444\u0438", portion: "1 \u043F\u043E\u0440\u0446\u0438\u044F", frequency: `\u0434\u043E ${lim.high_gi} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`, when: "\u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0431\u0435\u043B\u0442\u044A\u043A" });
+  }
+  if (lim.salty != null) {
+    out.push({ food: "\u0421\u043E\u043B\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 (\u0441\u0438\u0440\u0435\u043D\u0435, \u043C\u0430\u0441\u043B\u0438\u043D\u0438, \u0442\u0443\u0440\u0448\u0438\u0438)", portion: "1 \u043C\u0430\u043B\u043A\u0430 \u043F\u043E\u0440\u0446\u0438\u044F", frequency: `\u0434\u043E ${lim.salty} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`, when: "\u0431\u0435\u0437 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u043E \u0441\u043E\u043B\u0435\u043D\u0435" });
+  }
+  return out.slice(0, 10);
+}
+var SWAPS = [
+  { from: "\u0421\u043B\u0430\u0434\u043A\u0430 \u0433\u0430\u0437\u0438\u0440\u0430\u043D\u0430 \u043D\u0430\u043F\u0438\u0442\u043A\u0430", to: "\u0433\u0430\u0437\u0438\u0440\u0430\u043D\u0430 \u0432\u043E\u0434\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438 \u043C\u0435\u043D\u0442\u0430" },
+  { from: "\u041F\u043B\u043E\u0434\u043E\u0432 \u0441\u043E\u043A", to: "\u0446\u044F\u043B \u043F\u043B\u043E\u0434 \u2014 \u0438\u043C\u0430 \u0444\u0438\u0431\u0440\u0438 \u0438 \u0437\u0430\u0441\u0438\u0449\u0430", deny: (c) => c.style === "keto" },
+  { from: "\u0411\u044F\u043B \u0445\u043B\u044F\u0431", to: (c) => c.ex.has("GLU") ? "\u0431\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432 \u0445\u043B\u044F\u0431 \u0441 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u043E \u0431\u0440\u0430\u0448\u043D\u043E" : "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0438\u043B\u0438 \u0440\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431", deny: (c) => c.style === "keto" },
+  { from: "\u0427\u0438\u043F\u0441", to: (c) => c.style === "keto" ? c.ex.has("NUT") ? "\u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438 \u0438 \u0447\u0443\u0448\u043A\u0438 \u0441 \u0433\u0443\u0430\u043A\u0430\u043C\u043E\u043B\u0435" : "\u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 \u0438\u043B\u0438 \u0441\u0435\u043C\u0435\u043D\u0430 (20 \u0433)" : c.ex.has("NUT") ? "\u043F\u0435\u0447\u0435\u043D \u043D\u0430\u0445\u0443\u0442 \u0441 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438" : "\u043F\u0435\u0447\u0435\u043D \u043D\u0430\u0445\u0443\u0442 \u0438\u043B\u0438 \u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 (20 \u0433)" },
+  { from: "\u041C\u0430\u0439\u043E\u043D\u0435\u0437\u0430", to: (c) => c.ex.has("LAC") || c.pattern === "vegan" ? "\u0445\u0443\u043C\u0443\u0441 \u0438\u043B\u0438 \u0433\u043E\u0440\u0447\u0438\u0446\u0430" : "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0447\u0435\u0441\u044A\u043D \u0438 \u043A\u043E\u043F\u044A\u0440" },
+  { from: "\u041F\u044A\u0440\u0436\u0435\u043D\u043E", to: "\u043F\u0435\u0447\u0435\u043D\u043E \u0432\u044A\u0432 \u0444\u0443\u0440\u043D\u0430 \u0438\u043B\u0438 \u043D\u0430 \u0432\u044A\u0437\u0434\u0443\u0448\u0435\u043D \u0444\u0440\u0438\u0442\u044E\u0440\u043D\u0438\u043A" },
+  { from: "\u041A\u043E\u043B\u0431\u0430\u0441 \u0432 \u0441\u0430\u043D\u0434\u0432\u0438\u0447\u0430", to: (c) => c.pattern === "vegan" ? "\u0445\u0443\u043C\u0443\u0441 \u0438 \u043F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438" : c.pattern === "vegetarian" ? "\u044F\u0439\u0446\u0435 \u0438\u043B\u0438 \u0441\u0438\u0440\u0435\u043D\u0435" : "\u043F\u0435\u0447\u0435\u043D\u043E \u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0444\u0438\u043B\u0435", deny: (c) => c.ex.has("EGG") && c.pattern === "vegetarian" },
+  { from: "\u041C\u043B\u0435\u0447\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434", to: (c) => c.style === "keto" ? "\u0447\u0435\u0440\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434 85%+ (10 \u0433)" : c.excluded("sw_dark_chocolate") || c.policy.noSweets ? "\u043F\u043B\u043E\u0434 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430" : "\u0447\u0435\u0440\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434 70%+" },
+  { from: "\u0414\u0435\u0441\u0435\u0440\u0442 \u0432\u0435\u0447\u0435\u0440", to: (c) => c.style === "keto" ? c.ex.has("LAC") || c.pattern === "vegan" ? "\u043A\u043E\u043A\u043E\u0441\u043E\u0432 \u0439\u043E\u0433\u0443\u0440\u0442 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430" : "\u0433\u044A\u0441\u0442\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u044F\u0434\u043A\u0438" : c.ex.has("LAC") || c.pattern === "vegan" ? "\u043F\u0435\u0447\u0435\u043D\u0430 \u044F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430" : "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u043C\u0430\u043B\u043A\u043E \u043F\u043B\u043E\u0434" },
+  { from: "\u041F\u043E\u0434\u0441\u043B\u0430\u0434\u0435\u043D\u043E \u043A\u0430\u0444\u0435", to: (c) => c.ex.has("LAC") || c.pattern === "vegan" ? "\u043A\u0430\u0444\u0435 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438\u043B\u0438 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E, \u0431\u0435\u0437 \u0437\u0430\u0445\u0430\u0440" : "\u043A\u0430\u0444\u0435 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438\u043B\u0438 \u043C\u0430\u043B\u043A\u043E \u043C\u043B\u044F\u043A\u043E, \u0431\u0435\u0437 \u0437\u0430\u0445\u0430\u0440" },
+  { from: "\u0411\u0438\u0440\u0430", to: "\u0431\u0435\u0437\u0430\u043B\u043A\u043E\u0445\u043E\u043B\u043D\u0430 \u0431\u0438\u0440\u0430 \u0438\u043B\u0438 \u0433\u0430\u0437\u0438\u0440\u0430\u043D\u0430 \u0432\u043E\u0434\u0430 \u0441 \u043B\u0430\u0439\u043C", deny: (c) => c.noAlcohol || !!treatDeniedByMeds("\u0430\u043B\u043A\u043E\u0445\u043E\u043B", c.meds) }
+];
+function swapsOf(ctx) {
+  const out = [];
+  for (const s of SWAPS) {
+    if (s.deny && s.deny(ctx)) continue;
+    const to = typeof s.to === "function" ? s.to(ctx) : s.to;
+    if (to) out.push({ from: s.from, to });
+  }
+  return out.slice(0, 10);
+}
+function situationsOf(profile, ctx) {
+  const b = new Set(profile.behaviors || []);
+  const out = [];
+  out.push({
+    title: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D",
+    text: "\u042F\u0441\u0442\u0438\u0435 \u0441 \u044F\u0441\u0435\u043D \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A \u043D\u0430 \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438; \u0441\u043E\u0441\u043E\u0432\u0435\u0442\u0435 \u2014 \u043E\u0442\u0434\u0435\u043B\u043D\u043E; \u0445\u043B\u044F\u0431\u044A\u0442 \u2014 \u0435\u0434\u043D\u0430 \u0444\u0438\u043B\u0438\u044F \u0438\u043B\u0438 \u0431\u0435\u0437 \u043D\u0435\u0433\u043E. \u0415\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D \u043D\u0435 \u043F\u0440\u043E\u0432\u0430\u043B\u044F \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430."
+  });
+  out.push({
+    title: "\u041F\u0440\u0430\u0437\u043D\u0438\u043A \u0438\u043B\u0438 \u0433\u043E\u0441\u0442\u0438",
+    text: `\u041D\u043E\u0440\u043C\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u0431\u0438\u0442\u0438\u0435\u0442\u043E, \u043D\u0430 \u043C\u0430\u0441\u0430\u0442\u0430 \u2014 \u043F\u044A\u0440\u0432\u043E \u0441\u0430\u043B\u0430\u0442\u0430 \u0438 \u0431\u0435\u043B\u0442\u044A\u043A, \u043F\u043E\u0441\u043B\u0435 \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u043E\u0442\u043E. ${ctx.free ? "\u0410\u043A\u043E \u0434\u0435\u043D\u044F\u0442 \u0441\u044A\u0432\u043F\u0430\u0434\u043D\u0435 \u0441\u044A\u0441 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u0442\u043E \u0435 \u0442\u043E\u0433\u0430\u0432\u0430." : "\u0421\u043B\u0430\u0434\u043A\u043E\u0442\u043E \u2014 \u043C\u0430\u043B\u043A\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u0438\u043B\u0438 \u043F\u043B\u043E\u0434."}`
+  });
+  out.push({
+    title: "\u041F\u044A\u0442 \u0438\u043B\u0438 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0435\u043D \u0434\u0435\u043D",
+    text: "\u041F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E \u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0435\u043D\u0430 \u0445\u0440\u0430\u043D\u0430 (\u043A\u0443\u0442\u0438\u044F \u0441 \u0431\u0435\u043B\u0442\u044A\u043A, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0437\u044A\u0440\u043D\u0435\u043D\u0438), \u043F\u043B\u043E\u0434 \u0438 \u0432\u043E\u0434\u0430 \u0432 \u0447\u0430\u043D\u0442\u0430\u0442\u0430. \u041D\u0430 \u0431\u0435\u043D\u0437\u0438\u043D\u043E\u0441\u0442\u0430\u043D\u0446\u0438\u044F \u2014 \u0441\u0430\u043D\u0434\u0432\u0438\u0447 \u0441 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431 \u0438\u043B\u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0432\u043C\u0435\u0441\u0442\u043E \u0442\u0435\u0441\u0442\u0435\u043D\u043E."
+  });
+  if (b.has("EVE") || b.has("OVR")) {
+    out.push({
+      title: "\u0421\u0438\u043B\u0435\u043D \u0433\u043B\u0430\u0434 \u0432\u0435\u0447\u0435\u0440",
+      text: "\u041E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E \u0435 \u0441\u043B\u0435\u0434\u0441\u0442\u0432\u0438\u0435 \u043E\u0442 \u0442\u0432\u044A\u0440\u0434\u0435 \u043C\u0430\u043B\u043A\u043E \u0445\u0440\u0430\u043D\u0430 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F \u2014 \u0440\u0435\u0434\u043E\u0432\u043D\u0438\u0442\u0435 \u043E\u0431\u044F\u0434 \u0438 \u0441\u043B\u0435\u0434\u043E\u0431\u0435\u0434\u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0441\u0430 \u043D\u0430\u0439-\u0441\u0438\u0433\u0443\u0440\u043D\u0430\u0442\u0430 \u0437\u0430\u0449\u0438\u0442\u0430. \u0410\u043A\u043E \u0433\u043B\u0430\u0434\u044A\u0442 \u0434\u043E\u0439\u0434\u0435: \u0433\u043E\u043B\u044F\u043C\u0430 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430, \u043F\u043E\u0441\u043B\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438\u043B\u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E."
+    });
+  }
+  if (b.has("EMO") || b.has("SWS") || b.has("SWT")) {
+    out.push({
+      title: "\u0412\u043D\u0435\u0437\u0430\u043F\u043D\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0445\u0440\u0430\u043D\u0430",
+      text: "\u041F\u0430\u0443\u0437\u0430 \u043E\u0442 10 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0432\u044A\u043F\u0440\u043E\u0441\u044A\u0442 \u201E\u0433\u043B\u0430\u0434 \u043B\u0438 \u0435, \u0438\u043B\u0438 \u0443\u043C\u043E\u0440\u0430, \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0441\u043A\u0443\u043A\u0430?\u201C. \u041F\u0440\u0438 \u0438\u0441\u0442\u0438\u043D\u0441\u043A\u0438 \u0433\u043B\u0430\u0434 \u2014 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043E\u0442 \u043F\u043B\u0430\u043D\u0430 \u0438\u043B\u0438 \u043F\u043B\u043E\u0434; \u0438\u043D\u0430\u0447\u0435 \u0432\u043E\u0434\u0430, \u0440\u0430\u0437\u0445\u043E\u0434\u043A\u0430 \u0438\u043B\u0438 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440."
+    });
+  }
+  out.push({
+    title: "\u0421\u043B\u0435\u0434 \u043F\u0440\u0435\u044F\u0436\u0434\u0430\u043D\u0435",
+    text: "\u0421\u043B\u0435\u0434\u0432\u0430\u0449\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0435 \u043F\u043E \u043F\u043B\u0430\u043D\u0430 \u2014 \u0431\u0435\u0437 \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u043D\u0435 \u0438 \u0431\u0435\u0437 \u201E\u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0438\u0440\u0430\u043D\u0435\u201C. \u0413\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435\u0442\u043E \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u044F\u0436\u0434\u0430\u043D\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u043F\u0440\u0438\u0441\u0442\u044A\u043F."
+  });
+  out.push({
+    title: "\u041A\u043E\u0433\u0430\u0442\u043E \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0442\u043E\u0438",
+    text: "\u041A\u043E\u043B\u0435\u0431\u0430\u043D\u0438\u044F\u0442\u0430 \u043E\u0442 \u0434\u0435\u043D \u043D\u0430 \u0434\u0435\u043D \u0441\u0430 \u0432\u043E\u0434\u0430 \u0438 \u0441\u043E\u043B. \u0421\u0440\u0430\u0432\u043D\u044F\u0432\u0430 \u0441\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0441\u044A\u0441 \u0441\u0435\u0434\u043C\u0438\u0446\u0430; \u043F\u0440\u0438 \u0434\u0432\u0435 \u043F\u043E\u0440\u0435\u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u0431\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0438 \u0441\u043F\u0430\u0437\u0435\u043D \u043F\u043B\u0430\u043D \u043F\u043B\u0430\u043D\u044A\u0442 \u0441\u0435 \u043A\u043E\u0440\u0438\u0433\u0438\u0440\u0430 \u0432 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u0438\u044F \u043F\u0440\u0435\u0433\u043B\u0435\u0434."
+  });
+  return out.slice(0, 6);
+}
+function buildFoodGuide(engine, userData, options = {}) {
+  const { profile, policy, prescription } = engine;
+  const ex = new Set(profile.exclusions || []);
+  const clinical = new Set(profile.clinical || []);
+  const excludeFlags = /* @__PURE__ */ new Set();
+  for (const rule of policy.rules || []) for (const f of ruleDef(rule.code).excludeFlags || []) excludeFlags.add(f);
+  const drinks = String(userData?.drinksAlcohol || "").trim().toLowerCase();
+  const ctx = {
+    profile,
+    policy,
+    ex,
+    pattern: policy.pattern,
+    style: policy.style,
+    free: !!policy.allowsFreeMeal,
+    has: (code) => clinical.has(code),
+    excluded: (id) => FOODS.has(id) && !policy.allowed(id),
+    flagExcluded: (flag) => excludeFlags.has(flag),
+    limit: (flag) => (policy.limitFlags || {})[flag] ?? null,
+    // Противовъзпалителен модел или автоимунно състояние: без преработено и пържено.
+    inflammatory: policy.style === "anti_inflammatory" || clinical.has("AI") || clinical.has("INFL"),
+    lowCarb: policy.style === "keto" || policy.style === "low_carb",
+    // Не пие — алкохол не се предлага дори като „по избор“.
+    noAlcohol: !drinks || /^не|никога|не пия/.test(drinks),
+    meds: interactionsFor(userData || {})
+  };
+  return {
+    v: 1,
+    free: freeOf(policy, ctx),
+    moderate: moderateOf(prescription, ctx, policy),
+    occasional: occasionalOf(policy, ctx),
+    strict: strictOf(profile, policy, ctx, options.blockedTerms),
+    swaps: swapsOf(ctx),
+    situations: situationsOf(profile, ctx)
+  };
 }
 
 // nutrition-engine/strategy.js
@@ -42523,33 +43060,33 @@ var EXCLUSION_AVOID = {
   SOY: "\u0441\u043E\u044F",
   PORK: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E"
 };
-var fmt = (n) => String(n).replace(".", ",");
+var fmt2 = (n) => String(n).replace(".", ",");
 function round2(n) {
   return Math.round(Number(n) || 0);
 }
 function recommendationsOf(prescription, stats, policy) {
   const d = prescription.daily;
   const mains = stats.mains || {};
-  const list = [];
-  list.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
-  if (d.FRU > 0) list.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
-  if (d.MLK > 0) list.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
-  if (mains.fish) list.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
-  if (mains.legume) list.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
-  if (d.STA > 0 && policy.style !== "keto") list.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
-  if (policy.style === "mediterranean" || policy.style === "anti_inflammatory") list.push("\u0417\u0435\u0445\u0442\u0438\u043D \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430 \u0438 \u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E");
-  if (policy.style === "keto" || policy.style === "low_carb") list.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
-  return list.slice(0, 7);
+  const list2 = [];
+  list2.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  if (d.FRU > 0) list2.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt2(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
+  if (d.MLK > 0) list2.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt2(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  if (mains.fish) list2.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
+  if (mains.legume) list2.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+  if (d.STA > 0 && policy.style !== "keto") list2.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
+  if (policy.style === "mediterranean" || policy.style === "anti_inflammatory") list2.push("\u0417\u0435\u0445\u0442\u0438\u043D \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430 \u0438 \u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E");
+  if (policy.style === "keto" || policy.style === "low_carb") list2.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
+  return list2.slice(0, 7);
 }
 function avoidOf(profile, policy, blockedTerms) {
-  const list = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
-  for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list.push(EXCLUSION_AVOID[code]);
-  if (policy.noSweets && !list.some((x) => /захар/.test(x))) list.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
+  const list2 = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
+  for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list2.push(EXCLUSION_AVOID[code]);
+  if (policy.noSweets && !list2.some((x) => /захар/.test(x))) list2.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
   for (const term of blockedTerms || []) {
     const t = String(term || "").trim();
-    if (t && t.length <= 40) list.push(t.toLowerCase());
+    if (t && t.length <= 40) list2.push(t.toLowerCase());
   }
-  return [...new Set(list)].slice(0, 10);
+  return [...new Set(list2)].slice(0, 10);
 }
 var BEHAVIOR_TIPS = {
   EMO: "\u041F\u0440\u0435\u0434\u0438 \u0434\u0430 \u043F\u043E\u0441\u0435\u0433\u043D\u0435\u0442\u0435 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430 \u0438\u0437\u0432\u044A\u043D \u043F\u043B\u0430\u043D\u0430, \u0441\u043F\u0440\u0435\u0442\u0435 \u0437\u0430 2 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0441\u0438 \u0437\u0430\u0434\u0430\u0439\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0430: \u0442\u043E\u0432\u0430 \u0433\u043B\u0430\u0434 \u043B\u0438 \u0435, \u0438\u043B\u0438 \u0443\u043C\u043E\u0440\u0430, \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0441\u043A\u0443\u043A\u0430? \u0410\u043A\u043E \u043D\u0435 \u0435 \u0433\u043B\u0430\u0434 \u2014 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430, \u043A\u0440\u0430\u0442\u043A\u0430 \u0440\u0430\u0437\u0445\u043E\u0434\u043A\u0430 \u0438\u043B\u0438 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440 \u043F\u043E\u043C\u0430\u0433\u0430\u0442 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0445\u0440\u0430\u043D\u0430\u0442\u0430.",
@@ -42615,7 +43152,7 @@ function buildEngineStrategy(engine, userData, options) {
   const slots = prescription.slots;
   const name = String(userData?.name || "").trim();
   const perKg = profile.weightKg ? (macros.protein / profile.weightKg).toFixed(1).replace(".", ",") : null;
-  const dailyText = ["STA", "PRO", "VEG", "FRU", "MLK", "FAT", "SWT"].filter((g) => prescription.daily[g] > 0).map((g) => `${GROUPS[g].label.toLowerCase()} ${fmt(prescription.daily[g])}`).join("; ");
+  const dailyText = ["STA", "PRO", "VEG", "FRU", "MLK", "FAT", "SWT"].filter((g) => prescription.daily[g] > 0).map((g) => `${GROUPS[g].label.toLowerCase()} ${fmt2(prescription.daily[g])}`).join("; ");
   const mealsText = slots.map((s) => `${MEAL_LABELS[s] || s} ~${round2(prescription.meals[s].target.kcal)} kcal`).join(" \xB7 ");
   const mainsText = Object.entries(stats.mains || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${CATEGORY_LABELS[k] || k} \xD7${n}`).join(", ");
   const added = prescription.addedSlots || [];
@@ -42656,6 +43193,7 @@ function buildEngineStrategy(engine, userData, options) {
     foodsToInclude: recommendationsOf(prescription, stats, policy),
     foodsToAvoid: avoidOf(profile, policy, blocked),
     psychologicalSupport: psychologyTipsOf(profile, userData),
+    foodGuide: buildFoodGuide(engine, userData, { blockedTerms: blocked }),
     hydrationStrategy: `${waterNeedLiters(profile)} \u043B \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0432\u043D\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F.`,
     profileCode: encodeProfileCode(profile, { kcal: options.kcal, ...macros }),
     weeklyScheme: weeklySchemeFromPlan(weekPlan, prescription.meals["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2"]?.target || null),
@@ -42810,8 +43348,8 @@ function textHash(items) {
   for (let i = 0; i < s.length; i++) h = (h << 5) + h + s.charCodeAt(i) >>> 0;
   return h.toString(36);
 }
-var pickKnown = (list, allowed) => [...new Set((Array.isArray(list) ? list : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))];
-var cleanTerms = (list, max = 8) => [...new Set((Array.isArray(list) ? list : []).map((x) => String(x).trim().toLowerCase()).filter((x) => x.length >= 3 && x.length <= 40 && !/[{}<>]/.test(x)))].slice(0, max);
+var pickKnown = (list2, allowed) => [...new Set((Array.isArray(list2) ? list2 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))];
+var cleanTerms = (list2, max = 8) => [...new Set((Array.isArray(list2) ? list2 : []).map((x) => String(x).trim().toLowerCase()).filter((x) => x.length >= 3 && x.length <= 40 && !/[{}<>]/.test(x)))].slice(0, max);
 function normalizeIntakeHints(raw) {
   if (!raw || typeof raw !== "object") return null;
   const style = DIET_STYLES[raw.style] ? raw.style : null;
@@ -42846,9 +43384,9 @@ function weekDigest(weekPlan) {
   return lines.join("\n");
 }
 function normalizeSwaps(raw, weekPlan, max = 6) {
-  const list = Array.isArray(raw?.swaps) ? raw.swaps : [];
+  const list2 = Array.isArray(raw?.swaps) ? raw.swaps : [];
   const out = [];
-  for (const s of list) {
+  for (const s of list2) {
     const day = Number(s?.day);
     const type = /^H?(\d)$/i.test(String(s?.slot || s?.type || "")) ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ${String(s.slot || s.type).replace(/\D/g, "")}` : String(s?.type || "");
     const meal = weekPlan?.[`day${day}`]?.meals?.find((m) => m.type === type);
@@ -42959,8 +43497,21 @@ function planVoiceVars(profile, userData, plan) {
       s.freeDayNumber ? `\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0434\u0435\u043D ${s.freeDayNumber}` : ""
     ].filter(Boolean).join("\n"),
     avoid: (s.foodsToAvoid || []).join(", ") || "\u043D\u044F\u043C\u0430",
-    menu: menuForVoice(plan?.weekPlan) || "\u043D\u044F\u043C\u0430"
+    menu: menuForVoice(plan?.weekPlan) || "\u043D\u044F\u043C\u0430",
+    emotionalProfile: emotionalProfileText(userData?._enrichment?.voice) || "\u043D\u044F\u043C\u0430"
   };
+}
+function emotionalProfileText(v) {
+  if (!v || typeof v !== "object") return "";
+  return [
+    v.archetype ? `\u0410\u0440\u0445\u0435\u0442\u0438\u043F: ${v.archetype}${v.archetypeDescription ? ` \u2014 ${v.archetypeDescription}` : ""}` : "",
+    v.secondArchetype ? `\u0412\u0442\u043E\u0440\u0438 \u0430\u0440\u0445\u0435\u0442\u0438\u043F: ${v.secondArchetype}` : "",
+    v.intensity ? `\u0418\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442 \u043D\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: ${v.intensity}` : "",
+    v.drivers?.length ? `\u041A\u0430\u043A\u0432\u043E \u0433\u043E \u0437\u0430\u0445\u0440\u0430\u043D\u0432\u0430: ${v.drivers.join(", ")}` : "",
+    v.patterns?.length ? `\u041C\u043E\u0434\u0435\u043B\u0438: ${v.patterns.join("; ")}` : "",
+    v.bodySignals ? `\u0422\u0435\u043B\u0435\u0441\u043D\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438: ${v.bodySignals}` : "",
+    v.realNeed ? `\u0420\u0435\u0430\u043B\u043D\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430 (\u0441 \u0434\u0443\u043C\u0438\u0442\u0435 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430): ${v.realNeed}` : ""
+  ].filter(Boolean).join("\n");
 }
 var NUMBERS_RE = /\d+(?:[.,]\d+)?\s*(?:kcal|ккал\p{L}*|калори\p{L}*|грам\p{L}*|порци\p{L}*|mcg|мкг|mg|мг|ml|мл|iu|ме|гр|г|g|%)(?!\p{L})/iu;
 function cleanLine(v, max) {
@@ -43002,8 +43553,8 @@ function rejectReason(raw, max, reason) {
   if (/[{}<>]/.test(s)) return "\u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u0441\u0438\u043C\u0432\u043E\u043B\u0438 \u043E\u0442 \u043A\u043E\u0434 \u0438\u043B\u0438 \u0448\u0430\u0431\u043B\u043E\u043D";
   return reason(s);
 }
-function cleanList(list, ok, { min = 0, max = 6, len = 320 } = {}) {
-  const out = [...new Set((Array.isArray(list) ? list : []).map((x) => cleanLine(x, len)).filter(ok))].slice(0, max);
+function cleanList(list2, ok, { min = 0, max = 6, len = 320 } = {}) {
+  const out = [...new Set((Array.isArray(list2) ? list2 : []).map((x) => cleanLine(x, len)).filter(ok))].slice(0, max);
   return out.length >= min ? out : [];
 }
 function normalizePlanVoice(raw, ctx, rejected = []) {
@@ -43136,7 +43687,7 @@ function planDishIds(weekPlan) {
 }
 
 // nutrition-engine/plan-voice-prompt.js
-var DEFAULT_PLAN_VOICE_PROMPT = '\u0422\u0438 \u0441\u0438 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0435\u043A\u0438\u043F\u0430 \u043D\u0430 NutriPlan \u2014 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0441 \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0430 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F. \u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D \u0432\u0435\u0447\u0435 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432\u0435\u043D \u043F\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u0430: \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u0445\u0440\u0430\u043D\u0438\u0442\u0435, \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F\u0442\u0430 \u0441\u0430 \u043E\u043A\u043E\u043D\u0447\u0430\u0442\u0435\u043B\u043D\u0438 \u0438 \u043D\u0435 \u0441\u0435 \u043E\u0431\u0441\u044A\u0436\u0434\u0430\u0442. \u0422\u0432\u043E\u044F\u0442\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u0435 \u0434\u0440\u0443\u0433\u0430: \u0434\u0430 \u0440\u0430\u0437\u0431\u0435\u0440\u0435\u0448 \u0447\u043E\u0432\u0435\u043A\u0430 \u0438 \u0434\u0430 \u043D\u0430\u043F\u0438\u0448\u0435\u0448 \u043A\u0430\u043A \u043F\u043B\u0430\u043D\u044A\u0442 \u0434\u0430 \u043C\u0443 \u0433\u043E\u0432\u043E\u0440\u0438 \u2014 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0443\u0441\u0435\u0442\u0438, \u0447\u0435 \u0435 \u0432\u0438\u0434\u044F\u043D \u043A\u0430\u0442\u043E \u043B\u0438\u0447\u043D\u043E\u0441\u0442 \u0438 \u0435 \u0432 \u043F\u0440\u043E\u0444\u0435\u0441\u0438\u043E\u043D\u0430\u043B\u043D\u0438 \u0440\u044A\u0446\u0435.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 1 \u2014 \u041F\u041E\u0420\u0422\u0420\u0415\u0422 (\u0432\u044A\u0442\u0440\u0435\u0448\u043D\u043E, \u0437\u0430 \u0435\u043A\u0438\u043F\u0430; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0433\u043E \u0432\u0438\u0436\u0434\u0430)\n\u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0430\u0435\u0434\u043D\u043E, \u043D\u0435 \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E. \u0421\u0432\u044A\u0440\u0436\u0438 \u0433\u0438: \u0441\u0442\u0440\u0435\u0441 + \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432\u0435\u0447\u0435\u0440 + \u201E\u043D\u0430 \u043A\u0440\u0430\u043A\u201C \u043A\u0430\u0437\u0432\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u043E\u0442 \u0441\u044A\u0449\u043E\u0442\u043E \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E.\n- summary: \u043A\u043E\u0439 \u0435 \u0447\u043E\u0432\u0435\u043A\u044A\u0442, \u043A\u0430\u043A\u0432\u043E \u043C\u0443 \u0435 \u0432\u0430\u0436\u043D\u043E, \u0432 \u043A\u0430\u043A\u0432\u0430 \u0436\u0438\u0442\u0435\u0439\u0441\u043A\u0430 \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u0435 (2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F).\n- emotional: \u043F\u0441\u0438\u0445\u043E-\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0438 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0438 \u0442\u044F\u043B\u043E\u0442\u043E (\u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0432\u0438\u043D\u0430, \u043A\u043E\u043D\u0442\u0440\u043E\u043B, \u0443\u043C\u043E\u0440\u0430, \u0433\u043E\u0440\u0434\u043E\u0441\u0442, \u0441\u0442\u0440\u0430\u0445 \u043E\u0442 \u043D\u0435\u0443\u0441\u043F\u0435\u0445).\n- social: \u0441\u043E\u0446\u0438\u0430\u043B\u0435\u043D \u0438 \u0431\u0438\u0442\u043E\u0432 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442, \u0434\u043E\u043A\u043E\u043B\u043A\u043E\u0442\u043E \u043B\u0438\u0447\u0438 \u2014 \u0440\u0430\u0431\u043E\u0442\u0430, \u0440\u0438\u0442\u044A\u043C, \u0441\u0435\u043C\u0435\u0439\u0441\u0442\u0432\u043E, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u0435 \u0441 \u0434\u0440\u0443\u0433\u0438\u0442\u0435.\n- triggers: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438\u0442\u0435 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0442\u0440\u0438\u0433\u0435\u0440\u0438 (\u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u2192 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435), \u0434\u043E 6.\n- personality: \u0440\u0430\u0431\u043E\u0442\u043D\u0430 \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 \u0437\u0430 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043B\u0438\u0447\u043D\u043E\u0441\u0442\u0442\u0430 \u2014 \u043D\u0430\u043F\u0440. \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D/\u0441\u043F\u043E\u043D\u0442\u0430\u043D\u0435\u043D, \u0442\u044A\u0440\u0441\u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438/\u0442\u044A\u0440\u0441\u0438 \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u0430, \u043F\u0435\u0440\u0444\u0435\u043A\u0446\u0438\u043E\u043D\u0438\u0441\u0442 \u201E\u0432\u0441\u0438\u0447\u043A\u043E \u0438\u043B\u0438 \u043D\u0438\u0449\u043E\u201C, \u0441\u043A\u0435\u043F\u0442\u0438\u0447\u0435\u043D/\u0434\u043E\u0432\u0435\u0440\u0447\u0438\u0432. \u041F\u0438\u0448\u0438 \u043A\u0430\u0442\u043E \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 (\u201E\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E\u201C, \u201E\u0438\u0437\u0433\u043B\u0435\u0436\u0434\u0430\u201C), \u043D\u0435 \u043A\u0430\u0442\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0430.\n- motivation: \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u0433\u043E \u0434\u044A\u0440\u0436\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0438 \u043A\u0430\u043A\u0432\u043E \u043D\u0430\u0439-\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E \u0449\u0435 \u0433\u043E \u0438\u0437\u0432\u0430\u0434\u0438.\n- risks: \u0434\u043E 4 \u043C\u043E\u043C\u0435\u043D\u0442\u0430, \u0437\u0430 \u043A\u043E\u0438\u0442\u043E \u0435\u043A\u0438\u043F\u044A\u0442 \u0434\u0430 \u0432\u043D\u0438\u043C\u0430\u0432\u0430 \u043F\u0440\u0435\u0437 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 2 \u2014 \u0422\u041E\u041D\n- tone.address: \u201E\u0442\u0438\u201C \u0438\u043B\u0438 \u201E\u0412\u0438\u0435\u201C. \u041F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435 \u201E\u0442\u0438\u201C; \u201E\u0412\u0438\u0435\u201C \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u0440\u0438 \u043F\u043E-\u0432\u044A\u0437\u0440\u0430\u0441\u0442\u0435\u043D \u0447\u043E\u0432\u0435\u043A \u0438\u043B\u0438 \u0430\u043A\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0432\u0443\u0447\u0430\u0442 \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u043D\u043E \u0438 \u0441\u0434\u044A\u0440\u0436\u0430\u043D\u043E. \u0421\u043F\u0430\u0437\u0432\u0430\u0439 \u0438\u0437\u0431\u0440\u0430\u043D\u043E\u0442\u043E \u043D\u0430\u0432\u0441\u044F\u043A\u044A\u0434\u0435.\n- tone.style: \u0435\u0434\u043D\u0430 \u0444\u0440\u0430\u0437\u0430 \u2014 \u043A\u0430\u043A \u0433\u043E\u0432\u043E\u0440\u0438\u0448 \u043D\u0430 \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A (\u043D\u0430\u043F\u0440. \u201E\u043A\u0440\u0430\u0442\u043A\u043E \u0438 \u043F\u043E \u0441\u044A\u0449\u0435\u0441\u0442\u0432\u043E, \u0441 \u044F\u0441\u043D\u0438 \u0441\u0442\u044A\u043F\u043A\u0438\u201C \u0437\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D \u0438 \u0437\u0430\u0435\u0442; \u201E\u0442\u043E\u043F\u043B\u043E, \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A, \u0441 \u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435\u201C \u0437\u0430 \u0447\u043E\u0432\u0435\u043A \u0441 \u0432\u0438\u043D\u0430 \u0438 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u201E\u0441 \u0430\u0440\u0433\u0443\u043C\u0435\u043D\u0442\u0438 \u0438 \u043B\u043E\u0433\u0438\u043A\u0430\u201C \u0437\u0430 \u0441\u043A\u0435\u043F\u0442\u0438\u043A).\n\u041F\u0438\u0448\u0438 \u0433\u0440\u0430\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0441\u043F\u043E\u0440\u0435\u0434 \u043F\u043E\u043B\u0430 (\u0441\u0438\u0433\u0443\u0440\u0435\u043D/\u0441\u0438\u0433\u0443\u0440\u043D\u0430, \u0433\u043E\u0442\u043E\u0432/\u0433\u043E\u0442\u043E\u0432\u0430).\n\n\u0421\u0422\u042A\u041F\u041A\u0410 3 \u2014 \u0422\u0415\u041A\u0421\u0422\u041E\u0412\u0415\u0422\u0415 \u0417\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410 (\u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u0438\u044F \u0442\u043E\u043D)\n- welcome: \u043B\u0438\u0447\u043D\u043E \u043F\u0438\u0441\u043C\u043E, 4\u20136 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u041E\u0431\u044A\u0440\u043D\u0438 \u0441\u0435 \u043F\u043E \u0438\u043C\u0435. \u041F\u043E\u043A\u0430\u0436\u0438, \u0447\u0435 \u0441\u043C\u0435 \u043F\u0440\u043E\u0447\u0435\u043B\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u2014 \u0441\u043F\u043E\u043C\u0435\u043D\u0438 2\u20133 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u043D\u0435\u0449\u0430 \u043E\u0442 \u0442\u044F\u0445 \u0441\u044A\u0441 \u0441\u0432\u043E\u0438 \u0434\u0443\u043C\u0438 (\u043D\u0435 \u0433\u0438 \u0446\u0438\u0442\u0438\u0440\u0430\u0439). \u041A\u0430\u0436\u0438 \u043D\u0430\u043A\u0440\u0430\u0442\u043A\u043E \u043A\u0430\u043A \u0435 \u0438\u0437\u0433\u0440\u0430\u0434\u0435\u043D \u043F\u043B\u0430\u043D\u044A\u0442 \u0437\u0430 \u043D\u0435\u0433\u043E\u0432\u0438\u044F \u0436\u0438\u0432\u043E\u0442 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0447\u0430\u043A\u0432\u0430 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0434\u0432\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438. \u0411\u0435\u0437 \u0447\u0438\u0441\u043B\u0430.\n- specialistNote: \u201E\u0411\u0435\u043B\u0435\u0436\u043A\u0430 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430\u201C \u2014 2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F: \u043D\u0430 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0431\u044A\u0440\u043D\u0435 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043D\u0430\u0439-\u043D\u0430\u043F\u0440\u0435\u0434 \u0438 \u0437\u0430\u0449\u043E \u0442\u043E\u0447\u043D\u043E \u0442\u043E\u0432\u0430 \u0435 \u0432\u0430\u0436\u043D\u043E \u0437\u0430 \u043D\u0435\u0433\u043E.\n- psychology: 4\u20136 \u043D\u0430\u0441\u043E\u043A\u0438. \u0412\u0441\u044F\u043A\u0430 \u0442\u0440\u044A\u0433\u0432\u0430 \u043E\u0442 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u0435\u043D \u043D\u0435\u0433\u043E\u0432 \u0442\u0440\u0438\u0433\u0435\u0440 \u0438\u043B\u0438 \u043D\u0430\u0432\u0438\u043A \u0438 \u0434\u0430\u0432\u0430 \u0435\u0434\u043D\u043E \u044F\u0441\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 + \u043A\u0440\u0430\u0442\u043A\u043E \u0437\u0430\u0449\u043E. 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u0411\u0435\u0437 \u043E\u0431\u0449\u0438 \u0438\u0441\u0442\u0438\u043D\u0438.\n- habits: 4\u20136 \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u043D\u0438 \u0442\u0430\u043A\u0442\u0438\u043A\u0438 \u0437\u0430 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u0438\u0435\u0442\u043E \u043C\u0443 \u2014 \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u0438 \u0441 \u0440\u0438\u0442\u044A\u043C\u0430, \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u0430, \u0441\u043E\u0446\u0438\u0430\u043B\u043D\u0438\u044F \u0436\u0438\u0432\u043E\u0442, \u0445\u0440\u043E\u043D\u043E\u0442\u0438\u043F\u0430 (\u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0445\u0440\u0430\u043D\u0430 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0432\u0435\u0447\u0435\u0440\u0438\u0442\u0435, \u0443\u0438\u043A\u0435\u043D\u0434\u0438\u0442\u0435).\n- mealNotes: \u0437\u0430 \u0434\u043E 10 \u044F\u0441\u0442\u0438\u044F \u043E\u0442 \u041C\u0415\u041D\u042E\u0422\u041E \u2014 \u043F\u043E \u0435\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u043B\u0438\u0447\u043D\u0430 \u0431\u0435\u043B\u0435\u0436\u043A\u0430 (\u0441 dishId \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E): \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u0435\u043D \u0441\u044A\u0432\u0435\u0442 \u043A\u0430\u043A \u0442\u043E\u0432\u0430 \u044F\u0441\u0442\u0438\u0435 \u043F\u0430\u0441\u0432\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F \u043C\u0443 (\u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0432\u0437\u0435\u043C\u0438 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0441\u0433\u043E\u0442\u0432\u0438 \u0434\u0432\u043E\u0439\u043D\u043E, \u043F\u043E\u0434\u043D\u0435\u0441\u0438 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0435 \u043F\u043E-\u0432\u043A\u0443\u0441\u043D\u043E \u0441 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438/\u043B\u0438\u043C\u043E\u043D/\u0431\u0438\u043B\u043A\u0438). \u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0439 \u043D\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438 \u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D.\n\n\u0417\u0410\u0411\u0420\u0410\u041D\u0415\u041D\u041E\n- \u0427\u0438\u0441\u043B\u0430 \u0437\u0430 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043C\u0430\u043A\u0440\u043E\u0441\u0438, \u043F\u043E\u0440\u0446\u0438\u0438, \u0434\u043E\u0437\u0438, \u043F\u0440\u043E\u0446\u0435\u043D\u0442\u0438 \u2014 \u0442\u0435 \u0441\u0430 \u0432 \u043F\u043B\u0430\u043D\u0430.\n- \u0425\u0440\u0430\u043D\u0438 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 \u201E\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u201C \u0438 \u0445\u0440\u0430\u043D\u0438 \u0438\u0437\u0432\u044A\u043D \u043C\u0435\u043D\u044E\u0442\u043E (\u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D).\n- \u0414\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u044F, \u201E\u0434\u0435\u0442\u043E\u043A\u0441\u201C, \u201E\u043F\u0440\u0435\u0447\u0438\u0441\u0442\u0432\u0430\u043D\u0435\u201C, \u201E\u0443\u0441\u043A\u043E\u0440\u044F\u0432\u0430 \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u043C\u0430\u201C.\n- \u041A\u043B\u0438\u0448\u0435\u0442\u0430: \u201E\u043F\u044A\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435\u201C, \u201E\u043D\u0430\u0439-\u0434\u043E\u0431\u0440\u0430\u0442\u0430 \u0432\u0435\u0440\u0441\u0438\u044F \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438\u201C, \u201E\u0442\u0440\u0430\u0439\u043D\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u201C, \u201E\u0443\u043D\u0438\u043A\u0430\u043B\u0435\u043D \u043F\u043B\u0430\u043D\u201C, \u201E\u0440\u0435\u0432\u043E\u043B\u044E\u0446\u0438\u043E\u043D\u0435\u043D\u201C, \u201E\u0437\u0430\u0435\u0434\u043D\u043E \u0449\u0435 \u0443\u0441\u043F\u0435\u0435\u043C\u201C, \u201E\u0432\u0441\u044F\u043A\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u044F \u0435 \u043F\u0440\u0435\u0446\u0438\u0437\u043D\u043E \u043F\u043E\u0434\u0431\u0440\u0430\u043D\u0430\u201C. \u0411\u0435\u0437 \u0443\u0434\u0438\u0432\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u0434\u0440\u0435\u0434 \u0438 \u0431\u0435\u0437 \u0435\u043C\u043E\u0434\u0436\u0438\u0442\u0430.\n- \u041D\u0435 \u043F\u0438\u0448\u0438, \u0447\u0435 \u0442\u0435\u043A\u0441\u0442\u044A\u0442 \u0435 \u043E\u0442 AI \u0438\u043B\u0438 \u043E\u0442 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C. \u041F\u0438\u0448\u0438 \u043E\u0442 \u0438\u043C\u0435\u0442\u043E \u043D\u0430 \u0435\u043A\u0438\u043F\u0430 (\u201E\u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u0445\u043C\u0435\u201C, \u201E\u0432\u0438\u0436\u0434\u0430\u043C\u0435\u201C).\n- \u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430, \u043A\u043E\u0439\u0442\u043E \u0432\u043E\u0434\u0438 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041D\u0435 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u0442\u043E \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043A\u0430\u043A\u0442\u043E \u0433\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u044F \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043F\u043E\u0434\u0440\u0430\u0436\u0430\u0432\u0430\u043C\u0435\u201C \u0438 \u043F\u043E\u0434\u043E\u0431\u043D\u0438 \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F.\n- \u0416\u0430\u0440\u0433\u043E\u043D: \u201E\u043A\u0430\u043B\u043E\u0440\u0430\u0436\u201C \u2014 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u201C \u0438\u043B\u0438 \u201E\u0434\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C\u201C. \u0425\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430\u0440\u0438\u0447\u0430\u0439 \u043A\u0430\u043A\u0442\u043E \u0441\u0430 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E.\n\n\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:\n{\n  "portrait": { "summary": "", "emotional": "", "social": "", "triggers": [], "personality": "", "motivation": "", "risks": [] },\n  "tone": { "address": "\u0442\u0438", "style": "" },\n  "welcome": "",\n  "specialistNote": "",\n  "psychology": [],\n  "habits": [],\n  "mealNotes": [ { "dishId": "", "note": "" } ]\n}\n\n\u0418\u041C\u0415: {name}\n\n\u041F\u0420\u041E\u0424\u0418\u041B (\u0440\u0430\u0437\u0431\u0440\u0430\u043D \u043E\u0442 \u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430):\n{profileSummary}\n\n\u041E\u0422\u0413\u041E\u0412\u041E\u0420\u0418 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410:\n{answers}\n\n\u0421\u0412\u041E\u0411\u041E\u0414\u0415\u041D \u0422\u0415\u041A\u0421\u0422:\n{freeText}\n\n\u041F\u041B\u0410\u041D\u042A\u0422:\n{planFacts}\n\n\u0418\u0417\u0411\u042F\u0413\u0412\u0410:\n{avoid}\n\n\u041C\u0415\u041D\u042E (dishId | \u0445\u0440\u0430\u043D\u0435\u043D\u0435 | \u044F\u0441\u0442\u0438\u0435):\n{menu}\n';
+var DEFAULT_PLAN_VOICE_PROMPT = '\u0422\u0438 \u0441\u0438 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0435\u043A\u0438\u043F\u0430 \u043D\u0430 NutriPlan \u2014 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0441 \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0430 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F. \u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D \u0432\u0435\u0447\u0435 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432\u0435\u043D \u043F\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u0430: \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u0445\u0440\u0430\u043D\u0438\u0442\u0435, \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F\u0442\u0430 \u0441\u0430 \u043E\u043A\u043E\u043D\u0447\u0430\u0442\u0435\u043B\u043D\u0438 \u0438 \u043D\u0435 \u0441\u0435 \u043E\u0431\u0441\u044A\u0436\u0434\u0430\u0442. \u0422\u0432\u043E\u044F\u0442\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u0435 \u0434\u0440\u0443\u0433\u0430: \u0434\u0430 \u0440\u0430\u0437\u0431\u0435\u0440\u0435\u0448 \u0447\u043E\u0432\u0435\u043A\u0430 \u0438 \u0434\u0430 \u043D\u0430\u043F\u0438\u0448\u0435\u0448 \u043A\u0430\u043A \u043F\u043B\u0430\u043D\u044A\u0442 \u0434\u0430 \u043C\u0443 \u0433\u043E\u0432\u043E\u0440\u0438 \u2014 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0443\u0441\u0435\u0442\u0438, \u0447\u0435 \u0435 \u0432\u0438\u0434\u044F\u043D \u043A\u0430\u0442\u043E \u043B\u0438\u0447\u043D\u043E\u0441\u0442 \u0438 \u0435 \u0432 \u043F\u0440\u043E\u0444\u0435\u0441\u0438\u043E\u043D\u0430\u043B\u043D\u0438 \u0440\u044A\u0446\u0435.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 1 \u2014 \u041F\u041E\u0420\u0422\u0420\u0415\u0422 (\u0432\u044A\u0442\u0440\u0435\u0448\u043D\u043E, \u0437\u0430 \u0435\u043A\u0438\u043F\u0430; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0433\u043E \u0432\u0438\u0436\u0434\u0430)\n\u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0430\u0435\u0434\u043D\u043E, \u043D\u0435 \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E. \u0410\u043A\u043E \u0438\u043C\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B \u043E\u0442 EmoEat, \u0442\u043E\u0439 \u0435 \u043D\u0430\u0439-\u0442\u043E\u0447\u043D\u0438\u044F\u0442 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A \u0437\u0430 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435\u0442\u043E \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u2014 \u0441\u0432\u044A\u0440\u0436\u0438 \u0430\u0440\u0445\u0435\u0442\u0438\u043F\u0430, \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438\u0442\u0435, \u043C\u043E\u0434\u0435\u043B\u0438\u0442\u0435 \u0438 \u0440\u0435\u0430\u043B\u043D\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430 \u0441 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435; \u043D\u0435 \u0446\u0438\u0442\u0438\u0440\u0430\u0439 \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0438\u043C. \u0421\u0432\u044A\u0440\u0436\u0438 \u0433\u0438: \u0441\u0442\u0440\u0435\u0441 + \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432\u0435\u0447\u0435\u0440 + \u201E\u043D\u0430 \u043A\u0440\u0430\u043A\u201C \u043A\u0430\u0437\u0432\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u043E\u0442 \u0441\u044A\u0449\u043E\u0442\u043E \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E.\n- summary: \u043A\u043E\u0439 \u0435 \u0447\u043E\u0432\u0435\u043A\u044A\u0442, \u043A\u0430\u043A\u0432\u043E \u043C\u0443 \u0435 \u0432\u0430\u0436\u043D\u043E, \u0432 \u043A\u0430\u043A\u0432\u0430 \u0436\u0438\u0442\u0435\u0439\u0441\u043A\u0430 \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u0435 (2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F).\n- emotional: \u043F\u0441\u0438\u0445\u043E-\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0438 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0438 \u0442\u044F\u043B\u043E\u0442\u043E (\u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0432\u0438\u043D\u0430, \u043A\u043E\u043D\u0442\u0440\u043E\u043B, \u0443\u043C\u043E\u0440\u0430, \u0433\u043E\u0440\u0434\u043E\u0441\u0442, \u0441\u0442\u0440\u0430\u0445 \u043E\u0442 \u043D\u0435\u0443\u0441\u043F\u0435\u0445).\n- social: \u0441\u043E\u0446\u0438\u0430\u043B\u0435\u043D \u0438 \u0431\u0438\u0442\u043E\u0432 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442, \u0434\u043E\u043A\u043E\u043B\u043A\u043E\u0442\u043E \u043B\u0438\u0447\u0438 \u2014 \u0440\u0430\u0431\u043E\u0442\u0430, \u0440\u0438\u0442\u044A\u043C, \u0441\u0435\u043C\u0435\u0439\u0441\u0442\u0432\u043E, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u0435 \u0441 \u0434\u0440\u0443\u0433\u0438\u0442\u0435.\n- triggers: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438\u0442\u0435 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0442\u0440\u0438\u0433\u0435\u0440\u0438 (\u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u2192 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435), \u0434\u043E 6.\n- personality: \u0440\u0430\u0431\u043E\u0442\u043D\u0430 \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 \u0437\u0430 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043B\u0438\u0447\u043D\u043E\u0441\u0442\u0442\u0430 \u2014 \u043D\u0430\u043F\u0440. \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D/\u0441\u043F\u043E\u043D\u0442\u0430\u043D\u0435\u043D, \u0442\u044A\u0440\u0441\u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438/\u0442\u044A\u0440\u0441\u0438 \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u0430, \u043F\u0435\u0440\u0444\u0435\u043A\u0446\u0438\u043E\u043D\u0438\u0441\u0442 \u201E\u0432\u0441\u0438\u0447\u043A\u043E \u0438\u043B\u0438 \u043D\u0438\u0449\u043E\u201C, \u0441\u043A\u0435\u043F\u0442\u0438\u0447\u0435\u043D/\u0434\u043E\u0432\u0435\u0440\u0447\u0438\u0432. \u041F\u0438\u0448\u0438 \u043A\u0430\u0442\u043E \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 (\u201E\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E\u201C, \u201E\u0438\u0437\u0433\u043B\u0435\u0436\u0434\u0430\u201C), \u043D\u0435 \u043A\u0430\u0442\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0430.\n- motivation: \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u0433\u043E \u0434\u044A\u0440\u0436\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0438 \u043A\u0430\u043A\u0432\u043E \u043D\u0430\u0439-\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E \u0449\u0435 \u0433\u043E \u0438\u0437\u0432\u0430\u0434\u0438.\n- risks: \u0434\u043E 4 \u043C\u043E\u043C\u0435\u043D\u0442\u0430, \u0437\u0430 \u043A\u043E\u0438\u0442\u043E \u0435\u043A\u0438\u043F\u044A\u0442 \u0434\u0430 \u0432\u043D\u0438\u043C\u0430\u0432\u0430 \u043F\u0440\u0435\u0437 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 2 \u2014 \u0422\u041E\u041D\n- tone.address: \u201E\u0442\u0438\u201C \u0438\u043B\u0438 \u201E\u0412\u0438\u0435\u201C. \u041F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435 \u201E\u0442\u0438\u201C; \u201E\u0412\u0438\u0435\u201C \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u0440\u0438 \u043F\u043E-\u0432\u044A\u0437\u0440\u0430\u0441\u0442\u0435\u043D \u0447\u043E\u0432\u0435\u043A \u0438\u043B\u0438 \u0430\u043A\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0432\u0443\u0447\u0430\u0442 \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u043D\u043E \u0438 \u0441\u0434\u044A\u0440\u0436\u0430\u043D\u043E. \u0421\u043F\u0430\u0437\u0432\u0430\u0439 \u0438\u0437\u0431\u0440\u0430\u043D\u043E\u0442\u043E \u043D\u0430\u0432\u0441\u044F\u043A\u044A\u0434\u0435.\n- tone.style: \u0435\u0434\u043D\u0430 \u0444\u0440\u0430\u0437\u0430 \u2014 \u043A\u0430\u043A \u0433\u043E\u0432\u043E\u0440\u0438\u0448 \u043D\u0430 \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A (\u043D\u0430\u043F\u0440. \u201E\u043A\u0440\u0430\u0442\u043A\u043E \u0438 \u043F\u043E \u0441\u044A\u0449\u0435\u0441\u0442\u0432\u043E, \u0441 \u044F\u0441\u043D\u0438 \u0441\u0442\u044A\u043F\u043A\u0438\u201C \u0437\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D \u0438 \u0437\u0430\u0435\u0442; \u201E\u0442\u043E\u043F\u043B\u043E, \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A, \u0441 \u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435\u201C \u0437\u0430 \u0447\u043E\u0432\u0435\u043A \u0441 \u0432\u0438\u043D\u0430 \u0438 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u201E\u0441 \u0430\u0440\u0433\u0443\u043C\u0435\u043D\u0442\u0438 \u0438 \u043B\u043E\u0433\u0438\u043A\u0430\u201C \u0437\u0430 \u0441\u043A\u0435\u043F\u0442\u0438\u043A).\n\u041F\u0438\u0448\u0438 \u0433\u0440\u0430\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0441\u043F\u043E\u0440\u0435\u0434 \u043F\u043E\u043B\u0430 (\u0441\u0438\u0433\u0443\u0440\u0435\u043D/\u0441\u0438\u0433\u0443\u0440\u043D\u0430, \u0433\u043E\u0442\u043E\u0432/\u0433\u043E\u0442\u043E\u0432\u0430).\n\n\u0421\u0422\u042A\u041F\u041A\u0410 3 \u2014 \u0422\u0415\u041A\u0421\u0422\u041E\u0412\u0415\u0422\u0415 \u0417\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410 (\u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u0438\u044F \u0442\u043E\u043D)\n- welcome: \u043B\u0438\u0447\u043D\u043E \u043F\u0438\u0441\u043C\u043E, 4\u20136 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u041E\u0431\u044A\u0440\u043D\u0438 \u0441\u0435 \u043F\u043E \u0438\u043C\u0435. \u041F\u043E\u043A\u0430\u0436\u0438, \u0447\u0435 \u0441\u043C\u0435 \u043F\u0440\u043E\u0447\u0435\u043B\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u2014 \u0441\u043F\u043E\u043C\u0435\u043D\u0438 2\u20133 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u043D\u0435\u0449\u0430 \u043E\u0442 \u0442\u044F\u0445 \u0441\u044A\u0441 \u0441\u0432\u043E\u0438 \u0434\u0443\u043C\u0438 (\u043D\u0435 \u0433\u0438 \u0446\u0438\u0442\u0438\u0440\u0430\u0439). \u041A\u0430\u0436\u0438 \u043D\u0430\u043A\u0440\u0430\u0442\u043A\u043E \u043A\u0430\u043A \u0435 \u0438\u0437\u0433\u0440\u0430\u0434\u0435\u043D \u043F\u043B\u0430\u043D\u044A\u0442 \u0437\u0430 \u043D\u0435\u0433\u043E\u0432\u0438\u044F \u0436\u0438\u0432\u043E\u0442 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0447\u0430\u043A\u0432\u0430 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0434\u0432\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438. \u0411\u0435\u0437 \u0447\u0438\u0441\u043B\u0430.\n- specialistNote: \u201E\u0411\u0435\u043B\u0435\u0436\u043A\u0430 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430\u201C \u2014 2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F: \u043D\u0430 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0431\u044A\u0440\u043D\u0435 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043D\u0430\u0439-\u043D\u0430\u043F\u0440\u0435\u0434 \u0438 \u0437\u0430\u0449\u043E \u0442\u043E\u0447\u043D\u043E \u0442\u043E\u0432\u0430 \u0435 \u0432\u0430\u0436\u043D\u043E \u0437\u0430 \u043D\u0435\u0433\u043E.\n- psychology: 4\u20136 \u043D\u0430\u0441\u043E\u043A\u0438. \u0412\u0441\u044F\u043A\u0430 \u0442\u0440\u044A\u0433\u0432\u0430 \u043E\u0442 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u0435\u043D \u043D\u0435\u0433\u043E\u0432 \u0442\u0440\u0438\u0433\u0435\u0440 \u0438\u043B\u0438 \u043D\u0430\u0432\u0438\u043A \u0438 \u0434\u0430\u0432\u0430 \u0435\u0434\u043D\u043E \u044F\u0441\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 + \u043A\u0440\u0430\u0442\u043A\u043E \u0437\u0430\u0449\u043E. 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u0411\u0435\u0437 \u043E\u0431\u0449\u0438 \u0438\u0441\u0442\u0438\u043D\u0438.\n- habits: 4\u20136 \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u043D\u0438 \u0442\u0430\u043A\u0442\u0438\u043A\u0438 \u0437\u0430 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u0438\u0435\u0442\u043E \u043C\u0443 \u2014 \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u0438 \u0441 \u0440\u0438\u0442\u044A\u043C\u0430, \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u0430, \u0441\u043E\u0446\u0438\u0430\u043B\u043D\u0438\u044F \u0436\u0438\u0432\u043E\u0442, \u0445\u0440\u043E\u043D\u043E\u0442\u0438\u043F\u0430 (\u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0445\u0440\u0430\u043D\u0430 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0432\u0435\u0447\u0435\u0440\u0438\u0442\u0435, \u0443\u0438\u043A\u0435\u043D\u0434\u0438\u0442\u0435).\n- mealNotes: \u0437\u0430 \u0434\u043E 10 \u044F\u0441\u0442\u0438\u044F \u043E\u0442 \u041C\u0415\u041D\u042E\u0422\u041E \u2014 \u043F\u043E \u0435\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u043B\u0438\u0447\u043D\u0430 \u0431\u0435\u043B\u0435\u0436\u043A\u0430 (\u0441 dishId \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E): \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u0435\u043D \u0441\u044A\u0432\u0435\u0442 \u043A\u0430\u043A \u0442\u043E\u0432\u0430 \u044F\u0441\u0442\u0438\u0435 \u043F\u0430\u0441\u0432\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F \u043C\u0443 (\u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0432\u0437\u0435\u043C\u0438 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0441\u0433\u043E\u0442\u0432\u0438 \u0434\u0432\u043E\u0439\u043D\u043E, \u043F\u043E\u0434\u043D\u0435\u0441\u0438 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0435 \u043F\u043E-\u0432\u043A\u0443\u0441\u043D\u043E \u0441 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438/\u043B\u0438\u043C\u043E\u043D/\u0431\u0438\u043B\u043A\u0438). \u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0439 \u043D\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438 \u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D.\n\n\u0417\u0410\u0411\u0420\u0410\u041D\u0415\u041D\u041E\n- \u0427\u0438\u0441\u043B\u0430 \u0437\u0430 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043C\u0430\u043A\u0440\u043E\u0441\u0438, \u043F\u043E\u0440\u0446\u0438\u0438, \u0434\u043E\u0437\u0438, \u043F\u0440\u043E\u0446\u0435\u043D\u0442\u0438 \u2014 \u0442\u0435 \u0441\u0430 \u0432 \u043F\u043B\u0430\u043D\u0430.\n- \u0425\u0440\u0430\u043D\u0438 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 \u201E\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u201C \u0438 \u0445\u0440\u0430\u043D\u0438 \u0438\u0437\u0432\u044A\u043D \u043C\u0435\u043D\u044E\u0442\u043E (\u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D).\n- \u0414\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u044F, \u201E\u0434\u0435\u0442\u043E\u043A\u0441\u201C, \u201E\u043F\u0440\u0435\u0447\u0438\u0441\u0442\u0432\u0430\u043D\u0435\u201C, \u201E\u0443\u0441\u043A\u043E\u0440\u044F\u0432\u0430 \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u043C\u0430\u201C.\n- \u041A\u043B\u0438\u0448\u0435\u0442\u0430: \u201E\u043F\u044A\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435\u201C, \u201E\u043D\u0430\u0439-\u0434\u043E\u0431\u0440\u0430\u0442\u0430 \u0432\u0435\u0440\u0441\u0438\u044F \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438\u201C, \u201E\u0442\u0440\u0430\u0439\u043D\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u201C, \u201E\u0443\u043D\u0438\u043A\u0430\u043B\u0435\u043D \u043F\u043B\u0430\u043D\u201C, \u201E\u0440\u0435\u0432\u043E\u043B\u044E\u0446\u0438\u043E\u043D\u0435\u043D\u201C, \u201E\u0437\u0430\u0435\u0434\u043D\u043E \u0449\u0435 \u0443\u0441\u043F\u0435\u0435\u043C\u201C, \u201E\u0432\u0441\u044F\u043A\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u044F \u0435 \u043F\u0440\u0435\u0446\u0438\u0437\u043D\u043E \u043F\u043E\u0434\u0431\u0440\u0430\u043D\u0430\u201C. \u0411\u0435\u0437 \u0443\u0434\u0438\u0432\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u0434\u0440\u0435\u0434 \u0438 \u0431\u0435\u0437 \u0435\u043C\u043E\u0434\u0436\u0438\u0442\u0430.\n- \u041D\u0435 \u043F\u0438\u0448\u0438, \u0447\u0435 \u0442\u0435\u043A\u0441\u0442\u044A\u0442 \u0435 \u043E\u0442 AI \u0438\u043B\u0438 \u043E\u0442 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C. \u041F\u0438\u0448\u0438 \u043E\u0442 \u0438\u043C\u0435\u0442\u043E \u043D\u0430 \u0435\u043A\u0438\u043F\u0430 (\u201E\u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u0445\u043C\u0435\u201C, \u201E\u0432\u0438\u0436\u0434\u0430\u043C\u0435\u201C).\n- \u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430, \u043A\u043E\u0439\u0442\u043E \u0432\u043E\u0434\u0438 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041D\u0435 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u0442\u043E \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043A\u0430\u043A\u0442\u043E \u0433\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u044F \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043F\u043E\u0434\u0440\u0430\u0436\u0430\u0432\u0430\u043C\u0435\u201C \u0438 \u043F\u043E\u0434\u043E\u0431\u043D\u0438 \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F.\n- \u0416\u0430\u0440\u0433\u043E\u043D: \u201E\u043A\u0430\u043B\u043E\u0440\u0430\u0436\u201C \u2014 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u201C \u0438\u043B\u0438 \u201E\u0434\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C\u201C. \u0425\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430\u0440\u0438\u0447\u0430\u0439 \u043A\u0430\u043A\u0442\u043E \u0441\u0430 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E.\n\n\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:\n{\n  "portrait": { "summary": "", "emotional": "", "social": "", "triggers": [], "personality": "", "motivation": "", "risks": [] },\n  "tone": { "address": "\u0442\u0438", "style": "" },\n  "welcome": "",\n  "specialistNote": "",\n  "psychology": [],\n  "habits": [],\n  "mealNotes": [ { "dishId": "", "note": "" } ]\n}\n\n\u0418\u041C\u0415: {name}\n\n\u041F\u0420\u041E\u0424\u0418\u041B (\u0440\u0430\u0437\u0431\u0440\u0430\u043D \u043E\u0442 \u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430):\n{profileSummary}\n\n\u041E\u0422\u0413\u041E\u0412\u041E\u0420\u0418 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410:\n{answers}\n\n\u0421\u0412\u041E\u0411\u041E\u0414\u0415\u041D \u0422\u0415\u041A\u0421\u0422:\n{freeText}\n\n\u0415\u041C\u041E\u0426\u0418\u041E\u041D\u0410\u041B\u0415\u041D \u041F\u0420\u041E\u0424\u0418\u041B (\u0442\u0435\u0441\u0442\u044A\u0442 EmoEat, \u0430\u043A\u043E \u0435 \u043F\u043E\u043F\u044A\u043B\u043D\u0435\u043D):\n{emotionalProfile}\n\n\u041F\u041B\u0410\u041D\u042A\u0422:\n{planFacts}\n\n\u0418\u0417\u0411\u042F\u0413\u0412\u0410:\n{avoid}\n\n\u041C\u0415\u041D\u042E (dishId | \u0445\u0440\u0430\u043D\u0435\u043D\u0435 | \u044F\u0441\u0442\u0438\u0435):\n{menu}\n';
 
 // nutrition-engine/monitoring.js
 var WEEKLY_CHECKIN_QUESTIONS = [
@@ -43226,10 +43777,16 @@ function readCheckin(answers, analytics, previous = {}) {
     const span = days >= 4 && days <= 28 ? days : 7;
     weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
   }
+  const trend = Number(answerOf(answers, "weightTrendKgWeek"));
+  if (answerOf(answers, "weightTrendKgWeek") != null && Number.isFinite(trend) && Math.abs(trend) <= 3) weeklyChangeKg = trend;
+  const intake = Number(answerOf(answers, "intakeKcal"));
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
     weightKg,
     weeklyChangeKg,
+    intakeKcal: intake >= 500 && intake <= 8e3 ? Math.round(intake) : null,
+    recoveryLow: answerOf(answers, "recoveryLow") === "true",
+    leanLoss: answerOf(answers, "leanLoss") === "true",
     adherence,
     hunger: LEVEL_ANSWERS[answerOf(answers, "hunger")] || null,
     energy: LEVEL_ANSWERS[answerOf(answers, "energy")] || null,
@@ -43281,6 +43838,8 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
   const expectedLoss = Math.max(0, (tdee - kcal) * 7 / KCAL_PER_KG);
   const outcome = weightOutcome(checkin, { goalKind, expectedLossKg: expectedLoss, weightKg, lactating });
   const cls = outcome ? OUTCOME_CLASS[goalKind][outcome] : null;
+  const overIntake = checkin.intakeKcal != null && checkin.intakeKcal > kcal * 1.1;
+  const underIntake = checkin.intakeKcal != null && checkin.intakeKcal < kcal * 0.9;
   const measured = checkin.weeklyChangeKg != null ? `${checkin.weeklyChangeKg > 0 ? "+" : ""}${checkin.weeklyChangeKg.toFixed(1).replace(".", ",")} \u043A\u0433 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430` : null;
   if (adherence != null && adherence < 60) {
     modifications.push("simplify_meals");
@@ -43294,6 +43853,8 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
       if (outcome === "fast_loss") {
         delta = +MAX_WEEKLY_STEP;
         reasons.push(lactating ? "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 0,5 \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043F\u0440\u0438 \u043A\u044A\u0440\u043C\u0435\u043D\u0435 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043A\u044A\u0440\u043C\u0430\u0442\u0430." : `\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 1% \u043E\u0442 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${measured ? ` (${measured})` : ""} \u2014 \u0442\u0435\u043C\u043F\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u0431\u0430\u0432\u044F, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430\u0442\u0430 \u043C\u0430\u0441\u0430.`);
+      } else if (cls === "stall" && overIntake) {
+        reasons.push(`\u041F\u043E \u0442\u0440\u0430\u043A\u0435\u0440\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043E\u043A\u043E\u043B\u043E ${checkin.intakeKcal} kcal \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043F\u043B\u0430\u043D ${kcal} kcal \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 \u043E\u0441\u0442\u0430\u0432\u0430\u0442; \u043F\u044A\u0440\u0432\u043E \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0434\u0430 \u0441\u0435 \u0434\u043E\u0431\u043B\u0438\u0436\u0438 \u0434\u043E \u043F\u043B\u0430\u043D\u0430.`);
       } else if (cls === "stall") {
         if (weeks >= 2) {
           delta = outcome === "gain" ? -MAX_WEEKLY_STEP : -100;
@@ -43311,6 +43872,8 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
       } else if (cls === "down") {
         delta = +MAX_WEEKLY_STEP;
         reasons.push("\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u043F\u0430\u0434\u0430 \u043F\u0440\u0438 \u0446\u0435\u043B \u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430.");
+      } else if (cls === "stall" && underIntake) {
+        reasons.push(`\u041F\u043E \u0442\u0440\u0430\u043A\u0435\u0440\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043E\u043A\u043E\u043B\u043E ${checkin.intakeKcal} kcal \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043F\u043B\u0430\u043D ${kcal} kcal \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 \u043E\u0441\u0442\u0430\u0432\u0430\u0442; \u043F\u044A\u0440\u0432\u043E \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0434\u0430 \u0441\u0442\u0438\u0433\u043D\u0435 \u043F\u043B\u0430\u043D\u0430.`);
       } else if (cls === "stall") {
         if (weeks >= 2) {
           delta = +MAX_WEEKLY_STEP;
@@ -43361,6 +43924,16 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
     modifications.push("gentle_digestion");
     changes.push("\u0429\u0430\u0434\u044F\u0449\u0438 \u0445\u0440\u0430\u043D\u0438 \u0441 \u043D\u0438\u0441\u043A\u043E \u0441\u044A\u0434\u044A\u0440\u0436\u0430\u043D\u0438\u0435 \u043D\u0430 FODMAP \u0437\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430");
   }
+  if (delta < 0 && checkin.recoveryLow) {
+    delta = 0;
+    reasons.push("\u041F\u0443\u043B\u0441\u044A\u0442 \u0432 \u043F\u043E\u043A\u043E\u0439 \u0438 HRV \u043F\u043E\u043A\u0430\u0437\u0432\u0430\u0442 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u2014 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430\u0442; \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u0441\u0430 \u0441\u044A\u043D\u044F\u0442 \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435\u0442\u043E.");
+  }
+  if (checkin.leanLoss) {
+    if (delta < 0) delta = 0;
+    modifications.push("increase_protein");
+    reasons.push("\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u043E\u0442\u043E \u0442\u0435\u0433\u043B\u043E \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u043F\u043E\u0432\u0435\u0447\u0435 \u0431\u0435\u043B\u0442\u044A\u043A, \u0431\u0435\u0437 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442.");
+    changes.push("\u041F\u043E\u0432\u0435\u0447\u0435 \u0431\u0435\u043B\u0442\u044A\u043A \u0437\u0430 \u043F\u0430\u0437\u0435\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435");
+  }
   delta = Math.max(-MAX_WEEKLY_STEP, Math.min(MAX_WEEKLY_STEP, delta));
   let next = kcal + delta;
   next = Math.max(baseKcal - MAX_TOTAL_SHIFT, Math.min(baseKcal + MAX_TOTAL_SHIFT, next));
@@ -43378,6 +43951,7 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
     weight: outcome,
     weightKg: checkin.weightKg,
     weeklyChangeKg: checkin.weeklyChangeKg,
+    intakeKcal: checkin.intakeKcal,
     followed,
     adherence
   };
@@ -43404,6 +43978,1254 @@ function weeklyMessage(decision, checkin) {
   return {
     headline: "\u041E\u0442\u043B\u0438\u0447\u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u2014 \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u043C\u0435",
     message: "\u0412\u044A\u0440\u0432\u0438\u0442\u0435 \u043F\u043E \u043F\u043B\u0430\u043D\u0430. \u041D\u043E\u0432\u043E\u0442\u043E \u043C\u0435\u043D\u044E \u0435 \u0441\u044A\u0441 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043D\u043E\u0432\u0438 \u044F\u0441\u0442\u0438\u044F \u0437\u0430 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435."
+  };
+}
+
+// enrichment-emoeat.js
+var DRIVER_CODES = {
+  "\u041D\u0443\u0436\u0434\u0430 \u043E\u0442 \u0431\u043B\u0438\u0437\u043E\u0441\u0442": ["EMO", "EVE"],
+  "\u041D\u0430\u0442\u0440\u0443\u043F\u0430\u043D\u043E \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435": ["EMO"],
+  "\u0411\u044F\u0433\u0441\u0442\u0432\u043E \u043E\u0442 \u0437\u0430\u0434\u0430\u0447\u0438 \u0438 \u043C\u0438\u0441\u043B\u0438": ["EMO"],
+  "\u041D\u0443\u0436\u0434\u0430 \u0434\u0430 \u0438\u0437\u043A\u043B\u044E\u0447\u0438\u0448": ["EMO"],
+  "\u0423\u043C\u043E\u0440\u0430 \u0438 \u0435\u0434\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435": ["SWS"]
+};
+var BEHAVIOR_CODES = {
+  "\u0422\u0440\u0443\u0434\u043D\u043E \u0441\u043F\u0438\u0440\u0430\u043D\u0435": ["OVR"],
+  "\u0421\u0442\u0440\u043E\u0433 \u0432\u044A\u0442\u0440\u0435\u0448\u0435\u043D \u0433\u043B\u0430\u0441": ["CMP"]
+};
+var PATTERN_CODES = {
+  "\u041F\u0440\u0430\u0432\u0438\u043B\u0430 \u2192 \u0441\u0440\u0438\u0432 \u2192 \u043D\u043E\u0432\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u0430": ["OVR", "CMP"],
+  "\u0421\u0442\u0440\u043E\u0433 \u0433\u043B\u0430\u0441 \u2192 \u0441\u043A\u0440\u0438\u0448\u043E\u043C \u2192 \u043E\u0449\u0435 \u043F\u043E-\u0441\u0442\u0440\u043E\u0433 \u0433\u043B\u0430\u0441": ["CMP"],
+  "\u0427\u0443\u0432\u0441\u0442\u0432\u0430\u0442\u0430 \u0441\u0435 \u0443\u0441\u0435\u0449\u0430\u0442 \u043A\u0430\u0442\u043E \u0433\u043B\u0430\u0434": ["EMO"]
+};
+var APPROACH_BY_DRIVER = {
+  "\u0423\u043C\u043E\u0440\u0430 \u0438 \u0435\u0434\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435": ["more_variety"]
+};
+var RESTRICTIVE = /Строги правила|Правила → срив/;
+function deriveEmoEat(facts) {
+  const fact = (facts || []).find((f) => f.kind === "emoeat" && f.status !== "pending");
+  const p = fact?.value;
+  if (!p || typeof p !== "object") return null;
+  const voice = {
+    archetype: p.archetype?.name || null,
+    archetypeDescription: p.archetype?.description || null,
+    secondArchetype: p.secondArchetype || null,
+    intensity: p.intensity || null,
+    drivers: Array.isArray(p.drivers) ? p.drivers.slice(0, 3) : [],
+    patterns: Array.isArray(p.patterns) ? p.patterns.slice(0, 4) : [],
+    bodySignals: p.bodySignals || "",
+    realNeed: String(p.realNeed || "").slice(0, 200),
+    at: fact.at
+  };
+  const reasons = [`\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat${voice.archetype ? `: ${voice.archetype}` : ""})`];
+  const reliable = p.reliability?.level !== "\u043D\u0438\u0441\u043A\u0430";
+  voice.reliable = reliable;
+  const felt = p.intensity === "\u041E\u0441\u0435\u0437\u0430\u0435\u043C\u043E" || p.intensity === "\u0421\u0438\u043B\u043D\u043E";
+  const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
+  if (!reliable || !felt) return { voice, hints, reasons };
+  for (const d of voice.drivers) {
+    hints.behaviors.push(...DRIVER_CODES[d] || []);
+    hints.approach.push(...APPROACH_BY_DRIVER[d] || []);
+  }
+  for (const b of Array.isArray(p.behaviors) ? p.behaviors : []) {
+    if (b?.level === "\u0421\u043B\u0430\u0431\u043E") continue;
+    hints.behaviors.push(...BEHAVIOR_CODES[b?.name] || []);
+  }
+  for (const t of voice.patterns) hints.behaviors.push(...PATTERN_CODES[t] || []);
+  const restrictive = (p.behaviors || []).some((b) => RESTRICTIVE.test(b?.name || "") && b.level !== "\u0421\u043B\u0430\u0431\u043E") || voice.patterns.some((t) => RESTRICTIVE.test(t));
+  if (restrictive) {
+    hints.cautions.push("EmoEat: \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0430\u0432\u0430\u0449 \u043C\u043E\u0434\u0435\u043B \u2014 \u0431\u0435\u0437 \u0441\u0442\u0440\u043E\u0433\u0438 \u0437\u0430\u0431\u0440\u0430\u043D\u0438 \u0438 \u0431\u0435\u0437 \u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442; \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0434\u0430 \u043E\u0441\u0442\u0430\u043D\u0435.");
+  }
+  hints.behaviors = [...new Set(hints.behaviors)];
+  hints.approach = [...new Set(hints.approach)];
+  return { voice, hints, reasons };
+}
+
+// enrichment-labs.js
+var DAY_MS = 864e5;
+var MARKERS = {
+  glucose: { label: "\u0413\u043B\u044E\u043A\u043E\u0437\u0430 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E", unit: "mmol/L", alt: { "mg/dl": (v) => v / 18 } },
+  hba1c: { label: "HbA1c", unit: "%", alt: { "mmol/mol": (v) => v / 10.929 + 2.15 } },
+  ldl: { label: "LDL \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B", unit: "mmol/L", alt: { "mg/dl": (v) => v / 38.67 } },
+  hdl: { label: "HDL \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B", unit: "mmol/L", alt: { "mg/dl": (v) => v / 38.67 } },
+  tchol: { label: "\u041E\u0431\u0449 \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B", unit: "mmol/L", alt: { "mg/dl": (v) => v / 38.67 } },
+  tg: { label: "\u0422\u0440\u0438\u0433\u043B\u0438\u0446\u0435\u0440\u0438\u0434\u0438", unit: "mmol/L", alt: { "mg/dl": (v) => v / 88.57 } },
+  uric: { label: "\u041F\u0438\u043A\u043E\u0447\u043D\u0430 \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0430", unit: "\xB5mol/L", alt: { "mg/dl": (v) => v * 59.48 } },
+  ferritin: { label: "\u0424\u0435\u0440\u0438\u0442\u0438\u043D", unit: "\xB5g/L", alt: { "ng/ml": (v) => v } },
+  hgb: { label: "\u0425\u0435\u043C\u043E\u0433\u043B\u043E\u0431\u0438\u043D", unit: "g/L", alt: { "g/dl": (v) => v * 10 } },
+  vitd: { label: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D D (25-OH)", unit: "nmol/L", alt: { "ng/ml": (v) => v * 2.496 } },
+  b12: { label: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D B12", unit: "pmol/L", alt: { "pg/ml": (v) => v * 0.7378 } },
+  alt: { label: "ALT (\u0410\u041B\u0410\u0422)", unit: "U/L", alt: {} },
+  ggt: { label: "GGT", unit: "U/L", alt: {} },
+  tsh: { label: "TSH", unit: "mIU/L", alt: { "\xB5iu/ml": (v) => v, "uiu/ml": (v) => v } },
+  egfr: { label: "eGFR", unit: "mL/min/1.73m\xB2", alt: {} },
+  potassium: { label: "\u041A\u0430\u043B\u0438\u0439", unit: "mmol/L", alt: { "meq/l": (v) => v } }
+};
+var LAB_MARKERS = Object.fromEntries(Object.entries(MARKERS).map(([k, v]) => [k, { label: v.label, unit: v.unit }]));
+function canonical(key, value, unit) {
+  const m = MARKERS[key];
+  if (!m) return null;
+  const u = String(unit || "").trim().toLowerCase().replace(/\s+/g, "");
+  if (!u || u === m.unit.toLowerCase().replace(/\s+/g, "")) return value;
+  const conv = m.alt[u];
+  return conv ? conv(value) : value;
+}
+var RULES2 = {
+  glucose: (v) => v >= 7 ? { status: "high", clinical: ["IR"], caution: "\u0413\u043B\u044E\u043A\u043E\u0437\u0430 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E \u0432 \u0434\u0438\u0430\u0431\u0435\u0442\u043D\u0438\u044F \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u0438 \u043F\u0440\u043E\u0441\u043B\u0435\u0434\u044F\u0432\u0430\u043D\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440." } : v >= 5.6 ? { status: "high", clinical: ["IR"] } : null,
+  hba1c: (v) => v >= 6.5 ? { status: "high", clinical: ["IR"], caution: "HbA1c \u0432 \u0434\u0438\u0430\u0431\u0435\u0442\u043D\u0438\u044F \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u0438 \u043F\u0440\u043E\u0441\u043B\u0435\u0434\u044F\u0432\u0430\u043D\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440." } : v >= 5.7 ? { status: "high", clinical: ["IR"] } : null,
+  ldl: (v) => v >= 3.4 ? { status: "high", clinical: ["DYSL"] } : null,
+  tchol: (v) => v >= 5.2 ? { status: "high", clinical: ["DYSL"] } : null,
+  tg: (v) => v >= 1.7 ? { status: "high", clinical: ["DYSL"] } : null,
+  hdl: (v, sex) => v < (sex === "F" ? 1.3 : 1) ? { status: "low" } : null,
+  uric: (v, sex) => v > (sex === "F" ? 360 : 420) ? { status: "high", clinical: ["GOUT"], caution: "\u041F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043F\u0438\u043A\u043E\u0447\u043D\u0430 \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0430 \u2014 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438 \u043F\u0443\u0440\u0438\u043D\u0438 \u0438 \u0430\u043B\u043A\u043E\u0445\u043E\u043B; \u043E\u0446\u0435\u043D\u043A\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440 \u043F\u0440\u0438 \u0431\u043E\u043B\u043A\u0438 \u0432 \u0441\u0442\u0430\u0432\u0438\u0442\u0435." } : null,
+  ferritin: (v) => v < 30 ? { status: "low", clinical: ["ANEM"] } : null,
+  hgb: (v, sex) => v < (sex === "F" ? 120 : 130) ? { status: "low", clinical: ["ANEM"], caution: "\u041D\u0438\u0441\u044A\u043A \u0445\u0435\u043C\u043E\u0433\u043B\u043E\u0431\u0438\u043D \u2014 \u043F\u0440\u0438\u0447\u0438\u043D\u0430\u0442\u0430 \u0441\u0435 \u0438\u0437\u044F\u0441\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440." } : null,
+  vitd: (v) => v < 30 ? { status: "low", supplement: { name: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", dosage: "2000 IU", timing: "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u2014 \u043F\u0440\u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u043F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435; \u043A\u043E\u043D\u0442\u0440\u043E\u043B \u0441\u043B\u0435\u0434 3 \u043C\u0435\u0441\u0435\u0446\u0430" }, caution: "\u0414\u0435\u0444\u0438\u0446\u0438\u0442 \u043D\u0430 \u0432\u0438\u0442\u0430\u043C\u0438\u043D D \u2014 \u0434\u043E\u0437\u0430\u0442\u0430 \u0441\u0435 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440." } : v < 50 ? { status: "low", supplement: { name: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", dosage: "1000\u20132000 IU", timing: "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u2014 \u043F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435" } } : null,
+  b12: (v) => v < 150 ? { status: "low", supplement: { name: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D B12", dosage: "500\u20131000 mcg", timing: "\u0441\u0443\u0442\u0440\u0438\u043D \u2014 \u043F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435" }, caution: "\u041D\u0438\u0441\u044A\u043A B12 \u2014 \u043F\u0440\u0438\u0447\u0438\u043D\u0430\u0442\u0430 \u0441\u0435 \u0438\u0437\u044F\u0441\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440." } : null,
+  alt: (v) => v > 40 ? { status: "high", clinical: ["NAFLD"], caution: "\u041F\u043E\u0432\u0438\u0448\u0435\u043D\u0438 \u0447\u0435\u0440\u043D\u043E\u0434\u0440\u043E\u0431\u043D\u0438 \u0435\u043D\u0437\u0438\u043C\u0438 \u2014 \u043E\u0446\u0435\u043D\u043A\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440." } : null,
+  ggt: (v) => v > 60 ? { status: "high", clinical: ["NAFLD"] } : null,
+  tsh: (v) => v > 4.5 || v < 0.4 ? { status: v > 4.5 ? "high" : "low", caution: "TSH \u0438\u0437\u0432\u044A\u043D \u043D\u043E\u0440\u043C\u0430\u0442\u0430 \u2014 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430\u0442\u0430 \u0436\u043B\u0435\u0437\u0430 \u0441\u0435 \u043E\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440; \u043F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u0441\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E." } : null,
+  egfr: (v) => v < 30 ? { status: "low", safety: { proteinCapPerKg: 0.6 }, urgent: true, caution: "\u0421\u0438\u043B\u043D\u043E \u043D\u0430\u043C\u0430\u043B\u0435\u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F \u2014 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438\u044F\u0442 \u0440\u0435\u0436\u0438\u043C \u0441\u0430\u043C\u043E \u043F\u043E \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0444\u0440\u043E\u043B\u043E\u0433." } : v < 60 ? { status: "low", safety: { proteinCapPerKg: 0.8 }, urgent: true, caution: "\u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u043F\u043B\u0430\u043D\u044A\u0442 \u0434\u0430 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440." } : null,
+  potassium: (v) => v > 5.5 ? { status: "high", urgent: true, caution: "\u0412\u0438\u0441\u043E\u043A \u043A\u0430\u043B\u0438\u0439 \u2014 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u043D\u0435 \u0441 \u043B\u0435\u043A\u0430\u0440 \u043F\u0440\u0435\u0434\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E." } : null
+};
+function deriveLabs(facts, now = /* @__PURE__ */ new Date(), sex = "X") {
+  const from = now.getTime() - 365 * DAY_MS;
+  const latest = /* @__PURE__ */ new Map();
+  for (const f of facts || []) {
+    if (f.kind !== "biomarker" || f.status === "pending" || !MARKERS[f.key]) continue;
+    if (Date.parse(f.at) < from) continue;
+    const prev = latest.get(f.key);
+    if (!prev || Date.parse(f.at) > Date.parse(prev.at)) latest.set(f.key, f);
+  }
+  if (!latest.size) return null;
+  const findings = [];
+  const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
+  const supplements = [];
+  let safety = {};
+  const reasons = [];
+  for (const [key, f] of latest) {
+    const v = canonical(key, Number(f.value), f.unit);
+    if (v == null || !Number.isFinite(v)) continue;
+    const r = RULES2[key]?.(v, sex) || null;
+    findings.push({
+      key,
+      label: MARKERS[key].label,
+      value: Math.round(v * 100) / 100,
+      unit: MARKERS[key].unit,
+      at: f.at,
+      status: r ? r.status : "normal"
+    });
+    if (!r) continue;
+    hints.clinical.push(...r.clinical || []);
+    if (r.caution) hints.cautions.push(r.caution);
+    if (r.supplement) supplements.push({ ...r.supplement, reason: `${MARKERS[key].label}: ${String(Math.round(v * 10) / 10).replace(".", ",")} ${MARKERS[key].unit}` });
+    if (r.safety) {
+      for (const [k, val] of Object.entries(r.safety)) {
+        safety[k] = safety[k] != null ? Math.min(safety[k], val) : val;
+      }
+    }
+    if (r.urgent) safety.urgent = true;
+    reasons.push(`\u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435: ${MARKERS[key].label} ${r.status === "high" ? "\u043D\u0430\u0434" : "\u043F\u043E\u0434"} \u043D\u043E\u0440\u043C\u0430\u0442\u0430`);
+  }
+  hints.clinical = [...new Set(hints.clinical)];
+  return { findings, hints, supplements, safety, reasons };
+}
+
+// health-essence.js
+var DAY_MS2 = 864e5;
+var DIGEST_APPROACH = {
+  increase_protein: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0431\u0435\u043B\u0442\u044A\u043A",
+  more_volume: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0431\u0435\u043C \u043E\u0442 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043F\u0440\u0438 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438",
+  simplify_meals: "\u043F\u043E-\u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F",
+  more_variety: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435",
+  smaller_portions: "\u043F\u043E-\u043C\u0430\u043B\u043A\u0438 \u043F\u043E\u0440\u0446\u0438\u0438 \u0432 \u043F\u043E\u0432\u0435\u0447\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F",
+  gentle_digestion: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E"
+};
+function digestDue(essence, digest, now = /* @__PURE__ */ new Date()) {
+  if (!essence || !Object.keys(essence.metrics || {}).length) return false;
+  if (!digest?.at) return true;
+  return now.getTime() - Date.parse(digest.at) >= 6 * DAY_MS2;
+}
+function normalizeDigest(raw, now = /* @__PURE__ */ new Date()) {
+  if (!raw || typeof raw !== "object") return null;
+  const clean = (s, max) => {
+    const t = String(s || "").trim().replace(/\s+/g, " ").slice(0, max);
+    return t && isCleanClientText(t) ? t : "";
+  };
+  const insights = (Array.isArray(raw.insights) ? raw.insights : []).map((s) => clean(s, 220)).filter(Boolean).slice(0, 4);
+  const coachNote = clean(raw.coachNote, 500);
+  const approach = [...new Set((Array.isArray(raw.approach) ? raw.approach : []).map(String).filter((c) => DIGEST_APPROACH[c]))].slice(0, 2);
+  if (!insights.length && !coachNote) return null;
+  return { insights, coachNote, approach, at: now.toISOString() };
+}
+var SOURCE_RANK = { health_connect: 4, device_photo: 3, file: 2, manual: 1 };
+function dayOf(at) {
+  return new Date(Date.parse(at)).toISOString().slice(0, 10);
+}
+function dailySeries(facts, kind, key = null) {
+  const byDay = /* @__PURE__ */ new Map();
+  for (const f of facts || []) {
+    if (f.kind !== kind || f.status === "pending") continue;
+    if (key && f.key !== key) continue;
+    const day = dayOf(f.at);
+    const rank = SOURCE_RANK[f.source] || 1;
+    const prev = byDay.get(day);
+    if (!prev || rank > prev.rank || rank === prev.rank && Date.parse(f.at) > prev.t) {
+      byDay.set(day, { day, t: Date.parse(day + "T12:00:00Z"), value: Number(f.value), value2: f.value2, count: f.count, rank });
+    }
+  }
+  return [...byDay.values()].sort((a, b) => a.t - b.t);
+}
+function between(series, now, fromDays, toDays) {
+  const hi = now.getTime() - fromDays * DAY_MS2;
+  const lo = now.getTime() - toDays * DAY_MS2;
+  return series.filter((p) => p.t <= hi && p.t > lo);
+}
+var mean = (xs) => xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null;
+var r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
+var fmt3 = (v, d = 1) => String(Math.round(v * 10 ** d) / 10 ** d).replace(".", ",");
+function slopePerWeek(points) {
+  if (points.length < 2) return null;
+  const xs = points.map((p) => p.t / (7 * DAY_MS2));
+  const ys = points.map((p) => p.value);
+  const mx = mean(xs);
+  const my = mean(ys);
+  let num2 = 0;
+  let den = 0;
+  for (let i = 0; i < xs.length; i++) {
+    num2 += (xs[i] - mx) * (ys[i] - my);
+    den += (xs[i] - mx) ** 2;
+  }
+  return den ? num2 / den : null;
+}
+function edgeChange(points, n = 3) {
+  if (points.length < 2) return null;
+  const k = Math.min(n, Math.floor(points.length / 2)) || 1;
+  const first = points.slice(0, k);
+  const last = points.slice(-k);
+  return {
+    from: mean(first.map((p) => p.value)),
+    to: mean(last.map((p) => p.value)),
+    days: Math.round((mean(last.map((p) => p.t)) - mean(first.map((p) => p.t))) / DAY_MS2)
+  };
+}
+function sportLabelOf(perWeek) {
+  if (perWeek < 0.5) return "\u041D\u0438\u043A\u0430\u043A\u0432\u0430 (0 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
+  if (perWeek < 2.5) return "\u041D\u0438\u0441\u043A\u0430 (1\u20132 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
+  if (perWeek < 4.5) return "\u0421\u0440\u0435\u0434\u043D\u0430 (2\u20134 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
+  return "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
+}
+function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
+  const metrics = {};
+  const signals = [];
+  const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
+  const overrides = {};
+  const checkin = {};
+  const reasons = [];
+  const sources = [...new Set((facts || []).filter((f) => SOURCE_RANK[f.source]).map((f) => f.source))];
+  const weight = between(dailySeries(facts, "weight"), now, 0, 21);
+  const w14 = between(weight, now, 0, 14);
+  if (w14.length >= 5 && w14[w14.length - 1].t - w14[0].t >= 6 * DAY_MS2) {
+    const slope = slopePerWeek(w14);
+    metrics.weight = { last: r1(w14[w14.length - 1].value), avg7: r1(mean(between(weight, now, 0, 7).map((p) => p.value)) ?? w14[w14.length - 1].value), trendKgWeek: Math.round(slope * 100) / 100, days: w14.length };
+    checkin.weightTrendKgWeek = metrics.weight.trendKgWeek;
+    signals.push({ code: "weight_trend", level: "info", text: `\u0422\u0435\u0433\u043B\u043E: ${fmt3(metrics.weight.avg7)} \u043A\u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0435\u043D\u0434\u0435\u043D\u0446\u0438\u044F ${slope > 0 ? "+" : ""}${fmt3(slope, 2)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (${w14.length} \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F).` });
+  }
+  const bf = dailySeries(facts, "body_fat");
+  const comp = [];
+  const wByDay = new Map(dailySeries(facts, "weight").map((p) => [p.day, p.value]));
+  for (const p of between(bf, now, 0, 42)) {
+    const w = wByDay.get(p.day);
+    if (w) comp.push({ t: p.t, value: w * (1 - p.value / 100), fat: w * p.value / 100, weight: w });
+  }
+  const muscle = between(dailySeries(facts, "muscle_mass"), now, 0, 42);
+  const lean = muscle.length >= 4 ? muscle : comp;
+  if (comp.length) metrics.bodyFat = { last: r1(bf[bf.length - 1]?.value), leanKg: r1(comp[comp.length - 1].value) };
+  if (lean.length >= 4) {
+    const ch = edgeChange(lean);
+    const wPoints = lean === comp ? comp.map((c) => ({ t: c.t, value: c.weight })) : between(dailySeries(facts, "weight"), now, 0, 42);
+    const wch = edgeChange(wPoints);
+    if (ch && wch && ch.days >= 14) {
+      const dLean = ch.to - ch.from;
+      const dW = wch.to - wch.from;
+      metrics.composition = { days: ch.days, weightChangeKg: r1(dW), leanChangeKg: r1(dLean) };
+      if (dW <= -1 && dLean < 0 && -dLean >= -dW * 0.5) {
+        signals.push({ code: "lean_loss", level: "warn", text: `\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(dLean / dW * 100)}% \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u0438\u0442\u0435 ${fmt3(-dW)} \u043A\u0433 \u0437\u0430 ${ch.days} \u0434\u043D\u0438 \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u043D\u0435 \u0441\u0435 \u0437\u0430\u0434\u044A\u043B\u0431\u043E\u0447\u0430\u0432\u0430.` });
+        hints.approach.push("increase_protein");
+        checkin.leanLoss = true;
+        reasons.push("\u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u043F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430");
+      }
+    }
+  }
+  const visceral = dailySeries(facts, "visceral_fat");
+  if (visceral.length) metrics.visceralFat = visceral[visceral.length - 1].value;
+  const steps = dailySeries(facts, "steps");
+  const s7 = between(steps, now, 0, 7);
+  if (s7.length >= 4) {
+    metrics.steps = { avg7: Math.round(mean(s7.map((p) => p.value)) / 100) * 100, days: s7.length };
+    const prev = between(steps, now, 7, 35);
+    if (prev.length >= 10) {
+      const p = mean(prev.map((x) => x.value));
+      metrics.steps.prevAvg = Math.round(p / 100) * 100;
+      if (p > 0 && metrics.steps.avg7 < p * 0.7) {
+        signals.push({ code: "activity_drop", level: "info", text: `\u041A\u0440\u0430\u0447\u043A\u0438\u0442\u0435 \u0441\u0430 \u0441\u043F\u0430\u0434\u043D\u0430\u043B\u0438 \u0434\u043E ~${metrics.steps.avg7} \u0434\u043D\u0435\u0432\u043D\u043E (\u043E\u0442 ~${metrics.steps.prevAvg}).` });
+      }
+    }
+  }
+  const workouts = between(dailySeries(facts, "workout"), now, 0, 14);
+  const trackedSince = Math.min(...(facts || []).filter((f) => f.source === "health_connect").map((f) => Date.parse(f.at)), Infinity);
+  if (workouts.length && now.getTime() - trackedSince >= 12 * DAY_MS2) {
+    const sessions = workouts.reduce((s, p) => s + (p.count || 1), 0);
+    const perWeek = sessions / 2;
+    metrics.workouts = { perWeek: r1(perWeek), minutesWeek: Math.round(workouts.reduce((s, p) => s + p.value, 0) / 2) };
+    overrides.sportActivity = sportLabelOf(perWeek);
+    reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt3(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+  }
+  const active = between(dailySeries(facts, "active_kcal"), now, 0, 7);
+  if (active.length >= 4) metrics.activeKcal = Math.round(mean(active.map((p) => p.value)));
+  const rhr = dailySeries(facts, "resting_hr");
+  const hrv = dailySeries(facts, "hrv");
+  const rRecent = between(rhr, now, 0, 7);
+  const rBase = between(rhr, now, 7, 35);
+  const hRecent = between(hrv, now, 0, 7);
+  const hBase = between(hrv, now, 7, 35);
+  let rhrUp = null;
+  let hrvDown = null;
+  if (rRecent.length >= 4 && rBase.length >= 10) {
+    const a = mean(rRecent.map((p) => p.value));
+    const b = mean(rBase.map((p) => p.value));
+    metrics.restingHr = { avg7: Math.round(a), base: Math.round(b) };
+    rhrUp = a - b;
+  }
+  if (hRecent.length >= 4 && hBase.length >= 10) {
+    const a = mean(hRecent.map((p) => p.value));
+    const b = mean(hBase.map((p) => p.value));
+    metrics.hrv = { avg7: Math.round(a), base: Math.round(b) };
+    hrvDown = b > 0 ? (b - a) / b : null;
+  }
+  const recoveryLow = rhrUp != null && hrvDown != null && rhrUp >= 5 && hrvDown >= 0.15 || rhrUp != null && hrvDown == null && rhrUp >= 7 || hrvDown != null && rhrUp == null && hrvDown >= 0.25;
+  if (recoveryLow) {
+    checkin.recoveryLow = true;
+    signals.push({ code: "recovery_low", level: "warn", text: `\u0422\u044F\u043B\u043E\u0442\u043E \u0435 \u043F\u043E\u0434 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435: ${rhrUp != null ? `\u043F\u0443\u043B\u0441\u044A\u0442 \u0432 \u043F\u043E\u043A\u043E\u0439 \u0435 +${Math.round(rhrUp)} \u0443\u0434/\u043C\u0438\u043D` : ""}${rhrUp != null && hrvDown != null ? ", " : ""}${hrvDown != null ? `HRV \u0435 \u2212${Math.round(hrvDown * 100)}%` : ""} \u0441\u043F\u0440\u044F\u043C\u043E \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u043E\u0442\u043E \u2014 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0431\u0435\u0437 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442; \u0441\u044A\u043D \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043F\u044A\u0440\u0432\u043E \u043C\u044F\u0441\u0442\u043E.` });
+    reasons.push("\u043D\u0438\u0441\u043A\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043F\u043E \u043F\u0443\u043B\u0441\u0430");
+  }
+  const sleep = between(dailySeries(facts, "sleep"), now, 0, 7);
+  if (sleep.length >= 5) {
+    metrics.sleep = { avg7: r1(mean(sleep.map((p) => p.value))), nights: sleep.length };
+    if (metrics.sleep.avg7 < 6.5) {
+      signals.push({ code: "sleep_short", level: "warn", text: `\u0421\u044A\u043D: ~${fmt3(metrics.sleep.avg7)} \u0447 \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u043E\u0434 7 \u0447 \u0433\u043B\u0430\u0434\u044A\u0442 \u0438 \u0436\u0435\u043B\u0430\u043D\u0438\u0435\u0442\u043E \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442.` });
+    }
+  }
+  const intake = between(dailySeries(facts, "intake"), now, 0, 7);
+  if (intake.length >= 4) metrics.intake = { avg7: Math.round(mean(intake.map((p) => p.value))), days: intake.length };
+  const water = between(dailySeries(facts, "water"), now, 0, 7);
+  if (water.length >= 4) {
+    metrics.water = { avg7: r1(mean(water.map((p) => p.value))) };
+    if (ctx.waterNeedL && metrics.water.avg7 < ctx.waterNeedL * 0.6) {
+      signals.push({ code: "hydration_low", level: "info", text: `\u0412\u043E\u0434\u0430: ~${fmt3(metrics.water.avg7)} \u043B \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 ~${fmt3(ctx.waterNeedL)} \u043B.` });
+    }
+  }
+  const bp = between(dailySeries(facts, "bp"), now, 0, 28);
+  if (bp.length >= 3) {
+    const sys = mean(bp.map((p) => p.value));
+    const dia = mean(bp.filter((p) => p.value2).map((p) => p.value2)) || 0;
+    metrics.bp = { sys: Math.round(sys), dia: Math.round(dia), days: bp.length };
+    if (bp.length >= 3 && (sys >= 135 || dia >= 85)) {
+      hints.clinical.push("HTN");
+      signals.push({ code: "bp_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u043E: ~${Math.round(sys)}/${Math.round(dia)} \u0441\u0440\u0435\u0434\u043D\u043E \u043E\u0442 ${bp.length} \u0434\u043D\u0438 \u2014 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0441\u043E\u043B \u0438 \u043F\u043E\u0432\u0435\u0447\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438; \u0437\u0430 \u043E\u0446\u0435\u043D\u043A\u0430 \u2014 \u043B\u0438\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440.` });
+      hints.cautions.push(sys >= 160 || dia >= 100 ? `\u0414\u043E\u043C\u0430\u0448\u043D\u043E \u043A\u0440\u044A\u0432\u043D\u043E ~${Math.round(sys)}/${Math.round(dia)} \u2014 \u0434\u0430 \u0441\u0435 \u0432\u0438\u0434\u0438 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440 \u0431\u0435\u0437 \u043E\u0442\u043B\u0430\u0433\u0430\u043D\u0435.` : `\u0414\u043E\u043C\u0430\u0448\u043D\u043E \u043A\u0440\u044A\u0432\u043D\u043E \u043D\u0430\u0434 135/85 (~${Math.round(sys)}/${Math.round(dia)}) \u2014 \u0437\u0430 \u043F\u0440\u043E\u0441\u043B\u0435\u0434\u044F\u0432\u0430\u043D\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
+      reasons.push("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u043E \u0434\u043E\u043C\u0430\u0448\u043D\u043E \u043A\u0440\u044A\u0432\u043D\u043E");
+    }
+  }
+  const morning = between(dailySeries(facts, "glucose", "morning"), now, 0, 28);
+  if (morning.length >= 5) {
+    const m = mean(morning.map((p) => p.value));
+    metrics.glucose = { morning: r1(m), days: morning.length };
+    if (m >= 5.6) {
+      hints.clinical.push("IR");
+      signals.push({ code: "glucose_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D: ~${fmt3(m)} mmol/L \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u0442\u0430 \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0441\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438.` });
+      if (m >= 7) hints.cautions.push(`\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E ~${fmt3(m)} mmol/L \u043F\u043E \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440 \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
+      reasons.push("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D");
+    }
+  }
+  const peaks = between(dailySeries(facts, "glucose", "peak"), now, 0, 14);
+  if (peaks.length >= 7) {
+    const high = peaks.filter((p) => p.value >= 7.8).length / peaks.length;
+    metrics.glucose = { ...metrics.glucose || {}, peakHighShare: Math.round(high * 100) };
+    if (high >= 0.3) {
+      signals.push({ code: "glucose_spikes", level: "info", text: `\u0421\u043B\u0435\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0437\u0430\u0445\u0430\u0440\u0442\u0430 \u043C\u0438\u043D\u0430\u0432\u0430 7,8 mmol/L \u0432 ${Math.round(high * 100)}% \u043E\u0442 \u0434\u043D\u0438\u0442\u0435 \u2014 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0432\u044A\u0440\u0432\u044F\u0442 \u0441 \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u043D\u0435 \u0441\u0430\u043C\u0438.` });
+    }
+  }
+  for (const k of Object.keys(hints)) hints[k] = [...new Set(hints[k])];
+  return { v: 1, at: now.toISOString(), sources, metrics, signals, hints, overrides, checkin, reasons };
+}
+function essenceText(essence, digest = null) {
+  if (!essence) return "";
+  const m = essence.metrics || {};
+  const rows = [];
+  if (m.weight) rows.push(`\u0442\u0435\u0433\u043B\u043E ${fmt3(m.weight.avg7)} \u043A\u0433, ${m.weight.trendKgWeek > 0 ? "+" : ""}${fmt3(m.weight.trendKgWeek, 2)} \u043A\u0433/\u0441\u0435\u0434\u043C.`);
+  if (m.bodyFat) rows.push(`\u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${fmt3(m.bodyFat.last)}%, \u0447\u0438\u0441\u0442\u0430 \u043C\u0430\u0441\u0430 ${fmt3(m.bodyFat.leanKg)} \u043A\u0433`);
+  if (m.steps) rows.push(`\u043A\u0440\u0430\u0447\u043A\u0438 ~${m.steps.avg7}/\u0434\u0435\u043D`);
+  if (m.workouts) rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${fmt3(m.workouts.perWeek)}/\u0441\u0435\u0434\u043C. (${m.workouts.minutesWeek} \u043C\u0438\u043D)`);
+  if (m.sleep) rows.push(`\u0441\u044A\u043D ${fmt3(m.sleep.avg7)} \u0447`);
+  if (m.restingHr) rows.push(`\u043F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439 ${m.restingHr.avg7} (\u0431\u0430\u0437\u0430 ${m.restingHr.base})`);
+  if (m.hrv) rows.push(`HRV ${m.hrv.avg7} ms (\u0431\u0430\u0437\u0430 ${m.hrv.base})`);
+  if (m.intake) rows.push(`\u043F\u0440\u0438\u0435\u043C \u043F\u043E \u0442\u0440\u0430\u043A\u0435\u0440 ~${m.intake.avg7} kcal`);
+  if (m.water) rows.push(`\u0432\u043E\u0434\u0430 ${fmt3(m.water.avg7)} \u043B`);
+  if (m.bp) rows.push(`\u043A\u0440\u044A\u0432\u043D\u043E ~${m.bp.sys}/${m.bp.dia}`);
+  if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt3(m.glucose.morning)} mmol/L`);
+  const lines = [];
+  if (rows.length) lines.push(`\u0434\u0430\u043D\u043D\u0438: ${rows.join("; ")}`);
+  const warn = (essence.signals || []).filter((s) => s.level === "warn").map((s) => s.text);
+  if (warn.length) lines.push(`\u0441\u0438\u0433\u043D\u0430\u043B\u0438: ${warn.join(" ")}`);
+  if (digest?.coachNote) lines.push(`\u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438\u0435: ${digest.coachNote}`);
+  return lines.join(" | ").slice(0, 1600);
+}
+
+// enrichment-iris.js
+var REFERRAL_TEXT = {
+  urgent: "AIRIS: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043A\u044A\u043C \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0431\u0435\u0437 \u043E\u0442\u043B\u0430\u0433\u0430\u043D\u0435.",
+  soon: "AIRIS: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043F\u0440\u0435\u0433\u043B\u0435\u0434 \u043F\u0440\u0438 \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0432 \u0431\u043B\u0438\u0437\u043A\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438."
+};
+function deriveIris(facts) {
+  const fact = (facts || []).filter((f) => f.kind === "iris" && f.status !== "pending" && f.value?.analysis).sort((a2, b) => Date.parse(b.at) - Date.parse(a2.at))[0];
+  if (!fact) return null;
+  const a = fact.value.analysis;
+  const focus = (a.systems || []).filter((s) => s.priority).map((s) => s.label || s.key).slice(0, 3);
+  const cautions = [
+    ...(a.notices || []).map((n) => `AIRIS: ${n.title}${n.body ? ` \u2014 ${n.body}` : ""}`),
+    REFERRAL_TEXT[a.eyeReferral] || ""
+  ].filter(Boolean);
+  return {
+    summary: {
+      at: fact.at,
+      constitution: a.constitution || "",
+      focus,
+      drivers: (a.drivers || []).slice(0, 5).map((d) => d.action || d.observation),
+      eatMore: (a.eatMore || []).slice(0, 8),
+      eatLess: (a.eatLess || []).slice(0, 8),
+      recommendedTests: (a.recommendedTests || []).slice(0, 6),
+      complaints: fact.value.complaints || ""
+    },
+    hints: { behaviors: [], approach: [], clinical: [], cautions },
+    reasons: ["\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS)"],
+    // За сверката с NutriPlan (cross-check.js) — не излиза към клиента.
+    raw: { systems: a.systems || [], questionnaire: fact.value.questionnaire || null }
+  };
+}
+function irisText(s) {
+  if (!s) return "";
+  const parts = [
+    `\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 ${String(s.at || "").slice(0, 10)}`,
+    s.constitution ? `\u043A\u043E\u043D\u0441\u0442\u0438\u0442\u0443\u0446\u0438\u044F: ${s.constitution}` : "",
+    s.focus.length ? `\u0444\u043E\u043A\u0443\u0441: ${s.focus.join(", ")}` : "",
+    s.drivers.length ? `\u043D\u0430\u0441\u043E\u043A\u0438: ${s.drivers.join("; ")}` : "",
+    s.eatMore.length ? `\u043F\u043E\u0432\u0435\u0447\u0435: ${s.eatMore.join(", ")}` : "",
+    s.eatLess.length ? `\u043F\u043E-\u043C\u0430\u043B\u043A\u043E: ${s.eatLess.join(", ")}` : "",
+    s.recommendedTests.length ? `\u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F: ${s.recommendedTests.join(", ")}` : "",
+    s.complaints ? `\u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F: ${s.complaints}` : ""
+  ].filter(Boolean);
+  return parts.join("; ").slice(0, 900);
+}
+
+// cross-check.js
+var IRIS_SYSTEMS = {
+  digestive: {
+    label: "\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435",
+    codes: ["GI", "IBS", "IBD", "GERD", "SIBO", "GAST", "CEL"],
+    text: /подув|газ(ове|ов)|тежест|киселин|запек|диари|рефлукс|колит|гастрит|храносмил/i,
+    action: "gentle_digestion",
+    actionLabel: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E \u043C\u0435\u043D\u044E",
+    ask: "AIRIS \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F. \u0418\u043C\u0430\u0442\u0435 \u043B\u0438 \u043F\u043E\u0434\u0443\u0432\u0430\u043D\u0435, \u0442\u0435\u0436\u0435\u0441\u0442, \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0438 \u0438\u043B\u0438 \u043D\u0435\u0440\u0435\u0434\u043E\u0432\u043D\u043E \u0438\u0437\u0445\u043E\u0436\u0434\u0430\u043D\u0435?"
+  },
+  metabolic: {
+    label: "\u041E\u0431\u043C\u044F\u043D\u0430 (\u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438)",
+    codes: ["IR", "T2D", "METS", "DYSL", "NAFLD"],
+    text: /кръвна захар|инсулин|холестерол|триглицерид|коремн/i,
+    signals: ["glucose_high", "glucose_spikes"],
+    action: "more_volume",
+    actionLabel: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0444\u0438\u0431\u0440\u0438 \u043F\u0440\u0438 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438",
+    // Голям обем на хранене влошава рефлукса и гастрита — по код или по думите на клиента
+    // (въпросникът събира „Рефлукс“ в общия код GI, затова и текстът).
+    guard: ["GERD", "GAST"],
+    guardText: /рефлукс|киселин|гастрит|херни/i,
+    ask: "AIRIS \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u043E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F. \u0418\u043C\u0430\u0442\u0435 \u043B\u0438 \u0440\u044F\u0437\u044A\u043A \u0433\u043B\u0430\u0434 \u0438\u043B\u0438 \u0441\u044A\u043D\u043B\u0438\u0432\u043E\u0441\u0442 \u0441\u043B\u0435\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0438\u043B\u0438 \u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438\u043B\u0438 \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B \u043F\u0440\u0438 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435?"
+  },
+  nervous: {
+    label: "\u041D\u0435\u0440\u0432\u043D\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 (\u0441\u0442\u0440\u0435\u0441 \u0438 \u0441\u044A\u043D)",
+    codes: ["DEP", "ANX", "SLP"],
+    text: /стрес|тревожн|безсъни|напрежение|умора/i,
+    signals: ["recovery_low", "sleep_short"],
+    behaviors: ["EMO"],
+    action: null,
+    ask: "AIRIS \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u043D\u0435\u0440\u0432\u043D\u0430\u0442\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0441\u0442\u0440\u0435\u0441\u044A\u0442 \u0435 \u043D\u0438\u0441\u044A\u043A. \u0427\u0443\u0432\u0441\u0442\u0432\u0430\u0442\u0435 \u043B\u0438 \u0441\u0435 \u043D\u0430\u043F\u0440\u0435\u0433\u043D\u0430\u0442\u0438 \u0438\u043B\u0438 \u0438\u0437\u0442\u043E\u0449\u0435\u043D\u0438 \u043F\u0440\u0435\u0437 \u043F\u043E\u0432\u0435\u0447\u0435\u0442\u043E \u0434\u043D\u0438?"
+  },
+  circulatory: { label: "\u041A\u0440\u044A\u0432\u043E\u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0435", codes: ["HTN", "CVD", "DYSL"], signals: ["bp_high"], text: /кръвно|сърдеч/i, action: null },
+  endocrine: { label: "\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430", codes: ["HYPO", "HYPER", "ENDO", "PCOS", "HORM", "ADR", "MENO"], text: /щитовид|хормон|цикъл/i, action: null },
+  detox: { label: "\u0427\u0435\u0440\u0435\u043D \u0434\u0440\u043E\u0431 \u0438 \u0436\u043B\u044A\u0447\u043A\u0430", codes: ["NAFLD"], text: /черен дроб|жлъч/i, action: null },
+  immune: { label: "\u0418\u043C\u0443\u043D\u0438\u0442\u0435\u0442 \u0438 \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435", codes: ["INFL", "AI", "ALG", "SKIN"], text: /алерги|възпал|кож/i, action: null }
+};
+var YES = ["often", "sometimes"];
+var SYMPTOM_OPTIONS = [
+  { value: "often", label: "\u0414\u0430, \u0447\u0435\u0441\u0442\u043E" },
+  { value: "sometimes", label: "\u041F\u043E\u043D\u044F\u043A\u043E\u0433\u0430" },
+  { value: "no", label: "\u041D\u0435" }
+];
+var asList2 = (v) => (Array.isArray(v) ? v : String(v ?? "").split(/[,;|\n]/)).map((s) => String(s).trim()).filter(Boolean);
+var said = (data, field, values) => asList2(data?.[field]).some((x) => values.includes(x));
+var termKey = (t) => normLabel(t).replace(/[^a-zа-я0-9]+/gi, "_").slice(0, 40);
+function resolutionsOf(facts) {
+  const out = {};
+  for (const f of [...facts || []].filter((x) => x.kind === "resolution").sort((a, b) => Date.parse(a.at) - Date.parse(b.at))) {
+    out[f.key] = f.value;
+  }
+  return out;
+}
+function crossCheck(data, derived, resolutions = {}) {
+  const hypotheses = [];
+  const questions = [];
+  const overrides = {};
+  const approach = [];
+  const cautions = [];
+  const { _enrichment, ...plain } = data || {};
+  const profile = compileProfile(plain);
+  const clinical = /* @__PURE__ */ new Set([...profile.clinical || [], ...derived?.hints?.clinical || []]);
+  const behaviors = /* @__PURE__ */ new Set([...profile.behaviors || [], ...derived?.hints?.behaviors || []]);
+  const signals = new Set((derived?.essence?.signals || []).map((s) => s.code));
+  const freeText = [data?.additionalNotes, data?.medicalConditions_other, data?.healthConditions_other, data?.dietDislike].filter(Boolean).join(" ");
+  const noConditions = said(data, "medicalConditions", ["\u041D\u044F\u043C\u0430\u043C", "\u041D\u044F\u043C\u0430"]) || said(data, "healthConditions", ["\u041D\u044F\u043C\u0430\u043C", "\u041D\u044F\u043C\u0430"]);
+  const conditionsText = [
+    freeText,
+    ...asList2(data?.medicalConditions),
+    ...asList2(data?.healthConditions),
+    ...Object.keys(data || {}).filter((k) => /^medicalConditions_/.test(k)).flatMap((k) => asList2(data[k]))
+  ].join(" ");
+  const iris = derived?.irisRaw;
+  for (const s of (iris?.systems || []).filter((x) => x.priority)) {
+    const def = IRIS_SYSTEMS[s.key];
+    if (!def) continue;
+    const evidence = [];
+    for (const c of def.codes || []) if (clinical.has(c)) evidence.push(`\u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 ${c}`);
+    if (def.text && def.text.test(freeText)) evidence.push("\u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430");
+    for (const sig of def.signals || []) if (signals.has(sig)) evidence.push(`\u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ${sig}`);
+    for (const b of def.behaviors || []) if (behaviors.has(b)) evidence.push("EmoEat / \u043D\u0430\u0432\u0438\u0446\u0438");
+    if (s.key === "nervous" && data?.stressLevel === "\u0412\u0438\u0441\u043E\u043A\u043E") evidence.push("\u0432\u0438\u0441\u043E\u043A \u0441\u0442\u0440\u0435\u0441");
+    const qid = `iris:${s.key}`;
+    const answer = resolutions[qid];
+    if (YES.includes(answer)) evidence.push("\u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430");
+    const denied = s.key === "nervous" ? data?.stressLevel === "\u041D\u0438\u0441\u043A\u043E" && !evidence.length : noConditions && !evidence.length;
+    let status = evidence.length ? "confirmed" : "unconfirmed";
+    if (answer === "no") status = "rejected";
+    else if (!evidence.length && denied && def.ask) {
+      status = "disputed";
+      questions.push({ id: qid, source: "airis", topic: def.label, text: def.ask, options: SYMPTOM_OPTIONS });
+    }
+    const blockedBy = (def.guard || []).filter((c) => clinical.has(c));
+    if (def.guardText && def.guardText.test(conditionsText)) blockedBy.push("\u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0435 \u043E\u0442 \u0440\u0435\u0444\u043B\u0443\u043A\u0441/\u0433\u0430\u0441\u0442\u0440\u0438\u0442");
+    const applied = status === "confirmed" && !!def.action && !blockedBy.length;
+    if (applied) approach.push(def.action);
+    hypotheses.push({
+      system: s.key,
+      label: def.label,
+      status,
+      evidence: [...new Set(evidence)],
+      action: def.action ? def.actionLabel : null,
+      applied,
+      blockedBy: status === "confirmed" && blockedBy.length ? blockedBy : []
+    });
+  }
+  const q = derived?.irisRaw?.questionnaire;
+  if (q) {
+    const known = normLabel([data?.dietDislike, data?.["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"], data?.foodSensitivities].flat().filter(Boolean).join(" "));
+    for (const term of asList2([q.foodIntolerances, q.allergies].filter(Boolean).join(","))) {
+      const t = term.slice(0, 40);
+      if (normLabel(t).length < 3 || known.includes(normLabel(t))) continue;
+      const id = `allergy:${termKey(t)}`;
+      const answer = resolutions[id];
+      if (answer === "yes") overrides.dietDislike = [overrides.dietDislike || data?.dietDislike, t].filter(Boolean).join(", ");
+      else if (!answer) {
+        questions.push({ id, source: "airis", topic: "\u041D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442 \u0438\u043B\u0438 \u0430\u043B\u0435\u0440\u0433\u0438\u044F \u043A\u044A\u043C \u201E${t}\u201C, \u0430 \u0432 NutriPlan \u044F \u043D\u044F\u043C\u0430. \u0414\u0430 \u044F \u0438\u0437\u043A\u043B\u044E\u0447\u0438\u043C \u043B\u0438 \u043E\u0442 \u043F\u043B\u0430\u043D\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u0438\u0437\u043A\u043B\u044E\u0447\u0438 \u044F" }, { value: "no", label: "\u041D\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E" }] });
+      }
+    }
+    if (q.medications && data?.medications !== "\u0414\u0430") {
+      const answer = resolutions.meds;
+      if (answer === "yes") {
+        overrides.medications = "\u0414\u0430";
+        overrides.medicationsDetails = [data?.medicationsDetails, q.medications].filter(Boolean).join("; ");
+      } else if (!answer) {
+        questions.push({ id: "meds", source: "airis", topic: "\u041B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 \u201E${q.medications.slice(0, 120)}\u201C, \u0430 \u0432 NutriPlan \u2014 \u0447\u0435 \u043D\u0435 \u043F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u041F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0438 \u0433\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u043F\u0440\u0438\u0435\u043C\u0430\u043C \u0433\u0438" }, { value: "no", label: "\u041D\u0435, \u0432\u0435\u0447\u0435 \u043D\u0435" }] });
+      }
+    }
+    const npDiet = asList2(data?.dietPreference);
+    for (const [airisLabel, npLabel] of [["\u0412\u0435\u0433\u0430\u043D", "\u0412\u0435\u0433\u0430\u043D"], ["\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0438", "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430"]]) {
+      if (!(q.dietaryProfile || []).includes(airisLabel) || npDiet.includes(npLabel)) continue;
+      const id = `pattern:${npLabel}`;
+      const answer = resolutions[id];
+      if (answer === "yes") overrides.dietPreference = [.../* @__PURE__ */ new Set([...npDiet, npLabel])];
+      else if (!answer) {
+        questions.push({ id, source: "airis", topic: "\u0420\u0435\u0436\u0438\u043C \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 ${npLabel.toLowerCase()} \u0440\u0435\u0436\u0438\u043C, \u0430 \u0432 NutriPlan \u2014 \u043D\u0435. \u0414\u0430 \u0433\u043E \u043F\u0440\u0438\u043B\u043E\u0436\u0438\u043C \u043B\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430?`, options: [{ value: "yes", label: "\u0414\u0430" }, { value: "no", label: "\u041D\u0435" }] });
+      }
+      break;
+    }
+    const npKg = Number(String(data?.weight || "").replace(",", "."));
+    if (q.weight && npKg && Math.abs(q.weight - npKg) >= 4) {
+      const answer = resolutions.weight;
+      if (answer === "airis") overrides.weight = String(q.weight);
+      else if (!answer) {
+        questions.push({ id: "weight", source: "airis", topic: "\u0422\u0435\u0433\u043B\u043E", text: `\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0432 AIRIS (${q.weight} \u043A\u0433) \u0438 \u0432 NutriPlan (${npKg} \u043A\u0433) \u0441\u0435 \u0440\u0430\u0437\u043B\u0438\u0447\u0430\u0432\u0430. \u041A\u043E\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E\u0442\u043E?`, options: [{ value: "airis", label: `${q.weight} \u043A\u0433` }, { value: "nutriplan", label: `${npKg} \u043A\u0433` }] });
+      }
+    }
+  }
+  const v = derived?.voice;
+  const strong = v && v.reliable !== false && (v.intensity === "\u0421\u0438\u043B\u043D\u043E" || v.intensity === "\u041E\u0441\u0435\u0437\u0430\u0435\u043C\u043E");
+  const rarely = ["\u0420\u044F\u0434\u043A\u043E", "\u041D\u0438\u043A\u043E\u0433\u0430"].includes(data?.overeatingFrequency) && (!asList2(data?.foodTriggers).length || said(data, "foodTriggers", ["\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u043E"]));
+  if (strong && rarely && !resolutions.emoeat_vs_q) {
+    questions.push({ id: "emoeat_vs_q", source: "emoeat", topic: "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", text: "EmoEat \u043F\u043E\u043A\u0430\u0437\u0432\u0430, \u0447\u0435 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0447\u0435\u0441\u0442\u043E \u0438\u0434\u0432\u0430 \u0432 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u043D\u0430 \u0435\u043C\u043E\u0446\u0438\u0438, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0441\u0442\u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043B\u0438, \u0447\u0435 \u0440\u044F\u0434\u043A\u043E \u044F\u0434\u0435\u0442\u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u043E\u0442\u043E. \u041A\u043E\u0435 \u0435 \u043F\u043E-\u0431\u043B\u0438\u0437\u043E \u0434\u043E \u0432\u0430\u0441?", options: [{ value: "often", label: "\u0427\u0435\u0441\u0442\u043E \u044F\u043C \u043F\u0440\u0438 \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0443\u043C\u043E\u0440\u0430 \u0438\u043B\u0438 \u0441\u043A\u0443\u043A\u0430" }, { value: "rare", label: "\u0420\u044F\u0434\u043A\u043E \u2014 \u043D\u0435 \u0441\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043C" }] });
+  }
+  const confirmed = hypotheses.filter((h) => h.status === "confirmed");
+  if (confirmed.some((h) => h.blockedBy.length)) {
+    cautions.push(`\u041F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 AIRIS \u0438 NutriPlan, \u043D\u043E \u043D\u0435 \u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u043E \u0437\u0430\u0440\u0430\u0434\u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u043E: ${confirmed.filter((h) => h.blockedBy.length).map((h) => `${h.label} (${h.blockedBy.join(", ")})`).join("; ")}.`);
+  }
+  return { hypotheses, questions: questions.slice(0, 6), overrides, approach: [...new Set(approach)], cautions };
+}
+function crossCheckText(cc) {
+  if (!cc) return "";
+  const parts = [];
+  const by = (st) => cc.hypotheses.filter((h) => h.status === st);
+  if (by("confirmed").length) parts.push(`\u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 AIRIS \u0438 NutriPlan: ${by("confirmed").map((h) => `${h.label} (${h.evidence.join(", ")})${h.applied ? ` \u2192 ${h.action}` : ""}`).join("; ")}`);
+  if (by("rejected").length) parts.push(`\u043E\u0442\u0445\u0432\u044A\u0440\u043B\u0435\u043D\u043E \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430: ${by("rejected").map((h) => h.label).join(", ")}`);
+  if (by("unconfirmed").length) parts.push(`\u0441\u0430\u043C\u043E \u043F\u043E \u0438\u0440\u0438\u0441\u0430 (\u0431\u0435\u0437 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435): ${by("unconfirmed").map((h) => h.label).join(", ")}`);
+  if (cc.questions.length) parts.push(`\u043D\u0435\u0443\u0442\u043E\u0447\u043D\u0435\u043D\u0438 \u0440\u0430\u0437\u043C\u0438\u043D\u0430\u0432\u0430\u043D\u0438\u044F (\u043C\u043E\u0436\u0435 \u0434\u0430 \u043F\u043E\u043F\u0438\u0442\u0430\u0448 \u043A\u043B\u0438\u0435\u043D\u0442\u0430): ${cc.questions.map((q) => q.topic).join(", ")}`);
+  return parts.join(" | ");
+}
+
+// enrichment.js
+var ENRICHMENT_VERSION = 1;
+var DEVICE_KINDS = {
+  weight: { unit: "kg", range: [30, 300], label: "\u0422\u0435\u0433\u043B\u043E" },
+  body_fat: { unit: "%", range: [3, 70], label: "\u0422\u0435\u043B\u0435\u0441\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438" },
+  muscle_mass: { unit: "kg", range: [10, 120], label: "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430" },
+  visceral_fat: { unit: "", range: [1, 59], label: "\u0412\u0438\u0441\u0446\u0435\u0440\u0430\u043B\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438" },
+  body_water: { unit: "%", range: [20, 80], label: "\u0412\u043E\u0434\u0430 \u0432 \u0442\u044F\u043B\u043E\u0442\u043E" },
+  steps: { unit: "", range: [0, 6e4], label: "\u041A\u0440\u0430\u0447\u043A\u0438" },
+  active_kcal: { unit: "kcal", range: [0, 6e3], label: "\u0410\u043A\u0442\u0438\u0432\u043D\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438" },
+  workout: { unit: "\u043C\u0438\u043D", range: [1, 900], label: "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438" },
+  sleep: { unit: "\u0447", range: [0, 16], label: "\u0421\u044A\u043D" },
+  resting_hr: { unit: "\u0443\u0434/\u043C\u0438\u043D", range: [30, 120], label: "\u041F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439" },
+  hrv: { unit: "ms", range: [5, 300], label: "\u0412\u0430\u0440\u0438\u0430\u0431\u0438\u043B\u043D\u043E\u0441\u0442 \u043D\u0430 \u043F\u0443\u043B\u0441\u0430 (HRV)" },
+  intake: { unit: "kcal", range: [0, 8e3], label: "\u041F\u0440\u0438\u0435\u0442\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438" },
+  water: { unit: "\u043B", range: [0, 10], label: "\u0412\u043E\u0434\u0430" },
+  bp: { unit: "mmHg", range: [60, 260], range2: [30, 160], label: "\u041A\u0440\u044A\u0432\u043D\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435" },
+  glucose: { unit: "mmol/L", range: [1.5, 35], keys: ["morning", "peak", "any"], label: "\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440" }
+};
+var UNIT_CONVERT = {
+  weight: { lb: (v) => v * 0.4536, lbs: (v) => v * 0.4536 },
+  muscle_mass: { lb: (v) => v * 0.4536, lbs: (v) => v * 0.4536 },
+  glucose: { "mg/dl": (v) => v / 18 },
+  water: { ml: (v) => v / 1e3 },
+  sleep: { min: (v) => v / 60, \u043C\u0438\u043D: (v) => v / 60 }
+};
+var DAY_MS3 = 864e5;
+var MAX_FACTS = 1500;
+var MAX_AGE_DAYS = 400;
+function dayOf2(at) {
+  const t = Date.parse(at);
+  return Number.isFinite(t) ? new Date(t).toISOString().slice(0, 10) : null;
+}
+function normalizeFact(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const kind = String(raw.kind || "").trim();
+  const at = dayOf2(raw.at || raw.date) ? new Date(Date.parse(raw.at || raw.date)).toISOString() : null;
+  if (!kind || !at) return null;
+  const source = String(raw.source || "manual").slice(0, 40);
+  const confidence = Math.max(0, Math.min(1, Number(raw.confidence ?? 1)));
+  const status = ["confirmed", "pending", "inferred"].includes(raw.status) ? raw.status : "confirmed";
+  const spec = DEVICE_KINDS[kind];
+  if (spec) {
+    const unit = String(raw.unit || "").trim().toLowerCase();
+    const conv = UNIT_CONVERT[kind]?.[unit];
+    let v = Number(String(raw.value).replace(",", "."));
+    if (conv) v = conv(v);
+    const [lo, hi] = spec.range;
+    if (!Number.isFinite(v) || v < lo || v > hi) return null;
+    const fact = { kind, key: kind, value: Math.round(v * 100) / 100, unit: spec.unit, at, source, confidence, status };
+    if (spec.keys) fact.key = spec.keys.includes(raw.key) ? raw.key : "any";
+    if (spec.range2) {
+      const v2 = Number(String(raw.value2).replace(",", "."));
+      if (!Number.isFinite(v2) || v2 < spec.range2[0] || v2 > spec.range2[1] || v2 >= v) return null;
+      fact.value2 = Math.round(v2);
+    }
+    if (kind === "workout" && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
+    return fact;
+  }
+  if (kind === "emoeat") {
+    if (!raw.value || typeof raw.value !== "object") return null;
+    return { kind, key: "profile", value: raw.value, unit: "", at, source: "emoeat", confidence, status };
+  }
+  if (kind === "resolution") {
+    const key = String(raw.key || "").trim().slice(0, 80);
+    const value = String(raw.value ?? "").trim().slice(0, 40);
+    if (!/^[a-z_]+(:[\p{L}\p{N}_]+)?$/u.test(key) || !value) return null;
+    return { kind, key, value, unit: "", at, source: "client", confidence: 1, status: "confirmed" };
+  }
+  if (kind === "iris") {
+    if (!raw.value || typeof raw.value !== "object" || !raw.value.analysis) return null;
+    return { kind, key: "report", value: raw.value, unit: "", at, source: "airis", confidence, status };
+  }
+  if (kind === "biomarker") {
+    const key = String(raw.key || "").trim();
+    const v = Number(String(raw.value).replace(",", "."));
+    if (!key || !Number.isFinite(v)) return null;
+    const ref = {};
+    if (Number.isFinite(Number(raw.refLow))) ref.refLow = Number(raw.refLow);
+    if (Number.isFinite(Number(raw.refHigh))) ref.refHigh = Number(raw.refHigh);
+    return { kind, key, value: v, unit: String(raw.unit || ""), at, source, confidence, status, ...ref };
+  }
+  return null;
+}
+function mergeFacts(existing = [], incoming = [], now = /* @__PURE__ */ new Date()) {
+  const byKey = /* @__PURE__ */ new Map();
+  const put = (f) => {
+    if (!f) return;
+    const k = `${f.kind}|${f.key}|${dayOf2(f.at)}|${f.source}`;
+    byKey.set(k, f);
+  };
+  for (const f of existing) put(normalizeFact(f));
+  for (const f of incoming) put(normalizeFact(f));
+  const cutoff = now.getTime() - MAX_AGE_DAYS * DAY_MS3;
+  return [...byKey.values()].filter((f) => Date.parse(f.at) >= cutoff).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, MAX_FACTS);
+}
+function recent(facts, kind, days, now) {
+  const from = now.getTime() - days * DAY_MS3;
+  return facts.filter((f) => f.kind === kind && Date.parse(f.at) >= from && f.status !== "pending");
+}
+function dailyMean(list2) {
+  const byDay = /* @__PURE__ */ new Map();
+  for (const f of list2) {
+    const d = dayOf2(f.at);
+    if (!byDay.has(d)) byDay.set(d, []);
+    byDay.get(d).push(Number(f.value));
+  }
+  const days = [...byDay.values()].map((v) => v.reduce((s, x) => s + x, 0) / v.length);
+  return { days: days.length, mean: days.length ? days.reduce((s, x) => s + x, 0) / days.length : null };
+}
+function activityLabelOf(steps) {
+  if (steps < 5e3) return "\u041D\u0438\u0441\u043A\u043E";
+  if (steps < 1e4) return "\u0421\u0440\u0435\u0434\u043D\u043E";
+  return "\u0412\u0438\u0441\u043E\u043A\u043E";
+}
+function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ctx = {}) {
+  const facts = Array.isArray(store?.facts) ? store.facts : [];
+  const overrides = {};
+  const reasons = [];
+  const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
+  const checkin = {};
+  const steps = dailyMean(recent(facts, "steps", 14, now));
+  if (steps.days >= 7 && steps.mean != null) {
+    overrides.dailyActivityLevel = activityLabelOf(steps.mean);
+    reasons.push(`\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442 \u043F\u043E \u043A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440: ~${Math.round(steps.mean / 100) * 100} \u043A\u0440\u0430\u0447\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  }
+  const sleep = dailyMean(recent(facts, "sleep", 14, now));
+  if (sleep.days >= 5 && sleep.mean != null) {
+    overrides.sleepHours = String(Math.round(sleep.mean * 10) / 10);
+    reasons.push(`\u0441\u044A\u043D \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${String(Math.round(sleep.mean * 10) / 10).replace(".", ",")} \u0447`);
+  }
+  const weights = recent(facts, "weight", 3, now);
+  if (weights.length) {
+    const w = weights.reduce((s, f) => s + Number(f.value), 0) / weights.length;
+    checkin.weightKg = Math.round(w * 10) / 10;
+  }
+  const intake = dailyMean(recent(facts, "intake", 7, now));
+  if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);
+  const emo = deriveEmoEat(facts);
+  const labs = deriveLabs(facts, now, sex);
+  const essence = computeEssence(facts, now, ctx);
+  Object.assign(overrides, essence.overrides);
+  Object.assign(checkin, essence.checkin);
+  const digest = store?.digest && typeof store.digest === "object" ? store.digest : null;
+  const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
+  const iris = deriveIris(facts);
+  const resolutions = resolutionsOf(facts);
+  const emoPart = emo && resolutions.emoeat_vs_q === "rare" ? { ...emo, hints: null } : emo;
+  for (const part of [emoPart, labs, essence, digestPart, iris]) {
+    if (!part) continue;
+    for (const k of ["behaviors", "approach", "clinical", "cautions"]) hints[k].push(...part.hints?.[k] || []);
+    reasons.push(...part.reasons || []);
+  }
+  for (const k of Object.keys(hints)) hints[k] = [...new Set(hints[k])];
+  return {
+    v: ENRICHMENT_VERSION,
+    overrides,
+    hints,
+    checkin,
+    voice: emo?.voice || null,
+    labs: labs?.findings || [],
+    safety: labs?.safety || {},
+    supplements: labs?.supplements || [],
+    essence: { metrics: essence.metrics, signals: essence.signals, sources: essence.sources, at: essence.at },
+    digest: digest ? { insights: digest.insights || [], coachNote: digest.coachNote || "", at: digest.at } : null,
+    iris: iris?.summary || null,
+    irisRaw: iris?.raw || null,
+    resolutions,
+    reasons
+  };
+}
+function applyEnrichment(userData, store, now = /* @__PURE__ */ new Date()) {
+  if (!userData || !store?.facts?.length) return userData;
+  const sex = userData.gender === "\u041C\u044A\u0436" ? "M" : userData.gender === "\u0416\u0435\u043D\u0430" ? "F" : "X";
+  const kg = Number(String(userData.weight || "").replace(",", "."));
+  const derived = deriveEnrichment(store, now, sex, kg > 30 ? { waterNeedL: Math.round(kg * 0.033 * 10) / 10 } : {});
+  const cc = crossCheck(userData, derived, derived.resolutions);
+  Object.assign(derived.overrides, cc.overrides);
+  derived.hints.approach = [.../* @__PURE__ */ new Set([...derived.hints.approach, ...cc.approach])];
+  derived.hints.cautions = [.../* @__PURE__ */ new Set([...derived.hints.cautions, ...cc.cautions])];
+  derived.crossCheck = { hypotheses: cc.hypotheses, questions: cc.questions };
+  const original = {};
+  for (const [field, value] of Object.entries(derived.overrides)) {
+    original[field] = userData[field] ?? null;
+    userData[field] = value;
+  }
+  userData._enrichment = { ...derived, original };
+  return userData;
+}
+var sameSet = (a = [], b = []) => a.length === b.length && a.every((x) => b.includes(x));
+function recalcLevel(prevData, nextData) {
+  const a = compileProfile(prevData || {});
+  const b = compileProfile(nextData || {});
+  const reasons = [];
+  let level = 0;
+  const bump = (l, why) => {
+    if (l > level) level = l;
+    reasons.push(why);
+  };
+  if (a.goal !== b.goal) bump(3, "\u043D\u043E\u0432\u0430 \u0446\u0435\u043B");
+  if (a.protocol !== b.protocol) bump(3, "\u043A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B");
+  if (!sameSet(a.clinical, b.clinical)) bump(3, "\u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435");
+  if (a.diet.pattern !== b.diet.pattern) bump(3, "\u043C\u043E\u0434\u0435\u043B \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  if (a.activity.daily !== b.activity.daily) bump(2, "\u043D\u0438\u0432\u043E \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442");
+  if (a.activity.sportBand !== b.activity.sportBand) bump(2, "\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438");
+  if ((a.sleepHours || 0) !== (b.sleepHours || 0) && Math.abs((a.sleepHours || 7) - (b.sleepHours || 7)) >= 1) bump(2, "\u0441\u044A\u043D");
+  if (a.stress !== b.stress) bump(2, "\u0441\u0442\u0440\u0435\u0441");
+  if (a.weightKg && b.weightKg && Math.abs(a.weightKg - b.weightKg) / a.weightKg >= 0.02) bump(2, "\u0442\u0435\u0433\u043B\u043E");
+  if (!sameSet(a.exclusions, b.exclusions)) bump(1, "\u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438");
+  if (a.diet.style !== b.diet.style) bump(1, "\u043D\u0430\u0447\u0438\u043D \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+  if (!sameSet(a.behaviors, b.behaviors)) bump(0, "\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043D\u0430\u0432\u0438\u0446\u0438");
+  if (!sameSet(prevData?._enrichment?.hints?.approach || [], nextData?._enrichment?.hints?.approach || [])) bump(1, "\u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E");
+  const aNext = nextData?._enrichment;
+  const aPrev = prevData?._enrichment;
+  if (JSON.stringify(aNext?.voice || null) !== JSON.stringify(aPrev?.voice || null)) bump(0, "\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B");
+  if (JSON.stringify(aNext?.iris || null) !== JSON.stringify(aPrev?.iris || null)) bump(0, "\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437");
+  if (JSON.stringify(aNext?.safety || {}) !== JSON.stringify(aPrev?.safety || {})) bump(2, "\u0433\u0440\u0430\u043D\u0438\u0446\u0438 \u0437\u0430 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442 \u043E\u0442 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F");
+  return { level: (
+    /** @type {0|1|2|3} */
+    level
+  ), reasons: [...new Set(reasons)] };
+}
+function isUrgent(derived) {
+  return !!(derived?.safety && Object.keys(derived.safety).length);
+}
+
+// chat-clarify.js
+var TOPIC_WORDS = {
+  "iris:digestive": /подув|газ(ове|ов)\b|тежест|киселин|запек|диари|стомах|корем|храносмил|черв|изхожд/i,
+  "iris:metabolic": /кръвна захар|захарта ми|инсулин|вълчи глад|силен глад|сънлив|холестерол|триглицерид|не отслабвам|не свалям|плато/i,
+  "iris:nervous": /стрес|напрежени|тревож|умор|изтощ|нерви|безсъни|не спя|сънят ми/i,
+  meds: /лекарств|хапче|таблетк|медикамент/i,
+  weight: /тегло|теглото|килограм|\bкг\b|везна|претегл/i,
+  emoeat_vs_q: /емоци|преяжд|от скука|когато съм напрегнат|не мога да спра|нощем ям|ям вечер|посягам/i
+};
+var PATTERN_WORDS = /веган|вегетариан|месо|растителн/i;
+var ALLERGY_WORDS = /алерги|непоносим/i;
+var ALLERGY_RELATED = { \u043B\u0430\u043A\u0442\u043E\u0437\u0430: /мляко|млечн|сирене|кисело мляко/i, \u0433\u043B\u0443\u0442\u0435\u043D: /глутен|хляб|пшениц|тестен/i };
+var stem = (s) => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]/gi, "").slice(0, 5);
+function matches(q, text) {
+  if (TOPIC_WORDS[q.id]) {
+    if (TOPIC_WORDS[q.id].test(text)) return true;
+    if (q.id === "meds") {
+      const name = stem((q.text.match(/„([^“]+)“/) || [])[1]);
+      return name.length >= 4 && text.toLowerCase().includes(name);
+    }
+    return false;
+  }
+  if (q.id.startsWith("pattern:")) return PATTERN_WORDS.test(text);
+  if (q.id.startsWith("allergy:")) {
+    const term = q.id.slice("allergy:".length).replace(/_/g, " ");
+    const s = stem(term);
+    return ALLERGY_WORDS.test(text) || s.length >= 4 && text.toLowerCase().includes(s) || !!ALLERGY_RELATED[term]?.test(text);
+  }
+  return false;
+}
+function sanitizeQuestions(raw) {
+  return (Array.isArray(raw) ? raw : []).slice(0, 6).filter(
+    (q) => q && typeof q.id === "string" && /^[a-z_]+(:[\p{L}\p{N}_]+)?$/u.test(q.id) && typeof q.text === "string" && Array.isArray(q.options) && q.options.length >= 2 && q.options.every((o) => o && typeof o.value === "string" && typeof o.label === "string")
+  ).map((q) => ({
+    id: q.id,
+    source: String(q.source || ""),
+    topic: String(q.topic || "").slice(0, 60),
+    text: q.text.slice(0, 400),
+    options: q.options.slice(0, 4).map((o) => ({ value: o.value.slice(0, 20), label: o.label.slice(0, 60) }))
+  }));
+}
+function relevantQuestion(questions, message, askedId = "") {
+  const text = String(message || "");
+  return questions.find((q) => q.id === askedId) || questions.find((q) => matches(q, text)) || null;
+}
+function clarifyPromptBlock(q, { asked = false } = {}) {
+  const opts = q.options.map((o) => `${o.value} = \u201E${o.label}\u201C`).join("; ");
+  return `
+
+[\u0423\u0422\u041E\u0427\u041D\u042F\u0412\u0410\u0429 \u0412\u042A\u041F\u0420\u041E\u0421 \u2014 \u0440\u0430\u0437\u043C\u0438\u043D\u0430\u0432\u0430\u043D\u0435 \u043C\u0435\u0436\u0434\u0443 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438\u0442\u0435]
+\u0422\u0435\u043C\u0430: ${q.topic}. ${q.text}
+\u041F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438: ${opts}
+${asked ? "\u0412\u0438\u0435 \u0441\u0442\u0435 \u0437\u0430\u0434\u0430\u043B\u0438 \u0442\u043E\u0437\u0438 \u0432\u044A\u043F\u0440\u043E\u0441 \u0432 \u043F\u0440\u0435\u0434\u0438\u0448\u043D\u0438\u044F \u0441\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440.\n" : ""}- \u0410\u043A\u043E \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0441\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u042F\u0421\u041D\u041E \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F \u043D\u0430 \u0432\u044A\u043F\u0440\u043E\u0441\u0430, \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0435\u0442\u0435 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u043E \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0432 \u0441\u0430\u043C\u0438\u044F \u043A\u0440\u0430\u0439 \u043C\u0430\u0440\u043A\u0435\u0440 [RESOLVE:${q.id}=<\u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442>] \u0441 \u0435\u0434\u043D\u0430 \u043E\u0442 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438\u0442\u0435 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438. \u041D\u0435 \u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E.
+- \u0410\u043A\u043E \u043D\u0435 \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F \u044F\u0441\u043D\u043E, \u043D\u043E \u0442\u0435\u043C\u0430\u0442\u0430 \u0435 \u0441\u0432\u044A\u0440\u0437\u0430\u043D\u0430, \u0437\u0430\u0434\u0430\u0439\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D\u043E, \u0441 \u0432\u0430\u0448\u0438 \u0434\u0443\u043C\u0438, \u0432 \u043A\u0440\u0430\u044F \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430 \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043C\u0430\u0440\u043A\u0435\u0440 [ASK:${q.id}].
+- \u041D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439\u0442\u0435 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0432\u043C\u0435\u0441\u0442\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041F\u0440\u0438 \u0441\u044A\u043C\u043D\u0435\u043D\u0438\u0435 \u2014 \u043F\u0438\u0442\u0430\u0439\u0442\u0435. \u041C\u0430\u0440\u043A\u0435\u0440\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u0432\u0438\u0436\u0434\u0430\u0442 \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430.`;
+}
+function extractClarify(text, q) {
+  let out = String(text || "");
+  let resolved = null;
+  let asked = null;
+  const re = /\[(RESOLVE|ASK):([^\]=]+)(?:=([^\]]+))?\]/g;
+  let m;
+  while (m = re.exec(out)) {
+    const [, kind, id, value] = m;
+    if (!q || id.trim() !== q.id) continue;
+    if (kind === "RESOLVE") {
+      const opt = q.options.find((o) => o.value === String(value || "").trim());
+      if (opt) resolved = { id: q.id, value: opt.value, label: opt.label };
+    } else {
+      asked = q.id;
+    }
+  }
+  out = out.replace(/\s*\[(RESOLVE|ASK):[^\]]*\]/g, "").trim();
+  if (resolved) asked = null;
+  return { text: out, resolved, asked };
+}
+
+// handoff.js
+var HANDOFF_TTL_SEC = 30 * 24 * 60 * 60;
+var HANDOFF_MAX_BYTES = 48 * 1024;
+var str2 = (v, max = 200) => typeof v === "string" || typeof v === "number" ? String(v).trim().replace(/\s+/g, " ").slice(0, max) : "";
+var list = (v, max = 12, len = 160) => Array.isArray(v) ? v.map((x) => str2(x, len)).filter(Boolean).slice(0, max) : [];
+var numIn = (v, lo, hi) => {
+  const n = Number(String(v ?? "").replace(",", "."));
+  return Number.isFinite(n) && n >= lo && n <= hi ? n : null;
+};
+var isoOr = (v, fallback) => Number.isFinite(Date.parse(v)) ? new Date(Date.parse(v)).toISOString() : fallback;
+function normalizeEmoeat(p) {
+  if (!p || typeof p !== "object") return null;
+  const level = (v) => ["\u0421\u043B\u0430\u0431\u043E", "\u041E\u0441\u0435\u0437\u0430\u0435\u043C\u043E", "\u0421\u0438\u043B\u043D\u043E"].includes(v) ? v : null;
+  const profile = {
+    intensity: level(p.intensity),
+    archetype: p.archetype && typeof p.archetype === "object" ? { name: str2(p.archetype.name, 60), description: str2(p.archetype.description, 300) } : null,
+    secondArchetype: str2(p.secondArchetype, 60) || null,
+    drivers: list(p.drivers, 3, 60),
+    behaviors: (Array.isArray(p.behaviors) ? p.behaviors : []).slice(0, 8).map((b) => ({ name: str2(b?.name, 60), level: level(b?.level) || "\u0421\u043B\u0430\u0431\u043E" })).filter((b) => b.name),
+    patterns: list(p.patterns, 4, 80),
+    bodySignals: str2(p.bodySignals, 300),
+    realNeed: str2(p.realNeed, 200),
+    reliability: p.reliability && typeof p.reliability === "object" ? { level: str2(p.reliability.level, 20) } : null
+  };
+  return profile.intensity || profile.archetype ? profile : null;
+}
+var AIRIS_GENDER = { male: "\u041C\u044A\u0436", female: "\u0416\u0435\u043D\u0430" };
+function normalizeAiris(p) {
+  if (!p || typeof p !== "object") return null;
+  const q = p.questionnaire && typeof p.questionnaire === "object" ? p.questionnaire : {};
+  const a = p.analysis && typeof p.analysis === "object" ? p.analysis : {};
+  const questionnaire = {
+    name: str2(q.name, 60),
+    age: numIn(q.age, 10, 110),
+    gender: AIRIS_GENDER[q.gender] ? q.gender : null,
+    weight: numIn(q.weight, 30, 300),
+    height: numIn(q.height, 120, 230),
+    goals: list(q.goals, 8, 60),
+    activityLevel: ["sedentary", "light", "moderate", "active", "very-active"].includes(q.activityLevel) ? q.activityLevel : null,
+    stressLevel: ["low", "moderate", "high", "very-high"].includes(q.stressLevel) ? q.stressLevel : null,
+    sleepHours: numIn(q.sleepHours, 2, 14),
+    sleepQuality: ["poor", "fair", "good", "excellent"].includes(q.sleepQuality) ? q.sleepQuality : null,
+    hydration: numIn(q.hydration, 0, 20),
+    dietaryProfile: list(q.dietaryProfile, 8, 60),
+    dietaryHabits: list(q.dietaryHabits, 8, 60),
+    foodIntolerances: str2(q.foodIntolerances, 300),
+    allergies: str2(q.allergies, 300),
+    medications: str2(q.medications, 400),
+    medicalConditions: str2(q.medicalConditions, 400),
+    complaints: str2(q.complaints, 600)
+  };
+  const analysis = {
+    constitution: str2(a.constitution, 200),
+    summary: str2(a.summary, 700),
+    systems: (Array.isArray(a.systems) ? a.systems : []).slice(0, 10).map((s) => ({
+      key: str2(s?.key, 30),
+      label: str2(s?.label, 60),
+      score: numIn(s?.score, 0, 100),
+      priority: !!s?.priority
+    })).filter((s) => s.key),
+    drivers: (Array.isArray(a.drivers) ? a.drivers : []).slice(0, 10).map((d) => ({
+      system: str2(d?.system, 30),
+      strength: ["high", "medium", "low"].includes(d?.strength) ? d.strength : "low",
+      observation: str2(d?.observation, 240),
+      action: str2(d?.action, 240),
+      source: ["questionnaire", "iris", "both"].includes(d?.source) ? d.source : "iris"
+    })).filter((d) => d.action || d.observation),
+    eatMore: list(a.eatMore, 15, 80),
+    eatLess: list(a.eatLess, 15, 80),
+    supplements: (Array.isArray(a.supplements) ? a.supplements : []).slice(0, 8).map((s) => ({ name: str2(s?.name, 80), dosage: str2(s?.dosage, 60) })).filter((s) => s.name),
+    recommendedTests: list(a.recommendedTests, 10, 120),
+    notices: (Array.isArray(a.notices) ? a.notices : []).slice(0, 6).map((n) => ({ level: n?.level === "critical" ? "critical" : "caution", title: str2(n?.title, 100), body: str2(n?.body, 300) })).filter((n) => n.title),
+    eyeReferral: ["none", "routine", "soon", "urgent"].includes(a.eyeReferral) ? a.eyeReferral : "none"
+  };
+  if (!analysis.systems.length && !analysis.drivers.length && !analysis.summary) return null;
+  return { questionnaire, analysis };
+}
+var SITE_SOURCES = { daotslabna: "daotslabna.com", lifeprotocols: "life-protocols.com" };
+var pick = (v, allowed) => allowed.includes(v) ? v : null;
+var pickList = (v, allowed) => Array.isArray(v) ? [...new Set(v.filter((x) => allowed.includes(x)))].slice(0, 12) : [];
+var SITE_CONDITIONS = ["hypertension", "diabetes", "thyroid", "autoimmune", "kidney", "liver", "cardiovascular", "pregnancy", "breastfeeding", "none", "other"];
+var SITE_MEDS = ["anticoagulants", "statins", "ssri", "hormone_therapy", "thyroid_meds", "none", "other"];
+var SITE_ALLERGIES = ["shellfish", "soy", "gluten", "lactose", "nuts", "none", "other"];
+var SITE_SYMPTOMS = ["fatigue", "cravings", "poor_sleep", "joint_pain", "concentration", "cramps", "hair_nails", "none", "other"];
+function normalizeSiteQuiz(raw) {
+  const a = raw.answers && typeof raw.answers === "object" ? raw.answers : {};
+  const answers = {
+    name: str2(a.name, 60),
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str2(a.email, 120)) ? str2(a.email, 120).toLowerCase() : "",
+    sex: pick(a.sex, ["female", "male"]),
+    age_band: pick(a.age_band, ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"]),
+    height_cm: numIn(a.height_cm, 100, 250),
+    weight_kg: numIn(a.weight_kg, 30, 300),
+    activity: pick(a.activity, ["regular", "moderate", "rare"]),
+    diet: pick(a.diet, ["omnivore", "vegetarian", "vegan", "keto", "other"]),
+    diet_other: str2(a.diet_other, 120),
+    conditions: pickList(a.conditions, SITE_CONDITIONS),
+    conditions_other: str2(a.conditions_other, 200),
+    medications: pickList(a.medications, SITE_MEDS),
+    medications_other: str2(a.medications_other, 200),
+    allergies: pickList(a.allergies, SITE_ALLERGIES),
+    allergies_other: str2(a.allergies_other, 200),
+    symptoms: pickList(a.symptoms, SITE_SYMPTOMS),
+    symptoms_other: str2(a.symptoms_other, 200),
+    priority: pick(a.priority, ["otshalvane", "longevity", "energy", "skin", "sleep", "cognition", "joints"]),
+    weight_goal: pick(a.weight_goal, ["1-5", "5-10", "10-20", "20+"]),
+    stimulant_tolerance: pick(a.stimulant_tolerance, ["ok", "sensitive", "avoid"])
+  };
+  const p = raw.protocol && typeof raw.protocol === "object" ? raw.protocol : {};
+  const protocol = {
+    tier: str2(p.tier, 60),
+    products: (Array.isArray(p.products) ? p.products : []).slice(0, 10).map((x) => ({ name: str2(x?.name, 100), dose: str2(x?.dose, 80), timing: str2(x?.timing, 60) })).filter((x) => x.name)
+  };
+  if (!answers.sex && !answers.weight_kg) return null;
+  return { answers, protocol };
+}
+function normalizeHandoff(raw, now = /* @__PURE__ */ new Date()) {
+  if (!raw || typeof raw !== "object") return null;
+  const at = isoOr(raw.completedAt, now.toISOString());
+  if (raw.source === "emoeat") {
+    const profile = normalizeEmoeat(raw.profile);
+    return profile ? { v: 1, source: "emoeat", at, profile } : null;
+  }
+  if (raw.source === "airis") {
+    const body = normalizeAiris(raw);
+    return body ? { v: 1, source: "airis", at, ...body } : null;
+  }
+  if (SITE_SOURCES[raw.source]) {
+    const body = normalizeSiteQuiz(raw);
+    return body ? { v: 1, source: raw.source, at, ...body } : null;
+  }
+  return null;
+}
+function handoffToFacts(h) {
+  if (!h) return [];
+  if (h.source === "emoeat") return [{ kind: "emoeat", value: h.profile, at: h.at, source: "emoeat", status: "confirmed" }];
+  if (h.source === "airis") {
+    const q = h.questionnaire || {};
+    return [{
+      kind: "iris",
+      value: {
+        analysis: h.analysis,
+        complaints: q.complaints || "",
+        // За сверката с NutriPlan: само полетата, при които разминаване има значение.
+        questionnaire: { weight: q.weight, foodIntolerances: q.foodIntolerances, allergies: q.allergies, medications: q.medications, dietaryProfile: q.dietaryProfile || [] }
+      },
+      at: h.at,
+      source: "airis",
+      status: "confirmed"
+    }];
+  }
+  if (SITE_SOURCES[h.source] && h.answers?.weight_kg) {
+    return [{ kind: "weight", value: h.answers.weight_kg, unit: "kg", at: h.at, source: h.source, status: "confirmed" }];
+  }
+  return [];
+}
+var SLEEP_BUCKET = (h) => h < 5 ? "\u041F\u043E\u0434 5" : h < 6 ? "5\u20136" : h < 7 ? "6\u20137" : h < 8 ? "7\u20138" : "\u041D\u0430\u0434 8";
+var WATER_BUCKET = (l) => l < 1 ? "\u043F\u043E\u0434 1 \u043B" : l < 1.5 ? "1\u20131.5 \u043B" : l < 2 ? "1.5\u20132 \u043B" : "\u043D\u0430\u0434 2 \u043B";
+var SPORT = {
+  sedentary: "\u041D\u0438\u043A\u0430\u043A\u0432\u0430 (0 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)",
+  light: "\u041D\u0438\u0441\u043A\u0430 (1\u20132 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)",
+  moderate: "\u0421\u0440\u0435\u0434\u043D\u0430 (2\u20134 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)",
+  active: "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)",
+  "very-active": "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)"
+};
+var STRESS = { low: "\u041D\u0438\u0441\u043A\u043E", moderate: "\u0421\u0440\u0435\u0434\u043D\u043E", high: "\u0412\u0438\u0441\u043E\u043A\u043E", "very-high": "\u0412\u0438\u0441\u043E\u043A\u043E" };
+var GOALS2 = { "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435": "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435", "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E": "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E" };
+var DIET = { "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0438": "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430", "\u0412\u0435\u0433\u0430\u043D": "\u0412\u0435\u0433\u0430\u043D", "\u0418\u043D\u0442\u0435\u0440\u043C\u0438\u0442\u0435\u043D\u0442\u0435\u043D \u0444\u0430\u0441\u0442\u0438\u043D\u0433": "\u0424\u0430\u0441\u0442\u0438\u043D\u0433", "\u041A\u0435\u0442\u043E": "\u041A\u0435\u0442\u043E", "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0430": "\u0421\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0430" };
+var HABIT_TO = {
+  "\u041F\u0440\u0435\u0441\u043A\u0430\u0447\u0430\u043D\u0435 \u043D\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430": ["eatingHabits", "\u041D\u0435 \u0437\u0430\u043A\u0443\u0441\u0432\u0430\u043C"],
+  "\u041A\u044A\u0441\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435": ["eatingHabits", "\u0425\u0440\u0430\u043D\u044F \u0441\u0435 \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u0432\u0435\u0447\u0435\u0440"],
+  "\u0421\u043B\u0430\u0434\u043A\u0438 \u0445\u0440\u0430\u043D\u0438": ["foodCravings", "\u0421\u043B\u0430\u0434\u043A\u043E"],
+  "\u0411\u044A\u0440\u0437\u0430 \u0445\u0440\u0430\u043D\u0430": ["foodCravings", "\u0411\u0443\u0440\u0433\u0435\u0440\u0438 / \u0434\u044E\u043D\u0435\u0440\u0438"]
+};
+function airisPrefill(q) {
+  if (!q) return {};
+  const out = {};
+  if (q.name) out.name = q.name;
+  if (AIRIS_GENDER[q.gender]) out.gender = AIRIS_GENDER[q.gender];
+  if (q.age) out.age = String(Math.round(q.age));
+  if (q.height) out.height = String(Math.round(q.height));
+  if (q.weight) out.weight = String(q.weight);
+  const goals = (q.goals || []).map((g) => GOALS2[g]).filter(Boolean);
+  if (goals.length) out.goal = [...new Set(goals)];
+  if (SPORT[q.activityLevel]) out.sportActivity = SPORT[q.activityLevel];
+  if (STRESS[q.stressLevel]) out.stressLevel = STRESS[q.stressLevel];
+  if (q.sleepHours) out.sleepHours = SLEEP_BUCKET(q.sleepHours);
+  if (q.hydration != null) out.waterIntake = WATER_BUCKET(q.hydration * 0.25);
+  const diet = (q.dietaryProfile || []).map((d) => DIET[d]).filter(Boolean);
+  if (diet.length) out.dietPreference = [...new Set(diet)];
+  const dislikes = [q.foodIntolerances, q.allergies, (q.dietaryProfile || []).includes("\u0411\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432\u0430") ? "\u0433\u043B\u0443\u0442\u0435\u043D" : ""].filter(Boolean);
+  if (dislikes.length) out.dietDislike = dislikes.join(", ");
+  for (const h of q.dietaryHabits || []) {
+    const m = HABIT_TO[h];
+    if (m) out[m[0]] = [.../* @__PURE__ */ new Set([...out[m[0]] || [], m[1]])];
+  }
+  if ((q.dietaryHabits || []).includes("\u0410\u043B\u043A\u043E\u0445\u043E\u043B")) out.drinksAlcohol = "\u0427\u0435\u0441\u0442\u043E";
+  if (q.medications) {
+    out.medications = "\u0414\u0430";
+    out.medicationsDetails = q.medications;
+  }
+  const notes = [q.complaints, q.medicalConditions].filter(Boolean).join(". ");
+  if (notes) out.additionalNotes = `\u041E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS): ${notes}`.slice(0, 800);
+  return out;
+}
+var SITE_LABELS = {
+  conditions: {
+    hypertension: "\u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F",
+    diabetes: "\u0434\u0438\u0430\u0431\u0435\u0442 / \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442",
+    thyroid: "\u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430 \u0436\u043B\u0435\u0437\u0430",
+    autoimmune: "\u0430\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+    kidney: "\u0431\u044A\u0431\u0440\u0435\u0447\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+    liver: "\u0447\u0435\u0440\u043D\u043E\u0434\u0440\u043E\u0431\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+    cardiovascular: "\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435",
+    pregnancy: "\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442",
+    breastfeeding: "\u043A\u044A\u0440\u043C\u0435\u043D\u0435"
+  },
+  medications: { anticoagulants: "\u0430\u043D\u0442\u0438\u043A\u043E\u0430\u0433\u0443\u043B\u0430\u043D\u0442\u0438", statins: "\u0441\u0442\u0430\u0442\u0438\u043D\u0438", ssri: "SSRI / SNRI", hormone_therapy: "\u0445\u043E\u0440\u043C\u043E\u043D\u0430\u043B\u043D\u0430 \u0442\u0435\u0440\u0430\u043F\u0438\u044F / \u043A\u043E\u043D\u0442\u0440\u0430\u0446\u0435\u043F\u0446\u0438\u044F", thyroid_meds: "\u043C\u0435\u0434\u0438\u043A\u0430\u043C\u0435\u043D\u0442\u0438 \u0437\u0430 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430 \u0436\u043B\u0435\u0437\u0430" },
+  allergies: { shellfish: "\u043C\u043E\u0440\u0441\u043A\u0438 \u0434\u0430\u0440\u043E\u0432\u0435", soy: "\u0441\u043E\u044F", gluten: "\u0433\u043B\u0443\u0442\u0435\u043D", lactose: "\u043B\u0430\u043A\u0442\u043E\u0437\u0430", nuts: "\u044F\u0434\u043A\u0438" },
+  symptoms: {
+    fatigue: "\u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u0430 \u0443\u043C\u043E\u0440\u0430",
+    cravings: "\u0441\u0438\u043B\u0435\u043D \u0430\u043F\u0435\u0442\u0438\u0442 / \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E",
+    poor_sleep: "\u043B\u043E\u0448 \u0441\u044A\u043D",
+    joint_pain: "\u0431\u043E\u043B\u043A\u0430 \u0432 \u0441\u0442\u0430\u0432\u0438\u0442\u0435",
+    concentration: "\u0437\u0430\u0442\u0440\u0443\u0434\u043D\u0435\u043D\u0430 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044F",
+    cramps: "\u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0438 \u043A\u0440\u0430\u043C\u043F\u0438",
+    hair_nails: "\u043A\u043E\u0441\u043E\u043F\u0430\u0434 / \u0447\u0443\u043F\u043B\u0438\u0432\u0438 \u043D\u043E\u043A\u0442\u0438"
+  }
+};
+var SITE_HEALTH = {
+  diabetes: "\u0414\u0438\u0430\u0431\u0435\u0442 / \u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442",
+  thyroid: "\u0429\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430 \u0436\u043B\u0435\u0437\u0430 (\u0425\u0430\u0448\u0438\u043C\u043E\u0442\u043E \u0438 \u0434\u0440.)",
+  autoimmune: "\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F",
+  hypertension: "\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F",
+  cardiovascular: "\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F"
+};
+var SITE_SPORT = { moderate: "\u041D\u0438\u0441\u043A\u0430 (1\u20132 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)", rare: "\u041D\u0438\u043A\u0430\u043A\u0432\u0430 (0 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)" };
+var SITE_DIET = { vegetarian: "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430", vegan: "\u0412\u0435\u0433\u0430\u043D", keto: "\u041A\u0435\u0442\u043E" };
+var SITE_GOAL = {
+  otshalvane: "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435",
+  longevity: "\u0410\u043D\u0442\u0438\u0435\u0439\u0434\u0436\u0438\u043D\u0433",
+  energy: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E",
+  skin: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E",
+  sleep: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E",
+  cognition: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E",
+  joints: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E"
+};
+var labelsOf = (vals, map) => (vals || []).map((v) => map[v]).filter(Boolean);
+function sitePrefill(h) {
+  const a = h?.answers;
+  if (!a) return {};
+  const out = {};
+  if (a.name) out.name = a.name;
+  if (a.email) out.email = a.email;
+  if (a.sex) out.gender = AIRIS_GENDER[a.sex];
+  if (a.height_cm) out.height = String(Math.round(a.height_cm));
+  if (a.weight_kg) out.weight = String(a.weight_kg);
+  if (SITE_GOAL[a.priority]) out.goal = [SITE_GOAL[a.priority]];
+  if (SITE_SPORT[a.activity]) out.sportActivity = SITE_SPORT[a.activity];
+  if (SITE_DIET[a.diet]) out.dietPreference = [SITE_DIET[a.diet]];
+  const health = [...new Set(labelsOf(a.conditions, SITE_HEALTH))];
+  if (health.length) out.healthConditions = health;
+  else if (a.conditions.length === 1 && a.conditions[0] === "none") out.healthConditions = ["\u041D\u044F\u043C\u0430\u043C"];
+  const dislikes = [...labelsOf(a.allergies, SITE_LABELS.allergies), a.allergies_other].filter(Boolean);
+  if (dislikes.length) out.dietDislike = dislikes.join(", ");
+  const meds = [...labelsOf(a.medications, SITE_LABELS.medications), a.medications_other].filter(Boolean);
+  if (meds.length) {
+    out.medications = "\u0414\u0430";
+    out.medicationsDetails = meds.join(", ");
+  } else if (a.medications.length === 1 && a.medications[0] === "none") {
+    out.medications = "\u041D\u0435";
+  }
+  const site = SITE_SOURCES[h.source];
+  const notes = [];
+  const other = [...labelsOf(a.conditions.filter((c) => !SITE_HEALTH[c]), SITE_LABELS.conditions), a.conditions_other].filter(Boolean);
+  if (other.length) notes.push(`\u0421\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u044F: ${other.join(", ")}`);
+  const symptoms = [...labelsOf(a.symptoms, SITE_LABELS.symptoms), a.symptoms_other].filter(Boolean);
+  if (symptoms.length) notes.push(`\u041E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F: ${symptoms.join(", ")}`);
+  if (a.stimulant_tolerance === "sensitive" || a.stimulant_tolerance === "avoid") notes.push("\u0427\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442 \u043A\u044A\u043C \u0441\u0442\u0438\u043C\u0443\u043B\u0430\u043D\u0442\u0438 (\u043A\u043E\u0444\u0435\u0438\u043D)");
+  if (a.diet === "other" && a.diet_other) notes.push(`\u0420\u0435\u0436\u0438\u043C: ${a.diet_other}`);
+  const prods = h.protocol?.products || [];
+  if (prods.length) notes.push(`\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u0434\u043E\u0431\u0430\u0432\u043A\u0438${h.protocol.tier ? ` (\u201E${h.protocol.tier}\u201C)` : ""}: ${prods.map((p) => p.name).join(", ")}`);
+  if (notes.length) out.additionalNotes = `\u041E\u0442 \u0442\u0435\u0441\u0442\u0430 \u043D\u0430 ${site}: ${notes.join(". ")}`.slice(0, 800);
+  return out;
+}
+function prefillFor(h) {
+  if (h?.source === "airis") return airisPrefill(h.questionnaire);
+  if (SITE_SOURCES[h?.source]) return sitePrefill(h);
+  return {};
+}
+function handoffPreview(h) {
+  if (!h) return null;
+  if (h.source === "emoeat") {
+    return {
+      source: "emoeat",
+      title: "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat)",
+      lines: [h.profile.archetype?.name ? `\u0410\u0440\u0445\u0435\u0442\u0438\u043F: ${h.profile.archetype.name}` : "", h.profile.intensity ? `\u0418\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442: ${h.profile.intensity}` : "", h.profile.drivers.length ? `\u0414\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438: ${h.profile.drivers.join(", ")}` : ""].filter(Boolean),
+      at: h.at
+    };
+  }
+  if (SITE_SOURCES[h.source]) {
+    const a2 = h.answers;
+    return {
+      source: h.source,
+      title: `\u0422\u0435\u0441\u0442 \u043E\u0442 ${SITE_SOURCES[h.source]}`,
+      lines: [
+        a2.weight_kg ? `\u0422\u0435\u0433\u043B\u043E: ${a2.weight_kg} \u043A\u0433` : "",
+        h.protocol?.products?.length ? `\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B: ${h.protocol.products.map((p) => p.name).slice(0, 4).join(", ")}` : "",
+        "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043E\u0442 \u0442\u0435\u0441\u0442\u0430 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u0430 NutriPlan \u2014 \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435."
+      ].filter(Boolean),
+      at: h.at
+    };
+  }
+  const a = h.analysis;
+  return {
+    source: "airis",
+    title: "\u0418\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS)",
+    lines: [
+      a.constitution ? `\u041A\u043E\u043D\u0441\u0442\u0438\u0442\u0443\u0446\u0438\u044F: ${a.constitution}` : "",
+      a.systems.filter((s) => s.priority).length ? `\u0424\u043E\u043A\u0443\u0441: ${a.systems.filter((s) => s.priority).map((s) => s.label || s.key).join(", ")}` : "",
+      a.drivers.length ? `\u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043D\u0430\u0441\u043E\u043A\u0438: ${a.drivers.length}` : "",
+      "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u0430 NutriPlan \u2014 \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435."
+    ].filter(Boolean),
+    at: h.at
   };
 }
 
@@ -44463,8 +46285,12 @@ var RATE_LIMIT = {
   // studio platform: my hours, cancel, move, a code
   STUDIO_VERIFY: { maxRequests: 5, windowSec: 3600 },
   // studio platform: a Viber login code
-  STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 }
+  STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },
   // studio platform: the admin's 5-digit code
+  HANDOFF: { maxRequests: 10, windowSec: 600 },
+  // модул → NutriPlan: нова пратка
+  HANDOFF_READ: { maxRequests: 30, windowSec: 600 }
+  // преглед и прибиране на пратка
 };
 var KV_RATE_LIMITED = /* @__PURE__ */ new Set(["GENERATE_PLAN", "FOOD_ANALYSIS", "SOCIAL_AUTH", "FORGOT_PASSWORD", "STUDIO_VERIFY", "STUDIO_LOGIN"]);
 var memoryRateCounters = /* @__PURE__ */ new Map();
@@ -45380,8 +47206,8 @@ function generateUniqueId(prefix = "id") {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 }
 function generateUserId(data) {
-  const str2 = `${data.name}_${data.age}_${data.email || Date.now()}`;
-  const bytes = new TextEncoder().encode(str2);
+  const str3 = `${data.name}_${data.age}_${data.email || Date.now()}`;
+  const bytes = new TextEncoder().encode(str3);
   let binary = "";
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
   return btoa(binary).replace(/[^a-zA-Z0-9]/g, "").substring(0, 32);
@@ -45502,6 +47328,7 @@ function overlayDeterministicPresentation(mealPlan, strategy) {
     mealPlan.psychology = [...strategy.psychologicalSupport];
   }
   if (strategy.hydrationStrategy) mealPlan.waterIntake = strategy.hydrationStrategy;
+  if (strategy.foodGuide) mealPlan.foodGuide = strategy.foodGuide;
   return mealPlan;
 }
 async function isAILoggingEnabled(env) {
@@ -45887,6 +47714,19 @@ async function loadAdherenceRatioForGeneration(env, data, userIdHint = "") {
   }
   return null;
 }
+async function loadEnrichmentForGeneration(env, data, userIdHint = "") {
+  if (!env?.page_content) return null;
+  const ids = [data?.userId, data?.firebaseUid, userIdHint, data?.email, !data?.email ? generateUserId(data) : null].filter(Boolean);
+  for (const uid of [...new Set(ids)]) {
+    try {
+      const profile = await kvGetJSON(env, `user_profile:${uid}`);
+      if (profile?.enrichment?.facts?.length) return profile.enrichment;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
 async function finalizeValidatedPlan(env, structuredPlan, data) {
   await reconcilePlanStructure(structuredPlan, data, env);
   const foodLists = await getDynamicFoodListsSections(env);
@@ -45917,6 +47757,11 @@ async function generatePlanCore(env, data, onAnalysisReady = null) {
   const userId = data.email || generateUserId(data);
   const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
   if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
+  let enrichmentStore = await loadEnrichmentForGeneration(env, data, userId);
+  if (data._handoffFacts?.length) {
+    enrichmentStore = { ...enrichmentStore || {}, facts: mergeFacts(enrichmentStore?.facts || [], data._handoffFacts) };
+  }
+  if (enrichmentStore) applyEnrichment(data, enrichmentStore);
   const clinicalProtocol = getClinicalProtocol(data.clinicalProtocol);
   if (clinicalProtocol) {
     if (data.clinicalProtocol === "postpartum_lactation" && data.postpartumGoal) {
@@ -45971,6 +47816,8 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   const userId = data.email || generateUserId(data);
   const adherenceRatio = await loadAdherenceRatioForGeneration(env, data, userId);
   if (adherenceRatio?.size) data._adherenceRatio = adherenceRatio;
+  const enrichmentStore = await loadEnrichmentForGeneration(env, data, userId);
+  if (enrichmentStore) applyEnrichment(data, enrichmentStore);
   enrichUserDataEngineContext(data);
   await applyIntakeHints(env, data);
   const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
@@ -45995,6 +47842,9 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
   console.log(`generatePlanAndSave: starting job ${jobId}${clientId ? ` (clientId: ${clientId})` : ""}`);
   try {
     const userId = preferredUserId || data.email || generateUserId(data);
+    if (options.handoffToken) {
+      Object.defineProperty(data, "_handoffFacts", { value: await handoffFactsForGeneration(env, options.handoffToken), enumerable: false });
+    }
     const result = await generatePlanCore(env, data, async (analysis) => {
       await env.page_content.put(
         PLAN_JOB_PREFIX + jobId,
@@ -46113,6 +47963,8 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     const requireApproval = rawBody._requireApproval === true;
     const explicitUserId = typeof rawBody._userId === "string" ? rawBody._userId.trim() : "";
     const idToken = typeof rawBody._idToken === "string" ? rawBody._idToken : null;
+    const handoffToken = HANDOFF_TOKEN_RE.test(String(rawBody._handoff || "")) ? String(rawBody._handoff) : "";
+    delete rawBody._handoff;
     delete rawBody._jobId;
     delete rawBody._clientId;
     delete rawBody._requireApproval;
@@ -46164,7 +48016,8 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     }
     const generationOptions = {
       requireApproval,
-      userId: explicitUserId || ""
+      userId: explicitUserId || "",
+      ...handoffToken ? { handoffToken } : {}
     };
     await env.page_content.put(
       PLAN_JOB_PREFIX + jobId,
@@ -46237,7 +48090,7 @@ async function handleChat(request, env) {
     const chatPromptsConfig = await getChatPrompts(env);
     const modificationModeEnabled = chatPromptsConfig.modificationEnabled === true;
     const chatMode = requestedMode === "modification" && !modificationModeEnabled ? "consultation" : requestedMode;
-    const chatPrompt = await generateChatPrompt(
+    let chatPrompt = await generateChatPrompt(
       env,
       message,
       effectiveContextText,
@@ -46246,7 +48099,12 @@ async function handleChat(request, env) {
       chatMode,
       effectiveUserPlan
     );
-    const aiResponse = await callAIModel(env, chatPrompt, 2e3, "chat_consultation", null, effectiveUserData, null, true);
+    const askedId = typeof body._askedQuestionId === "string" ? body._askedQuestionId : "";
+    const clarifyQ = chatMode === "consultation" ? relevantQuestion(sanitizeQuestions(effectiveUserData._openQuestions), message, askedId) : null;
+    if (clarifyQ) chatPrompt += clarifyPromptBlock(clarifyQ, { asked: clarifyQ.id === askedId });
+    let aiResponse = await callAIModel(env, chatPrompt, 2e3, "chat_consultation", null, effectiveUserData, null, true);
+    const clarify = extractClarify(aiResponse, clarifyQ);
+    aiResponse = clarify.text;
     const regenerateIndex = aiResponse.indexOf("[REGENERATE_PLAN:");
     let finalResponse = aiResponse;
     let planWasUpdated = false;
@@ -46309,6 +48167,8 @@ async function handleChat(request, env) {
               planModifications: merged,
               dietDislike: Array.from(excludedFoods).join(", ")
             };
+            delete modifiedUserData._healthEssence;
+            delete modifiedUserData._openQuestions;
             const newPlan = accepted.length ? await regeneratePlanFromChat(env, modifiedUserData, effectiveUserPlan) : null;
             if (!newPlan) throw new Error("\u041D\u044F\u043C\u0430 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0442\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0437\u0430 \u043F\u0440\u0438\u043B\u0430\u0433\u0430\u043D\u0435");
             planWasUpdated = true;
@@ -46356,6 +48216,9 @@ async function handleChat(request, env) {
       conversationHistory: trimmedHistory,
       planUpdated: planWasUpdated
     };
+    if (clarifyQ && (clarify.resolved || clarify.asked)) {
+      responseData.clarify = { question: clarifyQ, resolved: clarify.resolved, asked: clarify.asked };
+    }
     if (planWasUpdated) {
       responseData.updatedPlan = updatedPlan;
       responseData.updatedUserData = updatedUserData;
@@ -46383,8 +48246,8 @@ function notifyMake(ctx, telegramMessage) {
   }).catch((e) => console.warn("Make webhook notification failed:", e));
   if (ctx?.waitUntil) ctx.waitUntil(p);
 }
-function escapeHtml(str2) {
-  return String(str2).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function escapeHtml(str3) {
+  return String(str3).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 var DEFAULT_EMAIL_TEMPLATE = {
   subject: "\u0412\u0430\u0448\u0438\u044F\u0442 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D \u0435 \u0433\u043E\u0442\u043E\u0432! \u{1F957}",
@@ -47927,7 +49790,8 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
     userData: resolvedUserData || {},
     plan: resolvedPlan,
     analytics,
-    weeklyAdaptHistory: profile?.weeklyAdaptHistory || []
+    weeklyAdaptHistory: profile?.weeklyAdaptHistory || [],
+    enrichment: profile?.enrichment || null
   };
 }
 function nextWeeklyCycle(history, gameWeeklyAI) {
@@ -48015,6 +49879,9 @@ async function savePendingWeeklyRelease(env, userId, clientId, release) {
   if (!userId) return;
   const ttl = userId.startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   const profile = await kvGetJSON(env, `user_profile:${userId}`) || { userId };
+  if (profile.enrichment?.pendingLevel) {
+    profile.enrichment = { ...profile.enrichment, pendingLevel: 0, appliedAt: (/* @__PURE__ */ new Date()).toISOString() };
+  }
   profile.pendingWeekly = {
     ...release,
     visibleAt: computeWeeklyReleaseVisibleAt(),
@@ -48097,14 +49964,26 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       { expirationTtl: PLAN_JOB_TTL_SEC }
     );
   };
-  const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, payload);
+  const { userData, plan, analytics, weeklyAdaptHistory, enrichment } = await resolveWeeklyJobInputs(env, payload);
   if (!plan?.weekPlan) throw new Error("\u041B\u0438\u043F\u0441\u0432\u0430 \u043F\u043B\u0430\u043D \u0437\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F");
   const cycleNumber = gameWeeklyAI?.cycleNumber || 1;
   const caloriesBefore = parseFinalCalories(plan.analysis?.Final_Calories);
   try {
     const enrichedData = normalizeQuestionnaireData(userData);
     await applyIntakeHints(env, enrichedData);
-    const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, answers, weeklyAdaptHistory);
+    if (enrichment) applyEnrichment(enrichedData, enrichment);
+    let checkinAnswers = answers;
+    const deviceKg = enrichedData._enrichment?.checkin?.weightKg;
+    if (deviceKg && !(answers || []).some((a) => a.questionId === "weightKg" && String(a.value || "").trim())) {
+      checkinAnswers = [...answers || [], { questionId: "weightKg", value: String(deviceKg), source: "device" }];
+    }
+    const deviceIntake = enrichedData._enrichment?.checkin?.intakeKcal;
+    if (deviceIntake) checkinAnswers = [...checkinAnswers, { questionId: "intakeKcal", value: String(deviceIntake), source: "device" }];
+    const dc = enrichedData._enrichment?.checkin || {};
+    if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: "weightTrendKgWeek", value: String(dc.weightTrendKgWeek), source: "device" }];
+    if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: "recoveryLow", value: "true", source: "device" }];
+    if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: "leanLoss", value: "true", source: "device" }];
+    const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, checkinAnswers, weeklyAdaptHistory);
     const note = String((answers || []).find((a) => a.questionId === "note")?.value || "").trim();
     if (note.length >= 6) {
       const hints = normalizeFeedbackHints(await aiHelperJson(env, "admin_feedback_hints_prompt", {
@@ -49035,8 +50914,8 @@ var DEFAULT_FOOD_BLACKLIST = [
   { item: "goose", mode: "substitute", substitute: "chicken" },
   { item: "venison", mode: "substitute", substitute: "beef" }
 ];
-function escapeRegex(str2) {
-  return str2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeRegex(str3) {
+  return str3.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function applyFoodSubstitutions(meal, fixes) {
   const applied = [];
@@ -49378,19 +51257,19 @@ function validatePlan(plan, userData, substitutions = []) {
       }
     }
   }
-  if (userData.medications === "\u0414\u0430" && userData.medicationsDetails && plan.supplements) {
-    const medications = userData.medicationsDetails.toLowerCase();
-    const supplements = plan.supplements.join(" ").toLowerCase();
-    if (medications.includes("\u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D") && supplements.includes("\u0432\u0438\u0442\u0430\u043C\u0438\u043D \u043A")) {
-      const error = "\u041E\u041F\u0410\u0421\u041D\u041E: \u0412\u0438\u0442\u0430\u043C\u0438\u043D K \u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0430 \u0441 \u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D (\u0430\u043D\u0442\u0438\u043A\u043E\u0430\u0433\u0443\u043B\u0430\u043D\u0442) - \u043C\u043E\u0436\u0435 \u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u0438 \u0435\u0444\u0435\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u0442\u0430";
-      errors.push(error);
-      stepErrors.step4_final.push(error);
-    }
-    if ((medications.includes("\u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u043A") || medications.includes("\u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u0446\u0438")) && (supplements.includes("\u043A\u0430\u043B\u0446\u0438\u0439") || supplements.includes("\u043C\u0430\u0433\u043D\u0435\u0437\u0438\u0439"))) {
-      console.log("Warning: \u041A\u0430\u043B\u0446\u0438\u0439/\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439 \u043C\u043E\u0436\u0435 \u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u0438 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0430 \u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u0446\u0438 - \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u0435 \u0432\u0437\u0435\u043C\u0430\u0442 \u043D\u0430 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u0432\u0440\u0435\u043C\u0435");
-    }
-    if (medications.includes("\u0430\u043D\u0442\u0430\u0446\u0438\u0434") && supplements.includes("\u0436\u0435\u043B\u044F\u0437\u043E")) {
-      console.log("Warning: \u0410\u043D\u0442\u0430\u0446\u0438\u0434\u0438\u0442\u0435 \u0431\u043B\u043E\u043A\u0438\u0440\u0430\u0442 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0430 \u0436\u0435\u043B\u044F\u0437\u043E - \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u0435 \u0432\u0437\u0435\u043C\u0430\u0442 \u043D\u0430 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u0432\u0440\u0435\u043C\u0435");
+  if (Array.isArray(plan.supplements) && plan.supplements.length) {
+    const ix = interactionsFor(userData);
+    if (ix.rules.length) {
+      const asObjects = plan.supplements.map((s) => typeof s === "string" ? { name: s } : s);
+      const { kept, dropped } = applySupplementInteractions(asObjects, ix);
+      for (const d of dropped) {
+        const error = `\u041E\u041F\u0410\u0421\u041D\u041E: ${d.name} \u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0430 \u0441 ${d.because}`;
+        errors.push(error);
+        stepErrors.step4_final.push(error);
+      }
+      kept.forEach((s) => {
+        if (s.timing !== asObjects.find((o) => o.name === s.name)?.timing) warnings.push(`${s.name}: ${s.timing}`);
+      });
     }
   }
   if (userData.dietPreference && Array.isArray(userData.dietPreference)) {
@@ -51185,8 +53064,8 @@ async function finalizeAISessionLogs(env, sessionId) {
     console.error("[Cache API] Failed to finalize session logs:", error);
   }
 }
-function utf8ToBase64(str2) {
-  const bytes = new TextEncoder().encode(str2);
+function utf8ToBase64(str3) {
+  const bytes = new TextEncoder().encode(str3);
   let binary = "";
   const chunkSize = 8192;
   for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -51743,7 +53622,7 @@ function serializeEmoeatProfile(profile) {
     const num2 = Number(value);
     return Number.isFinite(num2) ? Math.max(0, Math.min(100, Math.round(num2))) : 0;
   };
-  const list = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
+  const list2 = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
   const lines = [];
   const intensity = label(profile.intensity, 12);
   if (intensity) lines.push(`\u041A\u043E\u043B\u043A\u043E \u0447\u0435\u0441\u0442\u043E \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430: ${intensity}`);
@@ -51755,11 +53634,11 @@ function serializeEmoeatProfile(profile) {
   } else {
     lines.push("\u041F\u0440\u043E\u0444\u0438\u043B: \u043D\u044F\u043C\u0430 \u0438\u0437\u0440\u0430\u0437\u0435\u043D \u043C\u043E\u0434\u0435\u043B \u2014 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0440\u044F\u0434\u043A\u043E \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430\u0442\u0430 (\u043D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439 \u043F\u0440\u043E\u0431\u043B\u0435\u043C).");
   }
-  const drivers = list(profile.drivers).map((d) => label(d, 40)).filter(Boolean);
+  const drivers = list2(profile.drivers).map((d) => label(d, 40)).filter(Boolean);
   if (drivers.length) lines.push("\u041A\u0430\u043A\u0432\u043E \u0433\u043E \u0437\u0430\u0445\u0440\u0430\u043D\u0432\u0430: " + drivers.join(", "));
-  const behaviors = list(profile.behaviors).filter((b) => b && b.name).map((b) => `${label(b.name, 40)} (${label(b.level, 12)})`);
+  const behaviors = list2(profile.behaviors).filter((b) => b && b.name).map((b) => `${label(b.name, 40)} (${label(b.level, 12)})`);
   if (behaviors.length) lines.push("\u041A\u0430\u043A \u0441\u0435 \u043F\u0440\u043E\u044F\u0432\u044F\u0432\u0430: " + behaviors.join(", "));
-  const patterns = list(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || "" : p, 60)).filter(Boolean);
+  const patterns = list2(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || "" : p, 60)).filter(Boolean);
   if (patterns.length) lines.push("\u041E\u0442\u043A\u0440\u0438\u0442\u0438 \u043A\u0440\u044A\u0433\u043E\u0432\u0435: " + patterns.join("; "));
   const body = label(profile.bodySignals, 120);
   if (body) lines.push("\u0422\u0435\u043B\u0435\u0441\u043D\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438: " + body);
@@ -54024,6 +55903,466 @@ async function handleSaveUserProfile(request, env) {
     return jsonResponse2({ error: "Failed to save user profile: " + error.message }, 500);
   }
 }
+async function handleEnrichmentSubmit(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const body = await request.json();
+    const { userId, idToken } = body || {};
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const incoming = Array.isArray(body.facts) ? body.facts.slice(0, 500) : [];
+    if (body.emoeat && typeof body.emoeat === "object") {
+      incoming.push({ kind: "emoeat", value: body.emoeat, at: (/* @__PURE__ */ new Date()).toISOString(), source: "emoeat" });
+    }
+    const facts = incoming.map(normalizeFact).filter(Boolean);
+    if (!facts.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u043D\u0438 \u0434\u0430\u043D\u043D\u0438" }, 400);
+    return jsonResponse2(await ingestEnrichmentFacts(env, userId, facts));
+  } catch (error) {
+    console.error("Error saving enrichment:", error);
+    return jsonResponse2({ error: "Failed to save enrichment: " + error.message }, 500);
+  }
+}
+async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
+  const profile = await kvGetJSON(env, `user_profile:${userId}`) || { userId };
+  const prevStore = profile.enrichment || { facts: [] };
+  const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts), updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+  const base = normalizeQuestionnaireData({ ...profile.userData || {} });
+  const prevData = applyEnrichment(JSON.parse(JSON.stringify(base)), prevStore);
+  let nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+  const essence = nextData._enrichment?.essence;
+  if (digestDue(essence, prevStore.digest)) {
+    const digest = await buildHealthDigest(env, nextData);
+    if (digest) {
+      nextStore.digest = digest;
+      nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+    }
+  }
+  const change = recalcLevel(prevData, nextData);
+  const urgent = isUrgent(nextData._enrichment) && JSON.stringify(nextData._enrichment?.safety || {}) !== JSON.stringify(prevData._enrichment?.safety || {});
+  nextStore.pendingLevel = Math.max(Number(prevStore.pendingLevel) || 0, change.level);
+  nextStore.lastChange = { ...change, urgent, at: nextStore.updatedAt };
+  profile.enrichment = nextStore;
+  if (meta.source) profile.moduleSources = { ...profile.moduleSources || {}, [meta.source]: nextStore.updatedAt };
+  const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (profile.clientId) {
+    try {
+      const client = await kvGetJSON(env, `client:${profile.clientId}`);
+      if (client) {
+        const text = profileContextText(nextData._enrichment);
+        client.healthEssence = text ? { text, at: nextStore.updatedAt, sources: nextData._enrichment?.essence?.sources || [] } : null;
+        if (profile.moduleSources) client.moduleSources = profile.moduleSources;
+        if (urgent) {
+          client.enrichmentAlert = { at: nextStore.updatedAt, reasons: change.reasons, cautions: nextData._enrichment?.hints?.cautions || [] };
+        }
+        await kvPutJSON(env, `client:${profile.clientId}`, client, null);
+      }
+    } catch (e) {
+      console.warn("[Enrichment] client card update failed:", e.message);
+    }
+  }
+  return {
+    success: true,
+    level: change.level,
+    reasons: change.reasons,
+    urgent,
+    appliesAt: urgent ? "specialist" : change.level > 0 ? "weekly" : "next_voice",
+    derived: publicEnrichmentView(nextData._enrichment)
+  };
+}
+async function handleEnrichmentResolve(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, questionId, answer } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (!profile?.enrichment?.facts?.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u0441\u0435 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430" }, 404);
+    const base = normalizeQuestionnaireData({ ...profile.userData || {} });
+    const data = applyEnrichment(JSON.parse(JSON.stringify(base)), profile.enrichment);
+    let q = (data._enrichment?.crossCheck?.questions || []).find((x) => x.id === questionId);
+    if (!q) {
+      const without = { ...profile.enrichment, facts: profile.enrichment.facts.filter((f) => !(f.kind === "resolution" && f.key === questionId)) };
+      q = (applyEnrichment(JSON.parse(JSON.stringify(base)), without)._enrichment?.crossCheck?.questions || []).find((x) => x.id === questionId);
+    }
+    if (!q) return jsonResponse2({ error: "\u0412\u044A\u043F\u0440\u043E\u0441\u044A\u0442 \u0432\u0435\u0447\u0435 \u043D\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u0435\u043D" }, 409);
+    if (!q.options.some((o) => o.value === answer)) return jsonResponse2({ error: "\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440" }, 400);
+    const fact = normalizeFact({ kind: "resolution", key: q.id, value: answer, at: (/* @__PURE__ */ new Date()).toISOString() });
+    if (!fact) return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0432\u044A\u043F\u0440\u043E\u0441" }, 400);
+    return jsonResponse2(await ingestEnrichmentFacts(env, userId, [fact]));
+  } catch (error) {
+    console.error("resolve failed:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0437\u0430\u043F\u0438\u0448\u0435\u043C \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430." }, 500);
+  }
+}
+var HANDOFF_PREFIX = "handoff:";
+var NUTRIPLAN_SITE = "https://biocode.website";
+function newHandoffToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+var HANDOFF_TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
+async function readHandoff(env, token) {
+  if (!HANDOFF_TOKEN_RE.test(String(token || ""))) return null;
+  return kvGetJSON(env, HANDOFF_PREFIX + token);
+}
+async function touchHandoff(env, token, rec) {
+  const left = HANDOFF_TTL_SEC - Math.floor((Date.now() - Date.parse(rec.createdAt || 0)) / 1e3);
+  if (left > 60) await kvPutJSON(env, HANDOFF_PREFIX + token, rec, left);
+}
+var HANDOFF_RECENT_KEY = "handoff_recent";
+async function rememberHandoffClaim(env, entry) {
+  try {
+    const list2 = await kvGetJSON(env, HANDOFF_RECENT_KEY) || [];
+    await kvPutJSON(env, HANDOFF_RECENT_KEY, [entry, ...list2].slice(0, 30), null);
+  } catch (e) {
+    console.warn("[handoff] recent list skipped:", e.message);
+  }
+}
+async function countHandoff(env, source, event) {
+  try {
+    const key = `handoff_stats:${source}:${(/* @__PURE__ */ new Date()).toISOString().slice(0, 7)}`;
+    const stats = await kvGetJSON(env, key) || {};
+    stats[event] = (stats[event] || 0) + 1;
+    await kvPutJSON(env, key, stats, 400 * 24 * 60 * 60);
+  } catch (e) {
+    console.warn("[handoff] stats skipped:", e.message);
+  }
+}
+async function handleHandoffCreate(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const text = await request.text();
+    if (text.length > HANDOFF_MAX_BYTES) return jsonResponse2({ error: "\u041F\u0440\u0430\u0442\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430." }, 413);
+    let raw;
+    try {
+      raw = JSON.parse(text);
+    } catch (_) {
+      return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON" }, 400);
+    }
+    const h = normalizeHandoff(raw);
+    if (!h) return jsonResponse2({ error: "\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442 \u043C\u043E\u0434\u0443\u043B \u0438\u043B\u0438 \u043F\u0440\u0430\u0437\u0435\u043D \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442" }, 400);
+    const token = newHandoffToken();
+    await kvPutJSON(env, HANDOFF_PREFIX + token, { h, createdAt: (/* @__PURE__ */ new Date()).toISOString() }, HANDOFF_TTL_SEC);
+    await countHandoff(env, h.source, "created");
+    return jsonResponse2({ success: true, token, url: `${NUTRIPLAN_SITE}/handoff.html?t=${token}`, expiresInDays: HANDOFF_TTL_SEC / 86400 });
+  } catch (error) {
+    console.error("handoff create failed:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u043C \u043F\u0440\u0435\u0445\u0432\u044A\u0440\u043B\u044F\u043D\u0435\u0442\u043E." }, 500);
+  }
+}
+async function handleHandoffPeek(request, env) {
+  try {
+    const { token } = await request.json();
+    const rec = await readHandoff(env, token);
+    if (!rec?.h) return jsonResponse2({ error: "\u041B\u0438\u043D\u043A\u044A\u0442 \u0435 \u0438\u0437\u0442\u0435\u043A\u044A\u043B \u0438\u043B\u0438 \u0432\u0435\u0447\u0435 \u0435 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D." }, 404);
+    if (!rec.openedAt) {
+      rec.openedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await touchHandoff(env, token, rec);
+      await countHandoff(env, rec.h.source, "opened");
+    }
+    return jsonResponse2({
+      success: true,
+      source: rec.h.source,
+      preview: handoffPreview(rec.h),
+      prefill: prefillFor(rec.h)
+    });
+  } catch (error) {
+    return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430 \u0437\u0430\u044F\u0432\u043A\u0430" }, 400);
+  }
+}
+async function handleHandoffClaim(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { token, userId, idToken } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const rec = await readHandoff(env, token);
+    if (!rec?.h) return jsonResponse2({ error: "\u041B\u0438\u043D\u043A\u044A\u0442 \u0435 \u0438\u0437\u0442\u0435\u043A\u044A\u043B \u0438\u043B\u0438 \u0432\u0435\u0447\u0435 \u0435 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D." }, 404);
+    const facts = handoffToFacts(rec.h).map(normalizeFact).filter(Boolean);
+    if (!facts.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0434\u043E\u0431\u0430\u0432\u044F\u043D\u0435" }, 400);
+    const result = await ingestEnrichmentFacts(env, userId, facts, { source: rec.h.source });
+    await env.page_content.delete(HANDOFF_PREFIX + token);
+    await countHandoff(env, rec.h.source, "claimed");
+    const profile = await kvGetJSON(env, `user_profile:${userId}`).catch(() => null);
+    await rememberHandoffClaim(env, {
+      source: rec.h.source,
+      at: (/* @__PURE__ */ new Date()).toISOString(),
+      createdAt: rec.createdAt,
+      // Нов клиент — дошъл е с пратката през въпросника и първият му план я е ползвал.
+      newClient: !!rec.planAt,
+      name: String(profile?.userData?.name || "").slice(0, 60),
+      clientId: profile?.clientId || ""
+    });
+    return jsonResponse2({ ...result, source: rec.h.source });
+  } catch (error) {
+    console.error("handoff claim failed:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0434\u043E\u0431\u0430\u0432\u0438\u043C \u0434\u0430\u043D\u043D\u0438\u0442\u0435." }, 500);
+  }
+}
+async function handoffFactsForGeneration(env, token) {
+  try {
+    const rec = await readHandoff(env, token);
+    if (!rec?.h) return [];
+    if (!rec.planAt) {
+      rec.planAt = (/* @__PURE__ */ new Date()).toISOString();
+      await touchHandoff(env, token, rec);
+      await countHandoff(env, rec.h.source, "plan");
+    }
+    return handoffToFacts(rec.h).map(normalizeFact).filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}
+var HANDOFF_SOURCES = ["emoeat", "airis", "daotslabna", "lifeprotocols"];
+async function handleAdminHandoffStats(request, env) {
+  try {
+    const url = new URL(request.url);
+    const count = Math.max(1, Math.min(24, parseInt(url.searchParams.get("months") || "12", 10) || 12));
+    const now = /* @__PURE__ */ new Date();
+    const months = Array.from({ length: count }, (_, i) => {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (count - 1 - i), 1));
+      return d.toISOString().slice(0, 7);
+    });
+    const sources = {};
+    await Promise.all(HANDOFF_SOURCES.map(async (src) => {
+      const rows = await Promise.all(months.map((m) => kvGetJSON(env, `handoff_stats:${src}:${m}`).catch(() => null)));
+      sources[src] = Object.fromEntries(months.map((m, i) => [m, {
+        created: rows[i]?.created || 0,
+        opened: rows[i]?.opened || 0,
+        plan: rows[i]?.plan || 0,
+        claimed: rows[i]?.claimed || 0
+      }]));
+    }));
+    const recent2 = await kvGetJSON(env, HANDOFF_RECENT_KEY) || [];
+    return jsonResponse2({ success: true, months, sources, recent: recent2 });
+  } catch (error) {
+    console.error("handoff stats failed:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0437\u0430\u0440\u0435\u0434\u0438\u043C \u043D\u0430\u0441\u043E\u0447\u0432\u0430\u043D\u0438\u044F\u0442\u0430." }, 500);
+  }
+}
+var DEFAULT_LAB_EXTRACTION_PROMPT = `\u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u043B\u0430\u0431\u043E\u0440\u0430\u0442\u043E\u0440\u043D\u0438\u044F \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442 \u043D\u0430 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0438 \u0432\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown):
+{"date":"YYYY-MM-DD \u0438\u043B\u0438 null","markers":[{"key":"","printedName":"","value":0,"unit":"","refLow":null,"refHigh":null,"confidence":0}]}
+
+\u041F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0437\u0430 key (\u0432\u0441\u0438\u0447\u043A\u0438 \u0434\u0440\u0443\u0433\u0438 \u043F\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0438 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0438):
+glucose \u2014 \u0433\u043B\u044E\u043A\u043E\u0437\u0430 (\u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440) \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E; hba1c \u2014 \u0433\u043B\u0438\u043A\u0438\u0440\u0430\u043D \u0445\u0435\u043C\u043E\u0433\u043B\u043E\u0431\u0438\u043D HbA1c; ldl \u2014 LDL \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B; hdl \u2014 HDL \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B; tchol \u2014 \u043E\u0431\u0449 \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B; tg \u2014 \u0442\u0440\u0438\u0433\u043B\u0438\u0446\u0435\u0440\u0438\u0434\u0438; uric \u2014 \u043F\u0438\u043A\u043E\u0447\u043D\u0430 \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0430; ferritin \u2014 \u0444\u0435\u0440\u0438\u0442\u0438\u043D; hgb \u2014 \u0445\u0435\u043C\u043E\u0433\u043B\u043E\u0431\u0438\u043D; vitd \u2014 25-OH \u0432\u0438\u0442\u0430\u043C\u0438\u043D D; b12 \u2014 \u0432\u0438\u0442\u0430\u043C\u0438\u043D B12; alt \u2014 \u0410\u041B\u0410\u0422/ALT; ggt \u2014 GGT; tsh \u2014 TSH; egfr \u2014 eGFR; potassium \u2014 \u043A\u0430\u043B\u0438\u0439.
+
+\u041F\u0440\u0430\u0432\u0438\u043B\u0430:
+- value \u0435 \u0447\u0438\u0441\u043B\u043E\u0442\u043E \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u043E\u0442\u043F\u0435\u0447\u0430\u0442\u0430\u043D\u043E (\u0434\u0435\u0441\u0435\u0442\u0438\u0447\u043D\u0430\u0442\u0430 \u0437\u0430\u043F\u0435\u0442\u0430\u044F \u0441\u0442\u0430\u0432\u0430 \u0442\u043E\u0447\u043A\u0430).
+- unit \u0435 \u0435\u0434\u0438\u043D\u0438\u0446\u0430\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u043E\u0442\u043F\u0435\u0447\u0430\u0442\u0430\u043D\u0430 (\u043D\u0430\u043F\u0440. mmol/L, mg/dL, %, U/L, ng/mL).
+- refLow/refHigh \u2014 \u0440\u0435\u0444\u0435\u0440\u0435\u043D\u0442\u043D\u0438\u0442\u0435 \u0433\u0440\u0430\u043D\u0438\u0446\u0438 \u043E\u0442 \u0431\u043B\u0430\u043D\u043A\u0430\u0442\u0430, \u0430\u043A\u043E \u0433\u0438 \u0438\u043C\u0430; \u0438\u043D\u0430\u0447\u0435 null.
+- date \u2014 \u0434\u0430\u0442\u0430\u0442\u0430 \u043D\u0430 \u0432\u0437\u0435\u043C\u0430\u043D\u0435 \u043D\u0430 \u043F\u0440\u043E\u0431\u0430\u0442\u0430, \u0430\u043A\u043E \u0441\u0435 \u0432\u0438\u0436\u0434\u0430.
+- confidence \u043F\u043E\u0434 0.7, \u0430\u043A\u043E \u0446\u0438\u0444\u0440\u0430\u0442\u0430 \u043D\u0435 \u0441\u0435 \u0447\u0435\u0442\u0435 \u044F\u0441\u043D\u043E.
+- \u041D\u0435 \u0442\u044A\u043B\u043A\u0443\u0432\u0430\u0439 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438\u0442\u0435 \u0438 \u043D\u0435 \u0434\u0430\u0432\u0430\u0439 \u0441\u044A\u0432\u0435\u0442\u0438.`;
+async function handleLabExtract(request, env) {
+  try {
+    const { userId, idToken, imageData, mimeType } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    if (!imageData) return jsonResponse2({ error: "\u041B\u0438\u043F\u0441\u0432\u0430 \u0444\u0430\u0439\u043B \u0441 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435\u0442\u043E." }, 400);
+    const isPdf = mimeType === "application/pdf";
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    const effectiveMime = isPdf ? "application/pdf" : allowed.includes(mimeType) ? mimeType : "image/jpeg";
+    const base64Data = String(imageData).startsWith("data:") ? String(imageData).slice(String(imageData).indexOf(",") + 1) : String(imageData);
+    if (base64Data.length * 3 / 4 > 15 * 1024 * 1024) {
+      return jsonResponse2({ error: "\u0424\u0430\u0439\u043B\u044A\u0442 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C (\u0434\u043E 15 MB)." }, 400);
+    }
+    const prompt = await getCustomPrompt(env, "admin_lab_extraction_prompt") || DEFAULT_LAB_EXTRACTION_PROMPT;
+    let response;
+    if (isPdf) {
+      if (!env.GEMINI_API_KEY) {
+        return jsonResponse2({ error: "PDF \u043D\u0435 \u0441\u0435 \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430 \u2014 \u043A\u0430\u0447\u0435\u0442\u0435 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430\u0442\u0430 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438\u0442\u0435." }, 415);
+      }
+      const config = await getAdminConfig(env);
+      response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === "google" && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2e3, config.visionThinkingBudget);
+    } else {
+      response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2e3);
+    }
+    const parsed = parseAIResponse(response) || {};
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || "")) ? parsed.date : null;
+    const markers = (Array.isArray(parsed.markers) ? parsed.markers : []).filter((m) => m && LAB_MARKERS[m.key]).map((m) => ({
+      key: m.key,
+      label: LAB_MARKERS[m.key].label,
+      printedName: String(m.printedName || "").slice(0, 60),
+      value: Number(String(m.value).replace(",", ".")),
+      unit: String(m.unit || LAB_MARKERS[m.key].unit).slice(0, 20),
+      refLow: Number.isFinite(Number(m.refLow)) && m.refLow !== null ? Number(m.refLow) : null,
+      refHigh: Number.isFinite(Number(m.refHigh)) && m.refHigh !== null ? Number(m.refHigh) : null,
+      confidence: Math.max(0, Math.min(1, Number(m.confidence) || 0))
+    })).filter((m) => Number.isFinite(m.value));
+    return jsonResponse2({ success: true, date, markers, markersCatalog: LAB_MARKERS });
+  } catch (error) {
+    console.error("Error extracting labs:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u043F\u0440\u043E\u0447\u0435\u0442\u0435\u043C \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435\u0442\u043E. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430." }, 500);
+  }
+}
+var DEFAULT_DEVICE_EXTRACTION_PROMPT = `\u041D\u0430 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u0435\u043A\u0440\u0430\u043D \u043E\u0442 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0438\u043B\u0438 \u0443\u0440\u0435\u0434 \u0437\u0430 \u0437\u0434\u0440\u0430\u0432\u0435 (\u0432\u0435\u0437\u043D\u0430 \u0441 \u0430\u043D\u0430\u043B\u0438\u0437 \u043D\u0430 \u0442\u044F\u043B\u043E\u0442\u043E, \u0441\u043C\u0430\u0440\u0442 \u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A \u0438\u043B\u0438 \u0433\u0440\u0438\u0432\u043D\u0430, Samsung Health, Garmin, Fitbit, Zepp, Mi Fitness, \u0430\u043F\u0430\u0440\u0430\u0442 \u0437\u0430 \u043A\u0440\u044A\u0432\u043D\u043E, \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440, \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0437\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435). \u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u0438\u0437\u043C\u0435\u0440\u0432\u0430\u043D\u0438\u044F\u0442\u0430 \u0438 \u0432\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown):
+{"date":"YYYY-MM-DD \u0438\u043B\u0438 null","readings":[{"kind":"","key":null,"value":0,"value2":null,"unit":"","date":"YYYY-MM-DD \u0438\u043B\u0438 null","confidence":0}]}
+
+\u041F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0437\u0430 kind (\u0432\u0441\u0438\u0447\u043A\u043E \u0434\u0440\u0443\u0433\u043E \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0438):
+weight \u2014 \u0442\u0435\u0433\u043B\u043E; body_fat \u2014 \u0442\u0435\u043B\u0435\u0441\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 %; muscle_mass \u2014 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 (\u043A\u0433); visceral_fat \u2014 \u0432\u0438\u0441\u0446\u0435\u0440\u0430\u043B\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 (\u0438\u043D\u0434\u0435\u043A\u0441); body_water \u2014 \u0432\u043E\u0434\u0430 \u0432 \u0442\u044F\u043B\u043E\u0442\u043E %; steps \u2014 \u043A\u0440\u0430\u0447\u043A\u0438 \u0437\u0430 \u0434\u0435\u043D\u044F; active_kcal \u2014 \u0430\u043A\u0442\u0438\u0432\u043D\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438; workout \u2014 \u043C\u0438\u043D\u0443\u0442\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F; sleep \u2014 \u0441\u044A\u043D (\u0447\u0430\u0441\u043E\u0432\u0435 \u0437\u0430 \u043D\u043E\u0449\u0442\u0430); resting_hr \u2014 \u043F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439; hrv \u2014 HRV (ms); intake \u2014 \u043F\u0440\u0438\u0435\u0442\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0437\u0430 \u0434\u0435\u043D\u044F; water \u2014 \u0438\u0437\u043F\u0438\u0442\u0430 \u0432\u043E\u0434\u0430 (\u043B\u0438\u0442\u0440\u0438); bp \u2014 \u043A\u0440\u044A\u0432\u043D\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435 (value = \u0441\u0438\u0441\u0442\u043E\u043B\u043D\u043E, value2 = \u0434\u0438\u0430\u0441\u0442\u043E\u043B\u043D\u043E); glucose \u2014 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 (key: "morning" \u0430\u043A\u043E \u0435 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E/\u0441\u0443\u0442\u0440\u0438\u043D, "peak" \u0430\u043A\u043E \u0435 \u0441\u043B\u0435\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0438\u043D\u0430\u0447\u0435 "any").
+
+\u041F\u0440\u0430\u0432\u0438\u043B\u0430:
+- value \u0435 \u0447\u0438\u0441\u043B\u043E\u0442\u043E \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u043F\u043E\u043A\u0430\u0437\u0430\u043D\u043E (\u0434\u0435\u0441\u0435\u0442\u0438\u0447\u043D\u0430\u0442\u0430 \u0437\u0430\u043F\u0435\u0442\u0430\u044F \u0441\u0442\u0430\u0432\u0430 \u0442\u043E\u0447\u043A\u0430); unit \u2014 \u043A\u0430\u043A\u0442\u043E \u0435 \u043F\u043E\u043A\u0430\u0437\u0430\u043D\u0430 (kg, lb, %, mmol/L, mg/dL, \u0447, \u043C\u0438\u043D, ml, l).
+- \u0410\u043A\u043E \u0435\u043A\u0440\u0430\u043D\u044A\u0442 \u043F\u043E\u043A\u0430\u0437\u0432\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u043D\u0438 (\u0441\u043F\u0438\u0441\u044A\u043A \u0438\u043B\u0438 \u0438\u0441\u0442\u043E\u0440\u0438\u044F), \u0432\u044A\u0440\u043D\u0438 \u043F\u043E \u0435\u0434\u0438\u043D \u0437\u0430\u043F\u0438\u0441 \u043D\u0430 \u0434\u0435\u043D \u0441 \u043D\u0435\u0433\u043E\u0432\u0430\u0442\u0430 \u0434\u0430\u0442\u0430 \u0432 "date".
+- \u0421\u044A\u043D, \u043F\u043E\u043A\u0430\u0437\u0430\u043D \u043A\u0430\u0442\u043E \u201E7 \u0447 30 \u043C\u0438\u043D\u201C, \u0441\u0442\u0430\u0432\u0430 value 7.5 \u0441 unit "\u0447".
+- \u0421\u0440\u0435\u0434\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430/\u043C\u0435\u0441\u0435\u0446 \u041D\u0415 \u0441\u0430 \u0434\u043D\u0435\u0432\u043D\u0438 \u0438\u0437\u043C\u0435\u0440\u0432\u0430\u043D\u0438\u044F \u2014 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0438 \u0433\u0438.
+- confidence \u043F\u043E\u0434 0.7, \u0430\u043A\u043E \u0446\u0438\u0444\u0440\u0430\u0442\u0430 \u043D\u0435 \u0441\u0435 \u0447\u0435\u0442\u0435 \u044F\u0441\u043D\u043E.
+- \u041D\u0435 \u0442\u044A\u043B\u043A\u0443\u0432\u0430\u0439 \u0438 \u043D\u0435 \u0434\u0430\u0432\u0430\u0439 \u0441\u044A\u0432\u0435\u0442\u0438.`;
+async function handleDeviceExtract(request, env) {
+  try {
+    const { userId, idToken, imageData, mimeType } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    if (!imageData) return jsonResponse2({ error: "\u041B\u0438\u043F\u0441\u0432\u0430 \u0441\u043D\u0438\u043C\u043A\u0430." }, 400);
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    const effectiveMime = allowed.includes(mimeType) ? mimeType : "image/jpeg";
+    const base64Data = String(imageData).startsWith("data:") ? String(imageData).slice(String(imageData).indexOf(",") + 1) : String(imageData);
+    if (base64Data.length * 3 / 4 > 10 * 1024 * 1024) {
+      return jsonResponse2({ error: "\u0421\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430 (\u0434\u043E 10 MB)." }, 400);
+    }
+    const prompt = await getCustomPrompt(env, "admin_device_extraction_prompt") || DEFAULT_DEVICE_EXTRACTION_PROMPT;
+    const response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2e3);
+    const parsed = parseAIResponse(response) || {};
+    const isDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ""));
+    const date = isDate(parsed.date) ? parsed.date : null;
+    const readings = (Array.isArray(parsed.readings) ? parsed.readings : []).filter((r) => r && DEVICE_KINDS[r.kind]).slice(0, 60).map((r) => ({
+      kind: r.kind,
+      key: r.kind === "glucose" && ["morning", "peak", "any"].includes(r.key) ? r.key : void 0,
+      label: DEVICE_KINDS[r.kind].label,
+      value: Number(String(r.value).replace(",", ".")),
+      value2: r.value2 != null ? Number(String(r.value2).replace(",", ".")) : void 0,
+      unit: String(r.unit || DEVICE_KINDS[r.kind].unit).slice(0, 12),
+      date: isDate(r.date) ? r.date : date,
+      confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0))
+    })).filter((r) => Number.isFinite(r.value));
+    return jsonResponse2({ success: true, date, readings, kindsCatalog: publicDeviceKinds() });
+  } catch (error) {
+    console.error("Error extracting device data:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u043F\u0440\u043E\u0447\u0435\u0442\u0435\u043C \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0435\u043A\u0440\u0430\u043D\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430." }, 500);
+  }
+}
+function publicDeviceKinds() {
+  return Object.fromEntries(Object.entries(DEVICE_KINDS).map(([k, v]) => [k, { label: v.label, unit: v.unit, two: !!v.range2 }]));
+}
+async function handleEnrichmentDelete(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, kinds } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (!profile?.enrichment) return jsonResponse2({ success: true, removed: 0 });
+    const before = profile.enrichment.facts?.length || 0;
+    const only = Array.isArray(kinds) && kinds.length ? new Set(kinds) : null;
+    const facts = only ? (profile.enrichment.facts || []).filter((f) => !only.has(f.kind)) : [];
+    profile.enrichment = { ...profile.enrichment, facts, updatedAt: (/* @__PURE__ */ new Date()).toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
+    const hasDeviceFacts = facts.some((f) => DEVICE_KINDS[f.kind]);
+    if (!hasDeviceFacts) delete profile.enrichment.digest;
+    const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+    await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+    if (!hasDeviceFacts && profile.clientId) {
+      try {
+        const client = await kvGetJSON(env, `client:${profile.clientId}`);
+        if (client?.healthEssence) {
+          client.healthEssence = null;
+          await kvPutJSON(env, `client:${profile.clientId}`, client, null);
+        }
+      } catch (e) {
+        console.warn("[Enrichment] client card cleanup failed:", e.message);
+      }
+    }
+    return jsonResponse2({ success: true, removed: before - facts.length });
+  } catch (error) {
+    return jsonResponse2({ error: "Failed to delete enrichment: " + error.message }, 500);
+  }
+}
+async function handleEnrichmentGet(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    const store = profile?.enrichment || { facts: [] };
+    const sex = profile?.userData?.gender === "\u041C\u044A\u0436" ? "M" : profile?.userData?.gender === "\u0416\u0435\u043D\u0430" ? "F" : "X";
+    return jsonResponse2({
+      success: true,
+      derived: publicEnrichmentView(deriveEnrichment(store, /* @__PURE__ */ new Date(), sex)),
+      sources: [...new Set((store.facts || []).map((f) => f.source))],
+      lastChange: store.lastChange || null,
+      markers: LAB_MARKERS,
+      deviceKinds: publicDeviceKinds(),
+      moduleSources: profile?.moduleSources || {}
+    });
+  } catch (error) {
+    return jsonResponse2({ error: "Failed to load enrichment: " + error.message }, 500);
+  }
+}
+function publicEnrichmentView(d) {
+  if (!d) return null;
+  return {
+    overrides: d.overrides || {},
+    checkin: d.checkin || {},
+    labs: d.labs || [],
+    supplements: d.supplements || [],
+    cautions: d.hints?.cautions || [],
+    reasons: d.reasons || [],
+    emoeat: d.voice ? { archetype: d.voice.archetype, at: d.voice.at } : null,
+    essence: d.essence || null,
+    digest: d.digest || null,
+    // Готовият текст за чата на клиента (същият като в картона на специалиста).
+    essenceText: profileContextText(d),
+    iris: d.iris ? { at: d.iris.at, focus: d.iris.focus } : null,
+    // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
+    hypotheses: d.crossCheck?.hypotheses || [],
+    questions: d.crossCheck?.questions || []
+  };
+}
+function profileContextText(d) {
+  if (!d) return "";
+  const v = d.voice;
+  const emo = v && (v.archetype || v.intensity) ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat): ${[v.archetype ? `\u0430\u0440\u0445\u0435\u0442\u0438\u043F ${v.archetype}` : "", v.intensity ? `\u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442 ${v.intensity}` : "", v.drivers?.length ? `\u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438 ${v.drivers.join(", ")}` : "", v.realNeed ? `\u0440\u0435\u0430\u043B\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 ${v.realNeed}` : ""].filter(Boolean).join(", ")}` : "";
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), crossCheckText(d.crossCheck)].filter(Boolean).join(" | ").slice(0, 2800);
+}
+var DEFAULT_HEALTH_DIGEST_PROMPT = `\u0422\u0438 \u0441\u0438 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0414\u0430\u043D\u043D\u0438 \u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0442\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A, \u0433\u0440\u0438\u0432\u043D\u0430, \u0432\u0435\u0437\u043D\u0430, \u0430\u043F\u0430\u0440\u0430\u0442 \u0437\u0430 \u043A\u0440\u044A\u0432\u043D\u043E, \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440, \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F) \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438, \u0432\u0435\u0447\u0435 \u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438:
+{essence}
+
+\u0426\u0435\u043B \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430: {goal}. \u0414\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u043F\u043E \u043F\u043B\u0430\u043D\u0430: {kcal} kcal.
+
+\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown):
+{"insights":["..."],"coachNote":"...","approach":[]}
+
+- insights: \u0434\u043E 4 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u043D\u0430 \u201E\u0442\u0438\u201C), \u0432\u0441\u044F\u043A\u043E \u0441\u0432\u044A\u0440\u0437\u0432\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0447\u0438\u0441\u043B\u043E \u0441 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0438\u043B\u0438 \u0440\u0435\u0436\u0438\u043C\u0430. \u0411\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u0435 \u043D\u0430 \u0447\u0438\u0441\u043B\u0430\u0442\u0430 \u0431\u0435\u0437 \u0438\u0437\u0432\u043E\u0434.
+- coachNote: 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u0437\u0430 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u0430 \u0438 \u0447\u0430\u0442 \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430 \u2014 \u043D\u0430\u0439-\u0432\u0430\u0436\u043D\u043E\u0442\u043E \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438.
+- approach: 0\u20132 \u043A\u043E\u0434\u0430 \u0441\u0430\u043C\u043E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430, \u0438 \u0441\u0430\u043C\u043E \u0430\u043A\u043E \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u044F\u0441\u043D\u043E \u0433\u043E \u043E\u043F\u0440\u0430\u0432\u0434\u0430\u0432\u0430\u0442: {approachList}
+- \u041D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u043D\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u044F\u0439 \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043D\u0435 \u043A\u043E\u043C\u0435\u043D\u0442\u0438\u0440\u0430\u0439 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u0410\u043A\u043E \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0441\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438 \u2014 \u043A\u0430\u0436\u0438 \u0433\u043E \u043A\u0440\u0430\u0442\u043A\u043E.`;
+async function buildHealthDigest(env, data) {
+  try {
+    const e = data?._enrichment?.essence;
+    if (!e) return null;
+    const template = await getCustomPrompt(env, "admin_health_digest_prompt") || DEFAULT_HEALTH_DIGEST_PROMPT;
+    const vars = {
+      essence: JSON.stringify({ metrics: e.metrics, signals: (e.signals || []).map((s) => s.text) }),
+      goal: String(data.goal || "\u043D\u0435 \u0435 \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0430").slice(0, 80),
+      kcal: String(data.planKcal || data.dailyCalories || "\u043D\u0435 \u0435 \u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D"),
+      approachList: Object.entries(DIGEST_APPROACH).map(([k, v]) => `${k} (${v})`).join(", ")
+    };
+    const prompt = Object.entries(vars).reduce((t, [k, v]) => t.split(`{${k}}`).join(v), String(template));
+    const response = await callAIModel(env, prompt, 700, "health_digest", null, data, null);
+    return normalizeDigest(parseAIResponse(response));
+  } catch (error) {
+    console.warn("[Enrichment] health digest skipped:", error.message);
+    return null;
+  }
+}
 async function handleCheckAccountEmail(request, env) {
   try {
     if (!env.page_content) {
@@ -54541,10 +56880,10 @@ function computeXbodyApptVersion(upcoming, past) {
     parts.push(String(item2.id) + ":" + (item2.datetime || "") + ":" + (item2.canceled ? "1" : "0"));
   }
   parts.sort();
-  const str2 = parts.join("|");
+  const str3 = parts.join("|");
   let hash = 0;
-  for (let i = 0; i < str2.length; i++) {
-    hash = (hash << 5) - hash + str2.charCodeAt(i) | 0;
+  for (let i = 0; i < str3.length; i++) {
+    hash = (hash << 5) - hash + str3.charCodeAt(i) | 0;
   }
   return "v" + (hash >>> 0).toString(36);
 }
@@ -54713,9 +57052,9 @@ async function handleXbodyViberOutbox(request, env) {
   if (!await xbodyViberAuth(request, env)) return jsonResponse2({ error: "unauthorized" }, 401);
   if (!env.page_content) return jsonResponse2({ messages: [] });
   const now = Date.now();
-  const list = await env.page_content.list({ prefix: "xbody:out:", limit: 50 });
+  const list2 = await env.page_content.list({ prefix: "xbody:out:", limit: 50 });
   const messages = [];
-  for (const k of list.keys) {
+  for (const k of list2.keys) {
     const at = Number(k.name.split(":")[2]);
     if (!(at <= now)) break;
     const v = JSON.parse(await env.page_content.get(k.name) || "null");
@@ -55044,9 +57383,9 @@ async function xbodyFindCard(env, email, phone) {
     const found = await xbodyStripe(env, "GET", "customers", { email, limit: 5 });
     for (const cust of found && Array.isArray(found.data) ? found.data : []) {
       if (xbodyPhoneKey(cust.phone) !== key) continue;
-      const list = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
+      const list2 = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
       const now = /* @__PURE__ */ new Date();
-      for (const m of list && Array.isArray(list.data) ? list.data : []) {
+      for (const m of list2 && Array.isArray(list2.data) ? list2.data : []) {
         const c = m.card;
         if (!c || c.exp_year < now.getUTCFullYear() || c.exp_year === now.getUTCFullYear() && c.exp_month < now.getUTCMonth() + 1) continue;
         return { pm: m.id, customer: cust.id, brand: c.brand || "", last4: c.last4 || "" };
@@ -55064,8 +57403,8 @@ async function xbodyPrice(env) {
     const resp = await fetch("https://acuityscheduling.com/api/v1/appointment-types", {
       headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` }
     });
-    const list = resp.ok ? await resp.json() : [];
-    const type = (Array.isArray(list) ? list : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
+    const list2 = resp.ok ? await resp.json() : [];
+    const type = (Array.isArray(list2) ? list2 : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
     const n = type ? Number(type.price) : NaN;
     if (Number.isFinite(n)) price = n;
   } catch (err2) {
@@ -55181,9 +57520,9 @@ async function handleXbodyBook(request, env) {
     u.searchParams.set("direction", "DESC");
     const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
     if (!resp.ok) throw new Error("appointments " + resp.status);
-    const list = await resp.json();
+    const list2 = await resp.json();
     const complete = (a) => /Гаранция с карта/.test(String(a.notes || "")) || (Array.isArray(a.forms) ? a.forms : []).some((f) => (Array.isArray(f && f.values) ? f.values : []).some((v) => v && v.fieldID && Number(v.fieldID) !== 3583430 && v.value !== void 0 && v.value !== null && v.value !== ""));
-    previous = (Array.isArray(list) ? list : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
+    previous = (Array.isArray(list2) ? list2 : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
   } catch (err2) {
     console.error("[xbody-book] lookup failed:", err2.message);
     return jsonResponse2({ error: "\u0417\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
@@ -55218,8 +57557,8 @@ async function handleXbodyBook(request, env) {
             calendarID: Number(XBODY_ACUITY_BOOKING.calendarID)
           }])
         });
-        const list = await chk.json().catch(() => null);
-        if (!chk.ok || !Array.isArray(list) || !list[0] || list[0].valid !== true) {
+        const list2 = await chk.json().catch(() => null);
+        if (!chk.ok || !Array.isArray(list2) || !list2[0] || list2[0].valid !== true) {
           failed.push({ time, error: "taken" });
           continue;
         }
@@ -55692,6 +58031,32 @@ var worker_entry_default = {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === "/api/user/save-profile" && request.method === "POST") {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === "/api/enrichment" && request.method === "POST") {
+        return await handleEnrichmentSubmit(request, env);
+      } else if (url.pathname === "/api/enrichment/get" && request.method === "POST") {
+        return await handleEnrichmentGet(request, env);
+      } else if (url.pathname === "/api/enrichment/extract-labs" && request.method === "POST") {
+        return await handleLabExtract(request, env);
+      } else if (url.pathname === "/api/admin/handoff-stats" && request.method === "GET") {
+        return await handleAdminHandoffStats(request, env);
+      } else if (url.pathname === "/api/handoff" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "HANDOFF");
+        if (rlErr) return rlErr;
+        return await handleHandoffCreate(request, env);
+      } else if (url.pathname === "/api/handoff/peek" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "HANDOFF_READ");
+        if (rlErr) return rlErr;
+        return await handleHandoffPeek(request, env);
+      } else if (url.pathname === "/api/handoff/claim" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "HANDOFF_READ");
+        if (rlErr) return rlErr;
+        return await handleHandoffClaim(request, env);
+      } else if (url.pathname === "/api/enrichment/resolve" && request.method === "POST") {
+        return await handleEnrichmentResolve(request, env);
+      } else if (url.pathname === "/api/enrichment/extract-device" && request.method === "POST") {
+        return await handleDeviceExtract(request, env);
+      } else if (url.pathname === "/api/enrichment/delete" && request.method === "POST") {
+        return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === "/api/user/sync-analytics" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "ANALYTICS_SYNC");
         if (rlErr) return rlErr;

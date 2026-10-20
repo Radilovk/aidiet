@@ -92,7 +92,22 @@ export function planVoiceVars(profile, userData, plan) {
     ].filter(Boolean).join('\n'),
     avoid: (s.foodsToAvoid || []).join(', ') || 'няма',
     menu: menuForVoice(plan?.weekPlan) || 'няма',
+    emotionalProfile: emotionalProfileText(userData?._enrichment?.voice) || 'няма',
   };
+}
+
+/** Профилът от EmoEat — за портрета, психологията и навиците. */
+export function emotionalProfileText(v) {
+  if (!v || typeof v !== 'object') return '';
+  return [
+    v.archetype ? `Архетип: ${v.archetype}${v.archetypeDescription ? ` — ${v.archetypeDescription}` : ''}` : '',
+    v.secondArchetype ? `Втори архетип: ${v.secondArchetype}` : '',
+    v.intensity ? `Интензитет на емоционалното хранене: ${v.intensity}` : '',
+    v.drivers?.length ? `Какво го захранва: ${v.drivers.join(', ')}` : '',
+    v.patterns?.length ? `Модели: ${v.patterns.join('; ')}` : '',
+    v.bodySignals ? `Телесни сигнали: ${v.bodySignals}` : '',
+    v.realNeed ? `Реалната нужда (с думите на клиента): ${v.realNeed}` : '',
+  ].filter(Boolean).join('\n');
 }
 
 /* ─── Проверка на отговора ─────────────────────────────────────────────── */

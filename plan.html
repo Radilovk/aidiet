@@ -3986,6 +3986,9 @@
     <script src="./platform-compat.js"></script>
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
+    <script src="./handoff-client.js"></script>
+    <script src="./enrichment-client.js"></script>
+    <script src="./crosscheck-modal.js"></script>
     <script type="module">
         import { buildChatContextSections, selectChatSections, assembleChatContextPrompt } from './client-card.js';
         window.NutriPlanChatContext = { buildChatContextSections, selectChatSections, assembleChatContextPrompt };
@@ -7237,15 +7240,34 @@
 
         function invalidateChatContextCache() { /* reserved for plan reload hooks */ }
 
+        /** Есенцията от устройствата и изследванията (същата като в картона на специалиста). */
+        function chatUserData() {
+            if (!userData) return userData;
+            let essence = '';
+            let questions = [];
+            try {
+                essence = localStorage.getItem('np_health_essence') || '';
+                questions = JSON.parse(localStorage.getItem('np_open_questions') || '[]') || [];
+            } catch (_) {}
+            if (!essence && !questions.length) return userData;
+            return Object.assign({}, userData, essence ? { _healthEssence: essence } : {}, questions.length ? { _openQuestions: questions } : {});
+        }
+
+        // Въпросът, който асистентът е задал в последния си отговор — следващото
+        // съобщение на клиента може да е отговорът му.
+        let chatAskedQuestionId = '';
+
         async function buildSmartChatRequest(message, apiHistory) {
+            const chatData = chatUserData();
             const base = {
                 userId: userId,
                 message: message,
                 conversationId: conversationId,
                 mode: chatMode,
                 conversationHistory: apiHistory,
-                userData: userData,
+                userData: chatData,
                 userPlan: dietPlan,
+                _askedQuestionId: chatAskedQuestionId || undefined,
             };
             if (!userData || !dietPlan) return base;
 
@@ -7255,7 +7277,7 @@
                     new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 3000); })
                 ]);
                 if (!chatCtx) return base;
-                const sections = chatCtx.buildChatContextSections(userData, dietPlan);
+                const sections = chatCtx.buildChatContextSections(chatData, dietPlan);
                 const selectedIds = chatCtx.selectChatSections(message, chatMode);
                 base.contextText = chatCtx.assembleChatContextPrompt(sections, selectedIds);
             } catch (err) {
@@ -7559,7 +7581,8 @@
                     }
                     
                     addMessageToChat(result.response, 'assistant');
-                    
+                    handleChatClarify(result.clarify, result.response);
+
                     // If plan was updated, update local storage with new plan
                     if (result.planUpdated && result.updatedPlan) {
                         invalidateChatContextCache();
@@ -7848,6 +7871,105 @@
                     }, 1500);
                 });
             }, 100);
+        }
+
+        /* ── Уточняващ въпрос в чата (разминаване между AIRIS, EmoEat и NutriPlan) ──
+         * Сървърът подава въпроса на асистента само ако е свързан с темата.
+         * Ясен отговор в текста → записва се веднага (с „Промени“); иначе под
+         * отговора излизат бутоните на въпроса. Записът е през /api/enrichment/resolve. */
+        function ensureClarifyStyles() {
+            if (document.getElementById('chatClarifyStyles')) return;
+            const style = document.createElement('style');
+            style.id = 'chatClarifyStyles';
+            style.textContent = `
+                .chat-clarify { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 12px; max-width: 86%; }
+                .chat-clarify-btn { min-height: 44px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--primary-red); background: transparent; color: var(--text-dark); font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+                .chat-clarify-btn:disabled { opacity: 0.6; cursor: default; }
+                .chat-clarify-note { font-size: 0.8125rem; color: var(--text-dark); background: var(--card-bg); border: 1px dashed var(--primary-red); border-radius: 12px; padding: 8px 12px; display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+                .chat-clarify-change { min-height: 32px; background: none; border: 0; padding: 0; color: var(--primary-red); font-weight: 700; cursor: pointer; text-decoration: underline; }`;
+            document.head.appendChild(style);
+        }
+
+        function clarifyContainer(question) {
+            ensureClarifyStyles();
+            const chatMessages = document.getElementById('chatMessages');
+            const box = document.createElement('div');
+            box.className = 'chat-clarify';
+            box.dataset.qid = question.id;
+            chatMessages.appendChild(box);
+            return box;
+        }
+
+        function renderClarifyDone(box, question, label) {
+            // По-старите бутони за същия въпрос вече не важат.
+            document.querySelectorAll('.chat-clarify').forEach(other => {
+                if (other !== box && other.dataset.qid === question.id) other.remove();
+            });
+            box.innerHTML = '';
+            const note = document.createElement('span');
+            note.className = 'chat-clarify-note';
+            note.textContent = `✓ Записано в профила: ${question.topic} — ${label}`;
+            const change = document.createElement('button');
+            change.type = 'button';
+            change.className = 'chat-clarify-change';
+            change.textContent = 'Промени';
+            change.addEventListener('click', () => renderClarifyOptions(box, question));
+            note.appendChild(change);
+            box.appendChild(note);
+            scrollChatToBottom();
+        }
+
+        function renderClarifyOptions(box, question) {
+            box.innerHTML = '';
+            question.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'chat-clarify-btn';
+                btn.textContent = opt.label;
+                btn.addEventListener('click', async () => {
+                    box.querySelectorAll('button').forEach(b => { b.disabled = true; });
+                    const ok = await saveClarify(question, opt.value);
+                    if (ok) renderClarifyDone(box, question, opt.label);
+                    else box.querySelectorAll('button').forEach(b => { b.disabled = false; });
+                });
+                box.appendChild(btn);
+            });
+            scrollChatToBottom();
+        }
+
+        async function saveClarify(question, value) {
+            const E = window.NutriPlanEnrichment;
+            if (!E) return false;
+            try {
+                await E.resolve(question.id, value);
+                chatAskedQuestionId = '';
+                if (window.NutriPlanHaptic && window.NutriPlanHaptic.notify) window.NutriPlanHaptic.notify('success');
+                return true;
+            } catch (e) {
+                console.warn('[chat] clarify not saved:', e.message);
+                return false;
+            }
+        }
+
+        function handleChatClarify(clarify, responseText) {
+            if (!clarify || !clarify.question || !window.NutriPlanEnrichment) {
+                chatAskedQuestionId = '';
+                return;
+            }
+            const q = clarify.question;
+            // Бутоните излизат след като асистентът „допише“ отговора.
+            const delay = Math.min(String(responseText || '').length * 18, 6000) + 200;
+            setTimeout(async () => {
+                const box = clarifyContainer(q);
+                if (clarify.resolved) {
+                    const opt = q.options.find(o => o.value === clarify.resolved.value);
+                    if (opt && await saveClarify(q, opt.value)) renderClarifyDone(box, q, opt.label);
+                    else renderClarifyOptions(box, q);
+                } else {
+                    chatAskedQuestionId = q.id;
+                    renderClarifyOptions(box, q);
+                }
+            }, delay);
         }
 
         function addMessageToChat(message, role, saveToHistory = true) {

@@ -118,6 +118,9 @@ export function buildClientCard(clientData, options = {}) {
     clientData?.planGenerationError && clientData?.planStatus === 'failed' ? `ERR|${esc(clientData.planGenerationError)}` : '',
     answers.email ? `EM|${esc(answers.email)}` : '',
     answers.additionalNotes ? `NT|${esc(String(answers.additionalNotes).slice(0, 500))}` : '',
+    clientData?.moduleSources && Object.keys(clientData.moduleSources).length
+      ? `MOD|${Object.entries(clientData.moduleSources).map(([k, v]) => `${esc(k)}=${esc(String(v).slice(0, 10))}`).join('|')}`
+      : '',
     (clientData?.files?.length) ? `FL|count=${clientData.files.length}|names=${clientData.files.slice(0, 5).map(f => esc(f.name)).join('+')}` : '',
   ].filter(Boolean);
 
@@ -136,6 +139,10 @@ export function buildClientCard(clientData, options = {}) {
     if (clientData?.adminNotes) planBlocks.push(`#AD v1 ${esc(String(clientData.adminNotes).slice(0, 400))}`);
   } else {
     planBlocks.push('#PL v2 status=none');
+  }
+  // Есенцията от устройства, изследвания и приложения (без суровите измервания).
+  if (clientData?.healthEssence?.text) {
+    planBlocks.push(`#HD v1 upd=${esc(String(clientData.healthEssence.at || '').slice(0, 10))} ${esc(clientData.healthEssence.text)}`);
   }
 
   planBlocks.push(serializeAnalytics(analytics));
@@ -158,14 +165,15 @@ export function buildClientCard(clientData, options = {}) {
   };
 }
 
-/** @typedef {'voice'|'profile'|'profile_full'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
+/** @typedef {'voice'|'profile'|'profile_full'|'health'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
 
 const CHAT_SECTION_ORDER = /** @type {const} */ ([
-  'voice', 'profile', 'profile_full', 'summary', 'meals', 'analysis', 'strategy',
+  'voice', 'profile', 'profile_full', 'health', 'summary', 'meals', 'analysis', 'strategy',
   'recommendations', 'forbidden', 'psychology', 'supplements', 'water',
 ]);
 
-const CHAT_BASE = ['voice', 'profile', 'summary', 'meals', 'recommendations', 'forbidden'];
+// Данните от устройствата са кратки и обясняват почти всеки въпрос („защо не отслабвам“) — винаги.
+const CHAT_BASE = ['voice', 'profile', 'health', 'summary', 'meals', 'recommendations', 'forbidden'];
 const CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
 
 const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */ ([
@@ -212,6 +220,7 @@ export function buildChatContextSections(userData, plan) {
       hasNotesSection: hasNotes,
       hasClinicalSection: Boolean(userData?.clinicalProtocol),
     }),
+    health: userData?._healthEssence ? `#HD v1 ${esc(String(userData._healthEssence).slice(0, 2400))}` : '',
     summary: serializePlanSummary(p.summary) || '',
     meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : '',
     analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || '',

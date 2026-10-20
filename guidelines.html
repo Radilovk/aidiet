@@ -327,6 +327,57 @@
             border-left: 3px solid rgba(45, 212, 191, 0.4);
         }
 
+        .supplement-shop-link {
+            color: var(--ds-primary, #0d9488);
+            font-weight: 700;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        /* --- Ръководство за храните: нива, замени, ситуации --- */
+        .fg-sub {
+            margin: 18px 0 8px;
+            font-size: 0.8125rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-light);
+        }
+        .fg-sub:first-child { margin-top: 0; }
+        .fg-note { font-size: 0.875rem; color: var(--ds-text-soft); margin: -2px 0 10px; line-height: 1.45; }
+        .fg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .fg-chip {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.08);
+            border: 1px solid rgba(15, 118, 110, 0.18);
+            font-size: 0.875rem;
+            color: var(--text-dark);
+        }
+        .fg-rows { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+        .fg-row {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: var(--fg-row-bg, rgba(15, 118, 110, 0.06));
+            border: 1px solid var(--glass-border);
+        }
+        .fg-row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+        .fg-row-name { font-weight: 700; color: var(--text-dark); }
+        .fg-row-val { font-weight: 600; color: var(--primary-red); white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 0.9375rem; }
+        .fg-row-meta { margin-top: 4px; font-size: 0.875rem; color: var(--ds-text-soft); line-height: 1.45; }
+        .fg-row--occ { --fg-row-bg: var(--ds-warning-bg); border-color: var(--ds-warning-border); }
+        .fg-row--occ .fg-row-head { flex-direction: column; align-items: flex-start; gap: 2px; }
+        .fg-row--occ .fg-row-val { color: var(--ds-warning-text); white-space: normal; font-size: 0.875rem; }
+        .fg-row--no { --fg-row-bg: var(--ds-error-bg); border-color: transparent; }
+        .fg-row--no .fg-row-name::before { content: '✕'; margin-right: 8px; color: var(--ds-error-text); }
+        .fg-reason { display: inline-block; margin-top: 4px; font-size: 0.8125rem; font-weight: 600; color: var(--ds-error-text); }
+        .fg-swap { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+        .fg-swap-from { color: var(--ds-text-soft); text-decoration: line-through; text-decoration-color: currentColor; text-decoration-thickness: 1px; }
+        .fg-swap-arrow { color: var(--primary-red); font-size: 0.875rem; }
+        .fg-swap-to { font-weight: 600; color: var(--text-dark); }
+        .fg-sit-title { font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
+        .fg-sit-text { font-size: 0.9375rem; color: var(--text-dark); line-height: 1.5; opacity: 0.9; }
+
         /* --- EMPTY STATE --- */
         .empty-state {
             text-align: center;
@@ -626,7 +677,7 @@
 
         /* === STRATEGY PANEL === */
         .plan-justification-container {
-            background: linear-gradient(135deg, var(--primary-red), var(--accent-blue));
+            background: var(--ds-fill-grad);
             border-radius: var(--radius);
             padding: 0;
             margin-bottom: 20px;
@@ -750,9 +801,10 @@
         .strategy-see-more-btn {
             background: none;
             border: none;
-            padding: 0;
+            padding: 12px 0;
+            min-height: 44px;
             cursor: pointer;
-            color: var(--primary-red);
+            color: var(--ds-accent-text);
             font-size: 0.9rem;
             font-weight: 600;
             text-decoration: underline;
@@ -811,7 +863,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 16px 16px 14px;
-            background: linear-gradient(135deg, var(--primary-red), var(--accent-blue));
+            background: var(--ds-fill-grad);
             flex-shrink: 0;
         }
 
@@ -1223,13 +1275,14 @@
                         <ul class="good-list" id="recommendedFoodsList">
                             <li>Препоръките ще се появят тук, щом планът ви е готов.</li>
                         </ul>
+                        <div id="foodGuideCore"></div>
                     </div>
                 </div>
             </div>
 
             <div class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-ban"></i> За ограничаване</span>
+                    <span><i class="fas fa-ban"></i> <span id="limitTitle">За ограничаване</span></span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
@@ -1237,7 +1290,18 @@
                         <ul class="bad-list" id="forbiddenFoodsList">
                             <li>Списъкът ще се появи тук, щом планът ви е готов.</li>
                         </ul>
+                        <div id="foodGuideLimit"></div>
                     </div>
+                </div>
+            </div>
+
+            <div class="acc-item" id="foodGuideSwapsItem" hidden>
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-right-left"></i> Замени и ситуации</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner" id="foodGuideSwaps"></div>
                 </div>
             </div>
 
@@ -1519,6 +1583,74 @@
             return formattedHTML;
         }
 
+        /**
+         * Ръководството за храните (plan.foodGuide): нивата между „препоръчително“
+         * и „не“. Старите планове го нямат — тогава остават досегашните списъци.
+         */
+        function renderFoodGuide(g) {
+            const core = document.getElementById('foodGuideCore');
+            const limit = document.getElementById('foodGuideLimit');
+            const swapsItem = document.getElementById('foodGuideSwapsItem');
+            const swaps = document.getElementById('foodGuideSwaps');
+            if (!g || g.v !== 1 || !core || !limit) return;
+            const e = escapeHtml;
+            const cap = t => { const s = String(t || ''); return s.charAt(0).toUpperCase() + s.slice(1); };
+
+            let html = '';
+            if (Array.isArray(g.free) && g.free.length) {
+                html += '<div class="fg-sub">Свободно</div><div class="fg-chips">' +
+                    g.free.map(f => '<span class="fg-chip">' + e(cap(f)) + '</span>').join('') + '</div>';
+            }
+            if (Array.isArray(g.moderate) && g.moderate.length) {
+                html += '<div class="fg-sub">Умерено — с мярка</div>' +
+                    '<p class="fg-note">Количествата вече са в менюто. Мярката помага при замени, готвене и хранене навън.</p>' +
+                    '<ul class="fg-rows">' + g.moderate.map(m =>
+                        '<li class="fg-row"><div class="fg-row-head"><span class="fg-row-name">' + e(m.food) + '</span>' +
+                        '<span class="fg-row-val">' + e(m.amount) + '</span></div>' +
+                        (m.example ? '<div class="fg-row-meta">' + e(m.example) + '</div>' : '') + '</li>').join('') + '</ul>';
+            }
+            core.innerHTML = html;
+
+            html = '';
+            if (Array.isArray(g.occasional) && g.occasional.length) {
+                html += '<div class="fg-sub">По избор, рядко</div>' +
+                    '<p class="fg-note">Позволено е — с тази порция и честота. Така любимото остава в живота, без да тежи на плана.</p>' +
+                    '<ul class="fg-rows">' + g.occasional.map(o =>
+                        '<li class="fg-row fg-row--occ"><div class="fg-row-head"><span class="fg-row-name">' + e(o.food) + '</span>' +
+                        '<span class="fg-row-val">' + e(o.frequency) + '</span></div>' +
+                        '<div class="fg-row-meta">' + e(cap(o.portion)) + ' · ' + e(o.when) + '</div></li>').join('') + '</ul>';
+            }
+            if (Array.isArray(g.strict) && g.strict.length) {
+                html += '<div class="fg-sub">Не</div><ul class="fg-rows">' + g.strict.map(x =>
+                    '<li class="fg-row fg-row--no"><div class="fg-row-name">' + e(cap(x.food)) + '</div>' +
+                    '<span class="fg-reason">' + e(cap(x.reason)) + '</span></li>').join('') + '</ul>';
+            }
+            if (html) {
+                limit.innerHTML = html;
+                const oldList = document.getElementById('forbiddenFoodsList');
+                if (oldList) oldList.hidden = true;
+                const title = document.getElementById('limitTitle');
+                if (title) title.textContent = 'Позволено рядко и забранено';
+            }
+
+            html = '';
+            if (Array.isArray(g.swaps) && g.swaps.length) {
+                html += '<div class="fg-sub">Замени</div><ul class="fg-rows">' + g.swaps.map(x =>
+                    '<li class="fg-row fg-swap"><span class="fg-swap-from">' + e(x.from) + '</span>' +
+                    '<i class="fas fa-arrow-right fg-swap-arrow" aria-label="замени с"></i>' +
+                    '<span class="fg-swap-to">' + e(cap(x.to)) + '</span></li>').join('') + '</ul>';
+            }
+            if (Array.isArray(g.situations) && g.situations.length) {
+                html += '<div class="fg-sub">Ситуации</div><ul class="fg-rows">' + g.situations.map(x =>
+                    '<li class="fg-row"><div class="fg-sit-title">' + e(x.title) + '</div>' +
+                    '<div class="fg-sit-text">' + e(x.text) + '</div></li>').join('') + '</ul>';
+            }
+            if (html && swaps && swapsItem) {
+                swaps.innerHTML = html;
+                swapsItem.hidden = false;
+            }
+        }
+
         function normalizeToThreeItems(data, defaultMessage) {
             if (typeof data === 'string') {
                 try {
@@ -1536,6 +1668,15 @@
             return items.length > 0 ? items : [defaultMessage];
         }
 
+        function biocodePickUrl(name) {
+            let vegan = false;
+            try {
+                const ud = JSON.parse(localStorage.getItem('userData') || '{}') || {};
+                vegan = /веган/i.test([].concat(ud.dietPreference || []).join(' '));
+            } catch (_) {}
+            return `https://biocode-bg.com/pick.html?q=${encodeURIComponent(String(name).slice(0, 80))}${vegan ? '&vegan=1' : ''}&utm_source=nutriplan&utm_medium=supplement`;
+        }
+
         function generateListItemText(content, contentType, index) {
             if (typeof content === 'string') {
                 // Backward compatibility: plans generated before 2025-12-27 could use "!" prefix for bullet-like entries.
@@ -1546,11 +1687,17 @@
                 const fallbackPrefix = contentType === 'psychology'
                     ? DEFAULT_MESSAGES.psychologyFallbackLabel
                     : DEFAULT_MESSAGES.supplementsFallbackLabel;
-                let details = content.title || content.name || `${fallbackPrefix} ${index + 1}`;
+                const title = content.title || content.name || `${fallbackPrefix} ${index + 1}`;
+                let details = '';
                 if (content.description) details += ` - ${content.description}`;
                 if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
                 if (content.intake || content.timing) details += ` - Прием: ${content.intake || content.timing}`;
-                return escapeHtml(details);
+                if (content.reason) details += ` - Защо: ${content.reason}`;
+                // Името на добавката води към BIOCODE: там се подбират наличните продукти в момента.
+                const head = contentType === 'supplements' && content.name
+                    ? `<a href="${escapeHtml(biocodePickUrl(content.name))}" target="_blank" rel="noopener" class="supplement-shop-link">${escapeHtml(title)}</a>`
+                    : escapeHtml(title);
+                return `<span>${head}${escapeHtml(details)}</span>`;
             }
             return '';
         }
@@ -1566,6 +1713,8 @@
                 if (recommendedFoodsList && Array.isArray(dietPlan.recommendations) && dietPlan.recommendations.length > 0) {
                     recommendedFoodsList.innerHTML = dietPlan.recommendations.map(item => `<li>${escapeHtml(item)}</li>`).join('');
                 }
+
+                renderFoodGuide(dietPlan.foodGuide);
 
                 const forbiddenFoodsList = document.getElementById('forbiddenFoodsList');
                 if (forbiddenFoodsList && Array.isArray(dietPlan.forbidden) && dietPlan.forbidden.length > 0) {
@@ -1601,7 +1750,9 @@
 
                 const supplementsContent = document.getElementById('supplementsContent');
                 if (supplementsContent) {
-                    if (dietPlan.supplements) {
+                    if (Array.isArray(dietPlan.supplements) && dietPlan.supplements.length === 0) {
+                        supplementsContent.innerHTML = '<p style="color: var(--ds-text-soft);">Към момента няма показания за добавки. Изследванията (при качване) уточняват препоръката.</p>';
+                    } else if (dietPlan.supplements) {
                         const normalized = normalizeToThreeItems(dietPlan.supplements, DEFAULT_MESSAGES.supplements);
                         if (normalized) {
                             let html = '<ul class="info-list">';

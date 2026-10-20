@@ -11,6 +11,7 @@
 import { compileProfile, slotsFor } from '../profile-code.js';
 import { macroTargetsFor } from '../macro-targets.js';
 import { extractQuestionnaireBlockedTerms } from '../questionnaire-engine-map.js';
+import { interactionsFor } from '../drug-interactions.js';
 import { buildFoodPolicy } from './policy.js';
 import { prescribe } from './prescription.js';
 import { planWeek, hashSeed } from './week-planner.js';
@@ -101,6 +102,12 @@ export function applyModifications(profile, mods = []) {
   return out;
 }
 
+/** Таван на белтъка в грамове; освободената енергия отива към въглехидратите. */
+function capProtein(macros, capG) {
+  if (!(capG > 0) || macros.protein <= capG) return macros;
+  return { protein: capG, carbs: macros.carbs + (macros.protein - capG), fats: macros.fats };
+}
+
 /** Повече белтък: +15%, до 2.2 г/кг; енергията идва от въглехидратите. */
 function increaseProtein(macros, profile) {
   const cap = Math.round((Number(profile.weightKg) || 70) * 2.2);
@@ -119,6 +126,7 @@ export function buildNutritionPlan(userData, options) {
   const mods = [...new Set([
     ...(Array.isArray(userData?.planModifications) ? userData.planModifications.map(String) : []),
     ...(hints?.approach || []),
+    ...(userData?._enrichment?.hints?.approach || []),
   ])];
   const profile = applyModifications(compileProfile(userData || {}, { dietaryModifier: options.dietaryModifier }), mods);
   const kcal = Math.round(Number(options.kcal) || 0);
@@ -130,9 +138,17 @@ export function buildNutritionPlan(userData, options) {
     fats: macroTargets.fats,
   };
   if (mods.includes('increase_protein')) macros = increaseProtein(macros, profile);
+  // Граница за безопасност от изследвания (бъбречна функция): белтъкът не минава
+  // тавана в г/кг, а енергията отива към въглехидратите.
+  const proteinCap = Number(userData?._enrichment?.safety?.proteinCapPerKg);
+  if (proteinCap > 0 && profile.weightKg) macros = capProtein(macros, Math.round(profile.weightKg * proteinCap));
 
   const policy = buildFoodPolicy(profile, {
-    blockedTerms: userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {}),
+    blockedTerms: [
+      ...(userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {})),
+      // Храни, които влизат в конфликт с лекарство (грейпфрут при статин, тирамин при МАО инхибитор).
+      ...interactionsFor(userData || {}).blockFoods,
+    ],
     loves: [userData?.dietLove, ...(hints?.loves || [])].filter(Boolean).join(', '),
     adherence: adherenceMap(userData?._adherenceRatio),
     date: options.date,
