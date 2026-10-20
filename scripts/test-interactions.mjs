@@ -38,6 +38,7 @@ const sup = applySupplementInteractions([
 ], vka);
 ok(sup.dropped.length === 3, `варфарин: K, K2 в комбинация и E отпадат (${sup.dropped.map(d => d.name)})`);
 ok(sup.kept.some(s => s.name === 'Витамин D3') && sup.kept.some(s => s.name === 'Кетогенна смес'), 'варфарин: D3 и думи с „к“ остават');
+ok(applySupplementInteractions([{ name: 'Vitamin D-3 & МK-7 45 mcg' }, { name: 'Menaquinone-7' }, { name: 'Vitamin K1' }], vka).dropped.length === 3, 'варфарин: K2 като MK-7/менахинон и K1 също отпадат');
 const levo = applySupplementInteractions([{ name: 'Магнезий', timing: 'вечер' }, { name: 'Омега-3' }], interactionsFor({ medicationsDetails: 'Еутирокс 50' }));
 ok(/4 часа след левотироксина/.test(levo.kept[0].timing) && levo.kept[0].timing.startsWith('вечер'), 'левотироксин: магнезий — с отделяне във времето');
 ok(!levo.kept[1].timing, 'левотироксин: омега-3 без бележка');

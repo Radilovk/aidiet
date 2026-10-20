@@ -10841,7 +10841,7 @@ var LEVOTHYROXINE = ["\u043B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u04
 var METFORMIN = ["\u043C\u0435\u0442\u0444\u043E\u0440\u043C\u0438\u043D", "metformin", "\u0433\u043B\u044E\u043A\u043E\u0444\u0430\u0436", "glucophage", "\u0441\u0438\u043E\u0444\u043E\u0440", "siofor"];
 var MINERALS = /калций|calcium|желязо|iron|магнези|magnes|цинк|zinc|мултивитамин|multivit/i;
 var ST_JOHNS = /жълт кантарион|st\.?\s*john|hypericum/i;
-var VITAMIN_K = /витамин\s*[kк](?![а-яa-z])|vitamin\s*k(?![a-z])|(^|[^а-яa-z0-9])[kк]2(?![0-9])/i;
+var VITAMIN_K = /витамин\s*[kк](?![а-яa-z])|vitamin\s*k(?![a-z])|(^|[^а-яa-z0-9])[kк][12](?![0-9])|(^|[^а-яa-z0-9])[mм][kк]\s*-?\s*[47](?![0-9])|menaquinon|менахинон|phylloquinon|филохинон/i;
 var VITAMIN_E = /витамин\s*[eе](?![а-яa-z])|vitamin\s*e(?![a-z])/i;
 var INTERACTION_RULES = [
   {
@@ -44902,6 +44902,117 @@ function extractClarify(text, q) {
   return { text: out, resolved, asked };
 }
 
+// supplement-products.js
+var BIOCODE_SITE = "https://biocode-bg.com";
+var BIOCODE_CATALOG = "https://port.radilov-k.workers.dev/portfolio/catalog";
+var NOT_SUPPLEMENT = /water|ready-to-drink|\bcan\b|\bbars?\b|drink|напитка|протеинов бар/i;
+var COMBO = /\+|&|\/|\bwith\b|\bс\b|complex|комплекс|formula|формула|multi|мулти/i;
+var SUPPLEMENT_SLOTS = [
+  { key: "d3k2", match: /d3\s*\+\s*k2|d3.*k2/i, q: "vitamin d3 k2", must: /d-?3/i, prefer: /k2|k-2|mk-?7|мк-?7/i },
+  { key: "vitamin_d", match: /витамин\s*d|vitamin\s*d|\bd3\b/i, q: "vitamin d3", must: /d-?3|vitamin d\b/i, avoid: /k2|k-2|multi|мулти|calcium|калций|complex/i },
+  { key: "b12", match: /b12|b-12/i, q: "b12", must: /b-?12/i, avoid: /complex|комплекс|multi/i },
+  { key: "vitamin_c", match: /витамин\s*c|vitamin\s*c/i, q: "vitamin c", must: /vitamin c|витамин c|c-?1000|c-?500|ascorb/i, avoid: /multi|мулти|complex|collagen|колаген/i },
+  {
+    key: "magnesium",
+    match: /магнези|magnes/i,
+    q: "magnesium",
+    must: /magnes|магнез|magtein/i,
+    prefer: /glycinat|bisglycin|бисглицин|citrat|цитрат|chelat|threonat|треонат/i,
+    avoid: /alkaline|calcium|zinc|zma|\bca\b|sodium|натрий|калций/i,
+    forms: [
+      [/треонат|threonat/i, "magnesium threonate", /threonat|magtein/i],
+      [/цитрат|citrat/i, "magnesium citrate", /citrat/i],
+      [/бисглицин|глицинат|glycinat/i, "magnesium bisglycinate", /glycinat/i]
+    ]
+  },
+  { key: "omega3", match: /омега|omega/i, q: "omega 3", must: /omega|омега|fish oil|рибено|krill/i, prefer: /epa|high|ultra|triple|концентр/i, vegan: /alga|водорасл|vegan|веган/i, avoid: /3-6-9|3 6 9/i },
+  { key: "iron", match: /желез|iron\b/i, q: "iron", must: /iron|желязо/i, prefer: /bisglycin|бисглицин|chelat/i, avoid: /multi|мулти/i },
+  { key: "zinc", match: /цинк|zinc/i, q: "zinc", must: /zinc|цинк/i, avoid: /magnes|магнез|calcium|zma|multi/i },
+  { key: "chromium", match: /хром|chromium/i, q: "chromium", must: /chrom|хром/i },
+  { key: "iodine", match: /йод|iodine|iodide/i, q: "iodine", must: /iod|йод|kelp|келп/i },
+  { key: "creatine", match: /креатин|creatine/i, q: "creatine monohydrate", must: /creatin|креатин/i, prefer: /monohydrat|монохидрат|creapure/i, avoid: /hcl|kre-alkalyn|matrix|stack/i },
+  {
+    key: "collagen",
+    match: /колаген|collagen/i,
+    q: "collagen",
+    must: /collagen|колаген/i,
+    prefer: /peptid|пептид|hydrolyz|хидролиз/i,
+    avoid: /glucosamin|chondroitin|msm/i,
+    forms: [
+      [/тип\s*ii\b|type\s*ii\b|тип\s*2|uc-?ii/i, "collagen type ii", /type ii|uc-?ii|type 2/i],
+      [/пептид|peptid|тип\s*i\s*и\s*iii/i, "collagen peptides", /peptid|hydrolyz|i & iii|i and iii/i]
+    ]
+  },
+  { key: "psyllium", match: /псилиум|psyllium/i, q: "psyllium", must: /psyllium|псилиум/i },
+  { key: "berberine", match: /берберин|berberin/i, q: "berberine", must: /berberin|берберин/i },
+  { key: "inositol", match: /инозитол|inositol/i, q: "inositol", must: /inositol|инозитол/i },
+  { key: "ashwagandha", match: /ашваганда|ashwagandha/i, q: "ashwagandha", must: /ashwagandha|ашваганда/i, prefer: /ksm/i },
+  { key: "ala", match: /липоева|lipoic|\bala\b/i, q: "alpha lipoic acid", must: /lipoic|липоева|\bala\b/i },
+  { key: "curcumin", match: /куркум|curcum|turmeric/i, q: "curcumin", must: /curcum|turmeric|куркум/i, prefer: /piperin|bioperine|пиперин/i },
+  { key: "nac", match: /\bnac\b|ацетил\s*цистеин|acetyl\s*cystein/i, q: "nac", must: /\bnac\b|cystein|цистеин/i },
+  { key: "glutamine", match: /глутамин|glutamin/i, q: "glutamine", must: /glutamin|глутамин/i },
+  { key: "theanine", match: /теанин|theanin/i, q: "theanine", must: /theanin|теанин/i },
+  { key: "tyrosine", match: /тирозин|tyrosin/i, q: "tyrosine", must: /tyrosin|тирозин/i },
+  { key: "glutathione", match: /глутатион|glutathion/i, q: "glutathione", must: /glutathion|глутатион/i },
+  { key: "silymarin", match: /силимарин|бял трън|milk thistle|silymarin/i, q: "milk thistle", must: /milk thistle|silymarin|бял трън|силимарин/i },
+  { key: "resveratrol", match: /ресвератрол|resveratrol/i, q: "resveratrol", must: /resveratrol|ресвератрол/i },
+  { key: "probiotic", match: /пробиот|probiotic/i, q: "probiotic", must: /probiotic|пробиот|lactobac|acidophil/i },
+  { key: "choline", match: /холин|choline|alpha-?gpc/i, q: "choline", must: /gpc|cholin|холин/i, prefer: /gpc|bitartrat|pure/i, avoid: /inositol|инозитол|b-complex|комплекс/i },
+  { key: "phosphatidylserine", match: /фосфатидилсерин|phosphatidylserin/i, q: "phosphatidylserine", must: /phosphatidyl|фосфатидил/i },
+  { key: "colostrum", match: /колострум|colostrum/i, q: "colostrum", must: /colostrum|колострум/i },
+  { key: "calcium", match: /калций|calcium/i, q: "calcium", must: /calcium|калций/i, avoid: /magnes|zinc|магнез|цинк/i },
+  { key: "potassium", match: /калий\b|potassium/i, q: "potassium", must: /potassium|калий/i }
+];
+function slotFor(name) {
+  const n = String(name || "");
+  return SUPPLEMENT_SLOTS.find((s) => s.match.test(n)) || null;
+}
+function formFor(slot, name) {
+  return (slot?.forms || []).find(([re]) => re.test(String(name || ""))) || null;
+}
+function queryFor(name) {
+  const slot = slotFor(name);
+  if (!slot) return null;
+  return formFor(slot, name)?.[1] || slot.q;
+}
+function productUrl(groupId, from = "nutriplan") {
+  const p = new URLSearchParams({ group_id: String(groupId), utm_source: from, utm_medium: "supplements", utm_campaign: "plan" });
+  return `${BIOCODE_SITE}/portfolio-product.html?${p}`;
+}
+function pickProducts(supplement, items, ctx = {}) {
+  const slot = slotFor(supplement?.name);
+  if (!slot) return [];
+  const wantsVegan = !!(ctx.vegan || /водорасл|alga|vegan|веган/i.test(supplement.name));
+  const form = formFor(slot, supplement.name);
+  const scored = [];
+  for (const it of items || []) {
+    const name = String(it?.name || "");
+    if (!it?.group_id || !name || it.available === false || it.margin_eligible === false) continue;
+    if (!slot.must.test(name) || NOT_SUPPLEMENT.test(name)) continue;
+    if (slot.avoid && slot.avoid.test(name)) continue;
+    if (wantsVegan && slot.vegan && !slot.vegan.test(`${name} ${it.search_text || ""}`)) continue;
+    if (ctx.interactions && applySupplementInteractions([{ name }], ctx.interactions).dropped.length) continue;
+    let score = 0;
+    if (form && form[2].test(name)) score += 5;
+    if (slot.prefer && slot.prefer.test(name)) score += 3;
+    if (!COMBO.test(name) || slot.key === "d3k2") score += 2;
+    if (it.has_promo) score += 0.5;
+    score += Math.min(1, (Number(it.rec) || 0) / 300);
+    scored.push({ it, score });
+  }
+  scored.sort((a, b) => b.score - a.score || (a.it.min_client_price || 0) - (b.it.min_client_price || 0));
+  return scored.slice(0, ctx.limit || 2).map(({ it }) => ({
+    group_id: String(it.group_id),
+    name: it.name,
+    brand: it.brand || "",
+    image: typeof it.image === "string" && /^https:\/\//.test(it.image) ? it.image : "",
+    price: Number(it.min_client_price || it.min_price) || null,
+    promo: !!it.has_promo,
+    packs: Array.isArray(it.packs) ? it.packs.slice(0, 2) : [],
+    url: productUrl(it.group_id, ctx.from)
+  }));
+}
+
 // handoff.js
 var HANDOFF_TTL_SEC = 30 * 24 * 60 * 60;
 var HANDOFF_MAX_BYTES = 48 * 1024;
@@ -46145,6 +46256,8 @@ var RATE_LIMIT = {
   // studio platform: the admin's 5-digit code
   HANDOFF: { maxRequests: 10, windowSec: 600 },
   // модул → NutriPlan: нова пратка
+  SUPPLEMENT_PRODUCTS: { maxRequests: 30, windowSec: 60 },
+  // продукти от BIOCODE за добавките
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 }
   // преглед и прибиране на пратка
 };
@@ -55853,6 +55966,36 @@ async function handleEnrichmentResolve(request, env) {
     return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0437\u0430\u043F\u0438\u0448\u0435\u043C \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430." }, 500);
   }
 }
+async function handleSupplementProducts(request, env) {
+  try {
+    const body = await request.json();
+    const list2 = (Array.isArray(body?.supplements) ? body.supplements : []).slice(0, 8).map((s) => ({ name: String(s?.name || "").slice(0, 120), dosage: String(s?.dosage || "").slice(0, 60) })).filter((s) => s.name);
+    const from = ["nutriplan", "airis"].includes(body?.from) ? body.from : "nutriplan";
+    const interactions = interactionsFor({ medications: body?.medications, medicationsDetails: String(body?.medicationsDetails || "").slice(0, 600) });
+    const allowed = new Set(applySupplementInteractions(list2, interactions).kept.map((s) => s.name));
+    const queries = [...new Set(list2.filter((s) => allowed.has(s.name)).map((s) => queryFor(s.name)).filter(Boolean))];
+    const fetched = await Promise.all(queries.map(async (q) => {
+      try {
+        const url = `${BIOCODE_CATALOG}?q=${encodeURIComponent(q)}&available=1&limit=40`;
+        const res = await fetch(url, { cf: { cacheTtl: 21600, cacheEverything: true } });
+        const data = res.ok ? await res.json() : null;
+        return Array.isArray(data?.items) ? data.items : [];
+      } catch (_) {
+        return [];
+      }
+    }));
+    const results = /* @__PURE__ */ new Map();
+    queries.forEach((q, i) => results.set(q, fetched[i]));
+    const items = list2.map((s) => ({
+      supplement: s.name,
+      products: allowed.has(s.name) ? pickProducts(s, results.get(queryFor(s.name)) || [], { vegan: !!body?.vegan, interactions, from }) : []
+    }));
+    return jsonResponse2({ success: true, source: "biocode-bg.com", items }, 200, { cacheControl: "private, max-age=900" });
+  } catch (error) {
+    console.error("supplement products failed:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0437\u0430\u0440\u0435\u0434\u0438\u043C \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435." }, 500);
+  }
+}
 var HANDOFF_PREFIX = "handoff:";
 var NUTRIPLAN_SITE = "https://biocode.website";
 function newHandoffToken() {
@@ -57895,6 +58038,10 @@ var worker_entry_default = {
         return await handleLabExtract(request, env);
       } else if (url.pathname === "/api/admin/handoff-stats" && request.method === "GET") {
         return await handleAdminHandoffStats(request, env);
+      } else if (url.pathname === "/api/supplement-products" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "SUPPLEMENT_PRODUCTS");
+        if (rlErr) return rlErr;
+        return await handleSupplementProducts(request, env);
       } else if (url.pathname === "/api/handoff" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "HANDOFF");
         if (rlErr) return rlErr;

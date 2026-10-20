@@ -17,7 +17,8 @@ const METFORMIN = ['метформин', 'metformin', 'глюкофаж', 'gluco
 const MINERALS = /калций|calcium|желязо|iron|магнези|magnes|цинк|zinc|мултивитамин|multivit/i;
 const ST_JOHNS = /жълт кантарион|st\.?\s*john|hypericum/i;
 // \b в JS е само за латиница — границата след кирилица се пази с отрицателен поглед напред.
-const VITAMIN_K = /витамин\s*[kк](?![а-яa-z])|vitamin\s*k(?![a-z])|(^|[^а-яa-z0-9])[kк]2(?![0-9])/i;
+// K2 се продава и като MK-7 / MK-4 / менахинон, K1 — като филохинон.
+const VITAMIN_K = /витамин\s*[kк](?![а-яa-z])|vitamin\s*k(?![a-z])|(^|[^а-яa-z0-9])[kк][12](?![0-9])|(^|[^а-яa-z0-9])[mм][kк]\s*-?\s*[47](?![0-9])|menaquinon|менахинон|phylloquinon|филохинон/i;
 const VITAMIN_E = /витамин\s*[eе](?![а-яa-z])|vitamin\s*e(?![a-z])/i;
 
 /**

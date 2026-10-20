@@ -1202,6 +1202,7 @@
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
+    <script src="./supplement-shop.js"></script>
     <script type="module" src="./auth-guard.js"></script>
     <div class="container">
         <!-- UI Banner Zone (shown only when image is configured in admin) -->
@@ -1743,6 +1744,12 @@
                             });
                             html += '</ul>';
                             supplementsContent.innerHTML = html;
+                            // Налични продукти от BIOCODE под списъка (асинхронно; без съвпадение — нищо).
+                            if (window.NutriPlanSupplementShop && Array.isArray(dietPlan.supplements)) {
+                                let ud = {};
+                                try { ud = JSON.parse(localStorage.getItem('userData') || '{}') || {}; } catch (_) {}
+                                window.NutriPlanSupplementShop.render(supplementsContent, dietPlan.supplements, { userData: ud });
+                            }
                         } else if (typeof dietPlan.supplements === 'string') {
                             supplementsContent.innerHTML = formatContentWithBulletPoints(dietPlan.supplements, ICON_CLASSES.supplements);
                         } else {
