@@ -2315,6 +2315,24 @@
         }
         
         handleProtocolFromURL();
+
+        // Пратка от модул или сайт: въпросите с еднозначен отговор там не се задават повторно.
+        // Здравословните състояния, лекарствата и непоносимостите остават (тук са по-подробни) — само попълнени.
+        const HANDOFF_SKIP = ['name', 'email', 'gender', 'height', 'weight', 'sportActivity', 'stressLevel', 'sleepHours', 'waterIntake', 'dietPreference'];
+        function skipHandoffAnswered() {
+            try {
+                const handoff = window.NutriPlanHandoff && window.NutriPlanHandoff.pending();
+                if (!handoff || !handoff.prefill) return;
+                const filled = (k) => !isAnswerEmpty(answers[k]) && !isAnswerEmpty(handoff.prefill[k]);
+                const skip = new Set(HANDOFF_SKIP.filter(filled));
+                // Тестът на daotslabna.com е за отслабване — целта е ясна; колко кг се пита тук.
+                if (handoff.source === 'daotslabna' && filled('goal')) skip.add('goal');
+                if (skip.size) currentQueue = currentQueue.filter(q => !skip.has(q.id));
+            } catch (e) {
+                console.warn('Handoff skip failed:', e);
+            }
+        }
+        skipHandoffAnswered();
         
         // --- DOM ELEMENTS ---
         const container = document.getElementById('questionContainer');
