@@ -12,6 +12,7 @@
  */
 
 import { FOODS, CONDITIONS, PROTOCOLS } from './knowledge.js';
+import { interactionsFor, treatDeniedByMeds } from '../drug-interactions.js';
 
 const ruleDef = code => CONDITIONS[code] || PROTOCOLS[code] || {};
 
@@ -172,6 +173,10 @@ function strictOf(profile, policy, ctx, blockedTerms) {
     const why = (policy.rules || []).filter(r => ruleDef(r.code).noSweets).map(r => r.label);
     add('сладкиши и добавена захар', why.length ? why.join(', ') : (policy.style === 'keto' ? 'кето хранене' : 'здравословното състояние'));
   }
+  // Лекарствата — с името на лекарството като причина, преди свободния списък.
+  for (const rule of ctx.meds.rules) {
+    if (rule.blockFoods?.length) add(rule.blockFoods.join(', '), `взаимодейства с ${rule.label}`);
+  }
   for (const term of blockedTerms || []) {
     const t = String(term || '').trim().toLowerCase();
     if (PATTERN_TERMS[policy.pattern]?.test(t)) continue;
@@ -268,7 +273,7 @@ function occasionalOf(policy, ctx) {
   // Автоимунният протокол е елиминационен — „по избор“ няма, докато трае.
   if (ctx.profile.protocol === 'autoimmune_aip') return out;
   for (const t of TREATS) {
-    if (t.deny(ctx)) continue;
+    if (t.deny(ctx) || treatDeniedByMeds(t.food, ctx.meds)) continue;
     out.push({
       food: t.food,
       portion: t.portion,
@@ -308,7 +313,7 @@ const SWAPS = [
     ? (c.ex.has('LAC') || c.pattern === 'vegan' ? 'кокосов йогурт с канела' : 'гъсто кисело мляко с канела и ядки')
     : c.ex.has('LAC') || c.pattern === 'vegan' ? 'печена ябълка с канела' : 'кисело мляко с канела и малко плод') },
   { from: 'Подсладено кафе', to: c => (c.ex.has('LAC') || c.pattern === 'vegan' ? 'кафе с канела или растително мляко, без захар' : 'кафе с канела или малко мляко, без захар') },
-  { from: 'Бира', to: 'безалкохолна бира или газирана вода с лайм', deny: c => c.noAlcohol },
+  { from: 'Бира', to: 'безалкохолна бира или газирана вода с лайм', deny: c => c.noAlcohol || !!treatDeniedByMeds('алкохол', c.meds) },
 ];
 
 function swapsOf(ctx) {
@@ -389,6 +394,7 @@ export function buildFoodGuide(engine, userData, options = {}) {
     lowCarb: policy.style === 'keto' || policy.style === 'low_carb',
     // Не пие — алкохол не се предлага дори като „по избор“.
     noAlcohol: !drinks || /^не|никога|не пия/.test(drinks),
+    meds: interactionsFor(userData || {}),
   };
   return {
     v: 1,

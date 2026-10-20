@@ -15,6 +15,8 @@
  *   NP1.F35.165.70>64.LOSS2.A2S3.K1640P118C142F62.M5:2345.D:MED/OMNI.X:GLU+LAC.C:IR.B:NBF+SWT.R:PIR
  */
 
+import { interactionsFor } from './drug-interactions.js';
+
 export const PROFILE_CODE_VERSION = 'NP1';
 
 /* ─── Речници ─────────────────────────────────────────────────────────── */
@@ -629,7 +631,8 @@ export function compileProfile(userData = {}, overrides = {}) {
   if (enrich) addAll(clinical, enrich.clinical || []);
   const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns, ...(hints?.pattern ? [hints.pattern] : [])]);
   const adjustments = [];
-  const style = resolveConflicts(
+  const meds = interactionsFor(data);
+  let style = resolveConflicts(
     firstStyle(modifier.styles)
       || firstStyle(prefs.styles.filter(s => s !== 'balanced'))
       || (hints?.style && hints.style !== 'balanced' ? hints.style : null)
@@ -638,6 +641,11 @@ export function compileProfile(userData = {}, overrides = {}) {
     pattern,
     adjustments,
   );
+  // Лекарство, което прави стила опасен (SGLT2 + кето) — по-мекият вариант.
+  if (meds.forbidStyles.includes(style)) {
+    adjustments.push(`MEDS_${style.toUpperCase()}→LOW_CARB: ${meds.rules.find(r => r.forbidStyles?.includes(style))?.caution || ''}`);
+    style = 'low_carb';
+  }
   // Палео изключва зърнени и млечни по дефиниция.
   if (style === 'paleo') {
     exclusions.add('GLU');
@@ -668,6 +676,12 @@ export function compileProfile(userData = {}, overrides = {}) {
   if (FREQUENT.has(normLabel(data.drinksSweet))) behaviors.add('SDR');
   if (FREQUENT.has(normLabel(data.drinksAlcohol))) behaviors.add('ALC');
 
+  // Инсулин/сулфанилурейно: пропуснато хранене носи хипогликемия — без гладуване и без пропусната закуска.
+  if (meds.noFasting && (behaviors.has('IF') || behaviors.has('NBF'))) {
+    behaviors.delete('IF');
+    behaviors.delete('NBF');
+    adjustments.push('MEDS_NO_FASTING: при инсулин/сулфанилурейно храненията не се пропускат');
+  }
   const skipsBreakfast = behaviors.has('NBF');
   const slots = slotsFor(mealsPerDayFrom(data), skipsBreakfast);
 
@@ -696,7 +710,7 @@ export function compileProfile(userData = {}, overrides = {}) {
     slots,
     unmapped: [...new Set(unmapped)],
     adjustments,
-    aiNotes: [...(hints?.cautions || []), ...(enrich?.cautions || [])],
+    aiNotes: [...(hints?.cautions || []), ...(enrich?.cautions || []), ...meds.cautions],
   };
 }
 

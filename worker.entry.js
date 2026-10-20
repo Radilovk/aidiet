@@ -100,6 +100,7 @@ import {
 } from './step1-deterministic.js';
 import { enrichUserDataEngineContext } from './questionnaire-engine-map.js';
 import { applyEnrichment, mergeFacts, normalizeFact, recalcLevel, deriveEnrichment, isUrgent } from './enrichment.js';
+import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { LAB_MARKERS } from './enrichment-labs.js';
 import {
   readOverlayFromKv,
@@ -7634,25 +7635,20 @@ function validatePlan(plan, userData, substitutions = []) {
     }
   }
   
-  // 8a. Check for medication-supplement interactions (Step 4 - Final validation)
-  if (userData.medications === 'Да' && userData.medicationsDetails && plan.supplements) {
-    const medications = userData.medicationsDetails.toLowerCase();
-    const supplements = plan.supplements.join(' ').toLowerCase();
-    
-    // Check for dangerous interactions
-    if (medications.includes('варфарин') && supplements.includes('витамин к')) {
-      const error = 'ОПАСНО: Витамин K взаимодейства с варфарин (антикоагулант) - може да намали ефективността';
-      errors.push(error);
-      stepErrors.step4_final.push(error);
-    }
-    
-    if ((medications.includes('антибиотик') || medications.includes('антибиотици')) && 
-        (supplements.includes('калций') || supplements.includes('магнезий'))) {
-      console.log('Warning: Калций/Магнезий може да намали усвояването на антибиотици - трябва да се вземат на различно време');
-    }
-    
-    if (medications.includes('антацид') && supplements.includes('желязо')) {
-      console.log('Warning: Антацидите блокират усвояването на желязо - трябва да се вземат на различно време');
+  // 8a. Лекарства ↔ добавки — по общата таблица (drug-interactions.js).
+  if (Array.isArray(plan.supplements) && plan.supplements.length) {
+    const ix = interactionsFor(userData);
+    if (ix.rules.length) {
+      const asObjects = plan.supplements.map(s => (typeof s === 'string' ? { name: s } : s));
+      const { kept, dropped } = applySupplementInteractions(asObjects, ix);
+      for (const d of dropped) {
+        const error = `ОПАСНО: ${d.name} взаимодейства с ${d.because}`;
+        errors.push(error);
+        stepErrors.step4_final.push(error);
+      }
+      kept.forEach(s => {
+        if (s.timing !== asObjects.find(o => o.name === s.name)?.timing) warnings.push(`${s.name}: ${s.timing}`);
+      });
     }
   }
   

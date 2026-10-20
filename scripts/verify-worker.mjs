@@ -89,6 +89,11 @@ check('обогатяване (EmoEat, изследвания, устройст�
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
+check('лекарства ↔ храни и добавки', () => {
+  const r = run('node', ['scripts/test-interactions.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
 check('матрица от профили', () => {
   const r = run('node', ['scripts/test-profile-matrix.mjs', '120']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);

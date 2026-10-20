@@ -10830,6 +10830,163 @@ function snapGrams(grams) {
   return Math.round(g / GRAM_STEP_LARGE) * GRAM_STEP_LARGE;
 }
 
+// drug-interactions.js
+var LEVOTHYROXINE = ["\u043B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D", "\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D", "\u0435\u0443\u0442\u0438\u0440\u043E\u043A\u0441", "euthyrox", "letrox", "\u043B\u0435\u0442\u0440\u043E\u043A\u0441", "l-thyrox", "levothyrox"];
+var METFORMIN = ["\u043C\u0435\u0442\u0444\u043E\u0440\u043C\u0438\u043D", "metformin", "\u0433\u043B\u044E\u043A\u043E\u0444\u0430\u0436", "glucophage", "\u0441\u0438\u043E\u0444\u043E\u0440", "siofor"];
+var MINERALS = /калций|calcium|желязо|iron|магнези|magnes|цинк|zinc|мултивитамин|multivit/i;
+var ST_JOHNS = /жълт кантарион|st\.?\s*john|hypericum/i;
+var VITAMIN_K = /витамин\s*[kк](?![а-яa-z])|vitamin\s*k(?![a-z])|(^|[^а-яa-z0-9])[kк]2(?![0-9])/i;
+var VITAMIN_E = /витамин\s*[eе](?![а-яa-z])|vitamin\s*e(?![a-z])/i;
+var INTERACTION_RULES = [
+  {
+    id: "vka",
+    label: "\u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D / \u0430\u0446\u0435\u043D\u043E\u043A\u0443\u043C\u0430\u0440\u043E\u043B",
+    drugs: ["\u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D", "warfarin", "\u0430\u0446\u0435\u043D\u043E\u043A\u0443\u043C\u0430\u0440\u043E\u043B", "acenocoumarol", "\u0441\u0438\u043D\u0442\u0440\u043E\u043C", "sintrom", "\u0441\u0438\u043D\u043A\u0443\u043C\u0430\u0440", "sincumar", "\u043C\u0430\u0440\u0435\u0432\u0430\u043D", "marevan"],
+    drop: [VITAMIN_K, /гинко|ginkgo/i, ST_JOHNS, /куркумин|curcumin|куркума.*(капсул|екстракт)/i, VITAMIN_E],
+    caution: "\u0412\u0430\u0440\u0444\u0430\u0440\u0438\u043D/\u0430\u0446\u0435\u043D\u043E\u043A\u0443\u043C\u0430\u0440\u043E\u043B: \u0432\u0438\u0442\u0430\u043C\u0438\u043D K \u043E\u0442 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 (\u0441\u043F\u0430\u043D\u0430\u043A, \u0431\u0440\u043E\u043A\u043E\u043B\u0438, \u0437\u0435\u043B\u0435) \u2014 \u0432 \u0435\u0434\u043D\u043E \u0438 \u0441\u044A\u0449\u043E \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430, \u043D\u0435 \u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0438; \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0441 \u0432\u0438\u0442\u0430\u043C\u0438\u043D K, \u0432\u0438\u0442\u0430\u043C\u0438\u043D E, \u0433\u0438\u043D\u043A\u043E, \u043A\u0443\u0440\u043A\u0443\u043C\u0438\u043D \u0438 \u0436\u044A\u043B\u0442 \u043A\u0430\u043D\u0442\u0430\u0440\u0438\u043E\u043D."
+  },
+  {
+    id: "doac",
+    label: "\u043D\u043E\u0432 \u0430\u043D\u0442\u0438\u043A\u043E\u0430\u0433\u0443\u043B\u0430\u043D\u0442",
+    drugs: ["\u0430\u043F\u0438\u043A\u0441\u0430\u0431\u0430\u043D", "apixaban", "\u0435\u043B\u0438\u043A\u0443\u0438\u0441", "eliquis", "\u0440\u0438\u0432\u0430\u0440\u043E\u043A\u0441\u0430\u0431\u0430\u043D", "rivaroxaban", "\u043A\u0441\u0430\u0440\u0435\u043B\u0442\u043E", "xarelto", "\u0434\u0430\u0431\u0438\u0433\u0430\u0442\u0440\u0430\u043D", "dabigatran", "\u043F\u0440\u0430\u0434\u0430\u043A\u0441\u0430", "pradaxa", "\u0435\u0434\u043E\u043A\u0441\u0430\u0431\u0430\u043D", "edoxaban", "lixiana", "\u043B\u0438\u043A\u0441\u0438\u0430\u043D\u0430"],
+    drop: [/гинко|ginkgo/i, ST_JOHNS, /куркумин|curcumin/i],
+    caution: "\u0410\u043D\u0442\u0438\u043A\u043E\u0430\u0433\u0443\u043B\u0430\u043D\u0442: \u0431\u0435\u0437 \u0433\u0438\u043D\u043A\u043E, \u043A\u0443\u0440\u043A\u0443\u043C\u0438\u043D \u0438 \u0436\u044A\u043B\u0442 \u043A\u0430\u043D\u0442\u0430\u0440\u0438\u043E\u043D (\u043A\u044A\u0440\u0432\u0435\u043D\u0435 \u0438\u043B\u0438 \u043F\u043E-\u0441\u043B\u0430\u0431 \u0435\u0444\u0435\u043A\u0442 \u043D\u0430 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u043E\u0442\u043E)."
+  },
+  {
+    id: "levothyroxine",
+    label: "\u043B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D",
+    drugs: LEVOTHYROXINE,
+    timing: [{ match: MINERALS, note: "\u043F\u043E\u043D\u0435 4 \u0447\u0430\u0441\u0430 \u0441\u043B\u0435\u0434 \u043B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D\u0430" }],
+    caution: "\u041B\u0435\u0432\u043E\u0442\u0438\u0440\u043E\u043A\u0441\u0438\u043D: \u0441\u0443\u0442\u0440\u0438\u043D \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E \u0441 \u0432\u043E\u0434\u0430, 30\u201360 \u043C\u0438\u043D\u0443\u0442\u0438 \u043F\u0440\u0435\u0434\u0438 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0438 \u043A\u0430\u0444\u0435; \u043A\u0430\u043B\u0446\u0438\u0439, \u0436\u0435\u043B\u044F\u0437\u043E, \u0441\u043E\u044F \u0438 \u043C\u043B\u0435\u0447\u043D\u0438 \u2014 \u043F\u043E\u043D\u0435 4 \u0447\u0430\u0441\u0430 \u0441\u043B\u0435\u0434 \u043D\u0435\u0433\u043E."
+  },
+  {
+    id: "statin",
+    label: "\u0441\u0442\u0430\u0442\u0438\u043D",
+    drugs: ["\u0441\u0438\u043C\u0432\u0430\u0441\u0442\u0430\u0442\u0438\u043D", "simvastatin", "\u0432\u0430\u0437\u0438\u043B\u0438\u043F", "vasilip", "\u0437\u043E\u043A\u043E\u0440", "zocor", "\u043B\u043E\u0432\u0430\u0441\u0442\u0430\u0442\u0438\u043D", "lovastatin", "\u0430\u0442\u043E\u0440\u0432\u0430\u0441\u0442\u0430\u0442\u0438\u043D", "atorvastatin", "\u0430\u0442\u043E\u0440\u0438\u0441", "atoris", "\u0442\u043E\u0440\u0432\u0430\u043A\u0430\u0440\u0434", "torvacard", "\u0441\u043E\u0440\u0442\u0438\u0441", "sortis", "\u043B\u0438\u043F\u0438\u0442\u043E\u0440", "lipitor"],
+    blockFoods: ["\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442"],
+    drop: [/червен ферментирал ориз|червен ориз|red yeast|монаколин|monacolin/i],
+    caution: "\u0421\u0442\u0430\u0442\u0438\u043D: \u0431\u0435\u0437 \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 \u0438 \u0441\u043E\u043A \u043E\u0442 \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 (\u043F\u043E\u0432\u0438\u0448\u0430\u0432\u0430 \u043D\u0438\u0432\u043E\u0442\u043E \u043D\u0430 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u043E\u0442\u043E); \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0441 \u0447\u0435\u0440\u0432\u0435\u043D \u0444\u0435\u0440\u043C\u0435\u043D\u0442\u0438\u0440\u0430\u043B \u043E\u0440\u0438\u0437."
+  },
+  {
+    id: "ccb",
+    label: "\u0431\u043B\u043E\u043A\u0435\u0440 \u043D\u0430 \u043A\u0430\u043B\u0446\u0438\u0435\u0432\u0438\u0442\u0435 \u043A\u0430\u043D\u0430\u043B\u0438",
+    drugs: ["\u0444\u0435\u043B\u043E\u0434\u0438\u043F\u0438\u043D", "felodipin", "\u043F\u043B\u0435\u043D\u0434\u0438\u043B", "plendil", "\u043D\u0438\u0444\u0435\u0434\u0438\u043F\u0438\u043D", "nifedipin", "\u043D\u0438\u0442\u0440\u0435\u043D\u0434\u0438\u043F\u0438\u043D", "nitrendipin", "\u043B\u0435\u0440\u043A\u0430\u043D\u0438\u0434\u0438\u043F\u0438\u043D", "lercanidipin"],
+    blockFoods: ["\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442"],
+    caution: "\u0424\u0435\u043B\u043E\u0434\u0438\u043F\u0438\u043D/\u043D\u0438\u0444\u0435\u0434\u0438\u043F\u0438\u043D: \u0431\u0435\u0437 \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 (\u0440\u044F\u0437\u043A\u043E \u0441\u043F\u0430\u0434\u0430\u043D\u0435 \u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u043E\u0442\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435)."
+  },
+  {
+    id: "immuno",
+    label: "\u0438\u043C\u0443\u043D\u043E\u0441\u0443\u043F\u0440\u0435\u0441\u043E\u0440",
+    drugs: ["\u0442\u0430\u043A\u0440\u043E\u043B\u0438\u043C\u0443\u0441", "tacrolimus", "\u0446\u0438\u043A\u043B\u043E\u0441\u043F\u043E\u0440\u0438\u043D", "cyclosporin", "ciclosporin", "\u0441\u0438\u0440\u043E\u043B\u0438\u043C\u0443\u0441", "sirolimus", "\u0435\u0432\u0435\u0440\u043E\u043B\u0438\u043C\u0443\u0441", "everolimus"],
+    blockFoods: ["\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442"],
+    drop: [ST_JOHNS, /ехинацея|echinacea/i],
+    caution: "\u0418\u043C\u0443\u043D\u043E\u0441\u0443\u043F\u0440\u0435\u0441\u043E\u0440: \u0431\u0435\u0437 \u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 \u0438 \u043F\u043E\u043C\u0435\u043B\u043E; \u0431\u0435\u0437 \u0436\u044A\u043B\u0442 \u043A\u0430\u043D\u0442\u0430\u0440\u0438\u043E\u043D \u0438 \u0435\u0445\u0438\u043D\u0430\u0446\u0435\u044F; \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u2014 \u043F\u0440\u044F\u0441\u043D\u043E \u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0435\u043D\u0430, \u0431\u0435\u0437 \u0441\u0443\u0440\u043E\u0432\u0438 \u044F\u0439\u0446\u0430 \u0438 \u043D\u0435\u043F\u0430\u0441\u0442\u044C\u043E\u0440\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043C\u043B\u0435\u0447\u043D\u0438."
+  },
+  {
+    id: "maoi",
+    label: "\u041C\u0410\u041E \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440",
+    drugs: ["\u043C\u043E\u043A\u043B\u043E\u0431\u0435\u043C\u0438\u0434", "moclobemid", "\u0430\u0443\u0440\u043E\u0440\u0438\u043A\u0441", "aurorix", "\u0444\u0435\u043D\u0435\u043B\u0437\u0438\u043D", "phenelzin", "\u0442\u0440\u0430\u043D\u0438\u043B\u0446\u0438\u043F\u0440\u043E\u043C\u0438\u043D", "tranylcypromin", "\u0441\u0435\u043B\u0435\u0433\u0438\u043B\u0438\u043D", "selegilin", "\u0440\u0430\u0437\u0430\u0433\u0438\u043B\u0438\u043D", "rasagilin", "\u0430\u0437\u0438\u043B\u0435\u043A\u0442", "azilect", "\u043B\u0438\u043D\u0435\u0437\u043E\u043B\u0438\u0434", "linezolid"],
+    blockFoods: ["\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B", "\u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D", "\u0441\u043E\u0435\u0432 \u0441\u043E\u0441", "\u0442\u0435\u043C\u043F\u0435"],
+    denyTreats: /колбас|алкохол/i,
+    caution: "\u041C\u0410\u041E \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440: \u0431\u0435\u0437 \u043E\u0442\u043B\u0435\u0436\u0430\u043B\u0438 \u0441\u0438\u0440\u0435\u043D\u0430 (\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B, \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D), \u043A\u043E\u043B\u0431\u0430\u0441\u0438 \u0438 \u0441\u0443\u0448\u0435\u043D\u0438 \u043C\u0435\u0441\u0430, \u0441\u043E\u0435\u0432 \u0441\u043E\u0441, \u0444\u0435\u0440\u043C\u0435\u043D\u0442\u0438\u0440\u0430\u043B\u0430 \u0441\u043E\u044F, \u043A\u0438\u0441\u0435\u043B\u043E \u0437\u0435\u043B\u0435 \u0438 \u043D\u0430\u043B\u0438\u0432\u043D\u0430 \u0431\u0438\u0440\u0430 \u2014 \u0442\u0438\u0440\u0430\u043C\u0438\u043D\u044A\u0442 \u0432\u0434\u0438\u0433\u0430 \u043A\u0440\u044A\u0432\u043D\u043E\u0442\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435."
+  },
+  {
+    id: "quinolone_tetracycline",
+    label: "\u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u043A (\u0445\u0438\u043D\u043E\u043B\u043E\u043D/\u0442\u0435\u0442\u0440\u0430\u0446\u0438\u043A\u043B\u0438\u043D)",
+    drugs: ["\u0446\u0438\u043F\u0440\u043E\u0444\u043B\u043E\u043A\u0441\u0430\u0446\u0438\u043D", "ciprofloxacin", "\u0446\u0438\u043F\u0440\u0438\u043D\u043E\u043B", "ciprinol", "\u043B\u0435\u0432\u043E\u0444\u043B\u043E\u043A\u0441\u0430\u0446\u0438\u043D", "levofloxacin", "\u0442\u0430\u0432\u0430\u043D\u0438\u043A", "tavanic", "\u043C\u043E\u043A\u0441\u0438\u0444\u043B\u043E\u043A\u0441\u0430\u0446\u0438\u043D", "moxifloxacin", "\u0434\u043E\u043A\u0441\u0438\u0446\u0438\u043A\u043B\u0438\u043D", "doxycyclin", "\u0442\u0435\u0442\u0440\u0430\u0446\u0438\u043A\u043B\u0438\u043D", "tetracyclin", "\u043C\u0438\u043D\u043E\u0446\u0438\u043A\u043B\u0438\u043D", "minocyclin"],
+    timing: [{ match: MINERALS, note: "2 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0438\u043B\u0438 4\u20136 \u0447\u0430\u0441\u0430 \u0441\u043B\u0435\u0434 \u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u043A\u0430" }],
+    caution: "\u0425\u0438\u043D\u043E\u043B\u043E\u043D/\u0442\u0435\u0442\u0440\u0430\u0446\u0438\u043A\u043B\u0438\u043D: \u043C\u043B\u044F\u043A\u043E, \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u043C\u0438\u043D\u0435\u0440\u0430\u043B\u043D\u0438 \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u2014 2 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0438\u043B\u0438 4 \u0447\u0430\u0441\u0430 \u0441\u043B\u0435\u0434 \u0442\u0430\u0431\u043B\u0435\u0442\u043A\u0430\u0442\u0430."
+  },
+  {
+    id: "bisphosphonate",
+    label: "\u0431\u0438\u0444\u043E\u0441\u0444\u043E\u043D\u0430\u0442",
+    drugs: ["\u0430\u043B\u0435\u043D\u0434\u0440\u043E\u043D\u0430\u0442", "alendron", "\u0444\u043E\u0441\u0430\u043C\u0430\u043A\u0441", "fosamax", "\u0440\u0438\u0437\u0435\u0434\u0440\u043E\u043D\u0430\u0442", "risedron", "\u0438\u0431\u0430\u043D\u0434\u0440\u043E\u043D\u0430\u0442", "ibandron", "\u0431\u043E\u043D\u0432\u0438\u0432\u0430", "bonviva"],
+    timing: [{ match: MINERALS, note: "\u043D\u0435 \u0432 \u0434\u0435\u043D\u044F/\u0447\u0430\u0441\u0430 \u043D\u0430 \u0431\u0438\u0444\u043E\u0441\u0444\u043E\u043D\u0430\u0442\u0430 \u2014 \u043F\u043E\u043D\u0435 1 \u0447\u0430\u0441 \u0441\u043B\u0435\u0434 \u043D\u0435\u0433\u043E" }],
+    caution: "\u0411\u0438\u0444\u043E\u0441\u0444\u043E\u043D\u0430\u0442: \u0441\u0443\u0442\u0440\u0438\u043D \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E \u0441 \u0447\u0430\u0448\u0430 \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u0430 \u0432\u043E\u0434\u0430, 30\u201360 \u043C\u0438\u043D\u0443\u0442\u0438 \u043F\u0440\u0435\u0434\u0438 \u0445\u0440\u0430\u043D\u0430, \u043A\u0430\u0444\u0435 \u0438 \u0434\u043E\u0431\u0430\u0432\u043A\u0438."
+  },
+  {
+    id: "raas",
+    label: "ACE \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440 / \u0441\u0430\u0440\u0442\u0430\u043D / \u0441\u043F\u0438\u0440\u043E\u043D\u043E\u043B\u0430\u043A\u0442\u043E\u043D",
+    drugs: ["\u0435\u043D\u0430\u043B\u0430\u043F\u0440\u0438\u043B", "enalapril", "\u0435\u043D\u0430\u043F", "enap", "\u043B\u0438\u0437\u0438\u043D\u043E\u043F\u0440\u0438\u043B", "lisinopril", "\u0440\u0430\u043C\u0438\u043F\u0440\u0438\u043B", "ramipril", "\u0442\u0440\u0438\u0442\u0430\u0446\u0435", "tritace", "\u043F\u0435\u0440\u0438\u043D\u0434\u043E\u043F\u0440\u0438\u043B", "perindopril", "\u043F\u0440\u0435\u0441\u0442\u0430\u0440\u0438\u0443\u043C", "prestarium", "\u043A\u0430\u043F\u0442\u043E\u043F\u0440\u0438\u043B", "captopril", "\u043B\u043E\u0437\u0430\u0440\u0442\u0430\u043D", "losartan", "\u043B\u043E\u0440\u0438\u0441\u0442\u0430", "lorista", "\u0432\u0430\u043B\u0441\u0430\u0440\u0442\u0430\u043D", "valsartan", "\u0442\u0435\u043B\u043C\u0438\u0441\u0430\u0440\u0442\u0430\u043D", "telmisartan", "\u043A\u0430\u043D\u0434\u0435\u0441\u0430\u0440\u0442\u0430\u043D", "candesartan", "\u0438\u0440\u0431\u0435\u0441\u0430\u0440\u0442\u0430\u043D", "irbesartan", "\u0441\u043F\u0438\u0440\u043E\u043D\u043E\u043B\u0430\u043A\u0442\u043E\u043D", "spironolacton", "\u0432\u0435\u0440\u043E\u0448\u043F\u0438\u0440\u043E\u043D", "veroshpiron", "\u0435\u043F\u043B\u0435\u0440\u0435\u043D\u043E\u043D", "eplerenon"],
+    drop: [/калий|potassium/i],
+    caution: "ACE \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440/\u0441\u0430\u0440\u0442\u0430\u043D/\u0441\u043F\u0438\u0440\u043E\u043D\u043E\u043B\u0430\u043A\u0442\u043E\u043D: \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0441 \u043A\u0430\u043B\u0438\u0439 \u0438 \u0431\u0435\u0437 \u0441\u043E\u043B-\u0437\u0430\u043C\u0435\u0441\u0442\u0438\u0442\u0435\u043B \u0441 \u043A\u0430\u043B\u0438\u0435\u0432 \u0445\u043B\u043E\u0440\u0438\u0434; \u043A\u0430\u043B\u0438\u044F\u0442 \u043E\u0442 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043D\u0435 \u0441\u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0430\u0432\u0430 \u0431\u0435\u0437 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435."
+  },
+  {
+    id: "lithium",
+    label: "\u043B\u0438\u0442\u0438\u0439",
+    drugs: ["\u043B\u0438\u0442\u0438\u0439", "lithium", "\u043B\u0438\u0442\u0438\u0435\u0432"],
+    caution: "\u041B\u0438\u0442\u0438\u0439: \u0435\u0434\u043D\u043E \u0438 \u0441\u044A\u0449\u043E \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0441\u043E\u043B \u0438 \u0442\u0435\u0447\u043D\u043E\u0441\u0442\u0438 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u2014 \u0431\u0435\u0437 \u0440\u044F\u0437\u043A\u043E \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0441\u043E\u043B\u0442\u0430 \u0438 \u0431\u0435\u0437 \u043E\u0431\u0435\u0437\u0432\u043E\u0434\u043D\u044F\u0432\u0430\u043D\u0435."
+  },
+  {
+    id: "sglt2",
+    label: "SGLT2 \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440",
+    drugs: ["\u0435\u043C\u043F\u0430\u0433\u043B\u0438\u0444\u043B\u043E\u0437\u0438\u043D", "empagliflozin", "\u0434\u0436\u0430\u0440\u0434\u0438\u0430\u043D\u0441", "jardiance", "\u0434\u0430\u043F\u0430\u0433\u043B\u0438\u0444\u043B\u043E\u0437\u0438\u043D", "dapagliflozin", "\u0444\u043E\u0440\u043A\u0441\u0438\u0433\u0430", "forxiga", "\u043A\u0430\u043D\u0430\u0433\u043B\u0438\u0444\u043B\u043E\u0437\u0438\u043D", "canagliflozin", "\u0435\u0440\u0442\u0443\u0433\u043B\u0438\u0444\u043B\u043E\u0437\u0438\u043D", "ertugliflozin", "\u0441\u0438\u043D\u0434\u0436\u0430\u0440\u0434\u0438", "synjardy", "\u043A\u0441\u0438\u0433\u0434\u0443\u043E", "xigduo"],
+    forbidStyles: ["keto"],
+    caution: "SGLT2 \u0438\u043D\u0445\u0438\u0431\u0438\u0442\u043E\u0440: \u0431\u0435\u0437 \u043A\u0435\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u0440\u0438\u0441\u043A \u043E\u0442 \u043A\u0435\u0442\u043E\u0430\u0446\u0438\u0434\u043E\u0437\u0430 \u043F\u0440\u0438 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440."
+  },
+  {
+    id: "hypoglycemic",
+    label: "\u0438\u043D\u0441\u0443\u043B\u0438\u043D / \u0441\u0443\u043B\u0444\u0430\u043D\u0438\u043B\u0443\u0440\u0435\u0439\u043D\u043E",
+    drugs: ["\u0438\u043D\u0441\u0443\u043B\u0438\u043D", "insulin", "\u0433\u043B\u0438\u043A\u043B\u0430\u0437\u0438\u0434", "gliclazid", "\u0434\u0438\u0430\u0431\u0435\u0442\u043E\u043D", "diabeton", "\u0434\u0438\u0430\u043F\u0440\u0435\u043B", "diaprel", "\u0433\u043B\u0438\u043C\u0435\u043F\u0438\u0440\u0438\u0434", "glimepirid", "\u0430\u043C\u0430\u0440\u0438\u043B", "amaryl", "\u0433\u043B\u0438\u0431\u0435\u043D\u043A\u043B\u0430\u043C\u0438\u0434", "glibenclamid", "\u043D\u043E\u0432\u043E\u0440\u0430\u043F\u0438\u0434", "novorapid", "\u043B\u0430\u043D\u0442\u0443\u0441", "lantus", "\u0442\u0440\u0435\u0441\u0438\u0431\u0430", "tresiba", "\u0445\u0443\u043C\u0430\u043B\u043E\u0433", "humalog"],
+    noFasting: true,
+    caution: "\u0418\u043D\u0441\u0443\u043B\u0438\u043D/\u0441\u0443\u043B\u0444\u0430\u043D\u0438\u043B\u0443\u0440\u0435\u0439\u043D\u043E: \u0431\u0435\u0437 \u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435 \u0438 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F (\u0445\u0438\u043F\u043E\u0433\u043B\u0438\u043A\u0435\u043C\u0438\u044F); \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u2014 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F."
+  },
+  {
+    id: "serotonergic",
+    label: "\u0430\u043D\u0442\u0438\u0434\u0435\u043F\u0440\u0435\u0441\u0430\u043D\u0442",
+    drugs: ["\u0441\u0435\u0440\u0442\u0440\u0430\u043B\u0438\u043D", "sertralin", "\u0437\u043E\u043B\u043E\u0444\u0442", "zoloft", "\u0430\u0441\u0435\u043D\u0442\u0440\u0430", "asentra", "\u0435\u0441\u0446\u0438\u0442\u0430\u043B\u043E\u043F\u0440\u0430\u043C", "escitalopram", "\u0446\u0438\u043F\u0440\u0430\u043B\u0435\u043A\u0441", "cipralex", "\u0444\u043B\u0443\u043E\u043A\u0441\u0435\u0442\u0438\u043D", "fluoxetin", "\u043F\u0430\u0440\u043E\u043A\u0441\u0435\u0442\u0438\u043D", "paroxetin", "\u0446\u0438\u0442\u0430\u043B\u043E\u043F\u0440\u0430\u043C", "citalopram", "\u0432\u0435\u043D\u043B\u0430\u0444\u0430\u043A\u0441\u0438\u043D", "venlafaxin", "\u0434\u0443\u043B\u043E\u043A\u0441\u0435\u0442\u0438\u043D", "duloxetin", "\u0442\u0440\u0430\u0437\u043E\u0434\u043E\u043D", "trazodon", "\u0442\u0440\u0438\u0442\u0438\u043A\u043E", "trittico"],
+    drop: [ST_JOHNS, /5-htp|триптофан|tryptophan/i],
+    caution: "\u0410\u043D\u0442\u0438\u0434\u0435\u043F\u0440\u0435\u0441\u0430\u043D\u0442: \u0431\u0435\u0437 \u0436\u044A\u043B\u0442 \u043A\u0430\u043D\u0442\u0430\u0440\u0438\u043E\u043D, 5-HTP \u0438 \u0442\u0440\u0438\u043F\u0442\u043E\u0444\u0430\u043D \u043A\u0430\u0442\u043E \u0434\u043E\u0431\u0430\u0432\u043A\u0438 (\u0441\u0435\u0440\u043E\u0442\u043E\u043D\u0438\u043D\u043E\u0432 \u0441\u0438\u043D\u0434\u0440\u043E\u043C)."
+  },
+  {
+    id: "metformin",
+    label: "\u043C\u0435\u0442\u0444\u043E\u0440\u043C\u0438\u043D",
+    drugs: METFORMIN,
+    caution: "\u041C\u0435\u0442\u0444\u043E\u0440\u043C\u0438\u043D: \u043F\u0440\u0438 \u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u0432\u0438\u0442\u0430\u043C\u0438\u043D B12 \u0441\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0432\u0430 \u0432\u0435\u0434\u043D\u044A\u0436 \u0433\u043E\u0434\u0438\u0448\u043D\u043E."
+  }
+];
+function medsText(userData) {
+  const parts = [];
+  const push = (v) => {
+    if (v == null || v === "") return;
+    if (Array.isArray(v)) v.forEach(push);
+    else parts.push(String(v));
+  };
+  push(userData?.medications);
+  push(userData?.medicationsDetails);
+  return parts.join(" ").toLowerCase().replace(/ё/g, "\u0435").replace(/инсулинов\S*\s+резист\S*|insulin\s+resist\S*/g, " ");
+}
+function interactionsFor(userData) {
+  const text = medsText(userData);
+  const rules = text ? INTERACTION_RULES.filter((r) => r.drugs.some((d) => text.includes(d))) : [];
+  return {
+    ids: rules.map((r) => r.id),
+    rules,
+    blockFoods: [...new Set(rules.flatMap((r) => r.blockFoods || []))],
+    forbidStyles: [...new Set(rules.flatMap((r) => r.forbidStyles || []))],
+    noFasting: rules.some((r) => r.noFasting),
+    cautions: rules.map((r) => r.caution)
+  };
+}
+function applySupplementInteractions(supplements, ix) {
+  const kept = [];
+  const dropped = [];
+  for (const s of supplements || []) {
+    const name = `${s?.name || ""} ${s?.dosage || ""}`;
+    const blocker = ix.rules.find((r) => (r.drop || []).some((re) => re.test(name)));
+    if (blocker) {
+      dropped.push({ name: s.name, because: blocker.label });
+      continue;
+    }
+    const notes = ix.rules.flatMap((r) => (r.timing || []).filter((t) => t.match.test(name)).map((t) => t.note)).filter((n) => !String(s.timing || "").includes(n));
+    kept.push(notes.length ? { ...s, timing: [s.timing, ...new Set(notes)].filter(Boolean).join("; ") } : s);
+  }
+  return { kept, dropped };
+}
+function treatDeniedByMeds(food2, ix) {
+  return ix.rules.find((r) => r.denyTreats && r.denyTreats.test(food2)) || null;
+}
+
 // profile-code.js
 var PROFILE_CODE_VERSION = "NP1";
 var DIET_STYLES = {
@@ -11376,11 +11533,16 @@ function compileProfile(userData = {}, overrides = {}) {
   if (enrich) addAll(clinical, enrich.clinical || []);
   const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns, ...hints?.pattern ? [hints.pattern] : []]);
   const adjustments = [];
-  const style = resolveConflicts(
+  const meds = interactionsFor(data);
+  let style = resolveConflicts(
     firstStyle(modifier.styles) || firstStyle(prefs.styles.filter((s) => s !== "balanced")) || (hints?.style && hints.style !== "balanced" ? hints.style : null) || clinicalDefaultStyle(clinical, protocolId) || "balanced",
     pattern,
     adjustments
   );
+  if (meds.forbidStyles.includes(style)) {
+    adjustments.push(`MEDS_${style.toUpperCase()}\u2192LOW_CARB: ${meds.rules.find((r) => r.forbidStyles?.includes(style))?.caution || ""}`);
+    style = "low_carb";
+  }
   if (style === "paleo") {
     exclusions.add("GLU");
     exclusions.add("LAC");
@@ -11408,6 +11570,11 @@ function compileProfile(userData = {}, overrides = {}) {
   }
   if (FREQUENT.has(normLabel(data.drinksSweet))) behaviors.add("SDR");
   if (FREQUENT.has(normLabel(data.drinksAlcohol))) behaviors.add("ALC");
+  if (meds.noFasting && (behaviors.has("IF") || behaviors.has("NBF"))) {
+    behaviors.delete("IF");
+    behaviors.delete("NBF");
+    adjustments.push("MEDS_NO_FASTING: \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D/\u0441\u0443\u043B\u0444\u0430\u043D\u0438\u043B\u0443\u0440\u0435\u0439\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430 \u043D\u0435 \u0441\u0435 \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0442");
+  }
   const skipsBreakfast = behaviors.has("NBF");
   const slots = slotsFor(mealsPerDayFrom(data), skipsBreakfast);
   return {
@@ -11435,7 +11602,7 @@ function compileProfile(userData = {}, overrides = {}) {
     slots,
     unmapped: [...new Set(unmapped)],
     adjustments,
-    aiNotes: [...hints?.cautions || [], ...enrich?.cautions || []]
+    aiNotes: [...hints?.cautions || [], ...enrich?.cautions || [], ...meds.cautions]
   };
 }
 function libraryDietProfileOf(profile) {
@@ -39822,9 +39989,12 @@ function averageMacrosFromWeek(weekPlan = {}) {
 function supplementsFor(profile, protocolSupplements = [], now = null) {
   const out = [];
   const names = /* @__PURE__ */ new Set();
+  const keyOf = (name) => String(name).toLowerCase().replace(/[()+,]/g, " ").split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
   const add = (name, dosage, timing, reason) => {
-    if (!name || [...names].some((n) => n.includes(String(name).toLowerCase().split(" ")[0]))) return;
-    names.add(String(name).toLowerCase());
+    if (!name) return;
+    const key = keyOf(name);
+    if ([...names].some((n) => n.startsWith(key) || key.startsWith(n))) return;
+    names.add(key);
     out.push(reason ? { name, dosage, timing, reason } : { name, dosage, timing });
   };
   for (const s of protocolSupplements || []) add(s.name, s.dosage, s.timing, s.reason);
@@ -39837,6 +40007,11 @@ function supplementsFor(profile, protocolSupplements = [], now = null) {
   const month = (now || /* @__PURE__ */ new Date()).getMonth();
   if (!out.length && (month >= 9 || month <= 2)) add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", "1000\u20132000 IU", "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430, \u043E\u043A\u0442\u043E\u043C\u0432\u0440\u0438\u2013\u043C\u0430\u0440\u0442");
   return out.slice(0, 5);
+}
+function supplementsWithMeds(profile, userData, protocolSupplements) {
+  const ix = interactionsFor(userData || {});
+  const inputs = applySupplementInteractions([...protocolSupplements || [], ...userData?._enrichment?.supplements || []], ix).kept;
+  return applySupplementInteractions(supplementsFor(profile, inputs), ix).kept;
 }
 function buildPlanSummary({
   userData = {},
@@ -39871,7 +40046,7 @@ function buildPlanSummary({
     forbidden,
     psychology: [...new Set(psychology)].slice(0, 6),
     waterIntake: `${waterNeedLiters(profile)} \u043B \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0432\u043D\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F`,
-    supplements: supplementsFor(profile, [...protocolSupplements || [], ...userData?._enrichment?.supplements || []])
+    supplements: supplementsWithMeds(profile, userData, protocolSupplements)
   };
 }
 
@@ -42459,7 +42634,11 @@ function buildNutritionPlan(userData, options) {
   const proteinCap = Number(userData?._enrichment?.safety?.proteinCapPerKg);
   if (proteinCap > 0 && profile.weightKg) macros = capProtein(macros, Math.round(profile.weightKg * proteinCap));
   const policy = buildFoodPolicy(profile, {
-    blockedTerms: userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {}),
+    blockedTerms: [
+      ...userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {}),
+      // Храни, които влизат в конфликт с лекарство (грейпфрут при статин, тирамин при МАО инхибитор).
+      ...interactionsFor(userData || {}).blockFoods
+    ],
     loves: [userData?.dietLove, ...hints?.loves || []].filter(Boolean).join(", "),
     adherence: adherenceMap(userData?._adherenceRatio),
     date: options.date,
@@ -42631,6 +42810,9 @@ function strictOf(profile, policy, ctx, blockedTerms) {
     const why = (policy.rules || []).filter((r) => ruleDef(r.code).noSweets).map((r) => r.label);
     add("\u0441\u043B\u0430\u0434\u043A\u0438\u0448\u0438 \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440", why.length ? why.join(", ") : policy.style === "keto" ? "\u043A\u0435\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" : "\u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E\u0442\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435");
   }
+  for (const rule of ctx.meds.rules) {
+    if (rule.blockFoods?.length) add(rule.blockFoods.join(", "), `\u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0430 \u0441 ${rule.label}`);
+  }
   for (const term of blockedTerms || []) {
     const t = String(term || "").trim().toLowerCase();
     if (PATTERN_TERMS[policy.pattern]?.test(t)) continue;
@@ -42716,7 +42898,7 @@ function occasionalOf(policy, ctx) {
   const out = [];
   if (ctx.profile.protocol === "autoimmune_aip") return out;
   for (const t of TREATS) {
-    if (t.deny(ctx)) continue;
+    if (t.deny(ctx) || treatDeniedByMeds(t.food, ctx.meds)) continue;
     out.push({
       food: t.food,
       portion: t.portion,
@@ -42747,7 +42929,7 @@ var SWAPS = [
   { from: "\u041C\u043B\u0435\u0447\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434", to: (c) => c.style === "keto" ? "\u0447\u0435\u0440\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434 85%+ (10 \u0433)" : c.excluded("sw_dark_chocolate") || c.policy.noSweets ? "\u043F\u043B\u043E\u0434 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430" : "\u0447\u0435\u0440\u0435\u043D \u0448\u043E\u043A\u043E\u043B\u0430\u0434 70%+" },
   { from: "\u0414\u0435\u0441\u0435\u0440\u0442 \u0432\u0435\u0447\u0435\u0440", to: (c) => c.style === "keto" ? c.ex.has("LAC") || c.pattern === "vegan" ? "\u043A\u043E\u043A\u043E\u0441\u043E\u0432 \u0439\u043E\u0433\u0443\u0440\u0442 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430" : "\u0433\u044A\u0441\u0442\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u044F\u0434\u043A\u0438" : c.ex.has("LAC") || c.pattern === "vegan" ? "\u043F\u0435\u0447\u0435\u043D\u0430 \u044F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430" : "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u043C\u0430\u043B\u043A\u043E \u043F\u043B\u043E\u0434" },
   { from: "\u041F\u043E\u0434\u0441\u043B\u0430\u0434\u0435\u043D\u043E \u043A\u0430\u0444\u0435", to: (c) => c.ex.has("LAC") || c.pattern === "vegan" ? "\u043A\u0430\u0444\u0435 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438\u043B\u0438 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E, \u0431\u0435\u0437 \u0437\u0430\u0445\u0430\u0440" : "\u043A\u0430\u0444\u0435 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438\u043B\u0438 \u043C\u0430\u043B\u043A\u043E \u043C\u043B\u044F\u043A\u043E, \u0431\u0435\u0437 \u0437\u0430\u0445\u0430\u0440" },
-  { from: "\u0411\u0438\u0440\u0430", to: "\u0431\u0435\u0437\u0430\u043B\u043A\u043E\u0445\u043E\u043B\u043D\u0430 \u0431\u0438\u0440\u0430 \u0438\u043B\u0438 \u0433\u0430\u0437\u0438\u0440\u0430\u043D\u0430 \u0432\u043E\u0434\u0430 \u0441 \u043B\u0430\u0439\u043C", deny: (c) => c.noAlcohol }
+  { from: "\u0411\u0438\u0440\u0430", to: "\u0431\u0435\u0437\u0430\u043B\u043A\u043E\u0445\u043E\u043B\u043D\u0430 \u0431\u0438\u0440\u0430 \u0438\u043B\u0438 \u0433\u0430\u0437\u0438\u0440\u0430\u043D\u0430 \u0432\u043E\u0434\u0430 \u0441 \u043B\u0430\u0439\u043C", deny: (c) => c.noAlcohol || !!treatDeniedByMeds("\u0430\u043B\u043A\u043E\u0445\u043E\u043B", c.meds) }
 ];
 function swapsOf(ctx) {
   const out = [];
@@ -42817,7 +42999,8 @@ function buildFoodGuide(engine, userData, options = {}) {
     inflammatory: policy.style === "anti_inflammatory" || clinical.has("AI") || clinical.has("INFL"),
     lowCarb: policy.style === "keto" || policy.style === "low_carb",
     // Не пие — алкохол не се предлага дори като „по избор“.
-    noAlcohol: !drinks || /^не|никога|не пия/.test(drinks)
+    noAlcohol: !drinks || /^не|никога|не пия/.test(drinks),
+    meds: interactionsFor(userData || {})
   };
   return {
     v: 1,
@@ -50089,19 +50272,19 @@ function validatePlan(plan, userData, substitutions = []) {
       }
     }
   }
-  if (userData.medications === "\u0414\u0430" && userData.medicationsDetails && plan.supplements) {
-    const medications = userData.medicationsDetails.toLowerCase();
-    const supplements = plan.supplements.join(" ").toLowerCase();
-    if (medications.includes("\u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D") && supplements.includes("\u0432\u0438\u0442\u0430\u043C\u0438\u043D \u043A")) {
-      const error = "\u041E\u041F\u0410\u0421\u041D\u041E: \u0412\u0438\u0442\u0430\u043C\u0438\u043D K \u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0430 \u0441 \u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D (\u0430\u043D\u0442\u0438\u043A\u043E\u0430\u0433\u0443\u043B\u0430\u043D\u0442) - \u043C\u043E\u0436\u0435 \u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u0438 \u0435\u0444\u0435\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u0442\u0430";
-      errors.push(error);
-      stepErrors.step4_final.push(error);
-    }
-    if ((medications.includes("\u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u043A") || medications.includes("\u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u0446\u0438")) && (supplements.includes("\u043A\u0430\u043B\u0446\u0438\u0439") || supplements.includes("\u043C\u0430\u0433\u043D\u0435\u0437\u0438\u0439"))) {
-      console.log("Warning: \u041A\u0430\u043B\u0446\u0438\u0439/\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439 \u043C\u043E\u0436\u0435 \u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u0438 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0430 \u0430\u043D\u0442\u0438\u0431\u0438\u043E\u0442\u0438\u0446\u0438 - \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u0435 \u0432\u0437\u0435\u043C\u0430\u0442 \u043D\u0430 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u0432\u0440\u0435\u043C\u0435");
-    }
-    if (medications.includes("\u0430\u043D\u0442\u0430\u0446\u0438\u0434") && supplements.includes("\u0436\u0435\u043B\u044F\u0437\u043E")) {
-      console.log("Warning: \u0410\u043D\u0442\u0430\u0446\u0438\u0434\u0438\u0442\u0435 \u0431\u043B\u043E\u043A\u0438\u0440\u0430\u0442 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0430 \u0436\u0435\u043B\u044F\u0437\u043E - \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u0435 \u0432\u0437\u0435\u043C\u0430\u0442 \u043D\u0430 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u0432\u0440\u0435\u043C\u0435");
+  if (Array.isArray(plan.supplements) && plan.supplements.length) {
+    const ix = interactionsFor(userData);
+    if (ix.rules.length) {
+      const asObjects = plan.supplements.map((s) => typeof s === "string" ? { name: s } : s);
+      const { kept, dropped } = applySupplementInteractions(asObjects, ix);
+      for (const d of dropped) {
+        const error = `\u041E\u041F\u0410\u0421\u041D\u041E: ${d.name} \u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0430 \u0441 ${d.because}`;
+        errors.push(error);
+        stepErrors.step4_final.push(error);
+      }
+      kept.forEach((s) => {
+        if (s.timing !== asObjects.find((o) => o.name === s.name)?.timing) warnings.push(`${s.name}: ${s.timing}`);
+      });
     }
   }
   if (userData.dietPreference && Array.isArray(userData.dietPreference)) {

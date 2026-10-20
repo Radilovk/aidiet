@@ -8,6 +8,7 @@
  */
 
 import { compileProfile } from './profile-code.js';
+import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { waterNeedLiters } from './analysis-deterministic.js';
 
 const STYLE_RECOMMENDATIONS = {
@@ -76,9 +77,14 @@ export function averageMacrosFromWeek(weekPlan = {}) {
 function supplementsFor(profile, protocolSupplements = [], now = null) {
   const out = [];
   const names = new Set();
+  // Едно вещество веднъж: ключът е първите две думи („витамин d3“ ≠ „витамин b12“,
+  // „омега-3“ = „омега-3 от водорасли“).
+  const keyOf = (name) => String(name).toLowerCase().replace(/[()+,]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).join(' ');
   const add = (name, dosage, timing, reason) => {
-    if (!name || [...names].some(n => n.includes(String(name).toLowerCase().split(' ')[0]))) return;
-    names.add(String(name).toLowerCase());
+    if (!name) return;
+    const key = keyOf(name);
+    if ([...names].some(n => n.startsWith(key) || key.startsWith(n))) return;
+    names.add(key);
     out.push(reason ? { name, dosage, timing, reason } : { name, dosage, timing });
   };
   // Протоколът и изследванията (с обосновка) — първи; повторенията отпадат.
@@ -94,6 +100,16 @@ function supplementsFor(profile, protocolSupplements = [], now = null) {
   const month = (now || new Date()).getMonth();
   if (!out.length && (month >= 9 || month <= 2)) add('Витамин D3', '1000–2000 IU', 'с мазна храна, октомври–март');
   return out.slice(0, 5);
+}
+
+/**
+ * Противопоказаните от лекарствата отпадат преди подбора (да не заемат място
+ * на други), а след него на всички се добавя отделянето във времето.
+ */
+function supplementsWithMeds(profile, userData, protocolSupplements) {
+  const ix = interactionsFor(userData || {});
+  const inputs = applySupplementInteractions([...(protocolSupplements || []), ...(userData?._enrichment?.supplements || [])], ix).kept;
+  return applySupplementInteractions(supplementsFor(profile, inputs), ix).kept;
 }
 
 /**
@@ -137,6 +153,6 @@ export function buildPlanSummary({
     forbidden,
     psychology: [...new Set(psychology)].slice(0, 6),
     waterIntake: `${waterNeedLiters(profile)} л вода дневно, разпределена през деня`,
-    supplements: supplementsFor(profile, [...(protocolSupplements || []), ...(userData?._enrichment?.supplements || [])]),
+    supplements: supplementsWithMeds(profile, userData, protocolSupplements),
   };
 }

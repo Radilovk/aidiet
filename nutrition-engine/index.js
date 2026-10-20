@@ -11,6 +11,7 @@
 import { compileProfile, slotsFor } from '../profile-code.js';
 import { macroTargetsFor } from '../macro-targets.js';
 import { extractQuestionnaireBlockedTerms } from '../questionnaire-engine-map.js';
+import { interactionsFor } from '../drug-interactions.js';
 import { buildFoodPolicy } from './policy.js';
 import { prescribe } from './prescription.js';
 import { planWeek, hashSeed } from './week-planner.js';
@@ -143,7 +144,11 @@ export function buildNutritionPlan(userData, options) {
   if (proteinCap > 0 && profile.weightKg) macros = capProtein(macros, Math.round(profile.weightKg * proteinCap));
 
   const policy = buildFoodPolicy(profile, {
-    blockedTerms: userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {}),
+    blockedTerms: [
+      ...(userData?._engineBlockedTerms || extractQuestionnaireBlockedTerms(userData || {})),
+      // Храни, които влизат в конфликт с лекарство (грейпфрут при статин, тирамин при МАО инхибитор).
+      ...interactionsFor(userData || {}).blockFoods,
+    ],
     loves: [userData?.dietLove, ...(hints?.loves || [])].filter(Boolean).join(', '),
     adherence: adherenceMap(userData?._adherenceRatio),
     date: options.date,

@@ -169,3 +169,22 @@
 | 7 | Таблица за взаимодействия лекарство ↔ храна/добавка | Средна | Безопасност |
 
 Стъпки 1–3 не изискват нова инфраструктура и подобряват всеки план веднага. Стъпка 5 е предпоставка за 4 и 6.
+
+## 5. Изпълнение (2026-10-20)
+
+Всичките седем стъпки са изпълнени.
+
+| # | Къде | Проверка |
+|---|---|---|
+| 1 | `nutrition-engine/food-guide.js` → `guidelines.html`, `plan-book.html` | инварианти в `test:engine` |
+| 2 | `enrichment-emoeat.js`, `emoeat.html` (карта „Свържи с хранителния план“) | `test:enrichment` |
+| 3 | `plan-summary.js` (D3 само октомври–март без друга причина; добавките носят „Защо“) | `test:enrichment` |
+| 4 | `enrichment-labs.js`, `/api/enrichment/extract-labs`, профил → „Изследвания“ | `test:enrichment`, UI с мокнат сървър |
+| 5 | `enrichment.js`, `/api/enrichment*`, генериране и седмичен преглед | `test:enrichment`, `test:worker` |
+| 6 | `health-sync.js`, профил → „Устройства“, `android-res/patch-health-connect.py` | UI с мокнат плъгин, тест на patch-а |
+| 7 | `drug-interactions.js` → профил, меню, насоки, добавки, валидатор | `test:interactions` |
+
+Остава извън кода:
+- **Play Console:** декларация за четирите разрешения на Health Connect (крачки, тегло, сън, хранене) — без нея билдът с тях не се публикува.
+- **KV промптове:** `npm run upload:kv` за `admin_plan_voice_prompt`, `admin_summary_prompt` и (по желание) `admin_lab_extraction_prompt`.
+- **Дълголетие:** съветникът не пита за лекарства, затова таблицата за взаимодействия не се прилага към неговите добавки.
