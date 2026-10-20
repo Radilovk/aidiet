@@ -137,6 +137,10 @@ export function buildClientCard(clientData, options = {}) {
   } else {
     planBlocks.push('#PL v2 status=none');
   }
+  // Есенцията от устройства, изследвания и приложения (без суровите измервания).
+  if (clientData?.healthEssence?.text) {
+    planBlocks.push(`#HD v1 upd=${esc(String(clientData.healthEssence.at || '').slice(0, 10))} ${esc(clientData.healthEssence.text)}`);
+  }
 
   planBlocks.push(serializeAnalytics(analytics));
 
@@ -158,14 +162,15 @@ export function buildClientCard(clientData, options = {}) {
   };
 }
 
-/** @typedef {'voice'|'profile'|'profile_full'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
+/** @typedef {'voice'|'profile'|'profile_full'|'health'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
 
 const CHAT_SECTION_ORDER = /** @type {const} */ ([
-  'voice', 'profile', 'profile_full', 'summary', 'meals', 'analysis', 'strategy',
+  'voice', 'profile', 'profile_full', 'health', 'summary', 'meals', 'analysis', 'strategy',
   'recommendations', 'forbidden', 'psychology', 'supplements', 'water',
 ]);
 
-const CHAT_BASE = ['voice', 'profile', 'summary', 'meals', 'recommendations', 'forbidden'];
+// Данните от устройствата са кратки и обясняват почти всеки въпрос („защо не отслабвам“) — винаги.
+const CHAT_BASE = ['voice', 'profile', 'health', 'summary', 'meals', 'recommendations', 'forbidden'];
 const CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
 
 const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */ ([
@@ -212,6 +217,7 @@ export function buildChatContextSections(userData, plan) {
       hasNotesSection: hasNotes,
       hasClinicalSection: Boolean(userData?.clinicalProtocol),
     }),
+    health: userData?._healthEssence ? `#HD v1 ${esc(String(userData._healthEssence).slice(0, 1600))}` : '',
     summary: serializePlanSummary(p.summary) || '',
     meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : '',
     analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || '',

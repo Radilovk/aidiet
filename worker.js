@@ -1445,6 +1445,9 @@ function buildClientCard(clientData, options = {}) {
   } else {
     planBlocks.push("#PL v2 status=none");
   }
+  if (clientData?.healthEssence?.text) {
+    planBlocks.push(`#HD v1 upd=${esc2(String(clientData.healthEssence.at || "").slice(0, 10))} ${esc2(clientData.healthEssence.text)}`);
+  }
   planBlocks.push(serializeAnalytics(analytics));
   const card = [...meta, "", profile, "", ...planBlocks.filter(Boolean)].join("\n");
   const tokenEstimate = estimateTokenCount(card);
@@ -1468,6 +1471,7 @@ var CHAT_SECTION_ORDER = (
     "voice",
     "profile",
     "profile_full",
+    "health",
     "summary",
     "meals",
     "analysis",
@@ -1479,7 +1483,7 @@ var CHAT_SECTION_ORDER = (
     "water"
   ]
 );
-var CHAT_BASE = ["voice", "profile", "summary", "meals", "recommendations", "forbidden"];
+var CHAT_BASE = ["voice", "profile", "health", "summary", "meals", "recommendations", "forbidden"];
 var CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
 var CHAT_INTENTS = (
   /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */
@@ -1517,6 +1521,7 @@ function buildChatContextSections(userData, plan) {
       hasNotesSection: hasNotes,
       hasClinicalSection: Boolean(userData?.clinicalProtocol)
     }),
+    health: userData?._healthEssence ? `#HD v1 ${esc2(String(userData._healthEssence).slice(0, 1600))}` : "",
     summary: serializePlanSummary(p.summary) || "",
     meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : "",
     analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || "",
@@ -41609,6 +41614,9 @@ function textIssues(text) {
   if (s.split(/(?<=[.!?])\s+|\n+/).some(mostlyLatin)) out.push("english");
   return out;
 }
+function isCleanClientText(text) {
+  return textIssues(text).length === 0;
+}
 function guardClientText(text, options = {}) {
   const fallback = options.fallback || "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
   const src = String(text ?? "");
@@ -43768,12 +43776,16 @@ function readCheckin(answers, analytics, previous = {}) {
     const span = days >= 4 && days <= 28 ? days : 7;
     weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
   }
+  const trend = Number(answerOf(answers, "weightTrendKgWeek"));
+  if (answerOf(answers, "weightTrendKgWeek") != null && Number.isFinite(trend) && Math.abs(trend) <= 3) weeklyChangeKg = trend;
   const intake = Number(answerOf(answers, "intakeKcal"));
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
     weightKg,
     weeklyChangeKg,
     intakeKcal: intake >= 500 && intake <= 8e3 ? Math.round(intake) : null,
+    recoveryLow: answerOf(answers, "recoveryLow") === "true",
+    leanLoss: answerOf(answers, "leanLoss") === "true",
     adherence,
     hunger: LEVEL_ANSWERS[answerOf(answers, "hunger")] || null,
     energy: LEVEL_ANSWERS[answerOf(answers, "energy")] || null,
@@ -43910,6 +43922,16 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
   if (checkin.difficulty === "\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E (\u043F\u043E\u0434\u0443\u0432\u0430\u043D\u0435, \u0442\u0435\u0436\u0435\u0441\u0442)") {
     modifications.push("gentle_digestion");
     changes.push("\u0429\u0430\u0434\u044F\u0449\u0438 \u0445\u0440\u0430\u043D\u0438 \u0441 \u043D\u0438\u0441\u043A\u043E \u0441\u044A\u0434\u044A\u0440\u0436\u0430\u043D\u0438\u0435 \u043D\u0430 FODMAP \u0437\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430");
+  }
+  if (delta < 0 && checkin.recoveryLow) {
+    delta = 0;
+    reasons.push("\u041F\u0443\u043B\u0441\u044A\u0442 \u0432 \u043F\u043E\u043A\u043E\u0439 \u0438 HRV \u043F\u043E\u043A\u0430\u0437\u0432\u0430\u0442 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u2014 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430\u0442; \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u0441\u0430 \u0441\u044A\u043D\u044F\u0442 \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435\u0442\u043E.");
+  }
+  if (checkin.leanLoss) {
+    if (delta < 0) delta = 0;
+    modifications.push("increase_protein");
+    reasons.push("\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u043E\u0442\u043E \u0442\u0435\u0433\u043B\u043E \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u043F\u043E\u0432\u0435\u0447\u0435 \u0431\u0435\u043B\u0442\u044A\u043A, \u0431\u0435\u0437 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442.");
+    changes.push("\u041F\u043E\u0432\u0435\u0447\u0435 \u0431\u0435\u043B\u0442\u044A\u043A \u0437\u0430 \u043F\u0430\u0437\u0435\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435");
   }
   delta = Math.max(-MAX_WEEKLY_STEP, Math.min(MAX_WEEKLY_STEP, delta));
   let next = kcal + delta;
@@ -44107,34 +44129,315 @@ function deriveLabs(facts, now = /* @__PURE__ */ new Date(), sex = "X") {
   return { findings, hints, supplements, safety, reasons };
 }
 
+// health-essence.js
+var DAY_MS2 = 864e5;
+var DIGEST_APPROACH = {
+  increase_protein: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0431\u0435\u043B\u0442\u044A\u043A",
+  more_volume: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0431\u0435\u043C \u043E\u0442 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043F\u0440\u0438 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438",
+  simplify_meals: "\u043F\u043E-\u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F",
+  more_variety: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435",
+  smaller_portions: "\u043F\u043E-\u043C\u0430\u043B\u043A\u0438 \u043F\u043E\u0440\u0446\u0438\u0438 \u0432 \u043F\u043E\u0432\u0435\u0447\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F",
+  gentle_digestion: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E"
+};
+function digestDue(essence, digest, now = /* @__PURE__ */ new Date()) {
+  if (!essence || !Object.keys(essence.metrics || {}).length) return false;
+  if (!digest?.at) return true;
+  return now.getTime() - Date.parse(digest.at) >= 6 * DAY_MS2;
+}
+function normalizeDigest(raw, now = /* @__PURE__ */ new Date()) {
+  if (!raw || typeof raw !== "object") return null;
+  const clean = (s, max) => {
+    const t = String(s || "").trim().replace(/\s+/g, " ").slice(0, max);
+    return t && isCleanClientText(t) ? t : "";
+  };
+  const insights = (Array.isArray(raw.insights) ? raw.insights : []).map((s) => clean(s, 220)).filter(Boolean).slice(0, 4);
+  const coachNote = clean(raw.coachNote, 500);
+  const approach = [...new Set((Array.isArray(raw.approach) ? raw.approach : []).map(String).filter((c) => DIGEST_APPROACH[c]))].slice(0, 2);
+  if (!insights.length && !coachNote) return null;
+  return { insights, coachNote, approach, at: now.toISOString() };
+}
+var SOURCE_RANK = { health_connect: 4, device_photo: 3, file: 2, manual: 1 };
+function dayOf(at) {
+  return new Date(Date.parse(at)).toISOString().slice(0, 10);
+}
+function dailySeries(facts, kind, key = null) {
+  const byDay = /* @__PURE__ */ new Map();
+  for (const f of facts || []) {
+    if (f.kind !== kind || f.status === "pending") continue;
+    if (key && f.key !== key) continue;
+    const day = dayOf(f.at);
+    const rank = SOURCE_RANK[f.source] || 1;
+    const prev = byDay.get(day);
+    if (!prev || rank > prev.rank || rank === prev.rank && Date.parse(f.at) > prev.t) {
+      byDay.set(day, { day, t: Date.parse(day + "T12:00:00Z"), value: Number(f.value), value2: f.value2, count: f.count, rank });
+    }
+  }
+  return [...byDay.values()].sort((a, b) => a.t - b.t);
+}
+function between(series, now, fromDays, toDays) {
+  const hi = now.getTime() - fromDays * DAY_MS2;
+  const lo = now.getTime() - toDays * DAY_MS2;
+  return series.filter((p) => p.t <= hi && p.t > lo);
+}
+var mean = (xs) => xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null;
+var r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
+var fmt3 = (v, d = 1) => String(Math.round(v * 10 ** d) / 10 ** d).replace(".", ",");
+function slopePerWeek(points) {
+  if (points.length < 2) return null;
+  const xs = points.map((p) => p.t / (7 * DAY_MS2));
+  const ys = points.map((p) => p.value);
+  const mx = mean(xs);
+  const my = mean(ys);
+  let num2 = 0;
+  let den = 0;
+  for (let i = 0; i < xs.length; i++) {
+    num2 += (xs[i] - mx) * (ys[i] - my);
+    den += (xs[i] - mx) ** 2;
+  }
+  return den ? num2 / den : null;
+}
+function edgeChange(points, n = 3) {
+  if (points.length < 2) return null;
+  const k = Math.min(n, Math.floor(points.length / 2)) || 1;
+  const first = points.slice(0, k);
+  const last = points.slice(-k);
+  return {
+    from: mean(first.map((p) => p.value)),
+    to: mean(last.map((p) => p.value)),
+    days: Math.round((mean(last.map((p) => p.t)) - mean(first.map((p) => p.t))) / DAY_MS2)
+  };
+}
+function sportLabelOf(perWeek) {
+  if (perWeek < 0.5) return "\u041D\u0438\u043A\u0430\u043A\u0432\u0430 (0 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
+  if (perWeek < 2.5) return "\u041D\u0438\u0441\u043A\u0430 (1\u20132 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
+  if (perWeek < 4.5) return "\u0421\u0440\u0435\u0434\u043D\u0430 (2\u20134 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
+  return "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
+}
+function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
+  const metrics = {};
+  const signals = [];
+  const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
+  const overrides = {};
+  const checkin = {};
+  const reasons = [];
+  const sources = [...new Set((facts || []).filter((f) => SOURCE_RANK[f.source]).map((f) => f.source))];
+  const weight = between(dailySeries(facts, "weight"), now, 0, 21);
+  const w14 = between(weight, now, 0, 14);
+  if (w14.length >= 5 && w14[w14.length - 1].t - w14[0].t >= 6 * DAY_MS2) {
+    const slope = slopePerWeek(w14);
+    metrics.weight = { last: r1(w14[w14.length - 1].value), avg7: r1(mean(between(weight, now, 0, 7).map((p) => p.value)) ?? w14[w14.length - 1].value), trendKgWeek: Math.round(slope * 100) / 100, days: w14.length };
+    checkin.weightTrendKgWeek = metrics.weight.trendKgWeek;
+    signals.push({ code: "weight_trend", level: "info", text: `\u0422\u0435\u0433\u043B\u043E: ${fmt3(metrics.weight.avg7)} \u043A\u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0435\u043D\u0434\u0435\u043D\u0446\u0438\u044F ${slope > 0 ? "+" : ""}${fmt3(slope, 2)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (${w14.length} \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F).` });
+  }
+  const bf = dailySeries(facts, "body_fat");
+  const comp = [];
+  const wByDay = new Map(dailySeries(facts, "weight").map((p) => [p.day, p.value]));
+  for (const p of between(bf, now, 0, 42)) {
+    const w = wByDay.get(p.day);
+    if (w) comp.push({ t: p.t, value: w * (1 - p.value / 100), fat: w * p.value / 100, weight: w });
+  }
+  const muscle = between(dailySeries(facts, "muscle_mass"), now, 0, 42);
+  const lean = muscle.length >= 4 ? muscle : comp;
+  if (comp.length) metrics.bodyFat = { last: r1(bf[bf.length - 1]?.value), leanKg: r1(comp[comp.length - 1].value) };
+  if (lean.length >= 4) {
+    const ch = edgeChange(lean);
+    const wPoints = lean === comp ? comp.map((c) => ({ t: c.t, value: c.weight })) : between(dailySeries(facts, "weight"), now, 0, 42);
+    const wch = edgeChange(wPoints);
+    if (ch && wch && ch.days >= 14) {
+      const dLean = ch.to - ch.from;
+      const dW = wch.to - wch.from;
+      metrics.composition = { days: ch.days, weightChangeKg: r1(dW), leanChangeKg: r1(dLean) };
+      if (dW <= -1 && dLean < 0 && -dLean >= -dW * 0.5) {
+        signals.push({ code: "lean_loss", level: "warn", text: `\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(dLean / dW * 100)}% \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u0438\u0442\u0435 ${fmt3(-dW)} \u043A\u0433 \u0437\u0430 ${ch.days} \u0434\u043D\u0438 \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u043D\u0435 \u0441\u0435 \u0437\u0430\u0434\u044A\u043B\u0431\u043E\u0447\u0430\u0432\u0430.` });
+        hints.approach.push("increase_protein");
+        checkin.leanLoss = true;
+        reasons.push("\u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u043F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430");
+      }
+    }
+  }
+  const visceral = dailySeries(facts, "visceral_fat");
+  if (visceral.length) metrics.visceralFat = visceral[visceral.length - 1].value;
+  const steps = dailySeries(facts, "steps");
+  const s7 = between(steps, now, 0, 7);
+  if (s7.length >= 4) {
+    metrics.steps = { avg7: Math.round(mean(s7.map((p) => p.value)) / 100) * 100, days: s7.length };
+    const prev = between(steps, now, 7, 35);
+    if (prev.length >= 10) {
+      const p = mean(prev.map((x) => x.value));
+      metrics.steps.prevAvg = Math.round(p / 100) * 100;
+      if (p > 0 && metrics.steps.avg7 < p * 0.7) {
+        signals.push({ code: "activity_drop", level: "info", text: `\u041A\u0440\u0430\u0447\u043A\u0438\u0442\u0435 \u0441\u0430 \u0441\u043F\u0430\u0434\u043D\u0430\u043B\u0438 \u0434\u043E ~${metrics.steps.avg7} \u0434\u043D\u0435\u0432\u043D\u043E (\u043E\u0442 ~${metrics.steps.prevAvg}).` });
+      }
+    }
+  }
+  const workouts = between(dailySeries(facts, "workout"), now, 0, 14);
+  const trackedSince = Math.min(...(facts || []).filter((f) => f.source === "health_connect").map((f) => Date.parse(f.at)), Infinity);
+  if (workouts.length && now.getTime() - trackedSince >= 12 * DAY_MS2) {
+    const sessions = workouts.reduce((s, p) => s + (p.count || 1), 0);
+    const perWeek = sessions / 2;
+    metrics.workouts = { perWeek: r1(perWeek), minutesWeek: Math.round(workouts.reduce((s, p) => s + p.value, 0) / 2) };
+    overrides.sportActivity = sportLabelOf(perWeek);
+    reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt3(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+  }
+  const active = between(dailySeries(facts, "active_kcal"), now, 0, 7);
+  if (active.length >= 4) metrics.activeKcal = Math.round(mean(active.map((p) => p.value)));
+  const rhr = dailySeries(facts, "resting_hr");
+  const hrv = dailySeries(facts, "hrv");
+  const rRecent = between(rhr, now, 0, 7);
+  const rBase = between(rhr, now, 7, 35);
+  const hRecent = between(hrv, now, 0, 7);
+  const hBase = between(hrv, now, 7, 35);
+  let rhrUp = null;
+  let hrvDown = null;
+  if (rRecent.length >= 4 && rBase.length >= 10) {
+    const a = mean(rRecent.map((p) => p.value));
+    const b = mean(rBase.map((p) => p.value));
+    metrics.restingHr = { avg7: Math.round(a), base: Math.round(b) };
+    rhrUp = a - b;
+  }
+  if (hRecent.length >= 4 && hBase.length >= 10) {
+    const a = mean(hRecent.map((p) => p.value));
+    const b = mean(hBase.map((p) => p.value));
+    metrics.hrv = { avg7: Math.round(a), base: Math.round(b) };
+    hrvDown = b > 0 ? (b - a) / b : null;
+  }
+  const recoveryLow = rhrUp != null && hrvDown != null && rhrUp >= 5 && hrvDown >= 0.15 || rhrUp != null && hrvDown == null && rhrUp >= 7 || hrvDown != null && rhrUp == null && hrvDown >= 0.25;
+  if (recoveryLow) {
+    checkin.recoveryLow = true;
+    signals.push({ code: "recovery_low", level: "warn", text: `\u0422\u044F\u043B\u043E\u0442\u043E \u0435 \u043F\u043E\u0434 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435: ${rhrUp != null ? `\u043F\u0443\u043B\u0441\u044A\u0442 \u0432 \u043F\u043E\u043A\u043E\u0439 \u0435 +${Math.round(rhrUp)} \u0443\u0434/\u043C\u0438\u043D` : ""}${rhrUp != null && hrvDown != null ? ", " : ""}${hrvDown != null ? `HRV \u0435 \u2212${Math.round(hrvDown * 100)}%` : ""} \u0441\u043F\u0440\u044F\u043C\u043E \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u043E\u0442\u043E \u2014 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0431\u0435\u0437 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442; \u0441\u044A\u043D \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043F\u044A\u0440\u0432\u043E \u043C\u044F\u0441\u0442\u043E.` });
+    reasons.push("\u043D\u0438\u0441\u043A\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043F\u043E \u043F\u0443\u043B\u0441\u0430");
+  }
+  const sleep = between(dailySeries(facts, "sleep"), now, 0, 7);
+  if (sleep.length >= 5) {
+    metrics.sleep = { avg7: r1(mean(sleep.map((p) => p.value))), nights: sleep.length };
+    if (metrics.sleep.avg7 < 6.5) {
+      signals.push({ code: "sleep_short", level: "warn", text: `\u0421\u044A\u043D: ~${fmt3(metrics.sleep.avg7)} \u0447 \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u043E\u0434 7 \u0447 \u0433\u043B\u0430\u0434\u044A\u0442 \u0438 \u0436\u0435\u043B\u0430\u043D\u0438\u0435\u0442\u043E \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442.` });
+    }
+  }
+  const intake = between(dailySeries(facts, "intake"), now, 0, 7);
+  if (intake.length >= 4) metrics.intake = { avg7: Math.round(mean(intake.map((p) => p.value))), days: intake.length };
+  const water = between(dailySeries(facts, "water"), now, 0, 7);
+  if (water.length >= 4) {
+    metrics.water = { avg7: r1(mean(water.map((p) => p.value))) };
+    if (ctx.waterNeedL && metrics.water.avg7 < ctx.waterNeedL * 0.6) {
+      signals.push({ code: "hydration_low", level: "info", text: `\u0412\u043E\u0434\u0430: ~${fmt3(metrics.water.avg7)} \u043B \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 ~${fmt3(ctx.waterNeedL)} \u043B.` });
+    }
+  }
+  const bp = between(dailySeries(facts, "bp"), now, 0, 28);
+  if (bp.length >= 3) {
+    const sys = mean(bp.map((p) => p.value));
+    const dia = mean(bp.filter((p) => p.value2).map((p) => p.value2)) || 0;
+    metrics.bp = { sys: Math.round(sys), dia: Math.round(dia), days: bp.length };
+    if (bp.length >= 3 && (sys >= 135 || dia >= 85)) {
+      hints.clinical.push("HTN");
+      signals.push({ code: "bp_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u043E: ~${Math.round(sys)}/${Math.round(dia)} \u0441\u0440\u0435\u0434\u043D\u043E \u043E\u0442 ${bp.length} \u0434\u043D\u0438 \u2014 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0441\u043E\u043B \u0438 \u043F\u043E\u0432\u0435\u0447\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438; \u0437\u0430 \u043E\u0446\u0435\u043D\u043A\u0430 \u2014 \u043B\u0438\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440.` });
+      hints.cautions.push(sys >= 160 || dia >= 100 ? `\u0414\u043E\u043C\u0430\u0448\u043D\u043E \u043A\u0440\u044A\u0432\u043D\u043E ~${Math.round(sys)}/${Math.round(dia)} \u2014 \u0434\u0430 \u0441\u0435 \u0432\u0438\u0434\u0438 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440 \u0431\u0435\u0437 \u043E\u0442\u043B\u0430\u0433\u0430\u043D\u0435.` : `\u0414\u043E\u043C\u0430\u0448\u043D\u043E \u043A\u0440\u044A\u0432\u043D\u043E \u043D\u0430\u0434 135/85 (~${Math.round(sys)}/${Math.round(dia)}) \u2014 \u0437\u0430 \u043F\u0440\u043E\u0441\u043B\u0435\u0434\u044F\u0432\u0430\u043D\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
+      reasons.push("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u043E \u0434\u043E\u043C\u0430\u0448\u043D\u043E \u043A\u0440\u044A\u0432\u043D\u043E");
+    }
+  }
+  const morning = between(dailySeries(facts, "glucose", "morning"), now, 0, 28);
+  if (morning.length >= 5) {
+    const m = mean(morning.map((p) => p.value));
+    metrics.glucose = { morning: r1(m), days: morning.length };
+    if (m >= 5.6) {
+      hints.clinical.push("IR");
+      signals.push({ code: "glucose_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D: ~${fmt3(m)} mmol/L \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u0442\u0430 \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0441\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438.` });
+      if (m >= 7) hints.cautions.push(`\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E ~${fmt3(m)} mmol/L \u043F\u043E \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440 \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
+      reasons.push("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D");
+    }
+  }
+  const peaks = between(dailySeries(facts, "glucose", "peak"), now, 0, 14);
+  if (peaks.length >= 7) {
+    const high = peaks.filter((p) => p.value >= 7.8).length / peaks.length;
+    metrics.glucose = { ...metrics.glucose || {}, peakHighShare: Math.round(high * 100) };
+    if (high >= 0.3) {
+      signals.push({ code: "glucose_spikes", level: "info", text: `\u0421\u043B\u0435\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0437\u0430\u0445\u0430\u0440\u0442\u0430 \u043C\u0438\u043D\u0430\u0432\u0430 7,8 mmol/L \u0432 ${Math.round(high * 100)}% \u043E\u0442 \u0434\u043D\u0438\u0442\u0435 \u2014 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0432\u044A\u0440\u0432\u044F\u0442 \u0441 \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u043D\u0435 \u0441\u0430\u043C\u0438.` });
+    }
+  }
+  for (const k of Object.keys(hints)) hints[k] = [...new Set(hints[k])];
+  return { v: 1, at: now.toISOString(), sources, metrics, signals, hints, overrides, checkin, reasons };
+}
+function essenceText(essence, digest = null) {
+  if (!essence) return "";
+  const m = essence.metrics || {};
+  const rows = [];
+  if (m.weight) rows.push(`\u0442\u0435\u0433\u043B\u043E ${fmt3(m.weight.avg7)} \u043A\u0433, ${m.weight.trendKgWeek > 0 ? "+" : ""}${fmt3(m.weight.trendKgWeek, 2)} \u043A\u0433/\u0441\u0435\u0434\u043C.`);
+  if (m.bodyFat) rows.push(`\u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${fmt3(m.bodyFat.last)}%, \u0447\u0438\u0441\u0442\u0430 \u043C\u0430\u0441\u0430 ${fmt3(m.bodyFat.leanKg)} \u043A\u0433`);
+  if (m.steps) rows.push(`\u043A\u0440\u0430\u0447\u043A\u0438 ~${m.steps.avg7}/\u0434\u0435\u043D`);
+  if (m.workouts) rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${fmt3(m.workouts.perWeek)}/\u0441\u0435\u0434\u043C. (${m.workouts.minutesWeek} \u043C\u0438\u043D)`);
+  if (m.sleep) rows.push(`\u0441\u044A\u043D ${fmt3(m.sleep.avg7)} \u0447`);
+  if (m.restingHr) rows.push(`\u043F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439 ${m.restingHr.avg7} (\u0431\u0430\u0437\u0430 ${m.restingHr.base})`);
+  if (m.hrv) rows.push(`HRV ${m.hrv.avg7} ms (\u0431\u0430\u0437\u0430 ${m.hrv.base})`);
+  if (m.intake) rows.push(`\u043F\u0440\u0438\u0435\u043C \u043F\u043E \u0442\u0440\u0430\u043A\u0435\u0440 ~${m.intake.avg7} kcal`);
+  if (m.water) rows.push(`\u0432\u043E\u0434\u0430 ${fmt3(m.water.avg7)} \u043B`);
+  if (m.bp) rows.push(`\u043A\u0440\u044A\u0432\u043D\u043E ~${m.bp.sys}/${m.bp.dia}`);
+  if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt3(m.glucose.morning)} mmol/L`);
+  const lines = [];
+  if (rows.length) lines.push(`\u0434\u0430\u043D\u043D\u0438: ${rows.join("; ")}`);
+  const warn = (essence.signals || []).filter((s) => s.level === "warn").map((s) => s.text);
+  if (warn.length) lines.push(`\u0441\u0438\u0433\u043D\u0430\u043B\u0438: ${warn.join(" ")}`);
+  if (digest?.coachNote) lines.push(`\u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438\u0435: ${digest.coachNote}`);
+  return lines.join(" | ").slice(0, 1600);
+}
+
 // enrichment.js
 var ENRICHMENT_VERSION = 1;
-var RANGES = {
-  weight: [30, 300],
-  steps: [0, 6e4],
-  sleep: [0, 16],
-  intake: [0, 8e3]
+var DEVICE_KINDS = {
+  weight: { unit: "kg", range: [30, 300], label: "\u0422\u0435\u0433\u043B\u043E" },
+  body_fat: { unit: "%", range: [3, 70], label: "\u0422\u0435\u043B\u0435\u0441\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438" },
+  muscle_mass: { unit: "kg", range: [10, 120], label: "\u041C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430" },
+  visceral_fat: { unit: "", range: [1, 59], label: "\u0412\u0438\u0441\u0446\u0435\u0440\u0430\u043B\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438" },
+  body_water: { unit: "%", range: [20, 80], label: "\u0412\u043E\u0434\u0430 \u0432 \u0442\u044F\u043B\u043E\u0442\u043E" },
+  steps: { unit: "", range: [0, 6e4], label: "\u041A\u0440\u0430\u0447\u043A\u0438" },
+  active_kcal: { unit: "kcal", range: [0, 6e3], label: "\u0410\u043A\u0442\u0438\u0432\u043D\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438" },
+  workout: { unit: "\u043C\u0438\u043D", range: [1, 900], label: "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438" },
+  sleep: { unit: "\u0447", range: [0, 16], label: "\u0421\u044A\u043D" },
+  resting_hr: { unit: "\u0443\u0434/\u043C\u0438\u043D", range: [30, 120], label: "\u041F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439" },
+  hrv: { unit: "ms", range: [5, 300], label: "\u0412\u0430\u0440\u0438\u0430\u0431\u0438\u043B\u043D\u043E\u0441\u0442 \u043D\u0430 \u043F\u0443\u043B\u0441\u0430 (HRV)" },
+  intake: { unit: "kcal", range: [0, 8e3], label: "\u041F\u0440\u0438\u0435\u0442\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438" },
+  water: { unit: "\u043B", range: [0, 10], label: "\u0412\u043E\u0434\u0430" },
+  bp: { unit: "mmHg", range: [60, 260], range2: [30, 160], label: "\u041A\u0440\u044A\u0432\u043D\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435" },
+  glucose: { unit: "mmol/L", range: [1.5, 35], keys: ["morning", "peak", "any"], label: "\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440" }
 };
-var DAY_MS2 = 864e5;
-var MAX_FACTS = 600;
+var UNIT_CONVERT = {
+  weight: { lb: (v) => v * 0.4536, lbs: (v) => v * 0.4536 },
+  muscle_mass: { lb: (v) => v * 0.4536, lbs: (v) => v * 0.4536 },
+  glucose: { "mg/dl": (v) => v / 18 },
+  water: { ml: (v) => v / 1e3 },
+  sleep: { min: (v) => v / 60, \u043C\u0438\u043D: (v) => v / 60 }
+};
+var DAY_MS3 = 864e5;
+var MAX_FACTS = 1500;
 var MAX_AGE_DAYS = 400;
-function dayOf(at) {
+function dayOf2(at) {
   const t = Date.parse(at);
   return Number.isFinite(t) ? new Date(t).toISOString().slice(0, 10) : null;
 }
 function normalizeFact(raw) {
   if (!raw || typeof raw !== "object") return null;
   const kind = String(raw.kind || "").trim();
-  const at = dayOf(raw.at || raw.date) ? new Date(Date.parse(raw.at || raw.date)).toISOString() : null;
+  const at = dayOf2(raw.at || raw.date) ? new Date(Date.parse(raw.at || raw.date)).toISOString() : null;
   if (!kind || !at) return null;
   const source = String(raw.source || "manual").slice(0, 40);
   const confidence = Math.max(0, Math.min(1, Number(raw.confidence ?? 1)));
   const status = ["confirmed", "pending", "inferred"].includes(raw.status) ? raw.status : "confirmed";
-  if (RANGES[kind]) {
-    const v = Number(String(raw.value).replace(",", "."));
-    const [lo, hi] = RANGES[kind];
+  const spec = DEVICE_KINDS[kind];
+  if (spec) {
+    const unit = String(raw.unit || "").trim().toLowerCase();
+    const conv = UNIT_CONVERT[kind]?.[unit];
+    let v = Number(String(raw.value).replace(",", "."));
+    if (conv) v = conv(v);
+    const [lo, hi] = spec.range;
     if (!Number.isFinite(v) || v < lo || v > hi) return null;
-    return { kind, key: kind, value: Math.round(v * 100) / 100, unit: String(raw.unit || ""), at, source, confidence, status };
+    const fact = { kind, key: kind, value: Math.round(v * 100) / 100, unit: spec.unit, at, source, confidence, status };
+    if (spec.keys) fact.key = spec.keys.includes(raw.key) ? raw.key : "any";
+    if (spec.range2) {
+      const v2 = Number(String(raw.value2).replace(",", "."));
+      if (!Number.isFinite(v2) || v2 < spec.range2[0] || v2 > spec.range2[1] || v2 >= v) return null;
+      fact.value2 = Math.round(v2);
+    }
+    if (kind === "workout" && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
+    return fact;
   }
   if (kind === "emoeat") {
     if (!raw.value || typeof raw.value !== "object") return null;
@@ -44155,22 +44458,22 @@ function mergeFacts(existing = [], incoming = [], now = /* @__PURE__ */ new Date
   const byKey = /* @__PURE__ */ new Map();
   const put = (f) => {
     if (!f) return;
-    const k = `${f.kind}|${f.key}|${dayOf(f.at)}|${f.source}`;
+    const k = `${f.kind}|${f.key}|${dayOf2(f.at)}|${f.source}`;
     byKey.set(k, f);
   };
   for (const f of existing) put(normalizeFact(f));
   for (const f of incoming) put(normalizeFact(f));
-  const cutoff = now.getTime() - MAX_AGE_DAYS * DAY_MS2;
+  const cutoff = now.getTime() - MAX_AGE_DAYS * DAY_MS3;
   return [...byKey.values()].filter((f) => Date.parse(f.at) >= cutoff).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, MAX_FACTS);
 }
 function recent(facts, kind, days, now) {
-  const from = now.getTime() - days * DAY_MS2;
+  const from = now.getTime() - days * DAY_MS3;
   return facts.filter((f) => f.kind === kind && Date.parse(f.at) >= from && f.status !== "pending");
 }
 function dailyMean(list) {
   const byDay = /* @__PURE__ */ new Map();
   for (const f of list) {
-    const d = dayOf(f.at);
+    const d = dayOf2(f.at);
     if (!byDay.has(d)) byDay.set(d, []);
     byDay.get(d).push(Number(f.value));
   }
@@ -44182,7 +44485,7 @@ function activityLabelOf(steps) {
   if (steps < 1e4) return "\u0421\u0440\u0435\u0434\u043D\u043E";
   return "\u0412\u0438\u0441\u043E\u043A\u043E";
 }
-function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X") {
+function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ctx = {}) {
   const facts = Array.isArray(store?.facts) ? store.facts : [];
   const overrides = {};
   const reasons = [];
@@ -44207,7 +44510,12 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X") {
   if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);
   const emo = deriveEmoEat(facts);
   const labs = deriveLabs(facts, now, sex);
-  for (const part of [emo, labs]) {
+  const essence = computeEssence(facts, now, ctx);
+  Object.assign(overrides, essence.overrides);
+  Object.assign(checkin, essence.checkin);
+  const digest = store?.digest && typeof store.digest === "object" ? store.digest : null;
+  const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
+  for (const part of [emo, labs, essence, digestPart]) {
     if (!part) continue;
     for (const k of ["behaviors", "approach", "clinical", "cautions"]) hints[k].push(...part.hints?.[k] || []);
     reasons.push(...part.reasons || []);
@@ -44222,13 +44530,16 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X") {
     labs: labs?.findings || [],
     safety: labs?.safety || {},
     supplements: labs?.supplements || [],
+    essence: { metrics: essence.metrics, signals: essence.signals, sources: essence.sources, at: essence.at },
+    digest: digest ? { insights: digest.insights || [], coachNote: digest.coachNote || "", at: digest.at } : null,
     reasons
   };
 }
 function applyEnrichment(userData, store, now = /* @__PURE__ */ new Date()) {
   if (!userData || !store?.facts?.length) return userData;
   const sex = userData.gender === "\u041C\u044A\u0436" ? "M" : userData.gender === "\u0416\u0435\u043D\u0430" ? "F" : "X";
-  const derived = deriveEnrichment(store, now, sex);
+  const kg = Number(String(userData.weight || "").replace(",", "."));
+  const derived = deriveEnrichment(store, now, sex, kg > 30 ? { waterNeedL: Math.round(kg * 0.033 * 10) / 10 } : {});
   const original = {};
   for (const [field, value] of Object.entries(derived.overrides)) {
     original[field] = userData[field] ?? null;
@@ -44252,6 +44563,7 @@ function recalcLevel(prevData, nextData) {
   if (!sameSet(a.clinical, b.clinical)) bump(3, "\u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435");
   if (a.diet.pattern !== b.diet.pattern) bump(3, "\u043C\u043E\u0434\u0435\u043B \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
   if (a.activity.daily !== b.activity.daily) bump(2, "\u043D\u0438\u0432\u043E \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442");
+  if (a.activity.sportBand !== b.activity.sportBand) bump(2, "\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438");
   if ((a.sleepHours || 0) !== (b.sleepHours || 0) && Math.abs((a.sleepHours || 7) - (b.sleepHours || 7)) >= 1) bump(2, "\u0441\u044A\u043D");
   if (a.stress !== b.stress) bump(2, "\u0441\u0442\u0440\u0435\u0441");
   if (a.weightKg && b.weightKg && Math.abs(a.weightKg - b.weightKg) / a.weightKg >= 0.02) bump(2, "\u0442\u0435\u0433\u043B\u043E");
@@ -47191,6 +47503,7 @@ async function handleChat(request, env) {
               planModifications: merged,
               dietDislike: Array.from(excludedFoods).join(", ")
             };
+            delete modifiedUserData._healthEssence;
             const newPlan = accepted.length ? await regeneratePlanFromChat(env, modifiedUserData, effectiveUserPlan) : null;
             if (!newPlan) throw new Error("\u041D\u044F\u043C\u0430 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0442\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0437\u0430 \u043F\u0440\u0438\u043B\u0430\u0433\u0430\u043D\u0435");
             planWasUpdated = true;
@@ -48998,6 +49311,10 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     }
     const deviceIntake = enrichedData._enrichment?.checkin?.intakeKcal;
     if (deviceIntake) checkinAnswers = [...checkinAnswers, { questionId: "intakeKcal", value: String(deviceIntake), source: "device" }];
+    const dc = enrichedData._enrichment?.checkin || {};
+    if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: "weightTrendKgWeek", value: String(dc.weightTrendKgWeek), source: "device" }];
+    if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: "recoveryLow", value: "true", source: "device" }];
+    if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: "leanLoss", value: "true", source: "device" }];
     const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, checkinAnswers, weeklyAdaptHistory);
     const note = String((answers || []).find((a) => a.questionId === "note")?.value || "").trim();
     if (note.length >= 6) {
@@ -54926,7 +55243,7 @@ async function handleEnrichmentSubmit(request, env) {
     if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
     const authError = await checkFirebaseOwner(userId, idToken, env, request);
     if (authError) return authError;
-    const incoming = Array.isArray(body.facts) ? body.facts.slice(0, 200) : [];
+    const incoming = Array.isArray(body.facts) ? body.facts.slice(0, 500) : [];
     if (body.emoeat && typeof body.emoeat === "object") {
       incoming.push({ kind: "emoeat", value: body.emoeat, at: (/* @__PURE__ */ new Date()).toISOString(), source: "emoeat" });
     }
@@ -54937,7 +55254,15 @@ async function handleEnrichmentSubmit(request, env) {
     const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts), updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
     const base = normalizeQuestionnaireData({ ...profile.userData || {} });
     const prevData = applyEnrichment(JSON.parse(JSON.stringify(base)), prevStore);
-    const nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+    let nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+    const essence = nextData._enrichment?.essence;
+    if (digestDue(essence, prevStore.digest)) {
+      const digest = await buildHealthDigest(env, nextData);
+      if (digest) {
+        nextStore.digest = digest;
+        nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
+      }
+    }
     const change = recalcLevel(prevData, nextData);
     const urgent = isUrgent(nextData._enrichment) && JSON.stringify(nextData._enrichment?.safety || {}) !== JSON.stringify(prevData._enrichment?.safety || {});
     nextStore.pendingLevel = Math.max(Number(prevStore.pendingLevel) || 0, change.level);
@@ -54945,15 +55270,19 @@ async function handleEnrichmentSubmit(request, env) {
     profile.enrichment = nextStore;
     const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
     await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
-    if (urgent && profile.clientId) {
+    if (profile.clientId) {
       try {
         const client = await kvGetJSON(env, `client:${profile.clientId}`);
         if (client) {
-          client.enrichmentAlert = { at: nextStore.updatedAt, reasons: change.reasons, cautions: nextData._enrichment?.hints?.cautions || [] };
+          const text = essenceText(nextData._enrichment?.essence, nextData._enrichment?.digest);
+          client.healthEssence = text ? { text, at: nextStore.updatedAt, sources: nextData._enrichment?.essence?.sources || [] } : null;
+          if (urgent) {
+            client.enrichmentAlert = { at: nextStore.updatedAt, reasons: change.reasons, cautions: nextData._enrichment?.hints?.cautions || [] };
+          }
           await kvPutJSON(env, `client:${profile.clientId}`, client, null);
         }
       } catch (e) {
-        console.warn("[Enrichment] client alert failed:", e.message);
+        console.warn("[Enrichment] client card update failed:", e.message);
       }
     }
     return jsonResponse2({
@@ -55025,6 +55354,56 @@ async function handleLabExtract(request, env) {
     return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u043F\u0440\u043E\u0447\u0435\u0442\u0435\u043C \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435\u0442\u043E. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430." }, 500);
   }
 }
+var DEFAULT_DEVICE_EXTRACTION_PROMPT = `\u041D\u0430 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u0435\u043A\u0440\u0430\u043D \u043E\u0442 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0438\u043B\u0438 \u0443\u0440\u0435\u0434 \u0437\u0430 \u0437\u0434\u0440\u0430\u0432\u0435 (\u0432\u0435\u0437\u043D\u0430 \u0441 \u0430\u043D\u0430\u043B\u0438\u0437 \u043D\u0430 \u0442\u044F\u043B\u043E\u0442\u043E, \u0441\u043C\u0430\u0440\u0442 \u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A \u0438\u043B\u0438 \u0433\u0440\u0438\u0432\u043D\u0430, Samsung Health, Garmin, Fitbit, Zepp, Mi Fitness, \u0430\u043F\u0430\u0440\u0430\u0442 \u0437\u0430 \u043A\u0440\u044A\u0432\u043D\u043E, \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440, \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0437\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435). \u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u0438\u0437\u043C\u0435\u0440\u0432\u0430\u043D\u0438\u044F\u0442\u0430 \u0438 \u0432\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown):
+{"date":"YYYY-MM-DD \u0438\u043B\u0438 null","readings":[{"kind":"","key":null,"value":0,"value2":null,"unit":"","date":"YYYY-MM-DD \u0438\u043B\u0438 null","confidence":0}]}
+
+\u041F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0437\u0430 kind (\u0432\u0441\u0438\u0447\u043A\u043E \u0434\u0440\u0443\u0433\u043E \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0438):
+weight \u2014 \u0442\u0435\u0433\u043B\u043E; body_fat \u2014 \u0442\u0435\u043B\u0435\u0441\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 %; muscle_mass \u2014 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 (\u043A\u0433); visceral_fat \u2014 \u0432\u0438\u0441\u0446\u0435\u0440\u0430\u043B\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 (\u0438\u043D\u0434\u0435\u043A\u0441); body_water \u2014 \u0432\u043E\u0434\u0430 \u0432 \u0442\u044F\u043B\u043E\u0442\u043E %; steps \u2014 \u043A\u0440\u0430\u0447\u043A\u0438 \u0437\u0430 \u0434\u0435\u043D\u044F; active_kcal \u2014 \u0430\u043A\u0442\u0438\u0432\u043D\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438; workout \u2014 \u043C\u0438\u043D\u0443\u0442\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 \u0437\u0430 \u0434\u0435\u043D\u044F; sleep \u2014 \u0441\u044A\u043D (\u0447\u0430\u0441\u043E\u0432\u0435 \u0437\u0430 \u043D\u043E\u0449\u0442\u0430); resting_hr \u2014 \u043F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439; hrv \u2014 HRV (ms); intake \u2014 \u043F\u0440\u0438\u0435\u0442\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0437\u0430 \u0434\u0435\u043D\u044F; water \u2014 \u0438\u0437\u043F\u0438\u0442\u0430 \u0432\u043E\u0434\u0430 (\u043B\u0438\u0442\u0440\u0438); bp \u2014 \u043A\u0440\u044A\u0432\u043D\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435 (value = \u0441\u0438\u0441\u0442\u043E\u043B\u043D\u043E, value2 = \u0434\u0438\u0430\u0441\u0442\u043E\u043B\u043D\u043E); glucose \u2014 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 (key: "morning" \u0430\u043A\u043E \u0435 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E/\u0441\u0443\u0442\u0440\u0438\u043D, "peak" \u0430\u043A\u043E \u0435 \u0441\u043B\u0435\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0438\u043D\u0430\u0447\u0435 "any").
+
+\u041F\u0440\u0430\u0432\u0438\u043B\u0430:
+- value \u0435 \u0447\u0438\u0441\u043B\u043E\u0442\u043E \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u043F\u043E\u043A\u0430\u0437\u0430\u043D\u043E (\u0434\u0435\u0441\u0435\u0442\u0438\u0447\u043D\u0430\u0442\u0430 \u0437\u0430\u043F\u0435\u0442\u0430\u044F \u0441\u0442\u0430\u0432\u0430 \u0442\u043E\u0447\u043A\u0430); unit \u2014 \u043A\u0430\u043A\u0442\u043E \u0435 \u043F\u043E\u043A\u0430\u0437\u0430\u043D\u0430 (kg, lb, %, mmol/L, mg/dL, \u0447, \u043C\u0438\u043D, ml, l).
+- \u0410\u043A\u043E \u0435\u043A\u0440\u0430\u043D\u044A\u0442 \u043F\u043E\u043A\u0430\u0437\u0432\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u043D\u0438 (\u0441\u043F\u0438\u0441\u044A\u043A \u0438\u043B\u0438 \u0438\u0441\u0442\u043E\u0440\u0438\u044F), \u0432\u044A\u0440\u043D\u0438 \u043F\u043E \u0435\u0434\u0438\u043D \u0437\u0430\u043F\u0438\u0441 \u043D\u0430 \u0434\u0435\u043D \u0441 \u043D\u0435\u0433\u043E\u0432\u0430\u0442\u0430 \u0434\u0430\u0442\u0430 \u0432 "date".
+- \u0421\u044A\u043D, \u043F\u043E\u043A\u0430\u0437\u0430\u043D \u043A\u0430\u0442\u043E \u201E7 \u0447 30 \u043C\u0438\u043D\u201C, \u0441\u0442\u0430\u0432\u0430 value 7.5 \u0441 unit "\u0447".
+- \u0421\u0440\u0435\u0434\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430/\u043C\u0435\u0441\u0435\u0446 \u041D\u0415 \u0441\u0430 \u0434\u043D\u0435\u0432\u043D\u0438 \u0438\u0437\u043C\u0435\u0440\u0432\u0430\u043D\u0438\u044F \u2014 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0438 \u0433\u0438.
+- confidence \u043F\u043E\u0434 0.7, \u0430\u043A\u043E \u0446\u0438\u0444\u0440\u0430\u0442\u0430 \u043D\u0435 \u0441\u0435 \u0447\u0435\u0442\u0435 \u044F\u0441\u043D\u043E.
+- \u041D\u0435 \u0442\u044A\u043B\u043A\u0443\u0432\u0430\u0439 \u0438 \u043D\u0435 \u0434\u0430\u0432\u0430\u0439 \u0441\u044A\u0432\u0435\u0442\u0438.`;
+async function handleDeviceExtract(request, env) {
+  try {
+    const { userId, idToken, imageData, mimeType } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    if (!imageData) return jsonResponse2({ error: "\u041B\u0438\u043F\u0441\u0432\u0430 \u0441\u043D\u0438\u043C\u043A\u0430." }, 400);
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    const effectiveMime = allowed.includes(mimeType) ? mimeType : "image/jpeg";
+    const base64Data = String(imageData).startsWith("data:") ? String(imageData).slice(String(imageData).indexOf(",") + 1) : String(imageData);
+    if (base64Data.length * 3 / 4 > 10 * 1024 * 1024) {
+      return jsonResponse2({ error: "\u0421\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430 (\u0434\u043E 10 MB)." }, 400);
+    }
+    const prompt = await getCustomPrompt(env, "admin_device_extraction_prompt") || DEFAULT_DEVICE_EXTRACTION_PROMPT;
+    const response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2e3);
+    const parsed = parseAIResponse(response) || {};
+    const isDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ""));
+    const date = isDate(parsed.date) ? parsed.date : null;
+    const readings = (Array.isArray(parsed.readings) ? parsed.readings : []).filter((r) => r && DEVICE_KINDS[r.kind]).slice(0, 60).map((r) => ({
+      kind: r.kind,
+      key: r.kind === "glucose" && ["morning", "peak", "any"].includes(r.key) ? r.key : void 0,
+      label: DEVICE_KINDS[r.kind].label,
+      value: Number(String(r.value).replace(",", ".")),
+      value2: r.value2 != null ? Number(String(r.value2).replace(",", ".")) : void 0,
+      unit: String(r.unit || DEVICE_KINDS[r.kind].unit).slice(0, 12),
+      date: isDate(r.date) ? r.date : date,
+      confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0))
+    })).filter((r) => Number.isFinite(r.value));
+    return jsonResponse2({ success: true, date, readings, kindsCatalog: publicDeviceKinds() });
+  } catch (error) {
+    console.error("Error extracting device data:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u043F\u0440\u043E\u0447\u0435\u0442\u0435\u043C \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0435\u043A\u0440\u0430\u043D\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430." }, 500);
+  }
+}
+function publicDeviceKinds() {
+  return Object.fromEntries(Object.entries(DEVICE_KINDS).map(([k, v]) => [k, { label: v.label, unit: v.unit, two: !!v.range2 }]));
+}
 async function handleEnrichmentDelete(request, env) {
   try {
     if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -55038,8 +55417,21 @@ async function handleEnrichmentDelete(request, env) {
     const only = Array.isArray(kinds) && kinds.length ? new Set(kinds) : null;
     const facts = only ? (profile.enrichment.facts || []).filter((f) => !only.has(f.kind)) : [];
     profile.enrichment = { ...profile.enrichment, facts, updatedAt: (/* @__PURE__ */ new Date()).toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
+    const hasDeviceFacts = facts.some((f) => DEVICE_KINDS[f.kind]);
+    if (!hasDeviceFacts) delete profile.enrichment.digest;
     const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
     await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+    if (!hasDeviceFacts && profile.clientId) {
+      try {
+        const client = await kvGetJSON(env, `client:${profile.clientId}`);
+        if (client?.healthEssence) {
+          client.healthEssence = null;
+          await kvPutJSON(env, `client:${profile.clientId}`, client, null);
+        }
+      } catch (e) {
+        console.warn("[Enrichment] client card cleanup failed:", e.message);
+      }
+    }
     return jsonResponse2({ success: true, removed: before - facts.length });
   } catch (error) {
     return jsonResponse2({ error: "Failed to delete enrichment: " + error.message }, 500);
@@ -55060,7 +55452,8 @@ async function handleEnrichmentGet(request, env) {
       derived: publicEnrichmentView(deriveEnrichment(store, /* @__PURE__ */ new Date(), sex)),
       sources: [...new Set((store.facts || []).map((f) => f.source))],
       lastChange: store.lastChange || null,
-      markers: LAB_MARKERS
+      markers: LAB_MARKERS,
+      deviceKinds: publicDeviceKinds()
     });
   } catch (error) {
     return jsonResponse2({ error: "Failed to load enrichment: " + error.message }, 500);
@@ -55075,8 +55468,43 @@ function publicEnrichmentView(d) {
     supplements: d.supplements || [],
     cautions: d.hints?.cautions || [],
     reasons: d.reasons || [],
-    emoeat: d.voice ? { archetype: d.voice.archetype, at: d.voice.at } : null
+    emoeat: d.voice ? { archetype: d.voice.archetype, at: d.voice.at } : null,
+    essence: d.essence || null,
+    digest: d.digest || null,
+    // Готовият текст за чата на клиента (същият като в картона на специалиста).
+    essenceText: essenceText(d.essence, d.digest)
   };
+}
+var DEFAULT_HEALTH_DIGEST_PROMPT = `\u0422\u0438 \u0441\u0438 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0414\u0430\u043D\u043D\u0438 \u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0442\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A, \u0433\u0440\u0438\u0432\u043D\u0430, \u0432\u0435\u0437\u043D\u0430, \u0430\u043F\u0430\u0440\u0430\u0442 \u0437\u0430 \u043A\u0440\u044A\u0432\u043D\u043E, \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440, \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F) \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438, \u0432\u0435\u0447\u0435 \u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438:
+{essence}
+
+\u0426\u0435\u043B \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430: {goal}. \u0414\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C \u043F\u043E \u043F\u043B\u0430\u043D\u0430: {kcal} kcal.
+
+\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown):
+{"insights":["..."],"coachNote":"...","approach":[]}
+
+- insights: \u0434\u043E 4 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u043D\u0430 \u201E\u0442\u0438\u201C), \u0432\u0441\u044F\u043A\u043E \u0441\u0432\u044A\u0440\u0437\u0432\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0447\u0438\u0441\u043B\u043E \u0441 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0438\u043B\u0438 \u0440\u0435\u0436\u0438\u043C\u0430. \u0411\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u0435 \u043D\u0430 \u0447\u0438\u0441\u043B\u0430\u0442\u0430 \u0431\u0435\u0437 \u0438\u0437\u0432\u043E\u0434.
+- coachNote: 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u0437\u0430 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u0430 \u0438 \u0447\u0430\u0442 \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430 \u2014 \u043D\u0430\u0439-\u0432\u0430\u0436\u043D\u043E\u0442\u043E \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438.
+- approach: 0\u20132 \u043A\u043E\u0434\u0430 \u0441\u0430\u043C\u043E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430, \u0438 \u0441\u0430\u043C\u043E \u0430\u043A\u043E \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u044F\u0441\u043D\u043E \u0433\u043E \u043E\u043F\u0440\u0430\u0432\u0434\u0430\u0432\u0430\u0442: {approachList}
+- \u041D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u043D\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u044F\u0439 \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043D\u0435 \u043A\u043E\u043C\u0435\u043D\u0442\u0438\u0440\u0430\u0439 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u0410\u043A\u043E \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0441\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438 \u2014 \u043A\u0430\u0436\u0438 \u0433\u043E \u043A\u0440\u0430\u0442\u043A\u043E.`;
+async function buildHealthDigest(env, data) {
+  try {
+    const e = data?._enrichment?.essence;
+    if (!e) return null;
+    const template = await getCustomPrompt(env, "admin_health_digest_prompt") || DEFAULT_HEALTH_DIGEST_PROMPT;
+    const vars = {
+      essence: JSON.stringify({ metrics: e.metrics, signals: (e.signals || []).map((s) => s.text) }),
+      goal: String(data.goal || "\u043D\u0435 \u0435 \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0430").slice(0, 80),
+      kcal: String(data.planKcal || data.dailyCalories || "\u043D\u0435 \u0435 \u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D"),
+      approachList: Object.entries(DIGEST_APPROACH).map(([k, v]) => `${k} (${v})`).join(", ")
+    };
+    const prompt = Object.entries(vars).reduce((t, [k, v]) => t.split(`{${k}}`).join(v), String(template));
+    const response = await callAIModel(env, prompt, 700, "health_digest", null, data, null);
+    return normalizeDigest(parseAIResponse(response));
+  } catch (error) {
+    console.warn("[Enrichment] health digest skipped:", error.message);
+    return null;
+  }
 }
 async function handleCheckAccountEmail(request, env) {
   try {
@@ -56752,6 +57180,8 @@ var worker_entry_default = {
         return await handleEnrichmentGet(request, env);
       } else if (url.pathname === "/api/enrichment/extract-labs" && request.method === "POST") {
         return await handleLabExtract(request, env);
+      } else if (url.pathname === "/api/enrichment/extract-device" && request.method === "POST") {
+        return await handleDeviceExtract(request, env);
       } else if (url.pathname === "/api/enrichment/delete" && request.method === "POST") {
         return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === "/api/user/sync-analytics" && request.method === "POST") {

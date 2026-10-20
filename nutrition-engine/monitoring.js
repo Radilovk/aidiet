@@ -122,6 +122,9 @@ export function readCheckin(answers, analytics, previous = {}) {
     const span = days >= 4 && days <= 28 ? days : 7;
     weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
   }
+  // Тенденцията от поне 5 претегляния за 2 седмици е по-точна от две точки.
+  const trend = Number(answerOf(answers, 'weightTrendKgWeek'));
+  if (answerOf(answers, 'weightTrendKgWeek') != null && Number.isFinite(trend) && Math.abs(trend) <= 3) weeklyChangeKg = trend;
   // Среден дневен прием от тракер (Health Connect) — само при поне 4 записани дни.
   const intake = Number(answerOf(answers, 'intakeKcal'));
   return {
@@ -129,6 +132,8 @@ export function readCheckin(answers, analytics, previous = {}) {
     weightKg,
     weeklyChangeKg,
     intakeKcal: intake >= 500 && intake <= 8000 ? Math.round(intake) : null,
+    recoveryLow: answerOf(answers, 'recoveryLow') === 'true',
+    leanLoss: answerOf(answers, 'leanLoss') === 'true',
     adherence,
     hunger: LEVEL_ANSWERS[answerOf(answers, 'hunger')] || null,
     energy: LEVEL_ANSWERS[answerOf(answers, 'energy')] || null,
@@ -307,6 +312,19 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
   if (checkin.difficulty === 'Храносмилането (подуване, тежест)') {
     modifications.push('gentle_digestion');
     changes.push('Щадящи храни с ниско съдържание на FODMAP за следващата седмица');
+  }
+
+  // Сигнали от устройства: при ниско възстановяване (пулс/HRV) или загуба на
+  // мускулна маса по везната дефицитът не се задълбочава.
+  if (delta < 0 && checkin.recoveryLow) {
+    delta = 0;
+    reasons.push('Пулсът в покой и HRV показват натоварване — тази седмица калориите не се намаляват; приоритет са сънят и възстановяването.');
+  }
+  if (checkin.leanLoss) {
+    if (delta < 0) delta = 0;
+    modifications.push('increase_protein');
+    reasons.push('По везната част от загубеното тегло е мускулна маса — повече белтък, без по-голям дефицит.');
+    changes.push('Повече белтък за пазене на мускулите');
   }
 
   // Граници: стъпка, общ таван спрямо първоначалното и безопасен минимум.

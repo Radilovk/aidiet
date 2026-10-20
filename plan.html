@@ -7237,14 +7237,23 @@
 
         function invalidateChatContextCache() { /* reserved for plan reload hooks */ }
 
+        /** Есенцията от устройствата и изследванията (същата като в картона на специалиста). */
+        function chatUserData() {
+            if (!userData) return userData;
+            let essence = '';
+            try { essence = localStorage.getItem('np_health_essence') || ''; } catch (_) {}
+            return essence ? Object.assign({}, userData, { _healthEssence: essence }) : userData;
+        }
+
         async function buildSmartChatRequest(message, apiHistory) {
+            const chatData = chatUserData();
             const base = {
                 userId: userId,
                 message: message,
                 conversationId: conversationId,
                 mode: chatMode,
                 conversationHistory: apiHistory,
-                userData: userData,
+                userData: chatData,
                 userPlan: dietPlan,
             };
             if (!userData || !dietPlan) return base;
@@ -7255,7 +7264,7 @@
                     new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 3000); })
                 ]);
                 if (!chatCtx) return base;
-                const sections = chatCtx.buildChatContextSections(userData, dietPlan);
+                const sections = chatCtx.buildChatContextSections(chatData, dietPlan);
                 const selectedIds = chatCtx.selectChatSections(message, chatMode);
                 base.contextText = chatCtx.assembleChatContextPrompt(sections, selectedIds);
             } catch (err) {

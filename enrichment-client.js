@@ -76,7 +76,17 @@
      */
     async function submit(payload, source) {
         if (!hasConsent(source)) throw new Error('Няма съгласие за този източник');
-        return post('/api/enrichment', payload);
+        return keepEssence(await post('/api/enrichment', payload));
+    }
+
+    /** Есенцията за чата пътува с отговорите на сървъра и се пази локално. */
+    function keepEssence(data) {
+        var text = data && data.derived && data.derived.essenceText;
+        try {
+            if (text) localStorage.setItem('np_health_essence', text);
+            else if (data && data.derived) localStorage.removeItem('np_health_essence');
+        } catch (_) {}
+        return data;
     }
 
     /** Какво значи нивото за клиента — едно изречение. */
@@ -93,9 +103,16 @@
         hasConsent: hasConsent,
         setConsent: setConsent,
         submit: submit,
-        get: function () { return post('/api/enrichment/get', {}); },
+        get: function () { return post('/api/enrichment/get', {}).then(keepEssence); },
         extractLabs: function (imageData, mimeType) { return post('/api/enrichment/extract-labs', { imageData: imageData, mimeType: mimeType }); },
-        remove: function (kinds) { return post('/api/enrichment/delete', { kinds: kinds || null }); },
+        extractDevice: function (imageData, mimeType) { return post('/api/enrichment/extract-device', { imageData: imageData, mimeType: mimeType }); },
+        remove: function (kinds) {
+            // След изтриване есенцията се презарежда — остава само от данните, които още са в профила.
+            return post('/api/enrichment/delete', { kinds: kinds || null }).then(function (r) {
+                try { localStorage.removeItem('np_health_essence'); } catch (_) {}
+                return post('/api/enrichment/get', {}).then(keepEssence).catch(function () {}).then(function () { return r; });
+            });
+        },
         describeChange: describeChange
     };
 }(window));

@@ -94,6 +94,16 @@ check('лекарства ↔ храни и добавки', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
+check('устройства: анализ, обобщение, картон, чат', () => {
+  const r = run('node', ['scripts/test-health-essence.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
+check('устройства: импорт от файл', () => {
+  const r = run('node', ['scripts/test-device-import.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
 check('матрица от профили', () => {
   const r = run('node', ['scripts/test-profile-matrix.mjs', '120']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);

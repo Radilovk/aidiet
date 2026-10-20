@@ -1,9 +1,12 @@
 /**
  * Health Connect (Android) → обогатяване на профила.
  *
- * Чете само четири вида данни — крачки, тегло, сън и приети калории — и ги
- * изпраща като факти (POST /api/enrichment, източник „health_connect“).
- * Сървърът ги превежда в нивото на активност, съня и седмичното претегляне.
+ * Health Connect е общият вход на Android: в него пишат Samsung Health,
+ * Fitbit, Garmin Connect, Zepp/Amazfit, Mi Fitness, Withings, Oura, Polar,
+ * везни (Renpho, Eufy, Xiaomi) и приложения за хранене (MyFitnessPal, Yazio).
+ * Оттук се четат само видовете, които планът използва, обобщават се по дни
+ * и се изпращат като факти (POST /api/enrichment, източник „health_connect“).
+ * Анализът (тенденции, възстановяване, състав на тялото) е на сървъра.
  *
  * - работи само в APK с плъгина @capgo/capacitor-health; другаде е неактивен;
  * - изпраща само със съгласие „device“;
@@ -15,8 +18,11 @@
     if (global.NutriPlanHealth) return;
 
     var STATE_KEY = 'np_health_state';
-    var READ_TYPES = ['steps', 'weight', 'sleep', 'dietaryEnergyConsumed'];
-    var DEVICE_KINDS = ['steps', 'weight', 'sleep', 'intake'];
+    var READ_TYPES = ['steps', 'weight', 'sleep', 'dietaryEnergyConsumed', 'bodyFat', 'restingHeartRate',
+        'heartRateVariability', 'calories', 'workouts', 'dietaryWater', 'bloodPressure', 'bloodGlucose'];
+    var DEVICE_KINDS = ['steps', 'weight', 'sleep', 'intake', 'body_fat', 'muscle_mass', 'visceral_fat', 'body_water',
+        'resting_hr', 'hrv', 'active_kcal', 'workout', 'water', 'bp', 'glucose'];
+    var MORNING_HOURS = [4, 10];
     var DAYS = 14;
     var AUTO_EVERY_MS = 6 * 3600 * 1000;
     // Ден с под 500 kcal записан прием е непълно водене, не реален прием.
@@ -116,6 +122,66 @@
             var res = await H.readSamples({ dataType: 'weight', startDate: from.toISOString(), endDate: now.toISOString(), limit: 200 });
             push('weight', (res && res.samples || []).map(function (s) { return { day: localDay(s.startDate), value: Number(s.value) }; }));
         });
+        // Пробите за деня: средно за пулса и HRV, последното за мазнините,
+        // средно за кръвното, сутрешният минимум и дневният максимум за захарта.
+        var samples = async function (type) {
+            var res = await H.readSamples({ dataType: type, startDate: from.toISOString(), endDate: now.toISOString(), limit: 1000 });
+            return (res && res.samples) || [];
+        };
+        var byDay = function (list, pick) {
+            var days = {};
+            list.forEach(function (s) { var d = localDay(s.startDate); (days[d] = days[d] || []).push(s); });
+            return Object.keys(days).map(function (d) { return Object.assign({ day: d }, pick(days[d])); }).filter(function (x) { return x.value != null; });
+        };
+        var avg = function (xs) { return xs.length ? xs.reduce(function (a, b) { return a + b; }, 0) / xs.length : null; };
+        var round1 = function (v) { return Math.round(v * 10) / 10; };
+        await run('restingHeartRate', async function () {
+            push('resting_hr', byDay(await samples('restingHeartRate'), function (l) { return { value: Math.round(avg(l.map(function (s) { return Number(s.value); }))) }; }));
+        });
+        await run('heartRateVariability', async function () {
+            push('hrv', byDay(await samples('heartRateVariability'), function (l) { return { value: Math.round(avg(l.map(function (s) { return Number(s.value); }))) }; }));
+        });
+        await run('bodyFat', async function () {
+            push('body_fat', byDay(await samples('bodyFat'), function (l) { return { value: round1(Number(l[l.length - 1].value)) }; }));
+        });
+        await run('calories', async function () {
+            push('active_kcal', (await daySums(H, 'calories', from, today)).filter(function (x) { return x.value > 0; }).map(function (x) { return { day: x.day, value: Math.round(x.value) }; }));
+        });
+        await run('dietaryWater', async function () {
+            push('water', (await daySums(H, 'dietaryWater', from, today)).filter(function (x) { return x.value > 0.2; }).map(function (x) { return { day: x.day, value: round1(x.value) }; }));
+        });
+        await run('bloodPressure', async function () {
+            byDay((await samples('bloodPressure')).filter(function (s) { return s.systolic && s.diastolic; }), function (l) {
+                return { value: Math.round(avg(l.map(function (s) { return Number(s.systolic); }))), value2: Math.round(avg(l.map(function (s) { return Number(s.diastolic); }))) };
+            }).forEach(function (x) { facts.push({ kind: 'bp', value: x.value, value2: x.value2, at: factAt(x.day), source: 'health_connect' }); });
+        });
+        await run('bloodGlucose', async function () {
+            byDay(await samples('bloodGlucose'), function (l) {
+                var morning = l.filter(function (s) { var h = new Date(s.startDate).getHours(); return h >= MORNING_HOURS[0] && h < MORNING_HOURS[1]; });
+                return {
+                    value: Math.max.apply(null, l.map(function (s) { return Number(s.value); })),
+                    morning: morning.length ? Math.min.apply(null, morning.map(function (s) { return Number(s.value); })) : null
+                };
+            }).forEach(function (x) {
+                facts.push({ kind: 'glucose', key: 'peak', value: x.value, unit: 'mg/dL', at: factAt(x.day), source: 'health_connect' });
+                if (x.morning != null) facts.push({ kind: 'glucose', key: 'morning', value: x.morning, unit: 'mg/dL', at: factAt(x.day), source: 'health_connect' });
+            });
+        });
+        await run('workouts', async function () {
+            var res = await H.queryWorkouts({ startDate: from.toISOString(), endDate: now.toISOString(), limit: 200 });
+            var days = {};
+            ((res && res.workouts) || []).forEach(function (w) {
+                var minutes = (Number(w.duration) || 0) / 60;
+                if (minutes < 10) return;
+                var d = localDay(w.startDate);
+                days[d] = days[d] || { minutes: 0, count: 0 };
+                days[d].minutes += minutes;
+                days[d].count += 1;
+            });
+            Object.keys(days).forEach(function (d) {
+                facts.push({ kind: 'workout', value: Math.round(days[d].minutes), count: days[d].count, at: factAt(d), source: 'health_connect' });
+            });
+        });
         await run('sleep', async function () {
             // Нощта срещу първия ден започва предишната вечер.
             var res = await H.readSamples({ dataType: 'sleep', startDate: new Date(from.getTime() - 86400000).toISOString(), endDate: now.toISOString(), limit: 200 });
@@ -159,7 +225,7 @@
         }
         var res = await E.submit({ facts: out.facts }, 'device');
         writeState({ lastSync: new Date().toISOString(), lastCount: out.facts.length, lastErrors: out.errors });
-        return { sent: out.facts.length, level: res.level, message: E.describeChange(res) };
+        return { sent: out.facts.length, level: res.level, message: E.describeChange(res), derived: res.derived };
     }
 
     /** Спира синхронизирането и изтрива изпратените данни от устройства. */

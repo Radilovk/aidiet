@@ -30,6 +30,14 @@ KEEP = {
     "android.permission.health.READ_WEIGHT",
     "android.permission.health.READ_SLEEP",
     "android.permission.health.READ_NUTRITION",
+    "android.permission.health.READ_BODY_FAT",
+    "android.permission.health.READ_RESTING_HEART_RATE",
+    "android.permission.health.READ_HEART_RATE_VARIABILITY",
+    "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
+    "android.permission.health.READ_EXERCISE",
+    "android.permission.health.READ_HYDRATION",
+    "android.permission.health.READ_BLOOD_PRESSURE",
+    "android.permission.health.READ_BLOOD_GLUCOSE",
 }
 MIN_SDK = 26
 PRIVACY_URL = "https://biocode.website/privacy-policy.html"

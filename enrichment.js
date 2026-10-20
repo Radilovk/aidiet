@@ -17,19 +17,44 @@
 import { compileProfile } from './profile-code.js';
 import { deriveEmoEat } from './enrichment-emoeat.js';
 import { deriveLabs } from './enrichment-labs.js';
+import { computeEssence } from './health-essence.js';
 
 export const ENRICHMENT_VERSION = 1;
 
-/** Допустими граници: всичко извън тях е грешка на източника, не факт. */
-const RANGES = {
-  weight: [30, 300],
-  steps: [0, 60000],
-  sleep: [0, 16],
-  intake: [0, 8000],
+/**
+ * Видовете измервания в канонична единица и допустимите граници: всичко
+ * извън тях е грешка на източника, не факт. Един факт = един ден (средно
+ * или сума за деня), освен ако ключът не казва друго.
+ */
+export const DEVICE_KINDS = {
+  weight: { unit: 'kg', range: [30, 300], label: 'Тегло' },
+  body_fat: { unit: '%', range: [3, 70], label: 'Телесни мазнини' },
+  muscle_mass: { unit: 'kg', range: [10, 120], label: 'Мускулна маса' },
+  visceral_fat: { unit: '', range: [1, 59], label: 'Висцерални мазнини' },
+  body_water: { unit: '%', range: [20, 80], label: 'Вода в тялото' },
+  steps: { unit: '', range: [0, 60000], label: 'Крачки' },
+  active_kcal: { unit: 'kcal', range: [0, 6000], label: 'Активни калории' },
+  workout: { unit: 'мин', range: [1, 900], label: 'Тренировки' },
+  sleep: { unit: 'ч', range: [0, 16], label: 'Сън' },
+  resting_hr: { unit: 'уд/мин', range: [30, 120], label: 'Пулс в покой' },
+  hrv: { unit: 'ms', range: [5, 300], label: 'Вариабилност на пулса (HRV)' },
+  intake: { unit: 'kcal', range: [0, 8000], label: 'Приети калории' },
+  water: { unit: 'л', range: [0, 10], label: 'Вода' },
+  bp: { unit: 'mmHg', range: [60, 260], range2: [30, 160], label: 'Кръвно налягане' },
+  glucose: { unit: 'mmol/L', range: [1.5, 35], keys: ['morning', 'peak', 'any'], label: 'Кръвна захар' },
+};
+
+/** Честите алтернативни единици → каноничната. */
+const UNIT_CONVERT = {
+  weight: { lb: v => v * 0.4536, lbs: v => v * 0.4536 },
+  muscle_mass: { lb: v => v * 0.4536, lbs: v => v * 0.4536 },
+  glucose: { 'mg/dl': v => v / 18 },
+  water: { ml: v => v / 1000 },
+  sleep: { min: v => v / 60, мин: v => v / 60 },
 };
 
 const DAY_MS = 86400000;
-const MAX_FACTS = 600;
+const MAX_FACTS = 1500;
 const MAX_AGE_DAYS = 400;
 
 function dayOf(at) {
@@ -49,11 +74,23 @@ export function normalizeFact(raw) {
   const source = String(raw.source || 'manual').slice(0, 40);
   const confidence = Math.max(0, Math.min(1, Number(raw.confidence ?? 1)));
   const status = ['confirmed', 'pending', 'inferred'].includes(raw.status) ? raw.status : 'confirmed';
-  if (RANGES[kind]) {
-    const v = Number(String(raw.value).replace(',', '.'));
-    const [lo, hi] = RANGES[kind];
+  const spec = DEVICE_KINDS[kind];
+  if (spec) {
+    const unit = String(raw.unit || '').trim().toLowerCase();
+    const conv = UNIT_CONVERT[kind]?.[unit];
+    let v = Number(String(raw.value).replace(',', '.'));
+    if (conv) v = conv(v);
+    const [lo, hi] = spec.range;
     if (!Number.isFinite(v) || v < lo || v > hi) return null;
-    return { kind, key: kind, value: Math.round(v * 100) / 100, unit: String(raw.unit || ''), at, source, confidence, status };
+    const fact = { kind, key: kind, value: Math.round(v * 100) / 100, unit: spec.unit, at, source, confidence, status };
+    if (spec.keys) fact.key = spec.keys.includes(raw.key) ? raw.key : 'any';
+    if (spec.range2) {
+      const v2 = Number(String(raw.value2).replace(',', '.'));
+      if (!Number.isFinite(v2) || v2 < spec.range2[0] || v2 > spec.range2[1] || v2 >= v) return null;
+      fact.value2 = Math.round(v2);
+    }
+    if (kind === 'workout' && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
+    return fact;
   }
   if (kind === 'emoeat') {
     if (!raw.value || typeof raw.value !== 'object') return null;
@@ -117,11 +154,11 @@ function activityLabelOf(steps) {
 
 /**
  * Извежда от фактите какво се променя в профила.
- * @param {{ facts?: any[] }} store
+ * @param {{ facts?: any[], digest?: any }} store
  * @param {Date} [now]
  * @param {'M'|'F'|'X'} [sex]
  */
-export function deriveEnrichment(store, now = new Date(), sex = 'X') {
+export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const facts = Array.isArray(store?.facts) ? store.facts : [];
   const overrides = {};
   const reasons = [];
@@ -150,7 +187,13 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X') {
 
   const emo = deriveEmoEat(facts);
   const labs = deriveLabs(facts, now, sex);
-  for (const part of [emo, labs]) {
+  const essence = computeEssence(facts, now, ctx);
+  Object.assign(overrides, essence.overrides);
+  Object.assign(checkin, essence.checkin);
+  // AI обобщението предлага само промени в менюто от речника (не калории и не диагнози).
+  const digest = store?.digest && typeof store.digest === 'object' ? store.digest : null;
+  const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
+  for (const part of [emo, labs, essence, digestPart]) {
     if (!part) continue;
     for (const k of ['behaviors', 'approach', 'clinical', 'cautions']) hints[k].push(...(part.hints?.[k] || []));
     reasons.push(...(part.reasons || []));
@@ -166,6 +209,8 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X') {
     labs: labs?.findings || [],
     safety: labs?.safety || {},
     supplements: labs?.supplements || [],
+    essence: { metrics: essence.metrics, signals: essence.signals, sources: essence.sources, at: essence.at },
+    digest: digest ? { insights: digest.insights || [], coachNote: digest.coachNote || '', at: digest.at } : null,
     reasons,
   };
 }
@@ -174,12 +219,13 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X') {
  * Прилага обогатяването върху данните за генериране. Оригиналните отговори
  * остават в _enrichment.original, за да се вижда какво е заменено.
  * @param {Record<string, any>} userData
- * @param {{ facts?: any[] } | null | undefined} store
+ * @param {{ facts?: any[], digest?: any } | null | undefined} store
  */
 export function applyEnrichment(userData, store, now = new Date()) {
   if (!userData || !store?.facts?.length) return userData;
   const sex = userData.gender === 'Мъж' ? 'M' : userData.gender === 'Жена' ? 'F' : 'X';
-  const derived = deriveEnrichment(store, now, sex);
+  const kg = Number(String(userData.weight || '').replace(',', '.'));
+  const derived = deriveEnrichment(store, now, sex, kg > 30 ? { waterNeedL: Math.round(kg * 0.033 * 10) / 10 } : {});
   const original = {};
   for (const [field, value] of Object.entries(derived.overrides)) {
     original[field] = userData[field] ?? null;
@@ -206,6 +252,7 @@ export function recalcLevel(prevData, nextData) {
   if (!sameSet(a.clinical, b.clinical)) bump(3, 'здравословно състояние');
   if (a.diet.pattern !== b.diet.pattern) bump(3, 'модел на хранене');
   if (a.activity.daily !== b.activity.daily) bump(2, 'ниво на активност');
+  if (a.activity.sportBand !== b.activity.sportBand) bump(2, 'тренировки');
   if ((a.sleepHours || 0) !== (b.sleepHours || 0) && Math.abs((a.sleepHours || 7) - (b.sleepHours || 7)) >= 1) bump(2, 'сън');
   if (a.stress !== b.stress) bump(2, 'стрес');
   if (a.weightKg && b.weightKg && Math.abs(a.weightKg - b.weightKg) / a.weightKg >= 0.02) bump(2, 'тегло');
