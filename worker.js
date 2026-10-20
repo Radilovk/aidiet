@@ -44019,6 +44019,7 @@ function deriveEmoEat(facts) {
   };
   const reasons = [`\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat${voice.archetype ? `: ${voice.archetype}` : ""})`];
   const reliable = p.reliability?.level !== "\u043D\u0438\u0441\u043A\u0430";
+  voice.reliable = reliable;
   const felt = p.intensity === "\u041E\u0441\u0435\u0437\u0430\u0435\u043C\u043E" || p.intensity === "\u0421\u0438\u043B\u043D\u043E";
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
   if (!reliable || !felt) return { voice, hints, reasons };
@@ -44407,7 +44408,9 @@ function deriveIris(facts) {
       complaints: fact.value.complaints || ""
     },
     hints: { behaviors: [], approach: [], clinical: [], cautions },
-    reasons: ["\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS)"]
+    reasons: ["\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS)"],
+    // За сверката с NutriPlan (cross-check.js) — не излиза към клиента.
+    raw: { systems: a.systems || [], questionnaire: fact.value.questionnaire || null }
   };
 }
 function irisText(s) {
@@ -44423,6 +44426,177 @@ function irisText(s) {
     s.complaints ? `\u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F: ${s.complaints}` : ""
   ].filter(Boolean);
   return parts.join("; ").slice(0, 900);
+}
+
+// cross-check.js
+var IRIS_SYSTEMS = {
+  digestive: {
+    label: "\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435",
+    codes: ["GI", "IBS", "IBD", "GERD", "SIBO", "GAST", "CEL"],
+    text: /подув|газ(ове|ов)|тежест|киселин|запек|диари|рефлукс|колит|гастрит|храносмил/i,
+    action: "gentle_digestion",
+    actionLabel: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E \u043C\u0435\u043D\u044E",
+    ask: "AIRIS \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F. \u0418\u043C\u0430\u0442\u0435 \u043B\u0438 \u043F\u043E\u0434\u0443\u0432\u0430\u043D\u0435, \u0442\u0435\u0436\u0435\u0441\u0442, \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0438 \u0438\u043B\u0438 \u043D\u0435\u0440\u0435\u0434\u043E\u0432\u043D\u043E \u0438\u0437\u0445\u043E\u0436\u0434\u0430\u043D\u0435?"
+  },
+  metabolic: {
+    label: "\u041E\u0431\u043C\u044F\u043D\u0430 (\u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438)",
+    codes: ["IR", "T2D", "METS", "DYSL", "NAFLD"],
+    text: /кръвна захар|инсулин|холестерол|триглицерид|коремн/i,
+    signals: ["glucose_high", "glucose_spikes"],
+    action: "more_volume",
+    actionLabel: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0444\u0438\u0431\u0440\u0438 \u043F\u0440\u0438 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438",
+    // Голям обем на хранене влошава рефлукса и гастрита — по код или по думите на клиента
+    // (въпросникът събира „Рефлукс“ в общия код GI, затова и текстът).
+    guard: ["GERD", "GAST"],
+    guardText: /рефлукс|киселин|гастрит|херни/i,
+    ask: "AIRIS \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u043E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F. \u0418\u043C\u0430\u0442\u0435 \u043B\u0438 \u0440\u044F\u0437\u044A\u043A \u0433\u043B\u0430\u0434 \u0438\u043B\u0438 \u0441\u044A\u043D\u043B\u0438\u0432\u043E\u0441\u0442 \u0441\u043B\u0435\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0438\u043B\u0438 \u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438\u043B\u0438 \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B \u043F\u0440\u0438 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435?"
+  },
+  nervous: {
+    label: "\u041D\u0435\u0440\u0432\u043D\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 (\u0441\u0442\u0440\u0435\u0441 \u0438 \u0441\u044A\u043D)",
+    codes: ["DEP", "ANX", "SLP"],
+    text: /стрес|тревожн|безсъни|напрежение|умора/i,
+    signals: ["recovery_low", "sleep_short"],
+    behaviors: ["EMO"],
+    action: null,
+    ask: "AIRIS \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u043D\u0435\u0440\u0432\u043D\u0430\u0442\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0441\u0442\u0440\u0435\u0441\u044A\u0442 \u0435 \u043D\u0438\u0441\u044A\u043A. \u0427\u0443\u0432\u0441\u0442\u0432\u0430\u0442\u0435 \u043B\u0438 \u0441\u0435 \u043D\u0430\u043F\u0440\u0435\u0433\u043D\u0430\u0442\u0438 \u0438\u043B\u0438 \u0438\u0437\u0442\u043E\u0449\u0435\u043D\u0438 \u043F\u0440\u0435\u0437 \u043F\u043E\u0432\u0435\u0447\u0435\u0442\u043E \u0434\u043D\u0438?"
+  },
+  circulatory: { label: "\u041A\u0440\u044A\u0432\u043E\u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0435", codes: ["HTN", "CVD", "DYSL"], signals: ["bp_high"], text: /кръвно|сърдеч/i, action: null },
+  endocrine: { label: "\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430", codes: ["HYPO", "HYPER", "ENDO", "PCOS", "HORM", "ADR", "MENO"], text: /щитовид|хормон|цикъл/i, action: null },
+  detox: { label: "\u0427\u0435\u0440\u0435\u043D \u0434\u0440\u043E\u0431 \u0438 \u0436\u043B\u044A\u0447\u043A\u0430", codes: ["NAFLD"], text: /черен дроб|жлъч/i, action: null },
+  immune: { label: "\u0418\u043C\u0443\u043D\u0438\u0442\u0435\u0442 \u0438 \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435", codes: ["INFL", "AI", "ALG", "SKIN"], text: /алерги|възпал|кож/i, action: null }
+};
+var YES = ["often", "sometimes"];
+var SYMPTOM_OPTIONS = [
+  { value: "often", label: "\u0414\u0430, \u0447\u0435\u0441\u0442\u043E" },
+  { value: "sometimes", label: "\u041F\u043E\u043D\u044F\u043A\u043E\u0433\u0430" },
+  { value: "no", label: "\u041D\u0435" }
+];
+var asList2 = (v) => (Array.isArray(v) ? v : String(v ?? "").split(/[,;|\n]/)).map((s) => String(s).trim()).filter(Boolean);
+var said = (data, field, values) => asList2(data?.[field]).some((x) => values.includes(x));
+var termKey = (t) => normLabel(t).replace(/[^a-zа-я0-9]+/gi, "_").slice(0, 40);
+function resolutionsOf(facts) {
+  const out = {};
+  for (const f of [...facts || []].filter((x) => x.kind === "resolution").sort((a, b) => Date.parse(a.at) - Date.parse(b.at))) {
+    out[f.key] = f.value;
+  }
+  return out;
+}
+function crossCheck(data, derived, resolutions = {}) {
+  const hypotheses = [];
+  const questions = [];
+  const overrides = {};
+  const approach = [];
+  const cautions = [];
+  const { _enrichment, ...plain } = data || {};
+  const profile = compileProfile(plain);
+  const clinical = /* @__PURE__ */ new Set([...profile.clinical || [], ...derived?.hints?.clinical || []]);
+  const behaviors = /* @__PURE__ */ new Set([...profile.behaviors || [], ...derived?.hints?.behaviors || []]);
+  const signals = new Set((derived?.essence?.signals || []).map((s) => s.code));
+  const freeText = [data?.additionalNotes, data?.medicalConditions_other, data?.healthConditions_other, data?.dietDislike].filter(Boolean).join(" ");
+  const noConditions = said(data, "medicalConditions", ["\u041D\u044F\u043C\u0430\u043C", "\u041D\u044F\u043C\u0430"]) || said(data, "healthConditions", ["\u041D\u044F\u043C\u0430\u043C", "\u041D\u044F\u043C\u0430"]);
+  const conditionsText = [
+    freeText,
+    ...asList2(data?.medicalConditions),
+    ...asList2(data?.healthConditions),
+    ...Object.keys(data || {}).filter((k) => /^medicalConditions_/.test(k)).flatMap((k) => asList2(data[k]))
+  ].join(" ");
+  const iris = derived?.irisRaw;
+  for (const s of (iris?.systems || []).filter((x) => x.priority)) {
+    const def = IRIS_SYSTEMS[s.key];
+    if (!def) continue;
+    const evidence = [];
+    for (const c of def.codes || []) if (clinical.has(c)) evidence.push(`\u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 ${c}`);
+    if (def.text && def.text.test(freeText)) evidence.push("\u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430");
+    for (const sig of def.signals || []) if (signals.has(sig)) evidence.push(`\u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ${sig}`);
+    for (const b of def.behaviors || []) if (behaviors.has(b)) evidence.push("EmoEat / \u043D\u0430\u0432\u0438\u0446\u0438");
+    if (s.key === "nervous" && data?.stressLevel === "\u0412\u0438\u0441\u043E\u043A\u043E") evidence.push("\u0432\u0438\u0441\u043E\u043A \u0441\u0442\u0440\u0435\u0441");
+    const qid = `iris:${s.key}`;
+    const answer = resolutions[qid];
+    if (YES.includes(answer)) evidence.push("\u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430");
+    const denied = s.key === "nervous" ? data?.stressLevel === "\u041D\u0438\u0441\u043A\u043E" && !evidence.length : noConditions && !evidence.length;
+    let status = evidence.length ? "confirmed" : "unconfirmed";
+    if (answer === "no") status = "rejected";
+    else if (!evidence.length && denied && def.ask) {
+      status = "disputed";
+      questions.push({ id: qid, source: "airis", topic: def.label, text: def.ask, options: SYMPTOM_OPTIONS });
+    }
+    const blockedBy = (def.guard || []).filter((c) => clinical.has(c));
+    if (def.guardText && def.guardText.test(conditionsText)) blockedBy.push("\u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0435 \u043E\u0442 \u0440\u0435\u0444\u043B\u0443\u043A\u0441/\u0433\u0430\u0441\u0442\u0440\u0438\u0442");
+    const applied = status === "confirmed" && !!def.action && !blockedBy.length;
+    if (applied) approach.push(def.action);
+    hypotheses.push({
+      system: s.key,
+      label: def.label,
+      status,
+      evidence: [...new Set(evidence)],
+      action: def.action ? def.actionLabel : null,
+      applied,
+      blockedBy: status === "confirmed" && blockedBy.length ? blockedBy : []
+    });
+  }
+  const q = derived?.irisRaw?.questionnaire;
+  if (q) {
+    const known = normLabel([data?.dietDislike, data?.["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"], data?.foodSensitivities].flat().filter(Boolean).join(" "));
+    for (const term of asList2([q.foodIntolerances, q.allergies].filter(Boolean).join(","))) {
+      const t = term.slice(0, 40);
+      if (normLabel(t).length < 3 || known.includes(normLabel(t))) continue;
+      const id = `allergy:${termKey(t)}`;
+      const answer = resolutions[id];
+      if (answer === "yes") overrides.dietDislike = [overrides.dietDislike || data?.dietDislike, t].filter(Boolean).join(", ");
+      else if (!answer) {
+        questions.push({ id, source: "airis", topic: "\u041D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442 \u0438\u043B\u0438 \u0430\u043B\u0435\u0440\u0433\u0438\u044F \u043A\u044A\u043C \u201E${t}\u201C, \u0430 \u0432 NutriPlan \u044F \u043D\u044F\u043C\u0430. \u0414\u0430 \u044F \u0438\u0437\u043A\u043B\u044E\u0447\u0438\u043C \u043B\u0438 \u043E\u0442 \u043F\u043B\u0430\u043D\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u0438\u0437\u043A\u043B\u044E\u0447\u0438 \u044F" }, { value: "no", label: "\u041D\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E" }] });
+      }
+    }
+    if (q.medications && data?.medications !== "\u0414\u0430") {
+      const answer = resolutions.meds;
+      if (answer === "yes") {
+        overrides.medications = "\u0414\u0430";
+        overrides.medicationsDetails = [data?.medicationsDetails, q.medications].filter(Boolean).join("; ");
+      } else if (!answer) {
+        questions.push({ id: "meds", source: "airis", topic: "\u041B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 \u201E${q.medications.slice(0, 120)}\u201C, \u0430 \u0432 NutriPlan \u2014 \u0447\u0435 \u043D\u0435 \u043F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u041F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0438 \u0433\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u043F\u0440\u0438\u0435\u043C\u0430\u043C \u0433\u0438" }, { value: "no", label: "\u041D\u0435, \u0432\u0435\u0447\u0435 \u043D\u0435" }] });
+      }
+    }
+    const npDiet = asList2(data?.dietPreference);
+    for (const [airisLabel, npLabel] of [["\u0412\u0435\u0433\u0430\u043D", "\u0412\u0435\u0433\u0430\u043D"], ["\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0438", "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430"]]) {
+      if (!(q.dietaryProfile || []).includes(airisLabel) || npDiet.includes(npLabel)) continue;
+      const id = `pattern:${npLabel}`;
+      const answer = resolutions[id];
+      if (answer === "yes") overrides.dietPreference = [.../* @__PURE__ */ new Set([...npDiet, npLabel])];
+      else if (!answer) {
+        questions.push({ id, source: "airis", topic: "\u0420\u0435\u0436\u0438\u043C \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 ${npLabel.toLowerCase()} \u0440\u0435\u0436\u0438\u043C, \u0430 \u0432 NutriPlan \u2014 \u043D\u0435. \u0414\u0430 \u0433\u043E \u043F\u0440\u0438\u043B\u043E\u0436\u0438\u043C \u043B\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430?`, options: [{ value: "yes", label: "\u0414\u0430" }, { value: "no", label: "\u041D\u0435" }] });
+      }
+      break;
+    }
+    const npKg = Number(String(data?.weight || "").replace(",", "."));
+    if (q.weight && npKg && Math.abs(q.weight - npKg) >= 4) {
+      const answer = resolutions.weight;
+      if (answer === "airis") overrides.weight = String(q.weight);
+      else if (!answer) {
+        questions.push({ id: "weight", source: "airis", topic: "\u0422\u0435\u0433\u043B\u043E", text: `\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0432 AIRIS (${q.weight} \u043A\u0433) \u0438 \u0432 NutriPlan (${npKg} \u043A\u0433) \u0441\u0435 \u0440\u0430\u0437\u043B\u0438\u0447\u0430\u0432\u0430. \u041A\u043E\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E\u0442\u043E?`, options: [{ value: "airis", label: `${q.weight} \u043A\u0433` }, { value: "nutriplan", label: `${npKg} \u043A\u0433` }] });
+      }
+    }
+  }
+  const v = derived?.voice;
+  const strong = v && v.reliable !== false && (v.intensity === "\u0421\u0438\u043B\u043D\u043E" || v.intensity === "\u041E\u0441\u0435\u0437\u0430\u0435\u043C\u043E");
+  const rarely = ["\u0420\u044F\u0434\u043A\u043E", "\u041D\u0438\u043A\u043E\u0433\u0430"].includes(data?.overeatingFrequency) && (!asList2(data?.foodTriggers).length || said(data, "foodTriggers", ["\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u043E"]));
+  if (strong && rarely && !resolutions.emoeat_vs_q) {
+    questions.push({ id: "emoeat_vs_q", source: "emoeat", topic: "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", text: "EmoEat \u043F\u043E\u043A\u0430\u0437\u0432\u0430, \u0447\u0435 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0447\u0435\u0441\u0442\u043E \u0438\u0434\u0432\u0430 \u0432 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u043D\u0430 \u0435\u043C\u043E\u0446\u0438\u0438, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0441\u0442\u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043B\u0438, \u0447\u0435 \u0440\u044F\u0434\u043A\u043E \u044F\u0434\u0435\u0442\u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u043E\u0442\u043E. \u041A\u043E\u0435 \u0435 \u043F\u043E-\u0431\u043B\u0438\u0437\u043E \u0434\u043E \u0432\u0430\u0441?", options: [{ value: "often", label: "\u0427\u0435\u0441\u0442\u043E \u044F\u043C \u043F\u0440\u0438 \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0443\u043C\u043E\u0440\u0430 \u0438\u043B\u0438 \u0441\u043A\u0443\u043A\u0430" }, { value: "rare", label: "\u0420\u044F\u0434\u043A\u043E \u2014 \u043D\u0435 \u0441\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043C" }] });
+  }
+  const confirmed = hypotheses.filter((h) => h.status === "confirmed");
+  if (confirmed.some((h) => h.blockedBy.length)) {
+    cautions.push(`\u041F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 AIRIS \u0438 NutriPlan, \u043D\u043E \u043D\u0435 \u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u043E \u0437\u0430\u0440\u0430\u0434\u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u043E: ${confirmed.filter((h) => h.blockedBy.length).map((h) => `${h.label} (${h.blockedBy.join(", ")})`).join("; ")}.`);
+  }
+  return { hypotheses, questions: questions.slice(0, 6), overrides, approach: [...new Set(approach)], cautions };
+}
+function crossCheckText(cc) {
+  if (!cc) return "";
+  const parts = [];
+  const by = (st) => cc.hypotheses.filter((h) => h.status === st);
+  if (by("confirmed").length) parts.push(`\u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 AIRIS \u0438 NutriPlan: ${by("confirmed").map((h) => `${h.label} (${h.evidence.join(", ")})${h.applied ? ` \u2192 ${h.action}` : ""}`).join("; ")}`);
+  if (by("rejected").length) parts.push(`\u043E\u0442\u0445\u0432\u044A\u0440\u043B\u0435\u043D\u043E \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430: ${by("rejected").map((h) => h.label).join(", ")}`);
+  if (by("unconfirmed").length) parts.push(`\u0441\u0430\u043C\u043E \u043F\u043E \u0438\u0440\u0438\u0441\u0430 (\u0431\u0435\u0437 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435): ${by("unconfirmed").map((h) => h.label).join(", ")}`);
+  if (cc.questions.length) parts.push(`\u043D\u0435\u0443\u0442\u043E\u0447\u043D\u0435\u043D\u0438 \u0440\u0430\u0437\u043C\u0438\u043D\u0430\u0432\u0430\u043D\u0438\u044F (\u043C\u043E\u0436\u0435 \u0434\u0430 \u043F\u043E\u043F\u0438\u0442\u0430\u0448 \u043A\u043B\u0438\u0435\u043D\u0442\u0430): ${cc.questions.map((q) => q.topic).join(", ")}`);
+  return parts.join(" | ");
 }
 
 // enrichment.js
@@ -44487,6 +44661,12 @@ function normalizeFact(raw) {
   if (kind === "emoeat") {
     if (!raw.value || typeof raw.value !== "object") return null;
     return { kind, key: "profile", value: raw.value, unit: "", at, source: "emoeat", confidence, status };
+  }
+  if (kind === "resolution") {
+    const key = String(raw.key || "").trim().slice(0, 80);
+    const value = String(raw.value ?? "").trim().slice(0, 40);
+    if (!/^[a-z_]+(:[\p{L}\p{N}_]+)?$/u.test(key) || !value) return null;
+    return { kind, key, value, unit: "", at, source: "client", confidence: 1, status: "confirmed" };
   }
   if (kind === "iris") {
     if (!raw.value || typeof raw.value !== "object" || !raw.value.analysis) return null;
@@ -44565,7 +44745,9 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   const digest = store?.digest && typeof store.digest === "object" ? store.digest : null;
   const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
   const iris = deriveIris(facts);
-  for (const part of [emo, labs, essence, digestPart, iris]) {
+  const resolutions = resolutionsOf(facts);
+  const emoPart = emo && resolutions.emoeat_vs_q === "rare" ? { ...emo, hints: null } : emo;
+  for (const part of [emoPart, labs, essence, digestPart, iris]) {
     if (!part) continue;
     for (const k of ["behaviors", "approach", "clinical", "cautions"]) hints[k].push(...part.hints?.[k] || []);
     reasons.push(...part.reasons || []);
@@ -44583,6 +44765,8 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
     essence: { metrics: essence.metrics, signals: essence.signals, sources: essence.sources, at: essence.at },
     digest: digest ? { insights: digest.insights || [], coachNote: digest.coachNote || "", at: digest.at } : null,
     iris: iris?.summary || null,
+    irisRaw: iris?.raw || null,
+    resolutions,
     reasons
   };
 }
@@ -44591,6 +44775,11 @@ function applyEnrichment(userData, store, now = /* @__PURE__ */ new Date()) {
   const sex = userData.gender === "\u041C\u044A\u0436" ? "M" : userData.gender === "\u0416\u0435\u043D\u0430" ? "F" : "X";
   const kg = Number(String(userData.weight || "").replace(",", "."));
   const derived = deriveEnrichment(store, now, sex, kg > 30 ? { waterNeedL: Math.round(kg * 0.033 * 10) / 10 } : {});
+  const cc = crossCheck(userData, derived, derived.resolutions);
+  Object.assign(derived.overrides, cc.overrides);
+  derived.hints.approach = [.../* @__PURE__ */ new Set([...derived.hints.approach, ...cc.approach])];
+  derived.hints.cautions = [.../* @__PURE__ */ new Set([...derived.hints.cautions, ...cc.cautions])];
+  derived.crossCheck = { hypotheses: cc.hypotheses, questions: cc.questions };
   const original = {};
   for (const [field, value] of Object.entries(derived.overrides)) {
     original[field] = userData[field] ?? null;
@@ -44621,6 +44810,7 @@ function recalcLevel(prevData, nextData) {
   if (!sameSet(a.exclusions, b.exclusions)) bump(1, "\u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438");
   if (a.diet.style !== b.diet.style) bump(1, "\u043D\u0430\u0447\u0438\u043D \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
   if (!sameSet(a.behaviors, b.behaviors)) bump(0, "\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043D\u0430\u0432\u0438\u0446\u0438");
+  if (!sameSet(prevData?._enrichment?.hints?.approach || [], nextData?._enrichment?.hints?.approach || [])) bump(1, "\u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E");
   const aNext = nextData?._enrichment;
   const aPrev = prevData?._enrichment;
   if (JSON.stringify(aNext?.voice || null) !== JSON.stringify(aPrev?.voice || null)) bump(0, "\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B");
@@ -44729,7 +44919,19 @@ function handoffToFacts(h) {
   if (!h) return [];
   if (h.source === "emoeat") return [{ kind: "emoeat", value: h.profile, at: h.at, source: "emoeat", status: "confirmed" }];
   if (h.source === "airis") {
-    return [{ kind: "iris", value: { analysis: h.analysis, complaints: h.questionnaire?.complaints || "" }, at: h.at, source: "airis", status: "confirmed" }];
+    const q = h.questionnaire || {};
+    return [{
+      kind: "iris",
+      value: {
+        analysis: h.analysis,
+        complaints: q.complaints || "",
+        // За сверката с NutriPlan: само полетата, при които разминаване има значение.
+        questionnaire: { weight: q.weight, foodIntolerances: q.foodIntolerances, allergies: q.allergies, medications: q.medications, dietaryProfile: q.dietaryProfile || [] }
+      },
+      at: h.at,
+      source: "airis",
+      status: "confirmed"
+    }];
   }
   return [];
 }
@@ -55539,6 +55741,27 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
     derived: publicEnrichmentView(nextData._enrichment)
   };
 }
+async function handleEnrichmentResolve(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, questionId, answer } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (!profile?.enrichment?.facts?.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u0441\u0435 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430" }, 404);
+    const data = applyEnrichment(normalizeQuestionnaireData({ ...profile.userData || {} }), profile.enrichment);
+    const q = (data._enrichment?.crossCheck?.questions || []).find((x) => x.id === questionId);
+    if (!q) return jsonResponse2({ error: "\u0412\u044A\u043F\u0440\u043E\u0441\u044A\u0442 \u0432\u0435\u0447\u0435 \u043D\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u0435\u043D" }, 409);
+    if (!q.options.some((o) => o.value === answer)) return jsonResponse2({ error: "\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440" }, 400);
+    const fact = normalizeFact({ kind: "resolution", key: q.id, value: answer, at: (/* @__PURE__ */ new Date()).toISOString() });
+    if (!fact) return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0432\u044A\u043F\u0440\u043E\u0441" }, 400);
+    return jsonResponse2(await ingestEnrichmentFacts(env, userId, [fact]));
+  } catch (error) {
+    console.error("resolve failed:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u0437\u0430\u043F\u0438\u0448\u0435\u043C \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430." }, 500);
+  }
+}
 var HANDOFF_PREFIX = "handoff:";
 var NUTRIPLAN_SITE = "https://biocode.website";
 function newHandoffToken() {
@@ -55862,14 +56085,17 @@ function publicEnrichmentView(d) {
     digest: d.digest || null,
     // Готовият текст за чата на клиента (същият като в картона на специалиста).
     essenceText: profileContextText(d),
-    iris: d.iris ? { at: d.iris.at, focus: d.iris.focus } : null
+    iris: d.iris ? { at: d.iris.at, focus: d.iris.focus } : null,
+    // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
+    hypotheses: d.crossCheck?.hypotheses || [],
+    questions: d.crossCheck?.questions || []
   };
 }
 function profileContextText(d) {
   if (!d) return "";
   const v = d.voice;
   const emo = v && (v.archetype || v.intensity) ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat): ${[v.archetype ? `\u0430\u0440\u0445\u0435\u0442\u0438\u043F ${v.archetype}` : "", v.intensity ? `\u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442 ${v.intensity}` : "", v.drivers?.length ? `\u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438 ${v.drivers.join(", ")}` : "", v.realNeed ? `\u0440\u0435\u0430\u043B\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 ${v.realNeed}` : ""].filter(Boolean).join(", ")}` : "";
-  return [essenceText(d.essence, d.digest), emo, irisText(d.iris)].filter(Boolean).join(" | ").slice(0, 2400);
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), crossCheckText(d.crossCheck)].filter(Boolean).join(" | ").slice(0, 2800);
 }
 var DEFAULT_HEALTH_DIGEST_PROMPT = `\u0422\u0438 \u0441\u0438 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0414\u0430\u043D\u043D\u0438 \u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0442\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A, \u0433\u0440\u0438\u0432\u043D\u0430, \u0432\u0435\u0437\u043D\u0430, \u0430\u043F\u0430\u0440\u0430\u0442 \u0437\u0430 \u043A\u0440\u044A\u0432\u043D\u043E, \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440, \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F) \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438, \u0432\u0435\u0447\u0435 \u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438:
 {essence}
@@ -57590,6 +57816,8 @@ var worker_entry_default = {
         const rlErr = await checkRateLimit(env, request, "HANDOFF_READ");
         if (rlErr) return rlErr;
         return await handleHandoffClaim(request, env);
+      } else if (url.pathname === "/api/enrichment/resolve" && request.method === "POST") {
+        return await handleEnrichmentResolve(request, env);
       } else if (url.pathname === "/api/enrichment/extract-device" && request.method === "POST") {
         return await handleDeviceExtract(request, env);
       } else if (url.pathname === "/api/enrichment/delete" && request.method === "POST") {

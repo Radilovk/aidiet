@@ -111,7 +111,17 @@ export function handoffToFacts(h) {
   if (!h) return [];
   if (h.source === 'emoeat') return [{ kind: 'emoeat', value: h.profile, at: h.at, source: 'emoeat', status: 'confirmed' }];
   if (h.source === 'airis') {
-    return [{ kind: 'iris', value: { analysis: h.analysis, complaints: h.questionnaire?.complaints || '' }, at: h.at, source: 'airis', status: 'confirmed' }];
+    const q = h.questionnaire || {};
+    return [{
+      kind: 'iris',
+      value: {
+        analysis: h.analysis,
+        complaints: q.complaints || '',
+        // За сверката с NutriPlan: само полетата, при които разминаване има значение.
+        questionnaire: { weight: q.weight, foodIntolerances: q.foodIntolerances, allergies: q.allergies, medications: q.medications, dietaryProfile: q.dietaryProfile || [] },
+      },
+      at: h.at, source: 'airis', status: 'confirmed',
+    }];
   }
   return [];
 }

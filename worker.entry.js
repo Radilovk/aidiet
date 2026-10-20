@@ -102,6 +102,7 @@ import { enrichUserDataEngineContext } from './questionnaire-engine-map.js';
 import { applyEnrichment, mergeFacts, normalizeFact, recalcLevel, deriveEnrichment, isUrgent, DEVICE_KINDS } from './enrichment.js';
 import { essenceText, digestDue, normalizeDigest, DIGEST_APPROACH } from './health-essence.js';
 import { irisText } from './enrichment-iris.js';
+import { crossCheckText } from './cross-check.js';
 import { normalizeHandoff, handoffToFacts, airisPrefill, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { LAB_MARKERS } from './enrichment-labs.js';
@@ -13904,6 +13905,33 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
   };
 }
 
+/**
+ * POST /api/enrichment/resolve — Body: { userId, idToken?, questionId, answer }
+ * Отговор на въпрос за разминаване между източниците. Приема се само въпрос,
+ * който в момента е отворен за клиента, и само един от предложените отговори.
+ */
+async function handleEnrichmentResolve(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, questionId, answer } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (!profile?.enrichment?.facts?.length) return jsonResponse({ error: 'Няма какво да се уточнява' }, 404);
+    const data = applyEnrichment(normalizeQuestionnaireData({ ...(profile.userData || {}) }), profile.enrichment);
+    const q = (data._enrichment?.crossCheck?.questions || []).find(x => x.id === questionId);
+    if (!q) return jsonResponse({ error: 'Въпросът вече не е актуален' }, 409);
+    if (!q.options.some(o => o.value === answer)) return jsonResponse({ error: 'Непознат отговор' }, 400);
+    const fact = normalizeFact({ kind: 'resolution', key: q.id, value: answer, at: new Date().toISOString() });
+    if (!fact) return jsonResponse({ error: 'Невалиден въпрос' }, 400);
+    return jsonResponse(await ingestEnrichmentFacts(env, userId, [fact]));
+  } catch (error) {
+    console.error('resolve failed:', error);
+    return jsonResponse({ error: 'Не успяхме да запишем отговора.' }, 500);
+  }
+}
+
 /* ── Пратки от модулите (EmoEat, AIRIS) → NutriPlan ─────────────────────
  * Еднопосочно: модулът оставя обобщение и получава линк; NutriPlan прибира
  * пратката в профила само със съгласие. Към модулите не се връща нищо от
@@ -14291,6 +14319,9 @@ function publicEnrichmentView(d) {
     // Готовият текст за чата на клиента (същият като в картона на специалиста).
     essenceText: profileContextText(d),
     iris: d.iris ? { at: d.iris.at, focus: d.iris.focus } : null,
+    // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
+    hypotheses: d.crossCheck?.hypotheses || [],
+    questions: d.crossCheck?.questions || [],
   };
 }
 
@@ -14304,7 +14335,7 @@ function profileContextText(d) {
   const emo = v && (v.archetype || v.intensity)
     ? `емоционален профил (EmoEat): ${[v.archetype ? `архетип ${v.archetype}` : '', v.intensity ? `интензитет ${v.intensity}` : '', v.drivers?.length ? `двигатели ${v.drivers.join(', ')}` : '', v.realNeed ? `реална нужда ${v.realNeed}` : ''].filter(Boolean).join(', ')}`
     : '';
-  return [essenceText(d.essence, d.digest), emo, irisText(d.iris)].filter(Boolean).join(' | ').slice(0, 2400);
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 2800);
 }
 
 const DEFAULT_HEALTH_DIGEST_PROMPT = `Ти си диетолог. Данни от устройствата на клиента (часовник, гривна, везна, апарат за кръвно, глюкомер, приложения) за последните седмици, вече обобщени:
@@ -16573,6 +16604,8 @@ export default {
         const rlErr = await checkRateLimit(env, request, 'HANDOFF_READ');
         if (rlErr) return rlErr;
         return await handleHandoffClaim(request, env);
+      } else if (url.pathname === '/api/enrichment/resolve' && request.method === 'POST') {
+        return await handleEnrichmentResolve(request, env);
       } else if (url.pathname === '/api/enrichment/extract-device' && request.method === 'POST') {
         return await handleDeviceExtract(request, env);
       } else if (url.pathname === '/api/enrichment/delete' && request.method === 'POST') {

@@ -55,6 +55,7 @@ export function deriveEmoEat(facts) {
   const reasons = [`емоционален профил (EmoEat${voice.archetype ? `: ${voice.archetype}` : ''})`];
 
   const reliable = p.reliability?.level !== 'ниска';
+  voice.reliable = reliable;
   const felt = p.intensity === 'Осезаемо' || p.intensity === 'Силно';
   /** @type {{ behaviors: string[], approach: string[], clinical: string[], cautions: string[] }} */
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };

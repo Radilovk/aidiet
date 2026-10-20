@@ -109,6 +109,11 @@ check('модули → NutriPlan (пратки)', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
+check('сверка AIRIS / EmoEat / NutriPlan', () => {
+  const r = run('node', ['scripts/test-crosscheck.mjs']);
+  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
+});
+
 check('матрица от профили', () => {
   const r = run('node', ['scripts/test-profile-matrix.mjs', '120']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);

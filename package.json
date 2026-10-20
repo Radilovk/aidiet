@@ -27,6 +27,7 @@
     "test:health-essence": "node scripts/test-health-essence.mjs",
     "test:device-import": "node scripts/test-device-import.mjs",
     "test:handoff": "node scripts/test-handoff.mjs",
+    "test:crosscheck": "node scripts/test-crosscheck.mjs",
     "test:engine": "node scripts/test-nutrition-engine.mjs",
     "test:voice": "node scripts/test-plan-voice.mjs",
     "test:matrix": "node scripts/test-profile-matrix.mjs",

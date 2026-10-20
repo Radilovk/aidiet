@@ -105,6 +105,8 @@
         submit: submit,
         get: function () { return post('/api/enrichment/get', {}).then(keepEssence); },
         extractLabs: function (imageData, mimeType) { return post('/api/enrichment/extract-labs', { imageData: imageData, mimeType: mimeType }); },
+        /** Отговор на въпрос за разминаване между източниците — самият отговор е съгласието. */
+        resolve: function (questionId, answer) { return post('/api/enrichment/resolve', { questionId: questionId, answer: answer }).then(keepEssence); },
         extractDevice: function (imageData, mimeType) { return post('/api/enrichment/extract-device', { imageData: imageData, mimeType: mimeType }); },
         remove: function (kinds) {
             // След изтриване есенцията се презарежда — остава само от данните, които още са в профила.

@@ -41,6 +41,8 @@ export function deriveIris(facts) {
     },
     hints: { behaviors: [], approach: [], clinical: [], cautions },
     reasons: ['ирисов анализ (AIRIS)'],
+    // За сверката с NutriPlan (cross-check.js) — не излиза към клиента.
+    raw: { systems: a.systems || [], questionnaire: fact.value.questionnaire || null },
   };
 }
 

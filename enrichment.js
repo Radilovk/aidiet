@@ -19,6 +19,7 @@ import { deriveEmoEat } from './enrichment-emoeat.js';
 import { deriveLabs } from './enrichment-labs.js';
 import { computeEssence } from './health-essence.js';
 import { deriveIris } from './enrichment-iris.js';
+import { crossCheck, resolutionsOf } from './cross-check.js';
 
 export const ENRICHMENT_VERSION = 1;
 
@@ -96,6 +97,12 @@ export function normalizeFact(raw) {
   if (kind === 'emoeat') {
     if (!raw.value || typeof raw.value !== 'object') return null;
     return { kind, key: 'profile', value: raw.value, unit: '', at, source: 'emoeat', confidence, status };
+  }
+  if (kind === 'resolution') {
+    const key = String(raw.key || '').trim().slice(0, 80);
+    const value = String(raw.value ?? '').trim().slice(0, 40);
+    if (!/^[a-z_]+(:[\p{L}\p{N}_]+)?$/u.test(key) || !value) return null;
+    return { kind, key, value, unit: '', at, source: 'client', confidence: 1, status: 'confirmed' };
   }
   if (kind === 'iris') {
     if (!raw.value || typeof raw.value !== 'object' || !raw.value.analysis) return null;
@@ -199,7 +206,10 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const digest = store?.digest && typeof store.digest === 'object' ? store.digest : null;
   const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
   const iris = deriveIris(facts);
-  for (const part of [emo, labs, essence, digestPart, iris]) {
+  const resolutions = resolutionsOf(facts);
+  // Клиентът не се разпознава в профила от EmoEat — остава само гласът, без кодове.
+  const emoPart = emo && resolutions.emoeat_vs_q === 'rare' ? { ...emo, hints: null } : emo;
+  for (const part of [emoPart, labs, essence, digestPart, iris]) {
     if (!part) continue;
     for (const k of ['behaviors', 'approach', 'clinical', 'cautions']) hints[k].push(...(part.hints?.[k] || []));
     reasons.push(...(part.reasons || []));
@@ -218,6 +228,8 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
     essence: { metrics: essence.metrics, signals: essence.signals, sources: essence.sources, at: essence.at },
     digest: digest ? { insights: digest.insights || [], coachNote: digest.coachNote || '', at: digest.at } : null,
     iris: iris?.summary || null,
+    irisRaw: iris?.raw || null,
+    resolutions,
     reasons,
   };
 }
@@ -233,6 +245,13 @@ export function applyEnrichment(userData, store, now = new Date()) {
   const sex = userData.gender === 'Мъж' ? 'M' : userData.gender === 'Жена' ? 'F' : 'X';
   const kg = Number(String(userData.weight || '').replace(',', '.'));
   const derived = deriveEnrichment(store, now, sex, kg > 30 ? { waterNeedL: Math.round(kg * 0.033 * 10) / 10 } : {});
+  // Сверка с отговорите на клиента: потвърдените находки влизат в менюто,
+  // разминаванията стават въпроси, а отговорите им — замени.
+  const cc = crossCheck(userData, derived, derived.resolutions);
+  Object.assign(derived.overrides, cc.overrides);
+  derived.hints.approach = [...new Set([...derived.hints.approach, ...cc.approach])];
+  derived.hints.cautions = [...new Set([...derived.hints.cautions, ...cc.cautions])];
+  derived.crossCheck = { hypotheses: cc.hypotheses, questions: cc.questions };
   const original = {};
   for (const [field, value] of Object.entries(derived.overrides)) {
     original[field] = userData[field] ?? null;
@@ -266,6 +285,7 @@ export function recalcLevel(prevData, nextData) {
   if (!sameSet(a.exclusions, b.exclusions)) bump(1, 'изключени храни');
   if (a.diet.style !== b.diet.style) bump(1, 'начин на хранене');
   if (!sameSet(a.behaviors, b.behaviors)) bump(0, 'хранителни навици');
+  if (!sameSet(prevData?._enrichment?.hints?.approach || [], nextData?._enrichment?.hints?.approach || [])) bump(1, 'промени в менюто');
   const aNext = nextData?._enrichment;
   const aPrev = prevData?._enrichment;
   if (JSON.stringify(aNext?.voice || null) !== JSON.stringify(aPrev?.voice || null)) bump(0, 'емоционален профил');
