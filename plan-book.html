@@ -27,16 +27,16 @@
             --safe-area-inset-left: env(safe-area-inset-left, 0px);
             --safe-area-inset-right: env(safe-area-inset-right, 0px);
 
-            --green-50: #f0fdf4;
-            --green-100: #dcfce7;
-            --green-200: #bbf7d0;
-            --green-300: #86efac;
-            --green-400: #4ade80;
-            --green-500: #22c55e;
-            --green-600: #16a34a;
-            --green-700: #15803d;
-            --green-800: #166534;
-            --green-900: #14532d;
+            --green-50: #F0FDFA;
+            --green-100: #CCFBF1;
+            --green-200: #99F6E4;
+            --green-300: #5EEAD4;
+            --green-400: #2DD4BF;
+            --green-500: #14B8A6;
+            --green-600: #0D9488;
+            --green-700: #0F766E;
+            --green-800: #115E59;
+            --green-900: #134E4A;
 
             --blue-50: #eff6ff;
             --blue-100: #dbeafe;
@@ -74,8 +74,16 @@
             --slate-800: #1e293b;
             --slate-900: #0f172a;
 
+            /* Цветове за текст: ≥ 4.5:1 върху белите и светлите карти */
+            --tx-soft: #556274;
+            --tx-accent: #0F766E;
+            --tx-amber: #B45309;
+            --tx-red: #B91C1C;
+            --tx-orange: #C2410C;
+            --tx-blue: #1D4ED8;
+
             --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            --font-serif: 'Georgia', 'Cambria', 'Times New Roman', serif;
+            --font-serif: var(--font-sans); /* една гарнитура в цялото приложение */
 
             /* Design system base variables */
             --bg-color: #F0FDFA;
@@ -109,11 +117,18 @@
             --slate-700: #cbd5e1;
             --slate-800: #e2e8f0;
             --slate-900: #f1f5f9;
-            --green-50: #14532d;
-            --green-100: #166534;
-            --green-500: #4ade80;
-            --green-600: #86efac;
-            --green-700: #bbf7d0;
+            --green-50: #134E4A;
+            --green-100: #115E59;
+            --green-500: #2DD4BF;
+            --green-600: #5EEAD4;
+            --green-700: #99F6E4;
+            --green-800: #CCFBF1;
+            --tx-soft: #A3B1C2;
+            --tx-accent: #5EEAD4;
+            --tx-amber: #FCD34D;
+            --tx-red: #FCA5A5;
+            --tx-orange: #FDBA74;
+            --tx-blue: #93C5FD;
         }
 
         [data-theme="dark"] .problem-card-book,
@@ -134,7 +149,7 @@
         }
 
         html {
-            font-size: 14px;
+            font-size: 16px;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -182,12 +197,12 @@
         }
 
         .screen-controls .back-link:hover {
-            color: var(--green-500);
+            color: var(--tx-accent);
         }
 
         .screen-controls .btn-print {
-            background: linear-gradient(135deg, var(--green-600), var(--green-700));
-            color: white;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
             border: none;
             padding: 10px 28px;
             border-radius: 10px;
@@ -234,12 +249,12 @@
 
         .loading-screen p {
             font-size: 1.1rem;
-            color: var(--slate-500);
+            color: var(--tx-soft);
         }
 
         .error-screen i {
             font-size: 3rem;
-            color: var(--red-400);
+            color: var(--tx-red);
             margin-bottom: 16px;
         }
 
@@ -249,7 +264,7 @@
         }
 
         .error-screen p {
-            color: var(--slate-500);
+            color: var(--tx-soft);
             max-width: 380px;
         }
 
@@ -373,7 +388,7 @@
 
         .cover-subtitle {
             font-size: 1.15rem;
-            color: var(--slate-500);
+            color: var(--tx-soft);
             margin-bottom: 40px;
             max-width: 460px;
         }
@@ -387,7 +402,7 @@
 
         .cover-date {
             font-size: 0.95rem;
-            color: var(--slate-400);
+            color: var(--tx-soft);
             margin-bottom: 48px;
         }
 
@@ -418,7 +433,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: var(--green-600);
+            color: var(--tx-accent);
             margin-bottom: 10px;
         }
 
@@ -468,7 +483,7 @@
 
         .section-subtitle {
             font-size: 0.85rem;
-            color: var(--slate-400);
+            color: var(--tx-soft);
             margin-top: 2px;
         }
 
@@ -488,7 +503,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: var(--slate-500);
+            color: var(--tx-soft);
             margin-bottom: 8px;
         }
 
@@ -543,9 +558,9 @@
             letter-spacing: 0.5px;
         }
 
-        .severity-pill.borderline { background: var(--amber-100); color: var(--amber-600); }
-        .severity-pill.risky { background: #fff7ed; color: var(--orange-500); }
-        .severity-pill.critical { background: var(--red-100); color: var(--red-600); }
+        .severity-pill.borderline { background: var(--amber-100); color: var(--tx-amber); }
+        .severity-pill.risky { background: #fff7ed; color: var(--tx-orange); }
+        .severity-pill.critical { background: var(--red-100); color: var(--tx-red); }
         .severity-pill.normal { background: var(--green-100); color: var(--green-700); }
 
         .problem-card-book .problem-desc {
@@ -557,7 +572,7 @@
         .problem-card-book .problem-impact {
             margin-top: 10px;
             font-size: 0.85rem;
-            color: var(--red-600);
+            color: var(--tx-red);
             display: flex;
             align-items: flex-start;
             gap: 8px;
@@ -621,7 +636,7 @@
             gap: 8px;
         }
 
-        .forecast-card-book.pessimistic h4 { color: var(--red-600); }
+        .forecast-card-book.pessimistic h4 { color: var(--tx-red); }
         .forecast-card-book.optimistic h4 { color: var(--green-700); }
 
         .forecast-card-book ul {
@@ -676,7 +691,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: var(--green-600);
+            color: var(--tx-accent);
             margin-bottom: 8px;
             display: flex;
             align-items: center;
@@ -707,12 +722,12 @@
         .day-number {
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--green-500), var(--green-700));
+            background: var(--ds-fill-grad);
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--ds-on-fill);
             font-size: 1.5rem;
             font-weight: 800;
             flex-shrink: 0;
@@ -728,7 +743,7 @@
 
         .day-subtitle {
             font-size: 0.85rem;
-            color: var(--slate-400);
+            color: var(--tx-soft);
             margin-top: 2px;
         }
 
@@ -740,12 +755,12 @@
         .day-total-calories .cal-num {
             font-size: 1.6rem;
             font-weight: 800;
-            color: var(--green-600);
+            color: var(--tx-accent);
         }
 
         .day-total-calories .cal-label {
             font-size: 0.75rem;
-            color: var(--slate-400);
+            color: var(--tx-soft);
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -761,8 +776,8 @@
         }
 
         .free-day-banner-book .trophy { font-size: 1.8rem; }
-        .free-day-banner-book .title { font-weight: 700; color: var(--amber-600); font-size: 1.05rem; }
-        .free-day-banner-book .subtitle { font-size: 0.85rem; color: var(--slate-500); margin-top: 4px; }
+        .free-day-banner-book .title { font-weight: 700; color: var(--tx-amber); font-size: 1.05rem; }
+        .free-day-banner-book .subtitle { font-size: 0.85rem; color: var(--tx-soft); margin-top: 4px; }
 
         /* Meal Card */
         .meal-card-book {
@@ -815,7 +830,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: var(--slate-400);
+            color: var(--tx-soft);
         }
 
         .meal-card-header .meal-name-text {
@@ -833,12 +848,12 @@
         .meal-card-header .meal-cal {
             font-size: 1.15rem;
             font-weight: 800;
-            color: var(--green-600);
+            color: var(--tx-accent);
         }
 
         .meal-card-header .meal-weight-text {
             font-size: 0.78rem;
-            color: var(--slate-400);
+            color: var(--tx-soft);
         }
 
         .meal-card-body {
@@ -846,11 +861,11 @@
         }
 
         .meal-card-body .desc-label {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: var(--slate-400);
+            color: var(--tx-soft);
             margin-bottom: 6px;
         }
 
@@ -898,7 +913,7 @@
         .dessert-box .dessert-label {
             font-size: 0.75rem;
             font-weight: 700;
-            color: var(--amber-600);
+            color: var(--tx-amber);
             margin-bottom: 4px;
             display: flex;
             align-items: center;
@@ -919,7 +934,7 @@
 
         .dessert-box .dessert-weight-text {
             font-size: 0.78rem;
-            color: var(--slate-400);
+            color: var(--tx-soft);
             margin-top: 2px;
         }
 
@@ -944,18 +959,18 @@
         }
 
         .macro-item .macro-label {
-            font-size: 0.65rem;
+            font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            color: var(--slate-400);
+            color: var(--tx-soft);
             margin-top: 2px;
         }
 
-        .macro-protein .macro-val { color: var(--blue-600); }
-        .macro-carbs .macro-val { color: var(--amber-500); }
-        .macro-fats .macro-val { color: var(--red-400); }
-        .macro-fiber .macro-val { color: var(--green-600); }
+        .macro-protein .macro-val { color: var(--tx-blue); }
+        .macro-carbs .macro-val { color: var(--tx-amber); }
+        .macro-fats .macro-val { color: var(--tx-red); }
+        .macro-fiber .macro-val { color: var(--tx-accent); }
 
         /* ===== GUIDELINES PAGES ===== */
         .food-list {
@@ -1055,7 +1070,7 @@
         }
 
         .supplement-card .supp-name i {
-            color: var(--green-600);
+            color: var(--tx-accent);
         }
 
         .supplement-card .supp-detail {
@@ -1133,11 +1148,11 @@
         }
 
         .user-data-card .data-label {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: var(--slate-400);
+            color: var(--tx-soft);
             margin-bottom: 6px;
             display: flex;
             align-items: center;
@@ -1146,7 +1161,7 @@
 
         .user-data-card .data-label i {
             font-size: 0.75rem;
-            color: var(--green-500);
+            color: var(--tx-accent);
         }
 
         .user-data-card .data-value {
@@ -1185,7 +1200,7 @@
         .qa-item .qa-question {
             font-size: 0.82rem;
             font-weight: 700;
-            color: var(--slate-500);
+            color: var(--tx-soft);
             margin-bottom: 6px;
             display: flex;
             align-items: flex-start;
@@ -1194,7 +1209,7 @@
         }
 
         .qa-item .qa-question i {
-            color: var(--green-500);
+            color: var(--tx-accent);
             margin-top: 2px;
             flex-shrink: 0;
             font-size: 0.75rem;
@@ -1234,8 +1249,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.72rem;
-            color: var(--slate-300);
+            font-size: 0.75rem;
+            color: var(--tx-soft);
         }
 
         .page-footer .footer-brand {
@@ -1243,7 +1258,7 @@
             align-items: center;
             gap: 6px;
             font-weight: 700;
-            color: var(--slate-400);
+            color: var(--tx-soft);
         }
 
         /* ===== TABLE OF CONTENTS ===== */
@@ -1291,7 +1306,7 @@
 
         .toc-list li .toc-page {
             font-weight: 600;
-            color: var(--slate-400);
+            color: var(--tx-soft);
             font-size: 0.9rem;
         }
 
@@ -2301,10 +2316,11 @@
             }
 
             var gaugeColor, healthLabel;
-            if (healthScore < 25) { gaugeColor = '#ef4444'; healthLabel = 'Влошено'; }
-            else if (healthScore < 50) { gaugeColor = '#f97316'; healthLabel = 'Нуждае се от внимание'; }
-            else if (healthScore < 75) { gaugeColor = '#fbbf24'; healthLabel = 'Умерено'; }
-            else { gaugeColor = '#22c55e'; healthLabel = 'Добро'; }
+            // Тъмни нюанси на цветовете на статуса — текстът е върху бяло.
+            if (healthScore < 25) { gaugeColor = '#B42318'; healthLabel = 'Влошено'; }
+            else if (healthScore < 50) { gaugeColor = '#C2410C'; healthLabel = 'Нуждае се от внимание'; }
+            else if (healthScore < 75) { gaugeColor = '#9A4A06'; healthLabel = 'Умерено'; }
+            else { gaugeColor = '#0F766E'; healthLabel = 'Добро'; }
 
             var scoreSection = document.getElementById('healthScoreSection');
             scoreSection.style.display = 'block';

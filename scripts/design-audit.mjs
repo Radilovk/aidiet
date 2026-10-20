@@ -24,7 +24,7 @@ const plan={weekPlan:wp,summary:{dailyCalories:1730,macros:{protein:111,carbs:14
 const userData={name:'Иван',age:35,gender:'Мъж',weight:85,height:180,goal:'Отслабване'};
 plan.analysis={currentHealthStatus:{score:62,description:'Умерено наднормено тегло, висок стрес.'},keyProblems:[{title:'Наднормено тегло',category:'Metabolic',severity:'Risky',severityValue:70,description:'ИТМ 26.2',impact:'Повишен риск'},{title:'Хроничен стрес',category:'Psychological',severity:'Borderline',severityValue:55,description:'Висок стрес',impact:'Преяждане'},{title:'Сън',category:'Lifestyle',severity:'Normal',severityValue:20,description:'7-8 ч',impact:''}],forecastOptimistic:'−8 кг за 12 седмици',forecastPessimistic:'+3 кг за година'};
 const SCREENS=['index.html','plan.html','guidelines.html','game-analytics.html','profile.html','questionnaire2.html','warning.html','analysis-loading.html','analysis.html','plan-pending.html','plan-update.html','plan-book.html','food-picker.html','emoeat.html','longevity.html','kids.html','protocol-landing.html','features.html','privacy-policy.html','terms.html'];
-const STATES=process.argv[2]?JSON.parse(process.argv[2]):Object.fromEntries(SCREENS.map(u=>[u.replace('.html',''),{url:u,acts:[]}]));
+const STATES=process.argv[2]?JSON.parse(process.argv[2]):Object.fromEntries(SCREENS.map(u=>[u.replace('.html',''),{url:u,acts:[],lightOnly:u==='plan-book.html'}])) // книгата е винаги светла;
 fs.mkdirSync('design-audit-shots',{recursive:true});const PAGES=Object.keys(STATES);
 const PARALLEL=+(process.env.PARALLEL||4);
 const AUDIT=()=>{
@@ -96,7 +96,7 @@ async function run(page){
     await pg.waitForTimeout(a.wait||600);
   }catch(e){console.error(page,'act fail',e.message.split('\n')[0]);}}
   out[page]={};
-  for(const t of ['light','dark']){
+  for(const t of (st.lightOnly?['light']:['light','dark'])){
     await setTheme(pg,t);
     out[page][t+'390']=await pg.evaluate(AUDIT);
     await pg.screenshot({path:`design-audit-shots/${t}-${page}.png`});
