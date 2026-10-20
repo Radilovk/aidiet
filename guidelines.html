@@ -327,6 +327,13 @@
             border-left: 3px solid rgba(45, 212, 191, 0.4);
         }
 
+        .supplement-shop-link {
+            color: var(--ds-primary, #0d9488);
+            font-weight: 700;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
         /* --- Ръководство за храните: нива, замени, ситуации --- */
         .fg-sub {
             margin: 18px 0 8px;
@@ -1202,7 +1209,6 @@
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
-    <script src="./supplement-shop.js"></script>
     <script type="module" src="./auth-guard.js"></script>
     <div class="container">
         <!-- UI Banner Zone (shown only when image is configured in admin) -->
@@ -1662,6 +1668,15 @@
             return items.length > 0 ? items : [defaultMessage];
         }
 
+        function biocodePickUrl(name) {
+            let vegan = false;
+            try {
+                const ud = JSON.parse(localStorage.getItem('userData') || '{}') || {};
+                vegan = /веган/i.test([].concat(ud.dietPreference || []).join(' '));
+            } catch (_) {}
+            return `https://biocode-bg.com/pick.html?q=${encodeURIComponent(String(name).slice(0, 80))}${vegan ? '&vegan=1' : ''}&utm_source=nutriplan&utm_medium=supplement`;
+        }
+
         function generateListItemText(content, contentType, index) {
             if (typeof content === 'string') {
                 // Backward compatibility: plans generated before 2025-12-27 could use "!" prefix for bullet-like entries.
@@ -1672,12 +1687,17 @@
                 const fallbackPrefix = contentType === 'psychology'
                     ? DEFAULT_MESSAGES.psychologyFallbackLabel
                     : DEFAULT_MESSAGES.supplementsFallbackLabel;
-                let details = content.title || content.name || `${fallbackPrefix} ${index + 1}`;
+                const title = content.title || content.name || `${fallbackPrefix} ${index + 1}`;
+                let details = '';
                 if (content.description) details += ` - ${content.description}`;
                 if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
                 if (content.intake || content.timing) details += ` - Прием: ${content.intake || content.timing}`;
                 if (content.reason) details += ` - Защо: ${content.reason}`;
-                return escapeHtml(details);
+                // Името на добавката води към BIOCODE: там се подбират наличните продукти в момента.
+                const head = contentType === 'supplements' && content.name
+                    ? `<a href="${escapeHtml(biocodePickUrl(content.name))}" target="_blank" rel="noopener" class="supplement-shop-link">${escapeHtml(title)}</a>`
+                    : escapeHtml(title);
+                return `<span>${head}${escapeHtml(details)}</span>`;
             }
             return '';
         }
@@ -1744,12 +1764,6 @@
                             });
                             html += '</ul>';
                             supplementsContent.innerHTML = html;
-                            // Налични продукти от BIOCODE под списъка (асинхронно; без съвпадение — нищо).
-                            if (window.NutriPlanSupplementShop && Array.isArray(dietPlan.supplements)) {
-                                let ud = {};
-                                try { ud = JSON.parse(localStorage.getItem('userData') || '{}') || {}; } catch (_) {}
-                                window.NutriPlanSupplementShop.render(supplementsContent, dietPlan.supplements, { userData: ud });
-                            }
                         } else if (typeof dietPlan.supplements === 'string') {
                             supplementsContent.innerHTML = formatContentWithBulletPoints(dietPlan.supplements, ICON_CLASSES.supplements);
                         } else {

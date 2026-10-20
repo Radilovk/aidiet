@@ -104,7 +104,6 @@ import { essenceText, digestDue, normalizeDigest, DIGEST_APPROACH } from './heal
 import { irisText } from './enrichment-iris.js';
 import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
-import { queryFor, pickProducts, BIOCODE_CATALOG } from './supplement-products.js';
 import { normalizeHandoff, handoffToFacts, airisPrefill, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { LAB_MARKERS } from './enrichment-labs.js';
@@ -1299,7 +1298,6 @@ const RATE_LIMIT = {
   STUDIO_VERIFY: { maxRequests: 5, windowSec: 3600 },  // studio platform: a Viber login code
   STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },   // studio platform: the admin's 5-digit code
   HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → NutriPlan: нова пратка
-  SUPPLEMENT_PRODUCTS: { maxRequests: 30, windowSec: 60 }, // продукти от BIOCODE за добавките
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },   // преглед и прибиране на пратка
 };
 
@@ -13956,47 +13954,6 @@ async function handleEnrichmentResolve(request, env) {
   }
 }
 
-/**
- * POST /api/supplement-products
- * Body: { supplements: [{ name, dosage? }], medications?, medicationsDetails?, vegan?, from? }
- * Добавките → до 2 налични продукта от каталога на BIOCODE (biocode-bg.com).
- * Противопоказаните от лекарствата добавки и продукти отпадат още тук.
- * Каталогът се кешира 6 часа (синхронизира се с доставчика на 6 часа).
- */
-async function handleSupplementProducts(request, env) {
-  try {
-    const body = await request.json();
-    const list = (Array.isArray(body?.supplements) ? body.supplements : []).slice(0, 8)
-      .map(s => ({ name: String(s?.name || '').slice(0, 120), dosage: String(s?.dosage || '').slice(0, 60) }))
-      .filter(s => s.name);
-    const from = ['nutriplan', 'airis'].includes(body?.from) ? body.from : 'nutriplan';
-    const interactions = interactionsFor({ medications: body?.medications, medicationsDetails: String(body?.medicationsDetails || '').slice(0, 600) });
-    const allowed = new Set(applySupplementInteractions(list, interactions).kept.map(s => s.name));
-    const queries = [...new Set(list.filter(s => allowed.has(s.name)).map(s => queryFor(s.name)).filter(Boolean))];
-    const fetched = await Promise.all(queries.map(async (q) => {
-      try {
-        const url = `${BIOCODE_CATALOG}?q=${encodeURIComponent(q)}&available=1&limit=40`;
-        const res = await fetch(url, { cf: { cacheTtl: 21600, cacheEverything: true } });
-        const data = res.ok ? await res.json() : null;
-        return Array.isArray(data?.items) ? data.items : [];
-      } catch (_) {
-        return [];
-      }
-    }));
-    /** @type {Map<string, any[]>} */
-    const results = new Map();
-    queries.forEach((q, i) => results.set(q, fetched[i]));
-    const items = list.map(s => ({
-      supplement: s.name,
-      products: allowed.has(s.name) ? pickProducts(s, results.get(queryFor(s.name)) || [], { vegan: !!body?.vegan, interactions, from }) : [],
-    }));
-    return jsonResponse({ success: true, source: 'biocode-bg.com', items }, 200, { cacheControl: 'private, max-age=900' });
-  } catch (error) {
-    console.error('supplement products failed:', error);
-    return jsonResponse({ error: 'Не успяхме да заредим продуктите.' }, 500);
-  }
-}
-
 /* ── Пратки от модулите (EmoEat, AIRIS) → NutriPlan ─────────────────────
  * Еднопосочно: модулът оставя обобщение и получава линк; NutriPlan прибира
  * пратката в профила само със съгласие. Към модулите не се връща нищо от
@@ -16657,10 +16614,6 @@ export default {
         return await handleLabExtract(request, env);
       } else if (url.pathname === '/api/admin/handoff-stats' && request.method === 'GET') {
         return await handleAdminHandoffStats(request, env);
-      } else if (url.pathname === '/api/supplement-products' && request.method === 'POST') {
-        const rlErr = await checkRateLimit(env, request, 'SUPPLEMENT_PRODUCTS');
-        if (rlErr) return rlErr;
-        return await handleSupplementProducts(request, env);
       } else if (url.pathname === '/api/handoff' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'HANDOFF');
         if (rlErr) return rlErr;

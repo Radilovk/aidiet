@@ -119,11 +119,6 @@ check('чат: уточняващи въпроси', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
-check('добавки → продукти от BIOCODE', () => {
-  const r = run('node', ['scripts/test-supplement-products.mjs']);
-  return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
-});
-
 check('матрица от профили', () => {
   const r = run('node', ['scripts/test-profile-matrix.mjs', '120']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
