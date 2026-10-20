@@ -25,8 +25,8 @@
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
-            --primary-red: #0D9488;
-            --primary-red-hover: #0F766E;
+            --primary-red: #0F766E;
+            --primary-red-hover: #115E59;
             --soft-red: #CCFBF1;
             --accent-yellow: #fbbf24;
             --accent-blue: #3b82f6;
@@ -132,6 +132,8 @@
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             padding: 10px;
+            min-width: 44px;
+            min-height: 44px;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
             text-decoration: none;
@@ -176,8 +178,8 @@
         }
 
         [data-theme="dark"] .problem-impact {
-            background: rgba(45, 212, 191, 0.08);
-            border: 1px solid rgba(45, 212, 191, 0.1);
+            background: var(--ds-warning-bg);
+            border: 1px solid var(--ds-warning-border);
         }
 
         [data-theme="dark"] .meter-track {
@@ -258,24 +260,24 @@
             background: linear-gradient(135deg, rgba(45, 212, 191, 0.03) 0%, rgba(45, 212, 191, 0.06) 100%);
         }
         .analysis-header .back-btn:hover {
-            background: var(--primary-red);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             border-color: transparent;
         }
         .theme-toggle-btn {
-            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+            background: var(--ds-fill-grad);
             border: none;
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--ds-on-fill);
             font-size: 1.05rem;
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
             position: relative;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
@@ -289,15 +291,15 @@
         }
         .theme-toggle-btn:hover {
             transform: scale(1.1) rotate(-8deg);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
+            box-shadow: 0 8px 20px rgba(15, 118, 110, 0.5);
         }
         .theme-toggle-btn:active {
             transform: scale(0.95);
         }
 
         .header-spacer {
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             flex-shrink: 0;
         }
 
@@ -318,9 +320,12 @@
             font-size: 3rem;
             color: var(--primary-red);
             margin-bottom: 20px;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 96px;
+            height: 96px;
             background: var(--soft-red);
-            padding: 20px;
             border-radius: 50%;
             box-shadow: var(--shadow);
         }
@@ -478,8 +483,8 @@
         }
 
         .severity-badge.normal {
-            background: var(--severity-normal);
-            color: white;
+            background: #15803D;
+            color: #ffffff;
         }
 
         .severity-badge.borderline {
@@ -492,15 +497,15 @@
         }
 
         .severity-badge.risky {
-            background: var(--severity-risky);
-            color: white;
+            background: var(--ds-risk-fill);
+            color: #ffffff;
             font-weight: 800;
             box-shadow: 0 4px 15px rgba(249,115,22,0.3);
         }
 
         .severity-badge.critical {
-            background: var(--severity-critical);
-            color: white;
+            background: #B42318;
+            color: #ffffff;
             font-weight: 800;
             box-shadow: 0 4px 15px rgba(239,68,68,0.4);
             animation: pulse-badge 0.6s ease-out 1;
@@ -575,8 +580,9 @@
         .problem-impact {
             margin-top: 16px;
             padding: 12px 16px;
-            background: var(--soft-red);
-            border-radius: 10px;
+            background: var(--ds-warning-bg);
+            border: 1px solid var(--ds-warning-border);
+            border-radius: 12px;
             font-size: 0.9rem;
             color: var(--text-dark);
             display: flex;
@@ -585,7 +591,7 @@
         }
 
         .problem-impact i {
-            color: var(--primary-red);
+            color: var(--ds-warning-text);
             margin-top: 2px;
         }
 
@@ -934,8 +940,8 @@
         }
 
         .btn-primary {
-            background-color: var(--primary-red);
-            color: white;
+            background-color: var(--ds-fill);
+            color: var(--ds-on-fill);
             border: none;
             padding: 16px 40px;
             border-radius: 30px;
@@ -994,7 +1000,7 @@
             padding: calc(24px + var(--safe-area-inset-top)) calc(18px + var(--safe-area-inset-right)) calc(24px + var(--safe-area-inset-bottom)) calc(18px + var(--safe-area-inset-left));
             background:
                 radial-gradient(circle at 18% 14%, rgba(45, 212, 191, 0.22), transparent 34%),
-                radial-gradient(circle at 86% 18%, rgba(59, 130, 246, 0.14), transparent 30%),
+                radial-gradient(circle at 86% 18%, rgba(15, 118, 110, 0.14), transparent 30%),
                 linear-gradient(160deg, rgba(240, 253, 250, 0.98), rgba(204, 251, 241, 0.74));
             display: grid;
             place-items: center;
@@ -1577,9 +1583,20 @@
             border: 1px solid transparent;
         }
 
-        .health-badge.critical { color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
-        .health-badge.risky    { color: #f97316; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.2); }
-        .health-badge.borderline { color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); }
+        .health-badge.critical { color: #B42318; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); }
+        .health-badge.risky    { color: #C2410C; background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.25); }
+        .health-badge.borderline { color: #9A4A06; background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); }
+        [data-theme="dark"] .health-badge.critical { color: #F87171; }
+        [data-theme="dark"] .health-badge.risky { color: #FB923C; }
+        [data-theme="dark"] .health-badge.borderline { color: #FBBF24; }
+        .gauge-score-value[data-tone="critical"], .gauge-score-label[data-tone="critical"] { color: #B42318; }
+        .gauge-score-value[data-tone="risky"], .gauge-score-label[data-tone="risky"] { color: #C2410C; }
+        .gauge-score-value[data-tone="borderline"], .gauge-score-label[data-tone="borderline"] { color: #9A4A06; }
+        .gauge-score-value[data-tone="good"], .gauge-score-label[data-tone="good"] { color: #0F766E; }
+        [data-theme="dark"] .gauge-score-value[data-tone="critical"], [data-theme="dark"] .gauge-score-label[data-tone="critical"] { color: #F87171; }
+        [data-theme="dark"] .gauge-score-value[data-tone="risky"], [data-theme="dark"] .gauge-score-label[data-tone="risky"] { color: #FB923C; }
+        [data-theme="dark"] .gauge-score-value[data-tone="borderline"], [data-theme="dark"] .gauge-score-label[data-tone="borderline"] { color: #FBBF24; }
+        [data-theme="dark"] .gauge-score-value[data-tone="good"], [data-theme="dark"] .gauge-score-label[data-tone="good"] { color: #2DD4BF; }
         .health-badge .badge-dot { font-size: 6px; }
 
         /* --- BOTTOM NAVIGATION --- */
@@ -2252,25 +2269,31 @@
             }
             
             // Update UI - Current health score gauge
-            let gaugeColor, healthLabel;
+            // gaugeColor е за дъгата; текстът ползва по-тъмен нюанс (светла тема),
+            // за да се чете върху бяло — жълтото и оранжевото не стигат 4.5:1.
+            let gaugeColor, healthLabel, scoreTone;
             if (healthScore < 25) {
                 gaugeColor = '#ef4444';
                 healthLabel = 'Влошено';
+                scoreTone = 'critical';
             } else if (healthScore < 50) {
                 gaugeColor = '#f97316';
                 healthLabel = 'Нуждае се от внимание';
+                scoreTone = 'risky';
             } else if (healthScore < 75) {
                 gaugeColor = '#fbbf24';
                 healthLabel = 'Умерено';
+                scoreTone = 'borderline';
             } else {
                 gaugeColor = '#0D9488';
                 healthLabel = 'Добро';
+                scoreTone = 'good';
             }
 
             document.getElementById('healthScoreValue').textContent = healthScore + '%';
-            document.getElementById('healthScoreValue').style.color = gaugeColor;
+            document.getElementById('healthScoreValue').dataset.tone = scoreTone;
             document.getElementById('healthScoreLabel').textContent = healthLabel;
-            document.getElementById('healthScoreLabel').style.color = gaugeColor;
+            document.getElementById('healthScoreLabel').dataset.tone = scoreTone;
             document.getElementById('healthGaugeTitle').textContent = 'Здравен статус: ' + healthScore + '%';
             document.getElementById('healthGaugeSvg').setAttribute('aria-label', 'Здравен статус: ' + healthScore + '% - ' + healthLabel);
 

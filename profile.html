@@ -37,7 +37,7 @@
     <style>body{opacity:0}</style>
     <style>
         :root {
-            --primary-red: #0D9488;
+            --primary-red: #0F766E;
             --soft-red: #CCFBF1;
             --accent-yellow: #fbbf24;
             --accent-blue: #06B6D4;
@@ -135,7 +135,7 @@
         }
 
         .theme-toggle-btn {
-            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+            background: var(--ds-fill-grad);
             border: none;
             width: 42px;
             height: 42px;
@@ -143,11 +143,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--ds-on-fill);
             font-size: 1.05rem;
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
             position: relative;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
@@ -164,7 +164,7 @@
 
         .theme-toggle-btn:hover {
             transform: scale(1.1) rotate(-8deg);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
+            box-shadow: 0 8px 20px rgba(15, 118, 110, 0.5);
         }
 
         .theme-toggle-btn:active {
@@ -245,12 +245,12 @@
             background: var(--card-bg);
         }
         .profile-avatar-placeholder {
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--accent-blue) 100%);
+            background: var(--ds-fill-grad);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2rem;
-            color: #fff;
+            color: var(--ds-on-fill);
         }
         .profile-avatar-badge {
             position: absolute;
@@ -259,12 +259,12 @@
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background: var(--primary-red);
+            background: var(--ds-fill);
             border: 2px solid var(--card-bg);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #fff;
+            color: var(--ds-on-fill);
             font-size: 0.65rem;
             pointer-events: none;
         }
@@ -291,8 +291,8 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: var(--primary-red);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             border: none;
             padding: 11px 20px;
             border-radius: var(--radius);
@@ -442,8 +442,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: linear-gradient(135deg, var(--primary-red), #0F766E);
-            color: #ffffff;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
             transition: all 0.3s ease;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -527,8 +527,9 @@
 
         .analysis-header {
             padding: 16px 20px;
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            color: #ffffff;
+            min-height: 56px;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
         }
 
         .analysis-header-toggle {
@@ -591,8 +592,8 @@
         }
         .game-analytics-header {
             padding: 14px 18px;
-            background: linear-gradient(135deg, #0D9488, #0F766E);
-            color: #fff;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -631,11 +632,11 @@
         }
         /* Weekly overview card */
         .game-week-card {
-            background: linear-gradient(135deg,#0D9488,#0F766E);
+            background: var(--ds-fill-grad);
             border-radius: 14px;
             padding: 12px 14px;
             margin-bottom: 14px;
-            color: white;
+            color: var(--ds-on-fill);
             display: flex;
             align-items: center;
             gap: 12px;
@@ -857,8 +858,8 @@
         .game-explain-close {
             margin-top:12px; width:100%; padding:10px;
             border:none; border-radius:12px;
-            background:linear-gradient(135deg,#0D9488,#0F766E);
-            color:white; font-weight:700; cursor:pointer; font-size:0.85rem;
+            background:var(--ds-fill-grad);
+            color: var(--ds-on-fill); font-weight:700; cursor:pointer; font-size:0.85rem;
         }
         .game-explain-why-btn {
             margin-top:10px; width:100%; padding:9px;
@@ -1195,8 +1196,8 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
-            color: white;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
             box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
         }
 
@@ -1459,8 +1460,8 @@
         }
 
         .install-banner-btn {
-            background: var(--primary-red);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             border: none;
             padding: 14px 24px;
             border-radius: 10px;
@@ -1693,7 +1694,7 @@
             right: calc(16px + var(--safe-area-inset-right));
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent, #0F766E) 100%);
+            background: var(--ds-fill-grad);
             border-radius: 20px;
             box-shadow: 
                 0 8px 28px rgba(13, 148, 136, 0.45),
@@ -1702,7 +1703,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--ds-on-fill);
             font-size: 26px;
             border: none;
             cursor: pointer;
@@ -1768,7 +1769,8 @@
             background: rgba(239,68,68,0.10);
             border: 1px solid rgba(239,68,68,0.22);
             border-radius: 999px;
-            color: #ef4444;
+            color: var(--ds-error-text);
+            min-height: 44px;
             font-size: 0.9rem;
             font-weight: 700;
             font-family: inherit;
@@ -1804,7 +1806,7 @@
             const colorSchemes = {
                 'purple-pink': {
                     light: {
-                        '--primary-red': '#0D9488',
+                        '--primary-red': '#0F766E',
                         '--soft-red': '#CCFBF1'
                     },
                     dark: {
@@ -1814,7 +1816,7 @@
                 },
                 'green-blue': {
                     light: {
-                        '--primary-red': '#4CAF50',
+                        '--primary-red': '#2E7D32',
                         '--soft-red': '#E8F5E9'
                     },
                     dark: {
@@ -1824,7 +1826,7 @@
                 },
                 'blue-indigo': {
                     light: {
-                        '--primary-red': '#3B82F6',
+                        '--primary-red': '#1D4ED8',
                         '--soft-red': '#EFF6FF'
                     },
                     dark: {
@@ -1834,7 +1836,7 @@
                 },
                 'orange-red': {
                     light: {
-                        '--primary-red': '#F97316',
+                        '--primary-red': '#C2410C',
                         '--soft-red': '#FFF7ED'
                     },
                     dark: {
@@ -3560,10 +3562,11 @@
                 
                 analysisContent.innerHTML = html;
 
-                // Update analysis-header background to match health status color
+                // Цветът на здравния статус е ивица отляво — фонът остава плътният
+                // акцент, за да е четим белият текст при всеки статус.
                 const analysisHeader = document.querySelector('.analysis-container .analysis-header');
                 if (analysisHeader) {
-                    analysisHeader.style.background = `linear-gradient(135deg, ${profileGaugeColor}, ${profileGaugeColor}cc)`;
+                    analysisHeader.style.boxShadow = `inset 6px 0 0 ${profileGaugeColor}`;
                 }
 
                 // Animate the circular health ring after DOM is ready
@@ -4356,7 +4359,7 @@
             <i class="fas fa-chart-bar"></i>
             <span>Анализ</span>
         </a>
-        <a href="index.html?app=1&tab=profile" class="bottom-nav-item active">
+        <a href="index.html?app=1&tab=profile" class="bottom-nav-item active" aria-current="page">
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>

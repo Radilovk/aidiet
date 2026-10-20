@@ -36,6 +36,29 @@
     try { if (navigator.vibrate) navigator.vibrate(style === 'Medium' ? 14 : 8); } catch (_) {}
   }
   window.NutriPlanHaptic = haptic;
+  // Смислови вибрации: всеки вид събитие има свой отличим модел, а
+  // обикновените докосвания остават с лекия импулс по-горе.
+  var NOTIFY = {
+    success:   { type: 'SUCCESS', pattern: [14, 60, 22] },
+    milestone: { type: 'SUCCESS', pattern: [16, 70, 16, 70, 34], heavyAfter: 140 },
+    warning:   { type: 'WARNING', pattern: [30, 90, 30] },
+    error:     { type: 'ERROR',   pattern: [40, 60, 40] }
+  };
+  haptic.notify = function (kind) {
+    var n = NOTIFY[kind];
+    if (!n) return;
+    lastHaptic = Date.now();
+    var cap = capacitor();
+    try {
+      var h = cap && cap.Plugins.Haptics;
+      if (h && h.notification) {
+        h.notification({ type: n.type });
+        if (n.heavyAfter && h.impact) setTimeout(function () { h.impact({ style: 'Heavy' }); }, n.heavyAfter);
+        return;
+      }
+    } catch (_) {}
+    try { if (navigator.vibrate) navigator.vibrate(n.pattern); } catch (_) {}
+  };
 
   var TAP_TARGETS = '.acc-header, .btn, .btn-primary, .btn-secondary, .fab-chat, .fab-food, .modal-close, ' +
     '.meal-card--clickable, [role="button"], button';

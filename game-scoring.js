@@ -380,6 +380,7 @@
         HEALTH_WEIGHTS: HEALTH_WEIGHTS,
         dateKey: dateKey,
         getMealSlots: getMealSlots,
+        planMealSlots: planMealSlots,
         getPlannedCalories: getPlannedCalories,
         calcDayScore: calcDayScore,
         computeHealthIndex: computeHealthIndex,

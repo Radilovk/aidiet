@@ -36,7 +36,7 @@
     <style>body{opacity:0}</style>
     <style>
         :root {
-            --primary-red: #0D9488;
+            --primary-red: #0F766E;
             --soft-red: #CCFBF1;
             --accent-yellow: #fbbf24;
             --accent-blue: #3b82f6;
@@ -141,7 +141,7 @@
         }
 
         .theme-toggle-btn {
-            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+            background: var(--ds-fill-grad);
             border: none;
             width: 42px;
             height: 42px;
@@ -149,11 +149,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--ds-on-fill);
             font-size: 1.05rem;
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
             position: relative;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
@@ -161,7 +161,7 @@
 
         .theme-toggle-btn:hover {
             transform: scale(1.08);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+            box-shadow: 0 6px 20px rgba(15, 118, 110, 0.45);
         }
 
         .header-spacer {
@@ -172,7 +172,7 @@
 
         /* --- HEADER FOOD ANALYSIS BUTTON --- */
         .header-food-btn {
-            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
+            background: var(--ds-fill-grad);
             border: none;
             width: 42px;
             height: 42px;
@@ -180,7 +180,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--ds-on-fill);
             font-size: 1.1rem;
             cursor: pointer;
             flex-shrink: 0;
@@ -359,8 +359,8 @@
             align-items: center;
             gap: 8px;
             padding: 14px 28px;
-            background: var(--primary-red);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             border: none;
             border-radius: 14px;
             font-size: 1rem;
@@ -445,9 +445,9 @@
             text-align: center;
             margin-bottom: 20px;
             padding: 18px 16px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
+            background: var(--ds-fill-grad);
             border-radius: 16px;
-            color: white;
+            color: var(--ds-on-fill);
             box-shadow: 
                 0 8px 24px rgba(13, 148, 136, 0.3),
                 inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -512,7 +512,7 @@
                 margin-bottom: 6px;
             }
             .macro-percentage {
-                font-size: 0.7rem;
+                font-size: 0.8125rem;
                 padding: 4px 8px;
             }
         }
@@ -568,12 +568,18 @@
         }
 
         .macro-card .macro-label {
-            font-size: 0.65rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: var(--text-light);
             margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0;
+            hyphens: manual;
+            line-height: 1.25;
+            min-height: 2.5em;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            text-align: center;
         }
 
         .macro-card .macro-value {
@@ -585,13 +591,13 @@
         }
 
         .macro-unit {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: var(--text-light);
             font-weight: 600;
         }
 
         .macro-percentage {
-            font-size: 0.75rem;
+            font-size: 0.8125rem;
             color: var(--macro-color);
             font-weight: 700;
             margin-top: 8px;
@@ -602,18 +608,21 @@
 
         .macro-card.protein .macro-percentage {
             background: rgba(99, 102, 241, 0.1);
-            color: #6366f1;
+            color: #4F46E5;
         }
 
         .macro-card.carbs .macro-percentage {
             background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
+            color: #1D4ED8;
         }
 
         .macro-card.fats .macro-percentage {
             background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
+            color: #B45309;
         }
+        [data-theme="dark"] .macro-card.protein .macro-percentage { color: #A5B4FC; }
+        [data-theme="dark"] .macro-card.carbs .macro-percentage { color: #93C5FD; }
+        [data-theme="dark"] .macro-card.fats .macro-percentage { color: #FCD34D; }
 
         /* === STRATEGY PANEL === */
         .plan-justification-container {
@@ -987,7 +996,7 @@
             right: calc(16px + var(--safe-area-inset-right, 0px));
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-accent, #0F766E) 100%);
+            background: var(--ds-fill-grad);
             border-radius: 20px;
             box-shadow: 
                 0 8px 28px rgba(13, 148, 136, 0.45),
@@ -996,7 +1005,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--ds-on-fill);
             font-size: 26px;
             border: none;
             cursor: pointer;
@@ -1057,7 +1066,7 @@
             left: calc(16px + var(--safe-area-inset-left, 0px));
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
+            background: var(--ds-fill-grad);
             border-radius: 20px;
             box-shadow:
                 0 8px 28px rgba(13, 148, 136, 0.45),
@@ -1066,7 +1075,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--ds-on-fill);
             font-size: 1.3rem;
             border: none;
             cursor: pointer;
@@ -1098,8 +1107,8 @@
         }
 
         .btn-primary {
-            background: var(--primary-red);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
         }
 
@@ -1119,7 +1128,7 @@
             const colorSchemes = {
                 'purple-pink': {
                     light: {
-                        '--primary-red': '#0D9488',
+                        '--primary-red': '#0F766E',
                         '--soft-red': '#CCFBF1'
                     },
                     dark: {
@@ -1180,7 +1189,7 @@
 
                 <div class="macro-card carbs">
                     <div class="macro-icon">🍞</div>
-                    <div class="macro-label">Въглехидрати</div>
+                    <div class="macro-label">Въгле&shy;хидрати</div>
                     <div class="macro-value" id="targetCarbs">250</div>
                     <div class="macro-unit">грама</div>
                     <div class="macro-percentage" id="carbsPercentage">50%</div>
@@ -2001,7 +2010,7 @@
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
         </a>
-        <a href="index.html?app=1&tab=guidelines" class="bottom-nav-item active">
+        <a href="index.html?app=1&tab=guidelines" class="bottom-nav-item active" aria-current="page">
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>

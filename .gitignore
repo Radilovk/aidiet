@@ -70,3 +70,7 @@ clients/*
 # FitPlan AI: генериран локален индекс и checkpoint (не се комитват)
 fitness/data/exercise-index.json
 fitness/data/.translate-checkpoint.json
+
+# Изход от scripts/design-audit.mjs
+design-audit.json
+design-audit-shots/

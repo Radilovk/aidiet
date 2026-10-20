@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-red: #0D9488;
+            --primary-red: #0F766E;
             --primary-accent: #2DD4BF;
             --secondary-accent: #06B6D4;
             --tertiary-accent: #fbbf24;
@@ -236,8 +236,8 @@
             z-index: 1;
         }
         .step-dot.done { background: var(--soft-red); color: #0F766E; }
-        .step-dot.active { background: var(--primary-red); color: #fff; animation: pulseGlow 2s ease-in-out infinite; }
-        .step-dot.pending { background: var(--bg-subtle); color: var(--text-light); }
+        .step-dot.active { background: var(--ds-fill); color: var(--ds-on-fill); animation: pulseGlow 2s ease-in-out infinite; }
+        .step-dot.pending { background: var(--bg-subtle); color: var(--ds-text-soft); }
         .step-content h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 2px; }
         .step-content p { font-size: 0.82rem; color: var(--text-light); line-height: 1.4; }
 
@@ -327,8 +327,8 @@
             margin-bottom: 4px;
         }
         .email-notice div p {
-            font-size: 0.85rem;
-            color: #3b82f6;
+            font-size: 0.875rem;
+            color: #1E3A8A;
             line-height: 1.45;
         }
 
@@ -352,8 +352,8 @@
             transition: all 0.25s;
         }
         .btn-back:hover {
-            background: var(--primary-red);
-            color: #fff;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
         }
         .cta-section p {
             margin-top: 12px;
@@ -501,6 +501,21 @@
                 font-size: 2.2rem;
             }
         }
+        .pp-problem-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            margin-top: 10px;
+            padding: 0 18px;
+            border-radius: 12px;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
+            font-weight: 700;
+            text-decoration: none;
+            transition: transform var(--ds-motion-press) var(--ds-ease-standard);
+        }
+        .pp-problem-link:active { transform: scale(var(--ds-press-scale)); }
     </style>
 <script src="./platform.js"></script>
 </head>
@@ -626,7 +641,7 @@
                 Обратно към анализа
             </button>
             <p>Можете да прегледате вашия здравословен анализ по всяко време.</p>
-            <button id="checkStatusBtn" onclick="checkPlanStatus()" style="margin-top:12px;background:none;border:2px solid var(--primary-red);color:var(--primary-red);border-radius:8px;padding:10px 20px;font-size:0.9rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
+            <button id="checkStatusBtn" onclick="checkPlanStatus()" style="margin-top:12px;min-height:48px;background:none;border:2px solid var(--primary-red);color:var(--primary-red);border-radius:12px;padding:10px 20px;font-size:0.9rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
                 <i class="fas fa-sync-alt"></i>
                 Провери статус на плана
             </button>
@@ -735,7 +750,6 @@
                 a.className = 'pp-problem-link';
                 a.href = href;
                 a.textContent = label || 'Продължи';
-                a.style.cssText = 'display:inline-block;margin-top:8px;font-weight:700';
                 noticeText.after(a);
             }
         }

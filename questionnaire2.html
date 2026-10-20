@@ -40,8 +40,8 @@
     <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
-            --primary-red: #0D9488;
-            --primary-red-hover: #0F766E;
+            --primary-red: #0F766E;
+            --primary-red-hover: #115E59;
             --soft-red: #CCFBF1;
             --accent-yellow: #fbbf24;
             --accent-blue: #3b82f6;
@@ -460,8 +460,8 @@
         }
 
         .btn-next {
-            background-color: var(--primary-red);
-            color: white;
+            background-color: var(--ds-fill);
+            color: var(--ds-on-fill);
             box-shadow: 0 4px 15px rgba(13, 148, 136, 0.4);
             min-width: 140px;
         }
@@ -504,8 +504,8 @@
             right: 10px;
             transform: translateX(0);
             max-width: calc(100% - 20px);
-            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-hover));
-            color: white;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
             padding: 16px 24px;
             border-radius: 50px;
             box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
@@ -627,8 +627,8 @@
             left: 50%;
             transform: translate(-50%, -50%) scale(0.7);
             width: min(360px, calc(100% - 40px));
-            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-hover));
-            color: white;
+            background: var(--ds-fill-grad);
+            color: var(--ds-on-fill);
             padding: 32px 28px 28px;
             border-radius: 24px;
             box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
@@ -793,8 +793,8 @@
         }
 
         .install-banner-btn {
-            background: var(--primary-red);
-            color: white;
+            background: var(--ds-fill);
+            color: var(--ds-on-fill);
             border: none;
             padding: 14px 24px;
             border-radius: 10px;
@@ -1032,7 +1032,7 @@
             const colorSchemes = {
                 'purple-pink': {
                     light: {
-                        '--primary-red': '#0D9488',
+                        '--primary-red': '#0F766E',
                         '--primary-red-hover': '#0F766E',
                         '--soft-red': '#CCFBF1'
                     },
@@ -1044,7 +1044,7 @@
                 },
                 'green-blue': {
                     light: {
-                        '--primary-red': '#4CAF50',
+                        '--primary-red': '#2E7D32',
                         '--primary-red-hover': '#388E3C',
                         '--soft-red': '#E8F5E9'
                     },
@@ -1056,7 +1056,7 @@
                 },
                 'blue-indigo': {
                     light: {
-                        '--primary-red': '#3B82F6',
+                        '--primary-red': '#1D4ED8',
                         '--primary-red-hover': '#2563EB',
                         '--soft-red': '#EFF6FF'
                     },
@@ -1068,7 +1068,7 @@
                 },
                 'orange-red': {
                     light: {
-                        '--primary-red': '#F97316',
+                        '--primary-red': '#C2410C',
                         '--primary-red-hover': '#EA580C',
                         '--soft-red': '#FFF7ED'
                     },
