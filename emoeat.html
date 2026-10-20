@@ -1322,6 +1322,19 @@
         .rx-detail-block p { font-size: 0.92rem; line-height: 1.5; color: var(--text-gray); margin: 0; }
 
         /* Offline + buttons */
+        .rx-plan-link {
+            border: 1px solid var(--glass-border, rgba(15, 118, 110, 0.18));
+            border-radius: 20px;
+            padding: 18px 20px;
+            display: grid;
+            gap: 10px;
+            background: var(--card-bg);
+        }
+        .rx-plan-link-title { font-weight: 700; font-size: 1.0625rem; display: flex; align-items: center; gap: 8px; }
+        .rx-plan-link-text { font-size: 0.9375rem; line-height: 1.5; color: var(--text-dark); opacity: 0.9; }
+        .rx-plan-link-done { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ds-accent-text); }
+        .rx-plan-link-status { font-size: 0.875rem; color: var(--ds-text-soft); min-height: 1em; }
+
         .rx-offline {
             display: flex;
             flex-wrap: wrap;
@@ -1405,6 +1418,7 @@
             }
         })();
     </script>
+    <script src="./enrichment-client.js"></script>
 </head>
 <body data-page-theme="emoeat" data-standalone-module="emoeat">
     <!-- Skip Navigation Link (Accessibility) -->
@@ -2976,15 +2990,58 @@
                         <button type="button" class="rx-link" onclick="retryAIAnalysis()"><i class="fas fa-rotate-right"></i> Опитай пак</button>
                     </div>`}
 
+                    ${planLinkHtml()}
+
                     <div class="rx-buttons rx-in">
                         <button type="button" class="rx-btn" id="rxShareBtn" onclick="saveAndShare()"><i class="fas fa-share-nodes"></i> Запази плана</button>
                         <button type="button" class="rx-link muted" onclick="restartQuestionnaire()"><i class="fas fa-rotate-left"></i> Започни отначало</button>
                     </div>
-                    <p class="rx-privacy"><i class="fas fa-shield-halved"></i> Отговорите стоят на това устройство. За личния текст изпращаме само тях, без име, към AI модел.</p>
+                    <p class="rx-privacy"><i class="fas fa-shield-halved"></i> Отговорите стоят на това устройство. За личния текст изпращаме само тях, без име, към AI модел. С плана се свързва само обобщението и само ако го включиш.</p>
                 </div>
             `;
             // Поетапно влизане по реда в страницата, не по реда на сглобяване.
             resultsScreen.querySelectorAll('.rx-in').forEach((el, i) => el.style.setProperty('--i', i));
+        }
+
+        // ── Връзка с хранителния план ────────────────────────────────────
+        // Само при профил с план и само по изрично съгласие: изпраща се
+        // обобщението (модел, двигатели, модели, телесни сигнали, нуждата),
+        // не отделните отговори.
+        const EMOEAT_LINK_KEY = 'emoeat_linked_at';
+
+        function planLinkHtml() {
+            const E = window.NutriPlanEnrichment;
+            if (!E || !E.hasPlanProfile()) return '';
+            const linked = localStorage.getItem(EMOEAT_LINK_KEY) === (localStorage.getItem('emoeat_completed') || '');
+            return `
+                <section class="rx-plan-link rx-in" id="rxPlanLink">
+                    <div class="rx-plan-link-title"><i class="fas fa-link"></i> Свържи с хранителния план</div>
+                    <p class="rx-plan-link-text">Обобщението на профила (модел, какво го захранва, телесни сигнали, истинската нужда — без отделните отговори) отива при плана ти. Психологическите насоки и навиците ще стъпят на него, а при изразен модел — и структурата на храненията.</p>
+                    ${linked
+                        ? '<div class="rx-plan-link-done"><i class="fas fa-check"></i> Включено в плана</div>'
+                        : '<button type="button" class="rx-btn" id="rxPlanLinkBtn" onclick="linkEmoEatToPlan()"><i class="fas fa-link"></i> Включи в плана</button>'}
+                    <div class="rx-plan-link-status" id="rxPlanLinkStatus" role="status"></div>
+                </section>`;
+        }
+
+        async function linkEmoEatToPlan() {
+            const E = window.NutriPlanEnrichment;
+            const btn = document.getElementById('rxPlanLinkBtn');
+            const status = document.getElementById('rxPlanLinkStatus');
+            if (!E || !btn) return;
+            btn.disabled = true;
+            status.textContent = 'Изпращаме…';
+            try {
+                E.setConsent('emoeat', true);
+                const res = await E.submit({ emoeat: buildProfilePayload() }, 'emoeat');
+                localStorage.setItem(EMOEAT_LINK_KEY, localStorage.getItem('emoeat_completed') || '');
+                btn.outerHTML = '<div class="rx-plan-link-done"><i class="fas fa-check"></i> Включено в плана</div>';
+                status.textContent = E.describeChange(res);
+                if (window.NutriPlanHaptic && window.NutriPlanHaptic.notify) window.NutriPlanHaptic.notify('success');
+            } catch (e) {
+                btn.disabled = false;
+                status.textContent = 'Не успяхме да изпратим. Проверете връзката и опитайте пак.';
+            }
         }
 
         async function requestAnalysis() {
