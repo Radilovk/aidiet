@@ -13925,7 +13925,29 @@ async function readHandoff(env, token) {
   return kvGetJSON(env, HANDOFF_PREFIX + token);
 }
 
-/** Броячи по модул и месец: колко пратки са създадени и колко са прибрани в профил. */
+/** Презаписва пратката със същия краен срок (KV не пази остатъка от TTL сам). */
+async function touchHandoff(env, token, rec) {
+  const left = HANDOFF_TTL_SEC - Math.floor((Date.now() - Date.parse(rec.createdAt || 0)) / 1000);
+  if (left > 60) await kvPutJSON(env, HANDOFF_PREFIX + token, rec, left);
+}
+
+const HANDOFF_RECENT_KEY = 'handoff_recent';
+
+/** Последните 30 прибрани пратки — за таблото в админа (име, модул, нов или съществуващ клиент). */
+async function rememberHandoffClaim(env, entry) {
+  try {
+    const list = (await kvGetJSON(env, HANDOFF_RECENT_KEY)) || [];
+    await kvPutJSON(env, HANDOFF_RECENT_KEY, [entry, ...list].slice(0, 30), null);
+  } catch (e) {
+    console.warn('[handoff] recent list skipped:', e.message);
+  }
+}
+
+/**
+ * Броячи по модул и месец — фунията на насочванията:
+ * created (клик в модула) → opened (страницата в NutriPlan) → plan (първи план
+ * с данните) → claimed (данните са в профила).
+ */
 async function countHandoff(env, source, event) {
   try {
     const key = `handoff_stats:${source}:${new Date().toISOString().slice(0, 7)}`;
@@ -13963,6 +13985,11 @@ async function handleHandoffPeek(request, env) {
     const { token } = await request.json();
     const rec = await readHandoff(env, token);
     if (!rec?.h) return jsonResponse({ error: 'Линкът е изтекъл или вече е използван.' }, 404);
+    if (!rec.openedAt) {
+      rec.openedAt = new Date().toISOString();
+      await touchHandoff(env, token, rec);
+      await countHandoff(env, rec.h.source, 'opened');
+    }
     return jsonResponse({
       success: true,
       source: rec.h.source,
@@ -13989,6 +14016,16 @@ async function handleHandoffClaim(request, env) {
     const result = await ingestEnrichmentFacts(env, userId, facts, { source: rec.h.source });
     await env.page_content.delete(HANDOFF_PREFIX + token);
     await countHandoff(env, rec.h.source, 'claimed');
+    const profile = await kvGetJSON(env, `user_profile:${userId}`).catch(() => null);
+    await rememberHandoffClaim(env, {
+      source: rec.h.source,
+      at: new Date().toISOString(),
+      createdAt: rec.createdAt,
+      // Нов клиент — дошъл е с пратката през въпросника и първият му план я е ползвал.
+      newClient: !!rec.planAt,
+      name: String(profile?.userData?.name || '').slice(0, 60),
+      clientId: profile?.clientId || '',
+    });
     return jsonResponse({ ...result, source: rec.h.source });
   } catch (error) {
     console.error('handoff claim failed:', error);
@@ -14000,9 +14037,42 @@ async function handleHandoffClaim(request, env) {
 async function handoffFactsForGeneration(env, token) {
   try {
     const rec = await readHandoff(env, token);
-    return rec?.h ? handoffToFacts(rec.h).map(normalizeFact).filter(Boolean) : [];
+    if (!rec?.h) return [];
+    if (!rec.planAt) {
+      rec.planAt = new Date().toISOString();
+      await touchHandoff(env, token, rec);
+      await countHandoff(env, rec.h.source, 'plan');
+    }
+    return handoffToFacts(rec.h).map(normalizeFact).filter(Boolean);
   } catch (_) {
     return [];
+  }
+}
+
+const HANDOFF_SOURCES = ['emoeat', 'airis'];
+
+/** GET /api/admin/handoff-stats?months=12 — фунията по модул и месец + последните насочени клиенти. */
+async function handleAdminHandoffStats(request, env) {
+  try {
+    const url = new URL(request.url);
+    const count = Math.max(1, Math.min(24, parseInt(url.searchParams.get('months') || '12', 10) || 12));
+    const now = new Date();
+    const months = Array.from({ length: count }, (_, i) => {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (count - 1 - i), 1));
+      return d.toISOString().slice(0, 7);
+    });
+    const sources = {};
+    await Promise.all(HANDOFF_SOURCES.map(async (src) => {
+      const rows = await Promise.all(months.map(m => kvGetJSON(env, `handoff_stats:${src}:${m}`).catch(() => null)));
+      sources[src] = Object.fromEntries(months.map((m, i) => [m, {
+        created: rows[i]?.created || 0, opened: rows[i]?.opened || 0, plan: rows[i]?.plan || 0, claimed: rows[i]?.claimed || 0,
+      }]));
+    }));
+    const recent = (await kvGetJSON(env, HANDOFF_RECENT_KEY)) || [];
+    return jsonResponse({ success: true, months, sources, recent });
+  } catch (error) {
+    console.error('handoff stats failed:', error);
+    return jsonResponse({ error: 'Не успяхме да заредим насочванията.' }, 500);
   }
 }
 
@@ -16489,6 +16559,8 @@ export default {
         return await handleEnrichmentGet(request, env);
       } else if (url.pathname === '/api/enrichment/extract-labs' && request.method === 'POST') {
         return await handleLabExtract(request, env);
+      } else if (url.pathname === '/api/admin/handoff-stats' && request.method === 'GET') {
+        return await handleAdminHandoffStats(request, env);
       } else if (url.pathname === '/api/handoff' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'HANDOFF');
         if (rlErr) return rlErr;

@@ -63,6 +63,60 @@
             --radius: 24px;
         }
 
+        /* ── Насочвания от модули: цветове на сериите (валидирани за светла и тъмна тема) ── */
+        .rf-root {
+            --rf-emoeat: #2a78d6;
+            --rf-airis: #eb6834;
+            --rf-grid: rgba(15, 47, 46, 0.10);
+            --rf-track: rgba(15, 118, 110, 0.08);
+            --rf-ink: var(--text-dark);
+            --rf-ink-soft: #52514e;
+        }
+        [data-theme="dark"] .rf-root {
+            --rf-emoeat: #3987e5;
+            --rf-airis: #d95926;
+            --rf-grid: rgba(224, 245, 240, 0.12);
+            --rf-track: rgba(45, 212, 191, 0.10);
+            --rf-ink-soft: #c3c2b7;
+        }
+        .rf-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 16px 0; }
+        .rf-range { display: inline-flex; border: 1px solid var(--glass-border); border-radius: 12px; padding: 3px; gap: 3px; }
+        .rf-range-btn { min-height: 44px; padding: 8px 14px; border: 0; border-radius: 9px; background: transparent; color: var(--rf-ink-soft); font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+        .rf-range-btn[aria-pressed="true"] { background: var(--primary-red); color: #fff; }
+        [data-theme="dark"] .rf-range-btn[aria-pressed="true"] { color: #0A1A1A; }
+        .rf-empty { text-align: center; color: var(--text-gray); padding: 20px; }
+        .rf-modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .rf-module { border: 1px solid var(--glass-border); border-radius: 16px; padding: 16px; }
+        .rf-module-head { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--rf-ink); margin-bottom: 4px; }
+        .rf-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+        .rf-hero { display: flex; align-items: baseline; gap: 8px; margin: 6px 0 12px; }
+        .rf-hero-num { font-size: 2rem; font-weight: 800; color: var(--rf-ink); font-variant-numeric: tabular-nums; line-height: 1; }
+        .rf-hero-label { color: var(--rf-ink-soft); font-size: 0.875rem; }
+        .rf-funnel { display: grid; gap: 8px; }
+        .rf-step { display: grid; grid-template-columns: 96px 1fr 44px; gap: 10px; align-items: center; font-size: 0.875rem; color: var(--rf-ink-soft); }
+        .rf-step-track { height: 10px; border-radius: 4px; background: var(--rf-track); overflow: hidden; }
+        .rf-step-track { display: block; }
+        .rf-step-bar { display: block; height: 100%; border-radius: 4px; min-width: 2px; }
+        .rf-step-val { text-align: right; font-weight: 700; color: var(--rf-ink); font-variant-numeric: tabular-nums; }
+        .rf-chart-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 6px; }
+        .rf-chart-title { font-weight: 700; color: var(--rf-ink); }
+        .rf-legend { display: flex; gap: 14px; font-size: 0.875rem; color: var(--rf-ink-soft); }
+        .rf-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .rf-chart { position: relative; }
+        .rf-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .rf-chart text { fill: var(--rf-ink-soft); font-size: 11px; font-family: inherit; }
+        .rf-tip { position: absolute; pointer-events: none; background: var(--white, #fff); color: var(--rf-ink); border: 1px solid var(--glass-border); border-radius: 10px; padding: 8px 10px; font-size: 0.8125rem; box-shadow: var(--shadow); white-space: nowrap; transform: translate(-50%, calc(-100% - 8px)); }
+        .rf-tip b { display: block; margin-bottom: 2px; }
+        .rf-tip i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+        .rf-toggle { min-height: 44px; background: none; border: 1px solid var(--glass-border); border-radius: 10px; padding: 6px 12px; color: var(--rf-ink-soft); cursor: pointer; font-weight: 600; }
+        .rf-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin-top: 10px; }
+        .rf-table th, .rf-table td { padding: 8px 10px; border-bottom: 1px solid var(--rf-grid); text-align: left; color: var(--rf-ink); }
+        .rf-table th { color: var(--rf-ink-soft); font-weight: 600; }
+        .rf-table td.num, .rf-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .rf-scroll { overflow-x: auto; }
+        .rf-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; border: 1px solid var(--glass-border); }
+        .rf-link { background: none; border: 0; padding: 0; color: var(--primary-red); font-weight: 600; cursor: pointer; text-decoration: underline; min-height: 32px; }
+
         [data-theme="dark"] .card {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
@@ -2683,6 +2737,25 @@
             <!-- Monitoring Tab -->
             <div id="tab-monitoring" class="tab-content">
 
+            <!-- Referrals from modules (EmoEat, AIRIS) -->
+            <div class="card rf-root" id="referralsCard">
+                <h2><i class="fas fa-route"></i> Насочвания от модули</h2>
+                <div class="info-box">
+                    <strong>Фуния:</strong> линк (клик „към NutriPlan“ в модула) → отворен (страницата в NutriPlan) → първи план (нов клиент, планът ползва данните) → в профила (клиентът е потвърдил). Конверсията е „в профила“ ÷ „линкове“.
+                </div>
+                <div class="rf-toolbar">
+                    <div class="rf-range" role="group" aria-label="Период">
+                        <button type="button" class="rf-range-btn" data-months="1" aria-pressed="false" onclick="setReferralRange(1)">Този месец</button>
+                        <button type="button" class="rf-range-btn" data-months="3" aria-pressed="true" onclick="setReferralRange(3)">3 месеца</button>
+                        <button type="button" class="rf-range-btn" data-months="12" aria-pressed="false" onclick="setReferralRange(12)">12 месеца</button>
+                    </div>
+                    <button class="btn" onclick="loadReferralStats()"><i class="fas fa-sync"></i> Обнови</button>
+                </div>
+                <div id="referralsBody">
+                    <p class="rf-empty">Натиснете „Обнови“, за да заредите насочванията.</p>
+                </div>
+            </div>
+
             <!-- Contact Messages Section -->
             <div class="card">
                 <h2><i class="fas fa-envelope-open-text"></i> Контакт Съобщения</h2>
@@ -4127,6 +4200,200 @@
             body.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
         }
 
+        // --- Насочвания от модули (EmoEat, AIRIS) ---
+        const REFERRAL_MODULES = [
+            { key: 'emoeat', label: 'EmoEat', color: 'var(--rf-emoeat)' },
+            { key: 'airis', label: 'AIRIS', color: 'var(--rf-airis)' },
+        ];
+        const REFERRAL_STEPS = [
+            { key: 'created', label: 'Линкове' },
+            { key: 'opened', label: 'Отворени' },
+            { key: 'plan', label: 'Първи план' },
+            { key: 'claimed', label: 'В профила' },
+        ];
+        let referralData = null;
+        let referralRange = 3;
+        let referralsAutoLoaded = false;
+        let referralTableView = false;
+
+        function rfEsc(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        const RF_MONTHS = ['януари', 'февруари', 'март', 'април', 'май', 'юни', 'юли', 'август', 'септември', 'октомври', 'ноември', 'декември'];
+        const RF_MONTHS_SHORT = ['яну', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек'];
+
+        function rfMonthLabel(m, long) {
+            const [y, mo] = m.split('-').map(Number);
+            return long ? `${RF_MONTHS[mo - 1]} ${y}` : RF_MONTHS_SHORT[mo - 1];
+        }
+
+        function setReferralRange(months) {
+            referralRange = months;
+            document.querySelectorAll('.rf-range-btn').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.months) === months)));
+            if (referralData) renderReferrals();
+        }
+
+        async function loadReferralStats() {
+            const body = document.getElementById('referralsBody');
+            body.innerHTML = '<p class="rf-empty">Зареждане…</p>';
+            try {
+                const res = await fetch(`${WORKER_URL}/api/admin/handoff-stats?months=12`);
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+                referralData = data;
+                renderReferrals();
+            } catch (e) {
+                body.innerHTML = `<p class="rf-empty">Не успяхме да заредим насочванията: ${rfEsc(e.message)}</p>`;
+            }
+        }
+
+        function rfTotals(sourceKey, months) {
+            const rows = referralData.sources[sourceKey] || {};
+            const out = { created: 0, opened: 0, plan: 0, claimed: 0 };
+            months.forEach(m => REFERRAL_STEPS.forEach(s => { out[s.key] += (rows[m] && rows[m][s.key]) || 0; }));
+            return out;
+        }
+
+        function renderReferrals() {
+            const body = document.getElementById('referralsBody');
+            const months = referralData.months.slice(-referralRange);
+            const periodText = referralRange === 1 ? rfMonthLabel(months[0], true) : `последните ${referralRange} месеца`;
+            const modules = REFERRAL_MODULES.map(m => {
+                const t = rfTotals(m.key, months);
+                const conv = t.created ? Math.round(t.claimed / t.created * 100) : null;
+                const max = Math.max(1, t.created, t.opened, t.plan, t.claimed);
+                return `
+                    <div class="rf-module">
+                        <div class="rf-module-head"><span class="rf-swatch" style="background:${m.color}"></span>${m.label}</div>
+                        <div class="rf-hero">
+                            <span class="rf-hero-num">${t.claimed}</span>
+                            <span class="rf-hero-label">в профила · ${conv == null ? 'няма линкове' : `${conv}% конверсия`} · ${rfEsc(periodText)}</span>
+                        </div>
+                        <div class="rf-funnel">${REFERRAL_STEPS.map(s => `
+                            <div class="rf-step">
+                                <span>${s.label}</span>
+                                <span class="rf-step-track"><span class="rf-step-bar" style="width:${(t[s.key] / max * 100).toFixed(1)}%;background:${m.color}"></span></span>
+                                <span class="rf-step-val">${t[s.key]}</span>
+                            </div>`).join('')}
+                        </div>
+                    </div>`;
+            }).join('');
+
+            const recent = referralData.recent || [];
+            const recentHtml = recent.length ? `
+                <div class="rf-chart-head"><span class="rf-chart-title">Последни насочени клиенти</span></div>
+                <div class="rf-scroll"><table class="rf-table">
+                    <thead><tr><th>Дата</th><th>Клиент</th><th>Модул</th><th>Вид</th><th></th></tr></thead>
+                    <tbody>${recent.map(r => {
+                        const mod = REFERRAL_MODULES.find(m => m.key === r.source) || { label: r.source, color: 'var(--text-gray)' };
+                        return `<tr>
+                            <td>${rfEsc(new Date(r.at).toLocaleDateString('bg-BG'))}</td>
+                            <td>${rfEsc(r.name || '—')}</td>
+                            <td><span class="rf-swatch" style="display:inline-block;background:${mod.color};margin-right:6px;vertical-align:-1px"></span>${rfEsc(mod.label)}</td>
+                            <td><span class="rf-tag">${r.newClient ? 'Нов клиент' : 'Съществуващ'}</span></td>
+                            <td>${r.clientId ? `<button type="button" class="rf-link" onclick="viewClientDetails('${rfEsc(r.clientId)}')">Отвори</button>` : ''}</td>
+                        </tr>`;
+                    }).join('')}</tbody>
+                </table></div>` : '<p class="rf-empty">Още няма клиенти, дошли от модулите.</p>';
+
+            body.innerHTML = `
+                <div class="rf-modules">${modules}</div>
+                <div class="rf-chart-head">
+                    <span class="rf-chart-title">В профила по месеци</span>
+                    <span class="rf-legend">${REFERRAL_MODULES.map(m => `<span><span class="rf-swatch" style="background:${m.color}"></span>${m.label}</span>`).join('')}</span>
+                    <button type="button" class="rf-toggle" onclick="toggleReferralTable()">${referralTableView ? 'Графика' : 'Таблица'}</button>
+                </div>
+                <div id="rfChartBox">${referralTableView ? referralTableHtml() : '<div class="rf-chart" id="rfChart"></div>'}</div>
+                ${recentHtml}`;
+            if (!referralTableView) drawReferralChart();
+        }
+
+        let rfResizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(rfResizeTimer);
+            rfResizeTimer = setTimeout(() => { if (referralData && !referralTableView && document.getElementById('rfChart')) drawReferralChart(); }, 150);
+        });
+
+        function toggleReferralTable() {
+            referralTableView = !referralTableView;
+            renderReferrals();
+        }
+
+        function referralTableHtml() {
+            const months = referralData.months;
+            return `<div class="rf-scroll"><table class="rf-table">
+                <thead><tr><th>Месец</th>${REFERRAL_MODULES.map(m => `<th class="num">${m.label}: линкове</th><th class="num">${m.label}: в профила</th>`).join('')}</tr></thead>
+                <tbody>${months.slice().reverse().map(mo => `<tr><td>${rfEsc(rfMonthLabel(mo, true))}</td>${REFERRAL_MODULES.map(m => {
+                    const r = referralData.sources[m.key][mo] || {};
+                    return `<td class="num">${r.created || 0}</td><td class="num">${r.claimed || 0}</td>`;
+                }).join('')}</tr>`).join('')}</tbody>
+            </table></div>`;
+        }
+
+        /** Групирани стълбове: месец × модул, стойност „в профила“. Hover върху целия месец. */
+        function drawReferralChart() {
+            const box = document.getElementById('rfChart');
+            if (!box) return;
+            // Рисува се в реалната ширина (текстът остава 11 px); на тесен екран — последните 6 месеца.
+            const W = Math.max(280, Math.round(box.clientWidth || 640));
+            const months = W < 520 ? referralData.months.slice(-6) : referralData.months;
+            const H = 220, L = 34, R = 8, T = 18, B = 26;
+            const values = months.map(mo => REFERRAL_MODULES.map(m => (referralData.sources[m.key][mo] || {}).claimed || 0));
+            const peak = Math.max(1, ...values.flat());
+            const step = peak <= 5 ? 1 : Math.ceil(peak / 4 / 5) * 5;
+            const top = Math.ceil(peak / step) * step;
+            const y = v => T + (H - T - B) * (1 - v / top);
+            const slot = (W - L - R) / months.length;
+            const barW = Math.max(4, Math.min(18, (slot - 10) / 2));
+            const roundTop = (x, yTop, w, base) => {
+                const h = base - yTop;
+                if (h <= 0) return '';
+                const r = Math.min(4, h, w / 2);
+                return `M${x},${base}V${yTop + r}Q${x},${yTop} ${x + r},${yTop}H${x + w - r}Q${x + w},${yTop} ${x + w},${yTop + r}V${base}Z`;
+            };
+            let grid = '';
+            for (let v = 0; v <= top; v += step) {
+                grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rf-grid)" stroke-width="1"/>`;
+                grid += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+            }
+            let bars = '';
+            let labels = '';
+            let hits = '';
+            months.forEach((mo, i) => {
+                const cx = L + slot * i + slot / 2;
+                const x0 = cx - barW - 1;
+                values[i].forEach((v, j) => {
+                    const x = x0 + j * (barW + 2);
+                    bars += `<path d="${roundTop(x, y(v), barW, y(0))}" fill="${REFERRAL_MODULES[j].color}"/>`;
+                    if (i === months.length - 1 && v > 0) labels += `<text x="${x + barW / 2}" y="${y(v) - 4}" text-anchor="middle" style="fill:var(--rf-ink);font-weight:700">${v}</text>`;
+                });
+                labels += `<text x="${cx}" y="${H - 8}" text-anchor="middle">${rfEsc(rfMonthLabel(mo))}</text>`;
+                hits += `<rect x="${L + slot * i}" y="${T}" width="${slot}" height="${H - T - B}" fill="transparent" data-i="${i}"/>`;
+            });
+            box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Клиенти, добавени в профила от модулите, по месеци">${grid}${bars}${labels}<g class="rf-hits">${hits}</g></svg><div class="rf-tip" hidden></div>`;
+            const tip = box.querySelector('.rf-tip');
+            const svg = box.querySelector('svg');
+            box.querySelectorAll('.rf-hits rect').forEach(rect => {
+                const show = () => {
+                    const i = Number(rect.dataset.i);
+                    const mo = months[i];
+                    tip.innerHTML = `<b>${rfEsc(rfMonthLabel(mo, true))}</b>${REFERRAL_MODULES.map(m => {
+                        const r = referralData.sources[m.key][mo] || {};
+                        return `<div><i style="background:${m.color}"></i>${m.label}: ${r.claimed || 0} в профила от ${r.created || 0} линка</div>`;
+                    }).join('')}`;
+                    const scale = svg.getBoundingClientRect().width / W;
+                    const x = (L + slot * i + slot / 2) * scale;
+                    tip.style.left = `${Math.min(Math.max(x, 110), svg.getBoundingClientRect().width - 110)}px`;
+                    tip.style.top = `${T * scale}px`;
+                    tip.hidden = false;
+                };
+                rect.addEventListener('mouseenter', show);
+                rect.addEventListener('touchstart', show, { passive: true });
+                rect.addEventListener('mouseleave', () => { tip.hidden = true; });
+            });
+        }
+
         // --- Tab Management ---
         function switchTab(tabName, evt) {
             // Validate tabName to prevent XSS
@@ -4134,6 +4401,11 @@
             if (!validTabs.includes(tabName)) {
                 console.error('Invalid tab name:', tabName);
                 return;
+            }
+            if (tabName === 'monitoring' && !referralsAutoLoaded) {
+                referralsAutoLoaded = true;
+                setReferralRange(referralRange);
+                loadReferralStats();
             }
 
             // Hide all tab contents
