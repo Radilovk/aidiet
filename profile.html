@@ -1252,6 +1252,12 @@
         .module-go { color: var(--ds-text-soft); }
         .devices-source { margin-bottom: 6px; }
         .devices-links { display: grid; gap: 8px; }
+        .devices-detected { display: grid; gap: 8px; margin: 0 0 10px; }
+        .devices-detected-apps { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+        .devices-detected-apps li { padding: 6px 12px; border-radius: 999px; font-size: 0.875rem; font-weight: 600; background: var(--ds-success-bg); color: var(--ds-success-text); }
+        .devices-detected-apps li[data-hc="0"] { background: var(--ds-warning-bg); color: var(--ds-warning-text); }
+        .devices-hint { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; font-size: 0.875rem; line-height: 1.45; color: var(--text-dark); background: var(--ds-warning-bg); border: 1px solid var(--ds-warning-border); }
+        .devices-hint .btn { min-height: 44px; padding: 8px 16px; justify-self: start; width: auto; }
         .devices-link { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 10px; padding: 10px 12px; min-height: 56px; border-radius: 12px; background: rgba(15, 118, 110, 0.06); border: 1px solid var(--glass-border); }
         .devices-link-name { font-weight: 700; color: var(--text-dark); }
         .devices-link-state { grid-column: 1; font-size: 0.8125rem; color: var(--ds-text-soft); }
@@ -1968,6 +1974,7 @@
     <script src="./plan-sync.js"></script>
     <script src="./enrichment-client.js"></script>
     <script src="./supplement-shop.js"></script>
+    <script src="./health-apps.js"></script>
     <script src="./health-sync.js"></script>
     <script src="./device-import.js"></script>
     <script src="./handoff-client.js"></script>
@@ -2123,6 +2130,7 @@
                 <div class="devices-source" id="devicesHcBox" hidden>
                     <div class="labs-sub">Автоматично — Health Connect</div>
                     <p class="labs-note">Samsung Health, Fitbit, Garmin, Zepp/Amazfit, Mi Fitness, Withings, Oura, Polar, везни Renpho/Xiaomi/Eufy, MyFitnessPal и др. — всичко, което пише в Health Connect.</p>
+                    <div class="devices-detected" id="devicesDetected" hidden></div>
                     <div class="labs-actions devices-actions" id="devicesActions"></div>
                 </div>
                 <div class="devices-source" id="devicesLinksBox" hidden>
@@ -3254,6 +3262,41 @@
             return d.toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' }) + ', ' + d.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
         }
 
+        let _detected = null;
+
+        /** Кои здравни приложения има на телефона — и какво още трябва за всяко. */
+        async function renderDetected() {
+            const H = window.NutriPlanHealth;
+            const box = document.getElementById('devicesDetected');
+            if (!box || !H || !H.detect) return;
+            if (!_detected) { try { _detected = await H.detect(); } catch (_) { return; } }
+            const d = _detected;
+            if (!d.apps.length && d.hcAvailable) { box.hidden = true; return; }
+            const st = H.state();
+            const hints = [];
+            if (!d.hcAvailable && d.hcInstallable) {
+                hints.push(`<div class="devices-hint"><span>Нужно е приложението Health Connect на Google — посредникът между приложенията.</span><button type="button" class="btn btn-secondary" onclick="installHealthConnect()"><i class="fas fa-download"></i> Инсталирай</button></div>`);
+            }
+            if (st.connected && !(st.lastCount > 0)) {
+                d.viaHc.filter(a => a.hcSetup).forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} още не споделя данни. В ${escProfileHtml(a.name)}: ${escProfileHtml(a.hcSetup)}</span><button type="button" class="btn btn-secondary" onclick="window.NutriPlanHealth.openApp('${a.pkg}')">Отвори</button></div>`));
+            }
+            d.other.forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} не споделя данни с други приложения — добавете експорт или снимка по-долу.</span></div>`));
+            box.innerHTML = (d.apps.length ? `<p class="labs-note">На този телефон:</p><ul class="devices-detected-apps">${d.apps.map(a => `<li data-hc="${a.hc ? 1 : 0}">${escProfileHtml(a.name)}</li>`).join('')}</ul>` : '') + hints.join('');
+            box.hidden = !box.innerHTML;
+        }
+
+        async function installHealthConnect() {
+            const H = window.NutriPlanHealth;
+            await H.installHealthConnect().catch(() => {});
+            const onBack = () => {
+                if (document.visibilityState !== 'visible') return;
+                document.removeEventListener('visibilitychange', onBack);
+                _detected = null;
+                renderDevices();
+            };
+            document.addEventListener('visibilitychange', onBack);
+        }
+
         function renderDevices() {
             const H = window.NutriPlanHealth;
             const box = document.getElementById('devicesActions');
@@ -3261,6 +3304,7 @@
             document.querySelectorAll('.devices-needs-consent').forEach(b => { b.disabled = !consent; });
             if (!H || !box || !H.supported()) return;
             document.getElementById('devicesHcBox').hidden = false;
+            renderDetected();
             const st = H.state();
             if (st.connected) {
                 box.innerHTML = `
@@ -3271,7 +3315,8 @@
                     devicesSetStatus(`Последно: ${formatSyncTime(st.lastSync)} · ${st.lastCount || 0} записа`);
                 }
             } else {
-                box.innerHTML = `<button type="button" class="btn btn-primary devices-connect" onclick="connectDevices()" ${consent ? '' : 'disabled'}><i class="fas fa-link"></i> Свържи Health Connect</button>`;
+                // Разрешението в Health Connect е съгласието — бутонът не чака отметката.
+                box.innerHTML = `<button type="button" class="btn btn-primary devices-connect" onclick="connectDevices()"><i class="fas fa-link"></i> Свържи Health Connect</button>`;
             }
         }
 
@@ -3378,6 +3423,15 @@
             document.getElementById('devicesConsent').checked = E.hasConsent('device') || !!(H && H.state().connected);
             renderDevices();
             handleLinkReturn();
+            // Дошли от предложението в обвивката („Към Устройства“).
+            const openDevices = () => {
+                try { if (!sessionStorage.getItem('np_open_devices')) return; sessionStorage.removeItem('np_open_devices'); } catch (_) { return; }
+                const w = document.getElementById('devicesWrapper');
+                if (w && !w.classList.contains('open')) toggleDevices();
+                section.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            };
+            openDevices();
+            window.addEventListener('NUTRIPLAN_TAB_ACTIVATED', openDevices);
             // Сървърът сам пази интервала — тук само взима новото, ако има.
             loadLinks({ sync: true }).then(() => {
                 if (_links.some(l => l.linked)) document.getElementById('devicesConsent').checked = true;
@@ -3389,6 +3443,7 @@
             devicesSetStatus('Свързване…');
             try {
                 const res = await window.NutriPlanHealth.connect();
+                document.getElementById('devicesConsent').checked = true;
                 devicesSetStatus(res.sent ? `Изпратени ${res.sent} записа. ${res.message || ''}` : (res.message || 'Свързано.'), 'ok');
                 if (res.derived) { renderDeviceEssence(res.derived); refreshCardMeter(res.derived); } refreshCardMeter(res.derived);
             } catch (e) {

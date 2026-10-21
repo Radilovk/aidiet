@@ -43,6 +43,17 @@
         return (cap.Plugins && cap.Plugins.Health) || null;
     }
 
+    /** Нативният помощник в APK (NutriSystemUiPlugin.java): инсталирани приложения, отваряне. */
+    function nativeUi() {
+        var cap = bridge();
+        if (!plugin() || !cap) return null;
+        var ui = cap.Plugins && cap.Plugins.NutriSystemUi;
+        if (!ui && typeof cap.registerPlugin === 'function') {
+            try { ui = cap.registerPlugin('NutriSystemUi'); } catch (_) {}
+        }
+        return ui || null;
+    }
+
     function readState() {
         try { return JSON.parse(localStorage.getItem(STATE_KEY) || '{}') || {}; } catch (_) { return {}; }
     }
@@ -238,6 +249,44 @@
         }
     }
 
+    /**
+     * Кои здравни приложения има на телефона и дали Health Connect е готов.
+     * @returns {Promise<{ apps: object[], viaHc: object[], other: object[], manufacturer: string, sdk: number,
+     *   hcAvailable: boolean, hcInstallable: boolean }>}
+     */
+    async function detect() {
+        var A = global.NutriPlanHealthApps;
+        var ui = nativeUi();
+        var out = { apps: [], viaHc: [], other: [], manufacturer: '', sdk: 0, hcAvailable: false, hcInstallable: false };
+        if (!A || !ui || typeof ui.installedApps !== 'function') return out;
+        var res = null;
+        try {
+            res = await ui.installedApps({ packages: A.APPS.map(function (a) { return a.pkg; }).concat(A.HEALTH_CONNECT_PKG) });
+        } catch (_) { return out; }
+        var installed = (res && res.installed) || [];
+        out.apps = A.APPS.filter(function (a) { return installed.indexOf(a.pkg) !== -1; });
+        out.viaHc = out.apps.filter(function (a) { return a.hc; });
+        out.other = out.apps.filter(function (a) { return !a.hc; });
+        out.manufacturer = String((res && res.manufacturer) || '');
+        out.sdk = Number(res && res.sdk) || 0;
+        out.hcAvailable = !!(await isAvailable()).available;
+        // До Android 14 Health Connect е отделно приложение от Google Play.
+        out.hcInstallable = !out.hcAvailable && out.sdk >= 26 && out.sdk < 34;
+        writeState({ detected: { at: new Date().toISOString(), apps: out.apps.map(function (a) { return a.id; }), manufacturer: out.manufacturer } });
+        return out;
+    }
+
+    async function openApp(pkg) {
+        var ui = nativeUi();
+        if (ui && typeof ui.openApp === 'function') await ui.openApp({ package: pkg });
+    }
+
+    async function installHealthConnect() {
+        var ui = nativeUi();
+        var A = global.NutriPlanHealthApps;
+        if (ui && A && typeof ui.openStore === 'function') await ui.openStore({ package: A.HEALTH_CONNECT_PKG });
+    }
+
     async function openSettings() {
         var H = plugin();
         if (H && typeof H.openHealthConnectSettings === 'function') await H.openHealthConnectSettings();
@@ -251,6 +300,9 @@
         sync: sync,
         disconnect: disconnect,
         openSettings: openSettings,
+        detect: detect,
+        openApp: openApp,
+        installHealthConnect: installHealthConnect,
         // За тестове: превръщането на пробите в дни.
         _sleepByDay: sleepByDay
     };
