@@ -2496,6 +2496,31 @@
                     <a class="android-btn" id="apkDownloadBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="NutriPlan.apk">
                         <i class="fab fa-android"></i> Свали APK
                     </a>
+                    <script>
+                    /* Бутонът сочи към най-новия build (по номер), не към „latest“ на GitHub —
+                     * стари издания с тагове по дата GitHub класира като по-нови. */
+                    (function () {
+                        var btn = document.getElementById('apkDownloadBtn');
+                        if (!btn || !window.fetch) return;
+                        fetch('https://api.github.com/repos/Radilovk/aidiet/releases?per_page=30', { headers: { Accept: 'application/vnd.github+json' } })
+                            .then(function (r) { return r.ok ? r.json() : []; })
+                            .then(function (list) {
+                                var best = null;
+                                (list || []).forEach(function (rel) {
+                                    var m = /^v-build(\d+)-/.exec(rel.tag_name || '');
+                                    if (!m || rel.draft || rel.prerelease) return;
+                                    // Файлът с версията в името — уникален адрес, без кеширан стар APK в браузъра.
+                                    var asset = (rel.assets || []).filter(function (a) { return /^NutriPlan-v[\d.]+\.apk$/.test(a.name); })[0];
+                                    if (asset && (!best || Number(m[1]) > best.n)) best = { n: Number(m[1]), url: asset.browser_download_url, name: asset.name };
+                                });
+                                if (!best) return;
+                                btn.href = best.url;
+                                btn.setAttribute('download', best.name);
+                                btn.innerHTML = '<i class="fab fa-android"></i> Свали APK v' + best.name.replace(/^NutriPlan-v|\.apk$/g, '');
+                            })
+                            .catch(function () {});
+                    })();
+                    </script>
                 </div>
 
                 <div class="android-install-card android-install-card--soon lp-reveal">

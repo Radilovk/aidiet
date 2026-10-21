@@ -139,9 +139,9 @@
         var app = needs[0];
         render({
             icon: 'fa-list-check', title: 'Още една стъпка',
-            text: app.name + ' още не споделя данни. В ' + app.name + ': ' + app.hcSetup,
+            text: app.name + ' още не споделя данни. В ' + (app.setupApp || app.name) + ': ' + app.hcSetup,
             note: 'После се върнете тук — данните се изтеглят сами.',
-            primary: 'Отвори ' + app.name, primaryIcon: 'fa-arrow-up-right-from-square',
+            primary: 'Отвори ' + (app.setupApp || app.name), primaryIcon: 'fa-arrow-up-right-from-square',
             onPrimary: function () {
                 global.NutriPlanHealth.openApp(app.pkg).catch(function () {});
                 var onBack = function () {
@@ -193,20 +193,44 @@
         };
     }
 
+    /** Huawei/Honor: не дават данни директно — мостът Health Sync ги прехвърля в Health Connect. */
     function huaweiView(d) {
+        var H = global.NutriPlanHealth;
+        var A = global.NutriPlanHealthApps;
+        var withBridge = d.other.filter(function (a) { return a.bridge; });
+        if (!withBridge.length || !A) {
+            return {
+                icon: 'fa-file-arrow-up', title: 'Данни от ' + names(d.other),
+                text: names(d.other) + ' не споделя данни с други приложения. Добави експорт или снимка на екрана — разчитаме стойностите.',
+                primary: 'Към Устройства', primaryIcon: 'fa-arrow-right', onPrimary: goToDevices
+            };
+        }
+        var bridge = A.byId(withBridge[0].bridge);
         return {
-            icon: 'fa-file-arrow-up',
-            title: 'Данни от ' + names(d.other),
-            text: names(d.other) + ' не споделя данни с други приложения на телефона. Добави експорт или снимка на екрана — разчитаме стойностите и ги проверяваш.',
-            primary: 'Към Устройства', primaryIcon: 'fa-arrow-right',
-            onPrimary: goToDevices
+            title: 'Данни от ' + names(withBridge),
+            text: names(withBridge) + ' не дава данни директно на други приложения. ' + bridge.name + ' ги прехвърля сам в Health Connect — веднъж настройваш, после всичко идва автоматично.',
+            note: bridge.name + ' е от Google Play; след пробния период е платено. Иначе — снимка или файл от Профил → Устройства.',
+            primary: 'Инсталирай ' + bridge.name, primaryIcon: 'fa-download',
+            onPrimary: function () {
+                H.openStore(bridge.pkg).catch(function () {});
+                var onBack = async function () {
+                    if (doc.visibilityState !== 'visible') return;
+                    doc.removeEventListener('visibilitychange', onBack);
+                    var again = await H.detect();
+                    if (overlay && again.viaHc.length && (again.hcAvailable || again.hcInstallable)) render(connectView(again));
+                };
+                doc.addEventListener('visibilitychange', onBack);
+            }
         };
     }
 
     async function offer() {
         if (!due() || busy() || overlay) return;
         var d = await global.NutriPlanHealth.detect();
-        var view = d.viaHc.length && (d.hcAvailable || d.hcInstallable) ? connectView(d) : d.other.length ? huaweiView(d) : null;
+        // Гривна на Huawei/Honor без мост е основният тракер — първо мостът.
+        var hcReady = d.hcAvailable || d.hcInstallable;
+        var view = d.other.some(function (a) { return a.bridge; }) && hcReady ? huaweiView(d)
+            : d.viaHc.length && hcReady ? connectView(d) : d.other.length ? huaweiView(d) : null;
         if (!view || busy() || !due()) return;
         var st = readState();
         writeState({ shown: (st.shown || 0) + 1, lastAt: new Date().toISOString() });

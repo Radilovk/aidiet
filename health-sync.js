@@ -266,8 +266,15 @@
         } catch (_) { return out; }
         var installed = (res && res.installed) || [];
         out.apps = A.APPS.filter(function (a) { return installed.indexOf(a.pkg) !== -1; });
-        out.viaHc = out.apps.filter(function (a) { return a.hc; });
-        out.other = out.apps.filter(function (a) { return !a.hc; });
+        var has = function (id) { return out.apps.some(function (a) { return a.id === id; }); };
+        // Приложение с мост (Huawei → Health Sync): с инсталиран мост данните му идват през Health Connect.
+        var bridged = out.apps.filter(function (a) { return !a.hc && a.bridge && has(a.bridge); });
+        out.viaHc = out.apps.filter(function (a) { return a.hc && !(a.id === 'healthsync' && bridged.length); })
+            .concat(bridged.map(function (a) {
+                var b = A.byId(a.bridge);
+                return { id: a.id, name: a.name + ' (през ' + b.name + ')', pkg: b.pkg, hc: true, hcSetup: b.hcSetup, setupApp: b.name };
+            }));
+        out.other = out.apps.filter(function (a) { return !a.hc && bridged.indexOf(a) === -1; });
         out.manufacturer = String((res && res.manufacturer) || '');
         out.sdk = Number(res && res.sdk) || 0;
         out.hcAvailable = !!(await isAvailable()).available;
@@ -280,6 +287,11 @@
     async function openApp(pkg) {
         var ui = nativeUi();
         if (ui && typeof ui.openApp === 'function') await ui.openApp({ package: pkg });
+    }
+
+    async function openStore(pkg) {
+        var ui = nativeUi();
+        if (ui && typeof ui.openStore === 'function') await ui.openStore({ package: pkg });
     }
 
     async function installHealthConnect() {
@@ -304,6 +316,7 @@
         detect: detect,
         openApp: openApp,
         installHealthConnect: installHealthConnect,
+        openStore: openStore,
         // За тестове: превръщането на пробите в дни.
         _sleepByDay: sleepByDay
     };

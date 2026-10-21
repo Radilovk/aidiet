@@ -3286,12 +3286,28 @@
                 hints.push(`<div class="devices-hint"><span>Нужно е приложението Health Connect на Google — посредникът между приложенията.</span><button type="button" class="btn btn-secondary" onclick="installHealthConnect()"><i class="fas fa-download"></i> Инсталирай</button></div>`);
             }
             if (st.connected && !(st.lastCount > 0)) {
-                d.viaHc.filter(a => a.hcSetup).forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} още не споделя данни. В ${escProfileHtml(a.name)}: ${escProfileHtml(a.hcSetup)}</span><button type="button" class="btn btn-secondary" onclick="window.NutriPlanHealth.openApp('${a.pkg}')">Отвори</button></div>`));
+                d.viaHc.filter(a => a.hcSetup).forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} още не споделя данни. В ${escProfileHtml(a.setupApp || a.name)}: ${escProfileHtml(a.hcSetup)}</span><button type="button" class="btn btn-secondary" onclick="window.NutriPlanHealth.openApp('${a.pkg}')">Отвори</button></div>`));
             }
             if (d.other.length) { const o = document.querySelector('.devices-other'); if (o) o.open = true; }
-            d.other.forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} не споделя данни с други приложения — добавете експорт или снимка по-долу.</span></div>`));
+            d.other.forEach(a => {
+                const b = a.bridge && window.NutriPlanHealthApps ? window.NutriPlanHealthApps.byId(a.bridge) : null;
+                hints.push(b
+                    ? `<div class="devices-hint"><span>${escProfileHtml(a.name)} не дава данни директно. ${escProfileHtml(b.name)} ги прехвърля сам в Health Connect (платено след пробния период). Иначе — снимка или файл по-долу.</span><button type="button" class="btn btn-secondary" onclick="installBridge('${b.pkg}')"><i class="fas fa-download"></i> ${escProfileHtml(b.name)}</button></div>`
+                    : `<div class="devices-hint"><span>${escProfileHtml(a.name)} не споделя данни с други приложения — добавете експорт или снимка по-долу.</span></div>`);
+            });
             box.innerHTML = (d.apps.length ? `<p class="labs-note">На този телефон:</p><ul class="devices-detected-apps">${d.apps.map(a => `<li data-hc="${a.hc ? 1 : 0}">${escProfileHtml(a.name)}</li>`).join('')}</ul>` : '') + hints.join('');
             box.hidden = !box.innerHTML;
+        }
+
+        async function installBridge(pkg) {
+            await window.NutriPlanHealth.openStore(pkg).catch(() => {});
+            const onBack = () => {
+                if (document.visibilityState !== 'visible') return;
+                document.removeEventListener('visibilitychange', onBack);
+                _detected = null;
+                renderDevices();
+            };
+            document.addEventListener('visibilitychange', onBack);
         }
 
         async function installHealthConnect() {

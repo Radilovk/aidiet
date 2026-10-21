@@ -7,7 +7,8 @@
  *
  * hc — пише в Health Connect (данните идват с едно свързване);
  * hcSetup — пътят в самото приложение за еднократното включване;
- * cloud — може да се свърже и профилът в облака (device-links.js).
+ * cloud — може да се свърже и профилът в облака (device-links.js);
+ * bridge — приложение-мост, което прехвърля данните му в Health Connect.
  */
 (function (global) {
     'use strict';
@@ -29,9 +30,12 @@
         { id: 'whoop', name: 'WHOOP', pkg: 'com.whoop.android', hc: true },
         { id: 'strava', name: 'Strava', pkg: 'com.strava', hc: true, cloud: 'strava' },
         { id: 'mfp', name: 'MyFitnessPal', pkg: 'com.myfitnesspal.android', hc: true },
-        // Не пишат в Health Connect — само профил в облака (след одобрение) или файл/снимка.
-        { id: 'huawei', name: 'Huawei Health', pkg: 'com.huawei.health', hc: false },
-        { id: 'honor', name: 'Honor Health', pkg: 'com.hihonor.health', hc: false }
+        // Мост: прехвърля данните на Huawei/Honor (и др.) в Health Connect.
+        { id: 'healthsync', name: 'Health Sync', pkg: 'nl.appyhapps.healthsync', hc: true,
+          hcSetup: 'изберете Huawei Health като източник и Health Connect като цел.' },
+        // Не пишат в Health Connect сами — през Health Sync, иначе файл/снимка.
+        { id: 'huawei', name: 'Huawei Health', pkg: 'com.huawei.health', hc: false, bridge: 'healthsync' },
+        { id: 'honor', name: 'Honor Health', pkg: 'com.hihonor.health', hc: false, bridge: 'healthsync' }
     ];
 
     /** Health Connect като отделно приложение (Android 9–13; от 14 е част от системата). */
@@ -40,6 +44,7 @@
     global.NutriPlanHealthApps = {
         APPS: APPS,
         HEALTH_CONNECT_PKG: HEALTH_CONNECT_PKG,
-        byPkg: function (pkg) { return APPS.filter(function (a) { return a.pkg === pkg; })[0] || null; }
+        byPkg: function (pkg) { return APPS.filter(function (a) { return a.pkg === pkg; })[0] || null; },
+        byId: function (id) { return APPS.filter(function (a) { return a.id === id; })[0] || null; }
     };
 }(typeof window !== 'undefined' ? window : globalThis));
