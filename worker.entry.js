@@ -14620,20 +14620,26 @@ async function handleLinksStart(request, env) {
     if (authError) return authError;
     const state = randomToken(24);
     const { url, verifier } = await linkAuthorizeUrl(env, provider, { redirectUri: linkRedirectUri(request, provider), state });
-    await kvPutJSON(env, `link_state:${state}`, { userId, provider, verifier, returnTo: safeReturnTo(returnTo) }, 600);
+    const back = safeReturnTo(returnTo);
+    // Без адрес за връщане = от приложението: страницата за успех отваря APK-то обратно.
+    await kvPutJSON(env, `link_state:${state}`, { userId, provider, verifier, returnTo: back, fromApp: !back }, 600);
     return jsonResponse({ success: true, url });
   } catch (error) {
     return jsonResponse({ error: 'Failed to start link: ' + error.message }, 500);
   }
 }
 
-function linkResultPage(ok, title, text) {
+/** Отваря приложението на Android от браузъра (входният екран на APK-то). */
+const APP_INTENT_URL = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.biocode.nutriplan;end';
+
+function linkResultPage(ok, title, text, fromApp = false) {
   const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NutriPlan</title>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#F0FDFA;color:#042F2E}
 main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? '#0F766E' : '#B45309'}}
 a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#0F766E;color:#fff;text-decoration:none}</style></head>
-<body><main><div class="i">${ok ? '✓' : '!'}</div><h1>${esc(title)}</h1><p>${esc(text)}</p><a href="https://biocode.website/index.html?tab=profile">Към NutriPlan</a></main></body></html>`;
+<body><main><div class="i">${ok ? '✓' : '!'}</div><h1>${esc(title)}</h1><p>${esc(text)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : 'https://biocode.website/index.html?app=1&tab=profile'}">Обратно в NutriPlan</a></main>
+${fromApp ? `<script>setTimeout(function(){location.href=${JSON.stringify(APP_INTENT_URL)};},${ok ? 600 : 2500});</script>` : ''}</body></html>`;
   return new Response(html, { status: ok ? 200 : 400, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 
@@ -14652,16 +14658,16 @@ async function handleLinksCallback(request, env, provider) {
     u.searchParams.set('link_status', status);
     return Response.redirect(u.toString(), 302);
   };
-  if (!code) return back('denied') || linkResultPage(false, 'Достъпът не е разрешен', 'Профилът не е свързан. Може да опитате отново по всяко време.');
+  if (!code) return back('denied') || linkResultPage(false, 'Достъпът не е разрешен', 'Профилът не е свързан. Може да опитате отново по всяко време.', pending.fromApp);
   try {
     const token = await linkExchangeCode(fetch, env, provider, { code, redirectUri: linkRedirectUri(request, provider), verifier: pending.verifier });
     const link = { ...token, linkedAt: new Date().toISOString() };
     await kvPutJSON(env, `link:${pending.userId}:${provider}`, link, LINK_TTL);
     await syncLink(env, pending.userId, provider, link);
-    return back('ok') || linkResultPage(true, `${LINK_PROVIDERS[provider].name} е свързан`, 'Данните за последните 14 дни са в профила. Върнете се в NutriPlan — оттук нататък се обновяват сами.');
+    return back('ok') || linkResultPage(true, `${LINK_PROVIDERS[provider].name} е свързан`, 'Данните за последните 14 дни са в профила и оттук нататък се обновяват сами.', pending.fromApp);
   } catch (e) {
     console.warn('[Links] callback failed:', e.message);
-    return back('error') || linkResultPage(false, 'Връзката не успя', e.message);
+    return back('error') || linkResultPage(false, 'Връзката не успя', e.message, pending.fromApp);
   }
 }
 

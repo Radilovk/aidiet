@@ -44549,8 +44549,8 @@ function normalizeDigest(raw, now = /* @__PURE__ */ new Date()) {
   if (!insights.length && !coachNote) return null;
   return { insights, coachNote, approach, at: now.toISOString() };
 }
-var SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, device_photo: 3, file: 2, manual: 1 };
-var TRACKED_SOURCES = /* @__PURE__ */ new Set(["health_connect", "fitbit", "oura", "withings", "strava"]);
+var SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, huawei: 4, device_photo: 3, file: 2, manual: 1 };
+var TRACKED_SOURCES = /* @__PURE__ */ new Set(["health_connect", "fitbit", "oura", "withings", "strava", "huawei"]);
 function dayOf(at) {
   return new Date(Date.parse(at)).toISOString().slice(0, 10);
 }
@@ -46037,6 +46037,45 @@ function workoutsByDay(list2, source) {
   }
   return [...byDay].map(([day, d]) => ({ kind: "workout", value: Math.round(d.minutes), count: d.count, at: atOf(day), source }));
 }
+function huaweiMs(t) {
+  const n = Number(t);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n > 1e17) return Math.round(n / 1e6);
+  if (n > 1e14) return Math.round(n / 1e3);
+  if (n > 1e11) return n;
+  return n * 1e3;
+}
+function huaweiFields(list2) {
+  const out = {};
+  for (const f of Array.isArray(list2) ? list2 : []) {
+    const v = f.floatValue ?? f.integerValue ?? f.longValue ?? f.value;
+    if (f.fieldName != null && v != null && Number.isFinite(Number(v))) out[f.fieldName] = Number(v);
+  }
+  return out;
+}
+function huaweiPoints(json2) {
+  const sets = [];
+  for (const g of json2?.group || []) sets.push(...g.sampleSet || []);
+  sets.push(...json2?.sampleSet || []);
+  const out = [];
+  for (const set of sets) {
+    for (const p of set.samplePoints || set.samplePoint || []) {
+      const ms = huaweiMs(p.endTime ?? p.startTime);
+      if (!ms) continue;
+      const fields = huaweiFields(p.value || p.fieldValues || []);
+      out.push({
+        day: ymd(new Date(ms)),
+        fields,
+        num: (...names) => {
+          for (const n of names) if (fields[n] != null) return fields[n];
+          const keys = Object.keys(fields);
+          return keys.length === 1 ? fields[keys[0]] : NaN;
+        }
+      });
+    }
+  }
+  return out;
+}
 var PROVIDERS = {
   fitbit: {
     name: "Fitbit",
@@ -46174,6 +46213,91 @@ var PROVIDERS = {
       await safe(async () => {
         const b = await post("https://wbsapi.withings.net/v2/sleep", { action: "getsummary", startdateymd: ymd(from), enddateymd: ymd(to), data_fields: "total_sleep_time" });
         out.push(...facts("sleep", sumByDay((b.series || []).map((s) => ({ day: s.date, value: Number(s.data?.total_sleep_time) / 3600 }))), "withings", round1));
+      });
+      return out;
+    }
+  },
+  // Huawei Health (часовници и гривни Huawei/Honor) — Health Kit в облака на Huawei.
+  // Huawei не пише в Health Connect; това е единственият път без стъпки за клиента.
+  // Изисква приложение с одобрен Health Kit в Huawei Developer Console.
+  // Полетата в отговорите варират по тип — четат се толерантно (виж huaweiPoints).
+  huawei: {
+    name: "Huawei Health",
+    env: "HUAWEI",
+    console: "https://developer.huawei.com/consumer/en/console",
+    authorizeUrl: "https://oauth-login.cloud.huawei.com/oauth2/v3/authorize",
+    tokenUrl: "https://oauth-login.cloud.huawei.com/oauth2/v3/token",
+    scope: ["openid", "step", "calories", "sleep", "heartrate", "heightweight", "bloodpressure", "bloodglucose", "activity"].map((x) => x === "openid" ? x : `https://www.huawei.com/healthkit/${x}.read`).join(" "),
+    authorizeExtra: { access_type: "offline" },
+    async fetchFacts(fetchFn, token, from, to) {
+      const A = "https://health-api.cloud.huawei.com/healthkit/v2";
+      const out = [];
+      const safe = async (fn) => {
+        try {
+          await fn();
+        } catch (e) {
+          if (e.status === 401) throw e;
+        }
+      };
+      const post = (path, body) => getJson(fetchFn, `${A}${path}`, token, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const compact = (d) => ymd(d).replace(/-/g, "");
+      const daily = (types) => post("/sampleSet:dailyPolymerize", { dataTypes: types, startDay: compact(from), endDay: compact(to), timeZone: "+0000" });
+      const span = (types) => post("/sampleSet:polymerize", {
+        polymerizeWith: types.map((t) => ({ dataTypeName: t })),
+        startTime: from.getTime(),
+        endTime: to.getTime() + DAY_MS4
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await daily(["com.huawei.continuous.steps.delta"]));
+        out.push(...facts("steps", sumByDay(pts.map((x) => ({ day: x.day, value: x.num("steps", "steps_delta") }))), "huawei", Math.round));
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await daily(["com.huawei.continuous.calories.burnt"]));
+        out.push(...facts("active_kcal", sumByDay(pts.map((x) => ({ day: x.day, value: x.num("calories", "calories_total") }))), "huawei", Math.round));
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await span(["com.huawei.instantaneous.resting_heart_rate"]));
+        const byDay = /* @__PURE__ */ new Map();
+        for (const x of pts) {
+          const v = x.num("resting_heart_rate", "avg");
+          if (v > 0) byDay.set(x.day, v);
+        }
+        out.push(...facts("resting_hr", [...byDay].map(([day, value]) => ({ day, value })), "huawei", Math.round));
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await span(["com.huawei.instantaneous.body_weight"]));
+        for (const x of pts) {
+          const w = x.num("body_weight");
+          const fat = x.num("body_fat_rate");
+          if (w > 0) out.push({ kind: "weight", value: round1(w), at: atOf(x.day), source: "huawei" });
+          if (fat > 0) out.push({ kind: "body_fat", value: round1(fat), at: atOf(x.day), source: "huawei" });
+        }
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await span(["com.huawei.instantaneous.blood_pressure"]));
+        for (const x of pts) {
+          const sys = x.num("systolic_pressure"), dia = x.num("diastolic_pressure");
+          if (sys > 0 && dia > 0) out.push({ kind: "bp", value: Math.round(sys), value2: Math.round(dia), at: atOf(x.day), source: "huawei" });
+        }
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await span(["com.huawei.instantaneous.blood_glucose"]));
+        for (const x of pts) {
+          const v = x.num("level");
+          if (v > 0) out.push({ kind: "glucose", value: round1(v), at: atOf(x.day), source: "huawei" });
+        }
+      });
+      await safe(async () => {
+        const startNs = BigInt(from.getTime()) * 1000000n;
+        const endNs = BigInt(to.getTime() + DAY_MS4) * 1000000n;
+        const r = await getJson(fetchFn, `${A}/healthRecords?startTime=${startNs}&endTime=${endNs}&dataType=com.huawei.health.record.sleep`, token);
+        const nights = (r.healthRecords || r.healthRecord || []).map((rec) => {
+          const fields = huaweiFields(rec.value || rec.fields || []);
+          const minutes = fields.all_sleep_time ?? fields.allSleepTime;
+          const end = huaweiMs(rec.endTime ?? fields.wakeup_time ?? fields.wakeupTime);
+          return end && minutes > 0 ? { day: ymd(new Date(end)), value: minutes / 60 } : null;
+        }).filter(Boolean);
+        out.push(...facts("sleep", sumByDay(nights), "huawei", round1));
       });
       return out;
     }
@@ -57571,19 +57695,22 @@ async function handleLinksStart(request, env) {
     if (authError) return authError;
     const state = randomToken2(24);
     const { url, verifier } = await authorizeUrl(env, provider, { redirectUri: linkRedirectUri(request, provider), state });
-    await kvPutJSON(env, `link_state:${state}`, { userId, provider, verifier, returnTo: safeReturnTo(returnTo) }, 600);
+    const back = safeReturnTo(returnTo);
+    await kvPutJSON(env, `link_state:${state}`, { userId, provider, verifier, returnTo: back, fromApp: !back }, 600);
     return jsonResponse2({ success: true, url });
   } catch (error) {
     return jsonResponse2({ error: "Failed to start link: " + error.message }, 500);
   }
 }
-function linkResultPage(ok, title, text) {
+var APP_INTENT_URL = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.biocode.nutriplan;end";
+function linkResultPage(ok, title, text, fromApp = false) {
   const esc3 = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NutriPlan</title>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#F0FDFA;color:#042F2E}
 main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? "#0F766E" : "#B45309"}}
 a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#0F766E;color:#fff;text-decoration:none}</style></head>
-<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text)}</p><a href="https://biocode.website/index.html?tab=profile">\u041A\u044A\u043C NutriPlan</a></main></body></html>`;
+<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : "https://biocode.website/index.html?app=1&tab=profile"}">\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 NutriPlan</a></main>
+${fromApp ? `<script>setTimeout(function(){location.href=${JSON.stringify(APP_INTENT_URL)};},${ok ? 600 : 2500});<\/script>` : ""}</body></html>`;
   return new Response(html, { status: ok ? 200 : 400, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }
 async function handleLinksCallback(request, env, provider) {
@@ -57601,16 +57728,16 @@ async function handleLinksCallback(request, env, provider) {
     u.searchParams.set("link_status", status);
     return Response.redirect(u.toString(), 302);
   };
-  if (!code) return back("denied") || linkResultPage(false, "\u0414\u043E\u0441\u0442\u044A\u043F\u044A\u0442 \u043D\u0435 \u0435 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D", "\u041F\u0440\u043E\u0444\u0438\u043B\u044A\u0442 \u043D\u0435 \u0435 \u0441\u0432\u044A\u0440\u0437\u0430\u043D. \u041C\u043E\u0436\u0435 \u0434\u0430 \u043E\u043F\u0438\u0442\u0430\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E \u043F\u043E \u0432\u0441\u044F\u043A\u043E \u0432\u0440\u0435\u043C\u0435.");
+  if (!code) return back("denied") || linkResultPage(false, "\u0414\u043E\u0441\u0442\u044A\u043F\u044A\u0442 \u043D\u0435 \u0435 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D", "\u041F\u0440\u043E\u0444\u0438\u043B\u044A\u0442 \u043D\u0435 \u0435 \u0441\u0432\u044A\u0440\u0437\u0430\u043D. \u041C\u043E\u0436\u0435 \u0434\u0430 \u043E\u043F\u0438\u0442\u0430\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E \u043F\u043E \u0432\u0441\u044F\u043A\u043E \u0432\u0440\u0435\u043C\u0435.", pending.fromApp);
   try {
     const token = await exchangeCode(fetch, env, provider, { code, redirectUri: linkRedirectUri(request, provider), verifier: pending.verifier });
     const link = { ...token, linkedAt: (/* @__PURE__ */ new Date()).toISOString() };
     await kvPutJSON(env, `link:${pending.userId}:${provider}`, link, LINK_TTL);
     await syncLink(env, pending.userId, provider, link);
-    return back("ok") || linkResultPage(true, `${PROVIDERS[provider].name} \u0435 \u0441\u0432\u044A\u0440\u0437\u0430\u043D`, "\u0414\u0430\u043D\u043D\u0438\u0442\u0435 \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 14 \u0434\u043D\u0438 \u0441\u0430 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0430. \u0412\u044A\u0440\u043D\u0435\u0442\u0435 \u0441\u0435 \u0432 NutriPlan \u2014 \u043E\u0442\u0442\u0443\u043A \u043D\u0430\u0442\u0430\u0442\u044A\u043A \u0441\u0435 \u043E\u0431\u043D\u043E\u0432\u044F\u0432\u0430\u0442 \u0441\u0430\u043C\u0438.");
+    return back("ok") || linkResultPage(true, `${PROVIDERS[provider].name} \u0435 \u0441\u0432\u044A\u0440\u0437\u0430\u043D`, "\u0414\u0430\u043D\u043D\u0438\u0442\u0435 \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 14 \u0434\u043D\u0438 \u0441\u0430 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0438 \u043E\u0442\u0442\u0443\u043A \u043D\u0430\u0442\u0430\u0442\u044A\u043A \u0441\u0435 \u043E\u0431\u043D\u043E\u0432\u044F\u0432\u0430\u0442 \u0441\u0430\u043C\u0438.", pending.fromApp);
   } catch (e) {
     console.warn("[Links] callback failed:", e.message);
-    return back("error") || linkResultPage(false, "\u0412\u0440\u044A\u0437\u043A\u0430\u0442\u0430 \u043D\u0435 \u0443\u0441\u043F\u044F", e.message);
+    return back("error") || linkResultPage(false, "\u0412\u0440\u044A\u0437\u043A\u0430\u0442\u0430 \u043D\u0435 \u0443\u0441\u043F\u044F", e.message, pending.fromApp);
   }
 }
 async function handleLinksSync(request, env) {

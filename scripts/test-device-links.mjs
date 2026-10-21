@@ -19,6 +19,7 @@ const ENV = {
   OURA_CLIENT_ID: 'ou', OURA_CLIENT_SECRET: 'ous',
   WITHINGS_CLIENT_ID: 'wi', WITHINGS_CLIENT_SECRET: 'wis',
   STRAVA_CLIENT_ID: 'st', STRAVA_CLIENT_SECRET: 'sts',
+  HUAWEI_CLIENT_ID: 'hw', HUAWEI_CLIENT_SECRET: 'hws',
 };
 const json = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
 
@@ -36,7 +37,7 @@ const kinds = list => [...new Set(list.map(f => f.kind))].sort().join(',');
 // ── Включени доставчици ──────────────────────────────────────────────────
 ok(enabledProviders({}).length === 0, 'без ключове — нито един доставчик');
 ok(enabledProviders({ OURA_CLIENT_ID: 'x' }).length === 0, 'само ID без SECRET — не е включен');
-ok(enabledProviders(ENV).join() === 'fitbit,oura,withings,strava', 'всички с ключове');
+ok(enabledProviders(ENV).join() === 'fitbit,oura,withings,huawei,strava', 'всички с ключове');
 
 // ── Вход: адрес, PKCE за Fitbit ─────────────────────────────────────────
 {
@@ -177,6 +178,33 @@ const LINK = { access: 'A', refresh: 'R', expiresAt: NOW.getTime() + 3600000 };
   const f = valid((await pullFacts(fetchFn, ENV, 'strava', LINK, NOW)).facts);
   ok(f.length === 1 && f[0].value === 70 && f[0].count === 2, 'Strava: тренировки по ден, без празни');
   ok(/after=\d+/.test(log[0].url), 'Strava: от началото на прозореца');
+}
+
+// ── Huawei: групи/набори/точки, времена в ns и ms, сън от health record ─
+{
+  const ns = d => String(Date.parse(d) * 1e6);
+  const pt = (d, fields) => ({ startTime: ns(d), endTime: ns(d), value: Object.entries(fields).map(([fieldName, v]) => (Number.isInteger(v) ? { fieldName, integerValue: v } : { fieldName, floatValue: v })) });
+  const log = [];
+  const fetchFn = mockFetch([
+    ['dailyPolymerize', (url, init) => JSON.parse(init.body).dataTypes[0].includes('steps')
+      ? json({ group: [{ startTime: Date.parse('2026-10-18'), sampleSet: [{ samplePoints: [pt('2026-10-18T10:00:00Z', { steps: 9400 })] }] }] })
+      : json({ group: [{ sampleSet: [{ samplePoints: [pt('2026-10-18T10:00:00Z', { calories: 512.4 })] }] }] })],
+    ['sampleSet:polymerize', (url, init) => {
+      const t = JSON.parse(init.body).polymerizeWith[0].dataTypeName;
+      if (t.includes('body_weight')) return json({ sampleSet: [{ samplePoints: [pt('2026-10-18T07:00:00Z', { body_weight: 81.26, height: 180 })] }] });
+      if (t.includes('blood_pressure')) return json({ sampleSet: [{ samplePoints: [pt('2026-10-18T08:00:00Z', { systolic_pressure: 126, diastolic_pressure: 81 })] }] });
+      if (t.includes('resting')) return json({ sampleSet: [{ samplePoints: [pt('2026-10-18T06:00:00Z', { resting_heart_rate: 58 })] }] });
+      return json({});
+    }],
+    ['healthRecords', json({ healthRecords: [{ endTime: ns('2026-10-18T05:30:00Z'), value: [{ fieldName: 'all_sleep_time', integerValue: 432 }] }] })],
+  ], log);
+  const f = valid((await pullFacts(fetchFn, ENV, 'huawei', LINK, NOW)).facts);
+  ok(kinds(f) === 'active_kcal,bp,resting_hr,sleep,steps,weight', `Huawei: видове (${kinds(f)})`);
+  ok(f.find(x => x.kind === 'steps').value === 9400 && f.find(x => x.kind === 'weight').value === 81.3, 'Huawei: стойности по име на полето, не по ред');
+  ok(f.find(x => x.kind === 'sleep').value === 7.2 && f.find(x => x.kind === 'sleep').at.startsWith('2026-10-18'), 'Huawei: сън от health record, ns → ден');
+  ok(log.some(l => l.url.includes('dailyPolymerize') && JSON.parse(l.init.body).startDay === '20261006'), 'Huawei: дни като yyyyMMdd');
+  const a = await authorizeUrl(ENV, 'huawei', { redirectUri: 'r', state: 's' });
+  ok(/access_type=offline/.test(a.url) && /healthkit%2Fstep\.read/.test(a.url), 'Huawei: офлайн достъп и обхват за крачки');
 }
 
 ok(Object.values(PROVIDERS).every(p => p.name && p.env && p.authorizeUrl && p.tokenUrl && typeof p.fetchFacts === 'function'), 'всеки доставчик е пълен');

@@ -57,9 +57,9 @@ export function normalizeDigest(raw, now = new Date()) {
  * Кой източник печели за един и същи ден: измереното автоматично (Health Connect
  * или профил в облака — device-links.js) > снимка > файл > ръчно.
  */
-const SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, device_photo: 3, file: 2, manual: 1 };
+const SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, huawei: 4, device_photo: 3, file: 2, manual: 1 };
 /** Източниците, които мерят непрекъснато — от тях се брои откога има следене. */
-const TRACKED_SOURCES = new Set(['health_connect', 'fitbit', 'oura', 'withings', 'strava']);
+const TRACKED_SOURCES = new Set(['health_connect', 'fitbit', 'oura', 'withings', 'strava', 'huawei']);
 
 function dayOf(at) {
   return new Date(Date.parse(at)).toISOString().slice(0, 10);

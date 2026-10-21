@@ -3347,9 +3347,11 @@
             }
             if (d.other.length) { const o = document.querySelector('.devices-other'); if (o) o.open = true; }
             d.other.forEach(a => {
-                const b = a.bridge && window.NutriPlanHealthApps ? window.NutriPlanHealthApps.byId(a.bridge) : null;
-                hints.push(b
-                    ? `<div class="devices-hint"><span>${escProfileHtml(a.name)} не дава данни директно. ${escProfileHtml(b.name)} ги прехвърля сам в Health Connect (платено след пробния период). Иначе — снимка или файл по-долу.</span><button type="button" class="btn btn-secondary" onclick="installBridge('${b.pkg}')"><i class="fas fa-download"></i> ${escProfileHtml(b.name)}</button></div>`
+                // Huawei/Honor: облакът на Huawei с едно докосване, ако е включен; иначе снимка/файл.
+                const cloud = (_links || []).find(l => l.id === 'huawei');
+                if (a.bridge && cloud && cloud.linked) return;
+                hints.push(a.bridge && cloud
+                    ? `<div class="devices-hint"><span>${escProfileHtml(a.name)} — свържете профила си веднъж и данните идват сами.</span><button type="button" class="btn btn-primary" onclick="connectLink('huawei')"><i class="fas fa-link"></i> Свържи</button></div>`
                     : `<div class="devices-hint"><span>${escProfileHtml(a.name)} не споделя данни с други приложения — добавете експорт или снимка по-долу.</span></div>`);
             });
             box.innerHTML = (d.apps.length ? `<p class="labs-note">На този телефон:</p><ul class="devices-detected-apps">${d.apps.map(a => `<li data-hc="${a.hc ? 1 : 0}">${escProfileHtml(a.name)}</li>`).join('')}</ul>` : '') + hints.join('');
@@ -3516,7 +3518,7 @@
             // Сървърът сам пази интервала — тук само взима новото, ако има.
             loadLinks({ sync: true }).then(() => {
                 if (_links.some(l => l.linked)) document.getElementById('devicesConsent').checked = true;
-                renderDevices(); renderLinks();
+                renderDevices(); renderLinks(); renderDetected();
                 // Няма автоматичен път (браузър без свързани профили) — снимката и файлът са отворени.
                 const other = document.querySelector('.devices-other');
                 if (other && document.getElementById('devicesHcBox').hidden && document.getElementById('devicesLinksBox').hidden) {
