@@ -1208,6 +1208,7 @@
 <body>
     <script src="./session-utils.js"></script>
     <script src="./supplement-shop.js"></script>
+    <script src="./goal-focus.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script type="module" src="./auth-guard.js"></script>
@@ -1266,7 +1267,7 @@
 
         <!-- GUIDELINES ACCORDION (moved from plan tab) -->
         <div class="accordion">
-            <div class="acc-item">
+            <div data-guide="foods" class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
                     <span><i class="fas fa-check-circle"></i> Препоръчителни храни</span>
                     <i class="fas fa-chevron-down chevron"></i>
@@ -1281,7 +1282,7 @@
                 </div>
             </div>
 
-            <div class="acc-item">
+            <div data-guide="limit" class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
                     <span><i class="fas fa-ban"></i> <span id="limitTitle">За ограничаване</span></span>
                     <i class="fas fa-chevron-down chevron"></i>
@@ -1296,7 +1297,7 @@
                 </div>
             </div>
 
-            <div class="acc-item" id="foodGuideSwapsItem" hidden>
+            <div data-guide="swaps" class="acc-item" id="foodGuideSwapsItem" hidden>
                 <div class="acc-header" onclick="toggleAccordion(this)">
                     <span><i class="fas fa-right-left"></i> Замени и ситуации</span>
                     <i class="fas fa-chevron-down chevron"></i>
@@ -1306,7 +1307,7 @@
                 </div>
             </div>
 
-            <div class="acc-item">
+            <div data-guide="psychology" class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
                     <span><i class="fas fa-brain"></i> Психология и съвети</span>
                     <i class="fas fa-chevron-down chevron"></i>
@@ -1318,7 +1319,7 @@
                 </div>
             </div>
 
-            <div class="acc-item">
+            <div data-guide="supplements" class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
                     <span><i class="fas fa-pills"></i> Хранителни добавки</span>
                     <i class="fas fa-chevron-down chevron"></i>
@@ -1330,7 +1331,7 @@
                 </div>
             </div>
 
-            <div class="acc-item">
+            <div data-guide="hacks" class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
                     <span><i class="fas fa-bolt"></i> <span id="hacksTitle">Практически хакове</span></span>
                     <i class="fas fa-chevron-down chevron"></i>
@@ -1524,6 +1525,22 @@
                 window.location.href = 'index.html?app=1&tab=plan';
             }
         }
+
+        /** Секциите — по важност за целта на клиента (goal-focus.js). */
+        function orderGuidesByGoal() {
+            try {
+                var GF = window.NutriPlanGoalFocus;
+                var items = Array.prototype.slice.call(document.querySelectorAll('[data-guide]'));
+                if (!GF || items.length < 2) return;
+                var order = GF.guideOrder(GF.profileOf(JSON.parse(localStorage.getItem('userData') || '{}')));
+                var parent = items[0].parentNode;
+                var anchor = items[items.length - 1].nextSibling;
+                items.sort(function (a, b) { return order.indexOf(a.dataset.guide) - order.indexOf(b.dataset.guide); })
+                    .forEach(function (el) { parent.insertBefore(el, anchor); });
+            } catch (_) {}
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', orderGuidesByGoal);
+        else orderGuidesByGoal();
 
         function toggleAccordion(header) {
             const item = header.parentElement;

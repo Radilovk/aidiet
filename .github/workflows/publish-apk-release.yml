@@ -94,6 +94,7 @@ jobs:
             gh release create "$tag" \
               --repo "${{ github.repository }}" \
               --target "$HEAD_SHA" \
+              --latest \
               --title "NutriPlan v${V_NAME} (${tag})" \
               --notes "Публикуван от workflow — build run ${V_CODE}, commit ${SHORT_SHA}."
             for asset in "$APK_NAME" "$APK_LATEST"; do

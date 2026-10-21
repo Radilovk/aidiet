@@ -343,6 +343,26 @@
             padding: 10px 10px;
         }
 
+        /* Персона (persona.js): SOS в рисковия час; без звезди, където оценките вредят. */
+        .persona-sos { position: relative; margin: 0 0 14px; padding: 14px 44px 14px 14px; border-radius: var(--radius); background: linear-gradient(135deg, rgba(226, 85, 122, 0.10), rgba(13, 148, 136, 0.08)); border: 1px solid rgba(226, 85, 122, 0.22); }
+        .persona-sos-kicker { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-light); }
+        .persona-sos-title { font-size: 0.95rem; font-weight: 700; color: var(--text-dark); margin: 2px 0 8px; }
+        .persona-sos ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 0.875rem; line-height: 1.45; color: var(--text-dark); }
+        .persona-sos-close { position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; border: none; background: none; color: var(--text-light); cursor: pointer; font-size: 1rem; }
+        html[data-persona-noscores] .dc-stars { display: none !important; }
+
+        /* Изядените хранения — сгънати в тънка лента най-горе; следващото остава в центъра. */
+        .meals-done-group { margin: 0 0 14px; border-radius: var(--radius); border: 1px solid rgba(13, 148, 136, 0.18); background: rgba(13, 148, 136, 0.06); }
+        .meals-done-group > summary { list-style: none; cursor: pointer; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.875rem; font-weight: 600; color: var(--text-dark); -webkit-tap-highlight-color: transparent; }
+        .meals-done-group > summary::-webkit-details-marker { display: none; }
+        .meals-done-group > summary .mdg-check { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--ds-fill); color: var(--ds-on-fill); font-size: 0.75rem; flex-shrink: 0; }
+        .meals-done-group > summary .mdg-names { flex: 1; min-width: 0; color: var(--text-light); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .meals-done-group > summary .mdg-chev { color: var(--text-light); transition: transform 0.2s; }
+        .meals-done-group[open] > summary .mdg-chev { transform: rotate(180deg); }
+        .meals-done-list { padding: 4px 10px 2px; }
+        .meals-done-list .meal-card { margin-bottom: 10px; }
+        .meal-card.meal-folding { opacity: 0; transform: scale(0.96); }
+
         /* --- MEAL CARDS - Enhanced Design --- */
         .meal-card {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(255,255,255,0.95) 100%);
@@ -9928,6 +9948,7 @@
                 checkTimePrompts();
                 // Re-evaluate time locks on all visible check buttons every minute
                 _refreshTimeLocks();
+                try { renderPersonaSos(getCurrentViewDayKey()); } catch (_) {}
             }, 60000);
         }
 
@@ -10581,6 +10602,81 @@
         }
 
         // ── Meal check micro-burst (ripple + floating pts) ────────────────────
+        /**
+         * Изядените хранения отиват в лента „Изядени“ най-горе (разгъва се с докосване);
+         * отмененото се връща на мястото си. Бъдещите дни — без промяна.
+         */
+        function foldDoneMeals(dayKey) {
+            var container = document.getElementById('mealContainer');
+            if (!container || isFutureDayKey(dayKey)) return;
+            var rec = getRecord(dayKey);
+            var group = container.querySelector('.meals-done-group');
+            if (!group) {
+                group = document.createElement('details');
+                group.className = 'meals-done-group';
+                group.innerHTML = '<summary><span class="mdg-check"><i class="fas fa-check"></i></span><span class="mdg-title"></span><span class="mdg-names"></span><i class="fas fa-chevron-down mdg-chev"></i></summary><div class="meals-done-list"></div>';
+                var first = container.querySelector('.meal-card');
+                container.insertBefore(group, first || container.firstChild);
+            }
+            var list = group.querySelector('.meals-done-list');
+            var cards = Array.prototype.slice.call(container.querySelectorAll('.meal-card[data-meal-key]:not(.added-meal-card)'));
+            cards.forEach(function (card, i) {
+                if (!card.hasAttribute('data-fold-order')) card.setAttribute('data-fold-order', String(i));
+            });
+            cards.sort(function (a, b) { return Number(a.getAttribute('data-fold-order')) - Number(b.getAttribute('data-fold-order')); });
+            var names = [];
+            cards.forEach(function (card) {
+                var done = !!(rec.meals && rec.meals[card.getAttribute('data-meal-key')] === true);
+                var inGroup = list.contains(card);
+                if (done) {
+                    names.push(getMealDisplayLabel(card.getAttribute('data-meal-type') || ''));
+                    if (!inGroup) list.appendChild(card);
+                } else if (inGroup) {
+                    var order = Number(card.getAttribute('data-fold-order'));
+                    var next = cards.filter(function (c) { return !list.contains(c) && c !== card && Number(c.getAttribute('data-fold-order')) > order; })[0];
+                    container.insertBefore(card, next || null);
+                }
+            });
+            // Подредба в лентата — по реда в деня.
+            Array.prototype.slice.call(list.children).sort(function (a, b) {
+                return Number(a.getAttribute('data-fold-order')) - Number(b.getAttribute('data-fold-order'));
+            }).forEach(function (c) { list.appendChild(c); });
+            group.hidden = !names.length;
+            var all = names.length === cards.length && cards.length > 0;
+            group.querySelector('.mdg-title').textContent = all ? 'Всички хранения са изядени' : 'Изядени (' + names.length + ')';
+            group.querySelector('.mdg-names').textContent = all ? '' : names.join(' · ');
+        }
+        window._gameFoldDoneMeals = foldDoneMeals;
+
+        /** SOS картата: в рисковия час (персона от EmoEat), днес, докато не е затворена. */
+        function renderPersonaSos(dayKey) {
+            var container = document.getElementById('mealContainer');
+            if (!container) return;
+            var old = container.querySelector('.persona-sos');
+            var P = window.NutriPlanPersona;
+            var persona = P ? P.current() : null;
+            var today = getTodayKey();
+            var dismissed = false;
+            try { dismissed = localStorage.getItem('np_sos_dismissed') === today; } catch (_) {}
+            var show = persona && persona.sos && dayKey === today && !dismissed && P.inRiskWindow(persona);
+            if (!show) { if (old) old.remove(); return; }
+            if (old) return;
+            var card = document.createElement('div');
+            card.className = 'persona-sos';
+            card.setAttribute('role', 'note');
+            card.innerHTML = '<div class="persona-sos-kicker">Ако ти се яде без глад</div>' +
+                '<div class="persona-sos-title">' + escapeHtml(persona.focus || 'Три бързи стъпки') + '</div>' +
+                '<ol>' + persona.sos.map(function (t) { return '<li>' + escapeHtml(t) + '</li>'; }).join('') + '</ol>' +
+                '<button type="button" class="persona-sos-close" aria-label="Скрий за днес"><i class="fas fa-times"></i></button>';
+            card.querySelector('.persona-sos-close').onclick = function () {
+                try { localStorage.setItem('np_sos_dismissed', today); } catch (_) {}
+                card.remove();
+            };
+            var group = container.querySelector('.meals-done-group');
+            container.insertBefore(card, group ? group.nextSibling : container.firstChild);
+        }
+        window._gameRenderPersonaSos = renderPersonaSos;
+
         function _triggerMealCheckBurst(btn, card, isDone, isJunk) {
             if (!isDone) return; // only on check, not uncheck
             var btnRect = btn.getBoundingClientRect();
@@ -10718,6 +10814,15 @@
                     var r = getRecord(dayKey);
                     if (!r.mealCalories) r.mealCalories = {};
                     r.meals[mealKey] = !r.meals[mealKey];
+                    // Кога клиентът реално отмята — от това се учи часът на въпроса след храненето.
+                    if (r.meals[mealKey] && dayKey === getTodayKey()) {
+                        var nowD = new Date();
+                        if (!r.mealCheckedAt) r.mealCheckedAt = {};
+                        r.mealCheckedAt[mealKey] = (nowD.getHours() < 10 ? '0' : '') + nowD.getHours() + ':' + (nowD.getMinutes() < 10 ? '0' : '') + nowD.getMinutes();
+                    }
+                    if (r.meals[mealKey] && window.GameNotifier && typeof window.GameNotifier.cancelMealCheck === 'function') {
+                        try { window.GameNotifier.cancelMealCheck(dayKey, mealKey); } catch (_) {}
+                    }
                     // Sync per-meal calories from DOM at check time
                     var cAttr = card.getAttribute('data-meal-calories');
                     if (cAttr) {
@@ -10731,6 +10836,15 @@
                         _triggerMealCheckBurst(checkBtn, card, r.meals[mealKey], mealIsJunk);
                     }
                     recalcAndShowScore(dayKey);
+                    // Отметнатото се прибира в „Изядени“ след анимацията; отмененото се връща веднага.
+                    if (r.meals[mealKey]) {
+                        setTimeout(function () {
+                            card.classList.add('meal-folding');
+                            setTimeout(function () { foldDoneMeals(dayKey); card.classList.remove('meal-folding'); }, 260);
+                        }, 750);
+                    } else {
+                        foldDoneMeals(dayKey);
+                    }
                 });
 
                 // Free meal: optional describe button — group both actions on the right
@@ -10763,6 +10877,8 @@
             });
             if (mealsInitialized) saveRecord(dayKey, rec);
             recalcAndShowScore(dayKey);
+            foldDoneMeals(dayKey);
+            renderPersonaSos(dayKey);
 
             // ── Photo-added meal check buttons ───────────────────────────────
             // Give each added-meal-card a toggleable consumed button.
@@ -12441,6 +12557,16 @@
         </a>
     </nav>
     <!-- GameNotifier: gamification-based notification scheduling -->
+    <script src="./persona.js"></script>
+    <script>
+    // Персоната: преизчислява се при всяко отваряне; „без оценки“ скрива звездите.
+    (function () {
+        try {
+            var p = window.NutriPlanPersona.refresh();
+            if (p.noScores) document.documentElement.setAttribute('data-persona-noscores', '1');
+        } catch (_) {}
+    })();
+    </script>
     <script src="./local-scheduler.js"></script>
     <!-- Notification action handler: shows in-app modal when user taps a notification
          while plan.html is already open – avoids full page reload and index redirect. -->

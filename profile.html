@@ -1283,6 +1283,13 @@
         .card-meter-bar span { display: block; height: 100%; width: 0; background: var(--ds-fill-grad); border-radius: inherit; transition: width 400ms var(--ds-ease-standard, ease); }
         .card-meter-hint { font-size: 0.9rem; line-height: 1.45; color: var(--ds-text-soft); margin: 0 0 12px; }
         .card-meter-list { list-style: none; margin: 0; padding: 0; }
+        .persona-lines { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+        .persona-lines li { font-size: 0.9rem; line-height: 1.45; color: var(--text-dark); padding-left: 18px; position: relative; }
+        .persona-lines li::before { content: ''; position: absolute; left: 4px; top: 0.6em; width: 6px; height: 6px; border-radius: 50%; background: var(--ds-fill); }
+        .persona-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-dark); }
+        .persona-seg { display: inline-flex; border: 1px solid var(--glass-border); border-radius: 12px; padding: 3px; gap: 3px; }
+        .persona-seg button { min-height: 40px; padding: 6px 12px; border: 0; border-radius: 9px; background: transparent; color: var(--ds-text-soft); font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+        .persona-seg button[aria-pressed="true"] { background: var(--ds-fill); color: var(--ds-on-fill); }
         .card-meter-row { width: 100%; text-align: left; font: inherit; cursor: pointer; }
         .card-meter-row:disabled { opacity: 0.55; cursor: not-allowed; }
         .card-meter-row.is-done { background: rgba(21, 128, 61, 0.07); }
@@ -1978,6 +1985,7 @@
     <script src="./plan-sync.js"></script>
     <script src="./enrichment-client.js"></script>
     <script src="./supplement-shop.js"></script>
+    <script src="./persona.js"></script>
     <script src="./health-apps.js"></script>
     <script src="./health-sync.js"></script>
     <script src="./device-import.js"></script>
@@ -2079,6 +2087,24 @@
             <div class="card-meter-bar" role="progressbar" aria-label="Пълнота на профила" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cardMeterBar"><span id="cardMeterFill"></span></div>
             <p class="card-meter-hint" id="cardMeterHint">Колкото повече данни, толкова по-точен е планът.</p>
             <ul class="card-meter-list" id="cardMeterList"></ul>
+        </div>
+
+        <div class="form-section persona-card" id="personaCard" hidden>
+            <div class="section-title"><i class="fas fa-fingerprint"></i> Приложението за теб</div>
+            <p class="labs-note" id="personaWhy"></p>
+            <ul class="persona-lines" id="personaLines"></ul>
+            <div class="persona-opt">
+                <span>Въпрос след хранене</span>
+                <div class="persona-seg" role="group" aria-label="Въпрос след хранене" data-opt="mealChecks">
+                    <button type="button" data-v="all">Всички</button><button type="button" data-v="main">Основните</button><button type="button" data-v="off">Без</button>
+                </div>
+            </div>
+            <div class="persona-opt">
+                <span>Анализ</span>
+                <div class="persona-seg" role="group" aria-label="Анализ" data-opt="density">
+                    <button type="button" data-v="minimal">Кратък</button><button type="button" data-v="detailed">Подробен</button>
+                </div>
+            </div>
         </div>
 
         <div id="cardSections">
@@ -2776,6 +2802,37 @@
             }
         }
 
+        // ── Приложението за теб: персоната (persona.js) — прозрачно и с избор ──
+        function renderPersonaCard() {
+            const P = window.NutriPlanPersona;
+            const card = document.getElementById('personaCard');
+            if (!P || !card || !(window.NutriPlanEnrichment && window.NutriPlanEnrichment.hasPlanProfile())) return;
+            const p = P.refresh();
+            card.hidden = false;
+            document.getElementById('personaWhy').textContent = p.reasons.length
+                ? 'Настроено по: ' + p.reasons.join('; ') + '.'
+                : 'Настроено по целта и въпросника. С теста за емоционално хранене (EmoEat) приложението се настройва по-точно.';
+            document.getElementById('personaLines').innerHTML = P.describe(p).map(t => `<li>${escProfileHtml(t)}</li>`).join('');
+            card.querySelectorAll('.persona-seg').forEach(seg => {
+                const opt = seg.dataset.opt;
+                seg.querySelectorAll('button').forEach(b => {
+                    b.setAttribute('aria-pressed', String(b.dataset.v === p[opt]));
+                    b.onclick = () => {
+                        let o = {};
+                        try { o = JSON.parse(localStorage.getItem('np_persona_override') || '{}') || {}; } catch (_) {}
+                        o[opt] = b.dataset.v;
+                        try { localStorage.setItem('np_persona_override', JSON.stringify(o)); } catch (_) {}
+                        renderPersonaCard();
+                        // Въпросите се пренасрочват веднага (графикът е в обвивката).
+                        try {
+                            const G = (window.top && window.top.GameNotifier) || window.GameNotifier;
+                            if (G && typeof G.scheduleNotifications === 'function') G.scheduleNotifications();
+                        } catch (_) {}
+                    };
+                });
+            });
+        }
+
         // ── Клиентски картон: пълнота на профила ─────────────────────────────
         // Тежестта е по това колко данните менят плана: въпросникът е основата,
         // изследванията и устройствата носят измерено, модулите — контекст.
@@ -3286,12 +3343,28 @@
                 hints.push(`<div class="devices-hint"><span>Нужно е приложението Health Connect на Google — посредникът между приложенията.</span><button type="button" class="btn btn-secondary" onclick="installHealthConnect()"><i class="fas fa-download"></i> Инсталирай</button></div>`);
             }
             if (st.connected && !(st.lastCount > 0)) {
-                d.viaHc.filter(a => a.hcSetup).forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} още не споделя данни. В ${escProfileHtml(a.name)}: ${escProfileHtml(a.hcSetup)}</span><button type="button" class="btn btn-secondary" onclick="window.NutriPlanHealth.openApp('${a.pkg}')">Отвори</button></div>`));
+                d.viaHc.filter(a => a.hcSetup).forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} още не споделя данни. В ${escProfileHtml(a.setupApp || a.name)}: ${escProfileHtml(a.hcSetup)}</span><button type="button" class="btn btn-secondary" onclick="window.NutriPlanHealth.openApp('${a.pkg}')">Отвори</button></div>`));
             }
             if (d.other.length) { const o = document.querySelector('.devices-other'); if (o) o.open = true; }
-            d.other.forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} не споделя данни с други приложения — добавете експорт или снимка по-долу.</span></div>`));
+            d.other.forEach(a => {
+                const b = a.bridge && window.NutriPlanHealthApps ? window.NutriPlanHealthApps.byId(a.bridge) : null;
+                hints.push(b
+                    ? `<div class="devices-hint"><span>${escProfileHtml(a.name)} не дава данни директно. ${escProfileHtml(b.name)} ги прехвърля сам в Health Connect (платено след пробния период). Иначе — снимка или файл по-долу.</span><button type="button" class="btn btn-secondary" onclick="installBridge('${b.pkg}')"><i class="fas fa-download"></i> ${escProfileHtml(b.name)}</button></div>`
+                    : `<div class="devices-hint"><span>${escProfileHtml(a.name)} не споделя данни с други приложения — добавете експорт или снимка по-долу.</span></div>`);
+            });
             box.innerHTML = (d.apps.length ? `<p class="labs-note">На този телефон:</p><ul class="devices-detected-apps">${d.apps.map(a => `<li data-hc="${a.hc ? 1 : 0}">${escProfileHtml(a.name)}</li>`).join('')}</ul>` : '') + hints.join('');
             box.hidden = !box.innerHTML;
+        }
+
+        async function installBridge(pkg) {
+            await window.NutriPlanHealth.openStore(pkg).catch(() => {});
+            const onBack = () => {
+                if (document.visibilityState !== 'visible') return;
+                document.removeEventListener('visibilitychange', onBack);
+                _detected = null;
+                renderDevices();
+            };
+            document.addEventListener('visibilitychange', onBack);
         }
 
         async function installHealthConnect() {
@@ -4764,7 +4837,7 @@
                  * setProfileLogoutVisibility / opacity calls below. */
                 // Всяка част поотделно: грешка в една не крие останалите модули.
                 [initializeTheme, loadUserData, loadAnalysis, updateQuestionnaireActionsBar,
-                    initLabsSection, initDevicesSection, initDocsSection, initCardMeter].forEach(function (step) {
+                    initLabsSection, initDevicesSection, initDocsSection, initCardMeter, renderPersonaCard].forEach(function (step) {
                     try {
                         const r = step();
                         if (r && typeof r.catch === 'function') r.catch(function (e) { console.error('[Profile]', step.name, e); });

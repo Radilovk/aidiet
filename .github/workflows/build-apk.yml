@@ -542,6 +542,7 @@ jobs:
             if gh release create "$TAG" \
               --repo "${{ github.repository }}" \
               --target "${{ github.sha }}" \
+              --latest \
               --title "NutriPlan v${V_NAME} (${TAG})" \
               --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."; then
               break

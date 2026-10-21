@@ -626,6 +626,43 @@
             0%,100%{box-shadow:0 8px 28px rgba(13,148,136,.45),0 4px 12px rgba(13,148,136,.25),inset 0 1px 0 rgba(255,255,255,.2);transform:scale(1);}
             50%{box-shadow:0 12px 36px rgba(13,148,136,.55),0 6px 16px rgba(13,148,136,.35),0 0 0 14px rgba(13,148,136,0),inset 0 1px 0 rgba(255,255,255,.25);transform:scale(1.05);}
         }
+        /* За целта ти: измереното от устройствата, подредено по целта (goal-focus.js) */
+        .gf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .gf-card { border-radius: 12px; padding: 10px 12px; background: rgba(13,148,136,0.06); border: 1px solid rgba(13,148,136,0.14); border-left: 4px solid var(--gf-tone, #94a3b8); min-width: 0; }
+        .gf-card[data-tone="good"] { --gf-tone: #10b981; }
+        .gf-card[data-tone="warn"] { --gf-tone: #f59e0b; }
+        .gf-card[data-tone="bad"]  { --gf-tone: #ef4444; }
+        .gf-label { font-size: 0.75rem; font-weight: 600; color: var(--text-light); display: flex; gap: 6px; align-items: center; }
+        .gf-label i { color: var(--gf-tone, #0D9488); }
+        .gf-value { font-size: 1.02rem; font-weight: 800; color: var(--text-dark); margin-top: 2px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+        .gf-note { font-size: 0.75rem; line-height: 1.35; color: var(--text-light); margin-top: 3px; }
+        .gf-conclusions { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 6px; }
+        .gf-conclusions li { display: flex; gap: 8px; align-items: flex-start; font-size: 0.85rem; line-height: 1.45; color: var(--text-dark); }
+        .gf-conclusions li i { margin-top: 3px; }
+        .gf-more { margin-top: 4px; }
+        .gf-more > summary { cursor: pointer; font-size: 0.8rem; font-weight: 600; color: var(--text-light); min-height: 36px; display: flex; align-items: center; list-style: none; }
+        .gf-more > summary::-webkit-details-marker { display: none; }
+        .gf-more .gf-grid { margin-top: 6px; }
+        .gf-empty { font-size: 0.85rem; color: var(--text-light); display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+        .gf-empty button { min-height: 40px; padding: 8px 14px; border-radius: 10px; border: none; background: var(--ds-fill-grad); color: var(--ds-on-fill); font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .gf-sub { font-size: 0.72rem; color: var(--text-light); margin: -4px 0 10px; }
+        .gf-indices { display: grid; gap: 8px; margin-bottom: 12px; }
+        .gf-index { border-radius: 14px; padding: 12px 14px; background: rgba(13,148,136,0.06); border: 1px solid rgba(13,148,136,0.14); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .gf-index-head { display: flex; align-items: center; gap: 10px; }
+        .gf-index-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--ds-fill-grad); color: var(--ds-on-fill); flex-shrink: 0; }
+        .gf-index-name { flex: 1; font-weight: 700; color: var(--text-dark); font-size: 0.95rem; }
+        .gf-index-value { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gf-tone, #0D9488); }
+        .gf-index[data-tone="good"] { --gf-tone: #10b981; }
+        .gf-index[data-tone="warn"] { --gf-tone: #f59e0b; }
+        .gf-index[data-tone="bad"]  { --gf-tone: #ef4444; }
+        .gf-index-bar { height: 6px; border-radius: 3px; background: rgba(13,148,136,0.12); margin: 8px 0 6px; overflow: hidden; }
+        .gf-index-bar span { display: block; height: 100%; border-radius: 3px; background: var(--gf-tone, #0D9488); }
+        .gf-index-note { font-size: 0.8rem; color: var(--text-light); line-height: 1.4; }
+        .gf-index-parts { display: none; margin: 8px 0 0; padding: 0; list-style: none; gap: 4px; }
+        .gf-index.open .gf-index-parts { display: grid; }
+        .gf-index-parts li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.8rem; color: var(--text-dark); }
+        .gf-index-parts li span:last-child { color: var(--text-light); font-variant-numeric: tabular-nums; }
+        html[data-persona-noscores] .game-week-score { display: none !important; }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -680,6 +717,16 @@
 
     <!-- Main Content -->
     <div class="container">
+        <div class="game-analytics-section open" id="goalFocusSection" hidden>
+            <div class="game-analytics-header">
+                <div class="game-analytics-title">
+                    <i class="fas fa-bullseye"></i>
+                    <span>За целта ти</span>
+                </div>
+                <span id="goalFocusBadge" class="game-analytics-badge"></span>
+            </div>
+            <div class="game-analytics-body" id="goalFocusBody" style="display:block"></div>
+        </div>
         <div class="game-analytics-section open" id="gameAnalyticsSection">
             <div class="game-analytics-header">
                 <div class="game-analytics-title">
@@ -782,8 +829,107 @@
     </script>
 
     <script src="./game-scoring.js"></script>
+    <script src="./goal-focus.js"></script>
+    <script src="./persona.js"></script>
+    <script>
+    (function () {
+        try {
+            var p = window.NutriPlanPersona.refresh();
+            if (p.noScores) document.documentElement.setAttribute('data-persona-noscores', '1');
+        } catch (_) {}
+    })();
+    </script>
+    <script src="./enrichment-client.js"></script>
     <script>
         // ── Current Analysis Loader ─────────────────────────────────────────────
+        // ── За целта ти: данните от устройствата, подредени и оценени по целта ──
+        var _gfFetched = false;
+        function gfEsc(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+        }
+        function gfSource() {
+            try {
+                var src = JSON.parse(localStorage.getItem('np_goal_focus_src') || 'null');
+                if (src && src.metrics) return src;
+                var re = JSON.parse(localStorage.getItem('np_reanalysis') || 'null');
+                if (re && re.devices && re.devices.metrics) return { metrics: re.devices.metrics, signals: [], at: re.devices.at };
+            } catch (_) {}
+            return null;
+        }
+        function gfCard(c) {
+            return '<div class="gf-card" data-tone="' + c.tone + '"><div class="gf-label"><i class="fas ' + c.icon + '"></i>' + gfEsc(c.label) + '</div>' +
+                '<div class="gf-value">' + gfEsc(c.value) + '</div>' + (c.inConclusions ? '' : '<div class="gf-note">' + gfEsc(c.note) + '</div>') + '</div>';
+        }
+        function renderGoalFocus() {
+            var GF = window.NutriPlanGoalFocus;
+            var section = document.getElementById('goalFocusSection');
+            var body = document.getElementById('goalFocusBody');
+            if (!GF || !section || !body) return;
+            var ud = {}, plan = {};
+            try { ud = JSON.parse(localStorage.getItem('userData') || '{}') || {}; plan = JSON.parse(localStorage.getItem('dietPlan') || '{}') || {}; } catch (_) {}
+            var planKcal = Number((plan.analysis && (plan.analysis.Final_Calories || plan.analysis.finalCalories || plan.analysis.totalCalories)) || 0) || null;
+            var src = gfSource();
+            var p = GF.profileOf(ud);
+            var P = window.NutriPlanPersona;
+            var persona = P ? P.current() : {};
+            var soft = !!persona.noScores;
+            var softTone = function (t) { return soft && t === 'bad' ? 'warn' : t; };
+            document.getElementById('goalFocusBadge').textContent = GF.GROUP_LABEL[p.group];
+            var metrics = (src && src.metrics) || {};
+            var idx = GF.indices(metrics, window._gaChecks || {}, ud, { planKcal: planKcal, persona: persona })
+                .slice(0, persona.density === 'minimal' ? 2 : 3);
+            var indicesHtml = idx.length ? '<div class="gf-indices">' + idx.map(function (x) {
+                return '<div class="gf-index" data-tone="' + softTone(x.tone) + '" role="button" tabindex="0" onclick="this.classList.toggle(\'open\')">' +
+                    '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas ' + x.icon + '"></i></span><span class="gf-index-name">' + gfEsc(x.name) + '</span>' +
+                    '<span class="gf-index-value">' + x.value + '</span></div>' +
+                    '<div class="gf-index-bar"><span style="width:' + x.value + '%"></span></div>' +
+                    '<div class="gf-index-note">' + gfEsc(x.note) + '</div>' +
+                    '<ul class="gf-index-parts">' + x.parts.map(function (pt) { return '<li><span>' + gfEsc(pt.label) + '</span><span>' + gfEsc(pt.text) + '</span></li>'; }).join('') + '</ul></div>';
+            }).join('') + '</div>' : '';
+            section.hidden = false;
+            if (!Object.keys(metrics).length) {
+                // Без устройства: индексите от самооценките и един ред с пътя към свързването.
+                body.innerHTML = indicesHtml + '<div class="gf-empty"><span>Свържи гривна, часовник или везна — индексите стават по-точни.</span>' +
+                    '<button type="button" onclick="gfOpenDevices()">Свържи</button></div>';
+            } else {
+                var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], coachNote: src.coachNote || '' });
+                v.cards.forEach(function (c) { c.tone = softTone(c.tone); });
+                v.more.forEach(function (c) { c.tone = softTone(c.tone); });
+                var icon = { bad: 'fa-circle-exclamation" style="color:#ef4444', warn: 'fa-triangle-exclamation" style="color:#f59e0b', good: 'fa-circle-check" style="color:#10b981', neutral: 'fa-lightbulb" style="color:#0D9488' };
+                var conclusions = v.conclusions.length ? '<ul class="gf-conclusions">' + v.conclusions.map(function (c) { return '<li><i class="fas ' + icon[softTone(c.tone)] + '"></i><span>' + gfEsc(c.text) + '</span></li>'; }).join('') + '</ul>' : '';
+                var cards = v.cards.concat(v.more);
+                // Кратък режим: индексите и изводите; показателите — под „Подробно“.
+                var cardsHtml = persona.density === 'minimal'
+                    ? '<details class="gf-more"><summary>Показатели (' + cards.length + ')</summary><div class="gf-grid">' + cards.map(gfCard).join('') + '</div></details>'
+                    : '<div class="gf-grid">' + v.cards.map(gfCard).join('') + '</div>' +
+                      (v.more.length ? '<details class="gf-more"><summary>Още показатели (' + v.more.length + ')</summary><div class="gf-grid">' + v.more.map(gfCard).join('') + '</div></details>' : '');
+                body.innerHTML = '<div class="gf-sub">Измерено от устройствата · последните 7–14 дни</div>' + indicesHtml + conclusions + cardsHtml;
+            }
+            // Веднъж на отваряне — свежите данни от сървъра (есенция, сигнали, обобщение).
+            var E = window.NutriPlanEnrichment;
+            if (!_gfFetched && E && E.hasPlanProfile()) {
+                _gfFetched = true;
+                E.get().then(function (res) {
+                    var d = res && res.derived;
+                    var ess = d && d.essence;
+                    if (!ess || !ess.metrics) return;
+                    localStorage.setItem('np_goal_focus_src', JSON.stringify({
+                        metrics: ess.metrics, signals: ess.signals || [], at: ess.at || new Date().toISOString(),
+                        coachNote: (d.digest && d.digest.coachNote) || ''
+                    }));
+                    renderGoalFocus();
+                }).catch(function () {});
+            }
+        }
+        function gfOpenDevices() {
+            try { sessionStorage.setItem('np_open_devices', '1'); } catch (_) {}
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'NUTRIPLAN_SWITCH_TAB', tab: 'profile' }, window.location.origin);
+            } else {
+                window.location.href = 'index.html?app=1&tab=profile';
+            }
+        }
+
         function loadGameAnalytics() {
             document.body.style.opacity = '1';
             var restoredTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -1253,6 +1399,27 @@
             html += '</div>'; // close gameMetricsDetails
 
             body.innerHTML = html;
+
+            // Показателите — по важност за целта (goal-focus.js).
+            try {
+                var GF = window.NutriPlanGoalFocus;
+                var details = document.getElementById('gameMetricsDetails');
+                if (GF && details) {
+                    var ud = JSON.parse(localStorage.getItem('userData') || '{}');
+                    var order = GF.checkOrder(GF.profileOf(ud));
+                    var rows = Array.prototype.slice.call(details.querySelectorAll(':scope > .game-index-row'));
+                    var anchor = rows.length ? rows[rows.length - 1].nextSibling : null;
+                    rows.sort(function (a, b) { return order.indexOf(a.dataset.explain) - order.indexOf(b.dataset.explain); })
+                        .forEach(function (r) { details.insertBefore(r, anchor); });
+                }
+            } catch (_) {}
+            window._gaChecks = {
+                engagementPct: validScores.length ? engagementPct : null,
+                mealAdherence: mealAdherencePct, calAdherence: calAdherencePct,
+                sleepPct: sleepPct, actPct: actPct, balancePct: balancePct,
+                junkCount: validScores.length ? junkCount7 : null
+            };
+            renderGoalFocus();
 
             // ── Trigger entrance animations after DOM is painted ─────────────
             var GA_RING_START   = 120;
