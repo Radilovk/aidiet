@@ -2817,8 +2817,8 @@
             margin: 0 0 10px;
         }
         .game-qa-step {
-            font-size: 0.78rem;
-            color: #6b7280;
+            font-size: 0.8125rem;
+            color: var(--ds-text-soft);
             margin-bottom: 12px;
             letter-spacing: 0.02em;
         }
@@ -2846,12 +2846,18 @@
             border-radius: 14px;
             border: 1.5px solid rgba(13,148,136,0.22);
             background: rgba(13,148,136,0.06);
-            color: #0D9488;
+            color: var(--ds-accent-text);
             font-size: 0.95rem;
             font-weight: 600;
+            min-height: var(--ds-touch-primary, 48px);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background var(--ds-motion-fast) var(--ds-ease-standard), transform var(--ds-motion-press) var(--ds-ease-standard);
         }
+        .game-qa-option:active { transform: scale(var(--ds-press-scale)); }
+        .game-qa-hint { font-size: 0.875rem; line-height: 1.45; color: var(--ds-text-soft); background: rgba(15, 118, 110, 0.06); border-radius: 12px; padding: 8px 12px; margin: -8px 0 4px; text-align: left; }
+        .game-qa-input { width: 100%; box-sizing: border-box; min-height: 48px; padding: 12px; border: 1px solid var(--glass-border, rgba(13,148,136,0.25)); border-radius: 12px; font: inherit; font-size: 1.1rem; margin-bottom: 4px; text-align: center; background: var(--card-bg); color: var(--text-dark); }
+        textarea.game-qa-input { font-size: 1rem; text-align: left; }
+        .game-qa-input[aria-invalid="true"] { border-color: var(--ds-error-text); }
         .game-qa-option:hover, .game-qa-option.selected {
             background: var(--ds-fill-grad);
             color: var(--ds-on-fill);
@@ -2859,15 +2865,16 @@
             transform: translateY(-1px);
         }
         .game-qa-skip {
-            margin-top: 14px;
+            margin-top: 10px;
             background: none;
             border: none;
-            color: #9ca3af;
-            font-size: 0.8rem;
+            color: var(--ds-text-soft);
+            font-size: 0.875rem;
+            font-weight: 600;
             cursor: pointer;
-            padding: 4px 8px;
+            min-height: var(--ds-touch-min, 44px);
+            padding: 0 12px;
         }
-        .game-qa-skip:hover { color: #6b7280; }
         .game-weekly-primary-sub {
             display: block;
             font-size: 0.75rem;
@@ -11747,7 +11754,15 @@
                 var visibleQs = questions.filter(isVisibleQ);
                 stepEl.textContent = (visibleQs.indexOf(q) + 1) + ' от ' + visibleQs.length;
                 qEl.textContent = q.text;
+                qEl.id = 'gameQaQ';
                 optsWrap.innerHTML = '';
+                // Това, което приложението вече знае (везна, отметки) — да не се гадае.
+                if (q.hint) {
+                    var hint = document.createElement('div');
+                    hint.className = 'game-qa-hint';
+                    hint.textContent = q.hint;
+                    optsWrap.appendChild(hint);
+                }
                 progress.querySelectorAll('.game-qa-dot').forEach(function(dot, i) {
                     dot.className = 'game-qa-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
                 });
@@ -11759,7 +11774,9 @@
                     inp.min = String(q.min || 30);
                     inp.max = String(q.max || 300);
                     inp.placeholder = q.placeholder || 'напр. 72.4';
-                    inp.style.cssText = 'width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:1.1rem;margin-bottom:10px;text-align:center';
+                    inp.className = 'game-qa-input';
+                    inp.setAttribute('aria-labelledby', 'gameQaQ');
+                    if (q.prefill) inp.value = q.prefill;
                     optsWrap.appendChild(inp);
                     var ok = document.createElement('button');
                     ok.type = 'button';
@@ -11768,7 +11785,7 @@
                     ok.onclick = function() {
                         var v = parseFloat(String(inp.value).replace(',', '.'));
                         if (!(v >= (q.min || 30) && v <= (q.max || 300))) {
-                            inp.style.borderColor = '#ef4444';
+                            inp.setAttribute('aria-invalid', 'true');
                             inp.focus();
                             return;
                         }
@@ -11790,7 +11807,8 @@
                     ta.rows = 3;
                     ta.maxLength = 400;
                     ta.placeholder = 'Напишете свободно (може да оставите празно)';
-                    ta.style.cssText = 'width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;margin-bottom:10px';
+                    ta.className = 'game-qa-text game-qa-input';
+                    ta.setAttribute('aria-labelledby', 'gameQaQ');
                     optsWrap.appendChild(ta);
                     var next = document.createElement('button');
                     next.type = 'button';

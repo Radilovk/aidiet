@@ -43765,6 +43765,16 @@ var WEEKLY_CHECKIN_QUESTIONS = [
     options: []
   },
   {
+    id: "waistCm",
+    text: "\u041E\u0431\u0438\u043A\u043E\u043B\u043A\u0430 \u043D\u0430 \u0442\u0430\u043B\u0438\u044F\u0442\u0430 \u043D\u0430 \u043D\u0438\u0432\u043E\u0442\u043E \u043D\u0430 \u043F\u044A\u043F\u0430 (\u0441\u043C) \u2014 \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435. \u041F\u043E\u043A\u0430\u0437\u0432\u0430 \u043D\u0430\u043F\u0440\u0435\u0434\u044A\u043A\u0430, \u043A\u043E\u0433\u0430\u0442\u043E \u043A\u0430\u043D\u0442\u0430\u0440\u044A\u0442 \u0441\u0442\u043E\u0438.",
+    type: "number",
+    min: 40,
+    max: 200,
+    placeholder: "\u043D\u0430\u043F\u0440. 84",
+    skipLabel: "\u041D\u0435 \u0441\u044A\u043C \u043C\u0435\u0440\u0438\u043B/\u0430",
+    options: []
+  },
+  {
     id: "weight",
     text: "\u041A\u0430\u043A \u0441\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0432\u0438 \u0441\u043F\u0440\u044F\u043C\u043E \u043C\u0438\u043D\u0430\u043B\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430?",
     type: "choice",
@@ -43810,8 +43820,27 @@ var WEIGHT_ANSWERS = {
   "\u041E\u0442\u0441\u043B\u0430\u0431\u043D\u0430\u0445 \u0434\u043E 1 \u043A\u0433": "loss",
   "\u0411\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430": "flat",
   "\u041A\u0430\u0447\u0438\u0445": "gain",
+  "\u041A\u0430\u0447\u0438\u0445 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 0,5 \u043A\u0433": "fast_gain",
+  "\u041A\u0430\u0447\u0438\u0445 \u0434\u043E 0,5 \u043A\u0433": "gain",
+  "\u041E\u0442\u0441\u043B\u0430\u0431\u043D\u0430\u0445": "loss",
   "\u041D\u0435 \u0441\u044A\u043C \u0441\u0435 \u0442\u0435\u0433\u043B\u0438\u043B/\u0430": null
 };
+var GAIN_WEIGHT_OPTIONS = ["\u041A\u0430\u0447\u0438\u0445 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 0,5 \u043A\u0433", "\u041A\u0430\u0447\u0438\u0445 \u0434\u043E 0,5 \u043A\u0433", "\u0411\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430", "\u041E\u0442\u0441\u043B\u0430\u0431\u043D\u0430\u0445", "\u041D\u0435 \u0441\u044A\u043C \u0441\u0435 \u0442\u0435\u0433\u043B\u0438\u043B/\u0430"];
+var fmtKg = (v) => String(Math.round(v * 10) / 10).replace(".", ",");
+function weeklyQuestionsFor(ctx = {}) {
+  return WEEKLY_CHECKIN_QUESTIONS.map((q) => {
+    const out = { ...q, options: [...q.options] };
+    if (q.id === "weight" && ctx.goal === "GAIN") out.options = [...GAIN_WEIGHT_OPTIONS];
+    if (q.id === "weightKg" && Number(ctx.deviceWeightKg) >= 30) {
+      out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
+      out.hint = `\u041E\u0442 \u0432\u0435\u0437\u043D\u0430\u0442\u0430: ${fmtKg(ctx.deviceWeightKg)} \u043A\u0433 (\u0441\u0440\u0435\u0434\u043D\u043E \u043E\u0442 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0434\u043D\u0438). \u041F\u043E\u043F\u0440\u0430\u0432\u0435\u0442\u0435, \u0430\u043A\u043E \u043D\u0435 \u0435 \u0432\u044F\u0440\u043D\u043E.`;
+    }
+    if (q.id === "adherence" && ctx.mealAdherence != null && (ctx.mealDays || 0) >= 3) {
+      out.hint = `\u041F\u043E \u043E\u0442\u043C\u0435\u0442\u043A\u0438\u0442\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E: \u043E\u043A\u043E\u043B\u043E ${Math.round(ctx.mealAdherence)}% \u043E\u0442 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430.`;
+    }
+    return out;
+  });
+}
 var ADHERENCE_ANSWERS = { "\u041F\u043E\u0447\u0442\u0438 \u0432\u0441\u0438\u0447\u043A\u0438": 95, "\u041F\u043E\u0432\u0435\u0447\u0435\u0442\u043E": 80, "\u041E\u043A\u043E\u043B\u043E \u043F\u043E\u043B\u043E\u0432\u0438\u043D\u0430\u0442\u0430": 50, "\u041C\u0430\u043B\u043A\u043E": 25 };
 var LEVEL_ANSWERS = { "\u0420\u044F\u0434\u043A\u043E": 1, "\u041F\u043E\u043D\u044F\u043A\u043E\u0433\u0430": 2, "\u0427\u0435\u0441\u0442\u043E": 3, "\u0414\u043E\u0431\u0440\u0430": 1, "\u0421\u0440\u0435\u0434\u043D\u0430": 2, "\u041D\u0438\u0441\u043A\u0430": 3 };
 function answerOf(answers, id) {
@@ -43824,7 +43853,8 @@ var LACTATION_MAX_LOSS_KG = 0.5;
 var FAST_GAIN_RATE = 5e-3;
 var SLOW_LOSS_SHARE = 0.4;
 var MAX_SPAN_DAYS = 84;
-var FIRST_WEEK_FAST_RATE = 0.02;
+var FIRST_WEEK_FAST_RATE = 0.03;
+var WAIST_PROGRESS_CM = 1;
 function readCheckin(answers, analytics, previous = {}) {
   const weightAnswer = answerOf(answers, "weight");
   const adherenceAnswer = answerOf(answers, "adherence");
@@ -43844,11 +43874,17 @@ function readCheckin(answers, analytics, previous = {}) {
   }
   const trend = Number(answerOf(answers, "weightTrendKgWeek"));
   if (answerOf(answers, "weightTrendKgWeek") != null && Number.isFinite(trend) && Math.abs(trend) <= 3) weeklyChangeKg = trend;
+  const cm = Number(String(answerOf(answers, "waistCm") || "").replace(",", "."));
+  const waistCm = cm >= 40 && cm <= 200 ? Math.round(cm * 10) / 10 : null;
+  const prevWaist = Number(previous.prevWaistCm) || null;
+  const waistChangeCm = waistCm && prevWaist ? Math.round((waistCm - prevWaist) * 10) / 10 : null;
   const intake = Number(answerOf(answers, "intakeKcal"));
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
     weightKg,
     weeklyChangeKg,
+    waistCm,
+    waistChangeCm,
     intakeKcal: intake >= 500 && intake <= 8e3 ? Math.round(intake) : null,
     recoveryLow: answerOf(answers, "recoveryLow") === "true",
     leanLoss: answerOf(answers, "leanLoss") === "true",
@@ -43895,6 +43931,7 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
   const changes = [];
   const modifications = [];
   let delta = 0;
+  let recomp = false;
   const losing = LOSING_GOALS.has(goal);
   const gaining = goal === "GAIN";
   const goalKind = losing ? "loss" : gaining ? "gain" : "keep";
@@ -43924,6 +43961,9 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
         reasons.push(lactating ? "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 0,5 \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043F\u0440\u0438 \u043A\u044A\u0440\u043C\u0435\u043D\u0435 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043A\u044A\u0440\u043C\u0430\u0442\u0430." : `\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 1% \u043E\u0442 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${measured ? ` (${measured})` : ""} \u2014 \u0442\u0435\u043C\u043F\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u0431\u0430\u0432\u044F, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430\u0442\u0430 \u043C\u0430\u0441\u0430.`);
       } else if (cls === "stall" && overIntake) {
         reasons.push(`\u041F\u043E \u0442\u0440\u0430\u043A\u0435\u0440\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043E\u043A\u043E\u043B\u043E ${checkin.intakeKcal} kcal \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043F\u043B\u0430\u043D ${kcal} kcal \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 \u043E\u0441\u0442\u0430\u0432\u0430\u0442; \u043F\u044A\u0440\u0432\u043E \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0434\u0430 \u0441\u0435 \u0434\u043E\u0431\u043B\u0438\u0436\u0438 \u0434\u043E \u043F\u043B\u0430\u043D\u0430.`);
+      } else if (cls === "stall" && checkin.waistChangeCm != null && checkin.waistChangeCm <= -WAIST_PROGRESS_CM) {
+        recomp = true;
+        reasons.push(`\u041A\u0430\u043D\u0442\u0430\u0440\u044A\u0442 \u0441\u0442\u043E\u0438, \u043D\u043E \u0442\u0430\u043B\u0438\u044F\u0442\u0430 \u0435 \u0441 ${fmtKg(-checkin.waistChangeCm)} \u0441\u043C \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u2014 \u0442\u044F\u043B\u043E\u0442\u043E \u0433\u0443\u0431\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438; \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430.`);
       } else if (cls === "stall") {
         if (weeks >= 2) {
           delta = outcome === "gain" ? -MAX_WEEKLY_STEP : -100;
@@ -44019,7 +44059,9 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
     reasoning: reasons.join(" "),
     changeSummary: changes.slice(0, 4),
     // За историята: резултатът по теглото, измереното тегло и дали планът е спазван.
-    weight: outcome,
+    // Застой на кантара с по-малка талия не е застой — „recomp“ прекъсва поредицата.
+    weight: recomp ? "recomp" : outcome,
+    waistCm: checkin.waistCm,
     weightKg: checkin.weightKg,
     weeklyChangeKg: checkin.weeklyChangeKg,
     intakeKcal: checkin.intakeKcal,
@@ -48298,8 +48340,8 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
   const cycleNumber = currentPlan._meta?.cycleNumber || 1;
   const dishPreference = learnDishPreference(currentPlan.dishPreference, mealSwapsOf(currentPlan.weekPlan), (id) => DISHES_BY_ID.has(id), 1);
-  let plan = assembleEnginePlan(data, analysis, { cycleNumber, dishPreference });
-  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps, dishPreference }));
+  let plan = await assembleEngineValidated(env, data, analysis, { cycleNumber, dishPreference });
+  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { cycleNumber, slotAvoid: swaps, dishPreference }));
   plan = await writePlanVoice(env, data, plan, { reuse: currentPlan.aiVoice || null });
   try {
     await finalizeValidatedPlan(env, plan, data);
@@ -50296,8 +50338,16 @@ async function checkFirebaseOwner(userId, idToken, env, request) {
     return jsonResponse2({ error: mismatch ? "Token does not match userId" : "Invalid or missing Firebase ID token" }, mismatch ? 403 : 401);
   }
 }
-function generateWeeklyQuestions() {
-  return { questions: WEEKLY_CHECKIN_QUESTIONS.map((q) => ({ ...q, options: [...q.options] })), contextNote: "" };
+function generateWeeklyQuestions(userData, analytics, enrichment) {
+  const base = normalizeQuestionnaireData({ ...userData || {} });
+  const data = enrichment?.facts?.length ? applyEnrichment(JSON.parse(JSON.stringify(base)), enrichment) : base;
+  const questions = weeklyQuestionsFor({
+    goal: compileProfile(data).goal,
+    deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
+    mealAdherence: analytics?.mealAdherence ?? null,
+    mealDays: analytics?.mealDays || 0
+  });
+  return { questions, contextNote: "" };
 }
 function reproductiveFloorKcal(userData, tdee) {
   const repro = reproductiveStatus(userData);
@@ -50325,7 +50375,8 @@ function previousWeighIn(userData, plan, history) {
 function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history) {
   const prev = previousWeighIn(userData, plan, history || []);
   const daysSincePrev = prev?.at ? (Date.now() - Date.parse(prev.at)) / 864e5 : null;
-  const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev });
+  const prevWaistCm = [...history || []].reverse().find((h) => Number(h?.waistCm) > 0)?.waistCm ?? null;
+  const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev, prevWaistCm });
   if (checkin.weightKg && userData) userData.weight = String(checkin.weightKg);
   const profile = compileProfile(userData || {});
   const { tdee } = computeBackendEnergyInputs(userData);
@@ -50390,6 +50441,7 @@ function releasePendingWeeklyIfDue(profile) {
       // За правилото „две поредни седмици“ в monitoring.js.
       weight: pending.monitoring?.weight ?? null,
       weightKg: pending.monitoring?.weightKg ?? null,
+      waistCm: pending.monitoring?.waistCm ?? null,
       followed: pending.monitoring?.followed ?? null,
       calorieAdjust: pending.monitoring?.calorieAdjust ?? 0
     });
@@ -50523,8 +50575,18 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const swapsThisWeek = mealSwapsOf(plan.weekPlan);
     const dishPreference = learnDishPreference(plan.dishPreference, swapsThisWeek, (id) => DISHES_BY_ID.has(id));
     if (swapsThisWeek.length) console.log(`[WeeklyAdapt] \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430: ${swapsThisWeek.length}; \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0438\u044F: ${Object.keys(dishPreference).length}`);
-    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
-    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
+    let newPlan = await assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
+    if (newPlan?._meta?.validationFailed && decision.calorieAdjust < 0) {
+      const keep = recal ? recal.after : caloriesBefore;
+      analysis.Final_Calories = keep;
+      analysis.recommendedCalories = keep;
+      decision.calorieAdjust = 0;
+      decision.kcal = keep;
+      decision.changeSummary = decision.changeSummary.filter((c) => !/^Калории:/.test(c));
+      decision.reasoning = `${decision.reasoning} \u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435\u0442\u043E \u0441\u0435 \u043E\u0442\u043B\u0430\u0433\u0430: \u043F\u0440\u0438 \u043F\u043E-\u043D\u0438\u0441\u044A\u043A \u043F\u0440\u0438\u0435\u043C \u043C\u0435\u043D\u044E\u0442\u043E \u043D\u0435 \u0441\u043F\u0430\u0437\u0432\u0430 \u043C\u0438\u043D\u0438\u043C\u0443\u043C\u0430 \u0437\u0430 \u0434\u0435\u043D.`;
+      newPlan = await assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
+    }
+    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
     newPlan = await writePlanVoice(env, enrichedData, newPlan);
     if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
     if (newPlan.personalHabits?.length && !plan.clinicalProtocol) newPlan.hacks = [...newPlan.personalHabits];
@@ -50550,7 +50612,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       plan: newPlan,
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel,
-      monitoring: { weight: decision.weight, weightKg: decision.weightKg, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence }
+      monitoring: { weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence }
     });
     await writeAdaptJob({
       status: "completed",
@@ -50583,7 +50645,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
     } catch (e) {
       return jsonResponse2({ error: e.message }, 401);
     }
-    const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, body);
+    const { userData, plan, analytics, weeklyAdaptHistory, enrichment } = await resolveWeeklyJobInputs(env, body);
     if (!plan?.weekPlan) {
       return jsonResponse2({ error: "Missing plan" }, 400);
     }
@@ -50591,7 +50653,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
       return jsonResponse2({ error: "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D feedback (\u043C\u0438\u043D\u0438\u043C\u0443\u043C 3 \u0434\u043D\u0438)" }, 400);
     }
     const cycleNumber = nextWeeklyCycle(weeklyAdaptHistory, gameWeeklyAI);
-    const result = generateWeeklyQuestions();
+    const result = generateWeeklyQuestions(userData, analytics, enrichment);
     return jsonResponse2({
       success: true,
       questions: result.questions,
@@ -51258,7 +51320,11 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     const targetCal = solvedCal > 0 && Math.abs(solvedCal - schemeCal) <= schemeCal * MEAL_CARRY_MAX_DISTORTION + 1 ? solvedCal : schemeCal;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
     if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
-      errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438\u043B\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u0430`);
+      if (Math.abs(mealCal - targetCal) > 2 * slotCalorieTolerance(targetCal)) {
+        errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438\u043B\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u0430`);
+      } else {
+        errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u043F\u0440\u0438 \u0446\u0435\u043B ${targetCal} \u2014 \u0438\u0437\u0432\u044A\u043D \u0434\u043E\u043F\u0443\u0441\u043A\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0434\u0435\u043D\u044F\u0442 \u043D\u043E\u0441\u0438 \u0431\u0430\u043B\u0430\u043D\u0441\u0430`);
+      }
     }
     const weightGrams = mealWeightGramsFromDescription(meal);
     if (weightGrams > 0) {
@@ -51889,12 +51955,27 @@ function validatePlan(plan, userData, substitutions = []) {
 function planSeedOf(data, cycleNumber = 0) {
   return `${data?.email || data?.userId || data?.name || ""}:${cycleNumber}`;
 }
+async function assembleEngineValidated(env, data, analysis, options = {}) {
+  let plan = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    plan = assembleEnginePlan(data, analysis, { ...options, seedSalt: attempt ? `r${attempt}` : options.seedSalt });
+    try {
+      await finalizeValidatedPlan(env, JSON.parse(JSON.stringify(plan)), JSON.parse(JSON.stringify(data)));
+      return plan;
+    } catch (err2) {
+      if (!String(err2?.message || "").includes("\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435")) return plan;
+      console.warn(`[engine] \u043E\u043F\u0438\u0442 ${attempt + 1}: ${String(err2.message).slice(0, 160)}`);
+    }
+  }
+  if (plan?._meta) plan._meta.validationFailed = true;
+  return plan;
+}
 function assembleEnginePlan(data, analysis, options = {}) {
   const kcal = parseFinalCalories(analysis.Final_Calories || analysis.recommendedCalories);
   const startedAt = Date.now();
   const engine = buildNutritionPlan(data, {
     kcal,
-    seed: planSeedOf(data, options.cycleNumber),
+    seed: planSeedOf(data, options.cycleNumber) + (options.seedSalt ? `:${options.seedSalt}` : ""),
     previousWeek: options.previousWeek || [],
     slotAvoid: options.slotAvoid || [],
     dishPreference: options.dishPreference || {}
@@ -52034,7 +52115,7 @@ async function reviewMenuWithAI(env, data, plan, rebuild) {
   const swaps = normalizeSwaps(raw, plan.weekPlan);
   if (!swaps.length) return plan;
   try {
-    const next = rebuild(swaps);
+    const next = await rebuild(swaps);
     next._meta.aiSwaps = swaps;
     return next;
   } catch (error) {
@@ -52056,8 +52137,8 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         console.warn("Could not persist partial analysis status:", progressError);
       }
     }
-    let plan = assembleEnginePlan(data, analysis);
-    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { slotAvoid: swaps }));
+    let plan = await assembleEngineValidated(env, data, analysis);
+    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { slotAvoid: swaps }));
     plan = await writePlanVoice(env, data, plan);
     plan._meta.tokenUsage = tokens;
     await finalizeAISessionLogs(env, sessionId);
@@ -53783,8 +53864,6 @@ function getPromptKVKey(type) {
     "food_analysis": "admin_food_analysis_prompt",
     "menu_analysis": "admin_menu_analysis_prompt",
     "validation": "admin_validation_prompt",
-    "weekly_questions": "admin_weekly_questions_prompt",
-    "weekly_adaptation": "admin_weekly_adaptation_prompt",
     // Промптовете на новия двигател (AI пише само текстове и разчита свободния текст).
     "plan_voice": "admin_plan_voice_prompt",
     "intake_hints": "admin_intake_hints_prompt",
@@ -53839,8 +53918,6 @@ async function handleGetDefaultPrompt(request, env) {
       "food_analysis": "admin_food_analysis_prompt",
       "menu_analysis": "admin_menu_analysis_prompt",
       "validation": "admin_validation_prompt",
-      "weekly_questions": "admin_weekly_questions_prompt",
-      "weekly_adaptation": "admin_weekly_adaptation_prompt",
       "plan_voice": "admin_plan_voice_prompt",
       "intake_hints": "admin_intake_hints_prompt",
       "menu_review": "admin_menu_review_prompt",
