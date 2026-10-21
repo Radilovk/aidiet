@@ -13987,13 +13987,15 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
   const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
   const prevStore = profile.enrichment || { facts: [] };
   const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts), updatedAt: new Date().toISOString() };
+  // Нищо ново (същите факти от повторна синхронизация) — без записи в KV.
+  const unchanged = JSON.stringify(nextStore.facts) === JSON.stringify(mergeFacts(prevStore.facts, []));
   const base = normalizeQuestionnaireData({ ...(profile.userData || {}) });
   const prevData = applyEnrichment(JSON.parse(JSON.stringify(base)), prevStore);
   let nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
   // Седмичното AI обобщение на данните от устройствата — то също влиза в
   // нивото на преизчисляване (може да предложи промяна в менюто).
   const essence = nextData._enrichment?.essence;
-  if (digestDue(essence, prevStore.digest)) {
+  if (!unchanged && digestDue(essence, prevStore.digest)) {
     const digest = await buildHealthDigest(env, nextData);
     if (digest) {
       nextStore.digest = digest;
@@ -14009,10 +14011,10 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
   if (meta.source) profile.moduleSources = { ...(profile.moduleSources || {}), [meta.source]: nextStore.updatedAt };
 
   const ttl = String(userId).startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
-  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (!unchanged) await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
   // Клиентският картон: есенцията от данните винаги; при безопасност — и сигнал,
   // който специалистът вижда, без да чака прегледа.
-  if (profile.clientId) {
+  if (profile.clientId && !unchanged) {
     try {
       const client = await kvGetJSON(env, `client:${profile.clientId}`);
       if (client) {

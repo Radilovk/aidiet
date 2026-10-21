@@ -79,6 +79,7 @@
         '.hof-btn:active{transform:scale(var(--ds-press-scale,.98))}' +
         '.hof-primary{background:var(--ds-fill-grad);color:var(--ds-on-fill,#fff)}' +
         '.hof-ghost{background:none;color:var(--ds-text-secondary)}' +
+        '.hof-choices{margin-bottom:8px}.hof-choice{background:rgba(13,148,136,.08);color:var(--ds-text-primary,#042F2E);border:1px solid rgba(13,148,136,.25);justify-content:flex-start;padding:0 16px}' +
         '.hof-btn[disabled]{opacity:.6}';
 
     var overlay = null;
@@ -100,14 +101,20 @@
             (view.apps && view.apps.length ? '<ul class="hof-apps">' + view.apps.map(function (a) { return '<li>' + esc(a.name) + '</li>'; }).join('') + '</ul>' : '') +
             (view.note ? '<p class="hof-note">' + esc(view.note) + '</p>' : '') +
             '<p class="hof-status" role="status" aria-live="polite"></p>' +
+            (view.choices ? '<div class="hof-actions hof-choices">' + view.choices.map(function (c, i) {
+                return '<button type="button" class="hof-btn hof-choice" data-choice="' + i + '">' + esc(c.label) + '</button>';
+            }).join('') + '</div>' : '') +
             '<div class="hof-actions">' +
             (view.primary ? '<button type="button" class="hof-btn hof-primary" data-act="primary">' + (view.primaryIcon ? '<i class="fas ' + view.primaryIcon + '"></i>' : '') + esc(view.primary) + '</button>' : '') +
             '<button type="button" class="hof-btn hof-ghost" data-act="secondary">' + esc(view.secondary || 'Не сега') + '</button>' +
             '</div>';
+        card.querySelectorAll('[data-choice]').forEach(function (b) {
+            b.onclick = function () { view.choices[Number(b.dataset.choice)].pick(); };
+        });
         var p = card.querySelector('[data-act="primary"]');
         if (p) p.onclick = function () { view.onPrimary(p, card.querySelector('.hof-status')); };
         card.querySelector('[data-act="secondary"]').onclick = view.onSecondary || snooze;
-        (p || card.querySelector('[data-act="secondary"]')).focus({ preventScroll: true });
+        (p || card.querySelector('[data-choice]') || card.querySelector('[data-act="secondary"]')).focus({ preventScroll: true });
     }
 
     function snooze() {
@@ -126,9 +133,17 @@
     }
 
     /** След свързването: приложение, което още не споделя с Health Connect. */
-    function setupStep(d, res) {
+    async function setupStep(d, res) {
         var needs = d.viaHc.filter(function (a) { return a.hcSetup; });
-        if (res.sent > 0 || !needs.length) {
+        // Избраното приложение трябва само да е записало данни — чуждите (напр. крачки от телефона) не броят.
+        var mineArrived = res.sent > 0;
+        if (needs.length === 1 && d.viaHc.length === 1) {
+            try {
+                var src = await global.NutriPlanHealth.dataSources();
+                mineArrived = src.some(function (x) { return x.pkg === needs[0].pkg; });
+            } catch (_) {}
+        }
+        if (mineArrived || !needs.length) {
             render({
                 icon: 'fa-check', title: 'Свързано',
                 text: res.sent > 0 ? 'Данните за последните 14 дни са в профила. Оттук нататък се обновяват сами.' : 'Health Connect е свързан. Щом приложенията запишат данни, те влизат в плана сами.',
@@ -198,7 +213,14 @@
     async function cloudProviders() {
         if (_cloud) return _cloud;
         var E = global.NutriPlanEnrichment;
-        try { _cloud = ((await E.linkProviders()).providers) || []; } catch (_) { _cloud = []; }
+        try {
+            var c = JSON.parse(global.localStorage.getItem('np_links_cache') || 'null');
+            if (c && Date.now() - c.at < 24 * 3600 * 1000) return (_cloud = c.providers || []);
+        } catch (_) {}
+        try {
+            _cloud = ((await E.linkProviders()).providers) || [];
+            global.localStorage.setItem('np_links_cache', JSON.stringify({ at: Date.now(), providers: _cloud }));
+        } catch (_) { _cloud = _cloud || []; }
         return _cloud;
     }
 
@@ -225,6 +247,7 @@
                         if (doc.visibilityState !== 'visible') return;
                         doc.removeEventListener('visibilitychange', onBack);
                         _cloud = null;
+                        try { global.localStorage.removeItem('np_links_cache'); } catch (_) {}
                         var list = await cloudProviders();
                         var linked = list.some(function (x) { return x.id === provider.id && x.linked; });
                         if (overlay) render(linked
@@ -252,13 +275,37 @@
         return null;
     }
 
+    /** Повече от едно приложение за тракер — клиентът избира своето (веднъж). */
+    async function chooserView(d) {
+        var H = global.NutriPlanHealth;
+        var list = await cloudProviders();
+        var hwCloud = list.filter(function (x) { return x.id === 'huawei' && !x.linked; })[0];
+        var apps = d.viaHc.filter(function (a) { return a.id !== 'healthsync'; });
+        var choices = apps.map(function (a) {
+            return { label: a.name, pick: function () { H.setSource(a.pkg); render(connectView(Object.assign({}, d, { viaHc: [a] }))); } };
+        });
+        d.other.filter(function (a) { return a.bridge; }).forEach(function (a) {
+            if (hwCloud) choices.push({ label: a.name, pick: function () { render(cloudView(a, hwCloud)); } });
+        });
+        if (choices.length < 2) return null;
+        return {
+            icon: 'fa-heart-pulse', title: 'Кое е твоето приложение?',
+            text: 'На телефона има няколко приложения за гривна или часовник. Данните ще идват от това, което ползваш.',
+            choices: choices
+        };
+    }
+
     async function offer() {
         if (!due() || busy() || overlay) return;
         var d = await global.NutriPlanHealth.detect();
         // Гривна на Huawei/Honor без мост е основният тракер — първо мостът.
         var hcReady = d.hcAvailable || d.hcInstallable;
-        var view = d.other.length ? await huaweiView(d) : null;
-        if (!view && d.viaHc.length && hcReady) view = connectView(d);
+        var view = hcReady ? await chooserView(d) : null;
+        if (!view && d.other.length) view = await huaweiView(d);
+        if (!view && d.viaHc.length && hcReady) {
+            if (d.viaHc.length === 1) global.NutriPlanHealth.setSource(d.viaHc[0].pkg);
+            view = connectView(d);
+        }
         if (!view || busy() || !due()) return;
         var st = readState();
         writeState({ shown: (st.shown || 0) + 1, lastAt: new Date().toISOString() });

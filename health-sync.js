@@ -109,8 +109,39 @@
         return Object.keys(byDay).map(function (day) { return { day: day, value: Math.round(byDay[day] / 6) / 10 }; });
     }
 
+    var WEARABLE = { watch: 1, fitnessBand: 1, ring: 1, chestStrap: 1, scale: 1 };
+
+    /**
+     * Пробите от избрания източник (пакета на приложението); ако той няма такъв вид —
+     * от гривна/часовник, иначе всички. Така крачките от телефона и от гривната не се събират.
+     */
+    function fromSource(list, pkg) {
+        if (!list || !list.length) return list || [];
+        if (pkg) {
+            var mine = list.filter(function (s) { return s.sourceId === pkg; });
+            if (mine.length) return mine;
+        }
+        var worn = list.filter(function (s) { return WEARABLE[s.deviceType]; });
+        if (worn.length) {
+            // Един носим източник — този с най-много записи.
+            var count = {};
+            worn.forEach(function (s) { count[s.sourceId] = (count[s.sourceId] || 0) + 1; });
+            var best = Object.keys(count).sort(function (a, b) { return count[b] - count[a]; })[0];
+            return worn.filter(function (s) { return s.sourceId === best; });
+        }
+        return list;
+    }
+
+    /** Сбор по ден от пробите (крачки, калории) — само от един източник. */
+    function sumSamplesByDay(list) {
+        var byDay = {};
+        list.forEach(function (s) { var d = localDay(s.startDate); byDay[d] = (byDay[d] || 0) + (Number(s.value) || 0); });
+        return Object.keys(byDay).map(function (d) { return { day: d, value: byDay[d] }; });
+    }
+
     async function collectFacts(granted) {
         var H = plugin();
+        var pkg = readState().source || null;
         var today = startOfToday();
         var from = new Date(today.getTime() - DAYS * 86400000);
         var now = new Date();
@@ -125,20 +156,25 @@
             try { await fn(); } catch (e) { errors.push(type + ': ' + (e && e.message)); }
         };
         await run('steps', async function () {
-            push('steps', (await daySums(H, 'steps', from, today)).filter(function (x) { return x.value > 0; }));
+            // С избран източник — пробите му; иначе сборът на Health Connect (той сам
+            // подрежда източниците по приоритета, зададен в Health Connect).
+            var list = pkg ? (await H.readSamples({ dataType: 'steps', startDate: from.toISOString(), endDate: today.toISOString(), limit: 5000 }) || {}).samples || [] : [];
+            var mine = list.filter(function (s) { return s.sourceId === pkg; });
+            var days = mine.length ? sumSamplesByDay(mine) : await daySums(H, 'steps', from, today);
+            push('steps', days.filter(function (x) { return x.value > 0; }).map(function (x) { return { day: x.day, value: Math.round(x.value) }; }));
         });
         await run('dietaryEnergyConsumed', async function () {
             push('intake', (await daySums(H, 'dietaryEnergyConsumed', from, today)).filter(function (x) { return x.value >= MIN_INTAKE_DAY; }));
         });
         await run('weight', async function () {
             var res = await H.readSamples({ dataType: 'weight', startDate: from.toISOString(), endDate: now.toISOString(), limit: 200 });
-            push('weight', (res && res.samples || []).map(function (s) { return { day: localDay(s.startDate), value: Number(s.value) }; }));
+            push('weight', fromSource(res && res.samples || [], pkg).map(function (s) { return { day: localDay(s.startDate), value: Number(s.value) }; }));
         });
         // Пробите за деня: средно за пулса и HRV, последното за мазнините,
         // средно за кръвното, сутрешният минимум и дневният максимум за захарта.
         var samples = async function (type) {
             var res = await H.readSamples({ dataType: type, startDate: from.toISOString(), endDate: now.toISOString(), limit: 1000 });
-            return (res && res.samples) || [];
+            return fromSource((res && res.samples) || [], pkg);
         };
         var byDay = function (list, pick) {
             var days = {};
@@ -182,7 +218,7 @@
         await run('workouts', async function () {
             var res = await H.queryWorkouts({ startDate: from.toISOString(), endDate: now.toISOString(), limit: 200 });
             var days = {};
-            ((res && res.workouts) || []).forEach(function (w) {
+            fromSource((res && res.workouts) || [], pkg).forEach(function (w) {
                 var minutes = (Number(w.duration) || 0) / 60;
                 if (minutes < 10) return;
                 var d = localDay(w.startDate);
@@ -197,7 +233,7 @@
         await run('sleep', async function () {
             // Нощта срещу първия ден започва предишната вечер.
             var res = await H.readSamples({ dataType: 'sleep', startDate: new Date(from.getTime() - 86400000).toISOString(), endDate: now.toISOString(), limit: 200 });
-            push('sleep', sleepByDay(res && res.samples).filter(function (x) { return x.day >= localDay(from.toISOString()); }));
+            push('sleep', sleepByDay(fromSource(res && res.samples || [], pkg)).filter(function (x) { return x.day >= localDay(from.toISOString()); }));
         });
         return { facts: facts, errors: errors };
     }
@@ -242,8 +278,14 @@
             writeState({ lastSync: new Date().toISOString(), lastCount: 0, lastSummary: {}, lastErrors: out.errors });
             return { sent: 0, message: 'Няма нови данни в Health Connect за последните две седмици.' };
         }
+        // Същите данни като при последното изпращане — без заявка към сървъра.
+        var sig = String(out.facts.length) + ':' + JSON.stringify(out.facts).length + ':' + JSON.stringify(out.facts.slice(-5));
+        if (!(opts && opts.force) && st.lastSig === sig) {
+            writeState({ lastSync: new Date().toISOString(), lastSummary: summary });
+            return { sent: 0, skipped: 'unchanged' };
+        }
         var res = await E.submit({ facts: out.facts }, 'device');
-        writeState({ lastSync: new Date().toISOString(), lastCount: out.facts.length, lastSummary: summary, lastErrors: out.errors });
+        writeState({ lastSync: new Date().toISOString(), lastCount: out.facts.length, lastSummary: summary, lastSig: sig, lastErrors: out.errors });
         return { sent: out.facts.length, level: res.level, message: E.describeChange(res), derived: res.derived };
     }
 
@@ -289,6 +331,35 @@
         out.hcInstallable = !out.hcAvailable && out.sdk >= 26 && out.sdk < 34;
         writeState({ detected: { at: new Date().toISOString(), apps: out.apps.map(function (a) { return a.id; }), manufacturer: out.manufacturer } });
         return out;
+    }
+
+    /** Кои приложения реално са записали данни в Health Connect (последните 7 дни). */
+    async function dataSources() {
+        var H = plugin();
+        if (!H || !readState().connected) return [];
+        var from = new Date(Date.now() - 7 * 86400000).toISOString();
+        var count = {};
+        var names = {};
+        for (var i = 0; i < 2; i++) {
+            try {
+                var res = await H.readSamples({ dataType: ['steps', 'sleep'][i], startDate: from, endDate: new Date().toISOString(), limit: 2000 });
+                ((res && res.samples) || []).forEach(function (s) {
+                    if (!s.sourceId) return;
+                    count[s.sourceId] = (count[s.sourceId] || 0) + 1;
+                    names[s.sourceId] = s.sourceName || s.sourceId;
+                });
+            } catch (_) {}
+        }
+        var A = global.NutriPlanHealthApps;
+        return Object.keys(count).sort(function (a, b) { return count[b] - count[a]; }).map(function (pkgId) {
+            var app = A && A.byPkg(pkgId);
+            return { pkg: pkgId, name: app ? app.name : names[pkgId], records: count[pkgId] };
+        });
+    }
+
+    /** Избраното приложение (пакет) — данните идват от него; null = автоматично. */
+    function setSource(pkg) {
+        writeState({ source: pkg || null, lastSig: null });
     }
 
     async function openApp(pkg) {
@@ -337,6 +408,8 @@
         openApp: openApp,
         installHealthConnect: installHealthConnect,
         openStore: openStore,
+        dataSources: dataSources,
+        setSource: setSource,
         // За тестове: превръщането на пробите в дни.
         _sleepByDay: sleepByDay
     };
