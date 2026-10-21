@@ -12,7 +12,8 @@
  */
 
 import { DISHES, SIDES, food, nutrientsOf, PATTERNS, VEGAN_BREAKFASTS } from './knowledge.js';
-import { buildMeal, describeMeal, portionLine } from './meal-builder.js';
+import { buildMeal, retuneMeal, mealError, describeMeal, portionLine } from './meal-builder.js';
+import { slotCeilingKcal } from '../plan-normalize.js';
 import { normalizeFoodKey } from '../food-utils.js';
 import { FREE_MEAL, FIXED_DESSERT, FIXED_DESSERT_WEIGHT_GRAMS, morningDrinkFor } from './plan-shape.js';
 import { mealBenefits } from './benefits.js';
@@ -347,6 +348,10 @@ const PREFERENCE_WEIGHT = 3;
 export const MAX_ALTERNATIVES = 5;
 
 const kcalOf = t => t.protein * 4 + t.carbs * 4 + t.fats * 9;
+/** Под този дял от белтъка на основното хранене се търси и в другите свободни категории. 0,5 — само явните случаи: при 0,7 бобовите и вегетарианските ястия в седмицата падаха с 40–75%. */
+const PROTEIN_SHORT = 0.5;
+/** Алтернатива е равностойна по калории: до 12% (най-малко 40 kcal) от храненето или целта му. */
+const nearKcal = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
 
 /**
  * Алтернативите на храненето: следващите най-добри кандидати, които са
@@ -377,7 +382,7 @@ function pickAlternatives(best, candidates, { kind, todayDishes, state, policy, 
     if (c.dish.id === best.dish.id || todayDishes.has(c.dish.id) || names.has(c.built.name)) continue;
     // Равностойна на целта на храненето (както и самият избор), и не далеч от избраното.
     const k = kcalOf(c.built.totals);
-    const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
+    const near = nearKcal;
     if (!near(k, bestK) && !near(k, targetK)) continue;
     if (c.built.totals.protein < Math.min(bestP, target.protein) * 0.85 || c.built.totals.protein > Math.max(bestP, target.protein) * 1.3 + 5) continue;
     if (policy.style === 'keto' && c.built.totals.carbs > best.built.totals.carbs * 1.2 + 3) continue;
@@ -405,6 +410,80 @@ function carryTarget(target, carry) {
     out[k] = Math.max(0, base + Math.max(-lim, Math.min(lim, carry[k])));
   }
   return out;
+}
+
+/** Дневната цел — сборът от целите на храненията. */
+function dayTargetOf(prescription, slots) {
+  const t = { protein: 0, carbs: 0, fats: 0 };
+  for (const type of slots) {
+    const m = prescription.meals[type]?.target;
+    if (!m) continue;
+    for (const k of Object.keys(t)) t[k] += m[k] || 0;
+  }
+  return t;
+}
+
+const DAY_BALANCE_PASSES = 4;
+/** Таванът на храненето при изравняването: междинните остават в своя таван (H3, H5). */
+function balanceCeiling(type, kind, dailyKcal) {
+  const ceiling = slotCeilingKcal(type, dailyKcal);
+  return kind === 'late' ? Math.min(ceiling, LATE_SNACK_MAX_KCAL) : ceiling;
+}
+
+/**
+ * Изравняване на деня. Всяко хранене се сглобява към своята цел, остатъкът се
+ * пренася към следващото, но последното е с таван и остатъкът се губи —
+ * денят оставаше под целта (средно ~3%, до −14%). Тук остатъкът до дневната
+ * цел — поотделно по белтък, въглехидрати и мазнини — се връща към храненията
+ * на деня: същите ястия и съставки, само грамажите в границите на рецептата,
+ * а междинните хранения — в своя таван.
+ * Промяна се приема, само ако дневната грешка по всички макроси пада, така
+ * калориите не се оправят за сметка на белтъка.
+ */
+function balanceDay(meals, dayBuilt, dayTarget, policy) {
+  const carbsCap = policy.style === 'keto' || policy.style === 'low_carb';
+  const dailyKcal = kcalOf(dayTarget);
+  const sum = () => meals.reduce((t, m) => {
+    t.protein += m.macros?.protein || 0; t.carbs += m.macros?.carbs || 0; t.fats += m.macros?.fats || 0;
+    return t;
+  }, { protein: 0, carbs: 0, fats: 0 });
+  for (let pass = 0; pass < DAY_BALANCE_PASSES; pass++) {
+    const total = sum();
+    const curErr = mealError(total, dayTarget, carbsCap);
+    const left = { protein: dayTarget.protein - total.protein, carbs: dayTarget.carbs - total.carbs, fats: dayTarget.fats - total.fats };
+    let move = null;
+    for (const e of dayBuilt) {
+      const target = carryTarget(e.target, left);
+      const built = retuneMeal({ dish: e.dish, built: e.built, target, mealKind: e.kind, ctx: e.ctx });
+      if (!built) continue;
+      const meal = toPlanMeal(e.type, e.dish, built, e.dessertToday);
+      if (meal.calories > Math.max(balanceCeiling(e.type, e.kind, dailyKcal), meals[e.i].calories)) continue;
+      const old = meals[e.i].macros;
+      const next = {
+        protein: total.protein - old.protein + meal.macros.protein,
+        carbs: total.carbs - old.carbs + meal.macros.carbs,
+        fats: total.fats - old.fats + meal.macros.fats,
+      };
+      const err = mealError(next, dayTarget, carbsCap);
+      if (err < curErr - 1e-4 && (!move || err < move.err)) move = { e, built, meal, target, err };
+    }
+    if (!move) break;
+    const e = move.e;
+    const meal = move.meal;
+    meal.targetCalories = round(kcalOf(move.target) + (e.dessertToday ? FIXED_DESSERT.calories : 0));
+    // Алтернативите следват храненето: същата нова цел, иначе смяната връща стария дефицит.
+    const altMeals = (e.alts || [])
+      .map(a => {
+        const built = retuneMeal({ dish: a.dish, built: a.built, target: move.target, mealKind: e.kind, ctx: e.ctx }) || a.built;
+        return { ...toPlanMeal(e.type, a.dish, built, e.dessertToday), targetCalories: meal.targetCalories };
+      })
+      .filter(a => nearKcal(a.calories, meal.calories) || nearKcal(a.calories, meal.targetCalories))
+      .slice(0, MAX_ALTERNATIVES);
+    if (altMeals.length) meal.alternatives = altMeals;
+    meals[move.e.i] = meal;
+    move.e.built = move.built;
+    move.e.target = move.target;
+  }
 }
 
 /**
@@ -499,6 +578,8 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     state.mainFoodsToday = new Set();
     state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
+    /** Сглобените хранения на деня — за изравняването накрая. */
+    const dayBuilt = [];
 
     for (const type of slots) {
       const plan = prescription.meals[type];
@@ -590,6 +671,21 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
         slotPool = (eligibleDishes(avoidPolicy)[kind] || []).filter(d => !todayDishes.has(d.id)).slice(0, CANDIDATES_PER_MEAL * 2);
       }
       let best = pick(slotPool, slotCtx);
+      let usedCtx = slotCtx;
+      // Основно хранене от свободна категория, което не стига белтъка (бобов боул
+      // при висок белтък): търси се и в другите свободни категории, както при
+      // алтернативите. Категориите с клинично правило за брой не се пипат.
+      if (best && kind === 'main' && !avoid.length && swappable.has(category)
+        && best.built.totals.protein < target.protein * PROTEIN_SHORT) {
+        const keep = candidatesBuilt;
+        const wider = (eligible.main || []).filter(d => d.category !== category && swappable.has(d.category) && proteinCapacity(d) >= 3
+          && !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !state.yesterdayDishes.has(d.id)
+          && !(state.mainFoodsToday.size && d.parts.some(p => p.group === 'PRO' && p.options.some(o => o.some(id => state.mainFoodsToday.has(id))))))
+          .slice(0, CANDIDATES_PER_MEAL);
+        const other = wider.length ? pick(wider, slotCtx) : null;
+        if (other && other.score > best.score) best = other;
+        else candidatesBuilt = keep;
+      }
       if (!best && policy.withoutOnly) {
         // Избраните храни не стигат за това хранене — то се сглобява от целия каталог.
         relaxed = relaxed || (() => {
@@ -597,6 +693,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
           return { ctx: { ...ctx, policy: p, preferenceOf: id => p.preference(id) }, eligible: eligibleDishes(p) };
         })();
         best = pick((relaxed.eligible[kind] || []).filter(d => !todayDishes.has(d.id)), relaxed.ctx);
+        usedCtx = relaxed.ctx;
       }
       if (!best) throw new Error(`Няма подходящо ястие за ${type} (ден ${day}) при тази диета`);
 
@@ -630,14 +727,15 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       // Целта на храненето е тази след пренесения остатък и десерта.
       meal.targetCalories = round(target.protein * 4 + target.carbs * 4 + target.fats * 9 + (dessertToday ? FIXED_DESSERT.calories : 0));
       // Проверката е върху крайните калории (след кухненските грамажи), както ги вижда клиентът.
-      const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
       const altMeals = alternatives
         .map(a => ({ ...toPlanMeal(type, a.dish, a.built, dessertToday), targetCalories: meal.targetCalories }))
-        .filter(a => near(a.calories, meal.calories) || near(a.calories, meal.targetCalories))
+        .filter(a => nearKcal(a.calories, meal.calories) || nearKcal(a.calories, meal.targetCalories))
         .slice(0, MAX_ALTERNATIVES);
       if (altMeals.length) meal.alternatives = altMeals;
       meals.push(meal);
+      dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives });
     }
+    if (!meals.some(m => m.type === FREE_MEAL)) balanceDay(meals, dayBuilt, dayTargetOf(prescription, slots), policy);
     // Ястие се среща веднъж в деня — и сред алтернативите: нито повторение на
     // друго хранене от деня, нито една и съща алтернатива на две хранения.
     const dayMeals = /** @type {any[]} */ (meals);

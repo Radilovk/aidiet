@@ -27121,9 +27121,21 @@ function validateProductNamesAgainstProtocol(names, clinicalProtocolId) {
 }
 
 // plan-normalize.js
+var MAX_PLATED_SLOT_KCAL_ABSOLUTE = 900;
 var MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 var MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 var MAX_LATE_SNACK_CALORIES = 200;
+var MAX_AFTERNOON_SNACK_CALORIES = 350;
+var MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE = 450;
+var AFTERNOON_SNACK_DAILY_RATIO = 0.15;
+function maxAfternoonSnackKcal(dailyKcal) {
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  if (!daily) return MAX_AFTERNOON_SNACK_CALORIES;
+  return Math.min(
+    MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE,
+    Math.max(MAX_AFTERNOON_SNACK_CALORIES, Math.round(daily * AFTERNOON_SNACK_DAILY_RATIO))
+  );
+}
 var SLOT_CALORIE_TOLERANCE_PERCENT = 0.18;
 var SLOT_CALORIE_TOLERANCE_MIN_KCAL = 40;
 function slotCalorieTolerance(targetKcal) {
@@ -27178,6 +27190,11 @@ function pushDerivedKeyProblem(analysis, title, description, severity = "Borderl
     impact: description || title
   });
   return true;
+}
+function slotCeilingKcal(slotType, dailyKcal) {
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return MAX_LATE_SNACK_CALORIES;
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return maxAfternoonSnackKcal(dailyKcal);
+  return MAX_PLATED_SLOT_KCAL_ABSOLUTE;
 }
 function isKetoUser(userData) {
   return compileProfile(userData || {}).diet.style === "keto";
@@ -42046,6 +42063,14 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
     name: dishName2(dish, kept)
   };
 }
+function retuneMeal({ dish, built, target, mealKind, ctx }) {
+  const parts = built.parts.map((p) => ({ ...p, grams: [...p.grams] }));
+  const carbsCap = ctx.policy.style === "keto" || ctx.policy.style === "low_carb";
+  const error = refine(parts, built.fixed, target, carbsCap);
+  const kept = parts.filter((p) => partTotal(p) > 0);
+  if (mealKind === "main" && !kept.some((p) => p.group === "VEG") && !built.fixed.some(([id]) => food(id).group === "VEG")) return null;
+  return { ...built, parts: kept, totals: totalsOf(kept, built.fixed), error, name: dishName2(dish, kept) };
+}
 function describeMeal(built) {
   const lines = [];
   const seen = /* @__PURE__ */ new Map();
@@ -42375,6 +42400,8 @@ function toPlanMeal(type, dish, built, withDessert = false) {
 var PREFERENCE_WEIGHT = 3;
 var MAX_ALTERNATIVES2 = 5;
 var kcalOf = (t) => t.protein * 4 + t.carbs * 4 + t.fats * 9;
+var PROTEIN_SHORT = 0.5;
+var nearKcal = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
 function pickAlternatives(best, candidates, { kind, todayDishes, state, policy, target }) {
   const bestK = kcalOf(best.built.totals);
   const targetK = kcalOf(target);
@@ -42393,7 +42420,7 @@ function pickAlternatives(best, candidates, { kind, todayDishes, state, policy, 
     if (out.length >= MAX_ALTERNATIVES2 * 2) break;
     if (c.dish.id === best.dish.id || todayDishes.has(c.dish.id) || names.has(c.built.name)) continue;
     const k = kcalOf(c.built.totals);
-    const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
+    const near = nearKcal;
     if (!near(k, bestK) && !near(k, targetK)) continue;
     if (c.built.totals.protein < Math.min(bestP, target.protein) * 0.85 || c.built.totals.protein > Math.max(bestP, target.protein) * 1.3 + 5) continue;
     if (policy.style === "keto" && c.built.totals.carbs > best.built.totals.carbs * 1.2 + 3) continue;
@@ -42418,6 +42445,63 @@ function carryTarget(target, carry) {
     out[k] = Math.max(0, base + Math.max(-lim, Math.min(lim, carry[k])));
   }
   return out;
+}
+function dayTargetOf(prescription, slots) {
+  const t = { protein: 0, carbs: 0, fats: 0 };
+  for (const type of slots) {
+    const m = prescription.meals[type]?.target;
+    if (!m) continue;
+    for (const k of Object.keys(t)) t[k] += m[k] || 0;
+  }
+  return t;
+}
+var DAY_BALANCE_PASSES = 4;
+function balanceCeiling(type, kind, dailyKcal) {
+  const ceiling = slotCeilingKcal(type, dailyKcal);
+  return kind === "late" ? Math.min(ceiling, LATE_SNACK_MAX_KCAL) : ceiling;
+}
+function balanceDay(meals, dayBuilt, dayTarget, policy) {
+  const carbsCap = policy.style === "keto" || policy.style === "low_carb";
+  const dailyKcal = kcalOf(dayTarget);
+  const sum = () => meals.reduce((t, m) => {
+    t.protein += m.macros?.protein || 0;
+    t.carbs += m.macros?.carbs || 0;
+    t.fats += m.macros?.fats || 0;
+    return t;
+  }, { protein: 0, carbs: 0, fats: 0 });
+  for (let pass = 0; pass < DAY_BALANCE_PASSES; pass++) {
+    const total = sum();
+    const curErr = mealError(total, dayTarget, carbsCap);
+    const left = { protein: dayTarget.protein - total.protein, carbs: dayTarget.carbs - total.carbs, fats: dayTarget.fats - total.fats };
+    let move = null;
+    for (const e2 of dayBuilt) {
+      const target = carryTarget(e2.target, left);
+      const built = retuneMeal({ dish: e2.dish, built: e2.built, target, mealKind: e2.kind, ctx: e2.ctx });
+      if (!built) continue;
+      const meal2 = toPlanMeal(e2.type, e2.dish, built, e2.dessertToday);
+      if (meal2.calories > Math.max(balanceCeiling(e2.type, e2.kind, dailyKcal), meals[e2.i].calories)) continue;
+      const old = meals[e2.i].macros;
+      const next = {
+        protein: total.protein - old.protein + meal2.macros.protein,
+        carbs: total.carbs - old.carbs + meal2.macros.carbs,
+        fats: total.fats - old.fats + meal2.macros.fats
+      };
+      const err2 = mealError(next, dayTarget, carbsCap);
+      if (err2 < curErr - 1e-4 && (!move || err2 < move.err)) move = { e: e2, built, meal: meal2, target, err: err2 };
+    }
+    if (!move) break;
+    const e = move.e;
+    const meal = move.meal;
+    meal.targetCalories = round(kcalOf(move.target) + (e.dessertToday ? FIXED_DESSERT.calories : 0));
+    const altMeals = (e.alts || []).map((a) => {
+      const built = retuneMeal({ dish: a.dish, built: a.built, target: move.target, mealKind: e.kind, ctx: e.ctx }) || a.built;
+      return { ...toPlanMeal(e.type, a.dish, built, e.dessertToday), targetCalories: meal.targetCalories };
+    }).filter((a) => nearKcal(a.calories, meal.calories) || nearKcal(a.calories, meal.targetCalories)).slice(0, MAX_ALTERNATIVES2);
+    if (altMeals.length) meal.alternatives = altMeals;
+    meals[move.e.i] = meal;
+    move.e.built = move.built;
+    move.e.target = move.target;
+  }
 }
 function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {} }) {
   const rng = rngFrom(seed);
@@ -42487,6 +42571,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     state.mainFoodsToday = /* @__PURE__ */ new Set();
     state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
+    const dayBuilt = [];
     for (const type of slots) {
       const plan = prescription.meals[type];
       if (type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && day === freeDayNumber) {
@@ -42553,12 +42638,21 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         slotPool = (eligibleDishes(avoidPolicy)[kind] || []).filter((d) => !todayDishes.has(d.id)).slice(0, CANDIDATES_PER_MEAL * 2);
       }
       let best = pick2(slotPool, slotCtx);
+      let usedCtx = slotCtx;
+      if (best && kind === "main" && !avoid.length && swappable.has(category) && best.built.totals.protein < target.protein * PROTEIN_SHORT) {
+        const keep = candidatesBuilt;
+        const wider = (eligible.main || []).filter((d) => d.category !== category && swappable.has(d.category) && proteinCapacity(d) >= 3 && !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !state.yesterdayDishes.has(d.id) && !(state.mainFoodsToday.size && d.parts.some((p) => p.group === "PRO" && p.options.some((o) => o.some((id) => state.mainFoodsToday.has(id)))))).slice(0, CANDIDATES_PER_MEAL);
+        const other = wider.length ? pick2(wider, slotCtx) : null;
+        if (other && other.score > best.score) best = other;
+        else candidatesBuilt = keep;
+      }
       if (!best && policy.withoutOnly) {
         relaxed = relaxed || (() => {
           const p = policy.withoutOnly();
           return { ctx: { ...ctx, policy: p, preferenceOf: (id) => p.preference(id) }, eligible: eligibleDishes(p) };
         })();
         best = pick2((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
+        usedCtx = relaxed.ctx;
       }
       if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
       let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
@@ -42583,11 +42677,12 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       for (const k of ["protein", "carbs", "fats"]) carry[k] = target[k] - best.built.totals[k];
       const meal = toPlanMeal(type, best.dish, best.built, dessertToday);
       meal.targetCalories = round(target.protein * 4 + target.carbs * 4 + target.fats * 9 + (dessertToday ? FIXED_DESSERT.calories : 0));
-      const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
-      const altMeals = alternatives.map((a) => ({ ...toPlanMeal(type, a.dish, a.built, dessertToday), targetCalories: meal.targetCalories })).filter((a) => near(a.calories, meal.calories) || near(a.calories, meal.targetCalories)).slice(0, MAX_ALTERNATIVES2);
+      const altMeals = alternatives.map((a) => ({ ...toPlanMeal(type, a.dish, a.built, dessertToday), targetCalories: meal.targetCalories })).filter((a) => nearKcal(a.calories, meal.calories) || nearKcal(a.calories, meal.targetCalories)).slice(0, MAX_ALTERNATIVES2);
       if (altMeals.length) meal.alternatives = altMeals;
       meals.push(meal);
+      dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives });
     }
+    if (!meals.some((m) => m.type === FREE_MEAL)) balanceDay(meals, dayBuilt, dayTargetOf(prescription, slots), policy);
     const dayMeals = (
       /** @type {any[]} */
       meals
