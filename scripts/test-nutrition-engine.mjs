@@ -223,8 +223,10 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(over.calorieAdjust === 0 && /тракера/.test(over.reasoning), 'застой при прием над плана по тракер — калориите не се режат');
   const near = decideWeeklyAdjustment({ ...base, checkin: readCheckin([...ans('Без промяна'), { questionId: 'intakeKcal', value: '1850' }], null), history: [{ weight: 'flat' }] });
   ok(near.calorieAdjust === flat2.calorieAdjust, 'прием близо до плана — обичайното правило');
-  const fast = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Отслабнах повече от 1 кг'), null) });
-  ok(fast.calorieAdjust === 150, 'твърде бързо — +150 kcal');
+  const fast = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Отслабнах повече от 1 кг'), null), history: [{ weight: 'loss', followed: true }] });
+  ok(fast.calorieAdjust === 150, 'твърде бързо (от втората седмица) — +150 kcal');
+  const fastFirst = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Отслабнах повече от 1 кг'), null), history: [] });
+  ok(fastFirst.calorieAdjust === 0 && /вода и гликоген/.test(fastFirst.reasoning), 'първата седмица бързото сваляне е вода — калориите остават');
   const low = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Без промяна', 'Малко'), null), history: [{ weight: 'flat' }] });
   ok(low.calorieAdjust === 0 && low.modifications.includes('simplify_meals'), 'ниско придържане — по-прост план, не по-малко калории');
 
@@ -233,8 +235,13 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const m1 = readCheckin(kgAns(89.0), null, { prevWeightKg: 90, daysSincePrev: 7 });
   ok(m1.weeklyChangeKg === -1 && m1.weightKg === 89, 'измерване: промяна за седмица от двете претегляния');
   const lossBase = { goal: 'LOSS', kcal: 1800, tdee: 2300, floorKcal: 1500, weightKg: 90, baseKcal: 1800 };
-  const fast90 = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin(kgAns(88.8), null, { prevWeightKg: 90, daysSincePrev: 7 }) });
+  const fast90 = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin(kgAns(88.8), null, { prevWeightKg: 90, daysSincePrev: 7 }), history: [{ weight: 'loss', followed: true }] });
   ok(fast90.calorieAdjust === 150 && fast90.weight === 'fast_loss', 'измерване: над 1% седмично — забавяне (+150)');
+  const veryFastFirst = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin(kgAns(87.9), null, { prevWeightKg: 90, daysSincePrev: 7 }), history: [] });
+  ok(veryFastFirst.calorieAdjust === 150, 'първата седмица над 2% от теглото — забавяне и тогава');
+  const longGap = readCheckin(kgAns(85), null, { prevWeightKg: 88, daysSincePrev: 35 });
+  ok(longGap.weeklyChangeKg === -0.6, `5 седмици без претегляне — темпо по реалните дни (${longGap.weeklyChangeKg})`);
+  ok(readCheckin(kgAns(89.3), null, { prevWeightKg: 90, daysSincePrev: 2 }).weeklyChangeKg === null, 'претегляне след 2 дни — без темпо');
   const big = decideWeeklyAdjustment({ ...lossBase, weightKg: 130, checkin: readCheckin(kgAns(128.9), null, { prevWeightKg: 130, daysSincePrev: 7 }) });
   ok(big.calorieAdjust === 0 && big.weight === 'loss', 'измерване: 1.1 кг при 130 кг е под 1% — нормален темп');
   const slowW = readCheckin(kgAns(89.9), null, { prevWeightKg: 90, daysSincePrev: 7 });

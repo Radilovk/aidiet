@@ -6094,6 +6094,34 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
   return updated;
 }
 
+/**
+ * Седмичният преглед след данни, които менят разхода (ниво ≥ 2 в обогатяването).
+ * Новата основа = приемът по правилата с обогатения профил + досегашните седмични
+ * корекции (разликата между текущия прием и първоначалното предписание).
+ * @returns {null | { analysis: object, before: number, after: number, reason: string }}
+ */
+function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers) {
+  if ((Number(enrichment?.pendingLevel) || 0) < 2 || !plan?.analysis) return null;
+  const before = parseFinalCalories(plan.analysis.Final_Calories);
+  if (!before) return null;
+  const data = JSON.parse(JSON.stringify(enrichedData));
+  const kg = Number(String((checkinAnswers || []).find(a => a.questionId === 'weightKg')?.value || '').replace(',', '.'));
+  if (kg >= 30 && kg <= 300) data.weight = String(kg);
+  const probe = JSON.parse(JSON.stringify(plan.analysis));
+  const { intake, tdee } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  if (!intake) return null;
+  const shift = before - (Number(plan.analysis._baseCalories) || before);
+  probe.Final_Calories = intake + shift;
+  probe.recommendedCalories = probe.Final_Calories;
+  enforceCalorieGuardrails(probe, data, tdee);
+  const after = parseFinalCalories(probe.Final_Calories);
+  // Под 3% разликата е шум от закръгляне — остава досегашното.
+  if (!after || Math.abs(after - before) / before < 0.03) return null;
+  probe._baseCalories = intake;
+  const why = (enrichment?.lastChange?.reasons || []).slice(0, 3).join(', ');
+  return { analysis: probe, before, after, reason: `Приемът е преизчислен с новите данни${why ? ` (${why})` : ''}: ${before} → ${after} kcal.` };
+}
+
 async function runWeeklyAdaptation(env, payload, jobId) {
   const { userId, gameWeeklyAI, answers, clientId } = payload;
   const t0 = Date.now();
@@ -6127,7 +6155,17 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: 'weightTrendKgWeek', value: String(dc.weightTrendKgWeek), source: 'device' }];
     if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: 'recoveryLow', value: 'true', source: 'device' }];
     if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: 'leanLoss', value: 'true', source: 'device' }];
-    const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, checkinAnswers, weeklyAdaptHistory);
+    // Нови данни, които менят разхода (активност по крачките, сън, стрес, състояние от
+    // изследване/документ — ниво ≥ 2): енергията се смята наново с тях, а натрупаните
+    // седмични корекции се пазят върху новата основа. Иначе приемът би останал по
+    // старите отговори и щеше да се „намира“ бавно, със 100–150 kcal на седмица.
+    const recal = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
+    const decisionPlan = recal ? { ...plan, analysis: recal.analysis } : plan;
+    const decision = getWeeklyAdaptationDecision(enrichedData, decisionPlan, analytics, checkinAnswers, weeklyAdaptHistory);
+    if (recal) {
+      decision.changeSummary = [`Калориите са преизчислени с новите данни: ${recal.before} → ${recal.after} kcal`, ...decision.changeSummary].slice(0, 4);
+      decision.reasoning = `${recal.reason} ${decision.reasoning}`.trim();
+    }
     // Свободният коментар от прегледа → само промени в менюто, не в калориите.
     const note = String((answers || []).find(a => a.questionId === 'note')?.value || '').trim();
     if (note.length >= 6) {
@@ -6151,7 +6189,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     enrichUserDataEngineContext(enrichedData);
 
     // Анализът остава — сменя се приемът (по правилата) и менюто.
-    const analysis = JSON.parse(JSON.stringify(plan.analysis || {}));
+    const analysis = JSON.parse(JSON.stringify((recal ? recal.analysis : plan.analysis) || {}));
     if (!analysis._baseCalories) analysis._baseCalories = caloriesBefore;
     if (decision.calorieAdjust) {
       const { tdee } = computeBackendEnergyInputs(enrichedData);
@@ -6161,7 +6199,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       // Записва се приложеното след защитите, не предложеното.
       const applied = parseFinalCalories(analysis.Final_Calories);
       if (applied && applied !== decision.kcal) {
-        decision.calorieAdjust = applied - caloriesBefore;
+        decision.calorieAdjust = applied - (recal ? recal.after : caloriesBefore);
         decision.kcal = applied;
         decision.changeSummary = decision.changeSummary.map(c => (/^Калории:/.test(c)
           ? `Калории: ${decision.calorieAdjust > 0 ? '+' : ''}${decision.calorieAdjust} kcal на ден` : c));

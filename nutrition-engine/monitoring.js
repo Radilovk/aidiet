@@ -90,6 +90,10 @@ const LACTATION_MAX_LOSS_KG = 0.5;
 const FAST_GAIN_RATE = 0.005;
 /** Под 40% от очакваното отслабване при спазен план — застой. */
 const SLOW_LOSS_SHARE = 0.4;
+/** Над толкова дни от предишното претегляне темпото не се смята. */
+const MAX_SPAN_DAYS = 84;
+/** Първата седмица на дефицит сваля вода и гликоген: калориите не се вдигат, освен над 2% от теглото. */
+const FIRST_WEEK_FAST_RATE = 0.02;
 
 /**
  * Отговорите и аналитиката → една картина на седмицата.
@@ -118,9 +122,12 @@ export function readCheckin(answers, analytics, previous = {}) {
   const prev = Number(previous.prevWeightKg) || null;
   if (weightKg && prev) {
     const days = Number(previous.daysSincePrev);
-    // Промяната се води към седмица; без дата — приема се една седмица.
-    const span = days >= 4 && days <= 28 ? days : 7;
-    weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
+    // Промяната се води към седмица по реалните дни между двете претегляния.
+    // Под 4 дни разликата е вода и храна в червата; над 12 седмици — твърде
+    // стара точка: и в двата случая темпо не се смята (остава отговорът).
+    // Без дата — приема се една седмица.
+    const span = Number.isFinite(days) && days > 0 ? days : 7;
+    weeklyChangeKg = span >= 4 && span <= MAX_SPAN_DAYS ? Math.round((weightKg - prev) / span * 7 * 100) / 100 : null;
   }
   // Тенденцията от поне 5 претегляния за 2 седмици е по-точна от две точки.
   const trend = Number(answerOf(answers, 'weightTrendKgWeek'));
@@ -233,7 +240,12 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
   } else if (outcome && followed) {
     const weeks = streak(history, goalKind, cls) + 1;
     if (losing) {
-      if (outcome === 'fast_loss') {
+      const base = checkin.weightKg || weightKg || 70;
+      const firstWeekWater = outcome === 'fast_loss' && !lactating && !(history || []).length
+        && checkin.energy !== 3 && !(checkin.weeklyChangeKg != null && -checkin.weeklyChangeKg >= base * FIRST_WEEK_FAST_RATE);
+      if (firstWeekWater) {
+        reasons.push(`Първата седмица${measured ? ` (${measured})` : ''} теглото пада бързо основно от вода и гликоген — приемът остава; темпото се преценява от втората седмица.`);
+      } else if (outcome === 'fast_loss') {
         delta = +MAX_WEEKLY_STEP;
         reasons.push(lactating
           ? 'Отслабването е над 0,5 кг седмично при кърмене — приемът се увеличава, за да се пази кърмата.'
@@ -278,6 +290,8 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
     } else {
       reasons.push(`Теглото се задържа в нормалните граници${measured ? ` (${measured})` : ''} — приемът остава.`);
     }
+  } else if (!outcome && checkin.weightKg) {
+    reasons.push('Теглото е записано; темпото се преценява, когато между две претегляния има поне 4 дни — калориите остават.');
   } else if (!outcome) {
     reasons.push('Без данни за теглото калориите остават — претеглете се сутрин на гладно преди следващия преглед.');
   }
