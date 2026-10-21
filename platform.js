@@ -325,6 +325,29 @@
 
     // ── Публично API ────────────────────────────────────────────────────────
 
+    // APK: никакъв service worker. Останал от стара версия, той връща старите
+    // страници и скриптове и новите модули не се виждат. Махаме го и, ако е
+    // управлявал страницата, презареждаме веднъж с файловете на приложението.
+    (function dropServiceWorkerInApp() {
+        try {
+            if (!isAPK() || global.top !== global || !global.navigator.serviceWorker) return;
+            var sw = global.navigator.serviceWorker;
+            var controlled = !!sw.controller;
+            sw.getRegistrations().then(function (regs) {
+                return Promise.all(regs.map(function (r) { return r.unregister(); }));
+            }).then(function () {
+                return global.caches ? global.caches.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (k) { return global.caches.delete(k); }));
+                }) : null;
+            }).then(function () {
+                if (!controlled) return;
+                if (global.sessionStorage.getItem('np_sw_dropped')) return;
+                global.sessionStorage.setItem('np_sw_dropped', '1');
+                global.location.reload();
+            }).catch(function () {});
+        } catch (_) {}
+    })();
+
     global.NutriPlanPlatform = {
         isAPK: isAPK,
         isPWA: isPWA,

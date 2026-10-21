@@ -4761,14 +4761,17 @@
                  * causes a blank-profile flash and permanently hidden logout button
                  * when Firebase fires null and setupProfile never reaches the
                  * setProfileLogoutVisibility / opacity calls below. */
-                initializeTheme();
-                loadUserData();
-                loadAnalysis(); // REQUIREMENT 1: Load analysis
-                updateQuestionnaireActionsBar();
-                initLabsSection();
-                initDevicesSection();
-                initDocsSection();
-                initCardMeter();
+                // Всяка част поотделно: грешка в една не крие останалите модули.
+                [initializeTheme, loadUserData, loadAnalysis, updateQuestionnaireActionsBar,
+                    initLabsSection, initDevicesSection, initDocsSection, initCardMeter].forEach(function (step) {
+                    try {
+                        const r = step();
+                        if (r && typeof r.catch === 'function') r.catch(function (e) { console.error('[Profile]', step.name, e); });
+                    } catch (e) {
+                        console.error('[Profile]', step.name, e);
+                        if (window.NutriPlanDiagnostics) window.NutriPlanDiagnostics.fail('profile', step.name, e.message || String(e));
+                    }
+                });
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.ok('profile', 'setup-profile', 'Initial profile load complete');
                 }

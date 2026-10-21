@@ -34,13 +34,16 @@ MAIN_ACTIVITY = PACKAGE_DIR / "MainActivity.java"
 
 PATCHED_ACTIVITY = """package com.biocode.nutriplan;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
+import java.io.File;
 
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        clearStaleWebCacheOnUpdate();
         // Local plugins must be registered before the bridge starts.
         registerPlugin(NutriPrintPlugin.class);
         registerPlugin(NutriSystemUiPlugin.class);
@@ -49,6 +52,33 @@ public class MainActivity extends BridgeActivity {
         // само едно (SystemBars на Capacitor). Без това под Android 15 системата
         // също мести съдържанието и под лентите оставаше втора, сива ивица.
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+    }
+
+    /**
+     * След обновяване на APK: махаме service worker-ите и техния кеш от WebView.
+     * Стар service worker (от предишна версия) остава след обновяването и връща
+     * старите страници и скриптове — новите модули не се виждат, а смесицата от
+     * стар и нов код чупи страниците. localStorage (данните на клиента) не се пипа.
+     */
+    private void clearStaleWebCacheOnUpdate() {
+        try {
+            long version = getPackageManager().getPackageInfo(getPackageName(), 0).lastUpdateTime;
+            SharedPreferences prefs = getSharedPreferences("nutriplan_webcache", MODE_PRIVATE);
+            if (prefs.getLong("cleared_for", 0) == version) return;
+            File webview = new File(getApplicationInfo().dataDir, "app_webview");
+            deleteRecursive(new File(webview, "Default/Service Worker"));
+            deleteRecursive(new File(webview, "Service Worker"));
+            prefs.edit().putLong("cleared_for", version).apply();
+        } catch (Exception ignored) {
+            // без изчистване — приложението работи и така
+        }
+    }
+
+    private static void deleteRecursive(File f) {
+        if (!f.exists()) return;
+        File[] children = f.listFiles();
+        if (children != null) for (File c : children) deleteRecursive(c);
+        f.delete();
     }
 }
 """
