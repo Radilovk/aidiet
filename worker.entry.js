@@ -8846,6 +8846,17 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
 /**
  * Call Gemini API with automatic retry logic for transient errors
  */
+/**
+ * Flash модел без зададен бюджет → без „мислене“. Старият шаблон
+ * (/gemini-(2\.5|3(\.|))flash/) не хващаше нито „gemini-2.5-flash“, нито
+ * „gemini-3.6-flash“ (тирето преди flash), затова всички извиквания без бюджет
+ * в админа (гласът на плана, чатът, снимките, документите) вървяха с мислене
+ * по подразбиране — по-бавно и с повече токени.
+ */
+function isFlashWithoutThinking(modelName) {
+  return /gemini-(2\.5|3(\.\d+)?)-flash/i.test(String(modelName || '')) && !/pro/i.test(String(modelName || ''));
+}
+
 async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined, responseSchema = null, systemInstruction = null) {
   try {
     return await retryWithBackoff(async () => {
@@ -8878,7 +8889,7 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
       // thinkingBudget > 0           → allow thinking up to that many tokens.
       if (thinkingBudget !== undefined) {
         generationConfig.thinkingConfig = { thinkingBudget };
-      } else if (/gemini-(2\.5|3(\.|))flash/i.test(modelName) && !/pro/i.test(modelName)) {
+      } else if (isFlashWithoutThinking(modelName)) {
         generationConfig.thinkingConfig = { thinkingBudget: 0 };
       }
       // Enforce JSON-only output at the API level to prevent markdown-wrapped responses
@@ -9093,7 +9104,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
     // Thinking configuration (see callGemini for full explanation).
     if (thinkingBudget !== undefined) {
       generationConfig.thinkingConfig = { thinkingBudget };
-    } else if (modelName && modelName.includes('gemini-2.5-flash')) {
+    } else if (isFlashWithoutThinking(modelName)) {
       generationConfig.thinkingConfig = { thinkingBudget: 0 };
     }
     const requestBody = {

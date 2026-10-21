@@ -1866,6 +1866,59 @@
         [data-theme="dark"] .more-data-btn i:first-child { color: var(--primary-red); }
         .more-data-btn small { display: block; font-weight: 500; color: var(--ds-text-soft); font-size: 0.8125rem; }
         .more-data-btn .fa-chevron-right { margin-left: auto; color: var(--ds-text-soft); }
+        /* ── По-малко шум: един фокус горе, детайли при докосване ── */
+        .container { padding-top: 12px; }
+        .overall-score-section, [data-theme="dark"] .overall-score-section { margin-top: 4px; padding: 20px 16px; }
+        .overall-score-section .score-card, [data-theme="dark"] .overall-score-section .score-card { background: none; border: none; box-shadow: none; }
+        .overall-score-section .score-card:hover { transform: none; box-shadow: none; }
+        .overall-score-section .score-card-header { display: none; }
+        .overall-score-section .single-score-container { padding: 0; }
+        .overall-score-section .health-viz-wrap { width: 184px; height: 184px; margin-bottom: 12px; }
+        .score-caption { text-align: center; font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ds-text-soft); margin-bottom: 8px; }
+        .source-strip { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; font-size: 0.8125rem; color: var(--ds-text-soft); }
+        .source-strip i { color: var(--ds-fill); font-size: 0.9rem; }
+        [data-theme="dark"] .source-strip i { color: var(--primary-red); }
+        .seg { display: flex; gap: 4px; padding: 4px; margin: 12px 0 14px; border-radius: 14px; background: rgba(15, 118, 110, 0.08); overflow-x: auto; scrollbar-width: none; }
+        .seg[hidden] { display: none; }
+        .seg [role="tab"] { flex: 1 0 auto; min-height: var(--ds-touch-min, 44px); padding: 0 14px; border: none; border-radius: 10px; background: none; font: inherit; font-size: 0.875rem; font-weight: 700; color: var(--ds-text-soft); cursor: pointer; transition: background var(--ds-motion-fast, 180ms) var(--ds-ease-standard), color var(--ds-motion-fast, 180ms) var(--ds-ease-standard); }
+        .seg [role="tab"][aria-selected="true"] { background: var(--ds-bg-card, #fff); color: var(--text-dark); box-shadow: 0 1px 3px rgba(20, 35, 50, 0.12); }
+        [data-theme="dark"] .seg [role="tab"][aria-selected="true"] { background: rgba(45, 212, 191, 0.16); }
+        .panel-in { animation: panelIn var(--ds-motion-standard, 240ms) var(--ds-ease-standard) both; }
+        @keyframes panelIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .lab-dot { transition: left var(--ds-motion-expressive, 600ms) var(--ds-ease-standard); }
+        .more-toggle { margin-top: 8px; min-height: var(--ds-touch-min, 44px); padding: 0 4px; border: none; background: none; font: inherit; font-size: 0.875rem; font-weight: 700; color: var(--ds-fill); cursor: pointer; }
+        [data-theme="dark"] .more-toggle { color: var(--primary-red); }
+        /* Прогноза */
+        .forecast-compact .fc-hero { font-size: 1.125rem; font-weight: 800; line-height: 1.35; color: var(--text-dark); margin-bottom: 10px; }
+        .fc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+        .fc-list li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; font-size: 0.9375rem; line-height: 1.45; color: var(--text-dark); }
+        .fc-list.good i { color: var(--ds-success-text); margin-top: 3px; }
+        .fc-list.warn i { color: var(--ds-warning-text); margin-top: 3px; }
+        /* Проблеми: компактен ред */
+        .problems-container { gap: 10px; margin-bottom: 8px; }
+        .problem-card, [data-theme="dark"] .problem-card { padding: 0; border-radius: 18px; box-shadow: 0 1px 3px rgba(20, 35, 50, 0.08); border: 1px solid var(--glass-border); border-left: 4px solid var(--severity-borderline); }
+        .problem-card::before { display: none; }
+        .problem-card:hover { transform: none; }
+        .problem-card.severity-risky, [data-theme="dark"] .problem-card.severity-risky { border-left-color: var(--severity-risky); box-shadow: 0 1px 3px rgba(20, 35, 50, 0.08); }
+        .problem-card.severity-critical, [data-theme="dark"] .problem-card.severity-critical { border-left-color: var(--severity-critical); box-shadow: 0 1px 3px rgba(20, 35, 50, 0.08); }
+        .problem-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 12px 14px; border: none; background: none; font: inherit; text-align: left; color: inherit; cursor: pointer; border-radius: 18px; transition: transform var(--ds-motion-press, 120ms) var(--ds-ease-standard); }
+        .problem-row:active { transform: scale(var(--ds-press-scale, 0.98)); }
+        .problem-card .problem-icon { width: 40px; height: 40px; border-radius: 12px; font-size: 1rem; }
+        .problem-main { flex: 1; min-width: 0; display: grid; gap: 4px; }
+        .problem-name { font-size: 1rem; font-weight: 700; color: var(--text-dark); line-height: 1.3; }
+        .problem-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .sev { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8125rem; font-weight: 700; color: var(--ds-warning-text); }
+        .sev-critical { color: var(--ds-error-text); }
+        .problem-chev { color: var(--ds-text-soft); transition: transform var(--ds-motion-fast, 180ms) var(--ds-ease-standard); }
+        .problem-card.is-open .problem-chev { transform: rotate(180deg); }
+        .problem-details { padding: 0 16px 16px 66px; animation: panelIn var(--ds-motion-standard, 240ms) var(--ds-ease-standard) both; }
+        .problem-details .problem-description { font-size: 0.9375rem; line-height: 1.5; margin: 0 0 10px; color: var(--text-dark); }
+        .problem-details .problem-impact { display: grid; grid-template-columns: 18px 1fr; gap: 8px; margin: 0 0 10px; padding: 0; background: none; border: none; font-size: 0.875rem; line-height: 1.45; color: var(--ds-text-soft); }
+        .problem-details .problem-impact i { color: var(--ds-warning-text); margin-top: 3px; }
+        .problem-details .severity-meter { margin-top: 0; }
+        .problem-details .meter-track { height: 6px; }
+        .meter-fill::after { display: none; }
+        @media (max-width: 359px) { .problem-details { padding-left: 16px; } }
     </style>
 <script src="./platform.js"></script>
 <script src="./meal-swaps.js"></script>
@@ -1895,14 +1948,6 @@
 
     <!-- Main Content -->
     <div class="container" id="mainContent" style="display: none;">
-        <div class="header">
-            <div class="header-icon">
-                <i class="fas fa-heartbeat"></i>
-            </div>
-            <h1>Вашият Здравен Анализ</h1>
-            <p>Обновява се с всяко изследване, устройство, тест и документ</p>
-        </div>
-
         <!-- Overall Health Score Section -->
         <div class="overall-score-section" id="overallScoreSection" style="display: none;">
             <div class="score-grid">
@@ -1916,6 +1961,7 @@
                         <div class="score-card-title">Здравен Статус</div>
                     </div>
                     <div class="single-score-container">
+                        <div class="score-caption">Здравен статус</div>
                         <!-- Circular Health Widget with Silhouette -->
                         <div class="health-viz-wrap">
                             <!-- Circular progress ring -->
@@ -1951,13 +1997,12 @@
                             </svg>
                         </div>
                         <!-- Score display -->
-                        <div id="healthScoreValue" class="gauge-score-value" style="color: #0D9488;">--</div>
-                        <div id="healthScoreLabel" class="gauge-score-label" style="color: #0D9488;"></div>
+                        <div id="healthScoreValue" class="gauge-score-value">--</div>
+                        <div id="healthScoreLabel" class="gauge-score-label"></div>
                         <!-- Problem severity count badges -->
                         <div id="healthStatusBadges" class="health-status-badges" style="display:none;"></div>
                         <div id="scoreDelta" class="score-delta" hidden></div>
                         <div id="sourceStrip" class="source-strip" hidden></div>
-                        <div id="reanalysisAt" class="reanalysis-at" hidden></div>
                     </div>
                 </div>
             </div>
@@ -1966,15 +2011,14 @@
 
         <section class="insight-section" id="dimensionsSection" hidden aria-labelledby="dimTitle">
             <div class="insight-head"><i class="fas fa-chart-bar" aria-hidden="true"></i><h2 id="dimTitle">Профилни измерения</h2></div>
-            <p class="insight-sub">Колко добре е всяка област от 0 до 100. Чертата показва оценката само по въпросника — разликата е какво добавиха новите данни.</p>
-            <div class="dim-legend" aria-hidden="true"><span><span class="dim-key-bar"></span>Сега</span><span><span class="dim-key-tick"></span>Само по въпросника</span></div>
+            <div class="dim-legend" id="dimLegend" aria-hidden="true"><span><span class="dim-key-bar"></span>Сега, от 0 до 100</span><span><span class="dim-key-tick"></span>Само по въпросника</span></div>
             <ul class="dim-list" id="dimList"></ul>
         </section>
 
         <section class="insight-section" id="changesSection" hidden aria-labelledby="changesTitle">
             <div class="insight-head"><i class="fas fa-arrows-rotate" aria-hidden="true"></i><h2 id="changesTitle">Какво промениха новите данни</h2></div>
-            <p class="insight-sub" id="changesSub">Анализът се преизчислява при всяко изследване, устройство, тест или документ.</p>
             <ul class="change-list" id="changeList"></ul>
+            <button type="button" class="more-toggle" id="changesMore" hidden onclick="toggleChanges()"></button>
         </section>
 
         <h2 class="problems-title" id="problemsTitle">Главни проблеми</h2>
@@ -1983,85 +2027,50 @@
         </div>
 
 
-        <section class="insight-section" id="labsInsight" hidden aria-labelledby="labsTitle">
-            <div class="insight-head"><i class="fas fa-vial" aria-hidden="true"></i><h2 id="labsTitle">Изследвания</h2></div>
-            <p class="insight-sub">Зелената зона е нормата. Точката е вашата стойност.</p>
-            <ul class="lab-list" id="labList"></ul>
-        </section>
-
-        <section class="insight-section" id="devicesInsight" hidden aria-labelledby="devTitle">
-            <div class="insight-head"><i class="fas fa-heart-pulse" aria-hidden="true"></i><h2 id="devTitle">От гривна, часовник и везна</h2></div>
-            <p class="insight-sub" id="devicesSub">Средно за последната седмица.</p>
-            <div class="metric-grid" id="metricGrid"></div>
-        </section>
-
-        <section class="insight-section" id="emoInsight" hidden aria-labelledby="emoTitle">
-            <div class="insight-head"><i class="fas fa-heart" aria-hidden="true"></i><h2 id="emoTitle">Емоционален профил (EmoEat)</h2></div>
-            <div class="persona" id="emoBody"></div>
-        </section>
-
-        <section class="insight-section" id="irisInsight" hidden aria-labelledby="irisTitle">
-            <div class="insight-head"><i class="fas fa-eye" aria-hidden="true"></i><h2 id="irisTitle">Ирисов анализ (AIRIS)</h2></div>
-            <p class="insight-sub">Находка, потвърдена от друг източник, влиза в оценката и в менюто. Непотвърдената остава хипотеза.</p>
-            <div id="irisBody"></div>
-        </section>
-
-        <!-- 1-Year Forecast Section -->
-        <div class="forecast-section" id="forecastSection" style="display: none;">
-            <div class="overall-score-header">
-                <h2>
-                    <i class="fas fa-calendar-alt" style="margin-right: 12px; color: var(--primary-red);"></i>
-                    Прогноза за Една Година
-                </h2>
-                <p>Два възможни сценария според вашите бъдещи действия</p>
+        <section class="insight-section" id="dataSection" hidden aria-labelledby="dataTitle">
+            <div class="insight-head"><i class="fas fa-database" aria-hidden="true"></i><h2 id="dataTitle">Вашите данни</h2></div>
+            <div class="seg" role="tablist" aria-label="Източник" id="dataTabs"></div>
+            <div class="data-panel" id="labsInsight" role="tabpanel" hidden>
+                <p class="insight-sub" id="labsSub"></p>
+                <ul class="lab-list" id="labList"></ul>
             </div>
-
-            <div class="forecast-grid">
-                <!-- Without Lifestyle Change Forecast -->
-                <div class="forecast-card pessimistic">
-                    <div class="forecast-card-header">
-                        <div class="forecast-icon-wrapper">
-                            <div class="forecast-icon warning">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                        </div>
-                        <div class="forecast-card-title">Без промяна в начина на живот</div>
-                    </div>
-                    <div class="forecast-content">
-                        <div class="forecast-risks" id="pessimisticRisks">
-                            <!-- Risks will be inserted here -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- With Lifestyle Change Forecast -->
-                <div class="forecast-card optimistic">
-                    <div class="forecast-card-header">
-                        <div class="forecast-icon-wrapper">
-                            <div class="forecast-icon success">
-                                <i class="fas fa-star"></i>
-                            </div>
-                        </div>
-                        <div class="forecast-card-title">При промяна в начина на живот</div>
-                    </div>
-                    <div class="forecast-content">
-                        <div class="forecast-improvements" id="optimisticImprovements">
-                            <!-- Improvements will be inserted here -->
-                        </div>
-                    </div>
-                </div>
+            <div class="data-panel" id="devicesInsight" role="tabpanel" hidden>
+                <p class="insight-sub" id="devicesSub">Средно за последната седмица.</p>
+                <div class="metric-grid" id="metricGrid"></div>
             </div>
-        </div>
+            <div class="data-panel" id="emoInsight" role="tabpanel" hidden>
+                <div class="persona" id="emoBody"></div>
+            </div>
+            <div class="data-panel" id="irisInsight" role="tabpanel" hidden>
+                <div id="irisBody"></div>
+            </div>
+        </section>
+
+        <!-- Прогноза за 12 месеца: един сценарий наведнъж -->
+        <section class="insight-section forecast-compact" id="forecastSection" style="display: none;" aria-labelledby="forecastTitle">
+            <div class="insight-head"><i class="fas fa-calendar-days" aria-hidden="true"></i><h2 id="forecastTitle">След 12 месеца</h2></div>
+            <div class="seg" role="tablist" aria-label="Сценарий">
+                <button type="button" role="tab" id="fcTabPlan" aria-selected="true" aria-controls="fcPlan" onclick="showForecast('plan')">С плана</button>
+                <button type="button" role="tab" id="fcTabNone" aria-selected="false" aria-controls="fcNone" onclick="showForecast('none')">Без промяна</button>
+            </div>
+            <div class="fc-panel" id="fcPlan" role="tabpanel" aria-labelledby="fcTabPlan">
+                <div class="fc-hero" id="fcPlanWeight"></div>
+                <ul class="fc-list good" id="optimisticImprovements"></ul>
+            </div>
+            <div class="fc-panel" id="fcNone" role="tabpanel" aria-labelledby="fcTabNone" hidden>
+                <div class="fc-hero" id="fcNoneWeight"></div>
+                <ul class="fc-list warn" id="pessimisticRisks"></ul>
+            </div>
+        </section>
 
         <section class="insight-section" id="moreDataSection" hidden aria-labelledby="moreTitle">
             <div class="insight-head"><i class="fas fa-plus" aria-hidden="true"></i><h2 id="moreTitle">Направете анализа по-точен</h2></div>
-            <p class="insight-sub">Всеки нов източник преизчислява анализа и плана.</p>
             <ul class="more-data-list" id="moreDataList"></ul>
         </section>
 
         <div class="cta-section section-anim" id="ctaSection">
             <h2 id="ctaTitle">Готови ли сте за промяна?</h2>
-            <p id="ctaSubtitle">Създадохме персонализиран хранителен план, който ще ви помогне да преодолеете тези предизвикателства и да постигнете целите си.</p>
+            <p id="ctaSubtitle">Планът е изграден около тези находки.</p>
             <button class="btn-primary" onclick="goToPlan()">
                 Виж Хранителния План
                 <i class="fas fa-arrow-right"></i>
@@ -2386,27 +2395,64 @@
             const extra = !!re;
             const delta = document.getElementById('scoreDelta');
             const strip = document.getElementById('sourceStrip');
-            const at = document.getElementById('reanalysisAt');
-            ['dimensionsSection', 'changesSection', 'labsInsight', 'devicesInsight', 'emoInsight', 'irisInsight'].forEach(id => {
-                document.getElementById(id).hidden = true;
-            });
-            delta.hidden = strip.hidden = at.hidden = !extra;
+            ['dimensionsSection', 'changesSection', 'dataSection'].forEach(id => { document.getElementById(id).hidden = true; });
+            delta.hidden = strip.hidden = !extra;
             renderMoreData(re);
             if (!extra) return;
 
-            const now = re.analysis.currentHealthStatus.score;
-            const diff = now - re.baseline.score;
+            const diff = re.analysis.currentHealthStatus.score - re.baseline.score;
             delta.dataset.dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'same';
-            delta.innerHTML = `<i class="fas ${diff > 0 ? 'fa-arrow-up' : diff < 0 ? 'fa-arrow-down' : 'fa-equals'}" aria-hidden="true"></i> ${diff === 0 ? 'Без промяна' : `${diff > 0 ? '+' : '−'}${Math.abs(diff)}`} спрямо въпросника (${re.baseline.score}%)`;
-            strip.innerHTML = presentSources(re).map(k => `<span class="source-chip"><i class="fas ${SOURCE_META[k].icon}" aria-hidden="true"></i>${SOURCE_META[k].label}</span>`).join('');
-            at.textContent = re.at ? `Преизчислен ${new Date(re.at).toLocaleString('bg-BG', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}` : '';
+            delta.innerHTML = `<i class="fas ${diff > 0 ? 'fa-arrow-up' : diff < 0 ? 'fa-arrow-down' : 'fa-equals'}" aria-hidden="true"></i> ${diff === 0 ? 'Същото като по въпросника' : `${diff > 0 ? '+' : '−'}${Math.abs(diff)} спрямо въпросника`}`;
+            // Източниците — един ред икони с имена за екранния четец, без отделни чипове.
+            strip.innerHTML = presentSources(re).map(k => `<i class="fas ${SOURCE_META[k].icon}" role="img" aria-label="${SOURCE_META[k].label}" title="${SOURCE_META[k].label}"></i>`).join('')
+                + `<span>${presentSources(re).length} източника${re.at ? ` · ${new Date(re.at).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' })}` : ''}</span>`;
 
             renderDimensions(re.dimensions || []);
             renderChanges(re);
-            renderLabs(re.labs || []);
-            renderDevices(re.devices);
-            renderEmo(re.emoeat);
-            renderIris(re.iris);
+            renderDataTabs(re);
+        }
+
+        /** Данните по източник — раздели само за наличните, един видим наведнъж. */
+        function renderDataTabs(re) {
+            const tabs = [
+                { id: 'labsInsight', label: 'Изследвания', on: renderLabs(re.labs || []) },
+                { id: 'devicesInsight', label: 'Устройства', on: renderDevices(re.devices) },
+                { id: 'emoInsight', label: 'EmoEat', on: renderEmo(re.emoeat) },
+                { id: 'irisInsight', label: 'AIRIS', on: renderIris(re.iris) },
+            ].filter(t => t.on);
+            const section = document.getElementById('dataSection');
+            if (!tabs.length) { section.hidden = true; return; }
+            const bar = document.getElementById('dataTabs');
+            bar.hidden = tabs.length < 2;
+            bar.innerHTML = tabs.map((t, i) => `<button type="button" role="tab" id="${t.id}Tab" aria-controls="${t.id}" aria-selected="${i === 0}" onclick="showDataTab('${t.id}')">${t.label}</button>`).join('');
+            showDataTab(tabs[0].id);
+            section.hidden = false;
+        }
+
+        function showDataTab(id) {
+            document.querySelectorAll('#dataSection .data-panel').forEach(p => { p.hidden = p.id !== id; });
+            document.querySelectorAll('#dataTabs [role="tab"]').forEach(b => { b.setAttribute('aria-selected', String(b.getAttribute('aria-controls') === id)); });
+            const panel = document.getElementById(id);
+            panel.setAttribute('aria-labelledby', id + 'Tab');
+            panel.classList.remove('panel-in'); void panel.offsetWidth; panel.classList.add('panel-in');
+            panel.querySelectorAll('.lab-dot[data-left]').forEach(d => { requestAnimationFrame(() => { d.style.left = d.dataset.left; }); });
+        }
+
+        function showForecast(which) {
+            const plan = which === 'plan';
+            document.getElementById('fcPlan').hidden = !plan;
+            document.getElementById('fcNone').hidden = plan;
+            document.getElementById('fcTabPlan').setAttribute('aria-selected', String(plan));
+            document.getElementById('fcTabNone').setAttribute('aria-selected', String(!plan));
+        }
+
+        let _changesOpen = false;
+        function toggleChanges() {
+            _changesOpen = !_changesOpen;
+            document.querySelectorAll('#changeList .change-item.is-extra').forEach(li => { li.hidden = !_changesOpen; });
+            const btn = document.getElementById('changesMore');
+            btn.textContent = _changesOpen ? 'Скрий' : btn.dataset.label;
+            btn.setAttribute('aria-expanded', String(_changesOpen));
         }
 
         function renderDimensions(dims) {
@@ -2443,19 +2489,20 @@
                 const m = FIELD_LABELS[r.field] || { label: r.field, unit: '', src: '' };
                 items.push({ icon: 'fa-right-left', tone: '', text: `${m.label}: ${escA(String(r.to).replace('.', ','))}${m.unit} ${m.src}`, note: r.from ? `Във въпросника: ${escA(r.from)}` : '' });
             });
-            (re.analysis.keyProblems || []).forEach(p => {
-                const src = (p.sources || []).filter(x => x !== 'questionnaire').map(x => SOURCE_META[x] ? SOURCE_META[x].label : x).join(', ');
-                if (p.change === 'new') items.push({ icon: 'fa-plus', tone: 'warn', text: `Ново: ${escA(p.title)}`, note: src ? `Източник: ${escA(src)}` : '' });
-                else if (p.change === 'worse') items.push({ icon: 'fa-arrow-up', tone: 'warn', text: `По-висок риск: ${escA(p.title)}`, note: src ? `Източник: ${escA(src)}` : '' });
-                else if (p.change === 'better') items.push({ icon: 'fa-arrow-down', tone: 'good', text: `По-нисък риск: ${escA(p.title)}`, note: src ? `Източник: ${escA(src)}` : '' });
-            });
+            // Новите проблеми са отбелязани в списъка с проблемите — тук не се повтарят.
             (re.resolved || []).forEach(t => items.push({ icon: 'fa-check', tone: 'good', text: `Отпада: ${escA(t)}`, note: 'Новите данни не го потвърждават' }));
             if (re.lastChange && re.pendingLevel > 0 && (re.lastChange.reasons || []).length) {
                 items.push({ icon: 'fa-calendar-check', tone: '', text: 'Планът ще се съобрази при следващия седмичен преглед', note: `Заради: ${escA(re.lastChange.reasons.join(', '))}` });
             }
             if (!items.length) return;
-            document.getElementById('changeList').innerHTML = items.map(i =>
-                `<li class="change-item" data-tone="${i.tone}"><i class="fas ${i.icon}" aria-hidden="true"></i><div>${i.text}${i.note ? `<small>${i.note}</small>` : ''}</div></li>`).join('');
+            const SHOWN = 3;
+            document.getElementById('changeList').innerHTML = items.map((i, n) =>
+                `<li class="change-item${n >= SHOWN ? ' is-extra' : ''}" data-tone="${i.tone}"${n >= SHOWN && !_changesOpen ? ' hidden' : ''}><i class="fas ${i.icon}" aria-hidden="true"></i><div>${i.text}${i.note ? `<small>${i.note}</small>` : ''}</div></li>`).join('');
+            const more = document.getElementById('changesMore');
+            more.hidden = items.length <= SHOWN;
+            more.dataset.label = `Още ${items.length - SHOWN}`;
+            more.textContent = _changesOpen ? 'Скрий' : more.dataset.label;
+            more.setAttribute('aria-expanded', String(_changesOpen));
             document.getElementById('changesSection').hidden = false;
         }
 
@@ -2475,10 +2522,10 @@
         const LAB_STATUS = { normal: ['fa-check', 'в норма'], high: ['fa-arrow-up', 'над нормата'], low: ['fa-arrow-down', 'под нормата'] };
 
         function renderLabs(labs) {
-            if (!labs.length) return;
+            if (!labs.length) return false;
             const day = iso => (iso ? new Date(iso).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
             const latest = labs.reduce((m, l) => (l.at > m ? l.at : m), '');
-            document.querySelector('#labsInsight .insight-sub').textContent = `Зелената зона е нормата, точката — вашата стойност. Последно изследване: ${day(latest)}.`;
+            document.getElementById('labsSub').textContent = `Зелено — нормата. Изследване от ${day(latest).replace(/\s*г\.$/, '')}`;
             document.getElementById('labList').innerHTML = labs.map(l => {
                 const sc = labScale(l);
                 const st = LAB_STATUS[l.status] || LAB_STATUS.normal;
@@ -2490,16 +2537,16 @@
                     <span class="lab-val">${fmtNum(l.value)} <small>${escA(l.unit)}</small></span>
                     <div class="lab-track" role="img" aria-label="${escA(aria)}">
                         <div class="lab-zone" style="left:${sc.zoneFrom}%;width:${Math.max(2, sc.zoneTo - sc.zoneFrom)}%"></div>
-                        <div class="lab-dot" data-status="${escA(l.status)}" style="left:${sc.pos(l.value)}%"></div>
+                        <div class="lab-dot" data-status="${escA(l.status)}" data-left="${sc.pos(l.value)}%" style="left:0%"></div>
                     </div>
                     <div class="lab-axis" aria-hidden="true"><span>${fmtNum(sc.min)}</span><span>${escA(norm)}</span><span>${fmtNum(sc.max)}</span></div>
                 </li>`;
             }).join('');
-            document.getElementById('labsInsight').hidden = false;
+            return true;
         }
 
         function renderDevices(dev) {
-            if (!dev || !dev.metrics) return;
+            if (!dev || !dev.metrics) return false;
             const m = dev.metrics;
             const tiles = [];
             const tile = (icon, label, value, unit, note, warn) => tiles.push(`<div class="metric-tile"${warn ? ' data-tone="warn"' : ''}>
@@ -2515,20 +2562,19 @@
             if (m.bp) tile('fa-stethoscope', 'Кръвно', `${m.bp.sys}/${m.bp.dia}`, '', `${m.bp.days} дни`, m.bp.sys >= 130 || m.bp.dia >= 85);
             if (m.glucose && m.glucose.morning) tile('fa-droplet', 'Захар сутрин', fmtNum(m.glucose.morning), ' mmol/L', '', m.glucose.morning >= 5.6);
             if (m.water) tile('fa-glass-water', 'Вода', fmtNum(m.water.avg7), ' л', 'дневно', false);
-            if (!tiles.length) return;
+            if (!tiles.length) return false;
             document.getElementById('metricGrid').innerHTML = tiles.join('');
-            document.getElementById('devicesInsight').hidden = false;
+            return true;
         }
 
         function renderEmo(emo) {
-            if (!emo || !emo.archetype) return;
+            if (!emo || !emo.archetype) return false;
             document.getElementById('emoBody').innerHTML = `
                 <div class="persona-name">${escA(emo.archetype)}</div>
                 ${emo.intensity ? `<div class="chip-row"><span class="chip">Интензитет: ${escA(emo.intensity)}</span></div>` : ''}
                 ${(emo.drivers || []).length ? `<div class="chip-row">${emo.drivers.map(d => `<span class="chip">${escA(d)}</span>`).join('')}</div>` : ''}
-                ${emo.realNeed ? `<p class="persona-text"><strong>Реална нужда:</strong> ${escA(emo.realNeed)}</p>` : ''}
-                <p class="persona-text" style="color: var(--ds-text-soft);">Влиза в оценката „Стрес и емоции“, в съветите и в тона на плана.</p>`;
-            document.getElementById('emoInsight').hidden = false;
+                ${emo.realNeed ? `<p class="persona-text"><strong>Реална нужда:</strong> ${escA(emo.realNeed)}</p>` : ''}`;
+            return true;
         }
 
         const HYP_STATE = {
@@ -2539,21 +2585,21 @@
         };
 
         function renderIris(iris) {
-            if (!iris) return;
+            if (!iris) return false;
             const hyps = iris.hypotheses || [];
             document.getElementById('irisBody').innerHTML = `
                 ${iris.constitution ? `<div class="persona-name">${escA(iris.constitution)}</div>` : ''}
-                ${(iris.focus || []).length ? `<div class="chip-row">${iris.focus.map(f => `<span class="chip">${escA(f)}</span>`).join('')}</div>` : ''}
+                ${!hyps.length && (iris.focus || []).length ? `<div class="chip-row">${iris.focus.map(f => `<span class="chip">${escA(f)}</span>`).join('')}</div>` : ''}
                 ${hyps.length ? `<ul class="hyp-list">${hyps.map(h => {
                     const st = HYP_STATE[h.status] || HYP_STATE.unconfirmed;
                     const note = h.status === 'confirmed'
-                        ? `Потвърдено от: ${(h.evidence || []).join(', ')}.${h.applied && h.action ? ` В менюто: ${h.action}.` : ''}${(h.blockedBy || []).length ? ' Промяната в менюто не се прилага заради медицинско ограничение.' : ''}`
-                        : h.status === 'disputed' ? 'Въпросникът казва друго — отговорете на въпроса в чата или в профила.'
-                        : h.status === 'rejected' ? 'Не се отнася за вас по вашия отговор.'
-                        : 'Няма друг източник, който да го потвърди. Изследване или устройство ще го уточни.';
+                        ? (h.applied && h.action ? `В менюто: ${h.action}.` : `Потвърдено от ${(h.evidence || []).join(', ')}.`)
+                        : h.status === 'disputed' ? 'Отговорете на въпроса в чата.'
+                        : h.status === 'rejected' ? 'Не се отнася за вас.'
+                        : 'Без потвърждение — не влиза в оценката.';
                     return `<li class="hyp-item"><div class="hyp-top"><span>${escA(h.label)}</span><span class="hyp-state" data-s="${escA(h.status)}"><i class="fas ${st[0]}" aria-hidden="true"></i>${st[1]}</span></div><p>${escA(note)}</p></li>`;
                 }).join('')}</ul>` : ''}`;
-            document.getElementById('irisInsight').hidden = false;
+            return true;
         }
 
         const MORE_DATA = [
@@ -2726,9 +2772,7 @@
                     badge.appendChild(document.createTextNode(' ' + count + ' ' + label));
                     badgesEl.appendChild(badge);
                 });
-                if (badgesEl.children.length > 0) {
-                    badgesEl.style.display = 'flex';
-                }
+                // Тежестите се виждат в списъка с проблемите — тук не се повтарят.
             }
 
             // Update score-icon health background to match health status color
@@ -2793,104 +2837,66 @@
         }
 
         function displayForecasts(analysis) {
-            // Check if we have the new forecast fields from enhanced analysis
-            if (!analysis || (!analysis.forecastPessimistic && !analysis.forecastOptimistic)) {
-                console.log('No forecast data available, hiding forecast section');
-                document.getElementById('forecastSection').style.display = 'none';
-                return;
-            }
-
-            // Display pessimistic forecast
-            if (analysis.forecastPessimistic) {
-                const pessimistic = analysis.forecastPessimistic;
-                
-                // Update risks (ensure at least 5 items)
-                const risksContainer = document.getElementById('pessimisticRisks');
-                if (pessimistic.risks && Array.isArray(pessimistic.risks) && pessimistic.risks.length > 0) {
-                    const risks = pessimistic.risks.slice(0, 5);
-                    risksContainer.innerHTML = `
-                        <h4><i class="fas fa-exclamation-triangle"></i> Потенциални Рискове</h4>
-                        <ul>
-                            ${risks.map(risk => `<li><span aria-hidden="true">❗</span> ${risk}</li>`).join('')}
-                        </ul>
-                    `;
-                } else {
-                    risksContainer.innerHTML = '';
-                }
-            }
-
-            // Display optimistic forecast
-            if (analysis.forecastOptimistic) {
-                const optimistic = analysis.forecastOptimistic;
-                
-                // Update improvements (ensure at least 5 items)
-                const improvementsContainer = document.getElementById('optimisticImprovements');
-                if (optimistic.improvements && Array.isArray(optimistic.improvements) && optimistic.improvements.length > 0) {
-                    const improvements = optimistic.improvements.slice(0, 5);
-                    improvementsContainer.innerHTML = `
-                        <h4><i class="fas fa-check-circle"></i> Възможни Подобрения</h4>
-                        <ul>
-                            ${improvements.map(improvement => `
-                                <li><i class="fas fa-check"></i> ${improvement}</li>
-                            `).join('')}
-                        </ul>
-                    `;
-                } else {
-                    improvementsContainer.innerHTML = '';
-                }
-            }
-
-            // Show the forecast section (section-anim class applied before display)
-            const forecastEl = document.getElementById('forecastSection');
-            forecastEl.classList.add('section-anim');
-            forecastEl.style.display = 'block';
+            const pes = analysis && analysis.forecastPessimistic;
+            const opt = analysis && analysis.forecastOptimistic;
+            const section = document.getElementById('forecastSection');
+            if (!pes && !opt) { section.style.display = 'none'; return; }
+            // Тегло — едно изречение отгоре; под него до 3 точки. Без повторение на проблемите.
+            const fill = (heroId, listId, f, items, icon) => {
+                document.getElementById(heroId).textContent = (f && typeof f === 'object' && f.weight) || (typeof f === 'string' ? f : '');
+                document.getElementById(listId).innerHTML = (items || []).slice(0, 3).map(t => `<li><i class="fas ${icon}" aria-hidden="true"></i><span>${escA(t)}</span></li>`).join('');
+            };
+            fill('fcPlanWeight', 'optimisticImprovements', opt, opt && opt.improvements, 'fa-check');
+            fill('fcNoneWeight', 'pessimisticRisks', pes, pes && pes.risks, 'fa-triangle-exclamation');
+            showForecast('plan');
+            section.classList.add('section-anim');
+            section.style.display = 'block';
         }
 
-        function createProblemCard(problem, index) {
-            const card = document.createElement('div');
-            const severity = (problem.severity || 'Normal').toLowerCase();
-            const severityClass = `severity-${severity}`;
-            
-            card.className = `problem-card ${severityClass} card-anim`;
-            card.style.transitionDelay = `${index * 0.07}s`;
+        const SEVERITY_ICONS = { Critical: 'fa-circle-exclamation', Risky: 'fa-triangle-exclamation', Borderline: 'fa-circle-info', Normal: 'fa-circle-check' };
 
-            const categoryClass = `category-${(problem.category || 'medical').toLowerCase()}`;
+        /** Проблемът — един ред (заглавие и тежест); описание, последица и източници при докосване. */
+        function createProblemCard(problem, index) {
+            const card = document.createElement('article');
+            const severity = (problem.severity || 'Normal').toLowerCase();
+            card.className = `problem-card severity-${severity} card-anim`;
+            card.style.transitionDelay = `${Math.min(index, 5) * 0.05}s`;
             const categoryIcon = categoryIcons[problem.category] || 'fa-heartbeat';
             const severityLabel = severityLabels[problem.severity] || problem.severity;
             const severityValue = problem.severityValue || 50;
-
+            const id = `problemDetails${index}`;
+            const change = problem.change === 'new' ? ['fa-plus', 'ново'] : problem.change === 'worse' ? ['fa-arrow-up', 'по-висок риск'] : problem.change === 'better' ? ['fa-arrow-down', 'по-нисък риск'] : null;
+            const sources = (problem.sources || []).filter(src => SOURCE_META[src]);
             card.innerHTML = `
-                <div class="problem-header">
-                    <div class="problem-title">
-                        <div class="problem-icon ${categoryClass}">
-                            <i class="fas ${categoryIcon}"></i>
-                        </div>
-                        <h3>${problem.title || 'Проблем'}</h3>
+                <button type="button" class="problem-row" aria-expanded="false" aria-controls="${id}">
+                    <span class="problem-icon"><i class="fas ${categoryIcon}" aria-hidden="true"></i></span>
+                    <span class="problem-main">
+                        <span class="problem-name">${escA(problem.title || 'Проблем')}</span>
+                        <span class="problem-meta"><span class="sev sev-${severity}"><i class="fas ${SEVERITY_ICONS[problem.severity] || 'fa-circle-info'}" aria-hidden="true"></i>${escA(severityLabel)}</span>${change ? `<span class="problem-change" data-c="${problem.change}"><i class="fas ${change[0]}" aria-hidden="true"></i>${change[1]}</span>` : ''}</span>
+                    </span>
+                    <i class="fas fa-chevron-down problem-chev" aria-hidden="true"></i>
+                </button>
+                <div class="problem-details" id="${id}" hidden>
+                    <p class="problem-description">${escA(problem.description || '')}</p>
+                    ${problem.impact ? `<p class="problem-impact"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i><span>${escA(problem.impact)}</span></p>` : ''}
+                    <div class="severity-meter" aria-label="Ниво на риск ${severityValue} от 100">
+                        <div class="meter-track"><div class="meter-fill ${severity}" style="width: 0%" data-width="${severityValue}%"></div></div>
                     </div>
-                    <div class="severity-badge ${severity}">
-                        ${severityLabel}
-                    </div>
-                </div>
-                <p class="problem-description">${problem.description || 'Няма описание'}</p>
-                ${problem.impact ? `
-                <div class="problem-impact">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>${problem.impact}</span>
-                </div>
-                ` : ''}
-                <div class="severity-meter">
-                    <div class="meter-label">
-                        <span>Ниво на риск</span>
-                        <span>${severityValue}%</span>
-                    </div>
-                    <div class="meter-track">
-                        <div class="meter-fill ${severity}" style="width: 0%" data-width="${severityValue}%"></div>
-                    </div>
-                </div>
-                ${(problem.sources || []).length ? `<div class="problem-sources">${problem.change === 'new' || problem.change === 'worse' ? `<span class="problem-change" data-c="${problem.change}"><i class="fas ${problem.change === 'new' ? 'fa-plus' : 'fa-arrow-up'}" aria-hidden="true"></i>${problem.change === 'new' ? 'ново' : 'по-висок риск'}</span>` : problem.change === 'better' ? '<span class="problem-change" data-c="better"><i class="fas fa-arrow-down" aria-hidden="true"></i>по-нисък риск</span>' : ''}${problem.sources.map(src => SOURCE_META[src] ? `<span class="chip"><i class="fas ${SOURCE_META[src].icon}" aria-hidden="true"></i>${SOURCE_META[src].label}</span>` : '').join('')}</div>` : ''}
-                ${problem.irisNote ? `<p class="problem-iris"><i class="fas fa-eye" aria-hidden="true"></i> ${escA(problem.irisNote)}</p>` : ''}
-            `;
-
+                    ${sources.length ? `<div class="problem-sources">${sources.map(src => `<span class="chip"><i class="fas ${SOURCE_META[src].icon}" aria-hidden="true"></i>${SOURCE_META[src].label}</span>`).join('')}</div>` : ''}
+                    ${problem.irisNote ? `<p class="problem-iris"><i class="fas fa-eye" aria-hidden="true"></i> ${escA(problem.irisNote)}</p>` : ''}
+                </div>`;
+            const btn = card.querySelector('.problem-row');
+            btn.addEventListener('click', () => {
+                const open = btn.getAttribute('aria-expanded') !== 'true';
+                btn.setAttribute('aria-expanded', String(open));
+                const details = card.querySelector('.problem-details');
+                details.hidden = !open;
+                card.classList.toggle('is-open', open);
+                if (open) {
+                    triggerAnalysisHaptic(8);
+                    requestAnimationFrame(() => card.querySelectorAll('.meter-fill').forEach(m => { m.style.width = m.dataset.width; }));
+                }
+            });
             return card;
         }
 
