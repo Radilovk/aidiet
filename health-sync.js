@@ -307,10 +307,14 @@
         _sleepByDay: sleepByDay
     };
 
-    // Обвивката (горният прозорец) синхронизира тихо при отваряне.
+    // Обвивката (горният прозорец) синхронизира тихо при отваряне и при връщане
+    // в приложението (sync сам пази интервала от 6 часа).
     try {
-        if (global.top === global && readState().connected) {
-            setTimeout(function () { sync().catch(function () {}); }, 4000);
+        if (global.top === global) {
+            if (readState().connected) setTimeout(function () { sync().catch(function () {}); }, 4000);
+            global.document.addEventListener('visibilitychange', function () {
+                if (global.document.visibilityState === 'visible' && readState().connected) sync().catch(function () {});
+            });
         }
     } catch (_) {}
 }(window));

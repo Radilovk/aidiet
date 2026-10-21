@@ -160,11 +160,11 @@
         var installFirst = !d.hcAvailable && d.hcInstallable;
         return {
             title: 'Свържи здравните данни',
-            text: 'На телефона има ' + names(d.viaHc) + '. Свържи ги веднъж — планът ще следи реалните ти крачки, сън, пулс и тегло, без да въвеждаш нищо.',
+            text: 'Открихме ' + names(d.viaHc) + '. Едно докосване — и планът следи реалните ти крачки, сън и тегло.',
             apps: d.viaHc,
             note: installFirst
-                ? 'Нужно е приложението Health Connect на Google — безплатно е и е посредникът между приложенията.'
-                : 'Само четене. Изключваш по всяко време от Профил → Устройства.',
+                ? 'Първо: Health Connect на Google (безплатен посредник между приложенията).'
+                : 'Само четене · изключваш по всяко време',
             primary: installFirst ? 'Инсталирай Health Connect' : 'Свържи',
             primaryIcon: installFirst ? 'fa-download' : 'fa-link',
             onPrimary: async function (btn, status) {

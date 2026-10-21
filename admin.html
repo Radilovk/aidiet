@@ -89,6 +89,19 @@
         .rf-range-btn[aria-pressed="true"] { background: var(--primary-red); color: #fff; }
         [data-theme="dark"] .rf-range-btn[aria-pressed="true"] { color: #0A1A1A; }
         .rf-empty { text-align: center; color: var(--text-gray); padding: 20px; }
+        .dl-list { display: grid; gap: 12px; }
+        .dl-item { border: 1px solid var(--glass-border); border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px; }
+        .dl-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+        .dl-name { font-weight: 700; color: var(--rf-ink); font-size: 1.05rem; }
+        .dl-pill { padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; background: rgba(107,114,128,.15); color: var(--rf-ink-soft); }
+        .dl-pill[data-on="1"] { background: rgba(15,118,110,.15); color: #0F766E; }
+        [data-theme="dark"] .dl-pill[data-on="1"] { color: #5EEAD4; }
+        .dl-stats { margin-left: auto; color: var(--rf-ink-soft); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+        .dl-steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--rf-ink-soft); font-size: 0.9rem; }
+        .dl-copy { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+        .dl-copy code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 8px 10px; border-radius: 8px; background: rgba(0,0,0,.05); font-size: 0.8rem; }
+        [data-theme="dark"] .dl-copy code { background: rgba(255,255,255,.06); }
+        .dl-copy button { min-height: 36px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: transparent; color: var(--rf-ink); cursor: pointer; }
         .rf-modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px; }
         .rf-module { border: 1px solid var(--glass-border); border-radius: 16px; padding: 16px; }
         .rf-module-head { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--rf-ink); margin-bottom: 4px; }
@@ -2759,6 +2772,20 @@
                 </div>
             </div>
 
+            <!-- Health and sport trackers (device-links.js, health-sync.js) -->
+            <div class="card rf-root" id="deviceLinksCard">
+                <h2><i class="fas fa-heart-pulse"></i> Гривни, часовници, пръстени</h2>
+                <div class="info-box">
+                    <strong>Без настройка:</strong> Android приложението чете Health Connect (Samsung Health, Google Fit, Fitbit, Garmin, Xiaomi, Zepp, Oura, Withings, Polar и др.) — клиентът свързва с едно докосване.
+                    <strong>По избор:</strong> профилите в облака по-долу работят и на iPhone, и в браузъра. Всеки се включва с 3 стъпки; данните се теглят сами на 6 часа.
+                </div>
+                <div class="rf-toolbar">
+                    <span></span>
+                    <button class="btn" onclick="loadDeviceLinks()"><i class="fas fa-sync"></i> Обнови</button>
+                </div>
+                <div id="deviceLinksBody"><p class="rf-empty">Натиснете „Обнови“.</p></div>
+            </div>
+
             <!-- Contact Messages Section -->
             <div class="card">
                 <h2><i class="fas fa-envelope-open-text"></i> Контакт Съобщения</h2>
@@ -4402,6 +4429,36 @@
         }
 
         // --- Tab Management ---
+        // --- Профили в облака (Fitbit, Oura, Withings, Strava) ---
+        async function loadDeviceLinks() {
+            const body = document.getElementById('deviceLinksBody');
+            body.innerHTML = '<p class="rf-empty">Зареждане…</p>';
+            try {
+                const res = await fetch(`${WORKER_URL}/api/admin/links-status`);
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+                body.innerHTML = '<div class="dl-list">' + data.providers.map(p => {
+                    const copy = (text) => `<div class="dl-copy"><code>${rfEsc(text)}</code><button type="button" onclick="copyDeviceLinkText(this)" aria-label="Копирай"><i class="fas fa-copy"></i></button></div>`;
+                    const stats = p.enabled
+                        ? `${p.linked} свързани${p.errors ? ` · ${p.errors} с грешка` : ''}${p.lastSync ? ` · последно ${rfEsc(new Date(p.lastSync).toLocaleString('bg-BG'))}` : ''}`
+                        : '';
+                    const steps = p.enabled ? '' : `<ol class="dl-steps">
+                        <li>Създайте приложение: <a href="${rfEsc(p.console)}" target="_blank" rel="noopener">${rfEsc(p.console.replace(/^https:\/\//, ''))}</a>. Адрес за връщане (Redirect/Callback URL):${copy(p.redirectUri)}</li>
+                        <li>Достъп (scope): ${rfEsc(p.scope)}</li>
+                        <li>Ключовете в Cloudflare → Worker → Settings → Variables (Secret), или от терминала:${copy(`npx wrangler secret put ${p.secrets[0]} --env production`)}${copy(`npx wrangler secret put ${p.secrets[1]} --env production`)}</li>
+                    </ol>`;
+                    return `<div class="dl-item"><div class="dl-head"><span class="dl-name">${rfEsc(p.name)}</span><span class="dl-pill" data-on="${p.enabled ? 1 : 0}">${p.enabled ? 'Включен' : 'Не е настроен'}</span><span class="dl-stats">${stats}</span></div>${steps}</div>`;
+                }).join('') + '</div>';
+            } catch (e) {
+                body.innerHTML = `<p class="rf-empty">Не успяхме да заредим: ${rfEsc(e.message)}</p>`;
+            }
+        }
+
+        async function copyDeviceLinkText(btn) {
+            const text = btn.previousElementSibling.textContent;
+            try { await navigator.clipboard.writeText(text); btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 1500); } catch (_) {}
+        }
+
         function switchTab(tabName, evt) {
             // Validate tabName to prevent XSS
             const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images'];
@@ -4413,6 +4470,7 @@
                 referralsAutoLoaded = true;
                 setReferralRange(referralRange);
                 loadReferralStats();
+                loadDeviceLinks();
             }
 
             // Hide all tab contents

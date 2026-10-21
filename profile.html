@@ -1252,6 +1252,10 @@
         .module-go { color: var(--ds-text-soft); }
         .devices-source { margin-bottom: 6px; }
         .devices-links { display: grid; gap: 8px; }
+        .devices-other > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center; gap: 8px; }
+        .devices-other > summary::-webkit-details-marker { display: none; }
+        .devices-other > summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: 0.75rem; margin-left: auto; transition: transform 0.2s; }
+        .devices-other[open] > summary::after { transform: rotate(180deg); }
         .devices-detected { display: grid; gap: 8px; margin: 0 0 10px; }
         .devices-detected-apps { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
         .devices-detected-apps li { padding: 6px 12px; border-radius: 999px; font-size: 0.875rem; font-weight: 600; background: var(--ds-success-bg); color: var(--ds-success-text); }
@@ -2122,14 +2126,11 @@
                 <i class="fas fa-chevron-down profile-contact-chevron" id="devicesChevron"></i>
             </div>
             <div class="profile-contact-wrapper" id="devicesWrapper">
-                <p class="labs-intro">Данни от часовник, гривна, везна с анализ на тялото, апарат за кръвно, глюкомер или приложение за хранене. След анализ влизат в плана: активност и тренировки, сън, тенденция на теглото, мазнини и мускули, възстановяване, кръвно и захар. Виждат ги и асистентът в чата, и специалистът.</p>
-                <label class="labs-consent">
-                    <input type="checkbox" id="devicesConsent" onchange="onDevicesConsent(this.checked)">
-                    <span>Съгласен/на съм данните от устройствата да се използват за хранителния ми план. Мога да спра и да ги изтрия по всяко време.</span>
-                </label>
+                <p class="labs-intro">Активност, сън, пулс, тегло, кръвно и захар от гривна, часовник, пръстен или везна — планът следи реалните стойности. Само четене; спирате и изтривате по всяко време.</p>
+                <!-- Съгласието е самото действие (разрешение, вход, качване); полето пази състоянието за кода. -->
+                <input type="checkbox" id="devicesConsent" hidden>
                 <div class="devices-source" id="devicesHcBox" hidden>
-                    <div class="labs-sub">Автоматично — Health Connect</div>
-                    <p class="labs-note">Samsung Health, Fitbit, Garmin, Zepp/Amazfit, Mi Fitness, Withings, Oura, Polar, везни Renpho/Xiaomi/Eufy, MyFitnessPal и др. — всичко, което пише в Health Connect.</p>
+                    <div class="labs-sub">От телефона</div>
                     <div class="devices-detected" id="devicesDetected" hidden></div>
                     <div class="labs-actions devices-actions" id="devicesActions"></div>
                 </div>
@@ -2138,16 +2139,16 @@
                     <p class="labs-note">Влезте с профила си веднъж — данните се теглят сами на всеки няколко часа, на телефон с Android, iPhone или в браузъра.</p>
                     <div class="devices-links" id="devicesLinks"></div>
                 </div>
-                <div class="devices-source">
-                    <div class="labs-sub">От всяко приложение или уред</div>
+                <details class="devices-source devices-other">
+                    <summary class="labs-sub">Друг начин: снимка или файл</summary>
                     <p class="labs-note">Екранна снимка от приложението или снимка на дисплея на уреда — разчитаме стойностите и ги проверявате. Или файл с експорт (CSV/JSON).</p>
                     <div class="labs-actions devices-manual">
-                        <button type="button" class="btn btn-primary devices-needs-consent" onclick="document.getElementById('devicesPhoto').click()" disabled><i class="fas fa-camera"></i> Снимка на екран</button>
-                        <button type="button" class="btn btn-secondary devices-needs-consent" onclick="document.getElementById('devicesFile').click()" disabled><i class="fas fa-file-arrow-up"></i> Файл</button>
+                        <button type="button" class="btn btn-primary devices-needs-consent" onclick="allowDevices();document.getElementById('devicesPhoto').click()"><i class="fas fa-camera"></i> Снимка на екран</button>
+                        <button type="button" class="btn btn-secondary devices-needs-consent" onclick="allowDevices();document.getElementById('devicesFile').click()"><i class="fas fa-file-arrow-up"></i> Файл</button>
                         <input type="file" id="devicesPhoto" accept="image/*" hidden onchange="onDevicePhoto(this)">
                         <input type="file" id="devicesFile" accept=".csv,.json,.txt,text/csv,application/json" hidden onchange="onDeviceFile(this)">
                     </div>
-                </div>
+                </details>
                 <div class="labs-status" id="devicesStatus" role="status"></div>
                 <div id="devicesReview" hidden>
                     <div class="labs-sub" id="devicesReviewTitle">Проверете стойностите</div>
@@ -3083,6 +3084,13 @@
             el.dataset.tone = tone || '';
         }
 
+        /** Действието (снимка, файл, вход) е съгласието. */
+        function allowDevices() {
+            const E = window.NutriPlanEnrichment;
+            if (E) E.setConsent('device', true);
+            document.getElementById('devicesConsent').checked = true;
+        }
+
         function onDevicesConsent(checked) {
             const H = window.NutriPlanHealth;
             const E = window.NutriPlanEnrichment;
@@ -3280,6 +3288,7 @@
             if (st.connected && !(st.lastCount > 0)) {
                 d.viaHc.filter(a => a.hcSetup).forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} още не споделя данни. В ${escProfileHtml(a.name)}: ${escProfileHtml(a.hcSetup)}</span><button type="button" class="btn btn-secondary" onclick="window.NutriPlanHealth.openApp('${a.pkg}')">Отвори</button></div>`));
             }
+            if (d.other.length) { const o = document.querySelector('.devices-other'); if (o) o.open = true; }
             d.other.forEach(a => hints.push(`<div class="devices-hint"><span>${escProfileHtml(a.name)} не споделя данни с други приложения — добавете експорт или снимка по-долу.</span></div>`));
             box.innerHTML = (d.apps.length ? `<p class="labs-note">На този телефон:</p><ul class="devices-detected-apps">${d.apps.map(a => `<li data-hc="${a.hc ? 1 : 0}">${escProfileHtml(a.name)}</li>`).join('')}</ul>` : '') + hints.join('');
             box.hidden = !box.innerHTML;
@@ -3300,8 +3309,7 @@
         function renderDevices() {
             const H = window.NutriPlanHealth;
             const box = document.getElementById('devicesActions');
-            const consent = document.getElementById('devicesConsent').checked;
-            document.querySelectorAll('.devices-needs-consent').forEach(b => { b.disabled = !consent; });
+            document.querySelectorAll('.devices-needs-consent').forEach(b => { b.disabled = false; });
             if (!H || !box || !H.supported()) return;
             document.getElementById('devicesHcBox').hidden = false;
             renderDetected();
@@ -3328,14 +3336,13 @@
             const list = document.getElementById('devicesLinks');
             if (!box || !list) return;
             box.hidden = !_links.length;
-            const consent = document.getElementById('devicesConsent').checked;
             list.innerHTML = _links.map(l => {
                 const state = l.linked
                     ? (l.error ? 'Свързан · последното обновяване не успя' : `Свързан${l.syncedAt ? ' · ' + formatSyncTime(l.syncedAt) : ''}`)
                     : 'Не е свързан';
                 const btn = l.linked
                     ? `<button type="button" class="labs-delete devices-link-off" onclick="disconnectLink('${l.id}')" aria-label="Изключи ${escProfileHtml(l.name)}"><i class="fas fa-link-slash"></i> Изключи</button>`
-                    : `<button type="button" class="btn btn-primary" onclick="connectLink('${l.id}')" ${consent ? '' : 'disabled'}><i class="fas fa-link"></i> Свържи</button>`;
+                    : `<button type="button" class="btn btn-primary" onclick="connectLink('${l.id}')"><i class="fas fa-link"></i> Свържи</button>`;
                 return `<div class="devices-link"><span class="devices-link-name">${escProfileHtml(l.name)}</span>`
                     + `<span class="devices-link-state" data-on="${l.linked && !l.error ? 1 : 0}" data-err="${l.error ? 1 : 0}">${state}</span>${btn}</div>`;
             }).join('');
@@ -3360,6 +3367,7 @@
         }
 
         async function connectLink(id) {
+            allowDevices();
             devicesSetStatus('Отваряме входа…');
             try {
                 const isApp = !!(window.NutriPlanPlatform && window.NutriPlanPlatform.isAPK());
@@ -3436,6 +3444,12 @@
             loadLinks({ sync: true }).then(() => {
                 if (_links.some(l => l.linked)) document.getElementById('devicesConsent').checked = true;
                 renderDevices(); renderLinks();
+                // Няма автоматичен път (браузър без свързани профили) — снимката и файлът са отворени.
+                const other = document.querySelector('.devices-other');
+                if (other && document.getElementById('devicesHcBox').hidden && document.getElementById('devicesLinksBox').hidden) {
+                    other.open = true;
+                    other.querySelector('summary').textContent = 'Снимка или файл';
+                }
             });
         }
 

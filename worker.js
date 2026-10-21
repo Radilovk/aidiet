@@ -46040,6 +46040,7 @@ function workoutsByDay(list2, source) {
 var PROVIDERS = {
   fitbit: {
     name: "Fitbit",
+    console: "https://dev.fitbit.com/apps/new",
     env: "FITBIT",
     pkce: true,
     authorizeUrl: "https://www.fitbit.com/oauth2/authorize",
@@ -46086,6 +46087,7 @@ var PROVIDERS = {
   },
   oura: {
     name: "Oura",
+    console: "https://cloud.ouraring.com/oauth/applications",
     env: "OURA",
     authorizeUrl: "https://cloud.ouraring.com/oauth/authorize",
     tokenUrl: "https://api.ouraring.com/oauth/token",
@@ -46122,6 +46124,7 @@ var PROVIDERS = {
   },
   withings: {
     name: "Withings",
+    console: "https://developer.withings.com/dashboard/",
     env: "WITHINGS",
     authorizeUrl: "https://account.withings.com/oauth2_user/authorize2",
     tokenUrl: "https://wbsapi.withings.net/v2/oauth2",
@@ -46177,6 +46180,7 @@ var PROVIDERS = {
   },
   strava: {
     name: "Strava",
+    console: "https://www.strava.com/settings/api",
     env: "STRAVA",
     authorizeUrl: "https://www.strava.com/oauth/authorize",
     tokenUrl: "https://www.strava.com/oauth/token",
@@ -57507,6 +57511,45 @@ async function syncAllLinks(env, now = /* @__PURE__ */ new Date()) {
   } while (cursor);
   return done;
 }
+async function handleAdminLinksStatus(request, env) {
+  try {
+    const enabled = new Set(enabledProviders(env));
+    const stats = Object.fromEntries(LINK_SOURCES.map((id) => [id, { linked: 0, errors: 0, lastSync: null }]));
+    let cursor;
+    let read = 0;
+    do {
+      const page = await env.page_content.list({ prefix: "link:", cursor });
+      for (const { name } of page.keys) {
+        const provider = name.split(":").pop();
+        if (!stats[provider]) continue;
+        stats[provider].linked++;
+        if (read++ >= 500) continue;
+        const link = await kvGetJSON(env, name);
+        if (link?.error) stats[provider].errors++;
+        if (link?.syncedAt && (!stats[provider].lastSync || link.syncedAt > stats[provider].lastSync)) stats[provider].lastSync = link.syncedAt;
+      }
+      cursor = page.list_complete ? null : page.cursor;
+    } while (cursor);
+    return jsonResponse2({
+      success: true,
+      providers: LINK_SOURCES.map((id) => {
+        const p = PROVIDERS[id];
+        return {
+          id,
+          name: p.name,
+          enabled: enabled.has(id),
+          console: p.console,
+          scope: p.scope,
+          redirectUri: linkRedirectUri(request, id),
+          secrets: [`${p.env}_CLIENT_ID`, `${p.env}_CLIENT_SECRET`],
+          ...stats[id]
+        };
+      })
+    });
+  } catch (error) {
+    return jsonResponse2({ error: "Failed to read link status: " + error.message }, 500);
+  }
+}
 async function handleLinksProviders(request, env) {
   try {
     const { userId, idToken } = await request.json();
@@ -59415,6 +59458,8 @@ var worker_entry_default = {
         return await handleDocumentAssess(request, env);
       } else if (url.pathname === "/api/enrichment/delete" && request.method === "POST") {
         return await handleEnrichmentDelete(request, env);
+      } else if (url.pathname === "/api/admin/links-status" && request.method === "GET") {
+        return await handleAdminLinksStatus(request, env);
       } else if (url.pathname === "/api/links/providers" && request.method === "POST") {
         return await handleLinksProviders(request, env);
       } else if (url.pathname === "/api/links/start" && request.method === "POST") {

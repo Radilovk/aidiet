@@ -14556,6 +14556,46 @@ async function syncAllLinks(env, now = new Date()) {
   return done;
 }
 
+/**
+ * GET /api/admin/links-status — за админа: кои доставчици са включени, какво
+ * им трябва (адрес за връщане, ключове), колко клиенти са свързани и с грешка.
+ */
+async function handleAdminLinksStatus(request, env) {
+  try {
+    const enabled = new Set(enabledProviders(env));
+    const stats = Object.fromEntries(LINK_SOURCES.map(id => [id, { linked: 0, errors: 0, lastSync: null }]));
+    let cursor;
+    let read = 0;
+    do {
+      const page = await env.page_content.list({ prefix: 'link:', cursor });
+      for (const { name } of page.keys) {
+        const provider = name.split(':').pop();
+        if (!stats[provider]) continue;
+        stats[provider].linked++;
+        if (read++ >= 500) continue;
+        const link = await kvGetJSON(env, name);
+        if (link?.error) stats[provider].errors++;
+        if (link?.syncedAt && (!stats[provider].lastSync || link.syncedAt > stats[provider].lastSync)) stats[provider].lastSync = link.syncedAt;
+      }
+      cursor = page.list_complete ? null : page.cursor;
+    } while (cursor);
+    return jsonResponse({
+      success: true,
+      providers: LINK_SOURCES.map(id => {
+        const p = LINK_PROVIDERS[id];
+        return {
+          id, name: p.name, enabled: enabled.has(id), console: p.console, scope: p.scope,
+          redirectUri: linkRedirectUri(request, id),
+          secrets: [`${p.env}_CLIENT_ID`, `${p.env}_CLIENT_SECRET`],
+          ...stats[id],
+        };
+      }),
+    });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to read link status: ' + error.message }, 500);
+  }
+}
+
 /** POST /api/links/providers — Body: { userId, idToken? } → кои доставчици са включени и свързани. */
 async function handleLinksProviders(request, env) {
   try {
@@ -17036,6 +17076,8 @@ export default {
         return await handleDocumentAssess(request, env);
       } else if (url.pathname === '/api/enrichment/delete' && request.method === 'POST') {
         return await handleEnrichmentDelete(request, env);
+      } else if (url.pathname === '/api/admin/links-status' && request.method === 'GET') {
+        return await handleAdminLinksStatus(request, env);
       } else if (url.pathname === '/api/links/providers' && request.method === 'POST') {
         return await handleLinksProviders(request, env);
       } else if (url.pathname === '/api/links/start' && request.method === 'POST') {

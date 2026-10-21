@@ -65,6 +65,7 @@ function workoutsByDay(list, source) {
 export const PROVIDERS = {
   fitbit: {
     name: 'Fitbit',
+    console: 'https://dev.fitbit.com/apps/new',
     env: 'FITBIT',
     pkce: true,
     authorizeUrl: 'https://www.fitbit.com/oauth2/authorize',
@@ -108,6 +109,7 @@ export const PROVIDERS = {
 
   oura: {
     name: 'Oura',
+    console: 'https://cloud.ouraring.com/oauth/applications',
     env: 'OURA',
     authorizeUrl: 'https://cloud.ouraring.com/oauth/authorize',
     tokenUrl: 'https://api.ouraring.com/oauth/token',
@@ -140,6 +142,7 @@ export const PROVIDERS = {
 
   withings: {
     name: 'Withings',
+    console: 'https://developer.withings.com/dashboard/',
     env: 'WITHINGS',
     authorizeUrl: 'https://account.withings.com/oauth2_user/authorize2',
     tokenUrl: 'https://wbsapi.withings.net/v2/oauth2',
@@ -187,6 +190,7 @@ export const PROVIDERS = {
 
   strava: {
     name: 'Strava',
+    console: 'https://www.strava.com/settings/api',
     env: 'STRAVA',
     authorizeUrl: 'https://www.strava.com/oauth/authorize',
     tokenUrl: 'https://www.strava.com/oauth/token',
