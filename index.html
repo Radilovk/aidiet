@@ -4179,6 +4179,24 @@
     // Персоната се смята при всяко отваряне; ако се е сменила (нов EmoEat, друго поведение) —
     // въпросите и напомнянията се пренасрочват веднага, не на следващия ден.
     (function () {
+        // Данните от сървъра (EmoEat, изследвания, устройства) — при отваряне, не едва в профила:
+        // анализът и персоната работят с тях и на ново устройство. Веднъж на 3 часа.
+        try {
+            var E = window.NutriPlanEnrichment;
+            var last = Number(localStorage.getItem('np_enrichment_pulled_at') || 0);
+            if (E && E.hasPlanProfile() && Date.now() - last > 3 * 3600 * 1000) {
+                setTimeout(function () {
+                    E.get().then(function (res) {
+                        localStorage.setItem('np_enrichment_pulled_at', String(Date.now()));
+                        var d = res && res.derived;
+                        if (d && d.essence && d.essence.metrics) {
+                            localStorage.setItem('np_goal_focus_src', JSON.stringify({ metrics: d.essence.metrics, signals: d.essence.signals || [], at: d.essence.at || new Date().toISOString(), coachNote: (d.digest && d.digest.coachNote) || '' }));
+                        }
+                        window.NutriPlanPersona.refresh();
+                    }).catch(function () {});
+                }, 3000);
+            }
+        } catch (_) {}
         try {
             var p = window.NutriPlanPersona.refresh();
             var sig = JSON.stringify([p.mealChecks, p.tone, p.nudge && p.nudge.minute]);

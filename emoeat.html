@@ -1419,6 +1419,7 @@
         })();
     </script>
     <script src="./enrichment-client.js"></script>
+    <script src="./persona.js"></script>
 </head>
 <body data-page-theme="emoeat" data-standalone-module="emoeat">
     <!-- Skip Navigation Link (Accessibility) -->
@@ -3008,19 +3009,34 @@
         // обобщението (модел, двигатели, модели, телесни сигнали, нуждата),
         // не отделните отговори.
         const EMOEAT_LINK_KEY = 'emoeat_linked_at';
+        // Отворен от NutriPlan (профила или таба в приложението): тестът е част от профила —
+        // резултатът влиза в плана сам, а пътят назад е към профила, не към лендинга.
+        const FROM_PLAN = new URLSearchParams(location.search).get('from') === 'nutriplan' || window.top !== window;
+
+        /** Къде е „назад“: таба „Профил“ (в рамката — самата страница), иначе началото. */
+        function nutriPlanBackUrl() {
+            const E = window.NutriPlanEnrichment;
+            if (window.top !== window) return './profile.html?embedded=1';
+            return E && E.hasPlanProfile() ? './index.html?app=1&tab=profile' : './index.html?stay=1';
+        }
 
         function planLinkHtml() {
             const E = window.NutriPlanEnrichment;
             if (!E || !E.hasPlanProfile()) return planInviteHtml();
             const linked = localStorage.getItem(EMOEAT_LINK_KEY) === (localStorage.getItem('emoeat_completed') || '');
+            const auto = FROM_PLAN && !linked;
+            if (auto) setTimeout(linkEmoEatToPlan, 0);
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
-                    <div class="rx-plan-link-title"><i class="fas fa-link"></i> Свържи с хранителния план</div>
-                    <p class="rx-plan-link-text">Обобщението на профила (модел, какво го захранва, телесни сигнали, истинската нужда — без отделните отговори) отива при плана ти. Психологическите насоки и навиците ще стъпят на него, а при изразен модел — и структурата на храненията.</p>
+                    <div class="rx-plan-link-title"><i class="fas fa-link"></i> ${linked ? 'В хранителния ти план' : 'Хранителният план'}</div>
+                    <p class="rx-plan-link-text">Обобщението (модел, какво го захранва, телесни сигнали, истинската нужда — без отделните отговори) отива при плана. Насоките, напомнянията и подредбата на приложението се настройват по него.</p>
                     ${linked
                         ? '<div class="rx-plan-link-done"><i class="fas fa-check"></i> Включено в плана</div>'
-                        : '<button type="button" class="rx-btn" id="rxPlanLinkBtn" onclick="linkEmoEatToPlan()"><i class="fas fa-link"></i> Включи в плана</button>'}
+                        : auto
+                            ? '<div class="rx-plan-link-done" id="rxPlanLinkBtn"><i class="fas fa-spinner fa-spin"></i> Включваме в плана…</div>'
+                            : '<button type="button" class="rx-btn" id="rxPlanLinkBtn" onclick="linkEmoEatToPlan()"><i class="fas fa-link"></i> Включи в плана</button>'}
                     <div class="rx-plan-link-status" id="rxPlanLinkStatus" role="status"></div>
+                    ${FROM_PLAN ? `<a class="rx-btn" style="margin-top:12px;text-decoration:none;display:inline-flex;align-items:center;gap:8px" href="${nutriPlanBackUrl()}"><i class="fas fa-arrow-left"></i> Към профила</a>` : ''}
                 </section>`;
         }
 
@@ -3029,20 +3045,27 @@
             const btn = document.getElementById('rxPlanLinkBtn');
             const status = document.getElementById('rxPlanLinkStatus');
             if (!E || !btn) return;
-            btn.disabled = true;
-            status.textContent = 'Изпращаме…';
+            if (btn.tagName === 'BUTTON') btn.disabled = true;
+            status.textContent = FROM_PLAN ? '' : 'Изпращаме…';
             try {
                 E.setConsent('emoeat', true);
                 const res = await E.submit({ emoeat: buildProfilePayload() }, 'emoeat');
                 localStorage.setItem(EMOEAT_LINK_KEY, localStorage.getItem('emoeat_completed') || '');
                 btn.outerHTML = '<div class="rx-plan-link-done"><i class="fas fa-check"></i> Включено в плана</div>';
                 status.textContent = E.describeChange(res);
+                // Персоната (тон, напомняния, подредба) — веднага с новия профил.
+                try { if (window.NutriPlanPersona) window.NutriPlanPersona.refresh(); } catch (_) {}
                 if (window.NutriPlanHaptic && window.NutriPlanHaptic.notify) window.NutriPlanHaptic.notify('success');
             } catch (e) {
-                btn.disabled = false;
+                btn.outerHTML = '<button type="button" class="rx-btn" id="rxPlanLinkBtn" onclick="linkEmoEatToPlan()"><i class="fas fa-link"></i> Включи в плана</button>';
                 status.textContent = 'Не успяхме да изпратим. Проверете връзката и опитайте пак.';
             }
         }
+
+        // „Към NutriPlan“ в менюто — към профила, когато има план.
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('a[href="index.html?stay=1"]').forEach(a => { a.href = nutriPlanBackUrl(); });
+        });
 
         // ── Към NutriPlan за посетител без план ─────────────────────────
         // EmoEat води към плана и му предава само обобщението на профила

@@ -9,6 +9,7 @@ import {
   estimateTokenCount,
 } from './context-compression.js';
 import { buildAnalyticsSummary } from './analytics-compression.js';
+import { mergeGameData } from './game-data-merge.js';
 import {
   applyJsonPatches,
   buildPatchDocument,
@@ -6451,17 +6452,26 @@ async function handleSyncAnalytics(request, env) {
     const authError = await checkFirebaseOwner(userId, idToken, env, request);
     if (authError) return authError;
 
-    const summary = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
-    const ledger = plan?.weekPlan && gameData
-      ? serializeFoodLedger(buildFoodLedger(plan.weekPlan, gameData, gameWeeklyAI || {}))
-      : null;
-    await persistAnalyticsAndLedger(env, userId, summary, ledger, clientId || '');
+    // Общото копие за всички устройства: слива се ден по ден, пише се само при промяна
+    // (иначе приложението с малко дни презаписва по-богатите данни от уеба).
+    const stateKey = `game_state:${userId}`;
+    const stored = (await kvGetJSON(env, stateKey)) || {};
+    const merged = mergeGameData(stored.gameData || {}, gameData || {});
+    const weekly = { ...(stored.gameWeeklyAI || {}), ...(gameWeeklyAI || {}) };
+    if (JSON.stringify(merged) !== JSON.stringify(stored.gameData || {}) || JSON.stringify(weekly) !== JSON.stringify(stored.gameWeeklyAI || {})) {
+      const ttl = String(userId).startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+      await kvPutJSON(env, stateKey, { gameData: merged, gameWeeklyAI: weekly, updatedAt: new Date().toISOString() }, ttl);
+    }
 
-    return jsonResponse({
-      success: true,
-      analytics: summary,
-      status: summary.status,
-    });
+    if (Object.keys(merged).length) {
+      const summary = buildAnalyticsSummary(merged, weekly);
+      const ledger = plan?.weekPlan
+        ? serializeFoodLedger(buildFoodLedger(plan.weekPlan, merged, weekly))
+        : null;
+      await persistAnalyticsAndLedger(env, userId, summary, ledger, clientId || '');
+      return jsonResponse({ success: true, analytics: summary, status: summary.status, gameData: merged, gameWeeklyAI: weekly });
+    }
+    return jsonResponse({ success: true, gameData: {}, gameWeeklyAI: weekly });
   } catch (error) {
     console.error('[Analytics] sync error:', error);
     return jsonResponse({ error: error.message }, 500);

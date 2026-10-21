@@ -10051,13 +10051,18 @@
             _analyticsSyncTimer = setTimeout(function() { syncAnalyticsToServer(); }, 45000);
         }
 
-        async function syncAnalyticsToServer() {
+        /**
+         * @param {{ pull?: boolean }} [opts] pull — при отваряне: изпраща и празни данни и
+         *   взима общото копие от сървъра (отметките от уеба и от приложението стават едни).
+         */
+        async function syncAnalyticsToServer(opts) {
             _analyticsSyncTimer = null;
+            var pull = !!(opts && opts.pull);
             var uid = (typeof userId !== 'undefined' && userId) ? userId : localStorage.getItem('userId');
             if (!uid || _analyticsSyncInFlight) return;
             var gameData = getGameData();
             var keys = Object.keys(gameData || {});
-            if (!keys.length) return;
+            if (!keys.length && !pull) return;
 
             var planSlice = getPlanForAnalyticsSync();
             var weeklyAI = ensureWeeklyMeta(getWeeklyAIState());
@@ -10067,13 +10072,17 @@
             var sig = uid + ':' + keys.length + ':' + latestKey + ':' + JSON.stringify(gameData[latestKey] || {}).length + ':' + JSON.stringify((gameData[latestKey] || {}).meals || {})
                 + ':' + (planSlice?.sourceMeta?.catalogVersion || '')
                 + ':' + (planSlice?.weekPlan ? Object.keys(planSlice.weekPlan).length : 0);
-            if (localStorage.getItem('np_analytics_sig') === sig) return;
+            if (!pull && localStorage.getItem('np_analytics_sig') === sig) return;
 
             _analyticsSyncInFlight = true;
             try {
                 var idToken = null;
                 if (uid.indexOf('fb_') === 0 && typeof auth !== 'undefined' && auth.currentUser) {
                     idToken = await auth.currentUser.getIdToken().catch(function() { return null; });
+                }
+                // В приложението входът на Firebase понякога идва по-късно — общият помощник го изчаква.
+                if (!idToken && uid.indexOf('fb_') === 0 && window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.getFirebaseIdToken === 'function') {
+                    idToken = await window.NutriPlanPlanSync.getFirebaseIdToken(uid).catch(function() { return null; });
                 }
                 var clientId = localStorage.getItem('pendingClientId') || localStorage.getItem('clientId') || '';
                 var body = {
@@ -10089,11 +10098,46 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-                if (resp.ok) localStorage.setItem('np_analytics_sig', sig);
+                if (resp.ok) {
+                    localStorage.setItem('np_analytics_sig', sig);
+                    applyServerGameState(await resp.json().catch(function() { return null; }), gameData);
+                }
             } catch (_) { /* non-blocking */ }
             finally { _analyticsSyncInFlight = false; }
         }
+
+        /**
+         * Общото копие от сървъра → localStorage. Ден, променен тук след изпращането,
+         * остава местният (следващото изпращане го слива на сървъра).
+         */
+        function applyServerGameState(data, sent) {
+            if (!data || !data.gameData || typeof data.gameData !== 'object') return;
+            var local = getGameData();
+            var next = Object.assign({}, local);
+            var changed = false;
+            Object.keys(data.gameData).forEach(function(k) {
+                var localDay = JSON.stringify(local[k] || null);
+                var sentDay = JSON.stringify((sent || {})[k] || null);
+                if (local[k] && localDay !== sentDay) return;
+                if (JSON.stringify(data.gameData[k]) !== localDay) { next[k] = data.gameData[k]; changed = true; }
+            });
+            if (data.gameWeeklyAI && typeof data.gameWeeklyAI === 'object') {
+                var wk = getWeeklyAIState();
+                var mergedWk = Object.assign({}, data.gameWeeklyAI, wk);
+                if (JSON.stringify(mergedWk) !== JSON.stringify(wk)) saveWeeklyAIState(mergedWk);
+            }
+            if (!changed) return;
+            _gameDataCache = next;
+            localStorage.setItem(GAME_DATA_KEY, JSON.stringify(next));
+            invalidateGameDataCache();
+            try { renderDay(currentDay, currentViewDateKey); } catch (_) {}
+            try {
+                if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'NUTRIPLAN_GAMEDATA_UPDATED' }, window.location.origin);
+            } catch (_) {}
+        }
         window.NutriPlanAnalyticsSync = { schedule: scheduleAnalyticsSync, syncNow: syncAnalyticsToServer };
+        // При отваряне: отметките от другите устройства (уеб ↔ приложение).
+        setTimeout(function() { syncAnalyticsToServer({ pull: true }); }, 2500);
         // Invalidate cache when another tab or external code modifies the same key
         window.addEventListener('storage', function(e) {
             if (e.key === GAME_DATA_KEY) invalidateGameDataCache();

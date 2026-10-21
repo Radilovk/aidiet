@@ -231,12 +231,19 @@
         if (!plugin()) return { sent: 0, skipped: 'not_native' };
         if (!(opts && opts.force) && st.lastSync && Date.now() - Date.parse(st.lastSync) < AUTO_EVERY_MS) return { sent: 0, skipped: 'recent' };
         var out = await collectFacts(st.granted);
+        // Какво точно е дошло: вид → брой дни (за ясен статус в профила и анализа).
+        var summary = {};
+        out.facts.forEach(function (f) {
+            var d = String(f.at).slice(0, 10);
+            (summary[f.kind] = summary[f.kind] || {})[d] = true;
+        });
+        Object.keys(summary).forEach(function (k) { summary[k] = Object.keys(summary[k]).length; });
         if (!out.facts.length) {
-            writeState({ lastSync: new Date().toISOString(), lastCount: 0, lastErrors: out.errors });
+            writeState({ lastSync: new Date().toISOString(), lastCount: 0, lastSummary: {}, lastErrors: out.errors });
             return { sent: 0, message: 'Няма нови данни в Health Connect за последните две седмици.' };
         }
         var res = await E.submit({ facts: out.facts }, 'device');
-        writeState({ lastSync: new Date().toISOString(), lastCount: out.facts.length, lastErrors: out.errors });
+        writeState({ lastSync: new Date().toISOString(), lastCount: out.facts.length, lastSummary: summary, lastErrors: out.errors });
         return { sent: out.facts.length, level: res.level, message: E.describeChange(res), derived: res.derived };
     }
 
@@ -305,7 +312,20 @@
         if (H && typeof H.openHealthConnectSettings === 'function') await H.openHealthConnectSettings();
     }
 
+    var KIND_LABELS = { steps: 'крачки', sleep: 'сън', weight: 'тегло', body_fat: 'мазнини', resting_hr: 'пулс в покой', hrv: 'вариабилност на пулса',
+        active_kcal: 'активни калории', workout: 'тренировки', water: 'вода', bp: 'кръвно', glucose: 'захар', intake: 'приети калории' };
+
+    /** „крачки (2 дни), сън (5 нощи)“ — какво е дошло при последното обновяване. */
+    function describeLast() {
+        var sum = readState().lastSummary || {};
+        return Object.keys(sum).map(function (k) {
+            var n = sum[k];
+            return (KIND_LABELS[k] || k) + ' (' + n + ' ' + (k === 'sleep' ? (n === 1 ? 'нощ' : 'нощи') : (n === 1 ? 'ден' : 'дни')) + ')';
+        }).join(', ');
+    }
+
     global.NutriPlanHealth = {
+        describeLast: describeLast,
         supported: function () { return !!plugin(); },
         isAvailable: isAvailable,
         state: readState,
