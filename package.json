@@ -27,6 +27,7 @@
     "test:health-essence": "node scripts/test-health-essence.mjs",
     "test:device-import": "node scripts/test-device-import.mjs",
     "test:device-links": "node scripts/test-device-links.mjs",
+    "test:goal-focus": "node scripts/test-goal-focus.mjs",
     "links:setup": "node scripts/setup-device-links.mjs",
     "test:handoff": "node scripts/test-handoff.mjs",
     "test:crosscheck": "node scripts/test-crosscheck.mjs",
