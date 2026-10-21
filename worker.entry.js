@@ -35,6 +35,7 @@ import {
   removeBreakfastSlotFromDay,
   userSkipsBreakfast,
   isMealCaloriesAdequate,
+  slotCalorieTolerance,
   MAX_LATE_SNACK_CALORIES,
 } from './plan-normalize.js';
 import {
@@ -77,6 +78,7 @@ import {
   normalizeFeedbackHints,
   collectQuestionAnswers,
   describeCodes,
+  codeMeanings,
   normalizeSwaps,
   weekDigest,
   profileBrief,
@@ -88,7 +90,7 @@ import { DISHES_BY_ID } from './nutrition-engine/knowledge.js';
 import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSummary, voiceRepairPrompt, mergeVoiceRepair } from './nutrition-engine/ai-voice.js';
 import { DEFAULT_PLAN_VOICE_PROMPT } from './nutrition-engine/plan-voice-prompt.js';
 import {
-  WEEKLY_CHECKIN_QUESTIONS,
+  weeklyQuestionsFor,
   readCheckin,
   decideWeeklyAdjustment,
   weeklyMessage,
@@ -108,6 +110,8 @@ import { siteQuizText } from './enrichment-site.js';
 import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { LAB_MARKERS } from './enrichment-labs.js';
+import { documentsText, normalizeDocumentValue } from './enrichment-documents.js';
+import { reanalyze } from './analysis-reanalysis.js';
 import {
   readOverlayFromKv,
   writeOverlayToKv,
@@ -3347,8 +3351,8 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   const cycleNumber = currentPlan._meta?.cycleNumber || 1;
   // Изборите на клиента (смени с алтернативи) остават в сила и при промяна от чата.
   const dishPreference = learnDishPreference(currentPlan.dishPreference, mealSwapsOf(currentPlan.weekPlan), id => DISHES_BY_ID.has(id), 1);
-  let plan = assembleEnginePlan(data, analysis, { cycleNumber, dishPreference });
-  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps, dishPreference }));
+  let plan = await assembleEngineValidated(env, data, analysis, { cycleNumber, dishPreference });
+  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { cycleNumber, slotAvoid: swaps, dishPreference }));
   plan = await writePlanVoice(env, data, plan, { reuse: currentPlan.aiVoice || null });
   try {
     await finalizeValidatedPlan(env, plan, data);
@@ -5930,8 +5934,16 @@ async function checkFirebaseOwner(userId, idToken, env, request) {
  * Седмичният контролен преглед — стандартните въпроси на диетолога
  * (тегло, придържане, глад, енергия, трудности). Без AI.
  */
-function generateWeeklyQuestions() {
-  return { questions: WEEKLY_CHECKIN_QUESTIONS.map(q => ({ ...q, options: [...q.options] })), contextNote: '' };
+function generateWeeklyQuestions(userData, analytics, enrichment) {
+  const base = normalizeQuestionnaireData({ ...(userData || {}) });
+  const data = enrichment?.facts?.length ? applyEnrichment(JSON.parse(JSON.stringify(base)), enrichment) : base;
+  const questions = weeklyQuestionsFor({
+    goal: compileProfile(data).goal,
+    deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
+    mealAdherence: analytics?.mealAdherence ?? null,
+    mealDays: analytics?.mealDays || 0,
+  });
+  return { questions, contextNote: '' };
 }
 
 /**
@@ -5977,12 +5989,13 @@ function previousWeighIn(userData, plan, history) {
  * Решението за следващата седмица — по правилата в nutrition-engine/monitoring.js.
  * @returns {{ adaptationLevel: number, calorieAdjust: number, kcal: number, modifications: string[],
  *   reasoning: string, changeSummary: string[], headline: string, motivationMessage: string,
- *   weight: string|null, weightKg: number|null, weeklyChangeKg: number|null, followed: boolean, adherence: number|null }}
+ *   weight: string|null, weightKg: number|null, waistCm?: number|null, weeklyChangeKg: number|null, followed: boolean, adherence: number|null }}
  */
 function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history) {
   const prev = previousWeighIn(userData, plan, history || []);
   const daysSincePrev = prev?.at ? (Date.now() - Date.parse(prev.at)) / 86400000 : null;
-  const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev });
+  const prevWaistCm = [...(history || [])].reverse().find(h => Number(h?.waistCm) > 0)?.waistCm ?? null;
+  const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev, prevWaistCm });
   // Измереното тегло става текущото: разходът, белтъкът и минимумите се смятат с него.
   if (checkin.weightKg && userData) userData.weight = String(checkin.weightKg);
   const profile = compileProfile(userData || {});
@@ -6051,6 +6064,7 @@ function releasePendingWeeklyIfDue(profile) {
       // За правилото „две поредни седмици“ в monitoring.js.
       weight: pending.monitoring?.weight ?? null,
       weightKg: pending.monitoring?.weightKg ?? null,
+      waistCm: pending.monitoring?.waistCm ?? null,
       followed: pending.monitoring?.followed ?? null,
       calorieAdjust: pending.monitoring?.calorieAdjust ?? 0,
     });
@@ -6091,6 +6105,34 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
   return updated;
 }
 
+/**
+ * Седмичният преглед след данни, които менят разхода (ниво ≥ 2 в обогатяването).
+ * Новата основа = приемът по правилата с обогатения профил + досегашните седмични
+ * корекции (разликата между текущия прием и първоначалното предписание).
+ * @returns {null | { analysis: object, before: number, after: number, reason: string }}
+ */
+function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers) {
+  if ((Number(enrichment?.pendingLevel) || 0) < 2 || !plan?.analysis) return null;
+  const before = parseFinalCalories(plan.analysis.Final_Calories);
+  if (!before) return null;
+  const data = JSON.parse(JSON.stringify(enrichedData));
+  const kg = Number(String((checkinAnswers || []).find(a => a.questionId === 'weightKg')?.value || '').replace(',', '.'));
+  if (kg >= 30 && kg <= 300) data.weight = String(kg);
+  const probe = JSON.parse(JSON.stringify(plan.analysis));
+  const { intake, tdee } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  if (!intake) return null;
+  const shift = before - (Number(plan.analysis._baseCalories) || before);
+  probe.Final_Calories = intake + shift;
+  probe.recommendedCalories = probe.Final_Calories;
+  enforceCalorieGuardrails(probe, data, tdee);
+  const after = parseFinalCalories(probe.Final_Calories);
+  // Под 3% разликата е шум от закръгляне — остава досегашното.
+  if (!after || Math.abs(after - before) / before < 0.03) return null;
+  probe._baseCalories = intake;
+  const why = (enrichment?.lastChange?.reasons || []).slice(0, 3).join(', ');
+  return { analysis: probe, before, after, reason: `Приемът е преизчислен с новите данни${why ? ` (${why})` : ''}: ${before} → ${after} kcal.` };
+}
+
 async function runWeeklyAdaptation(env, payload, jobId) {
   const { userId, gameWeeklyAI, answers, clientId } = payload;
   const t0 = Date.now();
@@ -6124,7 +6166,17 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: 'weightTrendKgWeek', value: String(dc.weightTrendKgWeek), source: 'device' }];
     if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: 'recoveryLow', value: 'true', source: 'device' }];
     if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: 'leanLoss', value: 'true', source: 'device' }];
-    const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, checkinAnswers, weeklyAdaptHistory);
+    // Нови данни, които менят разхода (активност по крачките, сън, стрес, състояние от
+    // изследване/документ — ниво ≥ 2): енергията се смята наново с тях, а натрупаните
+    // седмични корекции се пазят върху новата основа. Иначе приемът би останал по
+    // старите отговори и щеше да се „намира“ бавно, със 100–150 kcal на седмица.
+    const recal = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
+    const decisionPlan = recal ? { ...plan, analysis: recal.analysis } : plan;
+    const decision = getWeeklyAdaptationDecision(enrichedData, decisionPlan, analytics, checkinAnswers, weeklyAdaptHistory);
+    if (recal) {
+      decision.changeSummary = [`Калориите са преизчислени с новите данни: ${recal.before} → ${recal.after} kcal`, ...decision.changeSummary].slice(0, 4);
+      decision.reasoning = `${recal.reason} ${decision.reasoning}`.trim();
+    }
     // Свободният коментар от прегледа → само промени в менюто, не в калориите.
     const note = String((answers || []).find(a => a.questionId === 'note')?.value || '').trim();
     if (note.length >= 6) {
@@ -6148,7 +6200,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     enrichUserDataEngineContext(enrichedData);
 
     // Анализът остава — сменя се приемът (по правилата) и менюто.
-    const analysis = JSON.parse(JSON.stringify(plan.analysis || {}));
+    const analysis = JSON.parse(JSON.stringify((recal ? recal.analysis : plan.analysis) || {}));
     if (!analysis._baseCalories) analysis._baseCalories = caloriesBefore;
     if (decision.calorieAdjust) {
       const { tdee } = computeBackendEnergyInputs(enrichedData);
@@ -6158,7 +6210,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       // Записва се приложеното след защитите, не предложеното.
       const applied = parseFinalCalories(analysis.Final_Calories);
       if (applied && applied !== decision.kcal) {
-        decision.calorieAdjust = applied - caloriesBefore;
+        decision.calorieAdjust = applied - (recal ? recal.after : caloriesBefore);
         decision.kcal = applied;
         decision.changeSummary = decision.changeSummary.map(c => (/^Калории:/.test(c)
           ? `Калории: ${decision.calorieAdjust > 0 ? '+' : ''}${decision.calorieAdjust} kcal на ден` : c));
@@ -6172,9 +6224,21 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const swapsThisWeek = mealSwapsOf(plan.weekPlan);
     const dishPreference = learnDishPreference(plan.dishPreference, swapsThisWeek, id => DISHES_BY_ID.has(id));
     if (swapsThisWeek.length) console.log(`[WeeklyAdapt] смени през седмицата: ${swapsThisWeek.length}; предпочитания: ${Object.keys(dishPreference).length}`);
-    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
+    let newPlan = await assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
+    // При по-нисък прием менюто понякога не може да спази минимума за ден —
+    // тогава намалението се отлага, а седмицата идва с досегашните калории.
+    if (newPlan?._meta?.validationFailed && decision.calorieAdjust < 0) {
+      const keep = recal ? recal.after : caloriesBefore;
+      analysis.Final_Calories = keep;
+      analysis.recommendedCalories = keep;
+      decision.calorieAdjust = 0;
+      decision.kcal = keep;
+      decision.changeSummary = decision.changeSummary.filter(c => !/^Калории:/.test(c));
+      decision.reasoning = `${decision.reasoning} Намалението се отлага: при по-нисък прием менюто не спазва минимума за ден.`;
+      newPlan = await assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
+    }
     newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) =>
-      assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
+      assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
     // Новото меню получава свои бележки; тонът и портретът се пишат наново с данните от седмицата.
     newPlan = await writePlanVoice(env, enrichedData, newPlan);
     if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
@@ -6204,7 +6268,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       plan: newPlan,
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel,
-      monitoring: { weight: decision.weight, weightKg: decision.weightKg, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence },
+      monitoring: { weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence },
     });
     await writeAdaptJob({
       status: 'completed',
@@ -6242,7 +6306,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
       return jsonResponse({ error: e.message }, 401);
     }
 
-    const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, body);
+    const { userData, plan, analytics, weeklyAdaptHistory, enrichment } = await resolveWeeklyJobInputs(env, body);
     if (!plan?.weekPlan) {
       return jsonResponse({ error: 'Missing plan' }, 400);
     }
@@ -6251,7 +6315,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
     }
 
     const cycleNumber = nextWeeklyCycle(weeklyAdaptHistory, gameWeeklyAI);
-    const result = generateWeeklyQuestions();
+    const result = generateWeeklyQuestions(userData, analytics, enrichment);
 
     return jsonResponse({
       success: true,
@@ -7086,7 +7150,14 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
       : schemeCal;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
     if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
-      errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — смени продуктите или състава`);
+      // Денят е договорът (проверява се отделно и стегнато); едно хранене малко
+      // извън широкия си допуск е бележка, не спиране на целия план. Спира само
+      // голямо разминаване — над двойния допуск на слота.
+      if (Math.abs(mealCal - targetCal) > 2 * slotCalorieTolerance(targetCal)) {
+        errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} ≠ цел ${targetCal} — смени продуктите или състава`);
+      } else {
+        errors.push(`Ден ${dayNum} ${meal.type}: калории ${mealCal} при цел ${targetCal} — извън допуска на хранене, денят носи баланса`);
+      }
     }
 
     const weightGrams = mealWeightGramsFromDescription(meal);
@@ -7846,20 +7917,44 @@ function planSeedOf(data, cycleNumber = 0) {
 }
 
 /**
+ * Сглобяване с проверка: понякога двигателят не уцелва целта на едно хранене
+ * (около 3% от профилите — виж test:matrix) и проверката спира целия план или
+ * седмичната адаптация. Тогава се сглобява наново с друго начало на подбора
+ * (до 3 опита) — менюто е друго, правилата и калориите са същите. Проверява се
+ * копие, а финалната проверка остава при извикващия.
+ */
+async function assembleEngineValidated(env, data, analysis, options = {}) {
+  let plan = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    plan = assembleEnginePlan(data, analysis, { ...options, seedSalt: attempt ? `r${attempt}` : options.seedSalt });
+    try {
+      await finalizeValidatedPlan(env, JSON.parse(JSON.stringify(plan)), JSON.parse(JSON.stringify(data)));
+      return plan;
+    } catch (err) {
+      if (!String(err?.message || '').includes('медицински прагове')) return plan;
+      console.warn(`[engine] опит ${attempt + 1}: ${String(err.message).slice(0, 160)}`);
+    }
+  }
+  // Никой опит не мина — извикващият решава (напр. седмичният преглед отлага намалението).
+  if (plan?._meta) plan._meta.validationFailed = true;
+  return plan;
+}
+
+/**
  * Планът от анализа: хранителна схема в обменни порции → седмично меню →
  * стратегия и обобщение. Макросите на анализа стават тези на плана — един
  * източник за приложението.
  *
  * @param {object} data
  * @param {object} analysis
- * @param {{ cycleNumber?: number, previousWeek?: string[], slotAvoid?: Array<{ day: number, type: string, avoid: string[] }>, dishPreference?: Record<string, number> }} [options]
+ * @param {{ cycleNumber?: number, previousWeek?: string[], slotAvoid?: Array<{ day: number, type: string, avoid: string[] }>, dishPreference?: Record<string, number>, seedSalt?: string }} [options]
  */
 function assembleEnginePlan(data, analysis, options = {}) {
   const kcal = parseFinalCalories(analysis.Final_Calories || analysis.recommendedCalories);
   const startedAt = Date.now();
   const engine = buildNutritionPlan(data, {
     kcal,
-    seed: planSeedOf(data, options.cycleNumber),
+    seed: planSeedOf(data, options.cycleNumber) + (options.seedSalt ? `:${options.seedSalt}` : ''),
     previousWeek: options.previousWeek || [],
     slotAvoid: options.slotAvoid || [],
     dishPreference: options.dishPreference || {},
@@ -7878,6 +7973,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
     bmr: parseFinalCalories(analysis.bmr) || calculateBMR(data),
     dailyCalories: kcal,
     protocolSupplements: getClinicalProtocol(data.clinicalProtocol)?.supplements || [],
+    protocolName: getClinicalProtocol(data.clinicalProtocol)?.name || '',
   });
   const step3DurationMs = Date.now() - startedAt;
   const plan = overlayDeterministicPresentation({
@@ -8030,7 +8126,7 @@ async function reviewMenuWithAI(env, data, plan, rebuild) {
   const swaps = normalizeSwaps(raw, plan.weekPlan);
   if (!swaps.length) return plan;
   try {
-    const next = rebuild(swaps);
+    const next = await rebuild(swaps);
     next._meta.aiSwaps = swaps;
     return next;
   } catch (error) {
@@ -8057,8 +8153,8 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         console.warn('Could not persist partial analysis status:', progressError);
       }
     }
-    let plan = assembleEnginePlan(data, analysis);
-    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { slotAvoid: swaps }));
+    let plan = await assembleEngineValidated(env, data, analysis);
+    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { slotAvoid: swaps }));
     plan = await writePlanVoice(env, data, plan);
     plan._meta.tokenUsage = tokens;
     await finalizeAISessionLogs(env, sessionId);
@@ -8842,6 +8938,17 @@ async function callClaude(env, prompt, modelName = 'claude-3-5-sonnet-20241022',
 /**
  * Call Gemini API with automatic retry logic for transient errors
  */
+/**
+ * Flash модел без зададен бюджет → без „мислене“. Старият шаблон
+ * (/gemini-(2\.5|3(\.|))flash/) не хващаше нито „gemini-2.5-flash“, нито
+ * „gemini-3.6-flash“ (тирето преди flash), затова всички извиквания без бюджет
+ * в админа (гласът на плана, чатът, снимките, документите) вървяха с мислене
+ * по подразбиране — по-бавно и с повече токени.
+ */
+function isFlashWithoutThinking(modelName) {
+  return /gemini-(2\.5|3(\.\d+)?)-flash/i.test(String(modelName || '')) && !/pro/i.test(String(modelName || ''));
+}
+
 async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined, responseSchema = null, systemInstruction = null) {
   try {
     return await retryWithBackoff(async () => {
@@ -8874,7 +8981,7 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
       // thinkingBudget > 0           → allow thinking up to that many tokens.
       if (thinkingBudget !== undefined) {
         generationConfig.thinkingConfig = { thinkingBudget };
-      } else if (/gemini-(2\.5|3(\.|))flash/i.test(modelName) && !/pro/i.test(modelName)) {
+      } else if (isFlashWithoutThinking(modelName)) {
         generationConfig.thinkingConfig = { thinkingBudget: 0 };
       }
       // Enforce JSON-only output at the API level to prevent markdown-wrapped responses
@@ -9089,7 +9196,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
     // Thinking configuration (see callGemini for full explanation).
     if (thinkingBudget !== undefined) {
       generationConfig.thinkingConfig = { thinkingBudget };
-    } else if (modelName && modelName.includes('gemini-2.5-flash')) {
+    } else if (isFlashWithoutThinking(modelName)) {
       generationConfig.thinkingConfig = { thinkingBudget: 0 };
     }
     const requestBody = {
@@ -10264,13 +10371,12 @@ function getPromptKVKey(type) {
     'food_analysis': 'admin_food_analysis_prompt',
     'menu_analysis': 'admin_menu_analysis_prompt',
     'validation': 'admin_validation_prompt',
-    'weekly_questions': 'admin_weekly_questions_prompt',
-    'weekly_adaptation': 'admin_weekly_adaptation_prompt',
     // Промптовете на новия двигател (AI пише само текстове и разчита свободния текст).
     'plan_voice': 'admin_plan_voice_prompt',
     'intake_hints': 'admin_intake_hints_prompt',
     'menu_review': 'admin_menu_review_prompt',
-    'feedback_hints': 'admin_feedback_hints_prompt'
+    'feedback_hints': 'admin_feedback_hints_prompt',
+    'document_assessment': 'admin_document_assessment_prompt'
   };
   
   return keyMap[type] || null;
@@ -10346,12 +10452,11 @@ async function handleGetDefaultPrompt(request, env) {
       'food_analysis': 'admin_food_analysis_prompt',
       'menu_analysis': 'admin_menu_analysis_prompt',
       'validation': 'admin_validation_prompt',
-      'weekly_questions': 'admin_weekly_questions_prompt',
-      'weekly_adaptation': 'admin_weekly_adaptation_prompt',
       'plan_voice': 'admin_plan_voice_prompt',
       'intake_hints': 'admin_intake_hints_prompt',
       'menu_review': 'admin_menu_review_prompt',
-      'feedback_hints': 'admin_feedback_hints_prompt'
+      'feedback_hints': 'admin_feedback_hints_prompt',
+      'document_assessment': 'admin_document_assessment_prompt'
     };
     
     const kvKey = promptKeyMap[type];
@@ -13920,6 +14025,7 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
     urgent,
     appliesAt: urgent ? 'specialist' : (change.level > 0 ? 'weekly' : 'next_voice'),
     derived: publicEnrichmentView(nextData._enrichment),
+    reanalysis: profile.userData ? reanalysisOf(profile.userData, nextStore) : null,
   };
 }
 
@@ -14257,20 +14363,88 @@ async function handleDeviceExtract(request, env) {
   }
 }
 
+/**
+ * POST /api/enrichment/assess-document
+ * Body: { userId, idToken?, imageData?, mimeType?, text?, note? }
+ * Друг документ (епикриза, писмо, рецепта, алергологичен тест, бележка) →
+ * AI преценява дали и как засяга плана. Нищо не се записва: клиентът
+ * проверява предложението и го потвърждава (POST /api/enrichment, kind „document“).
+ */
+async function handleDocumentAssess(request, env) {
+  try {
+    const { userId, idToken, imageData, mimeType, text, note } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const plain = String(text || '').trim().slice(0, 12000);
+    if (!imageData && !plain) return jsonResponse({ error: 'Добавете файл или текст.' }, 400);
+
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    const data = applyEnrichment(normalizeQuestionnaireData({ ...(profile?.userData || {}) }), profile?.enrichment || { facts: [] });
+    const brief = [
+      profileBrief(compileProfile(data || {})),
+      data?.medicationsDetails ? `лекарства: ${[].concat(data.medicationsDetails).join(', ')}` : '',
+    ].filter(Boolean).join('\n');
+    const template = await requireKvPrompt(env, 'admin_document_assessment_prompt');
+    const prompt = Object.entries({
+      profileSummary: brief,
+      note: String(note || '').trim().slice(0, 500) || 'няма',
+      text: plain || 'виж приложения файл',
+      clinicalList: describeCodes(VOCABULARY.clinical),
+      exclusionsList: describeCodes(VOCABULARY.exclusions),
+    }).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), String(template));
+
+    let response;
+    if (imageData) {
+      const isPdf = mimeType === 'application/pdf';
+      const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+      const effectiveMime = isPdf ? 'application/pdf' : (allowed.includes(mimeType) ? mimeType : 'image/jpeg');
+      const base64Data = String(imageData).startsWith('data:') ? String(imageData).slice(String(imageData).indexOf(',') + 1) : String(imageData);
+      if ((base64Data.length * 3) / 4 > 15 * 1024 * 1024) return jsonResponse({ error: 'Файлът е твърде голям (до 15 MB).' }, 400);
+      if (isPdf) {
+        if (!env.GEMINI_API_KEY) return jsonResponse({ error: 'PDF не се поддържа — качете снимка на страницата.' }, 415);
+        const config = await getAdminConfig(env);
+        response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget);
+      } else {
+        response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2500);
+      }
+    } else {
+      response = await callAIModel(env, prompt, 2500, 'document_assessment', null, data, null);
+    }
+    const parsed = parseAIResponse(response) || {};
+    const value = normalizeDocumentValue(parsed);
+    const known = new Set(compileProfile(data || {}).clinical);
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || '')) ? parsed.date : null;
+    return jsonResponse({
+      success: true,
+      relevant: parsed.relevant !== false && !!value,
+      isLabReport: parsed.isLabReport === true,
+      date,
+      // Вече известните състояния не се предлагат отново.
+      assessment: value ? { ...value, clinical: value.clinical.filter(c => !known.has(c)) } : null,
+      planChanges: (Array.isArray(parsed.planChanges) ? parsed.planChanges : []).map(x => String(x || '').trim().slice(0, 240)).filter(Boolean).slice(0, 4),
+      labels: codeMeanings([...VOCABULARY.clinical, ...VOCABULARY.exclusions]),
+    });
+  } catch (error) {
+    console.error('Error assessing document:', error);
+    return jsonResponse({ error: 'Не успяхме да прочетем документа. Опитайте с по-ясна снимка или въведете текста.' }, 500);
+  }
+}
+
 /** Видовете измервания за избор в прегледа на клиента. */
 function publicDeviceKinds() {
   return Object.fromEntries(Object.entries(DEVICE_KINDS).map(([k, v]) => [k, { label: v.label, unit: v.unit, two: !!v.range2 }]));
 }
 
 /**
- * POST /api/enrichment/delete — Body: { userId, idToken?, kinds?: string[] }
+ * POST /api/enrichment/delete — Body: { userId, idToken?, kinds?: string[], documentIds?: string[] }
  * Изтрива данните от обогатяването (всички или по вид). Промяната влиза в
  * плана със следващия преглед, както и при добавяне.
  */
 async function handleEnrichmentDelete(request, env) {
   try {
     if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    const { userId, idToken, kinds } = await request.json();
+    const { userId, idToken, kinds, documentIds } = await request.json();
     if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
     const authError = await checkFirebaseOwner(userId, idToken, env, request);
     if (authError) return authError;
@@ -14278,7 +14452,11 @@ async function handleEnrichmentDelete(request, env) {
     if (!profile?.enrichment) return jsonResponse({ success: true, removed: 0 });
     const before = profile.enrichment.facts?.length || 0;
     const only = Array.isArray(kinds) && kinds.length ? new Set(kinds) : null;
-    const facts = only ? (profile.enrichment.facts || []).filter(f => !only.has(f.kind)) : [];
+    // Един документ — по id; иначе по вид или всичко.
+    const docIds = Array.isArray(documentIds) && documentIds.length ? new Set(documentIds.map(String)) : null;
+    const facts = docIds
+      ? (profile.enrichment.facts || []).filter(f => !(f.kind === 'document' && docIds.has(f.key)))
+      : only ? (profile.enrichment.facts || []).filter(f => !only.has(f.kind)) : [];
     profile.enrichment = { ...profile.enrichment, facts, updatedAt: new Date().toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
     // Без данни от устройства няма и обобщение от тях — нито в профила, нито в картона.
     const hasDeviceFacts = facts.some(f => DEVICE_KINDS[f.kind]);
@@ -14326,12 +14504,30 @@ async function handleEnrichmentGet(request, env) {
       ),
       sources: [...new Set((store.facts || []).map(f => f.source))],
       lastChange: store.lastChange || null,
+      pendingLevel: Number(store.pendingLevel) || 0,
+      reanalysis: profile?.userData ? reanalysisOf(profile.userData, store) : null,
       markers: LAB_MARKERS,
       deviceKinds: publicDeviceKinds(),
       moduleSources: profile?.moduleSources || {},
     });
   } catch (error) {
     return jsonResponse({ error: 'Failed to load enrichment: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Анализът наново с всички данни — за страницата „Анализ“ и профила.
+ * Енергията (BMR, калории, макроси) остава от плана: клиентът я пази локално.
+ */
+function reanalysisOf(userData, store) {
+  try {
+    const base = normalizeQuestionnaireData({ ...(userData || {}) });
+    const sex = base.gender === 'Мъж' ? 'M' : base.gender === 'Жена' ? 'F' : 'X';
+    const enriched = store?.facts?.length ? applyEnrichment(JSON.parse(JSON.stringify(base)), store) : base;
+    return reanalyze(base, enriched, {}, sex);
+  } catch (e) {
+    console.warn('[reanalysis] skipped:', e.message);
+    return null;
   }
 }
 
@@ -14351,6 +14547,7 @@ function publicEnrichmentView(d) {
     // Готовият текст за чата на клиента (същият като в картона на специалиста).
     essenceText: profileContextText(d),
     iris: d.iris ? { at: d.iris.at, focus: d.iris.focus } : null,
+    documents: d.documents || [],
     // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
     hypotheses: d.crossCheck?.hypotheses || [],
     questions: d.crossCheck?.questions || [],
@@ -14358,7 +14555,7 @@ function publicEnrichmentView(d) {
 }
 
 /**
- * Допълнителният профил в един кратък текст — устройства, EmoEat, AIRIS.
+ * Допълнителният профил в един кратък текст — устройства, EmoEat, AIRIS, документи.
  * Същият текст отива в картона на специалиста и в контекста на чата.
  */
 function profileContextText(d) {
@@ -14367,7 +14564,7 @@ function profileContextText(d) {
   const emo = v && (v.archetype || v.intensity)
     ? `емоционален профил (EmoEat): ${[v.archetype ? `архетип ${v.archetype}` : '', v.intensity ? `интензитет ${v.intensity}` : '', v.drivers?.length ? `двигатели ${v.drivers.join(', ')}` : '', v.realNeed ? `реална нужда ${v.realNeed}` : ''].filter(Boolean).join(', ')}`
     : '';
-  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 2800);
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), documentsText(d.documents), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 3600);
 }
 
 const DEFAULT_HEALTH_DIGEST_PROMPT = `Ти си диетолог. Данни от устройствата на клиента (часовник, гривна, везна, апарат за кръвно, глюкомер, приложения) за последните седмици, вече обобщени:
@@ -16640,6 +16837,8 @@ export default {
         return await handleEnrichmentResolve(request, env);
       } else if (url.pathname === '/api/enrichment/extract-device' && request.method === 'POST') {
         return await handleDeviceExtract(request, env);
+      } else if (url.pathname === '/api/enrichment/assess-document' && request.method === 'POST') {
+        return await handleDocumentAssess(request, env);
       } else if (url.pathname === '/api/enrichment/delete' && request.method === 'POST') {
         return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {

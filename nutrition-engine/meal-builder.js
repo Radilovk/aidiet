@@ -311,6 +311,20 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   };
 }
 
+/**
+ * Същото ястие с нова цел: само грамажите се донастройват от сегашните (без
+ * нови съставки) — за изравняването на деня в week-planner.js.
+ * @returns {ReturnType<typeof buildMeal> | null}
+ */
+export function retuneMeal({ dish, built, target, mealKind, ctx }) {
+  const parts = built.parts.map(p => ({ ...p, grams: [...p.grams] }));
+  const carbsCap = ctx.policy.style === 'keto' || ctx.policy.style === 'low_carb';
+  const error = refine(parts, built.fixed, target, carbsCap);
+  const kept = parts.filter(p => partTotal(p) > 0);
+  if (mealKind === 'main' && !kept.some(p => p.group === 'VEG') && !built.fixed.some(([id]) => food(id).group === 'VEG')) return null;
+  return { ...built, parts: kept, totals: totalsOf(kept, built.fixed), error, name: dishName(dish, kept) };
+}
+
 /** Описанието на храненето — ред по съставка, по реда на ястието (десертът е отделен обект). */
 export function describeMeal(built) {
   const lines = [];

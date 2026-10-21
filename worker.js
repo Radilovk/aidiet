@@ -11536,7 +11536,10 @@ function compileProfile(userData = {}, overrides = {}) {
     addAll(clinical, hints.clinical || []);
   }
   const enrich = data._enrichment?.hints && typeof data._enrichment.hints === "object" ? data._enrichment.hints : null;
-  if (enrich) addAll(clinical, enrich.clinical || []);
+  if (enrich) {
+    addAll(clinical, enrich.clinical || []);
+    addAll(exclusions, enrich.exclusions || []);
+  }
   const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns, ...hints?.pattern ? [hints.pattern] : []]);
   const adjustments = [];
   const meds = interactionsFor(data);
@@ -27118,9 +27121,21 @@ function validateProductNamesAgainstProtocol(names, clinicalProtocolId) {
 }
 
 // plan-normalize.js
+var MAX_PLATED_SLOT_KCAL_ABSOLUTE = 900;
 var MIN_MAIN_MEAL_WEIGHT_GRAMS = 50;
 var MIN_LIGHT_MEAL_WEIGHT_GRAMS = 20;
 var MAX_LATE_SNACK_CALORIES = 200;
+var MAX_AFTERNOON_SNACK_CALORIES = 350;
+var MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE = 450;
+var AFTERNOON_SNACK_DAILY_RATIO = 0.15;
+function maxAfternoonSnackKcal(dailyKcal) {
+  const daily = Math.max(0, Number(dailyKcal) || 0);
+  if (!daily) return MAX_AFTERNOON_SNACK_CALORIES;
+  return Math.min(
+    MAX_AFTERNOON_SNACK_KCAL_ABSOLUTE,
+    Math.max(MAX_AFTERNOON_SNACK_CALORIES, Math.round(daily * AFTERNOON_SNACK_DAILY_RATIO))
+  );
+}
 var SLOT_CALORIE_TOLERANCE_PERCENT = 0.18;
 var SLOT_CALORIE_TOLERANCE_MIN_KCAL = 40;
 function slotCalorieTolerance(targetKcal) {
@@ -27175,6 +27190,11 @@ function pushDerivedKeyProblem(analysis, title, description, severity = "Borderl
     impact: description || title
   });
   return true;
+}
+function slotCeilingKcal(slotType, dailyKcal) {
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") return MAX_LATE_SNACK_CALORIES;
+  if (slotType === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") return maxAfternoonSnackKcal(dailyKcal);
+  return MAX_PLATED_SLOT_KCAL_ABSOLUTE;
 }
 function isKetoUser(userData) {
   return compileProfile(userData || {}).diet.style === "keto";
@@ -39481,9 +39501,11 @@ function severityFor(value) {
   for (const [label, min] of SEVERITY_BANDS) if (value >= min) return label;
   return "Normal";
 }
-function problem(category, severityValue, title, description, impact, improvement) {
+function problem(category, severityValue, title, description, impact, improvement, code) {
   const sv = Math.max(45, Math.min(95, Math.round(severityValue)));
-  return { title, description, severity: severityFor(sv), severityValue: sv, category, impact, _improvement: improvement };
+  const p = { title, description, severity: severityFor(sv), severityValue: sv, category, impact, _improvement: improvement };
+  if (code) p.code = code;
+  return p;
 }
 function bmiOf(profile) {
   const w = Number(profile.weightKg) || 0;
@@ -39557,7 +39579,7 @@ function detectProblems(profile) {
       "Sleep",
       sv,
       "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u0435\u043D \u0441\u044A\u043D",
-      `\u0421\u0440\u0435\u0434\u043D\u043E \u043E\u043A\u043E\u043B\u043E ${sleep} \u0447\u0430\u0441\u0430 \u0441\u044A\u043D${profile.sleepInterrupted ? " \u0441 \u043F\u0440\u0435\u043A\u044A\u0441\u0432\u0430\u043D\u0438\u044F" : ""} \u2014 \u043F\u043E\u0434 7-\u0442\u0435 \u0447\u0430\u0441\u0430, \u043D\u0443\u0436\u043D\u0438 \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435.`,
+      `\u0421\u0440\u0435\u0434\u043D\u043E \u043E\u043A\u043E\u043B\u043E ${String(sleep).replace(".", ",")} \u0447\u0430\u0441\u0430 \u0441\u044A\u043D${profile.sleepInterrupted ? " \u0441 \u043F\u0440\u0435\u043A\u044A\u0441\u0432\u0430\u043D\u0438\u044F" : ""} \u2014 \u043F\u043E\u0434 7-\u0442\u0435 \u0447\u0430\u0441\u0430, \u043D\u0443\u0436\u043D\u0438 \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435.`,
       "\u041F\u043E\u0432\u0438\u0448\u0435\u043D \u0433\u0440\u0435\u043B\u0438\u043D \u0438 \u043A\u043E\u0440\u0442\u0438\u0437\u043E\u043B: \u043F\u043E\u0432\u0435\u0447\u0435 \u0430\u043F\u0435\u0442\u0438\u0442 \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0438 \u043F\u043E-\u0442\u0440\u0443\u0434\u043D\u043E \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435.",
       "\u041F\u043E-\u043C\u0430\u043B\u043A\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0438 \u043F\u043E-\u0434\u043E\u0431\u0440\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435"
     ));
@@ -39714,7 +39736,7 @@ function detectProblems(profile) {
     ["INFL", 56, "\u0425\u0440\u043E\u043D\u0438\u0447\u043D\u043E \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435", "\u041D\u0443\u0436\u043D\u0438 \u0441\u0430 \u043E\u043C\u0435\u0433\u0430-3, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u043F\u0440\u0435\u0440\u0430\u0431\u043E\u0442\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438.", "\u0423\u043C\u043E\u0440\u0430 \u0438 \u0431\u0430\u0432\u043D\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435.", "\u041F\u043E-\u043D\u0438\u0441\u043A\u043E \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435"]
   ];
   for (const [code, sv, title, desc, impact, improvement] of medical) {
-    if (has2(c, code)) out.push(problem("Medical", sv, title, desc, impact, improvement));
+    if (has2(c, code)) out.push(problem("Medical", sv, title, desc, impact, improvement, code));
   }
   return out.sort((a, b2) => b2.severityValue - a.severityValue);
 }
@@ -39871,10 +39893,12 @@ function psychologicalProfile(profile) {
   return `\u041F\u0440\u043E\u0444\u0438\u043B\u044A\u0442 \u043F\u043E\u043A\u0430\u0437\u0432\u0430, \u0447\u0435 ${lines.join(", ")}. \u041F\u043B\u0430\u043D\u044A\u0442 \u0437\u0430\u043B\u0430\u0433\u0430 \u043D\u0430 \u043F\u0440\u0435\u0434\u0432\u0438\u0434\u0438\u043C\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F, \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0438 \u0441\u0438\u0442\u043E\u0441\u0442, \u0437\u0430 \u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u0438 \u0442\u0435\u0437\u0438 \u0442\u0440\u0438\u0433\u0435\u0440\u0438.`;
 }
 function buildDeterministicAnalysis(userData = {}, energy = {}) {
-  const profile = compileProfile(userData || {});
-  const real = detectProblems(profile);
+  return analyzeProfile(compileProfile(userData || {}), energy);
+}
+function analyzeProfile(profile, energy = {}, extra = []) {
+  const real = [...detectProblems(profile), ...extra].sort((a, b2) => b2.severityValue - a.severityValue);
   const score = healthScore(real, profile);
-  const all = real.length >= 3 ? real : [...real, ...preventiveProblems(profile).filter((p) => !real.some((r) => r.title === p.title))].slice(0, 3);
+  const all = real.length >= 3 ? real : [...real, ...preventiveProblems(profile).filter((p) => !real.some((r) => r.title === p.title)).map((p) => ({ ...p, preventive: true }))].slice(0, 3);
   const keyProblems = all.slice(0, 6).map(({ _improvement, ...p }) => p);
   const bmi = bmiOf(profile);
   const need = waterNeedLiters(profile);
@@ -39932,6 +39956,76 @@ function mergeAnalysisNarrative(base, ai) {
   }
   base._aiNarrative = true;
   return base;
+}
+
+// supplement-rules.js
+var MAX_SUPPLEMENTS = 5;
+function supplementKey(name) {
+  return String(name).toLowerCase().replace(/[()+,/]/g, " ").split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+}
+var OMEGA3 = { name: "\u041E\u043C\u0435\u0433\u0430-3 (EPA/DHA)", dosage: "1000\u20132000 mg EPA+DHA", timing: "\u0441 \u0445\u0440\u0430\u043D\u0435\u043D\u0435" };
+var OMEGA3_ALGAE = { name: "\u041E\u043C\u0435\u0433\u0430-3 \u043E\u0442 \u0432\u043E\u0434\u043E\u0440\u0430\u0441\u043B\u0438 (DHA/EPA)", dosage: "250\u2013500 mg", timing: "\u0441 \u0445\u0440\u0430\u043D\u0435\u043D\u0435" };
+var MAGNESIUM = { name: "\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439 \u0431\u0438\u0441\u0433\u043B\u0438\u0446\u0438\u043D\u0430\u0442", dosage: "200\u2013400 mg", timing: "\u0432\u0435\u0447\u0435\u0440" };
+var D3 = { name: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", dosage: "1000\u20132000 IU", timing: "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430" };
+var B12 = { name: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D B12", dosage: "250\u2013500 mcg", timing: "\u0441\u0443\u0442\u0440\u0438\u043D" };
+function profileRules(profile, userData, now) {
+  const out = [];
+  const add = (s, reason) => out.push({ ...s, reason });
+  const c = new Set(profile.clinical || []);
+  const pattern = profile.diet?.pattern;
+  const style = profile.diet?.style;
+  const ex = new Set(profile.exclusions || []);
+  const age = profile.age || 0;
+  const vegan = pattern === "vegan";
+  const omega = vegan ? OMEGA3_ALGAE : OMEGA3;
+  if (interactionsFor(userData || {}).ids.includes("metformin")) {
+    add({ ...B12, dosage: "500 mcg" }, "\u043C\u0435\u0442\u0444\u043E\u0440\u043C\u0438\u043D \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0430 B12 \u043F\u0440\u0438 \u0434\u044A\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u0435\u043D \u043F\u0440\u0438\u0435\u043C");
+  }
+  if (c.has("PCOS")) add({ name: "\u041C\u0438\u043E-\u0438\u043D\u043E\u0437\u0438\u0442\u043E\u043B", dosage: "2000\u20134000 mg", timing: "\u0441\u0443\u0442\u0440\u0438\u043D" }, "\u043F\u043E\u043B\u0438\u043A\u0438\u0441\u0442\u043E\u0437\u043D\u0438 \u044F\u0439\u0447\u043D\u0438\u0446\u0438: \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u044F \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430\u0442\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442 \u0438 \u0446\u0438\u043A\u044A\u043B\u0430");
+  if (c.has("IR") || c.has("T2D") || c.has("METS")) add({ ...MAGNESIUM, name: "\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439 (\u0446\u0438\u0442\u0440\u0430\u0442/\u0431\u0438\u0441\u0433\u043B\u0438\u0446\u0438\u043D\u0430\u0442)" }, "\u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442: \u043C\u0430\u0433\u043D\u0435\u0437\u0438\u044F\u0442 \u0443\u0447\u0430\u0441\u0442\u0432\u0430 \u0432 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0430 \u0433\u043B\u044E\u043A\u043E\u0437\u0430\u0442\u0430, \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u043C\u0443 \u0435 \u0447\u0435\u0441\u0442");
+  if (c.has("DYSL") || c.has("CVD")) add(omega, "\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0438 \u0442\u0440\u0438\u0433\u043B\u0438\u0446\u0435\u0440\u0438\u0434\u0438/\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432 \u0440\u0438\u0441\u043A: EPA/DHA \u043F\u043E\u043D\u0438\u0436\u0430\u0432\u0430\u0442 \u0442\u0440\u0438\u0433\u043B\u0438\u0446\u0435\u0440\u0438\u0434\u0438\u0442\u0435");
+  if (c.has("HTN")) add({ ...MAGNESIUM, name: "\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439 (\u0446\u0438\u0442\u0440\u0430\u0442/\u0431\u0438\u0441\u0433\u043B\u0438\u0446\u0438\u043D\u0430\u0442)" }, "\u0432\u0438\u0441\u043E\u043A\u043E \u043A\u0440\u044A\u0432\u043D\u043E: \u043C\u0430\u0433\u043D\u0435\u0437\u0438\u044F\u0442 \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u044F \u0441\u044A\u0434\u043E\u0432\u0438\u044F \u0442\u043E\u043D\u0443\u0441");
+  if (c.has("NAFLD")) add(omega, "\u043C\u0430\u0441\u0442\u0435\u043D \u0447\u0435\u0440\u0435\u043D \u0434\u0440\u043E\u0431: \u043E\u043C\u0435\u0433\u0430-3 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u0447\u0435\u0440\u043D\u043E\u0434\u0440\u043E\u0431\u043D\u0438\u0442\u0435 \u043C\u0430\u0437\u043D\u0438\u043D\u0438");
+  if (c.has("JOINT") || c.has("INFL") || c.has("AI") || c.has("SKIN")) add(omega, "\u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435/\u0441\u0442\u0430\u0432\u0438/\u043A\u043E\u0436\u0430: \u043E\u043C\u0435\u0433\u0430-3 \u0438\u043C\u0430 \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0432\u044A\u0437\u043F\u0430\u043B\u0438\u0442\u0435\u043B\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435");
+  if (c.has("OSTEO") || c.has("MENO")) add({ name: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3 + K2", dosage: "1000\u20132000 IU / 75\u2013100 mcg", timing: "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430" }, c.has("OSTEO") ? "\u043A\u043E\u0441\u0442\u043D\u0430 \u043F\u043B\u044A\u0442\u043D\u043E\u0441\u0442: D3 \u0437\u0430 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043A\u0430\u043B\u0446\u0438\u044F, K2 \u0437\u0430 \u043E\u0442\u043B\u0430\u0433\u0430\u043D\u0435\u0442\u043E \u043C\u0443 \u0432 \u043A\u043E\u0441\u0442\u0438\u0442\u0435" : "\u043C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430: \u043F\u043E-\u0431\u044A\u0440\u0437\u0430 \u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043A\u043E\u0441\u0442\u043D\u0430 \u043C\u0430\u0441\u0430");
+  if ((c.has("OSTEO") || c.has("MENO")) && ex.has("LAC")) add({ name: "\u041A\u0430\u043B\u0446\u0438\u0439 \u0446\u0438\u0442\u0440\u0430\u0442", dosage: "500 mg", timing: "\u0432\u0435\u0447\u0435\u0440, \u043E\u0442\u0434\u0435\u043B\u043D\u043E \u043E\u0442 \u0436\u0435\u043B\u044F\u0437\u043E" }, "\u0431\u0435\u0437 \u043C\u043B\u0435\u0447\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043D\u0430 \u043A\u0430\u043B\u0446\u0438\u0439 \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E \u0435 \u043D\u0438\u0441\u044A\u043A");
+  if (c.has("IBS")) add({ name: "\u041F\u0441\u0438\u043B\u0438\u0443\u043C (\u043B\u0435\u043D\u0435\u043D\u0430/\u0436\u0438\u0432\u043E\u0432\u043B\u0435\u043A\u043E\u0432\u0430 \u0444\u0438\u0431\u0440\u0430)", dosage: "5\u201310 g", timing: "\u0441 \u0433\u043E\u043B\u044F\u043C\u0430 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430, \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E" }, "\u0440\u0430\u0437\u0434\u0440\u0430\u0437\u043D\u0435\u043D\u043E \u0447\u0435\u0440\u0432\u043E: \u0440\u0430\u0437\u0442\u0432\u043E\u0440\u0438\u043C\u0430\u0442\u0430 \u0444\u0438\u0431\u0440\u0430 \u0440\u0435\u0433\u0443\u043B\u0438\u0440\u0430 \u0438\u0437\u0445\u043E\u0436\u0434\u0430\u043D\u0435\u0442\u043E");
+  else if (c.has("GI") || c.has("GAST")) add({ name: "\u041F\u0440\u043E\u0431\u0438\u043E\u0442\u0438\u043A (Lactobacillus/Bifidobacterium)", dosage: "10 \u043C\u043B\u0440\u0434. CFU", timing: "\u0441 \u0445\u0440\u0430\u043D\u0430" }, "\u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F: \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u0430 \u043D\u0430 \u0447\u0440\u0435\u0432\u043D\u0430\u0442\u0430 \u0444\u043B\u043E\u0440\u0430");
+  if (c.has("ANEM")) add({ name: "\u0416\u0435\u043B\u044F\u0437\u043E \u0431\u0438\u0441\u0433\u043B\u0438\u0446\u0438\u043D\u0430\u0442", dosage: "25 mg", timing: "\u043F\u0440\u0435\u0437 \u0434\u0435\u043D, \u0441 \u0432\u0438\u0442\u0430\u043C\u0438\u043D C, \u0434\u0430\u043B\u0435\u0447 \u043E\u0442 \u043A\u0430\u0444\u0435, \u0447\u0430\u0439 \u0438 \u043A\u0430\u043B\u0446\u0438\u0439 \u2014 \u0441\u043B\u0435\u0434 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 \u043D\u0430 \u0444\u0435\u0440\u0438\u0442\u0438\u043D" }, "\u0430\u043D\u0435\u043C\u0438\u044F \u043F\u043E \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430: \u0436\u0435\u043B\u044F\u0437\u043E\u0442\u043E \u0441\u0435 \u043F\u0440\u0438\u0435\u043C\u0430 \u043F\u0440\u0438 \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
+  if (c.has("COG")) add(omega, "\u043F\u0430\u043C\u0435\u0442 \u0438 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044F: DHA \u0435 \u0433\u0440\u0430\u0434\u0438\u0432\u0435\u043D \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B \u0437\u0430 \u043C\u043E\u0437\u044A\u043A\u0430");
+  const poorSleep = c.has("SLP") || profile.sleepInterrupted || profile.sleepHours && profile.sleepHours < 6;
+  if (c.has("ANX") || c.has("DEP") || profile.stress === 3 || poorSleep) {
+    add(MAGNESIUM, [poorSleep ? "\u043B\u043E\u0448 \u0438\u043B\u0438 \u043A\u0440\u0430\u0442\u044A\u043A \u0441\u044A\u043D" : "", profile.stress === 3 || c.has("ANX") ? "\u0432\u0438\u0441\u043E\u043A \u0441\u0442\u0440\u0435\u0441/\u0442\u0440\u0435\u0432\u043E\u0436\u043D\u043E\u0441\u0442" : "", c.has("DEP") ? "\u043F\u043E\u043D\u0438\u0436\u0435\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u0435" : ""].filter(Boolean).join(", ") + ": \u043C\u0430\u0433\u043D\u0435\u0437\u0438\u044F\u0442 \u0431\u0438\u0441\u0433\u043B\u0438\u0446\u0438\u043D\u0430\u0442 \u0443\u0441\u043F\u043E\u043A\u043E\u044F\u0432\u0430 \u043D\u0435\u0440\u0432\u043D\u0430\u0442\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u0438 \u043F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430 \u0441\u044A\u043D\u044F");
+  }
+  if (c.has("DEP")) add(omega, "\u043F\u043E\u043D\u0438\u0436\u0435\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u0435: EPA \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u044F \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u0435\u0442\u043E");
+  if (vegan || pattern === "vegetarian") add(B12, `${vegan ? "\u0432\u0435\u0433\u0430\u043D\u0441\u043A\u043E" : "\u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E"} \u0445\u0440\u0430\u043D\u0435\u043D\u0435: B12 \u0441\u0435 \u043D\u0430\u0431\u0430\u0432\u044F \u043F\u043E\u0447\u0442\u0438 \u0441\u0430\u043C\u043E \u043E\u0442 \u0436\u0438\u0432\u043E\u0442\u0438\u043D\u0441\u043A\u0438 \u0445\u0440\u0430\u043D\u0438`);
+  if (vegan) add(OMEGA3_ALGAE, "\u0432\u0435\u0433\u0430\u043D\u0441\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u0431\u0435\u0437 \u0440\u0438\u0431\u0430 \u043D\u044F\u043C\u0430 \u0433\u043E\u0442\u043E\u0432\u0438 EPA/DHA");
+  else if (ex.has("FSH")) add(OMEGA3, "\u0431\u0435\u0437 \u0440\u0438\u0431\u0430 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E: EPA/DHA \u043D\u0435 \u0441\u0435 \u043D\u0430\u0431\u0430\u0432\u044F\u0442 \u043E\u0442 \u0445\u0440\u0430\u043D\u0430\u0442\u0430");
+  if (style === "keto") add({ name: "\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439 + \u0435\u043B\u0435\u043A\u0442\u0440\u043E\u043B\u0438\u0442\u0438", dosage: "200\u2013400 mg \u043C\u0430\u0433\u043D\u0435\u0437\u0438\u0439", timing: "\u0432\u0435\u0447\u0435\u0440" }, "\u043A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435: \u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0430\u0433\u043D\u0435\u0437\u0438\u0439, \u043D\u0430\u0442\u0440\u0438\u0439 \u0438 \u043A\u0430\u043B\u0438\u0439");
+  const sportDays = profile.activity?.sportDays || 0;
+  if (["GAIN", "TONE"].includes(profile.goal) && sportDays >= 2) {
+    add({ name: "\u041A\u0440\u0435\u0430\u0442\u0438\u043D \u043C\u043E\u043D\u043E\u0445\u0438\u0434\u0440\u0430\u0442", dosage: "3\u20135 g", timing: "\u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D, \u043F\u043E \u0432\u0441\u044F\u043A\u043E \u0432\u0440\u0435\u043C\u0435" }, `\u0446\u0435\u043B \u201E${profile.goal === "GAIN" ? "\u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430" : "\u0441\u0442\u044F\u0433\u0430\u043D\u0435"}\u201C \u0441 ${sportDays} \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E: \u043A\u0440\u0435\u0430\u0442\u0438\u043D\u044A\u0442 \u0435 \u0441 \u043D\u0430\u0439-\u0434\u043E\u0431\u0440\u0435 \u0434\u043E\u043A\u0430\u0437\u0430\u043D \u0435\u0444\u0435\u043A\u0442 \u0432\u044A\u0440\u0445\u0443 \u0441\u0438\u043B\u0430\u0442\u0430 \u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435`);
+  }
+  if (age >= 60) add(B12, "\u043D\u0430\u0434 60 \u0433.: \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0430 B12 \u043E\u0442 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430");
+  if (age >= 55) add(D3, "\u043D\u0430\u0434 55 \u0433.: \u043A\u043E\u0436\u0430\u0442\u0430 \u0441\u0438\u043D\u0442\u0435\u0437\u0438\u0440\u0430 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0432\u0438\u0442\u0430\u043C\u0438\u043D D");
+  const month = (now || /* @__PURE__ */ new Date()).getMonth();
+  if (!out.length && (month >= 9 || month <= 2)) add({ ...D3, timing: "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430, \u043E\u043A\u0442\u043E\u043C\u0432\u0440\u0438\u2013\u043C\u0430\u0440\u0442" }, "\u043E\u043A\u0442\u043E\u043C\u0432\u0440\u0438\u2013\u043C\u0430\u0440\u0442 \u0441\u043B\u044A\u043D\u0446\u0435\u0442\u043E \u043D\u0435 \u0441\u0442\u0438\u0433\u0430 \u0437\u0430 \u0432\u0438\u0442\u0430\u043C\u0438\u043D D; \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430 \u0434\u043E\u0437\u0430\u0442\u0430");
+  return out;
+}
+function supplementsFor(profile, userData = {}, { labs = [], protocol = [], protocolName = "", now = null } = {}) {
+  const out = [];
+  const keys = /* @__PURE__ */ new Set();
+  const add = (s) => {
+    if (!s?.name) return;
+    const key = supplementKey(s.name);
+    if ([...keys].some((k) => k.startsWith(key) || key.startsWith(k))) return;
+    keys.add(key);
+    out.push({ name: s.name, dosage: s.dosage || "", timing: s.timing || "", reason: s.reason || "" });
+  };
+  for (const s of labs || []) add(s);
+  for (const s of protocol || []) add({ ...s, reason: s.reason || (protocolName ? `\u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u201E${protocolName}\u201C` : "\u043A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B") });
+  for (const s of profileRules(profile, userData, now || /* @__PURE__ */ new Date())) add(s);
+  return out.slice(0, MAX_SUPPLEMENTS);
 }
 
 // plan-summary.js
@@ -39992,32 +40086,14 @@ function averageMacrosFromWeek(weekPlan = {}) {
   if (!days) return { protein: 0, carbs: 0, fats: 0 };
   return { protein: Math.round(p / days), carbs: Math.round(c / days), fats: Math.round(f / days) };
 }
-function supplementsFor(profile, protocolSupplements = [], now = null) {
-  const out = [];
-  const names = /* @__PURE__ */ new Set();
-  const keyOf = (name) => String(name).toLowerCase().replace(/[()+,]/g, " ").split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
-  const add = (name, dosage, timing, reason) => {
-    if (!name) return;
-    const key = keyOf(name);
-    if ([...names].some((n) => n.startsWith(key) || key.startsWith(n))) return;
-    names.add(key);
-    out.push(reason ? { name, dosage, timing, reason } : { name, dosage, timing });
-  };
-  for (const s of protocolSupplements || []) add(s.name, s.dosage, s.timing, s.reason);
-  const pattern = profile.diet?.pattern;
-  const c = profile.clinical || [];
-  if (pattern === "vegan" || pattern === "vegetarian") add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D B12", "250\u2013500 mcg", "\u0441\u0443\u0442\u0440\u0438\u043D");
-  if (pattern === "vegan") add("\u041E\u043C\u0435\u0433\u0430-3 \u043E\u0442 \u0432\u043E\u0434\u043E\u0440\u0430\u0441\u043B\u0438 (DHA/EPA)", "250\u2013500 mg", "\u0441 \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
-  if (c.includes("OSTEO") || c.includes("MENO") || (profile.age || 0) >= 55) add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", "1000\u20132000 IU", "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430");
-  if (profile.diet?.style === "keto") add("\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439", "200\u2013400 mg", "\u0432\u0435\u0447\u0435\u0440");
-  const month = (now || /* @__PURE__ */ new Date()).getMonth();
-  if (!out.length && (month >= 9 || month <= 2)) add("\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", "1000\u20132000 IU", "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430, \u043E\u043A\u0442\u043E\u043C\u0432\u0440\u0438\u2013\u043C\u0430\u0440\u0442");
-  return out.slice(0, 5);
-}
-function supplementsWithMeds(profile, userData, protocolSupplements) {
+function supplementsWithMeds(profile, userData, protocolSupplements, protocolName) {
   const ix = interactionsFor(userData || {});
-  const inputs = applySupplementInteractions([...protocolSupplements || [], ...userData?._enrichment?.supplements || []], ix).kept;
-  return applySupplementInteractions(supplementsFor(profile, inputs), ix).kept;
+  const picked = supplementsFor(profile, userData, {
+    labs: applySupplementInteractions(userData?._enrichment?.supplements || [], ix).kept,
+    protocol: applySupplementInteractions(protocolSupplements || [], ix).kept,
+    protocolName
+  });
+  return applySupplementInteractions(picked, ix).kept;
 }
 function buildPlanSummary({
   userData = {},
@@ -40025,7 +40101,8 @@ function buildPlanSummary({
   weekPlan = {},
   bmr = 0,
   dailyCalories = 0,
-  protocolSupplements = []
+  protocolSupplements = [],
+  protocolName = ""
 } = {}) {
   const profile = compileProfile(userData || {}, { dietaryModifier: strategy?.dietaryModifier });
   const style = profile.diet.style;
@@ -40052,7 +40129,7 @@ function buildPlanSummary({
     forbidden,
     psychology: [...new Set(psychology)].slice(0, 6),
     waterIntake: `${waterNeedLiters(profile)} \u043B \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0432\u043D\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F`,
-    supplements: supplementsWithMeds(profile, userData, protocolSupplements)
+    supplements: supplementsWithMeds(profile, userData, protocolSupplements, protocolName)
   };
 }
 
@@ -41986,6 +42063,14 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
     name: dishName2(dish, kept)
   };
 }
+function retuneMeal({ dish, built, target, mealKind, ctx }) {
+  const parts = built.parts.map((p) => ({ ...p, grams: [...p.grams] }));
+  const carbsCap = ctx.policy.style === "keto" || ctx.policy.style === "low_carb";
+  const error = refine(parts, built.fixed, target, carbsCap);
+  const kept = parts.filter((p) => partTotal(p) > 0);
+  if (mealKind === "main" && !kept.some((p) => p.group === "VEG") && !built.fixed.some(([id]) => food(id).group === "VEG")) return null;
+  return { ...built, parts: kept, totals: totalsOf(kept, built.fixed), error, name: dishName2(dish, kept) };
+}
 function describeMeal(built) {
   const lines = [];
   const seen = /* @__PURE__ */ new Map();
@@ -42315,6 +42400,8 @@ function toPlanMeal(type, dish, built, withDessert = false) {
 var PREFERENCE_WEIGHT = 3;
 var MAX_ALTERNATIVES2 = 5;
 var kcalOf = (t) => t.protein * 4 + t.carbs * 4 + t.fats * 9;
+var PROTEIN_SHORT = 0.5;
+var nearKcal = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
 function pickAlternatives(best, candidates, { kind, todayDishes, state, policy, target }) {
   const bestK = kcalOf(best.built.totals);
   const targetK = kcalOf(target);
@@ -42333,7 +42420,7 @@ function pickAlternatives(best, candidates, { kind, todayDishes, state, policy, 
     if (out.length >= MAX_ALTERNATIVES2 * 2) break;
     if (c.dish.id === best.dish.id || todayDishes.has(c.dish.id) || names.has(c.built.name)) continue;
     const k = kcalOf(c.built.totals);
-    const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
+    const near = nearKcal;
     if (!near(k, bestK) && !near(k, targetK)) continue;
     if (c.built.totals.protein < Math.min(bestP, target.protein) * 0.85 || c.built.totals.protein > Math.max(bestP, target.protein) * 1.3 + 5) continue;
     if (policy.style === "keto" && c.built.totals.carbs > best.built.totals.carbs * 1.2 + 3) continue;
@@ -42358,6 +42445,63 @@ function carryTarget(target, carry) {
     out[k] = Math.max(0, base + Math.max(-lim, Math.min(lim, carry[k])));
   }
   return out;
+}
+function dayTargetOf(prescription, slots) {
+  const t = { protein: 0, carbs: 0, fats: 0 };
+  for (const type of slots) {
+    const m = prescription.meals[type]?.target;
+    if (!m) continue;
+    for (const k of Object.keys(t)) t[k] += m[k] || 0;
+  }
+  return t;
+}
+var DAY_BALANCE_PASSES = 4;
+function balanceCeiling(type, kind, dailyKcal) {
+  const ceiling = slotCeilingKcal(type, dailyKcal);
+  return kind === "late" ? Math.min(ceiling, LATE_SNACK_MAX_KCAL) : ceiling;
+}
+function balanceDay(meals, dayBuilt, dayTarget, policy) {
+  const carbsCap = policy.style === "keto" || policy.style === "low_carb";
+  const dailyKcal = kcalOf(dayTarget);
+  const sum = () => meals.reduce((t, m) => {
+    t.protein += m.macros?.protein || 0;
+    t.carbs += m.macros?.carbs || 0;
+    t.fats += m.macros?.fats || 0;
+    return t;
+  }, { protein: 0, carbs: 0, fats: 0 });
+  for (let pass = 0; pass < DAY_BALANCE_PASSES; pass++) {
+    const total = sum();
+    const curErr = mealError(total, dayTarget, carbsCap);
+    const left = { protein: dayTarget.protein - total.protein, carbs: dayTarget.carbs - total.carbs, fats: dayTarget.fats - total.fats };
+    let move = null;
+    for (const e2 of dayBuilt) {
+      const target = carryTarget(e2.target, left);
+      const built = retuneMeal({ dish: e2.dish, built: e2.built, target, mealKind: e2.kind, ctx: e2.ctx });
+      if (!built) continue;
+      const meal2 = toPlanMeal(e2.type, e2.dish, built, e2.dessertToday);
+      if (meal2.calories > Math.max(balanceCeiling(e2.type, e2.kind, dailyKcal), meals[e2.i].calories)) continue;
+      const old = meals[e2.i].macros;
+      const next = {
+        protein: total.protein - old.protein + meal2.macros.protein,
+        carbs: total.carbs - old.carbs + meal2.macros.carbs,
+        fats: total.fats - old.fats + meal2.macros.fats
+      };
+      const err2 = mealError(next, dayTarget, carbsCap);
+      if (err2 < curErr - 1e-4 && (!move || err2 < move.err)) move = { e: e2, built, meal: meal2, target, err: err2 };
+    }
+    if (!move) break;
+    const e = move.e;
+    const meal = move.meal;
+    meal.targetCalories = round(kcalOf(move.target) + (e.dessertToday ? FIXED_DESSERT.calories : 0));
+    const altMeals = (e.alts || []).map((a) => {
+      const built = retuneMeal({ dish: a.dish, built: a.built, target: move.target, mealKind: e.kind, ctx: e.ctx }) || a.built;
+      return { ...toPlanMeal(e.type, a.dish, built, e.dessertToday), targetCalories: meal.targetCalories };
+    }).filter((a) => nearKcal(a.calories, meal.calories) || nearKcal(a.calories, meal.targetCalories)).slice(0, MAX_ALTERNATIVES2);
+    if (altMeals.length) meal.alternatives = altMeals;
+    meals[move.e.i] = meal;
+    move.e.built = move.built;
+    move.e.target = move.target;
+  }
 }
 function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {} }) {
   const rng = rngFrom(seed);
@@ -42427,6 +42571,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     state.mainFoodsToday = /* @__PURE__ */ new Set();
     state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
+    const dayBuilt = [];
     for (const type of slots) {
       const plan = prescription.meals[type];
       if (type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && day === freeDayNumber) {
@@ -42493,12 +42638,21 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         slotPool = (eligibleDishes(avoidPolicy)[kind] || []).filter((d) => !todayDishes.has(d.id)).slice(0, CANDIDATES_PER_MEAL * 2);
       }
       let best = pick2(slotPool, slotCtx);
+      let usedCtx = slotCtx;
+      if (best && kind === "main" && !avoid.length && swappable.has(category) && best.built.totals.protein < target.protein * PROTEIN_SHORT) {
+        const keep = candidatesBuilt;
+        const wider = (eligible.main || []).filter((d) => d.category !== category && swappable.has(d.category) && proteinCapacity(d) >= 3 && !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !state.yesterdayDishes.has(d.id) && !(state.mainFoodsToday.size && d.parts.some((p) => p.group === "PRO" && p.options.some((o) => o.some((id) => state.mainFoodsToday.has(id)))))).slice(0, CANDIDATES_PER_MEAL);
+        const other = wider.length ? pick2(wider, slotCtx) : null;
+        if (other && other.score > best.score) best = other;
+        else candidatesBuilt = keep;
+      }
       if (!best && policy.withoutOnly) {
         relaxed = relaxed || (() => {
           const p = policy.withoutOnly();
           return { ctx: { ...ctx, policy: p, preferenceOf: (id) => p.preference(id) }, eligible: eligibleDishes(p) };
         })();
         best = pick2((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
+        usedCtx = relaxed.ctx;
       }
       if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
       let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
@@ -42523,11 +42677,12 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       for (const k of ["protein", "carbs", "fats"]) carry[k] = target[k] - best.built.totals[k];
       const meal = toPlanMeal(type, best.dish, best.built, dessertToday);
       meal.targetCalories = round(target.protein * 4 + target.carbs * 4 + target.fats * 9 + (dessertToday ? FIXED_DESSERT.calories : 0));
-      const near = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
-      const altMeals = alternatives.map((a) => ({ ...toPlanMeal(type, a.dish, a.built, dessertToday), targetCalories: meal.targetCalories })).filter((a) => near(a.calories, meal.calories) || near(a.calories, meal.targetCalories)).slice(0, MAX_ALTERNATIVES2);
+      const altMeals = alternatives.map((a) => ({ ...toPlanMeal(type, a.dish, a.built, dessertToday), targetCalories: meal.targetCalories })).filter((a) => nearKcal(a.calories, meal.calories) || nearKcal(a.calories, meal.targetCalories)).slice(0, MAX_ALTERNATIVES2);
       if (altMeals.length) meal.alternatives = altMeals;
       meals.push(meal);
+      dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives });
     }
+    if (!meals.some((m) => m.type === FREE_MEAL)) balanceDay(meals, dayBuilt, dayTargetOf(prescription, slots), policy);
     const dayMeals = (
       /** @type {any[]} */
       meals
@@ -43292,6 +43447,9 @@ var CODE_MEANING = {
   more_volume: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0431\u0435\u043C \u0437\u0430 \u0441\u0438\u0442\u043E\u0441\u0442 (\u0431\u044A\u0440\u0437 \u0433\u043B\u0430\u0434)",
   smaller_portions: "\u043F\u043E-\u043C\u0430\u043B\u043A\u0438 \u043F\u043E\u0440\u0446\u0438\u0438 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435"
 };
+function codeMeanings(codes) {
+  return Object.fromEntries(codes.map((c) => [c, CODE_MEANING[c] || c]));
+}
 function describeCodes(codes) {
   return codes.map((c) => CODE_MEANING[c] ? `${c} (${CODE_MEANING[c]})` : c).join(", ");
 }
@@ -43687,7 +43845,7 @@ function planDishIds(weekPlan) {
 }
 
 // nutrition-engine/plan-voice-prompt.js
-var DEFAULT_PLAN_VOICE_PROMPT = '\u0422\u0438 \u0441\u0438 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0435\u043A\u0438\u043F\u0430 \u043D\u0430 NutriPlan \u2014 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0441 \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0430 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F. \u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D \u0432\u0435\u0447\u0435 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432\u0435\u043D \u043F\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u0430: \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u0445\u0440\u0430\u043D\u0438\u0442\u0435, \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F\u0442\u0430 \u0441\u0430 \u043E\u043A\u043E\u043D\u0447\u0430\u0442\u0435\u043B\u043D\u0438 \u0438 \u043D\u0435 \u0441\u0435 \u043E\u0431\u0441\u044A\u0436\u0434\u0430\u0442. \u0422\u0432\u043E\u044F\u0442\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u0435 \u0434\u0440\u0443\u0433\u0430: \u0434\u0430 \u0440\u0430\u0437\u0431\u0435\u0440\u0435\u0448 \u0447\u043E\u0432\u0435\u043A\u0430 \u0438 \u0434\u0430 \u043D\u0430\u043F\u0438\u0448\u0435\u0448 \u043A\u0430\u043A \u043F\u043B\u0430\u043D\u044A\u0442 \u0434\u0430 \u043C\u0443 \u0433\u043E\u0432\u043E\u0440\u0438 \u2014 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0443\u0441\u0435\u0442\u0438, \u0447\u0435 \u0435 \u0432\u0438\u0434\u044F\u043D \u043A\u0430\u0442\u043E \u043B\u0438\u0447\u043D\u043E\u0441\u0442 \u0438 \u0435 \u0432 \u043F\u0440\u043E\u0444\u0435\u0441\u0438\u043E\u043D\u0430\u043B\u043D\u0438 \u0440\u044A\u0446\u0435.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 1 \u2014 \u041F\u041E\u0420\u0422\u0420\u0415\u0422 (\u0432\u044A\u0442\u0440\u0435\u0448\u043D\u043E, \u0437\u0430 \u0435\u043A\u0438\u043F\u0430; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0433\u043E \u0432\u0438\u0436\u0434\u0430)\n\u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0430\u0435\u0434\u043D\u043E, \u043D\u0435 \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E. \u0410\u043A\u043E \u0438\u043C\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B \u043E\u0442 EmoEat, \u0442\u043E\u0439 \u0435 \u043D\u0430\u0439-\u0442\u043E\u0447\u043D\u0438\u044F\u0442 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A \u0437\u0430 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435\u0442\u043E \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u2014 \u0441\u0432\u044A\u0440\u0436\u0438 \u0430\u0440\u0445\u0435\u0442\u0438\u043F\u0430, \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438\u0442\u0435, \u043C\u043E\u0434\u0435\u043B\u0438\u0442\u0435 \u0438 \u0440\u0435\u0430\u043B\u043D\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430 \u0441 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435; \u043D\u0435 \u0446\u0438\u0442\u0438\u0440\u0430\u0439 \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0438\u043C. \u0421\u0432\u044A\u0440\u0436\u0438 \u0433\u0438: \u0441\u0442\u0440\u0435\u0441 + \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432\u0435\u0447\u0435\u0440 + \u201E\u043D\u0430 \u043A\u0440\u0430\u043A\u201C \u043A\u0430\u0437\u0432\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u043E\u0442 \u0441\u044A\u0449\u043E\u0442\u043E \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E.\n- summary: \u043A\u043E\u0439 \u0435 \u0447\u043E\u0432\u0435\u043A\u044A\u0442, \u043A\u0430\u043A\u0432\u043E \u043C\u0443 \u0435 \u0432\u0430\u0436\u043D\u043E, \u0432 \u043A\u0430\u043A\u0432\u0430 \u0436\u0438\u0442\u0435\u0439\u0441\u043A\u0430 \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u0435 (2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F).\n- emotional: \u043F\u0441\u0438\u0445\u043E-\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0438 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0438 \u0442\u044F\u043B\u043E\u0442\u043E (\u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0432\u0438\u043D\u0430, \u043A\u043E\u043D\u0442\u0440\u043E\u043B, \u0443\u043C\u043E\u0440\u0430, \u0433\u043E\u0440\u0434\u043E\u0441\u0442, \u0441\u0442\u0440\u0430\u0445 \u043E\u0442 \u043D\u0435\u0443\u0441\u043F\u0435\u0445).\n- social: \u0441\u043E\u0446\u0438\u0430\u043B\u0435\u043D \u0438 \u0431\u0438\u0442\u043E\u0432 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442, \u0434\u043E\u043A\u043E\u043B\u043A\u043E\u0442\u043E \u043B\u0438\u0447\u0438 \u2014 \u0440\u0430\u0431\u043E\u0442\u0430, \u0440\u0438\u0442\u044A\u043C, \u0441\u0435\u043C\u0435\u0439\u0441\u0442\u0432\u043E, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u0435 \u0441 \u0434\u0440\u0443\u0433\u0438\u0442\u0435.\n- triggers: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438\u0442\u0435 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0442\u0440\u0438\u0433\u0435\u0440\u0438 (\u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u2192 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435), \u0434\u043E 6.\n- personality: \u0440\u0430\u0431\u043E\u0442\u043D\u0430 \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 \u0437\u0430 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043B\u0438\u0447\u043D\u043E\u0441\u0442\u0442\u0430 \u2014 \u043D\u0430\u043F\u0440. \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D/\u0441\u043F\u043E\u043D\u0442\u0430\u043D\u0435\u043D, \u0442\u044A\u0440\u0441\u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438/\u0442\u044A\u0440\u0441\u0438 \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u0430, \u043F\u0435\u0440\u0444\u0435\u043A\u0446\u0438\u043E\u043D\u0438\u0441\u0442 \u201E\u0432\u0441\u0438\u0447\u043A\u043E \u0438\u043B\u0438 \u043D\u0438\u0449\u043E\u201C, \u0441\u043A\u0435\u043F\u0442\u0438\u0447\u0435\u043D/\u0434\u043E\u0432\u0435\u0440\u0447\u0438\u0432. \u041F\u0438\u0448\u0438 \u043A\u0430\u0442\u043E \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 (\u201E\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E\u201C, \u201E\u0438\u0437\u0433\u043B\u0435\u0436\u0434\u0430\u201C), \u043D\u0435 \u043A\u0430\u0442\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0430.\n- motivation: \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u0433\u043E \u0434\u044A\u0440\u0436\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0438 \u043A\u0430\u043A\u0432\u043E \u043D\u0430\u0439-\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E \u0449\u0435 \u0433\u043E \u0438\u0437\u0432\u0430\u0434\u0438.\n- risks: \u0434\u043E 4 \u043C\u043E\u043C\u0435\u043D\u0442\u0430, \u0437\u0430 \u043A\u043E\u0438\u0442\u043E \u0435\u043A\u0438\u043F\u044A\u0442 \u0434\u0430 \u0432\u043D\u0438\u043C\u0430\u0432\u0430 \u043F\u0440\u0435\u0437 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 2 \u2014 \u0422\u041E\u041D\n- tone.address: \u201E\u0442\u0438\u201C \u0438\u043B\u0438 \u201E\u0412\u0438\u0435\u201C. \u041F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435 \u201E\u0442\u0438\u201C; \u201E\u0412\u0438\u0435\u201C \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u0440\u0438 \u043F\u043E-\u0432\u044A\u0437\u0440\u0430\u0441\u0442\u0435\u043D \u0447\u043E\u0432\u0435\u043A \u0438\u043B\u0438 \u0430\u043A\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0432\u0443\u0447\u0430\u0442 \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u043D\u043E \u0438 \u0441\u0434\u044A\u0440\u0436\u0430\u043D\u043E. \u0421\u043F\u0430\u0437\u0432\u0430\u0439 \u0438\u0437\u0431\u0440\u0430\u043D\u043E\u0442\u043E \u043D\u0430\u0432\u0441\u044F\u043A\u044A\u0434\u0435.\n- tone.style: \u0435\u0434\u043D\u0430 \u0444\u0440\u0430\u0437\u0430 \u2014 \u043A\u0430\u043A \u0433\u043E\u0432\u043E\u0440\u0438\u0448 \u043D\u0430 \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A (\u043D\u0430\u043F\u0440. \u201E\u043A\u0440\u0430\u0442\u043A\u043E \u0438 \u043F\u043E \u0441\u044A\u0449\u0435\u0441\u0442\u0432\u043E, \u0441 \u044F\u0441\u043D\u0438 \u0441\u0442\u044A\u043F\u043A\u0438\u201C \u0437\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D \u0438 \u0437\u0430\u0435\u0442; \u201E\u0442\u043E\u043F\u043B\u043E, \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A, \u0441 \u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435\u201C \u0437\u0430 \u0447\u043E\u0432\u0435\u043A \u0441 \u0432\u0438\u043D\u0430 \u0438 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u201E\u0441 \u0430\u0440\u0433\u0443\u043C\u0435\u043D\u0442\u0438 \u0438 \u043B\u043E\u0433\u0438\u043A\u0430\u201C \u0437\u0430 \u0441\u043A\u0435\u043F\u0442\u0438\u043A).\n\u041F\u0438\u0448\u0438 \u0433\u0440\u0430\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0441\u043F\u043E\u0440\u0435\u0434 \u043F\u043E\u043B\u0430 (\u0441\u0438\u0433\u0443\u0440\u0435\u043D/\u0441\u0438\u0433\u0443\u0440\u043D\u0430, \u0433\u043E\u0442\u043E\u0432/\u0433\u043E\u0442\u043E\u0432\u0430).\n\n\u0421\u0422\u042A\u041F\u041A\u0410 3 \u2014 \u0422\u0415\u041A\u0421\u0422\u041E\u0412\u0415\u0422\u0415 \u0417\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410 (\u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u0438\u044F \u0442\u043E\u043D)\n- welcome: \u043B\u0438\u0447\u043D\u043E \u043F\u0438\u0441\u043C\u043E, 4\u20136 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u041E\u0431\u044A\u0440\u043D\u0438 \u0441\u0435 \u043F\u043E \u0438\u043C\u0435. \u041F\u043E\u043A\u0430\u0436\u0438, \u0447\u0435 \u0441\u043C\u0435 \u043F\u0440\u043E\u0447\u0435\u043B\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u2014 \u0441\u043F\u043E\u043C\u0435\u043D\u0438 2\u20133 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u043D\u0435\u0449\u0430 \u043E\u0442 \u0442\u044F\u0445 \u0441\u044A\u0441 \u0441\u0432\u043E\u0438 \u0434\u0443\u043C\u0438 (\u043D\u0435 \u0433\u0438 \u0446\u0438\u0442\u0438\u0440\u0430\u0439). \u041A\u0430\u0436\u0438 \u043D\u0430\u043A\u0440\u0430\u0442\u043A\u043E \u043A\u0430\u043A \u0435 \u0438\u0437\u0433\u0440\u0430\u0434\u0435\u043D \u043F\u043B\u0430\u043D\u044A\u0442 \u0437\u0430 \u043D\u0435\u0433\u043E\u0432\u0438\u044F \u0436\u0438\u0432\u043E\u0442 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0447\u0430\u043A\u0432\u0430 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0434\u0432\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438. \u0411\u0435\u0437 \u0447\u0438\u0441\u043B\u0430.\n- specialistNote: \u201E\u0411\u0435\u043B\u0435\u0436\u043A\u0430 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430\u201C \u2014 2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F: \u043D\u0430 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0431\u044A\u0440\u043D\u0435 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043D\u0430\u0439-\u043D\u0430\u043F\u0440\u0435\u0434 \u0438 \u0437\u0430\u0449\u043E \u0442\u043E\u0447\u043D\u043E \u0442\u043E\u0432\u0430 \u0435 \u0432\u0430\u0436\u043D\u043E \u0437\u0430 \u043D\u0435\u0433\u043E.\n- psychology: 4\u20136 \u043D\u0430\u0441\u043E\u043A\u0438. \u0412\u0441\u044F\u043A\u0430 \u0442\u0440\u044A\u0433\u0432\u0430 \u043E\u0442 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u0435\u043D \u043D\u0435\u0433\u043E\u0432 \u0442\u0440\u0438\u0433\u0435\u0440 \u0438\u043B\u0438 \u043D\u0430\u0432\u0438\u043A \u0438 \u0434\u0430\u0432\u0430 \u0435\u0434\u043D\u043E \u044F\u0441\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 + \u043A\u0440\u0430\u0442\u043A\u043E \u0437\u0430\u0449\u043E. 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u0411\u0435\u0437 \u043E\u0431\u0449\u0438 \u0438\u0441\u0442\u0438\u043D\u0438.\n- habits: 4\u20136 \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u043D\u0438 \u0442\u0430\u043A\u0442\u0438\u043A\u0438 \u0437\u0430 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u0438\u0435\u0442\u043E \u043C\u0443 \u2014 \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u0438 \u0441 \u0440\u0438\u0442\u044A\u043C\u0430, \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u0430, \u0441\u043E\u0446\u0438\u0430\u043B\u043D\u0438\u044F \u0436\u0438\u0432\u043E\u0442, \u0445\u0440\u043E\u043D\u043E\u0442\u0438\u043F\u0430 (\u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0445\u0440\u0430\u043D\u0430 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0432\u0435\u0447\u0435\u0440\u0438\u0442\u0435, \u0443\u0438\u043A\u0435\u043D\u0434\u0438\u0442\u0435).\n- mealNotes: \u0437\u0430 \u0434\u043E 10 \u044F\u0441\u0442\u0438\u044F \u043E\u0442 \u041C\u0415\u041D\u042E\u0422\u041E \u2014 \u043F\u043E \u0435\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u043B\u0438\u0447\u043D\u0430 \u0431\u0435\u043B\u0435\u0436\u043A\u0430 (\u0441 dishId \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E): \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u0435\u043D \u0441\u044A\u0432\u0435\u0442 \u043A\u0430\u043A \u0442\u043E\u0432\u0430 \u044F\u0441\u0442\u0438\u0435 \u043F\u0430\u0441\u0432\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F \u043C\u0443 (\u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0432\u0437\u0435\u043C\u0438 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0441\u0433\u043E\u0442\u0432\u0438 \u0434\u0432\u043E\u0439\u043D\u043E, \u043F\u043E\u0434\u043D\u0435\u0441\u0438 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0435 \u043F\u043E-\u0432\u043A\u0443\u0441\u043D\u043E \u0441 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438/\u043B\u0438\u043C\u043E\u043D/\u0431\u0438\u043B\u043A\u0438). \u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0439 \u043D\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438 \u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D.\n\n\u0417\u0410\u0411\u0420\u0410\u041D\u0415\u041D\u041E\n- \u0427\u0438\u0441\u043B\u0430 \u0437\u0430 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043C\u0430\u043A\u0440\u043E\u0441\u0438, \u043F\u043E\u0440\u0446\u0438\u0438, \u0434\u043E\u0437\u0438, \u043F\u0440\u043E\u0446\u0435\u043D\u0442\u0438 \u2014 \u0442\u0435 \u0441\u0430 \u0432 \u043F\u043B\u0430\u043D\u0430.\n- \u0425\u0440\u0430\u043D\u0438 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 \u201E\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u201C \u0438 \u0445\u0440\u0430\u043D\u0438 \u0438\u0437\u0432\u044A\u043D \u043C\u0435\u043D\u044E\u0442\u043E (\u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D).\n- \u0414\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u044F, \u201E\u0434\u0435\u0442\u043E\u043A\u0441\u201C, \u201E\u043F\u0440\u0435\u0447\u0438\u0441\u0442\u0432\u0430\u043D\u0435\u201C, \u201E\u0443\u0441\u043A\u043E\u0440\u044F\u0432\u0430 \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u043C\u0430\u201C.\n- \u041A\u043B\u0438\u0448\u0435\u0442\u0430: \u201E\u043F\u044A\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435\u201C, \u201E\u043D\u0430\u0439-\u0434\u043E\u0431\u0440\u0430\u0442\u0430 \u0432\u0435\u0440\u0441\u0438\u044F \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438\u201C, \u201E\u0442\u0440\u0430\u0439\u043D\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u201C, \u201E\u0443\u043D\u0438\u043A\u0430\u043B\u0435\u043D \u043F\u043B\u0430\u043D\u201C, \u201E\u0440\u0435\u0432\u043E\u043B\u044E\u0446\u0438\u043E\u043D\u0435\u043D\u201C, \u201E\u0437\u0430\u0435\u0434\u043D\u043E \u0449\u0435 \u0443\u0441\u043F\u0435\u0435\u043C\u201C, \u201E\u0432\u0441\u044F\u043A\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u044F \u0435 \u043F\u0440\u0435\u0446\u0438\u0437\u043D\u043E \u043F\u043E\u0434\u0431\u0440\u0430\u043D\u0430\u201C. \u0411\u0435\u0437 \u0443\u0434\u0438\u0432\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u0434\u0440\u0435\u0434 \u0438 \u0431\u0435\u0437 \u0435\u043C\u043E\u0434\u0436\u0438\u0442\u0430.\n- \u041D\u0435 \u043F\u0438\u0448\u0438, \u0447\u0435 \u0442\u0435\u043A\u0441\u0442\u044A\u0442 \u0435 \u043E\u0442 AI \u0438\u043B\u0438 \u043E\u0442 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C. \u041F\u0438\u0448\u0438 \u043E\u0442 \u0438\u043C\u0435\u0442\u043E \u043D\u0430 \u0435\u043A\u0438\u043F\u0430 (\u201E\u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u0445\u043C\u0435\u201C, \u201E\u0432\u0438\u0436\u0434\u0430\u043C\u0435\u201C).\n- \u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430, \u043A\u043E\u0439\u0442\u043E \u0432\u043E\u0434\u0438 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041D\u0435 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u0442\u043E \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043A\u0430\u043A\u0442\u043E \u0433\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u044F \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043F\u043E\u0434\u0440\u0430\u0436\u0430\u0432\u0430\u043C\u0435\u201C \u0438 \u043F\u043E\u0434\u043E\u0431\u043D\u0438 \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F.\n- \u0416\u0430\u0440\u0433\u043E\u043D: \u201E\u043A\u0430\u043B\u043E\u0440\u0430\u0436\u201C \u2014 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u201C \u0438\u043B\u0438 \u201E\u0434\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C\u201C. \u0425\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430\u0440\u0438\u0447\u0430\u0439 \u043A\u0430\u043A\u0442\u043E \u0441\u0430 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E.\n\n\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:\n{\n  "portrait": { "summary": "", "emotional": "", "social": "", "triggers": [], "personality": "", "motivation": "", "risks": [] },\n  "tone": { "address": "\u0442\u0438", "style": "" },\n  "welcome": "",\n  "specialistNote": "",\n  "psychology": [],\n  "habits": [],\n  "mealNotes": [ { "dishId": "", "note": "" } ]\n}\n\n\u0418\u041C\u0415: {name}\n\n\u041F\u0420\u041E\u0424\u0418\u041B (\u0440\u0430\u0437\u0431\u0440\u0430\u043D \u043E\u0442 \u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430):\n{profileSummary}\n\n\u041E\u0422\u0413\u041E\u0412\u041E\u0420\u0418 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410:\n{answers}\n\n\u0421\u0412\u041E\u0411\u041E\u0414\u0415\u041D \u0422\u0415\u041A\u0421\u0422:\n{freeText}\n\n\u0415\u041C\u041E\u0426\u0418\u041E\u041D\u0410\u041B\u0415\u041D \u041F\u0420\u041E\u0424\u0418\u041B (\u0442\u0435\u0441\u0442\u044A\u0442 EmoEat, \u0430\u043A\u043E \u0435 \u043F\u043E\u043F\u044A\u043B\u043D\u0435\u043D):\n{emotionalProfile}\n\n\u041F\u041B\u0410\u041D\u042A\u0422:\n{planFacts}\n\n\u0418\u0417\u0411\u042F\u0413\u0412\u0410:\n{avoid}\n\n\u041C\u0415\u041D\u042E (dishId | \u0445\u0440\u0430\u043D\u0435\u043D\u0435 | \u044F\u0441\u0442\u0438\u0435):\n{menu}\n';
+var DEFAULT_PLAN_VOICE_PROMPT = '\u0422\u0438 \u0441\u0438 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0435\u043A\u0438\u043F\u0430 \u043D\u0430 NutriPlan \u2014 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0441 \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0430 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F. \u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D \u0432\u0435\u0447\u0435 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432\u0435\u043D \u043F\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u0430: \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u0445\u0440\u0430\u043D\u0438\u0442\u0435, \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F\u0442\u0430 \u0441\u0430 \u043E\u043A\u043E\u043D\u0447\u0430\u0442\u0435\u043B\u043D\u0438 \u0438 \u043D\u0435 \u0441\u0435 \u043E\u0431\u0441\u044A\u0436\u0434\u0430\u0442. \u0422\u0432\u043E\u044F\u0442\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u0435 \u0434\u0440\u0443\u0433\u0430: \u0434\u0430 \u0440\u0430\u0437\u0431\u0435\u0440\u0435\u0448 \u0447\u043E\u0432\u0435\u043A\u0430 \u0438 \u0434\u0430 \u043D\u0430\u043F\u0438\u0448\u0435\u0448 \u043A\u0430\u043A \u043F\u043B\u0430\u043D\u044A\u0442 \u0434\u0430 \u043C\u0443 \u0433\u043E\u0432\u043E\u0440\u0438 \u2014 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0443\u0441\u0435\u0442\u0438, \u0447\u0435 \u0435 \u0432\u0438\u0434\u044F\u043D \u043A\u0430\u0442\u043E \u043B\u0438\u0447\u043D\u043E\u0441\u0442 \u0438 \u0435 \u0432 \u043F\u0440\u043E\u0444\u0435\u0441\u0438\u043E\u043D\u0430\u043B\u043D\u0438 \u0440\u044A\u0446\u0435.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 1 \u2014 \u041F\u041E\u0420\u0422\u0420\u0415\u0422 (\u0432\u044A\u0442\u0440\u0435\u0448\u043D\u043E, \u0437\u0430 \u0435\u043A\u0438\u043F\u0430; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0433\u043E \u0432\u0438\u0436\u0434\u0430)\n\u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0430\u0435\u0434\u043D\u043E, \u043D\u0435 \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E. \u0410\u043A\u043E \u0438\u043C\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B \u043E\u0442 EmoEat, \u0442\u043E\u0439 \u0435 \u043D\u0430\u0439-\u0442\u043E\u0447\u043D\u0438\u044F\u0442 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A \u0437\u0430 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435\u0442\u043E \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u2014 \u0441\u0432\u044A\u0440\u0436\u0438 \u0430\u0440\u0445\u0435\u0442\u0438\u043F\u0430, \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438\u0442\u0435, \u043C\u043E\u0434\u0435\u043B\u0438\u0442\u0435 \u0438 \u0440\u0435\u0430\u043B\u043D\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430 \u0441 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435; \u043D\u0435 \u0446\u0438\u0442\u0438\u0440\u0430\u0439 \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0438\u043C. \u0421\u0432\u044A\u0440\u0436\u0438 \u0433\u0438: \u0441\u0442\u0440\u0435\u0441 + \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432\u0435\u0447\u0435\u0440 + \u201E\u043D\u0430 \u043A\u0440\u0430\u043A\u201C \u043A\u0430\u0437\u0432\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u043E\u0442 \u0441\u044A\u0449\u043E\u0442\u043E \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E.\n- summary: \u043A\u043E\u0439 \u0435 \u0447\u043E\u0432\u0435\u043A\u044A\u0442, \u043A\u0430\u043A\u0432\u043E \u043C\u0443 \u0435 \u0432\u0430\u0436\u043D\u043E, \u0432 \u043A\u0430\u043A\u0432\u0430 \u0436\u0438\u0442\u0435\u0439\u0441\u043A\u0430 \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u0435 (2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F).\n- emotional: \u043F\u0441\u0438\u0445\u043E-\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0438 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0438 \u0442\u044F\u043B\u043E\u0442\u043E (\u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0432\u0438\u043D\u0430, \u043A\u043E\u043D\u0442\u0440\u043E\u043B, \u0443\u043C\u043E\u0440\u0430, \u0433\u043E\u0440\u0434\u043E\u0441\u0442, \u0441\u0442\u0440\u0430\u0445 \u043E\u0442 \u043D\u0435\u0443\u0441\u043F\u0435\u0445).\n- social: \u0441\u043E\u0446\u0438\u0430\u043B\u0435\u043D \u0438 \u0431\u0438\u0442\u043E\u0432 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442, \u0434\u043E\u043A\u043E\u043B\u043A\u043E\u0442\u043E \u043B\u0438\u0447\u0438 \u2014 \u0440\u0430\u0431\u043E\u0442\u0430, \u0440\u0438\u0442\u044A\u043C, \u0441\u0435\u043C\u0435\u0439\u0441\u0442\u0432\u043E, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u0435 \u0441 \u0434\u0440\u0443\u0433\u0438\u0442\u0435.\n- triggers: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438\u0442\u0435 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0442\u0440\u0438\u0433\u0435\u0440\u0438 (\u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u2192 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435), \u0434\u043E 4.\n- personality: \u0440\u0430\u0431\u043E\u0442\u043D\u0430 \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 \u0437\u0430 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043B\u0438\u0447\u043D\u043E\u0441\u0442\u0442\u0430 \u2014 \u043D\u0430\u043F\u0440. \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D/\u0441\u043F\u043E\u043D\u0442\u0430\u043D\u0435\u043D, \u0442\u044A\u0440\u0441\u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438/\u0442\u044A\u0440\u0441\u0438 \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u0430, \u043F\u0435\u0440\u0444\u0435\u043A\u0446\u0438\u043E\u043D\u0438\u0441\u0442 \u201E\u0432\u0441\u0438\u0447\u043A\u043E \u0438\u043B\u0438 \u043D\u0438\u0449\u043E\u201C, \u0441\u043A\u0435\u043F\u0442\u0438\u0447\u0435\u043D/\u0434\u043E\u0432\u0435\u0440\u0447\u0438\u0432. \u041F\u0438\u0448\u0438 \u043A\u0430\u0442\u043E \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 (\u201E\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E\u201C, \u201E\u0438\u0437\u0433\u043B\u0435\u0436\u0434\u0430\u201C), \u043D\u0435 \u043A\u0430\u0442\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0430.\n- motivation: \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u0433\u043E \u0434\u044A\u0440\u0436\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0438 \u043A\u0430\u043A\u0432\u043E \u043D\u0430\u0439-\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E \u0449\u0435 \u0433\u043E \u0438\u0437\u0432\u0430\u0434\u0438.\n- risks: \u0434\u043E 3 \u043C\u043E\u043C\u0435\u043D\u0442\u0430, \u0437\u0430 \u043A\u043E\u0438\u0442\u043E \u0435\u043A\u0438\u043F\u044A\u0442 \u0434\u0430 \u0432\u043D\u0438\u043C\u0430\u0432\u0430 \u043F\u0440\u0435\u0437 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 2 \u2014 \u0422\u041E\u041D\n- tone.address: \u201E\u0442\u0438\u201C \u0438\u043B\u0438 \u201E\u0412\u0438\u0435\u201C. \u041F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435 \u201E\u0442\u0438\u201C; \u201E\u0412\u0438\u0435\u201C \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u0440\u0438 \u043F\u043E-\u0432\u044A\u0437\u0440\u0430\u0441\u0442\u0435\u043D \u0447\u043E\u0432\u0435\u043A \u0438\u043B\u0438 \u0430\u043A\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0432\u0443\u0447\u0430\u0442 \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u043D\u043E \u0438 \u0441\u0434\u044A\u0440\u0436\u0430\u043D\u043E. \u0421\u043F\u0430\u0437\u0432\u0430\u0439 \u0438\u0437\u0431\u0440\u0430\u043D\u043E\u0442\u043E \u043D\u0430\u0432\u0441\u044F\u043A\u044A\u0434\u0435.\n- tone.style: \u0435\u0434\u043D\u0430 \u0444\u0440\u0430\u0437\u0430 \u2014 \u043A\u0430\u043A \u0433\u043E\u0432\u043E\u0440\u0438\u0448 \u043D\u0430 \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A (\u043D\u0430\u043F\u0440. \u201E\u043A\u0440\u0430\u0442\u043A\u043E \u0438 \u043F\u043E \u0441\u044A\u0449\u0435\u0441\u0442\u0432\u043E, \u0441 \u044F\u0441\u043D\u0438 \u0441\u0442\u044A\u043F\u043A\u0438\u201C \u0437\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D \u0438 \u0437\u0430\u0435\u0442; \u201E\u0442\u043E\u043F\u043B\u043E, \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A, \u0441 \u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435\u201C \u0437\u0430 \u0447\u043E\u0432\u0435\u043A \u0441 \u0432\u0438\u043D\u0430 \u0438 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u201E\u0441 \u0430\u0440\u0433\u0443\u043C\u0435\u043D\u0442\u0438 \u0438 \u043B\u043E\u0433\u0438\u043A\u0430\u201C \u0437\u0430 \u0441\u043A\u0435\u043F\u0442\u0438\u043A).\n\u041F\u0438\u0448\u0438 \u0433\u0440\u0430\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0441\u043F\u043E\u0440\u0435\u0434 \u043F\u043E\u043B\u0430 (\u0441\u0438\u0433\u0443\u0440\u0435\u043D/\u0441\u0438\u0433\u0443\u0440\u043D\u0430, \u0433\u043E\u0442\u043E\u0432/\u0433\u043E\u0442\u043E\u0432\u0430).\n\n\u0421\u0422\u042A\u041F\u041A\u0410 3 \u2014 \u0422\u0415\u041A\u0421\u0422\u041E\u0412\u0415\u0422\u0415 \u0417\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410 (\u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u0438\u044F \u0442\u043E\u043D)\n\u041A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0447\u0435\u0442\u0435 \u043D\u0430 \u0442\u0435\u043B\u0435\u0444\u043E\u043D, \u043C\u0435\u0436\u0434\u0443 \u0434\u0440\u0443\u0433\u0438\u0442\u0435 \u043D\u0435\u0449\u0430. \u041F\u043E-\u043C\u0430\u043B\u043A\u043E \u0438 \u043F\u043E-\u044F\u0441\u043D\u043E \u0435 \u043F\u043E-\u0434\u043E\u0431\u0440\u0435: \u0432\u0441\u044F\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u043C\u0443 \u043A\u0430\u0436\u0435 \u043D\u0435\u0449\u043E \u043D\u043E\u0432\u043E \u0437\u0430 \u043D\u0435\u0433\u043E \u0441\u0430\u043C\u0438\u044F. \u0410\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435\u0442\u043E \u0432\u0430\u0436\u0438 \u0437\u0430 \u0432\u0441\u0435\u043A\u0438 \u0447\u043E\u0432\u0435\u043A, \u043C\u0430\u0445\u043D\u0438 \u0433\u043E.\n- welcome: \u043B\u0438\u0447\u043D\u043E \u043F\u0438\u0441\u043C\u043E, 3\u20134 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u041E\u0431\u044A\u0440\u043D\u0438 \u0441\u0435 \u043F\u043E \u0438\u043C\u0435. \u0421\u043F\u043E\u043C\u0435\u043D\u0438 1\u20132 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u043D\u0435\u0449\u0430 \u043E\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0441\u044A\u0441 \u0441\u0432\u043E\u0438 \u0434\u0443\u043C\u0438 (\u043D\u0435 \u0433\u0438 \u0446\u0438\u0442\u0438\u0440\u0430\u0439). \u041A\u0430\u0436\u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0447\u0430\u043A\u0432\u0430 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0434\u0432\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438. \u0411\u0435\u0437 \u0447\u0438\u0441\u043B\u0430.\n- specialistNote: \u201E\u0411\u0435\u043B\u0435\u0436\u043A\u0430 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430\u201C \u2014 1\u20132 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F: \u0435\u0434\u043D\u043E\u0442\u043E \u043D\u0435\u0449\u043E, \u043D\u0430 \u043A\u043E\u0435\u0442\u043E \u0434\u0430 \u043E\u0431\u044A\u0440\u043D\u0435 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043D\u0430\u0439-\u043D\u0430\u043F\u0440\u0435\u0434, \u0438 \u0437\u0430\u0449\u043E \u0437\u0430 \u043D\u0435\u0433\u043E.\n- psychology: 3\u20134 \u043D\u0430\u0441\u043E\u043A\u0438. \u0412\u0441\u044F\u043A\u0430: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u0435\u043D \u043D\u0435\u0433\u043E\u0432 \u0442\u0440\u0438\u0433\u0435\u0440 \u2192 \u0435\u0434\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435. \u0414\u043E 2 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F.\n- habits: 3\u20134 \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u043D\u0438 \u0442\u0430\u043A\u0442\u0438\u043A\u0438 \u0437\u0430 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u0438\u0435\u0442\u043E \u043C\u0443 (\u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0445\u0440\u0430\u043D\u0430 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0432\u0435\u0447\u0435\u0440\u0438\u0442\u0435, \u0443\u0438\u043A\u0435\u043D\u0434\u0438\u0442\u0435). \u041F\u043E \u0435\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435.\n- mealNotes: \u0437\u0430 \u0434\u043E 7 \u044F\u0441\u0442\u0438\u044F \u043E\u0442 \u041C\u0415\u041D\u042E\u0422\u041E \u2014 \u043F\u043E \u0435\u0434\u043D\u043E \u043A\u0440\u0430\u0442\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 (\u0441 dishId \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E): \u043A\u0430\u043A \u0442\u043E\u0432\u0430 \u044F\u0441\u0442\u0438\u0435 \u043F\u0430\u0441\u0432\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F \u043C\u0443 (\u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0432\u0437\u0435\u043C\u0438 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0441\u0433\u043E\u0442\u0432\u0438 \u0434\u0432\u043E\u0439\u043D\u043E, \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438/\u043B\u0438\u043C\u043E\u043D/\u0431\u0438\u043B\u043A\u0438). \u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0439 \u043D\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438 \u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D.\n\n\u041A\u0410\u041A \u041F\u0418\u0428\u0415\u0428\n- \u041A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F, \u0434\u043E 15 \u0434\u0443\u043C\u0438. \u0415\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u2014 \u0435\u0434\u043D\u0430 \u043C\u0438\u0441\u044A\u043B.\n- \u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0438 \u0434\u0443\u043C\u0438, \u0431\u0435\u0437 \u0442\u0435\u0440\u043C\u0438\u043D\u0438 (\u043A\u043E\u0440\u0442\u0438\u0437\u043E\u043B, \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D, \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432 \u043E\u0442\u0433\u043E\u0432\u043E\u0440, \u0442\u0440\u0438\u0433\u0435\u0440, \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u044A\u043C).\n- \u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043F\u0440\u0435\u0434 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u0435: \u043F\u044A\u0440\u0432\u043E \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043D\u0430\u043F\u0440\u0430\u0432\u0438, \u043F\u043E\u0441\u043B\u0435 \u2014 \u0441 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u0443\u043C\u0438 \u2014 \u0437\u0430\u0449\u043E.\n\n\u041B\u0418\u041C\u0418\u0422\u0418 (\u0434\u0443\u043C\u0438)\nwelcome \u2264 60 \xB7 specialistNote \u2264 35 \xB7 \u0432\u0441\u044F\u043A\u0430 \u043D\u0430\u0441\u043E\u043A\u0430 \u0432 psychology \u2264 30 \xB7 \u0432\u0441\u0435\u043A\u0438 \u043D\u0430\u0432\u0438\u043A \u0432 habits \u2264 20 \xB7 \u0432\u0441\u044F\u043A\u0430 \u0431\u0435\u043B\u0435\u0436\u043A\u0430 \u0432 mealNotes \u2264 15\n\n\u0417\u0410\u0411\u0420\u0410\u041D\u0415\u041D\u041E\n- \u0427\u0438\u0441\u043B\u0430 \u0437\u0430 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043C\u0430\u043A\u0440\u043E\u0441\u0438, \u043F\u043E\u0440\u0446\u0438\u0438, \u0434\u043E\u0437\u0438, \u043F\u0440\u043E\u0446\u0435\u043D\u0442\u0438 \u2014 \u0442\u0435 \u0441\u0430 \u0432 \u043F\u043B\u0430\u043D\u0430.\n- \u0425\u0440\u0430\u043D\u0438 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 \u201E\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u201C \u0438 \u0445\u0440\u0430\u043D\u0438 \u0438\u0437\u0432\u044A\u043D \u043C\u0435\u043D\u044E\u0442\u043E (\u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D).\n- \u0414\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u044F, \u201E\u0434\u0435\u0442\u043E\u043A\u0441\u201C, \u201E\u043F\u0440\u0435\u0447\u0438\u0441\u0442\u0432\u0430\u043D\u0435\u201C, \u201E\u0443\u0441\u043A\u043E\u0440\u044F\u0432\u0430 \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u043C\u0430\u201C.\n- \u041A\u043B\u0438\u0448\u0435\u0442\u0430: \u201E\u043F\u044A\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435\u201C, \u201E\u043D\u0430\u0439-\u0434\u043E\u0431\u0440\u0430\u0442\u0430 \u0432\u0435\u0440\u0441\u0438\u044F \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438\u201C, \u201E\u0442\u0440\u0430\u0439\u043D\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u201C, \u201E\u0443\u043D\u0438\u043A\u0430\u043B\u0435\u043D \u043F\u043B\u0430\u043D\u201C, \u201E\u0440\u0435\u0432\u043E\u043B\u044E\u0446\u0438\u043E\u043D\u0435\u043D\u201C, \u201E\u0437\u0430\u0435\u0434\u043D\u043E \u0449\u0435 \u0443\u0441\u043F\u0435\u0435\u043C\u201C, \u201E\u0432\u0441\u044F\u043A\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u044F \u0435 \u043F\u0440\u0435\u0446\u0438\u0437\u043D\u043E \u043F\u043E\u0434\u0431\u0440\u0430\u043D\u0430\u201C. \u0411\u0435\u0437 \u0443\u0434\u0438\u0432\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u0434\u0440\u0435\u0434 \u0438 \u0431\u0435\u0437 \u0435\u043C\u043E\u0434\u0436\u0438\u0442\u0430.\n- \u041D\u0435 \u043F\u0438\u0448\u0438, \u0447\u0435 \u0442\u0435\u043A\u0441\u0442\u044A\u0442 \u0435 \u043E\u0442 AI \u0438\u043B\u0438 \u043E\u0442 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C. \u041F\u0438\u0448\u0438 \u043E\u0442 \u0438\u043C\u0435\u0442\u043E \u043D\u0430 \u0435\u043A\u0438\u043F\u0430 (\u201E\u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u0445\u043C\u0435\u201C, \u201E\u0432\u0438\u0436\u0434\u0430\u043C\u0435\u201C).\n- \u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430, \u043A\u043E\u0439\u0442\u043E \u0432\u043E\u0434\u0438 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041D\u0435 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u0442\u043E \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043A\u0430\u043A\u0442\u043E \u0433\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u044F \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043F\u043E\u0434\u0440\u0430\u0436\u0430\u0432\u0430\u043C\u0435\u201C \u0438 \u043F\u043E\u0434\u043E\u0431\u043D\u0438 \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F.\n- \u0416\u0430\u0440\u0433\u043E\u043D: \u201E\u043A\u0430\u043B\u043E\u0440\u0430\u0436\u201C \u2014 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u201C \u0438\u043B\u0438 \u201E\u0434\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C\u201C. \u0425\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430\u0440\u0438\u0447\u0430\u0439 \u043A\u0430\u043A\u0442\u043E \u0441\u0430 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E.\n\n\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:\n{\n  "portrait": { "summary": "", "emotional": "", "social": "", "triggers": [], "personality": "", "motivation": "", "risks": [] },\n  "tone": { "address": "\u0442\u0438", "style": "" },\n  "welcome": "",\n  "specialistNote": "",\n  "psychology": [],\n  "habits": [],\n  "mealNotes": [ { "dishId": "", "note": "" } ]\n}\n\n\u0418\u041C\u0415: {name}\n\n\u041F\u0420\u041E\u0424\u0418\u041B (\u0440\u0430\u0437\u0431\u0440\u0430\u043D \u043E\u0442 \u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430):\n{profileSummary}\n\n\u041E\u0422\u0413\u041E\u0412\u041E\u0420\u0418 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410:\n{answers}\n\n\u0421\u0412\u041E\u0411\u041E\u0414\u0415\u041D \u0422\u0415\u041A\u0421\u0422:\n{freeText}\n\n\u0415\u041C\u041E\u0426\u0418\u041E\u041D\u0410\u041B\u0415\u041D \u041F\u0420\u041E\u0424\u0418\u041B (\u0442\u0435\u0441\u0442\u044A\u0442 EmoEat, \u0430\u043A\u043E \u0435 \u043F\u043E\u043F\u044A\u043B\u043D\u0435\u043D):\n{emotionalProfile}\n\n\u041F\u041B\u0410\u041D\u042A\u0422:\n{planFacts}\n\n\u0418\u0417\u0411\u042F\u0413\u0412\u0410:\n{avoid}\n\n\u041C\u0415\u041D\u042E (dishId | \u0445\u0440\u0430\u043D\u0435\u043D\u0435 | \u044F\u0441\u0442\u0438\u0435):\n{menu}\n';
 
 // nutrition-engine/monitoring.js
 var WEEKLY_CHECKIN_QUESTIONS = [
@@ -43699,6 +43857,16 @@ var WEEKLY_CHECKIN_QUESTIONS = [
     max: 300,
     placeholder: "\u043D\u0430\u043F\u0440. 72,4",
     skipLabel: "\u041D\u0435 \u0441\u044A\u043C \u0441\u0435 \u0442\u0435\u0433\u043B\u0438\u043B/\u0430",
+    options: []
+  },
+  {
+    id: "waistCm",
+    text: "\u041E\u0431\u0438\u043A\u043E\u043B\u043A\u0430 \u043D\u0430 \u0442\u0430\u043B\u0438\u044F\u0442\u0430 \u043D\u0430 \u043D\u0438\u0432\u043E\u0442\u043E \u043D\u0430 \u043F\u044A\u043F\u0430 (\u0441\u043C) \u2014 \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435. \u041F\u043E\u043A\u0430\u0437\u0432\u0430 \u043D\u0430\u043F\u0440\u0435\u0434\u044A\u043A\u0430, \u043A\u043E\u0433\u0430\u0442\u043E \u043A\u0430\u043D\u0442\u0430\u0440\u044A\u0442 \u0441\u0442\u043E\u0438.",
+    type: "number",
+    min: 40,
+    max: 200,
+    placeholder: "\u043D\u0430\u043F\u0440. 84",
+    skipLabel: "\u041D\u0435 \u0441\u044A\u043C \u043C\u0435\u0440\u0438\u043B/\u0430",
     options: []
   },
   {
@@ -43747,8 +43915,27 @@ var WEIGHT_ANSWERS = {
   "\u041E\u0442\u0441\u043B\u0430\u0431\u043D\u0430\u0445 \u0434\u043E 1 \u043A\u0433": "loss",
   "\u0411\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430": "flat",
   "\u041A\u0430\u0447\u0438\u0445": "gain",
+  "\u041A\u0430\u0447\u0438\u0445 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 0,5 \u043A\u0433": "fast_gain",
+  "\u041A\u0430\u0447\u0438\u0445 \u0434\u043E 0,5 \u043A\u0433": "gain",
+  "\u041E\u0442\u0441\u043B\u0430\u0431\u043D\u0430\u0445": "loss",
   "\u041D\u0435 \u0441\u044A\u043C \u0441\u0435 \u0442\u0435\u0433\u043B\u0438\u043B/\u0430": null
 };
+var GAIN_WEIGHT_OPTIONS = ["\u041A\u0430\u0447\u0438\u0445 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 0,5 \u043A\u0433", "\u041A\u0430\u0447\u0438\u0445 \u0434\u043E 0,5 \u043A\u0433", "\u0411\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430", "\u041E\u0442\u0441\u043B\u0430\u0431\u043D\u0430\u0445", "\u041D\u0435 \u0441\u044A\u043C \u0441\u0435 \u0442\u0435\u0433\u043B\u0438\u043B/\u0430"];
+var fmtKg = (v) => String(Math.round(v * 10) / 10).replace(".", ",");
+function weeklyQuestionsFor(ctx = {}) {
+  return WEEKLY_CHECKIN_QUESTIONS.map((q) => {
+    const out = { ...q, options: [...q.options] };
+    if (q.id === "weight" && ctx.goal === "GAIN") out.options = [...GAIN_WEIGHT_OPTIONS];
+    if (q.id === "weightKg" && Number(ctx.deviceWeightKg) >= 30) {
+      out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
+      out.hint = `\u041E\u0442 \u0432\u0435\u0437\u043D\u0430\u0442\u0430: ${fmtKg(ctx.deviceWeightKg)} \u043A\u0433 (\u0441\u0440\u0435\u0434\u043D\u043E \u043E\u0442 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0434\u043D\u0438). \u041F\u043E\u043F\u0440\u0430\u0432\u0435\u0442\u0435, \u0430\u043A\u043E \u043D\u0435 \u0435 \u0432\u044F\u0440\u043D\u043E.`;
+    }
+    if (q.id === "adherence" && ctx.mealAdherence != null && (ctx.mealDays || 0) >= 3) {
+      out.hint = `\u041F\u043E \u043E\u0442\u043C\u0435\u0442\u043A\u0438\u0442\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E: \u043E\u043A\u043E\u043B\u043E ${Math.round(ctx.mealAdherence)}% \u043E\u0442 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430.`;
+    }
+    return out;
+  });
+}
 var ADHERENCE_ANSWERS = { "\u041F\u043E\u0447\u0442\u0438 \u0432\u0441\u0438\u0447\u043A\u0438": 95, "\u041F\u043E\u0432\u0435\u0447\u0435\u0442\u043E": 80, "\u041E\u043A\u043E\u043B\u043E \u043F\u043E\u043B\u043E\u0432\u0438\u043D\u0430\u0442\u0430": 50, "\u041C\u0430\u043B\u043A\u043E": 25 };
 var LEVEL_ANSWERS = { "\u0420\u044F\u0434\u043A\u043E": 1, "\u041F\u043E\u043D\u044F\u043A\u043E\u0433\u0430": 2, "\u0427\u0435\u0441\u0442\u043E": 3, "\u0414\u043E\u0431\u0440\u0430": 1, "\u0421\u0440\u0435\u0434\u043D\u0430": 2, "\u041D\u0438\u0441\u043A\u0430": 3 };
 function answerOf(answers, id) {
@@ -43760,6 +43947,9 @@ var FAST_LOSS_RATE = 0.01;
 var LACTATION_MAX_LOSS_KG = 0.5;
 var FAST_GAIN_RATE = 5e-3;
 var SLOW_LOSS_SHARE = 0.4;
+var MAX_SPAN_DAYS = 84;
+var FIRST_WEEK_FAST_RATE = 0.03;
+var WAIST_PROGRESS_CM = 1;
 function readCheckin(answers, analytics, previous = {}) {
   const weightAnswer = answerOf(answers, "weight");
   const adherenceAnswer = answerOf(answers, "adherence");
@@ -43774,16 +43964,22 @@ function readCheckin(answers, analytics, previous = {}) {
   const prev = Number(previous.prevWeightKg) || null;
   if (weightKg && prev) {
     const days = Number(previous.daysSincePrev);
-    const span = days >= 4 && days <= 28 ? days : 7;
-    weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
+    const span = Number.isFinite(days) && days > 0 ? days : 7;
+    weeklyChangeKg = span >= 4 && span <= MAX_SPAN_DAYS ? Math.round((weightKg - prev) / span * 7 * 100) / 100 : null;
   }
   const trend = Number(answerOf(answers, "weightTrendKgWeek"));
   if (answerOf(answers, "weightTrendKgWeek") != null && Number.isFinite(trend) && Math.abs(trend) <= 3) weeklyChangeKg = trend;
+  const cm = Number(String(answerOf(answers, "waistCm") || "").replace(",", "."));
+  const waistCm = cm >= 40 && cm <= 200 ? Math.round(cm * 10) / 10 : null;
+  const prevWaist = Number(previous.prevWaistCm) || null;
+  const waistChangeCm = waistCm && prevWaist ? Math.round((waistCm - prevWaist) * 10) / 10 : null;
   const intake = Number(answerOf(answers, "intakeKcal"));
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
     weightKg,
     weeklyChangeKg,
+    waistCm,
+    waistChangeCm,
     intakeKcal: intake >= 500 && intake <= 8e3 ? Math.round(intake) : null,
     recoveryLow: answerOf(answers, "recoveryLow") === "true",
     leanLoss: answerOf(answers, "leanLoss") === "true",
@@ -43830,6 +44026,7 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
   const changes = [];
   const modifications = [];
   let delta = 0;
+  let recomp = false;
   const losing = LOSING_GOALS.has(goal);
   const gaining = goal === "GAIN";
   const goalKind = losing ? "loss" : gaining ? "gain" : "keep";
@@ -43850,11 +44047,18 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
   } else if (outcome && followed) {
     const weeks = streak(history, goalKind, cls) + 1;
     if (losing) {
-      if (outcome === "fast_loss") {
+      const base = checkin.weightKg || weightKg || 70;
+      const firstWeekWater = outcome === "fast_loss" && !lactating && !(history || []).length && checkin.energy !== 3 && !(checkin.weeklyChangeKg != null && -checkin.weeklyChangeKg >= base * FIRST_WEEK_FAST_RATE);
+      if (firstWeekWater) {
+        reasons.push(`\u041F\u044A\u0440\u0432\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430${measured ? ` (${measured})` : ""} \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u043F\u0430\u0434\u0430 \u0431\u044A\u0440\u0437\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u043E\u0442 \u0432\u043E\u0434\u0430 \u0438 \u0433\u043B\u0438\u043A\u043E\u0433\u0435\u043D \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430; \u0442\u0435\u043C\u043F\u043E\u0442\u043E \u0441\u0435 \u043F\u0440\u0435\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u0432\u0442\u043E\u0440\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430.`);
+      } else if (outcome === "fast_loss") {
         delta = +MAX_WEEKLY_STEP;
         reasons.push(lactating ? "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 0,5 \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043F\u0440\u0438 \u043A\u044A\u0440\u043C\u0435\u043D\u0435 \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043A\u044A\u0440\u043C\u0430\u0442\u0430." : `\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435\u0442\u043E \u0435 \u043D\u0430\u0434 1% \u043E\u0442 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${measured ? ` (${measured})` : ""} \u2014 \u0442\u0435\u043C\u043F\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u0431\u0430\u0432\u044F, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u0438 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430\u0442\u0430 \u043C\u0430\u0441\u0430.`);
       } else if (cls === "stall" && overIntake) {
         reasons.push(`\u041F\u043E \u0442\u0440\u0430\u043A\u0435\u0440\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043E\u043A\u043E\u043B\u043E ${checkin.intakeKcal} kcal \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043F\u043B\u0430\u043D ${kcal} kcal \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 \u043E\u0441\u0442\u0430\u0432\u0430\u0442; \u043F\u044A\u0440\u0432\u043E \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0434\u0430 \u0441\u0435 \u0434\u043E\u0431\u043B\u0438\u0436\u0438 \u0434\u043E \u043F\u043B\u0430\u043D\u0430.`);
+      } else if (cls === "stall" && checkin.waistChangeCm != null && checkin.waistChangeCm <= -WAIST_PROGRESS_CM) {
+        recomp = true;
+        reasons.push(`\u041A\u0430\u043D\u0442\u0430\u0440\u044A\u0442 \u0441\u0442\u043E\u0438, \u043D\u043E \u0442\u0430\u043B\u0438\u044F\u0442\u0430 \u0435 \u0441 ${fmtKg(-checkin.waistChangeCm)} \u0441\u043C \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u2014 \u0442\u044F\u043B\u043E\u0442\u043E \u0433\u0443\u0431\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438; \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430.`);
       } else if (cls === "stall") {
         if (weeks >= 2) {
           delta = outcome === "gain" ? -MAX_WEEKLY_STEP : -100;
@@ -43893,6 +44097,8 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
     } else {
       reasons.push(`\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u0434\u044A\u0440\u0436\u0430 \u0432 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438\u0442\u0435 \u0433\u0440\u0430\u043D\u0438\u0446\u0438${measured ? ` (${measured})` : ""} \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430.`);
     }
+  } else if (!outcome && checkin.weightKg) {
+    reasons.push("\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0435 \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u043E; \u0442\u0435\u043C\u043F\u043E\u0442\u043E \u0441\u0435 \u043F\u0440\u0435\u0446\u0435\u043D\u044F\u0432\u0430, \u043A\u043E\u0433\u0430\u0442\u043E \u043C\u0435\u0436\u0434\u0443 \u0434\u0432\u0435 \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F \u0438\u043C\u0430 \u043F\u043E\u043D\u0435 4 \u0434\u043D\u0438 \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0441\u0442\u0430\u0432\u0430\u0442.");
   } else if (!outcome) {
     reasons.push("\u0411\u0435\u0437 \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0441\u0442\u0430\u0432\u0430\u0442 \u2014 \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u0435\u0442\u0435 \u0441\u0435 \u0441\u0443\u0442\u0440\u0438\u043D \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E \u043F\u0440\u0435\u0434\u0438 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u043F\u0440\u0435\u0433\u043B\u0435\u0434.");
   }
@@ -43948,7 +44154,9 @@ function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg
     reasoning: reasons.join(" "),
     changeSummary: changes.slice(0, 4),
     // За историята: резултатът по теглото, измереното тегло и дали планът е спазван.
-    weight: outcome,
+    // Застой на кантара с по-малка талия не е застой — „recomp“ прекъсва поредицата.
+    weight: recomp ? "recomp" : outcome,
+    waistCm: checkin.waistCm,
     weightKg: checkin.weightKg,
     weeklyChangeKg: checkin.weeklyChangeKg,
     intakeKcal: checkin.intakeKcal,
@@ -44062,6 +44270,28 @@ var MARKERS = {
   potassium: { label: "\u041A\u0430\u043B\u0438\u0439", unit: "mmol/L", alt: { "meq/l": (v) => v } }
 };
 var LAB_MARKERS = Object.fromEntries(Object.entries(MARKERS).map(([k, v]) => [k, { label: v.label, unit: v.unit }]));
+function labRange(key, sex = "X") {
+  const f = sex === "F";
+  const ranges = {
+    glucose: [null, 5.6],
+    hba1c: [null, 5.7],
+    ldl: [null, 3.4],
+    tchol: [null, 5.2],
+    tg: [null, 1.7],
+    hdl: [f ? 1.3 : 1, null],
+    uric: [null, f ? 360 : 420],
+    ferritin: [30, null],
+    hgb: [f ? 120 : 130, null],
+    vitd: [50, null],
+    b12: [150, null],
+    alt: [null, 40],
+    ggt: [null, 60],
+    tsh: [0.4, 4.5],
+    egfr: [60, null],
+    potassium: [null, 5.5]
+  };
+  return ranges[key] || null;
+}
 function canonical(key, value, unit) {
   const m = MARKERS[key];
   if (!m) return null;
@@ -44078,7 +44308,7 @@ var RULES2 = {
   tg: (v) => v >= 1.7 ? { status: "high", clinical: ["DYSL"] } : null,
   hdl: (v, sex) => v < (sex === "F" ? 1.3 : 1) ? { status: "low" } : null,
   uric: (v, sex) => v > (sex === "F" ? 360 : 420) ? { status: "high", clinical: ["GOUT"], caution: "\u041F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043F\u0438\u043A\u043E\u0447\u043D\u0430 \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0430 \u2014 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438 \u043F\u0443\u0440\u0438\u043D\u0438 \u0438 \u0430\u043B\u043A\u043E\u0445\u043E\u043B; \u043E\u0446\u0435\u043D\u043A\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440 \u043F\u0440\u0438 \u0431\u043E\u043B\u043A\u0438 \u0432 \u0441\u0442\u0430\u0432\u0438\u0442\u0435." } : null,
-  ferritin: (v) => v < 30 ? { status: "low", clinical: ["ANEM"] } : null,
+  ferritin: (v) => v < 30 ? { status: "low", clinical: ["ANEM"], supplement: { name: "\u0416\u0435\u043B\u044F\u0437\u043E \u0431\u0438\u0441\u0433\u043B\u0438\u0446\u0438\u043D\u0430\u0442", dosage: "25\u201350 mg", timing: "\u043F\u0440\u0435\u0437 \u0434\u0435\u043D, \u0441 \u0432\u0438\u0442\u0430\u043C\u0438\u043D C, \u0434\u0430\u043B\u0435\u0447 \u043E\u0442 \u043A\u0430\u0444\u0435, \u0447\u0430\u0439 \u0438 \u043A\u0430\u043B\u0446\u0438\u0439 \u2014 \u043F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435; \u043A\u043E\u043D\u0442\u0440\u043E\u043B \u0441\u043B\u0435\u0434 3 \u043C\u0435\u0441\u0435\u0446\u0430" } } : null,
   hgb: (v, sex) => v < (sex === "F" ? 120 : 130) ? { status: "low", clinical: ["ANEM"], caution: "\u041D\u0438\u0441\u044A\u043A \u0445\u0435\u043C\u043E\u0433\u043B\u043E\u0431\u0438\u043D \u2014 \u043F\u0440\u0438\u0447\u0438\u043D\u0430\u0442\u0430 \u0441\u0435 \u0438\u0437\u044F\u0441\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440." } : null,
   vitd: (v) => v < 30 ? { status: "low", supplement: { name: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", dosage: "2000 IU", timing: "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u2014 \u043F\u0440\u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u043F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435; \u043A\u043E\u043D\u0442\u0440\u043E\u043B \u0441\u043B\u0435\u0434 3 \u043C\u0435\u0441\u0435\u0446\u0430" }, caution: "\u0414\u0435\u0444\u0438\u0446\u0438\u0442 \u043D\u0430 \u0432\u0438\u0442\u0430\u043C\u0438\u043D D \u2014 \u0434\u043E\u0437\u0430\u0442\u0430 \u0441\u0435 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440." } : v < 50 ? { status: "low", supplement: { name: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D D3", dosage: "1000\u20132000 IU", timing: "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430 \u2014 \u043F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435" } } : null,
   b12: (v) => v < 150 ? { status: "low", supplement: { name: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D B12", dosage: "500\u20131000 mcg", timing: "\u0441\u0443\u0442\u0440\u0438\u043D \u2014 \u043F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435" }, caution: "\u041D\u0438\u0441\u044A\u043A B12 \u2014 \u043F\u0440\u0438\u0447\u0438\u043D\u0430\u0442\u0430 \u0441\u0435 \u0438\u0437\u044F\u0441\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440." } : null,
@@ -44617,6 +44847,70 @@ function crossCheckText(cc) {
   return parts.join(" | ");
 }
 
+// enrichment-documents.js
+var DOCUMENT_IMPACT = ["none", "context", "menu", "strategy"];
+var DOC_TYPES = ["epicrisis", "doctor_note", "prescription", "imaging", "lab", "allergy", "own_note", "other"];
+var DOC_TYPE_LABELS = {
+  epicrisis: "\u0435\u043F\u0438\u043A\u0440\u0438\u0437\u0430",
+  doctor_note: "\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u043E \u043F\u0438\u0441\u043C\u043E",
+  prescription: "\u0440\u0435\u0446\u0435\u043F\u0442\u0430",
+  imaging: "\u043E\u0431\u0440\u0430\u0437\u043D\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435",
+  lab: "\u043B\u0430\u0431\u043E\u0440\u0430\u0442\u043E\u0440\u043D\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435",
+  allergy: "\u0430\u043B\u0435\u0440\u0433\u043E\u043B\u043E\u0433\u0438\u0447\u0435\u043D \u0442\u0435\u0441\u0442",
+  own_note: "\u0431\u0435\u043B\u0435\u0436\u043A\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430",
+  other: "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442"
+};
+var strs = (a, n, len) => Array.isArray(a) ? a.map((x) => String(x ?? "").trim().slice(0, len)).filter(Boolean).slice(0, n) : [];
+function normalizeDocumentValue(v) {
+  if (!v || typeof v !== "object") return null;
+  const value = {
+    title: String(v.title || "").trim().slice(0, 80),
+    docType: DOC_TYPES.includes(v.docType) ? v.docType : "other",
+    summary: String(v.summary || "").trim().slice(0, 600),
+    findings: strs(v.findings, 8, 200),
+    clinical: strs(v.clinical, 6, 8).filter((c) => CLINICAL.includes(c)),
+    exclusions: strs(v.exclusions, 6, 8).filter((c) => EXCLUSIONS.includes(c)),
+    medications: strs(v.medications, 8, 80),
+    cautions: strs(v.cautions, 5, 200),
+    impact: DOCUMENT_IMPACT.includes(v.impact) ? v.impact : "context"
+  };
+  if (!value.summary && !value.findings.length) return null;
+  return value;
+}
+function deriveDocuments(facts) {
+  const docs = (facts || []).filter((f) => f.kind === "document" && f.status !== "pending" && f.value).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 20);
+  if (!docs.length) return null;
+  const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
+  const list2 = [];
+  for (const f of docs) {
+    const v = f.value;
+    hints.clinical.push(...v.clinical || []);
+    hints.exclusions.push(...v.exclusions || []);
+    hints.cautions.push(...(v.cautions || []).map((c) => `\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442 (${DOC_TYPE_LABELS[v.docType] || "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442"}): ${c}`));
+    list2.push({
+      id: f.key,
+      at: f.at,
+      title: v.title || DOC_TYPE_LABELS[v.docType] || "\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442",
+      docType: v.docType,
+      summary: v.summary,
+      findings: v.findings || [],
+      clinical: v.clinical || [],
+      exclusions: v.exclusions || [],
+      medications: v.medications || [],
+      impact: v.impact
+    });
+  }
+  for (const k of Object.keys(hints)) hints[k] = [...new Set(hints[k])];
+  return { list: list2, hints, reasons: [`\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: ${docs.length}`] };
+}
+function documentsText(list2) {
+  if (!list2?.length) return "";
+  return "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: " + list2.slice(0, 6).map((d) => {
+    const parts = [d.title, String(d.at || "").slice(0, 10), d.summary, d.medications.length ? `\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430: ${d.medications.join(", ")}` : ""].filter(Boolean);
+    return parts.join(" \u2014 ");
+  }).join("; ").slice(0, 1200);
+}
+
 // enrichment.js
 var ENRICHMENT_VERSION = 1;
 var DEVICE_KINDS = {
@@ -44689,14 +44983,20 @@ function normalizeFact(raw) {
   if (kind === "site_quiz") {
     const v = raw.value;
     if (!v || typeof v !== "object" || !v.site) return null;
-    const strs = (a, n, len) => Array.isArray(a) ? a.map((x) => String(x || "").trim().slice(0, len)).filter(Boolean).slice(0, n) : [];
-    const value = { site: String(v.site).slice(0, 40), lines: strs(v.lines, 12, 300), cautions: strs(v.cautions, 6, 200) };
+    const strs2 = (a, n, len) => Array.isArray(a) ? a.map((x) => String(x || "").trim().slice(0, len)).filter(Boolean).slice(0, n) : [];
+    const value = { site: String(v.site).slice(0, 40), lines: strs2(v.lines, 12, 300), cautions: strs2(v.cautions, 6, 200) };
     if (!value.lines.length && !value.cautions.length) return null;
     return { kind, key: "answers", value, unit: "", at, source, confidence, status };
   }
   if (kind === "iris") {
     if (!raw.value || typeof raw.value !== "object" || !raw.value.analysis) return null;
     return { kind, key: "report", value: raw.value, unit: "", at, source: "airis", confidence, status };
+  }
+  if (kind === "document") {
+    const value = normalizeDocumentValue(raw.value);
+    const key = String(raw.key || "").trim().slice(0, 40);
+    if (!value || !/^[A-Za-z0-9_-]{6,40}$/.test(key)) return null;
+    return { kind, key, value, unit: "", at, source: "document", confidence: 1, status };
   }
   if (kind === "biomarker") {
     const key = String(raw.key || "").trim();
@@ -44744,7 +45044,7 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   const facts = Array.isArray(store?.facts) ? store.facts : [];
   const overrides = {};
   const reasons = [];
-  const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
+  const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
   const checkin = {};
   const steps = dailyMean(recent(facts, "steps", 14, now));
   if (steps.days >= 7 && steps.mean != null) {
@@ -44773,10 +45073,11 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   const iris = deriveIris(facts);
   const siteQuiz = deriveSiteQuiz(facts);
   const resolutions = resolutionsOf(facts);
+  const documents = deriveDocuments(facts);
   const emoPart = emo && resolutions.emoeat_vs_q === "rare" ? { ...emo, hints: null } : emo;
-  for (const part of [emoPart, labs, essence, digestPart, iris, siteQuiz]) {
+  for (const part of [emoPart, labs, essence, digestPart, iris, siteQuiz, documents]) {
     if (!part) continue;
-    for (const k of ["behaviors", "approach", "clinical", "cautions"]) hints[k].push(...part.hints?.[k] || []);
+    for (const k of ["behaviors", "approach", "clinical", "cautions", "exclusions"]) hints[k].push(...part.hints?.[k] || []);
     reasons.push(...part.reasons || []);
   }
   for (const k of Object.keys(hints)) hints[k] = [...new Set(hints[k])];
@@ -44794,6 +45095,14 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
     iris: iris?.summary || null,
     irisRaw: iris?.raw || null,
     siteQuiz: siteQuiz?.summary || null,
+    documents: documents?.list || [],
+    // Откъде идва всеки код — за реанализа (кой източник е добавил проблема).
+    codeSources: {
+      labs: [...labs?.hints?.clinical || []],
+      documents: [...documents?.hints?.clinical || [], ...documents?.hints?.exclusions || []],
+      device: [...essence.hints?.clinical || [], ...essence.hints?.behaviors || []],
+      emoeat: [...emoPart?.hints?.behaviors || [], ...emoPart?.hints?.clinical || []]
+    },
     resolutions,
     reasons
   };
@@ -44808,6 +45117,10 @@ function applyEnrichment(userData, store, now = /* @__PURE__ */ new Date()) {
   derived.hints.approach = [.../* @__PURE__ */ new Set([...derived.hints.approach, ...cc.approach])];
   derived.hints.cautions = [.../* @__PURE__ */ new Set([...derived.hints.cautions, ...cc.cautions])];
   derived.crossCheck = { hypotheses: cc.hypotheses, questions: cc.questions };
+  const docMeds = [...new Set(derived.documents.flatMap((d) => d.medications || []))];
+  if (docMeds.length) {
+    derived.overrides.medicationsDetails = [userData.medicationsDetails, ...docMeds].filter(Boolean).join(", ");
+  }
   const original = {};
   for (const [field, value] of Object.entries(derived.overrides)) {
     original[field] = userData[field] ?? null;
@@ -44844,6 +45157,8 @@ function recalcLevel(prevData, nextData) {
   if (JSON.stringify(aNext?.voice || null) !== JSON.stringify(aPrev?.voice || null)) bump(0, "\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B");
   if (JSON.stringify(aNext?.iris || null) !== JSON.stringify(aPrev?.iris || null)) bump(0, "\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437");
   if (JSON.stringify(aNext?.siteQuiz || null) !== JSON.stringify(aPrev?.siteQuiz || null)) bump(0, "\u0442\u0435\u0441\u0442 \u0437\u0430 \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u043E\u0442 \u0441\u0430\u0439\u0442");
+  if (JSON.stringify(aNext?.documents || []) !== JSON.stringify(aPrev?.documents || [])) bump(0, "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438");
+  if (String(nextData?.medicationsDetails || "") !== String(prevData?.medicationsDetails || "")) bump(1, "\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430 (\u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F \u0441 \u0445\u0440\u0430\u043D\u0438 \u0438 \u0434\u043E\u0431\u0430\u0432\u043A\u0438)");
   if (JSON.stringify(aNext?.safety || {}) !== JSON.stringify(aPrev?.safety || {})) bump(2, "\u0433\u0440\u0430\u043D\u0438\u0446\u0438 \u0437\u0430 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442 \u043E\u0442 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F");
   return { level: (
     /** @type {0|1|2|3} */
@@ -45318,6 +45633,211 @@ function handoffPreview(h) {
       "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u0430 NutriPlan \u2014 \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435."
     ].filter(Boolean),
     at: h.at
+  };
+}
+
+// analysis-reanalysis.js
+var DIMENSIONS = [
+  { key: "Medical", label: "\u0422\u044F\u043B\u043E \u0438 \u043E\u0431\u043C\u044F\u043D\u0430" },
+  { key: "Nutrition", label: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435" },
+  { key: "Sleep", label: "\u0421\u044A\u043D \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435" },
+  { key: "Stress", label: "\u0421\u0442\u0440\u0435\u0441 \u0438 \u0435\u043C\u043E\u0446\u0438\u0438" },
+  { key: "Activity", label: "\u0414\u0432\u0438\u0436\u0435\u043D\u0438\u0435" },
+  { key: "Hydration", label: "\u0425\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F" }
+];
+var IRIS_CATEGORY = {
+  digestive: "Medical",
+  metabolic: "Medical",
+  circulatory: "Medical",
+  endocrine: "Medical",
+  detox: "Medical",
+  immune: "Medical",
+  nervous: "Stress"
+};
+var fmt4 = (v) => String(Math.round(Number(v) * 10) / 10).replace(".", ",");
+var LAB_PROBLEMS = {
+  vitd: (l) => problem(
+    "Medical",
+    l.value < 30 ? 64 : 52,
+    "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D D",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043E\u043F\u0442\u0438\u043C\u0430\u043B\u043D\u0438\u0442\u0435 50.`,
+    "\u0423\u043C\u043E\u0440\u0430, \u043F\u043E-\u0441\u043B\u0430\u0431 \u0438\u043C\u0443\u043D\u0438\u0442\u0435\u0442 \u0438 \u043F\u043E-\u0431\u0430\u0432\u043D\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435.",
+    "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u043E-\u0437\u0434\u0440\u0430\u0432\u0438 \u043A\u043E\u0441\u0442\u0438",
+    "LAB_VITD"
+  ),
+  b12: (l) => problem(
+    "Medical",
+    62,
+    "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D B12",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430.`,
+    "\u0423\u043C\u043E\u0440\u0430, \u0438\u0437\u0442\u0440\u044A\u043F\u0432\u0430\u043D\u0435 \u0438 \u0441\u043F\u0430\u0434 \u043D\u0430 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044F\u0442\u0430.",
+    "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u044F\u0441\u043D\u0430 \u043C\u0438\u0441\u044A\u043B",
+    "LAB_B12"
+  ),
+  tsh: (l) => problem(
+    "Medical",
+    62,
+    l.status === "high" ? "TSH \u043D\u0430\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430" : "TSH \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430\u0442\u0430 \u0436\u043B\u0435\u0437\u0430 \u0441\u0435 \u043E\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`,
+    "\u041E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0435 \u043F\u043E-\u0431\u0430\u0432\u043D\u0430 \u0438\u043B\u0438 \u043F\u043E-\u0431\u044A\u0440\u0437\u0430 \u043E\u0442 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u043E\u0442\u043E.",
+    "\u042F\u0441\u043D\u0430 \u043A\u0430\u0440\u0442\u0438\u043D\u0430 \u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u0433\u043B\u0435\u0434",
+    "LAB_TSH"
+  ),
+  egfr: (l) => problem(
+    "Medical",
+    l.value < 30 ? 86 : 72,
+    "\u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F",
+    `eGFR ${fmt4(l.value)} \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u0440\u0435\u0436\u0438\u043C\u044A\u0442 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    "\u041D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u043F\u0440\u0438 \u043C\u043D\u043E\u0433\u043E \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0441\u043E\u043B.",
+    "\u0429\u0430\u0434\u044F\u0449 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u0440\u0435\u0436\u0438\u043C",
+    "LAB_EGFR"
+  ),
+  potassium: (l) => problem(
+    "Medical",
+    74,
+    "\u0412\u0438\u0441\u043E\u043A \u043A\u0430\u043B\u0438\u0439",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u0442 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    "\u0420\u0438\u0441\u043A \u0437\u0430 \u0441\u044A\u0440\u0434\u0435\u0447\u043D\u0438\u044F \u0440\u0438\u0442\u044A\u043C.",
+    "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u043D\u0430 \u043A\u0430\u043B\u0438\u044F",
+    "LAB_K"
+  ),
+  hdl: (l) => problem(
+    "Medical",
+    54,
+    "\u041D\u0438\u0441\u044A\u043A HDL (\u201E\u0434\u043E\u0431\u044A\u0440\u201C) \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u0437\u0430\u0449\u0438\u0442\u043D\u0430\u0442\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0430.`,
+    "\u041F\u043E-\u0441\u043B\u0430\u0431\u0430 \u0437\u0430\u0449\u0438\u0442\u0430 \u043D\u0430 \u0441\u044A\u0434\u043E\u0432\u0435\u0442\u0435.",
+    "\u041F\u043E-\u0434\u043E\u0431\u044A\u0440 \u043B\u0438\u043F\u0438\u0434\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B",
+    "LAB_HDL"
+  )
+};
+var DEVICE_PROBLEMS = {
+  recovery_low: (s) => problem(
+    "Sleep",
+    60,
+    "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435",
+    s.text,
+    "\u041F\u043E-\u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u0432 \u0442\u043E\u0437\u0438 \u043F\u0435\u0440\u0438\u043E\u0434 \u0437\u0430\u0431\u0430\u0432\u044F \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0430 \u0438 \u0432\u0434\u0438\u0433\u0430 \u0430\u043F\u0435\u0442\u0438\u0442\u0430.",
+    "\u0421\u0442\u0430\u0431\u0438\u043B\u0435\u043D \u043F\u0443\u043B\u0441 \u0438 \u043F\u043E-\u0434\u043E\u0431\u0440\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435",
+    "DEV_RECOVERY"
+  ),
+  lean_loss: (s) => problem(
+    "Nutrition",
+    64,
+    "\u0417\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430",
+    s.text,
+    "\u041F\u043E-\u0431\u0430\u0432\u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430 \u0438 \u0435\u0444\u0435\u043A\u0442 \u201E\u0439\u043E-\u0439\u043E\u201C.",
+    "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u043E\u0442 \u043C\u0430\u0437\u043D\u0438\u043D\u0438, \u043D\u0435 \u043E\u0442 \u043C\u0443\u0441\u043A\u0443\u043B\u0438",
+    "DEV_LEAN"
+  )
+};
+function sourceOfCode(code, codeSources, baseProfile) {
+  if (!code) return null;
+  if (baseProfile.clinical.includes(code) || baseProfile.behaviors.includes(code)) return "questionnaire";
+  for (const src of ["labs", "documents", "device", "emoeat"]) {
+    if ((codeSources?.[src] || []).includes(code)) return src;
+  }
+  return null;
+}
+function dimensionScores(problems) {
+  const out = {};
+  for (const d of DIMENSIONS) {
+    const load = problems.filter((p) => p.category === d.key && !p.preventive).reduce((s, p) => s + Math.max(0, p.severityValue - 35) * 0.8, 0);
+    out[d.key] = Math.max(15, Math.min(100, Math.round(100 - load)));
+  }
+  return out;
+}
+function reanalyze(baseData, enrichedData, energy = {}, sex = "X") {
+  const d = enrichedData?._enrichment || {};
+  const baseProfile = compileProfile(baseData || {});
+  const profile = compileProfile(enrichedData || {});
+  const baseline = analyzeProfile(baseProfile, energy);
+  const extra = [];
+  const labCodes = new Set(d.codeSources?.labs || []);
+  for (const l of d.labs || []) {
+    if (l.status === "normal" || !LAB_PROBLEMS[l.key]) continue;
+    if (l.key === "hdl" && labCodes.has("DYSL")) continue;
+    extra.push({ ...LAB_PROBLEMS[l.key](l), sources: ["labs"] });
+  }
+  for (const s of d.essence?.signals || []) {
+    if (DEVICE_PROBLEMS[s.code]) extra.push({ ...DEVICE_PROBLEMS[s.code](s), sources: ["device"] });
+  }
+  const hypotheses = d.crossCheck?.hypotheses || [];
+  const confirmed = hypotheses.filter((h) => h.status === "confirmed");
+  const irisBoost = /* @__PURE__ */ new Map();
+  for (const h of confirmed) {
+    const def = IRIS_SYSTEMS[h.system] || {};
+    irisBoost.set(h.system, { codes: def.codes || [], category: IRIS_CATEGORY[h.system] || "Medical", label: h.label, evidence: h.evidence });
+  }
+  const current = analyzeProfile(profile, energy, extra);
+  const baseTitles = new Set(baseline.keyProblems.map((p) => p.title));
+  const baseByTitle = new Map(baseline.keyProblems.map((p) => [p.title, p]));
+  const usedIris = /* @__PURE__ */ new Set();
+  let problems = current.keyProblems.map((p) => {
+    const sources = new Set(p.sources || []);
+    if (baseTitles.has(p.title)) sources.add("questionnaire");
+    const src = sourceOfCode(p.code, d.codeSources, baseProfile);
+    if (src) sources.add(src);
+    if (p.category === "Sleep" && d.overrides?.sleepHours) sources.add("device");
+    if (p.category === "Activity" && d.overrides?.dailyActivityLevel) sources.add("device");
+    if (p.category === "Stress" && d.voice) sources.add("emoeat");
+    if (!sources.size) sources.add("questionnaire");
+    const out = { ...p, sources: [...sources] };
+    for (const [system, b] of irisBoost) {
+      if (b.codes.includes(p.code)) {
+        out.sources.push("iris");
+        out.severityValue = Math.min(95, p.severityValue + 4);
+        out.irisNote = `AIRIS: ${b.label} \u2014 \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D \u043E\u0442 ${b.evidence.join(", ")}`;
+        usedIris.add(system);
+      }
+    }
+    const before = baseByTitle.get(p.title);
+    out.change = !before ? "new" : before.severityValue !== out.severityValue ? out.severityValue > before.severityValue ? "worse" : "better" : "same";
+    return out;
+  });
+  for (const [system, b] of irisBoost) {
+    if (usedIris.has(system)) continue;
+    problems.push({
+      ...problem(
+        b.category,
+        50,
+        `${b.label}: \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u043F\u043E \u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437`,
+        `\u041F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 ${b.evidence.join(", ")}. \u041F\u043B\u0430\u043D\u044A\u0442 \u0433\u043E \u043E\u0442\u0447\u0438\u0442\u0430 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E \u0438 \u0441\u044A\u0432\u0435\u0442\u0438\u0442\u0435.`,
+        "\u0411\u0435\u0437 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F\u0442\u0430 \u0432 \u0442\u0430\u0437\u0438 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u0441\u0435 \u0437\u0430\u0434\u044A\u0440\u0436\u0430\u0442.",
+        "",
+        `IRIS_${system.toUpperCase()}`
+      ),
+      sources: ["iris"],
+      change: "new"
+    });
+  }
+  problems = problems.map(({ _improvement, ...p }) => p).sort((a, b) => b.severityValue - a.severityValue);
+  const irisPenalty = Math.round([...irisBoost.keys()].length * 1.3);
+  const score = Math.max(25, Math.min(92, current.currentHealthStatus.score - irisPenalty));
+  const resolved = baseline.keyProblems.filter((p) => !p.preventive && !problems.some((x) => x.title === p.title)).map((p) => p.title);
+  const replaced = Object.entries(d.overrides || {}).map(([field, value]) => ({
+    field,
+    from: d.original?.[field] ?? null,
+    to: value
+  }));
+  const dims = dimensionScores(problems);
+  const baseDims = dimensionScores(baseline.keyProblems);
+  return {
+    analysis: {
+      ...current,
+      keyProblems: problems.slice(0, 8),
+      currentHealthStatus: { ...current.currentHealthStatus, score, keyIssues: problems.slice(0, 4).map((p) => p.title) },
+      _reanalysis: true
+    },
+    baseline: { score: baseline.currentHealthStatus.score, problems: baseline.keyProblems.map((p) => p.title) },
+    dimensions: DIMENSIONS.map((x) => ({ key: x.key, label: x.label, score: dims[x.key], baseline: baseDims[x.key] })),
+    resolved,
+    replaced,
+    labs: (d.labs || []).map((l) => ({ ...l, range: labRange(l.key, sex) })),
+    iris: d.iris ? { ...d.iris, hypotheses } : hypotheses.length ? { hypotheses } : null,
+    emoeat: d.voice ? { archetype: d.voice.archetype || "", intensity: d.voice.intensity || "", drivers: d.voice.drivers || [], realNeed: d.voice.realNeed || "", at: d.voice.at || null } : null,
+    devices: d.essence?.metrics && Object.keys(d.essence.metrics).length ? { metrics: d.essence.metrics, sources: d.essence.sources || [], at: d.essence.at || null } : null,
+    documents: (d.documents || []).map((x) => ({ title: x.title, at: x.at, impact: x.impact, summary: x.summary }))
   };
 }
 
@@ -47915,8 +48435,8 @@ async function regeneratePlanFromChat(env, data, currentPlan) {
   const analysis = JSON.parse(JSON.stringify(currentPlan.analysis));
   const cycleNumber = currentPlan._meta?.cycleNumber || 1;
   const dishPreference = learnDishPreference(currentPlan.dishPreference, mealSwapsOf(currentPlan.weekPlan), (id) => DISHES_BY_ID.has(id), 1);
-  let plan = assembleEnginePlan(data, analysis, { cycleNumber, dishPreference });
-  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { cycleNumber, slotAvoid: swaps, dishPreference }));
+  let plan = await assembleEngineValidated(env, data, analysis, { cycleNumber, dishPreference });
+  plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { cycleNumber, slotAvoid: swaps, dishPreference }));
   plan = await writePlanVoice(env, data, plan, { reuse: currentPlan.aiVoice || null });
   try {
     await finalizeValidatedPlan(env, plan, data);
@@ -49913,8 +50433,16 @@ async function checkFirebaseOwner(userId, idToken, env, request) {
     return jsonResponse2({ error: mismatch ? "Token does not match userId" : "Invalid or missing Firebase ID token" }, mismatch ? 403 : 401);
   }
 }
-function generateWeeklyQuestions() {
-  return { questions: WEEKLY_CHECKIN_QUESTIONS.map((q) => ({ ...q, options: [...q.options] })), contextNote: "" };
+function generateWeeklyQuestions(userData, analytics, enrichment) {
+  const base = normalizeQuestionnaireData({ ...userData || {} });
+  const data = enrichment?.facts?.length ? applyEnrichment(JSON.parse(JSON.stringify(base)), enrichment) : base;
+  const questions = weeklyQuestionsFor({
+    goal: compileProfile(data).goal,
+    deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
+    mealAdherence: analytics?.mealAdherence ?? null,
+    mealDays: analytics?.mealDays || 0
+  });
+  return { questions, contextNote: "" };
 }
 function reproductiveFloorKcal(userData, tdee) {
   const repro = reproductiveStatus(userData);
@@ -49942,7 +50470,8 @@ function previousWeighIn(userData, plan, history) {
 function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history) {
   const prev = previousWeighIn(userData, plan, history || []);
   const daysSincePrev = prev?.at ? (Date.now() - Date.parse(prev.at)) / 864e5 : null;
-  const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev });
+  const prevWaistCm = [...history || []].reverse().find((h) => Number(h?.waistCm) > 0)?.waistCm ?? null;
+  const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev, prevWaistCm });
   if (checkin.weightKg && userData) userData.weight = String(checkin.weightKg);
   const profile = compileProfile(userData || {});
   const { tdee } = computeBackendEnergyInputs(userData);
@@ -50007,6 +50536,7 @@ function releasePendingWeeklyIfDue(profile) {
       // За правилото „две поредни седмици“ в monitoring.js.
       weight: pending.monitoring?.weight ?? null,
       weightKg: pending.monitoring?.weightKg ?? null,
+      waistCm: pending.monitoring?.waistCm ?? null,
       followed: pending.monitoring?.followed ?? null,
       calorieAdjust: pending.monitoring?.calorieAdjust ?? 0
     });
@@ -50045,6 +50575,26 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
   }
   return updated;
 }
+function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers) {
+  if ((Number(enrichment?.pendingLevel) || 0) < 2 || !plan?.analysis) return null;
+  const before = parseFinalCalories(plan.analysis.Final_Calories);
+  if (!before) return null;
+  const data = JSON.parse(JSON.stringify(enrichedData));
+  const kg = Number(String((checkinAnswers || []).find((a) => a.questionId === "weightKg")?.value || "").replace(",", "."));
+  if (kg >= 30 && kg <= 300) data.weight = String(kg);
+  const probe = JSON.parse(JSON.stringify(plan.analysis));
+  const { intake, tdee } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  if (!intake) return null;
+  const shift = before - (Number(plan.analysis._baseCalories) || before);
+  probe.Final_Calories = intake + shift;
+  probe.recommendedCalories = probe.Final_Calories;
+  enforceCalorieGuardrails(probe, data, tdee);
+  const after = parseFinalCalories(probe.Final_Calories);
+  if (!after || Math.abs(after - before) / before < 0.03) return null;
+  probe._baseCalories = intake;
+  const why = (enrichment?.lastChange?.reasons || []).slice(0, 3).join(", ");
+  return { analysis: probe, before, after, reason: `\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438${why ? ` (${why})` : ""}: ${before} \u2192 ${after} kcal.` };
+}
 async function runWeeklyAdaptation(env, payload, jobId) {
   const { userId, gameWeeklyAI, answers, clientId } = payload;
   const t0 = Date.now();
@@ -50075,7 +50625,13 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: "weightTrendKgWeek", value: String(dc.weightTrendKgWeek), source: "device" }];
     if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: "recoveryLow", value: "true", source: "device" }];
     if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: "leanLoss", value: "true", source: "device" }];
-    const decision = getWeeklyAdaptationDecision(enrichedData, plan, analytics, checkinAnswers, weeklyAdaptHistory);
+    const recal = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
+    const decisionPlan = recal ? { ...plan, analysis: recal.analysis } : plan;
+    const decision = getWeeklyAdaptationDecision(enrichedData, decisionPlan, analytics, checkinAnswers, weeklyAdaptHistory);
+    if (recal) {
+      decision.changeSummary = [`\u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D\u0438 \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438: ${recal.before} \u2192 ${recal.after} kcal`, ...decision.changeSummary].slice(0, 4);
+      decision.reasoning = `${recal.reason} ${decision.reasoning}`.trim();
+    }
     const note = String((answers || []).find((a) => a.questionId === "note")?.value || "").trim();
     if (note.length >= 6) {
       const hints = normalizeFeedbackHints(await aiHelperJson(env, "admin_feedback_hints_prompt", {
@@ -50096,7 +50652,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       decision.modifications
     );
     enrichUserDataEngineContext(enrichedData);
-    const analysis = JSON.parse(JSON.stringify(plan.analysis || {}));
+    const analysis = JSON.parse(JSON.stringify((recal ? recal.analysis : plan.analysis) || {}));
     if (!analysis._baseCalories) analysis._baseCalories = caloriesBefore;
     if (decision.calorieAdjust) {
       const { tdee } = computeBackendEnergyInputs(enrichedData);
@@ -50105,7 +50661,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       enforceCalorieGuardrails(analysis, enrichedData, tdee);
       const applied = parseFinalCalories(analysis.Final_Calories);
       if (applied && applied !== decision.kcal) {
-        decision.calorieAdjust = applied - caloriesBefore;
+        decision.calorieAdjust = applied - (recal ? recal.after : caloriesBefore);
         decision.kcal = applied;
         decision.changeSummary = decision.changeSummary.map((c) => /^Калории:/.test(c) ? `\u041A\u0430\u043B\u043E\u0440\u0438\u0438: ${decision.calorieAdjust > 0 ? "+" : ""}${decision.calorieAdjust} kcal \u043D\u0430 \u0434\u0435\u043D` : c);
       }
@@ -50114,8 +50670,18 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const swapsThisWeek = mealSwapsOf(plan.weekPlan);
     const dishPreference = learnDishPreference(plan.dishPreference, swapsThisWeek, (id) => DISHES_BY_ID.has(id));
     if (swapsThisWeek.length) console.log(`[WeeklyAdapt] \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430: ${swapsThisWeek.length}; \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u043D\u0438\u044F: ${Object.keys(dishPreference).length}`);
-    let newPlan = assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
-    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEnginePlan(enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
+    let newPlan = await assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
+    if (newPlan?._meta?.validationFailed && decision.calorieAdjust < 0) {
+      const keep = recal ? recal.after : caloriesBefore;
+      analysis.Final_Calories = keep;
+      analysis.recommendedCalories = keep;
+      decision.calorieAdjust = 0;
+      decision.kcal = keep;
+      decision.changeSummary = decision.changeSummary.filter((c) => !/^Калории:/.test(c));
+      decision.reasoning = `${decision.reasoning} \u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435\u0442\u043E \u0441\u0435 \u043E\u0442\u043B\u0430\u0433\u0430: \u043F\u0440\u0438 \u043F\u043E-\u043D\u0438\u0441\u044A\u043A \u043F\u0440\u0438\u0435\u043C \u043C\u0435\u043D\u044E\u0442\u043E \u043D\u0435 \u0441\u043F\u0430\u0437\u0432\u0430 \u043C\u0438\u043D\u0438\u043C\u0443\u043C\u0430 \u0437\u0430 \u0434\u0435\u043D.`;
+      newPlan = await assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
+    }
+    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
     newPlan = await writePlanVoice(env, enrichedData, newPlan);
     if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
     if (newPlan.personalHabits?.length && !plan.clinicalProtocol) newPlan.hacks = [...newPlan.personalHabits];
@@ -50141,7 +50707,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       plan: newPlan,
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel,
-      monitoring: { weight: decision.weight, weightKg: decision.weightKg, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence }
+      monitoring: { weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence }
     });
     await writeAdaptJob({
       status: "completed",
@@ -50174,7 +50740,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
     } catch (e) {
       return jsonResponse2({ error: e.message }, 401);
     }
-    const { userData, plan, analytics, weeklyAdaptHistory } = await resolveWeeklyJobInputs(env, body);
+    const { userData, plan, analytics, weeklyAdaptHistory, enrichment } = await resolveWeeklyJobInputs(env, body);
     if (!plan?.weekPlan) {
       return jsonResponse2({ error: "Missing plan" }, 400);
     }
@@ -50182,7 +50748,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
       return jsonResponse2({ error: "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D feedback (\u043C\u0438\u043D\u0438\u043C\u0443\u043C 3 \u0434\u043D\u0438)" }, 400);
     }
     const cycleNumber = nextWeeklyCycle(weeklyAdaptHistory, gameWeeklyAI);
-    const result = generateWeeklyQuestions();
+    const result = generateWeeklyQuestions(userData, analytics, enrichment);
     return jsonResponse2({
       success: true,
       questions: result.questions,
@@ -50849,7 +51415,11 @@ function validateMealsAgainstScheme(dayPlan, dayTarget, dayNum, clinicalProtocol
     const targetCal = solvedCal > 0 && Math.abs(solvedCal - schemeCal) <= schemeCal * MEAL_CARRY_MAX_DISTORTION + 1 ? solvedCal : schemeCal;
     const mealCal = Number(meal.calories) || macrosToCalories(meal.macros);
     if (targetCal > 0 && mealCal > 0 && !isMealCaloriesAdequate(mealCal, targetCal)) {
-      errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438\u043B\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u0430`);
+      if (Math.abs(mealCal - targetCal) > 2 * slotCalorieTolerance(targetCal)) {
+        errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u2260 \u0446\u0435\u043B ${targetCal} \u2014 \u0441\u043C\u0435\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438\u043B\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u0430`);
+      } else {
+        errors.push(`\u0414\u0435\u043D ${dayNum} ${meal.type}: \u043A\u0430\u043B\u043E\u0440\u0438\u0438 ${mealCal} \u043F\u0440\u0438 \u0446\u0435\u043B ${targetCal} \u2014 \u0438\u0437\u0432\u044A\u043D \u0434\u043E\u043F\u0443\u0441\u043A\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0434\u0435\u043D\u044F\u0442 \u043D\u043E\u0441\u0438 \u0431\u0430\u043B\u0430\u043D\u0441\u0430`);
+      }
     }
     const weightGrams = mealWeightGramsFromDescription(meal);
     if (weightGrams > 0) {
@@ -51480,12 +52050,27 @@ function validatePlan(plan, userData, substitutions = []) {
 function planSeedOf(data, cycleNumber = 0) {
   return `${data?.email || data?.userId || data?.name || ""}:${cycleNumber}`;
 }
+async function assembleEngineValidated(env, data, analysis, options = {}) {
+  let plan = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    plan = assembleEnginePlan(data, analysis, { ...options, seedSalt: attempt ? `r${attempt}` : options.seedSalt });
+    try {
+      await finalizeValidatedPlan(env, JSON.parse(JSON.stringify(plan)), JSON.parse(JSON.stringify(data)));
+      return plan;
+    } catch (err2) {
+      if (!String(err2?.message || "").includes("\u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u0430\u0433\u043E\u0432\u0435")) return plan;
+      console.warn(`[engine] \u043E\u043F\u0438\u0442 ${attempt + 1}: ${String(err2.message).slice(0, 160)}`);
+    }
+  }
+  if (plan?._meta) plan._meta.validationFailed = true;
+  return plan;
+}
 function assembleEnginePlan(data, analysis, options = {}) {
   const kcal = parseFinalCalories(analysis.Final_Calories || analysis.recommendedCalories);
   const startedAt = Date.now();
   const engine = buildNutritionPlan(data, {
     kcal,
-    seed: planSeedOf(data, options.cycleNumber),
+    seed: planSeedOf(data, options.cycleNumber) + (options.seedSalt ? `:${options.seedSalt}` : ""),
     previousWeek: options.previousWeek || [],
     slotAvoid: options.slotAvoid || [],
     dishPreference: options.dishPreference || {}
@@ -51503,7 +52088,8 @@ function assembleEnginePlan(data, analysis, options = {}) {
     weekPlan: engine.weekPlan,
     bmr: parseFinalCalories(analysis.bmr) || calculateBMR(data),
     dailyCalories: kcal,
-    protocolSupplements: getClinicalProtocol(data.clinicalProtocol)?.supplements || []
+    protocolSupplements: getClinicalProtocol(data.clinicalProtocol)?.supplements || [],
+    protocolName: getClinicalProtocol(data.clinicalProtocol)?.name || ""
   });
   const step3DurationMs = Date.now() - startedAt;
   const plan = overlayDeterministicPresentation({
@@ -51624,7 +52210,7 @@ async function reviewMenuWithAI(env, data, plan, rebuild) {
   const swaps = normalizeSwaps(raw, plan.weekPlan);
   if (!swaps.length) return plan;
   try {
-    const next = rebuild(swaps);
+    const next = await rebuild(swaps);
     next._meta.aiSwaps = swaps;
     return next;
   } catch (error) {
@@ -51646,8 +52232,8 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
         console.warn("Could not persist partial analysis status:", progressError);
       }
     }
-    let plan = assembleEnginePlan(data, analysis);
-    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEnginePlan(data, analysis, { slotAvoid: swaps }));
+    let plan = await assembleEngineValidated(env, data, analysis);
+    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { slotAvoid: swaps }));
     plan = await writePlanVoice(env, data, plan);
     plan._meta.tokenUsage = tokens;
     await finalizeAISessionLogs(env, sessionId);
@@ -52256,6 +52842,9 @@ async function callClaude(env, prompt, modelName = "claude-3-5-sonnet-20241022",
     throw new Error(`Claude API failed: ${error.message}`);
   }
 }
+function isFlashWithoutThinking(modelName) {
+  return /gemini-(2\.5|3(\.\d+)?)-flash/i.test(String(modelName || "")) && !/pro/i.test(String(modelName || ""));
+}
 async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, maxTokens = null, jsonMode = false, thinkingBudget = void 0, temperature = void 0, topP = void 0, topK = void 0, responseSchema = null, systemInstruction = null) {
   try {
     return await retryWithBackoff(async () => {
@@ -52275,7 +52864,7 @@ async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, m
       if (topK !== void 0) generationConfig.topK = topK;
       if (thinkingBudget !== void 0) {
         generationConfig.thinkingConfig = { thinkingBudget };
-      } else if (/gemini-(2\.5|3(\.|))flash/i.test(modelName) && !/pro/i.test(modelName)) {
+      } else if (isFlashWithoutThinking(modelName)) {
         generationConfig.thinkingConfig = { thinkingBudget: 0 };
       }
       if (jsonMode) {
@@ -52434,7 +53023,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
     };
     if (thinkingBudget !== void 0) {
       generationConfig.thinkingConfig = { thinkingBudget };
-    } else if (modelName && modelName.includes("gemini-2.5-flash")) {
+    } else if (isFlashWithoutThinking(modelName)) {
       generationConfig.thinkingConfig = { thinkingBudget: 0 };
     }
     const requestBody = {
@@ -53370,13 +53959,12 @@ function getPromptKVKey(type) {
     "food_analysis": "admin_food_analysis_prompt",
     "menu_analysis": "admin_menu_analysis_prompt",
     "validation": "admin_validation_prompt",
-    "weekly_questions": "admin_weekly_questions_prompt",
-    "weekly_adaptation": "admin_weekly_adaptation_prompt",
     // Промптовете на новия двигател (AI пише само текстове и разчита свободния текст).
     "plan_voice": "admin_plan_voice_prompt",
     "intake_hints": "admin_intake_hints_prompt",
     "menu_review": "admin_menu_review_prompt",
-    "feedback_hints": "admin_feedback_hints_prompt"
+    "feedback_hints": "admin_feedback_hints_prompt",
+    "document_assessment": "admin_document_assessment_prompt"
   };
   return keyMap[type] || null;
 }
@@ -53425,12 +54013,11 @@ async function handleGetDefaultPrompt(request, env) {
       "food_analysis": "admin_food_analysis_prompt",
       "menu_analysis": "admin_menu_analysis_prompt",
       "validation": "admin_validation_prompt",
-      "weekly_questions": "admin_weekly_questions_prompt",
-      "weekly_adaptation": "admin_weekly_adaptation_prompt",
       "plan_voice": "admin_plan_voice_prompt",
       "intake_hints": "admin_intake_hints_prompt",
       "menu_review": "admin_menu_review_prompt",
-      "feedback_hints": "admin_feedback_hints_prompt"
+      "feedback_hints": "admin_feedback_hints_prompt",
+      "document_assessment": "admin_document_assessment_prompt"
     };
     const kvKey = promptKeyMap[type];
     if (!kvKey) {
@@ -56060,7 +56647,8 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
     reasons: change.reasons,
     urgent,
     appliesAt: urgent ? "specialist" : change.level > 0 ? "weekly" : "next_voice",
-    derived: publicEnrichmentView(nextData._enrichment)
+    derived: publicEnrichmentView(nextData._enrichment),
+    reanalysis: profile.userData ? reanalysisOf(profile.userData, nextStore) : null
   };
 }
 async function handleEnrichmentResolve(request, env) {
@@ -56339,13 +56927,71 @@ async function handleDeviceExtract(request, env) {
     return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u043F\u0440\u043E\u0447\u0435\u0442\u0435\u043C \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0435\u043A\u0440\u0430\u043D\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430." }, 500);
   }
 }
+async function handleDocumentAssess(request, env) {
+  try {
+    const { userId, idToken, imageData, mimeType, text, note } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const plain = String(text || "").trim().slice(0, 12e3);
+    if (!imageData && !plain) return jsonResponse2({ error: "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0444\u0430\u0439\u043B \u0438\u043B\u0438 \u0442\u0435\u043A\u0441\u0442." }, 400);
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    const data = applyEnrichment(normalizeQuestionnaireData({ ...profile?.userData || {} }), profile?.enrichment || { facts: [] });
+    const brief = [
+      profileBrief(compileProfile(data || {})),
+      data?.medicationsDetails ? `\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430: ${[].concat(data.medicationsDetails).join(", ")}` : ""
+    ].filter(Boolean).join("\n");
+    const template = await requireKvPrompt(env, "admin_document_assessment_prompt");
+    const prompt = Object.entries({
+      profileSummary: brief,
+      note: String(note || "").trim().slice(0, 500) || "\u043D\u044F\u043C\u0430",
+      text: plain || "\u0432\u0438\u0436 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F \u0444\u0430\u0439\u043B",
+      clinicalList: describeCodes(VOCABULARY.clinical),
+      exclusionsList: describeCodes(VOCABULARY.exclusions)
+    }).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), String(template));
+    let response;
+    if (imageData) {
+      const isPdf = mimeType === "application/pdf";
+      const allowed = ["image/jpeg", "image/png", "image/webp"];
+      const effectiveMime = isPdf ? "application/pdf" : allowed.includes(mimeType) ? mimeType : "image/jpeg";
+      const base64Data = String(imageData).startsWith("data:") ? String(imageData).slice(String(imageData).indexOf(",") + 1) : String(imageData);
+      if (base64Data.length * 3 / 4 > 15 * 1024 * 1024) return jsonResponse2({ error: "\u0424\u0430\u0439\u043B\u044A\u0442 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C (\u0434\u043E 15 MB)." }, 400);
+      if (isPdf) {
+        if (!env.GEMINI_API_KEY) return jsonResponse2({ error: "PDF \u043D\u0435 \u0441\u0435 \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430 \u2014 \u043A\u0430\u0447\u0435\u0442\u0435 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430\u0442\u0430." }, 415);
+        const config = await getAdminConfig(env);
+        response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === "google" && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget);
+      } else {
+        response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2500);
+      }
+    } else {
+      response = await callAIModel(env, prompt, 2500, "document_assessment", null, data, null);
+    }
+    const parsed = parseAIResponse(response) || {};
+    const value = normalizeDocumentValue(parsed);
+    const known = new Set(compileProfile(data || {}).clinical);
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || "")) ? parsed.date : null;
+    return jsonResponse2({
+      success: true,
+      relevant: parsed.relevant !== false && !!value,
+      isLabReport: parsed.isLabReport === true,
+      date,
+      // Вече известните състояния не се предлагат отново.
+      assessment: value ? { ...value, clinical: value.clinical.filter((c) => !known.has(c)) } : null,
+      planChanges: (Array.isArray(parsed.planChanges) ? parsed.planChanges : []).map((x) => String(x || "").trim().slice(0, 240)).filter(Boolean).slice(0, 4),
+      labels: codeMeanings([...VOCABULARY.clinical, ...VOCABULARY.exclusions])
+    });
+  } catch (error) {
+    console.error("Error assessing document:", error);
+    return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u043F\u0440\u043E\u0447\u0435\u0442\u0435\u043C \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430 \u0438\u043B\u0438 \u0432\u044A\u0432\u0435\u0434\u0435\u0442\u0435 \u0442\u0435\u043A\u0441\u0442\u0430." }, 500);
+  }
+}
 function publicDeviceKinds() {
   return Object.fromEntries(Object.entries(DEVICE_KINDS).map(([k, v]) => [k, { label: v.label, unit: v.unit, two: !!v.range2 }]));
 }
 async function handleEnrichmentDelete(request, env) {
   try {
     if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    const { userId, idToken, kinds } = await request.json();
+    const { userId, idToken, kinds, documentIds } = await request.json();
     if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
     const authError = await checkFirebaseOwner(userId, idToken, env, request);
     if (authError) return authError;
@@ -56353,7 +56999,8 @@ async function handleEnrichmentDelete(request, env) {
     if (!profile?.enrichment) return jsonResponse2({ success: true, removed: 0 });
     const before = profile.enrichment.facts?.length || 0;
     const only = Array.isArray(kinds) && kinds.length ? new Set(kinds) : null;
-    const facts = only ? (profile.enrichment.facts || []).filter((f) => !only.has(f.kind)) : [];
+    const docIds = Array.isArray(documentIds) && documentIds.length ? new Set(documentIds.map(String)) : null;
+    const facts = docIds ? (profile.enrichment.facts || []).filter((f) => !(f.kind === "document" && docIds.has(f.key))) : only ? (profile.enrichment.facts || []).filter((f) => !only.has(f.kind)) : [];
     profile.enrichment = { ...profile.enrichment, facts, updatedAt: (/* @__PURE__ */ new Date()).toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
     const hasDeviceFacts = facts.some((f) => DEVICE_KINDS[f.kind]);
     if (!hasDeviceFacts) delete profile.enrichment.digest;
@@ -56396,12 +57043,25 @@ async function handleEnrichmentGet(request, env) {
       ),
       sources: [...new Set((store.facts || []).map((f) => f.source))],
       lastChange: store.lastChange || null,
+      pendingLevel: Number(store.pendingLevel) || 0,
+      reanalysis: profile?.userData ? reanalysisOf(profile.userData, store) : null,
       markers: LAB_MARKERS,
       deviceKinds: publicDeviceKinds(),
       moduleSources: profile?.moduleSources || {}
     });
   } catch (error) {
     return jsonResponse2({ error: "Failed to load enrichment: " + error.message }, 500);
+  }
+}
+function reanalysisOf(userData, store) {
+  try {
+    const base = normalizeQuestionnaireData({ ...userData || {} });
+    const sex = base.gender === "\u041C\u044A\u0436" ? "M" : base.gender === "\u0416\u0435\u043D\u0430" ? "F" : "X";
+    const enriched = store?.facts?.length ? applyEnrichment(JSON.parse(JSON.stringify(base)), store) : base;
+    return reanalyze(base, enriched, {}, sex);
+  } catch (e) {
+    console.warn("[reanalysis] skipped:", e.message);
+    return null;
   }
 }
 function publicEnrichmentView(d) {
@@ -56419,6 +57079,7 @@ function publicEnrichmentView(d) {
     // Готовият текст за чата на клиента (същият като в картона на специалиста).
     essenceText: profileContextText(d),
     iris: d.iris ? { at: d.iris.at, focus: d.iris.focus } : null,
+    documents: d.documents || [],
     // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
     hypotheses: d.crossCheck?.hypotheses || [],
     questions: d.crossCheck?.questions || []
@@ -56428,7 +57089,7 @@ function profileContextText(d) {
   if (!d) return "";
   const v = d.voice;
   const emo = v && (v.archetype || v.intensity) ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat): ${[v.archetype ? `\u0430\u0440\u0445\u0435\u0442\u0438\u043F ${v.archetype}` : "", v.intensity ? `\u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442 ${v.intensity}` : "", v.drivers?.length ? `\u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438 ${v.drivers.join(", ")}` : "", v.realNeed ? `\u0440\u0435\u0430\u043B\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 ${v.realNeed}` : ""].filter(Boolean).join(", ")}` : "";
-  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), crossCheckText(d.crossCheck)].filter(Boolean).join(" | ").slice(0, 2800);
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), documentsText(d.documents), crossCheckText(d.crossCheck)].filter(Boolean).join(" | ").slice(0, 3600);
 }
 var DEFAULT_HEALTH_DIGEST_PROMPT = `\u0422\u0438 \u0441\u0438 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0414\u0430\u043D\u043D\u0438 \u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0442\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A, \u0433\u0440\u0438\u0432\u043D\u0430, \u0432\u0435\u0437\u043D\u0430, \u0430\u043F\u0430\u0440\u0430\u0442 \u0437\u0430 \u043A\u0440\u044A\u0432\u043D\u043E, \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440, \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F) \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438, \u0432\u0435\u0447\u0435 \u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438:
 {essence}
@@ -58153,6 +58814,8 @@ var worker_entry_default = {
         return await handleEnrichmentResolve(request, env);
       } else if (url.pathname === "/api/enrichment/extract-device" && request.method === "POST") {
         return await handleDeviceExtract(request, env);
+      } else if (url.pathname === "/api/enrichment/assess-document" && request.method === "POST") {
+        return await handleDocumentAssess(request, env);
       } else if (url.pathname === "/api/enrichment/delete" && request.method === "POST") {
         return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === "/api/user/sync-analytics" && request.method === "POST") {

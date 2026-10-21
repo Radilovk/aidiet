@@ -1259,6 +1259,26 @@
         .devices-signals { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
         .devices-signals li { padding: 10px 12px; border-radius: 12px; font-size: 0.9rem; line-height: 1.45; color: var(--text-dark); background: rgba(15, 118, 110, 0.06); border: 1px solid var(--glass-border); }
         .devices-signals li[data-level="warn"] { background: var(--ds-warning-bg); border-color: var(--ds-warning-border); }
+        .card-meter-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .card-meter-pct { font-size: 1.75rem; font-weight: 800; color: var(--ds-success-text); font-variant-numeric: tabular-nums; }
+        .card-meter-bar { height: 10px; border-radius: 999px; background: rgba(15, 118, 110, 0.12); overflow: hidden; margin: 10px 0 8px; }
+        .card-meter-bar span { display: block; height: 100%; width: 0; background: var(--ds-fill-grad); border-radius: inherit; transition: width 400ms var(--ds-ease-standard, ease); }
+        .card-meter-hint { font-size: 0.9rem; line-height: 1.45; color: var(--ds-text-soft); margin: 0 0 12px; }
+        .card-meter-list { list-style: none; margin: 0; padding: 0; }
+        .card-meter-row { width: 100%; text-align: left; font: inherit; cursor: pointer; }
+        .card-meter-row:disabled { opacity: 0.55; cursor: not-allowed; }
+        .card-meter-row.is-done { background: rgba(21, 128, 61, 0.07); }
+        .card-meter-w { flex-shrink: 0; font-weight: 800; font-size: 0.875rem; color: var(--ds-text-soft); }
+        .card-meter-row.is-done .card-meter-w { color: var(--ds-success-text); }
+        .docs-note { margin-bottom: 10px; }
+        .docs-text { width: 100%; margin-top: 10px; }
+        .docs-card { margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(15, 118, 110, 0.06); border: 1px solid var(--glass-border); }
+        .docs-card-title { font-weight: 700; color: var(--text-dark); }
+        .docs-impact { display: inline-block; margin: 6px 0; padding: 2px 10px; border-radius: 999px; font-size: 0.8125rem; font-weight: 700; background: rgba(15, 118, 110, 0.12); color: var(--text-dark); }
+        .docs-impact[data-impact="menu"], .docs-impact[data-impact="strategy"] { background: var(--ds-warning-bg); color: var(--ds-warning-text); }
+        .docs-summary { margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--text-dark); }
+        .docs-code { margin-bottom: 8px; }
+        .docs-remove { grid-column: 1 / -1; margin-top: 4px; min-height: 36px; }
         .labs-delete { margin-top: 14px; min-height: 44px; background: none; border: none; color: var(--ds-error-text); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 0; }
         @media (max-width: 359px) { .labs-row { grid-template-columns: 40px 1fr 1fr; } .labs-row-unit { grid-column: 2 / -1; } }
 
@@ -1939,6 +1959,7 @@
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
     <script src="./enrichment-client.js"></script>
+    <script src="./supplement-shop.js"></script>
     <script src="./health-sync.js"></script>
     <script src="./device-import.js"></script>
     <script src="./handoff-client.js"></script>
@@ -2030,6 +2051,128 @@
         </div>
 
         <div id="alertContainer"></div>
+        <!-- КЛИЕНТСКИ КАРТОН: колко пълен е профилът и какво още да се добави -->
+        <div class="form-section card-meter" id="cardMeter">
+            <div class="card-meter-head">
+                <div class="section-title"><i class="fas fa-id-card"></i> Клиентски картон</div>
+                <div class="card-meter-pct" id="cardMeterPct">0%</div>
+            </div>
+            <div class="card-meter-bar" role="progressbar" aria-label="Пълнота на профила" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cardMeterBar"><span id="cardMeterFill"></span></div>
+            <p class="card-meter-hint" id="cardMeterHint">Колкото повече данни, толкова по-точен е планът.</p>
+            <ul class="card-meter-list" id="cardMeterList"></ul>
+        </div>
+
+        <div id="cardSections">
+        <div class="form-section" id="labsSection">
+            <div class="profile-contact-header" onclick="toggleLabs()" role="button" tabindex="0" aria-expanded="false" aria-controls="labsWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleLabs()">
+                <div class="section-title">
+                    <i class="fas fa-vial"></i>
+                    Изследвания
+                </div>
+                <i class="fas fa-chevron-down profile-contact-chevron" id="labsChevron"></i>
+            </div>
+            <div class="profile-contact-wrapper" id="labsWrapper">
+                <p class="labs-intro">Качете снимка на резултатите от кръвни изследвания. Разчитаме ги, Вие проверявате стойностите, и чак тогава те влизат в плана: правилата на храненето, добавките и бележките за специалиста. Изследванията не са диагноза — диагноза поставя лекар.</p>
+                <label class="labs-consent">
+                    <input type="checkbox" id="labsConsent" onchange="onLabsConsent(this.checked)">
+                    <span>Съгласен/на съм резултатите да се съхраняват и използват за хранителния ми план. Мога да ги изтрия по всяко време.</span>
+                </label>
+                <div class="labs-actions">
+                    <button type="button" class="btn btn-primary" id="labsUploadBtn" onclick="document.getElementById('labsFile').click()" disabled>
+                        <i class="fas fa-camera"></i> Снимка или PDF
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="labsManualBtn" onclick="addManualLabRow()" disabled>
+                        <i class="fas fa-keyboard"></i> Ръчно
+                    </button>
+                    <input type="file" id="labsFile" accept="image/*,application/pdf" hidden onchange="onLabsFile(this)">
+                </div>
+                <div class="labs-status" id="labsStatus" role="status"></div>
+                <div id="labsReview" hidden>
+                    <div class="labs-sub">Проверете стойностите</div>
+                    <p class="labs-note">Сравнете всяко число с бланката. Отметнатите влизат в плана; несигурно разчетените са отбелязани.</p>
+                    <label class="labs-date">Дата на изследването <input type="date" id="labsDate" class="form-input"></label>
+                    <div id="labsRows"></div>
+                    <button type="button" class="btn btn-primary labs-confirm" onclick="confirmLabs()"><i class="fas fa-check"></i> Потвърди и добави</button>
+                </div>
+                <div id="labsCurrent"></div>
+            </div>
+        </div>
+
+        <div class="form-section" id="devicesSection" hidden>
+            <div class="profile-contact-header" onclick="toggleDevices()" role="button" tabindex="0" aria-expanded="false" aria-controls="devicesWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDevices()">
+                <div class="section-title">
+                    <i class="fas fa-heart-pulse"></i>
+                    Устройства
+                </div>
+                <i class="fas fa-chevron-down profile-contact-chevron" id="devicesChevron"></i>
+            </div>
+            <div class="profile-contact-wrapper" id="devicesWrapper">
+                <p class="labs-intro">Данни от часовник, гривна, везна с анализ на тялото, апарат за кръвно, глюкомер или приложение за хранене. След анализ влизат в плана: активност и тренировки, сън, тенденция на теглото, мазнини и мускули, възстановяване, кръвно и захар. Виждат ги и асистентът в чата, и специалистът.</p>
+                <label class="labs-consent">
+                    <input type="checkbox" id="devicesConsent" onchange="onDevicesConsent(this.checked)">
+                    <span>Съгласен/на съм данните от устройствата да се използват за хранителния ми план. Мога да спра и да ги изтрия по всяко време.</span>
+                </label>
+                <div class="devices-source" id="devicesHcBox" hidden>
+                    <div class="labs-sub">Автоматично — Health Connect</div>
+                    <p class="labs-note">Samsung Health, Fitbit, Garmin, Zepp/Amazfit, Mi Fitness, Withings, Oura, Polar, везни Renpho/Xiaomi/Eufy, MyFitnessPal и др. — всичко, което пише в Health Connect.</p>
+                    <div class="labs-actions devices-actions" id="devicesActions"></div>
+                </div>
+                <div class="devices-source">
+                    <div class="labs-sub">От всяко приложение или уред</div>
+                    <p class="labs-note">Екранна снимка от приложението или снимка на дисплея на уреда — разчитаме стойностите и ги проверявате. Или файл с експорт (CSV/JSON).</p>
+                    <div class="labs-actions devices-manual">
+                        <button type="button" class="btn btn-primary devices-needs-consent" onclick="document.getElementById('devicesPhoto').click()" disabled><i class="fas fa-camera"></i> Снимка на екран</button>
+                        <button type="button" class="btn btn-secondary devices-needs-consent" onclick="document.getElementById('devicesFile').click()" disabled><i class="fas fa-file-arrow-up"></i> Файл</button>
+                        <input type="file" id="devicesPhoto" accept="image/*" hidden onchange="onDevicePhoto(this)">
+                        <input type="file" id="devicesFile" accept=".csv,.json,.txt,text/csv,application/json" hidden onchange="onDeviceFile(this)">
+                    </div>
+                </div>
+                <div class="labs-status" id="devicesStatus" role="status"></div>
+                <div id="devicesReview" hidden>
+                    <div class="labs-sub" id="devicesReviewTitle">Проверете стойностите</div>
+                    <p class="labs-note" id="devicesReviewNote"></p>
+                    <div id="devicesRows"></div>
+                    <button type="button" class="btn btn-primary labs-confirm" onclick="confirmDeviceReview()"><i class="fas fa-check"></i> Потвърди и добави</button>
+                </div>
+                <div id="devicesEssence"></div>
+            </div>
+        </div>
+
+        <div class="form-section" id="docsSection" hidden>
+            <div class="profile-contact-header" onclick="toggleDocs()" role="button" tabindex="0" aria-expanded="false" aria-controls="docsWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDocs()">
+                <div class="section-title">
+                    <i class="fas fa-file-medical"></i>
+                    Други документи
+                </div>
+                <i class="fas fa-chevron-down profile-contact-chevron" id="docsChevron"></i>
+            </div>
+            <div class="profile-contact-wrapper" id="docsWrapper">
+                <p class="labs-intro">Епикриза, писмо от лекар, рецепта, образно изследване, алергологичен тест или важна информация, която не е във въпросника. AI преценява дали и доколко документът засяга плана и предлага какво да се промени. Вие проверявате предложението и чак тогава то влиза в профила.</p>
+                <label class="labs-consent">
+                    <input type="checkbox" id="docsConsent" onchange="onDocsConsent(this.checked)">
+                    <span>Съгласен/на съм документите да се съхраняват и използват за хранителния ми план. Мога да ги изтрия по всяко време.</span>
+                </label>
+                <input type="text" id="docsNote" class="form-input docs-note" maxlength="500" placeholder="Кратко пояснение (по желание): напр. „епикриза след операция на жлъчка“">
+                <div class="labs-actions">
+                    <button type="button" class="btn btn-primary docs-needs-consent" onclick="document.getElementById('docsFile').click()" disabled>
+                        <i class="fas fa-camera"></i> Снимка или PDF
+                    </button>
+                    <button type="button" class="btn btn-secondary docs-needs-consent" onclick="toggleDocsText()" disabled>
+                        <i class="fas fa-keyboard"></i> Текст
+                    </button>
+                    <input type="file" id="docsFile" accept="image/*,application/pdf" hidden onchange="onDocsFile(this)">
+                </div>
+                <div id="docsTextBox" hidden>
+                    <textarea id="docsText" class="form-textarea docs-text" rows="5" maxlength="12000" placeholder="Поставете или напишете текста на документа или информацията за здравето си"></textarea>
+                    <button type="button" class="btn btn-primary labs-confirm" onclick="assessDocsText()"><i class="fas fa-wand-magic-sparkles"></i> Прецени</button>
+                </div>
+                <div class="labs-status" id="docsStatus" role="status"></div>
+                <div id="docsReview" hidden></div>
+                <div id="docsCurrent"></div>
+            </div>
+        </div>
+
+        </div>
 
 
         <!-- QUESTIONNAIRE COLLAPSIBLE CONTAINER -->
@@ -2339,112 +2482,6 @@
             </div><!-- /.profile-contact-wrapper -->
         </div>
 
-        <div class="form-section" id="labsSection">
-            <div class="profile-contact-header" onclick="toggleLabs()" role="button" tabindex="0" aria-expanded="false" aria-controls="labsWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleLabs()">
-                <div class="section-title">
-                    <i class="fas fa-vial"></i>
-                    Изследвания
-                </div>
-                <i class="fas fa-chevron-down profile-contact-chevron" id="labsChevron"></i>
-            </div>
-            <div class="profile-contact-wrapper" id="labsWrapper">
-                <p class="labs-intro">Качете снимка на резултатите от кръвни изследвания. Разчитаме ги, Вие проверявате стойностите, и чак тогава те влизат в плана: правилата на храненето, добавките и бележките за специалиста. Изследванията не са диагноза — диагноза поставя лекар.</p>
-                <label class="labs-consent">
-                    <input type="checkbox" id="labsConsent" onchange="onLabsConsent(this.checked)">
-                    <span>Съгласен/на съм резултатите да се съхраняват и използват за хранителния ми план. Мога да ги изтрия по всяко време.</span>
-                </label>
-                <div class="labs-actions">
-                    <button type="button" class="btn btn-primary" id="labsUploadBtn" onclick="document.getElementById('labsFile').click()" disabled>
-                        <i class="fas fa-camera"></i> Снимка или PDF
-                    </button>
-                    <button type="button" class="btn btn-secondary" id="labsManualBtn" onclick="addManualLabRow()" disabled>
-                        <i class="fas fa-keyboard"></i> Ръчно
-                    </button>
-                    <input type="file" id="labsFile" accept="image/*,application/pdf" hidden onchange="onLabsFile(this)">
-                </div>
-                <div class="labs-status" id="labsStatus" role="status"></div>
-                <div id="labsReview" hidden>
-                    <div class="labs-sub">Проверете стойностите</div>
-                    <p class="labs-note">Сравнете всяко число с бланката. Отметнатите влизат в плана; несигурно разчетените са отбелязани.</p>
-                    <label class="labs-date">Дата на изследването <input type="date" id="labsDate" class="form-input"></label>
-                    <div id="labsRows"></div>
-                    <button type="button" class="btn btn-primary labs-confirm" onclick="confirmLabs()"><i class="fas fa-check"></i> Потвърди и добави</button>
-                </div>
-                <div id="labsCurrent"></div>
-            </div>
-        </div>
-
-        <div class="form-section" id="modulesSection">
-            <div class="profile-contact-header" onclick="toggleModules()" role="button" tabindex="0" aria-expanded="false" aria-controls="modulesWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleModules()">
-                <div class="section-title">
-                    <i class="fas fa-puzzle-piece"></i>
-                    Модули
-                </div>
-                <i class="fas fa-chevron-down profile-contact-chevron" id="modulesChevron"></i>
-            </div>
-            <div class="profile-contact-wrapper" id="modulesWrapper">
-                <p class="labs-intro">Допълнителни анализи, които разширяват профила ви. Резултатът им се връща в NutriPlan и влиза в плана, в съветите на асистента и при специалиста.</p>
-                <a class="module-card" href="./emoeat.html">
-                    <span class="module-icon"><i class="fas fa-heart"></i></span>
-                    <span class="module-body">
-                        <span class="module-name">EmoEat — емоционално хранене</span>
-                        <span class="module-desc">Кога и защо се появява гладът, какво го захранва</span>
-                        <span class="module-status" id="moduleEmoeatStatus"></span>
-                    </span>
-                    <i class="fas fa-chevron-right module-go" aria-hidden="true"></i>
-                </a>
-                <a class="module-card" href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener">
-                    <span class="module-icon"><i class="fas fa-eye"></i></span>
-                    <span class="module-body">
-                        <span class="module-name">AIRIS — ирисов анализ</span>
-                        <span class="module-desc">Анализ по снимка на ириса и хранителни насоки към него</span>
-                        <span class="module-status" id="moduleAirisStatus"></span>
-                    </span>
-                    <i class="fas fa-arrow-up-right-from-square module-go" aria-hidden="true"></i>
-                </a>
-            </div>
-        </div>
-
-        <div class="form-section" id="devicesSection" hidden>
-            <div class="profile-contact-header" onclick="toggleDevices()" role="button" tabindex="0" aria-expanded="false" aria-controls="devicesWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDevices()">
-                <div class="section-title">
-                    <i class="fas fa-heart-pulse"></i>
-                    Устройства
-                </div>
-                <i class="fas fa-chevron-down profile-contact-chevron" id="devicesChevron"></i>
-            </div>
-            <div class="profile-contact-wrapper" id="devicesWrapper">
-                <p class="labs-intro">Данни от часовник, гривна, везна с анализ на тялото, апарат за кръвно, глюкомер или приложение за хранене. След анализ влизат в плана: активност и тренировки, сън, тенденция на теглото, мазнини и мускули, възстановяване, кръвно и захар. Виждат ги и асистентът в чата, и специалистът.</p>
-                <label class="labs-consent">
-                    <input type="checkbox" id="devicesConsent" onchange="onDevicesConsent(this.checked)">
-                    <span>Съгласен/на съм данните от устройствата да се използват за хранителния ми план. Мога да спра и да ги изтрия по всяко време.</span>
-                </label>
-                <div class="devices-source" id="devicesHcBox" hidden>
-                    <div class="labs-sub">Автоматично — Health Connect</div>
-                    <p class="labs-note">Samsung Health, Fitbit, Garmin, Zepp/Amazfit, Mi Fitness, Withings, Oura, Polar, везни Renpho/Xiaomi/Eufy, MyFitnessPal и др. — всичко, което пише в Health Connect.</p>
-                    <div class="labs-actions devices-actions" id="devicesActions"></div>
-                </div>
-                <div class="devices-source">
-                    <div class="labs-sub">От всяко приложение или уред</div>
-                    <p class="labs-note">Екранна снимка от приложението или снимка на дисплея на уреда — разчитаме стойностите и ги проверявате. Или файл с експорт (CSV/JSON).</p>
-                    <div class="labs-actions devices-manual">
-                        <button type="button" class="btn btn-primary devices-needs-consent" onclick="document.getElementById('devicesPhoto').click()" disabled><i class="fas fa-camera"></i> Снимка на екран</button>
-                        <button type="button" class="btn btn-secondary devices-needs-consent" onclick="document.getElementById('devicesFile').click()" disabled><i class="fas fa-file-arrow-up"></i> Файл</button>
-                        <input type="file" id="devicesPhoto" accept="image/*" hidden onchange="onDevicePhoto(this)">
-                        <input type="file" id="devicesFile" accept=".csv,.json,.txt,text/csv,application/json" hidden onchange="onDeviceFile(this)">
-                    </div>
-                </div>
-                <div class="labs-status" id="devicesStatus" role="status"></div>
-                <div id="devicesReview" hidden>
-                    <div class="labs-sub" id="devicesReviewTitle">Проверете стойностите</div>
-                    <p class="labs-note" id="devicesReviewNote"></p>
-                    <div id="devicesRows"></div>
-                    <button type="button" class="btn btn-primary labs-confirm" onclick="confirmDeviceReview()"><i class="fas fa-check"></i> Потвърди и добави</button>
-                </div>
-                <div id="devicesEssence"></div>
-            </div>
-        </div>
-
         <div class="form-section">
             <div class="profile-contact-header" onclick="togglePlanBackup()" role="button" tabindex="0" aria-expanded="false" aria-controls="planBackupWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')togglePlanBackup()">
                 <div class="section-title">
@@ -2586,10 +2623,18 @@
             const file = input.files && input.files[0];
             input.value = '';
             if (!file) return;
+            try {
+                const { data, mime } = await readLabFile(file);
+                await extractLabsFrom(data, mime);
+            } catch (e) {
+                labsSetStatus(e.message || 'Не успяхме да прочетем изследването.', 'error');
+            }
+        }
+
+        async function extractLabsFrom(data, mime) {
             const E = window.NutriPlanEnrichment;
             labsSetStatus('Разчитаме изследването…');
             try {
-                const { data, mime } = await readLabFile(file);
                 const res = await E.extractLabs(data, mime);
                 _labsCatalog = res.markersCatalog || _labsCatalog;
                 if (!res.markers || !res.markers.length) {
@@ -2660,6 +2705,7 @@
                 document.getElementById('labsRows').innerHTML = '';
                 labsSetStatus(E.describeChange(res), res.urgent ? 'warn' : 'ok');
                 renderLabsCurrent(res.derived);
+                refreshCardMeter(res.derived);
             } catch (e) {
                 labsSetStatus(e.message || 'Не успяхме да добавим стойностите.', 'error');
             }
@@ -2691,7 +2737,7 @@
                         <span class="labs-item-val">${fmt(l.value)} ${escProfileHtml(l.unit)}</span>
                         <span class="labs-item-status">${LAB_STATUS_TEXT[l.status] || ''}</span>
                     </li>`).join('')}</ul>
-                ${(d.supplements || []).length ? `<div class="labs-sub">Добавки по изследване</div><ul class="labs-list">${d.supplements.map(s => `<li class="labs-item"><span class="labs-item-name">${escProfileHtml(s.name)} — ${escProfileHtml(s.dosage)}</span><span class="labs-item-status">${escProfileHtml(s.reason || '')}</span></li>`).join('')}</ul>` : ''}
+                ${(d.supplements || []).length ? `<div class="labs-sub">Добавки по изследване</div><ul class="labs-list">${d.supplements.map(s => `<li class="labs-item"><span class="labs-item-name">${window.NutriPlanSupplementShop ? `<a href="${escProfileHtml(window.NutriPlanSupplementShop.url(s.name))}" target="_blank" rel="noopener">${escProfileHtml(s.name)}</a>` : escProfileHtml(s.name)} — ${escProfileHtml(s.dosage)}</span><span class="labs-item-status">${escProfileHtml(s.reason || '')}</span></li>`).join('')}</ul>` : ''}
                 ${(d.cautions || []).length ? `<div class="labs-sub">За специалиста и лекаря</div><ul class="labs-cautions">${d.cautions.map(c => `<li>${escProfileHtml(c)}</li>`).join('')}</ul>` : ''}
                 <button type="button" class="labs-delete" onclick="deleteLabs()"><i class="fas fa-trash-can"></i> Изтрий данните от изследвания</button>`;
         }
@@ -2701,43 +2747,303 @@
             try {
                 await window.NutriPlanEnrichment.remove(['biomarker']);
                 document.getElementById('labsCurrent').innerHTML = '';
+                refreshCardMeter();
                 labsSetStatus('Изтрито. Планът ще се съобрази при следващия седмичен преглед.', 'ok');
             } catch (e) {
                 labsSetStatus(e.message || 'Не успяхме да изтрием данните.', 'error');
             }
         }
 
-        let _modulesLoaded = false;
+        // ── Клиентски картон: пълнота на профила ─────────────────────────────
+        // Тежестта е по това колко данните менят плана: въпросникът е основата,
+        // изследванията и устройствата носят измерено, модулите — контекст.
+        const CARD_QUESTION_FIELDS = ['gender', 'age', 'height', 'weight', 'goal', 'dailyActivityLevel', 'sportActivity',
+            'sleepHours', 'stressLevel', 'waterIntake', 'dietPreference', 'medicalConditions', 'medications',
+            'eatingHabits', 'foodCravings', 'overeatingFrequency', 'drinksSweet', 'drinksAlcohol', 'dietLove', 'dietDislike'];
+        let _cardData = null;
 
-        function toggleModules() {
-            const wrapper = document.getElementById('modulesWrapper');
-            const chevron = document.getElementById('modulesChevron');
+        function questionnaireFill() {
+            let ud = {};
+            try { ud = JSON.parse(localStorage.getItem('userData') || '{}') || {}; } catch (_) {}
+            const filled = CARD_QUESTION_FIELDS.filter(f => {
+                const v = ud[f];
+                return Array.isArray(v) ? v.length > 0 : v != null && String(v).trim() !== '';
+            }).length;
+            return filled / CARD_QUESTION_FIELDS.length;
+        }
+
+        function cardModules(d, sources) {
+            const day = iso => (iso ? new Date(iso).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+            const src = sources || {};
+            const qFill = questionnaireFill();
+            const labs = (d && d.labs) || [];
+            const labsAt = labs.reduce((m, l) => (l.at > m ? l.at : m), '');
+            const deviceSources = (d && d.essence && d.essence.sources) || [];
+            const docs = (d && d.documents) || [];
+            const emo = d && d.emoeat;
+            const iris = d && d.iris;
+            return [
+                { id: 'q', weight: 30, icon: 'fa-clipboard-list', name: 'Първоначален въпросник', fill: qFill,
+                  status: qFill >= 1 ? 'Попълнен изцяло' : `Попълнен ${Math.round(qFill * 100)}%`,
+                  gives: 'основата на плана', action: 'questionnaire' },
+                { id: 'labs', weight: 20, icon: 'fa-vial', name: 'Кръвна картина и изследвания', fill: labs.length ? Math.min(1, labs.length / 6) : 0,
+                  status: labs.length ? `${labs.length} ${labs.length === 1 ? 'показател' : 'показателя'} · ${day(labsAt)}` : 'Не са добавени',
+                  gives: 'точни граници за захар, мазнини, желязо, витамин D, бъбреци', action: 'labsSection' },
+                { id: 'devices', weight: 15, icon: 'fa-heart-pulse', name: 'Гривна, часовник, пръстен, везна', fill: deviceSources.length ? 1 : 0,
+                  status: deviceSources.length ? `Свързани данни: ${deviceSources.length} вида` : 'Не са свързани',
+                  gives: 'реална активност, сън, пулс и тегло вместо приблизителни отговори', action: 'devicesSection' },
+                { id: 'emoeat', weight: 15, icon: 'fa-heart', name: 'Тест за емоционално хранене (EmoEat)', fill: emo ? 1 : 0,
+                  status: emo ? `${day(src.emoeat || emo.at)}${emo.archetype ? ` · ${emo.archetype}` : ''}` : 'Не е направен',
+                  gives: 'кога и защо идва гладът — съветите и тонът на плана', href: './emoeat.html' },
+                { id: 'iris', weight: 10, icon: 'fa-eye', name: 'Ирисова диагностика (AIRIS)', fill: iris ? 1 : 0,
+                  status: iris ? `${day(src.airis || iris.at)}${iris.focus && iris.focus.length ? ` · фокус: ${iris.focus.join(', ')}` : ''}` : 'Не е направена',
+                  gives: 'фокус на системите и насоки за специалиста', href: 'https://radilovk.github.io/airis1.0/?from=nutriplan', external: true },
+                { id: 'docs', weight: 10, icon: 'fa-file-medical', name: 'Други документи', fill: docs.length ? 1 : 0,
+                  status: docs.length ? `${docs.length} ${docs.length === 1 ? 'документ' : 'документа'}` : 'Няма добавени',
+                  gives: 'епикризи, писма от лекар, алергии, лекарства', action: 'docsSection' },
+            ];
+        }
+
+        function renderCardMeter() {
+            const list = document.getElementById('cardMeterList');
+            if (!list) return;
+            const loggedIn = !!(window.NutriPlanEnrichment && window.NutriPlanEnrichment.hasPlanProfile());
+            const mods = cardModules(_cardData && _cardData.derived, _cardData && _cardData.moduleSources);
+            const pct = Math.round(mods.reduce((sum, m) => sum + m.weight * m.fill, 0));
+            document.getElementById('cardMeterPct').textContent = `${pct}%`;
+            document.getElementById('cardMeterFill').style.width = `${pct}%`;
+            document.getElementById('cardMeterBar').setAttribute('aria-valuenow', String(pct));
+            const next = mods.filter(m => m.fill < 1).sort((a, b) => b.weight * (1 - b.fill) - a.weight * (1 - a.fill))[0];
+            document.getElementById('cardMeterHint').textContent = pct >= 100
+                ? 'Профилът е пълен — планът използва всички данни.'
+                : next ? `Следващо: ${next.name.toLowerCase()} (+${Math.round(next.weight * (1 - next.fill))}%) — ${next.gives}.` : '';
+            list.innerHTML = mods.map(m => {
+                const done = m.fill >= 1;
+                const tag = m.href ? `a href="${m.href}"${m.external ? ' target="_blank" rel="noopener"' : ''}` : `button type="button" onclick="openCardModule('${m.action}')"`;
+                const close = m.href ? 'a' : 'button';
+                const disabled = !loggedIn && m.id !== 'q';
+                return `<li><${tag} class="module-card card-meter-row${done ? ' is-done' : ''}"${disabled && !m.href ? ' disabled' : ''}>
+                    <span class="module-icon"><i class="fas ${m.icon}"></i></span>
+                    <span class="module-body">
+                        <span class="module-name">${escProfileHtml(m.name)}</span>
+                        <span class="module-status"${done ? ' data-on="1"' : ''}>${escProfileHtml(m.status)}</span>
+                        ${done ? '' : `<span class="module-desc">${escProfileHtml(m.gives)}</span>`}
+                    </span>
+                    <span class="card-meter-w">${done ? '<i class="fas fa-check"></i>' : `+${Math.round(m.weight * (1 - m.fill))}%`}</span>
+                </${close}></li>`;
+            }).join('');
+        }
+
+        async function initCardMeter(force) {
+            renderCardMeter();
+            const E = window.NutriPlanEnrichment;
+            if (!E || !E.hasPlanProfile()) return;
+            try {
+                const res = await E.get();
+                _cardData = { derived: res.derived, moduleSources: res.moduleSources || {} };
+                loadAnalysis();
+                _labsCatalog = res.markers || _labsCatalog;
+                renderCardMeter();
+                if (force) renderDocsCurrent(res.derived);
+            } catch (_) { /* без връзка — само въпросникът */ }
+        }
+
+        /** Данните се смениха (изследване, документ, устройство) — картонът се опреснява. */
+        function refreshCardMeter(derived) {
+            if (derived) { _cardData = Object.assign({}, _cardData || {}, { derived }); renderCardMeter(); loadAnalysis(); }
+            else initCardMeter();
+        }
+
+        function openCardModule(id) {
+            if (id === 'questionnaire') {
+                const c = document.getElementById('questionnaireContainer');
+                if (c && !c.classList.contains('open')) toggleQuestionnaire();
+                if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
+            const section = document.getElementById(id);
+            if (!section || section.hidden) return;
+            const wrapper = section.querySelector('.profile-contact-wrapper');
+            if (wrapper && !wrapper.classList.contains('open')) {
+                ({ labsSection: toggleLabs, devicesSection: toggleDevices, docsSection: toggleDocs })[id]();
+            }
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ── Други документи: AI преценка → проверка от клиента → профил ──────
+        let _docsLoaded = false;
+        let _docsPending = null;
+        let _docsLabels = {};
+        const DOCS_IMPACT_TEXT = {
+            none: 'Не засяга плана',
+            context: 'Само за специалиста и съветите',
+            menu: 'Променя менюто',
+            strategy: 'Променя калориите, белтъка или режима',
+        };
+
+        function toggleDocs() {
+            const wrapper = document.getElementById('docsWrapper');
+            const chevron = document.getElementById('docsChevron');
             const header = wrapper.previousElementSibling;
             const isOpen = wrapper.classList.toggle('open');
             chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
             if (header) header.setAttribute('aria-expanded', String(isOpen));
-            if (isOpen && !_modulesLoaded) { _modulesLoaded = true; loadModuleStatus(); }
+            if (isOpen && !_docsLoaded) { _docsLoaded = true; renderDocsCurrent(_cardData && _cardData.derived); }
         }
 
-        /** Кой модул е добавен към профила и кога — само от данните на NutriPlan. */
-        async function loadModuleStatus() {
+        function docsSetStatus(text, tone) {
+            const el = document.getElementById('docsStatus');
+            el.textContent = text || '';
+            el.dataset.tone = tone || '';
+        }
+
+        function onDocsConsent(checked) {
             const E = window.NutriPlanEnrichment;
-            if (!E || !E.hasPlanProfile()) return;
-            const day = iso => (iso ? new Date(iso).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
+            if (E) E.setConsent('document', checked);
+            document.querySelectorAll('.docs-needs-consent').forEach(b => { b.disabled = !checked; });
+            if (!checked) document.getElementById('docsTextBox').hidden = true;
+        }
+
+        function initDocsSection() {
+            const E = window.NutriPlanEnrichment;
+            const section = document.getElementById('docsSection');
+            if (!section || !E || !E.hasPlanProfile()) return;
+            section.hidden = false;
+            const consent = E.hasConsent('document');
+            document.getElementById('docsConsent').checked = consent;
+            onDocsConsent(consent);
+        }
+
+        function toggleDocsText() {
+            const box = document.getElementById('docsTextBox');
+            box.hidden = !box.hidden;
+            if (!box.hidden) document.getElementById('docsText').focus();
+        }
+
+        async function onDocsFile(input) {
+            const file = input.files && input.files[0];
+            input.value = '';
+            if (!file) return;
             try {
-                const res = await E.get();
-                const src = res.moduleSources || {};
-                const emo = res.derived && res.derived.emoeat;
-                const iris = res.derived && res.derived.iris;
-                const set = (id, at, text) => {
-                    const el = document.getElementById(id);
-                    if (!el) return;
-                    el.textContent = at ? `В профила от ${day(at)}${text ? ` · ${text}` : ''}` : 'Не е добавен';
-                    el.dataset.on = at ? '1' : '';
-                };
-                set('moduleEmoeatStatus', src.emoeat || (emo && emo.at), emo && emo.archetype ? emo.archetype : '');
-                set('moduleAirisStatus', src.airis || (iris && iris.at), iris && iris.focus && iris.focus.length ? `фокус: ${iris.focus.join(', ')}` : '');
-            } catch (_) { /* без връзка — само линковете */ }
+                const { data, mime } = await readLabFile(file);
+                await assessDocument({ imageData: data, mimeType: mime });
+            } catch (e) {
+                docsSetStatus(e.message || 'Файлът не се прочете.', 'error');
+            }
+        }
+
+        function assessDocsText() {
+            const text = document.getElementById('docsText').value.trim();
+            if (text.length < 20) { docsSetStatus('Текстът е твърде кратък за преценка.', 'warn'); return; }
+            assessDocument({ text });
+        }
+
+        async function assessDocument(doc) {
+            const E = window.NutriPlanEnrichment;
+            docsSetStatus('AI преценява документа…');
+            document.getElementById('docsReview').hidden = true;
+            try {
+                const note = document.getElementById('docsNote').value.trim();
+                const res = await E.assessDocument(Object.assign({ note }, doc));
+                _docsLabels = res.labels || _docsLabels;
+                if (res.isLabReport && doc.imageData) {
+                    // Кръвните изследвания имат собствена проверка стойност по стойност.
+                    _docsPending = null;
+                    docsSetStatus('Това е лабораторно изследване — прехвърляме го към „Изследвания“ за проверка на стойностите.', 'ok');
+                    if (!E.hasConsent('labs')) { E.setConsent('labs', true); document.getElementById('labsConsent').checked = true; onLabsConsent(true); }
+                    openCardModule('labsSection');
+                    await extractLabsFrom(doc.imageData, doc.mimeType);
+                    return;
+                }
+                if (!res.assessment) { docsSetStatus('Не открихме информация, свързана със здравето или храненето.', 'warn'); return; }
+                _docsPending = { assessment: res.assessment, date: res.date, planChanges: res.planChanges || [], relevant: res.relevant };
+                renderDocsReview();
+                docsSetStatus(res.relevant ? 'Проверете предложението.' : 'Документът почти не засяга плана — може да го запазите само за специалиста.', res.relevant ? '' : 'warn');
+            } catch (e) {
+                docsSetStatus(e.message || 'Не успяхме да прочетем документа.', 'error');
+            }
+        }
+
+        function renderDocsReview() {
+            const box = document.getElementById('docsReview');
+            const p = _docsPending;
+            if (!p) { box.hidden = true; return; }
+            const a = p.assessment;
+            const label = c => escProfileHtml(_docsLabels[c] || c);
+            const checks = (kind, codes) => codes.map(c => `<label class="labs-consent docs-code"><input type="checkbox" data-kind="${kind}" value="${escProfileHtml(c)}" checked><span>${label(c)}</span></label>`).join('');
+            const list = (title, items) => (items && items.length ? `<div class="labs-sub">${title}</div><ul class="labs-cautions">${items.map(x => `<li>${escProfileHtml(x)}</li>`).join('')}</ul>` : '');
+            box.innerHTML = `
+                <div class="docs-card">
+                    <div class="docs-card-title">${escProfileHtml(a.title || 'Документ')}</div>
+                    <div class="docs-impact" data-impact="${escProfileHtml(a.impact)}">${escProfileHtml(DOCS_IMPACT_TEXT[a.impact] || '')}</div>
+                    <p class="docs-summary">${escProfileHtml(a.summary)}</p>
+                </div>
+                ${list('Какво предлага AI за плана', p.planChanges)}
+                ${list('Факти от документа', a.findings)}
+                ${a.clinical.length ? `<div class="labs-sub">Нови състояния за профила</div><p class="labs-note">Отметнатите включват хранителните правила на състоянието.</p>${checks('clinical', a.clinical)}` : ''}
+                ${a.exclusions.length ? `<div class="labs-sub">Храни за изключване</div>${checks('exclusions', a.exclusions)}` : ''}
+                ${a.medications.length ? `<div class="labs-sub">Лекарства</div><p class="labs-note">Проверяват се за взаимодействия с храни и добавки.</p>${checks('medications', a.medications)}` : ''}
+                ${list('За специалиста', a.cautions)}
+                <label class="labs-date">Дата на документа <input type="date" id="docsDate" class="form-input" value="${escProfileHtml(p.date || new Date().toISOString().slice(0, 10))}"></label>
+                <button type="button" class="btn btn-primary labs-confirm" onclick="confirmDocument()"><i class="fas fa-check"></i> Потвърди и добави</button>
+                <button type="button" class="labs-delete" onclick="cancelDocument()"><i class="fas fa-xmark"></i> Откажи</button>`;
+            box.hidden = false;
+        }
+
+        function cancelDocument() {
+            _docsPending = null;
+            document.getElementById('docsReview').hidden = true;
+            docsSetStatus('');
+        }
+
+        async function confirmDocument() {
+            const E = window.NutriPlanEnrichment;
+            const p = _docsPending;
+            if (!p) return;
+            const picked = kind => [...document.querySelectorAll(`#docsReview input[data-kind="${kind}"]:checked`)].map(i => i.value);
+            const value = Object.assign({}, p.assessment, { clinical: picked('clinical'), exclusions: picked('exclusions'), medications: picked('medications') });
+            const date = document.getElementById('docsDate').value || new Date().toISOString().slice(0, 10);
+            const id = 'doc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            docsSetStatus('Добавяме…');
+            try {
+                const res = await E.submit({ facts: [{ kind: 'document', key: id, value, at: date + 'T08:00:00Z', status: 'confirmed' }] }, 'document');
+                cancelDocument();
+                document.getElementById('docsText').value = '';
+                document.getElementById('docsNote').value = '';
+                document.getElementById('docsTextBox').hidden = true;
+                docsSetStatus(E.describeChange(res), res.urgent ? 'warn' : 'ok');
+                renderDocsCurrent(res.derived);
+                refreshCardMeter(res.derived);
+            } catch (e) {
+                docsSetStatus(e.message || 'Не успяхме да добавим документа.', 'error');
+            }
+        }
+
+        function renderDocsCurrent(d) {
+            const box = document.getElementById('docsCurrent');
+            if (!box) return;
+            const docs = (d && d.documents) || [];
+            if (!docs.length) { box.innerHTML = ''; return; }
+            const day = iso => new Date(iso).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short', year: 'numeric' });
+            box.innerHTML = `<div class="labs-sub">В профила</div><ul class="labs-list">${docs.map(doc => `
+                <li class="labs-item">
+                    <span class="labs-item-name">${escProfileHtml(doc.title)}</span>
+                    <span class="labs-item-val">${day(doc.at)}</span>
+                    <span class="labs-item-status">${escProfileHtml(DOCS_IMPACT_TEXT[doc.impact] || '')}${doc.summary ? ` · ${escProfileHtml(doc.summary)}` : ''}</span>
+                    <button type="button" class="labs-delete docs-remove" onclick="deleteDocument('${escProfileHtml(doc.id)}')"><i class="fas fa-trash-can"></i> Изтрий</button>
+                </li>`).join('')}</ul>`;
+        }
+
+        async function deleteDocument(id) {
+            if (!confirm('Документът ще бъде изтрит и няма да се използва за плана. Продължаване?')) return;
+            try {
+                const res = await window.NutriPlanEnrichment.removeDocument(id);
+                renderDocsCurrent(res.derived);
+                refreshCardMeter(res.derived);
+                docsSetStatus('Изтрито. Планът ще се съобрази при следващия седмичен преглед.', 'ok');
+            } catch (e) {
+                docsSetStatus(e.message || 'Не успяхме да изтрием документа.', 'error');
+            }
         }
 
         function toggleDevices() {
@@ -2872,7 +3178,7 @@
                 document.getElementById('devicesRows').innerHTML = '';
                 _deviceReview = null;
                 devicesSetStatus(window.NutriPlanEnrichment.describeChange(res), res.urgent ? 'warn' : 'ok');
-                renderDeviceEssence(res.derived);
+                renderDeviceEssence(res.derived); refreshCardMeter(res.derived);
             } catch (e) {
                 devicesSetStatus(e.message || 'Не успяхме да добавим данните.', 'error');
             }
@@ -2912,7 +3218,7 @@
             try {
                 const res = await window.NutriPlanEnrichment.get();
                 _deviceKinds = res.deviceKinds || _deviceKinds;
-                renderDeviceEssence(res.derived);
+                renderDeviceEssence(res.derived); refreshCardMeter(res.derived);
             } catch (_) { /* без връзка — само входовете */ }
         }
 
@@ -2972,7 +3278,7 @@
             try {
                 const res = await window.NutriPlanHealth.connect();
                 devicesSetStatus(res.sent ? `Изпратени ${res.sent} записа. ${res.message || ''}` : (res.message || 'Свързано.'), 'ok');
-                if (res.derived) renderDeviceEssence(res.derived);
+                if (res.derived) { renderDeviceEssence(res.derived); refreshCardMeter(res.derived); } refreshCardMeter(res.derived);
             } catch (e) {
                 devicesSetStatus(e.message || 'Свързването не успя.', 'error');
             }
@@ -2984,7 +3290,7 @@
             try {
                 const res = await window.NutriPlanHealth.sync({ force: true });
                 devicesSetStatus(res.sent ? `Изпратени ${res.sent} записа. ${res.message || ''}` : (res.message || 'Няма нови данни.'), 'ok');
-                if (res.derived) renderDeviceEssence(res.derived);
+                if (res.derived) { renderDeviceEssence(res.derived); refreshCardMeter(res.derived); } refreshCardMeter(res.derived);
             } catch (e) {
                 devicesSetStatus(e.message || 'Синхронизирането не успя.', 'error');
             }
@@ -4042,7 +4348,9 @@
                     return; // No analysis available
                 }
                 
-                const analysis = plan.analysis;
+                // С последния реанализ (изследвания, устройства, модули, документи), ако има такъв.
+                const E = window.NutriPlanEnrichment;
+                const analysis = E ? E.withReanalysis(plan.analysis, E.cachedReanalysis()) : plan.analysis;
                 const analysisSection = document.getElementById('analysisSection');
                 const analysisContent = document.getElementById('analysisContent');
                 
@@ -4278,6 +4586,8 @@
                 updateQuestionnaireActionsBar();
                 initLabsSection();
                 initDevicesSection();
+                initDocsSection();
+                initCardMeter();
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.ok('profile', 'setup-profile', 'Initial profile load complete');
                 }

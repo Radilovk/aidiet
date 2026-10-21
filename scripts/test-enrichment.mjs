@@ -11,6 +11,8 @@ import { buildNutritionPlan } from '../nutrition-engine/index.js';
 import { buildPlanSummary } from '../plan-summary.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
+import { supplementsFor } from '../supplement-rules.js';
+import { reanalyze } from '../analysis-reanalysis.js';
 
 let pass = 0;
 let fail = 0;
@@ -122,5 +124,58 @@ ok(d3.length === 1 && d3[0].reason, `D3 веднъж, с обосновка (${J
 ok(withD._enrichment.original && typeof withD._enrichment.original === 'object', 'оригиналните отговори се пазят');
 
 ok(normalizeFact({ kind: 'water', value: 2000, unit: 'мл', at: '2026-10-20T08:00:00Z' })?.value === 2, 'вода в „мл“ (кирилица) → литри');
+
+// ── Други документи ──────────────────────────────────────────────────────
+const doc = (value, key = 'doc_test01') => ({ kind: 'document', key, value, at: daysAgo(2), status: 'confirmed' });
+ok(normalizeFact(doc({ summary: 'x', clinical: ['GERD', 'XXX'], exclusions: ['NUT'] }))?.value.clinical.join() === 'GERD', 'документ: непознат код отпада');
+ok(normalizeFact(doc({ summary: 'x' }, 'bad key!')) === null, 'документ: невалиден id отпада');
+ok(normalizeFact(doc({ title: 'празен' })) === null, 'документ без съдържание отпада');
+const withDoc = applyEnrichment(base(), { facts: [doc({ title: 'Епикриза', summary: 'Рефлукс, алергия към ядки.', clinical: ['GERD'], exclusions: ['NUT'], medications: ['омепразол 20 mg'], impact: 'menu' })] }, NOW);
+const pDoc = compileProfile(withDoc);
+ok(pDoc.clinical.includes('GERD') && pDoc.exclusions.includes('NUT'), 'документ → състояние и изключване в профила');
+ok(/омепразол/.test(withDoc.medicationsDetails || ''), 'документ → лекарството влиза в проверката за взаимодействия');
+ok(withDoc._enrichment.documents.length === 1 && withDoc._enrichment.documents[0].title === 'Епикриза', 'документът е в списъка');
+ok(recalcLevel(base(), withDoc).level === 3, 'ново състояние от документ → ниво 3');
+const ctxOnly = applyEnrichment(base(), { facts: [doc({ summary: 'Бележка: работя нощни смени.', impact: 'context' })] }, NOW);
+ok(recalcLevel(base(), ctxOnly).level === 0, 'документ само за контекст → ниво 0');
+
+// ── Добавки по профила ───────────────────────────────────────────────────
+const supNames = (ud) => supplementsFor(compileProfile(ud), ud, { now: new Date('2026-06-01') }).map(x => x.name);
+const allHaveReason = (ud) => supplementsFor(compileProfile(ud), ud, { now: NOW }).every(x => x.reason);
+const veg = { ...base(), dietPreference: ['Веган'] };
+ok(supNames(veg).some(n => /B12/.test(n)) && supNames(veg).some(n => /водорасли/.test(n)), 'веган → B12 и омега-3 от водорасли');
+const gym = { ...base(), goal: 'Мускулна маса', sportActivity: 'Средна (2–4 дни седмично)' };
+ok(supNames(gym).some(n => /Креатин/.test(n)), 'мускулна маса + тренировки → креатин');
+const stress = { ...base(), stressLevel: 'Високо' };
+ok(supNames(stress).some(n => /Магнезий/.test(n)), 'висок стрес → магнезий');
+ok(supNames({ ...base(), medications: 'Да', medicationsDetails: 'Метформин 1000' }).some(n => /B12/.test(n)), 'метформин → B12');
+ok([veg, gym, stress, base()].every(allHaveReason), 'всяка добавка е с причина');
+ok(supNames(base()).length === 0 || supNames(base()).length <= 5, 'без причина — без добавки извън сезона');
+ok(supplementsFor(compileProfile(base()), base(), { now: NOW }).some(x => /D3/.test(x.name) && /октомври/.test(x.reason)), 'октомври–март → D3 със сезонна причина');
+const lowFe = applyEnrichment(base(), { facts: [lab('ferritin', 12, 'ng/mL')] }, NOW);
+ok(lowFe._enrichment.supplements.some(x => /Желязо/.test(x.name) && /Феритин/.test(x.reason)), 'нисък феритин → желязо по изследване');
+
+// ── Реанализ ─────────────────────────────────────────────────────────────
+const sleepFacts = Array.from({ length: 10 }, (_, i) => ({ kind: 'sleep', value: 5.4, at: daysAgo(i + 1), source: 'health_connect' }));
+const reFacts = [lab('vitd', 18, 'ng/mL'), lab('hba1c', 6.0, '%'), ...sleepFacts];
+const reData = applyEnrichment(base(), { facts: reFacts }, NOW);
+const re = reanalyze(base(), reData, {}, 'F');
+const reTitles = re.analysis.keyProblems.map(p => p.title);
+ok(reTitles.includes('Нисък витамин D') && re.analysis.keyProblems.find(p => p.title === 'Нисък витамин D').sources.includes('labs'), 'реанализ: витамин D от изследване, с източник');
+ok(re.analysis.keyProblems.some(p => p.code === 'IR' && p.sources.includes('labs') && p.change === 'new'), 'реанализ: IR от изследване е ново');
+ok(re.analysis.keyProblems.some(p => p.category === 'Sleep' && p.sources.includes('device')), 'реанализ: сънят идва от устройството');
+ok(re.analysis.currentHealthStatus.score < re.baseline.score, 'реанализ: оценката пада при нови находки');
+ok(re.dimensions.find(x => x.key === 'Sleep').score < re.dimensions.find(x => x.key === 'Sleep').baseline, 'реанализ: измерение „сън“ спрямо въпросника');
+ok(re.replaced.some(r => r.field === 'sleepHours'), 'реанализ: заменен отговор за сън');
+ok(re.labs.find(l => l.key === 'vitd')?.range?.[0] === 50, 'реанализ: граница на нормата за графиката');
+const irisFact = { kind: 'iris', value: { analysis: { systems: [{ key: 'metabolic', label: 'Обмяна', priority: true }] } }, at: daysAgo(3), source: 'airis' };
+const withIris = reanalyze(base(), applyEnrichment(base(), { facts: [...reFacts, irisFact] }, NOW), {}, 'F');
+const irP = withIris.analysis.keyProblems.find(p => p.code === 'IR');
+ok(irP.sources.includes('iris') && irP.irisNote, 'AIRIS: потвърдената система засилва свързания проблем');
+ok(withIris.analysis.currentHealthStatus.score < re.analysis.currentHealthStatus.score, 'AIRIS: потвърдената находка влиза в оценката');
+const irisOnly = reanalyze(base(), applyEnrichment(base(), { facts: [irisFact] }, NOW), {}, 'F');
+ok(irisOnly.analysis.currentHealthStatus.score === irisOnly.baseline.score, 'AIRIS без потвърждение не мени оценката');
+const plain = reanalyze(base(), base(), {}, 'F');
+ok(plain.analysis.currentHealthStatus.score === plain.baseline.score && !plain.replaced.length, 'без нови данни — анализът е същият');
 console.log(`\n=== enrichment: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

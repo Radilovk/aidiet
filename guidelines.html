@@ -1207,6 +1207,7 @@
 </head>
 <body>
     <script src="./session-utils.js"></script>
+    <script src="./supplement-shop.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script type="module" src="./auth-guard.js"></script>
@@ -1668,15 +1669,6 @@
             return items.length > 0 ? items : [defaultMessage];
         }
 
-        function biocodePickUrl(name) {
-            let vegan = false;
-            try {
-                const ud = JSON.parse(localStorage.getItem('userData') || '{}') || {};
-                vegan = /веган/i.test([].concat(ud.dietPreference || []).join(' '));
-            } catch (_) {}
-            return `https://biocode-bg.com/pick.html?q=${encodeURIComponent(String(name).slice(0, 80))}${vegan ? '&vegan=1' : ''}&utm_source=nutriplan&utm_medium=supplement`;
-        }
-
         function generateListItemText(content, contentType, index) {
             if (typeof content === 'string') {
                 // Backward compatibility: plans generated before 2025-12-27 could use "!" prefix for bullet-like entries.
@@ -1694,8 +1686,8 @@
                 if (content.intake || content.timing) details += ` - Прием: ${content.intake || content.timing}`;
                 if (content.reason) details += ` - Защо: ${content.reason}`;
                 // Името на добавката води към BIOCODE: там се подбират наличните продукти в момента.
-                const head = contentType === 'supplements' && content.name
-                    ? `<a href="${escapeHtml(biocodePickUrl(content.name))}" target="_blank" rel="noopener" class="supplement-shop-link">${escapeHtml(title)}</a>`
+                const head = contentType === 'supplements' && content.name && window.NutriPlanSupplementShop
+                    ? `<a href="${escapeHtml(window.NutriPlanSupplementShop.url(content.name))}" target="_blank" rel="noopener" class="supplement-shop-link">${escapeHtml(title)}</a>`
                     : escapeHtml(title);
                 return `<span>${head}${escapeHtml(details)}</span>`;
             }

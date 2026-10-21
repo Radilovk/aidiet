@@ -48,6 +48,11 @@ const CODE_MEANING = {
 };
 
 /** „КОД (значение)“ за списъците в промпта. */
+/** Значенията на кодовете — за показване на клиента (напр. предложенията от документ). */
+export function codeMeanings(codes) {
+  return Object.fromEntries(codes.map(c => [c, CODE_MEANING[c] || c]));
+}
+
 export function describeCodes(codes) {
   return codes.map(c => (CODE_MEANING[c] ? `${c} (${CODE_MEANING[c]})` : c)).join(', ');
 }

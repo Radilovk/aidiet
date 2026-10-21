@@ -23,6 +23,16 @@ export const WEEKLY_CHECKIN_QUESTIONS = [
     options: [],
   },
   {
+    id: 'waistCm',
+    text: 'Обиколка на талията на нивото на пъпа (см) — по желание. Показва напредъка, когато кантарът стои.',
+    type: 'number',
+    min: 40,
+    max: 200,
+    placeholder: 'напр. 84',
+    skipLabel: 'Не съм мерил/а',
+    options: [],
+  },
+  {
     id: 'weight',
     text: 'Как се промени теглото ви спрямо миналата седмица?',
     type: 'choice',
@@ -70,8 +80,38 @@ const WEIGHT_ANSWERS = {
   'Отслабнах до 1 кг': 'loss',
   'Без промяна': 'flat',
   'Качих': 'gain',
+  'Качих повече от 0,5 кг': 'fast_gain',
+  'Качих до 0,5 кг': 'gain',
+  'Отслабнах': 'loss',
   'Не съм се теглил/а': null,
 };
+
+/** При цел мускулна маса въпросът за теглото е в посоката на целта. */
+const GAIN_WEIGHT_OPTIONS = ['Качих повече от 0,5 кг', 'Качих до 0,5 кг', 'Без промяна', 'Отслабнах', 'Не съм се теглил/а'];
+
+const fmtKg = v => String(Math.round(v * 10) / 10).replace('.', ',');
+
+/**
+ * Въпросите за конкретния клиент: посоката на въпроса за теглото следва целта,
+ * а това, което приложението вече знае, се показва като подсказка (теглото от
+ * везната е попълнено; спазването по отметките е до въпроса), за да не се гадае.
+ * @param {{ goal?: string, deviceWeightKg?: number|null, mealAdherence?: number|null, mealDays?: number }} [ctx]
+ */
+export function weeklyQuestionsFor(ctx = {}) {
+  return WEEKLY_CHECKIN_QUESTIONS.map((q) => {
+    /** @type {Record<string, any>} */
+    const out = { ...q, options: [...q.options] };
+    if (q.id === 'weight' && ctx.goal === 'GAIN') out.options = [...GAIN_WEIGHT_OPTIONS];
+    if (q.id === 'weightKg' && Number(ctx.deviceWeightKg) >= 30) {
+      out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
+      out.hint = `От везната: ${fmtKg(ctx.deviceWeightKg)} кг (средно от последните дни). Поправете, ако не е вярно.`;
+    }
+    if (q.id === 'adherence' && ctx.mealAdherence != null && (ctx.mealDays || 0) >= 3) {
+      out.hint = `По отметките в приложението: около ${Math.round(ctx.mealAdherence)}% от храненията.`;
+    }
+    return out;
+  });
+}
 const ADHERENCE_ANSWERS = { 'Почти всички': 95, 'Повечето': 80, 'Около половината': 50, 'Малко': 25 };
 const LEVEL_ANSWERS = { 'Рядко': 1, 'Понякога': 2, 'Често': 3, 'Добра': 1, 'Средна': 2, 'Ниска': 3 };
 
@@ -90,13 +130,19 @@ const LACTATION_MAX_LOSS_KG = 0.5;
 const FAST_GAIN_RATE = 0.005;
 /** Под 40% от очакваното отслабване при спазен план — застой. */
 const SLOW_LOSS_SHARE = 0.4;
+/** Над толкова дни от предишното претегляне темпото не се смята. */
+const MAX_SPAN_DAYS = 84;
+/** Първата седмица на дефицит сваля вода и гликоген (1–2 кг са обичайни): калориите не се вдигат, освен над 3% от теглото. */
+const FIRST_WEEK_FAST_RATE = 0.03;
+/** Толкова см по-малко в талията при застой на кантара — мазнини се губят, а мускули/вода се задържат. */
+const WAIST_PROGRESS_CM = 1;
 
 /**
  * Отговорите и аналитиката → една картина на седмицата.
  * @param {Array<{questionId: string, value: string}>} answers
  * @param {object|null} analytics  buildAnalyticsSummary()
- * @param {{ prevWeightKg?: number|null, daysSincePrev?: number|null }} [previous]
- *   последното измерено тегло (от предишния преглед или въпросника) и преди колко дни
+ * @param {{ prevWeightKg?: number|null, daysSincePrev?: number|null, prevWaistCm?: number|null }} [previous]
+ *   последното измерено тегло (от предишния преглед или въпросника), преди колко дни и последната талия
  */
 export function readCheckin(answers, analytics, previous = {}) {
   const weightAnswer = answerOf(answers, 'weight');
@@ -118,19 +164,29 @@ export function readCheckin(answers, analytics, previous = {}) {
   const prev = Number(previous.prevWeightKg) || null;
   if (weightKg && prev) {
     const days = Number(previous.daysSincePrev);
-    // Промяната се води към седмица; без дата — приема се една седмица.
-    const span = days >= 4 && days <= 28 ? days : 7;
-    weeklyChangeKg = Math.round((weightKg - prev) / span * 7 * 100) / 100;
+    // Промяната се води към седмица по реалните дни между двете претегляния.
+    // Под 4 дни разликата е вода и храна в червата; над 12 седмици — твърде
+    // стара точка: и в двата случая темпо не се смята (остава отговорът).
+    // Без дата — приема се една седмица.
+    const span = Number.isFinite(days) && days > 0 ? days : 7;
+    weeklyChangeKg = span >= 4 && span <= MAX_SPAN_DAYS ? Math.round((weightKg - prev) / span * 7 * 100) / 100 : null;
   }
   // Тенденцията от поне 5 претегляния за 2 седмици е по-точна от две точки.
   const trend = Number(answerOf(answers, 'weightTrendKgWeek'));
   if (answerOf(answers, 'weightTrendKgWeek') != null && Number.isFinite(trend) && Math.abs(trend) <= 3) weeklyChangeKg = trend;
+  // Талията: промяна спрямо предишното измерване (каквото и да е било преди).
+  const cm = Number(String(answerOf(answers, 'waistCm') || '').replace(',', '.'));
+  const waistCm = cm >= 40 && cm <= 200 ? Math.round(cm * 10) / 10 : null;
+  const prevWaist = Number(previous.prevWaistCm) || null;
+  const waistChangeCm = waistCm && prevWaist ? Math.round((waistCm - prevWaist) * 10) / 10 : null;
   // Среден дневен прием от тракер (Health Connect) — само при поне 4 записани дни.
   const intake = Number(answerOf(answers, 'intakeKcal'));
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
     weightKg,
     weeklyChangeKg,
+    waistCm,
+    waistChangeCm,
     intakeKcal: intake >= 500 && intake <= 8000 ? Math.round(intake) : null,
     recoveryLow: answerOf(answers, 'recoveryLow') === 'true',
     leanLoss: answerOf(answers, 'leanLoss') === 'true',
@@ -208,6 +264,7 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
   const changes = [];
   const modifications = [];
   let delta = 0;
+  let recomp = false;
   const losing = LOSING_GOALS.has(goal);
   const gaining = goal === 'GAIN';
   const goalKind = losing ? 'loss' : gaining ? 'gain' : 'keep';
@@ -233,13 +290,21 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
   } else if (outcome && followed) {
     const weeks = streak(history, goalKind, cls) + 1;
     if (losing) {
-      if (outcome === 'fast_loss') {
+      const base = checkin.weightKg || weightKg || 70;
+      const firstWeekWater = outcome === 'fast_loss' && !lactating && !(history || []).length
+        && checkin.energy !== 3 && !(checkin.weeklyChangeKg != null && -checkin.weeklyChangeKg >= base * FIRST_WEEK_FAST_RATE);
+      if (firstWeekWater) {
+        reasons.push(`Първата седмица${measured ? ` (${measured})` : ''} теглото пада бързо основно от вода и гликоген — приемът остава; темпото се преценява от втората седмица.`);
+      } else if (outcome === 'fast_loss') {
         delta = +MAX_WEEKLY_STEP;
         reasons.push(lactating
           ? 'Отслабването е над 0,5 кг седмично при кърмене — приемът се увеличава, за да се пази кърмата.'
           : `Отслабването е над 1% от теглото седмично${measured ? ` (${measured})` : ''} — темпото се забавя, за да се пази мускулната маса.`);
       } else if (cls === 'stall' && overIntake) {
         reasons.push(`По тракера приемът е около ${checkin.intakeKcal} kcal дневно при план ${kcal} kcal — калориите на плана остават; първо приемът да се доближи до плана.`);
+      } else if (cls === 'stall' && checkin.waistChangeCm != null && checkin.waistChangeCm <= -WAIST_PROGRESS_CM) {
+        recomp = true;
+        reasons.push(`Кантарът стои, но талията е с ${fmtKg(-checkin.waistChangeCm)} см по-малко — тялото губи мазнини; приемът остава.`);
       } else if (cls === 'stall') {
         if (weeks >= 2) {
           delta = outcome === 'gain' ? -MAX_WEEKLY_STEP : -100;
@@ -278,6 +343,8 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
     } else {
       reasons.push(`Теглото се задържа в нормалните граници${measured ? ` (${measured})` : ''} — приемът остава.`);
     }
+  } else if (!outcome && checkin.weightKg) {
+    reasons.push('Теглото е записано; темпото се преценява, когато между две претегляния има поне 4 дни — калориите остават.');
   } else if (!outcome) {
     reasons.push('Без данни за теглото калориите остават — претеглете се сутрин на гладно преди следващия преглед.');
   }
@@ -343,7 +410,9 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
     reasoning: reasons.join(' '),
     changeSummary: changes.slice(0, 4),
     // За историята: резултатът по теглото, измереното тегло и дали планът е спазван.
-    weight: outcome,
+    // Застой на кантара с по-малка талия не е застой — „recomp“ прекъсва поредицата.
+    weight: recomp ? 'recomp' : outcome,
+    waistCm: checkin.waistCm,
     weightKg: checkin.weightKg,
     weeklyChangeKg: checkin.weeklyChangeKg,
     intakeKcal: checkin.intakeKcal,

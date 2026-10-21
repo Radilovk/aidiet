@@ -14,6 +14,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildAnalyticsSummary } from '../../analytics-compression.js';
+import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment } from '../../nutrition-engine/monitoring.js';
 import { HARD_PROFILES } from './fixtures/hard-profiles.mjs';
 import {
   SCENARIO_IDS,
@@ -100,8 +101,28 @@ async function pollAdaptJob(jobId) {
   return { status: 'timeout' };
 }
 
-function evaluateOffline(analytics, expect) {
+/** Решението по правилата (без сървър) — отговорите на сценария + аналитиката. */
+function offlineDecision(analytics, answerBias, history = []) {
+  const answers = autoAnswers(WEEKLY_CHECKIN_QUESTIONS, answerBias);
+  return decideWeeklyAdjustment({
+    checkin: readCheckin(answers, analytics),
+    goal: 'LOSS', kcal: 1800, tdee: 2300, floorKcal: 1300, weightKg: 80, history,
+  });
+}
+
+function evaluateOffline(analytics, expect, decision) {
   const issues = [];
+  if (expect.minMealAdherence != null && !((analytics.mealAdherence ?? -1) >= expect.minMealAdherence)) {
+    issues.push(`mealAdherence ${analytics.mealAdherence} < ${expect.minMealAdherence}`);
+  }
+  if (expect.maxMealAdherence != null && !((analytics.mealAdherence ?? 999) <= expect.maxMealAdherence)) {
+    issues.push(`mealAdherence ${analytics.mealAdherence} > ${expect.maxMealAdherence}`);
+  }
+  if (decision && expect.calorieAdjust != null && decision.calorieAdjust !== expect.calorieAdjust) {
+    issues.push(`calorieAdjust ${decision.calorieAdjust} ≠ ${expect.calorieAdjust}`);
+  }
+  if (decision && expect.simplify && !decision.modifications.includes('simplify_meals')) issues.push('липсва simplify_meals');
+  if (decision && expect.noSimplify && decision.modifications.includes('simplify_meals')) issues.push('излишно simplify_meals');
   if (expect.minDays && (analytics.daysRecorded || 0) < expect.minDays) {
     issues.push(`daysRecorded ${analytics.daysRecorded} < ${expect.minDays}`);
   }
@@ -200,9 +221,10 @@ async function main() {
       total++;
       const { gameData, meta } = buildGameData(plan, scenarioId);
       const analytics = buildAnalyticsSummary(gameData, { cycleNumber: 1 });
-      const offlineIssues = evaluateOffline(analytics, meta.expect);
+      const decision = offlineDecision(analytics, meta.answerBias);
+      const offlineIssues = evaluateOffline(analytics, meta.expect, decision);
 
-      console.log(`  [${scenarioId}] offline adh=${analytics.adherence}% days=${analytics.daysRecorded}/7 junk7=${analytics.junk7} avg=${analytics.avgScore}`);
+      console.log(`  [${scenarioId}] offline хранения=${analytics.mealAdherence}% ангажираност=${analytics.adherence}% days=${analytics.daysRecorded}/7 junk7=${analytics.junk7} avg=${analytics.avgScore} → kcal ${decision.calorieAdjust >= 0 ? '+' : ''}${decision.calorieAdjust}${decision.modifications.length ? ` [${decision.modifications.join(', ')}]` : ''}`);
 
       let liveIssues = [];
       let adaptResult = null;

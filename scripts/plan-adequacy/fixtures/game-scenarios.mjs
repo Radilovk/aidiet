@@ -42,7 +42,10 @@ function baseRecord(dayKey, mealKeys, planned) {
 }
 
 function finishRecord(rec, opts) {
-  mealKeysFromRecord(rec).forEach((k) => {
+  // Храненията на деня са ключовете на mealCalories (rec.meals започва празен —
+  // преди тук не се отметваше нищо и „силна седмица“ излизаше 0% спазване).
+  rec.mealSlots = Object.keys(rec.mealCalories || {});
+  rec.mealSlots.forEach((k) => {
     rec.meals[k] = opts.allMealsDone !== false;
   });
   if (opts.morning) {
@@ -67,10 +70,6 @@ function finishRecord(rec, opts) {
   return rec;
 }
 
-function mealKeysFromRecord(rec) {
-  return Object.keys(rec.meals || {});
-}
-
 /**
  * @param {object} plan
  * @param {string} scenarioId
@@ -85,19 +84,19 @@ export function buildGameData(plan, scenarioId) {
       daysBack: [6, 5, 4, 3, 2, 1, 0],
       opts: { allMealsDone: true, morning: true, evening: true, sleptWell: true, junkCount: 0 },
       answerBias: 'positive',
-      expect: { maxLevel: 0, minDays: 6 },
+      expect: { maxLevel: 0, minDays: 6, minMealAdherence: 90, calorieAdjust: 0, noSimplify: true },
     },
     struggling_week: {
       daysBack: [6, 5, 4, 3, 2, 1, 0],
       opts: { allMealsDone: false, morning: true, evening: true, sleptWell: false, junkCount: 2, activityLevel: 1 },
       answerBias: 'negative',
-      expect: { minLevel: 1, minDays: 6 },
+      expect: { minLevel: 1, minDays: 6, maxMealAdherence: 75, calorieAdjust: 0, simplify: true },
     },
     partial_new_client: {
       daysBack: [2, 1, 0],
       opts: { allMealsDone: true, morning: true, evening: true, junkCount: 0 },
       answerBias: 'neutral',
-      expect: { minDays: 3, maxDays: 3 },
+      expect: { minDays: 3, maxDays: 3, minMealAdherence: 90, calorieAdjust: 0 },
     },
   };
 
@@ -118,25 +117,18 @@ export function buildGameData(plan, scenarioId) {
   return { gameData, meta: sc };
 }
 
+/** Отговорите на седмичния преглед според посоката на сценария (по id на въпроса). */
+const BIASED = {
+  positive: { weight: 'Отслабнах до 1 кг', adherence: 'Почти всички', hunger: 'Рядко', energy: 'Добра', difficulty: 'Нищо особено' },
+  negative: { weight: 'Без промяна', adherence: 'Около половината', hunger: 'Често', energy: 'Ниска', difficulty: 'Приготвянето отнема време' },
+  neutral: { weight: 'Без промяна', adherence: 'Повечето', hunger: 'Понякога', energy: 'Средна', difficulty: 'Нищо особено' },
+};
+
 export function autoAnswers(questions, answerBias) {
-  const pick = (opts, prefer) => {
-    if (!opts?.length) return prefer;
-    const hit = opts.find((o) => o.includes(prefer));
-    return hit || opts[0];
-  };
-  return (questions || []).map((q) => {
-    let value;
-    if (q.type === 'yes_no') {
-      value = answerBias === 'positive' ? pick(q.options, 'Не') : pick(q.options, 'Да');
-    } else if (q.type === 'scale_1_3') {
-      value = answerBias === 'negative' ? pick(q.options, 'Трудно') : pick(q.options, 'Лесно');
-    } else {
-      value = answerBias === 'positive'
-        ? pick(q.options, 'Мотивиран')
-        : (answerBias === 'negative' ? pick(q.options, 'подкрепа') : q.options?.[0] || 'Да');
-    }
-    return { questionId: q.id, value };
-  });
+  const pick = BIASED[answerBias] || BIASED.neutral;
+  return (questions || [])
+    .filter((q) => pick[q.id] && (q.options || []).includes(pick[q.id]))
+    .map((q) => ({ questionId: q.id, value: pick[q.id] }));
 }
 
 export const SCENARIO_IDS = ['strong_week', 'struggling_week', 'partial_new_client'];

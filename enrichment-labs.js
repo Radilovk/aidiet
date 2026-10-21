@@ -32,6 +32,23 @@ const MARKERS = {
 
 export const LAB_MARKERS = Object.fromEntries(Object.entries(MARKERS).map(([k, v]) => [k, { label: v.label, unit: v.unit }]));
 
+/**
+ * Границите, по които RULES решава „в норма“ — за графиката на страницата
+ * „Анализ“ (стойността върху нормалния диапазон). null = без граница от тази страна.
+ * @param {string} key
+ * @param {'M'|'F'|'X'} [sex]
+ * @returns {[number|null, number|null] | null}
+ */
+export function labRange(key, sex = 'X') {
+  const f = sex === 'F';
+  const ranges = {
+    glucose: [null, 5.6], hba1c: [null, 5.7], ldl: [null, 3.4], tchol: [null, 5.2], tg: [null, 1.7],
+    hdl: [f ? 1.3 : 1.0, null], uric: [null, f ? 360 : 420], ferritin: [30, null], hgb: [f ? 120 : 130, null],
+    vitd: [50, null], b12: [150, null], alt: [null, 40], ggt: [null, 60], tsh: [0.4, 4.5], egfr: [60, null], potassium: [null, 5.5],
+  };
+  return ranges[key] || null;
+}
+
 function canonical(key, value, unit) {
   const m = MARKERS[key];
   if (!m) return null;
@@ -59,7 +76,9 @@ const RULES = {
   hdl: (v, sex) => (v < (sex === 'F' ? 1.3 : 1.0) ? { status: 'low' } : null),
   uric: (v, sex) => (v > (sex === 'F' ? 360 : 420)
     ? { status: 'high', clinical: ['GOUT'], caution: 'Повишена пикочна киселина — ограничени пурини и алкохол; оценка от лекар при болки в ставите.' } : null),
-  ferritin: (v) => (v < 30 ? { status: 'low', clinical: ['ANEM'] } : null),
+  ferritin: (v) => (v < 30
+    ? { status: 'low', clinical: ['ANEM'], supplement: { name: 'Желязо бисглицинат', dosage: '25–50 mg', timing: 'през ден, с витамин C, далеч от кафе, чай и калций — по изследване; контрол след 3 месеца' } }
+    : null),
   hgb: (v, sex) => (v < (sex === 'F' ? 120 : 130)
     ? { status: 'low', clinical: ['ANEM'], caution: 'Нисък хемоглобин — причината се изяснява от лекар.' } : null),
   vitd: (v) => (v < 30

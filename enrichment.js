@@ -1,6 +1,6 @@
 /**
  * Обогатяване на профила с данни извън въпросника: устройства (тегло, крачки,
- * сън, приет калории), EmoEat, изследвания. Общ модул за сървъра, клиента и
+ * сън, приет калории), EmoEat, изследвания, AIRIS, други документи. Общ модул за сървъра, клиента и
  * тестовете.
  *
  * Всеки източник дава факти: { kind, key, value, unit, at, source, confidence,
@@ -21,6 +21,7 @@ import { computeEssence } from './health-essence.js';
 import { deriveIris } from './enrichment-iris.js';
 import { deriveSiteQuiz } from './enrichment-site.js';
 import { crossCheck, resolutionsOf } from './cross-check.js';
+import { deriveDocuments, normalizeDocumentValue } from './enrichment-documents.js';
 
 export const ENRICHMENT_VERSION = 1;
 
@@ -117,6 +118,12 @@ export function normalizeFact(raw) {
     if (!raw.value || typeof raw.value !== 'object' || !raw.value.analysis) return null;
     return { kind, key: 'report', value: raw.value, unit: '', at, source: 'airis', confidence, status };
   }
+  if (kind === 'document') {
+    const value = normalizeDocumentValue(raw.value);
+    const key = String(raw.key || '').trim().slice(0, 40);
+    if (!value || !/^[A-Za-z0-9_-]{6,40}$/.test(key)) return null;
+    return { kind, key, value, unit: '', at, source: 'document', confidence: 1, status };
+  }
   if (kind === 'biomarker') {
     const key = String(raw.key || '').trim();
     const v = Number(String(raw.value).replace(',', '.'));
@@ -183,8 +190,8 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const facts = Array.isArray(store?.facts) ? store.facts : [];
   const overrides = {};
   const reasons = [];
-  /** @type {{ behaviors: string[], approach: string[], clinical: string[], cautions: string[] }} */
-  const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
+  /** @type {{ behaviors: string[], approach: string[], clinical: string[], cautions: string[], exclusions: string[] }} */
+  const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
   const checkin = {};
 
   const steps = dailyMean(recent(facts, 'steps', 14, now));
@@ -217,11 +224,12 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const iris = deriveIris(facts);
   const siteQuiz = deriveSiteQuiz(facts);
   const resolutions = resolutionsOf(facts);
+  const documents = deriveDocuments(facts);
   // Клиентът не се разпознава в профила от EmoEat — остава само гласът, без кодове.
   const emoPart = emo && resolutions.emoeat_vs_q === 'rare' ? { ...emo, hints: null } : emo;
-  for (const part of [emoPart, labs, essence, digestPart, iris, siteQuiz]) {
+  for (const part of [emoPart, labs, essence, digestPart, iris, siteQuiz, documents]) {
     if (!part) continue;
-    for (const k of ['behaviors', 'approach', 'clinical', 'cautions']) hints[k].push(...(part.hints?.[k] || []));
+    for (const k of ['behaviors', 'approach', 'clinical', 'cautions', 'exclusions']) hints[k].push(...(part.hints?.[k] || []));
     reasons.push(...(part.reasons || []));
   }
   for (const k of Object.keys(hints)) hints[k] = [...new Set(hints[k])];
@@ -240,6 +248,14 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
     iris: iris?.summary || null,
     irisRaw: iris?.raw || null,
     siteQuiz: siteQuiz?.summary || null,
+    documents: documents?.list || [],
+    // Откъде идва всеки код — за реанализа (кой източник е добавил проблема).
+    codeSources: {
+      labs: [...(labs?.hints?.clinical || [])],
+      documents: [...(documents?.hints?.clinical || []), ...(documents?.hints?.exclusions || [])],
+      device: [...(essence.hints?.clinical || []), ...(essence.hints?.behaviors || [])],
+      emoeat: [...(emoPart?.hints?.behaviors || []), ...(emoPart?.hints?.clinical || [])],
+    },
     resolutions,
     reasons,
   };
@@ -263,6 +279,11 @@ export function applyEnrichment(userData, store, now = new Date()) {
   derived.hints.approach = [...new Set([...derived.hints.approach, ...cc.approach])];
   derived.hints.cautions = [...new Set([...derived.hints.cautions, ...cc.cautions])];
   derived.crossCheck = { hypotheses: cc.hypotheses, questions: cc.questions };
+  // Лекарствата от документите влизат в проверката за взаимодействия (храни, добавки, стил).
+  const docMeds = [...new Set(derived.documents.flatMap(d => d.medications || []))];
+  if (docMeds.length) {
+    derived.overrides.medicationsDetails = [userData.medicationsDetails, ...docMeds].filter(Boolean).join(', ');
+  }
   const original = {};
   for (const [field, value] of Object.entries(derived.overrides)) {
     original[field] = userData[field] ?? null;
@@ -302,6 +323,8 @@ export function recalcLevel(prevData, nextData) {
   if (JSON.stringify(aNext?.voice || null) !== JSON.stringify(aPrev?.voice || null)) bump(0, 'емоционален профил');
   if (JSON.stringify(aNext?.iris || null) !== JSON.stringify(aPrev?.iris || null)) bump(0, 'ирисов анализ');
   if (JSON.stringify(aNext?.siteQuiz || null) !== JSON.stringify(aPrev?.siteQuiz || null)) bump(0, 'тест за протокол от сайт');
+  if (JSON.stringify(aNext?.documents || []) !== JSON.stringify(aPrev?.documents || [])) bump(0, 'документи');
+  if (String(nextData?.medicationsDetails || '') !== String(prevData?.medicationsDetails || '')) bump(1, 'лекарства (взаимодействия с храни и добавки)');
   if (JSON.stringify(aNext?.safety || {}) !== JSON.stringify(aPrev?.safety || {})) bump(2, 'граници за безопасност от изследвания');
   return { level: /** @type {0|1|2|3} */ (level), reasons: [...new Set(reasons)] };
 }
