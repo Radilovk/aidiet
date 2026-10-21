@@ -11,6 +11,8 @@ Patch the generated Capacitor Android project for Health Connect
   android/variables.gradle when lower.
 - The rationale screen Health Connect opens from its settings shows our
   privacy policy (string health_connect_privacy_policy_url).
+- <queries> for the health apps in health-apps.js (and Health Connect): on
+  Android 11+ the app can only see whether they are installed when declared.
 
 Run after `npx cap sync android`. Idempotent.
 """
@@ -24,6 +26,7 @@ APP_MANIFEST = Path("android/app/src/main/AndroidManifest.xml")
 VARIABLES = Path("android/variables.gradle")
 STRINGS = Path("android/app/src/main/res/values/strings.xml")
 SETTINGS = Path("android/capacitor.settings.gradle")
+HEALTH_APPS = Path("health-apps.js")
 
 KEEP = {
     "android.permission.health.READ_STEPS",
@@ -66,7 +69,17 @@ def main() -> int:
              if f'android:name="{p}" tools:node="remove"' not in text]
     if lines:
         text = text.replace("<application", "\n".join(lines).lstrip() + "\n\n    <application", 1)
+    packages = sorted(set(re.findall(r"pkg: '([\w.]+)'", HEALTH_APPS.read_text(encoding="utf-8")))
+                      | set(re.findall(r"HEALTH_CONNECT_PKG = '([\w.]+)'", HEALTH_APPS.read_text(encoding="utf-8"))))
+    if not packages:
+        print(f"ERROR: no packages found in {HEALTH_APPS}", file=sys.stderr)
+        return 1
+    if "<!-- nutriplan-health-apps -->" not in text:
+        queries = "<!-- nutriplan-health-apps -->\n    <queries>\n" + "".join(
+            f'        <package android:name="{p}" />\n' for p in packages) + "    </queries>\n\n    "
+        text = text.replace("<application", queries + "<application", 1)
     APP_MANIFEST.write_text(text, encoding="utf-8")
+    print(f"Health apps: {len(packages)} packages in <queries>.")
     print(f"Health Connect: kept {sorted(KEEP)}, removed {len(drop)} other permissions.")
 
     gradle = VARIABLES.read_text()

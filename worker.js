@@ -9263,8 +9263,8 @@ function tzOffset(tz, ms) {
   const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
   return Math.round((asUtc - Math.floor(ms / 1e3) * 1e3) / 6e4);
 }
-function zonedMs(ymd, time, tz) {
-  const [y, m, d] = ymd.split("-").map(Number);
+function zonedMs(ymd2, time, tz) {
+  const [y, m, d] = ymd2.split("-").map(Number);
   const [h, mi] = time.split(":").map(Number);
   const wall = Date.UTC(y, m - 1, d, h, mi);
   let ms = wall - tzOffset(tz, wall) * 6e4;
@@ -9277,9 +9277,9 @@ function zonedParts(ms, tz) {
 }
 var toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 var toHm = (n) => `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
-function dayStarts(st, ymd) {
-  if (st.closed.includes(ymd)) return [];
-  const [y, m, d] = ymd.split("-").map(Number);
+function dayStarts(st, ymd2) {
+  if (st.closed.includes(ymd2)) return [];
+  const [y, m, d] = ymd2.split("-").map(Number);
   const day = DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
   const step = st.slot.step || st.slot.minutes + st.slot.buffer;
   const out = [];
@@ -9301,18 +9301,18 @@ function slotsForMonth(st, ym, taken, now = Date.now()) {
   const daysIn = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const out = {};
   for (let d = 1; d <= daysIn; d++) {
-    const ymd = `${ym}-${String(d).padStart(2, "0")}`;
-    const free = dayStarts(st, ymd).filter((t) => {
-      const start = zonedMs(ymd, t, st.timezone);
+    const ymd2 = `${ym}-${String(d).padStart(2, "0")}`;
+    const free = dayStarts(st, ymd2).filter((t) => {
+      const start = zonedMs(ymd2, t, st.timezone);
       return inWindow(st, start, now) && isFree(st, start, taken);
     });
-    if (free.length) out[ymd] = free;
+    if (free.length) out[ymd2] = free;
   }
   return out;
 }
 function isOfferedStart(st, start) {
-  const { ymd, hm: hm2 } = zonedParts(start, st.timezone);
-  return dayStarts(st, ymd).includes(hm2) && zonedMs(ymd, hm2, st.timezone) === start;
+  const { ymd: ymd2, hm: hm2 } = zonedParts(start, st.timezone);
+  return dayStarts(st, ymd2).includes(hm2) && zonedMs(ymd2, hm2, st.timezone) === start;
 }
 
 // studio-platform/google.js
@@ -9555,14 +9555,14 @@ async function bumpRev(env, id) {
 async function stripe(env, studio, method, path, params) {
   const sk = await unseal(env, studio.secrets.sk);
   if (!sk) throw new Error("stripe: no key");
-  const form = new URLSearchParams();
-  for (const [k, v] of Object.entries(params || {})) if (v !== void 0 && v !== null && v !== "") form.append(k, String(v));
+  const form2 = new URLSearchParams();
+  for (const [k, v] of Object.entries(params || {})) if (v !== void 0 && v !== null && v !== "") form2.append(k, String(v));
   let url = `https://api.stripe.com/v1/${path}`;
   const init = { method, headers: { Authorization: `Bearer ${sk}` } };
   if (method === "GET") {
-    if (params) url += "?" + form;
+    if (params) url += "?" + form2;
   } else {
-    init.body = form.toString();
+    init.body = form2.toString();
     init.headers["Content-Type"] = "application/x-www-form-urlencoded";
   }
   const resp = await fetch(url, init);
@@ -9613,9 +9613,9 @@ function codeOut(c) {
 }
 var BG_DAYS = ["\u043D\u0435\u0434\u0435\u043B\u044F", "\u043F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A", "\u0432\u0442\u043E\u0440\u043D\u0438\u043A", "\u0441\u0440\u044F\u0434\u0430", "\u0447\u0435\u0442\u0432\u044A\u0440\u0442\u044A\u043A", "\u043F\u0435\u0442\u044A\u043A", "\u0441\u044A\u0431\u043E\u0442\u0430"];
 function whenText(ms, tz) {
-  const { ymd, hm: hm2 } = zonedParts(ms, tz);
-  const [y, m, d] = ymd.split("-").map(Number);
-  return { day: `${BG_DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]}, ${ymd.slice(8)}.${ymd.slice(5, 7)}`, hm: hm2, ymd };
+  const { ymd: ymd2, hm: hm2 } = zonedParts(ms, tz);
+  const [y, m, d] = ymd2.split("-").map(Number);
+  return { day: `${BG_DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]}, ${ymd2.slice(8)}.${ymd2.slice(5, 7)}`, hm: hm2, ymd: ymd2 };
 }
 var outKey = (at, id, kind) => `xbody:out:${String(Math.floor(at)).padStart(13, "0")}:${id}:${kind}`;
 function viberOn(env, studio) {
@@ -42211,22 +42211,22 @@ function present(built) {
 var join = (labels) => labels.length > 1 ? `${labels.slice(0, -1).join(", ")} \u0438 ${labels[labels.length - 1]}` : labels[0];
 function mealBenefits(built) {
   const items = present(built);
-  const facts = [];
+  const facts2 = [];
   const protein = Math.round(built.totals.protein);
-  if (protein >= 25) facts.push(`${protein} \u0433 \u0431\u0435\u043B\u0442\u044A\u043A \u2014 \u0434\u044A\u043B\u0433\u0430 \u0441\u0438\u0442\u043E\u0441\u0442 \u0438 \u0437\u0430\u043F\u0430\u0437\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430\u0442\u0430 \u043C\u0430\u0441\u0430.`);
+  if (protein >= 25) facts2.push(`${protein} \u0433 \u0431\u0435\u043B\u0442\u044A\u043A \u2014 \u0434\u044A\u043B\u0433\u0430 \u0441\u0438\u0442\u043E\u0441\u0442 \u0438 \u0437\u0430\u043F\u0430\u0437\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430\u0442\u0430 \u043C\u0430\u0441\u0430.`);
   const oily = items.filter((x) => x.f.flags.has("oily_fish")).map((x) => x.f.label);
-  if (oily.length) facts.push(`\u041E\u043C\u0435\u0433\u0430-3 \u043C\u0430\u0441\u0442\u043D\u0438 \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0438 \u043E\u0442 ${join(oily)}.`);
+  if (oily.length) facts2.push(`\u041E\u043C\u0435\u0433\u0430-3 \u043C\u0430\u0441\u0442\u043D\u0438 \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0438 \u043E\u0442 ${join(oily)}.`);
   const legumes = items.filter((x) => x.f.group === "LEG" || x.f.id === "leg_peas").map((x) => x.f.label);
-  if (legumes.length) facts.push(`\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0444\u0438\u0431\u0440\u0438 \u043E\u0442 ${join(legumes)} \u2014 \u0431\u0430\u0432\u043D\u043E \u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430\u0442\u0430 \u0437\u0430\u0445\u0430\u0440.`);
+  if (legumes.length) facts2.push(`\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0444\u0438\u0431\u0440\u0438 \u043E\u0442 ${join(legumes)} \u2014 \u0431\u0430\u0432\u043D\u043E \u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430\u0442\u0430 \u0437\u0430\u0445\u0430\u0440.`);
   const whole = items.filter((x) => x.f.group === "STA" && x.f.flags.has("whole_grain")).map((x) => x.f.label);
-  if (whole.length) facts.push(`\u0411\u0430\u0432\u043D\u0438 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0438 \u0444\u0438\u0431\u0440\u0438 \u043E\u0442 ${join(whole)}.`);
+  if (whole.length) facts2.push(`\u0411\u0430\u0432\u043D\u0438 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0438 \u0444\u0438\u0431\u0440\u0438 \u043E\u0442 ${join(whole)}.`);
   const veg = items.filter((x) => x.f.group === "VEG").reduce((a, x) => a + x.grams, 0);
-  if (veg >= 200) facts.push(`${veg} \u0433 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u2014 \u043E\u0431\u0435\u043C, \u0444\u0438\u0431\u0440\u0438 \u0438 \u0432\u0438\u0442\u0430\u043C\u0438\u043D\u0438 \u043F\u0440\u0438 \u043C\u0430\u043B\u043A\u043E \u043A\u0430\u043B\u043E\u0440\u0438\u0438.`);
+  if (veg >= 200) facts2.push(`${veg} \u0433 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u2014 \u043E\u0431\u0435\u043C, \u0444\u0438\u0431\u0440\u0438 \u0438 \u0432\u0438\u0442\u0430\u043C\u0438\u043D\u0438 \u043F\u0440\u0438 \u043C\u0430\u043B\u043A\u043E \u043A\u0430\u043B\u043E\u0440\u0438\u0438.`);
   const calcium = items.filter((x) => x.f.kind === "dairy" || x.f.group === "MLK").map((x) => x.f.label);
-  if (calcium.length) facts.push(`\u041A\u0430\u043B\u0446\u0438\u0439 \u043E\u0442 ${join([...new Set(calcium)])}.`);
+  if (calcium.length) facts2.push(`\u041A\u0430\u043B\u0446\u0438\u0439 \u043E\u0442 ${join([...new Set(calcium)])}.`);
   const unsat = items.filter((x) => x.f.flags.has("nut") || x.f.flags.has("seed") || x.f.id === "fat_avocado" || x.f.id === "fat_olives").map((x) => x.f.label);
-  if (unsat.length) facts.push(`\u041D\u0435\u043D\u0430\u0441\u0438\u0442\u0435\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 ${join([...new Set(unsat)])}.`);
-  return facts.slice(0, 2).join(" ");
+  if (unsat.length) facts2.push(`\u041D\u0435\u043D\u0430\u0441\u0438\u0442\u0435\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 ${join([...new Set(unsat)])}.`);
+  return facts2.slice(0, 2).join(" ");
 }
 
 // nutrition-engine/week-planner.js
@@ -44371,8 +44371,8 @@ var APPROACH_BY_DRIVER = {
   "\u0423\u043C\u043E\u0440\u0430 \u0438 \u0435\u0434\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435": ["more_variety"]
 };
 var RESTRICTIVE = /Строги правила|Правила → срив/;
-function deriveEmoEat(facts) {
-  const fact = (facts || []).find((f) => f.kind === "emoeat" && f.status !== "pending");
+function deriveEmoEat(facts2) {
+  const fact = (facts2 || []).find((f) => f.kind === "emoeat" && f.status !== "pending");
   const p = fact?.value;
   if (!p || typeof p !== "object") return null;
   const voice = {
@@ -44479,10 +44479,10 @@ var RULES2 = {
   egfr: (v) => v < 30 ? { status: "low", safety: { proteinCapPerKg: 0.6 }, urgent: true, caution: "\u0421\u0438\u043B\u043D\u043E \u043D\u0430\u043C\u0430\u043B\u0435\u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F \u2014 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438\u044F\u0442 \u0440\u0435\u0436\u0438\u043C \u0441\u0430\u043C\u043E \u043F\u043E \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0444\u0440\u043E\u043B\u043E\u0433." } : v < 60 ? { status: "low", safety: { proteinCapPerKg: 0.8 }, urgent: true, caution: "\u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u043F\u043B\u0430\u043D\u044A\u0442 \u0434\u0430 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440." } : null,
   potassium: (v) => v > 5.5 ? { status: "high", urgent: true, caution: "\u0412\u0438\u0441\u043E\u043A \u043A\u0430\u043B\u0438\u0439 \u2014 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u043D\u0435 \u0441 \u043B\u0435\u043A\u0430\u0440 \u043F\u0440\u0435\u0434\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E." } : null
 };
-function deriveLabs(facts, now = /* @__PURE__ */ new Date(), sex = "X") {
+function deriveLabs(facts2, now = /* @__PURE__ */ new Date(), sex = "X") {
   const from = now.getTime() - 365 * DAY_MS;
   const latest = /* @__PURE__ */ new Map();
-  for (const f of facts || []) {
+  for (const f of facts2 || []) {
     if (f.kind !== "biomarker" || f.status === "pending" || !MARKERS[f.key]) continue;
     if (Date.parse(f.at) < from) continue;
     const prev = latest.get(f.key);
@@ -44549,13 +44549,14 @@ function normalizeDigest(raw, now = /* @__PURE__ */ new Date()) {
   if (!insights.length && !coachNote) return null;
   return { insights, coachNote, approach, at: now.toISOString() };
 }
-var SOURCE_RANK = { health_connect: 4, device_photo: 3, file: 2, manual: 1 };
+var SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, device_photo: 3, file: 2, manual: 1 };
+var TRACKED_SOURCES = /* @__PURE__ */ new Set(["health_connect", "fitbit", "oura", "withings", "strava"]);
 function dayOf(at) {
   return new Date(Date.parse(at)).toISOString().slice(0, 10);
 }
-function dailySeries(facts, kind, key = null) {
+function dailySeries(facts2, kind, key = null) {
   const byDay = /* @__PURE__ */ new Map();
-  for (const f of facts || []) {
+  for (const f of facts2 || []) {
     if (f.kind !== kind || f.status === "pending") continue;
     if (key && f.key !== key) continue;
     const day = dayOf(f.at);
@@ -44606,15 +44607,15 @@ function sportLabelOf(perWeek) {
   if (perWeek < 4.5) return "\u0421\u0440\u0435\u0434\u043D\u0430 (2\u20134 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
   return "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
 }
-function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
+function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   const metrics = {};
   const signals = [];
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
   const overrides = {};
   const checkin = {};
   const reasons = [];
-  const sources = [...new Set((facts || []).filter((f) => SOURCE_RANK[f.source]).map((f) => f.source))];
-  const weight = between(dailySeries(facts, "weight"), now, 0, 21);
+  const sources = [...new Set((facts2 || []).filter((f) => SOURCE_RANK[f.source]).map((f) => f.source))];
+  const weight = between(dailySeries(facts2, "weight"), now, 0, 21);
   const w14 = between(weight, now, 0, 14);
   if (w14.length >= 5 && w14[w14.length - 1].t - w14[0].t >= 6 * DAY_MS2) {
     const slope = slopePerWeek(w14);
@@ -44622,19 +44623,19 @@ function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
     checkin.weightTrendKgWeek = metrics.weight.trendKgWeek;
     signals.push({ code: "weight_trend", level: "info", text: `\u0422\u0435\u0433\u043B\u043E: ${fmt3(metrics.weight.avg7)} \u043A\u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0435\u043D\u0434\u0435\u043D\u0446\u0438\u044F ${slope > 0 ? "+" : ""}${fmt3(slope, 2)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (${w14.length} \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F).` });
   }
-  const bf = dailySeries(facts, "body_fat");
+  const bf = dailySeries(facts2, "body_fat");
   const comp = [];
-  const wByDay = new Map(dailySeries(facts, "weight").map((p) => [p.day, p.value]));
+  const wByDay = new Map(dailySeries(facts2, "weight").map((p) => [p.day, p.value]));
   for (const p of between(bf, now, 0, 42)) {
     const w = wByDay.get(p.day);
     if (w) comp.push({ t: p.t, value: w * (1 - p.value / 100), fat: w * p.value / 100, weight: w });
   }
-  const muscle = between(dailySeries(facts, "muscle_mass"), now, 0, 42);
+  const muscle = between(dailySeries(facts2, "muscle_mass"), now, 0, 42);
   const lean = muscle.length >= 4 ? muscle : comp;
   if (comp.length) metrics.bodyFat = { last: r1(bf[bf.length - 1]?.value), leanKg: r1(comp[comp.length - 1].value) };
   if (lean.length >= 4) {
     const ch = edgeChange(lean);
-    const wPoints = lean === comp ? comp.map((c) => ({ t: c.t, value: c.weight })) : between(dailySeries(facts, "weight"), now, 0, 42);
+    const wPoints = lean === comp ? comp.map((c) => ({ t: c.t, value: c.weight })) : between(dailySeries(facts2, "weight"), now, 0, 42);
     const wch = edgeChange(wPoints);
     if (ch && wch && ch.days >= 14) {
       const dLean = ch.to - ch.from;
@@ -44648,9 +44649,9 @@ function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
       }
     }
   }
-  const visceral = dailySeries(facts, "visceral_fat");
+  const visceral = dailySeries(facts2, "visceral_fat");
   if (visceral.length) metrics.visceralFat = visceral[visceral.length - 1].value;
-  const steps = dailySeries(facts, "steps");
+  const steps = dailySeries(facts2, "steps");
   const s7 = between(steps, now, 0, 7);
   if (s7.length >= 4) {
     metrics.steps = { avg7: Math.round(mean(s7.map((p) => p.value)) / 100) * 100, days: s7.length };
@@ -44663,8 +44664,8 @@ function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
       }
     }
   }
-  const workouts = between(dailySeries(facts, "workout"), now, 0, 14);
-  const trackedSince = Math.min(...(facts || []).filter((f) => f.source === "health_connect").map((f) => Date.parse(f.at)), Infinity);
+  const workouts = between(dailySeries(facts2, "workout"), now, 0, 14);
+  const trackedSince = Math.min(...(facts2 || []).filter((f) => TRACKED_SOURCES.has(f.source)).map((f) => Date.parse(f.at)), Infinity);
   if (workouts.length && now.getTime() - trackedSince >= 12 * DAY_MS2) {
     const sessions = workouts.reduce((s, p) => s + (p.count || 1), 0);
     const perWeek = sessions / 2;
@@ -44672,10 +44673,10 @@ function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
     overrides.sportActivity = sportLabelOf(perWeek);
     reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt3(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
   }
-  const active = between(dailySeries(facts, "active_kcal"), now, 0, 7);
+  const active = between(dailySeries(facts2, "active_kcal"), now, 0, 7);
   if (active.length >= 4) metrics.activeKcal = Math.round(mean(active.map((p) => p.value)));
-  const rhr = dailySeries(facts, "resting_hr");
-  const hrv = dailySeries(facts, "hrv");
+  const rhr = dailySeries(facts2, "resting_hr");
+  const hrv = dailySeries(facts2, "hrv");
   const rRecent = between(rhr, now, 0, 7);
   const rBase = between(rhr, now, 7, 35);
   const hRecent = between(hrv, now, 0, 7);
@@ -44700,23 +44701,23 @@ function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
     signals.push({ code: "recovery_low", level: "warn", text: `\u0422\u044F\u043B\u043E\u0442\u043E \u0435 \u043F\u043E\u0434 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435: ${rhrUp != null ? `\u043F\u0443\u043B\u0441\u044A\u0442 \u0432 \u043F\u043E\u043A\u043E\u0439 \u0435 +${Math.round(rhrUp)} \u0443\u0434/\u043C\u0438\u043D` : ""}${rhrUp != null && hrvDown != null ? ", " : ""}${hrvDown != null ? `HRV \u0435 \u2212${Math.round(hrvDown * 100)}%` : ""} \u0441\u043F\u0440\u044F\u043C\u043E \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u043E\u0442\u043E \u2014 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0431\u0435\u0437 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442; \u0441\u044A\u043D \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043F\u044A\u0440\u0432\u043E \u043C\u044F\u0441\u0442\u043E.` });
     reasons.push("\u043D\u0438\u0441\u043A\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043F\u043E \u043F\u0443\u043B\u0441\u0430");
   }
-  const sleep = between(dailySeries(facts, "sleep"), now, 0, 7);
+  const sleep = between(dailySeries(facts2, "sleep"), now, 0, 7);
   if (sleep.length >= 5) {
     metrics.sleep = { avg7: r1(mean(sleep.map((p) => p.value))), nights: sleep.length };
     if (metrics.sleep.avg7 < 6.5) {
       signals.push({ code: "sleep_short", level: "warn", text: `\u0421\u044A\u043D: ~${fmt3(metrics.sleep.avg7)} \u0447 \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u043E\u0434 7 \u0447 \u0433\u043B\u0430\u0434\u044A\u0442 \u0438 \u0436\u0435\u043B\u0430\u043D\u0438\u0435\u0442\u043E \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442.` });
     }
   }
-  const intake = between(dailySeries(facts, "intake"), now, 0, 7);
+  const intake = between(dailySeries(facts2, "intake"), now, 0, 7);
   if (intake.length >= 4) metrics.intake = { avg7: Math.round(mean(intake.map((p) => p.value))), days: intake.length };
-  const water = between(dailySeries(facts, "water"), now, 0, 7);
+  const water = between(dailySeries(facts2, "water"), now, 0, 7);
   if (water.length >= 4) {
     metrics.water = { avg7: r1(mean(water.map((p) => p.value))) };
     if (ctx.waterNeedL && metrics.water.avg7 < ctx.waterNeedL * 0.6) {
       signals.push({ code: "hydration_low", level: "info", text: `\u0412\u043E\u0434\u0430: ~${fmt3(metrics.water.avg7)} \u043B \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 ~${fmt3(ctx.waterNeedL)} \u043B.` });
     }
   }
-  const bp = between(dailySeries(facts, "bp"), now, 0, 28);
+  const bp = between(dailySeries(facts2, "bp"), now, 0, 28);
   if (bp.length >= 3) {
     const sys = mean(bp.map((p) => p.value));
     const dia = mean(bp.filter((p) => p.value2).map((p) => p.value2)) || 0;
@@ -44728,7 +44729,7 @@ function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
       reasons.push("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u043E \u0434\u043E\u043C\u0430\u0448\u043D\u043E \u043A\u0440\u044A\u0432\u043D\u043E");
     }
   }
-  const morning = between(dailySeries(facts, "glucose", "morning"), now, 0, 28);
+  const morning = between(dailySeries(facts2, "glucose", "morning"), now, 0, 28);
   if (morning.length >= 5) {
     const m = mean(morning.map((p) => p.value));
     metrics.glucose = { morning: r1(m), days: morning.length };
@@ -44739,7 +44740,7 @@ function computeEssence(facts, now = /* @__PURE__ */ new Date(), ctx = {}) {
       reasons.push("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D");
     }
   }
-  const peaks = between(dailySeries(facts, "glucose", "peak"), now, 0, 14);
+  const peaks = between(dailySeries(facts2, "glucose", "peak"), now, 0, 14);
   if (peaks.length >= 7) {
     const high = peaks.filter((p) => p.value >= 7.8).length / peaks.length;
     metrics.glucose = { ...metrics.glucose || {}, peakHighShare: Math.round(high * 100) };
@@ -44778,8 +44779,8 @@ var REFERRAL_TEXT = {
   urgent: "AIRIS: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043A\u044A\u043C \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0431\u0435\u0437 \u043E\u0442\u043B\u0430\u0433\u0430\u043D\u0435.",
   soon: "AIRIS: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043F\u0440\u0435\u0433\u043B\u0435\u0434 \u043F\u0440\u0438 \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0432 \u0431\u043B\u0438\u0437\u043A\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438."
 };
-function deriveIris(facts) {
-  const fact = (facts || []).filter((f) => f.kind === "iris" && f.status !== "pending" && f.value?.analysis).sort((a2, b) => Date.parse(b.at) - Date.parse(a2.at))[0];
+function deriveIris(facts2) {
+  const fact = (facts2 || []).filter((f) => f.kind === "iris" && f.status !== "pending" && f.value?.analysis).sort((a2, b) => Date.parse(b.at) - Date.parse(a2.at))[0];
   if (!fact) return null;
   const a = fact.value.analysis;
   const focus = (a.systems || []).filter((s) => s.priority).map((s) => s.label || s.key).slice(0, 3);
@@ -44820,8 +44821,8 @@ function irisText(s) {
 }
 
 // enrichment-site.js
-function deriveSiteQuiz(facts) {
-  const fact = (facts || []).filter((f) => f.kind === "site_quiz" && f.status !== "pending" && f.value).sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0];
+function deriveSiteQuiz(facts2) {
+  const fact = (facts2 || []).filter((f) => f.kind === "site_quiz" && f.status !== "pending" && f.value).sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0];
   if (!fact) return null;
   const v = fact.value;
   return {
@@ -44881,9 +44882,9 @@ var SYMPTOM_OPTIONS = [
 var asList2 = (v) => (Array.isArray(v) ? v : String(v ?? "").split(/[,;|\n]/)).map((s) => String(s).trim()).filter(Boolean);
 var said = (data, field, values) => asList2(data?.[field]).some((x) => values.includes(x));
 var termKey = (t) => normLabel(t).replace(/[^a-zа-я0-9]+/gi, "_").slice(0, 40);
-function resolutionsOf(facts) {
+function resolutionsOf(facts2) {
   const out = {};
-  for (const f of [...facts || []].filter((x) => x.kind === "resolution").sort((a, b) => Date.parse(a.at) - Date.parse(b.at))) {
+  for (const f of [...facts2 || []].filter((x) => x.kind === "resolution").sort((a, b) => Date.parse(a.at) - Date.parse(b.at))) {
     out[f.key] = f.value;
   }
   return out;
@@ -45038,8 +45039,8 @@ function normalizeDocumentValue(v) {
   if (!value.summary && !value.findings.length) return null;
   return value;
 }
-function deriveDocuments(facts) {
-  const docs = (facts || []).filter((f) => f.kind === "document" && f.status !== "pending" && f.value).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 20);
+function deriveDocuments(facts2) {
+  const docs = (facts2 || []).filter((f) => f.kind === "document" && f.status !== "pending" && f.value).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 20);
   if (!docs.length) return null;
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
   const list2 = [];
@@ -45182,9 +45183,9 @@ function mergeFacts(existing = [], incoming = [], now = /* @__PURE__ */ new Date
   const cutoff = now.getTime() - MAX_AGE_DAYS * DAY_MS3;
   return [...byKey.values()].filter((f) => Date.parse(f.at) >= cutoff).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, MAX_FACTS);
 }
-function recent(facts, kind, days, now) {
+function recent(facts2, kind, days, now) {
   const from = now.getTime() - days * DAY_MS3;
-  return facts.filter((f) => f.kind === kind && Date.parse(f.at) >= from && f.status !== "pending");
+  return facts2.filter((f) => f.kind === kind && Date.parse(f.at) >= from && f.status !== "pending");
 }
 function dailyMean(list2) {
   const byDay = /* @__PURE__ */ new Map();
@@ -45202,39 +45203,39 @@ function activityLabelOf(steps) {
   return "\u0412\u0438\u0441\u043E\u043A\u043E";
 }
 function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ctx = {}) {
-  const facts = Array.isArray(store?.facts) ? store.facts : [];
+  const facts2 = Array.isArray(store?.facts) ? store.facts : [];
   const overrides = {};
   const reasons = [];
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
   const checkin = {};
-  const steps = dailyMean(recent(facts, "steps", 14, now));
+  const steps = dailyMean(recent(facts2, "steps", 14, now));
   if (steps.days >= 7 && steps.mean != null) {
     overrides.dailyActivityLevel = activityLabelOf(steps.mean);
     reasons.push(`\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442 \u043F\u043E \u043A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440: ~${Math.round(steps.mean / 100) * 100} \u043A\u0440\u0430\u0447\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
   }
-  const sleep = dailyMean(recent(facts, "sleep", 14, now));
+  const sleep = dailyMean(recent(facts2, "sleep", 14, now));
   if (sleep.days >= 5 && sleep.mean != null) {
     overrides.sleepHours = String(Math.round(sleep.mean * 10) / 10);
     reasons.push(`\u0441\u044A\u043D \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${String(Math.round(sleep.mean * 10) / 10).replace(".", ",")} \u0447`);
   }
-  const weights = recent(facts, "weight", 3, now);
+  const weights = recent(facts2, "weight", 3, now);
   if (weights.length) {
     const w = weights.reduce((s, f) => s + Number(f.value), 0) / weights.length;
     checkin.weightKg = Math.round(w * 10) / 10;
   }
-  const intake = dailyMean(recent(facts, "intake", 7, now));
+  const intake = dailyMean(recent(facts2, "intake", 7, now));
   if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);
-  const emo = deriveEmoEat(facts);
-  const labs = deriveLabs(facts, now, sex);
-  const essence = computeEssence(facts, now, ctx);
+  const emo = deriveEmoEat(facts2);
+  const labs = deriveLabs(facts2, now, sex);
+  const essence = computeEssence(facts2, now, ctx);
   Object.assign(overrides, essence.overrides);
   Object.assign(checkin, essence.checkin);
   const digest = store?.digest && typeof store.digest === "object" ? store.digest : null;
   const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
-  const iris = deriveIris(facts);
-  const siteQuiz = deriveSiteQuiz(facts);
-  const resolutions = resolutionsOf(facts);
-  const documents = deriveDocuments(facts);
+  const iris = deriveIris(facts2);
+  const siteQuiz = deriveSiteQuiz(facts2);
+  const resolutions = resolutionsOf(facts2);
+  const documents = deriveDocuments(facts2);
   const emoPart = emo && resolutions.emoeat_vs_q === "rare" ? { ...emo, hints: null } : emo;
   for (const part of [emoPart, labs, essence, digestPart, iris, siteQuiz, documents]) {
     if (!part) continue;
@@ -45570,13 +45571,13 @@ function handoffToFacts(h) {
     }];
   }
   if (SITE_SOURCES[h.source]) {
-    const facts = [];
-    if (h.answers?.weight_kg) facts.push({ kind: "weight", value: h.answers.weight_kg, unit: "kg", at: h.at, source: h.source, status: "confirmed" });
+    const facts2 = [];
+    if (h.answers?.weight_kg) facts2.push({ kind: "weight", value: h.answers.weight_kg, unit: "kg", at: h.at, source: h.source, status: "confirmed" });
     const { lines, cautions } = siteQuizSummary(h);
     if (lines.length || cautions.length) {
-      facts.push({ kind: "site_quiz", value: { site: SITE_SOURCES[h.source], lines, cautions }, at: h.at, source: h.source, status: "confirmed" });
+      facts2.push({ kind: "site_quiz", value: { site: SITE_SOURCES[h.source], lines, cautions }, at: h.at, source: h.source, status: "confirmed" });
     }
-    return facts;
+    return facts2;
   }
   return [];
 }
@@ -46000,6 +46001,273 @@ function reanalyze(baseData, enrichedData, energy = {}, sex = "X") {
     devices: d.essence?.metrics && Object.keys(d.essence.metrics).length ? { metrics: d.essence.metrics, sources: d.essence.sources || [], at: d.essence.at || null } : null,
     documents: (d.documents || []).map((x) => ({ title: x.title, at: x.at, impact: x.impact, summary: x.summary }))
   };
+}
+
+// device-links.js
+var LINK_DAYS = 14;
+var DAY_MS4 = 864e5;
+var ymd = (d) => d.toISOString().slice(0, 10);
+var atOf = (day) => `${day}T12:00:00.000Z`;
+var round1 = (v) => Math.round(v * 10) / 10;
+function form(body) {
+  return new URLSearchParams(Object.entries(body).filter(([, v]) => v != null && v !== "")).toString();
+}
+async function getJson(fetchFn, url, token, init = {}) {
+  const res = await fetchFn(url, { ...init, headers: { Authorization: `Bearer ${token}`, ...init.headers || {} } });
+  if (res.status === 401) throw Object.assign(new Error("unauthorized"), { status: 401 });
+  if (!res.ok) throw new Error(`${url.split("?")[0]}: ${res.status}`);
+  return res.json();
+}
+function sumByDay(list2) {
+  const out = /* @__PURE__ */ new Map();
+  for (const x of list2) if (x.day && Number.isFinite(x.value)) out.set(x.day, (out.get(x.day) || 0) + x.value);
+  return [...out].map(([day, value]) => ({ day, value }));
+}
+function facts(kind, list2, source, map = (v) => v) {
+  return list2.filter((x) => x.day && Number.isFinite(x.value) && x.value > 0).map((x) => ({ kind, value: map(x.value), at: atOf(x.day), source, ...x.extra || {} }));
+}
+function workoutsByDay(list2, source) {
+  const byDay = /* @__PURE__ */ new Map();
+  for (const w of list2) {
+    if (!w.day || !(w.minutes > 0)) continue;
+    const d = byDay.get(w.day) || { minutes: 0, count: 0 };
+    d.minutes += w.minutes;
+    d.count += 1;
+    byDay.set(w.day, d);
+  }
+  return [...byDay].map(([day, d]) => ({ kind: "workout", value: Math.round(d.minutes), count: d.count, at: atOf(day), source }));
+}
+var PROVIDERS = {
+  fitbit: {
+    name: "Fitbit",
+    console: "https://dev.fitbit.com/apps/new",
+    env: "FITBIT",
+    pkce: true,
+    authorizeUrl: "https://www.fitbit.com/oauth2/authorize",
+    tokenUrl: "https://api.fitbit.com/oauth2/token",
+    scope: "activity heartrate sleep weight nutrition",
+    basicAuth: true,
+    async fetchFacts(fetchFn, token, from, to) {
+      const A = "https://api.fitbit.com";
+      const range = `${ymd(from)}/${ymd(to)}`;
+      const series = async (path, key) => ((await getJson(fetchFn, `${A}${path}/date/${range}.json`, token))[key] || []).map((x) => ({ day: x.dateTime, value: Number(x.value) }));
+      const out = [];
+      const safe = async (fn) => {
+        try {
+          await fn();
+        } catch (e) {
+          if (e.status === 401) throw e;
+        }
+      };
+      await safe(async () => out.push(...facts("steps", await series("/1/user/-/activities/steps", "activities-steps"), "fitbit")));
+      await safe(async () => out.push(...facts("active_kcal", await series("/1/user/-/activities/activityCalories", "activities-activityCalories"), "fitbit", Math.round)));
+      await safe(async () => {
+        const r = await getJson(fetchFn, `${A}/1/user/-/activities/heart/date/${range}.json`, token);
+        out.push(...facts("resting_hr", (r["activities-heart"] || []).map((x) => ({ day: x.dateTime, value: Number(x.value?.restingHeartRate) })), "fitbit", Math.round));
+      });
+      await safe(async () => {
+        const r = await getJson(fetchFn, `${A}/1/user/-/hrv/date/${range}.json`, token);
+        out.push(...facts("hrv", (r.hrv || []).map((x) => ({ day: x.dateTime, value: Number(x.value?.dailyRmssd) })), "fitbit", Math.round));
+      });
+      await safe(async () => {
+        const r = await getJson(fetchFn, `${A}/1.2/user/-/sleep/date/${range}.json`, token);
+        out.push(...facts("sleep", sumByDay((r.sleep || []).map((s) => ({ day: s.dateOfSleep, value: Number(s.minutesAsleep) / 60 }))), "fitbit", round1));
+      });
+      await safe(async () => {
+        const r = await getJson(fetchFn, `${A}/1/user/-/body/log/weight/date/${range}.json`, token);
+        for (const w of r.weight || []) {
+          if (Number(w.weight) > 0) out.push({ kind: "weight", value: Number(w.weight), at: atOf(w.date), source: "fitbit" });
+          if (Number(w.fat) > 0) out.push({ kind: "body_fat", value: round1(Number(w.fat)), at: atOf(w.date), source: "fitbit" });
+        }
+      });
+      await safe(async () => out.push(...facts("intake", (await series("/1/user/-/foods/log/caloriesIn", "foods-log-caloriesIn")).filter((x) => x.value >= 500), "fitbit", Math.round)));
+      await safe(async () => out.push(...facts("water", await series("/1/user/-/foods/log/water", "foods-log-water"), "fitbit", (v) => round1(v / 1e3))));
+      return out;
+    }
+  },
+  oura: {
+    name: "Oura",
+    console: "https://cloud.ouraring.com/oauth/applications",
+    env: "OURA",
+    authorizeUrl: "https://cloud.ouraring.com/oauth/authorize",
+    tokenUrl: "https://api.ouraring.com/oauth/token",
+    scope: "daily heartrate personal workout session",
+    async fetchFacts(fetchFn, token, from, to) {
+      const A = "https://api.ouraring.com/v2/usercollection";
+      const q = `start_date=${ymd(from)}&end_date=${ymd(to)}`;
+      const out = [];
+      const safe = async (fn) => {
+        try {
+          await fn();
+        } catch (e) {
+          if (e.status === 401) throw e;
+        }
+      };
+      await safe(async () => {
+        const r = await getJson(fetchFn, `${A}/daily_activity?${q}`, token);
+        out.push(...facts("steps", (r.data || []).map((d) => ({ day: d.day, value: Number(d.steps) })), "oura"));
+        out.push(...facts("active_kcal", (r.data || []).map((d) => ({ day: d.day, value: Number(d.active_calories) })), "oura", Math.round));
+      });
+      await safe(async () => {
+        const r = await getJson(fetchFn, `${A}/sleep?${q}`, token);
+        const nights = (r.data || []).filter((s) => s.type === "long_sleep" || !s.type);
+        out.push(...facts("sleep", sumByDay(nights.map((s) => ({ day: s.day, value: Number(s.total_sleep_duration) / 3600 }))), "oura", round1));
+        out.push(...facts("hrv", nights.map((s) => ({ day: s.day, value: Number(s.average_hrv) })), "oura", Math.round));
+        out.push(...facts("resting_hr", nights.map((s) => ({ day: s.day, value: Number(s.lowest_heart_rate) })), "oura", Math.round));
+      });
+      await safe(async () => {
+        const r = await getJson(fetchFn, `${A}/workout?${q}`, token);
+        out.push(...workoutsByDay((r.data || []).map((w) => ({ day: w.day, minutes: (Date.parse(w.end_datetime) - Date.parse(w.start_datetime)) / 6e4 })), "oura"));
+      });
+      return out;
+    }
+  },
+  withings: {
+    name: "Withings",
+    console: "https://developer.withings.com/dashboard/",
+    env: "WITHINGS",
+    authorizeUrl: "https://account.withings.com/oauth2_user/authorize2",
+    tokenUrl: "https://wbsapi.withings.net/v2/oauth2",
+    scope: "user.metrics,user.activity",
+    tokenExtra: { action: "requesttoken" },
+    // Withings връща токена в body и статус 0 вместо HTTP код.
+    unwrapToken: (j) => j && j.status === 0 ? j.body : null,
+    async fetchFacts(fetchFn, token, from, to) {
+      const out = [];
+      const post = async (url, body) => {
+        const j = await getJson(fetchFn, url, token, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: form(body) });
+        if (j.status === 401) throw Object.assign(new Error("unauthorized"), { status: 401 });
+        if (j.status !== 0) throw new Error(`withings status ${j.status}`);
+        return j.body || {};
+      };
+      const safe = async (fn) => {
+        try {
+          await fn();
+        } catch (e) {
+          if (e.status === 401) throw e;
+        }
+      };
+      await safe(async () => {
+        const b = await post("https://wbsapi.withings.net/measure", {
+          action: "getmeas",
+          meastypes: "1,6,76,77,9,10",
+          category: 1,
+          startdate: Math.floor(from.getTime() / 1e3),
+          enddate: Math.floor(to.getTime() / 1e3)
+        });
+        for (const g of b.measuregrps || []) {
+          const day = ymd(new Date(g.date * 1e3));
+          const m = {};
+          for (const x of g.measures || []) m[x.type] = x.value * 10 ** x.unit;
+          if (m[1] > 0) out.push({ kind: "weight", value: round1(m[1]), at: atOf(day), source: "withings" });
+          if (m[6] > 0) out.push({ kind: "body_fat", value: round1(m[6]), at: atOf(day), source: "withings" });
+          if (m[76] > 0) out.push({ kind: "muscle_mass", value: round1(m[76]), at: atOf(day), source: "withings" });
+          if (m[77] > 0 && m[1] > 0) out.push({ kind: "body_water", value: round1(m[77] / m[1] * 100), at: atOf(day), source: "withings" });
+          if (m[10] > 0 && m[9] > 0) out.push({ kind: "bp", value: Math.round(m[10]), value2: Math.round(m[9]), at: atOf(day), source: "withings" });
+        }
+      });
+      await safe(async () => {
+        const b = await post("https://wbsapi.withings.net/v2/measure", { action: "getactivity", startdateymd: ymd(from), enddateymd: ymd(to), data_fields: "steps,calories" });
+        out.push(...facts("steps", (b.activities || []).map((a) => ({ day: a.date, value: Number(a.steps) })), "withings"));
+        out.push(...facts("active_kcal", (b.activities || []).map((a) => ({ day: a.date, value: Number(a.calories) })), "withings", Math.round));
+      });
+      await safe(async () => {
+        const b = await post("https://wbsapi.withings.net/v2/sleep", { action: "getsummary", startdateymd: ymd(from), enddateymd: ymd(to), data_fields: "total_sleep_time" });
+        out.push(...facts("sleep", sumByDay((b.series || []).map((s) => ({ day: s.date, value: Number(s.data?.total_sleep_time) / 3600 }))), "withings", round1));
+      });
+      return out;
+    }
+  },
+  strava: {
+    name: "Strava",
+    console: "https://www.strava.com/settings/api",
+    env: "STRAVA",
+    authorizeUrl: "https://www.strava.com/oauth/authorize",
+    tokenUrl: "https://www.strava.com/oauth/token",
+    scope: "activity:read_all",
+    authorizeExtra: { approval_prompt: "auto" },
+    async fetchFacts(fetchFn, token, from) {
+      const list2 = await getJson(fetchFn, `https://www.strava.com/api/v3/athlete/activities?after=${Math.floor(from.getTime() / 1e3)}&per_page=100`, token);
+      return workoutsByDay((Array.isArray(list2) ? list2 : []).map((a) => ({ day: String(a.start_date_local || "").slice(0, 10), minutes: Number(a.moving_time) / 60 })), "strava");
+    }
+  }
+};
+var LINK_SOURCES = Object.keys(PROVIDERS);
+function enabledProviders(env = {}) {
+  return Object.entries(PROVIDERS).filter(([, p]) => env[`${p.env}_CLIENT_ID`] && env[`${p.env}_CLIENT_SECRET`]).map(([id]) => id);
+}
+function credentials(env, provider) {
+  const p = PROVIDERS[provider];
+  return p ? { id: env[`${p.env}_CLIENT_ID`], secret: env[`${p.env}_CLIENT_SECRET`] } : null;
+}
+function base64url(bytes) {
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function randomToken2(n = 24) {
+  return base64url(crypto.getRandomValues(new Uint8Array(n)));
+}
+async function pkceChallenge(verifier) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  return base64url(new Uint8Array(digest));
+}
+async function authorizeUrl(env, provider, { redirectUri, state }) {
+  const p = PROVIDERS[provider];
+  const c = credentials(env, provider);
+  if (!p || !c?.id) throw new Error("\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442 \u0438\u043B\u0438 \u043D\u0435\u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D \u0434\u043E\u0441\u0442\u0430\u0432\u0447\u0438\u043A");
+  const params = { response_type: "code", client_id: c.id, redirect_uri: redirectUri, scope: p.scope, state, ...p.authorizeExtra || {} };
+  let verifier = null;
+  if (p.pkce) {
+    verifier = randomToken2(48);
+    params.code_challenge = await pkceChallenge(verifier);
+    params.code_challenge_method = "S256";
+  }
+  return { url: `${p.authorizeUrl}?${form(params)}`, verifier };
+}
+function readToken(p, json2) {
+  const t = p.unwrapToken ? p.unwrapToken(json2) : json2;
+  if (!t?.access_token) return null;
+  const expiresAt = t.expires_at ? t.expires_at * 1e3 : Date.now() + (Number(t.expires_in) || 3600) * 1e3;
+  return { access: t.access_token, refresh: t.refresh_token || null, expiresAt };
+}
+async function tokenRequest(fetchFn, env, provider, body) {
+  const p = PROVIDERS[provider];
+  const c = credentials(env, provider);
+  const headers = { "Content-Type": "application/x-www-form-urlencoded" };
+  const payload = { ...p.tokenExtra || {}, ...body, client_id: c.id };
+  if (p.basicAuth) headers.Authorization = `Basic ${btoa(`${c.id}:${c.secret}`)}`;
+  else payload.client_secret = c.secret;
+  const res = await fetchFn(p.tokenUrl, { method: "POST", headers, body: form(payload) });
+  const json2 = await res.json().catch(() => null);
+  const token = res.ok ? readToken(p, json2) : null;
+  if (!token) throw new Error(`${p.name}: \u0442\u043E\u043A\u0435\u043D\u044A\u0442 \u043D\u0435 \u0431\u0435\u0448\u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D (${res.status})`);
+  return token;
+}
+function exchangeCode(fetchFn, env, provider, { code, redirectUri, verifier }) {
+  return tokenRequest(fetchFn, env, provider, { grant_type: "authorization_code", code, redirect_uri: redirectUri, code_verifier: verifier || void 0 });
+}
+async function refreshToken(fetchFn, env, provider, link) {
+  if (!link?.refresh) throw new Error("\u041D\u044F\u043C\u0430 \u0442\u043E\u043A\u0435\u043D \u0437\u0430 \u043F\u043E\u0434\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u2014 \u0441\u0432\u044A\u0440\u0436\u0435\u0442\u0435 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u043E\u0442\u043D\u043E\u0432\u043E");
+  const t = await tokenRequest(fetchFn, env, provider, { grant_type: "refresh_token", refresh_token: link.refresh });
+  return { ...link, ...t, refresh: t.refresh || link.refresh };
+}
+async function pullFacts(fetchFn, env, provider, link, now = /* @__PURE__ */ new Date()) {
+  const p = PROVIDERS[provider];
+  if (!p) throw new Error("\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442 \u0434\u043E\u0441\u0442\u0430\u0432\u0447\u0438\u043A");
+  let current = link;
+  if (!current.access || current.expiresAt && current.expiresAt - 6e4 < now.getTime()) {
+    current = await refreshToken(fetchFn, env, provider, current);
+  }
+  const to = new Date(now.getTime() - DAY_MS4);
+  const from = new Date(now.getTime() - LINK_DAYS * DAY_MS4);
+  let list2;
+  try {
+    list2 = await p.fetchFacts(fetchFn, current.access, from, to);
+  } catch (e) {
+    if (e.status !== 401) throw e;
+    current = await refreshToken(fetchFn, env, provider, current);
+    list2 = await p.fetchFacts(fetchFn, current.access, from, to);
+  }
+  return { facts: list2, link: current };
 }
 
 // admin-food-catalog.js
@@ -56755,18 +57023,18 @@ async function handleEnrichmentSubmit(request, env) {
     if (body.emoeat && typeof body.emoeat === "object") {
       incoming.push({ kind: "emoeat", value: body.emoeat, at: (/* @__PURE__ */ new Date()).toISOString(), source: "emoeat" });
     }
-    const facts = incoming.map(normalizeFact).filter(Boolean);
-    if (!facts.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u043D\u0438 \u0434\u0430\u043D\u043D\u0438" }, 400);
-    return jsonResponse2(await ingestEnrichmentFacts(env, userId, facts));
+    const facts2 = incoming.map(normalizeFact).filter(Boolean);
+    if (!facts2.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0432\u0430\u043B\u0438\u0434\u043D\u0438 \u0434\u0430\u043D\u043D\u0438" }, 400);
+    return jsonResponse2(await ingestEnrichmentFacts(env, userId, facts2));
   } catch (error) {
     console.error("Error saving enrichment:", error);
     return jsonResponse2({ error: "Failed to save enrichment: " + error.message }, 500);
   }
 }
-async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
+async function ingestEnrichmentFacts(env, userId, facts2, meta = {}) {
   const profile = await kvGetJSON(env, `user_profile:${userId}`) || { userId };
   const prevStore = profile.enrichment || { facts: [] };
-  const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts), updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+  const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts2), updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
   const base = normalizeQuestionnaireData({ ...profile.userData || {} });
   const prevData = applyEnrichment(JSON.parse(JSON.stringify(base)), prevStore);
   let nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
@@ -56923,9 +57191,9 @@ async function handleHandoffClaim(request, env) {
     if (authError) return authError;
     const rec = await readHandoff(env, token);
     if (!rec?.h) return jsonResponse2({ error: "\u041B\u0438\u043D\u043A\u044A\u0442 \u0435 \u0438\u0437\u0442\u0435\u043A\u044A\u043B \u0438\u043B\u0438 \u0432\u0435\u0447\u0435 \u0435 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D." }, 404);
-    const facts = handoffToFacts(rec.h).map(normalizeFact).filter(Boolean);
-    if (!facts.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0434\u043E\u0431\u0430\u0432\u044F\u043D\u0435" }, 400);
-    const result = await ingestEnrichmentFacts(env, userId, facts, { source: rec.h.source });
+    const facts2 = handoffToFacts(rec.h).map(normalizeFact).filter(Boolean);
+    if (!facts2.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0434\u0430\u043D\u043D\u0438 \u0437\u0430 \u0434\u043E\u0431\u0430\u0432\u044F\u043D\u0435" }, 400);
+    const result = await ingestEnrichmentFacts(env, userId, facts2, { source: rec.h.source });
     await env.page_content.delete(HANDOFF_PREFIX + token);
     await countHandoff(env, rec.h.source, "claimed");
     const profile = await kvGetJSON(env, `user_profile:${userId}`).catch(() => null);
@@ -57161,9 +57429,9 @@ async function handleEnrichmentDelete(request, env) {
     const before = profile.enrichment.facts?.length || 0;
     const only = Array.isArray(kinds) && kinds.length ? new Set(kinds) : null;
     const docIds = Array.isArray(documentIds) && documentIds.length ? new Set(documentIds.map(String)) : null;
-    const facts = docIds ? (profile.enrichment.facts || []).filter((f) => !(f.kind === "document" && docIds.has(f.key))) : only ? (profile.enrichment.facts || []).filter((f) => !only.has(f.kind)) : [];
-    profile.enrichment = { ...profile.enrichment, facts, updatedAt: (/* @__PURE__ */ new Date()).toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
-    const hasDeviceFacts = facts.some((f) => DEVICE_KINDS[f.kind]);
+    const facts2 = docIds ? (profile.enrichment.facts || []).filter((f) => !(f.kind === "document" && docIds.has(f.key))) : only ? (profile.enrichment.facts || []).filter((f) => !only.has(f.kind)) : [];
+    profile.enrichment = { ...profile.enrichment, facts: facts2, updatedAt: (/* @__PURE__ */ new Date()).toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
+    const hasDeviceFacts = facts2.some((f) => DEVICE_KINDS[f.kind]);
     if (!hasDeviceFacts) delete profile.enrichment.digest;
     const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
     await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
@@ -57171,7 +57439,7 @@ async function handleEnrichmentDelete(request, env) {
       try {
         const client = await kvGetJSON(env, `client:${profile.clientId}`);
         if (client) {
-          const d = facts.length ? applyEnrichment(normalizeQuestionnaireData({ ...profile.userData || {} }), profile.enrichment)?._enrichment : null;
+          const d = facts2.length ? applyEnrichment(normalizeQuestionnaireData({ ...profile.userData || {} }), profile.enrichment)?._enrichment : null;
           const text = d ? profileContextText(d) : "";
           client.healthEssence = text ? { text, at: profile.enrichment.updatedAt, sources: d?.essence?.sources || [] } : null;
           await kvPutJSON(env, `client:${profile.clientId}`, client, null);
@@ -57180,9 +57448,220 @@ async function handleEnrichmentDelete(request, env) {
         console.warn("[Enrichment] client card cleanup failed:", e.message);
       }
     }
-    return jsonResponse2({ success: true, removed: before - facts.length });
+    return jsonResponse2({ success: true, removed: before - facts2.length });
   } catch (error) {
     return jsonResponse2({ error: "Failed to delete enrichment: " + error.message }, 500);
+  }
+}
+var LINK_SYNC_MIN_MS = 3 * 60 * 60 * 1e3;
+var LINK_TTL = 365 * 24 * 60 * 60;
+var LINK_RETURN_HOSTS = ["biocode.website", "www.biocode.website", "radilovk.github.io", "localhost", "127.0.0.1"];
+function linkRedirectUri(request, provider) {
+  return `${new URL(request.url).origin}/api/links/callback/${provider}`;
+}
+function safeReturnTo(raw) {
+  try {
+    const u = new URL(String(raw || ""));
+    return ["https:", "http:"].includes(u.protocol) && LINK_RETURN_HOSTS.includes(u.hostname) ? u.toString() : null;
+  } catch (_) {
+    return null;
+  }
+}
+async function linkStatus(env, userId) {
+  const enabled = enabledProviders(env);
+  const out = [];
+  for (const id of enabled) {
+    const link = await kvGetJSON(env, `link:${userId}:${id}`);
+    out.push({ id, name: PROVIDERS[id].name, linked: !!link, syncedAt: link?.syncedAt || null, error: link?.error || null });
+  }
+  return out;
+}
+async function syncLink(env, userId, provider, link, now = /* @__PURE__ */ new Date()) {
+  try {
+    const { facts: facts2, link: next } = await pullFacts(fetch, env, provider, link, now);
+    const clean = facts2.map((f) => normalizeFact({ ...f, source: provider, status: "confirmed" })).filter(Boolean);
+    await kvPutJSON(env, `link:${userId}:${provider}`, { ...next, syncedAt: now.toISOString(), error: null }, LINK_TTL);
+    if (!clean.length) return { provider, facts: 0 };
+    const res = await ingestEnrichmentFacts(env, userId, clean, { source: provider });
+    return { provider, facts: clean.length, level: res.level, derived: res.derived, reanalysis: res.reanalysis };
+  } catch (e) {
+    console.warn(`[Links] ${provider} sync failed:`, e.message);
+    await kvPutJSON(env, `link:${userId}:${provider}`, { ...link, error: e.message.slice(0, 200), errorAt: now.toISOString() }, LINK_TTL);
+    return { provider, error: e.message };
+  }
+}
+async function syncAllLinks(env, now = /* @__PURE__ */ new Date()) {
+  if (!env.page_content || !enabledProviders(env).length) return 0;
+  let done = 0;
+  let cursor;
+  do {
+    const page = await env.page_content.list({ prefix: "link:", cursor });
+    for (const { name } of page.keys) {
+      const parts = name.split(":");
+      const provider = parts.pop();
+      const userId = parts.slice(1).join(":");
+      if (!userId || !enabledProviders(env).includes(provider)) continue;
+      const link = await kvGetJSON(env, name);
+      const last = Date.parse(link?.syncedAt || link?.errorAt || 0) || 0;
+      if (!link || now.getTime() - last < LINK_SYNC_MIN_MS) continue;
+      await syncLink(env, userId, provider, link, now);
+      if (++done >= 40) return done;
+    }
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor);
+  return done;
+}
+async function handleAdminLinksStatus(request, env) {
+  try {
+    const enabled = new Set(enabledProviders(env));
+    const stats = Object.fromEntries(LINK_SOURCES.map((id) => [id, { linked: 0, errors: 0, lastSync: null }]));
+    let cursor;
+    let read = 0;
+    do {
+      const page = await env.page_content.list({ prefix: "link:", cursor });
+      for (const { name } of page.keys) {
+        const provider = name.split(":").pop();
+        if (!stats[provider]) continue;
+        stats[provider].linked++;
+        if (read++ >= 500) continue;
+        const link = await kvGetJSON(env, name);
+        if (link?.error) stats[provider].errors++;
+        if (link?.syncedAt && (!stats[provider].lastSync || link.syncedAt > stats[provider].lastSync)) stats[provider].lastSync = link.syncedAt;
+      }
+      cursor = page.list_complete ? null : page.cursor;
+    } while (cursor);
+    return jsonResponse2({
+      success: true,
+      providers: LINK_SOURCES.map((id) => {
+        const p = PROVIDERS[id];
+        return {
+          id,
+          name: p.name,
+          enabled: enabled.has(id),
+          console: p.console,
+          scope: p.scope,
+          redirectUri: linkRedirectUri(request, id),
+          secrets: [`${p.env}_CLIENT_ID`, `${p.env}_CLIENT_SECRET`],
+          ...stats[id]
+        };
+      })
+    });
+  } catch (error) {
+    return jsonResponse2({ error: "Failed to read link status: " + error.message }, 500);
+  }
+}
+async function handleLinksProviders(request, env) {
+  try {
+    const { userId, idToken } = await request.json();
+    if (!userId) return jsonResponse2({ success: true, providers: enabledProviders(env).map((id) => ({ id, name: PROVIDERS[id].name, linked: false })) });
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    return jsonResponse2({ success: true, providers: await linkStatus(env, userId) });
+  } catch (error) {
+    return jsonResponse2({ error: "Failed to list providers: " + error.message }, 500);
+  }
+}
+async function handleLinksStart(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, provider, returnTo } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    if (!enabledProviders(env).includes(provider)) return jsonResponse2({ error: "\u0414\u043E\u0441\u0442\u0430\u0432\u0447\u0438\u043A\u044A\u0442 \u043D\u0435 \u0435 \u043D\u0430\u043B\u0438\u0447\u0435\u043D" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const state = randomToken2(24);
+    const { url, verifier } = await authorizeUrl(env, provider, { redirectUri: linkRedirectUri(request, provider), state });
+    await kvPutJSON(env, `link_state:${state}`, { userId, provider, verifier, returnTo: safeReturnTo(returnTo) }, 600);
+    return jsonResponse2({ success: true, url });
+  } catch (error) {
+    return jsonResponse2({ error: "Failed to start link: " + error.message }, 500);
+  }
+}
+function linkResultPage(ok, title, text) {
+  const esc3 = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NutriPlan</title>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#F0FDFA;color:#042F2E}
+main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? "#0F766E" : "#B45309"}}
+a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#0F766E;color:#fff;text-decoration:none}</style></head>
+<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text)}</p><a href="https://biocode.website/index.html?tab=profile">\u041A\u044A\u043C NutriPlan</a></main></body></html>`;
+  return new Response(html, { status: ok ? 200 : 400, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+}
+async function handleLinksCallback(request, env, provider) {
+  const url = new URL(request.url);
+  const state = url.searchParams.get("state") || "";
+  const code = url.searchParams.get("code") || "";
+  const pending = state ? await kvGetJSON(env, `link_state:${state}`) : null;
+  if (!pending || pending.provider !== provider) return linkResultPage(false, "\u0412\u0440\u044A\u0437\u043A\u0430\u0442\u0430 \u043D\u0435 \u0435 \u0437\u0430\u0432\u044A\u0440\u0448\u0435\u043D\u0430", "\u0417\u0430\u044F\u0432\u043A\u0430\u0442\u0430 \u0435 \u0438\u0437\u0442\u0435\u043A\u043B\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E \u043E\u0442 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0432 NutriPlan.");
+  await env.page_content.delete(`link_state:${state}`).catch(() => {
+  });
+  const back = (status) => {
+    if (!pending.returnTo) return null;
+    const u = new URL(pending.returnTo);
+    u.searchParams.set("linked", provider);
+    u.searchParams.set("link_status", status);
+    return Response.redirect(u.toString(), 302);
+  };
+  if (!code) return back("denied") || linkResultPage(false, "\u0414\u043E\u0441\u0442\u044A\u043F\u044A\u0442 \u043D\u0435 \u0435 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D", "\u041F\u0440\u043E\u0444\u0438\u043B\u044A\u0442 \u043D\u0435 \u0435 \u0441\u0432\u044A\u0440\u0437\u0430\u043D. \u041C\u043E\u0436\u0435 \u0434\u0430 \u043E\u043F\u0438\u0442\u0430\u0442\u0435 \u043E\u0442\u043D\u043E\u0432\u043E \u043F\u043E \u0432\u0441\u044F\u043A\u043E \u0432\u0440\u0435\u043C\u0435.");
+  try {
+    const token = await exchangeCode(fetch, env, provider, { code, redirectUri: linkRedirectUri(request, provider), verifier: pending.verifier });
+    const link = { ...token, linkedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    await kvPutJSON(env, `link:${pending.userId}:${provider}`, link, LINK_TTL);
+    await syncLink(env, pending.userId, provider, link);
+    return back("ok") || linkResultPage(true, `${PROVIDERS[provider].name} \u0435 \u0441\u0432\u044A\u0440\u0437\u0430\u043D`, "\u0414\u0430\u043D\u043D\u0438\u0442\u0435 \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 14 \u0434\u043D\u0438 \u0441\u0430 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0430. \u0412\u044A\u0440\u043D\u0435\u0442\u0435 \u0441\u0435 \u0432 NutriPlan \u2014 \u043E\u0442\u0442\u0443\u043A \u043D\u0430\u0442\u0430\u0442\u044A\u043A \u0441\u0435 \u043E\u0431\u043D\u043E\u0432\u044F\u0432\u0430\u0442 \u0441\u0430\u043C\u0438.");
+  } catch (e) {
+    console.warn("[Links] callback failed:", e.message);
+    return back("error") || linkResultPage(false, "\u0412\u0440\u044A\u0437\u043A\u0430\u0442\u0430 \u043D\u0435 \u0443\u0441\u043F\u044F", e.message);
+  }
+}
+async function handleLinksSync(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, force } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const now = /* @__PURE__ */ new Date();
+    const results = [];
+    for (const id of enabledProviders(env)) {
+      const link = await kvGetJSON(env, `link:${userId}:${id}`);
+      if (!link) continue;
+      const last = Date.parse(link.syncedAt || link.errorAt || 0) || 0;
+      if (!force && now.getTime() - last < LINK_SYNC_MIN_MS) {
+        results.push({ provider: id, skipped: true });
+        continue;
+      }
+      results.push(await syncLink(env, userId, id, link, now));
+    }
+    const lastWithData = results.filter((r) => r.derived).pop();
+    return jsonResponse2({ success: true, results, derived: lastWithData?.derived || null, reanalysis: lastWithData?.reanalysis || null, providers: await linkStatus(env, userId) });
+  } catch (error) {
+    return jsonResponse2({ error: "Failed to sync links: " + error.message }, 500);
+  }
+}
+async function handleLinksDisconnect(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, provider } = await request.json();
+    if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
+    if (!LINK_SOURCES.includes(provider)) return jsonResponse2({ error: "\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442 \u0434\u043E\u0441\u0442\u0430\u0432\u0447\u0438\u043A" }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    await env.page_content.delete(`link:${userId}:${provider}`);
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    let removed = 0;
+    if (profile?.enrichment?.facts) {
+      const facts2 = profile.enrichment.facts.filter((f) => f.source !== provider);
+      removed = profile.enrichment.facts.length - facts2.length;
+      if (removed) {
+        profile.enrichment = { ...profile.enrichment, facts: facts2, updatedAt: (/* @__PURE__ */ new Date()).toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
+        if (!facts2.some((f) => DEVICE_KINDS[f.kind])) delete profile.enrichment.digest;
+        const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+        await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+      }
+    }
+    return jsonResponse2({ success: true, removed, providers: await linkStatus(env, userId) });
+  } catch (error) {
+    return jsonResponse2({ error: "Failed to disconnect: " + error.message }, 500);
   }
 }
 async function handleEnrichmentGet(request, env) {
@@ -57840,13 +58319,13 @@ async function handleXbodyAcuityWebhook(request, env) {
   if (raw.length > 4096) return new Response("too large", { status: 413 });
   const ok = await verifyAcuitySignature(raw, request.headers.get("X-Acuity-Signature") || "", apiKey);
   if (!ok) return new Response("bad signature", { status: 401 });
-  const form = new URLSearchParams(raw);
-  const action = String(form.get("action") || "");
-  const id = String(form.get("id") || "");
+  const form2 = new URLSearchParams(raw);
+  const action = String(form2.get("action") || "");
+  const id = String(form2.get("id") || "");
   if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled|canceled|changed)$/.test(action)) {
     return new Response("ignored", { status: 200 });
   }
-  const sentCalendar = String(form.get("calendarID") || "");
+  const sentCalendar = String(form2.get("calendarID") || "");
   if (sentCalendar && sentCalendar !== XBODY_ACUITY_BOOKING.calendarID) return new Response("ignored", { status: 200 });
   const auth = btoa(`${userId}:${apiKey}`);
   const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
@@ -58269,11 +58748,11 @@ async function xbodyStripe(env, method, path, params) {
   const init = { method, headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } };
   let url = `https://api.stripe.com/v1/${path}`;
   if (params) {
-    const form = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) if (v !== void 0 && v !== null && v !== "") form.append(k, String(v));
-    if (method === "GET") url += (url.includes("?") ? "&" : "?") + form.toString();
+    const form2 = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v !== void 0 && v !== null && v !== "") form2.append(k, String(v));
+    if (method === "GET") url += (url.includes("?") ? "&" : "?") + form2.toString();
     else {
-      init.body = form.toString();
+      init.body = form2.toString();
       init.headers["Content-Type"] = "application/x-www-form-urlencoded";
     }
   }
@@ -58454,8 +58933,8 @@ async function handleXbodyBook(request, env) {
     return jsonResponse2({ error: "terms" }, 403);
   }
   const fields = [];
-  for (const form of Array.isArray(previous && previous.forms) ? previous.forms : []) {
-    for (const v of Array.isArray(form && form.values) ? form.values : []) {
+  for (const form2 of Array.isArray(previous && previous.forms) ? previous.forms : []) {
+    for (const v of Array.isArray(form2 && form2.values) ? form2.values : []) {
       if (v && v.fieldID && v.value !== void 0 && v.value !== null && v.value !== "") {
         fields.push({ id: v.fieldID, value: v.value });
       }
@@ -58979,6 +59458,18 @@ var worker_entry_default = {
         return await handleDocumentAssess(request, env);
       } else if (url.pathname === "/api/enrichment/delete" && request.method === "POST") {
         return await handleEnrichmentDelete(request, env);
+      } else if (url.pathname === "/api/admin/links-status" && request.method === "GET") {
+        return await handleAdminLinksStatus(request, env);
+      } else if (url.pathname === "/api/links/providers" && request.method === "POST") {
+        return await handleLinksProviders(request, env);
+      } else if (url.pathname === "/api/links/start" && request.method === "POST") {
+        return await handleLinksStart(request, env);
+      } else if (url.pathname.startsWith("/api/links/callback/") && request.method === "GET") {
+        return await handleLinksCallback(request, env, url.pathname.split("/").pop());
+      } else if (url.pathname === "/api/links/sync" && request.method === "POST") {
+        return await handleLinksSync(request, env);
+      } else if (url.pathname === "/api/links/disconnect" && request.method === "POST") {
+        return await handleLinksDisconnect(request, env);
       } else if (url.pathname === "/api/user/sync-analytics" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "ANALYTICS_SYNC");
         if (rlErr) return rlErr;
@@ -59117,6 +59608,7 @@ var worker_entry_default = {
   async scheduled(event, env, ctx) {
     console.log("[Worker] Scheduled event triggered at:", (/* @__PURE__ */ new Date()).toISOString());
     ctx.waitUntil(handleScheduledNotifications(env));
+    ctx.waitUntil(syncAllLinks(env).catch((e) => console.warn("[Links] scheduled sync failed:", e.message)));
   },
   /**
    * Handle Cloudflare Queue messages for plan generation.

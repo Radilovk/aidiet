@@ -142,6 +142,12 @@
                 return post('/api/enrichment/get', {}).then(keepEssence).catch(function () {}).then(function () { return r; });
             });
         },
-        describeChange: describeChange
+        describeChange: describeChange,
+        /** Профили в облака (Fitbit, Oura, Withings, Strava): кои са включени и свързани. */
+        linkProviders: function () { return post('/api/links/providers', {}); },
+        /** Адресът за вход при доставчика; returnTo — къде да се върне браузърът (само в уеб). */
+        startLink: function (provider, returnTo) { return post('/api/links/start', { provider: provider, returnTo: returnTo || null }); },
+        syncLinks: function (force) { return post('/api/links/sync', { force: !!force }).then(keepEssence); },
+        disconnectLink: function (provider) { return post('/api/links/disconnect', { provider: provider }); }
     };
 }(window));

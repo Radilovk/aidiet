@@ -1342,6 +1342,10 @@
     /** Android „Назад“ в обвивката: чат → прозорец в таба → към плана. */
     function handleShellBack() {
         if (!state.initialized) return false;
+        if (window.NutriPlanHealthOffer && window.NutriPlanHealthOffer.isOpen()) {
+            window.NutriPlanHealthOffer.close();
+            return true;
+        }
         if (shellChatFrame && shellChatFrame.style.display !== 'none') {
             try {
                 var chatWin = shellChatFrame.contentWindow;

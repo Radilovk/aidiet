@@ -5,6 +5,10 @@ Patch the generated Capacitor Android project for NutriPrintPlugin.
 - Copies android-res/java/com/biocode/nutriplan/NutriPrintPlugin.java into the
   app sources (same package as MainActivity).
 - Registers the plugin in MainActivity before super.onCreate().
+- Copies and registers NutriSystemUiPlugin (the window colour behind the system
+  bars follows the app theme) and makes the activity edge-to-edge on every
+  Android version, so the system-bar inset is applied once (by Capacitor's
+  SystemBars), not twice.
 
 window.print() does nothing in Android WebView; the plan book (plan-book.html)
 calls NutriPrint.print() instead, which opens the system print dialog with
@@ -22,11 +26,16 @@ from pathlib import Path
 
 PACKAGE_DIR = Path("android/app/src/main/java/com/biocode/nutriplan")
 PLUGIN_SOURCE = Path("android-res/java/com/biocode/nutriplan/NutriPrintPlugin.java")
+PLUGIN_SOURCES = [
+    PLUGIN_SOURCE,
+    Path("android-res/java/com/biocode/nutriplan/NutriSystemUiPlugin.java"),
+]
 MAIN_ACTIVITY = PACKAGE_DIR / "MainActivity.java"
 
 PATCHED_ACTIVITY = """package com.biocode.nutriplan;
 
 import android.os.Bundle;
+import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -34,7 +43,12 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Local plugins must be registered before the bridge starts.
         registerPlugin(NutriPrintPlugin.class);
+        registerPlugin(NutriSystemUiPlugin.class);
         super.onCreate(savedInstanceState);
+        // От край до край на всички версии: отместването за системните ленти е
+        // само едно (SystemBars на Capacitor). Без това под Android 15 системата
+        // също мести съдържанието и под лентите оставаше втора, сива ивица.
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     }
 }
 """
@@ -56,9 +70,13 @@ def main() -> int:
         return 1
 
     PACKAGE_DIR.mkdir(parents=True, exist_ok=True)
-    dest = PACKAGE_DIR / PLUGIN_SOURCE.name
-    shutil.copy2(PLUGIN_SOURCE, dest)
-    print(f"Copied {PLUGIN_SOURCE} -> {dest}")
+    for source in PLUGIN_SOURCES:
+        if not source.exists():
+            print(f"ERROR: {source} not found", file=sys.stderr)
+            return 1
+        dest = PACKAGE_DIR / source.name
+        shutil.copy2(source, dest)
+        print(f"Copied {source} -> {dest}")
 
     text = MAIN_ACTIVITY.read_text(encoding="utf-8")
     if "registerPlugin(NutriPrintPlugin.class)" in text:
