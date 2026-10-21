@@ -1,0 +1,13 @@
+# Скрива от търсенето (ripgrep) генерирани файлове, дъмпове и архиви. Git и сборките не се влияят.
+worker.js
+NUTRIPLAN_FULL_TEXT_EXPORT.txt
+aicom.txt
+ai_communication.txt
+workererrors
+log1
+package-lock.json
+fitness/package-lock.json
+docs/archive/
+docs/*.txt
+*.pdf
+*.zip

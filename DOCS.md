@@ -15,7 +15,7 @@
 
 ## Archived Documentation
 
-Historical development notes, implementation summaries, and fix documentation have been moved to **[docs/archive/](docs/archive/)** to keep the root directory clean and focused.
+Historical development notes, implementation summaries, and fix documentation have been moved to **[docs/archive/](docs/archive/)** (older root reports: **[docs/archive/root/](docs/archive/root/)**) to keep the root directory clean and focused.
 
 The archive contains:
 - 88+ implementation and fix documentation files

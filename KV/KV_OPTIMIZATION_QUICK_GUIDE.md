@@ -240,7 +240,7 @@ wrangler publish
 
 ## 📚 Допълнителна Информация
 
-Вижте пълния анализ в: `KV_QUOTA_ANALYSIS_BG.md`
+Вижте пълния анализ в: `docs/archive/root/KV_QUOTA_ANALYSIS_BG.md`
 
 ---
 
