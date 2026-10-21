@@ -42,6 +42,30 @@ const GameNotifier = {
     EVENING_ACTIVITY_ACTION_TYPE_ID: 'nutriplan_evening_activity',
     EVENING_BALANCE_ACTION_TYPE_ID:  'nutriplan_evening_balance',
     EVENING_WATER_ACTION_TYPE_ID:    'nutriplan_evening_water',
+    // Въпрос след всяко хранене: „Изядохте ли обяда?“ (APK, бутоните работят и при затворено приложение).
+    MEAL_ACTION_TYPE_ID: 'nutriplan_meal_check',
+    MEAL_TYPE_PREFIX: 'meal_check:',
+    MEAL_ID_BASE: 3000,
+    MEAL_WINDOW_DAYS: 7,
+    MEAL_ASK_AFTER_MIN: 45,
+    MEAL_DEFAULT_TIME: {
+        'Хранене 1': '08:00', 'Закуска': '08:00',
+        'Хранене 2': '13:00', 'Обяд': '13:00', 'Свободно хранене': '13:00',
+        'Хранене 3': '16:00', 'Следобедна закуска': '16:00', 'Следобедна': '16:00',
+        'Хранене 4': '19:00', 'Вечеря': '19:00',
+        'Хранене 5': '21:00', 'Късна закуска': '21:00'
+    },
+    MEAL_LABEL: {
+        'Хранене 1': 'закуската', 'Закуска': 'закуската',
+        'Хранене 2': 'обяда', 'Обяд': 'обяда', 'Свободно хранене': 'свободното хранене',
+        'Хранене 3': 'следобедната закуска', 'Следобедна закуска': 'следобедната закуска', 'Следобедна': 'следобедната закуска',
+        'Хранене 4': 'вечерята', 'Вечеря': 'вечерята',
+        'Хранене 5': 'късната закуска', 'Късна закуска': 'късната закуска'
+    },
+    MEAL_ACTIONS: [
+        { id: 'meal_yes', title: 'Да, изядох' },
+        { id: 'meal_no', title: 'Пропуснах' }
+    ],
     ACK_NOTIFICATION_ID:  9997,
     PENDING_DB_NAME:        'nutriplan-game-pending',
     PENDING_STORE:          'actions',
@@ -387,6 +411,19 @@ const GameNotifier = {
         const action = (msg && (msg.action || msg.actionId)) || '';
         const recordKey = this._normalizeRecordKey(msg && msg.recordKey);
         const result = { silent: false, saved: false, needsApp: false, ack: null, recordKey, notifType, action };
+
+        if (notifType.indexOf(this.MEAL_TYPE_PREFIX) === 0) {
+            const mealKey = notifType.slice(this.MEAL_TYPE_PREFIX.length);
+            if (action === 'meal_yes' || action === 'meal_no') {
+                result.saved = this._saveMealAnswer(recordKey, mealKey, action === 'meal_yes', msg && msg.calories);
+                result.silent = true;
+                result.ack = null;
+                this.markSilentApply();
+                return result;
+            }
+            result.needsApp = true;
+            return result;
+        }
         const cfg = this._getConfig();
         const meta = this._slotMetaByType(notifType);
 
@@ -478,8 +515,9 @@ const GameNotifier = {
 
     _getCapacitorPlugin(name) {
         try {
-            const cap = window.Capacitor ||
-                (window.top !== window && window.top && window.top.Capacitor) ||
+            // Мостът на горния прозорец: отговорите от Android стигат само до него.
+            const cap = (window.top !== window && window.top && window.top.Capacitor) ||
+                window.Capacitor ||
                 null;
             if (!cap) return null;
             let plugin = cap.Plugins && cap.Plugins[name];
@@ -816,8 +854,9 @@ const GameNotifier = {
             // In the APK, plan.html is loaded in an iframe so window.Capacitor may be
             // undefined there. Mirror the getCap() fallback from platform.js: check
             // window.top.Capacitor as well (same-origin cross-frame access is allowed).
-            const cap = window.Capacitor ||
-                (window.top !== window && window.top && window.top.Capacitor) ||
+            // Мостът на горния прозорец: отговорите от Android стигат само до него.
+            const cap = (window.top !== window && window.top && window.top.Capacitor) ||
+                window.Capacitor ||
                 null;
             if (!cap) return null;
             const isNative = typeof cap.isNativePlatform === 'function'
@@ -943,6 +982,10 @@ const GameNotifier = {
                         id: item.id, title: this._capacitorActionTitle(this._notificationActionTitle(item)), foreground: false
                     }))
                 });
+            });
+            types.push({
+                id: this.MEAL_ACTION_TYPE_ID,
+                actions: this.MEAL_ACTIONS.map((a) => ({ id: a.id, title: this._capacitorActionTitle(a.title), foreground: false }))
             });
             await LocalNotifications.registerActionTypes({ types });
         } catch (e) {
@@ -1501,6 +1544,8 @@ const GameNotifier = {
             }
         });
 
+        this._mealNotifications().forEach((n) => notifications.push(n));
+
         this._planReminders().forEach((r) => {
             notifications.push({
                 id: this._planReminderId(r.key),
@@ -1722,6 +1767,169 @@ const GameNotifier = {
     _swActionsFromList(actions) {
         if (!Array.isArray(actions) || !actions.length) return undefined;
         return actions.map((item) => ({ action: item.id, title: this._notificationActionTitle(item) }));
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  Хранения: въпрос след очаквания час на всяко хранене от плана      */
+    /* ------------------------------------------------------------------ */
+
+    _mealChecksEnabled() {
+        try { return localStorage.getItem('np_meal_checks') !== 'off'; } catch (_) { return true; }
+    },
+
+    /** Храненията за дата: денят от плана по ден от седмицата (пн = day1), както в plan.html. */
+    _plannedMealsForDate(date) {
+        let plan = null;
+        try { plan = JSON.parse(localStorage.getItem('dietPlan') || 'null'); } catch (_) {}
+        const week = plan && plan.weekPlan;
+        if (!week) return [];
+        const js = date.getDay();
+        const day = week['day' + (js === 0 ? 7 : js)] || week.day1;
+        const meals = (day && Array.isArray(day.meals) ? day.meals : []).filter((m) => m && m.type && m.type !== 'Напитка');
+        const seen = {};
+        return meals.map((m) => {
+            seen[m.type] = (seen[m.type] || 0) + 1;
+            return {
+                key: seen[m.type] === 1 ? m.type : m.type + '_' + seen[m.type],
+                type: m.type,
+                name: String(m.name || '').trim(),
+                calories: Math.round(Number(m.calories || m._plannedCalories) || 0)
+            };
+        });
+    },
+
+    _hhmmToMin(t) {
+        const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || ''));
+        return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+    },
+
+    /**
+     * Кога да се пита за храненето: 20 мин след часа, в който клиентът
+     * обикновено го отмята (медиана от последните 14 дни, поне 3 пъти);
+     * иначе 45 мин след обичайния час за това хранене.
+     */
+    _mealAskMinute(type) {
+        const base = type.replace(/_\d+$/, '');
+        const def = this._hhmmToMin(this.MEAL_DEFAULT_TIME[base] || '13:00');
+        const samples = [];
+        try {
+            const all = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
+            const cutoff = Date.now() - 14 * 86400000;
+            Object.keys(all).forEach((k) => {
+                const rec = all[k];
+                if (!rec || !rec.mealCheckedAt || Date.parse(k) < cutoff) return;
+                Object.keys(rec.mealCheckedAt).forEach((mk) => {
+                    if (mk.replace(/_\d+$/, '') !== base) return;
+                    const v = this._hhmmToMin(rec.mealCheckedAt[mk]);
+                    // Само правдоподобни — не отметки „на куп“ вечерта.
+                    if (v != null && Math.abs(v - def) <= 180) samples.push(v);
+                });
+            });
+        } catch (_) {}
+        if (samples.length >= 3) {
+            samples.sort((a, b) => a - b);
+            return samples[Math.floor(samples.length / 2)] + 20;
+        }
+        return def + this.MEAL_ASK_AFTER_MIN;
+    },
+
+    _mealAnswered(rec, mealKey) {
+        return !!(rec && ((rec.meals && rec.meals[mealKey] === true) || (rec.mealSkipped && rec.mealSkipped[mealKey])));
+    },
+
+    _mealNotifications() {
+        if (!this._mealChecksEnabled()) return [];
+        const out = [];
+        for (let day = 0; day < this.MEAL_WINDOW_DAYS; day++) {
+            const date = new Date();
+            date.setHours(0, 0, 0, 0);
+            date.setDate(date.getDate() + day);
+            const recordKey = this._dateKeyForTimestamp(date.getTime());
+            const rec = this._getGameRecord(recordKey);
+            this._plannedMealsForDate(date).slice(0, 10).forEach((meal, idx) => {
+                if (this._mealAnswered(rec, meal.key)) return;
+                const at = this._mealAskMinute(meal.key);
+                const ts = this._tsForDayOffset(day, Math.floor(at / 60), at % 60);
+                if (ts <= Date.now()) return;
+                const label = this.MEAL_LABEL[meal.type.replace(/_\d+$/, '')] || 'храненето';
+                out.push({
+                    id: this.MEAL_ID_BASE + day * 10 + idx,
+                    channelId: this.CHANNEL_ID,
+                    title: 'Изядохте ли ' + label + '?',
+                    body: meal.name ? meal.name + ' — отбележете с едно докосване.' : 'Отбележете с едно докосване.',
+                    actionTypeId: this.MEAL_ACTION_TYPE_ID,
+                    schedule: { at: new Date(ts), allowWhileIdle: true },
+                    extra: {
+                        url: '/index.html?app=1&tab=plan',
+                        type: this.MEAL_TYPE_PREFIX + meal.key,
+                        recordKey,
+                        calories: meal.calories
+                    },
+                    iconColor: this.BRAND_TEAL
+                });
+            });
+        }
+        return out;
+    },
+
+    /** Отметка от приложението — въпросът за това хранене днес отпада. */
+    cancelMealCheck(recordKey, mealKey) {
+        if (!this._capacitor) return;
+        const key = this._normalizeRecordKey(recordKey);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const day = Math.round((Date.parse(key + 'T00:00:00') - today.getTime()) / 86400000);
+        if (day < 0 || day >= this.MEAL_WINDOW_DAYS) return;
+        const idx = this._plannedMealsForDate(new Date(key + 'T00:00:00')).findIndex((m) => m.key === mealKey);
+        if (idx < 0 || idx >= 10) return;
+        try {
+            this._capacitor.LocalNotifications.cancel({ notifications: [{ id: this.MEAL_ID_BASE + day * 10 + idx }] });
+        } catch (_) {}
+    },
+
+    _saveMealAnswer(recordKey, mealKey, eaten, calories) {
+        const key = this._normalizeRecordKey(recordKey);
+        const apply = (rec) => {
+            if (!rec.meals) rec.meals = {};
+            // Записаният вече ден: само храненията от него (иначе се раздува знаменателят).
+            const frozen = Array.isArray(rec.mealSlots) && rec.mealSlots.length > 0;
+            if (frozen && !(mealKey in rec.meals)) return false;
+            if (eaten) {
+                rec.meals[mealKey] = true;
+                if (!rec.mealCalories) rec.mealCalories = {};
+                const planned = this._plannedMealsForDate(new Date(key + 'T00:00:00')).find((m) => m.key === mealKey);
+                const kcal = Math.round(Number(calories) || (planned && planned.calories) || 0);
+                if (kcal > 0 && !rec.mealCalories[mealKey]) rec.mealCalories[mealKey] = kcal;
+            } else {
+                if (!(mealKey in rec.meals)) rec.meals[mealKey] = false;
+                if (!rec.mealSkipped) rec.mealSkipped = {};
+                rec.mealSkipped[mealKey] = true;
+            }
+            return true;
+        };
+        const gm = typeof window !== 'undefined' && window.gameModule;
+        if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
+            try {
+                const rec = gm.getRecord(key);
+                if (!apply(rec)) return false;
+                gm.saveRecord(key, rec);
+                if (typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(key);
+                this.notifyAnswerSaved(key);
+                return true;
+            } catch (_) { /* fall through */ }
+        }
+        try {
+            const allData = JSON.parse(localStorage.getItem('gameData') || '{}') || {};
+            const rec = allData[key] || this._emptyGameRecord(key);
+            if (!apply(rec)) return false;
+            allData[key] = rec;
+            localStorage.setItem('gameData', JSON.stringify(allData));
+            this.notifyAnswerSaved(key);
+            return true;
+        } catch (e) {
+            console.warn('[GameNotifier] Meal answer save failed:', e);
+            return false;
+        }
     },
 
     _saveMorningAnswer(recordKey, sleptWell) {
