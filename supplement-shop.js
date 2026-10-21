@@ -38,6 +38,8 @@
         [/електролит|electrolyte/i, 'електролити'],
         [/алфа-липоева|lipoic/i, 'alpha lipoic'],
         [/витамин\s*c|vitamin\s*c/i, 'Витамин C'],
+        [/растителен протеин|грахов|plant protein|pea protein/i, 'vegan protein'],
+        [/суроватъчен|whey/i, 'whey'],
         [/протеин|protein/i, 'протеин']
     ];
 

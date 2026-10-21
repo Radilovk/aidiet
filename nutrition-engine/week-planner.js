@@ -486,6 +486,70 @@ function balanceDay(meals, dayBuilt, dayTarget, policy) {
   }
 }
 
+const SHAKE_DISH = DISHES.find(d => d.id === 's_protein_shake');
+/** Под този дял от дневния белтък (и поне толкова грама недостиг) междинната закуска става шейк. */
+const SHAKE_PROTEIN_SHARE = 0.92;
+const SHAKE_MIN_GAP_G = 12;
+/** Протеин на прах за деня — най-много две мерителни лъжици. */
+const POWDER_MAX_G_DAY = 60;
+
+const powderGrams = built => built.parts.reduce((a, p) => a + p.foods.reduce((b, id, i) => b + (food(id).flags.has('supplement') ? p.grams[i] : 0), 0), 0);
+
+/**
+ * Белтъкът на деня не стига и след изравняването (растителен модел, low-FODMAP,
+ * много белтък при отслабване), а междинните закуски са плод, ядки или соев
+ * йогурт: една от тях става протеинов шейк. Само ако протеинът на прах е
+ * позволен (не при AIP или отказ), до две мерителни лъжици на ден, и само ако
+ * дневната грешка по всички макроси пада.
+ */
+function shakeForProteinGap(meals, dayBuilt, dayTarget, policy) {
+  if (!SHAKE_DISH) return;
+  const carbsCap = policy.style === 'keto' || policy.style === 'low_carb';
+  const total = meals.reduce((t, m) => {
+    t.protein += m.macros?.protein || 0; t.carbs += m.macros?.carbs || 0; t.fats += m.macros?.fats || 0;
+    return t;
+  }, { protein: 0, carbs: 0, fats: 0 });
+  const gap = dayTarget.protein - total.protein;
+  if (total.protein >= dayTarget.protein * SHAKE_PROTEIN_SHARE || gap < SHAKE_MIN_GAP_G) return;
+  const powderToday = dayBuilt.reduce((a, e) => a + powderGrams(e.built), 0);
+  if (powderToday >= POWDER_MAX_G_DAY) return;
+  const curErr = mealError(total, dayTarget, carbsCap);
+  let move = null;
+  for (const e of dayBuilt) {
+    if (e.kind !== 'snack' && e.kind !== 'late') continue;
+    if (e.dish.id === SHAKE_DISH.id) return;
+    const ctx = e.baseCtx;
+    const choice = SHAKE_DISH.parts.map(part => Math.max(0, part.options.findIndex(o => o.every(id => ctx.policy.allowed(id)))));
+    const powder = SHAKE_DISH.parts[0].options[choice[0]];
+    if (!powder || !powder.every(id => ctx.policy.allowed(id))) return;
+    const left = { protein: gap, carbs: dayTarget.carbs - total.carbs, fats: dayTarget.fats - total.fats };
+    const target = addLeft(e.target, left);
+    const built = buildMeal({ dish: SHAKE_DISH, choice, quota: e.quota, target, mealKind: 'snack', ctx });
+    if (!built || powderToday + powderGrams(built) > POWDER_MAX_G_DAY) continue;
+    const meal = toPlanMeal(e.type, SHAKE_DISH, built, false);
+    if (meal.calories > Math.max(balanceCeiling(e.type, e.kind, kcalOf(dayTarget)), meals[e.i].calories)) continue;
+    const old = meals[e.i].macros;
+    const next = {
+      protein: total.protein - old.protein + meal.macros.protein,
+      carbs: total.carbs - old.carbs + meal.macros.carbs,
+      fats: total.fats - old.fats + meal.macros.fats,
+    };
+    const err = mealError(next, dayTarget, carbsCap);
+    if (err < curErr - 1e-4 && (!move || err < move.err)) move = { e, built, meal, target, err };
+  }
+  if (!move) return;
+  move.meal.targetCalories = meals[move.e.i].targetCalories;
+  meals[move.e.i] = move.meal;
+  Object.assign(move.e, { dish: SHAKE_DISH, built: move.built, target: move.target, alts: [] });
+}
+
+/** Целта на храненето + целият остатък на деня (порциите остават в границите на рецептата). */
+function addLeft(target, left) {
+  const out = { protein: 0, carbs: 0, fats: 0 };
+  for (const k of Object.keys(out)) out[k] = Math.max(0, target[k] + left[k]);
+  return out;
+}
+
 /**
  * @param {object} args
  * @param {ReturnType<typeof import('./prescription.js').prescribe>} args.prescription
@@ -733,9 +797,13 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
         .slice(0, MAX_ALTERNATIVES);
       if (altMeals.length) meal.alternatives = altMeals;
       meals.push(meal);
-      dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives });
+      dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives, quota: plan.quota, baseCtx: kind === 'snack' || kind === 'late' ? snackCtx : ctx });
     }
-    if (!meals.some(m => m.type === FREE_MEAL)) balanceDay(meals, dayBuilt, dayTargetOf(prescription, slots), policy);
+    if (!meals.some(m => m.type === FREE_MEAL)) {
+      const dayTarget = dayTargetOf(prescription, slots);
+      balanceDay(meals, dayBuilt, dayTarget, policy);
+      shakeForProteinGap(meals, dayBuilt, dayTarget, policy);
+    }
     // Ястие се среща веднъж в деня — и сред алтернативите: нито повторение на
     // друго хранене от деня, нито една и съща алтернатива на две хранения.
     const dayMeals = /** @type {any[]} */ (meals);

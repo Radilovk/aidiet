@@ -3215,6 +3215,18 @@
           ]
         },
         {
+          "group": "PRO",
+          "options": [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          "range": [
+            0,
+            2
+          ],
+          "with": true
+        },
+        {
           "group": "FAT",
           "options": [
             "fat_oil"
@@ -3283,6 +3295,18 @@
             2,
             5
           ]
+        },
+        {
+          "group": "PRO",
+          "options": [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          "range": [
+            0,
+            2
+          ],
+          "with": true
         },
         {
           "group": "FAT",
@@ -3370,6 +3394,18 @@
           "with": true
         },
         {
+          "group": "PRO",
+          "options": [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          "range": [
+            0,
+            2
+          ],
+          "with": true
+        },
+        {
           "group": "FAT",
           "options": [
             "fat_oil"
@@ -3447,6 +3483,18 @@
           "range": [
             0,
             6
+          ],
+          "with": true
+        },
+        {
+          "group": "PRO",
+          "options": [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          "range": [
+            0,
+            2
           ],
           "with": true
         },
@@ -3541,6 +3589,19 @@
           ],
           "range": [
             1,
+            2
+          ],
+          "with": true
+        },
+        {
+          "group": "PRO",
+          "options": [
+            "pro_tofu",
+            "pro_tempeh",
+            "dairy_cheese"
+          ],
+          "range": [
+            0,
             2
           ],
           "with": true
@@ -3697,6 +3758,18 @@
             0.5,
             6
           ]
+        },
+        {
+          "group": "PRO",
+          "options": [
+            "pro_eggs",
+            "pro_tofu"
+          ],
+          "range": [
+            0,
+            2
+          ],
+          "with": true
         },
         {
           "group": "FAT",
@@ -4337,6 +4410,18 @@
           "range": [
             0,
             6
+          ],
+          "with": true
+        },
+        {
+          "group": "PRO",
+          "options": [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          "range": [
+            0,
+            2
           ],
           "with": true
         },
