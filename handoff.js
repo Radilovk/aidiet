@@ -41,6 +41,12 @@ function normalizeEmoeat(p) {
 }
 
 const AIRIS_GENDER = { male: 'Мъж', female: 'Жена' };
+// Състоянията от въпросника на AIRIS → еднозначните отговори в NutriPlan (останалите — в бележките).
+const AIRIS_HEALTH = {
+  'Диабет 2 тип': 'Диабет / Инсулинова резистентност', 'Инсулинова резистентност': 'Диабет / Инсулинова резистентност',
+  'Хипертония': 'Сърдечно-съдови заболявания', 'Автоимунен тиреоидит': 'Щитовидна жлеза (Хашимото и др.)', 'Менопауза': 'Менопауза',
+};
+const HYPERTENSION_OPTION = 'Хипертония (високо кръвно налягане)';
 
 function normalizeAiris(p) {
   if (!p || typeof p !== 'object') return null;
@@ -65,6 +71,7 @@ function normalizeAiris(p) {
     medications: str(q.medications, 400),
     medicalConditions: str(q.medicalConditions, 400),
     complaints: str(q.complaints, 600),
+    healthStatus: list(q.healthStatus, 10, 60),
   };
   const analysis = {
     constitution: str(a.constitution, 200),
@@ -170,9 +177,16 @@ export function handoffToFacts(h) {
       at: h.at, source: 'airis', status: 'confirmed',
     }];
   }
-  // От теста на сайта в профила влиза само измереното — теглото; останалото попълва въпросника.
-  if (SITE_SOURCES[h.source] && h.answers?.weight_kg) {
-    return [{ kind: 'weight', value: h.answers.weight_kg, unit: 'kg', at: h.at, source: h.source, status: 'confirmed' }];
+  // Тест от сайт: теглото е измерване; останалото — контекст и бележки за безопасност
+  // (нужно, когато профилът вече съществува и въпросникът не се отваря).
+  if (SITE_SOURCES[h.source]) {
+    const facts = [];
+    if (h.answers?.weight_kg) facts.push({ kind: 'weight', value: h.answers.weight_kg, unit: 'kg', at: h.at, source: h.source, status: 'confirmed' });
+    const { lines, cautions } = siteQuizSummary(h);
+    if (lines.length || cautions.length) {
+      facts.push({ kind: 'site_quiz', value: { site: SITE_SOURCES[h.source], lines, cautions }, at: h.at, source: h.source, status: 'confirmed' });
+    }
+    return facts;
   }
   return [];
 }
@@ -215,8 +229,12 @@ export function airisPrefill(q) {
   if (q.hydration != null) out.waterIntake = WATER_BUCKET(q.hydration * 0.25);
   const diet = (q.dietaryProfile || []).map(d => DIET[d]).filter(Boolean);
   if (diet.length) out.dietPreference = [...new Set(diet)];
-  const dislikes = [q.foodIntolerances, q.allergies, (q.dietaryProfile || []).includes('Безглутенова') ? 'глутен' : ''].filter(Boolean);
+  // AIRIS понякога праща едно и също в двете полета — без повторения.
+  const dislikes = [...new Set([q.foodIntolerances, q.allergies, (q.dietaryProfile || []).includes('Безглутенова') ? 'глутен' : ''].filter(Boolean))];
   if (dislikes.length) out.dietDislike = dislikes.join(', ');
+  const health = [...new Set((q.healthStatus || []).map(x => AIRIS_HEALTH[x]).filter(Boolean))];
+  if (health.length) out.healthConditions = health;
+  if ((q.healthStatus || []).includes('Хипертония')) out['healthConditions_Сърдечно-съдови заболявания'] = HYPERTENSION_OPTION;
   for (const h of q.dietaryHabits || []) {
     const m = HABIT_TO[h];
     if (m) out[m[0]] = [...new Set([...(out[m[0]] || []), m[1]])];
@@ -226,7 +244,8 @@ export function airisPrefill(q) {
     out.medications = 'Да';
     out.medicationsDetails = q.medications;
   }
-  const notes = [q.complaints, q.medicalConditions].filter(Boolean).join('. ');
+  const extraHealth = (q.healthStatus || []).filter(x => !AIRIS_HEALTH[x]);
+  const notes = [...new Set([q.complaints, q.medicalConditions].filter(Boolean)), extraHealth.length ? `състояния: ${extraHealth.join(', ')}` : ''].filter(Boolean).join('. ');
   if (notes) out.additionalNotes = `От ирисовия анализ (AIRIS): ${notes}`.slice(0, 800);
   return out;
 }
@@ -275,6 +294,7 @@ export function sitePrefill(h) {
   if (SITE_DIET[a.diet]) out.dietPreference = [SITE_DIET[a.diet]];
   const health = [...new Set(labelsOf(a.conditions, SITE_HEALTH))];
   if (health.length) out.healthConditions = health;
+  if (a.conditions.includes('hypertension')) out['healthConditions_Сърдечно-съдови заболявания'] = HYPERTENSION_OPTION;
   else if (a.conditions.length === 1 && a.conditions[0] === 'none') out.healthConditions = ['Нямам'];
   const dislikes = [...labelsOf(a.allergies, SITE_LABELS.allergies), a.allergies_other].filter(Boolean);
   if (dislikes.length) out.dietDislike = dislikes.join(', ');
@@ -291,12 +311,50 @@ export function sitePrefill(h) {
   if (other.length) notes.push(`Състояния: ${other.join(', ')}`);
   const symptoms = [...labelsOf(a.symptoms, SITE_LABELS.symptoms), a.symptoms_other].filter(Boolean);
   if (symptoms.length) notes.push(`Оплаквания: ${symptoms.join(', ')}`);
+  if (SITE_LOSS[a.weight_goal]) notes.push(`Желано отслабване: ${SITE_LOSS[a.weight_goal]}`);
   if (a.stimulant_tolerance === 'sensitive' || a.stimulant_tolerance === 'avoid') notes.push('Чувствителност към стимуланти (кофеин)');
   if (a.diet === 'other' && a.diet_other) notes.push(`Режим: ${a.diet_other}`);
   const prods = h.protocol?.products || [];
   if (prods.length) notes.push(`Препоръчан протокол добавки${h.protocol.tier ? ` („${h.protocol.tier}“)` : ''}: ${prods.map(p => p.name).join(', ')}`);
   if (notes.length) out.additionalNotes = `От теста на ${site}: ${notes.join('. ')}`.slice(0, 800);
   return out;
+}
+
+const SITE_ACTIVITY = { regular: 'тренира 3+ пъти седмично', moderate: 'тренира 1–2 пъти седмично', rare: 'не тренира / рядко' };
+const SITE_DIET_TEXT = { omnivore: 'всеядно', vegetarian: 'вегетарианско', vegan: 'веганско', keto: 'кето / нисковъглехидратно' };
+const SITE_PRIORITY = {
+  otshalvane: 'отслабване', longevity: 'дълголетие', energy: 'енергия', skin: 'кожа, коса, нокти', sleep: 'сън', cognition: 'фокус и памет', joints: 'стави',
+};
+const SITE_LOSS = { '1-5': 'до 5 кг', '5-10': '5–10 кг', '10-20': '10–20 кг', '20+': 'над 20 кг' };
+
+/** Отговорите от теста като редове за картона / чата и бележки за безопасност. */
+export function siteQuizSummary(h) {
+  const a = h?.answers;
+  if (!a) return { lines: [], cautions: [] };
+  const conditions = [...labelsOf(a.conditions, SITE_LABELS.conditions), a.conditions_other].filter(Boolean);
+  const meds = [...labelsOf(a.medications, SITE_LABELS.medications), a.medications_other].filter(Boolean);
+  const allergies = [...labelsOf(a.allergies, SITE_LABELS.allergies), a.allergies_other].filter(Boolean);
+  const symptoms = [...labelsOf(a.symptoms, SITE_LABELS.symptoms), a.symptoms_other].filter(Boolean);
+  const lines = [
+    SITE_PRIORITY[a.priority] ? `цел: ${SITE_PRIORITY[a.priority]}${SITE_LOSS[a.weight_goal] ? ` (${SITE_LOSS[a.weight_goal]})` : ''}` : '',
+    a.age_band ? `възраст ${a.age_band}` : '',
+    SITE_ACTIVITY[a.activity] ? `активност: ${SITE_ACTIVITY[a.activity]}` : '',
+    SITE_DIET_TEXT[a.diet] ? `режим: ${SITE_DIET_TEXT[a.diet]}` : (a.diet_other ? `режим: ${a.diet_other}` : ''),
+    conditions.length ? `състояния: ${conditions.join(', ')}` : '',
+    meds.length ? `лекарства: ${meds.join(', ')}` : '',
+    allergies.length ? `алергии / непоносимости: ${allergies.join(', ')}` : '',
+    symptoms.length ? `оплаквания: ${symptoms.join(', ')}` : '',
+    a.stimulant_tolerance === 'sensitive' || a.stimulant_tolerance === 'avoid' ? 'чувствителност към стимуланти (кофеин)' : '',
+    h.protocol?.products?.length ? `препоръчан протокол${h.protocol.tier ? ` „${h.protocol.tier}“` : ''}: ${h.protocol.products.map(p => p.name).join(', ')}` : '',
+  ].filter(Boolean);
+  const cautions = [
+    meds.length ? `посочени лекарства — ${meds.join(', ')}` : '',
+    (a.conditions || []).includes('pregnancy') ? 'бременност' : '',
+    (a.conditions || []).includes('breastfeeding') ? 'кърмене' : '',
+    (a.conditions || []).includes('kidney') ? 'бъбречно заболяване' : '',
+    (a.conditions || []).includes('liver') ? 'чернодробно заболяване' : '',
+  ].filter(Boolean);
+  return { lines, cautions };
 }
 
 /** Попълване на въпросника според модула. */
@@ -325,7 +383,7 @@ export function handoffPreview(h) {
       lines: [
         a.weight_kg ? `Тегло: ${a.weight_kg} кг` : '',
         h.protocol?.products?.length ? `Препоръчан протокол: ${h.protocol.products.map(p => p.name).slice(0, 4).join(', ')}` : '',
-        'Отговорите от теста попълват въпросника на NutriPlan — можете да ги промените.',
+        'Нов профил: отговорите попълват въпросника (можете да ги промените). Съществуващ профил: влизат в него — за специалиста и асистента.',
       ].filter(Boolean),
       at: h.at,
     };

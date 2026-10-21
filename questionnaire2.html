@@ -2189,12 +2189,21 @@
             }
         }
 
-        // Пратка от модул (AIRIS): попълва само празните отговори — клиентът ги вижда и може да ги смени.
+        // Пратка от модул или сайт: въпросите с еднозначен отговор там не се задават повторно
+        // (вж. skipHandoffAnswered). Здравословните състояния, лекарствата и непоносимостите
+        // остават (тук са по-подробни) — само попълнени.
+        const HANDOFF_SKIP = ['name', 'email', 'gender', 'height', 'weight', 'sportActivity', 'stressLevel', 'sleepHours', 'waterIntake', 'dietPreference'];
+        const handoffSkipKeys = (handoff) => HANDOFF_SKIP.concat(handoff && handoff.source === 'daotslabna' ? ['goal'] : []);
+
+        // Попълване: празните отговори — от пратката. Отговорите, които няма да се питат,
+        // се заменят с тези от пратката (по-новите), иначе стар отговор би останал скрит.
         try {
             const handoff = window.NutriPlanHandoff && window.NutriPlanHandoff.pending();
             if (handoff && handoff.prefill && !handoff.prefillApplied) {
+                const replace = handoffSkipKeys(handoff);
                 Object.entries(handoff.prefill).forEach(([k, v]) => {
-                    if (answers[k] == null || answers[k] === '' || (Array.isArray(answers[k]) && !answers[k].length)) answers[k] = v;
+                    const empty = answers[k] == null || answers[k] === '' || (Array.isArray(answers[k]) && !answers[k].length);
+                    if (empty || replace.includes(k)) answers[k] = v;
                 });
                 window.NutriPlanHandoff.setPending(Object.assign({}, handoff, { prefillApplied: true }));
                 localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
@@ -2316,17 +2325,14 @@
         
         handleProtocolFromURL();
 
-        // Пратка от модул или сайт: въпросите с еднозначен отговор там не се задават повторно.
-        // Здравословните състояния, лекарствата и непоносимостите остават (тук са по-подробни) — само попълнени.
-        const HANDOFF_SKIP = ['name', 'email', 'gender', 'height', 'weight', 'sportActivity', 'stressLevel', 'sleepHours', 'waterIntake', 'dietPreference'];
+        // Тестът на daotslabna.com е за отслабване — целта е ясна; колко кг се пита тук.
+        // Пропуска се само ако отговорът е точно този от пратката (клиентът не го е сменял).
         function skipHandoffAnswered() {
             try {
                 const handoff = window.NutriPlanHandoff && window.NutriPlanHandoff.pending();
                 if (!handoff || !handoff.prefill) return;
-                const filled = (k) => !isAnswerEmpty(answers[k]) && !isAnswerEmpty(handoff.prefill[k]);
-                const skip = new Set(HANDOFF_SKIP.filter(filled));
-                // Тестът на daotslabna.com е за отслабване — целта е ясна; колко кг се пита тук.
-                if (handoff.source === 'daotslabna' && filled('goal')) skip.add('goal');
+                const same = (k) => !isAnswerEmpty(handoff.prefill[k]) && JSON.stringify(answers[k]) === JSON.stringify(handoff.prefill[k]);
+                const skip = new Set(handoffSkipKeys(handoff).filter(same));
                 if (skip.size) currentQueue = currentQueue.filter(q => !skip.has(q.id));
             } catch (e) {
                 console.warn('Handoff skip failed:', e);
@@ -4055,7 +4061,17 @@
             const returnField = localStorage.getItem('validationReturnField');
             if (!returnField) return;
             localStorage.removeItem('validationReturnField');
-            const idx = currentQueue.findIndex(q => q.id === returnField);
+            let idx = currentQueue.findIndex(q => q.id === returnField);
+            // Въпросът е бил пропуснат (отговорът дойде от пратка) — връщаме го, за да се поправи.
+            if (idx < 0) {
+                const q = rawQuestions.find(x => x.id === returnField);
+                if (q) {
+                    const order = rawQuestions.findIndex(x => x.id === returnField);
+                    const after = currentQueue.findIndex(x => rawQuestions.findIndex(r => r.id === x.id) > order);
+                    idx = after < 0 ? currentQueue.length : after;
+                    currentQueue.splice(idx, 0, q);
+                }
+            }
             if (idx >= 0) currentIndex = idx;
         }
 

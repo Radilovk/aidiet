@@ -121,5 +121,6 @@ const d3 = sum.supplements.filter(s => /D3/.test(s.name));
 ok(d3.length === 1 && d3[0].reason, `D3 веднъж, с обосновка (${JSON.stringify(d3)})`);
 ok(withD._enrichment.original && typeof withD._enrichment.original === 'object', 'оригиналните отговори се пазят');
 
+ok(normalizeFact({ kind: 'water', value: 2000, unit: 'мл', at: '2026-10-20T08:00:00Z' })?.value === 2, 'вода в „мл“ (кирилица) → литри');
 console.log(`\n=== enrichment: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

@@ -44428,6 +44428,22 @@ function irisText(s) {
   return parts.join("; ").slice(0, 900);
 }
 
+// enrichment-site.js
+function deriveSiteQuiz(facts) {
+  const fact = (facts || []).filter((f) => f.kind === "site_quiz" && f.status !== "pending" && f.value).sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0];
+  if (!fact) return null;
+  const v = fact.value;
+  return {
+    summary: { at: fact.at, site: v.site || "", lines: v.lines || [] },
+    hints: { behaviors: [], approach: [], clinical: [], cautions: (v.cautions || []).map((c) => `${v.site}: ${c}`) },
+    reasons: [`\u0442\u0435\u0441\u0442 \u043E\u0442 ${v.site}`]
+  };
+}
+function siteQuizText(s) {
+  if (!s || !s.lines.length) return "";
+  return `\u0442\u0435\u0441\u0442 \u043E\u0442 ${s.site} ${String(s.at || "").slice(0, 10)}: ${s.lines.join("; ")}`.slice(0, 700);
+}
+
 // cross-check.js
 var IRIS_SYSTEMS = {
   digestive: {
@@ -44548,12 +44564,13 @@ function crossCheck(data, derived, resolutions = {}) {
       }
     }
     if (q.medications && data?.medications !== "\u0414\u0430") {
-      const answer = resolutions.meds;
+      const medsId = `meds:${data?.medications === "\u041D\u0435" ? "no" : "empty"}`;
+      const answer = resolutions[medsId];
       if (answer === "yes") {
         overrides.medications = "\u0414\u0430";
         overrides.medicationsDetails = [data?.medicationsDetails, q.medications].filter(Boolean).join("; ");
       } else if (!answer) {
-        questions.push({ id: "meds", source: "airis", topic: "\u041B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 \u201E${q.medications.slice(0, 120)}\u201C, \u0430 \u0432 NutriPlan \u2014 \u0447\u0435 \u043D\u0435 \u043F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u041F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0438 \u0433\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u043F\u0440\u0438\u0435\u043C\u0430\u043C \u0433\u0438" }, { value: "no", label: "\u041D\u0435, \u0432\u0435\u0447\u0435 \u043D\u0435" }] });
+        questions.push({ id: medsId, source: "airis", topic: "\u041B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 \u201E${q.medications.slice(0, 120)}\u201C, \u0430 \u0432 NutriPlan \u2014 \u0447\u0435 \u043D\u0435 \u043F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u041F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0438 \u0433\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u043F\u0440\u0438\u0435\u043C\u0430\u043C \u0433\u0438" }, { value: "no", label: "\u041D\u0435, \u0432\u0435\u0447\u0435 \u043D\u0435" }] });
       }
     }
     const npDiet = asList2(data?.dietPreference);
@@ -44569,10 +44586,11 @@ function crossCheck(data, derived, resolutions = {}) {
     }
     const npKg = Number(String(data?.weight || "").replace(",", "."));
     if (q.weight && npKg && Math.abs(q.weight - npKg) >= 4) {
-      const answer = resolutions.weight;
+      const weightId = `weight:${Math.round(npKg)}`;
+      const answer = resolutions[weightId];
       if (answer === "airis") overrides.weight = String(q.weight);
       else if (!answer) {
-        questions.push({ id: "weight", source: "airis", topic: "\u0422\u0435\u0433\u043B\u043E", text: `\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0432 AIRIS (${q.weight} \u043A\u0433) \u0438 \u0432 NutriPlan (${npKg} \u043A\u0433) \u0441\u0435 \u0440\u0430\u0437\u043B\u0438\u0447\u0430\u0432\u0430. \u041A\u043E\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E\u0442\u043E?`, options: [{ value: "airis", label: `${q.weight} \u043A\u0433` }, { value: "nutriplan", label: `${npKg} \u043A\u0433` }] });
+        questions.push({ id: weightId, source: "airis", topic: "\u0422\u0435\u0433\u043B\u043E", text: `\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0432 AIRIS (${q.weight} \u043A\u0433) \u0438 \u0432 NutriPlan (${npKg} \u043A\u0433) \u0441\u0435 \u0440\u0430\u0437\u043B\u0438\u0447\u0430\u0432\u0430. \u041A\u043E\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E\u0442\u043E?`, options: [{ value: "airis", label: `${q.weight} \u043A\u0433` }, { value: "nutriplan", label: `${npKg} \u043A\u0433` }] });
       }
     }
   }
@@ -44622,7 +44640,7 @@ var UNIT_CONVERT = {
   weight: { lb: (v) => v * 0.4536, lbs: (v) => v * 0.4536 },
   muscle_mass: { lb: (v) => v * 0.4536, lbs: (v) => v * 0.4536 },
   glucose: { "mg/dl": (v) => v / 18 },
-  water: { ml: (v) => v / 1e3 },
+  water: { ml: (v) => v / 1e3, \u043C\u043B: (v) => v / 1e3 },
   sleep: { min: (v) => v / 60, \u043C\u0438\u043D: (v) => v / 60 }
 };
 var DAY_MS3 = 864e5;
@@ -44667,6 +44685,14 @@ function normalizeFact(raw) {
     const value = String(raw.value ?? "").trim().slice(0, 40);
     if (!/^[a-z_]+(:[\p{L}\p{N}_]+)?$/u.test(key) || !value) return null;
     return { kind, key, value, unit: "", at, source: "client", confidence: 1, status: "confirmed" };
+  }
+  if (kind === "site_quiz") {
+    const v = raw.value;
+    if (!v || typeof v !== "object" || !v.site) return null;
+    const strs = (a, n, len) => Array.isArray(a) ? a.map((x) => String(x || "").trim().slice(0, len)).filter(Boolean).slice(0, n) : [];
+    const value = { site: String(v.site).slice(0, 40), lines: strs(v.lines, 12, 300), cautions: strs(v.cautions, 6, 200) };
+    if (!value.lines.length && !value.cautions.length) return null;
+    return { kind, key: "answers", value, unit: "", at, source, confidence, status };
   }
   if (kind === "iris") {
     if (!raw.value || typeof raw.value !== "object" || !raw.value.analysis) return null;
@@ -44745,9 +44771,10 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   const digest = store?.digest && typeof store.digest === "object" ? store.digest : null;
   const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
   const iris = deriveIris(facts);
+  const siteQuiz = deriveSiteQuiz(facts);
   const resolutions = resolutionsOf(facts);
   const emoPart = emo && resolutions.emoeat_vs_q === "rare" ? { ...emo, hints: null } : emo;
-  for (const part of [emoPart, labs, essence, digestPart, iris]) {
+  for (const part of [emoPart, labs, essence, digestPart, iris, siteQuiz]) {
     if (!part) continue;
     for (const k of ["behaviors", "approach", "clinical", "cautions"]) hints[k].push(...part.hints?.[k] || []);
     reasons.push(...part.reasons || []);
@@ -44766,6 +44793,7 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
     digest: digest ? { insights: digest.insights || [], coachNote: digest.coachNote || "", at: digest.at } : null,
     iris: iris?.summary || null,
     irisRaw: iris?.raw || null,
+    siteQuiz: siteQuiz?.summary || null,
     resolutions,
     reasons
   };
@@ -44815,6 +44843,7 @@ function recalcLevel(prevData, nextData) {
   const aPrev = prevData?._enrichment;
   if (JSON.stringify(aNext?.voice || null) !== JSON.stringify(aPrev?.voice || null)) bump(0, "\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B");
   if (JSON.stringify(aNext?.iris || null) !== JSON.stringify(aPrev?.iris || null)) bump(0, "\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437");
+  if (JSON.stringify(aNext?.siteQuiz || null) !== JSON.stringify(aPrev?.siteQuiz || null)) bump(0, "\u0442\u0435\u0441\u0442 \u0437\u0430 \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u043E\u0442 \u0441\u0430\u0439\u0442");
   if (JSON.stringify(aNext?.safety || {}) !== JSON.stringify(aPrev?.safety || {})) bump(2, "\u0433\u0440\u0430\u043D\u0438\u0446\u0438 \u0437\u0430 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442 \u043E\u0442 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F");
   return { level: (
     /** @type {0|1|2|3} */
@@ -44827,11 +44856,12 @@ function isUrgent(derived) {
 
 // chat-clarify.js
 var TOPIC_WORDS = {
-  "iris:digestive": /подув|газ(ове|ов)\b|тежест|киселин|запек|диари|стомах|корем|храносмил|черв|изхожд/i,
+  // \b в JS е само за латиница — за кирилицата границите са изрични.
+  "iris:digestive": /подув|газ(ове|ов)?(?![а-я])|тежест|киселин|запек|диари|стомах|корем|храносмил|черв|изхожд/i,
   "iris:metabolic": /кръвна захар|захарта ми|инсулин|вълчи глад|силен глад|сънлив|холестерол|триглицерид|не отслабвам|не свалям|плато/i,
   "iris:nervous": /стрес|напрежени|тревож|умор|изтощ|нерви|безсъни|не спя|сънят ми/i,
   meds: /лекарств|хапче|таблетк|медикамент/i,
-  weight: /тегло|теглото|килограм|\bкг\b|везна|претегл/i,
+  weight: /тегло|теглото|килограм|(?<![а-я])кг(?![а-я])|везна|претегл/i,
   emoeat_vs_q: /емоци|преяжд|от скука|когато съм напрегнат|не мога да спра|нощем ям|ям вечер|посягам/i
 };
 var PATTERN_WORDS = /веган|вегетариан|месо|растителн/i;
@@ -44839,9 +44869,10 @@ var ALLERGY_WORDS = /алерги|непоносим/i;
 var ALLERGY_RELATED = { \u043B\u0430\u043A\u0442\u043E\u0437\u0430: /мляко|млечн|сирене|кисело мляко/i, \u0433\u043B\u0443\u0442\u0435\u043D: /глутен|хляб|пшениц|тестен/i };
 var stem = (s) => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]/gi, "").slice(0, 5);
 function matches(q, text) {
-  if (TOPIC_WORDS[q.id]) {
-    if (TOPIC_WORDS[q.id].test(text)) return true;
-    if (q.id === "meds") {
+  const topic = TOPIC_WORDS[q.id] ? q.id : q.id.split(":")[0];
+  if (topic === "weight" || topic === "meds" || TOPIC_WORDS[q.id]) {
+    if (TOPIC_WORDS[topic].test(text)) return true;
+    if (topic === "meds") {
       const name = stem((q.text.match(/„([^“]+)“/) || [])[1]);
       return name.length >= 4 && text.toLowerCase().includes(name);
     }
@@ -44929,6 +44960,14 @@ function normalizeEmoeat(p) {
   return profile.intensity || profile.archetype ? profile : null;
 }
 var AIRIS_GENDER = { male: "\u041C\u044A\u0436", female: "\u0416\u0435\u043D\u0430" };
+var AIRIS_HEALTH = {
+  "\u0414\u0438\u0430\u0431\u0435\u0442 2 \u0442\u0438\u043F": "\u0414\u0438\u0430\u0431\u0435\u0442 / \u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442",
+  "\u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442": "\u0414\u0438\u0430\u0431\u0435\u0442 / \u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442",
+  "\u0425\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F": "\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F",
+  "\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u0435\u043D \u0442\u0438\u0440\u0435\u043E\u0438\u0434\u0438\u0442": "\u0429\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430 \u0436\u043B\u0435\u0437\u0430 (\u0425\u0430\u0448\u0438\u043C\u043E\u0442\u043E \u0438 \u0434\u0440.)",
+  "\u041C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430": "\u041C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430"
+};
+var HYPERTENSION_OPTION = "\u0425\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F (\u0432\u0438\u0441\u043E\u043A\u043E \u043A\u0440\u044A\u0432\u043D\u043E \u043D\u0430\u043B\u044F\u0433\u0430\u043D\u0435)";
 function normalizeAiris(p) {
   if (!p || typeof p !== "object") return null;
   const q = p.questionnaire && typeof p.questionnaire === "object" ? p.questionnaire : {};
@@ -44951,7 +44990,8 @@ function normalizeAiris(p) {
     allergies: str2(q.allergies, 300),
     medications: str2(q.medications, 400),
     medicalConditions: str2(q.medicalConditions, 400),
-    complaints: str2(q.complaints, 600)
+    complaints: str2(q.complaints, 600),
+    healthStatus: list(q.healthStatus, 10, 60)
   };
   const analysis = {
     constitution: str2(a.constitution, 200),
@@ -45053,8 +45093,14 @@ function handoffToFacts(h) {
       status: "confirmed"
     }];
   }
-  if (SITE_SOURCES[h.source] && h.answers?.weight_kg) {
-    return [{ kind: "weight", value: h.answers.weight_kg, unit: "kg", at: h.at, source: h.source, status: "confirmed" }];
+  if (SITE_SOURCES[h.source]) {
+    const facts = [];
+    if (h.answers?.weight_kg) facts.push({ kind: "weight", value: h.answers.weight_kg, unit: "kg", at: h.at, source: h.source, status: "confirmed" });
+    const { lines, cautions } = siteQuizSummary(h);
+    if (lines.length || cautions.length) {
+      facts.push({ kind: "site_quiz", value: { site: SITE_SOURCES[h.source], lines, cautions }, at: h.at, source: h.source, status: "confirmed" });
+    }
+    return facts;
   }
   return [];
 }
@@ -45092,8 +45138,11 @@ function airisPrefill(q) {
   if (q.hydration != null) out.waterIntake = WATER_BUCKET(q.hydration * 0.25);
   const diet = (q.dietaryProfile || []).map((d) => DIET[d]).filter(Boolean);
   if (diet.length) out.dietPreference = [...new Set(diet)];
-  const dislikes = [q.foodIntolerances, q.allergies, (q.dietaryProfile || []).includes("\u0411\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432\u0430") ? "\u0433\u043B\u0443\u0442\u0435\u043D" : ""].filter(Boolean);
+  const dislikes = [...new Set([q.foodIntolerances, q.allergies, (q.dietaryProfile || []).includes("\u0411\u0435\u0437\u0433\u043B\u0443\u0442\u0435\u043D\u043E\u0432\u0430") ? "\u0433\u043B\u0443\u0442\u0435\u043D" : ""].filter(Boolean))];
   if (dislikes.length) out.dietDislike = dislikes.join(", ");
+  const health = [...new Set((q.healthStatus || []).map((x) => AIRIS_HEALTH[x]).filter(Boolean))];
+  if (health.length) out.healthConditions = health;
+  if ((q.healthStatus || []).includes("\u0425\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F")) out["healthConditions_\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F"] = HYPERTENSION_OPTION;
   for (const h of q.dietaryHabits || []) {
     const m = HABIT_TO[h];
     if (m) out[m[0]] = [.../* @__PURE__ */ new Set([...out[m[0]] || [], m[1]])];
@@ -45103,7 +45152,8 @@ function airisPrefill(q) {
     out.medications = "\u0414\u0430";
     out.medicationsDetails = q.medications;
   }
-  const notes = [q.complaints, q.medicalConditions].filter(Boolean).join(". ");
+  const extraHealth = (q.healthStatus || []).filter((x) => !AIRIS_HEALTH[x]);
+  const notes = [...new Set([q.complaints, q.medicalConditions].filter(Boolean)), extraHealth.length ? `\u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u044F: ${extraHealth.join(", ")}` : ""].filter(Boolean).join(". ");
   if (notes) out.additionalNotes = `\u041E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS): ${notes}`.slice(0, 800);
   return out;
 }
@@ -45164,6 +45214,7 @@ function sitePrefill(h) {
   if (SITE_DIET[a.diet]) out.dietPreference = [SITE_DIET[a.diet]];
   const health = [...new Set(labelsOf(a.conditions, SITE_HEALTH))];
   if (health.length) out.healthConditions = health;
+  if (a.conditions.includes("hypertension")) out["healthConditions_\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F"] = HYPERTENSION_OPTION;
   else if (a.conditions.length === 1 && a.conditions[0] === "none") out.healthConditions = ["\u041D\u044F\u043C\u0430\u043C"];
   const dislikes = [...labelsOf(a.allergies, SITE_LABELS.allergies), a.allergies_other].filter(Boolean);
   if (dislikes.length) out.dietDislike = dislikes.join(", ");
@@ -45180,12 +45231,53 @@ function sitePrefill(h) {
   if (other.length) notes.push(`\u0421\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u044F: ${other.join(", ")}`);
   const symptoms = [...labelsOf(a.symptoms, SITE_LABELS.symptoms), a.symptoms_other].filter(Boolean);
   if (symptoms.length) notes.push(`\u041E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F: ${symptoms.join(", ")}`);
+  if (SITE_LOSS[a.weight_goal]) notes.push(`\u0416\u0435\u043B\u0430\u043D\u043E \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435: ${SITE_LOSS[a.weight_goal]}`);
   if (a.stimulant_tolerance === "sensitive" || a.stimulant_tolerance === "avoid") notes.push("\u0427\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442 \u043A\u044A\u043C \u0441\u0442\u0438\u043C\u0443\u043B\u0430\u043D\u0442\u0438 (\u043A\u043E\u0444\u0435\u0438\u043D)");
   if (a.diet === "other" && a.diet_other) notes.push(`\u0420\u0435\u0436\u0438\u043C: ${a.diet_other}`);
   const prods = h.protocol?.products || [];
   if (prods.length) notes.push(`\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u0434\u043E\u0431\u0430\u0432\u043A\u0438${h.protocol.tier ? ` (\u201E${h.protocol.tier}\u201C)` : ""}: ${prods.map((p) => p.name).join(", ")}`);
   if (notes.length) out.additionalNotes = `\u041E\u0442 \u0442\u0435\u0441\u0442\u0430 \u043D\u0430 ${site}: ${notes.join(". ")}`.slice(0, 800);
   return out;
+}
+var SITE_ACTIVITY = { regular: "\u0442\u0440\u0435\u043D\u0438\u0440\u0430 3+ \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E", moderate: "\u0442\u0440\u0435\u043D\u0438\u0440\u0430 1\u20132 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E", rare: "\u043D\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u0430 / \u0440\u044F\u0434\u043A\u043E" };
+var SITE_DIET_TEXT = { omnivore: "\u0432\u0441\u0435\u044F\u0434\u043D\u043E", vegetarian: "\u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u043E", vegan: "\u0432\u0435\u0433\u0430\u043D\u0441\u043A\u043E", keto: "\u043A\u0435\u0442\u043E / \u043D\u0438\u0441\u043A\u043E\u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u043D\u043E" };
+var SITE_PRIORITY = {
+  otshalvane: "\u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435",
+  longevity: "\u0434\u044A\u043B\u0433\u043E\u043B\u0435\u0442\u0438\u0435",
+  energy: "\u0435\u043D\u0435\u0440\u0433\u0438\u044F",
+  skin: "\u043A\u043E\u0436\u0430, \u043A\u043E\u0441\u0430, \u043D\u043E\u043A\u0442\u0438",
+  sleep: "\u0441\u044A\u043D",
+  cognition: "\u0444\u043E\u043A\u0443\u0441 \u0438 \u043F\u0430\u043C\u0435\u0442",
+  joints: "\u0441\u0442\u0430\u0432\u0438"
+};
+var SITE_LOSS = { "1-5": "\u0434\u043E 5 \u043A\u0433", "5-10": "5\u201310 \u043A\u0433", "10-20": "10\u201320 \u043A\u0433", "20+": "\u043D\u0430\u0434 20 \u043A\u0433" };
+function siteQuizSummary(h) {
+  const a = h?.answers;
+  if (!a) return { lines: [], cautions: [] };
+  const conditions = [...labelsOf(a.conditions, SITE_LABELS.conditions), a.conditions_other].filter(Boolean);
+  const meds = [...labelsOf(a.medications, SITE_LABELS.medications), a.medications_other].filter(Boolean);
+  const allergies = [...labelsOf(a.allergies, SITE_LABELS.allergies), a.allergies_other].filter(Boolean);
+  const symptoms = [...labelsOf(a.symptoms, SITE_LABELS.symptoms), a.symptoms_other].filter(Boolean);
+  const lines = [
+    SITE_PRIORITY[a.priority] ? `\u0446\u0435\u043B: ${SITE_PRIORITY[a.priority]}${SITE_LOSS[a.weight_goal] ? ` (${SITE_LOSS[a.weight_goal]})` : ""}` : "",
+    a.age_band ? `\u0432\u044A\u0437\u0440\u0430\u0441\u0442 ${a.age_band}` : "",
+    SITE_ACTIVITY[a.activity] ? `\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442: ${SITE_ACTIVITY[a.activity]}` : "",
+    SITE_DIET_TEXT[a.diet] ? `\u0440\u0435\u0436\u0438\u043C: ${SITE_DIET_TEXT[a.diet]}` : a.diet_other ? `\u0440\u0435\u0436\u0438\u043C: ${a.diet_other}` : "",
+    conditions.length ? `\u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u044F: ${conditions.join(", ")}` : "",
+    meds.length ? `\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430: ${meds.join(", ")}` : "",
+    allergies.length ? `\u0430\u043B\u0435\u0440\u0433\u0438\u0438 / \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442\u0438: ${allergies.join(", ")}` : "",
+    symptoms.length ? `\u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F: ${symptoms.join(", ")}` : "",
+    a.stimulant_tolerance === "sensitive" || a.stimulant_tolerance === "avoid" ? "\u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442 \u043A\u044A\u043C \u0441\u0442\u0438\u043C\u0443\u043B\u0430\u043D\u0442\u0438 (\u043A\u043E\u0444\u0435\u0438\u043D)" : "",
+    h.protocol?.products?.length ? `\u043F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B${h.protocol.tier ? ` \u201E${h.protocol.tier}\u201C` : ""}: ${h.protocol.products.map((p) => p.name).join(", ")}` : ""
+  ].filter(Boolean);
+  const cautions = [
+    meds.length ? `\u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430 \u2014 ${meds.join(", ")}` : "",
+    (a.conditions || []).includes("pregnancy") ? "\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442" : "",
+    (a.conditions || []).includes("breastfeeding") ? "\u043A\u044A\u0440\u043C\u0435\u043D\u0435" : "",
+    (a.conditions || []).includes("kidney") ? "\u0431\u044A\u0431\u0440\u0435\u0447\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435" : "",
+    (a.conditions || []).includes("liver") ? "\u0447\u0435\u0440\u043D\u043E\u0434\u0440\u043E\u0431\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435" : ""
+  ].filter(Boolean);
+  return { lines, cautions };
 }
 function prefillFor(h) {
   if (h?.source === "airis") return airisPrefill(h.questionnaire);
@@ -45210,7 +45302,7 @@ function handoffPreview(h) {
       lines: [
         a2.weight_kg ? `\u0422\u0435\u0433\u043B\u043E: ${a2.weight_kg} \u043A\u0433` : "",
         h.protocol?.products?.length ? `\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B: ${h.protocol.products.map((p) => p.name).slice(0, 4).join(", ")}` : "",
-        "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043E\u0442 \u0442\u0435\u0441\u0442\u0430 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u0430 NutriPlan \u2014 \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435."
+        "\u041D\u043E\u0432 \u043F\u0440\u043E\u0444\u0438\u043B: \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 (\u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435). \u0421\u044A\u0449\u0435\u0441\u0442\u0432\u0443\u0432\u0430\u0449 \u043F\u0440\u043E\u0444\u0438\u043B: \u0432\u043B\u0438\u0437\u0430\u0442 \u0432 \u043D\u0435\u0433\u043E \u2014 \u0437\u0430 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430 \u0438 \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430."
       ].filter(Boolean),
       at: h.at
     };
@@ -51249,7 +51341,7 @@ function validatePlan(plan, userData, substitutions = []) {
     }
     if (userData.medicalConditions.includes("\u0410\u043D\u0435\u043C\u0438\u044F") && userData.dietPreference && (userData.dietPreference.includes("\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430") || userData.dietPreference.includes("\u0412\u0435\u0433\u0430\u043D"))) {
       const supplements = plan.supplements || [];
-      const hasIronSupplement = supplements.some((s) => /желязо|iron/i.test(s));
+      const hasIronSupplement = supplements.some((s) => /желяз|желез|iron/i.test(typeof s === "string" ? s : String(s?.name || "")));
       if (!hasIronSupplement) {
         const error = "\u041F\u0440\u0438 \u0430\u043D\u0435\u043C\u0438\u044F \u0438 \u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430/\u0432\u0435\u0433\u0430\u043D \u0434\u0438\u0435\u0442\u0430 \u0435 \u0437\u0430\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u0430 \u0434\u043E\u0431\u0430\u0432\u043A\u0430 \u0441 \u0436\u0435\u043B\u044F\u0437\u043E";
         errors.push(error);
@@ -56267,11 +56359,13 @@ async function handleEnrichmentDelete(request, env) {
     if (!hasDeviceFacts) delete profile.enrichment.digest;
     const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
     await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
-    if (!hasDeviceFacts && profile.clientId) {
+    if (profile.clientId) {
       try {
         const client = await kvGetJSON(env, `client:${profile.clientId}`);
-        if (client?.healthEssence) {
-          client.healthEssence = null;
+        if (client) {
+          const d = facts.length ? applyEnrichment(normalizeQuestionnaireData({ ...profile.userData || {} }), profile.enrichment)?._enrichment : null;
+          const text = d ? profileContextText(d) : "";
+          client.healthEssence = text ? { text, at: profile.enrichment.updatedAt, sources: d?.essence?.sources || [] } : null;
           await kvPutJSON(env, `client:${profile.clientId}`, client, null);
         }
       } catch (e) {
@@ -56295,7 +56389,11 @@ async function handleEnrichmentGet(request, env) {
     const sex = profile?.userData?.gender === "\u041C\u044A\u0436" ? "M" : profile?.userData?.gender === "\u0416\u0435\u043D\u0430" ? "F" : "X";
     return jsonResponse2({
       success: true,
-      derived: publicEnrichmentView(deriveEnrichment(store, /* @__PURE__ */ new Date(), sex)),
+      // applyEnrichment — с отговорите на клиента, за да има и сверката (въпросите за разминаванията);
+      // deriveEnrichment сам не я прави.
+      derived: publicEnrichmentView(
+        applyEnrichment(normalizeQuestionnaireData({ ...profile?.userData || {} }), store)?._enrichment || deriveEnrichment(store, /* @__PURE__ */ new Date(), sex)
+      ),
       sources: [...new Set((store.facts || []).map((f) => f.source))],
       lastChange: store.lastChange || null,
       markers: LAB_MARKERS,
@@ -56330,7 +56428,7 @@ function profileContextText(d) {
   if (!d) return "";
   const v = d.voice;
   const emo = v && (v.archetype || v.intensity) ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat): ${[v.archetype ? `\u0430\u0440\u0445\u0435\u0442\u0438\u043F ${v.archetype}` : "", v.intensity ? `\u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442 ${v.intensity}` : "", v.drivers?.length ? `\u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438 ${v.drivers.join(", ")}` : "", v.realNeed ? `\u0440\u0435\u0430\u043B\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 ${v.realNeed}` : ""].filter(Boolean).join(", ")}` : "";
-  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), crossCheckText(d.crossCheck)].filter(Boolean).join(" | ").slice(0, 2800);
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), crossCheckText(d.crossCheck)].filter(Boolean).join(" | ").slice(0, 2800);
 }
 var DEFAULT_HEALTH_DIGEST_PROMPT = `\u0422\u0438 \u0441\u0438 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0414\u0430\u043D\u043D\u0438 \u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0442\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A, \u0433\u0440\u0438\u0432\u043D\u0430, \u0432\u0435\u0437\u043D\u0430, \u0430\u043F\u0430\u0440\u0430\u0442 \u0437\u0430 \u043A\u0440\u044A\u0432\u043D\u043E, \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440, \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F) \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438, \u0432\u0435\u0447\u0435 \u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438:
 {essence}

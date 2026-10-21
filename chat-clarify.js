@@ -13,11 +13,12 @@
  */
 
 const TOPIC_WORDS = {
-  'iris:digestive': /подув|газ(ове|ов)\b|тежест|киселин|запек|диари|стомах|корем|храносмил|черв|изхожд/i,
+  // \b в JS е само за латиница — за кирилицата границите са изрични.
+  'iris:digestive': /подув|газ(ове|ов)?(?![а-я])|тежест|киселин|запек|диари|стомах|корем|храносмил|черв|изхожд/i,
   'iris:metabolic': /кръвна захар|захарта ми|инсулин|вълчи глад|силен глад|сънлив|холестерол|триглицерид|не отслабвам|не свалям|плато/i,
   'iris:nervous': /стрес|напрежени|тревож|умор|изтощ|нерви|безсъни|не спя|сънят ми/i,
   meds: /лекарств|хапче|таблетк|медикамент/i,
-  weight: /тегло|теглото|килограм|\bкг\b|везна|претегл/i,
+  weight: /тегло|теглото|килограм|(?<![а-я])кг(?![а-я])|везна|претегл/i,
   emoeat_vs_q: /емоци|преяжд|от скука|когато съм напрегнат|не мога да спра|нощем ям|ям вечер|посягам/i,
 };
 
@@ -28,9 +29,11 @@ const ALLERGY_RELATED = { лактоза: /мляко|млечн|сирене|к
 const stem = (s) => String(s || '').toLowerCase().replace(/[^a-zа-я0-9]/gi, '').slice(0, 5);
 
 function matches(q, text) {
-  if (TOPIC_WORDS[q.id]) {
-    if (TOPIC_WORDS[q.id].test(text)) return true;
-    if (q.id === 'meds') {
+  // „weight:80“, „meds:no“ — въпросът е вързан за стойността в NutriPlan; темата е частта преди „:“.
+  const topic = TOPIC_WORDS[q.id] ? q.id : q.id.split(':')[0];
+  if (topic === 'weight' || topic === 'meds' || TOPIC_WORDS[q.id]) {
+    if (TOPIC_WORDS[topic].test(text)) return true;
+    if (topic === 'meds') {
       const name = stem((q.text.match(/„([^“]+)“/) || [])[1]);
       return name.length >= 4 && text.toLowerCase().includes(name);
     }

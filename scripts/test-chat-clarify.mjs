@@ -25,13 +25,13 @@ const facts = handoffToFacts(normalizeHandoff({
 const data = applyEnrichment(enrichUserDataEngineContext({ ...JSON.parse(JSON.stringify(PROFILES.find(p => p.id === 'female_moderate'))), medicalConditions: ['Нямам'], medications: 'Не', dietDislike: '' }), { facts });
 const questions = sanitizeQuestions(JSON.parse(JSON.stringify(data._enrichment.crossCheck.questions)));
 const byId = (id) => questions.find(q => q.id === id);
-ok(byId('iris:digestive') && byId('allergy:лактоза') && byId('meds'), `въпросите от сверката минават проверката (${questions.map(q => q.id)})`);
+ok(byId('iris:digestive') && byId('allergy:лактоза') && byId('meds:no'), `въпросите от сверката минават проверката (${questions.map(q => q.id)})`);
 
 // ── Само по темата ───────────────────────────────────────────────────────
 ok(relevantQuestion(questions, 'Вечер имам подуване и тежест')?.id === 'iris:digestive', 'подуване → въпросът за храносмилането');
 ok(relevantQuestion(questions, 'Какво да хапна за закуска утре?') === null, 'закуска → без въпрос');
 ok(relevantQuestion(questions, 'Може ли кисело мляко вечер?')?.id === 'allergy:лактоза', 'кисело мляко → въпросът за лактозата');
-ok(relevantQuestion(questions, 'Пия еутирокс сутрин, кога да закуся?')?.id === 'meds', 'името на лекарството → въпросът за лекарствата');
+ok(relevantQuestion(questions, 'Пия еутирокс сутрин, кога да закуся?')?.id === 'meds:no', 'името на лекарството → въпросът за лекарствата');
 ok(relevantQuestion(questions, 'Да, често', 'iris:digestive')?.id === 'iris:digestive', 'отговор на зададен въпрос — без ключови думи');
 ok(relevantQuestion(questions, 'Да, често', 'unknown:x') === null, 'непознат зададен въпрос → без въпрос');
 
@@ -56,5 +56,8 @@ ok(block.includes('[RESOLVE:iris:digestive=') && block.includes('often = „Да
 ok(sanitizeQuestions([{ id: 'x; drop', text: 't', options: [{ value: 'a', label: 'b' }, { value: 'c', label: 'd' }] }]).length === 0, 'невалиден id отпада');
 ok(sanitizeQuestions('нещо').length === 0 && sanitizeQuestions([{ id: 'meds', text: 't', options: [] }]).length === 0, 'празни/счупени въпроси отпадат');
 
+const wq = [{ id: 'weight:80', text: 'Теглото…', options: [{ value: 'airis', label: '74 кг' }] }, { id: 'iris:digestive', text: 'Подуване?', options: [{ value: 'yes', label: 'Да' }] }];
+ok(relevantQuestion(wq, 'Сега съм 80 кг')?.id === 'weight:80', '„кг“ на кирилица → въпросът за теглото');
+ok(relevantQuestion(wq, 'имам газове след обяд')?.id === 'iris:digestive', '„газове“ → храносмилането');
 console.log(`\n=== chat clarify: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

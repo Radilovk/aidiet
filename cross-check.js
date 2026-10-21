@@ -157,12 +157,15 @@ export function crossCheck(data, derived, resolutions = {}) {
       }
     }
     if (q.medications && data?.medications !== 'Да') {
-      const answer = resolutions.meds;
+      // Отговорът важи само докато в NutriPlan е същото („Не“ или празно) — ако клиентът
+      // после смени профила си, въпросът се задава наново, вместо старият отговор да надделее.
+      const medsId = `meds:${data?.medications === 'Не' ? 'no' : 'empty'}`;
+      const answer = resolutions[medsId];
       if (answer === 'yes') {
         overrides.medications = 'Да';
         overrides.medicationsDetails = [data?.medicationsDetails, q.medications].filter(Boolean).join('; ');
       } else if (!answer) {
-        questions.push({ id: 'meds', source: 'airis', topic: 'Лекарства', text: `В AIRIS сте посочили „${q.medications.slice(0, 120)}“, а в NutriPlan — че не приемате лекарства. Приемате ли ги в момента?`, options: [{ value: 'yes', label: 'Да, приемам ги' }, { value: 'no', label: 'Не, вече не' }] });
+        questions.push({ id: medsId, source: 'airis', topic: 'Лекарства', text: `В AIRIS сте посочили „${q.medications.slice(0, 120)}“, а в NutriPlan — че не приемате лекарства. Приемате ли ги в момента?`, options: [{ value: 'yes', label: 'Да, приемам ги' }, { value: 'no', label: 'Не, вече не' }] });
       }
     }
     const npDiet = asList(data?.dietPreference);
@@ -178,10 +181,12 @@ export function crossCheck(data, derived, resolutions = {}) {
     }
     const npKg = Number(String(data?.weight || '').replace(',', '.'));
     if (q.weight && npKg && Math.abs(q.weight - npKg) >= 4) {
-      const answer = resolutions.weight;
+      // Вързано за теглото в NutriPlan: ново тегло там → нов въпрос, не старият отговор.
+      const weightId = `weight:${Math.round(npKg)}`;
+      const answer = resolutions[weightId];
       if (answer === 'airis') overrides.weight = String(q.weight);
       else if (!answer) {
-        questions.push({ id: 'weight', source: 'airis', topic: 'Тегло', text: `Теглото в AIRIS (${q.weight} кг) и в NutriPlan (${npKg} кг) се различава. Кое е актуалното?`, options: [{ value: 'airis', label: `${q.weight} кг` }, { value: 'nutriplan', label: `${npKg} кг` }] });
+        questions.push({ id: weightId, source: 'airis', topic: 'Тегло', text: `Теглото в AIRIS (${q.weight} кг) и в NutriPlan (${npKg} кг) се различава. Кое е актуалното?`, options: [{ value: 'airis', label: `${q.weight} кг` }, { value: 'nutriplan', label: `${npKg} кг` }] });
       }
     }
   }

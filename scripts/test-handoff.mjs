@@ -96,10 +96,22 @@ ok(sp.healthConditions.includes('Щитовидна жлеза (Хашимото
 ok(sp.medications === 'Да' && /щитовидна/.test(sp.medicationsDetails) && /Еутирокс/.test(sp.medicationsDetails) && sp.dietDislike === 'глутен', 'сайт: лекарства, непоносимости');
 ok(/daotslabna\.com/.test(sp.additionalNotes) && /бъбречно/.test(sp.additionalNotes) && /умора/.test(sp.additionalNotes) && /Berberine 500/.test(sp.additionalNotes) && /стимуланти/.test(sp.additionalNotes), 'сайт: бележки — състояния без съответствие, оплаквания, протокол');
 const siteFacts = handoffToFacts(site).map(normalizeFact).filter(Boolean);
-ok(siteFacts.length === 1 && siteFacts[0].kind === 'weight' && siteFacts[0].value === 82, 'сайт → в профила влиза само теглото');
+ok(siteFacts.length === 2 && siteFacts[0].kind === 'weight' && siteFacts[0].value === 82 && siteFacts[1].kind === 'site_quiz', 'сайт → тегло + отговорите като контекст');
+const sq = siteFacts[1].value;
+ok(sq.lines.some(l => /лекарства: .*Еутирокс/.test(l)) && sq.lines.some(l => /цел: отслабване \(10–20 кг\)/.test(l)) && sq.lines.some(l => /Berberine 500/.test(l)), 'сайт: редове за картона и чата (лекарства, цел с кг, протокол)');
+ok(sq.cautions.some(c => /Еутирокс/.test(c)) && sq.cautions.includes('бъбречно заболяване'), 'сайт: лекарства и бъбреци — бележки за безопасност');
+const withSite = applyEnrichment(base(), { facts: siteFacts }, NOW);
+ok(withSite._enrichment.siteQuiz?.lines?.length > 0 && withSite._enrichment.hints.cautions.some(c => /daotslabna\.com: бъбречно/.test(c)), 'обогатяването носи теста от сайта и бележките');
 ok(normalizeHandoff({ source: 'lifeprotocols', answers: {} }) === null && normalizeHandoff({ source: 'other', answers: { sex: 'male' } }) === null, 'празен тест или непознат сайт — отказ');
 ok(handoffPreview(site).title === 'Тест от daotslabna.com', 'сайт: преглед');
 ok(prefillFor(normalizeHandoff({ source: 'lifeprotocols', answers: { sex: 'male', priority: 'longevity', conditions: ['none'], medications: ['none'] } })).goal.join() === 'Антиейджинг', 'life: приоритет → цел');
 
+// ── поправки от одита ────────────────────────────────────────────────
+ok(sp['healthConditions_Сърдечно-съдови заболявания'] === 'Хипертония (високо кръвно налягане)', 'сайт: хипертонията — конкретният под-отговор');
+ok(/Желано отслабване: 10–20 кг/.test(sp.additionalNotes), 'сайт: желаните килограми в бележките');
+const ah = normalizeHandoff({ source: 'airis', questionnaire: { healthStatus: ['Хипертония', 'Бременност', 'Диабет 2 тип'], allergies: 'лактоза', foodIntolerances: 'лактоза', complaints: 'умора', medicalConditions: 'умора' }, analysis: { summary: 'x' } });
+const ap = airisPrefill(ah.questionnaire);
+ok(ap.healthConditions.includes('Сърдечно-съдови заболявания') && ap.healthConditions.includes('Диабет / Инсулинова резистентност') && /Бременност/.test(ap.additionalNotes), 'AIRIS: състоянията стигат до въпросника и бележките');
+ok(ap.dietDislike === 'лактоза' && !/умора\. умора/.test(ap.additionalNotes), 'AIRIS: без повторения');
 console.log(`\n=== handoff: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

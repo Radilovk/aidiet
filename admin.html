@@ -4331,7 +4331,7 @@
             return `<div class="rf-scroll"><table class="rf-table">
                 <thead><tr><th>Месец</th>${REFERRAL_MODULES.map(m => `<th class="num">${m.label}: линкове</th><th class="num">${m.label}: в профила</th>`).join('')}</tr></thead>
                 <tbody>${months.slice().reverse().map(mo => `<tr><td>${rfEsc(rfMonthLabel(mo, true))}</td>${REFERRAL_MODULES.map(m => {
-                    const r = referralData.sources[m.key][mo] || {};
+                    const r = (referralData.sources[m.key] || {})[mo] || {};
                     return `<td class="num">${r.created || 0}</td><td class="num">${r.claimed || 0}</td>`;
                 }).join('')}</tr>`).join('')}</tbody>
             </table></div>`;
@@ -4345,13 +4345,15 @@
             const W = Math.max(280, Math.round(box.clientWidth || 640));
             const months = W < 520 ? referralData.months.slice(-6) : referralData.months;
             const H = 220, L = 34, R = 8, T = 18, B = 26;
-            const values = months.map(mo => REFERRAL_MODULES.map(m => (referralData.sources[m.key][mo] || {}).claimed || 0));
+            const values = months.map(mo => REFERRAL_MODULES.map(m => ((referralData.sources[m.key] || {})[mo] || {}).claimed || 0));
             const peak = Math.max(1, ...values.flat());
             const step = peak <= 5 ? 1 : Math.ceil(peak / 4 / 5) * 5;
             const top = Math.ceil(peak / step) * step;
             const y = v => T + (H - T - B) * (1 - v / top);
             const slot = (W - L - R) / months.length;
-            const barW = Math.max(4, Math.min(18, (slot - 10) / 2));
+            // Групата от стълбове (по един на модул) се побира в месеца, колкото и модули да има.
+            const nMod = REFERRAL_MODULES.length;
+            const barW = Math.max(2, Math.min(18, (slot - 10 - (nMod - 1) * 2) / nMod));
             const roundTop = (x, yTop, w, base) => {
                 const h = base - yTop;
                 if (h <= 0) return '';
@@ -4368,7 +4370,7 @@
             let hits = '';
             months.forEach((mo, i) => {
                 const cx = L + slot * i + slot / 2;
-                const x0 = cx - barW - 1;
+                const x0 = cx - (nMod * barW + (nMod - 1) * 2) / 2;
                 values[i].forEach((v, j) => {
                     const x = x0 + j * (barW + 2);
                     bars += `<path d="${roundTop(x, y(v), barW, y(0))}" fill="${REFERRAL_MODULES[j].color}"/>`;
@@ -4385,7 +4387,7 @@
                     const i = Number(rect.dataset.i);
                     const mo = months[i];
                     tip.innerHTML = `<b>${rfEsc(rfMonthLabel(mo, true))}</b>${REFERRAL_MODULES.map(m => {
-                        const r = referralData.sources[m.key][mo] || {};
+                        const r = (referralData.sources[m.key] || {})[mo] || {};
                         return `<div><i style="background:${m.color}"></i>${m.label}: ${r.claimed || 0} в профила от ${r.created || 0} линка</div>`;
                     }).join('')}`;
                     const scale = svg.getBoundingClientRect().width / W;

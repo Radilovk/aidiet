@@ -15,8 +15,17 @@
     var WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
     var KEY = 'np_pending_handoff';
 
+    // Пратката живее на сървъра 30 дни — по-стара чакаща пратка не се ползва (нито за попълване, нито за пропускане).
+    var MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
     function readPending() {
-        try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { return null; }
+        var p = null;
+        try { p = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { return null; }
+        if (p && p.consentAt && Date.now() - Date.parse(p.consentAt) > MAX_AGE_MS) {
+            clearPending();
+            return null;
+        }
+        return p;
     }
 
     /** @param {{ token: string, source: string, prefill?: object }} p */
@@ -59,7 +68,11 @@
             var res = await api('/api/handoff/claim', { token: p.token, userId: uid, idToken: (await idTokenFor(uid)) || undefined });
             clearPending();
             var text = res.derived && res.derived.essenceText;
-            try { if (text) localStorage.setItem('np_health_essence', text); } catch (_) {}
+            try {
+                if (text) localStorage.setItem('np_health_essence', text);
+                else localStorage.removeItem('np_health_essence');
+                localStorage.setItem('np_open_questions', JSON.stringify((res.derived && res.derived.questions) || []));
+            } catch (_) {}
             return res;
         } catch (e) {
             // Изтекла или вече прибрана пратка — не се опитваме повече.
