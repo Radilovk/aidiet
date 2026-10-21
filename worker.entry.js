@@ -77,6 +77,7 @@ import {
   normalizeFeedbackHints,
   collectQuestionAnswers,
   describeCodes,
+  codeMeanings,
   normalizeSwaps,
   weekDigest,
   profileBrief,
@@ -108,6 +109,7 @@ import { siteQuizText } from './enrichment-site.js';
 import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { LAB_MARKERS } from './enrichment-labs.js';
+import { documentsText, normalizeDocumentValue } from './enrichment-documents.js';
 import {
   readOverlayFromKv,
   writeOverlayToKv,
@@ -7878,6 +7880,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
     bmr: parseFinalCalories(analysis.bmr) || calculateBMR(data),
     dailyCalories: kcal,
     protocolSupplements: getClinicalProtocol(data.clinicalProtocol)?.supplements || [],
+    protocolName: getClinicalProtocol(data.clinicalProtocol)?.name || '',
   });
   const step3DurationMs = Date.now() - startedAt;
   const plan = overlayDeterministicPresentation({
@@ -10270,7 +10273,8 @@ function getPromptKVKey(type) {
     'plan_voice': 'admin_plan_voice_prompt',
     'intake_hints': 'admin_intake_hints_prompt',
     'menu_review': 'admin_menu_review_prompt',
-    'feedback_hints': 'admin_feedback_hints_prompt'
+    'feedback_hints': 'admin_feedback_hints_prompt',
+    'document_assessment': 'admin_document_assessment_prompt'
   };
   
   return keyMap[type] || null;
@@ -10351,7 +10355,8 @@ async function handleGetDefaultPrompt(request, env) {
       'plan_voice': 'admin_plan_voice_prompt',
       'intake_hints': 'admin_intake_hints_prompt',
       'menu_review': 'admin_menu_review_prompt',
-      'feedback_hints': 'admin_feedback_hints_prompt'
+      'feedback_hints': 'admin_feedback_hints_prompt',
+      'document_assessment': 'admin_document_assessment_prompt'
     };
     
     const kvKey = promptKeyMap[type];
@@ -14257,20 +14262,88 @@ async function handleDeviceExtract(request, env) {
   }
 }
 
+/**
+ * POST /api/enrichment/assess-document
+ * Body: { userId, idToken?, imageData?, mimeType?, text?, note? }
+ * Друг документ (епикриза, писмо, рецепта, алергологичен тест, бележка) →
+ * AI преценява дали и как засяга плана. Нищо не се записва: клиентът
+ * проверява предложението и го потвърждава (POST /api/enrichment, kind „document“).
+ */
+async function handleDocumentAssess(request, env) {
+  try {
+    const { userId, idToken, imageData, mimeType, text, note } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const plain = String(text || '').trim().slice(0, 12000);
+    if (!imageData && !plain) return jsonResponse({ error: 'Добавете файл или текст.' }, 400);
+
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    const data = applyEnrichment(normalizeQuestionnaireData({ ...(profile?.userData || {}) }), profile?.enrichment || { facts: [] });
+    const brief = [
+      profileBrief(compileProfile(data || {})),
+      data?.medicationsDetails ? `лекарства: ${[].concat(data.medicationsDetails).join(', ')}` : '',
+    ].filter(Boolean).join('\n');
+    const template = await requireKvPrompt(env, 'admin_document_assessment_prompt');
+    const prompt = Object.entries({
+      profileSummary: brief,
+      note: String(note || '').trim().slice(0, 500) || 'няма',
+      text: plain || 'виж приложения файл',
+      clinicalList: describeCodes(VOCABULARY.clinical),
+      exclusionsList: describeCodes(VOCABULARY.exclusions),
+    }).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), String(template));
+
+    let response;
+    if (imageData) {
+      const isPdf = mimeType === 'application/pdf';
+      const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+      const effectiveMime = isPdf ? 'application/pdf' : (allowed.includes(mimeType) ? mimeType : 'image/jpeg');
+      const base64Data = String(imageData).startsWith('data:') ? String(imageData).slice(String(imageData).indexOf(',') + 1) : String(imageData);
+      if ((base64Data.length * 3) / 4 > 15 * 1024 * 1024) return jsonResponse({ error: 'Файлът е твърде голям (до 15 MB).' }, 400);
+      if (isPdf) {
+        if (!env.GEMINI_API_KEY) return jsonResponse({ error: 'PDF не се поддържа — качете снимка на страницата.' }, 415);
+        const config = await getAdminConfig(env);
+        response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget);
+      } else {
+        response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2500);
+      }
+    } else {
+      response = await callAIModel(env, prompt, 2500, 'document_assessment', null, data, null);
+    }
+    const parsed = parseAIResponse(response) || {};
+    const value = normalizeDocumentValue(parsed);
+    const known = new Set(compileProfile(data || {}).clinical);
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || '')) ? parsed.date : null;
+    return jsonResponse({
+      success: true,
+      relevant: parsed.relevant !== false && !!value,
+      isLabReport: parsed.isLabReport === true,
+      date,
+      // Вече известните състояния не се предлагат отново.
+      assessment: value ? { ...value, clinical: value.clinical.filter(c => !known.has(c)) } : null,
+      planChanges: (Array.isArray(parsed.planChanges) ? parsed.planChanges : []).map(x => String(x || '').trim().slice(0, 240)).filter(Boolean).slice(0, 4),
+      labels: codeMeanings([...VOCABULARY.clinical, ...VOCABULARY.exclusions]),
+    });
+  } catch (error) {
+    console.error('Error assessing document:', error);
+    return jsonResponse({ error: 'Не успяхме да прочетем документа. Опитайте с по-ясна снимка или въведете текста.' }, 500);
+  }
+}
+
 /** Видовете измервания за избор в прегледа на клиента. */
 function publicDeviceKinds() {
   return Object.fromEntries(Object.entries(DEVICE_KINDS).map(([k, v]) => [k, { label: v.label, unit: v.unit, two: !!v.range2 }]));
 }
 
 /**
- * POST /api/enrichment/delete — Body: { userId, idToken?, kinds?: string[] }
+ * POST /api/enrichment/delete — Body: { userId, idToken?, kinds?: string[], documentIds?: string[] }
  * Изтрива данните от обогатяването (всички или по вид). Промяната влиза в
  * плана със следващия преглед, както и при добавяне.
  */
 async function handleEnrichmentDelete(request, env) {
   try {
     if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    const { userId, idToken, kinds } = await request.json();
+    const { userId, idToken, kinds, documentIds } = await request.json();
     if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
     const authError = await checkFirebaseOwner(userId, idToken, env, request);
     if (authError) return authError;
@@ -14278,7 +14351,11 @@ async function handleEnrichmentDelete(request, env) {
     if (!profile?.enrichment) return jsonResponse({ success: true, removed: 0 });
     const before = profile.enrichment.facts?.length || 0;
     const only = Array.isArray(kinds) && kinds.length ? new Set(kinds) : null;
-    const facts = only ? (profile.enrichment.facts || []).filter(f => !only.has(f.kind)) : [];
+    // Един документ — по id; иначе по вид или всичко.
+    const docIds = Array.isArray(documentIds) && documentIds.length ? new Set(documentIds.map(String)) : null;
+    const facts = docIds
+      ? (profile.enrichment.facts || []).filter(f => !(f.kind === 'document' && docIds.has(f.key)))
+      : only ? (profile.enrichment.facts || []).filter(f => !only.has(f.kind)) : [];
     profile.enrichment = { ...profile.enrichment, facts, updatedAt: new Date().toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
     // Без данни от устройства няма и обобщение от тях — нито в профила, нито в картона.
     const hasDeviceFacts = facts.some(f => DEVICE_KINDS[f.kind]);
@@ -14351,6 +14428,7 @@ function publicEnrichmentView(d) {
     // Готовият текст за чата на клиента (същият като в картона на специалиста).
     essenceText: profileContextText(d),
     iris: d.iris ? { at: d.iris.at, focus: d.iris.focus } : null,
+    documents: d.documents || [],
     // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
     hypotheses: d.crossCheck?.hypotheses || [],
     questions: d.crossCheck?.questions || [],
@@ -14358,7 +14436,7 @@ function publicEnrichmentView(d) {
 }
 
 /**
- * Допълнителният профил в един кратък текст — устройства, EmoEat, AIRIS.
+ * Допълнителният профил в един кратък текст — устройства, EmoEat, AIRIS, документи.
  * Същият текст отива в картона на специалиста и в контекста на чата.
  */
 function profileContextText(d) {
@@ -14367,7 +14445,7 @@ function profileContextText(d) {
   const emo = v && (v.archetype || v.intensity)
     ? `емоционален профил (EmoEat): ${[v.archetype ? `архетип ${v.archetype}` : '', v.intensity ? `интензитет ${v.intensity}` : '', v.drivers?.length ? `двигатели ${v.drivers.join(', ')}` : '', v.realNeed ? `реална нужда ${v.realNeed}` : ''].filter(Boolean).join(', ')}`
     : '';
-  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 2800);
+  return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), documentsText(d.documents), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 3600);
 }
 
 const DEFAULT_HEALTH_DIGEST_PROMPT = `Ти си диетолог. Данни от устройствата на клиента (часовник, гривна, везна, апарат за кръвно, глюкомер, приложения) за последните седмици, вече обобщени:
@@ -16640,6 +16718,8 @@ export default {
         return await handleEnrichmentResolve(request, env);
       } else if (url.pathname === '/api/enrichment/extract-device' && request.method === 'POST') {
         return await handleDeviceExtract(request, env);
+      } else if (url.pathname === '/api/enrichment/assess-document' && request.method === 'POST') {
+        return await handleDocumentAssess(request, env);
       } else if (url.pathname === '/api/enrichment/delete' && request.method === 'POST') {
         return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {

@@ -3828,6 +3828,7 @@
 
     </style>
     <script src="./ui-images-cache.js"></script>
+    <script src="./supplement-shop.js"></script>
     <script>
         // Apply color scheme from admin settings
         (function() {
@@ -6137,7 +6138,13 @@
                 
                 if (content.description) details += ` - ${content.description}`;
                 if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
-                if (content.intake) details += ` - Прием: ${content.intake}`;
+                if (content.intake || content.timing) details += ` - Прием: ${content.intake || content.timing}`;
+                if (content.reason) details += ` - Защо: ${content.reason}`;
+                // Добавката води към каталога на BIOCODE — там са наличните продукти.
+                if (contentType === 'supplements' && content.name && window.NutriPlanSupplementShop) {
+                    const head = content.title || content.name;
+                    details = `<a href="${window.NutriPlanSupplementShop.url(content.name).replace(/"/g, '&quot;')}" target="_blank" rel="noopener" class="supplement-shop-link">${head}</a>${details.slice(head.length)}`;
+                }
                 
                 return `<li>${details}</li>`;
             }

@@ -628,7 +628,11 @@ export function compileProfile(userData = {}, overrides = {}) {
   // Обогатяването (EmoEat, изследвания, устройства) също само ДОБАВЯ —
   // клиничните кодове от изследвания са предпазни хранителни правила, не диагноза.
   const enrich = data._enrichment?.hints && typeof data._enrichment.hints === 'object' ? data._enrichment.hints : null;
-  if (enrich) addAll(clinical, enrich.clinical || []);
+  if (enrich) {
+    addAll(clinical, enrich.clinical || []);
+    // Потвърдени от клиента в документ (алергологичен тест, епикриза).
+    addAll(exclusions, enrich.exclusions || []);
+  }
   const pattern = strictestPattern([...prefs.patterns, ...modifier.patterns, ...(hints?.pattern ? [hints.pattern] : [])]);
   const adjustments = [];
   const meds = interactionsFor(data);

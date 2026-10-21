@@ -11,6 +11,7 @@ import { buildNutritionPlan } from '../nutrition-engine/index.js';
 import { buildPlanSummary } from '../plan-summary.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
+import { supplementsFor } from '../supplement-rules.js';
 
 let pass = 0;
 let fail = 0;
@@ -122,5 +123,35 @@ ok(d3.length === 1 && d3[0].reason, `D3 веднъж, с обосновка (${J
 ok(withD._enrichment.original && typeof withD._enrichment.original === 'object', 'оригиналните отговори се пазят');
 
 ok(normalizeFact({ kind: 'water', value: 2000, unit: 'мл', at: '2026-10-20T08:00:00Z' })?.value === 2, 'вода в „мл“ (кирилица) → литри');
+
+// ── Други документи ──────────────────────────────────────────────────────
+const doc = (value, key = 'doc_test01') => ({ kind: 'document', key, value, at: daysAgo(2), status: 'confirmed' });
+ok(normalizeFact(doc({ summary: 'x', clinical: ['GERD', 'XXX'], exclusions: ['NUT'] }))?.value.clinical.join() === 'GERD', 'документ: непознат код отпада');
+ok(normalizeFact(doc({ summary: 'x' }, 'bad key!')) === null, 'документ: невалиден id отпада');
+ok(normalizeFact(doc({ title: 'празен' })) === null, 'документ без съдържание отпада');
+const withDoc = applyEnrichment(base(), { facts: [doc({ title: 'Епикриза', summary: 'Рефлукс, алергия към ядки.', clinical: ['GERD'], exclusions: ['NUT'], medications: ['омепразол 20 mg'], impact: 'menu' })] }, NOW);
+const pDoc = compileProfile(withDoc);
+ok(pDoc.clinical.includes('GERD') && pDoc.exclusions.includes('NUT'), 'документ → състояние и изключване в профила');
+ok(/омепразол/.test(withDoc.medicationsDetails || ''), 'документ → лекарството влиза в проверката за взаимодействия');
+ok(withDoc._enrichment.documents.length === 1 && withDoc._enrichment.documents[0].title === 'Епикриза', 'документът е в списъка');
+ok(recalcLevel(base(), withDoc).level === 3, 'ново състояние от документ → ниво 3');
+const ctxOnly = applyEnrichment(base(), { facts: [doc({ summary: 'Бележка: работя нощни смени.', impact: 'context' })] }, NOW);
+ok(recalcLevel(base(), ctxOnly).level === 0, 'документ само за контекст → ниво 0');
+
+// ── Добавки по профила ───────────────────────────────────────────────────
+const supNames = (ud) => supplementsFor(compileProfile(ud), ud, { now: new Date('2026-06-01') }).map(x => x.name);
+const allHaveReason = (ud) => supplementsFor(compileProfile(ud), ud, { now: NOW }).every(x => x.reason);
+const veg = { ...base(), dietPreference: ['Веган'] };
+ok(supNames(veg).some(n => /B12/.test(n)) && supNames(veg).some(n => /водорасли/.test(n)), 'веган → B12 и омега-3 от водорасли');
+const gym = { ...base(), goal: 'Мускулна маса', sportActivity: 'Средна (2–4 дни седмично)' };
+ok(supNames(gym).some(n => /Креатин/.test(n)), 'мускулна маса + тренировки → креатин');
+const stress = { ...base(), stressLevel: 'Високо' };
+ok(supNames(stress).some(n => /Магнезий/.test(n)), 'висок стрес → магнезий');
+ok(supNames({ ...base(), medications: 'Да', medicationsDetails: 'Метформин 1000' }).some(n => /B12/.test(n)), 'метформин → B12');
+ok([veg, gym, stress, base()].every(allHaveReason), 'всяка добавка е с причина');
+ok(supNames(base()).length === 0 || supNames(base()).length <= 5, 'без причина — без добавки извън сезона');
+ok(supplementsFor(compileProfile(base()), base(), { now: NOW }).some(x => /D3/.test(x.name) && /октомври/.test(x.reason)), 'октомври–март → D3 със сезонна причина');
+const lowFe = applyEnrichment(base(), { facts: [lab('ferritin', 12, 'ng/mL')] }, NOW);
+ok(lowFe._enrichment.supplements.some(x => /Желязо/.test(x.name) && /Феритин/.test(x.reason)), 'нисък феритин → желязо по изследване');
 console.log(`\n=== enrichment: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

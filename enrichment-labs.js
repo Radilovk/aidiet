@@ -59,7 +59,9 @@ const RULES = {
   hdl: (v, sex) => (v < (sex === 'F' ? 1.3 : 1.0) ? { status: 'low' } : null),
   uric: (v, sex) => (v > (sex === 'F' ? 360 : 420)
     ? { status: 'high', clinical: ['GOUT'], caution: 'Повишена пикочна киселина — ограничени пурини и алкохол; оценка от лекар при болки в ставите.' } : null),
-  ferritin: (v) => (v < 30 ? { status: 'low', clinical: ['ANEM'] } : null),
+  ferritin: (v) => (v < 30
+    ? { status: 'low', clinical: ['ANEM'], supplement: { name: 'Желязо бисглицинат', dosage: '25–50 mg', timing: 'през ден, с витамин C, далеч от кафе, чай и калций — по изследване; контрол след 3 месеца' } }
+    : null),
   hgb: (v, sex) => (v < (sex === 'F' ? 120 : 130)
     ? { status: 'low', clinical: ['ANEM'], caution: 'Нисък хемоглобин — причината се изяснява от лекар.' } : null),
   vitd: (v) => (v < 30

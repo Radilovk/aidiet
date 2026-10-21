@@ -110,6 +110,8 @@
         /** Отговор на въпрос за разминаване между източниците — самият отговор е съгласието. */
         resolve: function (questionId, answer) { return post('/api/enrichment/resolve', { questionId: questionId, answer: answer }).then(keepEssence); },
         extractDevice: function (imageData, mimeType) { return post('/api/enrichment/extract-device', { imageData: imageData, mimeType: mimeType }); },
+        assessDocument: function (doc) { return post('/api/enrichment/assess-document', doc || {}); },
+        removeDocument: function (id) { return post('/api/enrichment/delete', { documentIds: [id] }).then(function (r) { return post('/api/enrichment/get', {}).then(keepEssence).then(function (g) { return Object.assign({}, r, { derived: g.derived }); }); }); },
         remove: function (kinds) {
             // След изтриване есенцията се презарежда — остава само от данните, които още са в профила.
             return post('/api/enrichment/delete', { kinds: kinds || null }).then(function (r) {
