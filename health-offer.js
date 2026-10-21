@@ -193,35 +193,63 @@
         };
     }
 
-    /** Huawei/Honor: не дават данни директно — мостът Health Sync ги прехвърля в Health Connect. */
-    function huaweiView(d) {
-        var H = global.NutriPlanHealth;
-        var A = global.NutriPlanHealthApps;
-        var withBridge = d.other.filter(function (a) { return a.bridge; });
-        if (!withBridge.length || !A) {
-            return {
-                icon: 'fa-file-arrow-up', title: 'Данни от ' + names(d.other),
-                text: names(d.other) + ' не споделя данни с други приложения. Добави експорт или снимка на екрана — разчитаме стойностите.',
-                primary: 'Към Устройства', primaryIcon: 'fa-arrow-right', onPrimary: goToDevices
-            };
-        }
-        var bridge = A.byId(withBridge[0].bridge);
+    /** Облачните връзки, включени на сървъра (device-links.js) — веднъж на отваряне. */
+    var _cloud = null;
+    async function cloudProviders() {
+        if (_cloud) return _cloud;
+        var E = global.NutriPlanEnrichment;
+        try { _cloud = ((await E.linkProviders()).providers) || []; } catch (_) { _cloud = []; }
+        return _cloud;
+    }
+
+    /** Свързване на профил в облака с едно докосване: вход при доставчика, после данните идват сами. */
+    function cloudView(app, provider) {
+        var E = global.NutriPlanEnrichment;
         return {
-            title: 'Данни от ' + names(withBridge),
-            text: names(withBridge) + ' не дава данни директно на други приложения. ' + bridge.name + ' ги прехвърля сам в Health Connect — веднъж настройваш, после всичко идва автоматично.',
-            note: bridge.name + ' е от Google Play; след пробния период е платено. Иначе — снимка или файл от Профил → Устройства.',
-            primary: 'Инсталирай ' + bridge.name, primaryIcon: 'fa-download',
-            onPrimary: function () {
-                H.openStore(bridge.pkg).catch(function () {});
-                var onBack = async function () {
-                    if (doc.visibilityState !== 'visible') return;
-                    doc.removeEventListener('visibilitychange', onBack);
-                    var again = await H.detect();
-                    if (overlay && again.viaHc.length && (again.hcAvailable || again.hcInstallable)) render(connectView(again));
-                };
-                doc.addEventListener('visibilitychange', onBack);
+            title: 'Свържи ' + provider.name,
+            text: 'Открихме ' + app.name + '. Влез веднъж с акаунта си — крачките, сънят, пулсът и теглото идват сами.',
+            apps: [app],
+            note: 'Само четене · изключваш по всяко време',
+            primary: 'Свържи', primaryIcon: 'fa-link',
+            onPrimary: async function (btn, status) {
+                btn.disabled = true;
+                setStatus(status, 'Отваряме входа…');
+                try {
+                    E.setConsent('device', true);
+                    var isApp = !!(global.NutriPlanPlatform && global.NutriPlanPlatform.isAPK());
+                    var back = new URL('index.html?app=1&tab=plan', global.location.href).toString();
+                    var res = await E.startLink(provider.id, isApp ? null : back);
+                    global.sessionStorage.setItem('np_link_pending', provider.id);
+                    // При връщане от браузъра — проверка и потвърждение тук.
+                    var onBack = async function () {
+                        if (doc.visibilityState !== 'visible') return;
+                        doc.removeEventListener('visibilitychange', onBack);
+                        _cloud = null;
+                        var list = await cloudProviders();
+                        var linked = list.some(function (x) { return x.id === provider.id && x.linked; });
+                        if (overlay) render(linked
+                            ? { icon: 'fa-check', title: 'Свързано', text: 'Данните от ' + provider.name + ' вече влизат в плана и се обновяват сами.', secondary: 'Готово', onSecondary: close }
+                            : cloudView(app, provider));
+                    };
+                    doc.addEventListener('visibilitychange', onBack);
+                    global.location.href = res.url;
+                } catch (e) {
+                    btn.disabled = false;
+                    setStatus(status, e.message || 'Свързването не успя.', 'error');
+                }
             }
         };
+    }
+
+    /** Huawei/Honor: не дават данни на Health Connect — облакът на Huawei с едно докосване. */
+    async function huaweiView(d) {
+        var list = await cloudProviders();
+        var hw = list.filter(function (x) { return x.id === 'huawei' && !x.linked; })[0];
+        var app = d.other.filter(function (a) { return a.bridge; })[0];
+        if (hw && app) return cloudView(app, hw);
+        if (list.some(function (x) { return x.id === 'huawei' && x.linked; })) return null;
+        // Облакът още не е включен — не натоварваме с мостове; снимка/файл остават в профила.
+        return null;
     }
 
     async function offer() {
@@ -229,8 +257,8 @@
         var d = await global.NutriPlanHealth.detect();
         // Гривна на Huawei/Honor без мост е основният тракер — първо мостът.
         var hcReady = d.hcAvailable || d.hcInstallable;
-        var view = d.other.some(function (a) { return a.bridge; }) && hcReady ? huaweiView(d)
-            : d.viaHc.length && hcReady ? connectView(d) : d.other.length ? huaweiView(d) : null;
+        var view = d.other.length ? await huaweiView(d) : null;
+        if (!view && d.viaHc.length && hcReady) view = connectView(d);
         if (!view || busy() || !due()) return;
         var st = readState();
         writeState({ shown: (st.shown || 0) + 1, lastAt: new Date().toISOString() });

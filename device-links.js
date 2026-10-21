@@ -60,6 +60,57 @@ function workoutsByDay(list, source) {
   return [...byDay].map(([day, d]) => ({ kind: 'workout', value: Math.round(d.minutes), count: d.count, at: atOf(day), source }));
 }
 
+/* ─── Huawei: отговорите са в групи/набори/точки, времената в ns или ms ─── */
+
+/** Време от Huawei (s, ms, µs или ns по големината) → ms. */
+function huaweiMs(t) {
+  const n = Number(t);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n > 1e17) return Math.round(n / 1e6);
+  if (n > 1e14) return Math.round(n / 1e3);
+  if (n > 1e11) return n;
+  return n * 1000;
+}
+
+/** [{ fieldName, integerValue|floatValue|longValue }] → { fieldName: число }. */
+function huaweiFields(list) {
+  const out = {};
+  for (const f of Array.isArray(list) ? list : []) {
+    const v = f.floatValue ?? f.integerValue ?? f.longValue ?? f.value;
+    if (f.fieldName != null && v != null && Number.isFinite(Number(v))) out[f.fieldName] = Number(v);
+  }
+  return out;
+}
+
+/**
+ * Всички точки от отговор на sampleSet:(daily)Polymerize — с групи или без.
+ * @returns {{ day: string, fields: object, num: (...names: string[]) => number }[]}
+ */
+function huaweiPoints(json) {
+  const sets = [];
+  for (const g of json?.group || []) sets.push(...(g.sampleSet || []));
+  sets.push(...(json?.sampleSet || []));
+  const out = [];
+  for (const set of sets) {
+    for (const p of set.samplePoints || set.samplePoint || []) {
+      const ms = huaweiMs(p.endTime ?? p.startTime);
+      if (!ms) continue;
+      const fields = huaweiFields(p.value || p.fieldValues || []);
+      out.push({
+        day: ymd(new Date(ms)),
+        fields,
+        num: (...names) => {
+          for (const n of names) if (fields[n] != null) return fields[n];
+          // Единствено поле с друго име — то е стойността; иначе не гадаем.
+          const keys = Object.keys(fields);
+          return keys.length === 1 ? fields[keys[0]] : NaN;
+        },
+      });
+    }
+  }
+  return out;
+}
+
 /* ─── Доставчиците ────────────────────────────────────────────────────── */
 
 export const PROVIDERS = {
@@ -183,6 +234,84 @@ export const PROVIDERS = {
       await safe(async () => {
         const b = await post('https://wbsapi.withings.net/v2/sleep', { action: 'getsummary', startdateymd: ymd(from), enddateymd: ymd(to), data_fields: 'total_sleep_time' });
         out.push(...facts('sleep', sumByDay((b.series || []).map(s => ({ day: s.date, value: Number(s.data?.total_sleep_time) / 3600 }))), 'withings', round1));
+      });
+      return out;
+    },
+  },
+
+  // Huawei Health (часовници и гривни Huawei/Honor) — Health Kit в облака на Huawei.
+  // Huawei не пише в Health Connect; това е единственият път без стъпки за клиента.
+  // Изисква приложение с одобрен Health Kit в Huawei Developer Console.
+  // Полетата в отговорите варират по тип — четат се толерантно (виж huaweiPoints).
+  huawei: {
+    name: 'Huawei Health',
+    env: 'HUAWEI',
+    console: 'https://developer.huawei.com/consumer/en/console',
+    authorizeUrl: 'https://oauth-login.cloud.huawei.com/oauth2/v3/authorize',
+    tokenUrl: 'https://oauth-login.cloud.huawei.com/oauth2/v3/token',
+    scope: ['openid', 'step', 'calories', 'sleep', 'heartrate', 'heightweight', 'bloodpressure', 'bloodglucose', 'activity']
+      .map(x => (x === 'openid' ? x : `https://www.huawei.com/healthkit/${x}.read`)).join(' '),
+    authorizeExtra: { access_type: 'offline' },
+    async fetchFacts(fetchFn, token, from, to) {
+      const A = 'https://health-api.cloud.huawei.com/healthkit/v2';
+      const out = [];
+      const safe = async fn => { try { await fn(); } catch (e) { if (e.status === 401) throw e; } };
+      const post = (path, body) => getJson(fetchFn, `${A}${path}`, token, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const compact = d => ymd(d).replace(/-/g, '');
+      const daily = types => post('/sampleSet:dailyPolymerize', { dataTypes: types, startDay: compact(from), endDay: compact(to), timeZone: '+0000' });
+      const span = types => post('/sampleSet:polymerize', {
+        polymerizeWith: types.map(t => ({ dataTypeName: t })),
+        startTime: from.getTime(), endTime: to.getTime() + DAY_MS,
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await daily(['com.huawei.continuous.steps.delta']));
+        out.push(...facts('steps', sumByDay(pts.map(x => ({ day: x.day, value: x.num('steps', 'steps_delta') }))), 'huawei', Math.round));
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await daily(['com.huawei.continuous.calories.burnt']));
+        out.push(...facts('active_kcal', sumByDay(pts.map(x => ({ day: x.day, value: x.num('calories', 'calories_total') }))), 'huawei', Math.round));
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await span(['com.huawei.instantaneous.resting_heart_rate']));
+        const byDay = new Map();
+        for (const x of pts) { const v = x.num('resting_heart_rate', 'avg'); if (v > 0) byDay.set(x.day, v); }
+        out.push(...facts('resting_hr', [...byDay].map(([day, value]) => ({ day, value })), 'huawei', Math.round));
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await span(['com.huawei.instantaneous.body_weight']));
+        for (const x of pts) {
+          const w = x.num('body_weight');
+          const fat = x.num('body_fat_rate');
+          if (w > 0) out.push({ kind: 'weight', value: round1(w), at: atOf(x.day), source: 'huawei' });
+          if (fat > 0) out.push({ kind: 'body_fat', value: round1(fat), at: atOf(x.day), source: 'huawei' });
+        }
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await span(['com.huawei.instantaneous.blood_pressure']));
+        for (const x of pts) {
+          const sys = x.num('systolic_pressure'), dia = x.num('diastolic_pressure');
+          if (sys > 0 && dia > 0) out.push({ kind: 'bp', value: Math.round(sys), value2: Math.round(dia), at: atOf(x.day), source: 'huawei' });
+        }
+      });
+      await safe(async () => {
+        const pts = huaweiPoints(await span(['com.huawei.instantaneous.blood_glucose']));
+        for (const x of pts) {
+          const v = x.num('level');
+          if (v > 0) out.push({ kind: 'glucose', value: round1(v), at: atOf(x.day), source: 'huawei' });
+        }
+      });
+      // Сънят е „health record“: една нощ — общо минути сън.
+      await safe(async () => {
+        const startNs = BigInt(from.getTime()) * 1000000n;
+        const endNs = BigInt(to.getTime() + DAY_MS) * 1000000n;
+        const r = await getJson(fetchFn, `${A}/healthRecords?startTime=${startNs}&endTime=${endNs}&dataType=com.huawei.health.record.sleep`, token);
+        const nights = (r.healthRecords || r.healthRecord || []).map(rec => {
+          const fields = huaweiFields(rec.value || rec.fields || []);
+          const minutes = fields.all_sleep_time ?? fields.allSleepTime;
+          const end = huaweiMs(rec.endTime ?? fields.wakeup_time ?? fields.wakeupTime);
+          return end && minutes > 0 ? { day: ymd(new Date(end)), value: minutes / 60 } : null;
+        }).filter(Boolean);
+        out.push(...facts('sleep', sumByDay(nights), 'huawei', round1));
       });
       return out;
     },
