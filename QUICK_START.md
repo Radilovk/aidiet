@@ -32,7 +32,7 @@
 - `README.md` - Основна документация на проекта
 - `WORKER_README.md` - Инструкции за worker deployment
 - `DEPLOYMENT_CHECKLIST.md` - Стъпка по стъпка deployment
-- `IMPLEMENTATION_SUMMARY.md` - Детайлно описание на имплементацията
+- `docs/archive/root/IMPLEMENTATION_SUMMARY.md` - Детайлно описание на имплементацията
 - `ARCHITECTURE.md` - Архитектурни диаграми и обяснения
 
 #### 🔧 Конфигурация
@@ -417,7 +417,7 @@ curl -X POST https://aidiet.radilov-k.workers.dev/api/generate-plan \
 
 - **README.md** - Основна документация
 - **ARCHITECTURE.md** - Диаграми и архитектура
-- **IMPLEMENTATION_SUMMARY.md** - Детайлно описание
+- **docs/archive/root/IMPLEMENTATION_SUMMARY.md** - Детайлно описание
 - **DEPLOYMENT_CHECKLIST.md** - Deployment стъпки
 - **WORKER_README.md** - Worker-специфична документация
 
