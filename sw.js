@@ -2,7 +2,19 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v37';
+const CACHE_NAME = 'nutriplan-v38';
+// Android приложението (Capacitor) е на https://localhost и носи файловете си —
+// там service worker само връща стари версии след обновяване. Самоизключва се.
+const IS_NATIVE_APP_ORIGIN = self.location.origin === 'https://localhost';
+if (IS_NATIVE_APP_ORIGIN) {
+  self.addEventListener('install', () => self.skipWaiting());
+  self.addEventListener('activate', (event) => {
+    event.waitUntil(
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        .then(() => self.registration.unregister())
+    );
+  });
+}
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_TITLE = 'NutriPlan';
@@ -184,6 +196,7 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
+  if (IS_NATIVE_APP_ORIGIN) return;
   const { request } = event;
   const url = new URL(request.url);
 
