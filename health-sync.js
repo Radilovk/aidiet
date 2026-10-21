@@ -30,8 +30,9 @@
 
     function bridge() {
         try {
+            // В рамка — мостът на горния прозорец: отговорите от Android стигат само до него.
+            if (global.top && global.top !== global && global.top.Capacitor) return global.top.Capacitor;
             if (global.Capacitor) return global.Capacitor;
-            if (global.top && global.top !== global) return global.top.Capacitor || null;
         } catch (_) {}
         return null;
     }

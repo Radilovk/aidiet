@@ -3704,8 +3704,8 @@
 
         function getCapacitorBridge() {
             try {
+                if (window.top && window.top !== window && window.top.Capacitor) return window.top.Capacitor;
                 if (window.Capacitor) return window.Capacitor;
-                if (window.top && window.top !== window) return window.top.Capacitor || null;
             } catch (_) {}
             return null;
         }
@@ -4751,7 +4751,8 @@
                  * The shell already ran NativeBackup.init(), so this
                  * is a no-op when primary data is already present. */
                 if (typeof NativeBackup !== 'undefined') {
-                    await NativeBackup.init().catch(() => {});
+                    // С таван: без отговор от Android страницата не бива да спира.
+                    await Promise.race([NativeBackup.init().catch(() => {}), new Promise(r => setTimeout(r, 2500))]);
                 }
 
                 /* Render the page from localStorage immediately — do NOT wait for

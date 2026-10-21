@@ -9579,7 +9579,7 @@
         }
 
         // --- PWA Service Worker Registration ---
-        const _cap = window.Capacitor || (window.top && window.top.Capacitor) || null;
+        const _cap = (window.top && window.top !== window && window.top.Capacitor) || window.Capacitor || null;
         const isCapacitorNativeApp = !!(
             _cap &&
             typeof _cap.isNativePlatform === 'function' &&
