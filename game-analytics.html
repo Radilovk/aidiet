@@ -831,6 +831,7 @@
     <script src="./game-scoring.js"></script>
     <script src="./goal-focus.js"></script>
     <script src="./persona.js"></script>
+    <script src="./health-sync.js"></script>
     <script>
     (function () {
         try {
@@ -888,9 +889,15 @@
             }).join('') + '</div>' : '';
             section.hidden = false;
             if (!Object.keys(metrics).length) {
-                // Без устройства: индексите от самооценките и един ред с пътя към свързването.
-                body.innerHTML = indicesHtml + '<div class="gf-empty"><span>Свържи гривна, часовник или везна — индексите стават по-точни.</span>' +
-                    '<button type="button" onclick="gfOpenDevices()">Свържи</button></div>';
+                // Свързано, но още малко дни — казваме какво е дошло, не „Свържи“.
+                var hs = {}, linked = [];
+                try { hs = JSON.parse(localStorage.getItem('np_health_state') || '{}') || {}; linked = JSON.parse(localStorage.getItem('np_links_linked') || '[]') || []; } catch (_) {}
+                var connected = !!hs.connected || linked.length > 0;
+                var got = (window.NutriPlanHealth && window.NutriPlanHealth.describeLast) ? window.NutriPlanHealth.describeLast() : '';
+                body.innerHTML = indicesHtml + (connected
+                    ? '<div class="gf-empty"><span>Устройството е свързано' + (got ? ' · получено: ' + gfEsc(got) : '') + '. Изводите от измерванията се появяват при поне 4 дни данни.</span></div>'
+                    : '<div class="gf-empty"><span>Свържи гривна, часовник или везна — индексите стават по-точни.</span>' +
+                      '<button type="button" onclick="gfOpenDevices()">Свържи</button></div>');
             } else {
                 var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], coachNote: src.coachNote || '' });
                 v.cards.forEach(function (c) { c.tone = softTone(c.tone); });

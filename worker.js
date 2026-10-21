@@ -1242,6 +1242,60 @@ function serializeAnalyticsBlock(analytics) {
   return lines.filter(Boolean).join("\n");
 }
 
+// game-data-merge.js
+var KEEP_DAYS = 120;
+function answers(rec) {
+  if (!rec) return 0;
+  const meals = Object.values(rec.meals || {}).filter((v) => v === true).length;
+  const ev = rec.eveningCheck || {};
+  const evening = ["activityLevel", "emotionalBalance", "waterIntake"].filter((k) => ev[k] != null).length;
+  return meals + (rec.morningCheck && typeof rec.morningCheck.sleptWell === "boolean" ? 1 : 0) + evening + (rec.extraMeals || []).length;
+}
+var tsOf = (x) => Date.parse(x?.ts || "") || 0;
+function mergeDay(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const [base, other] = answers(a) >= answers(b) ? [a, b] : [b, a];
+  const out = { ...other, ...base };
+  out.meals = { ...other.meals || {}, ...base.meals || {} };
+  for (const k of Object.keys(other.meals || {})) if (other.meals[k] === true) out.meals[k] = true;
+  out.mealCalories = { ...other.mealCalories || {}, ...base.mealCalories || {} };
+  out.mealCheckedAt = { ...other.mealCheckedAt || {}, ...base.mealCheckedAt || {} };
+  out.mealSkipped = { ...other.mealSkipped || {}, ...base.mealSkipped || {} };
+  for (const k of Object.keys(out.mealSkipped)) if (out.meals[k] === true) delete out.mealSkipped[k];
+  if (!Object.keys(out.mealSkipped).length) delete out.mealSkipped;
+  const ma = a.morningCheck, mb = b.morningCheck;
+  const realM = (m) => m && typeof m.sleptWell === "boolean";
+  out.morningCheck = realM(ma) && realM(mb) ? tsOf(ma) >= tsOf(mb) ? ma : mb : realM(ma) ? ma : realM(mb) ? mb : ma || mb || null;
+  if (a.eveningCheck || b.eveningCheck) {
+    const ea = a.eveningCheck || {}, eb = b.eveningCheck || {};
+    const newer = tsOf(ea) >= tsOf(eb) ? ea : eb, older = newer === ea ? eb : ea;
+    out.eveningCheck = { ...older, ...newer };
+    for (const k of ["activityLevel", "emotionalBalance", "waterIntake"]) {
+      if (out.eveningCheck[k] == null && older[k] != null) out.eveningCheck[k] = older[k];
+    }
+  }
+  const seen = /* @__PURE__ */ new Set();
+  out.extraMeals = [...base.extraMeals || [], ...other.extraMeals || []].filter((e) => {
+    const key = `${e?.ts || ""}|${e?.name || ""}|${e?.calories || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  delete out.dailyScore;
+  return out;
+}
+function mergeGameData(a, b, now = /* @__PURE__ */ new Date()) {
+  const cutoff = new Date(now.getTime() - KEEP_DAYS * 864e5).toISOString().slice(0, 10);
+  const out = {};
+  for (const key of /* @__PURE__ */ new Set([...Object.keys(a || {}), ...Object.keys(b || {})])) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || key < cutoff) continue;
+    const day = mergeDay(a?.[key], b?.[key]);
+    if (day && typeof day === "object") out[key] = day;
+  }
+  return out;
+}
+
 // json-patch.js
 var ALLOWED_PREFIXES = ["/answers", "/plan", "/adminNotes"];
 var MAX_PATCHES = 25;
@@ -1413,20 +1467,20 @@ function serializeAnalytics(analytics) {
   return serializeAnalyticsBlock(analytics);
 }
 function buildClientCard(clientData, options = {}) {
-  const answers = clientData?.answers || {};
+  const answers2 = clientData?.answers || {};
   const plan = clientData?.plan || null;
   const analytics = options.analytics ?? clientData?.analytics ?? null;
-  const hasNotes = Boolean(answers.additionalNotes);
-  const hasClinical = Boolean(answers.clinicalProtocol);
-  const profile = serializeUserProfile(answers, "full", { hasNotesSection: hasNotes, hasClinicalSection: hasClinical });
+  const hasNotes = Boolean(answers2.additionalNotes);
+  const hasClinical = Boolean(answers2.clinicalProtocol);
+  const profile = serializeUserProfile(answers2, "full", { hasNotesSection: hasNotes, hasClinicalSection: hasClinical });
   const meta = [
     "#CC v1 \u2014 \u041A\u043B\u0438\u0435\u043D\u0442\u0441\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u043D",
     `META|id=${esc2(clientData?.id)}|st=${esc2(clientData?.planStatus || "none")}|sub=${esc2((clientData?.submittedAt || clientData?.timestamp || "").slice(0, 10))}|act=${esc2((clientData?.planActivatedAt || "").slice(0, 10) || "\u2014")}|uid=${esc2(clientData?.userId || "\u2014")}|upd=${esc2((clientData?.planUpdatedAt || "").slice(0, 10) || "\u2014")}`,
     // Грешката от генериране важи само докато планът е в състояние „failed“ — след
     // успешно генериране старият текст подвеждаше AI асистента, че планът е провален.
     clientData?.planGenerationError && clientData?.planStatus === "failed" ? `ERR|${esc2(clientData.planGenerationError)}` : "",
-    answers.email ? `EM|${esc2(answers.email)}` : "",
-    answers.additionalNotes ? `NT|${esc2(String(answers.additionalNotes).slice(0, 500))}` : "",
+    answers2.email ? `EM|${esc2(answers2.email)}` : "",
+    answers2.additionalNotes ? `NT|${esc2(String(answers2.additionalNotes).slice(0, 500))}` : "",
     clientData?.moduleSources && Object.keys(clientData.moduleSources).length ? `MOD|${Object.entries(clientData.moduleSources).map(([k, v]) => `${esc2(k)}=${esc2(String(v).slice(0, 10))}`).join("|")}` : "",
     clientData?.files?.length ? `FL|count=${clientData.files.length}|names=${clientData.files.slice(0, 5).map((f) => esc2(f.name)).join("+")}` : ""
   ].filter(Boolean);
@@ -3220,38 +3274,38 @@ function applyMaxDiffToProfile(profile, maxDiff) {
   }
   return out;
 }
-function exerciseProfileFromAnswers(answers = (
+function exerciseProfileFromAnswers(answers2 = (
   /** @type {AnswersInput} */
   {}
 )) {
-  const gender = normalizeText(answers.gender || "");
+  const gender = normalizeText(answers2.gender || "");
   const isFemale = gender.includes("\u0436\u0435\u043D\u0430");
   const isMale = gender.includes("\u043C\u044A\u0436");
   let minGf = isFemale ? 50 : 35;
   let minGm = isMale ? 50 : 35;
-  const maxDiff = resolveMaxDiff(answers.experience);
+  const maxDiff = resolveMaxDiff(answers2.experience);
   return applyMaxDiffToProfile({ isFemale, isMale, maxDiff, minGf, minGm }, maxDiff);
 }
 function exerciseProfileFromContext(ctx = (
   /** @type {ExerciseProfileContextInput} */
   {}
 )) {
-  const { answers = {}, tags = null, profileText = "" } = ctx;
-  const base = exerciseProfileFromAnswers(answers);
+  const { answers: answers2 = {}, tags = null, profileText = "" } = ctx;
+  const base = exerciseProfileFromAnswers(answers2);
   const tagSet = tags instanceof Set ? tags : new Set(tags || []);
-  if (!answers.gender && tagSet.has("gender:\u0436\u0435\u043D\u0430")) {
+  if (!answers2.gender && tagSet.has("gender:\u0436\u0435\u043D\u0430")) {
     base.isFemale = true;
     base.isMale = false;
     base.minGf = 50;
     base.minGm = 35;
   }
-  if (!answers.gender && tagSet.has("gender:\u043C\u044A\u0436")) {
+  if (!answers2.gender && tagSet.has("gender:\u043C\u044A\u0436")) {
     base.isMale = true;
     base.isFemale = false;
     base.minGm = 50;
     base.minGf = 35;
   }
-  const maxDiff = resolveMaxDiff(answers.experience, tagSet, profileText);
+  const maxDiff = resolveMaxDiff(answers2.experience, tagSet, profileText);
   return applyMaxDiffToProfile(base, maxDiff);
 }
 function fitsExerciseProfile(entry, profile) {
@@ -3624,9 +3678,9 @@ function engineLevel(experience = "") {
   if (e.includes("\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449") && !e.includes("\u0441\u0440\u0435\u0434\u0435\u043D")) return 1;
   return 2;
 }
-function engineGoal(answers = {}) {
-  const main = normalizeText(answers?.goal?.main || "");
-  const other = normalizeText(answers?.goal?.other || "");
+function engineGoal(answers2 = {}) {
+  const main = normalizeText(answers2?.goal?.main || "");
+  const other = normalizeText(answers2?.goal?.other || "");
   const g = main === "\u0434\u0440\u0443\u0433\u043E" ? other : main;
   if (g.includes("\u043E\u0442\u0441\u043B\u0430\u0431") || g.includes("\u0442\u0435\u0433\u043B\u043E") || g.includes("\u043C\u0430\u0437\u043D\u0438\u043D")) return "fat_loss";
   if (g.includes("\u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430") || g.includes("\u043C\u0430\u0441\u0430") || g.includes("\u0445\u0438\u043F\u0435\u0440\u0442\u0440\u043E\u0444")) return "hypertrophy";
@@ -3746,23 +3800,23 @@ var AVOID_RULES = [
   { re: /гребан/, patterns: ["pull_h"] },
   { re: /раменн\w* преса|над глава/, patterns: ["push_v"] }
 ];
-function parseRestrictions(answers = {}) {
-  const limitText = textOf(answers.limitations || []);
-  const hasLimit = (answers.limitations || []).some((l) => l && !normalizeText(l).includes("\u043D\u044F\u043C\u0430\u043C"));
+function parseRestrictions(answers2 = {}) {
+  const limitText = textOf(answers2.limitations || []);
+  const hasLimit = (answers2.limitations || []).some((l) => l && !normalizeText(l).includes("\u043D\u044F\u043C\u0430\u043C"));
   const injuries = hasLimit ? INJURY_RULES.filter((r) => r.re.test(limitText)) : [];
   const unknownLimit = hasLimit && !injuries.length;
-  const avoidText = normalizeText(answers?.preferences?.avoid || "");
+  const avoidText = normalizeText(answers2?.preferences?.avoid || "");
   const avoid = avoidText ? AVOID_RULES.filter((r) => r.re.test(avoidText)) : [];
-  const health = textOf(answers.health || [], answers.healthFemale || [], answers.healthOther || "");
+  const health = textOf(answers2.health || [], answers2.healthFemale || [], answers2.healthOther || "");
   const pregnant = /бремен/.test(health);
   const postpartum = /кърм|следродил|раждане/.test(health);
   const cardiac = /сърдеч/.test(health);
   const hypertension = /хипертон|кръвно/.test(health);
-  const implants = Boolean(answers?.breastImplants?.implants);
-  const age = Number(answers.age) || 30;
-  const sleepPoor = /лошо|нарушение/.test(normalizeText(answers.sleep || ""));
-  const stressHigh = Number(answers.stress) >= 8;
-  const rehabGoal = /рехаб|травм/.test(normalizeText(answers?.goal?.main || ""));
+  const implants = Boolean(answers2?.breastImplants?.implants);
+  const age = Number(answers2.age) || 30;
+  const sleepPoor = /лошо|нарушение/.test(normalizeText(answers2.sleep || ""));
+  const stressHigh = Number(answers2.stress) >= 8;
+  const rehabGoal = /рехаб|травм/.test(normalizeText(answers2?.goal?.main || ""));
   let rpeCap = 8;
   if (pregnant || cardiac || postpartum || rehabGoal) rpeCap = 6;
   else if (hypertension || age >= 65 || unknownLimit || injuries.length) rpeCap = 7;
@@ -3786,18 +3840,18 @@ function parseRestrictions(answers = {}) {
     stressHigh
   };
 }
-function resolveClient(answers = {}) {
-  const gender = normalizeText(answers.gender || "");
+function resolveClient(answers2 = {}) {
+  const gender = normalizeText(answers2.gender || "");
   const isFemale = gender.includes("\u0436\u0435\u043D\u0430");
-  const level = engineLevel(answers.experience);
-  const goal = engineGoal(answers);
-  const restrictions = parseRestrictions(answers);
+  const level = engineLevel(answers2.experience);
+  const goal = engineGoal(answers2);
+  const restrictions = parseRestrictions(answers2);
   let effLevel = level;
   if (restrictions.pregnant || restrictions.cardiac || goal === "rehab") effLevel = 1;
   if (restrictions.age >= 65 && effLevel > 2) effLevel = 2;
-  const sessions = sessionsRequested(answers?.preferences?.freq, effLevel);
-  const minutes = sessionMinutes(answers?.preferences?.duration);
-  const types = (answers?.preferences?.types || []).map((t) => normalizeText(t));
+  const sessions = sessionsRequested(answers2?.preferences?.freq, effLevel);
+  const minutes = sessionMinutes(answers2?.preferences?.duration);
+  const types = (answers2?.preferences?.types || []).map((t) => normalizeText(t));
   const prefs = {
     strength: types.some((t) => t.includes("\u0441\u0438\u043B\u043E\u0432") || t.includes("\u0444\u0443\u043D\u043A\u0446\u0438\u043E\u043D")),
     cardio: types.some((t) => t.includes("\u043A\u0430\u0440\u0434\u0438\u043E")),
@@ -3815,7 +3869,7 @@ function resolveClient(answers = {}) {
     minutes,
     prefs,
     restrictions,
-    zones: parseZones(answers?.goal?.zones || "")
+    zones: parseZones(answers2?.goal?.zones || "")
   };
 }
 var ZONE_PATTERNS = [
@@ -4544,7 +4598,7 @@ function envOf(allowedEquipment) {
   return hasMachines ? "gym" : "home";
 }
 function buildTrainingProgram({
-  answers = {},
+  answers: answers2 = {},
   index = [],
   exerciseProfile = null,
   allowedEquipment = null,
@@ -4552,7 +4606,7 @@ function buildTrainingProgram({
   pickedApparatus = null,
   constraints = null
 }) {
-  const client = resolveClient(answers);
+  const client = resolveClient(answers2);
   const profile = exerciseProfile ? { ...exerciseProfile, maxDiff: client.effLevel } : null;
   const pool = filterExercises(index, profile, allowedEquipment, null, pickedApparatus, allowedGear, constraints?.exclusions || null);
   const env = envOf(allowedEquipment);
@@ -5543,8 +5597,8 @@ var TRAINING_SLOTS = {
   5: [0, 1, 2, 4, 5],
   6: [0, 1, 2, 3, 4, 5]
 };
-function resolveTrainingModality(answers = {}) {
-  const types = (answers?.preferences?.types || []).map((t2) => normalizeText(t2));
+function resolveTrainingModality(answers2 = {}) {
+  const types = (answers2?.preferences?.types || []).map((t2) => normalizeText(t2));
   if (!types.length || types.some((t2) => t2.includes("\u043E\u0442\u0432\u043E\u0440\u0435\u043D"))) return "mixed";
   if (types.length > 1) return "mixed";
   const t = types[0] || "";
@@ -5590,9 +5644,9 @@ function buildWeekDayTypes(sessions, modality, goalNorm = "") {
 function modalitiesInWeek(dayTypes = []) {
   return [...new Set(dayTypes.map((d) => d.type).filter((t) => t && t !== "rest"))];
 }
-function goalKey(answers) {
-  const main = normalizeText(answers?.goal?.main || "");
-  if (main === "\u0434\u0440\u0443\u0433\u043E") return normalizeText(answers?.goal?.other || "") || "\u043E\u0431\u0449\u0430";
+function goalKey(answers2) {
+  const main = normalizeText(answers2?.goal?.main || "");
+  if (main === "\u0434\u0440\u0443\u0433\u043E") return normalizeText(answers2?.goal?.other || "") || "\u043E\u0431\u0449\u0430";
   return GOAL_NORM[main] || main || "\u043E\u0431\u0449\u0430";
 }
 function parseLevel(experience = "") {
@@ -5700,29 +5754,29 @@ function repRangeForGoal(goalNorm, level) {
   if (level === 1) return { reps: "10-12", rest: "75-90s" };
   return { reps: "8-12", rest: "60-90s" };
 }
-function rpeCapFromAnswers(answers = {}) {
+function rpeCapFromAnswers(answers2 = {}) {
   const blob = [
-    ...answers.health || [],
-    ...answers.healthFemale || [],
-    answers.sleep || "",
-    answers.stress != null ? String(answers.stress) : ""
+    ...answers2.health || [],
+    ...answers2.healthFemale || [],
+    answers2.sleep || "",
+    answers2.stress != null ? String(answers2.stress) : ""
   ].join(" ").toLowerCase();
   if (/бременн|кърм|следродил|сърдечно|хипертон|кръвно/i.test(blob)) return 7;
-  if (/лош сън|много лош|stress|стрес.*[89]|стрес.*10/i.test(blob) || Number(answers.stress) >= 8) return 7;
-  if (/рехаб|травм/i.test(normalizeText(answers?.goal?.main || ""))) return 7;
+  if (/лош сън|много лош|stress|стрес.*[89]|стрес.*10/i.test(blob) || Number(answers2.stress) >= 8) return 7;
+  if (/рехаб|травм/i.test(normalizeText(answers2?.goal?.main || ""))) return 7;
   return 8;
 }
-function buildVolumeBudget(answers) {
-  const gender = normalizeText(answers?.gender || "");
+function buildVolumeBudget(answers2) {
+  const gender = normalizeText(answers2?.gender || "");
   const isFemale = gender.includes("\u0436\u0435\u043D\u0430");
   const isMale = gender.includes("\u043C\u044A\u0436");
-  const level = parseLevel(answers?.experience);
-  const goalNorm = goalKey(answers);
+  const level = parseLevel(answers2?.experience);
+  const goalNorm = goalKey(answers2);
   let vol = baseVolumeByGoal(goalNorm);
   if (!vol || typeof vol !== "object" || !Object.keys(vol).length) vol = { ...DEFAULT_VOLUME };
   vol = applyLevelScale(vol, level);
   vol = applyGenderBias(vol, isFemale, isMale);
-  const zonesText = answers?.goal?.zones || "";
+  const zonesText = answers2?.goal?.zones || "";
   const zonesOrdered = parseZonesOrdered(zonesText);
   if (zonesOrdered.length) {
     vol = applyZoneBoost(vol, zonesOrdered);
@@ -5752,18 +5806,18 @@ function buildApproachRationale({
   parts.push("\u0420\u0435\u0434 \u0438 \u043F\u043E\u0434\u0431\u043E\u0440: compound\u2192isolation; \u043F\u043E dayFocus \u0438 \u043E\u0431\u0435\u043C; \u0431\u0435\u0437 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u0438 \u0438\u0437\u0431\u043E\u0440\u0438.");
   return parts.join(" ");
 }
-function buildProgramSpec(answers = {}) {
-  const gender = normalizeText(answers?.gender || "");
+function buildProgramSpec(answers2 = {}) {
+  const gender = normalizeText(answers2?.gender || "");
   const isFemale = gender.includes("\u0436\u0435\u043D\u0430");
-  const level = parseLevel(answers?.experience);
-  const sessions = parseSessionCount(answers?.preferences?.freq);
-  const durationMin = parseDurationMin(answers?.preferences?.duration);
-  const goalNorm = goalKey(answers);
-  const goalLabel = answers?.goal?.main === "\u0414\u0440\u0443\u0433\u043E" ? answers?.goal?.other || "\u0414\u0440\u0443\u0433\u043E" : answers?.goal?.main || "\u2014";
-  const { volume, zonesOrdered, zonesText } = buildVolumeBudget(answers);
+  const level = parseLevel(answers2?.experience);
+  const sessions = parseSessionCount(answers2?.preferences?.freq);
+  const durationMin = parseDurationMin(answers2?.preferences?.duration);
+  const goalNorm = goalKey(answers2);
+  const goalLabel = answers2?.goal?.main === "\u0414\u0440\u0443\u0433\u043E" ? answers2?.goal?.other || "\u0414\u0440\u0443\u0433\u043E" : answers2?.goal?.main || "\u2014";
+  const { volume, zonesOrdered, zonesText } = buildVolumeBudget(answers2);
   const { reps, rest } = repRangeForGoal(goalNorm, level);
-  const rpeMax = rpeCapFromAnswers(answers);
-  const modality = resolveTrainingModality(answers);
+  const rpeMax = rpeCapFromAnswers(answers2);
+  const modality = resolveTrainingModality(answers2);
   const dayTypes = buildWeekDayTypes(sessions, modality, goalNorm);
   let split = suggestSplit(sessions, level, goalNorm, isFemale);
   let orderHint = "compound\u2192isolation; zones\u2193 first each day";
@@ -5845,46 +5899,46 @@ function formatProgramSpecBlock(spec) {
   lines.push("\u0417\u0410\u0414\u042A\u041B\u0416\u0418\u0422\u0415\u041B\u041D\u041E: \u043F\u0440\u043E\u0435\u043A\u0442\u0438\u0440\u0430\u0439 split, dayFocus, \u043E\u0431\u0435\u043C \u0438 reps/rest \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441 \u043A\u043B\u0438\u0435\u043D\u0442\u0430; \u0432\u0441\u044F\u043A\u043E \u0440\u0435\u0448\u0435\u043D\u0438\u0435 \u2014 \u0441 \u043A\u0440\u0430\u0442\u043A\u0430 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u043A\u0430 \u0432 focus \u043D\u0430 \u0434\u0435\u043D\u044F \u0438 \u0432 weeklySplit.");
   return lines.join("\n");
 }
-function buildCompactProfileForPrompt(answers = {}) {
+function buildCompactProfileForPrompt(answers2 = {}) {
   const lines = [];
-  const health = [...answers.health || [], ...answers.healthFemale || []].filter((h) => h && !normalizeText(h).includes("\u043D\u044F\u043C\u0430"));
-  if (answers.healthMeds?.trim()) health.push(`\u043C\u0435\u0434\u0438\u043A\u0430\u043C\u0435\u043D\u0442\u0438: ${answers.healthMeds.trim()}`);
-  if (answers.healthOther?.trim()) health.push(answers.healthOther.trim());
+  const health = [...answers2.health || [], ...answers2.healthFemale || []].filter((h) => h && !normalizeText(h).includes("\u043D\u044F\u043C\u0430"));
+  if (answers2.healthMeds?.trim()) health.push(`\u043C\u0435\u0434\u0438\u043A\u0430\u043C\u0435\u043D\u0442\u0438: ${answers2.healthMeds.trim()}`);
+  if (answers2.healthOther?.trim()) health.push(answers2.healthOther.trim());
   if (health.length) lines.push(`\u0417\u0434\u0440\u0430\u0432\u0435: ${health.join("; ")}`);
-  const limits = (answers.limitations || []).filter((l) => l && !normalizeText(l).includes("\u043D\u044F\u043C\u0430\u043C"));
+  const limits = (answers2.limitations || []).filter((l) => l && !normalizeText(l).includes("\u043D\u044F\u043C\u0430\u043C"));
   if (limits.length) lines.push(`\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F: ${limits.join("; ")}`);
-  if (answers.breastImplants?.implants) {
-    lines.push(`\u0418\u043C\u043F\u043B\u0430\u043D\u0442\u0438: ${answers.breastImplants.implants}`);
+  if (answers2.breastImplants?.implants) {
+    lines.push(`\u0418\u043C\u043F\u043B\u0430\u043D\u0442\u0438: ${answers2.breastImplants.implants}`);
   }
-  if (answers.weightChange?.type && answers.weightChange.type !== "stable") {
-    const dir = answers.weightChange.type === "gain" ? "+" : "\u2212";
-    lines.push(`\u0422\u0435\u0433\u043B\u043E 6\u043C: ${dir}${answers.weightChange.amountKg || "?"} \u043A\u0433${answers.weightChange.reason ? ` (${answers.weightChange.reason})` : ""}`);
+  if (answers2.weightChange?.type && answers2.weightChange.type !== "stable") {
+    const dir = answers2.weightChange.type === "gain" ? "+" : "\u2212";
+    lines.push(`\u0422\u0435\u0433\u043B\u043E 6\u043C: ${dir}${answers2.weightChange.amountKg || "?"} \u043A\u0433${answers2.weightChange.reason ? ` (${answers2.weightChange.reason})` : ""}`);
   }
-  if (answers.dailyActivity) {
-    const act = typeof answers.dailyActivity === "string" ? answers.dailyActivity : answers.dailyActivity.selected || answers.dailyActivity.other || "";
+  if (answers2.dailyActivity) {
+    const act = typeof answers2.dailyActivity === "string" ? answers2.dailyActivity : answers2.dailyActivity.selected || answers2.dailyActivity.other || "";
     if (act) lines.push(`\u0414\u043D\u0435\u0432\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442: ${act}`);
   }
-  if (answers.sportActivity?.status && answers.sportActivity.status !== "\u041D\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u0430\u043C \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430") {
-    lines.push(`\u0421\u043F\u043E\u0440\u0442: ${answers.sportActivity.status}${answers.sportActivity.current ? ` \u2014 ${answers.sportActivity.current}` : ""}`);
+  if (answers2.sportActivity?.status && answers2.sportActivity.status !== "\u041D\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u0430\u043C \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430") {
+    lines.push(`\u0421\u043F\u043E\u0440\u0442: ${answers2.sportActivity.status}${answers2.sportActivity.current ? ` \u2014 ${answers2.sportActivity.current}` : ""}`);
   }
-  if (answers.nutrition?.type) {
-    const nut = answers.nutrition.type === "\u0414\u0440\u0443\u0433\u043E" && answers.nutrition.custom ? answers.nutrition.custom : answers.nutrition.type;
-    if (answers.nutrition.mealsPerDay) {
-      lines.push(`\u0425\u0440\u0430\u043D\u0435\u043D\u0435: ${nut}, ${answers.nutrition.mealsPerDay} \u0445\u0440\u0430\u043D./\u0434\u0435\u043D`);
+  if (answers2.nutrition?.type) {
+    const nut = answers2.nutrition.type === "\u0414\u0440\u0443\u0433\u043E" && answers2.nutrition.custom ? answers2.nutrition.custom : answers2.nutrition.type;
+    if (answers2.nutrition.mealsPerDay) {
+      lines.push(`\u0425\u0440\u0430\u043D\u0435\u043D\u0435: ${nut}, ${answers2.nutrition.mealsPerDay} \u0445\u0440\u0430\u043D./\u0434\u0435\u043D`);
     } else {
       lines.push(`\u0425\u0440\u0430\u043D\u0435\u043D\u0435: ${nut}`);
     }
   }
-  if (answers.goal?.deadline) lines.push(`\u0421\u0440\u043E\u043A: ${answers.goal.deadline}`);
-  const equipExtra = answers.equipmentOther?.trim();
+  if (answers2.goal?.deadline) lines.push(`\u0421\u0440\u043E\u043A: ${answers2.goal.deadline}`);
+  const equipExtra = answers2.equipmentOther?.trim();
   if (equipExtra) lines.push(`\u041E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435 (\u0434\u0440\u0443\u0433\u043E): ${equipExtra}`);
-  if (answers.preferences?.timeOfDay) {
-    lines.push(`\u0412\u0440\u0435\u043C\u0435: ${answers.preferences.timeOfDay}`);
+  if (answers2.preferences?.timeOfDay) {
+    lines.push(`\u0412\u0440\u0435\u043C\u0435: ${answers2.preferences.timeOfDay}`);
   }
-  const sleep = answers.sleep || "";
+  const sleep = answers2.sleep || "";
   if (sleep) lines.push(`\u0421\u044A\u043D: ${sleep}`);
-  if (Number(answers.stress) >= 1) lines.push(`\u0421\u0442\u0440\u0435\u0441: ${answers.stress}/10`);
-  if (answers.extraInfo?.trim()) lines.push(`\u0414\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u043E: ${answers.extraInfo.trim()}`);
+  if (Number(answers2.stress) >= 1) lines.push(`\u0421\u0442\u0440\u0435\u0441: ${answers2.stress}/10`);
+  if (answers2.extraInfo?.trim()) lines.push(`\u0414\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u043E: ${answers2.extraInfo.trim()}`);
   return lines.join("\n");
 }
 
@@ -5924,19 +5978,19 @@ function pickMid(range) {
   if (Array.isArray(range)) return Math.round((range[0] + range[1]) / 2);
   return Number(range) || 0;
 }
-function mapGoalToDsl(answers = {}) {
-  const modality = resolveTrainingModality(answers);
+function mapGoalToDsl(answers2 = {}) {
+  const modality = resolveTrainingModality(answers2);
   if (modality === "mobility") return "mobility";
   if (modality === "cardio" || modality === "hiit") return "conditioning";
-  const g = goalKey(answers);
+  const g = goalKey(answers2);
   if (g.includes("\u043E\u0442\u0441\u043B\u0430\u0431")) return "fat_loss";
   if (g.includes("\u0445\u0438\u043F\u0435\u0440\u0442\u0440\u043E\u0444") || g.includes("\u0441\u0438\u043B\u0430")) return "muscle";
   if (g.includes("\u0438\u0437\u0434\u0440\u044A\u0436\u043B\u0438\u0432")) return "conditioning";
   if (g.includes("\u0440\u0435\u0445\u0430\u0431")) return "mobility";
   return "shape";
 }
-function mapEnvToDsl(answers = {}) {
-  const equip = [...answers.equipment || [], answers.equipmentOther || ""].join(" ").toLowerCase();
+function mapEnvToDsl(answers2 = {}) {
+  const equip = [...answers2.equipment || [], answers2.equipmentOther || ""].join(" ").toLowerCase();
   if (/зала|gym|машин|кардио уред|leg press|кросс/i.test(equip)) return "gym";
   if (/ластик|band|резин/i.test(equip)) return "bands";
   if (/собствено тегло|bodyweight|без оборудване/i.test(equip)) return "bodyweight";
@@ -5946,22 +6000,22 @@ function mapEnvToDsl(answers = {}) {
 function mapLevelToDsl(level) {
   return level <= 1 ? "beginner" : "late_beginner";
 }
-function mapPriority(answers = {}) {
-  const zones = normalizeText(answers?.goal?.zones || "");
+function mapPriority(answers2 = {}) {
+  const zones = normalizeText(answers2?.goal?.zones || "");
   if (/глут|дупе|posture|стойк/i.test(zones)) return "glute";
   if (/гръб|рамо|posture/i.test(zones)) return "posture";
   return "none";
 }
-function mapAnswersToDslInput(answers = {}) {
+function mapAnswersToDslInput(answers2 = {}) {
   const assumptions = [];
-  const freq = parseSessionCount(answers?.preferences?.freq);
-  const sessionMin = parseDurationMin(answers?.preferences?.duration);
-  const level = parseLevel(answers?.experience);
-  const goal = mapGoalToDsl(answers);
-  const env = mapEnvToDsl(answers);
-  if (!answers?.preferences?.freq) assumptions.push("freq=3 (\u043F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435)");
-  if (!answers?.preferences?.duration) assumptions.push("session_min=45 (\u043F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435)");
-  if (!answers?.goal?.main) assumptions.push(`goal=${goal} (\u043F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435)`);
+  const freq = parseSessionCount(answers2?.preferences?.freq);
+  const sessionMin = parseDurationMin(answers2?.preferences?.duration);
+  const level = parseLevel(answers2?.experience);
+  const goal = mapGoalToDsl(answers2);
+  const env = mapEnvToDsl(answers2);
+  if (!answers2?.preferences?.freq) assumptions.push("freq=3 (\u043F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435)");
+  if (!answers2?.preferences?.duration) assumptions.push("session_min=45 (\u043F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435)");
+  if (!answers2?.goal?.main) assumptions.push(`goal=${goal} (\u043F\u043E \u043F\u043E\u0434\u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435)`);
   return {
     goal,
     level: mapLevelToDsl(level),
@@ -5969,8 +6023,8 @@ function mapAnswersToDslInput(answers = {}) {
     env,
     session_min: sessionMin <= 32 ? 30 : sessionMin <= 47 ? 45 : sessionMin <= 67 ? 60 : 75,
     days_available: 7,
-    priority: mapPriority(answers),
-    limits: (answers.limitations || []).filter((l) => l && !normalizeText(l).includes("\u043D\u044F\u043C\u0430\u043C")),
+    priority: mapPriority(answers2),
+    limits: (answers2.limitations || []).filter((l) => l && !normalizeText(l).includes("\u043D\u044F\u043C\u0430\u043C")),
     split: "auto",
     assumptions,
     rawLevel: level
@@ -6080,8 +6134,8 @@ function sessionExerciseBudget(sessionMin) {
   const key = sessionMin <= 32 ? 30 : sessionMin <= 47 ? 45 : sessionMin <= 67 ? 60 : 75;
   return { ...SESSION_BUDGET[key], sessionMin: key };
 }
-function buildDslSpec(answers = {}) {
-  const input = mapAnswersToDslInput(answers);
+function buildDslSpec(answers2 = {}) {
+  const input = mapAnswersToDslInput(answers2);
   const split = resolveSplit(input);
   const { week, counts } = allocateWeekDays(input, split);
   const sessionBudget = sessionExerciseBudget(input.session_min);
@@ -6474,33 +6528,33 @@ function parseAdminBriefConstraints(clientProfile = "", exampleScheme = "") {
     schedule: [...new Set(schedule)]
   };
 }
-function constraintsFromAnswers(answers, exampleScheme = "", options = {}) {
+function constraintsFromAnswers(answers2, exampleScheme = "", options = {}) {
   const strictAssembly = Boolean(options.strictAssembly);
   const equipmentList = [];
-  for (const e of answers?.equipment || []) {
+  for (const e of answers2?.equipment || []) {
     if (e && e !== "\u0414\u0440\u0443\u0433\u043E" && e !== EQUIPMENT_PICKER_OPTION) equipmentList.push(e);
   }
-  for (const id of answers?.equipmentPickedItems || answers?.equipmentPickedGroups || []) {
+  for (const id of answers2?.equipmentPickedItems || answers2?.equipmentPickedGroups || []) {
     equipmentList.push(apparatusLabel(id));
   }
-  if (answers?.equipmentOther) {
-    for (const part of String(answers.equipmentOther).split(/[,;\n]/)) {
+  if (answers2?.equipmentOther) {
+    for (const part of String(answers2.equipmentOther).split(/[,;\n]/)) {
       const t = part.trim();
       if (t) equipmentList.push(t);
     }
   }
   const exclusions = [];
-  if (answers?.preferences?.avoid?.trim()) {
-    exclusions.push(`\u041D\u0435 \u0436\u0435\u043B\u0430\u0435 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F: ${answers.preferences.avoid.trim()}`);
+  if (answers2?.preferences?.avoid?.trim()) {
+    exclusions.push(`\u041D\u0435 \u0436\u0435\u043B\u0430\u0435 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F: ${answers2.preferences.avoid.trim()}`);
   }
-  for (const lim of answers?.limitations || []) {
+  for (const lim of answers2?.limitations || []) {
     if (lim && !normalizeText(lim).includes("\u043D\u044F\u043C\u0430\u043C")) exclusions.push(`\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435: ${lim}`);
   }
-  if (answers?.breastImplants?.implants) {
-    const months = answers.breastImplants.implantMonths ? ` (${answers.breastImplants.implantMonths} \u043C\u0435\u0441. \u0441\u043B\u0435\u0434 \u043E\u043F\u0435\u0440\u0430\u0446\u0438\u044F)` : "";
+  if (answers2?.breastImplants?.implants) {
+    const months = answers2.breastImplants.implantMonths ? ` (${answers2.breastImplants.implantMonths} \u043C\u0435\u0441. \u0441\u043B\u0435\u0434 \u043E\u043F\u0435\u0440\u0430\u0446\u0438\u044F)` : "";
     exclusions.push(`\u0413\u0440\u044A\u0434\u043D\u0438 \u0438\u043C\u043F\u043B\u0430\u043D\u0442\u0438${months}: \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A \u0432\u044A\u0440\u0445\u0443 \u0433\u044A\u0440\u0434\u0438\u0442\u0435 \u2014 \u0431\u0435\u0437 \u043B\u0435\u0436\u0430\u043D\u043A\u0438, \u0444\u043B\u0430\u0439\u0441, \u043A\u0440\u044A\u0441\u0442\u043E\u0441\u0430\u043D\u0438 \u0432\u044A\u0434\u0438\u0446\u0438, \u043F\u0443\u0448-\u044A\u043F, \u043F\u0435\u043A-\u0434\u0435\u043A, \u043A\u0430\u0431\u0435\u043B \u043A\u0440\u044A\u0441\u0442\u043E\u0441\u0432\u0430\u043D\u0435; \u0441\u0430\u043C\u043E \u043B\u0435\u043A\u0438 \u0438\u0437\u043E\u043B\u0438\u0440\u0430\u043D\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u0441 \u043B\u0435\u043A\u0438 \u0442\u0435\u0436\u0435\u0441\u0442\u0438 \u0438 \u0431\u0435\u0437 \u043A\u043E\u043C\u043F\u0440\u0435\u0441\u0438\u044F`);
   }
-  for (const h of [...answers?.health || [], ...answers?.healthFemale || []]) {
+  for (const h of [...answers2?.health || [], ...answers2?.healthFemale || []]) {
     if (/бременн|кърм/i.test(h)) {
       exclusions.push("\u0411\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442/\u043A\u044A\u0440\u043C\u0435\u043D\u0435: \u0431\u0435\u0437 \u043A\u043E\u0440\u0435\u043C\u043D\u0438 \u043F\u0440\u0435\u0441\u0438, \u0431\u0435\u0437 \u043B\u0435\u0436\u0430\u043D\u043A\u0438, \u0431\u0435\u0437 \u0432\u0438\u0441\u043E\u043A \u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442");
       break;
@@ -6606,22 +6660,22 @@ function extractTagsFromText(...parts) {
   for (const raw of explicit) tags.add(raw.toLowerCase().replace(/\s/g, ""));
   return tags;
 }
-function buildTagsFromAnswers(answers) {
+function buildTagsFromAnswers(answers2) {
   const tags = /* @__PURE__ */ new Set();
-  const goal = normalizeText(answers?.goal?.main);
+  const goal = normalizeText(answers2?.goal?.main);
   if (goal && GOAL_TAG_BY_ANSWER[goal]) {
     tags.add(GOAL_TAG_BY_ANSWER[goal]);
-  } else if (goal === "\u0434\u0440\u0443\u0433\u043E" && answers?.goal?.other) {
-    for (const t of extractTagsFromText(answers.goal.other)) tags.add(t);
+  } else if (goal === "\u0434\u0440\u0443\u0433\u043E" && answers2?.goal?.other) {
+    for (const t of extractTagsFromText(answers2.goal.other)) tags.add(t);
   }
-  const gender = normalizeText(answers?.gender || "");
+  const gender = normalizeText(answers2?.gender || "");
   if (gender.includes("\u0436\u0435\u043D\u0430")) tags.add("gender:\u0436\u0435\u043D\u0430");
   else if (gender.includes("\u043C\u044A\u0436")) tags.add("gender:\u043C\u044A\u0436");
-  const exp = normalizeText(answers?.experience || "");
+  const exp = normalizeText(answers2?.experience || "");
   if (exp.includes("\u043D\u0438\u043A\u0430\u043A\u044A\u0432") || exp.includes("\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449")) tags.add("level:\u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449");
   else if (exp.includes("\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B")) tags.add("level:\u043D\u0430\u043F\u0440\u0435\u0434\u043D\u0430\u043B");
   else if (exp.includes("\u0441\u0440\u0435\u0434\u0435\u043D")) tags.add("level:\u0441\u0440\u0435\u0434\u0435\u043D");
-  const health = [...answers?.health || [], ...answers?.healthFemale || []].map(normalizeText).join(" ");
+  const health = [...answers2?.health || [], ...answers2?.healthFemale || []].map(normalizeText).join(" ");
   if (health.includes("\u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F")) tags.add("health:\u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F");
   if (health.includes("\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E")) tags.add("health:\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u043E");
   if (health.includes("\u0434\u0438\u0430\u0431\u0435\u0442")) tags.add("health:\u0434\u0438\u0430\u0431\u0435\u0442");
@@ -6629,21 +6683,21 @@ function buildTagsFromAnswers(answers) {
   if (health.includes("\u0441\u043B\u0435\u0434\u0440\u043E\u0434\u0438\u043B") || health.includes("\u0441\u043B\u0435\u0434 \u0440\u0430\u0436\u0434\u0430\u043D\u0435")) tags.add("health:\u0441\u043B\u0435\u0434\u0440\u043E\u0434\u0438\u043B\u0435\u043D");
   if (health.includes("\u043A\u044A\u0440\u043C\u0435\u043D\u0435") || health.includes("\u043A\u044A\u0440\u043C\u044F")) tags.add("health:\u043A\u044A\u0440\u043C\u0435\u043D\u0435");
   if (health.includes("\u043C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430")) tags.add("health:\u043C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430");
-  if (normalizeText(answers?.sleep || "").includes("\u043B\u043E\u0448\u043E") || Number(answers?.stress) >= 8) {
+  if (normalizeText(answers2?.sleep || "").includes("\u043B\u043E\u0448\u043E") || Number(answers2?.stress) >= 8) {
     tags.add("sleep:\u043B\u043E\u0448\u043E");
     tags.add("stress:\u0432\u0438\u0441\u043E\u043A");
   }
-  const equipment = answers?.equipment || [];
+  const equipment = answers2?.equipment || [];
   const hasGym = equipment.some((e) => normalizeText(e).includes("\u0437\u0430\u043B\u0430"));
   if (!hasGym && equipment.length <= 2) tags.add("equipment:\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043E");
-  if (normalizeText(answers?.preferences?.timeOfDay || "").includes("\u0441\u0443\u0442\u0440\u0438\u043D")) tags.add("time:\u0441\u0443\u0442\u0440\u0438\u043D");
-  if (Number(answers?.age) >= 50) tags.add("age:50+");
+  if (normalizeText(answers2?.preferences?.timeOfDay || "").includes("\u0441\u0443\u0442\u0440\u0438\u043D")) tags.add("time:\u0441\u0443\u0442\u0440\u0438\u043D");
+  if (Number(answers2?.age) >= 50) tags.add("age:50+");
   const freeText = [
-    answers?.goal?.other,
-    answers?.extraInfo,
-    answers?.preferences?.avoid,
-    answers?.healthOther,
-    ...answers?.limitations || []
+    answers2?.goal?.other,
+    answers2?.extraInfo,
+    answers2?.preferences?.avoid,
+    answers2?.healthOther,
+    ...answers2?.limitations || []
   ].filter(Boolean).join(" ");
   for (const t of extractTagsFromText(freeText)) tags.add(t);
   return tags;
@@ -6929,9 +6983,9 @@ function auditPlan(plan, {
   return { ok: issues.length === 0, issues };
 }
 function preparePlanGeneration(source, adminConfig, helpers) {
-  function buildFromAnswers(answers, extra = {}) {
-    const profileText = answers?.gender ? helpers.buildProfileSummary(answers) : "";
-    const tags = answers?.gender ? buildTagsFromAnswers(answers) : /* @__PURE__ */ new Set();
+  function buildFromAnswers(answers2, extra = {}) {
+    const profileText = answers2?.gender ? helpers.buildProfileSummary(answers2) : "";
+    const tags = answers2?.gender ? buildTagsFromAnswers(answers2) : /* @__PURE__ */ new Set();
     const schemeText = String(extra.exampleScheme || "").trim();
     const schemeKind = classifySchemeInput(schemeText);
     for (const t of extractTagsFromText(profileText, schemeText)) {
@@ -6942,12 +6996,12 @@ function preparePlanGeneration(source, adminConfig, helpers) {
     const structuredScheme = schemeKind === "structured";
     const schemeMode = strictAssembly || structuredScheme;
     const layers = resolveGuidelineLayers(tags, adminConfig, { schemeMode, strictAssembly });
-    const programSpec = !strictAssembly && answers?.gender ? buildProgramSpec(answers) : null;
-    const dslSpec = !strictAssembly && answers?.gender ? buildDslSpec(answers) : null;
-    const planConstraints = constraintsFromAnswers(answers || {}, schemeText, { strictAssembly });
+    const programSpec = !strictAssembly && answers2?.gender ? buildProgramSpec(answers2) : null;
+    const dslSpec = !strictAssembly && answers2?.gender ? buildDslSpec(answers2) : null;
+    const planConstraints = constraintsFromAnswers(answers2 || {}, schemeText, { strictAssembly });
     const brief = {
       clientProfile: profileText,
-      compactProfile: programSpec ? buildCompactProfileForPrompt(answers) : profileText,
+      compactProfile: programSpec ? buildCompactProfileForPrompt(answers2) : profileText,
       exampleScheme: structuredScheme ? schemeText : "",
       trainerBrief: schemeKind === "brief" ? schemeText : "",
       constraints: planConstraints,
@@ -6955,10 +7009,10 @@ function preparePlanGeneration(source, adminConfig, helpers) {
       programSpec,
       dslSpec
     };
-    const equipmentInput = expandEquipmentAnswers2([...answers?.equipment || [], answers?.equipmentOther].filter(Boolean));
+    const equipmentInput = expandEquipmentAnswers2([...answers2?.equipment || [], answers2?.equipmentOther].filter(Boolean));
     const fromBrief = allowedEquipmentFromBrief(profileText, schemeText);
-    const fromAnswers = helpers.allowedEquipmentSet(equipmentInput, answers?.equipmentPickedItems || answers?.equipmentPickedGroups);
-    const pickedApparatus = (answers?.equipmentPickedItems || answers?.equipmentPickedGroups)?.length ? [...answers.equipmentPickedItems || answers.equipmentPickedGroups] : null;
+    const fromAnswers = helpers.allowedEquipmentSet(equipmentInput, answers2?.equipmentPickedItems || answers2?.equipmentPickedGroups);
+    const pickedApparatus = (answers2?.equipmentPickedItems || answers2?.equipmentPickedGroups)?.length ? [...answers2.equipmentPickedItems || answers2.equipmentPickedGroups] : null;
     const fromAnswersGear = resolveAllowedGear(equipmentInput, pickedApparatus || []);
     const allowedGear = fromAnswers === null ? null : fromAnswersGear;
     return {
@@ -6972,7 +7026,7 @@ function preparePlanGeneration(source, adminConfig, helpers) {
       hasScheme: structuredScheme,
       strictAssembly,
       exerciseProfile: strictAssembly ? null : exerciseProfileFromContext({
-        answers,
+        answers: answers2,
         tags,
         profileText: [profileText, schemeText].filter(Boolean).join("\n")
       }),
@@ -6983,8 +7037,8 @@ function preparePlanGeneration(source, adminConfig, helpers) {
     };
   }
   if (source.clientAnswers || source.strictScheme) {
-    const answers = source.clientAnswers || {};
-    const profileText = answers.gender ? helpers.buildProfileSummary(answers) : "";
+    const answers2 = source.clientAnswers || {};
+    const profileText = answers2.gender ? helpers.buildProfileSummary(answers2) : "";
     const coachProfileText = [
       source.clientName ? `\u041A\u043B\u0438\u0435\u043D\u0442: ${source.clientName}` : "\u041A\u043B\u0438\u0435\u043D\u0442: \u2014",
       source.clientContact ? `\u041A\u043E\u043D\u0442\u0430\u043A\u0442: ${source.clientContact}` : "",
@@ -6994,7 +7048,7 @@ ${profileText}` : "",
 \u0421\u0445\u0435\u043C\u0430:
 ${source.exampleScheme}` : ""
     ].filter(Boolean).join("\n");
-    return buildFromAnswers(answers, {
+    return buildFromAnswers(answers2, {
       exampleScheme: source.exampleScheme || "",
       coachProfileText,
       strictScheme: source.strictScheme
@@ -7821,16 +7875,16 @@ async function executePlanGeneration(env, ctx, {
   constraints = null,
   programSpec = null,
   dslSpec = null,
-  answers = null,
+  answers: answers2 = null,
   trainerBrief = false
 }) {
   const indexPromise = loadExerciseIndex(env, ctx);
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
-  if (answers?.gender && !strictAssembly && !hasScheme && !trainerBrief && env.PLAN_ENGINE !== "ai") {
+  if (answers2?.gender && !strictAssembly && !hasScheme && !trainerBrief && env.PLAN_ENGINE !== "ai") {
     const index2 = await indexPromise;
     if (index2?.length) {
       const { plan: plan2, meta } = buildTrainingProgram({
-        answers,
+        answers: answers2,
         index: index2,
         exerciseProfile,
         allowedEquipment,
@@ -7973,9 +8027,9 @@ async function handleGeneratePlan(request, env, ctx) {
   } catch {
     return errorResponse("\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON", 400);
   }
-  const answers = body.answers;
-  if (!answers || typeof answers !== "object") return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430", 400);
-  if (!answers.gender || !answers.age) return errorResponse("\u041D\u0435\u043F\u044A\u043B\u043D\u0438 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0434\u0430\u043D\u043D\u0438", 400);
+  const answers2 = body.answers;
+  if (!answers2 || typeof answers2 !== "object") return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430", 400);
+  if (!answers2.gender || !answers2.age) return errorResponse("\u041D\u0435\u043F\u044A\u043B\u043D\u0438 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0434\u0430\u043D\u043D\u0438", 400);
   const genLimit = Number(env.GEN_DAILY_LIMIT) || 12;
   const rl = await checkDailyLimit(env, "gen", clientIp(request), genLimit);
   if (!rl.allowed) {
@@ -7983,7 +8037,7 @@ async function handleGeneratePlan(request, env, ctx) {
   }
   const adminGuidelines = await loadAdminGuidelines(env);
   const { userPrompt, coachProfileText, allowedEquipment, allowedGear, pickedApparatus, clientTags, guidelineLayers, hasScheme, strictAssembly, exerciseProfile, constraints, programSpec, dslSpec, schemeKind } = preparePlanGeneration(
-    { answers },
+    { answers: answers2 },
     adminGuidelines,
     { buildProfileSummary, allowedEquipmentSet }
   );
@@ -8005,7 +8059,7 @@ async function handleGeneratePlan(request, env, ctx) {
       constraints,
       programSpec,
       dslSpec,
-      answers,
+      answers: answers2,
       trainerBrief: schemeKind === "brief"
     }));
   } catch (e) {
@@ -8360,9 +8414,9 @@ async function handleSubmitConsultation(request, env) {
   }
   const access = await validateConsultAccess(env, body.accessKey);
   if (!access.ok) return errorResponse(access.message, 403, "forbidden");
-  const answers = body.answers;
-  if (!answers || typeof answers !== "object") return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438", 400);
-  if (!answers.gender || !answers.age) return errorResponse("\u041D\u0435\u043F\u044A\u043B\u043D\u0438 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0434\u0430\u043D\u043D\u0438", 400);
+  const answers2 = body.answers;
+  if (!answers2 || typeof answers2 !== "object") return errorResponse("\u041B\u0438\u043F\u0441\u0432\u0430\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438", 400);
+  if (!answers2.gender || !answers2.age) return errorResponse("\u041D\u0435\u043F\u044A\u043B\u043D\u0438 \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0434\u0430\u043D\u043D\u0438", 400);
   const client = body.client || {};
   const name = String(client.name || "").trim();
   const contact = String(client.contact || "").trim();
@@ -8372,9 +8426,9 @@ async function handleSubmitConsultation(request, env) {
     id,
     clientName: name,
     clientContact: contact,
-    answers,
+    answers: answers2,
     formState: body.formState && typeof body.formState === "object" ? body.formState : null,
-    summary: buildProfileSummary(answers),
+    summary: buildProfileSummary(answers2),
     status: "new",
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     userAgent: request.headers.get("User-Agent") || ""
@@ -44099,8 +44153,8 @@ function weeklyQuestionsFor(ctx = {}) {
 }
 var ADHERENCE_ANSWERS = { "\u041F\u043E\u0447\u0442\u0438 \u0432\u0441\u0438\u0447\u043A\u0438": 95, "\u041F\u043E\u0432\u0435\u0447\u0435\u0442\u043E": 80, "\u041E\u043A\u043E\u043B\u043E \u043F\u043E\u043B\u043E\u0432\u0438\u043D\u0430\u0442\u0430": 50, "\u041C\u0430\u043B\u043A\u043E": 25 };
 var LEVEL_ANSWERS = { "\u0420\u044F\u0434\u043A\u043E": 1, "\u041F\u043E\u043D\u044F\u043A\u043E\u0433\u0430": 2, "\u0427\u0435\u0441\u0442\u043E": 3, "\u0414\u043E\u0431\u0440\u0430": 1, "\u0421\u0440\u0435\u0434\u043D\u0430": 2, "\u041D\u0438\u0441\u043A\u0430": 3 };
-function answerOf(answers, id) {
-  const hit = (answers || []).find((a) => a.questionId === id);
+function answerOf(answers2, id) {
+  const hit = (answers2 || []).find((a) => a.questionId === id);
   return hit ? String(hit.value) : null;
 }
 var FLAT_KG = 0.2;
@@ -44111,15 +44165,15 @@ var SLOW_LOSS_SHARE = 0.4;
 var MAX_SPAN_DAYS = 84;
 var FIRST_WEEK_FAST_RATE = 0.03;
 var WAIST_PROGRESS_CM = 1;
-function readCheckin(answers, analytics, previous = {}) {
-  const weightAnswer = answerOf(answers, "weight");
-  const adherenceAnswer = answerOf(answers, "adherence");
+function readCheckin(answers2, analytics, previous = {}) {
+  const weightAnswer = answerOf(answers2, "weight");
+  const adherenceAnswer = answerOf(answers2, "adherence");
   const appValue = analytics?.status === "active" && (analytics.mealDays || 0) >= 3 && analytics.mealAdherence != null ? Number(analytics.mealAdherence) : null;
   const fromAnswer = adherenceAnswer ? ADHERENCE_ANSWERS[adherenceAnswer] ?? null : null;
   let adherence = null;
   if (fromAnswer != null && appValue != null) adherence = Math.round((fromAnswer + appValue) / 2);
   else adherence = fromAnswer ?? appValue;
-  const kg = Number(String(answerOf(answers, "weightKg") || "").replace(",", "."));
+  const kg = Number(String(answerOf(answers2, "weightKg") || "").replace(",", "."));
   const weightKg = kg >= 30 && kg <= 300 ? kg : null;
   let weeklyChangeKg = null;
   const prev = Number(previous.prevWeightKg) || null;
@@ -44128,13 +44182,13 @@ function readCheckin(answers, analytics, previous = {}) {
     const span = Number.isFinite(days) && days > 0 ? days : 7;
     weeklyChangeKg = span >= 4 && span <= MAX_SPAN_DAYS ? Math.round((weightKg - prev) / span * 7 * 100) / 100 : null;
   }
-  const trend = Number(answerOf(answers, "weightTrendKgWeek"));
-  if (answerOf(answers, "weightTrendKgWeek") != null && Number.isFinite(trend) && Math.abs(trend) <= 3) weeklyChangeKg = trend;
-  const cm = Number(String(answerOf(answers, "waistCm") || "").replace(",", "."));
+  const trend = Number(answerOf(answers2, "weightTrendKgWeek"));
+  if (answerOf(answers2, "weightTrendKgWeek") != null && Number.isFinite(trend) && Math.abs(trend) <= 3) weeklyChangeKg = trend;
+  const cm = Number(String(answerOf(answers2, "waistCm") || "").replace(",", "."));
   const waistCm = cm >= 40 && cm <= 200 ? Math.round(cm * 10) / 10 : null;
   const prevWaist = Number(previous.prevWaistCm) || null;
   const waistChangeCm = waistCm && prevWaist ? Math.round((waistCm - prevWaist) * 10) / 10 : null;
-  const intake = Number(answerOf(answers, "intakeKcal"));
+  const intake = Number(answerOf(answers2, "intakeKcal"));
   return {
     weight: weightAnswer ? WEIGHT_ANSWERS[weightAnswer] ?? null : null,
     weightKg,
@@ -44142,12 +44196,12 @@ function readCheckin(answers, analytics, previous = {}) {
     waistCm,
     waistChangeCm,
     intakeKcal: intake >= 500 && intake <= 8e3 ? Math.round(intake) : null,
-    recoveryLow: answerOf(answers, "recoveryLow") === "true",
-    leanLoss: answerOf(answers, "leanLoss") === "true",
+    recoveryLow: answerOf(answers2, "recoveryLow") === "true",
+    leanLoss: answerOf(answers2, "leanLoss") === "true",
     adherence,
-    hunger: LEVEL_ANSWERS[answerOf(answers, "hunger")] || null,
-    energy: LEVEL_ANSWERS[answerOf(answers, "energy")] || null,
-    difficulty: answerOf(answers, "difficulty"),
+    hunger: LEVEL_ANSWERS[answerOf(answers2, "hunger")] || null,
+    energy: LEVEL_ANSWERS[answerOf(answers2, "energy")] || null,
+    difficulty: answerOf(answers2, "difficulty"),
     junk: analytics?.junk7 || 0
   };
 }
@@ -45505,7 +45559,7 @@ var SITE_ALLERGIES = ["shellfish", "soy", "gluten", "lactose", "nuts", "none", "
 var SITE_SYMPTOMS = ["fatigue", "cravings", "poor_sleep", "joint_pain", "concentration", "cramps", "hair_nails", "none", "other"];
 function normalizeSiteQuiz(raw) {
   const a = raw.answers && typeof raw.answers === "object" ? raw.answers : {};
-  const answers = {
+  const answers2 = {
     name: str2(a.name, 60),
     email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str2(a.email, 120)) ? str2(a.email, 120).toLowerCase() : "",
     sex: pick(a.sex, ["female", "male"]),
@@ -45532,8 +45586,8 @@ function normalizeSiteQuiz(raw) {
     tier: str2(p.tier, 60),
     products: (Array.isArray(p.products) ? p.products : []).slice(0, 10).map((x) => ({ name: str2(x?.name, 100), dose: str2(x?.dose, 80), timing: str2(x?.timing, 60) })).filter((x) => x.name)
   };
-  if (!answers.sex && !answers.weight_kg) return null;
-  return { answers, protocol };
+  if (!answers2.sex && !answers2.weight_kg) return null;
+  return { answers: answers2, protocol };
 }
 function normalizeHandoff(raw, now = /* @__PURE__ */ new Date()) {
   if (!raw || typeof raw !== "object") return null;
@@ -48392,11 +48446,11 @@ function normalizeStrategyDessertFlag(strategy, userData) {
 }
 function ensureProfileMetricsOnData(data) {
   if (!data || typeof data !== "object") return data;
-  const answers = data.answers;
-  if (answers && typeof answers === "object") {
+  const answers2 = data.answers;
+  if (answers2 && typeof answers2 === "object") {
     for (const key of ["weight", "height", "age", "gender", "goal", "name", "email"]) {
-      if ((data[key] == null || data[key] === "") && answers[key] != null && answers[key] !== "") {
-        data[key] = answers[key];
+      if ((data[key] == null || data[key] === "") && answers2[key] != null && answers2[key] !== "") {
+        data[key] = answers2[key];
       }
     }
   }
@@ -50740,7 +50794,7 @@ var ENGINE_INPUT_ANSWER_KEYS = [
   "mealsPerDay",
   "userFoodList"
 ];
-var engineInputsOf = (answers) => JSON.stringify(ENGINE_INPUT_ANSWER_KEYS.map((k) => answers?.[k] ?? null));
+var engineInputsOf = (answers2) => JSON.stringify(ENGINE_INPUT_ANSWER_KEYS.map((k) => answers2?.[k] ?? null));
 async function applyAssistantPatches(env, session, clientData, patches, ctx) {
   const patchDoc = buildPatchDocument(clientData);
   const inputsBefore = engineInputsOf(clientData.answers);
@@ -51020,11 +51074,11 @@ function previousWeighIn(userData, plan, history) {
   const kg = parseFloat(String(userData?.weight || "").replace(",", "."));
   return kg > 0 ? { kg, at: plan?._meta?.generatedAt || plan?.createdAt || null } : null;
 }
-function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history) {
+function getWeeklyAdaptationDecision(userData, plan, analytics, answers2, history) {
   const prev = previousWeighIn(userData, plan, history || []);
   const daysSincePrev = prev?.at ? (Date.now() - Date.parse(prev.at)) / 864e5 : null;
   const prevWaistCm = [...history || []].reverse().find((h) => Number(h?.waistCm) > 0)?.waistCm ?? null;
-  const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev, prevWaistCm });
+  const checkin = readCheckin(answers2, analytics, { prevWeightKg: prev?.kg, daysSincePrev, prevWaistCm });
   if (checkin.weightKg && userData) userData.weight = String(checkin.weightKg);
   const profile = compileProfile(userData || {});
   const { tdee } = computeBackendEnergyInputs(userData);
@@ -51149,7 +51203,7 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   return { analysis: probe, before, after, reason: `\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438${why ? ` (${why})` : ""}: ${before} \u2192 ${after} kcal.` };
 }
 async function runWeeklyAdaptation(env, payload, jobId) {
-  const { userId, gameWeeklyAI, answers, clientId } = payload;
+  const { userId, gameWeeklyAI, answers: answers2, clientId } = payload;
   const t0 = Date.now();
   const writeAdaptJob = async (body) => {
     if (!env.page_content || !jobId) return;
@@ -51167,10 +51221,10 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const enrichedData = normalizeQuestionnaireData(userData);
     await applyIntakeHints(env, enrichedData);
     if (enrichment) applyEnrichment(enrichedData, enrichment);
-    let checkinAnswers = answers;
+    let checkinAnswers = answers2;
     const deviceKg = enrichedData._enrichment?.checkin?.weightKg;
-    if (deviceKg && !(answers || []).some((a) => a.questionId === "weightKg" && String(a.value || "").trim())) {
-      checkinAnswers = [...answers || [], { questionId: "weightKg", value: String(deviceKg), source: "device" }];
+    if (deviceKg && !(answers2 || []).some((a) => a.questionId === "weightKg" && String(a.value || "").trim())) {
+      checkinAnswers = [...answers2 || [], { questionId: "weightKg", value: String(deviceKg), source: "device" }];
     }
     const deviceIntake = enrichedData._enrichment?.checkin?.intakeKcal;
     if (deviceIntake) checkinAnswers = [...checkinAnswers, { questionId: "intakeKcal", value: String(deviceIntake), source: "device" }];
@@ -51185,7 +51239,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       decision.changeSummary = [`\u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D\u0438 \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438: ${recal.before} \u2192 ${recal.after} kcal`, ...decision.changeSummary].slice(0, 4);
       decision.reasoning = `${recal.reason} ${decision.reasoning}`.trim();
     }
-    const note = String((answers || []).find((a) => a.questionId === "note")?.value || "").trim();
+    const note = String((answers2 || []).find((a) => a.questionId === "note")?.value || "").trim();
     if (note.length >= 6) {
       const hints = normalizeFeedbackHints(await aiHelperJson(env, "admin_feedback_hints_prompt", {
         freeText: note.slice(0, 500),
@@ -51322,8 +51376,8 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
   try {
     if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     const body = await request.json();
-    const { userId, gameData, gameWeeklyAI, answers, questions, clientId, idToken, userData, plan } = body;
-    if (!userId || !answers?.length) {
+    const { userId, gameData, gameWeeklyAI, answers: answers2, questions, clientId, idToken, userData, plan } = body;
+    if (!userId || !answers2?.length) {
       return jsonResponse2({ error: "Missing userId or answers" }, 400);
     }
     try {
@@ -51348,7 +51402,7 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       userData,
       plan: resolvedPlan,
       gameWeeklyAI: { ...gameWeeklyAI || {}, cycleNumber: resolvedCycle },
-      answers,
+      answers: answers2,
       questions
     };
     if (env.PLAN_QUEUE) {
@@ -51413,14 +51467,21 @@ async function handleSyncAnalytics(request, env) {
     if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
     const authError = await checkFirebaseOwner(userId, idToken, env, request);
     if (authError) return authError;
-    const summary = buildAnalyticsSummary(gameData || {}, gameWeeklyAI || {});
-    const ledger = plan?.weekPlan && gameData ? serializeFoodLedger(buildFoodLedger(plan.weekPlan, gameData, gameWeeklyAI || {})) : null;
-    await persistAnalyticsAndLedger(env, userId, summary, ledger, clientId || "");
-    return jsonResponse2({
-      success: true,
-      analytics: summary,
-      status: summary.status
-    });
+    const stateKey = `game_state:${userId}`;
+    const stored = await kvGetJSON(env, stateKey) || {};
+    const merged = mergeGameData(stored.gameData || {}, gameData || {});
+    const weekly = { ...stored.gameWeeklyAI || {}, ...gameWeeklyAI || {} };
+    if (JSON.stringify(merged) !== JSON.stringify(stored.gameData || {}) || JSON.stringify(weekly) !== JSON.stringify(stored.gameWeeklyAI || {})) {
+      const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+      await kvPutJSON(env, stateKey, { gameData: merged, gameWeeklyAI: weekly, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }, ttl);
+    }
+    if (Object.keys(merged).length) {
+      const summary = buildAnalyticsSummary(merged, weekly);
+      const ledger = plan?.weekPlan ? serializeFoodLedger(buildFoodLedger(plan.weekPlan, merged, weekly)) : null;
+      await persistAnalyticsAndLedger(env, userId, summary, ledger, clientId || "");
+      return jsonResponse2({ success: true, analytics: summary, status: summary.status, gameData: merged, gameWeeklyAI: weekly });
+    }
+    return jsonResponse2({ success: true, gameData: {}, gameWeeklyAI: weekly });
   } catch (error) {
     console.error("[Analytics] sync error:", error);
     return jsonResponse2({ error: error.message }, 500);
@@ -52729,19 +52790,19 @@ function personalHacks(plan, baseHacks, protocolHacks = null) {
 async function applyIntakeHints(env, data) {
   const items = collectFreeText(data);
   const freeFields = new Set(items.map((i) => i.field));
-  const answers = collectQuestionAnswers(data, protocolQuestionLabels(data.clinicalProtocol)).filter((a) => !freeFields.has(a.field));
+  const answers2 = collectQuestionAnswers(data, protocolQuestionLabels(data.clinicalProtocol)).filter((a) => !freeFields.has(a.field));
   const { _aiHints: previous, ...rest } = data;
   const profile = compileProfile(rest);
   const unmapped = profile.unmapped || [];
-  if (!items.length && !unmapped.length && !answers.length) {
+  if (!items.length && !unmapped.length && !answers2.length) {
     delete data._aiHints;
     return;
   }
-  const hash = textHash([...items, ...answers, ...unmapped.map((u) => ({ field: "unmapped", text: u }))]);
+  const hash = textHash([...items, ...answers2, ...unmapped.map((u) => ({ field: "unmapped", text: u }))]);
   if (previous?.hash === hash) return;
   const raw = await aiHelperJson(env, "admin_intake_hints_prompt", {
     freeText: freeTextBlock(items),
-    answers: freeTextBlock(answers),
+    answers: freeTextBlock(answers2),
     profileSummary: profileBrief(profile),
     unmapped: unmapped.length ? unmapped.map((u) => `- ${u}`).join("\n") : "\u043D\u044F\u043C\u0430",
     exclusionsList: describeCodes(VOCABULARY.exclusions),
@@ -54885,14 +54946,14 @@ function serializeEmoeatProfile(profile) {
   }
   return lines.join("\n");
 }
-function serializeEmoeatAnswers(answers) {
-  return Object.keys(answers).filter((k) => /^\d{1,3}$/.test(k)).sort((a, b) => Number(a) - Number(b)).map((k) => String(answers[k] || "").replace(/[\r\n]+/g, " ").trim().slice(0, 400)).filter(Boolean).slice(0, 24).map((line2) => "- " + line2).join("\n");
+function serializeEmoeatAnswers(answers2) {
+  return Object.keys(answers2).filter((k) => /^\d{1,3}$/.test(k)).sort((a, b) => Number(a) - Number(b)).map((k) => String(answers2[k] || "").replace(/[\r\n]+/g, " ").trim().slice(0, 400)).filter(Boolean).slice(0, 24).map((line2) => "- " + line2).join("\n");
 }
-async function generateEmoeatPrompt(answers, profile, env) {
+async function generateEmoeatPrompt(answers2, profile, env) {
   const customPrompt = await requireKvPrompt(env, "admin_emoeat_prompt");
   const variables = {
     computedProfile: serializeEmoeatProfile(profile),
-    answers: serializeEmoeatAnswers(answers) || "(\u0431\u0435\u0437 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438)"
+    answers: serializeEmoeatAnswers(answers2) || "(\u0431\u0435\u0437 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438)"
   };
   return replacePromptVariables(customPrompt, variables);
 }
