@@ -76,7 +76,7 @@
      */
     async function submit(payload, source) {
         if (!hasConsent(source)) throw new Error('Няма съгласие за този източник');
-        return keepEssence(await post('/api/enrichment', payload));
+        return dropCache(keepEssence(await post('/api/enrichment', payload)));
     }
 
     /** Есенцията за чата пътува с отговорите на сървъра и се пази локално. */
@@ -119,27 +119,49 @@
         return a;
     }
 
+    // Общ кеш на отговора на /get за всички табове: най-много една заявка на 3 часа.
+    // Всяка промяна (изпращане, отговор, изтриване) го изчиства.
+    var CACHE_KEY = 'np_enrichment_cache';
+    var CACHE_MS = 3 * 3600 * 1000;
+    function dropCache(data) { try { localStorage.removeItem(CACHE_KEY); } catch (_) {} return data; }
+    function getFresh() {
+        return post('/api/enrichment/get', {}).then(keepEssence).then(function (data) {
+            try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data: data })); } catch (_) {}
+            return data;
+        });
+    }
+    function getCached(maxAgeMs) {
+        try {
+            var c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+            if (c && c.data && Date.now() - c.at < (maxAgeMs || CACHE_MS)) return Promise.resolve(c.data);
+        } catch (_) {}
+        return getFresh();
+    }
+
     global.NutriPlanEnrichment = {
         hasPlanProfile: function () { return !!userId(); },
         hasConsent: hasConsent,
         setConsent: setConsent,
         submit: submit,
-        get: function () { return post('/api/enrichment/get', {}).then(keepEssence); },
+        get: getFresh,
+        /** От кеша, ако е по-нов от 3 часа — за отваряне на табове. */
+        getCached: getCached,
+        dropCache: dropCache,
         /** Последният реанализ, запазен локално (или null). */
         hasReanalysisData: hasReanalysisData,
         withReanalysis: withReanalysis,
         cachedReanalysis: function () { try { return JSON.parse(localStorage.getItem('np_reanalysis') || 'null'); } catch (_) { return null; } },
         extractLabs: function (imageData, mimeType) { return post('/api/enrichment/extract-labs', { imageData: imageData, mimeType: mimeType }); },
         /** Отговор на въпрос за разминаване между източниците — самият отговор е съгласието. */
-        resolve: function (questionId, answer) { return post('/api/enrichment/resolve', { questionId: questionId, answer: answer }).then(keepEssence); },
+        resolve: function (questionId, answer) { return post('/api/enrichment/resolve', { questionId: questionId, answer: answer }).then(keepEssence).then(dropCache); },
         extractDevice: function (imageData, mimeType) { return post('/api/enrichment/extract-device', { imageData: imageData, mimeType: mimeType }); },
         assessDocument: function (doc) { return post('/api/enrichment/assess-document', doc || {}); },
-        removeDocument: function (id) { return post('/api/enrichment/delete', { documentIds: [id] }).then(function (r) { return post('/api/enrichment/get', {}).then(keepEssence).then(function (g) { return Object.assign({}, r, { derived: g.derived }); }); }); },
+        removeDocument: function (id) { return post('/api/enrichment/delete', { documentIds: [id] }).then(function (r) { return getFresh().then(function (g) { return Object.assign({}, r, { derived: g.derived }); }); }); },
         remove: function (kinds) {
             // След изтриване есенцията се презарежда — остава само от данните, които още са в профила.
             return post('/api/enrichment/delete', { kinds: kinds || null }).then(function (r) {
                 try { localStorage.removeItem('np_health_essence'); } catch (_) {}
-                return post('/api/enrichment/get', {}).then(keepEssence).catch(function () {}).then(function () { return r; });
+                return getFresh().catch(function () {}).then(function () { return r; });
             });
         },
         describeChange: describeChange,
@@ -147,7 +169,7 @@
         linkProviders: function () { return post('/api/links/providers', {}); },
         /** Адресът за вход при доставчика; returnTo — къде да се върне браузърът (само в уеб). */
         startLink: function (provider, returnTo) { return post('/api/links/start', { provider: provider, returnTo: returnTo || null }); },
-        syncLinks: function (force) { return post('/api/links/sync', { force: !!force }).then(keepEssence); },
+        syncLinks: function (force) { return post('/api/links/sync', { force: !!force }).then(keepEssence).then(function (r) { if (r && r.derived) dropCache(); return r; }); },
         disconnectLink: function (provider) { return post('/api/links/disconnect', { provider: provider }); }
     };
 }(window));

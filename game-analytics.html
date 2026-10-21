@@ -916,7 +916,7 @@
             var E = window.NutriPlanEnrichment;
             if (!_gfFetched && E && E.hasPlanProfile()) {
                 _gfFetched = true;
-                E.get().then(function (res) {
+                E.getCached().then(function (res) {
                     var d = res && res.derived;
                     var ess = d && d.essence;
                     if (!ess || !ess.metrics) return;

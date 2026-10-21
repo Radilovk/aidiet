@@ -36,6 +36,9 @@
     ];
 
     var USER_SESSION_KEYS = [
+        // Кешове на сървърни данни — при смяна на потребителя не бива да остават.
+        'np_enrichment_cache', 'np_links_cache', 'np_links_linked', 'np_game_pulled_at',
+        'np_goal_focus_src', 'np_persona', 'np_persona_sig', 'np_analytics_sig',
         'dietPlan',
         'userId',
         'userData',

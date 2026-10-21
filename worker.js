@@ -57220,11 +57220,12 @@ async function ingestEnrichmentFacts(env, userId, facts2, meta = {}) {
   const profile = await kvGetJSON(env, `user_profile:${userId}`) || { userId };
   const prevStore = profile.enrichment || { facts: [] };
   const nextStore = { ...prevStore, facts: mergeFacts(prevStore.facts, facts2), updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+  const unchanged = JSON.stringify(nextStore.facts) === JSON.stringify(mergeFacts(prevStore.facts, []));
   const base = normalizeQuestionnaireData({ ...profile.userData || {} });
   const prevData = applyEnrichment(JSON.parse(JSON.stringify(base)), prevStore);
   let nextData = applyEnrichment(JSON.parse(JSON.stringify(base)), nextStore);
   const essence = nextData._enrichment?.essence;
-  if (digestDue(essence, prevStore.digest)) {
+  if (!unchanged && digestDue(essence, prevStore.digest)) {
     const digest = await buildHealthDigest(env, nextData);
     if (digest) {
       nextStore.digest = digest;
@@ -57238,8 +57239,8 @@ async function ingestEnrichmentFacts(env, userId, facts2, meta = {}) {
   profile.enrichment = nextStore;
   if (meta.source) profile.moduleSources = { ...profile.moduleSources || {}, [meta.source]: nextStore.updatedAt };
   const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
-  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
-  if (profile.clientId) {
+  if (!unchanged) await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (profile.clientId && !unchanged) {
     try {
       const client = await kvGetJSON(env, `client:${profile.clientId}`);
       if (client) {

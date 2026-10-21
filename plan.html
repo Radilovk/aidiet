@@ -10136,8 +10136,14 @@
             } catch (_) {}
         }
         window.NutriPlanAnalyticsSync = { schedule: scheduleAnalyticsSync, syncNow: syncAnalyticsToServer };
-        // При отваряне: отметките от другите устройства (уеб ↔ приложение).
-        setTimeout(function() { syncAnalyticsToServer({ pull: true }); }, 2500);
+        // При отваряне: отметките от другите устройства (уеб ↔ приложение). Най-много
+        // веднъж на 10 минути (нов вход или празно устройство — веднага).
+        setTimeout(function() {
+            var last = Number(localStorage.getItem('np_game_pulled_at') || 0);
+            if (Object.keys(getGameData() || {}).length && Date.now() - last < 10 * 60 * 1000) return;
+            localStorage.setItem('np_game_pulled_at', String(Date.now()));
+            syncAnalyticsToServer({ pull: true });
+        }, 2500);
         // Invalidate cache when another tab or external code modifies the same key
         window.addEventListener('storage', function(e) {
             if (e.key === GAME_DATA_KEY) invalidateGameDataCache();

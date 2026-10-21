@@ -1252,6 +1252,10 @@
         .module-go { color: var(--ds-text-soft); }
         .devices-source { margin-bottom: 6px; }
         .devices-links { display: grid; gap: 8px; }
+        .devices-source-line { grid-column: 1 / -1; font-size: 0.9rem; color: var(--text-dark); }
+        .devices-source-change { background: none; border: none; color: var(--ds-fill); font-weight: 700; cursor: pointer; min-height: 40px; padding: 0 4px; }
+        .devices-source-choices { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+        .devices-source-choices .btn { min-height: 44px; padding: 8px 14px; width: auto; }
         .devices-other > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center; gap: 8px; }
         .devices-other > summary::-webkit-details-marker { display: none; }
         .devices-other > summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: 0.75rem; margin-left: auto; transition: transform 0.2s; }
@@ -2695,7 +2699,7 @@
 
         async function addManualLabRow() {
             if (!_labsCatalog) {
-                try { const res = await window.NutriPlanEnrichment.get(); _labsCatalog = res.markers; } catch (_) {}
+                try { const res = await window.NutriPlanEnrichment.getCached(); _labsCatalog = res.markers; } catch (_) {}
             }
             if (!_labsCatalog) { labsSetStatus('Каталогът с показатели не се зареди. Проверете връзката.', 'error'); return; }
             const first = Object.keys(_labsCatalog)[0];
@@ -2737,7 +2741,7 @@
             const E = window.NutriPlanEnrichment;
             if (!E || !E.hasPlanProfile()) return;
             try {
-                const res = await E.get();
+                const res = await E.getCached();
                 _labsCatalog = res.markers || _labsCatalog;
                 renderLabsCurrent(res.derived);
             } catch (_) { /* без връзка — секцията остава само за качване */ }
@@ -2861,7 +2865,7 @@
             const E = window.NutriPlanEnrichment;
             if (!E || !E.hasPlanProfile()) return;
             try {
-                const res = await E.get();
+                const res = force ? await E.get() : await E.getCached();
                 _cardData = { derived: res.derived, moduleSources: res.moduleSources || {} };
                 loadAnalysis();
                 _labsCatalog = res.markers || _labsCatalog;
@@ -3169,7 +3173,7 @@
                     return;
                 }
                 _deviceReview = { source: 'file', facts: res.facts };
-                if (!_deviceKinds) { try { _deviceKinds = (await window.NutriPlanEnrichment.get()).deviceKinds || null; } catch (_) {} }
+                if (!_deviceKinds) { try { _deviceKinds = (await window.NutriPlanEnrichment.getCached()).deviceKinds || null; } catch (_) {} }
                 const label = k => (_deviceKinds && _deviceKinds[k] ? _deviceKinds[k].label : k);
                 document.getElementById('devicesReviewTitle').textContent = 'Разпознато във файла';
                 document.getElementById('devicesReviewNote').textContent = `${res.from.split('-').reverse().join('.')} – ${res.to.split('-').reverse().join('.')}` +
@@ -3245,7 +3249,7 @@
 
         async function loadDeviceEssence() {
             try {
-                const res = await window.NutriPlanEnrichment.get();
+                const res = await window.NutriPlanEnrichment.getCached();
                 _deviceKinds = res.deviceKinds || _deviceKinds;
                 renderDeviceEssence(res.derived); refreshCardMeter(res.derived);
             } catch (_) { /* без връзка — само входовете */ }
@@ -3325,6 +3329,28 @@
             document.addEventListener('visibilitychange', onBack);
         }
 
+        /** Смяна на приложението-източник: само тези, които реално са записали данни. */
+        async function chooseHealthSource() {
+            const H = window.NutriPlanHealth;
+            const box = document.getElementById('devicesSourceChoices');
+            if (!box.hidden) { box.hidden = true; return; }
+            box.hidden = false;
+            box.innerHTML = '<span class="labs-note">Търсим…</span>';
+            const list = await H.dataSources().catch(() => []);
+            const cur = H.state().source || null;
+            const opts = [{ pkg: null, name: 'Всички приложения' }].concat(list);
+            box.innerHTML = opts.map((o, i) => `<button type="button" class="btn ${o.pkg === cur ? 'btn-primary' : 'btn-secondary'}" data-i="${i}">${escProfileHtml(o.name)}</button>`).join('')
+                + (list.length ? '' : '<span class="labs-note">Още няма записани данни от приложения.</span>');
+            box.querySelectorAll('button').forEach(b => {
+                b.onclick = async () => {
+                    H.setSource(opts[Number(b.dataset.i)].pkg);
+                    box.hidden = true;
+                    renderDevices();
+                    await syncDevices();
+                };
+            });
+        }
+
         /** Един ясен ред: свързано ли е, кога е обновено и какво точно е дошло. */
         function healthStatusText() {
             const H = window.NutriPlanHealth;
@@ -3345,7 +3371,11 @@
             renderDetected();
             const st = H.state();
             if (st.connected) {
+                const A = window.NutriPlanHealthApps;
+                const srcApp = st.source && A ? A.byPkg(st.source) : null;
                 box.innerHTML = `
+                    <div class="devices-source-line" id="devicesSourceLine">Данните идват от: <b>${escProfileHtml(srcApp ? srcApp.name : (st.source || 'всички приложения'))}</b> · <button type="button" class="devices-source-change" onclick="chooseHealthSource()">смени</button></div>
+                    <div class="devices-source-choices" id="devicesSourceChoices" hidden></div>
                     <button type="button" class="btn btn-primary devices-connect" onclick="syncDevices()"><i class="fas fa-rotate"></i> Обнови сега</button>
                     <button type="button" class="labs-delete devices-off" onclick="disconnectDevices()"><i class="fas fa-link-slash"></i> Изключи и изтрий данните</button>`;
                 if (!document.getElementById('devicesStatus').textContent) devicesSetStatus(healthStatusText(), 'ok');
@@ -3375,17 +3405,30 @@
             }).join('');
         }
 
+        /**
+         * Облачните профили. Списъкът — от кеша (24 ч); синхронизация от телефона само ако
+         * сървърното обновяване (на 6 ч) е закъсняло — иначе нула заявки при отваряне.
+         */
         async function loadLinks({ sync = false, force = false } = {}) {
             const E = window.NutriPlanEnrichment;
-            if (!E || !E.linkProviders) return;
+            if (!E || !E.linkProviders) return null;
             try {
-                const res = await E.linkProviders();
-                _links = res.providers || [];
+                let cache = null;
+                try { cache = JSON.parse(localStorage.getItem('np_links_cache') || 'null'); } catch (_) {}
+                if (!force && cache && Date.now() - cache.at < 24 * 3600 * 1000) {
+                    _links = cache.providers || [];
+                } else {
+                    const res = await E.linkProviders();
+                    _links = res.providers || [];
+                    try { localStorage.setItem('np_links_cache', JSON.stringify({ at: Date.now(), providers: _links })); } catch (_) {}
+                }
                 try { localStorage.setItem('np_links_linked', JSON.stringify(_links.filter(l => l.linked).map(l => l.name))); } catch (_) {}
                 renderLinks();
-                if (sync && _links.some(l => l.linked)) {
-                    const r = await E.syncLinks(force);
+                const stale = _links.some(l => l.linked && (!l.syncedAt || Date.now() - Date.parse(l.syncedAt) > 7 * 3600 * 1000));
+                if (sync && stale) {
+                    const r = await E.syncLinks(false);
                     _links = r.providers || _links;
+                    try { localStorage.setItem('np_links_cache', JSON.stringify({ at: Date.now(), providers: _links })); } catch (_) {}
                     renderLinks();
                     if (r.derived) { renderDeviceEssence(r.derived); refreshCardMeter(r.derived); }
                     return r;
@@ -3416,7 +3459,9 @@
             if (!confirm(`${l ? l.name : 'Профилът'} се изключва, а данните от него се изтриват от плана. Продължаване?`)) return;
             try {
                 const res = await window.NutriPlanEnrichment.disconnectLink(id);
+                window.NutriPlanEnrichment.dropCache();
                 _links = res.providers || _links.map(x => x.id === id ? { ...x, linked: false } : x);
+                try { localStorage.setItem('np_links_cache', JSON.stringify({ at: Date.now(), providers: _links })); } catch (_) {}
                 renderLinks();
                 devicesSetStatus('Изключено. Достъпа можете да оттеглите и от настройките на профила при доставчика.', 'ok');
                 loadDeviceEssence();
@@ -3432,9 +3477,10 @@
             sessionStorage.removeItem('np_link_pending');
             const sec = document.getElementById('devicesWrapper');
             if (sec && !sec.classList.contains('open')) toggleDevices();
-            await loadLinks();
+            await loadLinks({ force: true });
             const l = _links.find(x => x.id === id);
             if (l && l.linked) {
+                window.NutriPlanEnrichment.dropCache();
                 devicesSetStatus(`${l.name} е свързан. Данните за последните 14 дни са добавени.`, 'ok');
                 loadDeviceEssence();
             } else {
