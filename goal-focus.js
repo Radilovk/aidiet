@@ -228,6 +228,108 @@
         };
     }
 
+    /* ─── Обединени индекси: свързаните показатели в един, по целта ─── */
+
+    function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+    /** Линейно между точки [[x, y], …] (x нарастващо), y в 0–100. */
+    function curve(x, pts) {
+        if (x <= pts[0][0]) return pts[0][1];
+        for (var i = 1; i < pts.length; i++) {
+            if (x <= pts[i][0]) {
+                var a = pts[i - 1], b = pts[i];
+                return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]);
+            }
+        }
+        return pts[pts.length - 1][1];
+    }
+
+    /** Отделните съставки (0–100) от устройствата и самооценките. */
+    function components(m, checks, p, planKcal) {
+        var g = p.group;
+        var lose = g === 'lose' || g === 'lose_soft';
+        var c = {};
+        var ck = checks || {};
+        if (m.sleep) c.sleep = { v: curve(m.sleep.avg7, [[4.5, 5], [5, 25], [6, 55], [7, 85], [8, 100]]), label: 'сън', text: fmt(m.sleep.avg7, 1) + ' ч' };
+        else if (ck.sleepPct != null) c.sleep = { v: ck.sleepPct, label: 'сън', text: ck.sleepPct + '% добри нощи' };
+        if (m.hrv && m.hrv.base) c.hrv = { v: curve(m.hrv.avg7 / m.hrv.base, [[0.7, 20], [0.85, 60], [1, 100]]), label: 'вариабилност на пулса', text: m.hrv.avg7 + ' ms' };
+        if (m.restingHr && m.restingHr.base) c.rhr = { v: curve(m.restingHr.avg7 - m.restingHr.base, [[0, 100], [5, 55], [10, 15]]), label: 'пулс в покой', text: m.restingHr.avg7 + ' уд/мин' };
+        if (m.weight && isFinite(m.weight.trendKgWeek) && (m.weight.days || 0) >= 4) {
+            var t = m.weight.trendKgWeek;
+            var pts = lose ? [[-1.4, 45], [-1.0, 85], [-0.25, 100], [-0.1, 55], [0.1, 15], [0.4, 0]]
+                : g === 'gain' ? [[-0.2, 0], [0, 30], [0.1, 85], [0.5, 100], [0.8, 55]]
+                : [[-0.6, 30], [-0.25, 90], [0, 100], [0.25, 90], [0.6, 30]];
+            if (g === 'lose_soft') pts = [[-1.0, 30], [-0.5, 85], [-0.2, 100], [-0.05, 55], [0.2, 15]];
+            c.weight = { v: curve(t, pts), label: 'темп на теглото', text: signed(t, 2) + ' кг/седм.' };
+        }
+        if (m.intake && planKcal) {
+            var d = (m.intake.avg7 - planKcal) / planKcal;
+            c.intake = { v: g === 'gain' ? curve(d, [[-0.3, 10], [-0.1, 60], [0, 100], [0.2, 85]]) : curve(Math.abs(d), [[0.05, 100], [0.1, 90], [0.2, 60], [0.35, 20]]), label: 'прием спрямо плана', text: m.intake.avg7 + ' / ' + planKcal + ' kcal' };
+        }
+        if (ck.calAdherence != null) c.calAdherence = { v: ck.calAdherence, label: 'калории по плана', text: ck.calAdherence + '%' };
+        if (ck.mealAdherence != null) c.meals = { v: ck.mealAdherence, label: 'спазени хранения', text: ck.mealAdherence + '%' };
+        if (ck.engagementPct != null) c.engagement = { v: ck.engagementPct, label: 'ангажираност', text: ck.engagementPct + '%' };
+        if (m.composition && isFinite(m.composition.leanChangeKg)) c.lean = { v: curve(m.composition.leanChangeKg, [[-1, 5], [-0.5, 25], [0, 75], [0.3, 100]]), label: 'мускулна маса', text: signed(m.composition.leanChangeKg, 1) + ' кг' };
+        if (m.workouts) c.workouts = { v: 100 * clamp01(m.workouts.perWeek / WORKOUT_TARGET[g]), label: 'тренировки', text: fmt(m.workouts.perWeek, 1) + ' седмично' };
+        if (m.steps) c.steps = { v: 100 * clamp01(m.steps.avg7 / STEP_TARGET[g]), label: 'крачки', text: fmt(m.steps.avg7) + ' на ден' };
+        else if (ck.actPct != null) c.steps = { v: ck.actPct, label: 'активност', text: ck.actPct + '%' };
+        if (ck.balancePct != null) c.balance = { v: ck.balancePct, label: 'емоционален баланс', text: ck.balancePct + '%' };
+        if (ck.junkCount != null) c.junk = { v: curve(ck.junkCount, [[0, 100], [2, 70], [4, 35], [6, 10]]), label: 'хранения извън плана', text: ck.junkCount + ' за 7 дни' };
+        if (m.bp) c.bp = { v: curve(Math.max(m.bp.sys - 120, (m.bp.dia - 80) * 2), [[0, 100], [10, 70], [20, 35], [40, 0]]), label: 'кръвно', text: m.bp.sys + '/' + m.bp.dia };
+        if (m.glucose && m.glucose.morning != null) c.glucose = { v: curve(m.glucose.morning, [[5, 100], [5.6, 70], [7, 25], [8, 5]]), label: 'захар сутрин', text: fmt(m.glucose.morning, 1) + ' mmol/L' };
+        return c;
+    }
+
+    var INDEX_DEFS = {
+        pace: { name: 'Темп към целта', icon: 'fa-flag-checkered', parts: { weight: 0.45, intake: 0.25, calAdherence: 0.15, meals: 0.15 } },
+        muscle: { name: 'Мускулен баланс', icon: 'fa-dumbbell', parts: { lean: 0.4, workouts: 0.35, intake: 0.25 } },
+        recovery: { name: 'Възстановяване', icon: 'fa-battery-three-quarters', parts: { sleep: 0.5, hrv: 0.25, rhr: 0.25 } },
+        movement: { name: 'Движение', icon: 'fa-person-walking', parts: { steps: 0.6, workouts: 0.4 } },
+        consistency: { name: 'Постоянство', icon: 'fa-calendar-check', parts: { meals: 0.6, engagement: 0.4 } },
+        emotional: { name: 'Емоционален контрол', icon: 'fa-heart-pulse', parts: { balance: 0.5, junk: 0.5 } },
+        metabolic: { name: 'Метаболитно здраве', icon: 'fa-stethoscope', parts: { bp: 0.35, glucose: 0.35, steps: 0.15, weight: 0.15 }, requireAny: ['bp', 'glucose'] }
+    };
+
+    var INDEX_ORDER = {
+        lose: ['pace', 'consistency', 'emotional', 'movement', 'recovery', 'metabolic'],
+        lose_soft: ['recovery', 'pace', 'consistency', 'emotional', 'movement', 'metabolic'],
+        gain: ['muscle', 'pace', 'recovery', 'consistency', 'movement', 'emotional'],
+        tone: ['muscle', 'movement', 'recovery', 'consistency', 'pace', 'emotional'],
+        health: ['metabolic', 'recovery', 'movement', 'consistency', 'emotional', 'pace']
+    };
+
+    /**
+     * Обединените индекси за целта: стойност 0–100, съставките и слабото звено.
+     * Индекс се показва само с поне 2 съставки — една не е „индекс“.
+     * @param {{ planKcal?: number, persona?: object }} [opts]
+     */
+    function indices(metrics, checks, userData, opts) {
+        var o = opts || {};
+        var p = profileOf(userData);
+        var comp = components(metrics || {}, checks, p, o.planKcal);
+        var order = INDEX_ORDER[p.group].slice();
+        if (p.bp || p.glucose) { order.splice(order.indexOf('metabolic'), 1); order.unshift('metabolic'); }
+        var focus = o.persona && o.persona.indexFocus;
+        var list = order.map(function (id) {
+            var def = INDEX_DEFS[id];
+            var parts = Object.keys(def.parts).filter(function (k) { return comp[k]; });
+            if (parts.length < 2) return null;
+            if (def.requireAny && !def.requireAny.some(function (k) { return comp[k]; })) return null;
+            var wsum = parts.reduce(function (s, k) { return s + def.parts[k]; }, 0);
+            var value = Math.round(parts.reduce(function (s, k) { return s + comp[k].v * def.parts[k]; }, 0) / wsum);
+            var weakest = parts.slice().sort(function (a, b) { return comp[a].v - comp[b].v; })[0];
+            var tone = value >= 75 ? 'good' : value >= 50 ? 'warn' : 'bad';
+            return {
+                id: id, name: def.name, icon: def.icon, value: value, tone: tone,
+                parts: parts.map(function (k) { return { key: k, label: comp[k].label, text: comp[k].text, value: Math.round(comp[k].v) }; }),
+                note: comp[weakest].v < 70 ? 'Слабото звено: ' + comp[weakest].label + ' (' + comp[weakest].text + ').' : 'Всички съставки са добре.'
+            };
+        }).filter(Boolean);
+        // Фокусът от персоната — веднага след водещия за целта (след отпадането на непълните).
+        var fi = list.findIndex(function (x) { return x.id === focus; });
+        if (fi > 1) list.splice(1, 0, list.splice(fi, 1)[0]);
+        return list;
+    }
+
     var api = {
         profileOf: profileOf,
         deviceOrder: deviceOrder,
@@ -235,6 +337,8 @@
         guideOrder: guideOrder,
         evaluate: evaluate,
         deviceView: deviceView,
+        indices: indices,
+        INDEX_DEFS: INDEX_DEFS,
         GROUP_LABEL: GROUP_LABEL
     };
     global.NutriPlanGoalFocus = api;

@@ -4174,6 +4174,23 @@
     <!-- NativeBackup: mirrors key localStorage values to Capacitor Preferences so
          plan data survives APK reinstall via Android Auto Backup. -->
     <script src="./native-backup.js"></script>
+    <script src="./persona.js"></script>
+    <script>
+    // Персоната се смята при всяко отваряне; ако се е сменила (нов EmoEat, друго поведение) —
+    // въпросите и напомнянията се пренасрочват веднага, не на следващия ден.
+    (function () {
+        try {
+            var p = window.NutriPlanPersona.refresh();
+            var sig = JSON.stringify([p.mealChecks, p.tone, p.nudge && p.nudge.minute]);
+            if (localStorage.getItem('np_persona_sig') !== sig) {
+                localStorage.setItem('np_persona_sig', sig);
+                setTimeout(function () {
+                    if (window.GameNotifier && window.GameNotifier._capacitor) window.GameNotifier.scheduleNotifications().catch(function () {});
+                }, 8000);
+            }
+        } catch (_) {}
+    })();
+    </script>
     <script src="./local-scheduler.js"></script>
     <script src="./app.js"></script>
     <!-- Login Modal — email/password with forgot password -->

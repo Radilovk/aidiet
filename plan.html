@@ -343,6 +343,14 @@
             padding: 10px 10px;
         }
 
+        /* Персона (persona.js): SOS в рисковия час; без звезди, където оценките вредят. */
+        .persona-sos { position: relative; margin: 0 0 14px; padding: 14px 44px 14px 14px; border-radius: var(--radius); background: linear-gradient(135deg, rgba(226, 85, 122, 0.10), rgba(13, 148, 136, 0.08)); border: 1px solid rgba(226, 85, 122, 0.22); }
+        .persona-sos-kicker { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-light); }
+        .persona-sos-title { font-size: 0.95rem; font-weight: 700; color: var(--text-dark); margin: 2px 0 8px; }
+        .persona-sos ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 0.875rem; line-height: 1.45; color: var(--text-dark); }
+        .persona-sos-close { position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; border: none; background: none; color: var(--text-light); cursor: pointer; font-size: 1rem; }
+        html[data-persona-noscores] .dc-stars { display: none !important; }
+
         /* Изядените хранения — сгънати в тънка лента най-горе; следващото остава в центъра. */
         .meals-done-group { margin: 0 0 14px; border-radius: var(--radius); border: 1px solid rgba(13, 148, 136, 0.18); background: rgba(13, 148, 136, 0.06); }
         .meals-done-group > summary { list-style: none; cursor: pointer; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.875rem; font-weight: 600; color: var(--text-dark); -webkit-tap-highlight-color: transparent; }
@@ -9940,6 +9948,7 @@
                 checkTimePrompts();
                 // Re-evaluate time locks on all visible check buttons every minute
                 _refreshTimeLocks();
+                try { renderPersonaSos(getCurrentViewDayKey()); } catch (_) {}
             }, 60000);
         }
 
@@ -10639,6 +10648,35 @@
         }
         window._gameFoldDoneMeals = foldDoneMeals;
 
+        /** SOS картата: в рисковия час (персона от EmoEat), днес, докато не е затворена. */
+        function renderPersonaSos(dayKey) {
+            var container = document.getElementById('mealContainer');
+            if (!container) return;
+            var old = container.querySelector('.persona-sos');
+            var P = window.NutriPlanPersona;
+            var persona = P ? P.current() : null;
+            var today = getTodayKey();
+            var dismissed = false;
+            try { dismissed = localStorage.getItem('np_sos_dismissed') === today; } catch (_) {}
+            var show = persona && persona.sos && dayKey === today && !dismissed && P.inRiskWindow(persona);
+            if (!show) { if (old) old.remove(); return; }
+            if (old) return;
+            var card = document.createElement('div');
+            card.className = 'persona-sos';
+            card.setAttribute('role', 'note');
+            card.innerHTML = '<div class="persona-sos-kicker">Ако ти се яде без глад</div>' +
+                '<div class="persona-sos-title">' + escapeHtml(persona.focus || 'Три бързи стъпки') + '</div>' +
+                '<ol>' + persona.sos.map(function (t) { return '<li>' + escapeHtml(t) + '</li>'; }).join('') + '</ol>' +
+                '<button type="button" class="persona-sos-close" aria-label="Скрий за днес"><i class="fas fa-times"></i></button>';
+            card.querySelector('.persona-sos-close').onclick = function () {
+                try { localStorage.setItem('np_sos_dismissed', today); } catch (_) {}
+                card.remove();
+            };
+            var group = container.querySelector('.meals-done-group');
+            container.insertBefore(card, group ? group.nextSibling : container.firstChild);
+        }
+        window._gameRenderPersonaSos = renderPersonaSos;
+
         function _triggerMealCheckBurst(btn, card, isDone, isJunk) {
             if (!isDone) return; // only on check, not uncheck
             var btnRect = btn.getBoundingClientRect();
@@ -10840,6 +10878,7 @@
             if (mealsInitialized) saveRecord(dayKey, rec);
             recalcAndShowScore(dayKey);
             foldDoneMeals(dayKey);
+            renderPersonaSos(dayKey);
 
             // ── Photo-added meal check buttons ───────────────────────────────
             // Give each added-meal-card a toggleable consumed button.
@@ -12518,6 +12557,16 @@
         </a>
     </nav>
     <!-- GameNotifier: gamification-based notification scheduling -->
+    <script src="./persona.js"></script>
+    <script>
+    // Персоната: преизчислява се при всяко отваряне; „без оценки“ скрива звездите.
+    (function () {
+        try {
+            var p = window.NutriPlanPersona.refresh();
+            if (p.noScores) document.documentElement.setAttribute('data-persona-noscores', '1');
+        } catch (_) {}
+    })();
+    </script>
     <script src="./local-scheduler.js"></script>
     <!-- Notification action handler: shows in-app modal when user taps a notification
          while plan.html is already open – avoids full page reload and index redirect. -->

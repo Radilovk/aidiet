@@ -62,10 +62,6 @@ const GameNotifier = {
         'Хранене 4': 'вечерята', 'Вечеря': 'вечерята',
         'Хранене 5': 'късната закуска', 'Късна закуска': 'късната закуска'
     },
-    MEAL_ACTIONS: [
-        { id: 'meal_yes', title: 'Да, изядох' },
-        { id: 'meal_no', title: 'Пропуснах' }
-    ],
     ACK_NOTIFICATION_ID:  9997,
     PENDING_DB_NAME:        'nutriplan-game-pending',
     PENDING_STORE:          'actions',
@@ -983,9 +979,13 @@ const GameNotifier = {
                     }))
                 });
             });
+            const mq = this._mealQuestion('храненето');
             types.push({
                 id: this.MEAL_ACTION_TYPE_ID,
-                actions: this.MEAL_ACTIONS.map((a) => ({ id: a.id, title: this._capacitorActionTitle(a.title), foreground: false }))
+                actions: [
+                    { id: 'meal_yes', title: this._capacitorActionTitle(mq.yes), foreground: false },
+                    { id: 'meal_no', title: this._capacitorActionTitle(mq.no), foreground: false }
+                ]
             });
             await LocalNotifications.registerActionTypes({ types });
         } catch (e) {
@@ -1544,7 +1544,10 @@ const GameNotifier = {
             }
         });
 
+        // Бутоните на въпроса след хранене — по тона на персоната (всички типове наведнъж).
+        await this._registerCapacitorActionTypes();
         this._mealNotifications().forEach((n) => notifications.push(n));
+        this._supportNudges().forEach((n) => notifications.push(n));
 
         this._planReminders().forEach((r) => {
             notifications.push({
@@ -1773,8 +1776,49 @@ const GameNotifier = {
     /*  Хранения: въпрос след очаквания час на всяко хранене от плана      */
     /* ------------------------------------------------------------------ */
 
+    /** Персоната (persona.js): режим на въпросите, тон, рисков час. */
+    _persona() {
+        try {
+            const P = typeof window !== 'undefined' && window.NutriPlanPersona;
+            if (P) return P.current();
+            return JSON.parse(localStorage.getItem('np_persona') || 'null');
+        } catch (_) { return null; }
+    },
+
+    _mealChecksMode() {
+        const p = this._persona();
+        return (p && p.mealChecks) || 'all';
+    },
+
     _mealChecksEnabled() {
-        try { return localStorage.getItem('np_meal_checks') !== 'off'; } catch (_) { return true; }
+        return this._mealChecksMode() !== 'off';
+    },
+
+    _mealQuestion(label) {
+        const P = typeof window !== 'undefined' && window.NutriPlanPersona;
+        if (P) return P.mealQuestion(this._persona(), label);
+        return { title: 'Изядохте ли ' + label + '?', yes: 'Да, изядох', no: 'Пропуснах' };
+    },
+
+    /** Едно напомняне на ден в рисковия час (само при осезаемо емоционално хранене). */
+    _supportNudges() {
+        const p = this._persona();
+        if (!p || !p.nudge || p.mealChecks === 'off') return [];
+        const out = [];
+        for (let day = 0; day < this.MEAL_WINDOW_DAYS; day++) {
+            const ts = this._tsForDayOffset(day, Math.floor(p.nudge.minute / 60), p.nudge.minute % 60);
+            if (ts <= Date.now()) continue;
+            out.push({
+                id: this.MEAL_ID_BASE + 500 + day,
+                channelId: this.CHANNEL_ID,
+                title: p.nudge.title,
+                body: p.nudge.body,
+                schedule: { at: new Date(ts), allowWhileIdle: true },
+                extra: { url: '/index.html?app=1&tab=plan', type: 'support_nudge' },
+                iconColor: this.BRAND_TEAL
+            });
+        }
+        return out;
     },
 
     /** Храненията за дата: денят от плана по ден от седмицата (пн = day1), както в plan.html. */
@@ -1846,16 +1890,20 @@ const GameNotifier = {
             date.setDate(date.getDate() + day);
             const recordKey = this._dateKeyForTimestamp(date.getTime());
             const rec = this._getGameRecord(recordKey);
+            const mode = this._mealChecksMode();
             this._plannedMealsForDate(date).slice(0, 10).forEach((meal, idx) => {
                 if (this._mealAnswered(rec, meal.key)) return;
+                // „Основните“: само обядът и вечерята.
+                if (mode === 'main' && !/^(Хранене 2|Обяд|Свободно хранене|Хранене 4|Вечеря)(_\d+)?$/.test(meal.key)) return;
                 const at = this._mealAskMinute(meal.key);
                 const ts = this._tsForDayOffset(day, Math.floor(at / 60), at % 60);
                 if (ts <= Date.now()) return;
                 const label = this.MEAL_LABEL[meal.type.replace(/_\d+$/, '')] || 'храненето';
+                const q = this._mealQuestion(label);
                 out.push({
                     id: this.MEAL_ID_BASE + day * 10 + idx,
                     channelId: this.CHANNEL_ID,
-                    title: 'Изядохте ли ' + label + '?',
+                    title: q.title,
                     body: meal.name ? meal.name + ' — отбележете с едно докосване.' : 'Отбележете с едно докосване.',
                     actionTypeId: this.MEAL_ACTION_TYPE_ID,
                     schedule: { at: new Date(ts), allowWhileIdle: true },
