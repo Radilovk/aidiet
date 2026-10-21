@@ -21,7 +21,11 @@
 
     /** Връща Capacitor обекта — от текущия прозорец или от top (при iframe). */
     function getCap() {
-        return global.Capacitor || (global.top && global.top.Capacitor) || null;
+        // В рамка — мостът на горния прозорец: отговорите от Android стигат само до него.
+        try {
+            if (global.top && global.top !== global && global.top.Capacitor) return global.top.Capacitor;
+        } catch (_) {}
+        return global.Capacitor || null;
     }
 
     function isAPK() {

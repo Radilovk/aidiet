@@ -72,7 +72,7 @@ const NativeBackup = (function () {
     function _getCap() {
         /* Works in both top-level window and embedded iframes (tab frames). */
         return (typeof window !== 'undefined' &&
-            (window.Capacitor || (window.top && window.top !== window && window.top.Capacitor))) || null;
+            ((window.top && window.top !== window && window.top.Capacitor) || window.Capacitor)) || null;
     }
 
     function _isNative() {
@@ -213,17 +213,21 @@ const NativeBackup = (function () {
         if (_initPromise) return _initPromise;
         if (!_isNative()) return Promise.resolve(false);
         _installHook();
+        // Вградените табове (профил, план в рамка): обвивката вече е възстановила
+        // данните. Отговорът от Android може изобщо да не стигне до рамката —
+        // тогава await виси вечно и страницата спира преди модулите си.
+        try { if (window.top !== window) return Promise.resolve(true); } catch (_) {}
         if (window.NutriPlanDiagnostics) {
             window.NutriPlanDiagnostics.info('native-backup', 'init-start', 'Native platform detected');
         }
-        _initPromise = (async function () {
+        _initPromise = _withTimeout((async function () {
             const prefs = _getPlugin();
             if (prefs && typeof prefs.remove === 'function') {
-                await prefs.remove({ key: 'sessionOwnerId' }).catch(function () {});
+                await _withTimeout(prefs.remove({ key: 'sessionOwnerId' }), GET_TIMEOUT_MS, null);
             }
             await restore();
             return true;
-        })();
+        })(), TOTAL_RESTORE_TIMEOUT_MS + 500, false);
         try {
             const ready = await _initPromise;
             if (window.NutriPlanDiagnostics) {
