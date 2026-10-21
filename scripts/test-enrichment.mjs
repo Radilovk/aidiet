@@ -12,6 +12,7 @@ import { buildPlanSummary } from '../plan-summary.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
 import { supplementsFor } from '../supplement-rules.js';
+import { reanalyze } from '../analysis-reanalysis.js';
 
 let pass = 0;
 let fail = 0;
@@ -153,5 +154,28 @@ ok(supNames(base()).length === 0 || supNames(base()).length <= 5, 'без при
 ok(supplementsFor(compileProfile(base()), base(), { now: NOW }).some(x => /D3/.test(x.name) && /октомври/.test(x.reason)), 'октомври–март → D3 със сезонна причина');
 const lowFe = applyEnrichment(base(), { facts: [lab('ferritin', 12, 'ng/mL')] }, NOW);
 ok(lowFe._enrichment.supplements.some(x => /Желязо/.test(x.name) && /Феритин/.test(x.reason)), 'нисък феритин → желязо по изследване');
+
+// ── Реанализ ─────────────────────────────────────────────────────────────
+const sleepFacts = Array.from({ length: 10 }, (_, i) => ({ kind: 'sleep', value: 5.4, at: daysAgo(i + 1), source: 'health_connect' }));
+const reFacts = [lab('vitd', 18, 'ng/mL'), lab('hba1c', 6.0, '%'), ...sleepFacts];
+const reData = applyEnrichment(base(), { facts: reFacts }, NOW);
+const re = reanalyze(base(), reData, {}, 'F');
+const reTitles = re.analysis.keyProblems.map(p => p.title);
+ok(reTitles.includes('Нисък витамин D') && re.analysis.keyProblems.find(p => p.title === 'Нисък витамин D').sources.includes('labs'), 'реанализ: витамин D от изследване, с източник');
+ok(re.analysis.keyProblems.some(p => p.code === 'IR' && p.sources.includes('labs') && p.change === 'new'), 'реанализ: IR от изследване е ново');
+ok(re.analysis.keyProblems.some(p => p.category === 'Sleep' && p.sources.includes('device')), 'реанализ: сънят идва от устройството');
+ok(re.analysis.currentHealthStatus.score < re.baseline.score, 'реанализ: оценката пада при нови находки');
+ok(re.dimensions.find(x => x.key === 'Sleep').score < re.dimensions.find(x => x.key === 'Sleep').baseline, 'реанализ: измерение „сън“ спрямо въпросника');
+ok(re.replaced.some(r => r.field === 'sleepHours'), 'реанализ: заменен отговор за сън');
+ok(re.labs.find(l => l.key === 'vitd')?.range?.[0] === 50, 'реанализ: граница на нормата за графиката');
+const irisFact = { kind: 'iris', value: { analysis: { systems: [{ key: 'metabolic', label: 'Обмяна', priority: true }] } }, at: daysAgo(3), source: 'airis' };
+const withIris = reanalyze(base(), applyEnrichment(base(), { facts: [...reFacts, irisFact] }, NOW), {}, 'F');
+const irP = withIris.analysis.keyProblems.find(p => p.code === 'IR');
+ok(irP.sources.includes('iris') && irP.irisNote, 'AIRIS: потвърдената система засилва свързания проблем');
+ok(withIris.analysis.currentHealthStatus.score < re.analysis.currentHealthStatus.score, 'AIRIS: потвърдената находка влиза в оценката');
+const irisOnly = reanalyze(base(), applyEnrichment(base(), { facts: [irisFact] }, NOW), {}, 'F');
+ok(irisOnly.analysis.currentHealthStatus.score === irisOnly.baseline.score, 'AIRIS без потвърждение не мени оценката');
+const plain = reanalyze(base(), base(), {}, 'F');
+ok(plain.analysis.currentHealthStatus.score === plain.baseline.score && !plain.replaced.length, 'без нови данни — анализът е същият');
 console.log(`\n=== enrichment: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

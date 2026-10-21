@@ -87,6 +87,8 @@
             else if (data && data.derived) localStorage.removeItem('np_health_essence');
             // Отворените въпроси — за чата (асистентът пита само свързаните с темата).
             if (data && data.derived) localStorage.setItem('np_open_questions', JSON.stringify(data.derived.questions || []));
+            // Анализът наново с всички данни — страницата „Анализ“ и профилът го показват веднага.
+            if (data && data.reanalysis) localStorage.setItem('np_reanalysis', JSON.stringify(Object.assign({ at: new Date().toISOString() }, data.reanalysis)));
         } catch (_) {}
         return data;
     }
@@ -100,12 +102,33 @@
         return 'Съветите и психологическите насоки ще отчитат новите данни от следващата седмица.';
     }
 
+    var REANALYSIS_FIELDS = ['keyProblems', 'currentHealthStatus', 'forecastPessimistic', 'forecastOptimistic',
+        'nutritionalNeeds', 'healthRisks', 'successChance', 'waterDeficit', 'bmi', 'bmiCategory', 'physiologicalPhase'];
+
+    /** Има ли в реанализа данни извън въпросника — само тогава той сменя анализа от плана. */
+    function hasReanalysisData(re) {
+        return !!(re && re.analysis && ((re.labs || []).length || re.devices || re.emoeat || re.iris
+            || (re.documents || []).length || (re.replaced || []).length));
+    }
+
+    /** Анализът от плана с проблемите, оценката и прогнозите от реанализа (енергията остава от плана). */
+    function withReanalysis(base, re) {
+        if (!base || !hasReanalysisData(re)) return base;
+        var a = Object.assign({}, base);
+        REANALYSIS_FIELDS.forEach(function (k) { if (re.analysis[k] != null) a[k] = re.analysis[k]; });
+        return a;
+    }
+
     global.NutriPlanEnrichment = {
         hasPlanProfile: function () { return !!userId(); },
         hasConsent: hasConsent,
         setConsent: setConsent,
         submit: submit,
         get: function () { return post('/api/enrichment/get', {}).then(keepEssence); },
+        /** Последният реанализ, запазен локално (или null). */
+        hasReanalysisData: hasReanalysisData,
+        withReanalysis: withReanalysis,
+        cachedReanalysis: function () { try { return JSON.parse(localStorage.getItem('np_reanalysis') || 'null'); } catch (_) { return null; } },
         extractLabs: function (imageData, mimeType) { return post('/api/enrichment/extract-labs', { imageData: imageData, mimeType: mimeType }); },
         /** Отговор на въпрос за разминаване между източниците — самият отговор е съгласието. */
         resolve: function (questionId, answer) { return post('/api/enrichment/resolve', { questionId: questionId, answer: answer }).then(keepEssence); },

@@ -2841,6 +2841,7 @@
             try {
                 const res = await E.get();
                 _cardData = { derived: res.derived, moduleSources: res.moduleSources || {} };
+                loadAnalysis();
                 _labsCatalog = res.markers || _labsCatalog;
                 renderCardMeter();
                 if (force) renderDocsCurrent(res.derived);
@@ -2849,7 +2850,7 @@
 
         /** Данните се смениха (изследване, документ, устройство) — картонът се опреснява. */
         function refreshCardMeter(derived) {
-            if (derived) { _cardData = Object.assign({}, _cardData || {}, { derived }); renderCardMeter(); }
+            if (derived) { _cardData = Object.assign({}, _cardData || {}, { derived }); renderCardMeter(); loadAnalysis(); }
             else initCardMeter();
         }
 
@@ -4347,7 +4348,9 @@
                     return; // No analysis available
                 }
                 
-                const analysis = plan.analysis;
+                // С последния реанализ (изследвания, устройства, модули, документи), ако има такъв.
+                const E = window.NutriPlanEnrichment;
+                const analysis = E ? E.withReanalysis(plan.analysis, E.cachedReanalysis()) : plan.analysis;
                 const analysisSection = document.getElementById('analysisSection');
                 const analysisContent = document.getElementById('analysisContent');
                 

@@ -1775,10 +1775,102 @@
         .forecast-section.forecast-animate .forecast-improvements li:nth-child(4) { transition-delay: 0.48s; }
         .forecast-section.forecast-animate .forecast-risks li:nth-child(5),
         .forecast-section.forecast-animate .forecast-improvements li:nth-child(5) { transition-delay: 0.58s; }
+
+        .problems-title { font-size: 1.125rem; font-weight: 800; color: var(--text-dark); margin: 28px 4px 12px; }
+        /* ── Реанализ: източници, измерения, промени, изследвания, устройства ── */
+        .insight-section { background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-top: 20px; border: 1px solid var(--glass-border); backdrop-filter: blur(var(--glass-blur)) saturate(180%); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%); }
+        .insight-section[hidden] { display: none; }
+        .insight-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+        .insight-head i { width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; background: var(--ds-fill-grad); color: var(--ds-on-fill); font-size: 1rem; }
+        .insight-head h2 { font-size: 1.125rem; font-weight: 800; color: var(--text-dark); margin: 0; line-height: 1.3; }
+        .insight-sub { font-size: 0.875rem; line-height: 1.5; color: var(--ds-text-soft); margin: 4px 0 14px; }
+        .source-strip { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+        .source-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 12px; border-radius: 999px; font-size: 0.8125rem; font-weight: 700; color: var(--text-dark); background: rgba(15, 118, 110, 0.08); border: 1px solid var(--glass-border); }
+        .source-chip i { color: var(--ds-fill); }
+        [data-theme="dark"] .source-chip i { color: var(--primary-red); }
+        .score-delta { display: inline-flex; align-items: center; justify-content: center; gap: 6px; max-width: 100%; line-height: 1.35; margin-top: 10px; padding: 4px 12px; border-radius: 999px; font-size: 0.875rem; font-weight: 700; }
+        .score-delta[data-dir="down"] { background: var(--ds-warning-bg); color: var(--ds-warning-text); }
+        .score-delta[data-dir="up"] { background: var(--ds-success-bg); color: var(--ds-success-text); }
+        .score-delta[data-dir="same"] { background: rgba(15, 118, 110, 0.08); color: var(--ds-text-soft); }
+        .reanalysis-at { margin-top: 8px; font-size: 0.8125rem; color: var(--ds-text-soft); }
+        /* Измерения: лента = сега, черта = само по въпросника */
+        .dim-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.8125rem; color: var(--ds-text-soft); margin-bottom: 12px; }
+        .dim-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .dim-key-bar { width: 18px; height: 8px; border-radius: 4px; background: var(--ds-fill); }
+        [data-theme="dark"] .dim-key-bar, [data-theme="dark"] .dim-fill { background: var(--primary-red); }
+        .dim-key-tick { width: 2px; height: 14px; background: var(--text-dark); border-radius: 1px; }
+        .dim-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+        .dim-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; }
+        .dim-label { font-size: 0.9rem; font-weight: 600; color: var(--text-dark); }
+        .dim-value { font-size: 0.9rem; font-weight: 800; color: var(--text-dark); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 6px; }
+        .dim-change { font-size: 0.8125rem; font-weight: 700; }
+        .dim-change[data-dir="down"] { color: var(--ds-warning-text); }
+        .dim-change[data-dir="up"] { color: var(--ds-success-text); }
+        .dim-track { grid-column: 1 / -1; position: relative; height: 10px; border-radius: 999px; background: rgba(15, 118, 110, 0.10); }
+        .dim-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; background: var(--ds-fill); transition: width var(--ds-motion-expressive, 600ms) var(--ds-ease-standard); }
+        .dim-tick { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--text-dark); box-shadow: 0 0 0 2px var(--card-bg); }
+        /* Промени */
+        .change-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+        .change-item { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border-radius: 14px; background: rgba(15, 118, 110, 0.05); border: 1px solid var(--glass-border); font-size: 0.9rem; line-height: 1.45; color: var(--text-dark); }
+        .change-item > i { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: 0.875rem; background: rgba(15, 118, 110, 0.10); color: var(--ds-fill); }
+        [data-theme="dark"] .change-item > i { color: var(--primary-red); }
+        .change-item[data-tone="warn"] > i { background: var(--ds-warning-bg); color: var(--ds-warning-text); }
+        .change-item[data-tone="good"] > i { background: var(--ds-success-bg); color: var(--ds-success-text); }
+        .change-item small { display: block; color: var(--ds-text-soft); font-size: 0.8125rem; margin-top: 2px; }
+        /* Изследвания: стойността върху нормалния диапазон */
+        .lab-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+        .lab-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: baseline; }
+        .lab-name { font-size: 0.9rem; font-weight: 600; color: var(--text-dark); }
+        .lab-val { font-size: 0.9rem; font-weight: 800; color: var(--text-dark); font-variant-numeric: tabular-nums; text-align: right; }
+        .lab-status { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+        .lab-status[data-status="normal"] { background: var(--ds-success-bg); color: var(--ds-success-text); }
+        .lab-status[data-status="high"], .lab-status[data-status="low"] { background: var(--ds-warning-bg); color: var(--ds-warning-text); }
+        .lab-track { grid-column: 1 / -1; position: relative; height: 12px; border-radius: 999px; background: rgba(15, 118, 110, 0.08); }
+        .lab-zone { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: var(--ds-success-bg); border: 1px solid rgba(21, 128, 61, 0.25); }
+        .lab-dot { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; box-shadow: 0 0 0 2px var(--card-bg); background: var(--ds-success-text); }
+        .lab-dot[data-status="high"], .lab-dot[data-status="low"] { background: var(--ds-warning-text); }
+        .lab-axis { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--ds-text-soft); font-variant-numeric: tabular-nums; }
+        /* Устройства: стойности за седмицата */
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+        .metric-tile { padding: 12px 14px; border-radius: 16px; background: rgba(15, 118, 110, 0.06); border: 1px solid var(--glass-border); }
+        .metric-tile .m-label { font-size: 0.8125rem; color: var(--ds-text-soft); display: flex; align-items: center; gap: 6px; }
+        .metric-tile .m-value { font-size: 1.5rem; font-weight: 800; color: var(--text-dark); line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
+        .metric-tile .m-unit { font-size: 0.875rem; font-weight: 600; color: var(--ds-text-soft); margin-left: 2px; }
+        .metric-tile .m-note { font-size: 0.8125rem; color: var(--ds-text-soft); margin-top: 2px; }
+        .metric-tile[data-tone="warn"] { background: var(--ds-warning-bg); border-color: var(--ds-warning-border); }
+        /* EmoEat и AIRIS */
+        .persona { display: grid; gap: 8px; }
+        .persona-name { font-size: 1.25rem; font-weight: 800; color: var(--text-dark); }
+        .persona-text { font-size: 0.9rem; line-height: 1.5; color: var(--text-dark); margin: 0; }
+        .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border-radius: 999px; font-size: 0.8125rem; font-weight: 600; color: var(--text-dark); background: rgba(15, 118, 110, 0.08); }
+        .hyp-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+        .hyp-item { padding: 10px 12px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(15, 118, 110, 0.04); }
+        .hyp-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 700; font-size: 0.9rem; color: var(--text-dark); }
+        .hyp-state { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(15, 118, 110, 0.08); color: var(--ds-text-soft); }
+        .hyp-state[data-s="confirmed"] { background: var(--ds-success-bg); color: var(--ds-success-text); }
+        .hyp-state[data-s="disputed"] { background: var(--ds-warning-bg); color: var(--ds-warning-text); }
+        .hyp-item p { margin: 4px 0 0; font-size: 0.8125rem; line-height: 1.45; color: var(--ds-text-soft); }
+        /* Карти на проблемите: източник и промяна */
+        .problem-sources { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .problem-sources .chip { font-size: 0.75rem; min-height: 24px; }
+        .problem-sources .chip i { margin-right: 4px; color: var(--ds-fill); }
+        [data-theme="dark"] .problem-sources .chip i { color: var(--primary-red); }
+        .problem-change { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--ds-warning-bg); color: var(--ds-warning-text); }
+        .problem-change[data-c="better"] { background: var(--ds-success-bg); color: var(--ds-success-text); }
+        .problem-iris { margin-top: 10px; font-size: 0.8125rem; line-height: 1.45; color: var(--ds-text-soft); }
+        .more-data-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+        .more-data-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--ds-touch-primary, 48px); padding: 10px 14px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(15, 118, 110, 0.05); color: var(--text-dark); font: inherit; font-size: 0.9rem; font-weight: 600; text-align: left; cursor: pointer; transition: transform var(--ds-motion-press, 120ms) var(--ds-ease-standard); }
+        .more-data-btn:active { transform: scale(var(--ds-press-scale, 0.97)); }
+        .more-data-btn i:first-child { color: var(--ds-fill); width: 20px; text-align: center; }
+        [data-theme="dark"] .more-data-btn i:first-child { color: var(--primary-red); }
+        .more-data-btn small { display: block; font-weight: 500; color: var(--ds-text-soft); font-size: 0.8125rem; }
+        .more-data-btn .fa-chevron-right { margin-left: auto; color: var(--ds-text-soft); }
     </style>
 <script src="./platform.js"></script>
 <script src="./meal-swaps.js"></script>
 <script src="./plan-sync.js"></script>
+<script src="./enrichment-client.js"></script>
 </head>
 <body>
     <!-- Sticky Header -->
@@ -1808,11 +1900,7 @@
                 <i class="fas fa-heartbeat"></i>
             </div>
             <h1>Вашият Здравен Анализ</h1>
-            <p>Идентифицирани главни проблеми</p>
-        </div>
-
-        <div class="problems-container" id="problemsContainer">
-            <!-- Problems will be inserted here by JavaScript -->
+            <p>Обновява се с всяко изследване, устройство, тест и документ</p>
         </div>
 
         <!-- Overall Health Score Section -->
@@ -1867,10 +1955,56 @@
                         <div id="healthScoreLabel" class="gauge-score-label" style="color: #0D9488;"></div>
                         <!-- Problem severity count badges -->
                         <div id="healthStatusBadges" class="health-status-badges" style="display:none;"></div>
+                        <div id="scoreDelta" class="score-delta" hidden></div>
+                        <div id="sourceStrip" class="source-strip" hidden></div>
+                        <div id="reanalysisAt" class="reanalysis-at" hidden></div>
                     </div>
                 </div>
             </div>
         </div>
+
+
+        <section class="insight-section" id="dimensionsSection" hidden aria-labelledby="dimTitle">
+            <div class="insight-head"><i class="fas fa-chart-bar" aria-hidden="true"></i><h2 id="dimTitle">Профилни измерения</h2></div>
+            <p class="insight-sub">Колко добре е всяка област от 0 до 100. Чертата показва оценката само по въпросника — разликата е какво добавиха новите данни.</p>
+            <div class="dim-legend" aria-hidden="true"><span><span class="dim-key-bar"></span>Сега</span><span><span class="dim-key-tick"></span>Само по въпросника</span></div>
+            <ul class="dim-list" id="dimList"></ul>
+        </section>
+
+        <section class="insight-section" id="changesSection" hidden aria-labelledby="changesTitle">
+            <div class="insight-head"><i class="fas fa-arrows-rotate" aria-hidden="true"></i><h2 id="changesTitle">Какво промениха новите данни</h2></div>
+            <p class="insight-sub" id="changesSub">Анализът се преизчислява при всяко изследване, устройство, тест или документ.</p>
+            <ul class="change-list" id="changeList"></ul>
+        </section>
+
+        <h2 class="problems-title" id="problemsTitle">Главни проблеми</h2>
+        <div class="problems-container" id="problemsContainer">
+            <!-- Problems will be inserted here by JavaScript -->
+        </div>
+
+
+        <section class="insight-section" id="labsInsight" hidden aria-labelledby="labsTitle">
+            <div class="insight-head"><i class="fas fa-vial" aria-hidden="true"></i><h2 id="labsTitle">Изследвания</h2></div>
+            <p class="insight-sub">Зелената зона е нормата. Точката е вашата стойност.</p>
+            <ul class="lab-list" id="labList"></ul>
+        </section>
+
+        <section class="insight-section" id="devicesInsight" hidden aria-labelledby="devTitle">
+            <div class="insight-head"><i class="fas fa-heart-pulse" aria-hidden="true"></i><h2 id="devTitle">От гривна, часовник и везна</h2></div>
+            <p class="insight-sub" id="devicesSub">Средно за последната седмица.</p>
+            <div class="metric-grid" id="metricGrid"></div>
+        </section>
+
+        <section class="insight-section" id="emoInsight" hidden aria-labelledby="emoTitle">
+            <div class="insight-head"><i class="fas fa-heart" aria-hidden="true"></i><h2 id="emoTitle">Емоционален профил (EmoEat)</h2></div>
+            <div class="persona" id="emoBody"></div>
+        </section>
+
+        <section class="insight-section" id="irisInsight" hidden aria-labelledby="irisTitle">
+            <div class="insight-head"><i class="fas fa-eye" aria-hidden="true"></i><h2 id="irisTitle">Ирисов анализ (AIRIS)</h2></div>
+            <p class="insight-sub">Находка, потвърдена от друг източник, влиза в оценката и в менюто. Непотвърдената остава хипотеза.</p>
+            <div id="irisBody"></div>
+        </section>
 
         <!-- 1-Year Forecast Section -->
         <div class="forecast-section" id="forecastSection" style="display: none;">
@@ -1918,6 +2052,12 @@
                 </div>
             </div>
         </div>
+
+        <section class="insight-section" id="moreDataSection" hidden aria-labelledby="moreTitle">
+            <div class="insight-head"><i class="fas fa-plus" aria-hidden="true"></i><h2 id="moreTitle">Направете анализа по-точен</h2></div>
+            <p class="insight-sub">Всеки нов източник преизчислява анализа и плана.</p>
+            <ul class="more-data-list" id="moreDataList"></ul>
+        </section>
 
         <div class="cta-section section-anim" id="ctaSection">
             <h2 id="ctaTitle">Готови ли сте за промяна?</h2>
@@ -2061,9 +2201,13 @@
         // Smoothly count a numeric element from `from` to `to` over `durationMs`
         function animateCounter(el, from, to, durationMs, suffix) {
             if (!el || isNaN(to)) return;
+            // Нова анимация спира старата (реанализът може да смени числото по време на броенето).
+            const token = {};
+            el._counterToken = token;
             const startTime = performance.now();
             const savedColor = el.style.color;
             function step(now) {
+                if (el._counterToken !== token) return;
                 const progress = Math.min((now - startTime) / durationMs, 1);
                 const ease = 1 - Math.pow(1 - progress, 3); // easeOutCubic
                 el.textContent = Math.round(from + (to - from) * ease) + suffix;
@@ -2109,7 +2253,7 @@
             const sectionIds = ['overallScoreSection', 'forecastSection', 'ctaSection'];
             const sectionEls = sectionIds
                 .map(id => document.getElementById(id))
-                .filter(el => el && el.classList.contains('section-anim'));
+                .filter(el => el && el.classList.contains('section-anim') && !el.classList.contains('section-anim--visible'));
 
             if (sectionEls.length) {
                 const sectionObserver = new IntersectionObserver((entries) => {
@@ -2122,8 +2266,7 @@
                             if (section.id === 'overallScoreSection') {
                                 const scoreEl = document.getElementById('healthScoreValue');
                                 if (scoreEl) {
-                                    // Strip any existing '%' suffix before parsing
-                                    const target = parseInt(scoreEl.textContent.replace('%', ''), 10);
+                                    const target = parseInt(scoreEl.dataset.score || scoreEl.textContent.replace('%', ''), 10);
                                     if (!isNaN(target)) {
                                         animateCounter(scoreEl, 0, target, 1500, '%');
                                     }
@@ -2177,10 +2320,11 @@
                     return;
                 }
 
-                const problems = plan.analysis.keyProblems;
-                
-                // Display problems
-                displayProblems(problems, plan.analysis);
+                // Анализът от плана + последният реанализ с всички данни (изследвания, устройства, модули).
+                _baseAnalysis = plan.analysis;
+                _reanalysis = window.NutriPlanEnrichment ? window.NutriPlanEnrichment.cachedReanalysis() : null;
+                renderAnalysisView(_baseAnalysis, _reanalysis);
+                refreshReanalysis();
                 
                 // Hide loading, show content
                 document.getElementById('loadingScreen').style.display = 'none';
@@ -2195,6 +2339,258 @@
                 console.error('Error loading analysis:', error);
                 showError('Грешка при зареждането на анализа: ' + error.message);
             }
+        }
+
+        // ── Реанализ: анализът наново с всички данни на клиента ──────────────
+        const SOURCE_META = {
+            questionnaire: { label: 'Въпросник', icon: 'fa-clipboard-list' },
+            labs: { label: 'Изследвания', icon: 'fa-vial' },
+            device: { label: 'Устройство', icon: 'fa-heart-pulse' },
+            emoeat: { label: 'EmoEat', icon: 'fa-heart' },
+            iris: { label: 'AIRIS', icon: 'fa-eye' },
+            documents: { label: 'Документ', icon: 'fa-file-medical' }
+        };
+        let _baseAnalysis = null;
+        let _reanalysis = null;
+
+        function escA(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        const fmtNum = (v, d = 1) => String(Math.round(Number(v) * Math.pow(10, d)) / Math.pow(10, d)).replace('.', ',');
+
+        function hasExtraData(re) {
+            return !!(window.NutriPlanEnrichment && window.NutriPlanEnrichment.hasReanalysisData(re));
+        }
+
+        function mergedAnalysis(base, re) {
+            return window.NutriPlanEnrichment ? window.NutriPlanEnrichment.withReanalysis(base, re) : base;
+        }
+
+        function presentSources(re) {
+            const out = ['questionnaire'];
+            if ((re.labs || []).length) out.push('labs');
+            if (re.devices) out.push('device');
+            if (re.emoeat) out.push('emoeat');
+            if (re.iris) out.push('iris');
+            if ((re.documents || []).length) out.push('documents');
+            return out;
+        }
+
+        function renderAnalysisView(base, re) {
+            const analysis = mergedAnalysis(base, re);
+            displayProblems(analysis.keyProblems || [], analysis);
+            renderReanalysis(hasExtraData(re) ? re : null);
+        }
+
+        function renderReanalysis(re) {
+            const extra = !!re;
+            const delta = document.getElementById('scoreDelta');
+            const strip = document.getElementById('sourceStrip');
+            const at = document.getElementById('reanalysisAt');
+            ['dimensionsSection', 'changesSection', 'labsInsight', 'devicesInsight', 'emoInsight', 'irisInsight'].forEach(id => {
+                document.getElementById(id).hidden = true;
+            });
+            delta.hidden = strip.hidden = at.hidden = !extra;
+            renderMoreData(re);
+            if (!extra) return;
+
+            const now = re.analysis.currentHealthStatus.score;
+            const diff = now - re.baseline.score;
+            delta.dataset.dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'same';
+            delta.innerHTML = `<i class="fas ${diff > 0 ? 'fa-arrow-up' : diff < 0 ? 'fa-arrow-down' : 'fa-equals'}" aria-hidden="true"></i> ${diff === 0 ? 'Без промяна' : `${diff > 0 ? '+' : '−'}${Math.abs(diff)}`} спрямо въпросника (${re.baseline.score}%)`;
+            strip.innerHTML = presentSources(re).map(k => `<span class="source-chip"><i class="fas ${SOURCE_META[k].icon}" aria-hidden="true"></i>${SOURCE_META[k].label}</span>`).join('');
+            at.textContent = re.at ? `Преизчислен ${new Date(re.at).toLocaleString('bg-BG', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}` : '';
+
+            renderDimensions(re.dimensions || []);
+            renderChanges(re);
+            renderLabs(re.labs || []);
+            renderDevices(re.devices);
+            renderEmo(re.emoeat);
+            renderIris(re.iris);
+        }
+
+        function renderDimensions(dims) {
+            if (!dims.length) return;
+            const list = document.getElementById('dimList');
+            list.innerHTML = dims.map(d => {
+                const diff = d.score - d.baseline;
+                const change = diff ? `<span class="dim-change" data-dir="${diff > 0 ? 'up' : 'down'}"><i class="fas ${diff > 0 ? 'fa-arrow-up' : 'fa-arrow-down'}" aria-hidden="true"></i> ${Math.abs(diff)}</span>` : '';
+                const aria = `${d.label}: ${d.score} от 100${diff ? `, с ${Math.abs(diff)} ${diff > 0 ? 'повече' : 'по-малко'} от оценката само по въпросника (${d.baseline})` : ''}`;
+                return `<li class="dim-row" title="${escA(aria)}">
+                    <span class="dim-label">${escA(d.label)}</span>
+                    <span class="dim-value">${change}${d.score}</span>
+                    <div class="dim-track" role="img" aria-label="${escA(aria)}">
+                        <div class="dim-fill" data-width="${d.score}%"></div>
+                        ${diff ? `<div class="dim-tick" style="left:${d.baseline}%"></div>` : ''}
+                    </div>
+                </li>`;
+            }).join('');
+            document.getElementById('dimensionsSection').hidden = false;
+            requestAnimationFrame(() => setTimeout(() => {
+                list.querySelectorAll('.dim-fill').forEach(f => { f.style.width = f.dataset.width; });
+            }, 120));
+        }
+
+        const FIELD_LABELS = {
+            sleepHours: { label: 'Сън', unit: ' ч', src: 'по устройството' },
+            dailyActivityLevel: { label: 'Ежедневна активност', unit: '', src: 'по крачкомера' },
+            medicationsDetails: { label: 'Лекарства', unit: '', src: 'от документ' }
+        };
+
+        function renderChanges(re) {
+            const items = [];
+            (re.replaced || []).forEach(r => {
+                const m = FIELD_LABELS[r.field] || { label: r.field, unit: '', src: '' };
+                items.push({ icon: 'fa-right-left', tone: '', text: `${m.label}: ${escA(String(r.to).replace('.', ','))}${m.unit} ${m.src}`, note: r.from ? `Във въпросника: ${escA(r.from)}` : '' });
+            });
+            (re.analysis.keyProblems || []).forEach(p => {
+                const src = (p.sources || []).filter(x => x !== 'questionnaire').map(x => SOURCE_META[x] ? SOURCE_META[x].label : x).join(', ');
+                if (p.change === 'new') items.push({ icon: 'fa-plus', tone: 'warn', text: `Ново: ${escA(p.title)}`, note: src ? `Източник: ${escA(src)}` : '' });
+                else if (p.change === 'worse') items.push({ icon: 'fa-arrow-up', tone: 'warn', text: `По-висок риск: ${escA(p.title)}`, note: src ? `Източник: ${escA(src)}` : '' });
+                else if (p.change === 'better') items.push({ icon: 'fa-arrow-down', tone: 'good', text: `По-нисък риск: ${escA(p.title)}`, note: src ? `Източник: ${escA(src)}` : '' });
+            });
+            (re.resolved || []).forEach(t => items.push({ icon: 'fa-check', tone: 'good', text: `Отпада: ${escA(t)}`, note: 'Новите данни не го потвърждават' }));
+            if (re.lastChange && re.pendingLevel > 0 && (re.lastChange.reasons || []).length) {
+                items.push({ icon: 'fa-calendar-check', tone: '', text: 'Планът ще се съобрази при следващия седмичен преглед', note: `Заради: ${escA(re.lastChange.reasons.join(', '))}` });
+            }
+            if (!items.length) return;
+            document.getElementById('changeList').innerHTML = items.map(i =>
+                `<li class="change-item" data-tone="${i.tone}"><i class="fas ${i.icon}" aria-hidden="true"></i><div>${i.text}${i.note ? `<small>${i.note}</small>` : ''}</div></li>`).join('');
+            document.getElementById('changesSection').hidden = false;
+        }
+
+        /** Скала на показателя: нормата в средата, с място за стойности извън нея. */
+        function labScale(l) {
+            const [lo, hi] = l.range || [null, null];
+            let min, max;
+            if (lo != null && hi != null) { const span = hi - lo; min = Math.max(0, lo - span * 0.6); max = hi + span * 0.6; }
+            else if (hi != null) { min = 0; max = hi * 1.6; }
+            else if (lo != null) { min = 0; max = lo * 2.2; }
+            else { min = 0; max = Math.max(1, l.value * 1.5); }
+            max = Math.max(max, l.value * 1.08);
+            const pos = v => Math.max(0, Math.min(100, (v - min) / (max - min) * 100));
+            return { min, max, pos, zoneFrom: lo != null ? pos(lo) : 0, zoneTo: hi != null ? pos(hi) : 100 };
+        }
+
+        const LAB_STATUS = { normal: ['fa-check', 'в норма'], high: ['fa-arrow-up', 'над нормата'], low: ['fa-arrow-down', 'под нормата'] };
+
+        function renderLabs(labs) {
+            if (!labs.length) return;
+            const day = iso => (iso ? new Date(iso).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+            const latest = labs.reduce((m, l) => (l.at > m ? l.at : m), '');
+            document.querySelector('#labsInsight .insight-sub').textContent = `Зелената зона е нормата, точката — вашата стойност. Последно изследване: ${day(latest)}.`;
+            document.getElementById('labList').innerHTML = labs.map(l => {
+                const sc = labScale(l);
+                const st = LAB_STATUS[l.status] || LAB_STATUS.normal;
+                const [lo, hi] = l.range || [null, null];
+                const norm = lo != null && hi != null ? `норма ${fmtNum(lo)}–${fmtNum(hi)}` : lo != null ? `норма над ${fmtNum(lo)}` : hi != null ? `норма под ${fmtNum(hi)}` : '';
+                const aria = `${l.label}: ${fmtNum(l.value)} ${l.unit}, ${st[1]}${norm ? `, ${norm}` : ''}`;
+                return `<li class="lab-row" title="${escA(aria)}">
+                    <span class="lab-name">${escA(l.label)}<span class="lab-status" data-status="${escA(l.status)}"><i class="fas ${st[0]}" aria-hidden="true"></i>${st[1]}</span></span>
+                    <span class="lab-val">${fmtNum(l.value)} <small>${escA(l.unit)}</small></span>
+                    <div class="lab-track" role="img" aria-label="${escA(aria)}">
+                        <div class="lab-zone" style="left:${sc.zoneFrom}%;width:${Math.max(2, sc.zoneTo - sc.zoneFrom)}%"></div>
+                        <div class="lab-dot" data-status="${escA(l.status)}" style="left:${sc.pos(l.value)}%"></div>
+                    </div>
+                    <div class="lab-axis" aria-hidden="true"><span>${fmtNum(sc.min)}</span><span>${escA(norm)}</span><span>${fmtNum(sc.max)}</span></div>
+                </li>`;
+            }).join('');
+            document.getElementById('labsInsight').hidden = false;
+        }
+
+        function renderDevices(dev) {
+            if (!dev || !dev.metrics) return;
+            const m = dev.metrics;
+            const tiles = [];
+            const tile = (icon, label, value, unit, note, warn) => tiles.push(`<div class="metric-tile"${warn ? ' data-tone="warn"' : ''}>
+                <div class="m-label"><i class="fas ${icon}" aria-hidden="true"></i>${label}</div>
+                <div class="m-value">${value}<span class="m-unit">${unit}</span></div>${note ? `<div class="m-note">${note}</div>` : ''}</div>`);
+            if (m.sleep) tile('fa-bed', 'Сън', fmtNum(m.sleep.avg7), ' ч', `${m.sleep.nights} нощи`, m.sleep.avg7 < 6.5);
+            if (m.steps) tile('fa-shoe-prints', 'Крачки', Number(m.steps.avg7).toLocaleString('bg-BG'), '', m.steps.prevAvg ? `преди ~${Number(m.steps.prevAvg).toLocaleString('bg-BG')}` : 'дневно', false);
+            if (m.workouts) tile('fa-dumbbell', 'Тренировки', fmtNum(m.workouts.perWeek), '/седм.', `${m.workouts.minutesWeek} мин`, false);
+            if (m.restingHr) tile('fa-heart', 'Пулс в покой', m.restingHr.avg7, ' уд/мин', m.restingHr.base ? `обичайно ${m.restingHr.base}` : '', m.restingHr.base && m.restingHr.avg7 - m.restingHr.base >= 5);
+            if (m.hrv) tile('fa-wave-square', 'HRV', m.hrv.avg7, ' ms', m.hrv.base ? `обичайно ${m.hrv.base}` : '', m.hrv.base && m.hrv.avg7 < m.hrv.base * 0.85);
+            if (m.weight) tile('fa-weight-scale', 'Тегло', fmtNum(m.weight.avg7), ' кг', `${m.weight.trendKgWeek > 0 ? '+' : ''}${fmtNum(m.weight.trendKgWeek, 2)} кг/седм.`, false);
+            if (m.bodyFat && m.bodyFat.last) tile('fa-percent', 'Телесни мазнини', fmtNum(m.bodyFat.last), ' %', '', false);
+            if (m.bp) tile('fa-stethoscope', 'Кръвно', `${m.bp.sys}/${m.bp.dia}`, '', `${m.bp.days} дни`, m.bp.sys >= 130 || m.bp.dia >= 85);
+            if (m.glucose && m.glucose.morning) tile('fa-droplet', 'Захар сутрин', fmtNum(m.glucose.morning), ' mmol/L', '', m.glucose.morning >= 5.6);
+            if (m.water) tile('fa-glass-water', 'Вода', fmtNum(m.water.avg7), ' л', 'дневно', false);
+            if (!tiles.length) return;
+            document.getElementById('metricGrid').innerHTML = tiles.join('');
+            document.getElementById('devicesInsight').hidden = false;
+        }
+
+        function renderEmo(emo) {
+            if (!emo || !emo.archetype) return;
+            document.getElementById('emoBody').innerHTML = `
+                <div class="persona-name">${escA(emo.archetype)}</div>
+                ${emo.intensity ? `<div class="chip-row"><span class="chip">Интензитет: ${escA(emo.intensity)}</span></div>` : ''}
+                ${(emo.drivers || []).length ? `<div class="chip-row">${emo.drivers.map(d => `<span class="chip">${escA(d)}</span>`).join('')}</div>` : ''}
+                ${emo.realNeed ? `<p class="persona-text"><strong>Реална нужда:</strong> ${escA(emo.realNeed)}</p>` : ''}
+                <p class="persona-text" style="color: var(--ds-text-soft);">Влиза в оценката „Стрес и емоции“, в съветите и в тона на плана.</p>`;
+            document.getElementById('emoInsight').hidden = false;
+        }
+
+        const HYP_STATE = {
+            confirmed: ['fa-check', 'Потвърдено'],
+            unconfirmed: ['fa-circle-question', 'Хипотеза'],
+            disputed: ['fa-comment-dots', 'Чака отговор'],
+            rejected: ['fa-xmark', 'Отхвърлено']
+        };
+
+        function renderIris(iris) {
+            if (!iris) return;
+            const hyps = iris.hypotheses || [];
+            document.getElementById('irisBody').innerHTML = `
+                ${iris.constitution ? `<div class="persona-name">${escA(iris.constitution)}</div>` : ''}
+                ${(iris.focus || []).length ? `<div class="chip-row">${iris.focus.map(f => `<span class="chip">${escA(f)}</span>`).join('')}</div>` : ''}
+                ${hyps.length ? `<ul class="hyp-list">${hyps.map(h => {
+                    const st = HYP_STATE[h.status] || HYP_STATE.unconfirmed;
+                    const note = h.status === 'confirmed'
+                        ? `Потвърдено от: ${(h.evidence || []).join(', ')}.${h.applied && h.action ? ` В менюто: ${h.action}.` : ''}${(h.blockedBy || []).length ? ' Промяната в менюто не се прилага заради медицинско ограничение.' : ''}`
+                        : h.status === 'disputed' ? 'Въпросникът казва друго — отговорете на въпроса в чата или в профила.'
+                        : h.status === 'rejected' ? 'Не се отнася за вас по вашия отговор.'
+                        : 'Няма друг източник, който да го потвърди. Изследване или устройство ще го уточни.';
+                    return `<li class="hyp-item"><div class="hyp-top"><span>${escA(h.label)}</span><span class="hyp-state" data-s="${escA(h.status)}"><i class="fas ${st[0]}" aria-hidden="true"></i>${st[1]}</span></div><p>${escA(note)}</p></li>`;
+                }).join('')}</ul>` : ''}`;
+            document.getElementById('irisInsight').hidden = false;
+        }
+
+        const MORE_DATA = [
+            { key: 'labs', icon: 'fa-vial', label: 'Кръвни изследвания', note: 'точни граници за захар, мазнини, желязо, витамин D' },
+            { key: 'device', icon: 'fa-heart-pulse', label: 'Гривна, часовник, пръстен или везна', note: 'реален сън, активност и пулс' },
+            { key: 'emoeat', icon: 'fa-heart', label: 'Тест за емоционално хранене', note: 'кога и защо идва гладът' },
+            { key: 'iris', icon: 'fa-eye', label: 'Ирисов анализ', note: 'приоритетни системи за сверка' },
+            { key: 'documents', icon: 'fa-file-medical', label: 'Епикриза или писмо от лекар', note: 'диагнози, лекарства, ограничения' }
+        ];
+
+        function renderMoreData(re) {
+            const section = document.getElementById('moreDataSection');
+            const E = window.NutriPlanEnrichment;
+            if (!E || !E.hasPlanProfile()) { section.hidden = true; return; }
+            const have = new Set(re ? presentSources(re) : ['questionnaire']);
+            const missing = MORE_DATA.filter(m => !have.has(m.key));
+            section.hidden = !missing.length;
+            document.getElementById('moreDataList').innerHTML = missing.map(m =>
+                `<li><button type="button" class="more-data-btn" onclick="openProfileCard()"><i class="fas ${m.icon}" aria-hidden="true"></i><span>${m.label}<small>${m.note}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button></li>`).join('');
+        }
+
+        function openProfileCard() {
+            if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'profile' })) return;
+            navigateTopLevel('index.html?app=1&tab=profile');
+        }
+
+        /** Свеж реанализ от сървъра — подменя показания, ако има нови данни. */
+        async function refreshReanalysis() {
+            const E = window.NutriPlanEnrichment;
+            if (!E || !E.hasPlanProfile() || !_baseAnalysis) return;
+            try {
+                const res = await E.get();
+                if (!res || !res.reanalysis) return;
+                _reanalysis = Object.assign({ at: new Date().toISOString(), lastChange: res.lastChange, pendingLevel: res.pendingLevel }, res.reanalysis);
+                renderAnalysisView(_baseAnalysis, _reanalysis);
+                setTimeout(initScrollAnimations, 60);
+            } catch (_) { /* без връзка — остава последният запазен */ }
         }
 
         function displayProblems(problems, analysis) {
@@ -2290,7 +2686,14 @@
                 scoreTone = 'good';
             }
 
-            document.getElementById('healthScoreValue').textContent = healthScore + '%';
+            const scoreValueEl = document.getElementById('healthScoreValue');
+            const prevScore = parseInt(scoreValueEl.dataset.score, 10);
+            scoreValueEl.dataset.score = String(healthScore);
+            scoreValueEl.textContent = healthScore + '%';
+            // Вече показан статус (реанализът дойде след първото изобразяване) — броене от старото към новото.
+            if (!isNaN(prevScore) && prevScore !== healthScore && document.getElementById('overallScoreSection').classList.contains('section-anim--visible')) {
+                animateCounter(scoreValueEl, prevScore, healthScore, 900, '%');
+            }
             document.getElementById('healthScoreValue').dataset.tone = scoreTone;
             document.getElementById('healthScoreLabel').textContent = healthLabel;
             document.getElementById('healthScoreLabel').dataset.tone = scoreTone;
@@ -2484,6 +2887,8 @@
                         <div class="meter-fill ${severity}" style="width: 0%" data-width="${severityValue}%"></div>
                     </div>
                 </div>
+                ${(problem.sources || []).length ? `<div class="problem-sources">${problem.change === 'new' || problem.change === 'worse' ? `<span class="problem-change" data-c="${problem.change}"><i class="fas ${problem.change === 'new' ? 'fa-plus' : 'fa-arrow-up'}" aria-hidden="true"></i>${problem.change === 'new' ? 'ново' : 'по-висок риск'}</span>` : problem.change === 'better' ? '<span class="problem-change" data-c="better"><i class="fas fa-arrow-down" aria-hidden="true"></i>по-нисък риск</span>' : ''}${problem.sources.map(src => SOURCE_META[src] ? `<span class="chip"><i class="fas ${SOURCE_META[src].icon}" aria-hidden="true"></i>${SOURCE_META[src].label}</span>` : '').join('')}</div>` : ''}
+                ${problem.irisNote ? `<p class="problem-iris"><i class="fas fa-eye" aria-hidden="true"></i> ${escA(problem.irisNote)}</p>` : ''}
             `;
 
             return card;

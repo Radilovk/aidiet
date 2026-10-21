@@ -110,6 +110,7 @@ import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_T
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
 import { LAB_MARKERS } from './enrichment-labs.js';
 import { documentsText, normalizeDocumentValue } from './enrichment-documents.js';
+import { reanalyze } from './analysis-reanalysis.js';
 import {
   readOverlayFromKv,
   writeOverlayToKv,
@@ -13925,6 +13926,7 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
     urgent,
     appliesAt: urgent ? 'specialist' : (change.level > 0 ? 'weekly' : 'next_voice'),
     derived: publicEnrichmentView(nextData._enrichment),
+    reanalysis: profile.userData ? reanalysisOf(profile.userData, nextStore) : null,
   };
 }
 
@@ -14403,12 +14405,30 @@ async function handleEnrichmentGet(request, env) {
       ),
       sources: [...new Set((store.facts || []).map(f => f.source))],
       lastChange: store.lastChange || null,
+      pendingLevel: Number(store.pendingLevel) || 0,
+      reanalysis: profile?.userData ? reanalysisOf(profile.userData, store) : null,
       markers: LAB_MARKERS,
       deviceKinds: publicDeviceKinds(),
       moduleSources: profile?.moduleSources || {},
     });
   } catch (error) {
     return jsonResponse({ error: 'Failed to load enrichment: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Анализът наново с всички данни — за страницата „Анализ“ и профила.
+ * Енергията (BMR, калории, макроси) остава от плана: клиентът я пази локално.
+ */
+function reanalysisOf(userData, store) {
+  try {
+    const base = normalizeQuestionnaireData({ ...(userData || {}) });
+    const sex = base.gender === 'Мъж' ? 'M' : base.gender === 'Жена' ? 'F' : 'X';
+    const enriched = store?.facts?.length ? applyEnrichment(JSON.parse(JSON.stringify(base)), store) : base;
+    return reanalyze(base, enriched, {}, sex);
+  } catch (e) {
+    console.warn('[reanalysis] skipped:', e.message);
+    return null;
   }
 }
 

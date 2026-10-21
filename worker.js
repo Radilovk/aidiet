@@ -39484,9 +39484,11 @@ function severityFor(value) {
   for (const [label, min] of SEVERITY_BANDS) if (value >= min) return label;
   return "Normal";
 }
-function problem(category, severityValue, title, description, impact, improvement) {
+function problem(category, severityValue, title, description, impact, improvement, code) {
   const sv = Math.max(45, Math.min(95, Math.round(severityValue)));
-  return { title, description, severity: severityFor(sv), severityValue: sv, category, impact, _improvement: improvement };
+  const p = { title, description, severity: severityFor(sv), severityValue: sv, category, impact, _improvement: improvement };
+  if (code) p.code = code;
+  return p;
 }
 function bmiOf(profile) {
   const w = Number(profile.weightKg) || 0;
@@ -39560,7 +39562,7 @@ function detectProblems(profile) {
       "Sleep",
       sv,
       "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u0435\u043D \u0441\u044A\u043D",
-      `\u0421\u0440\u0435\u0434\u043D\u043E \u043E\u043A\u043E\u043B\u043E ${sleep} \u0447\u0430\u0441\u0430 \u0441\u044A\u043D${profile.sleepInterrupted ? " \u0441 \u043F\u0440\u0435\u043A\u044A\u0441\u0432\u0430\u043D\u0438\u044F" : ""} \u2014 \u043F\u043E\u0434 7-\u0442\u0435 \u0447\u0430\u0441\u0430, \u043D\u0443\u0436\u043D\u0438 \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435.`,
+      `\u0421\u0440\u0435\u0434\u043D\u043E \u043E\u043A\u043E\u043B\u043E ${String(sleep).replace(".", ",")} \u0447\u0430\u0441\u0430 \u0441\u044A\u043D${profile.sleepInterrupted ? " \u0441 \u043F\u0440\u0435\u043A\u044A\u0441\u0432\u0430\u043D\u0438\u044F" : ""} \u2014 \u043F\u043E\u0434 7-\u0442\u0435 \u0447\u0430\u0441\u0430, \u043D\u0443\u0436\u043D\u0438 \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435.`,
       "\u041F\u043E\u0432\u0438\u0448\u0435\u043D \u0433\u0440\u0435\u043B\u0438\u043D \u0438 \u043A\u043E\u0440\u0442\u0438\u0437\u043E\u043B: \u043F\u043E\u0432\u0435\u0447\u0435 \u0430\u043F\u0435\u0442\u0438\u0442 \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0438 \u043F\u043E-\u0442\u0440\u0443\u0434\u043D\u043E \u043E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435.",
       "\u041F\u043E-\u043C\u0430\u043B\u043A\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0438 \u043F\u043E-\u0434\u043E\u0431\u0440\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435"
     ));
@@ -39717,7 +39719,7 @@ function detectProblems(profile) {
     ["INFL", 56, "\u0425\u0440\u043E\u043D\u0438\u0447\u043D\u043E \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435", "\u041D\u0443\u0436\u043D\u0438 \u0441\u0430 \u043E\u043C\u0435\u0433\u0430-3, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u043F\u0440\u0435\u0440\u0430\u0431\u043E\u0442\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438.", "\u0423\u043C\u043E\u0440\u0430 \u0438 \u0431\u0430\u0432\u043D\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435.", "\u041F\u043E-\u043D\u0438\u0441\u043A\u043E \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435"]
   ];
   for (const [code, sv, title, desc, impact, improvement] of medical) {
-    if (has2(c, code)) out.push(problem("Medical", sv, title, desc, impact, improvement));
+    if (has2(c, code)) out.push(problem("Medical", sv, title, desc, impact, improvement, code));
   }
   return out.sort((a, b2) => b2.severityValue - a.severityValue);
 }
@@ -39874,10 +39876,12 @@ function psychologicalProfile(profile) {
   return `\u041F\u0440\u043E\u0444\u0438\u043B\u044A\u0442 \u043F\u043E\u043A\u0430\u0437\u0432\u0430, \u0447\u0435 ${lines.join(", ")}. \u041F\u043B\u0430\u043D\u044A\u0442 \u0437\u0430\u043B\u0430\u0433\u0430 \u043D\u0430 \u043F\u0440\u0435\u0434\u0432\u0438\u0434\u0438\u043C\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F, \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u0438 \u0441\u0438\u0442\u043E\u0441\u0442, \u0437\u0430 \u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u0438 \u0442\u0435\u0437\u0438 \u0442\u0440\u0438\u0433\u0435\u0440\u0438.`;
 }
 function buildDeterministicAnalysis(userData = {}, energy = {}) {
-  const profile = compileProfile(userData || {});
-  const real = detectProblems(profile);
+  return analyzeProfile(compileProfile(userData || {}), energy);
+}
+function analyzeProfile(profile, energy = {}, extra = []) {
+  const real = [...detectProblems(profile), ...extra].sort((a, b2) => b2.severityValue - a.severityValue);
   const score = healthScore(real, profile);
-  const all = real.length >= 3 ? real : [...real, ...preventiveProblems(profile).filter((p) => !real.some((r) => r.title === p.title))].slice(0, 3);
+  const all = real.length >= 3 ? real : [...real, ...preventiveProblems(profile).filter((p) => !real.some((r) => r.title === p.title)).map((p) => ({ ...p, preventive: true }))].slice(0, 3);
   const keyProblems = all.slice(0, 6).map(({ _improvement, ...p }) => p);
   const bmi = bmiOf(profile);
   const need = waterNeedLiters(profile);
@@ -44121,6 +44125,28 @@ var MARKERS = {
   potassium: { label: "\u041A\u0430\u043B\u0438\u0439", unit: "mmol/L", alt: { "meq/l": (v) => v } }
 };
 var LAB_MARKERS = Object.fromEntries(Object.entries(MARKERS).map(([k, v]) => [k, { label: v.label, unit: v.unit }]));
+function labRange(key, sex = "X") {
+  const f = sex === "F";
+  const ranges = {
+    glucose: [null, 5.6],
+    hba1c: [null, 5.7],
+    ldl: [null, 3.4],
+    tchol: [null, 5.2],
+    tg: [null, 1.7],
+    hdl: [f ? 1.3 : 1, null],
+    uric: [null, f ? 360 : 420],
+    ferritin: [30, null],
+    hgb: [f ? 120 : 130, null],
+    vitd: [50, null],
+    b12: [150, null],
+    alt: [null, 40],
+    ggt: [null, 60],
+    tsh: [0.4, 4.5],
+    egfr: [60, null],
+    potassium: [null, 5.5]
+  };
+  return ranges[key] || null;
+}
 function canonical(key, value, unit) {
   const m = MARKERS[key];
   if (!m) return null;
@@ -44925,6 +44951,13 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
     irisRaw: iris?.raw || null,
     siteQuiz: siteQuiz?.summary || null,
     documents: documents?.list || [],
+    // Откъде идва всеки код — за реанализа (кой източник е добавил проблема).
+    codeSources: {
+      labs: [...labs?.hints?.clinical || []],
+      documents: [...documents?.hints?.clinical || [], ...documents?.hints?.exclusions || []],
+      device: [...essence.hints?.clinical || [], ...essence.hints?.behaviors || []],
+      emoeat: [...emoPart?.hints?.behaviors || [], ...emoPart?.hints?.clinical || []]
+    },
     resolutions,
     reasons
   };
@@ -45455,6 +45488,211 @@ function handoffPreview(h) {
       "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u0430 NutriPlan \u2014 \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435."
     ].filter(Boolean),
     at: h.at
+  };
+}
+
+// analysis-reanalysis.js
+var DIMENSIONS = [
+  { key: "Medical", label: "\u0422\u044F\u043B\u043E \u0438 \u043E\u0431\u043C\u044F\u043D\u0430" },
+  { key: "Nutrition", label: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435" },
+  { key: "Sleep", label: "\u0421\u044A\u043D \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435" },
+  { key: "Stress", label: "\u0421\u0442\u0440\u0435\u0441 \u0438 \u0435\u043C\u043E\u0446\u0438\u0438" },
+  { key: "Activity", label: "\u0414\u0432\u0438\u0436\u0435\u043D\u0438\u0435" },
+  { key: "Hydration", label: "\u0425\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F" }
+];
+var IRIS_CATEGORY = {
+  digestive: "Medical",
+  metabolic: "Medical",
+  circulatory: "Medical",
+  endocrine: "Medical",
+  detox: "Medical",
+  immune: "Medical",
+  nervous: "Stress"
+};
+var fmt4 = (v) => String(Math.round(Number(v) * 10) / 10).replace(".", ",");
+var LAB_PROBLEMS = {
+  vitd: (l) => problem(
+    "Medical",
+    l.value < 30 ? 64 : 52,
+    "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D D",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043E\u043F\u0442\u0438\u043C\u0430\u043B\u043D\u0438\u0442\u0435 50.`,
+    "\u0423\u043C\u043E\u0440\u0430, \u043F\u043E-\u0441\u043B\u0430\u0431 \u0438\u043C\u0443\u043D\u0438\u0442\u0435\u0442 \u0438 \u043F\u043E-\u0431\u0430\u0432\u043D\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435.",
+    "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u043E-\u0437\u0434\u0440\u0430\u0432\u0438 \u043A\u043E\u0441\u0442\u0438",
+    "LAB_VITD"
+  ),
+  b12: (l) => problem(
+    "Medical",
+    62,
+    "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D B12",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430.`,
+    "\u0423\u043C\u043E\u0440\u0430, \u0438\u0437\u0442\u0440\u044A\u043F\u0432\u0430\u043D\u0435 \u0438 \u0441\u043F\u0430\u0434 \u043D\u0430 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044F\u0442\u0430.",
+    "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u044F\u0441\u043D\u0430 \u043C\u0438\u0441\u044A\u043B",
+    "LAB_B12"
+  ),
+  tsh: (l) => problem(
+    "Medical",
+    62,
+    l.status === "high" ? "TSH \u043D\u0430\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430" : "TSH \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430\u0442\u0430 \u0436\u043B\u0435\u0437\u0430 \u0441\u0435 \u043E\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`,
+    "\u041E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0435 \u043F\u043E-\u0431\u0430\u0432\u043D\u0430 \u0438\u043B\u0438 \u043F\u043E-\u0431\u044A\u0440\u0437\u0430 \u043E\u0442 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u043E\u0442\u043E.",
+    "\u042F\u0441\u043D\u0430 \u043A\u0430\u0440\u0442\u0438\u043D\u0430 \u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u0433\u043B\u0435\u0434",
+    "LAB_TSH"
+  ),
+  egfr: (l) => problem(
+    "Medical",
+    l.value < 30 ? 86 : 72,
+    "\u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F",
+    `eGFR ${fmt4(l.value)} \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u0440\u0435\u0436\u0438\u043C\u044A\u0442 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    "\u041D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u043F\u0440\u0438 \u043C\u043D\u043E\u0433\u043E \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0441\u043E\u043B.",
+    "\u0429\u0430\u0434\u044F\u0449 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u0440\u0435\u0436\u0438\u043C",
+    "LAB_EGFR"
+  ),
+  potassium: (l) => problem(
+    "Medical",
+    74,
+    "\u0412\u0438\u0441\u043E\u043A \u043A\u0430\u043B\u0438\u0439",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u0442 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    "\u0420\u0438\u0441\u043A \u0437\u0430 \u0441\u044A\u0440\u0434\u0435\u0447\u043D\u0438\u044F \u0440\u0438\u0442\u044A\u043C.",
+    "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u043D\u0430 \u043A\u0430\u043B\u0438\u044F",
+    "LAB_K"
+  ),
+  hdl: (l) => problem(
+    "Medical",
+    54,
+    "\u041D\u0438\u0441\u044A\u043A HDL (\u201E\u0434\u043E\u0431\u044A\u0440\u201C) \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B",
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u0437\u0430\u0449\u0438\u0442\u043D\u0430\u0442\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0430.`,
+    "\u041F\u043E-\u0441\u043B\u0430\u0431\u0430 \u0437\u0430\u0449\u0438\u0442\u0430 \u043D\u0430 \u0441\u044A\u0434\u043E\u0432\u0435\u0442\u0435.",
+    "\u041F\u043E-\u0434\u043E\u0431\u044A\u0440 \u043B\u0438\u043F\u0438\u0434\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B",
+    "LAB_HDL"
+  )
+};
+var DEVICE_PROBLEMS = {
+  recovery_low: (s) => problem(
+    "Sleep",
+    60,
+    "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435",
+    s.text,
+    "\u041F\u043E-\u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u0432 \u0442\u043E\u0437\u0438 \u043F\u0435\u0440\u0438\u043E\u0434 \u0437\u0430\u0431\u0430\u0432\u044F \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0430 \u0438 \u0432\u0434\u0438\u0433\u0430 \u0430\u043F\u0435\u0442\u0438\u0442\u0430.",
+    "\u0421\u0442\u0430\u0431\u0438\u043B\u0435\u043D \u043F\u0443\u043B\u0441 \u0438 \u043F\u043E-\u0434\u043E\u0431\u0440\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435",
+    "DEV_RECOVERY"
+  ),
+  lean_loss: (s) => problem(
+    "Nutrition",
+    64,
+    "\u0417\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430",
+    s.text,
+    "\u041F\u043E-\u0431\u0430\u0432\u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430 \u0438 \u0435\u0444\u0435\u043A\u0442 \u201E\u0439\u043E-\u0439\u043E\u201C.",
+    "\u041E\u0442\u0441\u043B\u0430\u0431\u0432\u0430\u043D\u0435 \u043E\u0442 \u043C\u0430\u0437\u043D\u0438\u043D\u0438, \u043D\u0435 \u043E\u0442 \u043C\u0443\u0441\u043A\u0443\u043B\u0438",
+    "DEV_LEAN"
+  )
+};
+function sourceOfCode(code, codeSources, baseProfile) {
+  if (!code) return null;
+  if (baseProfile.clinical.includes(code) || baseProfile.behaviors.includes(code)) return "questionnaire";
+  for (const src of ["labs", "documents", "device", "emoeat"]) {
+    if ((codeSources?.[src] || []).includes(code)) return src;
+  }
+  return null;
+}
+function dimensionScores(problems) {
+  const out = {};
+  for (const d of DIMENSIONS) {
+    const load = problems.filter((p) => p.category === d.key && !p.preventive).reduce((s, p) => s + Math.max(0, p.severityValue - 35) * 0.8, 0);
+    out[d.key] = Math.max(15, Math.min(100, Math.round(100 - load)));
+  }
+  return out;
+}
+function reanalyze(baseData, enrichedData, energy = {}, sex = "X") {
+  const d = enrichedData?._enrichment || {};
+  const baseProfile = compileProfile(baseData || {});
+  const profile = compileProfile(enrichedData || {});
+  const baseline = analyzeProfile(baseProfile, energy);
+  const extra = [];
+  const labCodes = new Set(d.codeSources?.labs || []);
+  for (const l of d.labs || []) {
+    if (l.status === "normal" || !LAB_PROBLEMS[l.key]) continue;
+    if (l.key === "hdl" && labCodes.has("DYSL")) continue;
+    extra.push({ ...LAB_PROBLEMS[l.key](l), sources: ["labs"] });
+  }
+  for (const s of d.essence?.signals || []) {
+    if (DEVICE_PROBLEMS[s.code]) extra.push({ ...DEVICE_PROBLEMS[s.code](s), sources: ["device"] });
+  }
+  const hypotheses = d.crossCheck?.hypotheses || [];
+  const confirmed = hypotheses.filter((h) => h.status === "confirmed");
+  const irisBoost = /* @__PURE__ */ new Map();
+  for (const h of confirmed) {
+    const def = IRIS_SYSTEMS[h.system] || {};
+    irisBoost.set(h.system, { codes: def.codes || [], category: IRIS_CATEGORY[h.system] || "Medical", label: h.label, evidence: h.evidence });
+  }
+  const current = analyzeProfile(profile, energy, extra);
+  const baseTitles = new Set(baseline.keyProblems.map((p) => p.title));
+  const baseByTitle = new Map(baseline.keyProblems.map((p) => [p.title, p]));
+  const usedIris = /* @__PURE__ */ new Set();
+  let problems = current.keyProblems.map((p) => {
+    const sources = new Set(p.sources || []);
+    if (baseTitles.has(p.title)) sources.add("questionnaire");
+    const src = sourceOfCode(p.code, d.codeSources, baseProfile);
+    if (src) sources.add(src);
+    if (p.category === "Sleep" && d.overrides?.sleepHours) sources.add("device");
+    if (p.category === "Activity" && d.overrides?.dailyActivityLevel) sources.add("device");
+    if (p.category === "Stress" && d.voice) sources.add("emoeat");
+    if (!sources.size) sources.add("questionnaire");
+    const out = { ...p, sources: [...sources] };
+    for (const [system, b] of irisBoost) {
+      if (b.codes.includes(p.code)) {
+        out.sources.push("iris");
+        out.severityValue = Math.min(95, p.severityValue + 4);
+        out.irisNote = `AIRIS: ${b.label} \u2014 \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D \u043E\u0442 ${b.evidence.join(", ")}`;
+        usedIris.add(system);
+      }
+    }
+    const before = baseByTitle.get(p.title);
+    out.change = !before ? "new" : before.severityValue !== out.severityValue ? out.severityValue > before.severityValue ? "worse" : "better" : "same";
+    return out;
+  });
+  for (const [system, b] of irisBoost) {
+    if (usedIris.has(system)) continue;
+    problems.push({
+      ...problem(
+        b.category,
+        50,
+        `${b.label}: \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u043F\u043E \u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437`,
+        `\u041F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 ${b.evidence.join(", ")}. \u041F\u043B\u0430\u043D\u044A\u0442 \u0433\u043E \u043E\u0442\u0447\u0438\u0442\u0430 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E \u0438 \u0441\u044A\u0432\u0435\u0442\u0438\u0442\u0435.`,
+        "\u0411\u0435\u0437 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F\u0442\u0430 \u0432 \u0442\u0430\u0437\u0438 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u0441\u0435 \u0437\u0430\u0434\u044A\u0440\u0436\u0430\u0442.",
+        "",
+        `IRIS_${system.toUpperCase()}`
+      ),
+      sources: ["iris"],
+      change: "new"
+    });
+  }
+  problems = problems.map(({ _improvement, ...p }) => p).sort((a, b) => b.severityValue - a.severityValue);
+  const irisPenalty = Math.round([...irisBoost.keys()].length * 1.3);
+  const score = Math.max(25, Math.min(92, current.currentHealthStatus.score - irisPenalty));
+  const resolved = baseline.keyProblems.filter((p) => !p.preventive && !problems.some((x) => x.title === p.title)).map((p) => p.title);
+  const replaced = Object.entries(d.overrides || {}).map(([field, value]) => ({
+    field,
+    from: d.original?.[field] ?? null,
+    to: value
+  }));
+  const dims = dimensionScores(problems);
+  const baseDims = dimensionScores(baseline.keyProblems);
+  return {
+    analysis: {
+      ...current,
+      keyProblems: problems.slice(0, 8),
+      currentHealthStatus: { ...current.currentHealthStatus, score, keyIssues: problems.slice(0, 4).map((p) => p.title) },
+      _reanalysis: true
+    },
+    baseline: { score: baseline.currentHealthStatus.score, problems: baseline.keyProblems.map((p) => p.title) },
+    dimensions: DIMENSIONS.map((x) => ({ key: x.key, label: x.label, score: dims[x.key], baseline: baseDims[x.key] })),
+    resolved,
+    replaced,
+    labs: (d.labs || []).map((l) => ({ ...l, range: labRange(l.key, sex) })),
+    iris: d.iris ? { ...d.iris, hypotheses } : hypotheses.length ? { hypotheses } : null,
+    emoeat: d.voice ? { archetype: d.voice.archetype || "", intensity: d.voice.intensity || "", drivers: d.voice.drivers || [], realNeed: d.voice.realNeed || "", at: d.voice.at || null } : null,
+    devices: d.essence?.metrics && Object.keys(d.essence.metrics).length ? { metrics: d.essence.metrics, sources: d.essence.sources || [], at: d.essence.at || null } : null,
+    documents: (d.documents || []).map((x) => ({ title: x.title, at: x.at, impact: x.impact, summary: x.summary }))
   };
 }
 
@@ -56200,7 +56438,8 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
     reasons: change.reasons,
     urgent,
     appliesAt: urgent ? "specialist" : change.level > 0 ? "weekly" : "next_voice",
-    derived: publicEnrichmentView(nextData._enrichment)
+    derived: publicEnrichmentView(nextData._enrichment),
+    reanalysis: profile.userData ? reanalysisOf(profile.userData, nextStore) : null
   };
 }
 async function handleEnrichmentResolve(request, env) {
@@ -56595,12 +56834,25 @@ async function handleEnrichmentGet(request, env) {
       ),
       sources: [...new Set((store.facts || []).map((f) => f.source))],
       lastChange: store.lastChange || null,
+      pendingLevel: Number(store.pendingLevel) || 0,
+      reanalysis: profile?.userData ? reanalysisOf(profile.userData, store) : null,
       markers: LAB_MARKERS,
       deviceKinds: publicDeviceKinds(),
       moduleSources: profile?.moduleSources || {}
     });
   } catch (error) {
     return jsonResponse2({ error: "Failed to load enrichment: " + error.message }, 500);
+  }
+}
+function reanalysisOf(userData, store) {
+  try {
+    const base = normalizeQuestionnaireData({ ...userData || {} });
+    const sex = base.gender === "\u041C\u044A\u0436" ? "M" : base.gender === "\u0416\u0435\u043D\u0430" ? "F" : "X";
+    const enriched = store?.facts?.length ? applyEnrichment(JSON.parse(JSON.stringify(base)), store) : base;
+    return reanalyze(base, enriched, {}, sex);
+  } catch (e) {
+    console.warn("[reanalysis] skipped:", e.message);
+    return null;
   }
 }
 function publicEnrichmentView(d) {

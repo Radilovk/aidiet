@@ -74,7 +74,10 @@
         'sessionOwnerId',
         'np_plan_refresh_pending',
         'demoFoodPickerPlanCount',
-        'demoProfileRegenCount'
+        'demoProfileRegenCount',
+        'np_health_essence',
+        'np_open_questions',
+        'np_reanalysis'
     ];
 
     var PLAN_SESSION_KEYS = [
@@ -100,7 +103,8 @@
         'planSyncPending',
         'warningData',
         'canProceedWithWarning',
-        'validationSource'
+        'validationSource',
+        'np_reanalysis'
     ];
 
     var ANALYTICS_PRESERVE_KEYS = [

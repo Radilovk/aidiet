@@ -21,10 +21,15 @@ function severityFor(value) {
   return 'Normal';
 }
 
-function problem(category, severityValue, title, description, impact, improvement) {
+function problem(category, severityValue, title, description, impact, improvement, code) {
   const sv = Math.max(45, Math.min(95, Math.round(severityValue)));
-  return { title, description, severity: severityFor(sv), severityValue: sv, category, impact, _improvement: improvement };
+  const p = { title, description, severity: severityFor(sv), severityValue: sv, category, impact, _improvement: improvement };
+  // Кодът (клинично състояние или навик) — за реанализа: откъде идва проблемът.
+  if (code) p.code = code;
+  return p;
 }
+
+export { problem as analysisProblem, severityFor };
 
 export function bmiOf(profile) {
   const w = Number(profile.weightKg) || 0;
@@ -90,7 +95,7 @@ function detectProblems(profile) {
   if (sleep > 0 && sleep < 7) {
     const sv = (sleep < 5 ? 82 : sleep < 6 ? 68 : 50) + (profile.sleepInterrupted ? 6 : 0);
     out.push(problem('Sleep', sv, 'Недостатъчен сън',
-      `Средно около ${sleep} часа сън${profile.sleepInterrupted ? ' с прекъсвания' : ''} — под 7-те часа, нужни за възстановяване.`,
+      `Средно около ${String(sleep).replace('.', ',')} часа сън${profile.sleepInterrupted ? ' с прекъсвания' : ''} — под 7-те часа, нужни за възстановяване.`,
       'Повишен грелин и кортизол: повече апетит за сладко и по-трудно отслабване.',
       'По-малко желание за сладко и по-добро възстановяване'));
   } else if (profile.sleepInterrupted) {
@@ -203,7 +208,7 @@ function detectProblems(profile) {
     ['INFL', 56, 'Хронично възпаление', 'Нужни са омега-3, зеленчуци и по-малко преработени храни.', 'Умора и бавно възстановяване.', 'По-ниско възпаление'],
   ];
   for (const [code, sv, title, desc, impact, improvement] of medical) {
-    if (has(c, code)) out.push(problem('Medical', sv, title, desc, impact, improvement));
+    if (has(c, code)) out.push(problem('Medical', sv, title, desc, impact, improvement, code));
   }
 
   return out.sort((a, b2) => b2.severityValue - a.severityValue);
@@ -362,12 +367,20 @@ function psychologicalProfile(profile) {
  * @param {{ bmr?: number, tdee?: number, Final_Calories?: number, macroGrams?: object, macroRatios?: object }} [energy]
  */
 export function buildDeterministicAnalysis(userData = {}, energy = {}) {
-  const profile = compileProfile(userData || {});
-  const real = detectProblems(profile);
+  return analyzeProfile(compileProfile(userData || {}), energy);
+}
+
+/**
+ * Анализът от компилиран профил. `extra` — проблеми от данни извън въпросника
+ * (изследвания, устройства, потвърдени ирисови находки), които влизат в оценката
+ * и прогнозите наравно с правилата.
+ */
+export function analyzeProfile(profile, energy = {}, extra = []) {
+  const real = [...detectProblems(profile), ...extra].sort((a, b2) => b2.severityValue - a.severityValue);
   const score = healthScore(real, profile);
   const all = real.length >= 3
     ? real
-    : [...real, ...preventiveProblems(profile).filter(p => !real.some(r => r.title === p.title))].slice(0, 3);
+    : [...real, ...preventiveProblems(profile).filter(p => !real.some(r => r.title === p.title)).map(p => ({ ...p, preventive: true }))].slice(0, 3);
   const keyProblems = all.slice(0, 6).map(({ _improvement, ...p }) => p);
   const bmi = bmiOf(profile);
   const need = waterNeedLiters(profile);

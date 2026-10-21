@@ -249,6 +249,13 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
     irisRaw: iris?.raw || null,
     siteQuiz: siteQuiz?.summary || null,
     documents: documents?.list || [],
+    // Откъде идва всеки код — за реанализа (кой източник е добавил проблема).
+    codeSources: {
+      labs: [...(labs?.hints?.clinical || [])],
+      documents: [...(documents?.hints?.clinical || []), ...(documents?.hints?.exclusions || [])],
+      device: [...(essence.hints?.clinical || []), ...(essence.hints?.behaviors || [])],
+      emoeat: [...(emoPart?.hints?.behaviors || []), ...(emoPart?.hints?.clinical || [])],
+    },
     resolutions,
     reasons,
   };
