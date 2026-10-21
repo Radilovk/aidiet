@@ -76,15 +76,34 @@ export function averageMacrosFromWeek(weekPlan = {}) {
 }
 
 /**
+ * Протеинът на прах, който менюто вече ползва (в закуска или шейк при недостиг
+ * на белтък) — става и добавка в списъка: какво да се купи и защо.
+ */
+function powderInMenu(weekPlan = {}) {
+  const meals = Object.values(weekPlan || {}).flatMap(d => d?.meals || []);
+  const lines = meals.map(m => String(m.description || '')).filter(d => /протеин \((растителен|суроватъчен)\)|протеин на прах/i.test(d));
+  if (!lines.length) return [];
+  const plant = lines.some(d => /растителен/i.test(d));
+  const days = Object.values(weekPlan || {}).filter(d => (d?.meals || []).some(m => /протеин \((растителен|суроватъчен)\)|протеин на прах/i.test(String(m.description || '')))).length;
+  return [{
+    name: plant ? 'Растителен протеин на прах (грахов/соев)' : 'Суроватъчен протеин (whey)',
+    dosage: '1 мерителна лъжица (около 25–30 g)',
+    timing: 'в дните, в които е в менюто',
+    reason: `менюто го ползва ${days} ${days === 1 ? 'ден' : 'дни'} седмично — без него белтъкът на деня не стига целта`,
+  }];
+}
+
+/**
  * Противопоказаните от лекарствата отпадат преди подбора (да не заемат място
  * на други), а след него на всички се добавя отделянето във времето.
  */
-function supplementsWithMeds(profile, userData, protocolSupplements, protocolName) {
+function supplementsWithMeds(profile, userData, protocolSupplements, protocolName, weekPlan) {
   const ix = interactionsFor(userData || {});
   const picked = supplementsFor(profile, userData, {
     labs: applySupplementInteractions(userData?._enrichment?.supplements || [], ix).kept,
     protocol: applySupplementInteractions(protocolSupplements || [], ix).kept,
     protocolName,
+    menu: powderInMenu(weekPlan),
   });
   return applySupplementInteractions(picked, ix).kept;
 }
@@ -131,6 +150,6 @@ export function buildPlanSummary({
     forbidden,
     psychology: [...new Set(psychology)].slice(0, 6),
     waterIntake: `${waterNeedLiters(profile)} л вода дневно, разпределена през деня`,
-    supplements: supplementsWithMeds(profile, userData, protocolSupplements, protocolName),
+    supplements: supplementsWithMeds(profile, userData, protocolSupplements, protocolName, weekPlan),
   };
 }

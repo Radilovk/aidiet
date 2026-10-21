@@ -33215,6 +33215,18 @@ var dishes_default = {
           ]
         },
         {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
           group: "FAT",
           options: [
             "fat_oil"
@@ -33283,6 +33295,18 @@ var dishes_default = {
             2,
             5
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
         },
         {
           group: "FAT",
@@ -33370,6 +33394,18 @@ var dishes_default = {
           with: true
         },
         {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
           group: "FAT",
           options: [
             "fat_oil"
@@ -33447,6 +33483,18 @@ var dishes_default = {
           range: [
             0,
             6
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            2
           ],
           with: true
         },
@@ -33541,6 +33589,19 @@ var dishes_default = {
           ],
           range: [
             1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu",
+            "pro_tempeh",
+            "dairy_cheese"
+          ],
+          range: [
+            0,
             2
           ],
           with: true
@@ -33697,6 +33758,18 @@ var dishes_default = {
             0.5,
             6
           ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
         },
         {
           group: "FAT",
@@ -34337,6 +34410,18 @@ var dishes_default = {
           range: [
             0,
             6
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            2
           ],
           with: true
         },
@@ -40012,7 +40097,7 @@ function profileRules(profile, userData, now) {
   if (!out.length && (month >= 9 || month <= 2)) add({ ...D3, timing: "\u0441 \u043C\u0430\u0437\u043D\u0430 \u0445\u0440\u0430\u043D\u0430, \u043E\u043A\u0442\u043E\u043C\u0432\u0440\u0438\u2013\u043C\u0430\u0440\u0442" }, "\u043E\u043A\u0442\u043E\u043C\u0432\u0440\u0438\u2013\u043C\u0430\u0440\u0442 \u0441\u043B\u044A\u043D\u0446\u0435\u0442\u043E \u043D\u0435 \u0441\u0442\u0438\u0433\u0430 \u0437\u0430 \u0432\u0438\u0442\u0430\u043C\u0438\u043D D; \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430 \u0434\u043E\u0437\u0430\u0442\u0430");
   return out;
 }
-function supplementsFor(profile, userData = {}, { labs = [], protocol = [], protocolName = "", now = null } = {}) {
+function supplementsFor(profile, userData = {}, { labs = [], protocol = [], protocolName = "", menu = [], now = null } = {}) {
   const out = [];
   const keys = /* @__PURE__ */ new Set();
   const add = (s) => {
@@ -40023,6 +40108,7 @@ function supplementsFor(profile, userData = {}, { labs = [], protocol = [], prot
     out.push({ name: s.name, dosage: s.dosage || "", timing: s.timing || "", reason: s.reason || "" });
   };
   for (const s of labs || []) add(s);
+  for (const s of menu || []) add(s);
   for (const s of protocol || []) add({ ...s, reason: s.reason || (protocolName ? `\u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u201E${protocolName}\u201C` : "\u043A\u043B\u0438\u043D\u0438\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B") });
   for (const s of profileRules(profile, userData, now || /* @__PURE__ */ new Date())) add(s);
   return out.slice(0, MAX_SUPPLEMENTS);
@@ -40086,12 +40172,26 @@ function averageMacrosFromWeek(weekPlan = {}) {
   if (!days) return { protein: 0, carbs: 0, fats: 0 };
   return { protein: Math.round(p / days), carbs: Math.round(c / days), fats: Math.round(f / days) };
 }
-function supplementsWithMeds(profile, userData, protocolSupplements, protocolName) {
+function powderInMenu(weekPlan = {}) {
+  const meals = Object.values(weekPlan || {}).flatMap((d) => d?.meals || []);
+  const lines = meals.map((m) => String(m.description || "")).filter((d) => /протеин \((растителен|суроватъчен)\)|протеин на прах/i.test(d));
+  if (!lines.length) return [];
+  const plant = lines.some((d) => /растителен/i.test(d));
+  const days = Object.values(weekPlan || {}).filter((d) => (d?.meals || []).some((m) => /протеин \((растителен|суроватъчен)\)|протеин на прах/i.test(String(m.description || "")))).length;
+  return [{
+    name: plant ? "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D \u043D\u0430 \u043F\u0440\u0430\u0445 (\u0433\u0440\u0430\u0445\u043E\u0432/\u0441\u043E\u0435\u0432)" : "\u0421\u0443\u0440\u043E\u0432\u0430\u0442\u044A\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u0435\u0438\u043D (whey)",
+    dosage: "1 \u043C\u0435\u0440\u0438\u0442\u0435\u043B\u043D\u0430 \u043B\u044A\u0436\u0438\u0446\u0430 (\u043E\u043A\u043E\u043B\u043E 25\u201330 g)",
+    timing: "\u0432 \u0434\u043D\u0438\u0442\u0435, \u0432 \u043A\u043E\u0438\u0442\u043E \u0435 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E",
+    reason: `\u043C\u0435\u043D\u044E\u0442\u043E \u0433\u043E \u043F\u043E\u043B\u0437\u0432\u0430 ${days} ${days === 1 ? "\u0434\u0435\u043D" : "\u0434\u043D\u0438"} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u2014 \u0431\u0435\u0437 \u043D\u0435\u0433\u043E \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u043D\u0430 \u0434\u0435\u043D\u044F \u043D\u0435 \u0441\u0442\u0438\u0433\u0430 \u0446\u0435\u043B\u0442\u0430`
+  }];
+}
+function supplementsWithMeds(profile, userData, protocolSupplements, protocolName, weekPlan) {
   const ix = interactionsFor(userData || {});
   const picked = supplementsFor(profile, userData, {
     labs: applySupplementInteractions(userData?._enrichment?.supplements || [], ix).kept,
     protocol: applySupplementInteractions(protocolSupplements || [], ix).kept,
-    protocolName
+    protocolName,
+    menu: powderInMenu(weekPlan)
   });
   return applySupplementInteractions(picked, ix).kept;
 }
@@ -40129,7 +40229,7 @@ function buildPlanSummary({
     forbidden,
     psychology: [...new Set(psychology)].slice(0, 6),
     waterIntake: `${waterNeedLiters(profile)} \u043B \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0432\u043D\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F`,
-    supplements: supplementsWithMeds(profile, userData, protocolSupplements, protocolName)
+    supplements: supplementsWithMeds(profile, userData, protocolSupplements, protocolName, weekPlan)
   };
 }
 
@@ -40857,9 +40957,9 @@ var recipes_default = {
       steps: [
         "\u041D\u0430\u043A\u0438\u0441\u043D\u0435\u0442\u0435 {LEG} \u0432\u044A\u0432 \u0432\u043E\u0434\u0430 \u043E\u0442 \u0432\u0435\u0447\u0435\u0440\u0442\u0430, \u043F\u043E\u0441\u043B\u0435 \u043E\u0442\u0446\u0435\u0434\u0435\u0442\u0435.",
         "\u0421\u0432\u0430\u0440\u0435\u0442\u0435 \u0431\u043E\u0431\u0430 \u0432 \u043F\u0440\u044F\u0441\u043D\u0430 \u0432\u043E\u0434\u0430, \u0434\u043E\u043A\u0430\u0442\u043E \u043E\u043C\u0435\u043A\u043D\u0435 \u2013 \u043E\u043A\u043E\u043B\u043E 1 \u0447\u0430\u0441.",
-        "\u041D\u0430\u0440\u0435\u0436\u0435\u0442\u0435 \u043B\u0443\u043A\u0430, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435 \u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435 \u0438 \u0433\u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0432 \u0442\u0435\u043D\u0434\u0436\u0435\u0440\u0430\u0442\u0430 \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435.",
-        "\u041F\u043E\u0434\u043F\u0440\u0430\u0432\u0435\u0442\u0435 \u0441\u044A\u0441 \u0441\u0443\u0448\u0435\u043D\u0430 \u043C\u0435\u043D\u0442\u0430, \u0447\u0443\u0431\u0440\u0438\u0446\u0430, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0441\u043E\u043B \u0438 \u0432\u0430\u0440\u0435\u0442\u0435 \u043E\u0449\u0435 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u0440\u0435\u0436\u0435\u0442\u0435 \u043B\u0443\u043A\u0430, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435 \u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435 \u0438 \u0433\u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0441 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435; \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0435\u0442\u0435 \u0441\u044A\u0441 \u0441\u0443\u0448\u0435\u043D\u0430 \u043C\u0435\u043D\u0442\u0430, \u0447\u0443\u0431\u0440\u0438\u0446\u0430, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0441\u043E\u043B \u0438 \u0432\u0430\u0440\u0435\u0442\u0435 \u043E\u0449\u0435 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
         "\u041E\u0432\u043A\u0443\u0441\u0435\u0442\u0435 \u0441\u044A\u0441 {FAT} \u0432 \u043A\u0440\u0430\u044F \u043D\u0430 \u0433\u043E\u0442\u0432\u0435\u043D\u0435\u0442\u043E.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439\u0442\u0435 \u0441 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u043E\u0442\u0433\u043E\u0440\u0435.",
         "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 {FAT2} \u043F\u0440\u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u043D\u0435."
       ],
       tip: "\u0421\u0432\u0430\u0440\u0435\u0442\u0435 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C\u043E \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u2013 \u044F\u0445\u043D\u0438\u044F\u0442\u0430 \u0435 \u043E\u0449\u0435 \u043F\u043E-\u0432\u043A\u0443\u0441\u043D\u0430 \u043D\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u0434\u0435\u043D."
@@ -40871,6 +40971,7 @@ var recipes_default = {
         "\u041D\u0430\u0440\u0435\u0436\u0435\u0442\u0435 \u043B\u0443\u043A\u0430, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435 \u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0433\u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u0434\u0430\u0444\u0438\u043D\u043E\u0432 \u043B\u0438\u0441\u0442.",
         "\u0412\u0430\u0440\u0435\u0442\u0435 \u043E\u043A\u043E\u043B\u043E 25 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u043B\u0435\u0449\u0430\u0442\u0430 \u043E\u043C\u0435\u043A\u043D\u0435, \u043F\u043E\u0441\u043B\u0435 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435, \u0447\u0443\u0431\u0440\u0438\u0446\u0430 \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440.",
         "\u041E\u0432\u043A\u0443\u0441\u0435\u0442\u0435 \u0441\u044A\u0441 {FAT} \u0438 \u0441\u043E\u043B.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439\u0442\u0435 \u0441 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u043E\u0442\u0433\u043E\u0440\u0435.",
         "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439\u0442\u0435 \u0441 {FAT2} \u043E\u0442\u0441\u0442\u0440\u0430\u043D\u0438."
       ],
       tip: "\u0410\u043A\u043E \u044F\u0445\u043D\u0438\u044F\u0442\u0430 \u0441\u0442\u0430\u043D\u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u044A\u0441\u0442\u0430, \u0440\u0430\u0437\u0440\u0435\u0434\u0435\u0442\u0435 \u044F \u0441 \u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430."
@@ -40882,6 +40983,7 @@ var recipes_default = {
         "\u0418\u0437\u043C\u0438\u0439\u0442\u0435 {LEG}, \u0441\u043B\u043E\u0436\u0435\u0442\u0435 \u044F \u0432 \u0442\u0435\u043D\u0434\u0436\u0435\u0440\u0430 \u0437\u0430\u0435\u0434\u043D\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u0437\u0430\u043B\u0435\u0439\u0442\u0435 \u0441 \u0432\u043E\u0434\u0430.",
         "\u0412\u0430\u0440\u0435\u0442\u0435 \u043E\u043A\u043E\u043B\u043E 25 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u0432\u0441\u0438\u0447\u043A\u043E \u043E\u043C\u0435\u043A\u043D\u0435, \u0438 \u043F\u0430\u0441\u0438\u0440\u0430\u0439\u0442\u0435 \u0434\u043E \u0433\u043B\u0430\u0434\u044A\u043A \u043A\u0440\u0435\u043C.",
         "\u041E\u0432\u043A\u0443\u0441\u0435\u0442\u0435 \u0441\u044A\u0441 {FAT}, \u043A\u0438\u043C\u0438\u043E\u043D, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u0441\u043E\u043B.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0435\u0442\u0435 \u0441 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u043E\u0442\u0433\u043E\u0440\u0435.",
         "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439\u0442\u0435 \u0441 {FAT2} \u043E\u0442\u0441\u0442\u0440\u0430\u043D\u0438."
       ],
       tip: "\u0421\u0443\u043F\u0430\u0442\u0430 \u0441\u0435 \u0441\u044A\u0445\u0440\u0430\u043D\u044F\u0432\u0430 \u0434\u043E\u0431\u0440\u0435 \u0432 \u0445\u043B\u0430\u0434\u0438\u043B\u043D\u0438\u043A \u0434\u043E \u0442\u0440\u0438 \u0434\u043D\u0438 \u2013 \u043F\u0440\u0438 \u0437\u0430\u0442\u043E\u043F\u043B\u044F\u043D\u0435 \u0440\u0430\u0437\u0440\u0435\u0434\u0435\u0442\u0435 \u0441 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430."
@@ -40893,6 +40995,7 @@ var recipes_default = {
         "\u041D\u0430\u0440\u0435\u0436\u0435\u0442\u0435 \u0441\u0438\u0442\u043D\u043E \u043B\u0443\u043A\u0430 \u0438 \u0433\u043E \u0437\u0430\u0434\u0443\u0448\u0435\u0442\u0435 \u0432 {FAT} 3\u20134 \u043C\u0438\u043D\u0443\u0442\u0438.",
         "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 {VEG} \u0438 \u0437\u0430\u0434\u0443\u0448\u0435\u0442\u0435, \u0434\u043E\u043A\u0430\u0442\u043E \u043B\u0438\u0441\u0442\u0430\u0442\u0430 \u0441\u043F\u0430\u0434\u043D\u0430\u0442.",
         "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043E\u0442\u0446\u0435\u0434\u0435\u043D\u0438\u044F {LEG}, \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430, \u0437\u0430\u0434\u0443\u0448\u0435\u0442\u0435 5 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0435\u0442\u0435 \u0441\u044A\u0441 \u0441\u043E\u043B.",
+        "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0432 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 2 \u043C\u0438\u043D\u0443\u0442\u0438.",
         "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 {FAT2} \u043F\u0440\u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u043D\u0435."
       ],
       tip: "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043D\u0430\u043A\u0440\u0430\u044F \u043A\u0430\u043F\u043A\u0430 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u2013 \u043E\u0441\u0432\u0435\u0436\u0430\u0432\u0430 \u0432\u043A\u0443\u0441\u0430 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435\u0442\u043E."
@@ -40901,9 +41004,9 @@ var recipes_default = {
       time: 20,
       steps: [
         "\u0421\u0432\u0430\u0440\u0435\u0442\u0435 {STA} \u0441\u043F\u043E\u0440\u0435\u0434 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F\u0442\u0430 \u043D\u0430 \u043E\u043F\u0430\u043A\u043E\u0432\u043A\u0430\u0442\u0430 \u0438 \u043E\u0441\u0442\u0430\u0432\u0435\u0442\u0435 \u043B\u0435\u043A\u043E \u0434\u0430 \u0438\u0437\u0441\u0442\u0438\u043D\u0435.",
-        "\u041D\u0430\u0440\u0435\u0436\u0435\u0442\u0435 {VEG} \u043D\u0430 \u0445\u0430\u043F\u043A\u0438.",
-        "\u041E\u0442\u0446\u0435\u0434\u0435\u0442\u0435 {LEG} \u0438 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0435\u0442\u0435 \u0441\u044A\u0441 \u0441\u043E\u043B \u0438 \u043A\u0438\u043C\u0438\u043E\u043D.",
+        "\u041D\u0430\u0440\u0435\u0436\u0435\u0442\u0435 {VEG} \u043D\u0430 \u0445\u0430\u043F\u043A\u0438, \u043E\u0442\u0446\u0435\u0434\u0435\u0442\u0435 {LEG} \u0438 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0435\u0442\u0435 \u0441\u044A\u0441 \u0441\u043E\u043B \u0438 \u043A\u0438\u043C\u0438\u043E\u043D.",
         "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439\u0442\u0435 \u0438\u043B\u0438 \u043D\u0430\u043C\u0430\u0447\u043A\u0430\u0439\u0442\u0435 {FAT} \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A, \u0449\u0438\u043F\u043A\u0430 \u0441\u043E\u043B \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0437\u0430 \u0434\u0440\u0435\u0441\u0438\u043D\u0433.",
+        "\u041D\u0430\u0440\u0435\u0436\u0435\u0442\u0435 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0438 \u0433\u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0432 \u043A\u0443\u043F\u0430\u0442\u0430.",
         "\u041D\u0430\u0440\u0435\u0434\u0435\u0442\u0435 \u0432\u0441\u0438\u0447\u043A\u043E \u0432 \u043A\u0443\u043F\u0430 \u0438 \u043F\u043E\u043B\u0435\u0439\u0442\u0435 \u0441 \u0434\u0440\u0435\u0441\u0438\u043D\u0433\u0430.",
         "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 {FAT2} \u043F\u0440\u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u043D\u0435."
       ],
@@ -40927,6 +41030,7 @@ var recipes_default = {
         "\u041D\u0430\u0440\u0435\u0436\u0435\u0442\u0435 \u0441\u0438\u0442\u043D\u043E \u043B\u0443\u043A\u0430 \u0438 \u0433\u043E \u0437\u0430\u043F\u044A\u0440\u0436\u0435\u0442\u0435 \u0432 {FAT} \u0434\u043E \u0437\u043B\u0430\u0442\u0438\u0441\u0442\u043E.",
         "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 {STA} \u0438 \u043B\u0443\u043A\u0430 \u043A\u044A\u043C \u043B\u0435\u0449\u0430\u0442\u0430 \u0438 \u0432\u0430\u0440\u0435\u0442\u0435 \u043E\u0449\u0435 15\u201325 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u043E\u0440\u0438\u0437\u044A\u0442 \u043E\u043C\u0435\u043A\u043D\u0435.",
         "\u041F\u043E\u0434\u043F\u0440\u0430\u0432\u0435\u0442\u0435 \u0441 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0441\u043E\u043B.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439\u0442\u0435 \u0441 {PRO} \u043E\u0442\u0433\u043E\u0440\u0435.",
         "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439\u0442\u0435 \u0441 {FAT2} \u043E\u0442\u0441\u0442\u0440\u0430\u043D\u0438."
       ],
       tip: "\u0410\u043A\u043E \u0442\u0435\u0447\u043D\u043E\u0441\u0442\u0442\u0430 \u0438\u0437\u0432\u0440\u0438 \u043F\u0440\u0435\u0434\u0438 \u043E\u0440\u0438\u0437\u044A\u0442 \u0434\u0430 \u043E\u043C\u0435\u043A\u043D\u0435, \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043E\u0449\u0435 \u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430."
@@ -41019,6 +41123,7 @@ var recipes_default = {
         "\u041E\u0431\u0435\u043B\u0435\u0442\u0435 {STA}, \u043D\u0430\u0440\u0435\u0436\u0435\u0442\u0435 \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0432 \u0442\u0435\u043D\u0434\u0436\u0435\u0440\u0430\u0442\u0430.",
         "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435, \u0441\u043E\u043B, \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0447\u0443\u0431\u0440\u0438\u0446\u0430, \u0437\u0430\u043B\u0435\u0439\u0442\u0435 \u0441 \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0435\u0442\u0435 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D \u043E\u043A\u043E\u043B\u043E 25 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u0432\u0441\u0438\u0447\u043A\u043E \u043E\u043C\u0435\u043A\u043D\u0435.",
         "\u041F\u043E\u0440\u044A\u0441\u0435\u0442\u0435 \u0441 \u043F\u0440\u0435\u0441\u0435\u043D \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437 \u043F\u0440\u0435\u0434\u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u043D\u0435.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0435\u0442\u0435 \u0441 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u043E\u0442\u0433\u043E\u0440\u0435.",
         "\u041F\u043E\u0434\u043D\u0435\u0441\u0435\u0442\u0435 \u0441 {FAT2}."
       ],
       tip: "\u042F\u0445\u043D\u0438\u044F\u0442\u0430 \u0435 \u043E\u0449\u0435 \u043F\u043E-\u0432\u043A\u0443\u0441\u043D\u0430 \u043D\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u0434\u0435\u043D \u2013 \u043C\u043E\u0436\u0435\u0442\u0435 \u0441\u043F\u043E\u043A\u043E\u0439\u043D\u043E \u0434\u0430 \u044F \u0441\u0433\u043E\u0442\u0432\u0438\u0442\u0435 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E."
@@ -42503,6 +42608,58 @@ function balanceDay(meals, dayBuilt, dayTarget, policy) {
     move.e.target = move.target;
   }
 }
+var SHAKE_DISH = DISHES.find((d) => d.id === "s_protein_shake");
+var SHAKE_PROTEIN_SHARE = 0.92;
+var SHAKE_MIN_GAP_G = 12;
+var POWDER_MAX_G_DAY = 60;
+var powderGrams = (built) => built.parts.reduce((a, p) => a + p.foods.reduce((b, id, i) => b + (food(id).flags.has("supplement") ? p.grams[i] : 0), 0), 0);
+function shakeForProteinGap(meals, dayBuilt, dayTarget, policy) {
+  if (!SHAKE_DISH) return;
+  const carbsCap = policy.style === "keto" || policy.style === "low_carb";
+  const total = meals.reduce((t, m) => {
+    t.protein += m.macros?.protein || 0;
+    t.carbs += m.macros?.carbs || 0;
+    t.fats += m.macros?.fats || 0;
+    return t;
+  }, { protein: 0, carbs: 0, fats: 0 });
+  const gap = dayTarget.protein - total.protein;
+  if (total.protein >= dayTarget.protein * SHAKE_PROTEIN_SHARE || gap < SHAKE_MIN_GAP_G) return;
+  const powderToday = dayBuilt.reduce((a, e) => a + powderGrams(e.built), 0);
+  if (powderToday >= POWDER_MAX_G_DAY) return;
+  const curErr = mealError(total, dayTarget, carbsCap);
+  let move = null;
+  for (const e of dayBuilt) {
+    if (e.kind !== "snack" && e.kind !== "late") continue;
+    if (e.dish.id === SHAKE_DISH.id) return;
+    const ctx = e.baseCtx;
+    const choice = SHAKE_DISH.parts.map((part) => Math.max(0, part.options.findIndex((o) => o.every((id) => ctx.policy.allowed(id)))));
+    const powder = SHAKE_DISH.parts[0].options[choice[0]];
+    if (!powder || !powder.every((id) => ctx.policy.allowed(id))) return;
+    const left = { protein: gap, carbs: dayTarget.carbs - total.carbs, fats: dayTarget.fats - total.fats };
+    const target = addLeft(e.target, left);
+    const built = buildMeal({ dish: SHAKE_DISH, choice, quota: e.quota, target, mealKind: "snack", ctx });
+    if (!built || powderToday + powderGrams(built) > POWDER_MAX_G_DAY) continue;
+    const meal = toPlanMeal(e.type, SHAKE_DISH, built, false);
+    if (meal.calories > Math.max(balanceCeiling(e.type, e.kind, kcalOf(dayTarget)), meals[e.i].calories)) continue;
+    const old = meals[e.i].macros;
+    const next = {
+      protein: total.protein - old.protein + meal.macros.protein,
+      carbs: total.carbs - old.carbs + meal.macros.carbs,
+      fats: total.fats - old.fats + meal.macros.fats
+    };
+    const err2 = mealError(next, dayTarget, carbsCap);
+    if (err2 < curErr - 1e-4 && (!move || err2 < move.err)) move = { e, built, meal, target, err: err2 };
+  }
+  if (!move) return;
+  move.meal.targetCalories = meals[move.e.i].targetCalories;
+  meals[move.e.i] = move.meal;
+  Object.assign(move.e, { dish: SHAKE_DISH, built: move.built, target: move.target, alts: [] });
+}
+function addLeft(target, left) {
+  const out = { protein: 0, carbs: 0, fats: 0 };
+  for (const k of Object.keys(out)) out[k] = Math.max(0, target[k] + left[k]);
+  return out;
+}
 function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {} }) {
   const rng = rngFrom(seed);
   const altRng = rngFrom((seed ^ 1540483477) >>> 0);
@@ -42680,9 +42837,13 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       const altMeals = alternatives.map((a) => ({ ...toPlanMeal(type, a.dish, a.built, dessertToday), targetCalories: meal.targetCalories })).filter((a) => nearKcal(a.calories, meal.calories) || nearKcal(a.calories, meal.targetCalories)).slice(0, MAX_ALTERNATIVES2);
       if (altMeals.length) meal.alternatives = altMeals;
       meals.push(meal);
-      dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives });
+      dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives, quota: plan.quota, baseCtx: kind === "snack" || kind === "late" ? snackCtx : ctx });
     }
-    if (!meals.some((m) => m.type === FREE_MEAL)) balanceDay(meals, dayBuilt, dayTargetOf(prescription, slots), policy);
+    if (!meals.some((m) => m.type === FREE_MEAL)) {
+      const dayTarget = dayTargetOf(prescription, slots);
+      balanceDay(meals, dayBuilt, dayTarget, policy);
+      shakeForProteinGap(meals, dayBuilt, dayTarget, policy);
+    }
     const dayMeals = (
       /** @type {any[]} */
       meals

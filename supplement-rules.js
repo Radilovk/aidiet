@@ -4,7 +4,7 @@
  * Всяка добавка носи конкретна причина от данните на клиента (изследване,
  * протокол, състояние, цел и тренировки, сън и стрес, модел на хранене,
  * лекарство, сезон). Без причина добавка няма. Редът е по сила на
- * основанието: изследване → протокол → лекарство → състояние → модел на
+ * основанието: изследване → менюто (протеин на прах) → протокол → лекарство → състояние → модел на
  * хранене → начин на живот → сезон; влизат първите 5 различни вещества.
  *
  * Дозите са обичайните поддържащи за възрастни; лечебните дози се определят
@@ -97,9 +97,9 @@ function profileRules(profile, userData, now) {
 /**
  * @param {ReturnType<typeof import('./profile-code.js').compileProfile>} profile
  * @param {Record<string, any>} userData
- * @param {{ labs?: object[], protocol?: object[], protocolName?: string, now?: Date }} [sources]
+ * @param {{ labs?: object[], protocol?: object[], protocolName?: string, menu?: object[], now?: Date }} [sources]
  */
-export function supplementsFor(profile, userData = {}, { labs = [], protocol = [], protocolName = '', now = null } = {}) {
+export function supplementsFor(profile, userData = {}, { labs = [], protocol = [], protocolName = '', menu = [], now = null } = {}) {
   const out = [];
   const keys = new Set();
   const add = (s) => {
@@ -110,6 +110,8 @@ export function supplementsFor(profile, userData = {}, { labs = [], protocol = [
     out.push({ name: s.name, dosage: s.dosage || '', timing: s.timing || '', reason: s.reason || '' });
   };
   for (const s of labs || []) add(s);
+  // Каквото менюто вече ползва (протеин на прах) — преди правилата по профила.
+  for (const s of menu || []) add(s);
   for (const s of protocol || []) add({ ...s, reason: s.reason || (protocolName ? `протокол „${protocolName}“` : 'клиничен протокол') });
   for (const s of profileRules(profile, userData, now || new Date())) add(s);
   return out.slice(0, MAX_SUPPLEMENTS);

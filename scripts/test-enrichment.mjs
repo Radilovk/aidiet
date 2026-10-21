@@ -177,5 +177,16 @@ const irisOnly = reanalyze(base(), applyEnrichment(base(), { facts: [irisFact] }
 ok(irisOnly.analysis.currentHealthStatus.score === irisOnly.baseline.score, 'AIRIS без потвърждение не мени оценката');
 const plain = reanalyze(base(), base(), {}, 'F');
 ok(plain.analysis.currentHealthStatus.score === plain.baseline.score && !plain.replaced.length, 'без нови данни — анализът е същият');
+
+// ── Протеин на прах от менюто → добавка ──────────────────────────────────
+{
+  const veg = { ...base(), dietPreference: ['Веган'] };
+  const engV = buildNutritionPlan(veg, { kcal: 1300, seed: 'a' });
+  const usesPowder = Object.values(engV.weekPlan).some(d => d.meals.some(m => /Протеин \(растителен\)/.test(m.description || '')));
+  const sumV = buildPlanSummary({ userData: veg, strategy: {}, weekPlan: engV.weekPlan, bmr: 1300, dailyCalories: 1300, protocolSupplements: [] });
+  ok(!usesPowder || sumV.supplements.some(x => /протеин на прах/i.test(x.name) && /белтък/.test(x.reason)), 'протеинът на прах в менюто е и в добавките, с причина');
+  const sumNo = buildPlanSummary({ userData: base(), strategy: {}, weekPlan: {}, protocolSupplements: [] });
+  ok(!sumNo.supplements.some(x => /протеин/i.test(x.name)), 'без прах в менюто — без протеин в добавките');
+}
 console.log(`\n=== enrichment: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);
