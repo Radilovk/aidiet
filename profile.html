@@ -1251,6 +1251,14 @@
         .module-status[data-on="1"] { color: var(--ds-success-text); }
         .module-go { color: var(--ds-text-soft); }
         .devices-source { margin-bottom: 6px; }
+        .devices-links { display: grid; gap: 8px; }
+        .devices-link { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 10px; padding: 10px 12px; min-height: 56px; border-radius: 12px; background: rgba(15, 118, 110, 0.06); border: 1px solid var(--glass-border); }
+        .devices-link-name { font-weight: 700; color: var(--text-dark); }
+        .devices-link-state { grid-column: 1; font-size: 0.8125rem; color: var(--ds-text-soft); }
+        .devices-link-state[data-on="1"] { color: var(--ds-success-text); font-weight: 600; }
+        .devices-link-state[data-err="1"] { color: var(--ds-warning-text); }
+        .devices-link .btn, .devices-link-off { grid-column: 2; grid-row: 1 / span 2; min-height: 44px; padding: 8px 14px; }
+        .devices-link .devices-link-off { width: auto; margin: 0; padding: 8px 4px; }
         .devices-manual { grid-template-columns: 1fr 1fr; }
         .devices-row { grid-template-columns: 44px 1fr 0.8fr 1.4fr; padding-bottom: 8px; border-bottom: 1px solid var(--glass-border); }
         .devices-row .labs-row-check { grid-row: 1 / span 2; }
@@ -2116,6 +2124,11 @@
                     <div class="labs-sub">Автоматично — Health Connect</div>
                     <p class="labs-note">Samsung Health, Fitbit, Garmin, Zepp/Amazfit, Mi Fitness, Withings, Oura, Polar, везни Renpho/Xiaomi/Eufy, MyFitnessPal и др. — всичко, което пише в Health Connect.</p>
                     <div class="labs-actions devices-actions" id="devicesActions"></div>
+                </div>
+                <div class="devices-source" id="devicesLinksBox" hidden>
+                    <div class="labs-sub">Профил в приложението на устройството</div>
+                    <p class="labs-note">Влезте с профила си веднъж — данните се теглят сами на всеки няколко часа, на телефон с Android, iPhone или в браузъра.</p>
+                    <div class="devices-links" id="devicesLinks"></div>
                 </div>
                 <div class="devices-source">
                     <div class="labs-sub">От всяко приложение или уред</div>
@@ -3070,7 +3083,7 @@
                 return;
             }
             if (E) E.setConsent('device', checked);
-            renderDevices();
+            renderDevices(); renderLinks();
         }
 
         const DEVICE_FACT_KINDS = ['steps', 'weight', 'sleep', 'intake', 'body_fat', 'muscle_mass', 'visceral_fat', 'body_water',
@@ -3262,6 +3275,99 @@
             }
         }
 
+        // ── Профили в облака (Fitbit, Oura, Withings, Strava) ─────────────
+        let _links = [];
+
+        function renderLinks() {
+            const box = document.getElementById('devicesLinksBox');
+            const list = document.getElementById('devicesLinks');
+            if (!box || !list) return;
+            box.hidden = !_links.length;
+            const consent = document.getElementById('devicesConsent').checked;
+            list.innerHTML = _links.map(l => {
+                const state = l.linked
+                    ? (l.error ? 'Свързан · последното обновяване не успя' : `Свързан${l.syncedAt ? ' · ' + formatSyncTime(l.syncedAt) : ''}`)
+                    : 'Не е свързан';
+                const btn = l.linked
+                    ? `<button type="button" class="labs-delete devices-link-off" onclick="disconnectLink('${l.id}')" aria-label="Изключи ${escProfileHtml(l.name)}"><i class="fas fa-link-slash"></i> Изключи</button>`
+                    : `<button type="button" class="btn btn-primary" onclick="connectLink('${l.id}')" ${consent ? '' : 'disabled'}><i class="fas fa-link"></i> Свържи</button>`;
+                return `<div class="devices-link"><span class="devices-link-name">${escProfileHtml(l.name)}</span>`
+                    + `<span class="devices-link-state" data-on="${l.linked && !l.error ? 1 : 0}" data-err="${l.error ? 1 : 0}">${state}</span>${btn}</div>`;
+            }).join('');
+        }
+
+        async function loadLinks({ sync = false, force = false } = {}) {
+            const E = window.NutriPlanEnrichment;
+            if (!E || !E.linkProviders) return;
+            try {
+                const res = await E.linkProviders();
+                _links = res.providers || [];
+                renderLinks();
+                if (sync && _links.some(l => l.linked)) {
+                    const r = await E.syncLinks(force);
+                    _links = r.providers || _links;
+                    renderLinks();
+                    if (r.derived) { renderDeviceEssence(r.derived); refreshCardMeter(r.derived); }
+                    return r;
+                }
+            } catch (_) { /* без връзка — блокът остава скрит */ }
+            return null;
+        }
+
+        async function connectLink(id) {
+            devicesSetStatus('Отваряме входа…');
+            try {
+                const isApp = !!(window.NutriPlanPlatform && window.NutriPlanPlatform.isAPK());
+                // Уеб: връщане в обвивката на таб „Профил“. Приложение: входът е в браузъра на
+                // телефона и оттам не може да се върне — проверяваме, когато екранът стане видим.
+                const back = new URL('index.html?app=1&tab=profile', location.href).toString();
+                const res = await window.NutriPlanEnrichment.startLink(id, isApp ? null : back);
+                sessionStorage.setItem('np_link_pending', id);
+                // Профилът е в рамка: входът при доставчика не се отваря в рамка — навигира горният прозорец.
+                (window.top || window).location.href = res.url;
+            } catch (e) {
+                devicesSetStatus(e.message || 'Свързването не успя.', 'error');
+            }
+        }
+
+        async function disconnectLink(id) {
+            const l = _links.find(x => x.id === id);
+            if (!confirm(`${l ? l.name : 'Профилът'} се изключва, а данните от него се изтриват от плана. Продължаване?`)) return;
+            try {
+                const res = await window.NutriPlanEnrichment.disconnectLink(id);
+                _links = res.providers || _links.map(x => x.id === id ? { ...x, linked: false } : x);
+                renderLinks();
+                devicesSetStatus('Изключено. Достъпа можете да оттеглите и от настройките на профила при доставчика.', 'ok');
+                loadDeviceEssence();
+            } catch (e) {
+                devicesSetStatus(e.message || 'Не успяхме да изключим профила.', 'error');
+            }
+        }
+
+        /** Връщане от входа (уеб — при зареждане, приложение — когато екранът стане видим). */
+        async function checkLinkReturn() {
+            const id = sessionStorage.getItem('np_link_pending');
+            if (!id) return;
+            sessionStorage.removeItem('np_link_pending');
+            const sec = document.getElementById('devicesWrapper');
+            if (sec && !sec.classList.contains('open')) toggleDevices();
+            await loadLinks();
+            const l = _links.find(x => x.id === id);
+            if (l && l.linked) {
+                devicesSetStatus(`${l.name} е свързан. Данните за последните 14 дни са добавени.`, 'ok');
+                loadDeviceEssence();
+            } else {
+                devicesSetStatus('Профилът не е свързан. Може да опитате отново.', 'error');
+            }
+        }
+
+        function handleLinkReturn() {
+            checkLinkReturn();
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') checkLinkReturn();
+            });
+        }
+
         async function initDevicesSection() {
             const H = window.NutriPlanHealth;
             const E = window.NutriPlanEnrichment;
@@ -3271,6 +3377,12 @@
             section.hidden = false;
             document.getElementById('devicesConsent').checked = E.hasConsent('device') || !!(H && H.state().connected);
             renderDevices();
+            handleLinkReturn();
+            // Сървърът сам пази интервала — тук само взима новото, ако има.
+            loadLinks({ sync: true }).then(() => {
+                if (_links.some(l => l.linked)) document.getElementById('devicesConsent').checked = true;
+                renderDevices(); renderLinks();
+            });
         }
 
         async function connectDevices() {

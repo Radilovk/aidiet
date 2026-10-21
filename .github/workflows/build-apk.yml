@@ -374,6 +374,14 @@ jobs:
                       content = content[:idx] + new_launch_style + '\n</resources>'
                   else:
                       content += '\n' + new_launch_style + '\n'
+              # Фонът на прозореца = фонът на приложението: под системните ленти не остава
+              # сивият фон по подразбиране на темата (#303030 в тъмна, #FAFAFA в светла).
+              if 'AppTheme.NoActionBar' in content and 'android:windowBackground' not in content:
+                  content = re.sub(
+                      r'(<style\s+name="AppTheme\.NoActionBar"[^>]*>)',
+                      r'\1\n        <item name="android:windowBackground">#F0FDFA</item>',
+                      content, count=1, flags=re.DOTALL
+                  )
               # Add or update navigation bar color in AppTheme.NoActionBar (light mode = app background #F0FDFA)
               if 'AppTheme.NoActionBar' in content:
                   if 'navigationBarColor' not in content:
@@ -404,6 +412,7 @@ jobs:
                   '    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">\n'
                   '        <item name="windowActionBar">false</item>\n'
                   '        <item name="windowNoTitle">true</item>\n'
+                  '        <item name="android:windowBackground">#F0FDFA</item>\n'
                   '        <item name="android:navigationBarColor">#F0FDFA</item>\n'
                   '        <item name="android:windowLightNavigationBar">true</item>\n'
                   '    </style>\n'
@@ -420,6 +429,9 @@ jobs:
           (night_dir / "styles.xml").write_text(
               '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
               '    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">\n'
+              '        <item name="windowActionBar">false</item>\n'
+              '        <item name="windowNoTitle">true</item>\n'
+              '        <item name="android:windowBackground">#0A1A1A</item>\n'
               '        <item name="android:navigationBarColor">#0A1A1A</item>\n'
               '        <item name="android:windowLightNavigationBar">false</item>\n'
               '    </style>\n'

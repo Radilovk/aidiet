@@ -141,10 +141,23 @@
         } catch (_) {}
     }
 
+    /**
+     * Фонът на прозореца под системните ленти (APK) — същият цвят като лентите.
+     * Иначе под тях се вижда фонът по подразбиране на темата на Android (сива ивица).
+     */
+    function setWindowBackground(color) {
+        if (!isAPK()) return;
+        try {
+            var ui = getPlugin('NutriSystemUi');
+            if (ui && typeof ui.setBackground === 'function') ui.setBackground({ color: color }).catch(function () {});
+        } catch (_) {}
+    }
+
     /** Двете системни ленти наведнъж — един цвят и контраст за целия екран. */
     function setSystemBars(color, lightBackground) {
         setStatusBar(color, lightBackground);
         setNavBar(color, !!lightBackground);
+        setWindowBackground(color);
     }
 
     // ── Вибрация / хаптика ─────────────────────────────────────────────────
@@ -324,6 +337,7 @@
         exitNativeApp: exitNativeApp,
         setNavBar: setNavBar,
         setStatusBar: setStatusBar,
+        setWindowBackground: setWindowBackground,
         setSystemBars: setSystemBars,
         vibrate: vibrate,
         apply: apply,

@@ -44,6 +44,10 @@ STUDIO_ROOT_DOMAIN = "biocode-bg.com"
 # workers.dev URL is assigned automatically (aidiet.radilov-k.workers.dev).
 # Do NOT use `route` here — that syntax is for custom domains in a Cloudflare zone.
 
+# Фонова синхронизация на свързаните профили (Fitbit, Oura, Withings, Strava).
+[env.production.triggers]
+crons = ["17 */6 * * *"]
+
 [[env.production.kv_namespaces]]
 binding = "page_content"
 id = "81fc0991b2764918b682f9ca170abd4b"

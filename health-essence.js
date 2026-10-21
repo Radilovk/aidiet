@@ -53,8 +53,13 @@ export function normalizeDigest(raw, now = new Date()) {
   return { insights, coachNote, approach, at: now.toISOString() };
 }
 
-/** Кой източник печели за един и същи ден: измереното автоматично > снимка > файл > ръчно. */
-const SOURCE_RANK = { health_connect: 4, device_photo: 3, file: 2, manual: 1 };
+/**
+ * Кой източник печели за един и същи ден: измереното автоматично (Health Connect
+ * или профил в облака — device-links.js) > снимка > файл > ръчно.
+ */
+const SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, device_photo: 3, file: 2, manual: 1 };
+/** Източниците, които мерят непрекъснато — от тях се брои откога има следене. */
+const TRACKED_SOURCES = new Set(['health_connect', 'fitbit', 'oura', 'withings', 'strava']);
 
 function dayOf(at) {
   return new Date(Date.parse(at)).toISOString().slice(0, 10);
@@ -195,7 +200,7 @@ export function computeEssence(facts, now = new Date(), ctx = {}) {
     }
   }
   const workouts = between(dailySeries(facts, 'workout'), now, 0, 14);
-  const trackedSince = Math.min(...(facts || []).filter(f => f.source === 'health_connect').map(f => Date.parse(f.at)), Infinity);
+  const trackedSince = Math.min(...(facts || []).filter(f => TRACKED_SOURCES.has(f.source)).map(f => Date.parse(f.at)), Infinity);
   if (workouts.length && now.getTime() - trackedSince >= 12 * DAY_MS) {
     const sessions = workouts.reduce((s, p) => s + (p.count || 1), 0);
     const perWeek = sessions / 2;

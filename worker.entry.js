@@ -112,6 +112,7 @@ import { interactionsFor, applySupplementInteractions } from './drug-interaction
 import { LAB_MARKERS } from './enrichment-labs.js';
 import { documentsText, normalizeDocumentValue } from './enrichment-documents.js';
 import { reanalyze } from './analysis-reanalysis.js';
+import { PROVIDERS as LINK_PROVIDERS, LINK_SOURCES, enabledProviders, randomToken, authorizeUrl as linkAuthorizeUrl, exchangeCode as linkExchangeCode, pullFacts as linkPullFacts } from './device-links.js';
 import {
   readOverlayFromKv,
   writeOverlayToKv,
@@ -14483,6 +14484,200 @@ async function handleEnrichmentDelete(request, env) {
   }
 }
 
+// ── Профили в облака (device-links.js): Fitbit, Oura, Withings, Strava ──────
+// Токенът е в link:{userId}:{provider} — само на сървъра, клиентът не го вижда.
+
+/** Синхронизация най-често веднъж на 3 часа за доставчик (лимитите на API-тата). */
+const LINK_SYNC_MIN_MS = 3 * 60 * 60 * 1000;
+const LINK_TTL = 365 * 24 * 60 * 60;
+/** Къде може да върне браузърът след вход при доставчика. */
+const LINK_RETURN_HOSTS = ['biocode.website', 'www.biocode.website', 'radilovk.github.io', 'localhost', '127.0.0.1'];
+
+function linkRedirectUri(request, provider) {
+  return `${new URL(request.url).origin}/api/links/callback/${provider}`;
+}
+
+function safeReturnTo(raw) {
+  try {
+    const u = new URL(String(raw || ''));
+    return ['https:', 'http:'].includes(u.protocol) && LINK_RETURN_HOSTS.includes(u.hostname) ? u.toString() : null;
+  } catch (_) { return null; }
+}
+
+async function linkStatus(env, userId) {
+  const enabled = enabledProviders(env);
+  const out = [];
+  for (const id of enabled) {
+    const link = await kvGetJSON(env, `link:${userId}:${id}`);
+    out.push({ id, name: LINK_PROVIDERS[id].name, linked: !!link, syncedAt: link?.syncedAt || null, error: link?.error || null });
+  }
+  return out;
+}
+
+/** Тегли и записва данните от един доставчик. */
+async function syncLink(env, userId, provider, link, now = new Date()) {
+  try {
+    const { facts, link: next } = await linkPullFacts(fetch, env, provider, link, now);
+    const clean = facts.map(f => normalizeFact({ ...f, source: provider, status: 'confirmed' })).filter(Boolean);
+    await kvPutJSON(env, `link:${userId}:${provider}`, { ...next, syncedAt: now.toISOString(), error: null }, LINK_TTL);
+    if (!clean.length) return { provider, facts: 0 };
+    const res = await ingestEnrichmentFacts(env, userId, clean, { source: provider });
+    return { provider, facts: clean.length, level: res.level, derived: res.derived, reanalysis: res.reanalysis };
+  } catch (e) {
+    console.warn(`[Links] ${provider} sync failed:`, e.message);
+    await kvPutJSON(env, `link:${userId}:${provider}`, { ...link, error: e.message.slice(0, 200), errorAt: now.toISOString() }, LINK_TTL);
+    return { provider, error: e.message };
+  }
+}
+
+/**
+ * Фоново (cron): всички свързани профили, на които е дошло времето. До 40 на
+ * пускане — останалите влизат в следващото.
+ */
+async function syncAllLinks(env, now = new Date()) {
+  if (!env.page_content || !enabledProviders(env).length) return 0;
+  let done = 0;
+  let cursor;
+  do {
+    const page = await env.page_content.list({ prefix: 'link:', cursor });
+    for (const { name } of page.keys) {
+      const parts = name.split(':');
+      const provider = parts.pop();
+      const userId = parts.slice(1).join(':');
+      if (!userId || !enabledProviders(env).includes(provider)) continue;
+      const link = await kvGetJSON(env, name);
+      const last = Date.parse(link?.syncedAt || link?.errorAt || 0) || 0;
+      if (!link || now.getTime() - last < LINK_SYNC_MIN_MS) continue;
+      await syncLink(env, userId, provider, link, now);
+      if (++done >= 40) return done;
+    }
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor);
+  return done;
+}
+
+/** POST /api/links/providers — Body: { userId, idToken? } → кои доставчици са включени и свързани. */
+async function handleLinksProviders(request, env) {
+  try {
+    const { userId, idToken } = await request.json();
+    if (!userId) return jsonResponse({ success: true, providers: enabledProviders(env).map(id => ({ id, name: LINK_PROVIDERS[id].name, linked: false })) });
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    return jsonResponse({ success: true, providers: await linkStatus(env, userId) });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to list providers: ' + error.message }, 500);
+  }
+}
+
+/** POST /api/links/start — Body: { userId, idToken?, provider, returnTo? } → { url } за вход при доставчика. */
+async function handleLinksStart(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, provider, returnTo } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    if (!enabledProviders(env).includes(provider)) return jsonResponse({ error: 'Доставчикът не е наличен' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const state = randomToken(24);
+    const { url, verifier } = await linkAuthorizeUrl(env, provider, { redirectUri: linkRedirectUri(request, provider), state });
+    await kvPutJSON(env, `link_state:${state}`, { userId, provider, verifier, returnTo: safeReturnTo(returnTo) }, 600);
+    return jsonResponse({ success: true, url });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to start link: ' + error.message }, 500);
+  }
+}
+
+function linkResultPage(ok, title, text) {
+  const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NutriPlan</title>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#F0FDFA;color:#042F2E}
+main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? '#0F766E' : '#B45309'}}
+a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#0F766E;color:#fff;text-decoration:none}</style></head>
+<body><main><div class="i">${ok ? '✓' : '!'}</div><h1>${esc(title)}</h1><p>${esc(text)}</p><a href="https://biocode.website/index.html?tab=profile">Към NutriPlan</a></main></body></html>`;
+  return new Response(html, { status: ok ? 200 : 400, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+}
+
+/** GET /api/links/callback/:provider — доставчикът връща кода за вход. */
+async function handleLinksCallback(request, env, provider) {
+  const url = new URL(request.url);
+  const state = url.searchParams.get('state') || '';
+  const code = url.searchParams.get('code') || '';
+  const pending = state ? await kvGetJSON(env, `link_state:${state}`) : null;
+  if (!pending || pending.provider !== provider) return linkResultPage(false, 'Връзката не е завършена', 'Заявката е изтекла. Опитайте отново от профила в NutriPlan.');
+  await env.page_content.delete(`link_state:${state}`).catch(() => {});
+  const back = (status) => {
+    if (!pending.returnTo) return null;
+    const u = new URL(pending.returnTo);
+    u.searchParams.set('linked', provider);
+    u.searchParams.set('link_status', status);
+    return Response.redirect(u.toString(), 302);
+  };
+  if (!code) return back('denied') || linkResultPage(false, 'Достъпът не е разрешен', 'Профилът не е свързан. Може да опитате отново по всяко време.');
+  try {
+    const token = await linkExchangeCode(fetch, env, provider, { code, redirectUri: linkRedirectUri(request, provider), verifier: pending.verifier });
+    const link = { ...token, linkedAt: new Date().toISOString() };
+    await kvPutJSON(env, `link:${pending.userId}:${provider}`, link, LINK_TTL);
+    await syncLink(env, pending.userId, provider, link);
+    return back('ok') || linkResultPage(true, `${LINK_PROVIDERS[provider].name} е свързан`, 'Данните за последните 14 дни са в профила. Върнете се в NutriPlan — оттук нататък се обновяват сами.');
+  } catch (e) {
+    console.warn('[Links] callback failed:', e.message);
+    return back('error') || linkResultPage(false, 'Връзката не успя', e.message);
+  }
+}
+
+/** POST /api/links/sync — Body: { userId, idToken?, force? } → тегли от всички свързани доставчици. */
+async function handleLinksSync(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, force } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    const now = new Date();
+    /** @type {Record<string, any>[]} */
+    const results = [];
+    for (const id of enabledProviders(env)) {
+      const link = await kvGetJSON(env, `link:${userId}:${id}`);
+      if (!link) continue;
+      const last = Date.parse(link.syncedAt || link.errorAt || 0) || 0;
+      if (!force && now.getTime() - last < LINK_SYNC_MIN_MS) { results.push({ provider: id, skipped: true }); continue; }
+      results.push(await syncLink(env, userId, id, link, now));
+    }
+    const lastWithData = results.filter(r => r.derived).pop();
+    return jsonResponse({ success: true, results, derived: lastWithData?.derived || null, reanalysis: lastWithData?.reanalysis || null, providers: await linkStatus(env, userId) });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to sync links: ' + error.message }, 500);
+  }
+}
+
+/** POST /api/links/disconnect — Body: { userId, idToken?, provider } → маха връзката и данните от нея. */
+async function handleLinksDisconnect(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { userId, idToken, provider } = await request.json();
+    if (!userId) return jsonResponse({ error: 'Missing userId' }, 400);
+    if (!LINK_SOURCES.includes(provider)) return jsonResponse({ error: 'Непознат доставчик' }, 400);
+    const authError = await checkFirebaseOwner(userId, idToken, env, request);
+    if (authError) return authError;
+    await env.page_content.delete(`link:${userId}:${provider}`);
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    let removed = 0;
+    if (profile?.enrichment?.facts) {
+      const facts = profile.enrichment.facts.filter(f => f.source !== provider);
+      removed = profile.enrichment.facts.length - facts.length;
+      if (removed) {
+        profile.enrichment = { ...profile.enrichment, facts, updatedAt: new Date().toISOString(), pendingLevel: Math.max(Number(profile.enrichment.pendingLevel) || 0, 1) };
+        if (!facts.some(f => DEVICE_KINDS[f.kind])) delete profile.enrichment.digest;
+        const ttl = String(userId).startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+        await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+      }
+    }
+    return jsonResponse({ success: true, removed, providers: await linkStatus(env, userId) });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to disconnect: ' + error.message }, 500);
+  }
+}
+
 /** POST /api/enrichment/get — Body: { userId, idToken? } */
 async function handleEnrichmentGet(request, env) {
   try {
@@ -16841,6 +17036,16 @@ export default {
         return await handleDocumentAssess(request, env);
       } else if (url.pathname === '/api/enrichment/delete' && request.method === 'POST') {
         return await handleEnrichmentDelete(request, env);
+      } else if (url.pathname === '/api/links/providers' && request.method === 'POST') {
+        return await handleLinksProviders(request, env);
+      } else if (url.pathname === '/api/links/start' && request.method === 'POST') {
+        return await handleLinksStart(request, env);
+      } else if (url.pathname.startsWith('/api/links/callback/') && request.method === 'GET') {
+        return await handleLinksCallback(request, env, url.pathname.split('/').pop());
+      } else if (url.pathname === '/api/links/sync' && request.method === 'POST') {
+        return await handleLinksSync(request, env);
+      } else if (url.pathname === '/api/links/disconnect' && request.method === 'POST') {
+        return await handleLinksDisconnect(request, env);
       } else if (url.pathname === '/api/user/sync-analytics' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'ANALYTICS_SYNC');
         if (rlErr) return rlErr;
@@ -16981,6 +17186,7 @@ export default {
   async scheduled(event, env, ctx) {
     console.log('[Worker] Scheduled event triggered at:', new Date().toISOString());
     ctx.waitUntil(handleScheduledNotifications(env));
+    ctx.waitUntil(syncAllLinks(env).catch(e => console.warn('[Links] scheduled sync failed:', e.message)));
   },
 
   /**

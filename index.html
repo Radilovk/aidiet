@@ -1735,7 +1735,8 @@
         }
         .spa-tab-stack {
             position: absolute;
-            inset: 0 0 calc(60px + var(--safe-area-inset-bottom)) 0;
+            /* Горе — горната лента, когато WebView-то е под нея (иначе 0: отместено е от системата). */
+            inset: var(--safe-area-inset-top) 0 calc(60px + var(--safe-area-inset-bottom)) 0;
             overflow: hidden;
             background: var(--bg-color);
         }
