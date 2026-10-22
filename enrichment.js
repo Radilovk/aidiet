@@ -17,7 +17,7 @@
 import { compileProfile } from './profile-code.js';
 import { deriveEmoEat } from './enrichment-emoeat.js';
 import { deriveLabs } from './enrichment-labs.js';
-import { computeEssence } from './health-essence.js';
+import { computeEssence, dailySeries } from './health-essence.js';
 import { deriveIris } from './enrichment-iris.js';
 import { deriveSiteQuiz } from './enrichment-site.js';
 import { crossCheck, resolutionsOf } from './cross-check.js';
@@ -161,16 +161,14 @@ function recent(facts, kind, days, now) {
   return facts.filter(f => f.kind === kind && Date.parse(f.at) >= from && f.status !== 'pending');
 }
 
-/** Средно по дни (няколко записа за един ден → средното им). */
-function dailyMean(list) {
-  const byDay = new Map();
-  for (const f of list) {
-    const d = dayOf(f.at);
-    if (!byDay.has(d)) byDay.set(d, []);
-    byDay.get(d).push(Number(f.value));
-  }
-  const days = [...byDay.values()].map(v => v.reduce((s, x) => s + x, 0) / v.length);
-  return { days: days.length, mean: days.length ? days.reduce((s, x) => s + x, 0) / days.length : null };
+/**
+ * Средно по дни, по една стойност на ден от най-сигурния източник (същото правило
+ * като есенцията): телефон и гривна за един ден не се осредняват.
+ */
+function dailyMeanRanked(facts, kind, days, now) {
+  const from = now.getTime() - days * DAY_MS;
+  const vals = dailySeries(facts, kind).filter(p => p.t >= from).map(p => p.value);
+  return { days: vals.length, mean: vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : null };
 }
 
 /** Крачки → нивото на активност от въпросника (Tudor-Locke: <5000 заседнал, 10 000+ активен). */
@@ -194,12 +192,12 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
   const checkin = {};
 
-  const steps = dailyMean(recent(facts, 'steps', 14, now));
+  const steps = dailyMeanRanked(facts, 'steps', 14, now);
   if (steps.days >= 7 && steps.mean != null) {
     overrides.dailyActivityLevel = activityLabelOf(steps.mean);
     reasons.push(`активност по крачкомер: ~${Math.round(steps.mean / 100) * 100} крачки дневно`);
   }
-  const sleep = dailyMean(recent(facts, 'sleep', 14, now));
+  const sleep = dailyMeanRanked(facts, 'sleep', 14, now);
   if (sleep.days >= 5 && sleep.mean != null) {
     overrides.sleepHours = String(Math.round(sleep.mean * 10) / 10);
     reasons.push(`сън по устройство: ~${String(Math.round(sleep.mean * 10) / 10).replace('.', ',')} ч`);
@@ -210,7 +208,7 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
     const w = weights.reduce((s, f) => s + Number(f.value), 0) / weights.length;
     checkin.weightKg = Math.round(w * 10) / 10;
   }
-  const intake = dailyMean(recent(facts, 'intake', 7, now));
+  const intake = dailyMeanRanked(facts, 'intake', 7, now);
   if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);
 
   const emo = deriveEmoEat(facts);

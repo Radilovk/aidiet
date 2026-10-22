@@ -45246,15 +45246,10 @@ function recent(facts2, kind, days, now) {
   const from = now.getTime() - days * DAY_MS3;
   return facts2.filter((f) => f.kind === kind && Date.parse(f.at) >= from && f.status !== "pending");
 }
-function dailyMean(list2) {
-  const byDay = /* @__PURE__ */ new Map();
-  for (const f of list2) {
-    const d = dayOf2(f.at);
-    if (!byDay.has(d)) byDay.set(d, []);
-    byDay.get(d).push(Number(f.value));
-  }
-  const days = [...byDay.values()].map((v) => v.reduce((s, x) => s + x, 0) / v.length);
-  return { days: days.length, mean: days.length ? days.reduce((s, x) => s + x, 0) / days.length : null };
+function dailyMeanRanked(facts2, kind, days, now) {
+  const from = now.getTime() - days * DAY_MS3;
+  const vals = dailySeries(facts2, kind).filter((p) => p.t >= from).map((p) => p.value);
+  return { days: vals.length, mean: vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : null };
 }
 function activityLabelOf(steps) {
   if (steps < 5e3) return "\u041D\u0438\u0441\u043A\u043E";
@@ -45267,12 +45262,12 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   const reasons = [];
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
   const checkin = {};
-  const steps = dailyMean(recent(facts2, "steps", 14, now));
+  const steps = dailyMeanRanked(facts2, "steps", 14, now);
   if (steps.days >= 7 && steps.mean != null) {
     overrides.dailyActivityLevel = activityLabelOf(steps.mean);
     reasons.push(`\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442 \u043F\u043E \u043A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440: ~${Math.round(steps.mean / 100) * 100} \u043A\u0440\u0430\u0447\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
   }
-  const sleep = dailyMean(recent(facts2, "sleep", 14, now));
+  const sleep = dailyMeanRanked(facts2, "sleep", 14, now);
   if (sleep.days >= 5 && sleep.mean != null) {
     overrides.sleepHours = String(Math.round(sleep.mean * 10) / 10);
     reasons.push(`\u0441\u044A\u043D \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${String(Math.round(sleep.mean * 10) / 10).replace(".", ",")} \u0447`);
@@ -45282,7 +45277,7 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
     const w = weights.reduce((s, f) => s + Number(f.value), 0) / weights.length;
     checkin.weightKg = Math.round(w * 10) / 10;
   }
-  const intake = dailyMean(recent(facts2, "intake", 7, now));
+  const intake = dailyMeanRanked(facts2, "intake", 7, now);
   if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);
   const emo = deriveEmoEat(facts2);
   const labs = deriveLabs(facts2, now, sex);
