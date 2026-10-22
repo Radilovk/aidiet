@@ -1,4 +1,4 @@
-# redeploy: proxy endpoint (2026-10-22)
+# redeploy: community library (2026-10-22)
 # Temporary bridge: deploys the Разказвач library worker (Radilovk/tts → server/)
 # with this repo's Cloudflare secrets. Lives only on a claude/* branch.
 name: Deploy Razkazvach library worker
