@@ -2517,19 +2517,13 @@
         .dc-seg.is-next .dc-seg-bar { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85); }
         .dc-seg:active .dc-seg-bar { transform: scaleY(1.35); }
         .dc-seg:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; border-radius: 6px; }
-        .dc-seg-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            text-align: center;
+        .dc-seg--locked .dc-seg-icon { opacity: 0.8; }
+        .dc-seg-icon { display: flex; justify-content: center; line-height: 0; }
+        .dc-seg-icon svg {
+            width: 18px; height: 18px;
+            fill: none; stroke: currentColor; stroke-width: 2;
+            stroke-linecap: round; stroke-linejoin: round;
         }
-        .dc-seg--locked .dc-seg-label, .dc-seg--locked .dc-seg-icon { opacity: 0.8; }
-        .dc-seg-icon { display: none; font-size: 0.9375rem; text-align: center; line-height: 1.2; }
-        .dc-strip--icons .dc-seg-label { display: none; }
-        .dc-strip--icons .dc-seg-icon { display: block; }
         .dc-cal { position: relative; z-index: 1; }
         .dc-cal-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
         .dc-cal-num { font-size: 1.125rem; font-weight: 700; }
@@ -2579,7 +2573,6 @@
         .dc-toast.is-shown { transform: translate(-50%, 0); opacity: 1; }
         @media (max-width: 359px) {
             .dc-strip { gap: 3px; }
-            .dc-seg-label { font-size: 0.75rem; letter-spacing: -0.01em; }
         }
         .daily-score-info { width: 100%; text-align: center; }
         .daily-score-label { font-size: 0.75rem; opacity: 0.88; font-weight: 500; text-align: center; letter-spacing: 0.03em; }
@@ -3682,10 +3675,16 @@
         }
         .my-foods-banner:active { transform: scale(0.97); }
         .my-foods-icon {
-            font-size: 2.4rem;
             flex-shrink: 0;
             position: relative;
+            display: flex;
+            line-height: 0;
             animation: myFoodsWiggle 3.2s ease-in-out infinite;
+        }
+        .my-foods-icon svg {
+            width: 36px; height: 36px;
+            fill: none; stroke: currentColor; stroke-width: 2;
+            stroke-linecap: round; stroke-linejoin: round;
         }
         @keyframes myFoodsWiggle {
             0%, 80%, 100% { transform: rotate(0deg) scale(1); }
@@ -4453,7 +4452,7 @@
 
         <!-- Моите храни и продукти banner -->
         <a href="food-picker.html" class="my-foods-banner" aria-label="Моите храни и продукти" onclick="navigateTopLevel(getFoodPickerUrl()); return false;">
-            <span class="my-foods-icon">🛒</span>
+            <span class="my-foods-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>
             <div class="my-foods-text">
                 <div class="my-foods-title">Моите храни и продукти</div>
                 <div class="my-foods-sub">Персонализирай списъка с продукти за хранителния си план</div>
@@ -10390,24 +10389,23 @@
             var eveningDone = isEveningComplete(rec);
             var closed = !isToday || eveningDone;
             var segs = [];
-            segs.push({ kind: 'morning', key: 'morning', label: 'Сутрин', icon: 'fa-sun',
+            segs.push({ kind: 'morning', key: 'morning', label: 'Сутрин', icon: 'sun',
                 done: !!rec.morningCheck, locked: false });
             slots.forEach(function(slot) {
                 var mc = document.querySelector('#mealContainer .meal-card[data-meal-key="' + slot.replace(/"/g, '\\"') + '"]');
                 var typeEl = mc && mc.querySelector('.meal-type');
                 var label = typeEl ? typeEl.textContent.replace(/\(.*\)/, '').trim() : slot;
-                var short = /следобед/i.test(label) ? 'Следобед' : /късн/i.test(label) ? 'Късна' : /десерт/i.test(label) ? 'Десерт' : label.split(/\s+/)[0];
-                var icon = /закуска/i.test(label) && !/следобед|късн/i.test(label) ? 'fa-mug-hot'
-                    : /обяд/i.test(label) ? 'fa-utensils'
-                    : /следобед|десерт/i.test(label) ? 'fa-apple-whole'
-                    : /вечеря/i.test(label) ? 'fa-drumstick-bite'
-                    : /късн/i.test(label) ? 'fa-cookie' : 'fa-utensils';
-                segs.push({ kind: 'meal', key: slot, label: label, short: short, icon: icon,
+                var icon = /закуска/i.test(label) && !/следобед|късн/i.test(label) ? 'breakfast'
+                    : /обяд/i.test(label) ? 'lunch'
+                    : /следобед|десерт/i.test(label) ? 'snack'
+                    : /вечеря/i.test(label) ? 'dinner'
+                    : /късн/i.test(label) ? 'late' : 'lunch';
+                segs.push({ kind: 'meal', key: slot, label: label, icon: icon,
                     done: !!(rec.meals && rec.meals[slot] === true),
                     locked: isToday && getMealUnlockHour(slot) > hour,
                     unlockHour: getMealUnlockHour(slot) });
             });
-            segs.push({ kind: 'evening', key: 'evening', label: 'Вечер', icon: 'fa-moon',
+            segs.push({ kind: 'evening', key: 'evening', label: 'Вечер', icon: 'moon',
                 done: eveningDone,
                 partial: !eveningDone && !!(rec.eveningCheck && (rec.eveningCheck.activityLevel != null || rec.eveningCheck.emotionalBalance != null || rec.eveningCheck.waterIntake != null)),
                 locked: isToday && hour < EVENING_UNLOCK_HOUR, unlockHour: EVENING_UNLOCK_HOUR });
@@ -10449,6 +10447,17 @@
                      doneCount: segs.filter(function(sg) { return sg.done; }).length };
         }
 
+        // Иконите на лентата — линейни SVG (без шрифтови икони и емоджита).
+        var DC_SEG_ICONS = {
+            sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+            breakfast: '<path d="M6 2v2M10 2v2M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/>',
+            lunch: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/>',
+            snack: '<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06z"/><path d="M10 2c1 .5 2 2 2 5"/>',
+            dinner: '<path d="M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9zM7 21h10M19.5 12L22 6"/><path d="M16.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.73 1.62M11.25 3c.27.1.8.53.74 1.36-.05.83-.93 1.2-.98 2.02-.06.78.33 1.24.72 1.62M6.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.74 1.62"/>',
+            late: '<path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><path d="M8.5 8.5h.01M16 15.5h.01M12 12h.01M11 17h.01M7 14h.01"/>',
+            moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>'
+        };
+
         function renderDayStrip(card, dayKey, rec, ds, prevScore) {
             var m = dayStripModel(dayKey, rec, ds);
             var esc = typeof escapeHtmlWithBreaks === 'function' ? escapeHtmlWithBreaks : function(t){ return t; };
@@ -10486,9 +10495,9 @@
                 var stateText = sg.done ? 'отбелязано' : sg.missed ? 'пропуснато' : sg.locked ? 'от ' + sg.unlockHour + ':00' : 'предстои';
                 var isNext = m.next && m.next.key === sg.key;
                 return '<button type="button" class="dc-seg dc-seg--' + st + (isNext ? ' is-next' : '') + '" data-seg="' + idx + '"' +
-                    ' aria-label="' + esc(sg.label) + ': ' + stateText + '"' + (sg.locked && !sg.done ? ' aria-disabled="true"' : '') + '>' +
-                    '<span class="dc-seg-bar"></span><span class="dc-seg-label" aria-hidden="true">' + esc(sg.short || sg.label) + '</span>' +
-                    '<i class="fas ' + sg.icon + ' dc-seg-icon" aria-hidden="true"></i></button>';
+                    ' aria-label="' + esc(sg.label) + ': ' + stateText + '" title="' + esc(sg.label) + '"' + (sg.locked && !sg.done ? ' aria-disabled="true"' : '') + '>' +
+                    '<span class="dc-seg-bar"></span><span class="dc-seg-icon" aria-hidden="true"><svg viewBox="0 0 24 24">' +
+                    (DC_SEG_ICONS[sg.icon] || DC_SEG_ICONS.lunch) + '</svg></span></button>';
             }).join('');
 
             var calHtml = '';
@@ -10521,14 +10530,6 @@
                 calHtml +
                 (chips.length ? '<div class="dc-chips">' + chips.join('') + '</div>' : '');
 
-            // Етикетите са думи, докато се побират; иначе цялата лента минава на икони.
-            var strip = card.querySelector('.dc-strip');
-            if (strip) {
-                var tight = Array.prototype.some.call(strip.querySelectorAll('.dc-seg-label'), function(l) {
-                    return l.scrollWidth > l.clientWidth + 1;
-                });
-                strip.classList.toggle('dc-strip--icons', tight);
-            }
             card.querySelectorAll('.dc-seg').forEach(function(btn) {
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
