@@ -7643,9 +7643,8 @@
                         if (userId && window.NutriPlanPlanSync) {
                             clearTimeout(saveProfileDebounceTimer);
                             saveProfileDebounceTimer = setTimeout(async () => {
-                                const _idToken = (userId.startsWith('fb_') && auth.currentUser)
-                                    ? await auth.currentUser.getIdToken().catch(() => null)
-                                    : null;
+                                // saveUserProfile сам взема Firebase токена (`auth` от модула тук не се вижда).
+                                const _idToken = null;
                                 const planSourceSync = localStorage.getItem('planSource') || '';
                                 window.NutriPlanPlanSync.saveUserProfile(
                                     userId,
@@ -7820,9 +7819,8 @@
             localStorage.setItem('dietPlan', JSON.stringify(dietPlan));
             if (userId && window.NutriPlanPlanSync) {
                 (async () => {
-                    const _idToken = (userId.startsWith('fb_') && auth.currentUser)
-                        ? await auth.currentUser.getIdToken().catch(() => null)
-                        : null;
+                    // saveUserProfile сам взема Firebase токена (`auth` от модула тук не се вижда).
+                    const _idToken = null;
                     window.NutriPlanPlanSync.saveUserProfile(userId, dietPlan, userData, localStorage.getItem('planSource') || '', _idToken)
                         .catch(function (e) { console.warn('[PWA] Undo save failed:', e); });
                 })();
@@ -11813,8 +11811,10 @@
         async function getWeeklyAuthExtras() {
             var uid = (typeof userId !== 'undefined' && userId) ? userId : localStorage.getItem('userId');
             var extras = { userId: uid };
-            if (uid && uid.indexOf('fb_') === 0 && typeof auth !== 'undefined' && auth.currentUser) {
-                extras.idToken = await auth.currentUser.getIdToken().catch(function() { return null; });
+            // `auth` е в модулния скрипт и тук не се вижда — токенът идва от общия помощник
+            // (изчаква и късния вход на Firebase в приложението). Без него сървърът връща 401.
+            if (uid && uid.indexOf('fb_') === 0 && window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.getFirebaseIdToken === 'function') {
+                extras.idToken = await window.NutriPlanPlanSync.getFirebaseIdToken(uid).catch(function() { return null; });
             }
             var clientId = localStorage.getItem('pendingClientId') || localStorage.getItem('clientId') || '';
             if (clientId) extras.clientId = clientId;
