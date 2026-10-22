@@ -2222,7 +2222,20 @@
         // Handle protocol selection from landing page URL parameter
         function handleProtocolFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            const protocolId = urlParams.get('protocol');
+            let protocolId = urlParams.get('protocol');
+            // Пратка от сайт (напр. антиейджинг тестът на life-protocols.com) може да избере
+            // готов протокол — същият като входната карта. Здравословните състояния от
+            // теста остават и въпросът за тях се задава (там няма клинична карта).
+            let fromHandoff = false;
+            if (!protocolId) {
+                try {
+                    const handoff = window.NutriPlanHandoff && window.NutriPlanHandoff.pending();
+                    if (handoff && handoff.prefill && handoff.prefill.clinicalProtocol) {
+                        protocolId = handoff.prefill.clinicalProtocol;
+                        fromHandoff = true;
+                    }
+                } catch (e) { /* без пратка */ }
+            }
             
             // Accept any valid protocol ID, not just those with specific questions
             if (protocolId && VALID_PROTOCOL_IDS.includes(protocolId)) {
@@ -2232,10 +2245,12 @@
                 //  would still be in `answers` and sent to the backend unless cleared here.)
                 delete answers.goal;
                 delete answers.lossKg;
-                delete answers.healthConditions;
-                Object.keys(answers).forEach(k => {
-                    if (k.startsWith('healthConditions_')) delete answers[k];
-                });
+                if (!fromHandoff) {
+                    delete answers.healthConditions;
+                    Object.keys(answers).forEach(k => {
+                        if (k.startsWith('healthConditions_')) delete answers[k];
+                    });
+                }
 
                 // If the user switched protocols (e.g. insulin_resistance → autoimmune_aip),
                 // clear protocol-specific field answers from the OLD protocol so they are not
@@ -2261,9 +2276,9 @@
                     injectProtocolQuestions(protocolId);
                 }
                 
-                skipProtocolRelatedQuestions();
+                skipProtocolRelatedQuestions(fromHandoff);
                 
-                console.log('Protocol loaded from URL:', protocolId);
+                console.log('Protocol loaded from ' + (fromHandoff ? 'handoff' : 'URL') + ':', protocolId);
             }
         }
         
@@ -2294,10 +2309,10 @@
         // insulin_resistance protocol implies that condition). Protocol-specific injected questions
         // capture any additional detail needed.
         // answers.clinicalProtocol is set by handleProtocolFromURL() from the ?protocol= URL parameter.
-        function skipProtocolRelatedQuestions() {
+        function skipProtocolRelatedQuestions(keepHealthConditions = false) {
             // Skip healthConditions — protocol already provides the health context
             const healthConditionsIndex = currentQueue.findIndex(q => q.id === 'healthConditions');
-            if (healthConditionsIndex !== -1) {
+            if (healthConditionsIndex !== -1 && !keepHealthConditions) {
                 currentQueue.splice(healthConditionsIndex, 1);
             }
             
