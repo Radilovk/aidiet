@@ -274,6 +274,14 @@ const SITE_GOAL = {
   sleep: 'Подобряване на здравето', cognition: 'Подобряване на здравето', joints: 'Подобряване на здравето',
 };
 const labelsOf = (vals, map) => (vals || []).map(v => map[v]).filter(Boolean);
+// Антиейджинг тестът (life-protocols.com) и приоритетът „дълголетие“ водят към готовия
+// клиничен протокол „longevity“ — същият като входната карта в protocol-landing.html.
+const SITE_LONGEVITY_FOCUS = {
+  longevity: 'Всички', energy: 'Енергия и виталност', skin: 'Външен вид и кожа', sleep: 'Енергия и виталност',
+  cognition: 'Когнитивно здраве', joints: 'Физическа сила и мобилност',
+};
+const usesLongevityProtocol = (h) => h?.answers?.priority === 'longevity'
+  || (h?.source === 'lifeprotocols' && h?.answers?.priority !== 'otshalvane');
 
 /**
  * Отговорите от теста на сайта → предварително попълнен въпросник на NutriPlan.
@@ -290,6 +298,10 @@ export function sitePrefill(h) {
   if (a.height_cm) out.height = String(Math.round(a.height_cm));
   if (a.weight_kg) out.weight = String(a.weight_kg);
   if (SITE_GOAL[a.priority]) out.goal = [SITE_GOAL[a.priority]];
+  if (usesLongevityProtocol(h)) {
+    out.clinicalProtocol = 'longevity';
+    out.longevityGoals = [SITE_LONGEVITY_FOCUS[a.priority] || 'Всички'];
+  }
   if (SITE_SPORT[a.activity]) out.sportActivity = SITE_SPORT[a.activity];
   if (SITE_DIET[a.diet]) out.dietPreference = [SITE_DIET[a.diet]];
   const health = [...new Set(labelsOf(a.conditions, SITE_HEALTH))];

@@ -377,6 +377,9 @@
            PROTOCOL CARD — Minimal, precise
            ═══════════════════════════════════════ */
         .protocol-card {
+            display: block;
+            color: inherit;
+            text-decoration: none;
             position: relative;
             background: var(--bg-surface);
             border-radius: var(--radius-md);
@@ -1636,8 +1639,8 @@
             },
             longevity: {
                 id: 'longevity',
-                name: 'Дълголетие (Longevity)',
-                shortName: 'Антиейджинг / Longevity',
+                name: 'Антиейджинг и дълголетие',
+                shortName: 'Антиейджинг',
                 icon: 'fa-dna',
                 shortDescription: 'Протокол за клетъчно подмладяване и забавяне на биологичното стареене.',
                 description: 'Протокол, основан на последните научни открития в областта на дълголетието. Подходът използва определени режими на хранене и специално подбрани храни, които стимулират обновяването на клетките.',
@@ -1836,8 +1839,10 @@
             grid.innerHTML = '';
             
             Object.values(PROTOCOLS).forEach((protocol, index) => {
-                const card = document.createElement('div');
+                // Всяка карта води към собствения лендинг на състоянието (protocol-<slug>.html).
+                const card = document.createElement('a');
                 card.className = 'protocol-card';
+                card.href = 'protocol-' + protocol.id.replace(/_/g, '-') + '.html';
                 card.setAttribute('data-protocol', protocol.id);
                 card.style.animationDelay = `${0.05 + index * 0.05}s`;
                 
@@ -1872,11 +1877,6 @@
                         <div class="card-arrow"><i class="fas fa-arrow-right"></i></div>
                     </div>
                 `;
-                
-                // Clicking whole card opens modal
-                card.addEventListener('click', function() {
-                    openModal(protocol.id);
-                });
                 
                 grid.appendChild(card);
             });

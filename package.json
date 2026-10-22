@@ -32,6 +32,8 @@
     "test:game-sync": "node scripts/test-game-sync.mjs",
     "links:setup": "node scripts/setup-device-links.mjs",
     "test:handoff": "node scripts/test-handoff.mjs",
+    "build:protocol-pages": "node scripts/build-protocol-pages.mjs",
+    "test:protocol-pages": "node scripts/build-protocol-pages.mjs --check",
     "test:crosscheck": "node scripts/test-crosscheck.mjs",
     "test:chat-clarify": "node scripts/test-chat-clarify.mjs",
     "test:engine": "node scripts/test-nutrition-engine.mjs",

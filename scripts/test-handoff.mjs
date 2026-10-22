@@ -105,6 +105,10 @@ ok(withSite._enrichment.siteQuiz?.lines?.length > 0 && withSite._enrichment.hint
 ok(normalizeHandoff({ source: 'lifeprotocols', answers: {} }) === null && normalizeHandoff({ source: 'other', answers: { sex: 'male' } }) === null, 'празен тест или непознат сайт — отказ');
 ok(handoffPreview(site).title === 'Тест от daotslabna.com', 'сайт: преглед');
 ok(prefillFor(normalizeHandoff({ source: 'lifeprotocols', answers: { sex: 'male', priority: 'longevity', conditions: ['none'], medications: ['none'] } })).goal.join() === 'Антиейджинг', 'life: приоритет → цел');
+const lifeSkin = prefillFor(normalizeHandoff({ source: 'lifeprotocols', answers: { sex: 'female', priority: 'skin', conditions: ['none'], medications: ['none'] } }));
+ok(lifeSkin.clinicalProtocol === 'longevity' && lifeSkin.longevityGoals.join() === 'Външен вид и кожа', 'life: антиейджинг тестът води към протокола „longevity“');
+ok(prefillFor(normalizeHandoff({ source: 'lifeprotocols', answers: { sex: 'male', priority: 'longevity', conditions: ['none'], medications: ['none'] } })).clinicalProtocol === 'longevity', 'life: дълголетие → протокол');
+ok(!('clinicalProtocol' in sp), 'daotslabna: отслабване не избира клиничен протокол');
 
 // ── поправки от одита ────────────────────────────────────────────────
 ok(sp['healthConditions_Сърдечно-съдови заболявания'] === 'Хипертония (високо кръвно налягане)', 'сайт: хипертонията — конкретният под-отговор');

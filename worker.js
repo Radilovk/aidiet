@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err2) => function __init() {
+  if (err2) throw err2[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err2 = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -45731,6 +45736,15 @@ var SITE_GOAL = {
   joints: "\u041F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E"
 };
 var labelsOf = (vals, map) => (vals || []).map((v) => map[v]).filter(Boolean);
+var SITE_LONGEVITY_FOCUS = {
+  longevity: "\u0412\u0441\u0438\u0447\u043A\u0438",
+  energy: "\u0415\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u0432\u0438\u0442\u0430\u043B\u043D\u043E\u0441\u0442",
+  skin: "\u0412\u044A\u043D\u0448\u0435\u043D \u0432\u0438\u0434 \u0438 \u043A\u043E\u0436\u0430",
+  sleep: "\u0415\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u0432\u0438\u0442\u0430\u043B\u043D\u043E\u0441\u0442",
+  cognition: "\u041A\u043E\u0433\u043D\u0438\u0442\u0438\u0432\u043D\u043E \u0437\u0434\u0440\u0430\u0432\u0435",
+  joints: "\u0424\u0438\u0437\u0438\u0447\u0435\u0441\u043A\u0430 \u0441\u0438\u043B\u0430 \u0438 \u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442"
+};
+var usesLongevityProtocol = (h) => h?.answers?.priority === "longevity" || h?.source === "lifeprotocols" && h?.answers?.priority !== "otshalvane";
 function sitePrefill(h) {
   const a = h?.answers;
   if (!a) return {};
@@ -45741,6 +45755,10 @@ function sitePrefill(h) {
   if (a.height_cm) out.height = String(Math.round(a.height_cm));
   if (a.weight_kg) out.weight = String(a.weight_kg);
   if (SITE_GOAL[a.priority]) out.goal = [SITE_GOAL[a.priority]];
+  if (usesLongevityProtocol(h)) {
+    out.clinicalProtocol = "longevity";
+    out.longevityGoals = [SITE_LONGEVITY_FOCUS[a.priority] || "\u0412\u0441\u0438\u0447\u043A\u0438"];
+  }
   if (SITE_SPORT[a.activity]) out.sportActivity = SITE_SPORT[a.activity];
   if (SITE_DIET[a.diet]) out.dietPreference = [SITE_DIET[a.diet]];
   const health = [...new Set(labelsOf(a.conditions, SITE_HEALTH))];
