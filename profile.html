@@ -2864,6 +2864,8 @@
             renderCardMeter();
             const E = window.NutriPlanEnrichment;
             if (!E || !E.hasPlanProfile()) return;
+            let fromCache = false;
+            try { fromCache = !force && !!localStorage.getItem('np_enrichment_cache'); } catch (_) {}
             try {
                 const res = force ? await E.get() : await E.getCached();
                 _cardData = { derived: res.derived, moduleSources: res.moduleSources || {} };
@@ -2871,6 +2873,8 @@
                 _labsCatalog = res.markers || _labsCatalog;
                 renderCardMeter();
                 if (force) renderDocsCurrent(res.derived);
+                // Копието е от това устройство: данни, добавени от другото (APK ↔ уеб), идват от сървъра веднага.
+                if (fromCache) initCardMeter(true);
             } catch (_) { /* без връзка — само въпросникът */ }
         }
 

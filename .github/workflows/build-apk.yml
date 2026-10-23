@@ -163,7 +163,7 @@ jobs:
 
           # Replace default Capacitor icons with NutriPlan icon
           if ! command -v convert &>/dev/null; then
-            echo "ImageMagick 'convert' not found – installing…" && sudo apt-get install -y imagemagick
+            echo "ImageMagick 'convert' not found – installing…" && { sudo apt-get update -q && sudo apt-get install -y imagemagick; }
           fi
           # Legacy launcher icons: resize PWA icon directly (maskable icon already has background)
           for entry in "48 mdpi" "72 hdpi" "96 xhdpi" "144 xxhdpi" "192 xxxhdpi"; do
