@@ -72,6 +72,7 @@ export const CLINICAL = [
   'IR', 'T2D', 'HYPO', 'HYPER', 'AI', 'CEL', 'GI', 'IBS', 'IBD', 'GERD', 'SIBO', 'GAST',
   'HTN', 'CVD', 'ENDO', 'PCOS', 'HORM', 'ADR', 'METS', 'NAFLD', 'DYSL', 'GOUT', 'MSK',
   'OSTEO', 'JOINT', 'DEP', 'ANX', 'ALG', 'ANEM', 'SKIN', 'SLP', 'COG', 'INFL', 'MENO', 'PP',
+  'OB', 'OBS',
 ];
 
 export const BEHAVIORS = [
@@ -608,6 +609,11 @@ export function compileProfile(userData = {}, overrides = {}) {
   unmapped.push(...prefs.unmapped);
 
   const clinical = readConditions(data, unmapped);
+  // Затлъстяването по ИТМ (WHO): ≥ 30 — I степен, ≥ 35 — II–III. Измерено, не избор
+  // на клиента, затова важи и без отметнато състояние (виж OB/OBS в clinical.json).
+  const bmi = weightKg && heightCm ? weightKg / ((heightCm / 100) ** 2) : null;
+  if (bmi != null && bmi >= 35) clinical.add('OBS');
+  else if (bmi != null && bmi >= 30) clinical.add('OB');
   const protocolId = data.clinicalProtocol && PROTOCOL_CODES[data.clinicalProtocol]
     ? data.clinicalProtocol
     : null;

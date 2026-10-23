@@ -2787,6 +2787,9 @@
             'sleepHours', 'stressLevel', 'waterIntake', 'dietPreference', 'medicalConditions', 'medications',
             'eatingHabits', 'foodCravings', 'overeatingFrequency', 'drinksSweet', 'drinksAlcohol', 'dietLove', 'dietDislike'];
         let _cardData = null;
+        let _cardLoadError = '';
+        // Данните идват и от другото устройство (APK ↔ уеб) — при отваряне на профила не по-стари от 2 мин.
+        const CARD_FRESH_MS = 2 * 60 * 1000;
 
         function questionnaireFill() {
             let ud = {};
@@ -2840,7 +2843,13 @@
             document.getElementById('cardMeterFill').style.width = `${pct}%`;
             document.getElementById('cardMeterBar').setAttribute('aria-valuenow', String(pct));
             const next = mods.filter(m => m.fill < 1).sort((a, b) => b.weight * (1 - b.fill) - a.weight * (1 - a.fill))[0];
-            document.getElementById('cardMeterHint').textContent = pct >= 100
+            // Без отговор от сървъра картонът показва само въпросника — казваме го, вместо да изглежда непопълнен.
+            const authFailed = /token|401|403/i.test(_cardLoadError);
+            document.getElementById('cardMeterHint').textContent = _cardLoadError && !_cardData
+                ? (authFailed
+                    ? 'Изследванията, устройствата и тестовете не се заредиха — излезте и влезте отново в профила си.'
+                    : 'Изследванията, устройствата и тестовете не се заредиха — проверете връзката.')
+                : pct >= 100
                 ? 'Профилът е пълен — планът използва всички данни.'
                 : next ? `Следващо: ${next.name.toLowerCase()} (+${Math.round(next.weight * (1 - next.fill))}%) — ${next.gives}.` : '';
             list.innerHTML = mods.map(m => {
@@ -2865,13 +2874,17 @@
             const E = window.NutriPlanEnrichment;
             if (!E || !E.hasPlanProfile()) return;
             try {
-                const res = force ? await E.get() : await E.getCached();
+                const res = force ? await E.get() : await E.getCached(CARD_FRESH_MS);
                 _cardData = { derived: res.derived, moduleSources: res.moduleSources || {} };
+                _cardLoadError = '';
                 loadAnalysis();
                 _labsCatalog = res.markers || _labsCatalog;
                 renderCardMeter();
                 if (force) renderDocsCurrent(res.derived);
-            } catch (_) { /* без връзка — само въпросникът */ }
+            } catch (e) {
+                _cardLoadError = (e && e.message) || 'network';
+                renderCardMeter();
+            }
         }
 
         /** Данните се смениха (изследване, документ, устройство) — картонът се опреснява. */

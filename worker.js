@@ -10,13 +10,8 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err2) => function __init() {
-  if (err2) throw err2[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err2 = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -11127,7 +11122,9 @@ var CLINICAL = [
   "COG",
   "INFL",
   "MENO",
-  "PP"
+  "PP",
+  "OB",
+  "OBS"
 ];
 var BEHAVIORS = [
   "NBF",
@@ -11583,6 +11580,9 @@ function compileProfile(userData = {}, overrides = {}) {
   const modifier = readDietLabels(overrides.dietaryModifier ? [overrides.dietaryModifier] : []);
   unmapped.push(...prefs.unmapped);
   const clinical = readConditions(data, unmapped);
+  const bmi = weightKg && heightCm ? weightKg / (heightCm / 100) ** 2 : null;
+  if (bmi != null && bmi >= 35) clinical.add("OBS");
+  else if (bmi != null && bmi >= 30) clinical.add("OB");
   const protocolId = data.clinicalProtocol && PROTOCOL_CODES[data.clinicalProtocol] ? data.clinicalProtocol : null;
   const exclusions = /* @__PURE__ */ new Set([...prefs.exclusions, ...modifier.exclusions]);
   addAll(exclusions, exclusionsFromText(data["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"]));
@@ -29944,6 +29944,38 @@ var clinical_default = {
       prefer: [
         "low_gi"
       ]
+    },
+    OB: {
+      label: "\u0417\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 (\u0418\u0422\u041C \u2265 30)",
+      basis: "EASO 2019 \u0438 Obesity Canada 2020 (Medical Nutrition Therapy): \u043D\u0438\u0441\u044A\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0442\u043E\u0432\u0430\u0440, \u0444\u0438\u0431\u0440\u0438 \u0438 \u0431\u0435\u043B\u0442\u044A\u043A \u0432\u044A\u0432 \u0432\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u0440\u0430\u0444\u0438\u043D\u0438\u0440\u0430\u043D\u0438\u0442\u0435 \u0441\u043A\u043E\u0440\u0431\u044F\u043B\u0438 (\u0431\u044F\u043B \u043E\u0440\u0438\u0437, \u0431\u044F\u043B \u0445\u043B\u044F\u0431, \u043A\u0430\u0440\u0442\u043E\u0444\u0438) \u2014 \u0440\u044F\u0434\u043A\u043E \u0438 \u0432 \u043C\u0430\u043B\u043A\u0430 \u043F\u043E\u0440\u0446\u0438\u044F, \u0432\u0438\u043D\u0430\u0433\u0438 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0431\u0435\u043B\u0442\u044A\u043A",
+      distribution: "even_carbs",
+      limitFlags: {
+        high_gi: 2,
+        high_gi_fruit: 3
+      },
+      prefer: [
+        "low_gi",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    OBS: {
+      label: "\u0417\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 II\u2013III \u0441\u0442\u0435\u043F\u0435\u043D (\u0418\u0422\u041C \u2265 35)",
+      basis: "EASO 2019, Obesity Canada 2020, ADA 2025 (\u0437\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 \u0441 \u0432\u0438\u0441\u043E\u043A \u043A\u0430\u0440\u0434\u0438\u043E\u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u0435\u043D \u0440\u0438\u0441\u043A): \u0431\u0435\u0437 \u0445\u0440\u0430\u043D\u0438 \u0441 \u0432\u0438\u0441\u043E\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0438\u043D\u0434\u0435\u043A\u0441 \u0438 \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440; \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u2014 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438, \u0431\u043E\u0431\u043E\u0432\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u0440\u0430\u0432\u043D\u043E\u043C\u0435\u0440\u043D\u043E",
+      distribution: "even_carbs",
+      excludeFlags: [
+        "high_gi"
+      ],
+      limitFlags: {
+        high_gi_fruit: 2
+      },
+      prefer: [
+        "low_gi",
+        "whole_grain",
+        "legume"
+      ],
+      noSweets: true,
+      fruitWithProtein: true
     }
   },
   protocols: {
@@ -43637,6 +43669,8 @@ var CODE_MEANING = {
   ANEM: "\u0430\u043D\u0435\u043C\u0438\u044F",
   SKIN: "\u043A\u043E\u0436\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438",
   SLP: "\u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438 \u0441\u044A\u0441 \u0441\u044A\u043D\u044F",
+  OB: "\u0437\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 (\u0418\u0422\u041C \u2265 30)",
+  OBS: "\u0437\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 II\u2013III \u0441\u0442\u0435\u043F\u0435\u043D (\u0418\u0422\u041C \u2265 35)",
   COG: "\u043A\u043E\u0433\u043D\u0438\u0442\u0438\u0432\u0435\u043D \u0441\u043F\u0430\u0434",
   INFL: "\u0445\u0440\u043E\u043D\u0438\u0447\u043D\u043E \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435/\u0441\u043B\u0430\u0431 \u0438\u043C\u0443\u043D\u0438\u0442\u0435\u0442",
   MENO: "\u043C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430",
