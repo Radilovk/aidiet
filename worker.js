@@ -43485,8 +43485,21 @@ function recommendationsOf(prescription, stats, policy) {
   if (policy.style === "keto" || policy.style === "low_carb") list2.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
   return list2.slice(0, 7);
 }
+var FLAG_AVOID = {
+  high_gi: ["\u0431\u044F\u043B \u043E\u0440\u0438\u0437", "\u0431\u044F\u043B \u0445\u043B\u044F\u0431", "\u043A\u0430\u0440\u0442\u043E\u0444\u0438"]
+};
+function clinicalAvoid(profile) {
+  const codes = [...profile.clinical || []];
+  const protocol = profile.protocol && PROTOCOLS[profile.protocol];
+  if (protocol?.use) codes.push(...protocol.use);
+  const flags = /* @__PURE__ */ new Set();
+  for (const code of codes) for (const f of CONDITIONS[code]?.excludeFlags || []) flags.add(f);
+  if (protocol && !protocol.use) for (const f of protocol.excludeFlags || []) flags.add(f);
+  return [...flags].flatMap((f) => FLAG_AVOID[f] || []);
+}
 function avoidOf(profile, policy, blockedTerms) {
   const list2 = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
+  if (policy.style !== "keto") list2.push(...clinicalAvoid(profile));
   for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list2.push(EXCLUSION_AVOID[code]);
   if (policy.noSweets && !list2.some((x) => /захар/.test(x))) list2.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
   for (const term of blockedTerms || []) {
