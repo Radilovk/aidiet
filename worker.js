@@ -58837,8 +58837,9 @@ async function handleXbodyCode(request, env) {
   await xbodyKeepCode(env, email, body && body.phone, kept);
   return jsonResponse2({ ok: true, ...kept, price });
 }
-function xbodyCodeKind(data, price) {
+function xbodyCodeKind(data, price, code) {
   const d = data || {};
+  if (/full[\s_-]*pass/i.test(`${code || ""} ${d.name || ""} ${d.certificate || ""}`)) return { kind: "free" };
   const amount = Number(d.discountAmount);
   const type = String(d.discountType || "").toLowerCase();
   if (type && Number.isFinite(amount) && amount > 0) {
@@ -58857,7 +58858,7 @@ function xbodyCodeKept(r, price) {
     code: r.code,
     name: String(r.data && r.data.name || "").slice(0, 80),
     expires: xbodyCodeExpiry(r.data),
-    ...xbodyCodeKind(r.data, price)
+    ...xbodyCodeKind(r.data, price, r.code)
   };
 }
 function xbodyCodePrice(price, kept) {

@@ -16171,8 +16171,10 @@ async function handleXbodyCode(request, env) {
  * Fullpass, a 100 % coupon, a value that covers the price): no card, no payment screen; 'discount' — a coupon that
  * lowers the price (off: € per hour, or pct: %): the card guarantee stays, with the lower sum.
  */
-function xbodyCodeKind(data, price) {
+function xbodyCodeKind(data, price, code) {
   const d = data || {};
+  // Fullpass (the studio's own pass, any spelling): always a free hour, whatever Acuity's certificate says
+  if (/full[\s_-]*pass/i.test(`${code || ''} ${d.name || ''} ${d.certificate || ''}`)) return { kind: 'free' };
   const amount = Number(d.discountAmount);
   const type = String(d.discountType || '').toLowerCase();
   if (type && Number.isFinite(amount) && amount > 0) {
@@ -16193,7 +16195,7 @@ function xbodyCodeKept(r, price) {
     code: r.code,
     name: String((r.data && r.data.name) || '').slice(0, 80),
     expires: xbodyCodeExpiry(r.data),
-    ...xbodyCodeKind(r.data, price),
+    ...xbodyCodeKind(r.data, price, r.code),
   };
 }
 
