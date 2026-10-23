@@ -2390,6 +2390,9 @@
             function forgetCode() {
                 try { localStorage.removeItem(CODE_KEY); } catch (_) {}
             }
+            /* a client who saved a card or a code before (an earlier version too): the browser is asked again, at each
+               opening, to keep this memory — an update of the app never clears it */
+            try { if (localStorage.getItem(CARD_KEY) || localStorage.getItem(CODE_KEY)) keepStorage(); } catch (_) {}
             function codeEnd(k) {
                 if (!k.expires) return '';
                 const d = new Date(k.expires);
