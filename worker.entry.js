@@ -5891,6 +5891,17 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
     analytics,
     weeklyAdaptHistory: profile?.weeklyAdaptHistory || [],
     enrichment: profile?.enrichment || null,
+    pendingWeekly: profile?.pendingWeekly || null,
+  };
+}
+
+/** Отговор „вече изпратено“ — клиентът го приема като успешно изпращане. */
+function weeklyAlreadySubmitted(pending) {
+  return {
+    alreadySubmitted: true,
+    code: 'already_submitted',
+    cycleNumber: pending?.notice?.cycleNumber ?? null,
+    submittedAt: pending?.notice?.at || null,
   };
 }
 
@@ -6308,7 +6319,12 @@ async function handleWeeklyGenerateQuestions(request, env) {
       return jsonResponse({ error: e.message }, 401);
     }
 
-    const { userData, plan, analytics, weeklyAdaptHistory, enrichment } = await resolveWeeklyJobInputs(env, body);
+    const { userData, plan, analytics, weeklyAdaptHistory, enrichment, pendingWeekly } = await resolveWeeklyJobInputs(env, body);
+    // Отговорите за тази седмица вече са приети (от друго устройство или при изгубен
+    // отговор) — новото меню чака утрото. Второ питане само завършва с „Не успяхме“.
+    if (pendingWeekly && !(pendingWeekly.visibleAt <= Date.now())) {
+      return jsonResponse({ success: true, ...weeklyAlreadySubmitted(pendingWeekly) });
+    }
     if (!plan?.weekPlan) {
       return jsonResponse({ error: 'Missing plan' }, 400);
     }
@@ -6358,9 +6374,11 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
       return jsonResponse({ error: 'Missing plan' }, 400);
     }
 
-    const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
+    let existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
+    // Падежирала чакаща седмица се прилага сега, иначе блокира следващия преглед.
+    if (existingProfile?.pendingWeekly) existingProfile = await applyWeeklyReleaseIfDue(env, existingProfile, userId);
     if (existingProfile?.pendingWeekly) {
-      return jsonResponse({ error: 'Адаптация вече е в процес. Опитайте след малко.' }, 409);
+      return jsonResponse({ error: 'Отговорите за тази седмица вече са изпратени.', ...weeklyAlreadySubmitted(existingProfile.pendingWeekly) }, 409);
     }
 
     const jobId = crypto.randomUUID();
