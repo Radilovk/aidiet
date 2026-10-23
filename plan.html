@@ -11815,11 +11815,61 @@
             // `auth` е в модулния скрипт и тук не се вижда — токенът идва от общия помощник
             // (изчаква и късния вход на Firebase в приложението). Без него сървърът връща 401.
             if (uid && uid.indexOf('fb_') === 0 && window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.getFirebaseIdToken === 'function') {
-                extras.idToken = await window.NutriPlanPlanSync.getFirebaseIdToken(uid).catch(function() { return null; });
+                extras.idToken = await weeklyWithin(window.NutriPlanPlanSync.getFirebaseIdToken(uid), 10000).catch(function() { return null; });
             }
             var clientId = localStorage.getItem('pendingClientId') || localStorage.getItem('clientId') || '';
             if (clientId) extras.clientId = clientId;
             return extras;
+        }
+
+        // Обещание с таван: увиснал вход или синхронизация не бива да спира прегледа.
+        function weeklyWithin(promise, ms) {
+            return Promise.race([
+                Promise.resolve(promise),
+                new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, ms); })
+            ]);
+        }
+
+        // POST към седмичния преглед: таван на времето и един повторен опит при
+        // прекъсната връзка или сривна грешка (5xx). Грешката носи status и отговора.
+        async function weeklyPostJSON(path, body) {
+            var lastErr = null;
+            for (var attempt = 0; attempt < 2; attempt++) {
+                var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+                var timer = ctrl ? setTimeout(function() { ctrl.abort(); }, 30000) : null;
+                try {
+                    var resp = await fetch(ANALYTICS_WORKER + path, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                        signal: ctrl ? ctrl.signal : undefined
+                    });
+                    var data = await resp.json().catch(function() { return {}; });
+                    if (resp.ok) return data;
+                    lastErr = new Error(data.error || ('HTTP ' + resp.status));
+                    lastErr.status = resp.status;
+                    lastErr.data = data;
+                    if (resp.status < 500) throw lastErr;
+                } catch (e) {
+                    if (e === lastErr && e.status < 500) throw e;
+                    lastErr = lastErr && lastErr.status ? lastErr : e;
+                } finally {
+                    if (timer) clearTimeout(timer);
+                }
+                if (attempt === 0) await new Promise(function(r) { setTimeout(r, 1500); });
+            }
+            throw lastErr || new Error('network');
+        }
+
+        // Разбираемо обяснение вместо общото „опитайте по-късно“.
+        function weeklyErrorText(err) {
+            var st = err && err.status;
+            var msg = (err && err.message) || '';
+            if (st === 401 || st === 403) return 'Входът в профила е изтекъл. Излезте и влезте отново, после опитайте пак.';
+            if (st === 400 && /Недостатъчно данни/.test(msg)) return 'Нужни са отметки поне за 3 дни от последната седмица. Отбелязвайте храненията и опитайте пак след ден-два.';
+            if (st === 400 && /Missing plan/.test(msg)) return 'Не намираме плана ви на сървъра. Отворете профила, за да се синхронизира, и опитайте пак.';
+            if (!st) return 'Няма връзка със сървъра. Проверете интернета и опитайте пак.';
+            return 'Сървърът не отговори както трябва. Опитайте пак след малко.';
         }
 
         function getWeeklyPayloadBase() {
@@ -11841,14 +11891,7 @@
             var base = getWeeklyPayloadBase();
             var authExtras = await getWeeklyAuthExtras();
             if (!authExtras.userId) throw new Error('Липсва потребител');
-            var resp = await fetch(ANALYTICS_WORKER + '/api/weekly/generate-questions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.assign({}, base, authExtras))
-            });
-            var data = await resp.json();
-            if (!resp.ok) throw new Error(data.error || 'Грешка при въпросите');
-            return data;
+            return weeklyPostJSON('/api/weekly/generate-questions', Object.assign({}, base, authExtras));
         }
 
         function showWeeklyQuickAnswerModal(questions, cycleNumber, onComplete, onSkip) {
@@ -12125,7 +12168,7 @@
             recalcAndShowScore(dayKey);
         }
 
-        function showWeeklyErrorModal(message) {
+        function showWeeklyErrorModal(message, onRetry, onLater) {
             var old = document.getElementById('gameWeeklyAdaptModal');
             if (old) old.remove();
             var overlay = document.createElement('div');
@@ -12141,9 +12184,16 @@
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
             btn.style.cssText = 'width:100%;background:#0D9488;color:white;';
-            btn.textContent = 'Добре';
-            btn.onclick = function() { overlay.remove(); };
+            btn.textContent = onRetry ? 'Опитай пак' : 'Добре';
+            btn.onclick = function() { overlay.remove(); if (onRetry) onRetry(); };
             modal.appendChild(btn);
+            if (onRetry) {
+                var later = document.createElement('button');
+                later.className = 'game-weekly-later';
+                later.textContent = 'По-късно';
+                later.onclick = function() { overlay.remove(); if (onLater) onLater(); };
+                modal.appendChild(later);
+            }
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
         }
@@ -12229,18 +12279,17 @@
         async function submitWeeklyAdaptation(questions, answers, cycleNumber) {
             var base = getWeeklyPayloadBase();
             var authExtras = await getWeeklyAuthExtras();
-            var resp = await fetch(ANALYTICS_WORKER + '/api/weekly/adapt-plan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.assign({}, base, authExtras, {
+            try {
+                return await weeklyPostJSON('/api/weekly/adapt-plan', Object.assign({}, base, authExtras, {
                     questions: questions,
                     answers: answers,
                     gameWeeklyAI: Object.assign({}, base.gameWeeklyAI, { cycleNumber: cycleNumber })
-                }))
-            });
-            var data = await resp.json();
-            if (!resp.ok) throw new Error(data.error || 'Грешка при изпращане');
-            return data;
+                }));
+            } catch (err) {
+                // Отговорите вече са приети (друго устройство или изгубен отговор) — това е успех.
+                if (err && err.data && err.data.code === 'already_submitted') return err.data;
+                throw err;
+            }
         }
 
         function finalizeWeeklyCycleOnSubmit(questions, answers, cycleNumber) {
@@ -12257,6 +12306,7 @@
             hist.push({ cycleNumber: cycleNumber, submittedAt: info.submittedAt });
             info.adaptationHistory = hist;
             delete info.pendingQuestions;
+            delete info.pendingAnswers;
             saveWeeklyAIState(info);
             scheduleWeeklyPlanReminders(info);
         }
@@ -12294,6 +12344,7 @@
         function markWeeklySkipped() {
             var info = ensureWeeklyMeta(getWeeklyAIState());
             info.feedbackStatus = 'skipped';
+            delete info.pendingAnswers;
             // „По-късно“ = утре, не след седмица: пропуснатият преглед е пропусната корекция.
             info.lastRun = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
             info.nextDue = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -12317,42 +12368,57 @@
             info.feedbackStatus = 'questions';
             saveWeeklyAIState(info);
 
-            if (window.NutriPlanAnalyticsSync && typeof window.NutriPlanAnalyticsSync.syncNow === 'function') {
-                try { await window.NutriPlanAnalyticsSync.syncNow(); } catch (_) {}
-            }
-
+            // Индикаторът — веднага след натискането; иначе синхронизацията минава
+            // „на празен екран“ и изглежда, че бутонът не работи.
             var loadingOverlay = showWeeklyLoadingModal('Подготвяме въпросите...');
+            if (window.NutriPlanAnalyticsSync && typeof window.NutriPlanAnalyticsSync.syncNow === 'function') {
+                try { await weeklyWithin(window.NutriPlanAnalyticsSync.syncNow(), 5000); } catch (_) {}
+            }
             try {
                 var qData = await fetchWeeklyQuestions();
                 loadingOverlay.remove();
+                if (qData.alreadySubmitted) {
+                    finalizeWeeklyCycleOnSubmit(info.pendingQuestions || [], info.answers || [], qData.cycleNumber || info.pendingCycleNumber || ((info.cycleNumber || 0) + 1));
+                    showWeeklySubmittedModal();
+                    return;
+                }
                 var questions = qData.questions;
                 var cycleNumber = qData.cycleNumber;
                 info.pendingQuestions = questions;
                 info.pendingCycleNumber = cycleNumber;
+                delete info.pendingAnswers;
                 saveWeeklyAIState(info);
-
-                showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
-                    var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
-                    try {
-                        var adaptResp = await submitWeeklyAdaptation(questions, answers, cycleNumber);
-                        sendingOverlay.remove();
-                        finalizeWeeklyCycleOnSubmit(questions, answers, (adaptResp && adaptResp.cycleNumber) || cycleNumber);
-                        showWeeklySubmittedModal();
-                    } catch (err) {
-                        sendingOverlay.remove();
-                        var st = getWeeklyAIState();
-                        st.feedbackStatus = 'pending';
-                        saveWeeklyAIState(st);
-                        showWeeklyErrorModal('Моля, опитайте отново по-късно.');
-                    }
-                }, function() {
-                    markWeeklySkipped();
-                });
+                askWeeklyQuestions(questions, cycleNumber);
             } catch (err) {
                 loadingOverlay.remove();
                 info.feedbackStatus = 'pending';
                 saveWeeklyAIState(info);
-                showWeeklyErrorModal('Моля, опитайте отново по-късно.');
+                showWeeklyErrorModal(weeklyErrorText(err), function() { startWeeklyFeedbackFlow(wd); }, markWeeklySkipped);
+            }
+        }
+
+        function askWeeklyQuestions(questions, cycleNumber) {
+            showWeeklyQuickAnswerModal(questions, cycleNumber, function(answers) {
+                sendWeeklyAnswers(questions, answers, cycleNumber);
+            }, function() { markWeeklySkipped(); });
+        }
+
+        // Отговорите се пазят до успешно изпращане — „Опитай пак“ не пита наново.
+        async function sendWeeklyAnswers(questions, answers, cycleNumber) {
+            var st0 = getWeeklyAIState();
+            st0.pendingAnswers = answers;
+            saveWeeklyAIState(st0);
+            var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
+            try {
+                var adaptResp = await submitWeeklyAdaptation(questions, answers, cycleNumber);
+                sendingOverlay.remove();
+                finalizeWeeklyCycleOnSubmit(questions, answers, (adaptResp && adaptResp.cycleNumber) || cycleNumber);
+                showWeeklySubmittedModal();
+            } catch (err) {
+                sendingOverlay.remove();
+                showWeeklyErrorModal(weeklyErrorText(err), function() {
+                    sendWeeklyAnswers(questions, answers, cycleNumber);
+                }, markWeeklySkipped);
             }
         }
 
@@ -12362,22 +12428,10 @@
             if (info.feedbackStatus !== 'questions' || !info.pendingQuestions || !info.pendingQuestions.length) return;
             var questions = info.pendingQuestions;
             var cycleNumber = info.pendingCycleNumber || ((info.cycleNumber || 0) + 1);
+            var savedAnswers = info.pendingAnswers;
             setTimeout(function() {
-                showWeeklyQuickAnswerModal(questions, cycleNumber, async function(answers) {
-                    var sendingOverlay = showWeeklyLoadingModal('Изпращаме...');
-                    try {
-                        var adaptResp = await submitWeeklyAdaptation(questions, answers, cycleNumber);
-                        sendingOverlay.remove();
-                        finalizeWeeklyCycleOnSubmit(questions, answers, (adaptResp && adaptResp.cycleNumber) || cycleNumber);
-                        showWeeklySubmittedModal();
-                    } catch (err) {
-                        sendingOverlay.remove();
-                        var st = getWeeklyAIState();
-                        st.feedbackStatus = 'pending';
-                        saveWeeklyAIState(st);
-                        showWeeklyErrorModal('Моля, опитайте отново по-късно.');
-                    }
-                }, function() { markWeeklySkipped(); });
+                if (savedAnswers && savedAnswers.length) sendWeeklyAnswers(questions, savedAnswers, cycleNumber);
+                else askWeeklyQuestions(questions, cycleNumber);
             }, 2000);
         }
 
