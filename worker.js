@@ -51023,7 +51023,16 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
     plan: resolvedPlan,
     analytics,
     weeklyAdaptHistory: profile?.weeklyAdaptHistory || [],
-    enrichment: profile?.enrichment || null
+    enrichment: profile?.enrichment || null,
+    pendingWeekly: profile?.pendingWeekly || null
+  };
+}
+function weeklyAlreadySubmitted(pending) {
+  return {
+    alreadySubmitted: true,
+    code: "already_submitted",
+    cycleNumber: pending?.notice?.cycleNumber ?? null,
+    submittedAt: pending?.notice?.at || null
   };
 }
 function nextWeeklyCycle(history, gameWeeklyAI) {
@@ -51360,7 +51369,10 @@ async function handleWeeklyGenerateQuestions(request, env) {
     } catch (e) {
       return jsonResponse2({ error: e.message }, 401);
     }
-    const { userData, plan, analytics, weeklyAdaptHistory, enrichment } = await resolveWeeklyJobInputs(env, body);
+    const { userData, plan, analytics, weeklyAdaptHistory, enrichment, pendingWeekly } = await resolveWeeklyJobInputs(env, body);
+    if (pendingWeekly && !(pendingWeekly.visibleAt <= Date.now())) {
+      return jsonResponse2({ success: true, ...weeklyAlreadySubmitted(pendingWeekly) });
+    }
     if (!plan?.weekPlan) {
       return jsonResponse2({ error: "Missing plan" }, 400);
     }
@@ -51402,9 +51414,10 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
     if (!resolvedPlan?.weekPlan) {
       return jsonResponse2({ error: "Missing plan" }, 400);
     }
-    const existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
+    let existingProfile = await kvGetJSON(env, `user_profile:${userId}`);
+    if (existingProfile?.pendingWeekly) existingProfile = await applyWeeklyReleaseIfDue(env, existingProfile, userId);
     if (existingProfile?.pendingWeekly) {
-      return jsonResponse2({ error: "\u0410\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0432\u0435\u0447\u0435 \u0435 \u0432 \u043F\u0440\u043E\u0446\u0435\u0441. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0441\u043B\u0435\u0434 \u043C\u0430\u043B\u043A\u043E." }, 409);
+      return jsonResponse2({ error: "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0430 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0432\u0435\u0447\u0435 \u0441\u0430 \u0438\u0437\u043F\u0440\u0430\u0442\u0435\u043D\u0438.", ...weeklyAlreadySubmitted(existingProfile.pendingWeekly) }, 409);
     }
     const jobId = crypto.randomUUID();
     const resolvedCycle = nextWeeklyCycle(existingProfile?.weeklyAdaptHistory, null);
@@ -58819,9 +58832,39 @@ async function handleXbodyCode(request, env) {
     console.warn("[xbody-code] Acuity refused", code, r.status, JSON.stringify(r.data).slice(0, 200));
     return jsonResponse2({ error: r.status >= 500 ? "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u0442\u0430 \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u0430 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." : "bad_code" }, r.status >= 500 ? 502 : 400);
   }
-  const kept = { code: r.code, name: String(r.data && r.data.name || "").slice(0, 80), expires: xbodyCodeExpiry(r.data) };
+  const price = await xbodyPrice(env);
+  const kept = xbodyCodeKept(r, price);
   await xbodyKeepCode(env, email, body && body.phone, kept);
-  return jsonResponse2({ ok: true, ...kept });
+  return jsonResponse2({ ok: true, ...kept, price });
+}
+function xbodyCodeKind(data, price) {
+  const d = data || {};
+  const amount = Number(d.discountAmount);
+  const type = String(d.discountType || "").toLowerCase();
+  if (type && Number.isFinite(amount) && amount > 0) {
+    if (/percent/.test(type)) return amount >= 100 ? { kind: "free" } : { kind: "discount", pct: amount };
+    if (price !== null && amount >= price) return { kind: "free" };
+    return { kind: "discount", off: amount };
+  }
+  const value = Number(d.remainingValue);
+  if (String(d.type || "").toLowerCase() === "value" && Number.isFinite(value) && value > 0 && price !== null && value < price) {
+    return { kind: "discount", off: value };
+  }
+  return { kind: "free" };
+}
+function xbodyCodeKept(r, price) {
+  return {
+    code: r.code,
+    name: String(r.data && r.data.name || "").slice(0, 80),
+    expires: xbodyCodeExpiry(r.data),
+    ...xbodyCodeKind(r.data, price)
+  };
+}
+function xbodyCodePrice(price, kept) {
+  if (price === null) return null;
+  if (!kept || kept.kind === "free") return 0;
+  const p = kept.pct ? price * (1 - kept.pct / 100) : price - (kept.off || 0);
+  return Math.max(0, Math.round(p * 100) / 100);
 }
 function xbodyCodeExpiry(data) {
   const v = data && data.expiration;
@@ -58881,13 +58924,22 @@ async function handleXbodySaved(request, env) {
     return jsonResponse2({ ok: true });
   }
   const stripeOn = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
-  const [card, code] = await Promise.all([
+  const [card, code, price] = await Promise.all([
     stripeOn ? xbodyFindCard(env, email, phone) : null,
-    xbodyKeptCode(env, email, phone)
+    xbodyKeptCode(env, email, phone),
+    xbodyPrice(env)
   ]);
   return jsonResponse2({
     card: card ? { pm: card.pm, brand: card.brand, last4: card.last4 } : null,
-    code: code ? { code: code.code, name: code.name || "", expires: code.expires || null } : null
+    code: code ? {
+      code: code.code,
+      name: code.name || "",
+      expires: code.expires || null,
+      kind: code.kind || "free",
+      pct: code.pct || void 0,
+      off: code.off || void 0
+    } : null,
+    price
   });
 }
 async function xbodyCheckCode(env, code, email) {
@@ -59019,6 +59071,11 @@ async function handleXbodyGuarantee(request, env) {
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PUBLISHABLE_KEY) return jsonResponse2({ error: "no_stripe" }, 503);
   const b = await xbodyReadBooking(request);
   if (b.error) return b.error;
+  const kept = b.code ? await xbodyKeptCode(env, b.email, b.phone) : null;
+  const sum = (price) => {
+    const one = kept && kept.code === b.code ? xbodyCodePrice(price, kept) : price;
+    return one === null ? null : Math.round(one * b.times.length * 100) / 100;
+  };
   if (!b.newCard) {
     let saved = b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, b.email) : null;
     if (!saved) saved = await xbodyFindCard(env, b.email, b.phone);
@@ -59027,7 +59084,7 @@ async function handleXbodyGuarantee(request, env) {
       return jsonResponse2({
         saved: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
         price,
-        total: price === null ? null : Math.round(price * b.times.length * 100) / 100
+        total: sum(price)
       });
     }
   }
@@ -59056,7 +59113,7 @@ async function handleXbodyGuarantee(request, env) {
       clientSecret: si.client_secret,
       publishableKey: env.STRIPE_PUBLISHABLE_KEY,
       price,
-      total: price === null ? null : Math.round(price * b.times.length * 100) / 100
+      total: sum(price)
     });
   } catch (err2) {
     console.error("[xbody-guarantee] failed:", err2.message);
@@ -59082,20 +59139,20 @@ async function handleXbodyBook(request, env) {
       await xbodyDropCode(env, email, b.phone);
       return jsonResponse2({ error: "code", failed: times.map((time) => ({ time, error: "code" })) }, 400);
     }
-    codeKept = { code: r.code, name: String(r.data && r.data.name || "").slice(0, 80), expires: xbodyCodeExpiry(r.data) };
+    codeKept = xbodyCodeKept(r, await xbodyPrice(env));
     b.code = r.code;
-    paidByCode = true;
+    paidByCode = codeKept.kind === "free";
   }
   let guarantee = null;
-  const saved = stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
+  const saved = stripeOn && !paidByCode && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
   if (saved) {
     guarantee = {
       id: "",
       card: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
       note: `\u0413\u0430\u0440\u0430\u043D\u0446\u0438\u044F \u0441 \u043A\u0430\u0440\u0442\u0430 (\u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 XBODY, \u0437\u0430\u043F\u0430\u0437\u0435\u043D\u0430 \u043A\u0430\u0440\u0442\u0430): Stripe ${saved.customer}, ${saved.brand} \u2022\u2022\u2022\u2022 ${saved.last4}. \u041D\u0438\u0449\u043E \u043D\u0435 \u0435 \u0438\u0437\u0442\u0435\u0433\u043B\u0435\u043D\u043E.`
     };
-  } else if (stripeOn) {
-    if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse2({ error: "card_required" }, 402);
+  } else if (stripeOn && !paidByCode) {
+    if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse2({ error: "card_required", code: codeKept || void 0 }, 402);
     try {
       const si = await xbodyStripe(env, "GET", `setup_intents/${b.setupIntent}`, { "expand[]": "payment_method" });
       const chosen = String(si.metadata && si.metadata.times || "").split(",");

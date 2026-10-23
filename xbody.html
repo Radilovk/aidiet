@@ -1344,6 +1344,25 @@
         .xb-saved-card i { color: #d32f2f; }
         .xb-saved-card small { margin-left: auto; font-size: 12px; font-weight: 500; color: #16a34a; }
         html[data-theme="dark"] .xb-saved-card { border-color: #3a353f; }
+        /* the buttons of a long sheet (the card form) stay in sight at the bottom of the screen */
+        .xb-sheet:has(> .xb-actions) { padding-bottom: 0; }
+        .xb-sheet .xb-actions {
+            position: sticky; bottom: 0; z-index: 2; margin: 8px -18px 0; padding: 4px 18px calc(env(safe-area-inset-bottom, 0px) + 12px);
+            background: var(--xb-card, #fff); box-shadow: 0 -10px 16px -12px rgba(0, 0, 0, .25);
+        }
+        html[data-theme="dark"] .xb-sheet .xb-actions { background: #1c1a1f; }
+        .xb-sheet .xb-actions .xb-secondary { min-height: 40px; margin-top: 4px; }
+        /* the code in use: one chip (green = a free hour) */
+        .xb-pass { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; padding: 10px 6px 10px 14px; border-radius: 14px;
+            border: 1px solid rgba(211, 47, 47, .25); background: rgba(211, 47, 47, .06); }
+        .xb-pass > i { font-size: 20px; color: #d32f2f; }
+        .xb-pass span { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 15px; font-weight: 700; color: #d32f2f; }
+        .xb-pass span b { color: var(--xb-text, #16141a); }
+        .xb-pass small { flex-basis: 100%; font-size: 12px; font-weight: 500; color: #8a8590; }
+        .xb-pass.free { border-color: rgba(22, 163, 74, .35); background: rgba(22, 163, 74, .08); }
+        .xb-pass.free > i, .xb-pass.free span { color: #16a34a; }
+        html[data-theme="dark"] .xb-pass span b { color: #f3f1f4; }
+        .xb-sheet .xb-pass button { width: 40px; height: 40px; min-height: 0; margin: 0; border: 0; border-radius: 50%; background: transparent; color: #8a8590; font-size: 16px; }
         .xb-code { display: flex; gap: 8px; margin: 6px 0 2px; }
         .xb-code.hidden { display: none; }
         .xb-code input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #dcd9df; font: inherit; font-size: 16px; text-transform: uppercase; background: transparent; color: inherit; }
@@ -1693,7 +1712,7 @@
                         '<h4 id="xb-terms-rules">Записване на час</h4><ul>' +
                             '<li>Часовете се записват в приложението или във формата на студиото.</li>' +
                             '<li>При първото записване се дава карта като гаранция. При записване от нея <b>не се тегли нищо</b>.</li>' +
-                            '<li>С код (Fullpass и др.) часът се отчита по кода, а картата остава гаранция.</li>' +
+                            '<li>С код за посещения (Full Pass, пакет) часът е безплатен — не се дава карта. С код за отстъпка сумата се намалява, а картата остава гаранция.</li>' +
                             '<li>Тренировката се плаща на място в студиото.</li></ul>' +
                         '<h4>Промяна, отказ и неявяване</h4><ul>' +
                             '<li>Промяна или отказ — <b>безплатно до 24 часа</b> преди тренировката.</li>' +
@@ -2337,7 +2356,9 @@
                     ' · <button type="button" class="xb-link" data-go="new-card">друга карта</button></p>' : '';
             }
             /* a package / coupon code (Fullpass…): checked once with Acuity, kept on the phone (and by the worker) until
-               it ends, sent with each booking */
+               it ends (the end the studio gave the code), put in by itself and sent with each booking.
+               kind 'free' (Full Pass, a package): the hour is free — no card, no payment screen;
+               kind 'discount' (pct % / off €): the card step stays, with the lower sum */
             const CODE_KEY = 'xbody_code';
             function savedCode(email) {
                 try {
@@ -2346,9 +2367,25 @@
                     return v && v.code && v.email === email ? v : null;
                 } catch (_) { return null; }
             }
-            function keepCode(email, code, name, expires) {
+            function keepCode(email, k, price) {
+                if (!k || !k.code) return;
                 keepStorage();
-                try { localStorage.setItem(CODE_KEY, JSON.stringify({ email: email, code: code, name: name || '', expires: expires || null })); } catch (_) {}
+                const kept = { email: email, code: k.code, name: k.name || '', expires: k.expires || null,
+                    kind: k.kind === 'discount' ? 'discount' : 'free', pct: Number(k.pct) || 0, off: Number(k.off) || 0 };
+                const was = savedCode(email);
+                kept.price = typeof price === 'number' ? price : was && typeof was.price === 'number' ? was.price : null;
+                try { localStorage.setItem(CODE_KEY, JSON.stringify(kept)); } catch (_) {}
+            }
+            function codeFree(k) { return Boolean(k) && k.kind !== 'discount'; }
+            /* the discount as a short sign: −10% / −€5 */
+            function codeOff(k) {
+                return k.pct ? '−' + Math.round(k.pct * 100) / 100 + '%' : k.off ? '−' + money(k.off).replace('.00', '') : '';
+            }
+            /* one hour with a discount code (the price known from the worker), or null */
+            function codePrice(k) {
+                if (!k || typeof k.price !== 'number') return null;
+                const p = k.pct ? k.price * (1 - k.pct / 100) : k.price - (k.off || 0);
+                return Math.max(0, Math.round(p * 100) / 100);
             }
             function forgetCode() {
                 try { localStorage.removeItem(CODE_KEY); } catch (_) {}
@@ -2363,21 +2400,29 @@
             let restoredFor = '';
             function restoreSaved(c) {
                 const who = c.email + '|' + c.phone;
-                if (restoredFor === who || !c.email || !c.phone || (savedCard(c.email) && savedCode(c.email))) return;
+                const k = savedCode(c.email);
+                if (restoredFor === who || !c.email || !c.phone || (savedCard(c.email) && k && k.kind)) return;
                 restoredFor = who;
                 postJson('/api/xbody/saved', { email: c.email, phone: c.phone }).then(function (res) {
                     if (res.status !== 200) return;
                     let got = false;
                     if (res.d.card && !savedCard(c.email)) { keepCard(c.email, res.d.card); got = true; }
-                    if (res.d.code && !savedCode(c.email)) { keepCode(c.email, res.d.code.code, res.d.code.name, res.d.code.expires); got = true; }
+                    const had = savedCode(c.email);
+                    if (res.d.code && (!had || (!had.kind && had.code === res.d.code.code))) { keepCode(c.email, res.d.code, res.d.price); got = true; }
                     /* the cart sheet, if still up and untouched, shows them */
                     if (got && !booking && sheet && !sheet.classList.contains('hidden') && sheet.querySelector('[data-go="book"]')) openCartSheet(lastNote);
                 }).catch(function () {});
             }
+            /* the code in use, as one plain chip: what it is, what it gives, until when — ✕ takes it off */
             function codeLine(c) {
                 const k = savedCode(c.email);
-                if (k) return '<p class="xb-cart-who"><i class="fas fa-ticket"></i> Код <b>' + esc(k.code) + '</b>' + (k.name ? ' (' + esc(k.name) + esc(codeEnd(k)) + ')' : esc(codeEnd(k).replace(/^, /, ' · '))) +
-                    ' · <button type="button" class="xb-link" data-go="code-off">махни</button></p>';
+                if (k) {
+                    const free = codeFree(k);
+                    return '<div class="xb-pass' + (free ? ' free' : '') + '"><i class="fas ' + (free ? 'fa-ticket' : 'fa-tag') + '" aria-hidden="true"></i>' +
+                        '<span><b>' + esc(k.name || k.code) + '</b>' + (free ? 'Безплатно' : esc(codeOff(k)) || 'Отстъпка') +
+                        (k.expires ? '<small>' + esc(codeEnd(k).replace(/^, /, '')) + '</small>' : '') + '</span>' +
+                        '<button type="button" data-go="code-off" aria-label="Махни кода"><i class="fas fa-times"></i></button></div>';
+                }
                 return '<p class="xb-cart-who" id="xb-code-row"><button type="button" class="xb-link" data-go="code-open">Имам код (карта, пакет, ваучер)</button></p>' +
                     '<div class="xb-code hidden" id="xb-code-box"><input id="xb-code-in" type="text" autocomplete="off" autocapitalize="off" ' +
                         'spellcheck="false" maxlength="40" placeholder="Код" aria-label="Код"><button type="button" class="xb-code-go" data-go="code-apply">Приложи</button></div>' +
@@ -2393,7 +2438,7 @@
                 busyButton('[data-go="code-apply"]', '…');
                 postJson('/api/xbody/code', { email: c.email, phone: c.phone, code: code }).then(function (res) {
                     booking = false;
-                    if (res.status === 200 && res.d.ok) { keepCode(c.email, res.d.code || code, res.d.name, res.d.expires); openCartSheet(); return; }
+                    if (res.status === 200 && res.d.ok) { keepCode(c.email, Object.assign({}, res.d, { code: res.d.code || code }), res.d.price); openCartSheet(); return; }
                     openCartSheet(res.status === 429 ? 'Твърде много опити — опитайте след малко.'
                         : res.status === 400 ? 'Кодът „' + esc(code) + '“ не важи за този час.' : 'Кодът не може да се провери в момента.');
                 }).catch(function () { booking = false; openCartSheet('Няма връзка. Опитайте отново.'); });
@@ -2404,6 +2449,9 @@
                 const c = contact();
                 lastNote = note || '';
                 restoreSaved(c);
+                const k = savedCode(c.email);
+                const free = codeFree(k);
+                const one = k && !free ? codePrice(k) : null;
                 sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true" aria-label="Избрани часове">' +
                     '<div class="xb-sheet-handle"></div><h3>' + (cart.length === 1 ? 'Избран час' : 'Избрани часове') + '</h3>' +
                     '<ul class="xb-cart-list">' + cart.map(function (iso) {
@@ -2411,16 +2459,15 @@
                             '<button type="button" data-rm="' + esc(iso) + '" aria-label="Премахни"><i class="fas fa-times"></i></button></li>';
                     }).join('') + '</ul>' +
                     '<p class="xb-cart-who">' + esc([c.name, c.phone].filter(Boolean).join(' · ')) + '</p>' +
-                    (savedLine(c) || '') +
+                    (free ? '' : savedLine(c) || '') +
                     codeLine(c) +
                     consentBoxes() +
-                    (savedCard(c.email) ? policyBox(savedCode(c.email) ? '; часът се отчита по код ' + esc(savedCode(c.email).code) : '')
-                        : savedCode(c.email) ? '<p class="xb-notice"><i class="fas fa-ticket" aria-hidden="true"></i> Часът се отчита по кода; картата остава гаранция (не се тегли нищо). Промяна или отказ — безплатно до 24 ч преди часа.</p>'
+                    (!free && savedCard(c.email) ? policyBox(one !== null ? '; плащате ' + money(one * cart.length) + ' на място' : '')
                         : '<p class="xb-notice"><i class="far fa-clock" aria-hidden="true"></i> Промяна или отказ — безплатно до 24 ч преди часа.</p>') +
                     (note ? '<p class="xb-cart-note">' + note + '</p>' : '') +
-                    '<button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Запази ' +
-                        (cart.length === 1 ? '1 час' : cart.length + ' часа') + '</button>' +
-                    '<button type="button" class="xb-secondary" data-close="1"><i class="fas fa-plus"></i>Добави още часове</button></div>';
+                    '<div class="xb-actions"><button type="button" class="xb-primary" data-go="book"><i class="fas fa-check"></i>Запази ' +
+                        (cart.length === 1 ? '1 час' : cart.length + ' часа') + (free ? ' · безплатно' : '') + '</button>' +
+                    '<button type="button" class="xb-secondary xb-quiet" data-close="1"><i class="fas fa-plus"></i>Добави още часове</button></div></div>';
                 sheet.classList.remove('hidden');
             }
             function postJson(path, payload) {
@@ -2445,12 +2492,17 @@
                 const c = contact();
                 const times = cart.slice();
                 if (!times.length) return;
+                if (!fresh && codeFree(savedCode(c.email))) {   // a free code (Full Pass…): no card, booked at once
+                    busyButton('[data-go="book"]', 'Момент…');
+                    return sendBooking(c, times, '');
+                }
                 const saved = fresh ? null : savedCard(c.email);
                 booking = true;
                 busyButton('[data-go="book"]', 'Момент…');
                 busyButton('[data-go="new-card"]', 'Момент…');
                 postJson('/api/xbody/guarantee', {
-                    email: c.email, phone: c.phone, name: c.name, times: times, paymentMethod: saved ? saved.pm : undefined, newCard: fresh ? true : undefined
+                    email: c.email, phone: c.phone, name: c.name, times: times, paymentMethod: saved ? saved.pm : undefined, newCard: fresh ? true : undefined,
+                    code: (savedCode(c.email) || {}).code || undefined
                 }).then(function (res) {
                     if (res.status === 503 && res.d.error === 'no_stripe') return sendBooking(c, times, '');   // no card step set up yet
                     if (res.status === 200 && res.d.saved && res.d.saved.pm && !fresh) return sendBooking(c, times, '', res.d.saved.pm);   // a saved card: no card step
@@ -2489,10 +2541,11 @@
                     '<b>Сега не се тегли нищо</b> — картата е гаранция' + (extra || '') + '.<br>' +
                     'Промяна или отказ — безплатно до <b>24 ч</b> преди часа. След това или при неявяване студиото може да таксува часа от картата и сумата не се възстановява.</div></div>';
             }
+            /* the sum (lowered by a discount code: the worker counts it) */
             function sumTable(times, g) {
                 const k = savedCode(contact().email);
-                return policyBox(k ? '; часът се отчита по код ' + esc(k.code)
-                    : g.total !== null && g.total !== undefined ? '; плащате ' + money(g.total) + ' на място' : '');
+                return policyBox(g.total !== null && g.total !== undefined
+                    ? '; плащате ' + money(g.total) + ' на място' + (k && !codeFree(k) && codeOff(k) ? ' (' + esc(codeOff(k)) + ')' : '') : '');
             }
             function openCardSheet(c, times, g) {
                 const dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -2500,9 +2553,9 @@
                     '<div class="xb-sheet-handle"></div><h3>Гаранция с карта</h3>' + sumTable(times, g) +
                     '<div class="xb-pay-field" id="xb-card-field"></div>' +
                     '<p class="xb-cart-note" id="xb-card-err" role="alert"></p>' +
-                    '<button type="button" class="xb-primary" data-go="card"><i class="fas fa-lock"></i>Запази ' +
+                    '<div class="xb-actions"><button type="button" class="xb-primary" data-go="card"><i class="fas fa-lock"></i>Запази ' +
                         (times.length === 1 ? '1 час' : times.length + ' часа') + '</button>' +
-                    '<button type="button" class="xb-secondary xb-quiet" data-go="cancel-card">Назад</button></div>';
+                    '<button type="button" class="xb-secondary xb-quiet" data-go="cancel-card">Назад</button></div></div>';
                 const errEl = sheet.querySelector('#xb-card-err');
                 return loadStripe().then(function (StripeJs) {
                     const stripe = StripeJs(g.publishableKey, { locale: 'bg' });
@@ -2556,7 +2609,14 @@
                 }).then(function (res) {
                     booking = false;
                     if (res.d.card) keepCard(c.email, res.d.card);
-                    if (res.d.code && res.d.code.code) keepCode(c.email, res.d.code.code, res.d.code.name, res.d.code.expires);
+                    if (res.d.code && res.d.code.code) keepCode(c.email, res.d.code);
+                    if (res.status === 402 && res.d.error === 'card_required' && !setupIntent && !paymentMethod) {
+                        // the code turned out to be a discount (not a free hour): the card step, with the lower sum
+                        const k = savedCode(c.email);
+                        if (k && codeFree(k)) keepCode(c.email, Object.assign({}, k, { kind: 'discount' }));
+                        bookCart(false);
+                        return;
+                    }
                     if (paymentMethod && res.status === 402) {   // the saved card is no longer valid: the card form
                         forgetCard();
                         bookCart(true);
@@ -2606,7 +2666,9 @@
                     const line = function (t) { return '<li><span>' + esc(dayLabel(t.slice(0, 10))) + ' · <b>' + esc(t.slice(11, 16)) + '</b></span></li>'; };
                     sheet.innerHTML = '<div class="xb-sheet" role="dialog" aria-modal="true"><div class="xb-sheet-handle"></div>' +
                         (booked.length ? '<h3>Записани ✓</h3><ul class="xb-cart-list ok">' + booked.map(line).join('') + '</ul>' +
-                            '<p class="xb-cart-msg">Потвърждение за всеки час идва на имейла Ви, както при отделно записване.' +
+                            (res.d.code && res.d.code.kind !== 'discount' ? '<div class="xb-pass free"><i class="fas fa-ticket" aria-hidden="true"></i><span><b>' +
+                                esc(res.d.code.name || res.d.code.code) + '</b>Безплатно</span></div>' : '') +
+                            '<p class="xb-cart-msg">Потвърждение за всеки час идва на имейла Ви.' +
                             (setupIntent || paymentMethod ? ' Картата е запазена като гаранция — нищо не е изтеглено.' : '') + '</p>' : '') +
                         (failed.length ? '<h3>Не бяха записани</h3><ul class="xb-cart-list bad">' + failed.map(line).join('') + '</ul>' +
                             '<p class="xb-cart-msg">Тези часове вече са заети — изберете други.</p>' : '') +

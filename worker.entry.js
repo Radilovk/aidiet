@@ -16160,9 +16160,49 @@ async function handleXbodyCode(request, env) {
     console.warn('[xbody-code] Acuity refused', code, r.status, JSON.stringify(r.data).slice(0, 200));
     return jsonResponse({ error: r.status >= 500 ? 'Проверката не е възможна в момента.' : 'bad_code' }, r.status >= 500 ? 502 : 400);
   }
-  const kept = { code: r.code, name: String((r.data && r.data.name) || '').slice(0, 80), expires: xbodyCodeExpiry(r.data) };
+  const price = await xbodyPrice(env);
+  const kept = xbodyCodeKept(r, price);
   await xbodyKeepCode(env, email, body && body.phone, kept);
-  return jsonResponse({ ok: true, ...kept });
+  return jsonResponse({ ok: true, ...kept, price });
+}
+
+/**
+ * What a good code does for one hour, from Acuity's certificate: 'free' — the hour is paid by the code (a package /
+ * Fullpass, a 100 % coupon, a value that covers the price): no card, no payment screen; 'discount' — a coupon that
+ * lowers the price (off: € per hour, or pct: %): the card guarantee stays, with the lower sum.
+ */
+function xbodyCodeKind(data, price) {
+  const d = data || {};
+  const amount = Number(d.discountAmount);
+  const type = String(d.discountType || '').toLowerCase();
+  if (type && Number.isFinite(amount) && amount > 0) {
+    if (/percent/.test(type)) return amount >= 100 ? { kind: 'free' } : { kind: 'discount', pct: amount };
+    if (price !== null && amount >= price) return { kind: 'free' };
+    return { kind: 'discount', off: amount };
+  }
+  const value = Number(d.remainingValue);
+  if (String(d.type || '').toLowerCase() === 'value' && Number.isFinite(value) && value > 0 && price !== null && value < price) {
+    return { kind: 'discount', off: value };
+  }
+  return { kind: 'free' };
+}
+
+/** the code as the worker / the phone keep it: { code, name, expires, kind, pct?, off? } */
+function xbodyCodeKept(r, price) {
+  return {
+    code: r.code,
+    name: String((r.data && r.data.name) || '').slice(0, 80),
+    expires: xbodyCodeExpiry(r.data),
+    ...xbodyCodeKind(r.data, price),
+  };
+}
+
+/** the price of one hour with the code (a discount code), never below 0 */
+function xbodyCodePrice(price, kept) {
+  if (price === null) return null;
+  if (!kept || kept.kind === 'free') return 0;
+  const p = kept.pct ? price * (1 - kept.pct / 100) : price - (kept.off || 0);
+  return Math.max(0, Math.round(p * 100) / 100);
 }
 
 /** a code's end from Acuity's certificate (its `expiration`): ms since 1970, or null (no end given) */
@@ -16228,13 +16268,16 @@ async function handleXbodySaved(request, env) {
     return jsonResponse({ ok: true });
   }
   const stripeOn = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
-  const [card, code] = await Promise.all([
+  const [card, code, price] = await Promise.all([
     stripeOn ? xbodyFindCard(env, email, phone) : null,
     xbodyKeptCode(env, email, phone),
+    xbodyPrice(env),
   ]);
   return jsonResponse({
     card: card ? { pm: card.pm, brand: card.brand, last4: card.last4 } : null,
-    code: code ? { code: code.code, name: code.name || '', expires: code.expires || null } : null,
+    code: code ? { code: code.code, name: code.name || '', expires: code.expires || null, kind: code.kind || 'free',
+      pct: code.pct || undefined, off: code.off || undefined } : null,
+    price,
   });
 }
 
@@ -16382,6 +16425,12 @@ async function handleXbodyGuarantee(request, env) {
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PUBLISHABLE_KEY) return jsonResponse({ error: 'no_stripe' }, 503);
   const b = await xbodyReadBooking(request);
   if (b.error) return b.error;
+  // a discount code lowers the sum shown with the guarantee (the code itself is checked again at the booking)
+  const kept = b.code ? await xbodyKeptCode(env, b.email, b.phone) : null;
+  const sum = (price) => {
+    const one = kept && kept.code === b.code ? xbodyCodePrice(price, kept) : price;
+    return one === null ? null : Math.round(one * b.times.length * 100) / 100;
+  };
   if (!b.newCard) {   // the card saved before (the phone's own, else Stripe's by e-mail + phone): no new SetupIntent, only a confirm
     let saved = b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, b.email) : null;
     if (!saved) saved = await xbodyFindCard(env, b.email, b.phone);
@@ -16390,7 +16439,7 @@ async function handleXbodyGuarantee(request, env) {
       return jsonResponse({
         saved: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
         price,
-        total: price === null ? null : Math.round(price * b.times.length * 100) / 100,
+        total: sum(price),
       });
     }
   }
@@ -16416,7 +16465,7 @@ async function handleXbodyGuarantee(request, env) {
       clientSecret: si.client_secret,
       publishableKey: env.STRIPE_PUBLISHABLE_KEY,
       price,
-      total: price === null ? null : Math.round(price * b.times.length * 100) / 100,
+      total: sum(price),
     });
   } catch (err) {
     console.error('[xbody-guarantee] failed:', err.message);
@@ -16436,8 +16485,8 @@ async function handleXbodyBook(request, env) {
   const auth = btoa(`${userId}:${apiKey}`);
   const stripeOn = Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
 
-  // a package / coupon code (Fullpass…) good for this hour pays for it (booked at once, no Acuity page); the card
-  // guarantee is still asked: a code does not cover a no-show or a late cancellation
+  // a code good for this hour: a free one (a package / Fullpass…) pays for it — booked at once, no Acuity page and
+  // no card (no payment screen at all); a discount code only lowers the price — the card guarantee stays
   let paidByCode = false;
   let codeKept = null;
   if (b.code) {
@@ -16447,22 +16496,22 @@ async function handleXbodyBook(request, env) {
       await xbodyDropCode(env, email, b.phone);
       return jsonResponse({ error: 'code', failed: times.map((time) => ({ time, error: 'code' })) }, 400);
     }
-    codeKept = { code: r.code, name: String((r.data && r.data.name) || '').slice(0, 80), expires: xbodyCodeExpiry(r.data) };
+    codeKept = xbodyCodeKept(r, await xbodyPrice(env));
     b.code = r.code;   // the spelling Acuity knows
-    paidByCode = true;
+    paidByCode = codeKept.kind === 'free';
   }
 
   // the card guarantee: a SetupIntent of this client, for these hours, confirmed, not used yet
   let guarantee = null;
-  const saved = stripeOn && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
+  const saved = stripeOn && !paidByCode && !b.setupIntent && b.paymentMethod ? await xbodySavedCard(env, b.paymentMethod, email) : null;
   if (saved) {
     guarantee = {
       id: '',
       card: { pm: saved.pm, brand: saved.brand, last4: saved.last4 },
       note: `Гаранция с карта (приложение XBODY, запазена карта): Stripe ${saved.customer}, ${saved.brand} •••• ${saved.last4}. Нищо не е изтеглено.`,
     };
-  } else if (stripeOn) {
-    if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse({ error: 'card_required' }, 402);
+  } else if (stripeOn && !paidByCode) {
+    if (!/^seti_\w+$/.test(b.setupIntent)) return jsonResponse({ error: 'card_required', code: codeKept || undefined }, 402);
     try {
       const si = await xbodyStripe(env, 'GET', `setup_intents/${b.setupIntent}`, { 'expand[]': 'payment_method' });
       const chosen = String((si.metadata && si.metadata.times) || '').split(',');
