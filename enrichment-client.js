@@ -125,15 +125,17 @@
     var CACHE_MS = 3 * 3600 * 1000;
     function dropCache(data) { try { localStorage.removeItem(CACHE_KEY); } catch (_) {} return data; }
     function getFresh() {
+        var uid = userId();
         return post('/api/enrichment/get', {}).then(keepEssence).then(function (data) {
-            try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data: data })); } catch (_) {}
+            try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), uid: uid, data: data })); } catch (_) {}
             return data;
         });
     }
+    // Кешът е на този профил: друг вход (или стар кеш без uid) не показва чужди/стари данни.
     function getCached(maxAgeMs) {
         try {
             var c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-            if (c && c.data && Date.now() - c.at < (maxAgeMs || CACHE_MS)) return Promise.resolve(c.data);
+            if (c && c.data && c.uid && c.uid === userId() && Date.now() - c.at < (maxAgeMs || CACHE_MS)) return Promise.resolve(c.data);
         } catch (_) {}
         return getFresh();
     }

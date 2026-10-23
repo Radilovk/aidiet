@@ -10,13 +10,8 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err2) => function __init() {
-  if (err2) throw err2[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err2 = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -11127,7 +11122,9 @@ var CLINICAL = [
   "COG",
   "INFL",
   "MENO",
-  "PP"
+  "PP",
+  "OB",
+  "OBS"
 ];
 var BEHAVIORS = [
   "NBF",
@@ -11583,6 +11580,9 @@ function compileProfile(userData = {}, overrides = {}) {
   const modifier = readDietLabels(overrides.dietaryModifier ? [overrides.dietaryModifier] : []);
   unmapped.push(...prefs.unmapped);
   const clinical = readConditions(data, unmapped);
+  const bmi = weightKg && heightCm ? weightKg / (heightCm / 100) ** 2 : null;
+  if (bmi != null && bmi >= 35) clinical.add("OBS");
+  else if (bmi != null && bmi >= 30) clinical.add("OB");
   const protocolId = data.clinicalProtocol && PROTOCOL_CODES[data.clinicalProtocol] ? data.clinicalProtocol : null;
   const exclusions = /* @__PURE__ */ new Set([...prefs.exclusions, ...modifier.exclusions]);
   addAll(exclusions, exclusionsFromText(data["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"]));
@@ -29944,6 +29944,38 @@ var clinical_default = {
       prefer: [
         "low_gi"
       ]
+    },
+    OB: {
+      label: "\u0417\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 (\u0418\u0422\u041C \u2265 30)",
+      basis: "EASO 2019 \u0438 Obesity Canada 2020 (Medical Nutrition Therapy): \u043D\u0438\u0441\u044A\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0442\u043E\u0432\u0430\u0440, \u0444\u0438\u0431\u0440\u0438 \u0438 \u0431\u0435\u043B\u0442\u044A\u043A \u0432\u044A\u0432 \u0432\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u0440\u0430\u0444\u0438\u043D\u0438\u0440\u0430\u043D\u0438\u0442\u0435 \u0441\u043A\u043E\u0440\u0431\u044F\u043B\u0438 (\u0431\u044F\u043B \u043E\u0440\u0438\u0437, \u0431\u044F\u043B \u0445\u043B\u044F\u0431, \u043A\u0430\u0440\u0442\u043E\u0444\u0438) \u2014 \u0440\u044F\u0434\u043A\u043E \u0438 \u0432 \u043C\u0430\u043B\u043A\u0430 \u043F\u043E\u0440\u0446\u0438\u044F, \u0432\u0438\u043D\u0430\u0433\u0438 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0431\u0435\u043B\u0442\u044A\u043A",
+      distribution: "even_carbs",
+      limitFlags: {
+        high_gi: 2,
+        high_gi_fruit: 3
+      },
+      prefer: [
+        "low_gi",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    OBS: {
+      label: "\u0417\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 II\u2013III \u0441\u0442\u0435\u043F\u0435\u043D (\u0418\u0422\u041C \u2265 35)",
+      basis: "EASO 2019, Obesity Canada 2020, ADA 2025 (\u0437\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 \u0441 \u0432\u0438\u0441\u043E\u043A \u043A\u0430\u0440\u0434\u0438\u043E\u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u0435\u043D \u0440\u0438\u0441\u043A): \u0431\u0435\u0437 \u0445\u0440\u0430\u043D\u0438 \u0441 \u0432\u0438\u0441\u043E\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0438\u043D\u0434\u0435\u043A\u0441 \u0438 \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440; \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u2014 \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438, \u0431\u043E\u0431\u043E\u0432\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u0440\u0430\u0432\u043D\u043E\u043C\u0435\u0440\u043D\u043E",
+      distribution: "even_carbs",
+      excludeFlags: [
+        "high_gi"
+      ],
+      limitFlags: {
+        high_gi_fruit: 2
+      },
+      prefer: [
+        "low_gi",
+        "whole_grain",
+        "legume"
+      ],
+      noSweets: true,
+      fruitWithProtein: true
     }
   },
   protocols: {
@@ -43453,8 +43485,21 @@ function recommendationsOf(prescription, stats, policy) {
   if (policy.style === "keto" || policy.style === "low_carb") list2.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
   return list2.slice(0, 7);
 }
+var FLAG_AVOID = {
+  high_gi: ["\u0431\u044F\u043B \u043E\u0440\u0438\u0437", "\u0431\u044F\u043B \u0445\u043B\u044F\u0431", "\u043A\u0430\u0440\u0442\u043E\u0444\u0438"]
+};
+function clinicalAvoid(profile) {
+  const codes = [...profile.clinical || []];
+  const protocol = profile.protocol && PROTOCOLS[profile.protocol];
+  if (protocol?.use) codes.push(...protocol.use);
+  const flags = /* @__PURE__ */ new Set();
+  for (const code of codes) for (const f of CONDITIONS[code]?.excludeFlags || []) flags.add(f);
+  if (protocol && !protocol.use) for (const f of protocol.excludeFlags || []) flags.add(f);
+  return [...flags].flatMap((f) => FLAG_AVOID[f] || []);
+}
 function avoidOf(profile, policy, blockedTerms) {
   const list2 = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
+  if (policy.style !== "keto") list2.push(...clinicalAvoid(profile));
   for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list2.push(EXCLUSION_AVOID[code]);
   if (policy.noSweets && !list2.some((x) => /захар/.test(x))) list2.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
   for (const term of blockedTerms || []) {
@@ -43637,6 +43682,8 @@ var CODE_MEANING = {
   ANEM: "\u0430\u043D\u0435\u043C\u0438\u044F",
   SKIN: "\u043A\u043E\u0436\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438",
   SLP: "\u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438 \u0441\u044A\u0441 \u0441\u044A\u043D\u044F",
+  OB: "\u0437\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 (\u0418\u0422\u041C \u2265 30)",
+  OBS: "\u0437\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 II\u2013III \u0441\u0442\u0435\u043F\u0435\u043D (\u0418\u0422\u041C \u2265 35)",
   COG: "\u043A\u043E\u0433\u043D\u0438\u0442\u0438\u0432\u0435\u043D \u0441\u043F\u0430\u0434",
   INFL: "\u0445\u0440\u043E\u043D\u0438\u0447\u043D\u043E \u0432\u044A\u0437\u043F\u0430\u043B\u0435\u043D\u0438\u0435/\u0441\u043B\u0430\u0431 \u0438\u043C\u0443\u043D\u0438\u0442\u0435\u0442",
   MENO: "\u043C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430",
@@ -48590,6 +48637,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
     console.error(`\u{1F6A8} Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function to ensure this is intentional.`);
   }
   const config = await getAdminConfig(env);
+  const task = aiTaskOf(stepName);
+  if (task?.maxTokens) maxTokens = task.maxTokens;
   const stepKey = getStepKey(stepName);
   if (stepKey && config.stepTokenLimits?.[stepKey]) {
     const adminLimit = config.stepTokenLimits[stepKey];
@@ -48600,7 +48649,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   const modelName = isChatStep && config.chatModelName ? config.chatModelName : config.modelName;
   const isPlanStep = stepKey && ["step1", "step2", "step3", "step4", "step6"].includes(stepKey);
   const planThinkingBudget = stepKey === "step3" ? 0 : config.planThinkingBudget !== void 0 ? config.planThinkingBudget : PLAN_STEP_DEFAULT_THINKING_BUDGET;
-  const effectiveThinkingBudget = isPlanStep ? planThinkingBudget : isChatStep ? config.chatThinkingBudget !== void 0 ? config.chatThinkingBudget : config.thinkingBudget : config.thinkingBudget;
+  const adminThinkingBudget = isPlanStep ? planThinkingBudget : isChatStep ? config.chatThinkingBudget !== void 0 ? config.chatThinkingBudget : config.thinkingBudget : config.thinkingBudget;
+  const effectiveThinkingBudget = adminThinkingBudget !== void 0 ? adminThinkingBudget : task?.thinking;
+  const geminiModel = task?.tier === "lite" && config.liteModelName && !(isChatStep && config.chatModelName) ? config.liteModelName : modelName;
   const cfgTemp = isChatStep ? config.chatTemperature !== void 0 ? config.chatTemperature : config.temperature : config.temperature;
   const cfgTopP = isChatStep ? config.chatTopP !== void 0 ? config.chatTopP : config.topP : config.topP;
   const cfgTopK = isChatStep ? config.chatTopK !== void 0 ? config.chatTopK : config.topK : config.topK;
@@ -48609,6 +48660,30 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
   const EMOEAT_DEFAULT_TEMPERATURE = 0.5;
   const effectiveTemp = isPlanStep ? cfgTemp !== void 0 ? cfgTemp : PLAN_STEP_DEFAULT_TEMPERATURE : stepName === "emoeat_analysis" ? cfgTemp !== void 0 ? cfgTemp : EMOEAT_DEFAULT_TEMPERATURE : cfgTemp;
   const effectiveTopP = isPlanStep ? cfgTopP !== void 0 ? cfgTopP : PLAN_STEP_DEFAULT_TOP_P : cfgTopP;
+  const geminiTemp = isGemini3Plus(geminiModel) ? cfgTemp : effectiveTemp;
+  const geminiTopP = isGemini3Plus(geminiModel) ? cfgTopP : effectiveTopP;
+  const callGeminiForTask = async () => {
+    const run = (model) => callGemini2(
+      env,
+      enforcedPrompt,
+      model,
+      maxTokens,
+      !skipJSONEnforcement,
+      effectiveThinkingBudget,
+      geminiTemp,
+      geminiTopP,
+      cfgTopK,
+      planResponseSchema,
+      planSystemInstruction
+    );
+    if (geminiModel === modelName) return run(modelName);
+    try {
+      return await run(geminiModel);
+    } catch (err2) {
+      console.warn(`[AI] ${stepName}: ${geminiModel} failed (${err2.message}) \u2014 falling back to ${modelName}`);
+      return run(modelName);
+    }
+  };
   const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
   const planSystemInstruction = isPlanStep ? getPlanSystemInstruction(stepKey) : stepName === "emoeat_analysis" ? getPlanSystemInstruction("emoeat") : null;
   const requestData = {
@@ -48616,7 +48691,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
     estimatedInputTokens,
     maxTokens,
     provider: preferredProvider,
-    modelName,
+    modelName: preferredProvider === "google" ? geminiModel : modelName,
+    thinking: effectiveThinkingBudget ?? null,
     sessionId,
     userData,
     calculatedData,
@@ -48640,19 +48716,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", 
       response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
       success = true;
     } else if (preferredProvider === "google" && env.GEMINI_API_KEY) {
-      response = await callGemini2(
-        env,
-        enforcedPrompt,
-        modelName,
-        maxTokens,
-        !skipJSONEnforcement,
-        effectiveThinkingBudget,
-        effectiveTemp,
-        effectiveTopP,
-        cfgTopK,
-        planResponseSchema,
-        planSystemInstruction
-      );
+      response = await callGeminiForTask();
       success = true;
     } else {
       if (env.OPENAI_API_KEY) {
@@ -50411,6 +50475,7 @@ var ADMIN_ASSISTANT_CACHE_TTL = "3600s";
 var ADMIN_ASSISTANT_SESSION_TTL = 3600;
 var ADMIN_ASSISTANT_SESSION_PREFIX = "admin_assistant_session:";
 var DEFAULT_GEMINI_PLAN_MODEL = "gemini-3.6-flash";
+var DEFAULT_GEMINI_LITE_MODEL = "gemini-3.5-flash-lite";
 var ADMIN_ASSISTANT_DEFAULT_MODEL = DEFAULT_GEMINI_PLAN_MODEL;
 var ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `\u0422\u0438 \u0441\u0438 NutriPlan AI \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u0437\u0430 \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440-\u043D\u0443\u0442\u0440\u0438\u0446\u0438\u043E\u043D\u0438\u0441\u0442.
 \u0427\u0435\u0442\u0435\u0448 \u043A\u0435\u0448\u0438\u0440\u0430\u043D \u043A\u043B\u0438\u0435\u043D\u0442\u0441\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u043D (CC/NPCF). \u041F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0441\u0435 \u043F\u0440\u0430\u0432\u044F\u0442 \u0447\u0440\u0435\u0437 RFC 6902 JSON Patch \u0432\u044A\u0440\u0445\u0443 \u043A\u0430\u043D\u043E\u043D\u0438\u0447\u043D\u0438\u044F JSON.
@@ -53091,6 +53156,8 @@ async function getAdminConfig(env) {
     // Reasoning budget for plan steps; reserved on top of maxOutputTokens.
     planThinkingBudget: void 0,
     visionThinkingBudget: void 0,
+    // Евтиният модел за кратките служебни задачи (AI_TASKS tier 'lite'); null — основният.
+    liteModelName: DEFAULT_GEMINI_LITE_MODEL,
     stepTokenLimits: {},
     // Generation sampling parameters: undefined = use per-function defaults
     temperature: void 0,
@@ -53122,7 +53189,8 @@ async function getAdminConfig(env) {
       savedChatThinkingBudget,
       savedChatTemperature,
       savedChatTopP,
-      savedChatTopK
+      savedChatTopK,
+      savedLiteModelName
     ] = await Promise.all([
       env.page_content.get("admin_ai_provider"),
       env.page_content.get("admin_ai_model_name"),
@@ -53140,7 +53208,8 @@ async function getAdminConfig(env) {
       env.page_content.get("admin_chat_ai_thinking_budget"),
       env.page_content.get("admin_chat_ai_temperature"),
       env.page_content.get("admin_chat_ai_top_p"),
-      env.page_content.get("admin_chat_ai_top_k")
+      env.page_content.get("admin_chat_ai_top_k"),
+      env.page_content.get("admin_ai_model_lite")
     ]);
     const provider = trimKv(savedProvider);
     const modelName = trimKv(savedModelName);
@@ -53157,6 +53226,8 @@ async function getAdminConfig(env) {
     const visionModelName = trimKv(savedVisionModelName);
     if (visionProvider) config.visionProvider = visionProvider;
     if (visionModelName) config.visionModelName = visionModelName;
+    const liteModelName = trimKv(savedLiteModelName);
+    if (liteModelName) config.liteModelName = /^(off|none|0)$/i.test(liteModelName) ? null : liteModelName;
     config.thinkingBudget = parseThinkingBudget(savedThinkingBudget);
     config.visionThinkingBudget = parseThinkingBudget(savedVisionThinkingBudget);
     config.planThinkingBudget = parseThinkingBudget(savedPlanThinkingBudget);
@@ -53485,9 +53556,64 @@ async function callClaude(env, prompt, modelName = "claude-3-5-sonnet-20241022",
 function isFlashWithoutThinking(modelName) {
   return /gemini-(2\.5|3(\.\d+)?)-flash/i.test(String(modelName || "")) && !/pro/i.test(String(modelName || ""));
 }
+var AI_TASKS = {
+  chat: { tier: "main", thinking: "low", maxTokens: 1e3 },
+  plan_voice: { tier: "main", thinking: "low" },
+  plan_voice_repair: { tier: "lite", thinking: "minimal" },
+  intake_hints: { tier: "main", thinking: "low" },
+  menu_review: { tier: "main", thinking: "low" },
+  feedback_hints: { tier: "lite", thinking: "low" },
+  health_digest: { tier: "lite", thinking: "minimal" },
+  ai_validation: { tier: "lite", thinking: "low", maxTokens: 1200 },
+  document_assessment: { tier: "main", thinking: "medium" },
+  emoeat_analysis: { tier: "main", thinking: "low" },
+  // Снимки и PDF (моделът за зрение от админа)
+  food_photo: { thinking: "minimal" },
+  menu_photo: { thinking: "minimal" },
+  device_extraction: { thinking: "minimal" },
+  lab_extraction: { thinking: "low" },
+  document_image: { thinking: "medium" }
+};
+function aiTaskOf(stepName) {
+  const name = String(stepName || "");
+  if (name.startsWith("chat")) return AI_TASKS.chat;
+  return AI_TASKS[name] || null;
+}
+function isGemini3Plus(modelName) {
+  return /gemini-(?:[3-9]|\d{2,})(?:[.\-]|$)/i.test(String(modelName || ""));
+}
+var THINKING_RESERVE = { minimal: 512, low: 2048, medium: 6144, high: 12288 };
+var THINKING_LEVEL_BUDGET = { minimal: 0, low: 1024, medium: 4096, high: 8192 };
+function geminiThinking(modelName, thinking, opts = {}) {
+  const pro = /pro/i.test(String(modelName || ""));
+  if (typeof thinking === "number") {
+    return { thinkingConfig: { thinkingBudget: thinking }, reserve: thinking > 0 ? thinking : 0 };
+  }
+  let level = typeof thinking === "string" && THINKING_RESERVE[thinking] != null ? thinking : null;
+  if (!level) {
+    if (!isFlashWithoutThinking(modelName) && !/flash-lite/i.test(String(modelName || ""))) return { thinkingConfig: null, reserve: 0 };
+    level = "minimal";
+  }
+  if (pro && level === "minimal") level = "low";
+  if (isGemini3Plus(modelName) && !opts.legacy) {
+    return { thinkingConfig: { thinkingLevel: level }, reserve: THINKING_RESERVE[level] };
+  }
+  const budget = pro ? Math.max(128, THINKING_LEVEL_BUDGET[level]) : THINKING_LEVEL_BUDGET[level];
+  return { thinkingConfig: { thinkingBudget: budget }, reserve: budget };
+}
 async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, maxTokens = null, jsonMode = false, thinkingBudget = void 0, temperature = void 0, topP = void 0, topK = void 0, responseSchema = null, systemInstruction = null) {
   try {
-    return await retryWithBackoff(async () => {
+    return await callGeminiOnce(false).catch((error) => {
+      if (!error.thinkingLevelRejected) throw error;
+      console.warn(`[Gemini] ${modelName}: thinkingLevel rejected \u2014 retrying with thinkingBudget`);
+      return callGeminiOnce(true);
+    });
+  } catch (error) {
+    console.error("Gemini API call failed:", error);
+    throw new Error(`Gemini API failed: ${error.message}`);
+  }
+  function callGeminiOnce(legacyThinking) {
+    return retryWithBackoff(async () => {
       const requestBody = {
         contents: [{ parts: [{ text: prompt }] }]
       };
@@ -53495,18 +53621,14 @@ async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, m
         requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
       }
       const generationConfig = {};
-      const reservedThinking = thinkingBudget > 0 ? thinkingBudget : 0;
+      const thinking = geminiThinking(modelName, thinkingBudget, { legacy: legacyThinking });
       if (maxTokens) {
-        generationConfig.maxOutputTokens = maxTokens + reservedThinking;
+        generationConfig.maxOutputTokens = maxTokens + thinking.reserve;
       }
       if (temperature !== void 0) generationConfig.temperature = temperature;
       if (topP !== void 0) generationConfig.topP = topP;
       if (topK !== void 0) generationConfig.topK = topK;
-      if (thinkingBudget !== void 0) {
-        generationConfig.thinkingConfig = { thinkingBudget };
-      } else if (isFlashWithoutThinking(modelName)) {
-        generationConfig.thinkingConfig = { thinkingBudget: 0 };
-      }
+      if (thinking.thinkingConfig) generationConfig.thinkingConfig = thinking.thinkingConfig;
       if (jsonMode) {
         generationConfig.responseMimeType = "application/json";
         if (responseSchema) {
@@ -53525,6 +53647,9 @@ async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, m
         }
       );
       if (!response.ok) {
+        if (response.status === 400 && thinking.thinkingConfig?.thinkingLevel && !legacyThinking) {
+          throw Object.assign(new Error(`Gemini API error: 400 ${response.statusText}`), { thinkingLevelRejected: true });
+        }
         throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
       }
       const data = await response.json();
@@ -53553,13 +53678,11 @@ async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, m
       }
       throw new Error("\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0444\u043E\u0440\u043C\u0430\u0442 \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u043E\u0442 Gemini API");
     });
-  } catch (error) {
-    console.error("Gemini API call failed:", error);
-    throw new Error(`Gemini API failed: ${error.message}`);
   }
 }
-async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, maxTokens = 2e3) {
+async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, maxTokens = 2e3, taskName = null) {
   const config = await getAdminConfig(env);
+  const visionThinking = config.visionThinkingBudget !== void 0 ? config.visionThinkingBudget : AI_TASKS[taskName]?.thinking;
   const preferredProvider = config.visionProvider || config.provider;
   const defaultVisionModels = {
     openai: "gpt-4o-mini",
@@ -53575,13 +53698,13 @@ async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, max
     } else if (preferredProvider === "anthropic" && env.ANTHROPIC_API_KEY) {
       response = await callClaudeVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens);
     } else if (preferredProvider === "google" && env.GEMINI_API_KEY) {
-      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens, config.visionThinkingBudget);
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens, visionThinking);
     } else if (env.OPENAI_API_KEY) {
       response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.openai, maxTokens);
     } else if (env.ANTHROPIC_API_KEY) {
       response = await callClaudeVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.anthropic, maxTokens);
     } else if (env.GEMINI_API_KEY) {
-      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.google, maxTokens, config.visionThinkingBudget);
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.google, maxTokens, visionThinking);
     } else {
       throw new Error("No AI provider configured for vision analysis.");
     }
@@ -53656,42 +53779,47 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
   });
 }
 async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens, thinkingBudget = void 0) {
-  return await retryWithBackoff(async () => {
-    const generationConfig = {
-      maxOutputTokens: maxTokens,
-      temperature: 0.3
-    };
-    if (thinkingBudget !== void 0) {
-      generationConfig.thinkingConfig = { thinkingBudget };
-    } else if (isFlashWithoutThinking(modelName)) {
-      generationConfig.thinkingConfig = { thinkingBudget: 0 };
-    }
-    const requestBody = {
-      contents: [{
-        parts: [
-          { text: textPrompt },
-          { inlineData: { mimeType, data: base64Image } }
-        ]
-      }],
-      generationConfig
-    };
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
-      }
-    );
-    if (!response.ok) {
-      throw new Error(`Gemini Vision API error: ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json();
-    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error("Gemini Vision returned invalid response");
-    }
-    return data.candidates[0].content.parts[0].text;
+  return callOnce(false).catch((error) => {
+    if (!error.thinkingLevelRejected) throw error;
+    return callOnce(true);
   });
+  function callOnce(legacyThinking) {
+    return retryWithBackoff(async () => {
+      const thinking = geminiThinking(modelName, thinkingBudget, { legacy: legacyThinking });
+      const generationConfig = {
+        maxOutputTokens: maxTokens + thinking.reserve
+      };
+      if (!isGemini3Plus(modelName)) generationConfig.temperature = 0.3;
+      if (thinking.thinkingConfig) generationConfig.thinkingConfig = thinking.thinkingConfig;
+      const requestBody = {
+        contents: [{
+          parts: [
+            { text: textPrompt },
+            { inlineData: { mimeType, data: base64Image } }
+          ]
+        }],
+        generationConfig
+      };
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody)
+        }
+      );
+      if (!response.ok) {
+        throw Object.assign(new Error(`Gemini Vision API error: ${response.status} ${response.statusText}`), {
+          thinkingLevelRejected: response.status === 400 && !!thinking.thinkingConfig?.thinkingLevel && !legacyThinking
+        });
+      }
+      const data = await response.json();
+      if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        throw new Error("Gemini Vision returned invalid response");
+      }
+      return data.candidates[0].content.parts[0].text;
+    });
+  }
 }
 async function handleAnalyzeFoodImage(request, env) {
   try {
@@ -53776,7 +53904,7 @@ ${planContext ? `\u0422\u0415\u041A\u0423\u0429 \u0414\u0418\u0415\u0422\u0418\u
 - \u0412\u0441\u0438\u0447\u043A\u0438 \u0447\u0438\u0441\u043B\u0430 \u0434\u0430 \u0441\u0430 \u0447\u0438\u0441\u043B\u0430 (\u043D\u0435 \u0442\u0435\u043A\u0441\u0442)
 - \u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 JSON, \u0431\u0435\u0437 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u0442\u0435\u043A\u0441\u0442`;
     }
-    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 1500);
+    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 1500, "food_photo");
     let analysisResult;
     try {
       let cleanResponse = aiResponse.trim();
@@ -53904,7 +54032,7 @@ ${planContext ? `\u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u
 
 \u0412\u0410\u0416\u041D\u041E: \u0410\u043A\u043E \u043C\u0435\u043D\u044E\u0442\u043E \u043D\u0435 \u0441\u0435 \u0447\u0435\u0442\u0435 \u044F\u0441\u043D\u043E, \u043F\u043E\u0441\u0442\u0430\u0432\u0438 suitabilityScore: 0 \u0438 \u043E\u0431\u044F\u0441\u043D\u0438 \u0432 reasoning. \u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 JSON.`;
     }
-    const aiResponse = await callAIModelWithVision(env, menuPrompt, base64Data, effectiveMimeType, 1200);
+    const aiResponse = await callAIModelWithVision(env, menuPrompt, base64Data, effectiveMimeType, 1200, "menu_photo");
     let menuResult;
     try {
       let cleanResponse = aiResponse.trim();
@@ -54029,7 +54157,7 @@ async function handleAnalyzeKidsFoodImage(request, env) {
 - \u0410\u043A\u043E \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0435 \u044F\u0432\u043D\u043E \u043D\u0435\u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0430 (\u0430\u043B\u043A\u043E\u0445\u043E\u043B, \u043A\u0430\u0444\u0435, \u0435\u043D\u0435\u0440\u0433\u0438\u0439\u043D\u0438 \u043D\u0430\u043F\u0438\u0442\u043A\u0438) \u2014 safetyScore \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0435 0-1
 - \u0412\u0441\u0438\u0447\u043A\u0438 \u0447\u0438\u0441\u043B\u0430 \u0434\u0430 \u0441\u0430 \u0447\u0438\u0441\u043B\u0430 (\u043D\u0435 \u0442\u0435\u043A\u0441\u0442)
 - \u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0421\u0410\u041C\u041E \u0441 JSON, \u0431\u0435\u0437 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u0442\u0435\u043A\u0441\u0442`;
-    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 2e3);
+    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 2e3, "food_photo");
     let analysisResult;
     try {
       let cleanResponse = aiResponse.trim();
@@ -54465,7 +54593,8 @@ async function saveLogsToGitHub(env, structuredPlan) {
         topP: config.topP ?? null,
         topK: config.topK ?? null,
         thinkingBudget: config.thinkingBudget ?? null,
-        stepTokenLimits: config.stepTokenLimits
+        stepTokenLimits: config.stepTokenLimits,
+        liteModelName: config.liteModelName
       },
       chat: {
         provider: config.chatProvider,
@@ -54693,7 +54822,7 @@ async function handleGetDefaultPrompt(request, env) {
 }
 async function handleSaveModel(request, env) {
   try {
-    const { provider, modelName, thinkingBudget, temperature, topP, topK } = await request.json();
+    const { provider, modelName, thinkingBudget, temperature, topP, topK, liteModelName } = await request.json();
     if (!provider || !modelName) {
       return jsonResponse2({ error: "Missing provider or modelName" }, 400);
     }
@@ -54707,6 +54836,7 @@ async function handleSaveModel(request, env) {
       env.page_content.put("admin_ai_provider", provider),
       env.page_content.put("admin_ai_model_name", modelName)
     ];
+    if (liteModelName !== void 0) puts.push(env.page_content.put("admin_ai_model_lite", String(liteModelName || "").trim()));
     if (thinkingBudget !== void 0 && thinkingBudget !== null && thinkingBudget !== "") {
       puts.push(env.page_content.put("admin_ai_thinking_budget", String(thinkingBudget)));
     } else {
@@ -57499,9 +57629,9 @@ async function handleLabExtract(request, env) {
         return jsonResponse2({ error: "PDF \u043D\u0435 \u0441\u0435 \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430 \u2014 \u043A\u0430\u0447\u0435\u0442\u0435 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430\u0442\u0430 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438\u0442\u0435." }, 415);
       }
       const config = await getAdminConfig(env);
-      response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === "google" && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2e3, config.visionThinkingBudget);
+      response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === "google" && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2e3, config.visionThinkingBudget ?? AI_TASKS.lab_extraction.thinking);
     } else {
-      response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2e3);
+      response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2e3, "lab_extraction");
     }
     const parsed = parseAIResponse(response) || {};
     const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || "")) ? parsed.date : null;
@@ -57548,7 +57678,7 @@ async function handleDeviceExtract(request, env) {
       return jsonResponse2({ error: "\u0421\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430 (\u0434\u043E 10 MB)." }, 400);
     }
     const prompt = await getCustomPrompt(env, "admin_device_extraction_prompt") || DEFAULT_DEVICE_EXTRACTION_PROMPT;
-    const response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2e3);
+    const response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2e3, "device_extraction");
     const parsed = parseAIResponse(response) || {};
     const isDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ""));
     const date = isDate(parsed.date) ? parsed.date : null;
@@ -57600,9 +57730,9 @@ async function handleDocumentAssess(request, env) {
       if (isPdf) {
         if (!env.GEMINI_API_KEY) return jsonResponse2({ error: "PDF \u043D\u0435 \u0441\u0435 \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430 \u2014 \u043A\u0430\u0447\u0435\u0442\u0435 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430\u0442\u0430." }, 415);
         const config = await getAdminConfig(env);
-        response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === "google" && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget);
+        response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === "google" && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget ?? AI_TASKS.document_image.thinking);
       } else {
-        response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2500);
+        response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2500, "document_image");
       }
     } else {
       response = await callAIModel(env, prompt, 2500, "document_assessment", null, data, null);

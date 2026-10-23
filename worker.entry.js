@@ -2717,6 +2717,9 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
   // Get admin config with caching (reduces KV reads from 2 to 0 when cached)
   const config = await getAdminConfig(env);
 
+  // Задачата определя дължината (виж AI_TASKS); таванът от админа за стъпката печели.
+  const task = aiTaskOf(stepName);
+  if (task?.maxTokens) maxTokens = task.maxTokens;
   // Per-step admin limit — never cap below an explicit caller budget (week-at-once Step 3 needs 16k)
   const stepKey = getStepKey(stepName);
   if (stepKey && config.stepTokenLimits?.[stepKey]) {
@@ -2741,9 +2744,15 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     : (config.planThinkingBudget !== undefined
       ? config.planThinkingBudget
       : PLAN_STEP_DEFAULT_THINKING_BUDGET);
-  const effectiveThinkingBudget = isPlanStep ? planThinkingBudget
+  const adminThinkingBudget = isPlanStep ? planThinkingBudget
     : isChatStep ? (config.chatThinkingBudget !== undefined ? config.chatThinkingBudget : config.thinkingBudget)
     : config.thinkingBudget;
+  // Бюджет от админа печели; иначе нивото на задачата.
+  const effectiveThinkingBudget = adminThinkingBudget !== undefined ? adminThinkingBudget : task?.thinking;
+  // Кратките служебни задачи — на евтиния модел (само Gemini; изричен модел за чата печели).
+  const geminiModel = task?.tier === 'lite' && config.liteModelName && !(isChatStep && config.chatModelName)
+    ? config.liteModelName
+    : modelName;
 
   const cfgTemp = isChatStep
     ? (config.chatTemperature !== undefined ? config.chatTemperature : config.temperature)
@@ -2769,6 +2778,26 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     ? (cfgTopP !== undefined ? cfgTopP : PLAN_STEP_DEFAULT_TOP_P)
     : cfgTopP;
 
+  // Gemini 3: Google препоръчва температура 1.0 (по-ниската води до зацикляне) —
+  // подразбиращите се стойности от кода не се пращат, само изрично зададените от админа.
+  const geminiTemp = isGemini3Plus(geminiModel) ? cfgTemp : effectiveTemp;
+  const geminiTopP = isGemini3Plus(geminiModel) ? cfgTopP : effectiveTopP;
+  const callGeminiForTask = async () => {
+    const run = (model) => callGemini(
+      env, enforcedPrompt, model, maxTokens, !skipJSONEnforcement,
+      effectiveThinkingBudget, geminiTemp, geminiTopP, cfgTopK,
+      planResponseSchema, planSystemInstruction
+    );
+    if (geminiModel === modelName) return run(modelName);
+    try {
+      return await run(geminiModel);
+    } catch (err) {
+      // Евтиният модел е недостъпен (сменено име, регион) — задачата не пада.
+      console.warn(`[AI] ${stepName}: ${geminiModel} failed (${err.message}) — falling back to ${modelName}`);
+      return run(modelName);
+    }
+  };
+
   const planResponseSchema = !skipJSONEnforcement ? getPlanStepResponseSchema(stepName) : null;
   const planSystemInstruction = isPlanStep
     ? getPlanSystemInstruction(stepKey)
@@ -2781,7 +2810,8 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
     estimatedInputTokens: estimatedInputTokens,
     maxTokens: maxTokens,
     provider: preferredProvider,
-    modelName: modelName,
+    modelName: preferredProvider === 'google' ? geminiModel : modelName,
+    thinking: effectiveThinkingBudget ?? null,
     sessionId: sessionId,
     userData: userData,
     calculatedData: calculatedData,
@@ -2813,11 +2843,7 @@ async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', 
       response = await callClaude(env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement, effectiveTemp, effectiveTopP, cfgTopK);
       success = true;
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGemini(
-        env, enforcedPrompt, modelName, maxTokens, !skipJSONEnforcement,
-        effectiveThinkingBudget, effectiveTemp, effectiveTopP, cfgTopK,
-        planResponseSchema, planSystemInstruction
-      );
+      response = await callGeminiForTask();
       success = true;
     } else {
       // Fallback hierarchy if preferred not available
@@ -5125,6 +5151,9 @@ const ADMIN_ASSISTANT_CACHE_TTL = '3600s';
 const ADMIN_ASSISTANT_SESSION_TTL = 3600;
 const ADMIN_ASSISTANT_SESSION_PREFIX = 'admin_assistant_session:';
 const DEFAULT_GEMINI_PLAN_MODEL = 'gemini-3.6-flash';
+// Евтиният модел за кратки служебни задачи (около 3 пъти по-евтин от 3.6 Flash).
+// KV admin_ai_model_lite го сменя; „off“ връща тези задачи на основния модел.
+const DEFAULT_GEMINI_LITE_MODEL = 'gemini-3.5-flash-lite';
 const ADMIN_ASSISTANT_DEFAULT_MODEL = DEFAULT_GEMINI_PLAN_MODEL;
 
 const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си NutriPlan AI асистент за администратор-нутриционист.
@@ -8468,6 +8497,8 @@ async function getAdminConfig(env) {
     // Reasoning budget for plan steps; reserved on top of maxOutputTokens.
     planThinkingBudget: undefined,
     visionThinkingBudget: undefined,
+    // Евтиният модел за кратките служебни задачи (AI_TASKS tier 'lite'); null — основният.
+    liteModelName: DEFAULT_GEMINI_LITE_MODEL,
     stepTokenLimits: {},
     // Generation sampling parameters: undefined = use per-function defaults
     temperature: undefined,
@@ -8501,7 +8532,8 @@ async function getAdminConfig(env) {
       savedChatThinkingBudget,
       savedChatTemperature,
       savedChatTopP,
-      savedChatTopK
+      savedChatTopK,
+      savedLiteModelName
     ] = await Promise.all([
       env.page_content.get('admin_ai_provider'),
       env.page_content.get('admin_ai_model_name'),
@@ -8519,7 +8551,8 @@ async function getAdminConfig(env) {
       env.page_content.get('admin_chat_ai_thinking_budget'),
       env.page_content.get('admin_chat_ai_temperature'),
       env.page_content.get('admin_chat_ai_top_p'),
-      env.page_content.get('admin_chat_ai_top_k')
+      env.page_content.get('admin_chat_ai_top_k'),
+      env.page_content.get('admin_ai_model_lite')
     ]);
 
     const provider = trimKv(savedProvider);
@@ -8538,6 +8571,8 @@ async function getAdminConfig(env) {
     const visionModelName = trimKv(savedVisionModelName);
     if (visionProvider) config.visionProvider = visionProvider;
     if (visionModelName) config.visionModelName = visionModelName;
+    const liteModelName = trimKv(savedLiteModelName);
+    if (liteModelName) config.liteModelName = /^(off|none|0)$/i.test(liteModelName) ? null : liteModelName;
     config.thinkingBudget = parseThinkingBudget(savedThinkingBudget);
     config.visionThinkingBudget = parseThinkingBudget(savedVisionThinkingBudget);
     config.planThinkingBudget = parseThinkingBudget(savedPlanThinkingBudget);
@@ -8978,9 +9013,91 @@ function isFlashWithoutThinking(modelName) {
   return /gemini-(2\.5|3(\.\d+)?)-flash/i.test(String(modelName || '')) && !/pro/i.test(String(modelName || ''));
 }
 
+/**
+ * AI задачите: модел, мислене и дължина на отговора според ролята — най-евтиното,
+ * което върши работата добре.
+ *  tier: 'main' — моделът от админа (gemini-3.6-flash); 'lite' — DEFAULT_GEMINI_LITE_MODEL.
+ *  thinking: ниво на мислене (Gemini 3: thinkingLevel). Изричен бюджет от админа
+ *    (admin_*_thinking_budget) печели над нивото.
+ *  maxTokens: таванът на отговора (без мисленето — то се добавя отгоре).
+ * Клинична преценка (медицински документи) мисли повече; разговор и текстове към
+ * клиента — малко (трябва да спазват ограниченията); преписване и разпознаване — минимално.
+ */
+const AI_TASKS = {
+  chat: { tier: 'main', thinking: 'low', maxTokens: 1000 },
+  plan_voice: { tier: 'main', thinking: 'low' },
+  plan_voice_repair: { tier: 'lite', thinking: 'minimal' },
+  intake_hints: { tier: 'main', thinking: 'low' },
+  menu_review: { tier: 'main', thinking: 'low' },
+  feedback_hints: { tier: 'lite', thinking: 'low' },
+  health_digest: { tier: 'lite', thinking: 'minimal' },
+  ai_validation: { tier: 'lite', thinking: 'low', maxTokens: 1200 },
+  document_assessment: { tier: 'main', thinking: 'medium' },
+  emoeat_analysis: { tier: 'main', thinking: 'low' },
+  // Снимки и PDF (моделът за зрение от админа)
+  food_photo: { thinking: 'minimal' },
+  menu_photo: { thinking: 'minimal' },
+  device_extraction: { thinking: 'minimal' },
+  lab_extraction: { thinking: 'low' },
+  document_image: { thinking: 'medium' },
+};
+
+function aiTaskOf(stepName) {
+  const name = String(stepName || '');
+  if (name.startsWith('chat')) return AI_TASKS.chat;
+  return AI_TASKS[name] || null;
+}
+
+function isGemini3Plus(modelName) {
+  return /gemini-(?:[3-9]|\d{2,})(?:[.\-]|$)/i.test(String(modelName || ''));
+}
+
+// Колко токена се оставят отгоре за мисленето (плаща се само изразходваното).
+const THINKING_RESERVE = { minimal: 512, low: 2048, medium: 6144, high: 12288 };
+// Gemini 2.5 няма нива — същото като бюджет (Pro не може без мислене: минимум 128).
+const THINKING_LEVEL_BUDGET = { minimal: 0, low: 1024, medium: 4096, high: 8192 };
+
+/**
+ * thinkingConfig за модела: ниво (низ) или бюджет (число, от админа); undefined —
+ * без мислене, доколкото моделът позволява (Flash), както досега.
+ * @param {{ legacy?: boolean }} [opts] legacy — Gemini 3 с бюджет вместо ниво (резервен опит)
+ * @returns {{ thinkingConfig: object|null, reserve: number }}
+ */
+function geminiThinking(modelName, thinking, opts = {}) {
+  const pro = /pro/i.test(String(modelName || ''));
+  if (typeof thinking === 'number') {
+    return { thinkingConfig: { thinkingBudget: thinking }, reserve: thinking > 0 ? thinking : 0 };
+  }
+  let level = typeof thinking === 'string' && THINKING_RESERVE[thinking] != null ? thinking : null;
+  if (!level) {
+    if (!isFlashWithoutThinking(modelName) && !/flash-lite/i.test(String(modelName || ''))) return { thinkingConfig: null, reserve: 0 };
+    level = 'minimal';
+  }
+  // Pro моделите нямат „minimal“.
+  if (pro && level === 'minimal') level = 'low';
+  if (isGemini3Plus(modelName) && !opts.legacy) {
+    return { thinkingConfig: { thinkingLevel: level }, reserve: THINKING_RESERVE[level] };
+  }
+  const budget = pro ? Math.max(128, THINKING_LEVEL_BUDGET[level]) : THINKING_LEVEL_BUDGET[level];
+  return { thinkingConfig: { thinkingBudget: budget }, reserve: budget };
+}
+
 async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined, responseSchema = null, systemInstruction = null) {
+  // thinkingBudget: число (бюджет от админа) или ниво ('minimal'|'low'|'medium'|'high').
+  // Ако API-то откаже нивото (400), втори опит със същото като бюджет.
   try {
-    return await retryWithBackoff(async () => {
+    return await callGeminiOnce(false).catch((error) => {
+      if (!error.thinkingLevelRejected) throw error;
+      console.warn(`[Gemini] ${modelName}: thinkingLevel rejected — retrying with thinkingBudget`);
+      return callGeminiOnce(true);
+    });
+  } catch (error) {
+    console.error('Gemini API call failed:', error);
+    throw new Error(`Gemini API failed: ${error.message}`);
+  }
+
+  function callGeminiOnce(legacyThinking) {
+    return retryWithBackoff(async () => {
       const requestBody = {
         contents: [{ parts: [{ text: prompt }] }]
       };
@@ -8995,24 +9112,17 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
       // Gemini counts reasoning tokens against maxOutputTokens, so a budget set
       // alongside the answer budget silently truncates the answer. Reserve it
       // on top instead — that, not "thinking is dangerous", was the real issue.
-      const reservedThinking = thinkingBudget > 0 ? thinkingBudget : 0;
+      const thinking = geminiThinking(modelName, thinkingBudget, { legacy: legacyThinking });
       if (maxTokens) {
-        generationConfig.maxOutputTokens = maxTokens + reservedThinking;
+        generationConfig.maxOutputTokens = maxTokens + thinking.reserve;
       }
       // Apply sampling parameters if specified
       if (temperature !== undefined) generationConfig.temperature = temperature;
       if (topP !== undefined) generationConfig.topP = topP;
       if (topK !== undefined) generationConfig.topK = topK;
-      // Thinking configuration for models that support it (e.g. Gemini 2.5 Flash/Pro).
-      // thinkingBudget === undefined → use hardcoded default (disable for 2.5-flash to
-      //   prevent spurious MAX_TOKENS errors from internal reasoning exhausting the budget).
-      // thinkingBudget === 0         → disable thinking explicitly.
-      // thinkingBudget > 0           → allow thinking up to that many tokens.
-      if (thinkingBudget !== undefined) {
-        generationConfig.thinkingConfig = { thinkingBudget };
-      } else if (isFlashWithoutThinking(modelName)) {
-        generationConfig.thinkingConfig = { thinkingBudget: 0 };
-      }
+      // Мисленето (виж geminiThinking): ниво за Gemini 3, бюджет за 2.5 или от админа;
+      // без зададено — минимално за Flash.
+      if (thinking.thinkingConfig) generationConfig.thinkingConfig = thinking.thinkingConfig;
       // Enforce JSON-only output at the API level to prevent markdown-wrapped responses
       if (jsonMode) {
         generationConfig.responseMimeType = 'application/json';
@@ -9034,6 +9144,9 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
       );
 
       if (!response.ok) {
+        if (response.status === 400 && thinking.thinkingConfig?.thinkingLevel && !legacyThinking) {
+          throw Object.assign(new Error(`Gemini API error: 400 ${response.statusText}`), { thinkingLevelRejected: true });
+        }
         throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
       }
 
@@ -9076,9 +9189,6 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
       
       throw new Error('Невалиден формат на отговор от Gemini API');
     });
-  } catch (error) {
-    console.error('Gemini API call failed:', error);
-    throw new Error(`Gemini API failed: ${error.message}`);
   }
 }
 
@@ -9093,8 +9203,11 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
  * @param {number} maxTokens - Max tokens for the response
  * @returns {Promise<string>} AI response text
  */
-async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, maxTokens = 2000) {
+async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, maxTokens = 2000, taskName = null) {
   const config = await getAdminConfig(env);
+  // Мисленето: бюджет от админа, иначе нивото на задачата (снимка на храна — минимално,
+  // медицински документ — средно).
+  const visionThinking = config.visionThinkingBudget !== undefined ? config.visionThinkingBudget : AI_TASKS[taskName]?.thinking;
 
   // Use vision-specific provider/model if configured, otherwise fall back to main provider
   const preferredProvider = config.visionProvider || config.provider;
@@ -9118,13 +9231,13 @@ async function callAIModelWithVision(env, textPrompt, base64Image, mimeType, max
     } else if (preferredProvider === 'anthropic' && env.ANTHROPIC_API_KEY) {
       response = await callClaudeVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens);
     } else if (preferredProvider === 'google' && env.GEMINI_API_KEY) {
-      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens, config.visionThinkingBudget);
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, visionModelName, maxTokens, visionThinking);
     } else if (env.OPENAI_API_KEY) {
       response = await callOpenAIVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.openai, maxTokens);
     } else if (env.ANTHROPIC_API_KEY) {
       response = await callClaudeVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.anthropic, maxTokens);
     } else if (env.GEMINI_API_KEY) {
-      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.google, maxTokens, config.visionThinkingBudget);
+      response = await callGeminiVision(env, textPrompt, base64Image, mimeType, defaultVisionModels.google, maxTokens, visionThinking);
     } else {
       throw new Error('No AI provider configured for vision analysis.');
     }
@@ -9217,46 +9330,53 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
  * Gemini Vision API call (gemini-2.5-flash with inlineData)
  */
 async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens, thinkingBudget = undefined) {
-  return await retryWithBackoff(async () => {
-    const generationConfig = {
-      maxOutputTokens: maxTokens,
-      temperature: 0.3
-    };
-    // Thinking configuration (see callGemini for full explanation).
-    if (thinkingBudget !== undefined) {
-      generationConfig.thinkingConfig = { thinkingBudget };
-    } else if (isFlashWithoutThinking(modelName)) {
-      generationConfig.thinkingConfig = { thinkingBudget: 0 };
-    }
-    const requestBody = {
-      contents: [{
-        parts: [
-          { text: textPrompt },
-          { inlineData: { mimeType: mimeType, data: base64Image } }
-        ]
-      }],
-      generationConfig
-    };
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Gemini Vision API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Gemini Vision returned invalid response');
-    }
-    return data.candidates[0].content.parts[0].text;
+  // thinkingBudget: бюджет от админа или ниво от задачата (виж geminiThinking и callGemini).
+  return callOnce(false).catch((error) => {
+    if (!error.thinkingLevelRejected) throw error;
+    return callOnce(true);
   });
+
+  function callOnce(legacyThinking) {
+    return retryWithBackoff(async () => {
+      const thinking = geminiThinking(modelName, thinkingBudget, { legacy: legacyThinking });
+      const generationConfig = {
+        maxOutputTokens: maxTokens + thinking.reserve,
+      };
+      // Gemini 3: Google препоръчва температура по подразбиране (1.0) — по-ниската води до зацикляне.
+      if (!isGemini3Plus(modelName)) generationConfig.temperature = 0.3;
+      if (thinking.thinkingConfig) generationConfig.thinkingConfig = thinking.thinkingConfig;
+      const requestBody = {
+        contents: [{
+          parts: [
+            { text: textPrompt },
+            { inlineData: { mimeType: mimeType, data: base64Image } }
+          ]
+        }],
+        generationConfig
+      };
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        }
+      );
+
+      if (!response.ok) {
+        throw Object.assign(new Error(`Gemini Vision API error: ${response.status} ${response.statusText}`), {
+          thinkingLevelRejected: response.status === 400 && !!thinking.thinkingConfig?.thinkingLevel && !legacyThinking,
+        });
+      }
+
+      const data = await response.json();
+      if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        throw new Error('Gemini Vision returned invalid response');
+      }
+      return data.candidates[0].content.parts[0].text;
+    });
+  }
 }
 
 /**
@@ -9370,7 +9490,7 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
     }
 
     // Call AI with vision
-    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 1500);
+    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 1500, 'food_photo');
 
     // Parse the JSON response
     let analysisResult;
@@ -9529,7 +9649,7 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
 ВАЖНО: Ако менюто не се чете ясно, постави suitabilityScore: 0 и обясни в reasoning. Отговори САМО с JSON.`;
     }
 
-    const aiResponse = await callAIModelWithVision(env, menuPrompt, base64Data, effectiveMimeType, 1200);
+    const aiResponse = await callAIModelWithVision(env, menuPrompt, base64Data, effectiveMimeType, 1200, 'menu_photo');
 
     let menuResult;
     try {
@@ -9685,7 +9805,7 @@ async function handleAnalyzeKidsFoodImage(request, env) {
 - Отговори САМО с JSON, без допълнителен текст`;
 
     // Call AI with vision
-    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 2000);
+    const aiResponse = await callAIModelWithVision(env, analysisPrompt, base64Data, effectiveMimeType, 2000, 'food_photo');
 
     // Parse the JSON response
     let analysisResult;
@@ -10260,7 +10380,8 @@ async function saveLogsToGitHub(env, structuredPlan) {
         topP:          config.topP         ?? null,
         topK:          config.topK         ?? null,
         thinkingBudget: config.thinkingBudget ?? null,
-        stepTokenLimits: config.stepTokenLimits
+        stepTokenLimits: config.stepTokenLimits,
+        liteModelName: config.liteModelName
       },
       chat: {
         provider:      config.chatProvider,
@@ -10533,7 +10654,7 @@ async function handleGetDefaultPrompt(request, env) {
  */
 async function handleSaveModel(request, env) {
   try {
-    const { provider, modelName, thinkingBudget, temperature, topP, topK } = await request.json();
+    const { provider, modelName, thinkingBudget, temperature, topP, topK, liteModelName } = await request.json();
     
     if (!provider || !modelName) {
       return jsonResponse({ error: 'Missing provider or modelName' }, 400);
@@ -10551,6 +10672,8 @@ async function handleSaveModel(request, env) {
       env.page_content.put('admin_ai_provider', provider),
       env.page_content.put('admin_ai_model_name', modelName)
     ];
+    // По желание: евтиният модел за служебните задачи ('' — по подразбиране, 'off' — основният).
+    if (liteModelName !== undefined) puts.push(env.page_content.put('admin_ai_model_lite', String(liteModelName || '').trim()));
     // thinkingBudget: null/undefined → clear, number → store as string
     if (thinkingBudget !== undefined && thinkingBudget !== null && thinkingBudget !== '') {
       puts.push(env.page_content.put('admin_ai_thinking_budget', String(thinkingBudget)));
@@ -14308,9 +14431,9 @@ async function handleLabExtract(request, env) {
         return jsonResponse({ error: 'PDF не се поддържа — качете снимка на страницата с резултатите.' }, 415);
       }
       const config = await getAdminConfig(env);
-      response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2000, config.visionThinkingBudget);
+      response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2000, config.visionThinkingBudget ?? AI_TASKS.lab_extraction.thinking);
     } else {
-      response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2000);
+      response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2000, 'lab_extraction');
     }
     const parsed = parseAIResponse(response) || {};
     const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || '')) ? parsed.date : null;
@@ -14369,7 +14492,7 @@ async function handleDeviceExtract(request, env) {
       return jsonResponse({ error: 'Снимката е твърде голяма (до 10 MB).' }, 400);
     }
     const prompt = (await getCustomPrompt(env, 'admin_device_extraction_prompt')) || DEFAULT_DEVICE_EXTRACTION_PROMPT;
-    const response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2000);
+    const response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2000, 'device_extraction');
     const parsed = parseAIResponse(response) || {};
     const isDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ''));
     const date = isDate(parsed.date) ? parsed.date : null;
@@ -14435,9 +14558,9 @@ async function handleDocumentAssess(request, env) {
       if (isPdf) {
         if (!env.GEMINI_API_KEY) return jsonResponse({ error: 'PDF не се поддържа — качете снимка на страницата.' }, 415);
         const config = await getAdminConfig(env);
-        response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget);
+        response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget ?? AI_TASKS.document_image.thinking);
       } else {
-        response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2500);
+        response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2500, 'document_image');
       }
     } else {
       response = await callAIModel(env, prompt, 2500, 'document_assessment', null, data, null);

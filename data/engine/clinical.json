@@ -350,6 +350,38 @@
       "prefer": [
         "low_gi"
       ]
+    },
+    "OB": {
+      "label": "Затлъстяване (ИТМ ≥ 30)",
+      "basis": "EASO 2019 и Obesity Canada 2020 (Medical Nutrition Therapy): нисък гликемичен товар, фибри и белтък във всяко хранене; рафинираните скорбяли (бял ориз, бял хляб, картофи) — рядко и в малка порция, винаги със зеленчуци и белтък",
+      "distribution": "even_carbs",
+      "limitFlags": {
+        "high_gi": 2,
+        "high_gi_fruit": 3
+      },
+      "prefer": [
+        "low_gi",
+        "whole_grain",
+        "legume"
+      ]
+    },
+    "OBS": {
+      "label": "Затлъстяване II–III степен (ИТМ ≥ 35)",
+      "basis": "EASO 2019, Obesity Canada 2020, ADA 2025 (затлъстяване с висок кардиометаболитен риск): без храни с висок гликемичен индекс и без добавена захар; въглехидратите — пълнозърнести, бобови и зеленчуци, разпределени равномерно",
+      "distribution": "even_carbs",
+      "excludeFlags": [
+        "high_gi"
+      ],
+      "limitFlags": {
+        "high_gi_fruit": 2
+      },
+      "prefer": [
+        "low_gi",
+        "whole_grain",
+        "legume"
+      ],
+      "noSweets": true,
+      "fruitWithProtein": true
     }
   },
   "protocols": {

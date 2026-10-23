@@ -6,7 +6,7 @@
 
 import { dietLabelOf, encodeProfileCode, libraryDietProfileOf, GOALS } from '../profile-code.js';
 import { waterNeedLiters } from '../analysis-deterministic.js';
-import { GROUPS } from './knowledge.js';
+import { GROUPS, CONDITIONS, PROTOCOLS } from './knowledge.js';
 import { buildFoodGuide } from './food-guide.js';
 import { weeklySchemeFromPlan, ENGINE_ID } from './plan-shape.js';
 
@@ -73,8 +73,28 @@ function recommendationsOf(prescription, stats, policy) {
   return list.slice(0, 7);
 }
 
+/**
+ * Клиничните изключвания по флаг. Отделни думи, а не една фраза: по този списък
+ * се проверяват и AI текстовете на плана (ai-voice.js търси подниз), за да не
+ * препоръчат картофи или бял ориз при инсулинова резистентност или затлъстяване.
+ */
+const FLAG_AVOID = {
+  high_gi: ['бял ориз', 'бял хляб', 'картофи'],
+};
+
+function clinicalAvoid(profile) {
+  const codes = [...(profile.clinical || [])];
+  const protocol = profile.protocol && PROTOCOLS[profile.protocol];
+  if (protocol?.use) codes.push(...protocol.use);
+  const flags = new Set();
+  for (const code of codes) for (const f of CONDITIONS[code]?.excludeFlags || []) flags.add(f);
+  if (protocol && !protocol.use) for (const f of protocol.excludeFlags || []) flags.add(f);
+  return [...flags].flatMap(f => FLAG_AVOID[f] || []);
+}
+
 function avoidOf(profile, policy, blockedTerms) {
   const list = [...(STYLE_AVOID[policy.style] || STYLE_AVOID.balanced)];
+  if (policy.style !== 'keto') list.push(...clinicalAvoid(profile));
   for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list.push(EXCLUSION_AVOID[code]);
   if (policy.noSweets && !list.some(x => /захар/.test(x))) list.push('добавена захар и мед');
   for (const term of blockedTerms || []) {
