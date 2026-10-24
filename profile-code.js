@@ -688,6 +688,10 @@ export function compileProfile(userData = {}, overrides = {}) {
     lactating: repro.lactating,
     sportDays: sport.days,
     behaviors: [...behaviors],
+    // Обсъждането между алгоритъма и AI (nutrition-engine/council.js): прочетените от AI
+    // цели и решението, валидно докато предложението на алгоритъма е същото.
+    extraGoals: data._goalCouncil?.extraGoals || [],
+    council: data._goalCouncil?.decision || null,
   });
   const goal = goalModel.primary;
   unmapped.push(...GoalModel.readGoals(data.goal).unmapped);

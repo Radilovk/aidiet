@@ -85,6 +85,18 @@ import {
   profileBrief,
 } from './nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from './profile-code.js';
+import {
+  deliberate,
+  normalizeGoalOpinion,
+  reviewGoalOpinion,
+  normalizeWeeklyOpinion,
+  reviewWeeklyOpinion,
+  weeklyLimits,
+  councilSummary,
+  GOAL_SOFT_PCT,
+  WEEKLY_SOFT_KCAL,
+} from './nutrition-engine/council.js';
+import GoalModel from './goal-model.js';
 import { guardClientText } from './nutrition-engine/text-guard.js';
 import { mealSwapsOf, learnDishPreference } from './nutrition-engine/dish-learning.js';
 import { DISHES_BY_ID } from './nutrition-engine/knowledge.js';
@@ -2591,6 +2603,9 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
   // Посоката, с която е сметнат приемът — седмичният преглед разпознава по нея смяната на фазата.
   if (deficitData?.direction) analysis._goalDirection = deficitData.direction;
+  // Обсъждането на целта (алгоритъм + AI) — за специалиста и админ панела.
+  const gc = data?._goalCouncil;
+  if (gc?.verdict) analysis._goalCouncil = { verdict: gc.verdict, algorithm: gc.algorithm, concerns: gc.concerns || [], at: gc.at };
 
   enforceCalorieGuardrails(analysis, data, tdee);
   const intake = parseFinalCalories(analysis.Final_Calories);
@@ -6072,7 +6087,26 @@ function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history
     adaptationLevel: decision.calorieAdjust || decision.modifications.length ? 2 : 1,
     headline: message.headline,
     motivationMessage: message.message,
+    // За съвета (алгоритъм + AI): с какво е изчислено решението.
+    context: {
+      checkin,
+      kcal,
+      tdee,
+      floorKcal: weeklyFloorKcal(userData, tdee, profile.goal),
+      baseKcal: Number(plan?.analysis?._baseCalories) || kcal,
+      direction: profile.direction,
+      goalModel: profile.goalModel,
+    },
   };
+}
+
+/** Отговорите от прегледа с текста на въпроса — за AI. */
+function weeklyAnswersText(questions, answers) {
+  const byId = new Map((questions || []).map(q => [q.id, q.text]));
+  return (answers || [])
+    .filter(a => a && a.questionId && String(a.value ?? '').trim())
+    .map(a => `- ${byId.get(a.questionId) || a.questionId}: ${String(a.value).slice(0, 400)}${a.source === 'device' ? ' (от устройство)' : ''}`)
+    .join('\n');
 }
 
 async function savePendingWeeklyRelease(env, userId, clientId, release) {
@@ -6120,6 +6154,7 @@ function releasePendingWeeklyIfDue(profile) {
       waistCm: pending.monitoring?.waistCm ?? null,
       followed: pending.monitoring?.followed ?? null,
       calorieAdjust: pending.monitoring?.calorieAdjust ?? 0,
+      council: pending.monitoring?.council ?? null,
     });
     profile.weeklyAdaptHistory = hist.slice(-5);
   }
@@ -6231,6 +6266,16 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: 'weightTrendKgWeek', value: String(dc.weightTrendKgWeek), source: 'device' }];
     if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: 'recoveryLow', value: 'true', source: 'device' }];
     if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: 'leanLoss', value: 'true', source: 'device' }];
+    // Измереното от прегледа влиза в профила преди обсъждането на целта — посоката се
+    // преценява с днешното тегло и талия.
+    const answeredKg = Number(String(checkinAnswers.find(a => a.questionId === 'weightKg')?.value || '').replace(',', '.'));
+    if (answeredKg >= 30 && answeredKg <= 300) enrichedData.weight = String(answeredKg);
+    const answeredWaist = Number(String(checkinAnswers.find(a => a.questionId === 'waistCm')?.value || '').replace(',', '.'));
+    if (answeredWaist >= 40 && answeredWaist <= 200) enrichedData._lastWaistCm = answeredWaist;
+    const answersText = weeklyAnswersText(payload.questions, checkinAnswers);
+    // Целта в контекста на седмицата: алгоритъмът предлага, AI преглежда, алгоритъмът проверява.
+    const priorCouncil = enrichedData._goalCouncil || null;
+    const goalCouncil = await conveneGoalCouncil(env, enrichedData, { history: weeklyAdaptHistory, answersText });
     // Нови данни, които менят разхода (активност по крачките, сън, стрес, състояние от
     // изследване/документ — ниво ≥ 2): енергията се смята наново с тях, а натрупаните
     // седмични корекции се пазят върху новата основа. Иначе приемът би останал по
@@ -6258,6 +6303,17 @@ async function runWeeklyAdaptation(env, payload, jobId) {
         decision.changeSummary = [...decision.changeSummary, 'Взето е предвид вашето мнение'].slice(0, 4);
       }
     }
+    // Седмичната корекция: второ мнение от AI, проверено от алгоритъма (вето / възражение).
+    await reviewWeeklyDecisionWithCouncil(env, enrichedData, decision, {
+      ...decision.context,
+      answersText,
+      analytics,
+      history: weeklyAdaptHistory,
+    });
+    await noteCouncilForSpecialist(env, clientId, goalCouncil && goalCouncil !== priorCouncil
+      ? { point: 'goal', verdict: goalCouncil.verdict, concerns: goalCouncil.concerns, transcript: goalCouncil.transcript }
+      : null);
+    await noteCouncilForSpecialist(env, clientId, decision.council ? { point: 'weekly', ...decision.council } : null);
     enrichedData.planModifications = mergeWeeklyModifications(
       userData.planModifications || enrichedData.planModifications,
       decision.modifications,
@@ -6335,7 +6391,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       plan: newPlan,
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel,
-      monitoring: { weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence },
+      monitoring: { weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence, council: decision.council?.verdict || null },
     });
     await writeAdaptJob({
       status: 'completed',
@@ -6345,6 +6401,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       strategyChanges: { calorieAdjust: decision.calorieAdjust },
       changeSummary: decision.changeSummary,
       reasoning: decision.reasoning,
+      council: { goal: goalCouncil ? { verdict: goalCouncil.verdict, algorithm: goalCouncil.algorithm, concerns: goalCouncil.concerns, transcript: goalCouncil.transcript } : null, weekly: decision.council || null },
       caloriesBefore,
       caloriesAfter: parseFinalCalories(newPlan?.analysis?.Final_Calories),
       analytics: { avgScore: analytics.avgScore, adherence: analytics.adherence, daysRecorded: analytics.daysRecorded, junk7: analytics.junk7 },
@@ -8192,6 +8249,204 @@ async function applyIntakeHints(env, data) {
   else delete data._aiHints;
 }
 
+/* ─── Съвет: алгоритъм + AI (nutrition-engine/council.js) ───────────────── */
+
+/** AI_COUNCIL=0 изключва обсъждането (по подразбиране е включено, ако промптът е в KV). */
+function councilEnabled(env = {}) {
+  const v = env?.AI_COUNCIL;
+  return !(v === '0' || v === 'false' || v === false);
+}
+
+const GOAL_OPINION_SCHEMA = '{ "stance": "agree | adjust | object", "direction": "lose | recomp | gain | maintain", "intakePct": 0, "extraGoals": [], "lead": [], "argument": "", "concerns": [] }';
+const WEEKLY_OPINION_SCHEMA = '{ "stance": "agree | adjust | object", "calorieAdjust": 0, "addModifications": [], "removeModifications": [], "argument": "", "concerns": [] }';
+
+function goalProposalText(model) {
+  const names = model.codes.map(c => GoalModel.GOAL_NAMES[c] || c).join(', ');
+  const phases = model.phases.map(ph => `${ph.label}${ph.until ? ` (до ${ph.until.metric === 'weight' ? `${ph.until.value} кг` : `талия ${ph.until.value} см`})` : ''}`).join(' → ');
+  return [
+    `Посока: ${model.direction} — ${model.directionLabel}`,
+    `Прием: ${model.intakePct > 0 ? '+' : ''}${model.intakePct}% спрямо дневния разход`,
+    `Цели: ${names} (основна: ${GoalModel.GOAL_NAMES[model.primary] || model.primary})`,
+    `Водещи показатели: ${model.lead.join(', ')}`,
+    `Фази: ${phases}`,
+    `Мотиви: ${model.reasons.join('; ') || '—'}`,
+  ].join('\n');
+}
+
+function goalLimitsText(lim) {
+  return `прием между ${lim.minPct}% и ${lim.maxPct}%; разрешени посоки: ${lim.allowed.join(', ')}${lim.reasons.length ? `; ${lim.reasons.join('; ')}` : ''}`;
+}
+
+function bodyText(model, profile) {
+  const b = model.body;
+  const risk = (v) => (v == null ? 'не е измерено' : ['норма', 'повишено', 'високо'][v] || String(v));
+  return [
+    `ИТМ ${b.bmi ?? '?'}; излишък на мазнини (0–4): ${b.excess}`,
+    `талия: ${risk(b.waistRisk)}; % мазнини: ${risk(b.fatRisk)}`,
+    `възраст ${profile.age ?? '?'}${b.older ? ' (над 65)' : ''}; тренировки ${profile.activity.sportDays} дни седмично`,
+  ].join('\n');
+}
+
+function historyText(history) {
+  const rows = (history || []).slice(-5).map(h => `- цикъл ${h.cycleNumber ?? '?'}: тегло ${h.weightKg ?? '?'} кг (${h.weight || '—'}), талия ${h.waistCm ?? '—'}, спазен: ${h.followed == null ? '?' : h.followed ? 'да' : 'не'}, корекция ${h.calorieAdjust || 0} kcal`);
+  return rows.length ? rows.join('\n') : 'няма';
+}
+
+/** Профилът без решението на съвета — предложението на алгоритъма. */
+function compileWithoutCouncil(data, extraGoals = []) {
+  const { _goalCouncil, ...rest } = data || {};
+  return compileProfile(extraGoals.length ? { ...rest, _goalCouncil: { extraGoals } } : rest);
+}
+
+/**
+ * Посоката и силата на целта — обсъдени между алгоритъма и AI. Решението се пази в
+ * data._goalCouncil и важи, докато предложението на алгоритъма и контекстът са същите;
+ * всички синхронни сметки (калории, белтък, преглед) го четат през compileProfile.
+ * @param {{ history?: any[], answersText?: string }} [ctx]
+ */
+async function conveneGoalCouncil(env, data, ctx = {}) {
+  if (!councilEnabled(env) || !data) return null;
+  const prev = data._goalCouncil || null;
+  const current = compileWithoutCouncil(data, prev?.extraGoals || []);
+  const contextHash = textHash([
+    ...collectFreeText(data),
+    { field: 'goal', text: JSON.stringify([data.goal, data.goal_other, data.clinicalProtocol]) },
+    { field: 'clinical', text: current.clinical.join(',') },
+    { field: 'enrichment', text: String(data._enrichment?.essence?.at || data._enrichment?.reasons?.join('|') || '') },
+    { field: 'weekly', text: ctx.answersText || '' },
+  ]);
+  if (prev?.contextHash === contextHash && prev?.signature === current.goalModel.algorithm.signature) return prev;
+
+  const base = compileWithoutCouncil(data);
+  const vars = {
+    proposal: goalProposalText(base.goalModel),
+    profileSummary: profileBrief(base),
+    body: bodyText(base.goalModel, base),
+    goals: [`отметки: ${[].concat(data.goal || []).join(', ') || 'няма'}`, data.goal_other ? `друго: ${data.goal_other}` : '', data.clinicalProtocol ? `клинична карта: ${data.clinicalProtocol}` : ''].filter(Boolean).join('\n'),
+    freeText: freeTextBlock(collectFreeText(data)),
+    enrichment: profileContextText(data._enrichment) || 'няма',
+    history: [historyText(ctx.history), ctx.answersText ? `\nОТГОВОРИ ОТ ТОЗИ ПРЕГЛЕД:\n${ctx.answersText}` : ''].join(''),
+    hardLimits: goalLimitsText(base.goalModel.limits),
+    softPct: GOAL_SOFT_PCT,
+    goalCodes: Object.entries(GoalModel.GOAL_NAMES).map(([k, v]) => `${k} — ${v}`).join(', '),
+    leadMetrics: GoalModel.LEAD_METRICS.join(', '),
+  };
+  let extraGoals = [];
+  let model = base.goalModel;
+  const outcome = await deliberate({
+    ask: async () => normalizeGoalOpinion(await aiHelperJson(env, 'admin_goal_council_prompt', vars, data, 'goal_council')),
+    rebut: async (opinion, objections) => normalizeGoalOpinion(await aiHelperJson(env, 'admin_council_rebuttal_prompt', {
+      previous: JSON.stringify(opinion),
+      objections: objections.map(o => `- ${o}`).join('\n'),
+      hardLimits: vars.hardLimits,
+      schema: GOAL_OPINION_SCHEMA,
+      context: [vars.proposal, vars.profileSummary, vars.body, vars.goals, vars.freeText].join('\n\n'),
+    }, data, 'council_rebuttal')),
+    review: (opinion, round) => {
+      // Прочетените от AI цели влизат като отметки — проверява се спрямо преизчисленото предложение.
+      extraGoals = [...new Set([...extraGoals, ...(opinion?.extraGoals || [])])];
+      model = compileWithoutCouncil(data, extraGoals).goalModel;
+      return reviewGoalOpinion(model, opinion, round);
+    },
+  });
+  const { result, opinion, transcript } = outcome;
+  if (!opinion) return prev; // без AI — остава досегашното (или чистият алгоритъм)
+  const changed = result.verdict !== 'agree' || (opinion.lead || []).length;
+  const record = {
+    signature: model.algorithm.signature,
+    contextHash,
+    extraGoals,
+    decision: changed ? {
+      signature: model.algorithm.signature,
+      direction: result.direction,
+      intakePct: result.intakePct,
+      lead: opinion.lead || [],
+      summary: councilSummary(result, opinion),
+      verdict: result.verdict,
+    } : null,
+    verdict: result.verdict,
+    algorithm: { direction: model.algorithm.direction, intakePct: model.algorithm.intakePct },
+    concerns: opinion.concerns || [],
+    transcript: transcript.slice(-6),
+    at: new Date().toISOString(),
+  };
+  data._goalCouncil = record;
+  console.log(`[council] цел: ${result.verdict}; алгоритъм ${model.algorithm.direction} ${model.algorithm.intakePct}% → ${result.direction} ${result.intakePct}%${extraGoals.length ? `; цели от текста: ${extraGoals.join(',')}` : ''}`);
+  return record;
+}
+
+/**
+ * Седмичната корекция — обсъдена между алгоритъма и AI. Променя decision на място
+ * (калории, промени в менюто, съобщение) и записва хода на обсъждането в decision.council.
+ * @param {{ kcal: number, tdee: number, floorKcal: number, baseKcal: number, direction: string, checkin: object,
+ *   goalModel: object, answersText: string, analytics: object, history: any[] }} ctx
+ */
+async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
+  if (!councilEnabled(env)) return decision;
+  const lim = weeklyLimits(ctx);
+  const a = ctx.analytics || {};
+  const vars = {
+    goal: goalProposalText(ctx.goalModel),
+    proposal: [
+      `Корекция: ${decision.calorieAdjust > 0 ? '+' : ''}${decision.calorieAdjust} kcal на ден (сега ${ctx.kcal}, разход ${ctx.tdee}, минимум ${ctx.floorKcal})`,
+      `Промени в менюто: ${decision.modifications.join(', ') || 'няма'}`,
+      `Мотиви: ${decision.reasoning || '—'}`,
+    ].join('\n'),
+    algoDelta: decision.calorieAdjust,
+    answers: ctx.answersText || 'няма',
+    analytics: `спазване на храненията ${a.mealAdherence ?? '?'}% (${a.mealDays || 0} дни), средна оценка ${a.avgScore ?? '?'}, дни с отметки ${a.daysRecorded ?? '?'}, вредни храни ${a.junk7 ?? 0}`,
+    history: historyText(ctx.history),
+    enrichment: profileContextText(data._enrichment) || 'няма',
+    profileSummary: profileBrief(compileProfile(data)),
+    hardLimits: `корекция между ${lim.min} и ${lim.max} kcal${lim.reasons.length ? `; ${lim.reasons.join('; ')}` : ''}`,
+    softKcal: WEEKLY_SOFT_KCAL,
+    modificationCodes: Object.entries(PLAN_MODIFICATION_CODES).map(([k, v]) => `${k} (${v})`).join(', '),
+  };
+  const review = (opinion, round) => reviewWeeklyOpinion(decision, opinion, { ...ctx, adherence: decision.adherence }, round);
+  const { result, opinion, transcript } = await deliberate({
+    ask: async () => normalizeWeeklyOpinion(await aiHelperJson(env, 'admin_weekly_council_prompt', vars, data, 'weekly_council')),
+    rebut: async (op, objections) => normalizeWeeklyOpinion(await aiHelperJson(env, 'admin_council_rebuttal_prompt', {
+      previous: JSON.stringify(op),
+      objections: objections.map(o => `- ${o}`).join('\n'),
+      hardLimits: vars.hardLimits,
+      schema: WEEKLY_OPINION_SCHEMA,
+      context: [vars.proposal, vars.answers, vars.analytics, vars.history].join('\n\n'),
+    }, data, 'council_rebuttal')),
+    review,
+  });
+  if (!opinion) return decision;
+  decision.council = { verdict: result.verdict, concerns: opinion.concerns || [], transcript: transcript.slice(-6), algorithm: { calorieAdjust: decision.calorieAdjust, modifications: [...decision.modifications] } };
+  if (result.verdict === 'agree') return decision;
+  const delta = result.calorieAdjust;
+  decision.calorieAdjust = delta;
+  decision.kcal = Math.round(ctx.kcal + delta);
+  decision.modifications = result.modifications;
+  decision.changeSummary = [
+    ...(delta ? [`Калории: ${delta > 0 ? '+' : ''}${delta} kcal на ден`] : []),
+    ...decision.changeSummary.filter(c => !/^Калории:/.test(c)),
+  ].slice(0, 4);
+  decision.adaptationLevel = delta || decision.modifications.length ? 2 : 1;
+  const message = weeklyMessage(decision, { adherence: decision.adherence });
+  decision.headline = message.headline;
+  decision.motivationMessage = message.message;
+  decision.reasoning = `${decision.reasoning} ${councilSummary(result, opinion)}`.trim();
+  console.log(`[council] седмица: ${result.verdict}; ${decision.council.algorithm.calorieAdjust} → ${delta} kcal`);
+  return decision;
+}
+
+/** Обсъждането, което специалистът трябва да види: несъгласие или тревога от AI. */
+async function noteCouncilForSpecialist(env, clientId, entry) {
+  if (!clientId || !entry || (entry.verdict !== 'dissent' && !(entry.concerns || []).length)) return;
+  try {
+    const client = await kvGetJSON(env, `client:${clientId}`);
+    if (!client) return;
+    client.councilLog = [...(client.councilLog || []), { ...entry, at: new Date().toISOString() }].slice(-10);
+    await kvPutJSON(env, `client:${clientId}`, client, null);
+  } catch (e) {
+    console.warn('[council] картонът не е обновен:', e.message);
+  }
+}
+
 /** Прегледът на готовото меню от AI: замени на конкретни хранения, които алгоритъмът изпълнява. */
 async function reviewMenuWithAI(env, data, plan, rebuild) {
   const raw = await aiHelperJson(env, 'admin_menu_review_prompt', {
@@ -8220,6 +8475,8 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   const tokens = { input: 0, output: 0, total: 0 };
   try {
     await applyIntakeHints(env, data);
+    // Посоката и силата на целта: алгоритъмът предлага, AI преглежда, алгоритъмът проверява.
+    await conveneGoalCouncil(env, data);
     const analysis = await runStep1Analysis(env, data, sessionId, 'step1_analysis', null, tokens);
     if (typeof onAnalysisReady === 'function') {
       try {
@@ -9047,6 +9304,10 @@ const AI_TASKS = {
   intake_hints: { tier: 'main', thinking: 'low' },
   menu_review: { tier: 'main', thinking: 'low' },
   feedback_hints: { tier: 'lite', thinking: 'low' },
+  // Съветът (алгоритъм + AI): клинична преценка — мисли повече; отговорът на възражението — по-кратко.
+  goal_council: { tier: 'main', thinking: 'medium', maxTokens: 900 },
+  weekly_council: { tier: 'main', thinking: 'medium', maxTokens: 900 },
+  council_rebuttal: { tier: 'main', thinking: 'low', maxTokens: 700 },
   health_digest: { tier: 'lite', thinking: 'minimal' },
   ai_validation: { tier: 'lite', thinking: 'low', maxTokens: 1200 },
   document_assessment: { tier: 'main', thinking: 'medium' },

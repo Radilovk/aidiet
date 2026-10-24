@@ -294,10 +294,46 @@
     }
 
     /**
+     * Твърдите граници — клиничната рамка. Те са над целта, над алгоритъма и над AI:
+     * никое обсъждане не ги мести (вето).
+     * @returns {{ minPct: number, maxPct: number, allowed: string[], reasons: string[] }}
+     */
+    function hardLimits(f, b) {
+        var minPct = -25;
+        var maxPct = 15;
+        var allowed = ['lose', 'recomp', 'gain', 'maintain'];
+        var reasons = [];
+        if (f.pregnant) { minPct = 0; allowed = ['maintain', 'gain']; reasons.push('бременност — без дефицит'); }
+        if (b.under) { minPct = Math.max(minPct, 0); allowed = allowed.filter(function (d) { return d !== 'lose'; }); reasons.push('ИТМ под 18,5 — без дефицит'); }
+        if (f.lactating) { minPct = Math.max(minPct, -10); reasons.push('кърмене — най-много мек дефицит'); }
+        if (has(f.behaviors, 'CMP')) { minPct = Math.max(minPct, -10); reasons.push('компенсаторно поведение (гладуване/хапчета) — без голям дефицит'); }
+        if (b.excess >= 3) { maxPct = Math.min(maxPct, 0); allowed = allowed.filter(function (d) { return d !== 'gain'; }); reasons.push('затлъстяване — без калориен излишък'); }
+        return { minPct: minPct, maxPct: maxPct, allowed: allowed, reasons: reasons };
+    }
+
+    /** Посоката трябва да отговаря на приема: дефицит не е „покачване“ и обратно. */
+    function consistentDirection(dir, pct, fallback) {
+        if (dir === 'lose' && pct >= 0) return pct > 0 ? 'gain' : 'maintain';
+        if (dir === 'gain' && pct <= 0) return pct < 0 ? (fallback === 'lose' ? 'lose' : 'recomp') : 'maintain';
+        if (dir === 'maintain' && pct <= -8) return 'lose';
+        if (dir === 'maintain' && pct >= 5) return 'gain';
+        return dir;
+    }
+
+    /** Подписът на предложението на алгоритъма — решението на съвета важи само за него. */
+    function signatureOf(dir, pct, codes) {
+        return dir + '|' + pct + '|' + codes.slice().sort().join(',');
+    }
+
+    /**
      * @param {{ goal?: any, goalOther?: string, sex?: 'M'|'F'|'X', age?: number|null, heightCm?: number|null,
      *   weightKg?: number|null, lossKg?: number|null, waistCm?: number|null, bodyFatPct?: number|null,
      *   clinical?: string[], protocol?: string|null, protocolGoal?: string|null, pregnant?: boolean, lactating?: boolean,
-     *   sportDays?: number, behaviors?: string[] }} f
+     *   sportDays?: number, behaviors?: string[], extraGoals?: string[],
+     *   council?: { signature: string, direction: string, intakePct: number, lead?: string[], summary?: string, verdict?: string }|null }} f
+     *   extraGoals — цели, които AI е прочел в свободния текст и документите (влизат като отметки);
+     *   council — решението от обсъждането между алгоритъма и AI (council.js), валидно
+     *   само докато предложението на алгоритъма е същото (подписът съвпада).
      */
     function resolve(f) {
         f = f || {};
@@ -306,6 +342,8 @@
         // Клиничната карта носи своя цел — тя е винаги сред целите.
         var protocolGoal = f.protocolGoal || (f.protocol && PROTOCOL_GOALS[f.protocol]) || null;
         if (protocolGoal) readGoals(protocolGoal).codes.forEach(function (c) { if (codes.indexOf(c) === -1) codes.push(c); });
+        (f.extraGoals || []).forEach(function (c) { if (GOAL_NAMES[c] && codes.indexOf(c) === -1) codes.push(c); });
+        if (codes.length > 1) codes = codes.filter(function (c) { return c !== 'MAINT'; });
         if (!codes.length) codes = ['MAINT'];
         var b = bodyContext(f);
         var per = codes.map(function (c) { var r = forGoal(c, b, f); r.code = c; return r; });
@@ -319,12 +357,10 @@
         var pct = neg.length && pos.length ? Math.round((minNeg + maxPos) / 2) : (minNeg || maxPos);
 
         // Клиничната рамка е над целта.
+        var limits = hardLimits(f, b);
         var frame = [];
-        if (f.pregnant) { pct = Math.max(pct, 0); frame.push('бременност — без дефицит'); }
-        if (b.under) { pct = Math.max(pct, 0); }
-        if (f.lactating && pct < -10) { pct = -10; frame.push('кърмене — най-много мек дефицит'); }
-        if (has(f.behaviors, 'CMP') && pct < -10) { pct = -10; frame.push('компенсаторно поведение (гладуване/хапчета) — без голям дефицит'); }
-        pct = Math.max(-25, Math.min(15, pct));
+        if (pct < limits.minPct || pct > limits.maxPct) frame = limits.reasons.slice();
+        pct = Math.max(limits.minPct, Math.min(limits.maxPct, pct));
 
         // Целите са съгласни за посоката — тя е; иначе по съчетания прием.
         var anyRecomp = per.some(function (r) { return r.dir === 'recomp'; });
@@ -335,6 +371,17 @@
         // Рамката може да е махнала дефицита/излишъка (бременност, поднормено тегло).
         if (dir === 'lose' && pct >= 0) dir = 'maintain';
         if (dir === 'gain' && pct <= 0) dir = 'maintain';
+        if (limits.allowed.indexOf(dir) === -1) dir = limits.allowed.indexOf('recomp') !== -1 ? 'recomp' : 'maintain';
+        var algorithm = { direction: dir, intakePct: pct, signature: signatureOf(dir, pct, codes) };
+
+        // Решението на съвета (алгоритъм + AI): важи, докато предложението е същото.
+        // Твърдите граници се проверяват наново — и прочетено от записа, решението не ги мести.
+        var council = f.council && f.council.signature === algorithm.signature ? f.council : null;
+        if (council) {
+            pct = Math.max(limits.minPct, Math.min(limits.maxPct, Math.round(Number(council.intakePct) || 0)));
+            var cdir = limits.allowed.indexOf(council.direction) !== -1 ? council.direction : dir;
+            dir = consistentDirection(cdir, pct, dir);
+        }
 
         // Основната цел — тази, чиято посока води; при равенство — по реда на отметките.
         var primary = per.slice().sort(function (a, c) {
@@ -349,13 +396,14 @@
         var push = function (m) { if (m && lead.indexOf(m) === -1) lead.push(m); };
         if ((f.clinical || []).some(function (c) { return c === 'IR' || c === 'T2D'; })) push('glucose');
         if ((f.clinical || []).some(function (c) { return c === 'HTN' || c === 'CVD'; })) push('bp');
+        if (council && council.lead) council.lead.filter(function (m) { return LEAD_ORDER_FALLBACK.indexOf(m) !== -1; }).forEach(push);
         primary.lead.forEach(push);
         per.forEach(function (r) { r.lead.forEach(push); });
         if (dir === 'recomp' || dir === 'gain') push('workouts');
         LEAD_ORDER_FALLBACK.forEach(function (m) { if (lead.length < 4) push(m); });
 
         var phases = roadmap(dir, codes, f, b);
-        var reasons = [primary.why].concat(per.filter(function (r) { return r !== primary && r.why && r.dir !== primary.dir; }).map(function (r) { return GOAL_NAMES[r.code] + ': ' + r.why; })).concat(frame).filter(Boolean);
+        var reasons = (council && council.summary ? [council.summary] : []).concat([primary.why]).concat(per.filter(function (r) { return r !== primary && r.why && r.dir !== primary.dir; }).map(function (r) { return GOAL_NAMES[r.code] + ': ' + r.why; })).concat(frame).filter(Boolean);
 
         return {
             codes: codes,
@@ -368,7 +416,10 @@
             lead: lead,
             phases: phases,
             reasons: reasons,
-            perGoal: per.map(function (r) { return { code: r.code, dir: r.dir, pct: r.pct }; })
+            perGoal: per.map(function (r) { return { code: r.code, dir: r.dir, pct: r.pct }; }),
+            limits: limits,
+            algorithm: algorithm,
+            council: council ? { verdict: council.verdict || 'accepted', summary: council.summary || '' } : null
         };
     }
 
@@ -376,6 +427,9 @@
         resolve: resolve,
         readGoals: readGoals,
         bodyContext: bodyContext,
+        hardLimits: hardLimits,
+        consistentDirection: consistentDirection,
+        LEAD_METRICS: LEAD_ORDER_FALLBACK,
         GOAL_NAMES: GOAL_NAMES,
         PROTOCOL_GOALS: PROTOCOL_GOALS,
         DIRECTION_LABEL: DIRECTION_LABEL

@@ -205,10 +205,10 @@ var require_goal_model = __commonJS({
           else unmapped.push(String(raw).trim());
         });
         var fromText = [];
-        var text = norm2([goalOther].concat(unmapped).join(" "));
-        if (text) {
+        var text2 = norm2([goalOther].concat(unmapped).join(" "));
+        if (text2) {
           TEXT_RULES.forEach(function(rule) {
-            if (rule[0].test(text) && codes.indexOf(rule[1]) === -1 && fromText.indexOf(rule[1]) === -1) fromText.push(rule[1]);
+            if (rule[0].test(text2) && codes.indexOf(rule[1]) === -1 && fromText.indexOf(rule[1]) === -1) fromText.push(rule[1]);
           });
         }
         fromText.forEach(add);
@@ -371,6 +371,50 @@ var require_goal_model = __commonJS({
         }
         return phases;
       }
+      function hardLimits(f, b) {
+        var minPct = -25;
+        var maxPct = 15;
+        var allowed = ["lose", "recomp", "gain", "maintain"];
+        var reasons = [];
+        if (f.pregnant) {
+          minPct = 0;
+          allowed = ["maintain", "gain"];
+          reasons.push("\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442 \u2014 \u0431\u0435\u0437 \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
+        }
+        if (b.under) {
+          minPct = Math.max(minPct, 0);
+          allowed = allowed.filter(function(d) {
+            return d !== "lose";
+          });
+          reasons.push("\u0418\u0422\u041C \u043F\u043E\u0434 18,5 \u2014 \u0431\u0435\u0437 \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
+        }
+        if (f.lactating) {
+          minPct = Math.max(minPct, -10);
+          reasons.push("\u043A\u044A\u0440\u043C\u0435\u043D\u0435 \u2014 \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u043C\u0435\u043A \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
+        }
+        if (has3(f.behaviors, "CMP")) {
+          minPct = Math.max(minPct, -10);
+          reasons.push("\u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0430\u0442\u043E\u0440\u043D\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435 (\u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435/\u0445\u0430\u043F\u0447\u0435\u0442\u0430) \u2014 \u0431\u0435\u0437 \u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
+        }
+        if (b.excess >= 3) {
+          maxPct = Math.min(maxPct, 0);
+          allowed = allowed.filter(function(d) {
+            return d !== "gain";
+          });
+          reasons.push("\u0437\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 \u2014 \u0431\u0435\u0437 \u043A\u0430\u043B\u043E\u0440\u0438\u0435\u043D \u0438\u0437\u043B\u0438\u0448\u044A\u043A");
+        }
+        return { minPct, maxPct, allowed, reasons };
+      }
+      function consistentDirection(dir, pct, fallback) {
+        if (dir === "lose" && pct >= 0) return pct > 0 ? "gain" : "maintain";
+        if (dir === "gain" && pct <= 0) return pct < 0 ? fallback === "lose" ? "lose" : "recomp" : "maintain";
+        if (dir === "maintain" && pct <= -8) return "lose";
+        if (dir === "maintain" && pct >= 5) return "gain";
+        return dir;
+      }
+      function signatureOf(dir, pct, codes) {
+        return dir + "|" + pct + "|" + codes.slice().sort().join(",");
+      }
       function resolve(f) {
         f = f || {};
         var read = readGoals(f.goal, f.goalOther);
@@ -378,6 +422,12 @@ var require_goal_model = __commonJS({
         var protocolGoal = f.protocolGoal || f.protocol && PROTOCOL_GOALS[f.protocol] || null;
         if (protocolGoal) readGoals(protocolGoal).codes.forEach(function(c) {
           if (codes.indexOf(c) === -1) codes.push(c);
+        });
+        (f.extraGoals || []).forEach(function(c) {
+          if (GOAL_NAMES[c] && codes.indexOf(c) === -1) codes.push(c);
+        });
+        if (codes.length > 1) codes = codes.filter(function(c) {
+          return c !== "MAINT";
         });
         if (!codes.length) codes = ["MAINT"];
         var b = bodyContext(f);
@@ -399,23 +449,10 @@ var require_goal_model = __commonJS({
           return r.pct;
         })) : 0;
         var pct = neg.length && pos.length ? Math.round((minNeg + maxPos) / 2) : minNeg || maxPos;
+        var limits = hardLimits(f, b);
         var frame = [];
-        if (f.pregnant) {
-          pct = Math.max(pct, 0);
-          frame.push("\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442 \u2014 \u0431\u0435\u0437 \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
-        }
-        if (b.under) {
-          pct = Math.max(pct, 0);
-        }
-        if (f.lactating && pct < -10) {
-          pct = -10;
-          frame.push("\u043A\u044A\u0440\u043C\u0435\u043D\u0435 \u2014 \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u043C\u0435\u043A \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
-        }
-        if (has3(f.behaviors, "CMP") && pct < -10) {
-          pct = -10;
-          frame.push("\u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0430\u0442\u043E\u0440\u043D\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435 (\u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435/\u0445\u0430\u043F\u0447\u0435\u0442\u0430) \u2014 \u0431\u0435\u0437 \u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
-        }
-        pct = Math.max(-25, Math.min(15, pct));
+        if (pct < limits.minPct || pct > limits.maxPct) frame = limits.reasons.slice();
+        pct = Math.max(limits.minPct, Math.min(limits.maxPct, pct));
         var anyRecomp = per.some(function(r) {
           return r.dir === "recomp";
         });
@@ -425,6 +462,14 @@ var require_goal_model = __commonJS({
         var dir = same ? per[0].dir : pct <= -8 && !pos.length ? "lose" : pct >= 5 && !neg.length ? "gain" : anyRecomp || neg.length && pos.length ? "recomp" : "maintain";
         if (dir === "lose" && pct >= 0) dir = "maintain";
         if (dir === "gain" && pct <= 0) dir = "maintain";
+        if (limits.allowed.indexOf(dir) === -1) dir = limits.allowed.indexOf("recomp") !== -1 ? "recomp" : "maintain";
+        var algorithm = { direction: dir, intakePct: pct, signature: signatureOf(dir, pct, codes) };
+        var council = f.council && f.council.signature === algorithm.signature ? f.council : null;
+        if (council) {
+          pct = Math.max(limits.minPct, Math.min(limits.maxPct, Math.round(Number(council.intakePct) || 0)));
+          var cdir = limits.allowed.indexOf(council.direction) !== -1 ? council.direction : dir;
+          dir = consistentDirection(cdir, pct, dir);
+        }
         var primary = per.slice().sort(function(a, c) {
           var am = a.dir === dir ? 1 : 0;
           var cm = c.dir === dir ? 1 : 0;
@@ -441,6 +486,9 @@ var require_goal_model = __commonJS({
         if ((f.clinical || []).some(function(c) {
           return c === "HTN" || c === "CVD";
         })) push("bp");
+        if (council && council.lead) council.lead.filter(function(m) {
+          return LEAD_ORDER_FALLBACK.indexOf(m) !== -1;
+        }).forEach(push);
         primary.lead.forEach(push);
         per.forEach(function(r) {
           r.lead.forEach(push);
@@ -450,7 +498,7 @@ var require_goal_model = __commonJS({
           if (lead.length < 4) push(m);
         });
         var phases = roadmap(dir, codes, f, b);
-        var reasons = [primary.why].concat(per.filter(function(r) {
+        var reasons = (council && council.summary ? [council.summary] : []).concat([primary.why]).concat(per.filter(function(r) {
           return r !== primary && r.why && r.dir !== primary.dir;
         }).map(function(r) {
           return GOAL_NAMES[r.code] + ": " + r.why;
@@ -468,13 +516,19 @@ var require_goal_model = __commonJS({
           reasons,
           perGoal: per.map(function(r) {
             return { code: r.code, dir: r.dir, pct: r.pct };
-          })
+          }),
+          limits,
+          algorithm,
+          council: council ? { verdict: council.verdict || "accepted", summary: council.summary || "" } : null
         };
       }
       var api = {
         resolve,
         readGoals,
         bodyContext,
+        hardLimits,
+        consistentDirection,
+        LEAD_METRICS: LEAD_ORDER_FALLBACK,
         GOAL_NAMES,
         PROTOCOL_GOALS,
         DIRECTION_LABEL
@@ -1323,12 +1377,12 @@ function formatPromptValue(value) {
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
-function estimateTokenCount(text) {
-  if (!text) return 0;
-  const cyrillicChars = (text.match(/[\u0400-\u04FF]/g) || []).length;
-  const cyrillicRatio = cyrillicChars / text.length;
+function estimateTokenCount(text2) {
+  if (!text2) return 0;
+  const cyrillicChars = (text2.match(/[\u0400-\u04FF]/g) || []).length;
+  const cyrillicRatio = cyrillicChars / text2.length;
   const charsPerToken = 4 - cyrillicRatio;
-  return Math.ceil(text.length / charsPerToken);
+  return Math.ceil(text2.length / charsPerToken);
 }
 
 // analytics-compression.js
@@ -2029,9 +2083,9 @@ function selectChatSections(message, mode = "consultation") {
 function assembleChatContextPrompt(sections, selectedIds) {
   const lines = ["#CC chat v1 \u2014 NPCF \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442"];
   for (const id of selectedIds) {
-    const text = sections[id];
-    if (!text) continue;
-    lines.push(`##[${id}]`, text);
+    const text2 = sections[id];
+    if (!text2) continue;
+    lines.push(`##[${id}]`, text2);
   }
   return lines.join("\n");
 }
@@ -2048,11 +2102,11 @@ function buildChatContext(userData, plan, message, mode = "consultation") {
 }
 
 // fitness/normalize.js
-function normalizeText(text) {
-  return String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9а-я\s-]/g, " ").replace(/-/g, " ").replace(/\s+/g, " ").trim();
+function normalizeText(text2) {
+  return String(text2 || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9а-я\s-]/g, " ").replace(/-/g, " ").replace(/\s+/g, " ").trim();
 }
-function tokenize(text) {
-  const norm2 = normalizeText(text);
+function tokenize(text2) {
+  const norm2 = normalizeText(text2);
   return norm2 ? norm2.split(" ") : [];
 }
 var BODY_PART_MATCH_ALIASES = {
@@ -2209,8 +2263,8 @@ function exerciseNameLookupKey(name) {
 }
 
 // fitness/exercise-labels-bg.js
-function norm(text) {
-  return String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, " ").replace(/-/g, " ").replace(/\s+/g, " ").trim();
+function norm(text2) {
+  return String(text2 || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, " ").replace(/-/g, " ").replace(/\s+/g, " ").trim();
 }
 var BG_TEXT_FIXES = (
   /** @type {[RegExp, string][]} */
@@ -2489,8 +2543,8 @@ function fixBadAiName(ai, canonical2) {
   }
   return t;
 }
-function sanitizeBgText(text) {
-  let t = String(text ?? "");
+function sanitizeBgText(text2) {
+  let t = String(text2 ?? "");
   for (const [re, rep] of BG_TEXT_FIXES) t = t.replace(re, rep);
   return t;
 }
@@ -2841,9 +2895,9 @@ var FREE_TEXT_GEAR_HINTS = [
   { keys: ["\u043F\u0435\u0439\u043A\u0430", "bench"], gear: [GEAR_BENCH] },
   { keys: ["\u0441\u0442\u043E\u043B", "chair"], gear: [GEAR_CHAIR] }
 ];
-function gearFromFreeText(text) {
+function gearFromFreeText(text2) {
   const out = /* @__PURE__ */ new Set();
-  const n = normalizeText(text);
+  const n = normalizeText(text2);
   if (!n) return out;
   for (const { keys, gear } of FREE_TEXT_GEAR_HINTS) {
     if (keys.some((k) => n.includes(normalizeText(k)))) {
@@ -4302,9 +4356,9 @@ var ZONE_PATTERNS = [
   { re: /ръце|бицепс|трицепс/, patterns: ["triceps", "biceps"] },
   { re: /прасц/, patterns: ["calf"] }
 ];
-function parseZones(text = "") {
+function parseZones(text2 = "") {
   const out = [];
-  for (const part of String(text).toLowerCase().split(/[,;/\n]+/)) {
+  for (const part of String(text2).toLowerCase().split(/[,;/\n]+/)) {
     for (const z of ZONE_PATTERNS) {
       if (z.re.test(part)) {
         out.push(...z.patterns);
@@ -5388,12 +5442,12 @@ async function callGeminiTranslate(apiKey, user, model = DEFAULT_TRANSLATE_MODEL
   }
   const data = await res.json();
   const finish = data.candidates?.[0]?.finishReason;
-  const text = data.candidates?.[0]?.content?.parts?.filter((p) => !p.thought)?.map((p) => p.text).join("") || "";
-  if (!text) throw new Error(`Gemini: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 (${finish || "unknown"})`);
+  const text2 = data.candidates?.[0]?.content?.parts?.filter((p) => !p.thought)?.map((p) => p.text).join("") || "";
+  if (!text2) throw new Error(`Gemini: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440 (${finish || "unknown"})`);
   try {
-    return JSON.parse(text);
+    return JSON.parse(text2);
   } catch (e) {
-    throw new Error(`Gemini JSON parse: ${e.message}; finish=${finish}; tail=${text.slice(-120)}`);
+    throw new Error(`Gemini JSON parse: ${e.message}; finish=${finish}; tail=${text2.slice(-120)}`);
   }
 }
 function listPendingExercises(all, existing, { force = false, limit = 0 } = {}) {
@@ -5559,9 +5613,9 @@ async function callGeminiClassify(apiKey, user, model = DEFAULT_CLASSIFY_MODEL) 
     throw new Error(`Gemini ${res.status}: ${err2.slice(0, 400)}`);
   }
   const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.filter((p) => !p.thought)?.map((p) => p.text).join("") || "";
-  if (!text) throw new Error("Gemini: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
-  return JSON.parse(text);
+  const text2 = data.candidates?.[0]?.content?.parts?.filter((p) => !p.thought)?.map((p) => p.text).join("") || "";
+  if (!text2) throw new Error("Gemini: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
+  return JSON.parse(text2);
 }
 function listPendingClassifications(all, existing, { force = false, limit = 0 } = {}) {
   let pending = all.filter((ex) => needsClassification(ex, existing, force));
@@ -6733,8 +6787,8 @@ var GOAL_TAG_BY_ANSWER = {
 function capGuidelineTexts(texts, maxItems = MAX_GUIDELINE_ITEMS, maxChars = MAX_GUIDELINE_CHARS) {
   const result = [];
   let total = 0;
-  for (const text of texts) {
-    const t = String(text || "").trim();
+  for (const text2 of texts) {
+    const t = String(text2 || "").trim();
     if (!t) continue;
     if (result.length >= maxItems) break;
     const remaining = maxChars - total;
@@ -7003,9 +7057,9 @@ var ADMIN_EQUIPMENT_HINTS = [
   { keys: ["\u0442\u043E\u043F\u043A\u0430", "ball"], hints: ["stability ball"] },
   { keys: ["trx", "\u0440\u0435\u043C\u044A\u043A", "\u043F\u043E\u0434\u0432\u0435\u0441\u043A"], hints: ["body weight"] }
 ];
-function equipmentHintTokensFromText(text) {
+function equipmentHintTokensFromText(text2) {
   const out = /* @__PURE__ */ new Set();
-  const n = normalizeText(text);
+  const n = normalizeText(text2);
   if (!n) return out;
   for (const { keys, hints } of ADMIN_EQUIPMENT_HINTS) {
     if (keys.some((k) => n.includes(normalizeText(k)))) {
@@ -7147,10 +7201,10 @@ function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
   const adminArchitecture = [];
   const hardcodedIndividual = [];
   const seen = /* @__PURE__ */ new Set();
-  const push = (list2, text) => {
-    if (!text || seen.has(text)) return;
-    seen.add(text);
-    list2.push(text);
+  const push = (list2, text2) => {
+    if (!text2 || seen.has(text2)) return;
+    seen.add(text2);
+    list2.push(text2);
   };
   for (const chunk of adminChunks) {
     if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
@@ -7829,8 +7883,8 @@ function normalizeAdminGuidelines(raw) {
   const foundation = String(raw?.foundation || "").trim().slice(0, MAX_FOUNDATION_CHARS);
   const chunks = (Array.isArray(raw?.chunks) ? raw.chunks : []).slice(0, MAX_ADMIN_CHUNKS).map((chunk) => {
     const tags = parseChunkTags(chunk?.tags);
-    const text = String(chunk?.text || "").trim().slice(0, 500);
-    return text ? { tags, text } : null;
+    const text2 = String(chunk?.text || "").trim().slice(0, 500);
+    return text2 ? { tags, text: text2 } : null;
   }).filter(Boolean);
   return { foundation, chunks, updatedAt: raw?.updatedAt || null };
 }
@@ -7901,8 +7955,8 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
   const candidate = data.candidates?.[0];
   const finishReason = candidate?.finishReason || "";
   const parts = candidate?.content?.parts || [];
-  const text = parts.filter((p) => !p.thought && p.text).map((p) => p.text).join("") || parts.map((p) => p.text).filter(Boolean).join("");
-  if (!text) {
+  const text2 = parts.filter((p) => !p.thought && p.text).map((p) => p.text).join("") || parts.map((p) => p.text).filter(Boolean).join("");
+  if (!text2) {
     throw new Error(`Gemini: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440${finishReason ? ` (${finishReason})` : ""}`);
   }
   if (finishReason === "MAX_TOKENS") {
@@ -7913,7 +7967,7 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
     err2.truncated = true;
     throw err2;
   }
-  return text;
+  return text2;
 }
 async function callOpenAI(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
   const model = env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
@@ -7940,9 +7994,9 @@ async function callOpenAI(env, { system, user, temperature = 0.4, maxOutputToken
   }
   const data = await res.json();
   const choice = data.choices?.[0];
-  const text = choice?.message?.content || "";
+  const text2 = choice?.message?.content || "";
   const finishReason = choice?.finish_reason || "";
-  if (!text) throw new Error("OpenAI: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
+  if (!text2) throw new Error("OpenAI: \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
   if (finishReason === "length") {
     const err2 = (
       /** @type {WorkerError} */
@@ -7951,7 +8005,7 @@ async function callOpenAI(env, { system, user, temperature = 0.4, maxOutputToken
     err2.truncated = true;
     throw err2;
   }
-  return text;
+  return text2;
 }
 async function callAI(env, opts) {
   const errors = [];
@@ -7971,8 +8025,8 @@ async function callAI(env, opts) {
   }
   throw new Error(`\u0412\u0441\u0438\u0447\u043A\u0438 AI \u0434\u043E\u0441\u0442\u0430\u0432\u0447\u0438\u0446\u0438 \u043E\u0442\u043A\u0430\u0437\u0430\u0445\u0430: ${errors.join(" | ") || "\u043B\u0438\u043F\u0441\u0432\u0430\u0442 API \u043A\u043B\u044E\u0447\u043E\u0432\u0435"}`);
 }
-function parseAiJson(text) {
-  let t = String(text || "").trim();
+function parseAiJson(text2) {
+  let t = String(text2 || "").trim();
   if (!t) throw new Error("AI \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044A\u0442 \u0435 \u043F\u0440\u0430\u0437\u0435\u043D");
   t = t.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
   try {
@@ -9950,11 +10004,11 @@ async function sealKey(env) {
   if (!raw || raw.length !== 32) return null;
   return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
-async function seal(env, text) {
+async function seal(env, text2) {
   const key = await sealKey(env);
   if (!key) throw new Error("no STUDIO_SECRET_KEY");
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(text));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(text2));
   return `${btoa(String.fromCharCode(...iv))}.${btoa(String.fromCharCode(...new Uint8Array(ct)))}`;
 }
 async function unseal(env, sealed) {
@@ -11436,8 +11490,8 @@ function medsText(userData) {
   return parts.join(" ").toLowerCase().replace(/ё/g, "\u0435").replace(/инсулинов\S*\s+резист\S*|insulin\s+resist\S*/g, " ");
 }
 function interactionsFor(userData) {
-  const text = medsText(userData);
-  const rules = text ? INTERACTION_RULES.filter((r) => r.drugs.some((d) => text.includes(d))) : [];
+  const text2 = medsText(userData);
+  const rules = text2 ? INTERACTION_RULES.filter((r) => r.drugs.some((d) => text2.includes(d))) : [];
   return {
     ids: rules.map((r) => r.id),
     rules,
@@ -11801,8 +11855,8 @@ function num(value) {
 function addAll(set, values) {
   for (const v of values || []) if (v) set.add(v);
 }
-function textHasTerm(text, term) {
-  return normLabel(text).includes(term);
+function textHasTerm(text2, term) {
+  return normLabel(text2).includes(term);
 }
 function readDietLabels(labels) {
   const out = { styles: [], patterns: [], exclusions: [], behaviors: [], unmapped: [] };
@@ -11829,8 +11883,8 @@ function addHit(out, hit) {
   if (hit.behavior) out.behaviors.push(hit.behavior);
 }
 function dietKeywordsOf(label) {
-  const text = normLabel(label);
-  const hits = DIET_KEYWORDS.filter(([term]) => text.includes(term)).map(([, hit]) => hit);
+  const text2 = normLabel(label);
+  const hits = DIET_KEYWORDS.filter(([term]) => text2.includes(term)).map(([, hit]) => hit);
   return hits.length ? hits : null;
 }
 var PATTERN_STRICTNESS = ["omnivore", "pescatarian", "vegetarian", "vegan"];
@@ -11863,11 +11917,11 @@ function resolveConflicts(style, pattern, adjustments) {
   }
   return style;
 }
-function exclusionsFromText(text) {
+function exclusionsFromText(text2) {
   const found = [];
-  if (!text) return found;
+  if (!text2) return found;
   for (const [code, terms] of Object.entries(EXCLUSION_TERMS)) {
-    if (terms.some((t) => textHasTerm(text, t))) found.push(code);
+    if (terms.some((t) => textHasTerm(text2, t))) found.push(code);
   }
   return found;
 }
@@ -11940,10 +11994,10 @@ function clinicalDefaultStyle(clinical, protocolId) {
 function mealsPerDayFrom(userData) {
   const explicit = num(userData.mealsPerDay);
   if (explicit && explicit >= 2 && explicit <= 6) return Math.min(5, Math.max(3, Math.round(explicit)));
-  const text = asList(userData.eatingHabits).join(" ").toLowerCase();
-  if (/(^|\D)5\s*хран|пет\s*хран/.test(text)) return 5;
-  if (/(^|\D)4\s*хран|четири\s*хран/.test(text)) return 4;
-  if (/(^|\D)[23]\s*хран|три\s*хран|две\s*хран|без\s*междин/.test(text)) return 3;
+  const text2 = asList(userData.eatingHabits).join(" ").toLowerCase();
+  if (/(^|\D)5\s*хран|пет\s*хран/.test(text2)) return 5;
+  if (/(^|\D)4\s*хран|четири\s*хран/.test(text2)) return 4;
+  if (/(^|\D)[23]\s*хран|три\s*хран|две\s*хран|без\s*междин/.test(text2)) return 3;
   return 5;
 }
 function slotsFor(mealsPerDay, skipsBreakfast) {
@@ -12058,7 +12112,11 @@ function compileProfile(userData = {}, overrides = {}) {
     pregnant: repro.pregnant,
     lactating: repro.lactating,
     sportDays: sport.days,
-    behaviors: [...behaviors]
+    behaviors: [...behaviors],
+    // Обсъждането между алгоритъма и AI (nutrition-engine/council.js): прочетените от AI
+    // цели и решението, валидно докато предложението на алгоритъма е същото.
+    extraGoals: data._goalCouncil?.extraGoals || [],
+    council: data._goalCouncil?.decision || null
   });
   const goal = goalModel.primary;
   unmapped.push(...import_goal_model.default.readGoals(data.goal).unmapped);
@@ -27835,10 +27893,10 @@ function normalizeAnalysisOutput(analysis, userData = null) {
   }
   if (analysis.keyProblems.length < 3) {
     const riskLines = [].concat(analysis.healthRisks || []).concat(analysis.nutritionalNeeds || []).filter((s) => typeof s === "string" && s.trim().length > 12);
-    for (const text of riskLines) {
+    for (const text2 of riskLines) {
       if (analysis.keyProblems.length >= 3) break;
-      const title = text.length > 72 ? `${text.slice(0, 69)}\u2026` : text;
-      pushDerivedKeyProblem(analysis, title, text);
+      const title = text2.length > 72 ? `${text2.slice(0, 69)}\u2026` : text2;
+      pushDerivedKeyProblem(analysis, title, text2);
     }
   }
   if (analysis.keyProblems.length < 3) {
@@ -40784,8 +40842,8 @@ var MONTH_SEASON = [
 function seasonOf(date = /* @__PURE__ */ new Date()) {
   return MONTH_SEASON[date.getMonth()];
 }
-function words(text) {
-  return String(text || "").split(/[,;\n/]|\sи\s/).map((s) => normalizeFoodKey(s)).filter((s) => s && s.length >= 3);
+function words(text2) {
+  return String(text2 || "").split(/[,;\n/]|\sи\s/).map((s) => normalizeFoodKey(s)).filter((s) => s && s.length >= 3);
 }
 function matchesTerm(f, term) {
   const keys = [normalizeFoodKey(f.name), normalizeFoodKey(f.label)];
@@ -42322,18 +42380,18 @@ function mostlyLatin(sentence) {
   const cyr = (sentence.match(/[а-яё]/gi) || []).length;
   return latin >= 12 && latin > cyr * 1.5;
 }
-function textIssues(text) {
-  const s = String(text ?? "");
+function textIssues(text2) {
+  const s = String(text2 ?? "");
   const out = RULES.filter(([, re]) => re.test(s)).map(([code]) => code);
   if (s.split(/(?<=[.!?])\s+|\n+/).some(mostlyLatin)) out.push("english");
   return out;
 }
-function isCleanClientText(text) {
-  return textIssues(text).length === 0;
+function isCleanClientText(text2) {
+  return textIssues(text2).length === 0;
 }
-function guardClientText(text, options = {}) {
+function guardClientText(text2, options = {}) {
   const fallback = options.fallback || "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
-  const src = String(text ?? "");
+  const src = String(text2 ?? "");
   if (!src.trim()) return { text: fallback, removed: [] };
   const removed = [];
   const lines = src.split("\n").map((line2) => {
@@ -42409,8 +42467,8 @@ function renderRecipe(dishId, labelsByRef, flavour = [], absentLabels = []) {
   if (!recipe) return null;
   const steps = [];
   for (const step of recipe.steps) {
-    const text = fillStep(step, labelsByRef);
-    if (text) steps.push(text);
+    const text2 = fillStep(step, labelsByRef);
+    if (text2) steps.push(text2);
   }
   if (!steps.length) return null;
   const known = steps.join(" ").toLowerCase();
@@ -43293,7 +43351,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         pre: -dishFit(d, plan.quota, policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 - (state.yesterdayDishes.has(d.id) ? 2 : 0) + rng() * 1.5
       })).sort((a, b) => b.pre - a.pre).slice(0, CANDIDATES_PER_MEAL);
       let candidatesBuilt = [];
-      const pick2 = (candidates, mealCtx) => {
+      const pick3 = (candidates, mealCtx) => {
         let found = null;
         candidatesBuilt = [];
         for (const d of candidates) {
@@ -43325,12 +43383,12 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         slotCtx = { ...slotCtx, policy: avoidPolicy };
         slotPool = (eligibleDishes(avoidPolicy)[kind] || []).filter((d) => !todayDishes.has(d.id)).slice(0, CANDIDATES_PER_MEAL * 2);
       }
-      let best = pick2(slotPool, slotCtx);
+      let best = pick3(slotPool, slotCtx);
       let usedCtx = slotCtx;
       if (best && kind === "main" && !avoid.length && swappable.has(category) && best.built.totals.protein < target.protein * PROTEIN_SHORT) {
         const keep = candidatesBuilt;
         const wider = (eligible.main || []).filter((d) => d.category !== category && swappable.has(d.category) && proteinCapacity(d) >= 3 && !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !state.yesterdayDishes.has(d.id) && !(state.mainFoodsToday.size && d.parts.some((p) => p.group === "PRO" && p.options.some((o) => o.some((id) => state.mainFoodsToday.has(id)))))).slice(0, CANDIDATES_PER_MEAL);
-        const other = wider.length ? pick2(wider, slotCtx) : null;
+        const other = wider.length ? pick3(wider, slotCtx) : null;
         if (other && other.score > best.score) best = other;
         else candidatesBuilt = keep;
       }
@@ -43339,7 +43397,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
           const p = policy.withoutOnly();
           return { ctx: { ...ctx, policy: p, preferenceOf: (id) => p.preference(id) }, eligible: eligibleDishes(p) };
         })();
-        best = pick2((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
+        best = pick3((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
         usedCtx = relaxed.ctx;
       }
       if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
@@ -44167,11 +44225,11 @@ function collectFreeText(userData = {}) {
   let total = 0;
   for (const [field, value] of Object.entries(userData || {})) {
     if (typeof value !== "string" || SKIP_KEY.test(field)) continue;
-    const text = value.trim().replace(/\s+/g, " ");
-    if (text.length < 12 || !/\s/.test(text)) continue;
-    if (total + text.length > MAX_TEXT_CHARS) break;
-    out.push({ field, text });
-    total += text.length;
+    const text2 = value.trim().replace(/\s+/g, " ");
+    if (text2.length < 12 || !/\s/.test(text2)) continue;
+    if (total + text2.length > MAX_TEXT_CHARS) break;
+    out.push({ field, text: text2 });
+    total += text2.length;
   }
   return out;
 }
@@ -44186,10 +44244,10 @@ function collectQuestionAnswers(userData = {}, protocolLabels = {}) {
     if (!question) continue;
     const answer = (Array.isArray(value) ? value : [value]).map((v) => String(v ?? "").trim()).filter((v) => v && !EMPTY_ANSWER.test(v)).join(", ");
     if (!answer) continue;
-    const text = `${String(question).trim()} \u2192 ${answer}`.replace(/\s+/g, " ");
-    if (total + text.length > MAX_ANSWER_CHARS) break;
-    out.push({ field, text });
-    total += text.length;
+    const text2 = `${String(question).trim()} \u2192 ${answer}`.replace(/\s+/g, " ");
+    if (total + text2.length > MAX_ANSWER_CHARS) break;
+    out.push({ field, text: text2 });
+    total += text2.length;
   }
   return out;
 }
@@ -44262,6 +44320,180 @@ function normalizeSwaps(raw, weekPlan, max = 6) {
   }
   return out;
 }
+
+// nutrition-engine/council.js
+var import_goal_model2 = __toESM(require_goal_model());
+var GOAL_SOFT_PCT = 7;
+var WEEKLY_SOFT_KCAL = 100;
+var WEEKLY_STEP = 150;
+var WEEKLY_TOTAL_SHIFT = 400;
+var NEIGHBORS = {
+  lose: ["recomp", "maintain"],
+  recomp: ["lose", "maintain", "gain"],
+  maintain: ["recomp", "gain", "lose"],
+  gain: ["recomp", "maintain"]
+};
+var DIRECTIONS = Object.keys(NEIGHBORS);
+var STANCES = ["agree", "adjust", "object"];
+var text = (v, max = 400) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+var intOr2 = (v, d = null) => {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? n : d;
+};
+var pick = (list2, allowed, max = 6) => [...new Set((Array.isArray(list2) ? list2 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))].slice(0, max);
+function normalizeGoalOpinion(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const stance = STANCES.includes(raw.stance) ? raw.stance : "adjust";
+  return {
+    stance,
+    direction: DIRECTIONS.includes(raw.direction) ? raw.direction : null,
+    intakePct: intOr2(raw.intakePct),
+    extraGoals: pick(raw.extraGoals, Object.keys(import_goal_model2.default.GOAL_NAMES)),
+    lead: pick(raw.lead, import_goal_model2.default.LEAD_METRICS, 5),
+    argument: text(raw.argument),
+    concerns: (Array.isArray(raw.concerns) ? raw.concerns : []).map((c) => text(c, 200)).filter(Boolean).slice(0, 3)
+  };
+}
+function reviewGoalOpinion(model, opinion, round3 = 1) {
+  const algo = model.algorithm;
+  const out = (verdict, direction, intakePct, vetoes2 = [], objections2 = []) => ({ verdict, direction, intakePct, vetoes: vetoes2, objections: objections2 });
+  if (!opinion) return out("agree", algo.direction, algo.intakePct);
+  let dir = opinion.direction || algo.direction;
+  let pct = opinion.intakePct ?? algo.intakePct;
+  if (opinion.stance === "agree" || dir === algo.direction && pct === algo.intakePct) return out("agree", algo.direction, algo.intakePct);
+  const lim = model.limits;
+  const vetoes = [];
+  if (pct < lim.minPct || pct > lim.maxPct) {
+    vetoes.push(`\u041F\u0440\u0438\u0435\u043C\u044A\u0442 ${pct}% \u0435 \u0438\u0437\u0432\u044A\u043D \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438\u0442\u0435 \u0433\u0440\u0430\u043D\u0438\u0446\u0438 (${lim.minPct}\u2026${lim.maxPct}%)${lim.reasons.length ? `: ${lim.reasons.join("; ")}` : ""}.`);
+    pct = Math.max(lim.minPct, Math.min(lim.maxPct, pct));
+  }
+  if (!lim.allowed.includes(dir)) {
+    vetoes.push(`\u041F\u043E\u0441\u043E\u043A\u0430\u0442\u0430 \u201E${import_goal_model2.default.DIRECTION_LABEL[dir]}\u201C \u0435 \u0437\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u0430: ${lim.reasons.join("; ") || "\u043A\u043B\u0438\u043D\u0438\u0447\u043D\u0430 \u0440\u0430\u043C\u043A\u0430"}.`);
+    dir = algo.direction;
+  }
+  dir = import_goal_model2.default.consistentDirection(dir, pct, algo.direction);
+  const objections = [];
+  const diff = pct - algo.intakePct;
+  if (Math.abs(diff) > GOAL_SOFT_PCT) {
+    objections.push(`\u041F\u0440\u043E\u043C\u044F\u043D\u0430 \u0441 ${Math.abs(diff)} \u043F\u0443\u043D\u043A\u0442\u0430 \u0441\u043F\u0440\u044F\u043C\u043E ${algo.intakePct}% (\u0431\u0435\u0437 \u0432\u044A\u0437\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u2014 \u0434\u043E ${GOAL_SOFT_PCT}). \u041A\u0430\u043A\u0432\u043E \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u043E\u043F\u0440\u0430\u0432\u0434\u0430\u0432\u0430 \u0442\u043E\u043B\u043A\u043E\u0432\u0430 \u0433\u043E\u043B\u044F\u043C\u0430 \u0440\u0430\u0437\u043B\u0438\u043A\u0430?`);
+  }
+  if (dir !== algo.direction && !NEIGHBORS[algo.direction].includes(dir)) {
+    objections.push(`\u0421\u043A\u043E\u043A \u043E\u0442 \u201E${import_goal_model2.default.DIRECTION_LABEL[algo.direction]}\u201C \u043A\u044A\u043C \u201E${import_goal_model2.default.DIRECTION_LABEL[dir]}\u201C \u0431\u0435\u0437 \u043C\u0435\u0436\u0434\u0438\u043D\u043D\u0430 \u0444\u0430\u0437\u0430.`);
+  }
+  if (!objections.length) return out(vetoes.length ? "veto" : "accept", dir, pct, vetoes);
+  if (round3 === 1) return out("rebut", algo.direction, algo.intakePct, vetoes, objections);
+  const edge = algo.intakePct + Math.sign(diff) * Math.min(Math.abs(diff), GOAL_SOFT_PCT);
+  const edgePct = Math.max(lim.minPct, Math.min(lim.maxPct, edge));
+  const nearDir = NEIGHBORS[algo.direction].includes(dir) || dir === algo.direction ? dir : algo.direction;
+  return out("dissent", import_goal_model2.default.consistentDirection(nearDir, edgePct, algo.direction), edgePct, vetoes, objections);
+}
+var MODIFICATION_CODES = Object.keys(PLAN_MODIFICATION_CODES);
+function normalizeWeeklyOpinion(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    stance: STANCES.includes(raw.stance) ? raw.stance : "adjust",
+    calorieAdjust: intOr2(raw.calorieAdjust),
+    addModifications: pick(raw.addModifications, MODIFICATION_CODES),
+    removeModifications: pick(raw.removeModifications, MODIFICATION_CODES),
+    argument: text(raw.argument),
+    concerns: (Array.isArray(raw.concerns) ? raw.concerns : []).map((c) => text(c, 200)).filter(Boolean).slice(0, 3)
+  };
+}
+function weeklyLimits(ctx) {
+  const kcal = Number(ctx.kcal) || 0;
+  const base = Number(ctx.baseKcal) || kcal;
+  let min = -WEEKLY_STEP;
+  let max = WEEKLY_STEP;
+  const reasons = [];
+  min = Math.max(min, Math.max(Number(ctx.floorKcal) || 0, base - WEEKLY_TOTAL_SHIFT) - kcal);
+  max = Math.min(max, base + WEEKLY_TOTAL_SHIFT - kcal);
+  if (ctx.direction === "lose" && ctx.tdee > 0) max = Math.min(max, ctx.tdee - kcal);
+  if (ctx.checkin?.recoveryLow || ctx.checkin?.leanLoss) {
+    min = Math.max(min, 0);
+    reasons.push("\u0441\u0438\u0433\u043D\u0430\u043B\u0438 \u0437\u0430 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435/\u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438 \u2014 \u0431\u0435\u0437 \u043D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435");
+  }
+  if ((ctx.direction === "gain" || ctx.direction === "recomp") && ctx.checkin?.workouts === 0) {
+    max = Math.min(max, 0);
+    reasons.push("\u0431\u0435\u0437 \u0441\u0438\u043B\u043E\u0432\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u2014 \u0431\u0435\u0437 \u0443\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u0438\u0435");
+  }
+  if (min > max) min = max = 0;
+  return { min: Math.round(min), max: Math.round(max), reasons };
+}
+function reviewWeeklyOpinion(decision, opinion, ctx, round3 = 1) {
+  const algo = Number(decision.calorieAdjust) || 0;
+  const mods = decision.modifications || [];
+  const out = (verdict, calorieAdjust, modifications, vetoes2 = [], objections2 = []) => ({ verdict, calorieAdjust, modifications, vetoes: vetoes2, objections: objections2 });
+  if (!opinion) return out("agree", algo, mods);
+  const removing = opinion.removeModifications.filter((m) => mods.includes(m));
+  const adding = opinion.addModifications.filter((m) => !mods.includes(m));
+  let delta = opinion.calorieAdjust ?? algo;
+  if (opinion.stance === "agree" || delta === algo && !removing.length && !adding.length) return out("agree", algo, mods);
+  const lim = weeklyLimits(ctx);
+  const vetoes = [];
+  if (delta < lim.min || delta > lim.max) {
+    vetoes.push(`\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F ${delta} kcal \u0435 \u0438\u0437\u0432\u044A\u043D \u0433\u0440\u0430\u043D\u0438\u0446\u0438\u0442\u0435 (${lim.min}\u2026${lim.max})${lim.reasons.length ? `: ${lim.reasons.join("; ")}` : ""}.`);
+    delta = Math.max(lim.min, Math.min(lim.max, delta));
+  }
+  const objections = [];
+  if (Math.abs(delta - algo) > WEEKLY_SOFT_KCAL) objections.push(`\u0420\u0430\u0437\u043B\u0438\u043A\u0430 ${Math.abs(delta - algo)} kcal \u043E\u0442 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0442\u0435 ${algo} (\u0431\u0435\u0437 \u0432\u044A\u0437\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u2014 \u0434\u043E ${WEEKLY_SOFT_KCAL}).`);
+  if (algo !== 0 && delta !== 0 && Math.sign(delta) !== Math.sign(algo)) objections.push(`\u041E\u0431\u0440\u0430\u0442\u043D\u0430 \u043F\u043E\u0441\u043E\u043A\u0430 \u043D\u0430 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F\u0442\u0430: \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C\u044A\u0442 \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430 ${algo > 0 ? "\u0443\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u0438\u0435" : "\u043D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435"}.`);
+  if (delta < 0 && decision.adherence != null && decision.adherence < 60) objections.push(`\u0421\u043F\u0430\u0437\u0432\u0430\u043D\u0435 ${decision.adherence}% \u2014 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u043F\u0440\u0438 \u043D\u0435\u0441\u043F\u0430\u0437\u0435\u043D \u043F\u043B\u0430\u043D \u043D\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0432\u0430\u0442 \u043D\u0438\u0449\u043E.`);
+  if (removing.length) objections.push(`\u041C\u0430\u0445\u0430\u043D\u0435 \u043D\u0430 \u043F\u0440\u043E\u043C\u0435\u043D\u0438, \u0438\u0437\u0432\u0435\u0434\u0435\u043D\u0438 \u043E\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435: ${removing.join(", ")}.`);
+  const merged = (keepRemoved) => [.../* @__PURE__ */ new Set([...mods.filter((m) => keepRemoved || !removing.includes(m)), ...adding])];
+  if (!objections.length) return out(vetoes.length ? "veto" : "accept", delta, merged(false), vetoes);
+  if (round3 === 1) return out("rebut", algo, mods, vetoes, objections);
+  let edge = algo + Math.sign(delta - algo) * Math.min(Math.abs(delta - algo), WEEKLY_SOFT_KCAL);
+  if (algo !== 0 && Math.sign(edge) !== Math.sign(algo) && edge !== 0) edge = 0;
+  edge = Math.max(lim.min, Math.min(lim.max, edge));
+  return out("dissent", Math.round(edge), merged(true), vetoes, objections);
+}
+var VERDICT_TEXT = {
+  agree: "\u0421\u044A\u0433\u043B\u0430\u0441\u0438\u0435 \u0441 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u043D\u0430 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C\u0430.",
+  accept: "\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F\u0442\u0430 \u043D\u0430 AI \u0435 \u043F\u0440\u0438\u0435\u0442\u0430.",
+  veto: "\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F\u0442\u0430 \u0435 \u043F\u0440\u0438\u0435\u0442\u0430, \u043D\u043E \u0441\u0432\u0435\u0434\u0435\u043D\u0430 \u0434\u043E \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438\u0442\u0435 \u0433\u0440\u0430\u043D\u0438\u0446\u0438.",
+  rebut: "\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C\u044A\u0442 \u0432\u044A\u0437\u0440\u0430\u0437\u044F\u0432\u0430.",
+  dissent: "AI \u043D\u0430\u0441\u0442\u043E\u044F\u0432\u0430 \u2014 \u043F\u0440\u0438\u0435\u0442\u0430 \u0435 \u0434\u043E \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u0430\u0442\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0430; \u043D\u0435\u0441\u044A\u0433\u043B\u0430\u0441\u0438\u0435\u0442\u043E \u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043D\u043E \u0437\u0430 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430."
+};
+async function deliberate(io) {
+  const transcript = [];
+  const say = (round3, from, t) => {
+    if (t) transcript.push({ round: round3, from, text: text(t, 600) });
+  };
+  let opinion = null;
+  try {
+    opinion = await io.ask();
+  } catch (_) {
+    opinion = null;
+  }
+  if (!opinion) return { result: io.review(null, 1), opinion: null, transcript, rounds: 0 };
+  say(1, "ai", `${opinion.stance}: ${opinion.argument || "\u2014"}`);
+  let result = io.review(opinion, 1);
+  say(1, "algorithm", [VERDICT_TEXT[result.verdict], ...result.vetoes, ...result.objections].join(" "));
+  if (result.verdict !== "rebut") return { result, opinion, transcript, rounds: 1 };
+  let answer = null;
+  try {
+    answer = await io.rebut(opinion, [...result.vetoes, ...result.objections]);
+  } catch (_) {
+    answer = null;
+  }
+  if (!answer) {
+    say(2, "algorithm", "\u041D\u044F\u043C\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u043D\u0430 \u0432\u044A\u0437\u0440\u0430\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u2014 \u043E\u0441\u0442\u0430\u0432\u0430 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u043D\u0430 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C\u0430.");
+    return { result: { ...io.review(null, 1), verdict: "agree" }, opinion, transcript, rounds: 2 };
+  }
+  say(2, "ai", `${answer.stance}: ${answer.argument || "\u2014"}`);
+  result = io.review(answer, 2);
+  say(2, "algorithm", [VERDICT_TEXT[result.verdict], ...result.vetoes].join(" "));
+  return { result, opinion: answer, transcript, rounds: 2 };
+}
+function councilSummary(result, opinion) {
+  if (!opinion || result.verdict === "agree") return "";
+  const why = opinion.argument ? ` ${opinion.argument}` : "";
+  if (result.verdict === "dissent") return `\u041F\u0440\u0435\u0433\u043B\u0435\u0434 \u043D\u0430 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442: AI \u043D\u0430\u0441\u0442\u043E\u044F\u0432\u0430 \u0437\u0430 \u043F\u043E\u0432\u0435\u0447\u0435 \u043F\u0440\u043E\u043C\u044F\u043D\u0430, \u043F\u0440\u0438\u0435\u0442\u0430 \u0435 \u0447\u0430\u0441\u0442\u0438\u0447\u043D\u043E.${why}`;
+  return `\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u0433\u043B\u0435\u0434:${why}`;
+}
+
+// worker.entry.js
+var import_goal_model3 = __toESM(require_goal_model());
 
 // nutrition-engine/dish-learning.js
 var DECAY = 0.7;
@@ -44397,19 +44629,19 @@ var ISSUE_REASONS = {
 };
 function makeReason(blockedTerms) {
   const terms = (blockedTerms || []).map((t) => String(t).toLowerCase().replace(/^без\s+/, "").trim()).filter((t) => t.length >= 3);
-  return (text) => {
-    if (!text) return "\u043F\u0440\u0430\u0437\u0435\u043D";
-    if (NUMBERS_RE.test(text)) return "\u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0430 \u0438\u043B\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 (\u0442\u0435 \u0441\u0430 \u0440\u0430\u0431\u043E\u0442\u0430 \u043D\u0430 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430)";
-    const issues = textIssues(text);
+  return (text2) => {
+    if (!text2) return "\u043F\u0440\u0430\u0437\u0435\u043D";
+    if (NUMBERS_RE.test(text2)) return "\u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u0430 \u0438\u043B\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 (\u0442\u0435 \u0441\u0430 \u0440\u0430\u0431\u043E\u0442\u0430 \u043D\u0430 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430\u0442\u0430)";
+    const issues = textIssues(text2);
     if (issues.length) return issues.map((c) => ISSUE_REASONS[c] || c).join("; ");
-    const low = text.toLowerCase();
+    const low = text2.toLowerCase();
     const term = terms.find((t) => low.includes(t));
     return term ? `\u0441\u043F\u043E\u043C\u0435\u043D\u0430\u0432\u0430 \u201E${term}\u201C, \u043A\u043E\u0435\u0442\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0431\u0438\u0432\u0430 \u0434\u0430 \u044F\u0434\u0435` : "";
   };
 }
 function makeChecker(blockedTerms) {
   const reason = makeReason(blockedTerms);
-  return (text) => !reason(text);
+  return (text2) => !reason(text2);
 }
 function rejectReason(raw, max, reason) {
   const s = String(raw ?? "").replace(/\s+/g, " ").trim();
@@ -44446,9 +44678,9 @@ function normalizePlanVoice(raw, ctx, rejected = []) {
     style: cleanLine(t.style, 160)
   };
   const reason = makeReason(ctx.blockedTerms);
-  const reject = (field, text, max) => {
-    const why = rejectReason(text, max, reason);
-    if (why) rejected.push({ field, text: String(text).slice(0, max + 200), reason: why });
+  const reject = (field, text2, max) => {
+    const why = rejectReason(text2, max, reason);
+    if (why) rejected.push({ field, text: String(text2).slice(0, max + 200), reason: why });
   };
   const welcome = cleanLine(raw.welcome, 1200);
   const specialistNote = cleanLine(raw.specialistNote, 700);
@@ -44499,10 +44731,10 @@ function mergeVoiceRepair(voice, raw, ctx) {
   const draft = { psychology: [], habits: [], mealNotes: [], portrait: voice?.portrait, tone: voice?.tone };
   for (const it of items) {
     const field = String(it?.field || "");
-    const text = String(it?.text || "");
-    if (field === "welcome" || field === "specialistNote") draft[field] = text;
-    else if (field === "psychology" || field === "habits") draft[field].push(text);
-    else if (field.startsWith("mealNotes:")) draft.mealNotes.push({ dishId: field.slice(10), note: text });
+    const text2 = String(it?.text || "");
+    if (field === "welcome" || field === "specialistNote") draft[field] = text2;
+    else if (field === "psychology" || field === "habits") draft[field].push(text2);
+    else if (field.startsWith("mealNotes:")) draft.mealNotes.push({ dishId: field.slice(10), note: text2 });
   }
   const fixed = normalizePlanVoice({ ...draft, psychology: [...voice?.psychology || [], ...draft.psychology], habits: [...voice?.habits || [], ...draft.habits] }, ctx);
   if (!fixed) return voice;
@@ -45935,21 +46167,21 @@ var PATTERN_WORDS = /веган|вегетариан|месо|растителн
 var ALLERGY_WORDS = /алерги|непоносим/i;
 var ALLERGY_RELATED = { \u043B\u0430\u043A\u0442\u043E\u0437\u0430: /мляко|млечн|сирене|кисело мляко/i, \u0433\u043B\u0443\u0442\u0435\u043D: /глутен|хляб|пшениц|тестен/i };
 var stem = (s) => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]/gi, "").slice(0, 5);
-function matches(q, text) {
+function matches(q, text2) {
   const topic = TOPIC_WORDS[q.id] ? q.id : q.id.split(":")[0];
   if (topic === "weight" || topic === "meds" || TOPIC_WORDS[q.id]) {
-    if (TOPIC_WORDS[topic].test(text)) return true;
+    if (TOPIC_WORDS[topic].test(text2)) return true;
     if (topic === "meds") {
       const name = stem((q.text.match(/„([^“]+)“/) || [])[1]);
-      return name.length >= 4 && text.toLowerCase().includes(name);
+      return name.length >= 4 && text2.toLowerCase().includes(name);
     }
     return false;
   }
-  if (q.id.startsWith("pattern:")) return PATTERN_WORDS.test(text);
+  if (q.id.startsWith("pattern:")) return PATTERN_WORDS.test(text2);
   if (q.id.startsWith("allergy:")) {
     const term = q.id.slice("allergy:".length).replace(/_/g, " ");
     const s = stem(term);
-    return ALLERGY_WORDS.test(text) || s.length >= 4 && text.toLowerCase().includes(s) || !!ALLERGY_RELATED[term]?.test(text);
+    return ALLERGY_WORDS.test(text2) || s.length >= 4 && text2.toLowerCase().includes(s) || !!ALLERGY_RELATED[term]?.test(text2);
   }
   return false;
 }
@@ -45965,8 +46197,8 @@ function sanitizeQuestions(raw) {
   }));
 }
 function relevantQuestion(questions, message, askedId = "") {
-  const text = String(message || "");
-  return questions.find((q) => q.id === askedId) || questions.find((q) => matches(q, text)) || null;
+  const text2 = String(message || "");
+  return questions.find((q) => q.id === askedId) || questions.find((q) => matches(q, text2)) || null;
 }
 function clarifyPromptBlock(q, { asked = false } = {}) {
   const opts = q.options.map((o) => `${o.value} = \u201E${o.label}\u201C`).join("; ");
@@ -45979,8 +46211,8 @@ ${asked ? "\u0412\u0438\u0435 \u0441\u0442\u0435 \u0437\u0430\u0434\u0430\u043B\
 - \u0410\u043A\u043E \u043D\u0435 \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F \u044F\u0441\u043D\u043E, \u043D\u043E \u0442\u0435\u043C\u0430\u0442\u0430 \u0435 \u0441\u0432\u044A\u0440\u0437\u0430\u043D\u0430, \u0437\u0430\u0434\u0430\u0439\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D\u043E, \u0441 \u0432\u0430\u0448\u0438 \u0434\u0443\u043C\u0438, \u0432 \u043A\u0440\u0430\u044F \u043D\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430 \u0438 \u0434\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u043C\u0430\u0440\u043A\u0435\u0440 [ASK:${q.id}].
 - \u041D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439\u0442\u0435 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0432\u043C\u0435\u0441\u0442\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041F\u0440\u0438 \u0441\u044A\u043C\u043D\u0435\u043D\u0438\u0435 \u2014 \u043F\u0438\u0442\u0430\u0439\u0442\u0435. \u041C\u0430\u0440\u043A\u0435\u0440\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u0432\u0438\u0436\u0434\u0430\u0442 \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430.`;
 }
-function extractClarify(text, q) {
-  let out = String(text || "");
+function extractClarify(text2, q) {
+  let out = String(text2 || "");
   let resolved = null;
   let asked = null;
   const re = /\[(RESOLVE|ASK):([^\]=]+)(?:=([^\]]+))?\]/g;
@@ -46087,7 +46319,7 @@ function normalizeAiris(p) {
   return { questionnaire, analysis };
 }
 var SITE_SOURCES = { daotslabna: "daotslabna.com", lifeprotocols: "life-protocols.com" };
-var pick = (v, allowed) => allowed.includes(v) ? v : null;
+var pick2 = (v, allowed) => allowed.includes(v) ? v : null;
 var pickList = (v, allowed) => Array.isArray(v) ? [...new Set(v.filter((x) => allowed.includes(x)))].slice(0, 12) : [];
 var SITE_CONDITIONS = ["hypertension", "diabetes", "thyroid", "autoimmune", "kidney", "liver", "cardiovascular", "pregnancy", "breastfeeding", "none", "other"];
 var SITE_MEDS = ["anticoagulants", "statins", "ssri", "hormone_therapy", "thyroid_meds", "none", "other"];
@@ -46098,12 +46330,12 @@ function normalizeSiteQuiz(raw) {
   const answers2 = {
     name: str2(a.name, 60),
     email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str2(a.email, 120)) ? str2(a.email, 120).toLowerCase() : "",
-    sex: pick(a.sex, ["female", "male"]),
-    age_band: pick(a.age_band, ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"]),
+    sex: pick2(a.sex, ["female", "male"]),
+    age_band: pick2(a.age_band, ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"]),
     height_cm: numIn(a.height_cm, 100, 250),
     weight_kg: numIn(a.weight_kg, 30, 300),
-    activity: pick(a.activity, ["regular", "moderate", "rare"]),
-    diet: pick(a.diet, ["omnivore", "vegetarian", "vegan", "keto", "other"]),
+    activity: pick2(a.activity, ["regular", "moderate", "rare"]),
+    diet: pick2(a.diet, ["omnivore", "vegetarian", "vegan", "keto", "other"]),
     diet_other: str2(a.diet_other, 120),
     conditions: pickList(a.conditions, SITE_CONDITIONS),
     conditions_other: str2(a.conditions_other, 200),
@@ -46113,9 +46345,9 @@ function normalizeSiteQuiz(raw) {
     allergies_other: str2(a.allergies_other, 200),
     symptoms: pickList(a.symptoms, SITE_SYMPTOMS),
     symptoms_other: str2(a.symptoms_other, 200),
-    priority: pick(a.priority, ["otshalvane", "longevity", "energy", "skin", "sleep", "cognition", "joints"]),
-    weight_goal: pick(a.weight_goal, ["1-5", "5-10", "10-20", "20+"]),
-    stimulant_tolerance: pick(a.stimulant_tolerance, ["ok", "sensitive", "avoid"])
+    priority: pick2(a.priority, ["otshalvane", "longevity", "energy", "skin", "sleep", "cognition", "joints"]),
+    weight_goal: pick2(a.weight_goal, ["1-5", "5-10", "10-20", "20+"]),
+    stimulant_tolerance: pick2(a.stimulant_tolerance, ["ok", "sensitive", "avoid"])
   };
   const p = raw.protocol && typeof raw.protocol === "object" ? raw.protocol : {};
   const protocol = {
@@ -48856,9 +49088,9 @@ function sanitizeJSON(jsonStr) {
   result = result.replace(/](\s*){/g, "],$1{");
   return result;
 }
-function extractBalancedJSON(text) {
-  let firstBrace = text.indexOf("{");
-  let firstBracket = text.indexOf("[");
+function extractBalancedJSON(text2) {
+  let firstBrace = text2.indexOf("{");
+  let firstBracket = text2.indexOf("[");
   let startIndex = -1;
   let startChar = null;
   if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
@@ -48874,8 +49106,8 @@ function extractBalancedJSON(text) {
   let bracketCount = 0;
   let inString = false;
   let escapeNext = false;
-  for (let i = startIndex; i < text.length; i++) {
-    const char = text[i];
+  for (let i = startIndex; i < text2.length; i++) {
+    const char = text2[i];
     if (escapeNext) {
       escapeNext = false;
       continue;
@@ -48899,9 +49131,9 @@ function extractBalancedJSON(text) {
         bracketCount--;
       }
       if (startChar === "{" && braceCount === 0) {
-        return text.substring(startIndex, i + 1);
+        return text2.substring(startIndex, i + 1);
       } else if (startChar === "[" && bracketCount === 0) {
-        return text.substring(startIndex, i + 1);
+        return text2.substring(startIndex, i + 1);
       }
     }
   }
@@ -49041,6 +49273,8 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   applyDeterministicEnergyContract(analysis, contract);
   applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
   if (deficitData?.direction) analysis._goalDirection = deficitData.direction;
+  const gc = data?._goalCouncil;
+  if (gc?.verdict) analysis._goalCouncil = { verdict: gc.verdict, algorithm: gc.algorithm, concerns: gc.concerns || [], at: gc.at };
   enforceCalorieGuardrails(analysis, data, tdee);
   const intake = parseFinalCalories(analysis.Final_Calories);
   const intakeDrift = previousIntake > 0 && intake > 0 ? Math.abs(intake - previousIntake) / previousIntake : previousIntake !== intake ? 1 : 0;
@@ -49835,9 +50069,9 @@ async function handleGetPlanJobStatus(request, env) {
   if (!raw) return jsonResponse2({ status: "not_found" });
   return jsonResponse2(JSON.parse(raw));
 }
-function chatContextHasMealGrams(text) {
-  if (!text) return false;
-  return text.split("\n").some((line2) => /^day\d+\|/.test(line2) && /\|\d+\|\d+\|\d+\|\d+\|\d+\|/.test(line2));
+function chatContextHasMealGrams(text2) {
+  if (!text2) return false;
+  return text2.split("\n").some((line2) => /^day\d+\|/.test(line2) && /\|\d+\|\d+\|\d+\|\d+\|\d+\|/.test(line2));
 }
 async function handleChat(request, env) {
   try {
@@ -51442,9 +51676,9 @@ ${cardText}` }] });
     throw new Error(`Gemini assistant error: ${response.status} ${errText.slice(0, 200)}`);
   }
   const data = await response.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini \u0432\u044A\u0440\u043D\u0430 \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
-  return JSON.parse(text);
+  const text2 = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text2) throw new Error("Gemini \u0432\u044A\u0440\u043D\u0430 \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
+  return JSON.parse(text2);
 }
 async function callGeminiAssistantResilient(env, session, card, message, planUpdatedAt, analyticsSyncedAt) {
   const userMessage = message.trim();
@@ -51684,8 +51918,22 @@ function getWeeklyAdaptationDecision(userData, plan, analytics, answers2, histor
     // Всяка седмица — ново меню; калориите и схемата се пипат само по правилата.
     adaptationLevel: decision.calorieAdjust || decision.modifications.length ? 2 : 1,
     headline: message.headline,
-    motivationMessage: message.message
+    motivationMessage: message.message,
+    // За съвета (алгоритъм + AI): с какво е изчислено решението.
+    context: {
+      checkin,
+      kcal,
+      tdee,
+      floorKcal: weeklyFloorKcal(userData, tdee, profile.goal),
+      baseKcal: Number(plan?.analysis?._baseCalories) || kcal,
+      direction: profile.direction,
+      goalModel: profile.goalModel
+    }
   };
+}
+function weeklyAnswersText(questions, answers2) {
+  const byId = new Map((questions || []).map((q) => [q.id, q.text]));
+  return (answers2 || []).filter((a) => a && a.questionId && String(a.value ?? "").trim()).map((a) => `- ${byId.get(a.questionId) || a.questionId}: ${String(a.value).slice(0, 400)}${a.source === "device" ? " (\u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E)" : ""}`).join("\n");
 }
 async function savePendingWeeklyRelease(env, userId, clientId, release) {
   if (!userId) return;
@@ -51729,7 +51977,8 @@ function releasePendingWeeklyIfDue(profile) {
       weightKg: pending.monitoring?.weightKg ?? null,
       waistCm: pending.monitoring?.waistCm ?? null,
       followed: pending.monitoring?.followed ?? null,
-      calorieAdjust: pending.monitoring?.calorieAdjust ?? 0
+      calorieAdjust: pending.monitoring?.calorieAdjust ?? 0,
+      council: pending.monitoring?.council ?? null
     });
     profile.weeklyAdaptHistory = hist.slice(-5);
   }
@@ -51822,6 +52071,13 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: "weightTrendKgWeek", value: String(dc.weightTrendKgWeek), source: "device" }];
     if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: "recoveryLow", value: "true", source: "device" }];
     if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: "leanLoss", value: "true", source: "device" }];
+    const answeredKg = Number(String(checkinAnswers.find((a) => a.questionId === "weightKg")?.value || "").replace(",", "."));
+    if (answeredKg >= 30 && answeredKg <= 300) enrichedData.weight = String(answeredKg);
+    const answeredWaist = Number(String(checkinAnswers.find((a) => a.questionId === "waistCm")?.value || "").replace(",", "."));
+    if (answeredWaist >= 40 && answeredWaist <= 200) enrichedData._lastWaistCm = answeredWaist;
+    const answersText = weeklyAnswersText(payload.questions, checkinAnswers);
+    const priorCouncil = enrichedData._goalCouncil || null;
+    const goalCouncil = await conveneGoalCouncil(env, enrichedData, { history: weeklyAdaptHistory, answersText });
     const recal = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
     const decisionPlan = recal ? { ...plan, analysis: recal.analysis } : plan;
     const decision = getWeeklyAdaptationDecision(enrichedData, decisionPlan, analytics, checkinAnswers, weeklyAdaptHistory);
@@ -51844,6 +52100,14 @@ async function runWeeklyAdaptation(env, payload, jobId) {
         decision.changeSummary = [...decision.changeSummary, "\u0412\u0437\u0435\u0442\u043E \u0435 \u043F\u0440\u0435\u0434\u0432\u0438\u0434 \u0432\u0430\u0448\u0435\u0442\u043E \u043C\u043D\u0435\u043D\u0438\u0435"].slice(0, 4);
       }
     }
+    await reviewWeeklyDecisionWithCouncil(env, enrichedData, decision, {
+      ...decision.context,
+      answersText,
+      analytics,
+      history: weeklyAdaptHistory
+    });
+    await noteCouncilForSpecialist(env, clientId, goalCouncil && goalCouncil !== priorCouncil ? { point: "goal", verdict: goalCouncil.verdict, concerns: goalCouncil.concerns, transcript: goalCouncil.transcript } : null);
+    await noteCouncilForSpecialist(env, clientId, decision.council ? { point: "weekly", ...decision.council } : null);
     enrichedData.planModifications = mergeWeeklyModifications(
       userData.planModifications || enrichedData.planModifications,
       decision.modifications
@@ -51905,7 +52169,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       plan: newPlan,
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel,
-      monitoring: { weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence }
+      monitoring: { weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence, council: decision.council?.verdict || null }
     });
     await writeAdaptJob({
       status: "completed",
@@ -51915,6 +52179,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       strategyChanges: { calorieAdjust: decision.calorieAdjust },
       changeSummary: decision.changeSummary,
       reasoning: decision.reasoning,
+      council: { goal: goalCouncil ? { verdict: goalCouncil.verdict, algorithm: goalCouncil.algorithm, concerns: goalCouncil.concerns, transcript: goalCouncil.transcript } : null, weekly: decision.council || null },
       caloriesBefore,
       caloriesAfter: parseFinalCalories(newPlan?.analysis?.Final_Calories),
       analytics: { avgScore: analytics.avgScore, adherence: analytics.adherence, daysRecorded: analytics.daysRecorded, junk7: analytics.junk7 }
@@ -53202,8 +53467,8 @@ function validatePlan(plan, userData, substitutions = []) {
         day.meals.forEach((meal, mealIndex) => {
           if (Array.isArray(meal.alternatives)) {
             meal.alternatives = meal.alternatives.filter((alt) => {
-              const text = `${alt.name || ""} ${alt.description || ""}`.toLowerCase();
-              if (/грах|peas/.test(text) && /риба|fish/.test(text)) return false;
+              const text2 = `${alt.name || ""} ${alt.description || ""}`.toLowerCase();
+              if (/грах|peas/.test(text2) && /риба|fish/.test(text2)) return false;
               return applyFoodSubstitutions(structuredClone(alt), substitutions).length === 0;
             });
             if (!meal.alternatives.length) delete meal.alternatives;
@@ -53405,6 +53670,177 @@ async function applyIntakeHints(env, data) {
   if (hints) data._aiHints = { ...hints, hash };
   else delete data._aiHints;
 }
+function councilEnabled(env = {}) {
+  const v = env?.AI_COUNCIL;
+  return !(v === "0" || v === "false" || v === false);
+}
+var GOAL_OPINION_SCHEMA = '{ "stance": "agree | adjust | object", "direction": "lose | recomp | gain | maintain", "intakePct": 0, "extraGoals": [], "lead": [], "argument": "", "concerns": [] }';
+var WEEKLY_OPINION_SCHEMA = '{ "stance": "agree | adjust | object", "calorieAdjust": 0, "addModifications": [], "removeModifications": [], "argument": "", "concerns": [] }';
+function goalProposalText(model) {
+  const names = model.codes.map((c) => import_goal_model3.default.GOAL_NAMES[c] || c).join(", ");
+  const phases = model.phases.map((ph) => `${ph.label}${ph.until ? ` (\u0434\u043E ${ph.until.metric === "weight" ? `${ph.until.value} \u043A\u0433` : `\u0442\u0430\u043B\u0438\u044F ${ph.until.value} \u0441\u043C`})` : ""}`).join(" \u2192 ");
+  return [
+    `\u041F\u043E\u0441\u043E\u043A\u0430: ${model.direction} \u2014 ${model.directionLabel}`,
+    `\u041F\u0440\u0438\u0435\u043C: ${model.intakePct > 0 ? "+" : ""}${model.intakePct}% \u0441\u043F\u0440\u044F\u043C\u043E \u0434\u043D\u0435\u0432\u043D\u0438\u044F \u0440\u0430\u0437\u0445\u043E\u0434`,
+    `\u0426\u0435\u043B\u0438: ${names} (\u043E\u0441\u043D\u043E\u0432\u043D\u0430: ${import_goal_model3.default.GOAL_NAMES[model.primary] || model.primary})`,
+    `\u0412\u043E\u0434\u0435\u0449\u0438 \u043F\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0438: ${model.lead.join(", ")}`,
+    `\u0424\u0430\u0437\u0438: ${phases}`,
+    `\u041C\u043E\u0442\u0438\u0432\u0438: ${model.reasons.join("; ") || "\u2014"}`
+  ].join("\n");
+}
+function goalLimitsText(lim) {
+  return `\u043F\u0440\u0438\u0435\u043C \u043C\u0435\u0436\u0434\u0443 ${lim.minPct}% \u0438 ${lim.maxPct}%; \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438 \u043F\u043E\u0441\u043E\u043A\u0438: ${lim.allowed.join(", ")}${lim.reasons.length ? `; ${lim.reasons.join("; ")}` : ""}`;
+}
+function bodyText(model, profile) {
+  const b = model.body;
+  const risk = (v) => v == null ? "\u043D\u0435 \u0435 \u0438\u0437\u043C\u0435\u0440\u0435\u043D\u043E" : ["\u043D\u043E\u0440\u043C\u0430", "\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u043E", "\u0432\u0438\u0441\u043E\u043A\u043E"][v] || String(v);
+  return [
+    `\u0418\u0422\u041C ${b.bmi ?? "?"}; \u0438\u0437\u043B\u0438\u0448\u044A\u043A \u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 (0\u20134): ${b.excess}`,
+    `\u0442\u0430\u043B\u0438\u044F: ${risk(b.waistRisk)}; % \u043C\u0430\u0437\u043D\u0438\u043D\u0438: ${risk(b.fatRisk)}`,
+    `\u0432\u044A\u0437\u0440\u0430\u0441\u0442 ${profile.age ?? "?"}${b.older ? " (\u043D\u0430\u0434 65)" : ""}; \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${profile.activity.sportDays} \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`
+  ].join("\n");
+}
+function historyText(history) {
+  const rows = (history || []).slice(-5).map((h) => `- \u0446\u0438\u043A\u044A\u043B ${h.cycleNumber ?? "?"}: \u0442\u0435\u0433\u043B\u043E ${h.weightKg ?? "?"} \u043A\u0433 (${h.weight || "\u2014"}), \u0442\u0430\u043B\u0438\u044F ${h.waistCm ?? "\u2014"}, \u0441\u043F\u0430\u0437\u0435\u043D: ${h.followed == null ? "?" : h.followed ? "\u0434\u0430" : "\u043D\u0435"}, \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F ${h.calorieAdjust || 0} kcal`);
+  return rows.length ? rows.join("\n") : "\u043D\u044F\u043C\u0430";
+}
+function compileWithoutCouncil(data, extraGoals = []) {
+  const { _goalCouncil, ...rest } = data || {};
+  return compileProfile(extraGoals.length ? { ...rest, _goalCouncil: { extraGoals } } : rest);
+}
+async function conveneGoalCouncil(env, data, ctx = {}) {
+  if (!councilEnabled(env) || !data) return null;
+  const prev = data._goalCouncil || null;
+  const current = compileWithoutCouncil(data, prev?.extraGoals || []);
+  const contextHash = textHash([
+    ...collectFreeText(data),
+    { field: "goal", text: JSON.stringify([data.goal, data.goal_other, data.clinicalProtocol]) },
+    { field: "clinical", text: current.clinical.join(",") },
+    { field: "enrichment", text: String(data._enrichment?.essence?.at || data._enrichment?.reasons?.join("|") || "") },
+    { field: "weekly", text: ctx.answersText || "" }
+  ]);
+  if (prev?.contextHash === contextHash && prev?.signature === current.goalModel.algorithm.signature) return prev;
+  const base = compileWithoutCouncil(data);
+  const vars = {
+    proposal: goalProposalText(base.goalModel),
+    profileSummary: profileBrief(base),
+    body: bodyText(base.goalModel, base),
+    goals: [`\u043E\u0442\u043C\u0435\u0442\u043A\u0438: ${[].concat(data.goal || []).join(", ") || "\u043D\u044F\u043C\u0430"}`, data.goal_other ? `\u0434\u0440\u0443\u0433\u043E: ${data.goal_other}` : "", data.clinicalProtocol ? `\u043A\u043B\u0438\u043D\u0438\u0447\u043D\u0430 \u043A\u0430\u0440\u0442\u0430: ${data.clinicalProtocol}` : ""].filter(Boolean).join("\n"),
+    freeText: freeTextBlock(collectFreeText(data)),
+    enrichment: profileContextText(data._enrichment) || "\u043D\u044F\u043C\u0430",
+    history: [historyText(ctx.history), ctx.answersText ? `
+\u041E\u0422\u0413\u041E\u0412\u041E\u0420\u0418 \u041E\u0422 \u0422\u041E\u0417\u0418 \u041F\u0420\u0415\u0413\u041B\u0415\u0414:
+${ctx.answersText}` : ""].join(""),
+    hardLimits: goalLimitsText(base.goalModel.limits),
+    softPct: GOAL_SOFT_PCT,
+    goalCodes: Object.entries(import_goal_model3.default.GOAL_NAMES).map(([k, v]) => `${k} \u2014 ${v}`).join(", "),
+    leadMetrics: import_goal_model3.default.LEAD_METRICS.join(", ")
+  };
+  let extraGoals = [];
+  let model = base.goalModel;
+  const outcome = await deliberate({
+    ask: async () => normalizeGoalOpinion(await aiHelperJson(env, "admin_goal_council_prompt", vars, data, "goal_council")),
+    rebut: async (opinion2, objections) => normalizeGoalOpinion(await aiHelperJson(env, "admin_council_rebuttal_prompt", {
+      previous: JSON.stringify(opinion2),
+      objections: objections.map((o) => `- ${o}`).join("\n"),
+      hardLimits: vars.hardLimits,
+      schema: GOAL_OPINION_SCHEMA,
+      context: [vars.proposal, vars.profileSummary, vars.body, vars.goals, vars.freeText].join("\n\n")
+    }, data, "council_rebuttal")),
+    review: (opinion2, round3) => {
+      extraGoals = [.../* @__PURE__ */ new Set([...extraGoals, ...opinion2?.extraGoals || []])];
+      model = compileWithoutCouncil(data, extraGoals).goalModel;
+      return reviewGoalOpinion(model, opinion2, round3);
+    }
+  });
+  const { result, opinion, transcript } = outcome;
+  if (!opinion) return prev;
+  const changed = result.verdict !== "agree" || (opinion.lead || []).length;
+  const record = {
+    signature: model.algorithm.signature,
+    contextHash,
+    extraGoals,
+    decision: changed ? {
+      signature: model.algorithm.signature,
+      direction: result.direction,
+      intakePct: result.intakePct,
+      lead: opinion.lead || [],
+      summary: councilSummary(result, opinion),
+      verdict: result.verdict
+    } : null,
+    verdict: result.verdict,
+    algorithm: { direction: model.algorithm.direction, intakePct: model.algorithm.intakePct },
+    concerns: opinion.concerns || [],
+    transcript: transcript.slice(-6),
+    at: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  data._goalCouncil = record;
+  console.log(`[council] \u0446\u0435\u043B: ${result.verdict}; \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C ${model.algorithm.direction} ${model.algorithm.intakePct}% \u2192 ${result.direction} ${result.intakePct}%${extraGoals.length ? `; \u0446\u0435\u043B\u0438 \u043E\u0442 \u0442\u0435\u043A\u0441\u0442\u0430: ${extraGoals.join(",")}` : ""}`);
+  return record;
+}
+async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
+  if (!councilEnabled(env)) return decision;
+  const lim = weeklyLimits(ctx);
+  const a = ctx.analytics || {};
+  const vars = {
+    goal: goalProposalText(ctx.goalModel),
+    proposal: [
+      `\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F: ${decision.calorieAdjust > 0 ? "+" : ""}${decision.calorieAdjust} kcal \u043D\u0430 \u0434\u0435\u043D (\u0441\u0435\u0433\u0430 ${ctx.kcal}, \u0440\u0430\u0437\u0445\u043E\u0434 ${ctx.tdee}, \u043C\u0438\u043D\u0438\u043C\u0443\u043C ${ctx.floorKcal})`,
+      `\u041F\u0440\u043E\u043C\u0435\u043D\u0438 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E: ${decision.modifications.join(", ") || "\u043D\u044F\u043C\u0430"}`,
+      `\u041C\u043E\u0442\u0438\u0432\u0438: ${decision.reasoning || "\u2014"}`
+    ].join("\n"),
+    algoDelta: decision.calorieAdjust,
+    answers: ctx.answersText || "\u043D\u044F\u043C\u0430",
+    analytics: `\u0441\u043F\u0430\u0437\u0432\u0430\u043D\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430 ${a.mealAdherence ?? "?"}% (${a.mealDays || 0} \u0434\u043D\u0438), \u0441\u0440\u0435\u0434\u043D\u0430 \u043E\u0446\u0435\u043D\u043A\u0430 ${a.avgScore ?? "?"}, \u0434\u043D\u0438 \u0441 \u043E\u0442\u043C\u0435\u0442\u043A\u0438 ${a.daysRecorded ?? "?"}, \u0432\u0440\u0435\u0434\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 ${a.junk7 ?? 0}`,
+    history: historyText(ctx.history),
+    enrichment: profileContextText(data._enrichment) || "\u043D\u044F\u043C\u0430",
+    profileSummary: profileBrief(compileProfile(data)),
+    hardLimits: `\u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u043C\u0435\u0436\u0434\u0443 ${lim.min} \u0438 ${lim.max} kcal${lim.reasons.length ? `; ${lim.reasons.join("; ")}` : ""}`,
+    softKcal: WEEKLY_SOFT_KCAL,
+    modificationCodes: Object.entries(PLAN_MODIFICATION_CODES).map(([k, v]) => `${k} (${v})`).join(", ")
+  };
+  const review = (opinion2, round3) => reviewWeeklyOpinion(decision, opinion2, { ...ctx, adherence: decision.adherence }, round3);
+  const { result, opinion, transcript } = await deliberate({
+    ask: async () => normalizeWeeklyOpinion(await aiHelperJson(env, "admin_weekly_council_prompt", vars, data, "weekly_council")),
+    rebut: async (op, objections) => normalizeWeeklyOpinion(await aiHelperJson(env, "admin_council_rebuttal_prompt", {
+      previous: JSON.stringify(op),
+      objections: objections.map((o) => `- ${o}`).join("\n"),
+      hardLimits: vars.hardLimits,
+      schema: WEEKLY_OPINION_SCHEMA,
+      context: [vars.proposal, vars.answers, vars.analytics, vars.history].join("\n\n")
+    }, data, "council_rebuttal")),
+    review
+  });
+  if (!opinion) return decision;
+  decision.council = { verdict: result.verdict, concerns: opinion.concerns || [], transcript: transcript.slice(-6), algorithm: { calorieAdjust: decision.calorieAdjust, modifications: [...decision.modifications] } };
+  if (result.verdict === "agree") return decision;
+  const delta = result.calorieAdjust;
+  decision.calorieAdjust = delta;
+  decision.kcal = Math.round(ctx.kcal + delta);
+  decision.modifications = result.modifications;
+  decision.changeSummary = [
+    ...delta ? [`\u041A\u0430\u043B\u043E\u0440\u0438\u0438: ${delta > 0 ? "+" : ""}${delta} kcal \u043D\u0430 \u0434\u0435\u043D`] : [],
+    ...decision.changeSummary.filter((c) => !/^Калории:/.test(c))
+  ].slice(0, 4);
+  decision.adaptationLevel = delta || decision.modifications.length ? 2 : 1;
+  const message = weeklyMessage(decision, { adherence: decision.adherence });
+  decision.headline = message.headline;
+  decision.motivationMessage = message.message;
+  decision.reasoning = `${decision.reasoning} ${councilSummary(result, opinion)}`.trim();
+  console.log(`[council] \u0441\u0435\u0434\u043C\u0438\u0446\u0430: ${result.verdict}; ${decision.council.algorithm.calorieAdjust} \u2192 ${delta} kcal`);
+  return decision;
+}
+async function noteCouncilForSpecialist(env, clientId, entry) {
+  if (!clientId || !entry || entry.verdict !== "dissent" && !(entry.concerns || []).length) return;
+  try {
+    const client = await kvGetJSON(env, `client:${clientId}`);
+    if (!client) return;
+    client.councilLog = [...client.councilLog || [], { ...entry, at: (/* @__PURE__ */ new Date()).toISOString() }].slice(-10);
+    await kvPutJSON(env, `client:${clientId}`, client, null);
+  } catch (e) {
+    console.warn("[council] \u043A\u0430\u0440\u0442\u043E\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043E\u0431\u043D\u043E\u0432\u0435\u043D:", e.message);
+  }
+}
 async function reviewMenuWithAI(env, data, plan, rebuild) {
   const raw = await aiHelperJson(env, "admin_menu_review_prompt", {
     freeText: freeTextBlock(collectFreeText(data)),
@@ -53427,6 +53863,7 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   const tokens = { input: 0, output: 0, total: 0 };
   try {
     await applyIntakeHints(env, data);
+    await conveneGoalCouncil(env, data);
     const analysis = await runStep1Analysis(env, data, sessionId, "step1_analysis", null, tokens);
     if (typeof onAnalysisReady === "function") {
       try {
@@ -54061,6 +54498,10 @@ var AI_TASKS = {
   intake_hints: { tier: "main", thinking: "low" },
   menu_review: { tier: "main", thinking: "low" },
   feedback_hints: { tier: "lite", thinking: "low" },
+  // Съветът (алгоритъм + AI): клинична преценка — мисли повече; отговорът на възражението — по-кратко.
+  goal_council: { tier: "main", thinking: "medium", maxTokens: 900 },
+  weekly_council: { tier: "main", thinking: "medium", maxTokens: 900 },
+  council_rebuttal: { tier: "main", thinking: "low", maxTokens: 700 },
   health_digest: { tier: "lite", thinking: "minimal" },
   ai_validation: { tier: "lite", thinking: "low", maxTokens: 1200 },
   document_assessment: { tier: "main", thinking: "medium" },
@@ -57898,8 +58339,8 @@ async function ingestEnrichmentFacts(env, userId, facts2, meta = {}) {
     try {
       const client = await kvGetJSON(env, `client:${profile.clientId}`);
       if (client) {
-        const text = profileContextText(nextData._enrichment);
-        client.healthEssence = text ? { text, at: nextStore.updatedAt, sources: nextData._enrichment?.essence?.sources || [] } : null;
+        const text2 = profileContextText(nextData._enrichment);
+        client.healthEssence = text2 ? { text: text2, at: nextStore.updatedAt, sources: nextData._enrichment?.essence?.sources || [] } : null;
         if (profile.moduleSources) client.moduleSources = profile.moduleSources;
         if (urgent) {
           client.enrichmentAlert = { at: nextStore.updatedAt, reasons: change.reasons, cautions: nextData._enrichment?.hints?.cautions || [] };
@@ -57983,11 +58424,11 @@ async function countHandoff(env, source, event) {
 async function handleHandoffCreate(request, env) {
   try {
     if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
-    const text = await request.text();
-    if (text.length > HANDOFF_MAX_BYTES) return jsonResponse2({ error: "\u041F\u0440\u0430\u0442\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430." }, 413);
+    const text2 = await request.text();
+    if (text2.length > HANDOFF_MAX_BYTES) return jsonResponse2({ error: "\u041F\u0440\u0430\u0442\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C\u0430." }, 413);
     let raw;
     try {
-      raw = JSON.parse(text);
+      raw = JSON.parse(text2);
     } catch (_) {
       return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON" }, 400);
     }
@@ -58198,11 +58639,11 @@ async function handleDeviceExtract(request, env) {
 }
 async function handleDocumentAssess(request, env) {
   try {
-    const { userId, idToken, imageData, mimeType, text, note } = await request.json();
+    const { userId, idToken, imageData, mimeType, text: text2, note } = await request.json();
     if (!userId) return jsonResponse2({ error: "Missing userId" }, 400);
     const authError = await checkFirebaseOwner(userId, idToken, env, request);
     if (authError) return authError;
-    const plain = String(text || "").trim().slice(0, 12e3);
+    const plain = String(text2 || "").trim().slice(0, 12e3);
     if (!imageData && !plain) return jsonResponse2({ error: "\u0414\u043E\u0431\u0430\u0432\u0435\u0442\u0435 \u0444\u0430\u0439\u043B \u0438\u043B\u0438 \u0442\u0435\u043A\u0441\u0442." }, 400);
     const profile = await kvGetJSON(env, `user_profile:${userId}`);
     const data = applyEnrichment(normalizeQuestionnaireData({ ...profile?.userData || {} }), profile?.enrichment || { facts: [] });
@@ -58280,8 +58721,8 @@ async function handleEnrichmentDelete(request, env) {
         const client = await kvGetJSON(env, `client:${profile.clientId}`);
         if (client) {
           const d = facts2.length ? applyEnrichment(normalizeQuestionnaireData({ ...profile.userData || {} }), profile.enrichment)?._enrichment : null;
-          const text = d ? profileContextText(d) : "";
-          client.healthEssence = text ? { text, at: profile.enrichment.updatedAt, sources: d?.essence?.sources || [] } : null;
+          const text2 = d ? profileContextText(d) : "";
+          client.healthEssence = text2 ? { text: text2, at: profile.enrichment.updatedAt, sources: d?.essence?.sources || [] } : null;
           await kvPutJSON(env, `client:${profile.clientId}`, client, null);
         }
       } catch (e) {
@@ -58419,13 +58860,13 @@ async function handleLinksStart(request, env) {
   }
 }
 var APP_INTENT_URL = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.biocode.nutriplan;end";
-function linkResultPage(ok, title, text, fromApp = false) {
+function linkResultPage(ok, title, text2, fromApp = false) {
   const esc3 = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NutriPlan</title>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#F0FDFA;color:#042F2E}
 main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? "#0F766E" : "#B45309"}}
 a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#0F766E;color:#fff;text-decoration:none}</style></head>
-<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : "https://biocode.website/index.html?app=1&tab=profile"}">\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 NutriPlan</a></main>
+<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text2)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : "https://biocode.website/index.html?app=1&tab=profile"}">\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 NutriPlan</a></main>
 ${fromApp ? `<script>setTimeout(function(){location.href=${JSON.stringify(APP_INTENT_URL)};},${ok ? 600 : 2500});<\/script>` : ""}</body></html>`;
   return new Response(html, { status: ok ? 200 : 400, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }
@@ -59325,10 +59766,10 @@ async function handleXbodyViberTest(request, env) {
   if (!await xbodyViberAuth(request, env)) return jsonResponse2({ error: "unauthorized" }, 401);
   const b = await request.json().catch(() => null);
   const to = xbodyViberPhone(b && b.to);
-  const text = String(b && b.text || "\u0422\u0435\u0441\u0442 \u043E\u0442 XBODY Burgas \u2713").slice(0, 1e3);
+  const text2 = String(b && b.text || "\u0422\u0435\u0441\u0442 \u043E\u0442 XBODY Burgas \u2713").slice(0, 1e3);
   if (!to || !env.page_content) return jsonResponse2({ error: "bad phone" }, 400);
   const key = xbodyOutKey(Date.now(), `t${Date.now()}`, "test");
-  await env.page_content.put(key, JSON.stringify({ to, text, tries: 0 }), { expirationTtl: 86400 });
+  await env.page_content.put(key, JSON.stringify({ to, text: text2, tries: 0 }), { expirationTtl: 86400 });
   return jsonResponse2({ ok: true, id: key });
 }
 async function dropXbodyApptCache(env, email) {

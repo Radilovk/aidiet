@@ -47,6 +47,19 @@
    - Изходни данни: Дълбок индивидуализиран психологически профил с декодирани отговори, архетипи, кръстосани модели, лични прозрения, терапевтични стратегии, HALT профил и спешен протокол
    - Използва се в: `generateEmoeatPrompt()` / `handleGenerateEmoeatAnalysis()`
 
+### Съвет: алгоритъм + AI (nutrition-engine/council.js)
+
+Алгоритъмът предлага, AI преглежда, алгоритъмът проверява: твърдите граници са вето,
+в меките AI печели, извън тях — един кръг възражение и отговор. Без ключа в KV
+обсъждането е изключено и остава решението на алгоритъма. `AI_COUNCIL=0` го изключва.
+
+9. **admin_goal_council_prompt.txt** — посоката и силата на целта (при план и при седмичен преглед)
+   - Променливи: `{proposal}`, `{profileSummary}`, `{body}`, `{goals}`, `{freeText}`, `{enrichment}`, `{history}`, `{hardLimits}`, `{softPct}`, `{goalCodes}`, `{leadMetrics}`
+10. **admin_weekly_council_prompt.txt** — седмичната корекция на калориите и менюто
+   - Променливи: `{goal}`, `{proposal}`, `{algoDelta}`, `{answers}`, `{analytics}`, `{history}`, `{enrichment}`, `{profileSummary}`, `{hardLimits}`, `{softKcal}`, `{modificationCodes}`
+11. **admin_council_rebuttal_prompt.txt** — отговор на възражението (последен кръг)
+   - Променливи: `{previous}`, `{objections}`, `{hardLimits}`, `{schema}`, `{context}`
+
 ## Формат на промптовете
 
 Всички промптове използват `{placeholders}` с точкова нотация за достъп до вложени обекти:
