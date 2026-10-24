@@ -93,6 +93,9 @@ import {
   reviewWeeklyOpinion,
   weeklyLimits,
   councilSummary,
+  weeklyCouncilNeeded,
+  councilOutcome,
+  summarizeCouncilOutcomes,
   GOAL_SOFT_PCT,
   WEEKLY_SOFT_KCAL,
 } from './nutrition-engine/council.js';
@@ -6155,6 +6158,10 @@ function releasePendingWeeklyIfDue(profile) {
       followed: pending.monitoring?.followed ?? null,
       calorieAdjust: pending.monitoring?.calorieAdjust ?? 0,
       council: pending.monitoring?.council ?? null,
+      algoDelta: pending.monitoring?.algoDelta ?? null,
+      direction: pending.monitoring?.direction ?? null,
+      algoDirection: pending.monitoring?.algoDirection ?? null,
+      goalCouncil: pending.monitoring?.goalCouncil ?? null,
     });
     profile.weeklyAdaptHistory = hist.slice(-5);
   }
@@ -6303,13 +6310,18 @@ async function runWeeklyAdaptation(env, payload, jobId) {
         decision.changeSummary = [...decision.changeSummary, 'Взето е предвид вашето мнение'].slice(0, 4);
       }
     }
-    // Седмичната корекция: второ мнение от AI, проверено от алгоритъма (вето / възражение).
-    await reviewWeeklyDecisionWithCouncil(env, enrichedData, decision, {
-      ...decision.context,
-      answersText,
-      analytics,
-      history: weeklyAdaptHistory,
-    });
+    // Седмичната корекция: второ мнение от AI, проверено от алгоритъма (вето / възражение) —
+    // само когато седмицата има какво да покаже (промяна, бележка, противоречиви сигнали).
+    if (weeklyCouncilNeeded(decision, decision.context.checkin, note)) {
+      await reviewWeeklyDecisionWithCouncil(env, enrichedData, decision, {
+        ...decision.context,
+        answersText,
+        analytics,
+        history: weeklyAdaptHistory,
+      });
+    }
+    // Обратната връзка: резултатът от предишното решение (без AI, един запис в KV).
+    await recordCouncilOutcome(env, weeklyAdaptHistory, decision, jobId);
     await noteCouncilForSpecialist(env, clientId, goalCouncil && goalCouncil !== priorCouncil
       ? { point: 'goal', verdict: goalCouncil.verdict, concerns: goalCouncil.concerns, transcript: goalCouncil.transcript }
       : null);
@@ -6391,7 +6403,16 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       plan: newPlan,
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel,
-      monitoring: { weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence, council: decision.council?.verdict || null },
+      monitoring: {
+        weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg,
+        followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence,
+        // За обратната връзка: какво предложи алгоритъмът и какво реши съветът.
+        council: decision.council?.verdict || null,
+        algoDelta: decision.council?.algorithm?.calorieAdjust ?? decision.calorieAdjust,
+        direction: compileProfile(enrichedData).direction,
+        algoDirection: goalCouncil?.algorithm?.direction ?? decision.context.direction,
+        goalCouncil: goalCouncil?.verdict || null,
+      },
     });
     await writeAdaptJob({
       status: 'completed',
@@ -8308,12 +8329,14 @@ async function conveneGoalCouncil(env, data, ctx = {}) {
   if (!councilEnabled(env) || !data) return null;
   const prev = data._goalCouncil || null;
   const current = compileWithoutCouncil(data, prev?.extraGoals || []);
+  // Ново обсъждане само при реална промяна: друго предложение на алгоритъма (тегло,
+  // фаза, цели) или друг контекст (текст, състояния, активност, документи). Отговорите от
+  // всеки преглед и всяка синхронизация на устройство НЕ го пускат наново — цената.
   const contextHash = textHash([
     ...collectFreeText(data),
     { field: 'goal', text: JSON.stringify([data.goal, data.goal_other, data.clinicalProtocol]) },
-    { field: 'clinical', text: current.clinical.join(',') },
-    { field: 'enrichment', text: String(data._enrichment?.essence?.at || data._enrichment?.reasons?.join('|') || '') },
-    { field: 'weekly', text: ctx.answersText || '' },
+    { field: 'profile', text: JSON.stringify([current.clinical, current.protocol, current.activity.daily, current.activity.sportBand, current.stress, current.diet.pattern]) },
+    { field: 'documents', text: (data._enrichment?.documents || []).map(d => d.key || d.at || '').join(',') },
   ]);
   if (prev?.contextHash === contextHash && prev?.signature === current.goalModel.algorithm.signature) return prev;
 
@@ -8432,6 +8455,62 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
   decision.reasoning = `${decision.reasoning} ${councilSummary(result, opinion)}`.trim();
   console.log(`[council] седмица: ${result.verdict}; ${decision.council.algorithm.calorieAdjust} → ${delta} kcal`);
   return decision;
+}
+
+const COUNCIL_OUTCOME_PREFIX = 'council_outcome:';
+const COUNCIL_OUTCOME_TTL = 400 * 24 * 60 * 60;
+
+/**
+ * Резултатът от предишното седмично решение — какво предложи алгоритъмът, какво
+ * реши съветът и какво стана с тялото след това. Записва се като метаданни на
+ * ключ в KV: обобщението чете само списъка с ключове, без отделно четене на всеки.
+ */
+async function recordCouncilOutcome(env, history, decision, jobId) {
+  const prev = (history || [])[history.length - 1];
+  if (!env?.page_content || !prev?.direction) return; // само решения, взети с модела на целта
+  try {
+    const outcome = councilOutcome(prev, decision.context?.checkin || {});
+    const meta = {
+      c: prev.cycleNumber ?? null,
+      dir: prev.direction,
+      adir: prev.algoDirection ?? null,
+      gv: prev.goalCouncil ?? null,
+      wv: prev.council ?? null,
+      ad: prev.algoDelta ?? null,
+      fd: prev.calorieAdjust ?? null,
+      ok: outcome.onTrack,
+      fol: decision.followed ?? null,
+      chg: outcome.weeklyChangeKg,
+      wst: outcome.waistChangeCm,
+    };
+    const day = new Date().toISOString().slice(0, 10);
+    await env.page_content.put(`${COUNCIL_OUTCOME_PREFIX}${day}:${jobId || crypto.randomUUID()}`, '1', { metadata: meta, expirationTtl: COUNCIL_OUTCOME_TTL });
+  } catch (e) {
+    console.warn('[council] резултатът не е записан:', e.message);
+  }
+}
+
+/**
+ * GET /api/admin/council-stats?days=90 — помага ли AI: по групи (без AI / съгласен /
+ * коригирал / несъгласен) колко решения, колко с измерен резултат, колко в посоката.
+ */
+async function handleCouncilStats(request, env) {
+  if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+  const days = Math.min(400, Math.max(1, Number(new URL(request.url).searchParams.get('days')) || 90));
+  const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  const records = [];
+  let cursor;
+  for (let page = 0; page < 50; page++) {
+    const res = await env.page_content.list({ prefix: COUNCIL_OUTCOME_PREFIX, cursor, limit: 1000 });
+    for (const k of res.keys) {
+      if (k.name.slice(COUNCIL_OUTCOME_PREFIX.length, COUNCIL_OUTCOME_PREFIX.length + 10) < from || !k.metadata) continue;
+      const m = k.metadata;
+      records.push({ goal: m.gv, weekly: m.wv, onTrack: m.ok, followed: m.fol, direction: m.dir });
+    }
+    if (res.list_complete || !res.cursor) break;
+    cursor = res.cursor;
+  }
+  return jsonResponse({ success: true, days, ...summarizeCouncilOutcomes(records) });
 }
 
 /** Обсъждането, което специалистът трябва да види: несъгласие или тревога от AI. */
@@ -9305,9 +9384,10 @@ const AI_TASKS = {
   menu_review: { tier: 'main', thinking: 'low' },
   feedback_hints: { tier: 'lite', thinking: 'low' },
   // Съветът (алгоритъм + AI): клинична преценка — мисли повече; отговорът на възражението — по-кратко.
-  goal_council: { tier: 'main', thinking: 'medium', maxTokens: 900 },
-  weekly_council: { tier: 'main', thinking: 'medium', maxTokens: 900 },
-  council_rebuttal: { tier: 'main', thinking: 'low', maxTokens: 700 },
+  // Цената: ниско мислене; отговорът на възражението — по-евтиният модел.
+  goal_council: { tier: 'main', thinking: 'low', maxTokens: 700 },
+  weekly_council: { tier: 'main', thinking: 'low', maxTokens: 700 },
+  council_rebuttal: { tier: 'lite', thinking: 'low', maxTokens: 500 },
   health_digest: { tier: 'lite', thinking: 'minimal' },
   ai_validation: { tier: 'lite', thinking: 'low', maxTokens: 1200 },
   document_assessment: { tier: 'main', thinking: 'medium' },
@@ -17392,6 +17472,8 @@ export default {
         return await handleContactMessage(request, env, ctx);
       } else if (url.pathname === '/api/save-client-data' && request.method === 'POST') {
         return await handleSaveClientData(request, env, ctx);
+      } else if (url.pathname === '/api/admin/council-stats' && request.method === 'GET') {
+        return await handleCouncilStats(request, env);
       } else if (url.pathname === '/api/admin/get-reports' && request.method === 'GET') {
         return await handleGetReports(request, env);
       } else if (url.pathname === '/api/admin/get-contact-messages' && request.method === 'GET') {

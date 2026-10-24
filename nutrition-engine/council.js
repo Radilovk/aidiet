@@ -238,3 +238,98 @@ export function councilSummary(result, opinion) {
   if (result.verdict === 'dissent') return `Преглед на специалист: AI настоява за повече промяна, приета е частично.${why}`;
   return `Корекция след преглед:${why}`;
 }
+
+/* ─── Цена: AI само когато има какво да види ────────────────────────────── */
+
+/**
+ * Дали седмицата има нужда от второ мнение. Спокойна седмица (без промяна в
+ * калориите, без бележка, без противоречиви сигнали) не се праща на AI —
+ * там алгоритъмът е достатъчен, а обсъждането би било само разход.
+ * @param {{ calorieAdjust: number, adherence?: number|null }} decision
+ * @param {{ hunger?: number|null, energy?: number|null, recoveryLow?: boolean, leanLoss?: boolean }} checkin
+ * @param {string} [note] свободният коментар от прегледа
+ */
+export function weeklyCouncilNeeded(decision, checkin = {}, note = '') {
+  if (decision.calorieAdjust) return true;
+  if (String(note || '').trim().length >= 6) return true;
+  if (checkin.recoveryLow || checkin.leanLoss) return true;
+  if (checkin.hunger === 3 && checkin.energy === 3) return true;
+  if (decision.adherence != null && decision.adherence < 60) return true;
+  return false;
+}
+
+/* ─── Обратна връзка: какво стана след решението ───────────────────────── */
+
+const ON_TRACK_LOSS_MIN = 0.1;   // кг/седм. — под това кантарът не различава спад
+const RECOMP_BAND = 0.005;       // ±0,5% от теглото седмично — „теглото стои“
+const GAIN_MAX_RATE = 0.005;     // над 0,5% седмично качването е предимно мазнини
+const FAST_LOSS_RATE = 0.01;     // над 1% седмично — губят се мускули
+
+/**
+ * Резултатът от седмицата след решението, спрямо посоката, която е била избрана.
+ * Без измерване — onTrack е null (неизвестно, не „неуспех“).
+ * @param {{ direction?: string, weightKg?: number|null, waistCm?: number|null }} prev  записът на предишното решение
+ * @param {{ weeklyChangeKg?: number|null, waistChangeCm?: number|null, weightKg?: number|null, adherence?: number|null }} checkin  тази седмица
+ * @returns {{ onTrack: boolean|null, weeklyChangeKg: number|null, waistChangeCm: number|null, adherence: number|null }}
+ */
+export function councilOutcome(prev, checkin = {}) {
+  const change = checkin.weeklyChangeKg ?? null;
+  const waist = checkin.waistChangeCm ?? null;
+  const base = Number(checkin.weightKg || prev?.weightKg) || 70;
+  let onTrack = null;
+  if (change != null) {
+    switch (prev?.direction) {
+      case 'lose':
+        onTrack = change <= -ON_TRACK_LOSS_MIN && -change <= base * FAST_LOSS_RATE;
+        break;
+      case 'gain':
+        onTrack = change >= ON_TRACK_LOSS_MIN && change <= base * GAIN_MAX_RATE;
+        break;
+      case 'recomp':
+        onTrack = Math.abs(change) <= base * RECOMP_BAND || (waist != null && waist <= -1);
+        break;
+      case 'maintain':
+        onTrack = Math.abs(change) <= base * RECOMP_BAND;
+        break;
+      default:
+        onTrack = null;
+    }
+  } else if (waist != null && (prev?.direction === 'recomp' || prev?.direction === 'lose')) {
+    onTrack = waist <= -1 ? true : waist >= 1 ? false : null;
+  }
+  return { onTrack, weeklyChangeKg: change, waistChangeCm: waist, adherence: checkin.adherence ?? null };
+}
+
+/** Група на решението за сравнение: AI липсва / съгласен / коригирал / несъгласен. */
+export function councilGroup(verdict) {
+  if (!verdict) return 'no_ai';
+  if (verdict === 'agree') return 'agree';
+  if (verdict === 'dissent') return 'dissent';
+  return 'adjusted';
+}
+
+/**
+ * Обобщение на записите: по групи — колко решения, колко с измерен резултат,
+ * колко в посоката. Само преброени случаи, без оценки и екстраполация.
+ * @param {Array<{ goal?: string|null, weekly?: string|null, onTrack?: boolean|null, followed?: boolean|null }>} records
+ */
+export function summarizeCouncilOutcomes(records) {
+  const empty = () => ({ decisions: 0, measured: 0, onTrack: 0, followedMeasured: 0, followedOnTrack: 0 });
+  const out = { total: records.length, weekly: {}, goal: {} };
+  for (const r of records) {
+    for (const [point, verdict] of [['weekly', r.weekly], ['goal', r.goal]]) {
+      const g = councilGroup(verdict);
+      const bucket = out[point][g] || (out[point][g] = empty());
+      bucket.decisions++;
+      if (r.onTrack == null) continue;
+      bucket.measured++;
+      if (r.onTrack) bucket.onTrack++;
+      // При неспазен план резултатът не казва нищо за решението — отделно броене.
+      if (r.followed) {
+        bucket.followedMeasured++;
+        if (r.onTrack) bucket.followedOnTrack++;
+      }
+    }
+  }
+  return out;
+}

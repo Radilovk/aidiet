@@ -11,6 +11,9 @@ import {
   normalizeWeeklyOpinion,
   reviewWeeklyOpinion,
   weeklyLimits,
+  weeklyCouncilNeeded,
+  councilOutcome,
+  summarizeCouncilOutcomes,
   GOAL_SOFT_PCT,
 } from '../nutrition-engine/council.js';
 
@@ -97,6 +100,28 @@ const silent = await deliberate({ ask: async () => op({ intakePct: -22 }), rebut
 ok(silent.result.intakePct === -10, 'без отговор на възражението — предложението на алгоритъма');
 const broken = await deliberate({ ask: async () => { throw new Error('AI down'); }, rebut: async () => null, review });
 ok(broken.result.verdict === 'agree' && broken.rounds === 0, 'AI не отговаря — планът не спира');
+
+// ─── Цена: AI само когато има какво да види ───
+ok(!weeklyCouncilNeeded({ calorieAdjust: 0, adherence: 90 }, { hunger: 1, energy: 1 }, ''), 'спокойна седмица — без AI');
+ok(weeklyCouncilNeeded({ calorieAdjust: -100, adherence: 90 }, {}, ''), 'промяна в калориите — AI преглежда');
+ok(weeklyCouncilNeeded({ calorieAdjust: 0, adherence: 90 }, {}, 'бях болна три дни'), 'бележка от клиента — AI преглежда');
+ok(weeklyCouncilNeeded({ calorieAdjust: 0, adherence: 90 }, { hunger: 3, energy: 3 }, ''), 'глад + ниска енергия — AI преглежда');
+ok(weeklyCouncilNeeded({ calorieAdjust: 0, adherence: 50 }, {}, ''), 'ниско спазване — AI преглежда');
+
+// ─── Обратна връзка ───
+ok(councilOutcome({ direction: 'lose', weightKg: 80 }, { weeklyChangeKg: -0.5, weightKg: 79.5 }).onTrack === true, 'сваляне: −0,5 кг — в посоката');
+ok(councilOutcome({ direction: 'lose', weightKg: 80 }, { weeklyChangeKg: -1.2, weightKg: 78.8 }).onTrack === false, 'сваляне: над 1% седмично — не (мускули)');
+ok(councilOutcome({ direction: 'lose', weightKg: 80 }, { weeklyChangeKg: 0 }).onTrack === false, 'сваляне: без спад — не');
+ok(councilOutcome({ direction: 'recomp', weightKg: 80 }, { weeklyChangeKg: 0.6, waistChangeCm: -1.5 }).onTrack === true, 'смяна на състава: по-малка талия — в посоката');
+ok(councilOutcome({ direction: 'gain', weightKg: 70 }, { weeklyChangeKg: 0.3 }).onTrack === true, 'покачване: +0,3 кг — в посоката');
+ok(councilOutcome({ direction: 'lose', weightKg: 80 }, {}).onTrack === null, 'без измерване — неизвестно, не неуспех');
+const summary = summarizeCouncilOutcomes([
+  { goal: 'agree', weekly: null, onTrack: true, followed: true },
+  { goal: 'accept', weekly: 'accept', onTrack: false, followed: true },
+  { goal: 'agree', weekly: 'dissent', onTrack: null, followed: false },
+]);
+ok(summary.total === 3 && summary.weekly.no_ai.decisions === 1 && summary.weekly.adjusted.measured === 1 && summary.weekly.dissent.measured === 0, 'обобщение по групи — само преброени случаи');
+ok(summary.goal.agree.decisions === 2 && summary.goal.agree.onTrack === 1, 'обобщение и за целта');
 
 console.log(`\n=== council: ${pass} pass, ${fail} fail ===`);
 if (fail) process.exit(1);

@@ -44491,6 +44491,70 @@ function councilSummary(result, opinion) {
   if (result.verdict === "dissent") return `\u041F\u0440\u0435\u0433\u043B\u0435\u0434 \u043D\u0430 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442: AI \u043D\u0430\u0441\u0442\u043E\u044F\u0432\u0430 \u0437\u0430 \u043F\u043E\u0432\u0435\u0447\u0435 \u043F\u0440\u043E\u043C\u044F\u043D\u0430, \u043F\u0440\u0438\u0435\u0442\u0430 \u0435 \u0447\u0430\u0441\u0442\u0438\u0447\u043D\u043E.${why}`;
   return `\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u0433\u043B\u0435\u0434:${why}`;
 }
+function weeklyCouncilNeeded(decision, checkin = {}, note = "") {
+  if (decision.calorieAdjust) return true;
+  if (String(note || "").trim().length >= 6) return true;
+  if (checkin.recoveryLow || checkin.leanLoss) return true;
+  if (checkin.hunger === 3 && checkin.energy === 3) return true;
+  if (decision.adherence != null && decision.adherence < 60) return true;
+  return false;
+}
+var ON_TRACK_LOSS_MIN = 0.1;
+var RECOMP_BAND = 5e-3;
+var GAIN_MAX_RATE = 5e-3;
+var FAST_LOSS_RATE = 0.01;
+function councilOutcome(prev, checkin = {}) {
+  const change = checkin.weeklyChangeKg ?? null;
+  const waist = checkin.waistChangeCm ?? null;
+  const base = Number(checkin.weightKg || prev?.weightKg) || 70;
+  let onTrack = null;
+  if (change != null) {
+    switch (prev?.direction) {
+      case "lose":
+        onTrack = change <= -ON_TRACK_LOSS_MIN && -change <= base * FAST_LOSS_RATE;
+        break;
+      case "gain":
+        onTrack = change >= ON_TRACK_LOSS_MIN && change <= base * GAIN_MAX_RATE;
+        break;
+      case "recomp":
+        onTrack = Math.abs(change) <= base * RECOMP_BAND || waist != null && waist <= -1;
+        break;
+      case "maintain":
+        onTrack = Math.abs(change) <= base * RECOMP_BAND;
+        break;
+      default:
+        onTrack = null;
+    }
+  } else if (waist != null && (prev?.direction === "recomp" || prev?.direction === "lose")) {
+    onTrack = waist <= -1 ? true : waist >= 1 ? false : null;
+  }
+  return { onTrack, weeklyChangeKg: change, waistChangeCm: waist, adherence: checkin.adherence ?? null };
+}
+function councilGroup(verdict) {
+  if (!verdict) return "no_ai";
+  if (verdict === "agree") return "agree";
+  if (verdict === "dissent") return "dissent";
+  return "adjusted";
+}
+function summarizeCouncilOutcomes(records) {
+  const empty = () => ({ decisions: 0, measured: 0, onTrack: 0, followedMeasured: 0, followedOnTrack: 0 });
+  const out = { total: records.length, weekly: {}, goal: {} };
+  for (const r of records) {
+    for (const [point, verdict] of [["weekly", r.weekly], ["goal", r.goal]]) {
+      const g = councilGroup(verdict);
+      const bucket = out[point][g] || (out[point][g] = empty());
+      bucket.decisions++;
+      if (r.onTrack == null) continue;
+      bucket.measured++;
+      if (r.onTrack) bucket.onTrack++;
+      if (r.followed) {
+        bucket.followedMeasured++;
+        if (r.onTrack) bucket.followedOnTrack++;
+      }
+    }
+  }
+  return out;
+}
 
 // worker.entry.js
 var import_goal_model3 = __toESM(require_goal_model());
@@ -44898,7 +44962,7 @@ function answerOf(answers2, id) {
   return hit ? String(hit.value) : null;
 }
 var FLAT_KG = 0.2;
-var FAST_LOSS_RATE = 0.01;
+var FAST_LOSS_RATE2 = 0.01;
 var LACTATION_MAX_LOSS_KG = 0.5;
 var FAST_GAIN_RATE = 5e-3;
 var SLOW_LOSS_SHARE = 0.4;
@@ -44954,7 +45018,7 @@ function weightOutcome(checkin, { goalKind, expectedLossKg = 0, weightKg = 0, la
   }
   const base = checkin.weightKg || weightKg || 70;
   const loss = -change;
-  if (loss > 0 && (loss >= base * FAST_LOSS_RATE || lactating && loss > LACTATION_MAX_LOSS_KG)) return "fast_loss";
+  if (loss > 0 && (loss >= base * FAST_LOSS_RATE2 || lactating && loss > LACTATION_MAX_LOSS_KG)) return "fast_loss";
   if (change >= FLAT_KG) return goalKind === "gain" && change > base * FAST_GAIN_RATE ? "fast_gain" : "gain";
   if (Math.abs(change) < FLAT_KG) return "flat";
   if (goalKind === "loss" && expectedLossKg >= 0.25 && loss < expectedLossKg * SLOW_LOSS_SHARE) return "slow";
@@ -51978,7 +52042,11 @@ function releasePendingWeeklyIfDue(profile) {
       waistCm: pending.monitoring?.waistCm ?? null,
       followed: pending.monitoring?.followed ?? null,
       calorieAdjust: pending.monitoring?.calorieAdjust ?? 0,
-      council: pending.monitoring?.council ?? null
+      council: pending.monitoring?.council ?? null,
+      algoDelta: pending.monitoring?.algoDelta ?? null,
+      direction: pending.monitoring?.direction ?? null,
+      algoDirection: pending.monitoring?.algoDirection ?? null,
+      goalCouncil: pending.monitoring?.goalCouncil ?? null
     });
     profile.weeklyAdaptHistory = hist.slice(-5);
   }
@@ -52100,12 +52168,15 @@ async function runWeeklyAdaptation(env, payload, jobId) {
         decision.changeSummary = [...decision.changeSummary, "\u0412\u0437\u0435\u0442\u043E \u0435 \u043F\u0440\u0435\u0434\u0432\u0438\u0434 \u0432\u0430\u0448\u0435\u0442\u043E \u043C\u043D\u0435\u043D\u0438\u0435"].slice(0, 4);
       }
     }
-    await reviewWeeklyDecisionWithCouncil(env, enrichedData, decision, {
-      ...decision.context,
-      answersText,
-      analytics,
-      history: weeklyAdaptHistory
-    });
+    if (weeklyCouncilNeeded(decision, decision.context.checkin, note)) {
+      await reviewWeeklyDecisionWithCouncil(env, enrichedData, decision, {
+        ...decision.context,
+        answersText,
+        analytics,
+        history: weeklyAdaptHistory
+      });
+    }
+    await recordCouncilOutcome(env, weeklyAdaptHistory, decision, jobId);
     await noteCouncilForSpecialist(env, clientId, goalCouncil && goalCouncil !== priorCouncil ? { point: "goal", verdict: goalCouncil.verdict, concerns: goalCouncil.concerns, transcript: goalCouncil.transcript } : null);
     await noteCouncilForSpecialist(env, clientId, decision.council ? { point: "weekly", ...decision.council } : null);
     enrichedData.planModifications = mergeWeeklyModifications(
@@ -52169,7 +52240,21 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       plan: newPlan,
       userData: enrichedData,
       adaptLevel: decision.adaptationLevel,
-      monitoring: { weight: decision.weight, weightKg: decision.weightKg, waistCm: decision.waistCm, weeklyChangeKg: decision.weeklyChangeKg, followed: decision.followed, calorieAdjust: decision.calorieAdjust, adherence: decision.adherence, council: decision.council?.verdict || null }
+      monitoring: {
+        weight: decision.weight,
+        weightKg: decision.weightKg,
+        waistCm: decision.waistCm,
+        weeklyChangeKg: decision.weeklyChangeKg,
+        followed: decision.followed,
+        calorieAdjust: decision.calorieAdjust,
+        adherence: decision.adherence,
+        // За обратната връзка: какво предложи алгоритъмът и какво реши съветът.
+        council: decision.council?.verdict || null,
+        algoDelta: decision.council?.algorithm?.calorieAdjust ?? decision.calorieAdjust,
+        direction: compileProfile(enrichedData).direction,
+        algoDirection: goalCouncil?.algorithm?.direction ?? decision.context.direction,
+        goalCouncil: goalCouncil?.verdict || null
+      }
     });
     await writeAdaptJob({
       status: "completed",
@@ -53715,9 +53800,8 @@ async function conveneGoalCouncil(env, data, ctx = {}) {
   const contextHash = textHash([
     ...collectFreeText(data),
     { field: "goal", text: JSON.stringify([data.goal, data.goal_other, data.clinicalProtocol]) },
-    { field: "clinical", text: current.clinical.join(",") },
-    { field: "enrichment", text: String(data._enrichment?.essence?.at || data._enrichment?.reasons?.join("|") || "") },
-    { field: "weekly", text: ctx.answersText || "" }
+    { field: "profile", text: JSON.stringify([current.clinical, current.protocol, current.activity.daily, current.activity.sportBand, current.stress, current.diet.pattern]) },
+    { field: "documents", text: (data._enrichment?.documents || []).map((d) => d.key || d.at || "").join(",") }
   ]);
   if (prev?.contextHash === contextHash && prev?.signature === current.goalModel.algorithm.signature) return prev;
   const base = compileWithoutCouncil(data);
@@ -53829,6 +53913,50 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
   decision.reasoning = `${decision.reasoning} ${councilSummary(result, opinion)}`.trim();
   console.log(`[council] \u0441\u0435\u0434\u043C\u0438\u0446\u0430: ${result.verdict}; ${decision.council.algorithm.calorieAdjust} \u2192 ${delta} kcal`);
   return decision;
+}
+var COUNCIL_OUTCOME_PREFIX = "council_outcome:";
+var COUNCIL_OUTCOME_TTL = 400 * 24 * 60 * 60;
+async function recordCouncilOutcome(env, history, decision, jobId) {
+  const prev = (history || [])[history.length - 1];
+  if (!env?.page_content || !prev?.direction) return;
+  try {
+    const outcome = councilOutcome(prev, decision.context?.checkin || {});
+    const meta = {
+      c: prev.cycleNumber ?? null,
+      dir: prev.direction,
+      adir: prev.algoDirection ?? null,
+      gv: prev.goalCouncil ?? null,
+      wv: prev.council ?? null,
+      ad: prev.algoDelta ?? null,
+      fd: prev.calorieAdjust ?? null,
+      ok: outcome.onTrack,
+      fol: decision.followed ?? null,
+      chg: outcome.weeklyChangeKg,
+      wst: outcome.waistChangeCm
+    };
+    const day = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    await env.page_content.put(`${COUNCIL_OUTCOME_PREFIX}${day}:${jobId || crypto.randomUUID()}`, "1", { metadata: meta, expirationTtl: COUNCIL_OUTCOME_TTL });
+  } catch (e) {
+    console.warn("[council] \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u044A\u0442 \u043D\u0435 \u0435 \u0437\u0430\u043F\u0438\u0441\u0430\u043D:", e.message);
+  }
+}
+async function handleCouncilStats(request, env) {
+  if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+  const days = Math.min(400, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 90));
+  const from = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+  const records = [];
+  let cursor;
+  for (let page = 0; page < 50; page++) {
+    const res = await env.page_content.list({ prefix: COUNCIL_OUTCOME_PREFIX, cursor, limit: 1e3 });
+    for (const k of res.keys) {
+      if (k.name.slice(COUNCIL_OUTCOME_PREFIX.length, COUNCIL_OUTCOME_PREFIX.length + 10) < from || !k.metadata) continue;
+      const m = k.metadata;
+      records.push({ goal: m.gv, weekly: m.wv, onTrack: m.ok, followed: m.fol, direction: m.dir });
+    }
+    if (res.list_complete || !res.cursor) break;
+    cursor = res.cursor;
+  }
+  return jsonResponse2({ success: true, days, ...summarizeCouncilOutcomes(records) });
 }
 async function noteCouncilForSpecialist(env, clientId, entry) {
   if (!clientId || !entry || entry.verdict !== "dissent" && !(entry.concerns || []).length) return;
@@ -54499,9 +54627,10 @@ var AI_TASKS = {
   menu_review: { tier: "main", thinking: "low" },
   feedback_hints: { tier: "lite", thinking: "low" },
   // Съветът (алгоритъм + AI): клинична преценка — мисли повече; отговорът на възражението — по-кратко.
-  goal_council: { tier: "main", thinking: "medium", maxTokens: 900 },
-  weekly_council: { tier: "main", thinking: "medium", maxTokens: 900 },
-  council_rebuttal: { tier: "main", thinking: "low", maxTokens: 700 },
+  // Цената: ниско мислене; отговорът на възражението — по-евтиният модел.
+  goal_council: { tier: "main", thinking: "low", maxTokens: 700 },
+  weekly_council: { tier: "main", thinking: "low", maxTokens: 700 },
+  council_rebuttal: { tier: "lite", thinking: "low", maxTokens: 500 },
   health_digest: { tier: "lite", thinking: "minimal" },
   ai_validation: { tier: "lite", thinking: "low", maxTokens: 1200 },
   document_assessment: { tier: "main", thinking: "medium" },
@@ -60617,6 +60746,8 @@ var worker_entry_default = {
         return await handleContactMessage(request, env, ctx);
       } else if (url.pathname === "/api/save-client-data" && request.method === "POST") {
         return await handleSaveClientData(request, env, ctx);
+      } else if (url.pathname === "/api/admin/council-stats" && request.method === "GET") {
+        return await handleCouncilStats(request, env);
       } else if (url.pathname === "/api/admin/get-reports" && request.method === "GET") {
         return await handleGetReports(request, env);
       } else if (url.pathname === "/api/admin/get-contact-messages" && request.method === "GET") {
