@@ -11702,7 +11702,10 @@
             var allData = getGameData();
             var GS = window.GameScoring;
             // Същите формули като на сървъра и екрана с анализа (game-scoring.js).
-            var sum = GS.weekSummary(allData, GS.dateKey(new Date()));
+            // Оценява се завършената седмица (до вчера): днешният ден още не е свършил
+            // и непопълнената вечер не бива да го рисува в червено.
+            var y = new Date(); y.setDate(y.getDate() - 1);
+            var sum = GS.weekSummary(allData, GS.dateKey(y));
             var noDataDays = sum.days.filter(function(day) {
                 if (!day.rec) return true;
                 var ds = GS.calcDayScore(day.rec);
@@ -11722,6 +11725,12 @@
             var old = document.getElementById('gameWeeklyModal');
             if (old) old.remove();
             var avg = wd.avgScore;
+            // Оценката е толкова вярна, колкото дни има зад нея: при по-малко от 5
+            // оценени дни най-високото заглавие не се дава.
+            var scoredDays = wd.days.filter(function(day) {
+                return day.rec && window.GameScoring.calcDayScore(day.rec).score !== null;
+            }).length;
+            if (scoredDays < 5 && avg >= 4.5) avg = 4.4;
             var iconClass, iconColor, title, color;
             if      (avg>=4.5){ iconClass='fas fa-trophy'; iconColor='#fbbf24'; title='Страхотна седмица!'; color='#fbbf24'; }
             else if (avg>=3.5){ iconClass='fas fa-bullseye'; iconColor='#10b981'; title='Добра седмица!'; color='#10b981'; }
@@ -11756,7 +11765,8 @@
             dotsWrap.style.cssText = 'display:flex;gap:5px;justify-content:center;margin:14px 0 20px;';
             wd.days.forEach(function(day) {
                 var dot = document.createElement('div');
-                var ds2 = day.rec ? (day.rec.dailyScore||calcDayScore(day.rec)) : null;
+                // Точките — по същата сметка като средното (не по запазената стара оценка).
+                var ds2 = day.rec ? window.GameScoring.calcDayScore(day.rec) : null;
                 var bg = '#e5e7eb';
                 if (ds2 && ds2.score !== null) bg = ds2.score>=4?'#10b981':ds2.score>=3?'#f59e0b':'#f87171';
                 dot.style.cssText = 'width:20px;height:20px;border-radius:50%;background:'+bg+';';
@@ -12500,9 +12510,21 @@
                     localStorage.setItem(shownKey, '1');
                     info.feedbackStatus = 'pending';
                     saveWeeklyAIState(info);
-                    setTimeout(function() { showWeeklyRecapModal(wd); }, 1600);
+                    showWeeklyRecapWhenFree(wd, shownKey, 0);
                 }
             }
+        }
+
+        // Прегледът не се трупа върху сутрешния/вечерния въпрос или друг прозорец:
+        // чака да се освободи екранът; ако не стане до минута — при следващо отваряне.
+        function showWeeklyRecapWhenFree(wd, shownKey, tries) {
+            setTimeout(function() {
+                var busy = _queueDepth > 0 || _openPromptPending ||
+                    document.querySelector('.game-modal-overlay') || document.getElementById('gameBubble');
+                if (!busy) { showWeeklyRecapModal(wd); return; }
+                if (tries < 12) { showWeeklyRecapWhenFree(wd, shownKey, tries + 1); return; }
+                try { localStorage.removeItem(shownKey); } catch (_) {}
+            }, tries ? 5000 : 1600);
         }
 
         // ── Activate ──────────────────────────────────────────────────────────

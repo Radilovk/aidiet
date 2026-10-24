@@ -223,14 +223,13 @@
     /** Build last-7-days array (today − 6 … today). */
     function buildLast7Days(allData, todayKey) {
         todayKey = todayKey || dateKey(new Date());
+        // Седемте дни, завършващи с todayKey (не непременно с днешния).
+        var p = todayKey.split('-');
         var days = [];
         for (var i = 6; i >= 0; i--) {
-            var dd = new Date();
-            dd.setDate(dd.getDate() - i);
+            var dd = new Date(+p[0], +p[1] - 1, +p[2] - i);
             var key = dateKey(dd);
-            if (key <= todayKey) {
-                days.push({ key: key, rec: (allData || {})[key] || null });
-            }
+            days.push({ key: key, rec: (allData || {})[key] || null });
         }
         return days;
     }
