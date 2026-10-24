@@ -10,8 +10,13 @@
  */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err2) => function __init() {
+  if (err2) throw err2[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err2 = [e], e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -44118,7 +44123,8 @@ var DEFAULT_PLAN_VOICE_PROMPT = '\u0422\u0438 \u0441\u0438 \u0447\u0430\u0441\u0
 var WEEKLY_CHECKIN_QUESTIONS = [
   {
     id: "weightKg",
-    text: "\u041A\u043E\u043B\u043A\u043E \u0435 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0432\u0438 \u0434\u043D\u0435\u0441? \u041F\u0440\u0435\u0442\u0435\u0433\u043B\u0435\u0442\u0435 \u0441\u0435 \u0441\u0443\u0442\u0440\u0438\u043D, \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E, \u0441\u043B\u0435\u0434 \u0442\u043E\u0430\u043B\u0435\u0442\u043D\u0430 (\u043A\u0433).",
+    // Прегледът излиза по всяко време на деня — пита се последното сутрешно тегло, не „днес“.
+    text: "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0432\u0438 \u0442\u0435\u0433\u043B\u043E \u0441\u0443\u0442\u0440\u0438\u043D \u2014 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E, \u0441\u043B\u0435\u0434 \u0442\u043E\u0430\u043B\u0435\u0442\u043D\u0430 (\u043A\u0433). \u0422\u0430\u0437\u0438 \u0438\u043B\u0438 \u0432\u0447\u0435\u0440\u0430\u0448\u043D\u0430\u0442\u0430 \u0441\u0443\u0442\u0440\u0438\u043D.",
     type: "number",
     min: 30,
     max: 300,
