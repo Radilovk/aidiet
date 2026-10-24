@@ -498,7 +498,7 @@ var require_goal_model = __commonJS({
           if (lead.length < 4) push(m);
         });
         var phases = roadmap(dir, codes, f, b);
-        var reasons = (council && council.summary ? [council.summary] : []).concat([primary.why]).concat(per.filter(function(r) {
+        var reasons = [primary.why].concat(per.filter(function(r) {
           return r !== primary && r.why && r.dir !== primary.dir;
         }).map(function(r) {
           return GOAL_NAMES[r.code] + ": " + r.why;
