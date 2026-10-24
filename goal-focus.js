@@ -55,15 +55,56 @@
         return Array.isArray(v) ? v : (v == null ? [] : String(v).split(','));
     }
 
-    /** Групата по цел и важните състояния (кръвно, захар, стрес) от отговорите. */
+    var GM = global.NutriPlanGoalModel || (typeof require === 'function' ? require('./goal-model.js') : null);
+
+    /** Посоката от модела на целта → групата на екрана (смяната на състава е „стягане“). */
+    function groupOf(model, lactating) {
+        if (model.direction === 'lose') return lactating || model.primary === 'PP' ? 'lose_soft' : 'lose';
+        if (model.direction === 'gain') return 'gain';
+        if (model.direction === 'recomp') return 'tone';
+        return 'health';
+    }
+
+    function sportDaysOf(label) {
+        var s = String(label || '');
+        return /Висока|атлет/i.test(s) ? 6 : /Средна/i.test(s) ? 3 : /Ниска/i.test(s) ? 1.5 : 0;
+    }
+
+    /**
+     * Групата по целта В КОНТЕКСТА на профила (goal-model.js: всички отметки,
+     * свободният текст, клиничната карта, ИТМ/талия, възраст) и важните състояния.
+     */
     function profileOf(userData) {
         var ud = userData || {};
         var conditions = list(ud.medicalConditions).concat(list(ud.medicalConditions_other)).join(' ').toLowerCase();
+        var bp = /кръвно|хипертон/.test(conditions);
+        var glucose = /диабет|инсулин/.test(conditions);
+        var status = String(ud.postpartumStatus || '');
+        var postpartum = ud.clinicalProtocol === 'postpartum_lactation';
+        var lactating = postpartum && /^Кърмя/.test(status);
+        var model = GM ? GM.resolve({
+            goal: ud.goal,
+            goalOther: ud.goal_other,
+            sex: ud.gender === 'Мъж' ? 'M' : ud.gender === 'Жена' ? 'F' : 'X',
+            age: parseFloat(ud.age) || null,
+            heightCm: parseFloat(ud.height) || null,
+            weightKg: parseFloat(String(ud.weight || '').replace(',', '.')) || null,
+            lossKg: parseFloat(ud.lossKg) || null,
+            waistCm: parseFloat(ud.waistCircumference || ud._lastWaistCm) || null,
+            clinical: [].concat(bp ? ['HTN'] : [], glucose ? ['IR'] : []),
+            protocol: ud.clinicalProtocol || null,
+            pregnant: postpartum && /^Бременна/.test(status),
+            lactating: lactating,
+            sportDays: sportDaysOf(ud.sportActivity)
+        }) : null;
+        var goalText = list(ud.goal).map(function (g) { return String(g).trim(); }).filter(Boolean).join(', ');
         return {
-            group: GOAL_GROUP[String(ud.goal || '').trim()] || 'health',
-            goal: String(ud.goal || '').trim(),
-            bp: /кръвно|хипертон/.test(conditions),
-            glucose: /диабет|инсулин/.test(conditions),
+            group: model ? groupOf(model, lactating) : (GOAL_GROUP[goalText] || 'health'),
+            goal: goalText,
+            lead: model ? model.lead : [],
+            direction: model ? model.direction : null,
+            bp: bp,
+            glucose: glucose,
             stress: /високо|много/i.test(String(ud.stressLevel || '')) || /тревож|депрес/.test(conditions) ||
                 /често|винаги|почти всеки/i.test(String(ud.overeatingFrequency || ''))
         };
@@ -71,6 +112,11 @@
 
     function deviceOrder(p) {
         var order = DEVICE_ORDER[p.group].slice();
+        // Водещите показатели на целта — отпред, в техния ред.
+        (p.lead || []).slice().reverse().forEach(function (k) {
+            var i = order.indexOf(k);
+            if (i > 0) { order.splice(i, 1); order.unshift(k); }
+        });
         // Здравословно състояние води пред целта.
         ['glucose', 'bp'].forEach(function (k) {
             if (p[k]) { order.splice(order.indexOf(k), 1); order.unshift(k); }

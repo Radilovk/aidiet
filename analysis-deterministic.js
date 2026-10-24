@@ -277,8 +277,8 @@ function weeklyLossKg(profile) {
 function forecasts(profile, problems) {
   const w = Number(profile.weightKg) || 0;
   const target = Number(profile.targetWeightKg) || w;
-  const losing = ['LOSS', 'VISC'].includes(profile.goal) && target < w;
-  const gaining = profile.goal === 'GAIN';
+  const losing = profile.direction === 'lose' && target < w;
+  const gaining = profile.direction === 'gain';
   const risks = problems.map(p => p.impact).filter(Boolean);
   const improvements = problems.map(p => p._improvement).filter(Boolean);
   while (risks.length < 3) risks.push(['Постепенно покачване на теглото', 'Спад на енергията', 'По-бавна обмяна с възрастта'][risks.length]);

@@ -2563,7 +2563,7 @@ function computeBackendEnergyInputs(data) {
   const activityData = calculateUnifiedActivityScore(data);
   const bmr = calculateBMR(data);
   const tdee = calculateTDEE(bmr, activityData.combinedScore);
-  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  const deficitData = calculateSafeDeficit(tdee, data);
   const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
   return { activityData, bmr, tdee, deficitData, macros };
 }
@@ -2589,6 +2589,8 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   });
   applyDeterministicEnergyContract(analysis, contract);
   applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
+  // Посоката, с която е сметнат приемът — седмичният преглед разпознава по нея смяната на фазата.
+  if (deficitData?.direction) analysis._goalDirection = deficitData.direction;
 
   enforceCalorieGuardrails(analysis, data, tdee);
   const intake = parseFinalCalories(analysis.Final_Calories);
@@ -5976,11 +5978,17 @@ async function checkFirebaseOwner(userId, idToken, env, request) {
  * Седмичният контролен преглед — стандартните въпроси на диетолога
  * (тегло, придържане, глад, енергия, трудности). Без AI.
  */
-function generateWeeklyQuestions(userData, analytics, enrichment) {
+function generateWeeklyQuestions(userData, analytics, enrichment, history = []) {
   const base = normalizeQuestionnaireData({ ...(userData || {}) });
   const data = enrichment?.facts?.length ? applyEnrichment(JSON.parse(JSON.stringify(base)), enrichment) : base;
+  const lastWaist = [...(history || [])].reverse().find(h => Number(h?.waistCm) > 0)?.waistCm;
+  if (lastWaist) data._lastWaistCm = lastWaist;
+  // Въпросите следват водещите показатели на целта в контекста на профила.
+  const { goal, goalModel } = compileProfile(data);
   const questions = weeklyQuestionsFor({
-    goal: compileProfile(data).goal,
+    goal,
+    direction: goalModel.direction,
+    lead: goalModel.lead,
     deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0,
@@ -6000,7 +6008,7 @@ function reproductiveFloorKcal(userData, tdee) {
   if (!(tdee > 0) || (!repro.pregnant && !repro.lactating)) return null;
   if (repro.pregnant) return Math.round(tdee);
   const minCal = getMinRecommendedCalories(userData?.gender);
-  const losing = goalIncludes(userData?.goal, 'Отслабване');
+  const losing = compileProfile(userData || {}).direction === 'lose';
   return Math.max(minCal + 300, Math.round(tdee + repro.lactationKcal - (losing ? 300 : 0)));
 }
 
@@ -6013,7 +6021,7 @@ function weeklyFloorKcal(userData, tdee, goalCode) {
   const minCal = getMinRecommendedCalories(userData?.gender);
   const reproFloor = reproductiveFloorKcal(userData, tdee);
   if (reproFloor) return reproFloor;
-  const losing = ['LOSS', 'VISC', 'CELL', 'PP'].includes(goalCode) || goalIncludes(userData?.goal, 'Отслабване');
+  const losing = compileProfile(userData || {}).direction === 'lose';
   return losing && tdee > 0 ? Math.max(minCal, Math.round(tdee * 0.75)) : minCal;
 }
 
@@ -6040,12 +6048,15 @@ function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history
   const checkin = readCheckin(answers, analytics, { prevWeightKg: prev?.kg, daysSincePrev, prevWaistCm });
   // Измереното тегло става текущото: разходът, белтъкът и минимумите се смятат с него.
   if (checkin.weightKg && userData) userData.weight = String(checkin.weightKg);
+  // Последната талия влиза в модела на целта (посоката се преценява и по нея).
+  if (userData && (checkin.waistCm || prevWaistCm)) userData._lastWaistCm = checkin.waistCm || prevWaistCm;
   const profile = compileProfile(userData || {});
   const { tdee } = computeBackendEnergyInputs(userData);
   const kcal = parseFinalCalories(plan?.analysis?.Final_Calories);
   const decision = decideWeeklyAdjustment({
     checkin,
     goal: profile.goal,
+    direction: profile.direction,
     kcal,
     tdee,
     floorKcal: weeklyFloorKcal(userData, tdee, profile.goal),
@@ -6154,16 +6165,25 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
  * @returns {null | { analysis: object, before: number, after: number, reason: string }}
  */
 function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers) {
-  if ((Number(enrichment?.pendingLevel) || 0) < 2 || !plan?.analysis) return null;
+  if (!plan?.analysis) return null;
   const before = parseFinalCalories(plan.analysis.Final_Calories);
   if (!before) return null;
   const data = JSON.parse(JSON.stringify(enrichedData));
   const kg = Number(String((checkinAnswers || []).find(a => a.questionId === 'weightKg')?.value || '').replace(',', '.'));
   if (kg >= 30 && kg <= 300) data.weight = String(kg);
+  const waist = Number(String((checkinAnswers || []).find(a => a.questionId === 'waistCm')?.value || '').replace(',', '.'));
+  if (waist >= 40 && waist <= 200) data._lastWaistCm = waist;
+  // Нова фаза от пътната карта на целта (напр. стигнато тегло → стягане): посоката
+  // се смени и приемът се смята наново, а не със 100–150 kcal на седмица.
+  const { direction, goalModel } = compileProfile(data);
+  const phaseChanged = direction !== plan.analysis._goalDirection;
+  if ((Number(enrichment?.pendingLevel) || 0) < 2 && !phaseChanged) return null;
   const probe = JSON.parse(JSON.stringify(plan.analysis));
   const { intake, tdee } = refreshAnalysisEnergyFromProfile(env, data, probe);
   if (!intake) return null;
-  const shift = before - (Number(plan.analysis._baseCalories) || before);
+  // Корекциите от прегледите се пренасят върху новата основа — освен при нова фаза:
+  // темпото на предишната посока не казва нищо за следващата.
+  const shift = phaseChanged && plan.analysis._goalDirection ? 0 : before - (Number(plan.analysis._baseCalories) || before);
   probe.Final_Calories = intake + shift;
   probe.recommendedCalories = probe.Final_Calories;
   enforceCalorieGuardrails(probe, data, tdee);
@@ -6171,7 +6191,10 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   // Под 3% разликата е шум от закръгляне — остава досегашното.
   if (!after || Math.abs(after - before) / before < 0.03) return null;
   probe._baseCalories = intake;
-  const why = (enrichment?.lastChange?.reasons || []).slice(0, 3).join(', ');
+  probe._goalDirection = direction;
+  const why = phaseChanged && plan.analysis._goalDirection
+    ? `нова фаза — ${goalModel.directionLabel}`
+    : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(', ');
   return { analysis: probe, before, after, reason: `Приемът е преизчислен с новите данни${why ? ` (${why})` : ''}: ${before} → ${after} kcal.` };
 }
 
@@ -6244,6 +6267,8 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     // Анализът остава — сменя се приемът (по правилата) и менюто.
     const analysis = JSON.parse(JSON.stringify((recal ? recal.analysis : plan.analysis) || {}));
     if (!analysis._baseCalories) analysis._baseCalories = caloriesBefore;
+    // Приемът вече отговаря на текущата посока (преизчислен или в рамките на 3%).
+    analysis._goalDirection = compileProfile(enrichedData).direction;
     if (decision.calorieAdjust) {
       const { tdee } = computeBackendEnergyInputs(enrichedData);
       analysis.Final_Calories = decision.kcal;
@@ -6362,7 +6387,7 @@ async function handleWeeklyGenerateQuestions(request, env) {
     }
 
     const cycleNumber = nextWeeklyCycle(weeklyAdaptHistory, gameWeeklyAI);
-    const result = generateWeeklyQuestions(userData, analytics, enrichment);
+    const result = generateWeeklyQuestions(userData, analytics, enrichment, weeklyAdaptHistory);
 
     return jsonResponse({
       success: true,
@@ -7010,16 +7035,6 @@ function syncAnalysisCalories(analysis, referenceTdee = 0) {
   if (fc > 0) analysis.recommendedCalories = fc;
 }
 
-/**
- * Check if goal string/array contains a keyword (handles clinical protocol composite goals).
- */
-function goalIncludes(goal, keyword) {
-  if (!goal || !keyword) return false;
-  const kw = String(keyword).toLowerCase();
-  if (Array.isArray(goal)) return goal.some(g => String(g).toLowerCase().includes(kw));
-  return String(goal).toLowerCase().includes(kw);
-}
-
 function getMinRecommendedCalories(gender) {
   return gender === 'Мъж' ? MIN_RECOMMENDED_CALORIES_MALE : MIN_RECOMMENDED_CALORIES_FEMALE;
 }
@@ -7044,7 +7059,9 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   const maxDeficitRatio = 0.25;
   const corrections = [];
 
-  if (tdee > 0 && fc > 0 && goalIncludes(data.goal, 'Отслабване') && !isLactation) {
+  // Таванът на дефицита важи при всяка цел: посоката идва от модела на целта,
+  // не от думата „Отслабване“ (антиейджинг или здраве при затлъстяване също са дефицит).
+  if (tdee > 0 && fc > 0 && fc < tdee && !isLactation) {
     const minAllowed = Math.round(tdee * (1 - maxDeficitRatio));
     if (fc < minAllowed) {
       fc = minAllowed;
@@ -7070,7 +7087,7 @@ function enforceCalorieGuardrails(analysis, data, referenceTdee) {
   if (
     fc > 0
     && tdee > 0
-    && goalIncludes(data.goal, 'Отслабване')
+    && fc < tdee
     && !isLactation
     && fc <= minCal + 75
   ) {
@@ -7737,7 +7754,7 @@ function validatePlan(plan, userData, substitutions = []) {
     }
   }
 
-  if (goalIncludes(userData.goal, 'Отслабване') && plan.summary && plan.summary.dailyCalories) {
+  if (compileProfile(userData || {}).direction === 'lose' && plan.summary && plan.summary.dailyCalories) {
     // Extract numeric calories
     const caloriesMatch = String(plan.summary.dailyCalories).match(/\d+/);
     if (caloriesMatch) {
@@ -8324,7 +8341,7 @@ async function generateAnalysisPrompt(data, env, errorPreventionComment = null) 
   const activityData = calculateUnifiedActivityScore(data);
   const bmr = calculateBMR(data);
   const tdee = calculateTDEE(bmr, activityData.combinedScore);
-  const deficitData = calculateSafeDeficit(tdee, data.goal);
+  const deficitData = calculateSafeDeficit(tdee, data);
   const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
   const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);
   const waterMax = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS + ACTIVITY_WATER_BONUS_LITERS).toFixed(2);

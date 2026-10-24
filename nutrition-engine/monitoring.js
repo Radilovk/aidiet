@@ -47,6 +47,14 @@ export const WEEKLY_CHECKIN_QUESTIONS = [
     options: ['Почти всички', 'Повечето', 'Около половината', 'Малко'],
   },
   {
+    // Само когато съставът е водещ (мускулна маса, стягане, смяна на състава) — виж weeklyQuestionsFor.
+    id: 'workouts',
+    text: 'Колко силови тренировки направихте тази седмица?',
+    type: 'choice',
+    onlyForLead: 'workouts',
+    options: ['Нито една', '1', '2', '3 и повече'],
+  },
+  {
     id: 'hunger',
     text: 'Колко често бяхте гладни между храненията?',
     type: 'scale_1_3',
@@ -99,10 +107,17 @@ const fmtKg = v => String(Math.round(v * 10) / 10).replace('.', ',');
  * @param {{ goal?: string, deviceWeightKg?: number|null, mealAdherence?: number|null, mealDays?: number }} [ctx]
  */
 export function weeklyQuestionsFor(ctx = {}) {
-  return WEEKLY_CHECKIN_QUESTIONS.map((q) => {
+  const lead = Array.isArray(ctx.lead) ? ctx.lead : [];
+  const direction = ctx.direction || (ctx.goal === 'GAIN' ? 'gain' : null);
+  return WEEKLY_CHECKIN_QUESTIONS.filter(q => !q.onlyForLead || lead.includes(q.onlyForLead)).map((q) => {
     /** @type {Record<string, any>} */
     const out = { ...q, options: [...q.options] };
-    if (q.id === 'weight' && ctx.goal === 'GAIN') out.options = [...GAIN_WEIGHT_OPTIONS];
+    delete out.onlyForLead;
+    if (q.id === 'weight' && direction === 'gain') out.options = [...GAIN_WEIGHT_OPTIONS];
+    // Талията е водещ показател (коремни мазнини, стягане, смяна на състава) — не „по желание“.
+    if (q.id === 'waistCm' && lead.slice(0, 3).includes('waist')) {
+      out.text = 'Обиколка на талията на нивото на пъпа (см). За вашата цел тя показва напредъка по-точно от кантара.';
+    }
     if (q.id === 'weightKg' && Number(ctx.deviceWeightKg) >= 30) {
       out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
       out.hint = `От везната: ${fmtKg(ctx.deviceWeightKg)} кг (средно от последните дни). Поправете, ако не е вярно.`;
@@ -114,6 +129,7 @@ export function weeklyQuestionsFor(ctx = {}) {
   });
 }
 const ADHERENCE_ANSWERS = { 'Почти всички': 95, 'Повечето': 80, 'Около половината': 50, 'Малко': 25 };
+const WORKOUT_ANSWERS = { 'Нито една': 0, '1': 1, '2': 2, '3 и повече': 3 };
 const LEVEL_ANSWERS = { 'Рядко': 1, 'Понякога': 2, 'Често': 3, 'Добра': 1, 'Средна': 2, 'Ниска': 3 };
 
 function answerOf(answers, id) {
@@ -195,6 +211,7 @@ export function readCheckin(answers, analytics, previous = {}) {
     hunger: LEVEL_ANSWERS[answerOf(answers, 'hunger')] || null,
     energy: LEVEL_ANSWERS[answerOf(answers, 'energy')] || null,
     difficulty: answerOf(answers, 'difficulty'),
+    workouts: WORKOUT_ANSWERS[answerOf(answers, 'workouts')] ?? null,
     junk: analytics?.junk7 || 0,
   };
 }
@@ -226,7 +243,11 @@ const OUTCOME_CLASS = {
   loss: { fast_loss: 'down', loss: 'down', slow: 'stall', flat: 'stall', gain: 'stall', fast_gain: 'stall' },
   gain: { fast_loss: 'down', loss: 'down', slow: 'down', flat: 'stall', gain: 'up', fast_gain: 'fast' },
   keep: { fast_loss: 'down', loss: 'down', slow: 'down', flat: 'flat', gain: 'up', fast_gain: 'up' },
+  recomp: { fast_loss: 'down', loss: 'down', slow: 'down', flat: 'flat', gain: 'up', fast_gain: 'up' },
 };
+
+/** Смяна на състава: теглото стои, а темп над 0,5% седмично е вече сваляне или трупане. */
+const RECOMP_DRIFT_RATE = 0.005;
 
 /**
  * Колко поредни предишни седмици са били от същия клас — само седмици, в
@@ -246,12 +267,20 @@ function streak(history, goalKind, cls) {
 
 const LOSING_GOALS = new Set(['LOSS', 'VISC', 'CELL', 'PP']);
 
+/** Посоката по стария код на целта — само ако моделът на целта не е подал своята. */
+function directionOfGoal(goal) {
+  if (LOSING_GOALS.has(goal)) return 'lose';
+  if (goal === 'GAIN') return 'gain';
+  return 'maintain';
+}
+
 /**
  * Решението за следващата седмица.
  *
  * @param {object} args
  * @param {ReturnType<typeof readCheckin>} args.checkin
  * @param {'LOSS'|'VISC'|'GAIN'|'MAINT'|string} args.goal
+ * @param {'lose'|'gain'|'recomp'|'maintain'} [args.direction]  посоката от модела на целта (goal-model.js)
  * @param {number} args.kcal          текущият дневен прием
  * @param {number} args.tdee          разходът по формула (с текущото тегло)
  * @param {number} args.floorKcal     безопасният минимум
@@ -260,15 +289,19 @@ const LOSING_GOALS = new Set(['LOSS', 'VISC', 'CELL', 'PP']);
  * @param {boolean} [args.lactating]
  * @param {Array<{weight?: string|null, followed?: boolean, calorieAdjust?: number}>} [args.history]
  */
-export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, weightKg, baseKcal = kcal, lactating = false, history = [] }) {
+export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, floorKcal, weightKg, baseKcal = kcal, lactating = false, history = [] }) {
   const reasons = [];
   const changes = [];
   const modifications = [];
   let delta = 0;
   let recomp = false;
-  const losing = LOSING_GOALS.has(goal);
-  const gaining = goal === 'GAIN';
-  const goalKind = losing ? 'loss' : gaining ? 'gain' : 'keep';
+  // Посоката е от целта в контекста на профила, не от етикета: антиейджинг при
+  // затлъстяване е сваляне, мускулна маса при наднормено тегло — смяна на състава.
+  const dir = direction || directionOfGoal(goal);
+  const losing = dir === 'lose';
+  const gaining = dir === 'gain';
+  const recomposing = dir === 'recomp';
+  const goalKind = losing ? 'loss' : gaining ? 'gain' : recomposing ? 'recomp' : 'keep';
   const adherence = checkin.adherence;
   const followed = adherence != null && adherence >= 75;
   const expectedLoss = Math.max(0, (tdee - kcal) * 7 / KCAL_PER_KG);
@@ -335,6 +368,26 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
       } else {
         reasons.push('Теглото расте по план — приемът остава.');
       }
+    } else if (recomposing) {
+      // Успехът тук е талията и съставът, не кантарът: теглото трябва да стои.
+      const base = checkin.weightKg || weightKg || 70;
+      const change = checkin.weeklyChangeKg;
+      const waistDown = checkin.waistChangeCm != null && checkin.waistChangeCm <= -WAIST_PROGRESS_CM;
+      const drifting = change != null && Math.abs(change) > base * RECOMP_DRIFT_RATE;
+      if (checkin.workouts === 0) {
+        reasons.push('Смяната на състава иска силови тренировки — без тях калориите не решават; приемът остава.');
+      } else if (waistDown) {
+        recomp = true;
+        reasons.push(`Талията е с ${fmtKg(-checkin.waistChangeCm)} см по-малко${measured ? ` при ${measured}` : ''} — съставът се подобрява; приемът остава.`);
+      } else if (cls === 'down' && (drifting || outcome === 'fast_loss') && weeks >= 2) {
+        delta = +100;
+        reasons.push(`Теглото пада втора поредна седмица${measured ? ` (${measured})` : ''} при цел смяна на състава — приемът се увеличава леко, за да се пазят мускулите.`);
+      } else if (cls === 'up' && drifting && weeks >= 2) {
+        delta = -100;
+        reasons.push(`Теглото расте втора поредна седмица${measured ? ` (${measured})` : ''} без по-малка талия — приемът се намалява леко.`);
+      } else {
+        reasons.push(`Теглото се задържа${measured ? ` (${measured})` : ''} — при смяна на състава това е очакваното; следим талията и тренировките.`);
+      }
     } else if (cls === 'up' && weeks >= 2) {
       delta = -100;
       reasons.push('Теглото расте втора поредна седмица при цел поддържане — приемът се намалява леко.');
@@ -380,6 +433,13 @@ export function decideWeeklyAdjustment({ checkin, goal, kcal, tdee, floorKcal, w
   if (checkin.difficulty === 'Храносмилането (подуване, тежест)') {
     modifications.push('gentle_digestion');
     changes.push('Щадящи храни с ниско съдържание на FODMAP за следващата седмица');
+  }
+
+  // Мускулите растат от натоварването, не от излишъка: без силови тренировки
+  // повече калории отиват в мазнини.
+  if ((gaining || recomposing) && checkin.workouts === 0 && delta > 0) {
+    delta = 0;
+    reasons.push('Без силови тренировки тази седмица — приемът не се увеличава.');
   }
 
   // Сигнали от устройства: при ниско възстановяване (пулс/HRV) или загуба на

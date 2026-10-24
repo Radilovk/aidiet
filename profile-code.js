@@ -16,6 +16,7 @@
  */
 
 import { interactionsFor } from './drug-interactions.js';
+import GoalModel from './goal-model.js';
 
 export const PROFILE_CODE_VERSION = 'NP1';
 
@@ -150,19 +151,6 @@ const DIET_LABELS = table([
   [['Фастинг', 'Интермитентно гладуване'], { behavior: 'IF' }],
   [['Сезонна'], { behavior: 'SEAS' }],
   [['Нямам предпочитания', 'Друго', 'Няма'], {}],
-]);
-
-const GOAL_LABELS = table([
-  [['Отслабване', 'fat_loss', 'loss'], 'LOSS'],
-  [['Изчистване на коремните мазнини'], 'VISC'],
-  [['Мускулна маса', 'Покачване на мускулна маса', 'muscle_gain'], 'GAIN'],
-  [['Стягане и оформяне на тялото'], 'TONE'],
-  [['Подобряване на здравето'], 'HLTH'],
-  [['Антиейджинг'], 'AGE'],
-  [['Детокс и прочистване'], 'DTX'],
-  [['Антицелулитна програма'], 'CELL'],
-  [['Възстановяване на тялото след бременност'], 'PP'],
-  [['Поддържане', 'Поддържане на теглото', 'maintenance'], 'MAINT'],
 ]);
 
 /** Отговорите от въпросника (суровите и тези след HEALTH_CONDITIONS_MAP). */
@@ -581,20 +569,6 @@ export function compileProfile(userData = {}, overrides = {}) {
   const weightKg = num(data.weight);
   const lossKg = num(data.lossKg);
 
-  const goalLabel = Array.isArray(data.goal) ? data.goal[0] : data.goal;
-  let goal = GOAL_LABELS.get(normLabel(goalLabel)) || null;
-  if (!goal && goalLabel) {
-    // Целта понякога идва съставна („Отслабване + Тонус“) — първата позната част.
-    for (const part of String(goalLabel).split(/[+,;]/)) {
-      goal = GOAL_LABELS.get(normLabel(part));
-      if (goal) break;
-    }
-    if (!goal) unmapped.push(String(goalLabel));
-  }
-  goal = goal || 'MAINT';
-  const targetWeightKg = (goal === 'LOSS' || goal === 'VISC') && weightKg && lossKg > 0
-    ? Math.round((weightKg - lossKg) * 10) / 10
-    : weightKg;
 
   const daily = LEVEL_1_3.get(normLabel(data.dailyActivityLevel)) || 2;
   const sport = SPORT_LABELS.get(normLabel(data.sportActivity)) || { days: 0, band: 0 };
@@ -695,6 +669,32 @@ export function compileProfile(userData = {}, overrides = {}) {
   const skipsBreakfast = behaviors.has('NBF');
   const slots = slotsFor(mealsPerDayFrom(data), skipsBreakfast);
 
+  // Целта: всички отметки + свободният текст + целта от клиничната карта, преценени
+  // спрямо тялото (ИТМ, талия, мазнини), възрастта и клиничната рамка (goal-model.js).
+  const repro = reproductiveStatus(data);
+  const goalModel = GoalModel.resolve({
+    goal: data.goal,
+    goalOther: data.goal_other,
+    sex,
+    age,
+    heightCm,
+    weightKg,
+    lossKg,
+    waistCm: num(data.waistCircumference) ?? num(data._lastWaistCm),
+    bodyFatPct: num(data._enrichment?.essence?.metrics?.bodyFat?.last),
+    clinical: CLINICAL.filter(c => clinical.has(c)),
+    protocol: protocolId,
+    pregnant: repro.pregnant,
+    lactating: repro.lactating,
+    sportDays: sport.days,
+    behaviors: [...behaviors],
+  });
+  const goal = goalModel.primary;
+  unmapped.push(...GoalModel.readGoals(data.goal).unmapped);
+  // Целевото тегло — краят на фазата „сваляне“ от пътната карта (желаното, но не под ИТМ 20).
+  const phaseEnd = goalModel.phases[0]?.until;
+  const targetWeightKg = goalModel.direction === 'lose' && phaseEnd?.metric === 'weight' ? phaseEnd.value : weightKg;
+
   return {
     v: PROFILE_CODE_VERSION,
     sex,
@@ -703,7 +703,10 @@ export function compileProfile(userData = {}, overrides = {}) {
     weightKg,
     targetWeightKg,
     goal,
-    pace: paceFor(goal, weightKg, lossKg),
+    goals: goalModel.codes,
+    direction: goalModel.direction,
+    goalModel,
+    pace: goalModel.direction === 'lose' ? paceFor('LOSS', weightKg, lossKg) : 0,
     activity: { daily, sportDays: sport.days, sportBand: sport.band },
     sleepHours: sleepHours ?? null,
     sleepInterrupted: normLabel(data.sleepInterrupt) === 'да',
