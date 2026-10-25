@@ -1603,7 +1603,10 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     return adh != null && adh >= 50 ? calcDayScore(d.rec, todayKey).calorieDelta : 0;
   });
   const netCalBalance = calBalanceByDay.reduce((s, v) => s + v, 0);
-  const mealAdh = days.map((d) => dayMealAdherence(d.rec)).filter((v) => v != null);
+  const mealAdh = days.map((d) => {
+    const v = dayMealAdherence(d.rec);
+    return d.key < todayKey || v === 100 ? v : null;
+  }).filter((v) => v != null);
   const mealAdherence = mealAdh.length ? Math.round(mealAdh.reduce((a, b) => a + b, 0) / mealAdh.length) : null;
   const sleepByDay = days.map((d) => d.rec?.morningCheck?.sleptWell != null ? d.rec.morningCheck.sleptWell ? 100 : 0 : null);
   const balanceByDay = days.map((d) => d.rec?.eveningCheck?.emotionalBalance != null ? Math.round((d.rec.eveningCheck.emotionalBalance - 1) / 2 * 100) : null);
@@ -44949,13 +44952,25 @@ function weeklyQuestionsFor(ctx = {}) {
     }
     if (q.id === "weightKg" && Number(ctx.deviceWeightKg) >= 30) {
       out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
-      out.hint = `\u041E\u0442 \u0432\u0435\u0437\u043D\u0430\u0442\u0430: ${fmtKg(ctx.deviceWeightKg)} \u043A\u0433 (\u0441\u0440\u0435\u0434\u043D\u043E \u043E\u0442 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0434\u043D\u0438). \u041F\u043E\u043F\u0440\u0430\u0432\u0435\u0442\u0435, \u0430\u043A\u043E \u043D\u0435 \u0435 \u0432\u044F\u0440\u043D\u043E.`;
+      out.hint = (ctx.deviceWeightDays || 0) >= 3 ? `\u041E\u0442 \u0432\u0435\u0437\u043D\u0430\u0442\u0430: ${fmtKg(ctx.deviceWeightKg)} \u043A\u0433 \u2014 \u0441\u0440\u0435\u0434\u043D\u043E \u043E\u0442 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 ${ctx.deviceWeightDays} \u0434\u043D\u0438. \u0422\u043E \u0435 \u043F\u043E-\u0442\u043E\u0447\u043D\u043E \u043E\u0442 \u0435\u0434\u043D\u043E \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0435; \u0447\u0438\u0441\u043B\u043E \u0441 \u043D\u0430\u0434 2% \u0440\u0430\u0437\u043B\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u0434\u0430 \u0433\u043E \u0437\u0430\u043C\u0435\u043D\u0438.` : `\u041E\u0442 \u0432\u0435\u0437\u043D\u0430\u0442\u0430: ${fmtKg(ctx.deviceWeightKg)} \u043A\u0433 (\u0441\u0440\u0435\u0434\u043D\u043E \u043E\u0442 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0434\u043D\u0438). \u041F\u043E\u043F\u0440\u0430\u0432\u0435\u0442\u0435, \u0430\u043A\u043E \u043D\u0435 \u0435 \u0432\u044F\u0440\u043D\u043E.`;
     }
     if (q.id === "adherence" && ctx.mealAdherence != null && (ctx.mealDays || 0) >= 3) {
       out.hint = `\u041F\u043E \u043E\u0442\u043C\u0435\u0442\u043A\u0438\u0442\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E: \u043E\u043A\u043E\u043B\u043E ${Math.round(ctx.mealAdherence)}% \u043E\u0442 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430.`;
     }
     return out;
   });
+}
+var WEIGH_IN_TOLERANCE = 0.02;
+var DEVICE_RELIABLE_DAYS = 3;
+function pickWeighIn(typedKg, device = {}) {
+  const typed = Number(typedKg) >= 30 && Number(typedKg) <= 300 ? Number(typedKg) : null;
+  const dev = Number(device.kg) >= 30 && Number(device.kg) <= 300 ? Number(device.kg) : null;
+  if (!dev) return { kg: typed, source: typed ? "client" : null, typedKg: typed };
+  if (!typed) return { kg: dev, source: "device", typedKg: null };
+  if ((device.days || 0) >= DEVICE_RELIABLE_DAYS && Math.abs(typed - dev) / dev > WEIGH_IN_TOLERANCE) {
+    return { kg: dev, source: "device", typedKg: typed };
+  }
+  return { kg: typed, source: "client", typedKg: typed };
 }
 var ADHERENCE_ANSWERS = { "\u041F\u043E\u0447\u0442\u0438 \u0432\u0441\u0438\u0447\u043A\u0438": 95, "\u041F\u043E\u0432\u0435\u0447\u0435\u0442\u043E": 80, "\u041E\u043A\u043E\u043B\u043E \u043F\u043E\u043B\u043E\u0432\u0438\u043D\u0430\u0442\u0430": 50, "\u041C\u0430\u043B\u043A\u043E": 25 };
 var WORKOUT_ANSWERS = { "\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u0430": 0, "1": 1, "2": 2, "3 \u0438 \u043F\u043E\u0432\u0435\u0447\u0435": 3 };
@@ -46111,6 +46126,7 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   if (weights.length) {
     const w = weights.reduce((s, f) => s + Number(f.value), 0) / weights.length;
     checkin.weightKg = Math.round(w * 10) / 10;
+    checkin.weightDays = new Set(weights.map((f) => dayOf2(f.at)).filter(Boolean)).size;
   }
   const intake = dailyMeanRanked(facts2, "intake", 7, now);
   if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);
@@ -51929,6 +51945,7 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     direction: goalModel.direction,
     lead: goalModel.lead,
     deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
+    deviceWeightDays: data?._enrichment?.checkin?.weightDays || 0,
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0
   });
@@ -52000,7 +52017,7 @@ function getWeeklyAdaptationDecision(userData, plan, analytics, answers2, histor
 }
 function weeklyAnswersText(questions, answers2) {
   const byId = new Map((questions || []).map((q) => [q.id, q.text]));
-  return (answers2 || []).filter((a) => a && a.questionId && String(a.value ?? "").trim()).map((a) => `- ${byId.get(a.questionId) || a.questionId}: ${String(a.value).slice(0, 400)}${a.source === "device" ? " (\u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E)" : ""}`).join("\n");
+  return (answers2 || []).filter((a) => a && a.questionId && String(a.value ?? "").trim()).map((a) => `- ${byId.get(a.questionId) || a.questionId}: ${String(a.value).slice(0, 400)}${a.source === "device" ? ` (\u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E${a.typed ? `; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0432\u044A\u0432\u0435\u0434\u0435 ${a.typed}` : ""})` : ""}`).join("\n");
 }
 async function savePendingWeeklyRelease(env, userId, clientId, release) {
   if (!userId) return;
@@ -52131,10 +52148,17 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const enrichedData = normalizeQuestionnaireData(userData);
     await applyIntakeHints(env, enrichedData);
     if (enrichment) applyEnrichment(enrichedData, enrichment);
-    let checkinAnswers = answers2;
-    const deviceKg = enrichedData._enrichment?.checkin?.weightKg;
-    if (deviceKg && !(answers2 || []).some((a) => a.questionId === "weightKg" && String(a.value || "").trim())) {
-      checkinAnswers = [...answers2 || [], { questionId: "weightKg", value: String(deviceKg), source: "device" }];
+    let checkinAnswers = answers2 || [];
+    const weighIn = pickWeighIn(
+      String(checkinAnswers.find((a) => a.questionId === "weightKg")?.value || "").replace(",", "."),
+      { kg: enrichedData._enrichment?.checkin?.weightKg, days: enrichedData._enrichment?.checkin?.weightDays }
+    );
+    if (weighIn.source === "device") {
+      if (weighIn.typedKg) console.log(`[WeeklyAdapt] \u0442\u0435\u0433\u043B\u043E: \u0432\u044A\u0432\u0435\u0434\u0435\u043D\u043E ${weighIn.typedKg} \u043A\u0433, \u0432\u0435\u0437\u043D\u0430 ${weighIn.kg} \u043A\u0433 (3+ \u0434\u043D\u0438) \u2014 \u043F\u043E\u043B\u0437\u0432\u0430 \u0441\u0435 \u0432\u0435\u0437\u043D\u0430\u0442\u0430`);
+      checkinAnswers = [
+        ...checkinAnswers.filter((a) => a.questionId !== "weightKg"),
+        { questionId: "weightKg", value: String(weighIn.kg), source: "device", ...weighIn.typedKg ? { typed: String(weighIn.typedKg) } : {} }
+      ];
     }
     const deviceIntake = enrichedData._enrichment?.checkin?.intakeKcal;
     if (deviceIntake) checkinAnswers = [...checkinAnswers, { questionId: "intakeKcal", value: String(deviceIntake), source: "device" }];

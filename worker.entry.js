@@ -110,6 +110,7 @@ import {
   readCheckin,
   decideWeeklyAdjustment,
   weeklyMessage,
+  pickWeighIn,
 } from './nutrition-engine/monitoring.js';
 import {
   buildEnergyContract,
@@ -6008,6 +6009,7 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     direction: goalModel.direction,
     lead: goalModel.lead,
     deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
+    deviceWeightDays: data?._enrichment?.checkin?.weightDays || 0,
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0,
   });
@@ -6108,7 +6110,7 @@ function weeklyAnswersText(questions, answers) {
   const byId = new Map((questions || []).map(q => [q.id, q.text]));
   return (answers || [])
     .filter(a => a && a.questionId && String(a.value ?? '').trim())
-    .map(a => `- ${byId.get(a.questionId) || a.questionId}: ${String(a.value).slice(0, 400)}${a.source === 'device' ? ' (от устройство)' : ''}`)
+    .map(a => `- ${byId.get(a.questionId) || a.questionId}: ${String(a.value).slice(0, 400)}${a.source === 'device' ? ` (от устройство${a.typed ? `; клиентът въведе ${a.typed}` : ''})` : ''}`)
     .join('\n');
 }
 
@@ -6260,11 +6262,20 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const enrichedData = normalizeQuestionnaireData(userData);
     await applyIntakeHints(env, enrichedData);
     if (enrichment) applyEnrichment(enrichedData, enrichment);
-    // Тегло от везна, когато клиентът не е въвел сам — средно от последните 3 дни.
-    let checkinAnswers = answers;
-    const deviceKg = enrichedData._enrichment?.checkin?.weightKg;
-    if (deviceKg && !(answers || []).some(a => a.questionId === 'weightKg' && String(a.value || '').trim())) {
-      checkinAnswers = [...(answers || []), { questionId: 'weightKg', value: String(deviceKg), source: 'device' }];
+    // Тегло: средното от везната за последните 3 дни, когато клиентът не е въвел сам —
+    // или когато е въвел число, различно с над 2% от поне 3 сутрешни измервания
+    // (дневните колебания от вода и храна са 1–2%; едно претегляне, напр. вечер, не бие три).
+    let checkinAnswers = answers || [];
+    const weighIn = pickWeighIn(
+      String(checkinAnswers.find(a => a.questionId === 'weightKg')?.value || '').replace(',', '.'),
+      { kg: enrichedData._enrichment?.checkin?.weightKg, days: enrichedData._enrichment?.checkin?.weightDays },
+    );
+    if (weighIn.source === 'device') {
+      if (weighIn.typedKg) console.log(`[WeeklyAdapt] тегло: въведено ${weighIn.typedKg} кг, везна ${weighIn.kg} кг (3+ дни) — ползва се везната`);
+      checkinAnswers = [
+        ...checkinAnswers.filter(a => a.questionId !== 'weightKg'),
+        { questionId: 'weightKg', value: String(weighIn.kg), source: 'device', ...(weighIn.typedKg ? { typed: String(weighIn.typedKg) } : {}) },
+      ];
     }
     const deviceIntake = enrichedData._enrichment?.checkin?.intakeKcal;
     if (deviceIntake) checkinAnswers = [...checkinAnswers, { questionId: 'intakeKcal', value: String(deviceIntake), source: 'device' }];

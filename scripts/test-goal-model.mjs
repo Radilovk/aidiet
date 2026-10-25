@@ -5,7 +5,7 @@
 import { createRequire } from 'module';
 import { compileProfile } from '../profile-code.js';
 import { calculateSafeDeficit } from '../energy.js';
-import { decideWeeklyAdjustment, weeklyQuestionsFor } from '../nutrition-engine/monitoring.js';
+import { decideWeeklyAdjustment, weeklyQuestionsFor, pickWeighIn } from '../nutrition-engine/monitoring.js';
 
 const require = createRequire(import.meta.url);
 const GM = require('../goal-model.js');
@@ -89,6 +89,13 @@ ok(qRecomp.some(q => q.id === 'workouts'), 'смяна на състава — �
 ok(!/по желание/.test(qRecomp.find(q => q.id === 'waistCm').text), 'талията е водеща — не „по желание“');
 ok(!weeklyQuestionsFor({ goal: 'HLTH', direction: 'maintain', lead: ['energy', 'sleep', 'digestion'] }).some(q => q.id === 'workouts'), 'здраве — без въпрос за тренировките');
 ok(weeklyQuestionsFor({ goal: 'GAIN', direction: 'recomp', lead: [] }).find(q => q.id === 'weight').options[0] !== 'Качих повече от 0,5 кг', 'мускулна маса при смяна на състава — въпросът за теглото не е „качих“');
+
+// 8б. Кое тегло печели.
+ok(pickWeighIn(81, { kg: 80, days: 3 }).source === 'client', 'разлика под 2% — въведеното');
+ok(pickWeighIn(83, { kg: 80, days: 3 }).kg === 80, 'над 2% при 3 дни везна — везната');
+ok(pickWeighIn(83, { kg: 80, days: 1 }).kg === 83, 'едно измерване на везната — въведеното (може да е поправка)');
+ok(pickWeighIn(null, { kg: 80, days: 1 }).source === 'device', 'нищо въведено — везната');
+ok(pickWeighIn(75, {}).kg === 75 && pickWeighIn('абв', {}).kg === null, 'без везна — въведеното, ако е валидно');
 
 // 9. Екранът е съгласен с изчисленията.
 ok(GF.profileOf({ ...woman, goal: ['Отслабване', 'Антиейджинг'], weight: 79 }).group === 'lose', 'две отметки — вече не „здраве“');

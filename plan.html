@@ -11705,7 +11705,7 @@
             // Оценява се завършената седмица (до вчера): днешният ден още не е свършил
             // и непопълнената вечер не бива да го рисува в червено.
             var y = new Date(); y.setDate(y.getDate() - 1);
-            var sum = GS.weekSummary(allData, GS.dateKey(y));
+            var sum = GS.weekSummary(allData, GS.dateKey(new Date()), GS.dateKey(y));
             var noDataDays = sum.days.filter(function(day) {
                 if (!day.rec) return true;
                 var ds = GS.calcDayScore(day.rec);

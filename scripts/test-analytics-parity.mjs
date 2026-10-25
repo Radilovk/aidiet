@@ -63,5 +63,21 @@ for (let seed = 1; seed <= 300; seed++) {
   same('измерения', client.dimensions, server.dimensions);
 }
 
+// Незавършеният днешен ден не сваля спазването (недоотметнатата вечеря не е пропусната).
+{
+  const all = Object.fromEntries(SLOTS.map((x) => [x, true]));
+  const part = Object.fromEntries(SLOTS.map((x, i) => [x, i < 2]));
+  const data = {};
+  for (let i = 0; i < 4; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    data[GS.dateKey(d)] = { meals: i === 0 ? part : all, mealSlots: SLOTS, extraMeals: [] };
+  }
+  const server = buildAnalyticsSummary(data, {});
+  ok(server.mealAdherence === 100 && server.mealDays === 3, `днешният недовършен ден не влиза: ${server.mealAdherence}% / ${server.mealDays} дни`);
+  ok(GS.weekSummary(data).mealAdherence === 100, 'и на телефона');
+  data[GS.dateKey(new Date())].meals = all;
+  ok(buildAnalyticsSummary(data, {}).mealDays === 4, 'изцяло отметнатият днешен ден влиза');
+}
+
 console.log(`\n=== analytics parity: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);
