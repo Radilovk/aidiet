@@ -145,7 +145,7 @@ for (let i = 0; i < N; i++) {
     continue;
   }
   const { weekPlan, macros, policy } = res;
-  if (process.env.ONLY) { console.log('цел', kcal, JSON.stringify(macros)); for (const m of (process.env.WEEK ? Object.values(weekPlan).flatMap(d => d.meals) : weekPlan.day1.meals)) console.log(m.type, m.calories, m.targetCalories, '|', m.name, '|', (m.description || '').replace(/\n/g, ' ')); console.log(JSON.stringify(res.prescription.daily)); }
+  if (process.env.ONLY) { console.log('цел', kcal, JSON.stringify(macros)); for (const m of (process.env.WEEK ? Object.values(weekPlan).flatMap(d => d.meals) : weekPlan.day1.meals)) console.log(m.type, m.calories, m.targetCalories, '|', m.name, '|', (m.description || '').replace(/\n/g, ' ')); console.log(JSON.stringify(res.prescription.daily)); console.log(Object.values(weekPlan).map(d => d.energy ? `${d.energy.kind}:${d.energy.kcal}/${d.dailyTotals.calories}` : '-').join(' ')); }
   const meals = Object.values(weekPlan).flatMap(d => d.meals);
   const plated = meals.filter(m => m.macros && m.description);
   // Алтернативите на храненията минават същите забрани — клиентът може да избере всяка от тях.
@@ -186,8 +186,10 @@ for (let i = 0; i < N; i++) {
     const real = day.meals.filter(m => m.macros);
     if (real.length < 3 && prof.mealsPerDay >= 3) fail('структура: по-малко от 3 хранения', key);
     if (hasFree) continue;
-    devSum += Math.abs(day.dailyTotals.calories - kcal) / kcal;
-    protSum += day.dailyTotals.protein / macros.protein;
+    // Целта на деня (тренировъчен/почивен, metabolic.js); без нея — средната.
+    const goalKcal = day.energy?.kcal || kcal;
+    devSum += Math.abs(day.dailyTotals.calories - goalKcal) / goalKcal;
+    protSum += day.dailyTotals.protein / (day.energy?.protein || macros.protein);
     nd++;
   }
   const dev = devSum / nd;

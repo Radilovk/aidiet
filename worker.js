@@ -40587,7 +40587,7 @@ var SLOT_ORDER = ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\
 var PLANT_PROTEIN_SHIFT = { "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": 0.05, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": -0.07, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": 0.12, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": -0.07 };
 function distributeExchanges(daily, slots, policy, options = {}) {
   const dist = DISTRIBUTIONS[policy.distribution] || DISTRIBUTIONS.standard;
-  const appetite = Math.max(1, (Number(options.kcal) || 0) / BOUNDS_BASE_KCAL);
+  const appetite = Math.max(1, (Number(options.kcal) || 0) / BOUNDS_BASE_KCAL) * (Number(options.mealScale) || 1);
   let current = [...slots];
   const added = [];
   for (let attempt = 0; ; attempt++) {
@@ -40595,7 +40595,8 @@ function distributeExchanges(daily, slots, policy, options = {}) {
     let overflow = 0;
     for (const g of PLANNED_GROUPS) {
       const total = daily[g] || 0;
-      const weights = current.map((s) => Math.max(0, (dist[s]?.[g] ?? 0) + (g === "PRO" && policy.proteinBoost ? PLANT_PROTEIN_SHIFT[s] || 0 : 0)));
+      const bias = options.groupBias?.[g] || {};
+      const weights = current.map((s) => Math.max(0, ((dist[s]?.[g] ?? 0) + (g === "PRO" && policy.proteinBoost ? PLANT_PROTEIN_SHIFT[s] || 0 : 0)) * (bias[s] ?? 1)));
       const bounds = current.map((s) => {
         const [lo, base] = MEAL_BOUNDS[s]?.[g] || [0, 0];
         const fatScale = g === "FAT" ? policy.styleDef.fatPartScale || 1 : 1;
@@ -40641,7 +40642,7 @@ function prescribe(target, slots, policy, options = {}) {
       target: { ...t, kcal: t.protein * 4 + t.carbs * 4 + t.fats * 9 }
     };
   }
-  return { kcal: target.kcal, macros: target.macros, daily, slots: finalSlots, addedSlots: added, meals };
+  return { kcal: target.kcal, macros: target.macros, daily, slots: finalSlots, addedSlots: added, meals, mealScale: Number(options.mealScale) || 1 };
 }
 
 // data/engine/recipes.json
@@ -42756,7 +42757,7 @@ function addLeft(target, left) {
   for (const k of Object.keys(out)) out[k] = Math.max(0, target[k] + left[k]);
   return out;
 }
-function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {} }) {
+function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {}, dayPrescriptions = null }) {
   const rng = rngFrom(seed);
   const altRng = rngFrom((seed ^ 1540483477) >>> 0);
   const eligible = eligibleDishes(policy);
@@ -42818,6 +42819,9 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
   const days = [];
   let relaxed = null;
   for (let day = 1; day <= 7; day++) {
+    const dayRx = dayPrescriptions?.[day - 1] || prescription;
+    ctx.appetite = Math.max(1, (dayRx.kcal || 0) / APPETITE_BASE_KCAL) * (dayRx.mealScale || 1);
+    snackCtx.appetite = ctx.appetite;
     const meals = [];
     if (morningDrink) meals.push({ ...drink });
     const todayDishes = /* @__PURE__ */ new Set();
@@ -42825,8 +42829,8 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
     const dayBuilt = [];
-    for (const type of slots) {
-      const plan = prescription.meals[type];
+    for (const type of dayRx.slots) {
+      const plan = dayRx.meals[type];
       if (type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && day === freeDayNumber) {
         meals.push({ type: FREE_MEAL, name: FREE_MEAL, _plannedCalories: round(plan.target.kcal) });
         continue;
@@ -42936,7 +42940,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives, quota: plan.quota, baseCtx: kind === "snack" || kind === "late" ? snackCtx : ctx });
     }
     if (!meals.some((m) => m.type === FREE_MEAL)) {
-      const dayTarget = dayTargetOf(prescription, slots);
+      const dayTarget = dayTargetOf(dayRx, dayRx.slots);
       balanceDay(meals, dayBuilt, dayTarget, policy);
       shakeForProteinGap(meals, dayBuilt, dayTarget, policy);
     }
@@ -42952,7 +42956,12 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       if (!m.alternatives.length) delete m.alternatives;
     }
     state.yesterdayDishes = todayDishes;
-    days.push({ meals });
+    const foods = dayBuilt.map((e) => ({
+      main: e.kind === "main",
+      protein: e.built.totals.protein,
+      foods: describeMeal(e.built).map((l) => ({ id: l.id, grams: l.grams }))
+    }));
+    days.push({ meals, foods });
   }
   const stats = {
     mains: frame.reduce((acc, k) => ({ ...acc, [k]: (acc[k] || 0) + 1 }), {}),
@@ -42960,6 +42969,443 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     distinctDishes: state.dishUses.size
   };
   return { days, stats };
+}
+
+// nutrition-engine/metabolic.js
+var SESSION_TYPES = {
+  "\u0421\u0438\u043B\u043E\u0432\u0438 (\u0444\u0438\u0442\u043D\u0435\u0441, \u0442\u0435\u0436\u0435\u0441\u0442\u0438)": { id: "strength", met: 5, fuel: "glycolytic", label: "\u0441\u0438\u043B\u043E\u0432\u0430" },
+  "\u041A\u0430\u0440\u0434\u0438\u043E (\u0431\u044F\u0433\u0430\u043D\u0435, \u043A\u043E\u043B\u0435\u043B\u043E, \u043F\u043B\u0443\u0432\u0430\u043D\u0435)": { id: "cardio", met: 7.5, fuel: "endurance", label: "\u043A\u0430\u0440\u0434\u0438\u043E" },
+  "\u0413\u0440\u0443\u043F\u043E\u0432\u0438 (\u0430\u0435\u0440\u043E\u0431\u0438\u043A\u0430, \u0437\u0443\u043C\u0431\u0430, \u043A\u0440\u043E\u0441\u0444\u0438\u0442)": { id: "group", met: 6.5, fuel: "glycolytic", label: "\u0433\u0440\u0443\u043F\u043E\u0432\u0430" },
+  "\u041E\u0442\u0431\u043E\u0440\u0435\u043D \u0441\u043F\u043E\u0440\u0442, \u0442\u0435\u043D\u0438\u0441": { id: "team", met: 7, fuel: "glycolytic", label: "\u043E\u0442\u0431\u043E\u0440\u0435\u043D \u0441\u043F\u043E\u0440\u0442" },
+  "\u0411\u043E\u0439\u043D\u0438 \u0441\u043F\u043E\u0440\u0442\u043E\u0432\u0435": { id: "combat", met: 8, fuel: "glycolytic", label: "\u0431\u043E\u0439\u043D\u0438 \u0441\u043F\u043E\u0440\u0442\u043E\u0432\u0435" },
+  "\u0419\u043E\u0433\u0430, \u043F\u0438\u043B\u0430\u0442\u0435\u0441, \u0441\u0442\u0440\u0435\u0447\u0438\u043D\u0433": { id: "mind", met: 3, fuel: "low", label: "\u0439\u043E\u0433\u0430/\u043F\u0438\u043B\u0430\u0442\u0435\u0441" },
+  "\u0411\u044A\u0440\u0437\u043E \u0445\u043E\u0434\u0435\u043D\u0435, \u0442\u0443\u0440\u0438\u0437\u044A\u043C": { id: "walk", met: 4.5, fuel: "aerobic", label: "\u0445\u043E\u0434\u0435\u043D\u0435" }
+};
+var OTHER_SESSION = { id: "other", met: 5, fuel: "mixed", label: "\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430" };
+var FUEL_CARB_SHARE = { glycolytic: 0.85, endurance: 0.8, mixed: 0.7, aerobic: 0.5, low: 0.3 };
+var COUPLING_BY_GOAL = { LOSS: 0.6, VISC: 0.6, CELL: 0.6, PP: 0.6, TONE: 0.9, GAIN: 1 };
+var DEFAULT_COUPLING = 0.8;
+var CARB_SWING_BY_GOAL = { LOSS: 0.25, VISC: 0.3, CELL: 0.25, TONE: 0.25, GAIN: 0.15 };
+var DEFAULT_CARB_SWING = 0.15;
+var METABOLIC_RISK = ["IR", "T2D", "METS", "PCOS", "NAFLD", "OB", "OBS"];
+var ASSUMED_DAYS = { 1: [3], 2: [2, 5], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 5, 6], 6: [1, 2, 3, 4, 5, 6], 7: [1, 2, 3, 4, 5, 6, 7] };
+var DAY_MIN_SHARE = 0.82;
+var DAY_MAX_SHARE = 1.25;
+var LOW_DAY_SHARE = 0.75;
+var MEAL_KCAL_CAPACITY = 650;
+var KCAL_FLOOR = { M: 1500, F: 1200, X: 1200 };
+var r0 = (x) => Math.round(Number(x) || 0);
+var asList2 = (v) => (Array.isArray(v) ? v : v ? [v] : []).map(String);
+function sessionMinutesOf(label) {
+  const s = String(label || "");
+  if (/^до 30/i.test(s)) return 25;
+  if (/^30/.test(s)) return 40;
+  if (/^45/.test(s)) return 55;
+  if (/^60/.test(s)) return 75;
+  if (/^над 90/i.test(s)) return 100;
+  return null;
+}
+var planDayOf = (dow) => dow === 0 ? 7 : dow;
+function trainingWeek(profile, userData = {}) {
+  const types = asList2(userData.sportTypes).map((l) => SESSION_TYPES[l]).filter(Boolean);
+  if (asList2(userData.sportTypes_other).length) types.push(OTHER_SESSION);
+  const minutes = sessionMinutesOf(userData.sportSessionMinutes) || 55;
+  const pattern = userData?._enrichment?.essence?.metrics?.training || null;
+  const perWeek = pattern ? pattern.perWeek : profile.activity?.sportDays || 0;
+  if (!(perWeek >= 0.5)) return { days: [], source: "none", confidence: 0, slot: null, fuel: "low", types: [], minutes: 0, sessionKcal: 0 };
+  const list2 = types.length ? types : [OTHER_SESSION];
+  const met = list2.reduce((s, t) => s + t.met, 0) / list2.length;
+  const kg = Number(profile.weightKg) || 70;
+  const sessionKcal = pattern?.kcal > 0 ? pattern.kcal : r0((met - 1) * kg * minutes / 60);
+  const order = ["glycolytic", "endurance", "mixed", "aerobic", "low"];
+  const fuel = order.find((f) => list2.some((t) => t.fuel === f)) || "mixed";
+  let days;
+  let source;
+  let confidence;
+  if (pattern?.usual?.length) {
+    days = pattern.usual.map(planDayOf).sort((a, b) => a - b);
+    source = "pattern";
+    confidence = Math.max(0.5, Math.min(1, (pattern.regularity - 0.4) / 0.6));
+  } else {
+    days = ASSUMED_DAYS[Math.min(7, Math.max(1, Math.round(perWeek)))] || [];
+    source = "assumed";
+    confidence = 0.5;
+  }
+  return { days, source, confidence, slot: pattern?.slot === "am" || pattern?.slot === "pm" ? pattern.slot : null, fuel, types: list2.map((t) => t.label), minutes, sessionKcal };
+}
+function fastingPlan(profile, userData = {}, week = { days: [], slot: null }) {
+  const blocked = [];
+  const behaviors = new Set(profile.behaviors || []);
+  const clinical = new Set(profile.clinical || []);
+  const bmi = profile.weightKg && profile.heightCm ? profile.weightKg / (profile.heightCm / 100) ** 2 : null;
+  if (clinical.has("PP") || profile.goal === "PP" || profile.protocol === "postpartum_lactation") blocked.push("\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442/\u043A\u044A\u0440\u043C\u0435\u043D\u0435");
+  if ((profile.adjustments || []).some((a) => /^MEDS_NO_FASTING/.test(a))) blocked.push("\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430 \u0441 \u0440\u0438\u0441\u043A \u043E\u0442 \u0445\u0438\u043F\u043E\u0433\u043B\u0438\u043A\u0435\u043C\u0438\u044F");
+  if (behaviors.has("CMP")) blocked.push("\u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0438\u0440\u0430\u043D\u0435 \u0441 \u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435");
+  if (behaviors.has("EMO") && behaviors.has("OVR")) blocked.push("\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u043F\u0440\u0435\u044F\u0436\u0434\u0430\u043D\u0435");
+  if (bmi != null && bmi < 18.5) blocked.push("\u043D\u0438\u0441\u043A\u043E \u0442\u0435\u0433\u043B\u043E");
+  if (profile.age != null && (profile.age < 18 || profile.age >= 70)) blocked.push("\u0432\u044A\u0437\u0440\u0430\u0441\u0442");
+  if (profile.goal === "GAIN") blocked.push("\u0446\u0435\u043B \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 (\u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u0441\u044A\u0431\u0438\u0440\u0430 \u0442\u0440\u0443\u0434\u043D\u043E \u0432 \u043A\u0440\u0430\u0442\u044A\u043A \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446)");
+  const chose = behaviors.has("IF");
+  const early = /сутрешен/i.test(String(userData.chronotype || "")) || week.slot === "am";
+  if (blocked.length) {
+    return {
+      active: false,
+      offered: false,
+      protocol: "none",
+      early,
+      windowText: "",
+      lowDay: null,
+      blocked,
+      note: chose ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u0447\u0430\u0441\u043E\u0432\u0438 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 \u043D\u0435 \u0441\u0435 \u043F\u0440\u0438\u043B\u0430\u0433\u0430: ${blocked.join(", ")}.` : ""
+    };
+  }
+  const gentle = profile.stress === 3 || clinical.has("ADR") || clinical.has("T2D") || profile.protocol === "chronic_stress";
+  const protocol = gentle ? "tre12" : profile.sex === "M" ? "tre16" : "tre14";
+  const hours = { tre12: 12, tre14: 10, tre16: 8 }[protocol];
+  const windowText = early ? `${hours === 12 ? "07:00\u201319:00" : hours === 10 ? "08:00\u201318:00" : "08:00\u201316:00"} (\u0440\u0430\u043D\u0435\u043D \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446)` : `${hours === 12 ? "08:00\u201320:00" : hours === 10 ? "10:00\u201320:00" : "12:00\u201320:00"}`;
+  let lowDay = null;
+  if (chose && ["LOSS", "VISC", "CELL"].includes(profile.goal) && !gentle) {
+    const rest = [1, 2, 3, 4, 5, 6].filter((d) => !week.days.includes(d));
+    lowDay = rest.find((d) => !week.days.includes(d + 1) && !week.days.includes(d - 1)) ?? rest.find((d) => !week.days.includes(d + 1)) ?? null;
+  }
+  return {
+    active: chose,
+    offered: !chose,
+    protocol,
+    early,
+    windowText,
+    lowDay,
+    blocked: [],
+    note: chose ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 ${windowText} \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438; \u0432 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043E\u0431\u0433\u0440\u0430\u0436\u0434\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430.` : `\u0412\u044A\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442: \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 ${windowText} \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 \u2014 \u0432\u043A\u043B\u044E\u0447\u0432\u0430 \u0441\u0435 \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435.`
+  };
+}
+function sessionSlots(slots, slot) {
+  if (slot === "am") return { pre: slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" : null, post: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" };
+  if (slot === "pm") return { pre: slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") ? "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" : "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", post: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" };
+  return { pre: null, post: null };
+}
+function weekTargets(profile, base, week, fasting, slots) {
+  const K = r0(base.kcal);
+  const P = r0(base.macros.protein);
+  const C = r0(base.macros.carbs);
+  const F = r0(base.macros.fats);
+  const style = profile.diet?.style || "balanced";
+  const kg = Number(profile.weightKg) || referenceWeightKg(profile);
+  const minFat = Math.round(kg * MIN_FAT_G_PER_KG);
+  const sexFloor = Math.round((KCAL_FLOOR[profile.sex] || 1200) * 1.06);
+  const floor = Math.max(sexFloor, r0(K * DAY_MIN_SHARE));
+  const metabolicRisk = (profile.clinical || []).some((c) => METABOLIC_RISK.includes(c)) || profile.protocol === "insulin_resistance";
+  const carbSensitive = metabolicRisk || ["LOSS", "VISC", "CELL"].includes(profile.goal);
+  const w = week.confidence || 0;
+  const coupling = (COUPLING_BY_GOAL[profile.goal] ?? DEFAULT_COUPLING) * w;
+  let swing = (CARB_SWING_BY_GOAL[profile.goal] ?? DEFAULT_CARB_SWING) * w * (metabolicRisk ? 1.3 : 1);
+  if (style === "keto") swing = 0;
+  const carbShare = FUEL_CARB_SHARE[week.fuel] ?? 0.6;
+  const dayMax = Math.min(K * DAY_MAX_SHARE, Math.max(K, MEAL_KCAL_CAPACITY * slots.length));
+  const E = [1, 2, 3, 4, 5, 6, 7].map((d) => week.days.includes(d) ? week.sessionKcal : 0);
+  const meanE = E.reduce((a, b) => a + b, 0) / 7;
+  let kcal = E.map((e) => K + coupling * (e - meanE));
+  if (fasting.lowDay) {
+    const i = fasting.lowDay - 1;
+    const cut = kcal[i] - Math.max(sexFloor, K * LOW_DAY_SHARE);
+    if (cut > 0) {
+      kcal[i] -= cut;
+      kcal = kcal.map((k, j) => j === i ? k : k + cut / 6);
+    }
+  }
+  kcal = kcal.map((k, i) => Math.min(dayMax, Math.max(i === fasting.lowDay - 1 ? Math.max(sexFloor, K * LOW_DAY_SHARE) : floor, k)));
+  for (let pass = 0; pass < 3; pass++) {
+    const diff = 7 * K - kcal.reduce((a, b) => a + b, 0);
+    if (Math.abs(diff) < 1) break;
+    const open = kcal.map((k, i) => i).filter((i) => (diff > 0 ? kcal[i] < dayMax : kcal[i] > floor) && i !== fasting.lowDay - 1);
+    if (!open.length) break;
+    for (const i of open) kcal[i] += diff / open.length;
+  }
+  const trainDays = week.days.length;
+  const restDays = 7 - trainDays;
+  const swingG = trainDays && restDays ? swing * C : 0;
+  const days = [1, 2, 3, 4, 5, 6, 7].map((d, i) => {
+    const kind = d === fasting.lowDay ? "low" : week.days.includes(d) ? "train" : "rest";
+    let carbs = C + carbShare * (kcal[i] - K) / 4;
+    if (swingG) carbs += kind === "train" ? swingG * restDays / 7 : -swingG * trainDays / 7;
+    if (kind === "low") carbs = Math.min(carbs, C * 0.6);
+    if (style === "keto") carbs = Math.min(KETO_MAX_CARB_G, C);
+    else if (style === "low_carb") carbs = Math.min(LOW_CARB_MAX_G, carbs);
+    if (metabolicRisk && trainDays && kind !== "train" && style !== "keto") carbs = Math.min(carbs, kcal[i] * 0.25 / 4);
+    if (style !== "keto") carbs = Math.min(C * 1.35, Math.max(C * 0.7, carbs));
+    carbs = Math.max(style === "keto" ? 0 : 40, carbs);
+    let fats = (kcal[i] - 4 * P - 4 * carbs) / 9;
+    const maxFat = Math.max(minFat, F * 1.35);
+    if (fats > maxFat && style !== "keto") {
+      fats = maxFat;
+      carbs = (kcal[i] - 4 * P - 9 * fats) / 4;
+    }
+    if (fats < minFat) {
+      fats = minFat;
+      carbs = Math.max(0, (kcal[i] - 4 * P - 9 * fats) / 4);
+    }
+    const timing = kind === "train" ? sessionSlots(slots, week.slot) : { pre: null, post: null };
+    return { day: d, kind, kcal: kcal[i], macros: { protein: P, carbs, fats }, timing };
+  });
+  return days.map((x) => {
+    const protein = P;
+    const carbs = Math.round(x.macros.carbs);
+    const fats = Math.max(minFat, Math.round((x.kcal - 4 * protein - 4 * carbs) / 9));
+    const kcalDay = protein * 4 + carbs * 4 + fats * 9;
+    let daySlots = [...slots];
+    let window = null;
+    if (fasting.active && x.kind !== "train") {
+      window = fasting.windowText;
+      if (fasting.early) daySlots = daySlots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" && !(fasting.protocol === "tre16" && s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3"));
+      else if (fasting.protocol !== "tre12") daySlots = daySlots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
+      else daySlots = daySlots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
+      if (daySlots.filter((s) => s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4").length < 2) daySlots = [...slots];
+    }
+    const bias = { STA: {}, FRU: {} };
+    if (x.kind === "train" && x.timing.post) {
+      bias.STA[x.timing.post] = 1.6;
+      if (x.timing.pre) {
+        bias.STA[x.timing.pre] = 1.15;
+        bias.FRU[x.timing.pre] = 1.4;
+      }
+    } else if (x.kind !== "train" && carbSensitive) {
+      const hasBreakfast = daySlots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1");
+      if (hasBreakfast) bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"] = 1.2;
+      bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2"] = hasBreakfast ? 1.15 : 1.05;
+      bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] = hasBreakfast ? 0.6 : 0.8;
+    }
+    return { day: x.day, kind: x.kind, kcal: kcalDay, macros: { protein, carbs, fats }, slots: daySlots, bias, timing: x.timing, window };
+  });
+}
+function metabolicWeek(profile, userData, base, slots) {
+  const week = trainingWeek(profile, userData);
+  const fasting = fastingPlan(profile, userData, week);
+  const days = weekTargets(profile, base, week, fasting, slots);
+  return { week, fasting, days };
+}
+var DAY_SHORT = ["\u043F\u043D", "\u0432\u0442", "\u0441\u0440", "\u0447\u0442", "\u043F\u0442", "\u0441\u0431", "\u043D\u0434"];
+var fmt = (n) => String(n).replace(".", ",");
+function describeMetabolicWeek(mw, profile) {
+  const { week, fasting, days } = mw;
+  const train = days.filter((d) => d.kind === "train");
+  const rest = days.filter((d) => d.kind !== "train");
+  const avg = (list2, f) => list2.length ? Math.round(list2.reduce((s, d) => s + f(d), 0) / list2.length) : 0;
+  const lines = [];
+  if (train.length && rest.length) {
+    const tC = avg(train, (d) => d.macros.carbs);
+    const rC = avg(rest, (d) => d.macros.carbs);
+    const tK = avg(train, (d) => d.kcal);
+    const rK = avg(rest, (d) => d.kcal);
+    const which = week.source === "pattern" ? `\u043F\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0412\u0438 \u0432\u0435\u0447\u0435\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u0430\u0442\u0435 \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${train.map((d) => DAY_SHORT[d.day - 1]).join(", ")}` : `\u043F\u0440\u0438\u0435\u0442\u0438 \u0441\u0430 ${train.map((d) => DAY_SHORT[d.day - 1]).join(", ")} \u2014 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430\u0442 \u0441\u0435 \u043E\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0412\u0438 \u0432\u0435\u0447\u0435\u0440`;
+    lines.push(`\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u0434\u043D\u0438 (${which}): ~${tK} kcal \u0438 ~${tC} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438; \u043F\u043E\u0447\u0438\u0432\u043D\u0438: ~${rK} kcal \u0438 ~${rC} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438. \u0411\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u0435\u0434\u043D\u0430\u043A\u044A\u0432 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u2014 ${days[0].macros.protein} \u0433.`);
+    const slot = week.slot === "am" ? "\u043E\u0431\u044F\u0434\u0430 \u0441\u043B\u0435\u0434 \u0441\u0443\u0442\u0440\u0435\u0448\u043D\u0430\u0442\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430" : week.slot === "pm" ? "\u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430, \u0430 \u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0441 \u043F\u043B\u043E\u0434 \u2014 \u043F\u0440\u0435\u0434\u0438 \u043D\u0435\u044F" : "\u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430";
+    if (profile.diet?.style !== "keto") lines.push(`\u0412 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u044F \u0434\u0435\u043D \u043F\u043E-\u0433\u043E\u043B\u044F\u043C\u0430\u0442\u0430 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0435 \u0432 ${slot}: \u0442\u043E\u0433\u0430\u0432\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u044A\u0442 \u0433\u0438 \u043F\u043E\u0435\u043C\u0430 \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0433\u043B\u0438\u043A\u043E\u0433\u0435\u043D\u0430.`);
+    if (rest.some((d) => d.macros.carbs < tC) && profile.diet?.style !== "keto") {
+      lines.push("\u0412 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u044F \u0434\u0435\u043D \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u0430 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u043F\u043E-\u0440\u0430\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F \u2014 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430\u0442\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442 \u0435 \u043F\u043E-\u0432\u0438\u0441\u043E\u043A\u0430 \u0441\u0443\u0442\u0440\u0438\u043D.");
+    }
+  } else if (!train.length) {
+    lines.push("\u0411\u0435\u0437 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0434\u043D\u0438\u0442\u0435 \u0441\u0430 \u0435\u0434\u043D\u0430\u043A\u0432\u0438 \u043F\u043E \u0435\u043D\u0435\u0440\u0433\u0438\u044F; \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u043F\u043E-\u0440\u0430\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F, \u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0435 \u043F\u043E-\u043B\u0435\u043A\u0430 \u043D\u0430 \u0442\u044F\u0445.");
+  }
+  const low = days.find((d) => d.kind === "low");
+  if (low) lines.push(`${DAY_SHORT[low.day - 1].toUpperCase()} \u0435 \u043F\u043E-\u043B\u0435\u043A \u0434\u0435\u043D (~${low.kcal} kcal) \u0441 \u043F\u044A\u043B\u043D\u0438\u044F \u0431\u0435\u043B\u0442\u044A\u043A \u2014 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u0438\u044F\u0442 \u0431\u0430\u043B\u0430\u043D\u0441 \u0435 \u0441\u044A\u0449\u0438\u044F\u0442, \u0440\u0430\u0437\u043B\u0438\u043A\u0430\u0442\u0430 \u0435 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u0432 \u0434\u0440\u0443\u0433\u0438\u0442\u0435 \u0434\u043D\u0438.`);
+  if (fasting.note) lines.push(fasting.note);
+  return lines;
+}
+function menuQuality(days, lib, profile, kcal) {
+  let fiber = 0;
+  let fiberKnownG = 0;
+  let totalG = 0;
+  let carbs = 0;
+  const plants = /* @__PURE__ */ new Set();
+  let oilyFishMeals = 0;
+  let wholeG = 0;
+  let grainG = 0;
+  let highGiG = 0;
+  let staG = 0;
+  let mainMeals = 0;
+  let mainMealsOk = 0;
+  const refKg = referenceWeightKg(profile);
+  const proteinMin = Math.max(20, 0.3 * refKg);
+  const PLANT_GROUPS = /* @__PURE__ */ new Set(["VEG", "FRU", "LEG", "STA"]);
+  for (const day of days) {
+    for (const meal of day.meals || []) {
+      let fishInMeal = false;
+      for (const { id, grams } of meal.foods) {
+        const f = lib.food(id);
+        totalG += grams;
+        carbs += (f.per100?.carbs || 0) * grams / 100;
+        const fb = lib.fiberPer100(id);
+        if (fb != null) {
+          fiber += fb * grams / 100;
+          fiberKnownG += grams;
+        }
+        const flags = f.flags instanceof Set ? f.flags : new Set(Object.keys(f.flags || {}));
+        if (PLANT_GROUPS.has(f.group) || f.kind === "plant" || flags.has("nut") || flags.has("seed")) plants.add(id);
+        if (flags.has("oily_fish")) fishInMeal = true;
+        if (flags.has("grain") || flags.has("whole_grain") || flags.has("refined")) {
+          grainG += grams;
+          if (flags.has("whole_grain")) wholeG += grams;
+        }
+        if (f.group === "STA") {
+          staG += grams;
+          if (flags.has("high_gi")) highGiG += grams;
+        }
+      }
+      if (fishInMeal) oilyFishMeals++;
+      if (meal.main) {
+        mainMeals++;
+        if (meal.protein >= proteinMin) mainMealsOk++;
+      }
+    }
+  }
+  const n = days.length || 1;
+  const coverage = totalG ? fiberKnownG / totalG : 0;
+  const fiberDay = coverage > 0 ? fiber / coverage / n : null;
+  const fiberTarget = Math.round(14 * kcal / 1e3);
+  const items = [];
+  const add = (code, value, target, ok, text) => items.push({ code, value, target, status: ok ? "ok" : "low", text });
+  if (fiberDay != null) add("fiber", Math.round(fiberDay), fiberTarget, fiberDay >= fiberTarget * 0.9, `\u0424\u0438\u0431\u0440\u0438: ~${Math.round(fiberDay)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E (\u0446\u0435\u043B ${fiberTarget} \u0433 \u2014 14 \u0433 \u043D\u0430 1000 kcal).`);
+  add("plants", plants.size, 30, plants.size >= 30, `\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435: ${plants.size} \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430 (\u0446\u0435\u043B 30 \u2014 \u0437\u0430 \u0447\u0440\u0435\u0432\u043D\u0430\u0442\u0430 \u043C\u0438\u043A\u0440\u043E\u0431\u0438\u043E\u0442\u0430).`);
+  add("oily_fish", oilyFishMeals, 2, oilyFishMeals >= 2, `\u041C\u0430\u0437\u043D\u0430 \u0440\u0438\u0431\u0430: ${oilyFishMeals} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (\u0446\u0435\u043B 2 \u2014 \u043E\u043C\u0435\u0433\u0430-3 EPA/DHA).`);
+  if (grainG > 0) {
+    const share = Math.round(wholeG / grainG * 100);
+    add("whole_grain", share, 50, share >= 50, `\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438: ${share}% \u043E\u0442 \u0437\u044A\u0440\u043D\u0435\u043D\u0438\u0442\u0435 (\u0446\u0435\u043B \u043F\u043E\u043D\u0435 50%).`);
+  }
+  if (staG > 0) {
+    const share = Math.round(highGiG / staG * 100);
+    add("high_gi", share, 20, share <= 20, `\u041D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0441 \u0432\u0438\u0441\u043E\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0438\u043D\u0434\u0435\u043A\u0441: ${share}% (\u0434\u043E 20%).`);
+  }
+  if (mainMeals) {
+    const share = Math.round(mainMealsOk / mainMeals * 100);
+    add("protein_meal", share, 90, share >= 90, `\u0411\u0435\u043B\u0442\u044A\u043A \u043D\u0430\u0434 \u043F\u0440\u0430\u0433\u0430 \u0437\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0435\u043D \u0441\u0438\u043D\u0442\u0435\u0437 (\u2265${Math.round(proteinMin)} \u0433) \u0432 ${share}% \u043E\u0442 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F.`);
+  }
+  if (fiberDay != null && carbs > 0) {
+    const ratio = carbs / n / fiberDay;
+    add("carb_fiber", Math.round(ratio * 10) / 10, 10, ratio <= 10, `\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u043A\u044A\u043C \u0444\u0438\u0431\u0440\u0438: ${fmt(Math.round(ratio * 10) / 10)}:1 (\u0434\u043E 10:1 \u2014 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0441 \u0444\u0438\u0431\u0440\u0438, \u043D\u0435 \u0440\u0430\u0444\u0438\u043D\u0438\u0440\u0430\u043D\u0438).`);
+  }
+  return { items, fiberCoverage: Math.round(coverage * 100) };
+}
+
+// data/engine/fiber.json
+var fiber_default = {
+  about: "\u0424\u0438\u0431\u0440\u0438 (\u0433 \u043D\u0430 100 \u0433) \u0437\u0430 \u0445\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430 \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044F \u2014 USDA FoodData Central (SR Legacy), \u0432 \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435\u0442\u043E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430: \u0437\u044A\u0440\u043D\u0435\u043D\u0438\u0442\u0435 \u0438 \u0431\u043E\u0431\u043E\u0432\u0438\u0442\u0435 \u2014 \u0441\u0433\u043E\u0442\u0432\u0435\u043D\u0438 (\u043E\u0441\u0432\u0435\u043D \u0445\u043B\u044F\u0431, \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438, \u0433\u0430\u043B\u0435\u0442\u0438 \u0438 \u0441\u0443\u0445\u0430 \u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430), \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435\u0442\u0435 \u2014 \u0441\u0443\u0440\u043E\u0432\u0438. \u0425\u0440\u0430\u043D\u0438\u0442\u0435 \u043E\u0442 \u0436\u0438\u0432\u043E\u0442\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u043E\u0438\u0437\u0445\u043E\u0434 \u0441\u0430 0 (\u0431\u0435\u0437 \u0444\u0438\u0431\u0440\u0438 \u043F\u043E \u043F\u0440\u0438\u0440\u043E\u0434\u0430, \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0441\u0435 \u043E\u0442 \u043A\u043E\u0434\u0430). null \u2014 \u043F\u0440\u043E\u0434\u0443\u043A\u0442, \u0447\u0438\u0439\u0442\u043E \u0441\u044A\u0441\u0442\u0430\u0432 \u0437\u0430\u0432\u0438\u0441\u0438 \u043E\u0442 \u043C\u0430\u0440\u043A\u0430\u0442\u0430; \u043D\u0435 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430. \u0411\u0438\u0431\u043B\u0438\u043E\u0442\u0435\u043A\u0430\u0442\u0430 (nutrition-library) \u043D\u0435 \u0441\u0435 \u043F\u043E\u043B\u0437\u0432\u0430 \u0437\u0430 \u0444\u0438\u0431\u0440\u0438: \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438\u0442\u0435 \u045D \u0441\u0430 \u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u0438 \u0447\u0435\u0441\u0442\u043E \u0441\u0430 \u0437\u0430\u043D\u0438\u0436\u0435\u043D\u0438.",
+  per100g: {
+    pro_tofu: 2.3,
+    pro_soy_mince: 17.5,
+    pro_tempeh: null,
+    leg_edamame: 5.2,
+    pro_whey: 0,
+    pro_plant_protein: null,
+    dairy_soy_yogurt: null,
+    dairy_soy_milk: 0.4,
+    dairy_plant_milk: null,
+    eng_bread_whole: 6,
+    eng_rye_bread: 5.8,
+    eng_bread: 2.7,
+    eng_tortilla: 2.4,
+    eng_rice_cakes: 4.2,
+    eng_oats: 10.1,
+    eng_buckwheat: 2.7,
+    eng_bulgur: 4.5,
+    eng_quinoa: 2.8,
+    eng_millet: 1.3,
+    eng_rice_brown: 1.8,
+    eng_rice: 0.4,
+    eng_rice_white: 0.4,
+    eng_pasta: 1.8,
+    eng_couscous: 1.4,
+    eng_lentil_pasta: null,
+    eng_potato: 1.8,
+    eng_sweet_potato: 3,
+    eng_corn: 2,
+    leg_peas: 5.5,
+    leg_lentils: 7.9,
+    leg_white_beans: 6.3,
+    leg_black_beans: 8.7,
+    leg_chickpeas: 7.6,
+    leg_hummus: 6,
+    veg_tomato: 1.2,
+    veg_cherry_tomato: 1.2,
+    veg_cucumber: 0.5,
+    veg_pepper: 2.1,
+    veg_lettuce: 1.3,
+    veg_arugula: 1.6,
+    veg_spinach: 2.2,
+    veg_broccoli: 2.6,
+    veg_cauliflower: 2,
+    veg_zucchini: 1,
+    veg_eggplant: 3,
+    veg_green_beans: 2.7,
+    veg_cabbage: 2.5,
+    veg_brussels: 3.8,
+    veg_mushrooms: 1,
+    veg_oyster_mushroom: 2.3,
+    veg_asparagus: 2.1,
+    veg_celery: 1.6,
+    veg_carrot: 2.8,
+    veg_beet: 2.8,
+    veg_pumpkin: 0.5,
+    veg_leek: 1.8,
+    veg_onion: 1.7,
+    fruit_apple: 2.4,
+    fruit_pear: 3.1,
+    fruit_orange: 2.4,
+    fruit_mandarin: 1.8,
+    fruit_grapefruit: 1.6,
+    fruit_peach: 1.5,
+    fruit_kiwi: 3,
+    fruit_banana: 2.6,
+    fruit_strawberry: 2,
+    fruit_raspberry: 6.5,
+    fruit_blueberry: 2.4,
+    fruit_grapes: 0.9,
+    fruit_watermelon: 0.4,
+    fruit_melon: 0.9,
+    fruit_pineapple: 1.4,
+    fruit_mango: 1.6,
+    fat_oil: 0,
+    fat_sunflower_oil: 0,
+    fat_coconut_oil: 0,
+    fat_butter: 0,
+    fat_avocado: 6.7,
+    fat_olives: 3.2,
+    fat_nuts: 7,
+    fat_almonds: 12.5,
+    fat_walnuts: 6.7,
+    fat_hazelnuts: 9.7,
+    fat_cashew: 3.3,
+    fat_peanuts_pistachio: 10.6,
+    fat_peanuts: 8.5,
+    fat_peanut_butter: 5,
+    fat_almond_butter: 10.3,
+    fat_tahini: 9.3,
+    fat_chia: 34.4,
+    fat_flax: 27.3,
+    fat_pumpkin_seeds: 6,
+    fat_sunflower_seeds: 8.6,
+    cond_coconut_milk: null,
+    cond_honey: 0.2,
+    sw_dark_chocolate: 10.9,
+    veg_garlic: 2.1,
+    fruit_lemon: 2.8,
+    cond_tomato_paste: 4.1,
+    cond_lemon_juice: 0.3,
+    cond_vinegar: 0,
+    cond_mustard: 4,
+    cond_soy: 0.8,
+    cond_cinnamon: 53.1,
+    cond_turmeric: 22.7,
+    cond_ginger: 2
+  }
+};
+
+// nutrition-engine/fiber.js
+var ANIMAL_KINDS = /* @__PURE__ */ new Set(["poultry", "red", "fish", "shellfish", "egg", "dairy"]);
+var TABLE = fiber_default.per100g || {};
+function fiberPer100(id) {
+  if (Object.prototype.hasOwnProperty.call(TABLE, id)) return TABLE[id];
+  const f = FOODS.get(id);
+  return f && ANIMAL_KINDS.has(f.kind) ? 0 : null;
 }
 
 // nutrition-engine/index.js
@@ -42987,7 +43433,8 @@ var PLAN_MODIFICATION_CODES = {
   simplify_meals: "\u043F\u043E-\u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F, \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0442\u0432\u0435\u043D\u0435, \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u044F",
   more_variety: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435 \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u044F\u0441\u0442\u0438\u044F",
   more_volume: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0431\u0435\u043C (\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438) \u043F\u0440\u0438 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438",
-  gentle_digestion: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E (\u0431\u0435\u0437 \u0445\u0440\u0430\u043D\u0438, \u043A\u043E\u0438\u0442\u043E \u043F\u043E\u0434\u0443\u0432\u0430\u0442)"
+  gentle_digestion: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E (\u0431\u0435\u0437 \u0445\u0440\u0430\u043D\u0438, \u043A\u043E\u0438\u0442\u043E \u043F\u043E\u0434\u0443\u0432\u0430\u0442)",
+  time_restricted_eating: "\u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u0447\u0430\u0441\u043E\u0432\u0438 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 (\u0438\u043D\u0442\u0435\u0440\u043C\u0438\u0442\u0435\u043D\u0442\u043D\u043E \u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435)"
 };
 var MEAL_COUNT_CODES = ["3_meals_per_day", "no_intermediate_meals", "4_meals_per_day", "5_meals_per_day"];
 function mergePlanModifications(existing = [], incoming = []) {
@@ -43011,13 +43458,16 @@ function mergePlanModifications(existing = [], incoming = []) {
 }
 function applyModifications(profile, mods = []) {
   const set = new Set(mods);
-  const out = { ...profile, diet: { ...profile.diet }, exclusions: [...profile.exclusions], slots: [...profile.slots] };
+  const out = { ...profile, diet: { ...profile.diet }, exclusions: [...profile.exclusions], slots: [...profile.slots], behaviors: [...profile.behaviors || []] };
   if (set.has("vegetarian") && PATTERN_RANK[out.diet.pattern] < PATTERN_RANK.vegetarian) out.diet.pattern = "vegetarian";
   if (set.has("low_carb") && out.diet.style !== "keto") out.diet.style = "low_carb";
   if (set.has("no_dairy") && !out.exclusions.includes("LAC")) out.exclusions.push("LAC");
   if (set.has("no_intermediate_meals") || set.has("3_meals_per_day")) out.slots = slotsFor(3, out.skipsBreakfast);
   if (set.has("4_meals_per_day")) out.slots = slotsFor(4, out.skipsBreakfast);
   if (set.has("5_meals_per_day")) out.slots = slotsFor(5, out.skipsBreakfast);
+  if (set.has("time_restricted_eating") && !out.behaviors.includes("IF") && !(out.adjustments || []).some((a) => /^MEDS_NO_FASTING/.test(a))) {
+    out.behaviors = [...out.behaviors, "IF"];
+  }
   if (set.has("smaller_portions")) {
     const extra = ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"].find((s) => !out.slots.includes(s));
     if (extra) out.slots = SLOT_ORDER2.filter((s) => out.slots.includes(s) || s === extra);
@@ -43068,11 +43518,19 @@ function buildNutritionPlan(userData, options) {
     onlyFoods: Array.isArray(userData?.userFoodList) ? userData.userFoodList.map(String) : []
   });
   const slots = policy.noLateMeal && profile.slots.length > 3 ? profile.slots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") : profile.slots;
-  const prescription = prescribe({ kcal, macros }, slots, policy, {
+  const rxOptions = {
     skipsBreakfast: profile.skipsBreakfast,
     noLateMeal: policy.noLateMeal,
     extraVeg: mods.includes("more_volume") ? 1 : 0
-  });
+  };
+  const prescription = prescribe({ kcal, macros }, slots, policy, rxOptions);
+  const metabolic = options.metabolic === false ? null : metabolicWeek(profile, userData || {}, { kcal, macros }, slots);
+  const dayPrescriptions = metabolic ? metabolic.days.map((d) => prescribe({ kcal: d.kcal, macros: d.macros }, d.slots, policy, {
+    ...rxOptions,
+    skipsBreakfast: rxOptions.skipsBreakfast || !d.slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"),
+    groupBias: d.bias,
+    mealScale: d.slots.length < slots.length ? slots.length / d.slots.length : 1
+  })) : null;
   const seed = typeof options.seed === "number" ? options.seed : hashSeed(options.seed ?? userData?.email ?? userData?.name ?? "");
   const freeDayNumber = options.freeDayNumber === void 0 ? policy.allowsFreeMeal ? 7 : null : options.freeDayNumber;
   const week = planWeek({
@@ -43087,18 +43545,38 @@ function buildNutritionPlan(userData, options) {
     slotAvoid: options.slotAvoid || [],
     simplify: mods.includes("simplify_meals"),
     variety: mods.includes("more_variety"),
-    dishPreference: options.dishPreference || {}
+    dishPreference: options.dishPreference || {},
+    dayPrescriptions
   });
   const weekPlan = {};
   week.days.forEach((day, i) => {
     weekPlan[`day${i + 1}`] = { meals: day.meals, dailyTotals: dayTotals(day.meals) };
+    const d = metabolic?.days[i];
+    if (d) {
+      weekPlan[`day${i + 1}`].energy = {
+        kind: d.kind,
+        kcal: d.kcal,
+        protein: d.macros.protein,
+        carbs: d.macros.carbs,
+        fats: d.macros.fats,
+        ...d.timing.post ? { postWorkoutMeal: d.timing.post } : {},
+        ...d.window ? { window: d.window } : {}
+      };
+    }
   });
-  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods };
+  const quality = menuQuality(week.days.map((d) => ({ meals: d.foods || [] })), { food, fiberPer100 }, profile, kcal);
+  const metabolicPlan = metabolic ? {
+    training: { days: metabolic.week.days, source: metabolic.week.source, slot: metabolic.week.slot, fuel: metabolic.week.fuel, types: metabolic.week.types, sessionKcal: metabolic.week.sessionKcal },
+    fasting: metabolic.fasting,
+    text: describeMetabolicWeek(metabolic, profile),
+    quality
+  } : { quality };
+  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods, metabolicPlan };
 }
 
 // nutrition-engine/food-guide.js
 var ruleDef = (code) => CONDITIONS[code] || PROTOCOLS[code] || {};
-var fmt = (n) => String(Math.round(n * 2) / 2).replace(".", ",");
+var fmt2 = (n) => String(Math.round(n * 2) / 2).replace(".", ",");
 function portionExample(group, ctx) {
   const { pattern, ex, style } = ctx;
   switch (group) {
@@ -43134,7 +43612,7 @@ function moderateOf(prescription, ctx, policy) {
     const example = portionExample(g, ctx);
     out.push({
       food: g === "MLK" && (ctx.pattern === "vegan" || ctx.ex.has("LAC")) ? "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u0439\u043E\u0433\u0443\u0440\u0442" : label,
-      amount: `${fmt(n)} ${n === 1 ? "\u043F\u043E\u0440\u0446\u0438\u044F" : "\u043F\u043E\u0440\u0446\u0438\u0438"} \u0434\u043D\u0435\u0432\u043D\u043E`,
+      amount: `${fmt2(n)} ${n === 1 ? "\u043F\u043E\u0440\u0446\u0438\u044F" : "\u043F\u043E\u0440\u0446\u0438\u0438"} \u0434\u043D\u0435\u0432\u043D\u043E`,
       example
     });
   }
@@ -43472,7 +43950,7 @@ var EXCLUSION_AVOID = {
   SOY: "\u0441\u043E\u044F",
   PORK: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E"
 };
-var fmt2 = (n) => String(n).replace(".", ",");
+var fmt3 = (n) => String(n).replace(".", ",");
 function round2(n) {
   return Math.round(Number(n) || 0);
 }
@@ -43481,8 +43959,8 @@ function recommendationsOf(prescription, stats, policy) {
   const mains = stats.mains || {};
   const list2 = [];
   list2.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
-  if (d.FRU > 0) list2.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt2(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
-  if (d.MLK > 0) list2.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt2(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  if (d.FRU > 0) list2.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt3(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
+  if (d.MLK > 0) list2.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt3(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
   if (mains.fish) list2.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
   if (mains.legume) list2.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
   if (d.STA > 0 && policy.style !== "keto") list2.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
@@ -43572,12 +44050,17 @@ function welcomeText({ name, goal, label, kcal, meals, freeDay, weekPlan }) {
   ].join(" ").replace(/\s+/g, " ");
 }
 function buildEngineStrategy(engine, userData, options) {
-  const { profile, policy, prescription, weekPlan, stats, macros } = engine;
+  const { profile, policy, prescription, weekPlan, stats, macros, metabolicPlan } = engine;
+  const fasting = metabolicPlan?.fasting || null;
+  const dayEnergy = Object.values(weekPlan || {}).map((d) => d?.energy).filter(Boolean);
+  const trainDays = dayEnergy.filter((e) => e.kind === "train");
+  const restDays = dayEnergy.filter((e) => e.kind !== "train");
+  const avgOf = (list2, k) => Math.round(list2.reduce((a, e) => a + e[k], 0) / (list2.length || 1));
   const label = dietLabelOf(profile);
   const slots = prescription.slots;
   const name = String(userData?.name || "").trim();
   const perKg = profile.weightKg ? (macros.protein / profile.weightKg).toFixed(1).replace(".", ",") : null;
-  const dailyText = ["STA", "PRO", "VEG", "FRU", "MLK", "FAT", "SWT"].filter((g) => prescription.daily[g] > 0).map((g) => `${GROUPS[g].label.toLowerCase()} ${fmt2(prescription.daily[g])}`).join("; ");
+  const dailyText = ["STA", "PRO", "VEG", "FRU", "MLK", "FAT", "SWT"].filter((g) => prescription.daily[g] > 0).map((g) => `${GROUPS[g].label.toLowerCase()} ${fmt3(prescription.daily[g])}`).join("; ");
   const mealsText = slots.map((s) => `${MEAL_LABELS[s] || s} ~${round2(prescription.meals[s].target.kcal)} kcal`).join(" \xB7 ");
   const mainsText = Object.entries(stats.mains || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${CATEGORY_LABELS[k] || k} \xD7${n}`).join(", ");
   const added = prescription.addedSlots || [];
@@ -43600,19 +44083,29 @@ function buildEngineStrategy(engine, userData, options) {
     afterDinnerMealJustification: slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") ? `\u041A\u044A\u0441\u043D\u0430\u0442\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0435 \u043B\u0435\u043A\u0430 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(lateKcal)} kcal, \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u043B\u0435\u0447\u043D\u0430 \u0438\u043B\u0438 \u0431\u0435\u043B\u0442\u044A\u0447\u043D\u0430.` : "\u041D\u0435 \u0441\u0430 \u043D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u0438",
     weeklyMealPattern: `\u041E\u0441\u043D\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043F\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430: ${mainsText}. \u0415\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435 \u0441\u0435 \u043F\u043E\u0432\u0442\u0430\u0440\u044F \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u0434\u0432\u0430 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E.`,
     calorieDistribution: mealsText,
-    macroDistribution: `\u0411\u0435\u043B\u0442\u044A\u043A ${round2(macros.protein)} \u0433${perKg ? ` (${perKg} \u0433/\u043A\u0433)` : ""}, \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${round2(macros.carbs)} \u0433, \u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${round2(macros.fats)} \u0433 \u2014 \u0441\u043F\u043E\u0440\u0435\u0434 \u043C\u043E\u0434\u0435\u043B\u0430 \u201E${policy.styleDef.label}\u201C.`,
+    macroDistribution: `\u0411\u0435\u043B\u0442\u044A\u043A ${round2(macros.protein)} \u0433${perKg ? ` (${perKg} \u0433/\u043A\u0433)` : ""}, \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${round2(macros.carbs)} \u0433, \u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${round2(macros.fats)} \u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0434\u0435\u043D\u044F \u2014 \u0441\u043F\u043E\u0440\u0435\u0434 \u043C\u043E\u0434\u0435\u043B\u0430 \u201E${policy.styleDef.label}\u201C.` + (trainDays.length && restDays.length ? ` \u0412 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 ~${avgOf(trainDays, "carbs")} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0438 ~${avgOf(trainDays, "kcal")} kcal, \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 ~${avgOf(restDays, "carbs")} \u0433 \u0438 ~${avgOf(restDays, "kcal")} kcal; \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u0435\u0434\u043D\u0430\u043A\u044A\u0432.` : ""),
     breakfastStrategy: !slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u0411\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u0434\u0435\u043D\u044F\u0442 \u0437\u0430\u043F\u043E\u0447\u0432\u0430 \u0441 \u043F\u044A\u0440\u0432\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u0432 \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F. \u0421\u0443\u0442\u0440\u0438\u043D \u043F\u0438\u0439\u0442\u0435 \u0432\u043E\u0434\u0430." : added.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u041B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u044F \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0440\u0430\u0432\u043D\u043E\u043C\u0435\u0440\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F, \u0442\u0430\u043A\u0430 \u0447\u0435 \u043E\u0431\u044F\u0434\u044A\u0442 \u0438 \u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0434\u0430 \u0441\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438 \u043F\u043E\u0440\u0446\u0438\u0438." : "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u044A\u0447\u0435\u0442\u0430\u0432\u0430 \u0431\u0435\u043B\u0442\u044A\u043A, \u0437\u044A\u0440\u043D\u0435\u043D\u0438 \u0438 \u043F\u043B\u043E\u0434 \u0438\u043B\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A.",
     mealTiming: {
       pattern: `${slots.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F`,
-      fastingWindows: "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 2\u20133 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u043D.",
+      fastingWindows: fasting?.active ? `\u041D\u043E\u0449\u043D\u0430 \u043F\u0430\u0443\u0437\u0430 \u043E\u043A\u043E\u043B\u043E 12 \u0447\u0430\u0441\u0430 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D. \u0412 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0435 \u0432 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 ${fasting.windowText}; \u0432 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u0442\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430. \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 2\u20133 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u043D.` : "\u041D\u043E\u0449\u043D\u0430 \u043F\u0430\u0443\u0437\u0430 \u043E\u043A\u043E\u043B\u043E 12 \u0447\u0430\u0441\u0430 (\u043D\u0430\u043F\u0440. 20:00\u201308:00); \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 2\u20133 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u043D.",
       flexibility: "\xB130\u201345 \u043C\u0438\u043D \u043E\u043A\u043E\u043B\u043E \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438\u0442\u0435 \u0447\u0430\u0441\u043E\u0432\u0435.",
       chronotypeGuidance: userData?.chronotype ? `\u0421\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441 \u0445\u0440\u043E\u043D\u043E\u0442\u0438\u043F: ${userData.chronotype}.` : "\u0421\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441\u044A\u0441 \u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u0435\u043D \u0434\u043D\u0435\u0432\u0435\u043D \u0440\u0438\u0442\u044A\u043C."
     },
     keyPrinciples: [
       policy.styleDef.label,
       "\u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u0432 \u043E\u0431\u043C\u0435\u043D\u043D\u0438 \u043F\u043E\u0440\u0446\u0438\u0438",
+      ...trainDays.length ? ["\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u0432\u0430\u0442 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430, \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0435\u043D"] : [],
+      ...fasting?.active ? [`\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u0447\u0430\u0441\u043E\u0432\u0438 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 (${fasting.protocol === "tre16" ? "16:8" : fasting.protocol === "tre14" ? "14:10" : "12:12"}) \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438`] : [],
       ...rules.map((r) => r.label)
     ],
+    // Метаболитната седмица: тренировъчни/почивни дни, горивото, часовият прозорец, качеството на менюто.
+    metabolicPlan: metabolicPlan ? {
+      principles: metabolicPlan.text || [],
+      training: metabolicPlan.training || null,
+      fasting: fasting ? { active: fasting.active, offered: fasting.offered, protocol: fasting.protocol, window: fasting.windowText, note: fasting.note, blocked: fasting.blocked } : null,
+      days: Object.fromEntries(Object.entries(weekPlan || {}).filter(([, d]) => d?.energy).map(([k, d]) => [k, d.energy])),
+      quality: metabolicPlan.quality
+    } : null,
     preferredFoodCategories: recommendationsOf(prescription, stats, policy),
     avoidFoodCategories: avoidOf(profile, policy, blocked),
     foodsToInclude: recommendationsOf(prescription, stats, policy),
@@ -44687,7 +45180,7 @@ function between(series, now, fromDays, toDays) {
 }
 var mean = (xs) => xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null;
 var r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
-var fmt3 = (v, d = 1) => String(Math.round(v * 10 ** d) / 10 ** d).replace(".", ",");
+var fmt4 = (v, d = 1) => String(Math.round(v * 10 ** d) / 10 ** d).replace(".", ",");
 function slopePerWeek(points) {
   if (points.length < 2) return null;
   const xs = points.map((p) => p.t / (7 * DAY_MS2));
@@ -44786,7 +45279,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     const slope = slopePerWeek(w14);
     metrics.weight = { last: r1(w14[w14.length - 1].value), avg7: r1(mean(between(weight, now, 0, 7).map((p) => p.value)) ?? w14[w14.length - 1].value), trendKgWeek: Math.round(slope * 100) / 100, days: w14.length };
     checkin.weightTrendKgWeek = metrics.weight.trendKgWeek;
-    signals.push({ code: "weight_trend", level: "info", text: `\u0422\u0435\u0433\u043B\u043E: ${fmt3(metrics.weight.avg7)} \u043A\u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0435\u043D\u0434\u0435\u043D\u0446\u0438\u044F ${slope > 0 ? "+" : ""}${fmt3(slope, 2)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (${w14.length} \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F).` });
+    signals.push({ code: "weight_trend", level: "info", text: `\u0422\u0435\u0433\u043B\u043E: ${fmt4(metrics.weight.avg7)} \u043A\u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0435\u043D\u0434\u0435\u043D\u0446\u0438\u044F ${slope > 0 ? "+" : ""}${fmt4(slope, 2)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (${w14.length} \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F).` });
   }
   const bf = dailySeries(facts2, "body_fat");
   const comp = [];
@@ -44807,7 +45300,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
       const dW = wch.to - wch.from;
       metrics.composition = { days: ch.days, weightChangeKg: r1(dW), leanChangeKg: r1(dLean) };
       if (dW <= -1 && dLean < 0 && -dLean >= -dW * 0.5) {
-        signals.push({ code: "lean_loss", level: "warn", text: `\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(dLean / dW * 100)}% \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u0438\u0442\u0435 ${fmt3(-dW)} \u043A\u0433 \u0437\u0430 ${ch.days} \u0434\u043D\u0438 \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u043D\u0435 \u0441\u0435 \u0437\u0430\u0434\u044A\u043B\u0431\u043E\u0447\u0430\u0432\u0430.` });
+        signals.push({ code: "lean_loss", level: "warn", text: `\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(dLean / dW * 100)}% \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u0438\u0442\u0435 ${fmt4(-dW)} \u043A\u0433 \u0437\u0430 ${ch.days} \u0434\u043D\u0438 \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u043D\u0435 \u0441\u0435 \u0437\u0430\u0434\u044A\u043B\u0431\u043E\u0447\u0430\u0432\u0430.` });
         hints.approach.push("increase_protein");
         checkin.leanLoss = true;
         reasons.push("\u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u043F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430");
@@ -44836,7 +45329,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     const perWeek = sessions / 2;
     metrics.workouts = { perWeek: r1(perWeek), minutesWeek: Math.round(workouts.reduce((s, p) => s + p.value, 0) / 2) };
     overrides.sportActivity = sportLabelOf(perWeek);
-    reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt3(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+    reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt4(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
   }
   const training = trainingPattern(facts2, now);
   if (training) {
@@ -44844,12 +45337,12 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     checkin.training = { perWeek: training.perWeek, usual: training.usual, rest: training.rest, slot: training.slot };
     if (!metrics.workouts) {
       overrides.sportActivity = sportLabelOf(training.perWeek);
-      reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435: ~${fmt3(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+      reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435: ~${fmt4(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
     }
     if (training.usual.length && training.regularity >= 0.75) {
       signals.push({ code: "training_schedule", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u0434\u043D\u0438: \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${weekdayList(training.usual)}${training.slot === "am" ? ", \u0434\u043E \u043E\u0431\u044F\u0434" : training.slot === "pm" ? ", \u0441\u043B\u0435\u0434\u043E\u0431\u0435\u0434" : ""}. \u0412 \u0442\u0435\u0437\u0438 \u0434\u043D\u0438 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0435 \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430.` });
     } else if (training.perWeek >= 1 && training.regularity < 0.65) {
-      signals.push({ code: "training_irregular", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u0441\u0430 ~${fmt3(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u0431\u0435\u0437 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u0438 \u0434\u043D\u0438 \u2014 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430 \u043F\u043E \u0441\u0440\u0435\u0434\u043D\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043F\u043E \u0434\u0435\u043D.` });
+      signals.push({ code: "training_irregular", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u0441\u0430 ~${fmt4(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u0431\u0435\u0437 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u0438 \u0434\u043D\u0438 \u2014 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430 \u043F\u043E \u0441\u0440\u0435\u0434\u043D\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043F\u043E \u0434\u0435\u043D.` });
     }
   }
   const active = between(dailySeries(facts2, "active_kcal"), now, 0, 7);
@@ -44884,7 +45377,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   if (sleep.length >= 5) {
     metrics.sleep = { avg7: r1(mean(sleep.map((p) => p.value))), nights: sleep.length };
     if (metrics.sleep.avg7 < 6.5) {
-      signals.push({ code: "sleep_short", level: "warn", text: `\u0421\u044A\u043D: ~${fmt3(metrics.sleep.avg7)} \u0447 \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u043E\u0434 7 \u0447 \u0433\u043B\u0430\u0434\u044A\u0442 \u0438 \u0436\u0435\u043B\u0430\u043D\u0438\u0435\u0442\u043E \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442.` });
+      signals.push({ code: "sleep_short", level: "warn", text: `\u0421\u044A\u043D: ~${fmt4(metrics.sleep.avg7)} \u0447 \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u043E\u0434 7 \u0447 \u0433\u043B\u0430\u0434\u044A\u0442 \u0438 \u0436\u0435\u043B\u0430\u043D\u0438\u0435\u0442\u043E \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442.` });
     }
   }
   const intake = between(dailySeries(facts2, "intake"), now, 0, 7);
@@ -44893,7 +45386,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   if (water.length >= 4) {
     metrics.water = { avg7: r1(mean(water.map((p) => p.value))) };
     if (ctx.waterNeedL && metrics.water.avg7 < ctx.waterNeedL * 0.6) {
-      signals.push({ code: "hydration_low", level: "info", text: `\u0412\u043E\u0434\u0430: ~${fmt3(metrics.water.avg7)} \u043B \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 ~${fmt3(ctx.waterNeedL)} \u043B.` });
+      signals.push({ code: "hydration_low", level: "info", text: `\u0412\u043E\u0434\u0430: ~${fmt4(metrics.water.avg7)} \u043B \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 ~${fmt4(ctx.waterNeedL)} \u043B.` });
     }
   }
   const bp = between(dailySeries(facts2, "bp"), now, 0, 28);
@@ -44914,8 +45407,8 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     metrics.glucose = { morning: r1(m), days: morning.length };
     if (m >= 5.6) {
       hints.clinical.push("IR");
-      signals.push({ code: "glucose_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D: ~${fmt3(m)} mmol/L \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u0442\u0430 \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0441\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438.` });
-      if (m >= 7) hints.cautions.push(`\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E ~${fmt3(m)} mmol/L \u043F\u043E \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440 \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
+      signals.push({ code: "glucose_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D: ~${fmt4(m)} mmol/L \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u0442\u0430 \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0441\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438.` });
+      if (m >= 7) hints.cautions.push(`\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E ~${fmt4(m)} mmol/L \u043F\u043E \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440 \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
       reasons.push("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D");
     }
   }
@@ -44934,22 +45427,22 @@ function essenceText(essence, digest = null) {
   if (!essence) return "";
   const m = essence.metrics || {};
   const rows = [];
-  if (m.weight) rows.push(`\u0442\u0435\u0433\u043B\u043E ${fmt3(m.weight.avg7)} \u043A\u0433, ${m.weight.trendKgWeek > 0 ? "+" : ""}${fmt3(m.weight.trendKgWeek, 2)} \u043A\u0433/\u0441\u0435\u0434\u043C.`);
-  if (m.bodyFat) rows.push(`\u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${fmt3(m.bodyFat.last)}%, \u0447\u0438\u0441\u0442\u0430 \u043C\u0430\u0441\u0430 ${fmt3(m.bodyFat.leanKg)} \u043A\u0433`);
+  if (m.weight) rows.push(`\u0442\u0435\u0433\u043B\u043E ${fmt4(m.weight.avg7)} \u043A\u0433, ${m.weight.trendKgWeek > 0 ? "+" : ""}${fmt4(m.weight.trendKgWeek, 2)} \u043A\u0433/\u0441\u0435\u0434\u043C.`);
+  if (m.bodyFat) rows.push(`\u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${fmt4(m.bodyFat.last)}%, \u0447\u0438\u0441\u0442\u0430 \u043C\u0430\u0441\u0430 ${fmt4(m.bodyFat.leanKg)} \u043A\u0433`);
   if (m.steps) rows.push(`\u043A\u0440\u0430\u0447\u043A\u0438 ~${m.steps.avg7}/\u0434\u0435\u043D`);
-  if (m.workouts) rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${fmt3(m.workouts.perWeek)}/\u0441\u0435\u0434\u043C. (${m.workouts.minutesWeek} \u043C\u0438\u043D)`);
+  if (m.workouts) rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${fmt4(m.workouts.perWeek)}/\u0441\u0435\u0434\u043C. (${m.workouts.minutesWeek} \u043C\u0438\u043D)`);
   else if (m.training) {
     const t = m.training;
     const when = [t.usual.length ? `\u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${weekdayList(t.usual)}` : "", t.slot === "am" ? "\u0434\u043E \u043E\u0431\u044F\u0434" : t.slot === "pm" ? "\u0441\u043B\u0435\u0434\u043E\u0431\u0435\u0434" : ""].filter(Boolean).join(", ");
-    rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ~${fmt3(t.perWeek)}/\u0441\u0435\u0434\u043C.${when ? ` (${when})` : ""}`);
+    rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ~${fmt4(t.perWeek)}/\u0441\u0435\u0434\u043C.${when ? ` (${when})` : ""}`);
   }
-  if (m.sleep) rows.push(`\u0441\u044A\u043D ${fmt3(m.sleep.avg7)} \u0447`);
+  if (m.sleep) rows.push(`\u0441\u044A\u043D ${fmt4(m.sleep.avg7)} \u0447`);
   if (m.restingHr) rows.push(`\u043F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439 ${m.restingHr.avg7} (\u0431\u0430\u0437\u0430 ${m.restingHr.base})`);
   if (m.hrv) rows.push(`HRV ${m.hrv.avg7} ms (\u0431\u0430\u0437\u0430 ${m.hrv.base})`);
   if (m.intake) rows.push(`\u043F\u0440\u0438\u0435\u043C \u043F\u043E \u0442\u0440\u0430\u043A\u0435\u0440 ~${m.intake.avg7} kcal`);
-  if (m.water) rows.push(`\u0432\u043E\u0434\u0430 ${fmt3(m.water.avg7)} \u043B`);
+  if (m.water) rows.push(`\u0432\u043E\u0434\u0430 ${fmt4(m.water.avg7)} \u043B`);
   if (m.bp) rows.push(`\u043A\u0440\u044A\u0432\u043D\u043E ~${m.bp.sys}/${m.bp.dia}`);
-  if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt3(m.glucose.morning)} mmol/L`);
+  if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt4(m.glucose.morning)} mmol/L`);
   const lines = [];
   if (rows.length) lines.push(`\u0434\u0430\u043D\u043D\u0438: ${rows.join("; ")}`);
   const warn = (essence.signals || []).filter((s) => s.level === "warn").map((s) => s.text);
@@ -45063,8 +45556,8 @@ var SYMPTOM_OPTIONS = [
   { value: "sometimes", label: "\u041F\u043E\u043D\u044F\u043A\u043E\u0433\u0430" },
   { value: "no", label: "\u041D\u0435" }
 ];
-var asList2 = (v) => (Array.isArray(v) ? v : String(v ?? "").split(/[,;|\n]/)).map((s) => String(s).trim()).filter(Boolean);
-var said = (data, field, values) => asList2(data?.[field]).some((x) => values.includes(x));
+var asList3 = (v) => (Array.isArray(v) ? v : String(v ?? "").split(/[,;|\n]/)).map((s) => String(s).trim()).filter(Boolean);
+var said = (data, field, values) => asList3(data?.[field]).some((x) => values.includes(x));
 var termKey = (t) => normLabel(t).replace(/[^a-zа-я0-9]+/gi, "_").slice(0, 40);
 function resolutionsOf(facts2) {
   const out = {};
@@ -45088,9 +45581,9 @@ function crossCheck(data, derived, resolutions = {}) {
   const noConditions = said(data, "medicalConditions", ["\u041D\u044F\u043C\u0430\u043C", "\u041D\u044F\u043C\u0430"]) || said(data, "healthConditions", ["\u041D\u044F\u043C\u0430\u043C", "\u041D\u044F\u043C\u0430"]);
   const conditionsText = [
     freeText,
-    ...asList2(data?.medicalConditions),
-    ...asList2(data?.healthConditions),
-    ...Object.keys(data || {}).filter((k) => /^medicalConditions_/.test(k)).flatMap((k) => asList2(data[k]))
+    ...asList3(data?.medicalConditions),
+    ...asList3(data?.healthConditions),
+    ...Object.keys(data || {}).filter((k) => /^medicalConditions_/.test(k)).flatMap((k) => asList3(data[k]))
   ].join(" ");
   const iris = derived?.irisRaw;
   for (const s of (iris?.systems || []).filter((x) => x.priority)) {
@@ -45129,7 +45622,7 @@ function crossCheck(data, derived, resolutions = {}) {
   const q = derived?.irisRaw?.questionnaire;
   if (q) {
     const known = normLabel([data?.dietDislike, data?.["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"], data?.foodSensitivities].flat().filter(Boolean).join(" "));
-    for (const term of asList2([q.foodIntolerances, q.allergies].filter(Boolean).join(","))) {
+    for (const term of asList3([q.foodIntolerances, q.allergies].filter(Boolean).join(","))) {
       const t = term.slice(0, 40);
       if (normLabel(t).length < 3 || known.includes(normLabel(t))) continue;
       const id = `allergy:${termKey(t)}`;
@@ -45149,7 +45642,7 @@ function crossCheck(data, derived, resolutions = {}) {
         questions.push({ id: medsId, source: "airis", topic: "\u041B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 \u201E${q.medications.slice(0, 120)}\u201C, \u0430 \u0432 NutriPlan \u2014 \u0447\u0435 \u043D\u0435 \u043F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u041F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0438 \u0433\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u043F\u0440\u0438\u0435\u043C\u0430\u043C \u0433\u0438" }, { value: "no", label: "\u041D\u0435, \u0432\u0435\u0447\u0435 \u043D\u0435" }] });
       }
     }
-    const npDiet = asList2(data?.dietPreference);
+    const npDiet = asList3(data?.dietPreference);
     for (const [airisLabel, npLabel] of [["\u0412\u0435\u0433\u0430\u043D", "\u0412\u0435\u0433\u0430\u043D"], ["\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0438", "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430"]]) {
       if (!(q.dietaryProfile || []).includes(airisLabel) || npDiet.includes(npLabel)) continue;
       const id = `pattern:${npLabel}`;
@@ -45172,7 +45665,7 @@ function crossCheck(data, derived, resolutions = {}) {
   }
   const v = derived?.voice;
   const strong = v && v.reliable !== false && (v.intensity === "\u0421\u0438\u043B\u043D\u043E" || v.intensity === "\u041E\u0441\u0435\u0437\u0430\u0435\u043C\u043E");
-  const rarely = ["\u0420\u044F\u0434\u043A\u043E", "\u041D\u0438\u043A\u043E\u0433\u0430"].includes(data?.overeatingFrequency) && (!asList2(data?.foodTriggers).length || said(data, "foodTriggers", ["\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u043E"]));
+  const rarely = ["\u0420\u044F\u0434\u043A\u043E", "\u041D\u0438\u043A\u043E\u0433\u0430"].includes(data?.overeatingFrequency) && (!asList3(data?.foodTriggers).length || said(data, "foodTriggers", ["\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u043E"]));
   if (strong && rarely && !resolutions.emoeat_vs_q) {
     questions.push({ id: "emoeat_vs_q", source: "emoeat", topic: "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", text: "EmoEat \u043F\u043E\u043A\u0430\u0437\u0432\u0430, \u0447\u0435 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0447\u0435\u0441\u0442\u043E \u0438\u0434\u0432\u0430 \u0432 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u043D\u0430 \u0435\u043C\u043E\u0446\u0438\u0438, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0441\u0442\u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043B\u0438, \u0447\u0435 \u0440\u044F\u0434\u043A\u043E \u044F\u0434\u0435\u0442\u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u043E\u0442\u043E. \u041A\u043E\u0435 \u0435 \u043F\u043E-\u0431\u043B\u0438\u0437\u043E \u0434\u043E \u0432\u0430\u0441?", options: [{ value: "often", label: "\u0427\u0435\u0441\u0442\u043E \u044F\u043C \u043F\u0440\u0438 \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0443\u043C\u043E\u0440\u0430 \u0438\u043B\u0438 \u0441\u043A\u0443\u043A\u0430" }, { value: "rare", label: "\u0420\u044F\u0434\u043A\u043E \u2014 \u043D\u0435 \u0441\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043C" }] });
   }
@@ -46019,13 +46512,13 @@ var IRIS_CATEGORY = {
   immune: "Medical",
   nervous: "Stress"
 };
-var fmt4 = (v) => String(Math.round(Number(v) * 10) / 10).replace(".", ",");
+var fmt5 = (v) => String(Math.round(Number(v) * 10) / 10).replace(".", ",");
 var LAB_PROBLEMS = {
   vitd: (l) => problem(
     "Medical",
     l.value < 30 ? 64 : 52,
     "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D D",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043E\u043F\u0442\u0438\u043C\u0430\u043B\u043D\u0438\u0442\u0435 50.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043E\u043F\u0442\u0438\u043C\u0430\u043B\u043D\u0438\u0442\u0435 50.`,
     "\u0423\u043C\u043E\u0440\u0430, \u043F\u043E-\u0441\u043B\u0430\u0431 \u0438\u043C\u0443\u043D\u0438\u0442\u0435\u0442 \u0438 \u043F\u043E-\u0431\u0430\u0432\u043D\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435.",
     "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u043E-\u0437\u0434\u0440\u0430\u0432\u0438 \u043A\u043E\u0441\u0442\u0438",
     "LAB_VITD"
@@ -46034,7 +46527,7 @@ var LAB_PROBLEMS = {
     "Medical",
     62,
     "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D B12",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430.`,
     "\u0423\u043C\u043E\u0440\u0430, \u0438\u0437\u0442\u0440\u044A\u043F\u0432\u0430\u043D\u0435 \u0438 \u0441\u043F\u0430\u0434 \u043D\u0430 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044F\u0442\u0430.",
     "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u044F\u0441\u043D\u0430 \u043C\u0438\u0441\u044A\u043B",
     "LAB_B12"
@@ -46043,7 +46536,7 @@ var LAB_PROBLEMS = {
     "Medical",
     62,
     l.status === "high" ? "TSH \u043D\u0430\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430" : "TSH \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430\u0442\u0430 \u0436\u043B\u0435\u0437\u0430 \u0441\u0435 \u043E\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430\u0442\u0430 \u0436\u043B\u0435\u0437\u0430 \u0441\u0435 \u043E\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`,
     "\u041E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0435 \u043F\u043E-\u0431\u0430\u0432\u043D\u0430 \u0438\u043B\u0438 \u043F\u043E-\u0431\u044A\u0440\u0437\u0430 \u043E\u0442 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u043E\u0442\u043E.",
     "\u042F\u0441\u043D\u0430 \u043A\u0430\u0440\u0442\u0438\u043D\u0430 \u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u0433\u043B\u0435\u0434",
     "LAB_TSH"
@@ -46052,7 +46545,7 @@ var LAB_PROBLEMS = {
     "Medical",
     l.value < 30 ? 86 : 72,
     "\u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F",
-    `eGFR ${fmt4(l.value)} \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u0440\u0435\u0436\u0438\u043C\u044A\u0442 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    `eGFR ${fmt5(l.value)} \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u0440\u0435\u0436\u0438\u043C\u044A\u0442 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
     "\u041D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u043F\u0440\u0438 \u043C\u043D\u043E\u0433\u043E \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0441\u043E\u043B.",
     "\u0429\u0430\u0434\u044F\u0449 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u0440\u0435\u0436\u0438\u043C",
     "LAB_EGFR"
@@ -46061,7 +46554,7 @@ var LAB_PROBLEMS = {
     "Medical",
     74,
     "\u0412\u0438\u0441\u043E\u043A \u043A\u0430\u043B\u0438\u0439",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u0442 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u0442 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
     "\u0420\u0438\u0441\u043A \u0437\u0430 \u0441\u044A\u0440\u0434\u0435\u0447\u043D\u0438\u044F \u0440\u0438\u0442\u044A\u043C.",
     "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u043D\u0430 \u043A\u0430\u043B\u0438\u044F",
     "LAB_K"
@@ -46070,7 +46563,7 @@ var LAB_PROBLEMS = {
     "Medical",
     54,
     "\u041D\u0438\u0441\u044A\u043A HDL (\u201E\u0434\u043E\u0431\u044A\u0440\u201C) \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u0437\u0430\u0449\u0438\u0442\u043D\u0430\u0442\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0430.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u0437\u0430\u0449\u0438\u0442\u043D\u0430\u0442\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0430.`,
     "\u041F\u043E-\u0441\u043B\u0430\u0431\u0430 \u0437\u0430\u0449\u0438\u0442\u0430 \u043D\u0430 \u0441\u044A\u0434\u043E\u0432\u0435\u0442\u0435.",
     "\u041F\u043E-\u0434\u043E\u0431\u044A\u0440 \u043B\u0438\u043F\u0438\u0434\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B",
     "LAB_HDL"

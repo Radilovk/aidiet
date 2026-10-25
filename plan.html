@@ -5872,6 +5872,38 @@
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
 
+            // Какъв е денят (metabolic.js): тренировъчен / почивен / по-лек, горивото и прозорецът.
+            const energy = dayData.energy;
+            if (energy && energy.kind) {
+                const mp = dietPlan.strategy && dietPlan.strategy.metabolicPlan;
+                const MEAL_NAMES = { 'Хранене 1': 'закуската', 'Хранене 2': 'обяда', 'Хранене 3': 'следобедната закуска', 'Хранене 4': 'вечерята' };
+                const head = energy.kind === 'train' ? 'Тренировъчен ден' : energy.kind === 'low' ? 'По-лек ден' : 'Почивен ден';
+                const icon = energy.kind === 'train' ? 'fa-dumbbell' : energy.kind === 'low' ? 'fa-feather' : 'fa-leaf';
+                const detail = energy.kind === 'train'
+                    ? (energy.postWorkoutMeal && MEAL_NAMES[energy.postWorkoutMeal] ? 'Въглехидратите са най-много в ' + MEAL_NAMES[energy.postWorkoutMeal] + ' след тренировката' : 'Повече въглехидрати за тренировката')
+                    : energy.window ? 'Хранене в прозорец ' + energy.window : (energy.kind === 'low' ? 'Пълният белтък, по-малко въглехидрати' : 'Повече зеленчуци и мазнини, въглехидратите — по-рано през деня');
+                const card = document.createElement('div');
+                card.className = 'meal-card breakfast-note-card meal-card--clickable day-energy-card';
+                card.innerHTML =
+                    '<div class="meal-info">' +
+                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + energy.kcal + ' kcal · В ' + energy.carbs + ' г · Б ' + energy.protein + ' г · М ' + energy.fats + ' г</div>' +
+                    '<div class="meal-name" style="font-size:0.92em;font-weight:600">' + escapeHtml(detail) + '</div>' +
+                    '</div>';
+                card.setAttribute('role', 'button');
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('aria-label', head + ' — подробности');
+                const openEnergy = function() {
+                    const lines = (mp && mp.principles) || [];
+                    const quality = (mp && mp.quality && mp.quality.items) || [];
+                    openModal(head, lines.concat(quality.length ? ['Качество на менюто:'].concat(quality.map(function(q) { return (q.status === 'ok' ? '✓ ' : '• ') + q.text; })) : []).join('\n\n'), '', null, null, null, null);
+                };
+                card.addEventListener('click', openEnergy);
+                card.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEnergy(); }
+                });
+                mealContainer.appendChild(card);
+            }
+
             // Check if the current day has a free eating meal (determined by AI in step 3)
             const hasFreeMeal = dayData.meals.some(meal => meal.type === 'Свободно хранене');
 

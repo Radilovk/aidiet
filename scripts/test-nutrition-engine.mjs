@@ -104,10 +104,13 @@ for (const prof of profiles) {
     if (mainsToday.length === 2 && profile.diet.pattern !== 'vegan' && profile.protocol !== 'autoimmune_aip') ok(mainsToday[0] !== mainsToday[1] || mainsToday[0] === 'poultry', `${prof.id} д${d}: обяд и вечеря от една категория`);
     if (meals.some(m => m.type === 'Свободно хранене')) continue;
     const t = weekPlan[`day${d}`].dailyTotals;
-    dev.k += Math.abs(t.calories - kcal) / kcal;
-    dev.p += Math.abs(t.protein - macros.protein) / macros.protein;
-    dev.c += Math.abs(t.carbs - macros.carbs) / Math.max(macros.carbs, 20);
-    dev.f += Math.abs(t.fats - macros.fats) / macros.fats;
+    // Целта на деня (тренировъчен/почивен, metabolic.js); без нея — средната.
+    const e = weekPlan[`day${d}`].energy;
+    const goal = e ? { k: e.kcal, p: e.protein, c: e.carbs, f: e.fats } : { k: kcal, p: macros.protein, c: macros.carbs, f: macros.fats };
+    dev.k += Math.abs(t.calories - goal.k) / goal.k;
+    dev.p += Math.abs(t.protein - goal.p) / goal.p;
+    dev.c += Math.abs(t.carbs - goal.c) / Math.max(goal.c, 20);
+    dev.f += Math.abs(t.fats - goal.f) / goal.f;
     dev.n++;
   }
   // AIP има малко ястия — там повторението е неизбежно.
