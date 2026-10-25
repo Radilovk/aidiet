@@ -1817,6 +1817,9 @@
         .change-item[data-tone="warn"] > i { background: var(--ds-warning-bg); color: var(--ds-warning-text); }
         .change-item[data-tone="good"] > i { background: var(--ds-success-bg); color: var(--ds-success-text); }
         .change-item small { display: block; color: var(--ds-text-soft); font-size: 0.8125rem; margin-top: 2px; }
+        .change-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .change-answer { min-height: 44px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--ds-fill); background: transparent; color: var(--text-dark); font: inherit; font-weight: 600; cursor: pointer; }
+        .change-answer:disabled { opacity: 0.6; cursor: default; }
         /* Изследвания: стойността върху нормалния диапазон */
         .lab-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
         .lab-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: baseline; }
@@ -2479,12 +2482,18 @@
 
         const FIELD_LABELS = {
             sleepHours: { label: 'Сън', unit: ' ч', src: 'по устройството' },
-            dailyActivityLevel: { label: 'Ежедневна активност', unit: '', src: 'по крачкомера' },
+            dailyActivityLevel: { label: 'Ежедневна активност', unit: '', src: 'по крачките' },
+            sportActivity: { label: 'Спортна активност', unit: '', src: 'по тренировките' },
             medicationsDetails: { label: 'Лекарства', unit: '', src: 'от документ' }
         };
 
         function renderChanges(re) {
             const items = [];
+            // Разминаване между телефона и гривната — отговорът решава кой източник се ползва.
+            (re.questions || []).forEach(q => items.push({
+                icon: 'fa-shoe-prints', tone: 'warn', text: escA(q.text),
+                actions: q.options.map(o => `<button type="button" class="change-answer" data-q="${escA(q.id)}" data-a="${escA(o.value)}" onclick="answerQuestion(this)">${escA(o.label)}</button>`).join('')
+            }));
             (re.replaced || []).forEach(r => {
                 const m = FIELD_LABELS[r.field] || { label: r.field, unit: '', src: '' };
                 items.push({ icon: 'fa-right-left', tone: '', text: `${m.label}: ${escA(String(r.to).replace('.', ','))}${m.unit} ${m.src}`, note: r.from ? `Във въпросника: ${escA(r.from)}` : '' });
@@ -2497,7 +2506,7 @@
             if (!items.length) return;
             const SHOWN = 3;
             document.getElementById('changeList').innerHTML = items.map((i, n) =>
-                `<li class="change-item${n >= SHOWN ? ' is-extra' : ''}" data-tone="${i.tone}"${n >= SHOWN && !_changesOpen ? ' hidden' : ''}><i class="fas ${i.icon}" aria-hidden="true"></i><div>${i.text}${i.note ? `<small>${i.note}</small>` : ''}</div></li>`).join('');
+                `<li class="change-item${n >= SHOWN ? ' is-extra' : ''}" data-tone="${i.tone}"${n >= SHOWN && !_changesOpen ? ' hidden' : ''}><i class="fas ${i.icon}" aria-hidden="true"></i><div>${i.text}${i.note ? `<small>${i.note}</small>` : ''}${i.actions ? `<div class="change-actions">${i.actions}</div>` : ''}</div></li>`).join('');
             const more = document.getElementById('changesMore');
             more.hidden = items.length <= SHOWN;
             more.dataset.label = `Още ${items.length - SHOWN}`;
@@ -2624,6 +2633,19 @@
         function openProfileCard() {
             if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'profile' })) return;
             navigateTopLevel('index.html?app=1&tab=profile');
+        }
+
+        async function answerQuestion(btn) {
+            const E = window.NutriPlanEnrichment;
+            if (!E) return;
+            const box = btn.closest('.change-actions');
+            box.querySelectorAll('button').forEach(b => { b.disabled = true; });
+            try {
+                await E.resolve(btn.dataset.q, btn.dataset.a);
+                await refreshReanalysis();
+            } catch (_) {
+                box.querySelectorAll('button').forEach(b => { b.disabled = false; });
+            }
         }
 
         /** Свеж реанализ от сървъра — подменя показания, ако има нови данни. */

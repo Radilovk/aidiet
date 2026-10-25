@@ -197,6 +197,8 @@ export function reanalyze(baseData, enrichedData, energy = {}, sex = 'X') {
     dimensions: DIMENSIONS.map(x => ({ key: x.key, label: x.label, score: dims[x.key], baseline: baseDims[x.key] })),
     resolved,
     replaced,
+    // Отворените въпроси, които анализът показва с бутони (останалите са за чата).
+    questions: (d.crossCheck?.questions || []).filter(q => q.id === 'steps_source'),
     labs: (d.labs || []).map(l => ({ ...l, range: labRange(l.key, sex) })),
     iris: d.iris ? { ...d.iris, hypotheses } : (hypotheses.length ? { hypotheses } : null),
     emoeat: d.voice ? { archetype: d.voice.archetype || '', intensity: d.voice.intensity || '', drivers: d.voice.drivers || [], realNeed: d.voice.realNeed || '', at: d.voice.at || null } : null,

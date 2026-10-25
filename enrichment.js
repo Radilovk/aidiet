@@ -190,6 +190,64 @@ function activityLabelOf(steps) {
   return 'Високо';
 }
 
+/** Източникът на крачките: телефонът (крачкомерът на приложението) или носимо устройство. */
+const stepsClassOf = (f) => (f.source === 'phone' ? 'phone' : 'device');
+/** Постоянно разминаване между телефона и устройството: медианата на дневното съотношение извън 0,7–1,4. */
+const STEPS_RATIO_MIN = 0.7;
+const STEPS_RATIO_MAX = 1.4;
+const STEPS_OVERLAP_MIN = 5;
+
+const median = (xs) => {
+  const a = [...xs].sort((x, y) => x - y);
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+};
+
+/**
+ * Обичайните крачки за последните 14 дни — от един източник, без дните с тренировка.
+ *
+ * Телефонът и гривната мерят различно (гривната брои и движения на ръката,
+ * телефонът — само докато е в джоба), затова поредицата не се смесва: един
+ * източник за всички дни. Изборът на клиента (въпрос „steps_source“) печели;
+ * без него — устройството, ако има достатъчно дни, иначе телефонът.
+ *
+ * Дните с тренировка (отговор „Тренирахте ли днес?“ или тренировка от
+ * устройство) не се броят: тренировката влиза в енергията отделно, по дните
+ * спорт — иначе бягането се брои два пъти. Ако дните без тренировка са под 4
+ * (тренира почти всеки ден), се взимат всички.
+ * @returns {{ steps: number, days: number, restDays: number, source: 'phone'|'device', overlap: number, ratio: number|null, disputed: boolean } | null}
+ */
+export function stepsActivity(facts, now = new Date(), resolutions = {}) {
+  const from = now.getTime() - 14 * DAY_MS;
+  const steps = (facts || []).filter(f => f.kind === 'steps' && f.status !== 'pending' && Date.parse(f.at) >= from);
+  if (!steps.length) return null;
+  const series = { phone: [], device: [] };
+  for (const cls of ['phone', 'device']) series[cls] = dailySeries(steps.filter(f => stepsClassOf(f) === cls), 'steps').filter(p => p.value > 0);
+  const phoneByDay = new Map(series.phone.map(p => [p.day, p.value]));
+  const ratios = series.device.filter(p => phoneByDay.get(p.day) >= 300).map(p => p.value / phoneByDay.get(p.day));
+  const ratio = ratios.length ? median(ratios) : null;
+  const disputed = ratios.length >= STEPS_OVERLAP_MIN && (ratio < STEPS_RATIO_MIN || ratio > STEPS_RATIO_MAX);
+  const chosen = resolutions.steps_source === 'phone' || resolutions.steps_source === 'device' ? resolutions.steps_source : null;
+  const order = chosen ? [chosen, chosen === 'phone' ? 'device' : 'phone'] : ['device', 'phone'];
+  const source = order.find(cls => series[cls].length >= 7);
+  if (!source) return null;
+  const trained = new Set((facts || [])
+    .filter(f => (f.kind === 'train_check' && Number(f.value) > 0) || f.kind === 'workout')
+    .map(f => dayOf(f.at)));
+  const all = series[source];
+  const rest = all.filter(p => !trained.has(p.day));
+  const use = rest.length >= 4 ? rest : all;
+  return {
+    steps: Math.round(use.reduce((s, p) => s + p.value, 0) / use.length),
+    days: all.length,
+    restDays: rest.length,
+    source,
+    overlap: ratios.length,
+    ratio: ratio == null ? null : Math.round(ratio * 100) / 100,
+    disputed,
+  };
+}
+
 /**
  * Извежда от фактите какво се променя в профила.
  * @param {{ facts?: any[], digest?: any }} store
@@ -204,10 +262,12 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
   const checkin = {};
 
-  const steps = dailyMeanRanked(facts, 'steps', 14, now);
-  if (steps.days >= 7 && steps.mean != null) {
-    overrides.dailyActivityLevel = activityLabelOf(steps.mean);
-    reasons.push(`активност по крачкомер: ~${Math.round(steps.mean / 100) * 100} крачки дневно`);
+  const resolutions = resolutionsOf(facts);
+  const activity = stepsActivity(facts, now, resolutions);
+  if (activity) {
+    // Нивото остава за етикетите и анализа; енергията се смята от самите крачки (energy.js).
+    overrides.dailyActivityLevel = activityLabelOf(activity.steps);
+    reasons.push(`активност по ${activity.source === 'phone' ? 'крачкомера на телефона' : 'устройството'}: ~${Math.round(activity.steps / 100) * 100} крачки в ден без тренировка`);
   }
   const sleep = dailyMeanRanked(facts, 'sleep', 14, now);
   if (sleep.days >= 5 && sleep.mean != null) {
@@ -227,7 +287,8 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
 
   const emo = deriveEmoEat(facts);
   const labs = deriveLabs(facts, now, sex);
-  const essence = computeEssence(facts, now, ctx);
+  // Есенцията вижда крачките от същия единствен източник (без смесване на два уреда).
+  const essence = computeEssence(activity ? facts.filter(f => f.kind !== 'steps' || stepsClassOf(f) === activity.source) : facts, now, ctx);
   Object.assign(overrides, essence.overrides);
   Object.assign(checkin, essence.checkin);
   // AI обобщението предлага само промени в менюто от речника (не калории и не диагнози).
@@ -235,7 +296,6 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
   const iris = deriveIris(facts);
   const siteQuiz = deriveSiteQuiz(facts);
-  const resolutions = resolutionsOf(facts);
   const documents = deriveDocuments(facts);
   // Клиентът не се разпознава в профила от EmoEat — остава само гласът, без кодове.
   const emoPart = emo && resolutions.emoeat_vs_q === 'rare' ? { ...emo, hints: null } : emo;
@@ -269,6 +329,8 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
       emoeat: [...(emoPart?.hints?.behaviors || []), ...(emoPart?.hints?.clinical || [])],
     },
     resolutions,
+    // Измерените крачки за енергията: средно в ден без тренировка, от един източник.
+    activity,
     reasons,
   };
 }
@@ -322,6 +384,10 @@ export function recalcLevel(prevData, nextData) {
   if (!sameSet(a.clinical, b.clinical)) bump(3, 'здравословно състояние');
   if (a.diet.pattern !== b.diet.pattern) bump(3, 'модел на хранене');
   if (a.activity.daily !== b.activity.daily) bump(2, 'ниво на активност');
+  // Енергията следва самите крачки — промяна с 2000+ дневно (~60 kcal и повече) е нова стратегия.
+  const sa = prevData?._enrichment?.activity?.steps;
+  const sb = nextData?._enrichment?.activity?.steps;
+  if ((sa == null) !== (sb == null) || (sa != null && Math.abs(sa - sb) >= 2000)) bump(2, 'крачки');
   if (a.activity.sportBand !== b.activity.sportBand) bump(2, 'тренировки');
   if ((a.sleepHours || 0) !== (b.sleepHours || 0) && Math.abs((a.sleepHours || 7) - (b.sleepHours || 7)) >= 1) bump(2, 'сън');
   if (a.stress !== b.stress) bump(2, 'стрес');

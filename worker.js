@@ -1225,7 +1225,7 @@ function serializeBackendCalculations(calc) {
   const lines = ["#BC v1"];
   const as = calc.activityScore;
   if (as) {
-    lines.push(`AS|sc=${as.combinedScore ?? ""}|lv=${esc(as.activityLevel)}`);
+    lines.push(`AS|sc=${as.combinedScore ?? ""}|lv=${esc(as.activityLevel)}${as.measuredSteps ? `|steps=${as.measuredSteps}|walk=${as.walkKcal}` : ""}`);
   }
   if (calc.bmr != null || calc.tdee != null) {
     lines.push(`BM|bmr=${calc.bmr ?? ""}|tdee=${calc.tdee ?? ""}`);
@@ -40114,6 +40114,25 @@ function calculateTDEE(bmr, activityLevel) {
   const multiplier = scoreMultipliers[score] || scoreMultipliers[5];
   return Math.round(bmr * multiplier);
 }
+var SEDENTARY_STEPS = 3e3;
+function kcalPerStep(data) {
+  const kg = parseFloat(String(data?.weight ?? "").replace(",", "."));
+  const cm = parseFloat(String(data?.height ?? "").replace(",", "."));
+  if (!(kg > 0) || !(cm > 0)) return 0;
+  const stride = cm * (data.gender === "\u0416\u0435\u043D\u0430" ? 0.413 : 0.415) / 100;
+  return 0.5 * kg * stride / 1e3;
+}
+function calculateActivityTDEE(bmr, data) {
+  const activityData = calculateUnifiedActivityScore(data);
+  const measured = Number(data?._enrichment?.activity?.steps);
+  const perStep = kcalPerStep(data);
+  if (!(measured > 0) || !(perStep > 0)) return { tdee: calculateTDEE(bmr, activityData.combinedScore), activityData };
+  const walkKcal = Math.round(Math.max(0, measured - SEDENTARY_STEPS) * perStep);
+  return {
+    tdee: calculateTDEE(bmr, 1 + activityData.sportDays) + walkKcal,
+    activityData: { ...activityData, measuredSteps: measured, walkKcal }
+  };
+}
 function calculateMacronutrientRatios(data, _activityScore, tdee = null) {
   const profile = compileProfile(data);
   const maintenance = Number(tdee) || (data.gender === "\u041C\u044A\u0436" ? 30 : 28) * (parseFloat(data.weight) || 70);
@@ -47926,6 +47945,11 @@ function crossCheck(data, derived, resolutions = {}) {
   if (strong && rarely && !resolutions.emoeat_vs_q) {
     questions.push({ id: "emoeat_vs_q", source: "emoeat", topic: "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", text: "EmoEat \u043F\u043E\u043A\u0430\u0437\u0432\u0430, \u0447\u0435 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0447\u0435\u0441\u0442\u043E \u0438\u0434\u0432\u0430 \u0432 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u043D\u0430 \u0435\u043C\u043E\u0446\u0438\u0438, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0441\u0442\u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043B\u0438, \u0447\u0435 \u0440\u044F\u0434\u043A\u043E \u044F\u0434\u0435\u0442\u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u043E\u0442\u043E. \u041A\u043E\u0435 \u0435 \u043F\u043E-\u0431\u043B\u0438\u0437\u043E \u0434\u043E \u0432\u0430\u0441?", options: [{ value: "often", label: "\u0427\u0435\u0441\u0442\u043E \u044F\u043C \u043F\u0440\u0438 \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0443\u043C\u043E\u0440\u0430 \u0438\u043B\u0438 \u0441\u043A\u0443\u043A\u0430" }, { value: "rare", label: "\u0420\u044F\u0434\u043A\u043E \u2014 \u043D\u0435 \u0441\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043C" }] });
   }
+  const act = derived?.activity;
+  if (act?.disputed && !resolutions.steps_source) {
+    const more = act.ratio > 1 ? "\u0433\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u044A\u0442" : "\u0442\u0435\u043B\u0435\u0444\u043E\u043D\u044A\u0442";
+    questions.push({ id: "steps_source", source: "device", topic: "\u041A\u0440\u0430\u0447\u043A\u0438", text: `\u0422\u0435\u043B\u0435\u0444\u043E\u043D\u044A\u0442 \u0438 \u0433\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u044A\u0442 \u043E\u0442\u0447\u0438\u0442\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u043A\u0440\u0430\u0447\u043A\u0438 \u0432 \u0435\u0434\u043D\u0438 \u0438 \u0441\u044A\u0449\u0438 \u0434\u043D\u0438 \u2014 ${more} \u043F\u043E\u043A\u0430\u0437\u0432\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(((act.ratio > 1 ? act.ratio : 1 / act.ratio) - 1) * 100)}% \u043F\u043E\u0432\u0435\u0447\u0435. \u041A\u043E\u0435 \u043D\u043E\u0441\u0438\u0442\u0435 \u043F\u043E-\u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F?`, options: [{ value: "device", label: "\u0413\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u0430" }, { value: "phone", label: "\u0422\u0435\u043B\u0435\u0444\u043E\u043D\u0430 (\u0432 \u0434\u0436\u043E\u0431\u0430)" }] });
+  }
   const confirmed = hypotheses.filter((h) => h.status === "confirmed");
   if (confirmed.some((h) => h.blockedBy.length)) {
     cautions.push(`\u041F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 AIRIS \u0438 NutriPlan, \u043D\u043E \u043D\u0435 \u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u043E \u0437\u0430\u0440\u0430\u0434\u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u043E: ${confirmed.filter((h) => h.blockedBy.length).map((h) => `${h.label} (${h.blockedBy.join(", ")})`).join("; ")}.`);
@@ -48142,16 +48166,54 @@ function activityLabelOf(steps) {
   if (steps < 1e4) return "\u0421\u0440\u0435\u0434\u043D\u043E";
   return "\u0412\u0438\u0441\u043E\u043A\u043E";
 }
+var stepsClassOf = (f) => f.source === "phone" ? "phone" : "device";
+var STEPS_RATIO_MIN = 0.7;
+var STEPS_RATIO_MAX = 1.4;
+var STEPS_OVERLAP_MIN = 5;
+var median = (xs) => {
+  const a = [...xs].sort((x, y) => x - y);
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+};
+function stepsActivity(facts2, now = /* @__PURE__ */ new Date(), resolutions = {}) {
+  const from = now.getTime() - 14 * DAY_MS3;
+  const steps = (facts2 || []).filter((f) => f.kind === "steps" && f.status !== "pending" && Date.parse(f.at) >= from);
+  if (!steps.length) return null;
+  const series = { phone: [], device: [] };
+  for (const cls of ["phone", "device"]) series[cls] = dailySeries(steps.filter((f) => stepsClassOf(f) === cls), "steps").filter((p) => p.value > 0);
+  const phoneByDay = new Map(series.phone.map((p) => [p.day, p.value]));
+  const ratios = series.device.filter((p) => phoneByDay.get(p.day) >= 300).map((p) => p.value / phoneByDay.get(p.day));
+  const ratio = ratios.length ? median(ratios) : null;
+  const disputed = ratios.length >= STEPS_OVERLAP_MIN && (ratio < STEPS_RATIO_MIN || ratio > STEPS_RATIO_MAX);
+  const chosen = resolutions.steps_source === "phone" || resolutions.steps_source === "device" ? resolutions.steps_source : null;
+  const order = chosen ? [chosen, chosen === "phone" ? "device" : "phone"] : ["device", "phone"];
+  const source = order.find((cls) => series[cls].length >= 7);
+  if (!source) return null;
+  const trained = new Set((facts2 || []).filter((f) => f.kind === "train_check" && Number(f.value) > 0 || f.kind === "workout").map((f) => dayOf2(f.at)));
+  const all = series[source];
+  const rest = all.filter((p) => !trained.has(p.day));
+  const use = rest.length >= 4 ? rest : all;
+  return {
+    steps: Math.round(use.reduce((s, p) => s + p.value, 0) / use.length),
+    days: all.length,
+    restDays: rest.length,
+    source,
+    overlap: ratios.length,
+    ratio: ratio == null ? null : Math.round(ratio * 100) / 100,
+    disputed
+  };
+}
 function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ctx = {}) {
   const facts2 = Array.isArray(store?.facts) ? store.facts : [];
   const overrides = {};
   const reasons = [];
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
   const checkin = {};
-  const steps = dailyMeanRanked(facts2, "steps", 14, now);
-  if (steps.days >= 7 && steps.mean != null) {
-    overrides.dailyActivityLevel = activityLabelOf(steps.mean);
-    reasons.push(`\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442 \u043F\u043E \u043A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440: ~${Math.round(steps.mean / 100) * 100} \u043A\u0440\u0430\u0447\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  const resolutions = resolutionsOf(facts2);
+  const activity = stepsActivity(facts2, now, resolutions);
+  if (activity) {
+    overrides.dailyActivityLevel = activityLabelOf(activity.steps);
+    reasons.push(`\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442 \u043F\u043E ${activity.source === "phone" ? "\u043A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440\u0430 \u043D\u0430 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430" : "\u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E\u0442\u043E"}: ~${Math.round(activity.steps / 100) * 100} \u043A\u0440\u0430\u0447\u043A\u0438 \u0432 \u0434\u0435\u043D \u0431\u0435\u0437 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430`);
   }
   const sleep = dailyMeanRanked(facts2, "sleep", 14, now);
   if (sleep.days >= 5 && sleep.mean != null) {
@@ -48168,14 +48230,13 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);
   const emo = deriveEmoEat(facts2);
   const labs = deriveLabs(facts2, now, sex);
-  const essence = computeEssence(facts2, now, ctx);
+  const essence = computeEssence(activity ? facts2.filter((f) => f.kind !== "steps" || stepsClassOf(f) === activity.source) : facts2, now, ctx);
   Object.assign(overrides, essence.overrides);
   Object.assign(checkin, essence.checkin);
   const digest = store?.digest && typeof store.digest === "object" ? store.digest : null;
   const digestPart = digest ? { hints: { approach: digest.approach || [], behaviors: digest.behaviors || [] }, reasons: [] } : null;
   const iris = deriveIris(facts2);
   const siteQuiz = deriveSiteQuiz(facts2);
-  const resolutions = resolutionsOf(facts2);
   const documents = deriveDocuments(facts2);
   const emoPart = emo && resolutions.emoeat_vs_q === "rare" ? { ...emo, hints: null } : emo;
   for (const part of [emoPart, labs, essence, digestPart, iris, siteQuiz, documents]) {
@@ -48207,6 +48268,8 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
       emoeat: [...emoPart?.hints?.behaviors || [], ...emoPart?.hints?.clinical || []]
     },
     resolutions,
+    // Измерените крачки за енергията: средно в ден без тренировка, от един източник.
+    activity,
     reasons
   };
 }
@@ -48247,6 +48310,9 @@ function recalcLevel(prevData, nextData) {
   if (!sameSet(a.clinical, b.clinical)) bump(3, "\u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435");
   if (a.diet.pattern !== b.diet.pattern) bump(3, "\u043C\u043E\u0434\u0435\u043B \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
   if (a.activity.daily !== b.activity.daily) bump(2, "\u043D\u0438\u0432\u043E \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442");
+  const sa = prevData?._enrichment?.activity?.steps;
+  const sb = nextData?._enrichment?.activity?.steps;
+  if (sa == null !== (sb == null) || sa != null && Math.abs(sa - sb) >= 2e3) bump(2, "\u043A\u0440\u0430\u0447\u043A\u0438");
   if (a.activity.sportBand !== b.activity.sportBand) bump(2, "\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438");
   if ((a.sleepHours || 0) !== (b.sleepHours || 0) && Math.abs((a.sleepHours || 7) - (b.sleepHours || 7)) >= 1) bump(2, "\u0441\u044A\u043D");
   if (a.stress !== b.stress) bump(2, "\u0441\u0442\u0440\u0435\u0441");
@@ -48280,6 +48346,7 @@ var TOPIC_WORDS = {
   "iris:nervous": /стрес|напрежени|тревож|умор|изтощ|нерви|безсъни|не спя|сънят ми/i,
   meds: /лекарств|хапче|таблетк|медикамент/i,
   weight: /тегло|теглото|килограм|(?<![а-я])кг(?![а-я])|везна|претегл/i,
+  steps_source: /крач|крачкомер|гривн|часовник|смарт ?часовник|фитнес тракер/i,
   emoeat_vs_q: /емоци|преяжд|от скука|когато съм напрегнат|не мога да спра|нощем ям|ям вечер|посягам/i
 };
 var PATTERN_WORDS = /веган|вегетариан|месо|растителн/i;
@@ -48949,6 +49016,8 @@ function reanalyze(baseData, enrichedData, energy = {}, sex = "X") {
     dimensions: DIMENSIONS.map((x) => ({ key: x.key, label: x.label, score: dims[x.key], baseline: baseDims[x.key] })),
     resolved,
     replaced,
+    // Отворените въпроси, които анализът показва с бутони (останалите са за чата).
+    questions: (d.crossCheck?.questions || []).filter((q) => q.id === "steps_source"),
     labs: (d.labs || []).map((l) => ({ ...l, range: labRange(l.key, sex) })),
     iris: d.iris ? { ...d.iris, hypotheses } : hypotheses.length ? { hypotheses } : null,
     emoeat: d.voice ? { archetype: d.voice.archetype || "", intensity: d.voice.intensity || "", drivers: d.voice.drivers || [], realNeed: d.voice.realNeed || "", at: d.voice.at || null } : null,
@@ -51368,9 +51437,8 @@ function parseProfileWeightKg(data) {
 }
 function computeBackendEnergyInputs(data) {
   ensureProfileMetricsOnData(data);
-  const activityData = calculateUnifiedActivityScore(data);
   const bmr = calculateBMR(data);
-  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const { tdee, activityData } = calculateActivityTDEE(bmr, data);
   const deficitData = calculateSafeDeficit(tdee, data);
   const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
   return { activityData, bmr, tdee, deficitData, macros };
@@ -56282,9 +56350,8 @@ function replacePromptVariables(template, variables) {
   });
 }
 async function generateAnalysisPrompt(data, env, errorPreventionComment = null) {
-  const activityData = calculateUnifiedActivityScore(data);
   const bmr = calculateBMR(data);
-  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const { tdee, activityData } = calculateActivityTDEE(bmr, data);
   const deficitData = calculateSafeDeficit(tdee, data);
   const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
   const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);

@@ -11,7 +11,10 @@
  *                (до обяд / следобед / не); активността за деня се смята от
  *                крачките (или профила) плюс тренировката;
  *   'steps'    — не тренира, но има измерване (крачкомер или Health Connect):
- *                без въпрос, нивото се попълва от крачките;
+ *                без въпрос, нивото се попълва от крачките. Изключение: в
+ *                ден с крачки много над обичайните „Тренирахте ли днес?“ се
+ *                появява в приложението (без известие) — само днес, само в
+ *                такъв ден, и спира след 2 отговора „не“ без нито едно „да“;
  *   'ask'      — не тренира и няма измерване: старият въпрос „Колко се движихте?“.
  *
  * Крачкомерът (APK, NutriStepsPlugin.java) дава хардуерния брояч от рестарта
@@ -130,7 +133,8 @@
             trainsPerWeek: perWeek,
             trainer: perWeek > 0,
             types: types.length ? types : (perWeek > 0 ? [OTHER_TYPE] : []),
-            sessionMinutes: minutes || (perWeek > 0 ? 55 : 0),
+            // Без отговор във въпросника (не тренира) — типичните 55 мин, ако крачките покажат тренировка.
+            sessionMinutes: minutes || 55,
             typicalSteps: TYPICAL_STEPS[data.dailyActivityLevel] || 7000
         };
     }
@@ -445,10 +449,76 @@
         return false;
     }
 
-    /** @returns {'training'|'steps'|'ask'} */
-    function mode() {
+    // Неотбелязана тренировка: ден с крачки поне ×1,6 и +4000 над обичайното.
+    var UNMARKED_FACTOR = 1.6;
+    var UNMARKED_EXTRA = 4000;
+    // След толкова „не“ (без нито едно „да“) за 28 дни въпросът не се появява.
+    var UNMARKED_MUTE_NO = 2;
+
+    /**
+     * Дневните крачки от един източник (както на сървъра — не се смесват):
+     * Health Connect, ако има поне 7 завършени дни, иначе крачкомерът.
+     * @returns {{ done: Record<string, number>, today: number|null }}
+     */
+    function measuredDays() {
+        var st = readState();
+        var today = dayKey(Date.now());
+        var ext = {};
+        Object.keys(st.ext || {}).forEach(function (k) { if (k < today && st.ext[k] >= MIN_REAL_DAY) ext[k] = st.ext[k]; });
+        if (Object.keys(ext).length >= 7) return { done: ext, today: st.ext[today] != null ? st.ext[today] : null };
+        var out = {};
+        if (st.enabled) {
+            Object.keys(st.days || {}).forEach(function (k) {
+                var d = st.days[k];
+                if (k < today && !d.part && d.s >= MIN_REAL_DAY) out[k] = d.s;
+            });
+        }
+        var t = st.enabled && st.days && st.days[today];
+        return { done: out, today: t ? t.s : null };
+    }
+
+    /**
+     * Да се появи ли „Тренирахте ли днес?“ при човек, който по въпросника не
+     * тренира. Само за днешния ден, само ако крачките досега са много над
+     * обичайните за последните 14 дни (поне 7 дни данни). Не се появява, ако
+     * за 28 дни е казал 2 пъти „не“ без нито едно „да“ — това са разходки.
+     */
+    function askTrainingOn(key) {
+        var now = Date.now();
+        if (key !== dayKey(now)) return false;
+        var from28 = dayKey(now - 28 * DAY_MS);
+        var gd = gameData();
+        var yes = 0;
+        var no = 0;
+        Object.keys(gd).forEach(function (k) {
+            var ec = gd[k] && gd[k].eveningCheck;
+            if (!ec || k < from28 || k === key) return;
+            if (ec.trained === 'am' || ec.trained === 'pm') yes++;
+            else if (ec.trained === 'no') no++;
+        });
+        if (!yes && no >= UNMARKED_MUTE_NO) return false;
+        var m = measuredDays();
+        if (m.today == null) return false;
+        var from14 = dayKey(now - 14 * DAY_MS);
+        var vals = Object.keys(m.done).filter(function (k) { return k >= from14; })
+            .map(function (k) { return m.done[k]; }).sort(function (a, b) { return a - b; });
+        if (vals.length < 7) return false;
+        var mid = Math.floor(vals.length / 2);
+        var med = vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
+        return m.today >= Math.max(med * UNMARKED_FACTOR, med + UNMARKED_EXTRA);
+    }
+
+    /**
+     * Без ден — режимът за графика на известията: 'training' (тренира по
+     * въпросника), 'steps' (измерване, без въпрос), 'ask'. С ден — за този ден:
+     * в 'steps' денят с неотбелязана тренировка става 'training' (само в приложението).
+     * @param {string} [key] ден YYYY-MM-DD
+     * @returns {'training'|'steps'|'ask'}
+     */
+    function mode(key) {
         if (profileOf(userData()).trainer) return 'training';
-        return hasStepSource() ? 'steps' : 'ask';
+        if (!hasStepSource()) return 'ask';
+        return key && askTrainingOn(key) ? 'training' : 'steps';
     }
 
     var TRAINING_QUESTION = 'Тренирахте ли днес?';
@@ -497,6 +567,15 @@
      * Пипат се само дни, които вече имат запис в отметките.
      */
     function fillFromSteps(stepsByDay) {
+        if (stepsByDay) {
+            // Крачките от Health Connect се пазят за въпроса в ден с много крачки (askTrainingOn).
+            var st = readState();
+            var cutoff = dayKey(Date.now() - KEEP_DAYS * DAY_MS);
+            var ext = Object.assign({}, st.ext || {});
+            Object.keys(stepsByDay).forEach(function (k) { if (Number(stepsByDay[k]) > 0) ext[k] = Math.round(Number(stepsByDay[k])); });
+            Object.keys(ext).forEach(function (k) { if (k < cutoff) delete ext[k]; });
+            writeState({ ext: ext });
+        }
         if (mode() !== 'steps') return 0;
         var gd = gameData();
         var today = dayKey(Date.now());
@@ -609,6 +688,7 @@
         dayShareUntil: dayShareUntil,
         mode: mode,
         hasStepSource: hasStepSource,
+        askTrainingOn: askTrainingOn,
         applyAnswer: applyAnswer,
         fillFromSteps: fillFromSteps,
         stepsFor: stepsFor,

@@ -243,7 +243,8 @@ export function serializeBackendCalculations(calc) {
   const lines = ['#BC v1'];
   const as = calc.activityScore;
   if (as) {
-    lines.push(`AS|sc=${as.combinedScore ?? ''}|lv=${esc(as.activityLevel)}`);
+    // steps/walk — измерени крачки (ден без тренировка) и разходът на ходенето, вече включен в tdee.
+    lines.push(`AS|sc=${as.combinedScore ?? ''}|lv=${esc(as.activityLevel)}${as.measuredSteps ? `|steps=${as.measuredSteps}|walk=${as.walkKcal}` : ''}`);
   }
   if (calc.bmr != null || calc.tdee != null) {
     lines.push(`BM|bmr=${calc.bmr ?? ''}|tdee=${calc.tdee ?? ''}`);
