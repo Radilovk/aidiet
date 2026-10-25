@@ -194,6 +194,12 @@
             }
         }
 
+        // Поднормено тегло: запасите се възстановяват при всяка цел освен изрично
+        // отслабване/корем (там — без дефицит, без натиск към качване; виж LOSS/VISC).
+        if (b.under && code !== 'LOSS' && code !== 'VISC' && !(code === 'PP' && f.pregnant)) {
+            return gain(10, 'ИТМ под 18,5 — първо възстановяване на запасите', ['weight', 'energy', 'composition']);
+        }
+
         switch (code) {
             case 'LOSS':
                 if (b.under) return recomp(0, 'ИТМ под 18,5 — сваляне на тегло не е безопасно; целта е състав и сила', ['composition', 'workouts', 'weight']);

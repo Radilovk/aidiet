@@ -8466,7 +8466,8 @@ const COUNCIL_OUTCOME_TTL = 400 * 24 * 60 * 60;
  * ключ в KV: обобщението чете само списъка с ключове, без отделно четене на всеки.
  */
 async function recordCouncilOutcome(env, history, decision, jobId) {
-  const prev = (history || [])[history.length - 1];
+  const list = Array.isArray(history) ? history : [];
+  const prev = list[list.length - 1];
   if (!env?.page_content || !prev?.direction) return; // само решения, взети с модела на целта
   try {
     const outcome = councilOutcome(prev, decision.context?.checkin || {});

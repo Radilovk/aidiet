@@ -284,6 +284,9 @@ var require_goal_model = __commonJS({
               return keep("", ["energy", "sleep", "digestion"]);
           }
         }
+        if (b.under && code !== "LOSS" && code !== "VISC" && !(code === "PP" && f.pregnant)) {
+          return gain(10, "\u0418\u0422\u041C \u043F\u043E\u0434 18,5 \u2014 \u043F\u044A\u0440\u0432\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0437\u0430\u043F\u0430\u0441\u0438\u0442\u0435", ["weight", "energy", "composition"]);
+        }
         switch (code) {
           case "LOSS":
             if (b.under) return recomp(0, "\u0418\u0422\u041C \u043F\u043E\u0434 18,5 \u2014 \u0441\u0432\u0430\u043B\u044F\u043D\u0435 \u043D\u0430 \u0442\u0435\u0433\u043B\u043E \u043D\u0435 \u0435 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E; \u0446\u0435\u043B\u0442\u0430 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432 \u0438 \u0441\u0438\u043B\u0430", ["composition", "workouts", "weight"]);
@@ -53917,7 +53920,8 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
 var COUNCIL_OUTCOME_PREFIX = "council_outcome:";
 var COUNCIL_OUTCOME_TTL = 400 * 24 * 60 * 60;
 async function recordCouncilOutcome(env, history, decision, jobId) {
-  const prev = (history || [])[history.length - 1];
+  const list2 = Array.isArray(history) ? history : [];
+  const prev = list2[list2.length - 1];
   if (!env?.page_content || !prev?.direction) return;
   try {
     const outcome = councilOutcome(prev, decision.context?.checkin || {});
