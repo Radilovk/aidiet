@@ -289,7 +289,7 @@
         return pts[pts.length - 1][1];
     }
 
-    /** Отделните съставки (0–100) от устройствата и самооценките. */
+    /** Отделните показатели (0–100) от устройствата и самооценките. */
     function components(m, checks, p, planKcal) {
         var g = p.group;
         var lose = g === 'lose' || g === 'lose_soft';
@@ -325,14 +325,22 @@
         return c;
     }
 
+    // about — какво показва индексът (в подробностите, не на екрана).
     var INDEX_DEFS = {
-        pace: { name: 'Темп към целта', icon: 'fa-flag-checkered', parts: { weight: 0.45, intake: 0.25, calAdherence: 0.15, meals: 0.15 } },
-        muscle: { name: 'Мускулен баланс', icon: 'fa-dumbbell', parts: { lean: 0.4, workouts: 0.35, intake: 0.25 } },
-        recovery: { name: 'Възстановяване', icon: 'fa-battery-three-quarters', parts: { sleep: 0.5, hrv: 0.25, rhr: 0.25 } },
-        movement: { name: 'Движение', icon: 'fa-person-walking', parts: { steps: 0.6, workouts: 0.4 } },
-        consistency: { name: 'Постоянство', icon: 'fa-calendar-check', parts: { meals: 0.6, engagement: 0.4 } },
-        emotional: { name: 'Емоционален контрол', icon: 'fa-heart-pulse', parts: { balance: 0.5, junk: 0.5 } },
-        metabolic: { name: 'Метаболитно здраве', icon: 'fa-stethoscope', parts: { bp: 0.35, glucose: 0.35, steps: 0.15, weight: 0.15 }, requireAny: ['bp', 'glucose'] }
+        pace: { name: 'Темп към целта', icon: 'fa-flag-checkered', parts: { weight: 0.45, intake: 0.25, calAdherence: 0.15, meals: 0.15 },
+            about: 'Доколко се движиш към целта: темпът на теглото, приемът спрямо плана и спазените хранения.' },
+        muscle: { name: 'Мускулен баланс', icon: 'fa-dumbbell', parts: { lean: 0.4, workouts: 0.35, intake: 0.25 },
+            about: 'Дали мускулите се пазят и растат: мускулната маса от везната, тренировките и приемът.' },
+        recovery: { name: 'Възстановяване', icon: 'fa-battery-three-quarters', parts: { sleep: 0.5, hrv: 0.25, rhr: 0.25 },
+            about: 'Колко се възстановява тялото: сънят, вариабилността на пулса и пулсът в покой.' },
+        movement: { name: 'Движение', icon: 'fa-person-walking', parts: { steps: 0.6, workouts: 0.4 },
+            about: 'Колко се движиш: крачките и тренировките.' },
+        consistency: { name: 'Постоянство', icon: 'fa-calendar-check', parts: { meals: 0.6, engagement: 0.4 },
+            about: 'Колко редовно следваш плана: спазените хранения и отбелязванията в приложението.' },
+        emotional: { name: 'Емоционален контрол', icon: 'fa-heart-pulse', parts: { balance: 0.5, junk: 0.5 },
+            about: 'Емоционалният баланс през деня и храненията извън плана.' },
+        metabolic: { name: 'Метаболитно здраве', icon: 'fa-stethoscope', parts: { bp: 0.35, glucose: 0.35, steps: 0.15, weight: 0.15 }, requireAny: ['bp', 'glucose'],
+            about: 'Кръвното, сутрешната захар, движението и теглото.' }
     };
 
     var INDEX_ORDER = {
@@ -344,8 +352,9 @@
     };
 
     /**
-     * Обединените индекси за целта: стойност 0–100, съставките и слабото звено.
-     * Индекс се показва само с поне 2 съставки — една не е „индекс“.
+     * Обединените индекси за целта: стойност 0–100, показателите и слабото звено.
+     * Индекс се показва само с поне 2 показателя — един не е „индекс“.
+     * note — само когато има какво да се види (на екрана); about и detail — в подробностите.
      * @param {{ planKcal?: number, persona?: object }} [opts]
      */
     function indices(metrics, checks, userData, opts) {
@@ -367,7 +376,10 @@
             return {
                 id: id, name: def.name, icon: def.icon, value: value, tone: tone,
                 parts: parts.map(function (k) { return { key: k, label: comp[k].label, text: comp[k].text, value: Math.round(comp[k].v) }; }),
-                note: comp[weakest].v < 70 ? 'Слабото звено: ' + comp[weakest].label + ' (' + comp[weakest].text + ').' : 'Всички съставки са добре.'
+                // На екрана — само когато нещо иска внимание, без числа; числата са в подробностите.
+                note: comp[weakest].v < 70 ? 'Слабото звено: ' + comp[weakest].label : '',
+                about: def.about,
+                detail: comp[weakest].v < 70 ? 'Слабото звено: ' + comp[weakest].label + ' — ' + comp[weakest].text + '.' : 'Всички показатели са в добри граници.'
             };
         }).filter(Boolean);
         // Фокусът от персоната — веднага след водещия за целта (след отпадането на непълните).

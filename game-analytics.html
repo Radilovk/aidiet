@@ -658,8 +658,11 @@
         .gf-index-bar { height: 6px; border-radius: 3px; background: rgba(13,148,136,0.12); margin: 8px 0 6px; overflow: hidden; }
         .gf-index-bar span { display: block; height: 100%; border-radius: 3px; background: var(--gf-tone, #0D9488); }
         .gf-index-note { font-size: 0.8rem; color: var(--text-light); line-height: 1.4; }
-        .gf-index-parts { display: none; margin: 8px 0 0; padding: 0; list-style: none; gap: 4px; }
-        .gf-index.open .gf-index-parts { display: grid; }
+        .gf-index-info { font-size: 0.75em; opacity: 0.45; margin-left: 4px; }
+        .gf-index-more { display: none; margin-top: 8px; font-size: 0.8rem; line-height: 1.4; color: var(--text-light); }
+        .gf-index-more p { margin: 0 0 6px; }
+        .gf-index.open .gf-index-more { display: block; }
+        .gf-index-parts { display: grid; margin: 8px 0 0; padding: 0; list-style: none; gap: 4px; }
         .gf-index-parts li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.8rem; color: var(--text-dark); }
         .gf-index-parts li span:last-child { color: var(--text-light); font-variant-numeric: tabular-nums; }
         html[data-persona-noscores] .game-week-score { display: none !important; }
@@ -860,7 +863,8 @@
         }
         function gfCard(c) {
             return '<div class="gf-card" data-tone="' + c.tone + '"><div class="gf-label"><i class="fas ' + c.icon + '"></i>' + gfEsc(c.label) + '</div>' +
-                '<div class="gf-value">' + gfEsc(c.value) + '</div>' + (c.inConclusions ? '' : '<div class="gf-note">' + gfEsc(c.note) + '</div>') + '</div>';
+                // Бележка — само когато иска внимание; „наред“ казва цветът.
+                '<div class="gf-value">' + gfEsc(c.value) + '</div>' + (c.inConclusions || c.tone === 'good' ? '' : '<div class="gf-note">' + gfEsc(c.note) + '</div>') + '</div>';
         }
         function renderGoalFocus() {
             var GF = window.NutriPlanGoalFocus;
@@ -881,12 +885,17 @@
             var idx = GF.indices(metrics, window._gaChecks || {}, ud, { planKcal: planKcal, persona: persona })
                 .slice(0, persona.density === 'minimal' ? 2 : 3);
             var indicesHtml = idx.length ? '<div class="gf-indices">' + idx.map(function (x) {
-                return '<div class="gf-index" data-tone="' + softTone(x.tone) + '" role="button" tabindex="0" onclick="this.classList.toggle(\'open\')">' +
-                    '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas ' + x.icon + '"></i></span><span class="gf-index-name">' + gfEsc(x.name) + '</span>' +
+                // На екрана: име, число, лента — и кратка бележка само ако нещо иска внимание.
+                // Какво показва индексът и от какво е съставен — при натискане (иконата „i“).
+                return '<div class="gf-index" data-tone="' + softTone(x.tone) + '" role="button" tabindex="0" aria-expanded="false" ' +
+                    'onclick="gfToggleIndex(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();gfToggleIndex(this);}">' +
+                    '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas ' + x.icon + '"></i></span><span class="gf-index-name">' + gfEsc(x.name) +
+                    ' <i class="fas fa-circle-info gf-index-info" aria-hidden="true"></i></span>' +
                     '<span class="gf-index-value">' + x.value + '</span></div>' +
                     '<div class="gf-index-bar"><span style="width:' + x.value + '%"></span></div>' +
-                    '<div class="gf-index-note">' + gfEsc(x.note) + '</div>' +
-                    '<ul class="gf-index-parts">' + x.parts.map(function (pt) { return '<li><span>' + gfEsc(pt.label) + '</span><span>' + gfEsc(pt.text) + '</span></li>'; }).join('') + '</ul></div>';
+                    (x.note ? '<div class="gf-index-note">' + gfEsc(x.note) + '</div>' : '') +
+                    '<div class="gf-index-more"><p>' + gfEsc(x.about) + '</p><p>' + gfEsc(x.detail) + '</p>' +
+                    '<ul class="gf-index-parts">' + x.parts.map(function (pt) { return '<li><span>' + gfEsc(pt.label) + '</span><span>' + gfEsc(pt.text) + '</span></li>'; }).join('') + '</ul></div></div>';
             }).join('') + '</div>' : '';
             section.hidden = false;
             if (!Object.keys(metrics).length) {
@@ -928,6 +937,10 @@
                     renderGoalFocus();
                 }).catch(function () {});
             }
+        }
+        function gfToggleIndex(el) {
+            var open = el.classList.toggle('open');
+            el.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
         function gfOpenDevices() {
             try { sessionStorage.setItem('np_open_devices', '1'); } catch (_) {}
