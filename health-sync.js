@@ -267,6 +267,12 @@
         if (!plugin()) return { sent: 0, skipped: 'not_native' };
         if (!(opts && opts.force) && st.lastSync && Date.now() - Date.parse(st.lastSync) < AUTO_EVERY_MS) return { sent: 0, skipped: 'recent' };
         var out = await collectFacts(st.granted);
+        // Без тренировки въпрос за активност няма — нивото на деня идва от крачките.
+        try {
+            var stepsByDay = {};
+            out.facts.forEach(function (f) { if (f.kind === 'steps') stepsByDay[String(f.at).slice(0, 10)] = f.value; });
+            if (global.NutriPlanActivity) global.NutriPlanActivity.fillFromSteps(stepsByDay);
+        } catch (_) {}
         // Какво точно е дошло: вид → брой дни (за ясен статус в профила и анализа).
         var summary = {};
         out.facts.forEach(function (f) {

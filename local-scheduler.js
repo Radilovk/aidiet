@@ -8,7 +8,9 @@
  *
  * Нотификации:
  *   morning_check       – сутрешна проверка (по подразбиране 07:00)
- *   evening_activity    – вечер: активност (по подразбиране 20:00)
+ *   evening_activity    – вечер: активност (по подразбиране 20:00); при трениращ —
+ *                         „Тренирахте ли днес?“, при крачкомер без тренировки — без въпрос
+ *                         (activity-tracker.js)
  *   evening_balance     – вечер: емоционален баланс (20:05)
  *   evening_water       – вечер: вода (20:10)
  *
@@ -28,6 +30,7 @@ const GameNotifier = {
     LS_VERSION_KEY:       'gameNotifierConfigVersion',
     LS_SCHEDULED_VERSION_KEY: 'gameNotifierScheduledVersion',
     LS_LAST_SCHEDULE_DAY_KEY: 'gameNotifierLastScheduleDay',
+    LS_ACTIVITY_MODE_KEY: 'gameNotifierActivityMode',
     CALENDAR_URL:   'https://aidiet.radilov-k.workers.dev/api/calendar.ics',
     CHANNEL_ID:     'nutriplan_daily_checkins_v3',
     MORNING_CHANNEL_ID: 'nutriplan_morning_v3',
@@ -209,14 +212,19 @@ const GameNotifier = {
             // Roll the SCHEDULE_WINDOW_DAYS buffer forward at most once per day —
             // without this the APK runs out of scheduled notifications after the
             // window passes with no config change (PWA refreshes on focus instead).
+            // Смяна на режима на въпроса за активност (попълнен въпросник, включен крачкомер)
+            // сменя бутоните и маха/връща въпроса — графикът се пренарежда.
+            const activityMode = this._activityMode();
             const needsSchedule = configChanged ||
                 scheduledVersion !== String(currentVersion) ||
+                localStorage.getItem(this.LS_ACTIVITY_MODE_KEY) !== activityMode ||
                 this._scheduleWindowStale();
 
             if (needsSchedule) {
                 if (this._capacitor) await this._registerCapacitorActionTypes();
                 await this.scheduleNotifications();
                 localStorage.setItem(this.LS_SCHEDULED_VERSION_KEY, String(currentVersion));
+                localStorage.setItem(this.LS_ACTIVITY_MODE_KEY, activityMode);
             }
 
             await this.drainAllPendingActions();
@@ -352,6 +360,7 @@ const GameNotifier = {
         if (type === 'morning_check') return cfg.morningBody || this.COPY.morning.body;
         const meta = this._slotMetaByType(type);
         if (!meta) return '';
+        if (type === 'evening_activity' && this._activityMode() === 'training') return this.TRAINING_COPY.body;
         const prefix = meta.type.replace('evening_', '');
         const bodyKey = 'evening' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'Body';
         return cfg[bodyKey] || (this.COPY[meta.copyKey] && this.COPY[meta.copyKey].body) || '';
@@ -377,6 +386,14 @@ const GameNotifier = {
         };
         const balanceCls = { 1: 'tier-calm', 2: 'tier-mid', 3: 'tier-high' };
 
+        if (type === 'evening_activity' && this._activityMode() === 'training') {
+            const trainIcons = {
+                am: '<i class="fas fa-sun" style="color:#fff;font-size:1em"></i>',
+                pm: '<i class="fas fa-dumbbell" style="color:#fff;font-size:1em"></i>',
+                no: '<i class="fas fa-couch" style="color:#fff;font-size:1em"></i>'
+            };
+            return actions.map((a) => ({ label: a.title, icon: trainIcons[a.value] || trainIcons.pm, value: a.value, cls: a.value === 'no' ? 'tier-low' : 'tier-high' }));
+        }
         return actions.map((a) => {
             const v = Number(a.value) || (a.value === false ? 0 : 1);
             if (type === 'evening_activity') {
@@ -491,6 +508,7 @@ const GameNotifier = {
     /** Лице или човече пред отговора в системното известие (там бутоните са само текст). */
     ACTION_EMOJI: {
         activity_1: '🛋️', activity_2: '🚶', activity_3: '🏃',
+        train_am: '🌅', train_pm: '💪', train_no: '🛋️',
         balance_1: '😣', balance_2: '🙂', balance_3: '😄'
     },
 
@@ -613,6 +631,9 @@ const GameNotifier = {
             balance_3:  [30, 25, 30],
             water_yes: [30, 20, 30],
             water_no:  [40, 25],
+            train_am:  [30, 25, 30, 25, 30],
+            train_pm:  [30, 25, 30, 25, 30],
+            train_no:  [20, 15, 20],
             skip:      [15]
         };
         try {
@@ -638,9 +659,10 @@ const GameNotifier = {
         const titleKey = 'evening' + cap + 'Title';
         const bodyKey = 'evening' + cap + 'Body';
         const copy = this.COPY[meta.copyKey] || {};
+        const training = type === 'evening_activity' && this._activityMode() === 'training';
         return {
             title: cfg[titleKey] || copy.title || 'NutriPlan',
-            body:  cfg[bodyKey] || copy.body || '',
+            body:  training ? this.TRAINING_COPY.body : (cfg[bodyKey] || copy.body || ''),
             actions: this._actionsFromConfig(cfg, meta)
         };
     },
@@ -657,6 +679,9 @@ const GameNotifier = {
             balance_3:    { title: 'Чудесно! ✨', message: 'Позитивният заряд помага.', confetti: 30 },
             water_yes:    { title: 'Браво! 💧', message: 'Пиете достатъчно вода — чудесно.', confetti: 26 },
             water_no:     { title: 'Записано', message: 'Утре опитайте да пиете малко повече.', confetti: 10 },
+            train_am:     { title: 'Браво! 💪', message: 'Тренировката е отчетена в деня.', confetti: 30 },
+            train_pm:     { title: 'Браво! 💪', message: 'Тренировката е отчетена в деня.', confetti: 30 },
+            train_no:     { title: 'Записано', message: 'Активността за деня е по крачките.', confetti: 12 },
             skip:         { title: 'Добре', message: 'Пропуснато за днес.', confetti: 0 }
         };
         return map[actionId] || { title: 'Готово ✨', message: 'Отговорът е записан.', confetti: 16 };
@@ -1204,6 +1229,10 @@ const GameNotifier = {
 
     _actionsFromConfig(config, meta) {
         if (!meta) return [];
+        // Трениращият отговаря дали е тренирал — не колко се е движил (то се смята).
+        if (meta.type === 'evening_activity' && this._activityMode() === 'training') {
+            return this.TRAINING_COPY.actions.map((a) => Object.assign({}, a));
+        }
         const fb = this._defaultActionsFor(meta.actionsKey);
         return this._normalizeActionList(config[meta.actionsKey], fb);
     },
@@ -1235,6 +1264,7 @@ const GameNotifier = {
         if (!rec || !rec.eveningCheck) return false;
         const val = rec.eveningCheck[field];
         if (field === 'waterIntake') return typeof val === 'boolean';
+        if (field === 'activityLevel' && this._activityMode() === 'training' && !rec.eveningCheck.trained) return false;
         return typeof val === 'number' && val >= 1 && val <= 3;
     },
 
@@ -1394,7 +1424,9 @@ const GameNotifier = {
 
     _getEveningSlots(cfg) {
         const normalized = this.normalizeConfig(cfg);
-        return this.EVENING_SLOT_DEFS.map((def) => {
+        // Нетрениращ с крачкомер: активността се смята от крачките — без въпрос.
+        const activityMode = this._activityMode();
+        return this.EVENING_SLOT_DEFS.filter((def) => !(def.type === 'evening_activity' && activityMode === 'steps')).map((def) => {
             const prefix = def.type.replace('evening_', '');
             const timeKey = 'evening' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'Time';
             const titleKey = timeKey.replace('Time', 'Title');
@@ -1404,7 +1436,7 @@ const GameNotifier = {
                 type: def.type,
                 time: normalized[timeKey] || this._offsetTimeString('20:00', def.defaultOffsetMin),
                 title: normalized[titleKey] || copy.title || 'NutriPlan',
-                body: normalized[bodyKey] || copy.body || '',
+                body: def.type === 'evening_activity' && activityMode === 'training' ? this.TRAINING_COPY.body : (normalized[bodyKey] || copy.body || ''),
                 actions: this._actionsFromConfig(normalized, def),
                 actionTypeId: this[def.actionTypeKey],
                 idBase: def.idBase,
@@ -2012,7 +2044,7 @@ const GameNotifier = {
                     };
                 }
                 if (this._hasRealEveningField(rec, field)) return false;
-                rec.eveningCheck[field] = value;
+                this._applyEveningValue(rec.eveningCheck, field, value, recordKey);
                 if (!rec.eveningCheck.ts) rec.eveningCheck.ts = new Date().toISOString();
                 gm.saveRecord(recordKey, rec);
                 if (typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(recordKey);
@@ -2033,7 +2065,7 @@ const GameNotifier = {
                 };
             }
             if (this._hasRealEveningField(record, field)) return false;
-            record.eveningCheck[field] = value;
+            this._applyEveningValue(record.eveningCheck, field, value, key);
             allData[key] = record;
             localStorage.setItem('gameData', JSON.stringify(allData));
             this.notifyAnswerSaved(key);
@@ -2042,6 +2074,47 @@ const GameNotifier = {
             console.warn('[GameNotifier] Evening field save failed:', e);
             return false;
         }
+    },
+
+    /**
+     * Режимът на въпроса за активност (activity-tracker.js): 'training' — „Тренирахте ли днес?“,
+     * 'steps' — без въпрос (от крачките), 'ask' — „Колко се движихте днес?“.
+     */
+    _activityMode() {
+        try {
+            const A = typeof window !== 'undefined' && (window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity));
+            if (A && typeof A.mode === 'function') return A.mode();
+            const data = JSON.parse(localStorage.getItem('userData') || '{}') || {};
+            const sport = String(data.sportActivity || '');
+            return sport && !/^Никаква/.test(sport) ? 'training' : 'ask';
+        } catch (_) {
+            return 'ask';
+        }
+    },
+
+    TRAINING_COPY: {
+        body: 'Тренирахте ли днес?',
+        actions: [
+            { id: 'train_am', title: 'Да, до обяд', value: 'am' },
+            { id: 'train_pm', title: 'Да, следобед', value: 'pm' },
+            { id: 'train_no', title: 'Не', value: 'no' }
+        ]
+    },
+
+    /** Отговорът за тренировка става ниво на деня + оценка на разхода; другите — както са. */
+    _applyEveningValue(ec, field, value, recordKey) {
+        if (field === 'activityLevel' && (value === 'am' || value === 'pm' || value === 'no')) {
+            const A = typeof window !== 'undefined' && (window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity));
+            if (A && typeof A.applyAnswer === 'function') {
+                A.applyAnswer(ec, value, this._normalizeRecordKey(recordKey));
+                return;
+            }
+            ec.trained = value;
+            ec.activityLevel = value === 'no' ? 2 : 3;
+            ec.activitySource = 'training';
+            return;
+        }
+        ec[field] = value;
     },
 
     _emptyGameRecord(key) {
@@ -2122,7 +2195,9 @@ const GameNotifier = {
         const requireSlotPassed = opts.requireSlotPassed !== false;
         const key = this._normalizeRecordKey(recordKey);
         const out = [];
+        const activityAsked = this._activityMode() !== 'steps';
         this.QUESTION_TYPE_ORDER.forEach((type) => {
+            if (type === 'evening_activity' && !activityAsked) return;
             if (this._isQuestionAnswered(key, type)) return;
             if (requireSlotPassed && !this._hasNotificationSlotPassed(key, type)) return;
             out.push(type);

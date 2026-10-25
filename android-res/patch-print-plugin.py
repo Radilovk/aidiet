@@ -5,6 +5,8 @@ Patch the generated Capacitor Android project for NutriPrintPlugin.
 - Copies android-res/java/com/biocode/nutriplan/NutriPrintPlugin.java into the
   app sources (same package as MainActivity).
 - Registers the plugin in MainActivity before super.onCreate().
+- Copies and registers NutriStepsPlugin (the phone's hardware step counter for
+  clients without a wearable; activity-tracker.js).
 - Copies and registers NutriSystemUiPlugin (the window colour behind the system
   bars follows the app theme) and makes the activity edge-to-edge on every
   Android version, so the system-bar inset is applied once (by Capacitor's
@@ -29,6 +31,7 @@ PLUGIN_SOURCE = Path("android-res/java/com/biocode/nutriplan/NutriPrintPlugin.ja
 PLUGIN_SOURCES = [
     PLUGIN_SOURCE,
     Path("android-res/java/com/biocode/nutriplan/NutriSystemUiPlugin.java"),
+    Path("android-res/java/com/biocode/nutriplan/NutriStepsPlugin.java"),
 ]
 MAIN_ACTIVITY = PACKAGE_DIR / "MainActivity.java"
 
@@ -47,6 +50,7 @@ public class MainActivity extends BridgeActivity {
         // Local plugins must be registered before the bridge starts.
         registerPlugin(NutriPrintPlugin.class);
         registerPlugin(NutriSystemUiPlugin.class);
+        registerPlugin(NutriStepsPlugin.class);
         super.onCreate(savedInstanceState);
         // От край до край на всички версии: отместването за системните ленти е
         // само едно (SystemBars на Capacitor). Без това под Android 15 системата

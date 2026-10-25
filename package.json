@@ -25,6 +25,8 @@
     "test:enrichment": "node scripts/test-enrichment.mjs",
     "test:interactions": "node scripts/test-interactions.mjs",
     "test:health-essence": "node scripts/test-health-essence.mjs",
+    "test:activity": "node scripts/test-activity.mjs",
+    "test:metabolic": "node scripts/test-metabolic.mjs",
     "test:device-import": "node scripts/test-device-import.mjs",
     "test:device-links": "node scripts/test-device-links.mjs",
     "test:goal-focus": "node scripts/test-goal-focus.mjs",

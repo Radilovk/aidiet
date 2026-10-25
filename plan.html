@@ -4015,6 +4015,7 @@
     <script src="./plan-sync.js"></script>
     <script src="./handoff-client.js"></script>
     <script src="./enrichment-client.js"></script>
+    <script src="./activity-tracker.js"></script>
     <script src="./crosscheck-modal.js"></script>
     <script type="module">
         import { buildChatContextSections, selectChatSections, assembleChatContextPrompt } from './client-card.js';
@@ -5870,6 +5871,43 @@
 
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
+
+            // Какъв е денят (metabolic.js): тренировъчен / почивен / по-лек, горивото и прозорецът.
+            const energy = dayData.energy;
+            if (energy && energy.kind) {
+                const mp = dietPlan.strategy && dietPlan.strategy.metabolicPlan;
+                const MEAL_NAMES = { 'Хранене 1': 'закуската', 'Хранене 2': 'обяда', 'Хранене 3': 'следобедната закуска', 'Хранене 4': 'вечерята' };
+                const head = energy.kind === 'train' ? 'Тренировъчен ден' : energy.kind === 'low' ? 'По-лек ден' : 'Почивен ден';
+                const icon = energy.kind === 'train' ? 'fa-dumbbell' : energy.kind === 'low' ? 'fa-feather' : 'fa-leaf';
+                const detail = energy.kind === 'train'
+                    ? (energy.postWorkoutMeal && MEAL_NAMES[energy.postWorkoutMeal] ? 'Въглехидратите са най-много в ' + MEAL_NAMES[energy.postWorkoutMeal] + ' след тренировката' : 'Повече въглехидрати за тренировката')
+                    : energy.window ? 'Хранене в прозорец ' + energy.window : (energy.kind === 'low' ? 'Пълният белтък, по-малко въглехидрати' : 'Повече зеленчуци и мазнини, въглехидратите — по-рано през деня');
+                const card = document.createElement('div');
+                card.className = 'meal-card breakfast-note-card meal-card--clickable day-energy-card';
+                card.innerHTML =
+                    '<div class="meal-info">' +
+                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + energy.kcal + ' kcal · В ' + energy.carbs + ' г · Б ' + energy.protein + ' г · М ' + energy.fats + ' г</div>' +
+                    '<div class="meal-name" style="font-size:0.92em;font-weight:600">' + escapeHtml(detail) + '</div>' +
+                    '</div>';
+                card.setAttribute('role', 'button');
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('aria-label', head + ' — подробности');
+                const openEnergy = function() {
+                    const lines = (mp && mp.principles) || [];
+                    const quality = (mp && mp.quality && mp.quality.items) || [];
+                    const micro = (mp && mp.micro && mp.micro.items) || [];
+                    const mark = function(q) { return q.status === 'ok' ? '✓ ' : q.status === 'borderline' ? '≈ ' : '• '; };
+                    openModal(head, lines
+                        .concat(quality.length ? ['Качество на менюто:'].concat(quality.map(function(q) { return mark(q) + q.text; })) : [])
+                        .concat(micro.length ? ['Минерали и витамини (средно за седмицата):'].concat(micro.map(function(q) { return mark(q) + q.text + (q.advice ? ' ' + q.advice : ''); })) : [])
+                        .join('\n\n'), '', null, null, null, null);
+                };
+                card.addEventListener('click', openEnergy);
+                card.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEnergy(); }
+                });
+                mealContainer.appendChild(card);
+            }
 
             // Check if the current day has a free eating meal (determined by AI in step 3)
             const hasFreeMeal = dayData.meals.some(meal => meal.type === 'Свободно хранене');
@@ -11363,9 +11401,31 @@
             );
         }
 
+        // Режимът на въпроса за активност (activity-tracker.js): трениращият отговаря
+        // „Тренирахте ли днес?“, при крачкомер без тренировки въпрос няма.
+        function activityMode() {
+            var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
+            return gn && typeof gn._activityMode === 'function' ? gn._activityMode() : 'ask';
+        }
+
+        function isActivityAnswered(ec) {
+            if (!ec) return false;
+            var mode = activityMode();
+            if (mode === 'steps') return true;
+            if (mode === 'training') return !!ec.trained;
+            return ec.activityLevel != null;
+        }
+
+        /** Отговорът за активност в деня: тренировката се превръща в ниво и разход. */
+        function applyActivityAnswer(ec, value, recordKey) {
+            var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
+            if (gn && typeof gn._applyEveningValue === 'function') gn._applyEveningValue(ec, 'activityLevel', value, recordKey);
+            else ec.activityLevel = value;
+        }
+
         function isEveningComplete(rec) {
             var ec = rec && rec.eveningCheck;
-            return !!(ec && ec.activityLevel != null && ec.emotionalBalance != null && ec.waterIntake != null);
+            return !!(ec && isActivityAnswered(ec) && ec.emotionalBalance != null && ec.waterIntake != null);
         }
 
         function showEveningStep(step, recordKey, doneCb) {
@@ -11380,8 +11440,10 @@
             function saveField(field, value, next) {
                 var r = getRecord(recordKey);
                 if (!r.eveningCheck) r.eveningCheck = { activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null };
-                if (r.eveningCheck[field] != null) { if (next) next(); return; }
-                r.eveningCheck[field] = value;
+                var answered = field === 'activityLevel' ? isActivityAnswered(r.eveningCheck) : r.eveningCheck[field] != null;
+                if (answered) { if (next) next(); return; }
+                if (field === 'activityLevel') applyActivityAnswer(r.eveningCheck, value, recordKey);
+                else r.eveningCheck[field] = value;
                 if (!r.eveningCheck.ts) r.eveningCheck.ts = new Date().toISOString();
                 saveRecord(recordKey, r);
                 recalcAndShowScore(recordKey);
@@ -11392,7 +11454,7 @@
                 else setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
             }
             if (step === 'activity') {
-                if (rec.eveningCheck.activityLevel != null) { if (doneCb) doneCb(); return; }
+                if (isActivityAnswered(rec.eveningCheck)) { if (doneCb) doneCb(); return; }
                 showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движихте днес?'),
                     gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
                     function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
@@ -11427,19 +11489,22 @@
             var hdrOpts = { greeting: meta.greetingEvening };
             var prefillWater = !!opts.prefillWater;
             var ec = rec.eveningCheck || {};
+            var activityDone = isActivityAnswered(ec);
             var eveData = {
-                activityLevel: ec.activityLevel != null ? ec.activityLevel : undefined,
+                activityLevel: activityDone ? ec.activityLevel : undefined,
                 emotionalBalance: ec.emotionalBalance != null ? ec.emotionalBalance : undefined,
                 waterIntake: ec.waterIntake != null ? ec.waterIntake : (prefillWater ? true : undefined)
             };
             function finish() {
                 var r = getRecord(recordKey);
-                r.eveningCheck = {
-                    activityLevel: eveData.activityLevel,
+                // Полетата от крачкомера и тренировката (trained, steps, activeKcal) остават.
+                var next = Object.assign({}, r.eveningCheck || {}, {
                     emotionalBalance: eveData.emotionalBalance,
                     waterIntake: !!eveData.waterIntake,
                     ts: new Date().toISOString()
-                };
+                });
+                if (!activityDone && eveData.activityLevel !== undefined) applyActivityAnswer(next, eveData.activityLevel, recordKey);
+                r.eveningCheck = next;
                 saveRecord(recordKey, r);
                 recalcAndShowScore(recordKey);
                 if (doneCb) { setTimeout(doneCb, 350); }
@@ -11465,8 +11530,9 @@
                     function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
             }
             function q1() {
-                if (eveData.activityLevel != null) { q2(); return; }
-                showBubble(prefix+'Колко се движихте днес?', ACTIVITY_1_3,
+                if (activityDone || eveData.activityLevel != null) { q2(); return; }
+                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движихте днес?'),
+                    gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
                     function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
             }
             q1();

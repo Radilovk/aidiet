@@ -186,7 +186,12 @@ function welcomeText({ name, goal, label, kcal, meals, freeDay, weekPlan }) {
 }
 
 export function buildEngineStrategy(engine, userData, options) {
-  const { profile, policy, prescription, weekPlan, stats, macros } = engine;
+  const { profile, policy, prescription, weekPlan, stats, macros, metabolicPlan } = engine;
+  const fasting = metabolicPlan?.fasting || null;
+  const dayEnergy = Object.values(weekPlan || {}).map(d => d?.energy).filter(Boolean);
+  const trainDays = dayEnergy.filter(e => e.kind === 'train');
+  const restDays = dayEnergy.filter(e => e.kind !== 'train');
+  const avgOf = (list, k) => Math.round(list.reduce((a, e) => a + e[k], 0) / (list.length || 1));
   const label = dietLabelOf(profile);
   const slots = prescription.slots;
   const name = String(userData?.name || '').trim();
@@ -227,7 +232,10 @@ export function buildEngineStrategy(engine, userData, options) {
       : 'Не са необходими',
     weeklyMealPattern: `Основни хранения през седмицата: ${mainsText}. Едно ястие се повтаря най-много два пъти седмично.`,
     calorieDistribution: mealsText,
-    macroDistribution: `Белтък ${round(macros.protein)} г${perKg ? ` (${perKg} г/кг)` : ''}, въглехидрати ${round(macros.carbs)} г, мазнини ${round(macros.fats)} г — според модела „${policy.styleDef.label}“.`,
+    macroDistribution: `Белтък ${round(macros.protein)} г${perKg ? ` (${perKg} г/кг)` : ''}, въглехидрати ${round(macros.carbs)} г, мазнини ${round(macros.fats)} г средно за деня — според модела „${policy.styleDef.label}“.`
+      + (trainDays.length && restDays.length
+        ? ` В тренировъчните дни ~${avgOf(trainDays, 'carbs')} г въглехидрати и ~${avgOf(trainDays, 'kcal')} kcal, в почивните ~${avgOf(restDays, 'carbs')} г и ~${avgOf(restDays, 'kcal')} kcal; белтъкът е еднакъв.`
+        : ''),
     breakfastStrategy: !slots.includes('Хранене 1')
       ? 'Без закуска — денят започва с първото хранене, а порциите са разпределени в останалите хранения. Сутрин пийте вода.'
       : (added.includes('Хранене 1')
@@ -235,7 +243,9 @@ export function buildEngineStrategy(engine, userData, options) {
         : 'Закуската съчетава белтък, зърнени и плод или зеленчук.'),
     mealTiming: {
       pattern: `${slots.length} хранения`,
-      fastingWindows: 'Последното хранене — 2–3 часа преди сън.',
+      fastingWindows: fasting?.active
+        ? `Нощна пауза около 12 часа всеки ден. В почивните дни храненето е в прозорец ${fasting.windowText}; в тренировъчните — около тренировката. Последното хранене — 2–3 часа преди сън.`
+        : 'Нощна пауза около 12 часа (напр. 20:00–08:00); последното хранене — 2–3 часа преди сън.',
       flexibility: '±30–45 мин около обичайните часове.',
       chronotypeGuidance: userData?.chronotype
         ? `Съобразено с хронотип: ${userData.chronotype}.`
@@ -244,8 +254,19 @@ export function buildEngineStrategy(engine, userData, options) {
     keyPrinciples: [
       policy.styleDef.label,
       'Хранителна схема в обменни порции',
+      ...(trainDays.length ? ['Въглехидратите следват тренировката, белтъкът е постоянен'] : []),
+      ...(fasting?.active ? [`Хранене в часови прозорец (${fasting.protocol === 'tre16' ? '16:8' : fasting.protocol === 'tre14' ? '14:10' : '12:12'}) в почивните дни`] : []),
       ...rules.map(r => r.label),
     ],
+    // Метаболитната седмица: тренировъчни/почивни дни, горивото, часовият прозорец, качеството на менюто.
+    metabolicPlan: metabolicPlan ? {
+      principles: metabolicPlan.text || [],
+      training: metabolicPlan.training || null,
+      fasting: fasting ? { active: fasting.active, offered: fasting.offered, protocol: fasting.protocol, window: fasting.windowText, note: fasting.note, blocked: fasting.blocked } : null,
+      days: Object.fromEntries(Object.entries(weekPlan || {}).filter(([, d]) => d?.energy).map(([k, d]) => [k, d.energy])),
+      quality: metabolicPlan.quality,
+      micro: metabolicPlan.micro || null,
+    } : null,
     preferredFoodCategories: recommendationsOf(prescription, stats, policy),
     avoidFoodCategories: avoidOf(profile, policy, blocked),
     foodsToInclude: recommendationsOf(prescription, stats, policy),

@@ -276,6 +276,7 @@
         <section class="card" id="card" aria-live="polite"></section>
     </main>
 
+    <script src="./activity-tracker.js"></script>
     <script src="./local-scheduler.js"></script>
     <script>
     (function() {
@@ -638,11 +639,11 @@
             var val = actionValueForIcon(action);
             // Лице / човече според отговора — не звезди (настроението не е оценка).
             var FACES = {
-                evening_activity: { 1: '🛋️', 2: '🚶', 3: '🏃' },
+                evening_activity: { 1: '🛋️', 2: '🚶', 3: '🏃', am: '🌅', pm: '💪', no: '🛋️' },
                 evening_balance: { 1: '😣', 2: '🙂', 3: '😄' }
             };
             if (FACES[notifType]) {
-                var face = FACES[notifType][Number(val)] || FACES[notifType][2];
+                var face = FACES[notifType][val] || FACES[notifType][Number(val)] || FACES[notifType][2];
                 return '<span class="choice-icons"><span class="ico-face" aria-hidden="true">' + face + '</span></span>';
             }
             if (val === true) return '<span class="choice-icons"><span class="ico-yes">✓</span></span>';
