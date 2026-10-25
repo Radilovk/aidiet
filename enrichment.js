@@ -96,6 +96,18 @@ export function normalizeFact(raw) {
     if (kind === 'workout' && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
     return fact;
   }
+  if (kind === 'train_check') {
+    // Отговорът „Тренирахте ли днес?“ — един на ден (key 'day'), частта от деня в slot.
+    const v = Number(raw.value) > 0 ? 1 : 0;
+    const fact = { kind, key: 'day', value: v, unit: '', at, source, confidence, status };
+    const slot = String(raw.slot || raw.key || '');
+    if (v && (slot === 'am' || slot === 'pm')) fact.slot = slot;
+    const minutes = Math.round(Number(raw.minutes));
+    if (v && minutes > 0) fact.minutes = Math.min(300, minutes);
+    const kcal = Math.round(Number(raw.kcal));
+    if (v && kcal > 0) fact.kcal = Math.min(3000, kcal);
+    return fact;
+  }
   if (kind === 'emoeat') {
     if (!raw.value || typeof raw.value !== 'object') return null;
     return { kind, key: 'profile', value: raw.value, unit: '', at, source: 'emoeat', confidence, status };

@@ -4015,6 +4015,7 @@
     <script src="./plan-sync.js"></script>
     <script src="./handoff-client.js"></script>
     <script src="./enrichment-client.js"></script>
+    <script src="./activity-tracker.js"></script>
     <script src="./crosscheck-modal.js"></script>
     <script type="module">
         import { buildChatContextSections, selectChatSections, assembleChatContextPrompt } from './client-card.js';
@@ -11363,9 +11364,31 @@
             );
         }
 
+        // Режимът на въпроса за активност (activity-tracker.js): трениращият отговаря
+        // „Тренирахте ли днес?“, при крачкомер без тренировки въпрос няма.
+        function activityMode() {
+            var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
+            return gn && typeof gn._activityMode === 'function' ? gn._activityMode() : 'ask';
+        }
+
+        function isActivityAnswered(ec) {
+            if (!ec) return false;
+            var mode = activityMode();
+            if (mode === 'steps') return true;
+            if (mode === 'training') return !!ec.trained;
+            return ec.activityLevel != null;
+        }
+
+        /** Отговорът за активност в деня: тренировката се превръща в ниво и разход. */
+        function applyActivityAnswer(ec, value, recordKey) {
+            var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
+            if (gn && typeof gn._applyEveningValue === 'function') gn._applyEveningValue(ec, 'activityLevel', value, recordKey);
+            else ec.activityLevel = value;
+        }
+
         function isEveningComplete(rec) {
             var ec = rec && rec.eveningCheck;
-            return !!(ec && ec.activityLevel != null && ec.emotionalBalance != null && ec.waterIntake != null);
+            return !!(ec && isActivityAnswered(ec) && ec.emotionalBalance != null && ec.waterIntake != null);
         }
 
         function showEveningStep(step, recordKey, doneCb) {
@@ -11380,8 +11403,10 @@
             function saveField(field, value, next) {
                 var r = getRecord(recordKey);
                 if (!r.eveningCheck) r.eveningCheck = { activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null };
-                if (r.eveningCheck[field] != null) { if (next) next(); return; }
-                r.eveningCheck[field] = value;
+                var answered = field === 'activityLevel' ? isActivityAnswered(r.eveningCheck) : r.eveningCheck[field] != null;
+                if (answered) { if (next) next(); return; }
+                if (field === 'activityLevel') applyActivityAnswer(r.eveningCheck, value, recordKey);
+                else r.eveningCheck[field] = value;
                 if (!r.eveningCheck.ts) r.eveningCheck.ts = new Date().toISOString();
                 saveRecord(recordKey, r);
                 recalcAndShowScore(recordKey);
@@ -11392,7 +11417,7 @@
                 else setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
             }
             if (step === 'activity') {
-                if (rec.eveningCheck.activityLevel != null) { if (doneCb) doneCb(); return; }
+                if (isActivityAnswered(rec.eveningCheck)) { if (doneCb) doneCb(); return; }
                 showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движихте днес?'),
                     gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
                     function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
@@ -11427,19 +11452,22 @@
             var hdrOpts = { greeting: meta.greetingEvening };
             var prefillWater = !!opts.prefillWater;
             var ec = rec.eveningCheck || {};
+            var activityDone = isActivityAnswered(ec);
             var eveData = {
-                activityLevel: ec.activityLevel != null ? ec.activityLevel : undefined,
+                activityLevel: activityDone ? ec.activityLevel : undefined,
                 emotionalBalance: ec.emotionalBalance != null ? ec.emotionalBalance : undefined,
                 waterIntake: ec.waterIntake != null ? ec.waterIntake : (prefillWater ? true : undefined)
             };
             function finish() {
                 var r = getRecord(recordKey);
-                r.eveningCheck = {
-                    activityLevel: eveData.activityLevel,
+                // Полетата от крачкомера и тренировката (trained, steps, activeKcal) остават.
+                var next = Object.assign({}, r.eveningCheck || {}, {
                     emotionalBalance: eveData.emotionalBalance,
                     waterIntake: !!eveData.waterIntake,
                     ts: new Date().toISOString()
-                };
+                });
+                if (!activityDone && eveData.activityLevel !== undefined) applyActivityAnswer(next, eveData.activityLevel, recordKey);
+                r.eveningCheck = next;
                 saveRecord(recordKey, r);
                 recalcAndShowScore(recordKey);
                 if (doneCb) { setTimeout(doneCb, 350); }
@@ -11465,8 +11493,9 @@
                     function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
             }
             function q1() {
-                if (eveData.activityLevel != null) { q2(); return; }
-                showBubble(prefix+'Колко се движихте днес?', ACTIVITY_1_3,
+                if (activityDone || eveData.activityLevel != null) { q2(); return; }
+                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движихте днес?'),
+                    gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
                     function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
             }
             q1();

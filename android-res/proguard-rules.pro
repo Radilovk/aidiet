@@ -27,6 +27,9 @@
 # ── NutriPlan print / PDF plugin ─────────────────────────────────────────────
 -keep class com.biocode.nutriplan.NutriPrintPlugin { *; }
 
+# ── NutriPlan step counter plugin (крачкомер) ────────────────────────────────
+-keep class com.biocode.nutriplan.NutriStepsPlugin { *; }
+
 # ── General Android / Kotlin reflection safety ────────────────────────────────
 -keepattributes *Annotation*
 -keepattributes Signature

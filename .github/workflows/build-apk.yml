@@ -246,6 +246,8 @@ jobs:
               '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
               '<uses-permission android:name="android.permission.WAKE_LOCK" />',
               '<uses-permission android:name="android.permission.VIBRATE" />',
+              # Крачкомерът на телефона (NutriStepsPlugin): брояч на крачки от Android 10.
+              '<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />',
           ]
           for permission in permissions:
               if permission not in text:

@@ -44661,7 +44661,7 @@ function normalizeDigest(raw, now = /* @__PURE__ */ new Date()) {
   if (!insights.length && !coachNote) return null;
   return { insights, coachNote, approach, at: now.toISOString() };
 }
-var SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, huawei: 4, device_photo: 3, file: 2, manual: 1 };
+var SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, huawei: 4, device_photo: 3, phone: 2, file: 2, manual: 1 };
 var TRACKED_SOURCES = /* @__PURE__ */ new Set(["health_connect", "fitbit", "oura", "withings", "strava", "huawei"]);
 function dayOf(at) {
   return new Date(Date.parse(at)).toISOString().slice(0, 10);
@@ -44718,6 +44718,59 @@ function sportLabelOf(perWeek) {
   if (perWeek < 2.5) return "\u041D\u0438\u0441\u043A\u0430 (1\u20132 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
   if (perWeek < 4.5) return "\u0421\u0440\u0435\u0434\u043D\u0430 (2\u20134 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
   return "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
+}
+var WEEKDAYS = ["\u043D\u0434", "\u043F\u043D", "\u0432\u0442", "\u0441\u0440", "\u0447\u0442", "\u043F\u0442", "\u0441\u0431"];
+function trainingPattern(facts2, now = /* @__PURE__ */ new Date()) {
+  const from = now.getTime() - 28 * DAY_MS2;
+  const days = /* @__PURE__ */ new Map();
+  for (const f of facts2 || []) {
+    const t = Date.parse(f.at);
+    if (!(t >= from) || t > now.getTime() || f.status === "pending") continue;
+    const day = dayOf(f.at);
+    if (f.kind === "train_check") {
+      const prev = days.get(day);
+      if (prev?.device) continue;
+      days.set(day, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
+    } else if (f.kind === "workout" && TRACKED_SOURCES.has(f.source)) {
+      const prev = days.get(day);
+      days.set(day, { yes: true, slot: prev?.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
+    }
+  }
+  if (days.size < 10) return null;
+  const all = [...days.entries()];
+  const yes = all.filter(([, d]) => d.yes);
+  const rate = yes.length / all.length;
+  const n = Array(7).fill(0);
+  const k = Array(7).fill(0);
+  for (const [day, d] of all) {
+    const dow = (/* @__PURE__ */ new Date(day + "T12:00:00Z")).getUTCDay();
+    n[dow]++;
+    if (d.yes) k[dow]++;
+  }
+  const A = 2;
+  const byWeekday = n.map((c, i) => Math.round((k[i] + A * rate) / (c + A) * 100) / 100);
+  const usual = byWeekday.map((p, i) => p >= 0.6 && n[i] >= 2 ? i : -1).filter((i) => i >= 0);
+  const rest = byWeekday.map((p, i) => p <= 0.2 && n[i] >= 2 ? i : -1).filter((i) => i >= 0);
+  const slots = yes.map(([, d]) => d.slot).filter(Boolean);
+  const am = slots.filter((s) => s === "am").length;
+  const slot = slots.length < 3 ? null : am / slots.length >= 0.7 ? "am" : am / slots.length <= 0.3 ? "pm" : "mixed";
+  const regularity = Math.round(mean(byWeekday.map((p) => Math.max(p, 1 - p))) * 100) / 100;
+  const mins = yes.map(([, d]) => d.minutes).filter((v) => v > 0);
+  const kcals = yes.map(([, d]) => d.kcal).filter((v) => v > 0);
+  return {
+    perWeek: r1(rate * 7),
+    answered: all.length,
+    usual,
+    rest,
+    byWeekday,
+    slot,
+    regularity,
+    minutes: mins.length ? Math.round(mean(mins)) : null,
+    kcal: kcals.length ? Math.round(mean(kcals)) : null
+  };
+}
+function weekdayList(days) {
+  return [...days].sort((a, b) => (a + 6) % 7 - (b + 6) % 7).map((i) => WEEKDAYS[i]).join(", ");
 }
 function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   const metrics = {};
@@ -44784,6 +44837,20 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     metrics.workouts = { perWeek: r1(perWeek), minutesWeek: Math.round(workouts.reduce((s, p) => s + p.value, 0) / 2) };
     overrides.sportActivity = sportLabelOf(perWeek);
     reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt3(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+  }
+  const training = trainingPattern(facts2, now);
+  if (training) {
+    metrics.training = training;
+    checkin.training = { perWeek: training.perWeek, usual: training.usual, rest: training.rest, slot: training.slot };
+    if (!metrics.workouts) {
+      overrides.sportActivity = sportLabelOf(training.perWeek);
+      reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435: ~${fmt3(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+    }
+    if (training.usual.length && training.regularity >= 0.75) {
+      signals.push({ code: "training_schedule", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u0434\u043D\u0438: \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${weekdayList(training.usual)}${training.slot === "am" ? ", \u0434\u043E \u043E\u0431\u044F\u0434" : training.slot === "pm" ? ", \u0441\u043B\u0435\u0434\u043E\u0431\u0435\u0434" : ""}. \u0412 \u0442\u0435\u0437\u0438 \u0434\u043D\u0438 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0435 \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430.` });
+    } else if (training.perWeek >= 1 && training.regularity < 0.65) {
+      signals.push({ code: "training_irregular", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u0441\u0430 ~${fmt3(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u0431\u0435\u0437 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u0438 \u0434\u043D\u0438 \u2014 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430 \u043F\u043E \u0441\u0440\u0435\u0434\u043D\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043F\u043E \u0434\u0435\u043D.` });
+    }
   }
   const active = between(dailySeries(facts2, "active_kcal"), now, 0, 7);
   if (active.length >= 4) metrics.activeKcal = Math.round(mean(active.map((p) => p.value)));
@@ -44871,6 +44938,11 @@ function essenceText(essence, digest = null) {
   if (m.bodyFat) rows.push(`\u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${fmt3(m.bodyFat.last)}%, \u0447\u0438\u0441\u0442\u0430 \u043C\u0430\u0441\u0430 ${fmt3(m.bodyFat.leanKg)} \u043A\u0433`);
   if (m.steps) rows.push(`\u043A\u0440\u0430\u0447\u043A\u0438 ~${m.steps.avg7}/\u0434\u0435\u043D`);
   if (m.workouts) rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${fmt3(m.workouts.perWeek)}/\u0441\u0435\u0434\u043C. (${m.workouts.minutesWeek} \u043C\u0438\u043D)`);
+  else if (m.training) {
+    const t = m.training;
+    const when = [t.usual.length ? `\u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${weekdayList(t.usual)}` : "", t.slot === "am" ? "\u0434\u043E \u043E\u0431\u044F\u0434" : t.slot === "pm" ? "\u0441\u043B\u0435\u0434\u043E\u0431\u0435\u0434" : ""].filter(Boolean).join(", ");
+    rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ~${fmt3(t.perWeek)}/\u0441\u0435\u0434\u043C.${when ? ` (${when})` : ""}`);
+  }
   if (m.sleep) rows.push(`\u0441\u044A\u043D ${fmt3(m.sleep.avg7)} \u0447`);
   if (m.restingHr) rows.push(`\u043F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439 ${m.restingHr.avg7} (\u0431\u0430\u0437\u0430 ${m.restingHr.base})`);
   if (m.hrv) rows.push(`HRV ${m.hrv.avg7} ms (\u0431\u0430\u0437\u0430 ${m.hrv.base})`);
@@ -45242,6 +45314,17 @@ function normalizeFact(raw) {
       fact.value2 = Math.round(v2);
     }
     if (kind === "workout" && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
+    return fact;
+  }
+  if (kind === "train_check") {
+    const v = Number(raw.value) > 0 ? 1 : 0;
+    const fact = { kind, key: "day", value: v, unit: "", at, source, confidence, status };
+    const slot = String(raw.slot || raw.key || "");
+    if (v && (slot === "am" || slot === "pm")) fact.slot = slot;
+    const minutes = Math.round(Number(raw.minutes));
+    if (v && minutes > 0) fact.minutes = Math.min(300, minutes);
+    const kcal = Math.round(Number(raw.kcal));
+    if (v && kcal > 0) fact.kcal = Math.min(3e3, kcal);
     return fact;
   }
   if (kind === "emoeat") {

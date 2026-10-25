@@ -10,7 +10,7 @@
   `food-picker.html`, `features.html`, `warning.html`, `privacy-policy.html`, `terms.html`.
 - Общ фронтенд JS: `app.js`, `app-ui.js`/`app-ui.css`, `design-system.css`, `platform.js`, `platform-compat.js`,
   `session-utils.js`, `auth-guard.js`, `plan-sync.js`, `local-scheduler.js`, `notification-launch.js`,
-  `health-sync.js`, `native-backup.js`, `drive-backup.js`, `meal-swaps.js`, `game-scoring.js`, `sw.js`, `manifest.json`.
+  `health-sync.js`, `activity-tracker.js` (крачкомер + въпрос за тренировка), `native-backup.js`, `drive-backup.js`, `meal-swaps.js`, `game-scoring.js`, `sw.js`, `manifest.json`.
 - APK: `capacitor.config.json` (webDir `capacitor-shell`, генерира се в CI), `android-res/` (Java/gradle/patch-ове),
   `.github/workflows/build-apk.yml` (копира корена в shell с изключения), `publish-apk-release.yml`.
   Нов root файл влиза в APK автоматично, освен ако не е в изключенията на `build-apk.yml`.

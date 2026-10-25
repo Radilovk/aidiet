@@ -1984,6 +1984,7 @@
     <script src="./supplement-shop.js"></script>
     <script src="./health-apps.js"></script>
     <script src="./health-sync.js"></script>
+    <script src="./activity-tracker.js"></script>
     <script src="./device-import.js"></script>
     <script src="./handoff-client.js"></script>
     <script type="module" src="./plan-regen-fields.js"></script>
@@ -2137,6 +2138,11 @@
                     <div class="labs-sub">От телефона</div>
                     <div class="devices-detected" id="devicesDetected" hidden></div>
                     <div class="labs-actions devices-actions" id="devicesActions"></div>
+                </div>
+                <div class="devices-source" id="devicesStepsBox" hidden>
+                    <div class="labs-sub">Крачкомер в телефона</div>
+                    <p class="labs-note">Без гривна и часовник: вграденият брояч на телефона, пресметнат по ръста и теглото Ви. Вечер не се пита колко сте се движили — това се смята само.</p>
+                    <div class="labs-actions devices-actions" id="devicesStepsActions"></div>
                 </div>
                 <div class="devices-source" id="devicesLinksBox" hidden>
                     <div class="labs-sub">Профил в приложението на устройството</div>
@@ -3381,6 +3387,7 @@
             const H = window.NutriPlanHealth;
             const box = document.getElementById('devicesActions');
             document.querySelectorAll('.devices-needs-consent').forEach(b => { b.disabled = false; });
+            renderPedometer();
             if (!H || !box || !H.supported()) return;
             document.getElementById('devicesHcBox').hidden = false;
             renderDetected();
@@ -3398,6 +3405,49 @@
                 // Разрешението в Health Connect е съгласието — бутонът не чака отметката.
                 box.innerHTML = `<button type="button" class="btn btn-primary devices-connect" onclick="connectDevices()"><i class="fas fa-link"></i> Свържи Health Connect</button>`;
             }
+        }
+
+        // ── Крачкомерът на телефона (activity-tracker.js) ─────────────────
+        async function renderPedometer() {
+            const A = window.NutriPlanActivity;
+            const wrap = document.getElementById('devicesStepsBox');
+            const box = document.getElementById('devicesStepsActions');
+            if (!A || !wrap || !box || !A.pedometer.supported()) return;
+            const status = await A.pedometer.status();
+            if (!status.available) return;
+            wrap.hidden = false;
+            const st = A.state();
+            if (st.enabled) {
+                const y = new Date(Date.now() - 86400000);
+                const key = y.getFullYear() + '-' + String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0');
+                const today = new Date();
+                const tKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+                const ys = A.stepsFor(key);
+                const ts = A.stepsFor(tKey);
+                const parts = [ts ? `днес ${ts.steps.toLocaleString('bg-BG')}` : '', ys && !ys.partial ? `вчера ${ys.steps.toLocaleString('bg-BG')}` : ''].filter(Boolean);
+                box.innerHTML = `<span class="labs-note">Включен${parts.length ? ' · ' + parts.join(' · ') + ' крачки' : ' · първите крачки идват до няколко часа'}</span>
+                    <button type="button" class="labs-delete devices-off" onclick="togglePedometer(false)"><i class="fas fa-power-off"></i> Изключи</button>`;
+            } else {
+                box.innerHTML = `<button type="button" class="btn btn-primary devices-connect" onclick="togglePedometer(true)"><i class="fas fa-shoe-prints"></i> Включи крачкомера</button>`;
+            }
+        }
+
+        async function togglePedometer(on) {
+            const A = window.NutriPlanActivity;
+            if (!A) return;
+            try {
+                if (on) {
+                    await A.pedometer.enable();
+                    document.getElementById('devicesConsent').checked = true;
+                    devicesSetStatus('Крачкомерът е включен. Броячът на телефона се чете при всяко отваряне на приложението.', 'ok');
+                } else {
+                    A.pedometer.disable();
+                    devicesSetStatus('Крачкомерът е изключен.', 'ok');
+                }
+            } catch (e) {
+                devicesSetStatus(e.message || 'Крачкомерът не можа да се включи.', 'error');
+            }
+            renderPedometer();
         }
 
         // ── Профили в облака (Fitbit, Oura, Withings, Strava) ─────────────
