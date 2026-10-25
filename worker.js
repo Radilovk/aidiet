@@ -41086,7 +41086,7 @@ var SLOT_ORDER = ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1", "\u0425\u0440\
 var PLANT_PROTEIN_SHIFT = { "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1": 0.05, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2": -0.07, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3": 0.12, "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4": -0.07 };
 function distributeExchanges(daily, slots, policy, options = {}) {
   const dist = DISTRIBUTIONS[policy.distribution] || DISTRIBUTIONS.standard;
-  const appetite = Math.max(1, (Number(options.kcal) || 0) / BOUNDS_BASE_KCAL);
+  const appetite = Math.max(1, (Number(options.kcal) || 0) / BOUNDS_BASE_KCAL) * (Number(options.mealScale) || 1);
   let current = [...slots];
   const added = [];
   for (let attempt = 0; ; attempt++) {
@@ -41094,7 +41094,8 @@ function distributeExchanges(daily, slots, policy, options = {}) {
     let overflow = 0;
     for (const g of PLANNED_GROUPS) {
       const total = daily[g] || 0;
-      const weights = current.map((s) => Math.max(0, (dist[s]?.[g] ?? 0) + (g === "PRO" && policy.proteinBoost ? PLANT_PROTEIN_SHIFT[s] || 0 : 0)));
+      const bias = options.groupBias?.[g] || {};
+      const weights = current.map((s) => Math.max(0, ((dist[s]?.[g] ?? 0) + (g === "PRO" && policy.proteinBoost ? PLANT_PROTEIN_SHIFT[s] || 0 : 0)) * (bias[s] ?? 1)));
       const bounds = current.map((s) => {
         const [lo, base] = MEAL_BOUNDS[s]?.[g] || [0, 0];
         const fatScale = g === "FAT" ? policy.styleDef.fatPartScale || 1 : 1;
@@ -41140,7 +41141,7 @@ function prescribe(target, slots, policy, options = {}) {
       target: { ...t, kcal: t.protein * 4 + t.carbs * 4 + t.fats * 9 }
     };
   }
-  return { kcal: target.kcal, macros: target.macros, daily, slots: finalSlots, addedSlots: added, meals };
+  return { kcal: target.kcal, macros: target.macros, daily, slots: finalSlots, addedSlots: added, meals, mealScale: Number(options.mealScale) || 1 };
 }
 
 // data/engine/recipes.json
@@ -43255,7 +43256,7 @@ function addLeft(target, left) {
   for (const k of Object.keys(out)) out[k] = Math.max(0, target[k] + left[k]);
   return out;
 }
-function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {} }) {
+function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {}, dayPrescriptions = null }) {
   const rng = rngFrom(seed);
   const altRng = rngFrom((seed ^ 1540483477) >>> 0);
   const eligible = eligibleDishes(policy);
@@ -43317,6 +43318,9 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
   const days = [];
   let relaxed = null;
   for (let day = 1; day <= 7; day++) {
+    const dayRx = dayPrescriptions?.[day - 1] || prescription;
+    ctx.appetite = Math.max(1, (dayRx.kcal || 0) / APPETITE_BASE_KCAL) * (dayRx.mealScale || 1);
+    snackCtx.appetite = ctx.appetite;
     const meals = [];
     if (morningDrink) meals.push({ ...drink });
     const todayDishes = /* @__PURE__ */ new Set();
@@ -43324,8 +43328,8 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
     const dayBuilt = [];
-    for (const type of slots) {
-      const plan = prescription.meals[type];
+    for (const type of dayRx.slots) {
+      const plan = dayRx.meals[type];
       if (type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && day === freeDayNumber) {
         meals.push({ type: FREE_MEAL, name: FREE_MEAL, _plannedCalories: round(plan.target.kcal) });
         continue;
@@ -43435,7 +43439,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives, quota: plan.quota, baseCtx: kind === "snack" || kind === "late" ? snackCtx : ctx });
     }
     if (!meals.some((m) => m.type === FREE_MEAL)) {
-      const dayTarget = dayTargetOf(prescription, slots);
+      const dayTarget = dayTargetOf(dayRx, dayRx.slots);
       balanceDay(meals, dayBuilt, dayTarget, policy);
       shakeForProteinGap(meals, dayBuilt, dayTarget, policy);
     }
@@ -43451,7 +43455,12 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       if (!m.alternatives.length) delete m.alternatives;
     }
     state.yesterdayDishes = todayDishes;
-    days.push({ meals });
+    const foods = dayBuilt.map((e) => ({
+      main: e.kind === "main",
+      protein: e.built.totals.protein,
+      foods: describeMeal(e.built).map((l) => ({ id: l.id, grams: l.grams }))
+    }));
+    days.push({ meals, foods });
   }
   const stats = {
     mains: frame.reduce((acc, k) => ({ ...acc, [k]: (acc[k] || 0) + 1 }), {}),
@@ -43459,6 +43468,1861 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     distinctDishes: state.dishUses.size
   };
   return { days, stats };
+}
+
+// nutrition-engine/metabolic.js
+var SESSION_TYPES = {
+  "\u0421\u0438\u043B\u043E\u0432\u0438 (\u0444\u0438\u0442\u043D\u0435\u0441, \u0442\u0435\u0436\u0435\u0441\u0442\u0438)": { id: "strength", met: 5, fuel: "glycolytic", label: "\u0441\u0438\u043B\u043E\u0432\u0430" },
+  "\u041A\u0430\u0440\u0434\u0438\u043E (\u0431\u044F\u0433\u0430\u043D\u0435, \u043A\u043E\u043B\u0435\u043B\u043E, \u043F\u043B\u0443\u0432\u0430\u043D\u0435)": { id: "cardio", met: 7.5, fuel: "endurance", label: "\u043A\u0430\u0440\u0434\u0438\u043E" },
+  "\u0413\u0440\u0443\u043F\u043E\u0432\u0438 (\u0430\u0435\u0440\u043E\u0431\u0438\u043A\u0430, \u0437\u0443\u043C\u0431\u0430, \u043A\u0440\u043E\u0441\u0444\u0438\u0442)": { id: "group", met: 6.5, fuel: "glycolytic", label: "\u0433\u0440\u0443\u043F\u043E\u0432\u0430" },
+  "\u041E\u0442\u0431\u043E\u0440\u0435\u043D \u0441\u043F\u043E\u0440\u0442, \u0442\u0435\u043D\u0438\u0441": { id: "team", met: 7, fuel: "glycolytic", label: "\u043E\u0442\u0431\u043E\u0440\u0435\u043D \u0441\u043F\u043E\u0440\u0442" },
+  "\u0411\u043E\u0439\u043D\u0438 \u0441\u043F\u043E\u0440\u0442\u043E\u0432\u0435": { id: "combat", met: 8, fuel: "glycolytic", label: "\u0431\u043E\u0439\u043D\u0438 \u0441\u043F\u043E\u0440\u0442\u043E\u0432\u0435" },
+  "\u0419\u043E\u0433\u0430, \u043F\u0438\u043B\u0430\u0442\u0435\u0441, \u0441\u0442\u0440\u0435\u0447\u0438\u043D\u0433": { id: "mind", met: 3, fuel: "low", label: "\u0439\u043E\u0433\u0430/\u043F\u0438\u043B\u0430\u0442\u0435\u0441" },
+  "\u0411\u044A\u0440\u0437\u043E \u0445\u043E\u0434\u0435\u043D\u0435, \u0442\u0443\u0440\u0438\u0437\u044A\u043C": { id: "walk", met: 4.5, fuel: "aerobic", label: "\u0445\u043E\u0434\u0435\u043D\u0435" }
+};
+var OTHER_SESSION = { id: "other", met: 5, fuel: "mixed", label: "\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430" };
+var FUEL_CARB_SHARE = { glycolytic: 0.85, endurance: 0.8, mixed: 0.7, aerobic: 0.5, low: 0.3 };
+var GOAL_DIRECTION = { LOSS: "lose", VISC: "lose", CELL: "lose", PP: "lose", TONE: "recomp", GAIN: "gain" };
+function directionOf(profile) {
+  return profile?.direction || GOAL_DIRECTION[profile?.goal] || "maintain";
+}
+var COUPLING_BY_DIRECTION = { lose: 0.6, recomp: 0.9, gain: 1, maintain: 0.8 };
+var CARB_SWING_BY_DIRECTION = { lose: 0.25, recomp: 0.25, gain: 0.15, maintain: 0.15 };
+var VISCERAL_CARB_SWING = 0.3;
+var METABOLIC_RISK = ["IR", "T2D", "METS", "PCOS", "NAFLD", "OB", "OBS"];
+var ASSUMED_DAYS = { 1: [3], 2: [2, 5], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 5, 6], 6: [1, 2, 3, 4, 5, 6], 7: [1, 2, 3, 4, 5, 6, 7] };
+var DAY_MIN_SHARE = 0.82;
+var DAY_MAX_SHARE = 1.25;
+var LOW_DAY_SHARE = 0.75;
+var MEAL_KCAL_CAPACITY = 650;
+var KCAL_FLOOR = { M: 1500, F: 1200, X: 1200 };
+var r0 = (x) => Math.round(Number(x) || 0);
+var asList2 = (v) => (Array.isArray(v) ? v : v ? [v] : []).map(String);
+function sessionMinutesOf(label) {
+  const s = String(label || "");
+  if (/^до 30/i.test(s)) return 25;
+  if (/^30/.test(s)) return 40;
+  if (/^45/.test(s)) return 55;
+  if (/^60/.test(s)) return 75;
+  if (/^над 90/i.test(s)) return 100;
+  return null;
+}
+var planDayOf = (dow) => dow === 0 ? 7 : dow;
+function trainingWeek(profile, userData = {}) {
+  const types = asList2(userData.sportTypes).map((l) => SESSION_TYPES[l]).filter(Boolean);
+  if (asList2(userData.sportTypes_other).length) types.push(OTHER_SESSION);
+  const minutes = sessionMinutesOf(userData.sportSessionMinutes) || 55;
+  const pattern = userData?._enrichment?.essence?.metrics?.training || null;
+  const perWeek = pattern ? pattern.perWeek : profile.activity?.sportDays || 0;
+  if (!(perWeek >= 0.5)) return { days: [], source: "none", confidence: 0, slot: null, fuel: "low", types: [], minutes: 0, sessionKcal: 0 };
+  const list2 = types.length ? types : [OTHER_SESSION];
+  const met = list2.reduce((s, t) => s + t.met, 0) / list2.length;
+  const kg = Number(profile.weightKg) || 70;
+  const sessionKcal = pattern?.kcal > 0 ? pattern.kcal : r0((met - 1) * kg * minutes / 60);
+  const order = ["glycolytic", "endurance", "mixed", "aerobic", "low"];
+  const fuel = order.find((f) => list2.some((t) => t.fuel === f)) || "mixed";
+  let days;
+  let source;
+  let confidence;
+  if (pattern?.usual?.length) {
+    days = pattern.usual.map(planDayOf).sort((a, b) => a - b);
+    source = "pattern";
+    confidence = Math.max(0.5, Math.min(1, (pattern.regularity - 0.4) / 0.6));
+  } else {
+    days = ASSUMED_DAYS[Math.min(7, Math.max(1, Math.round(perWeek)))] || [];
+    source = "assumed";
+    confidence = 0.5;
+  }
+  return { days, source, confidence, slot: pattern?.slot === "am" || pattern?.slot === "pm" ? pattern.slot : null, fuel, types: list2.map((t) => t.label), minutes, sessionKcal };
+}
+function fastingPlan(profile, userData = {}, week = { days: [], slot: null }) {
+  const blocked = [];
+  const behaviors = new Set(profile.behaviors || []);
+  const clinical = new Set(profile.clinical || []);
+  const bmi = profile.weightKg && profile.heightCm ? profile.weightKg / (profile.heightCm / 100) ** 2 : null;
+  if (clinical.has("PP") || (profile.goals || [profile.goal]).includes("PP") || profile.protocol === "postpartum_lactation") blocked.push("\u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442/\u043A\u044A\u0440\u043C\u0435\u043D\u0435");
+  if ((profile.adjustments || []).some((a) => /^MEDS_NO_FASTING/.test(a))) blocked.push("\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430 \u0441 \u0440\u0438\u0441\u043A \u043E\u0442 \u0445\u0438\u043F\u043E\u0433\u043B\u0438\u043A\u0435\u043C\u0438\u044F");
+  if (behaviors.has("CMP")) blocked.push("\u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0438\u0440\u0430\u043D\u0435 \u0441 \u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435");
+  if (behaviors.has("EMO") && behaviors.has("OVR")) blocked.push("\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u043F\u0440\u0435\u044F\u0436\u0434\u0430\u043D\u0435");
+  if (bmi != null && bmi < 18.5) blocked.push("\u043D\u0438\u0441\u043A\u043E \u0442\u0435\u0433\u043B\u043E");
+  if (profile.age != null && (profile.age < 18 || profile.age >= 70)) blocked.push("\u0432\u044A\u0437\u0440\u0430\u0441\u0442");
+  if (directionOf(profile) === "gain") blocked.push("\u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 (\u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u0441\u044A\u0431\u0438\u0440\u0430 \u0442\u0440\u0443\u0434\u043D\u043E \u0432 \u043A\u0440\u0430\u0442\u044A\u043A \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446)");
+  const chose = behaviors.has("IF");
+  const early = /сутрешен/i.test(String(userData.chronotype || "")) || week.slot === "am";
+  if (blocked.length) {
+    return {
+      active: false,
+      offered: false,
+      protocol: "none",
+      early,
+      windowText: "",
+      lowDay: null,
+      blocked,
+      note: chose ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u0447\u0430\u0441\u043E\u0432\u0438 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 \u043D\u0435 \u0441\u0435 \u043F\u0440\u0438\u043B\u0430\u0433\u0430: ${blocked.join(", ")}.` : ""
+    };
+  }
+  const gentle = profile.stress === 3 || clinical.has("ADR") || clinical.has("T2D") || profile.protocol === "chronic_stress";
+  const protocol = gentle ? "tre12" : profile.sex === "M" ? "tre16" : "tre14";
+  const hours = { tre12: 12, tre14: 10, tre16: 8 }[protocol];
+  const windowText = early ? `${hours === 12 ? "07:00\u201319:00" : hours === 10 ? "08:00\u201318:00" : "08:00\u201316:00"} (\u0440\u0430\u043D\u0435\u043D \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446)` : `${hours === 12 ? "08:00\u201320:00" : hours === 10 ? "10:00\u201320:00" : "12:00\u201320:00"}`;
+  let lowDay = null;
+  if (chose && directionOf(profile) === "lose" && !gentle) {
+    const rest = [1, 2, 3, 4, 5, 6].filter((d) => !week.days.includes(d));
+    lowDay = rest.find((d) => !week.days.includes(d + 1) && !week.days.includes(d - 1)) ?? rest.find((d) => !week.days.includes(d + 1)) ?? null;
+  }
+  return {
+    active: chose,
+    offered: !chose,
+    protocol,
+    early,
+    windowText,
+    lowDay,
+    blocked: [],
+    note: chose ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 ${windowText} \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438; \u0432 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043E\u0431\u0433\u0440\u0430\u0436\u0434\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430.` : `\u0412\u044A\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442: \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 ${windowText} \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 \u2014 \u0432\u043A\u043B\u044E\u0447\u0432\u0430 \u0441\u0435 \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435.`
+  };
+}
+function sessionSlots(slots, slot) {
+  if (slot === "am") return { pre: slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" : null, post: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" };
+  if (slot === "pm") return { pre: slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") ? "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" : "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", post: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" };
+  return { pre: null, post: null };
+}
+function weekTargets(profile, base, week, fasting, slots) {
+  const K = r0(base.kcal);
+  const P = r0(base.macros.protein);
+  const C = r0(base.macros.carbs);
+  const F = r0(base.macros.fats);
+  const style = profile.diet?.style || "balanced";
+  const kg = Number(profile.weightKg) || referenceWeightKg(profile);
+  const minFat = Math.round(kg * MIN_FAT_G_PER_KG);
+  const sexFloor = Math.round((KCAL_FLOOR[profile.sex] || 1200) * 1.06);
+  const floor = Math.max(sexFloor, r0(K * DAY_MIN_SHARE));
+  const metabolicRisk = (profile.clinical || []).some((c) => METABOLIC_RISK.includes(c)) || profile.protocol === "insulin_resistance";
+  const direction = directionOf(profile);
+  const carbSensitive = metabolicRisk || direction === "lose";
+  const w = week.confidence || 0;
+  const coupling = (COUPLING_BY_DIRECTION[direction] ?? COUPLING_BY_DIRECTION.maintain) * w;
+  const visceral = direction === "lose" && (profile.goals || [profile.goal]).includes("VISC");
+  let swing = (visceral ? VISCERAL_CARB_SWING : CARB_SWING_BY_DIRECTION[direction] ?? CARB_SWING_BY_DIRECTION.maintain) * w * (metabolicRisk ? 1.3 : 1);
+  if (style === "keto") swing = 0;
+  const carbShare = FUEL_CARB_SHARE[week.fuel] ?? 0.6;
+  const dayMax = Math.min(K * DAY_MAX_SHARE, Math.max(K, MEAL_KCAL_CAPACITY * slots.length));
+  const E = [1, 2, 3, 4, 5, 6, 7].map((d) => week.days.includes(d) ? week.sessionKcal : 0);
+  const meanE = E.reduce((a, b) => a + b, 0) / 7;
+  let kcal = E.map((e) => K + coupling * (e - meanE));
+  if (fasting.lowDay) {
+    const i = fasting.lowDay - 1;
+    const cut = kcal[i] - Math.max(sexFloor, K * LOW_DAY_SHARE);
+    if (cut > 0) {
+      kcal[i] -= cut;
+      kcal = kcal.map((k, j) => j === i ? k : k + cut / 6);
+    }
+  }
+  kcal = kcal.map((k, i) => Math.min(dayMax, Math.max(i === fasting.lowDay - 1 ? Math.max(sexFloor, K * LOW_DAY_SHARE) : floor, k)));
+  for (let pass = 0; pass < 3; pass++) {
+    const diff = 7 * K - kcal.reduce((a, b) => a + b, 0);
+    if (Math.abs(diff) < 1) break;
+    const open = kcal.map((k, i) => i).filter((i) => (diff > 0 ? kcal[i] < dayMax : kcal[i] > floor) && i !== fasting.lowDay - 1);
+    if (!open.length) break;
+    for (const i of open) kcal[i] += diff / open.length;
+  }
+  const trainDays = week.days.length;
+  const restDays = 7 - trainDays;
+  const swingG = trainDays && restDays ? swing * C : 0;
+  const days = [1, 2, 3, 4, 5, 6, 7].map((d, i) => {
+    const kind = d === fasting.lowDay ? "low" : week.days.includes(d) ? "train" : "rest";
+    let carbs = C + carbShare * (kcal[i] - K) / 4;
+    if (swingG) carbs += kind === "train" ? swingG * restDays / 7 : -swingG * trainDays / 7;
+    if (kind === "low") carbs = Math.min(carbs, C * 0.6);
+    if (style === "keto") carbs = Math.min(KETO_MAX_CARB_G, C);
+    else if (style === "low_carb") carbs = Math.min(LOW_CARB_MAX_G, carbs);
+    if (metabolicRisk && trainDays && kind !== "train" && style !== "keto") carbs = Math.min(carbs, kcal[i] * 0.25 / 4);
+    if (style !== "keto") carbs = Math.min(C * 1.35, Math.max(C * 0.7, carbs));
+    carbs = Math.max(style === "keto" ? 0 : 40, carbs);
+    let fats = (kcal[i] - 4 * P - 4 * carbs) / 9;
+    const maxFat = Math.max(minFat, F * 1.35);
+    if (fats > maxFat && style !== "keto") {
+      fats = maxFat;
+      carbs = (kcal[i] - 4 * P - 9 * fats) / 4;
+    }
+    if (fats < minFat) {
+      fats = minFat;
+      carbs = Math.max(0, (kcal[i] - 4 * P - 9 * fats) / 4);
+    }
+    const timing = kind === "train" ? sessionSlots(slots, week.slot) : { pre: null, post: null };
+    return { day: d, kind, kcal: kcal[i], macros: { protein: P, carbs, fats }, timing };
+  });
+  return days.map((x) => {
+    const protein = P;
+    const carbs = Math.round(x.macros.carbs);
+    const fats = Math.max(minFat, Math.round((x.kcal - 4 * protein - 4 * carbs) / 9));
+    const kcalDay = protein * 4 + carbs * 4 + fats * 9;
+    let daySlots = [...slots];
+    let window2 = null;
+    if (fasting.active && x.kind !== "train") {
+      window2 = fasting.windowText;
+      if (fasting.early) daySlots = daySlots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" && !(fasting.protocol === "tre16" && s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3"));
+      else if (fasting.protocol !== "tre12") daySlots = daySlots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
+      else daySlots = daySlots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
+      if (daySlots.filter((s) => s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4").length < 2) daySlots = [...slots];
+    }
+    const bias = { STA: {}, FRU: {} };
+    if (x.kind === "train" && x.timing.post) {
+      bias.STA[x.timing.post] = 1.6;
+      if (x.timing.pre) {
+        bias.STA[x.timing.pre] = 1.15;
+        bias.FRU[x.timing.pre] = 1.4;
+      }
+    } else if (x.kind !== "train" && carbSensitive) {
+      const hasBreakfast = daySlots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1");
+      if (hasBreakfast) bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"] = 1.2;
+      bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2"] = hasBreakfast ? 1.15 : 1.05;
+      bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] = hasBreakfast ? 0.6 : 0.8;
+    }
+    return { day: x.day, kind: x.kind, kcal: kcalDay, macros: { protein, carbs, fats }, slots: daySlots, bias, timing: x.timing, window: window2 };
+  });
+}
+function metabolicWeek(profile, userData, base, slots) {
+  const week = trainingWeek(profile, userData);
+  const fasting = fastingPlan(profile, userData, week);
+  const days = weekTargets(profile, base, week, fasting, slots);
+  return { week, fasting, days };
+}
+var DAY_SHORT = ["\u043F\u043D", "\u0432\u0442", "\u0441\u0440", "\u0447\u0442", "\u043F\u0442", "\u0441\u0431", "\u043D\u0434"];
+var fmt = (n) => String(n).replace(".", ",");
+function describeMetabolicWeek(mw, profile) {
+  const { week, fasting, days } = mw;
+  const train = days.filter((d) => d.kind === "train");
+  const rest = days.filter((d) => d.kind !== "train");
+  const avg = (list2, f) => list2.length ? Math.round(list2.reduce((s, d) => s + f(d), 0) / list2.length) : 0;
+  const lines = [];
+  if (train.length && rest.length) {
+    const tC = avg(train, (d) => d.macros.carbs);
+    const rC = avg(rest, (d) => d.macros.carbs);
+    const tK = avg(train, (d) => d.kcal);
+    const rK = avg(rest, (d) => d.kcal);
+    const which = week.source === "pattern" ? `\u043F\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0412\u0438 \u0432\u0435\u0447\u0435\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u0430\u0442\u0435 \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${train.map((d) => DAY_SHORT[d.day - 1]).join(", ")}` : `\u043F\u0440\u0438\u0435\u0442\u0438 \u0441\u0430 ${train.map((d) => DAY_SHORT[d.day - 1]).join(", ")} \u2014 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430\u0442 \u0441\u0435 \u043E\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0412\u0438 \u0432\u0435\u0447\u0435\u0440`;
+    lines.push(`\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u0434\u043D\u0438 (${which}): ~${tK} kcal \u0438 ~${tC} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438; \u043F\u043E\u0447\u0438\u0432\u043D\u0438: ~${rK} kcal \u0438 ~${rC} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438. \u0411\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u0435\u0434\u043D\u0430\u043A\u044A\u0432 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u2014 ${days[0].macros.protein} \u0433.`);
+    const slot = week.slot === "am" ? "\u043E\u0431\u044F\u0434\u0430 \u0441\u043B\u0435\u0434 \u0441\u0443\u0442\u0440\u0435\u0448\u043D\u0430\u0442\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430" : week.slot === "pm" ? "\u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430, \u0430 \u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0441 \u043F\u043B\u043E\u0434 \u2014 \u043F\u0440\u0435\u0434\u0438 \u043D\u0435\u044F" : "\u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430";
+    if (profile.diet?.style !== "keto") lines.push(`\u0412 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u044F \u0434\u0435\u043D \u043F\u043E-\u0433\u043E\u043B\u044F\u043C\u0430\u0442\u0430 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0435 \u0432 ${slot}: \u0442\u043E\u0433\u0430\u0432\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u044A\u0442 \u0433\u0438 \u043F\u043E\u0435\u043C\u0430 \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0433\u043B\u0438\u043A\u043E\u0433\u0435\u043D\u0430.`);
+    if (rest.some((d) => d.macros.carbs < tC) && profile.diet?.style !== "keto") {
+      lines.push("\u0412 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u044F \u0434\u0435\u043D \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u0430 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u043F\u043E-\u0440\u0430\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F \u2014 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430\u0442\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442 \u0435 \u043F\u043E-\u0432\u0438\u0441\u043E\u043A\u0430 \u0441\u0443\u0442\u0440\u0438\u043D.");
+    }
+  } else if (!train.length) {
+    lines.push("\u0411\u0435\u0437 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0434\u043D\u0438\u0442\u0435 \u0441\u0430 \u0435\u0434\u043D\u0430\u043A\u0432\u0438 \u043F\u043E \u0435\u043D\u0435\u0440\u0433\u0438\u044F; \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u043F\u043E-\u0440\u0430\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F, \u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0435 \u043F\u043E-\u043B\u0435\u043A\u0430 \u043D\u0430 \u0442\u044F\u0445.");
+  }
+  const low = days.find((d) => d.kind === "low");
+  if (low) lines.push(`${DAY_SHORT[low.day - 1].toUpperCase()} \u0435 \u043F\u043E-\u043B\u0435\u043A \u0434\u0435\u043D (~${low.kcal} kcal) \u0441 \u043F\u044A\u043B\u043D\u0438\u044F \u0431\u0435\u043B\u0442\u044A\u043A \u2014 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u0438\u044F\u0442 \u0431\u0430\u043B\u0430\u043D\u0441 \u0435 \u0441\u044A\u0449\u0438\u044F\u0442, \u0440\u0430\u0437\u043B\u0438\u043A\u0430\u0442\u0430 \u0435 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u0432 \u0434\u0440\u0443\u0433\u0438\u0442\u0435 \u0434\u043D\u0438.`);
+  if (fasting.note) lines.push(fasting.note);
+  return lines;
+}
+function menuQuality(days, lib, profile, kcal) {
+  let fiber = 0;
+  let fiberKnownG = 0;
+  let totalG = 0;
+  let carbs = 0;
+  const plants = /* @__PURE__ */ new Set();
+  let oilyFishMeals = 0;
+  let wholeG = 0;
+  let grainG = 0;
+  let highGiG = 0;
+  let staG = 0;
+  let mainMeals = 0;
+  let mainMealsOk = 0;
+  const refKg = referenceWeightKg(profile);
+  const proteinMin = Math.max(20, 0.3 * refKg);
+  const PLANT_GROUPS = /* @__PURE__ */ new Set(["VEG", "FRU", "LEG", "STA"]);
+  for (const day of days) {
+    for (const meal of day.meals || []) {
+      let fishInMeal = false;
+      for (const { id, grams } of meal.foods) {
+        const f = lib.food(id);
+        totalG += grams;
+        carbs += (f.per100?.carbs || 0) * grams / 100;
+        const fb = lib.fiberPer100(id);
+        if (fb != null) {
+          fiber += fb * grams / 100;
+          fiberKnownG += grams;
+        }
+        const flags = f.flags instanceof Set ? f.flags : new Set(Object.keys(f.flags || {}));
+        if (PLANT_GROUPS.has(f.group) || f.kind === "plant" || flags.has("nut") || flags.has("seed")) plants.add(id);
+        if (flags.has("oily_fish")) fishInMeal = true;
+        if (flags.has("grain") || flags.has("whole_grain") || flags.has("refined")) {
+          grainG += grams;
+          if (flags.has("whole_grain")) wholeG += grams;
+        }
+        if (f.group === "STA") {
+          staG += grams;
+          if (flags.has("high_gi")) highGiG += grams;
+        }
+      }
+      if (fishInMeal) oilyFishMeals++;
+      if (meal.main) {
+        mainMeals++;
+        if (meal.protein >= proteinMin) mainMealsOk++;
+      }
+    }
+  }
+  const n = days.length || 1;
+  const coverage = totalG ? fiberKnownG / totalG : 0;
+  const fiberDay = coverage > 0 ? fiber / coverage / n : null;
+  const fiberTarget = Math.round(14 * kcal / 1e3);
+  const items = [];
+  const add = (code, value, target, ok, text2) => items.push({ code, value, target, status: ok ? "ok" : "low", text: text2 });
+  if (fiberDay != null) add("fiber", Math.round(fiberDay), fiberTarget, fiberDay >= fiberTarget * 0.9, `\u0424\u0438\u0431\u0440\u0438: ~${Math.round(fiberDay)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E (\u0446\u0435\u043B ${fiberTarget} \u0433 \u2014 14 \u0433 \u043D\u0430 1000 kcal).`);
+  add("plants", plants.size, 30, plants.size >= 30, `\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435: ${plants.size} \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u0440\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430 (\u0446\u0435\u043B 30 \u2014 \u0437\u0430 \u0447\u0440\u0435\u0432\u043D\u0430\u0442\u0430 \u043C\u0438\u043A\u0440\u043E\u0431\u0438\u043E\u0442\u0430).`);
+  add("oily_fish", oilyFishMeals, 2, oilyFishMeals >= 2, `\u041C\u0430\u0437\u043D\u0430 \u0440\u0438\u0431\u0430: ${oilyFishMeals} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (\u0446\u0435\u043B 2 \u2014 \u043E\u043C\u0435\u0433\u0430-3 EPA/DHA).`);
+  if (grainG > 0) {
+    const share = Math.round(wholeG / grainG * 100);
+    add("whole_grain", share, 50, share >= 50, `\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438: ${share}% \u043E\u0442 \u0437\u044A\u0440\u043D\u0435\u043D\u0438\u0442\u0435 (\u0446\u0435\u043B \u043F\u043E\u043D\u0435 50%).`);
+  }
+  if (staG > 0) {
+    const share = Math.round(highGiG / staG * 100);
+    add("high_gi", share, 20, share <= 20, `\u041D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0441 \u0432\u0438\u0441\u043E\u043A \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D \u0438\u043D\u0434\u0435\u043A\u0441: ${share}% (\u0434\u043E 20%).`);
+  }
+  if (mainMeals) {
+    const share = Math.round(mainMealsOk / mainMeals * 100);
+    add("protein_meal", share, 90, share >= 90, `\u0411\u0435\u043B\u0442\u044A\u043A \u043D\u0430\u0434 \u043F\u0440\u0430\u0433\u0430 \u0437\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0435\u043D \u0441\u0438\u043D\u0442\u0435\u0437 (\u2265${Math.round(proteinMin)} \u0433) \u0432 ${share}% \u043E\u0442 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F.`);
+  }
+  if (fiberDay != null && carbs > 0) {
+    const ratio = carbs / n / fiberDay;
+    add("carb_fiber", Math.round(ratio * 10) / 10, 10, ratio <= 10, `\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u043A\u044A\u043C \u0444\u0438\u0431\u0440\u0438: ${fmt(Math.round(ratio * 10) / 10)}:1 (\u0434\u043E 10:1 \u2014 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0441 \u0444\u0438\u0431\u0440\u0438, \u043D\u0435 \u0440\u0430\u0444\u0438\u043D\u0438\u0440\u0430\u043D\u0438).`);
+  }
+  return { items, fiberCoverage: Math.round(coverage * 100) };
+}
+
+// data/engine/micronutrients.json
+var micronutrients_default = {
+  about: "\u041C\u0438\u043A\u0440\u043E\u043D\u0443\u0442\u0440\u0438\u0435\u043D\u0442\u0438 \u043D\u0430 100 \u0433 \u0437\u0430 \u0445\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430 \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044F \u2014 USDA FoodData Central, SR Legacy (2018-04), \u0437\u0430\u043F\u0438\u0441 \u043F\u043E fdc_id. \u0418\u0437\u0431\u043E\u0440\u044A\u0442 \u043D\u0430 \u0437\u0430\u043F\u0438\u0441: \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435\u0442\u043E (\u0441\u0443\u0440\u043E\u0432\u043E/\u0441\u0433\u043E\u0442\u0432\u0435\u043D\u043E) \u043F\u043E \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0437\u044A\u0440\u043D\u0435\u043D\u0438\u0442\u0435 \u2014 \u0431\u0435\u0437 \u0430\u043C\u0435\u0440\u0438\u043A\u0430\u043D\u0441\u043A\u043E\u0442\u043E \u043E\u0431\u043E\u0433\u0430\u0442\u044F\u0432\u0430\u043D\u0435 \u0441 \u0436\u0435\u043B\u044F\u0437\u043E (\u0443 \u043D\u0430\u0441 \u043D\u0435 \u0441\u0435 \u043E\u0431\u043E\u0433\u0430\u0442\u044F\u0432\u0430\u0442). \u0415\u0434\u0438\u043D\u0438\u0446\u0438: fiber \u0433, fe \u043C\u0433, ca \u043C\u0433, mg \u043C\u0433, k \u043C\u0433, b12 \xB5\u0433, o3 \u2014 EPA+DHA \u0432 \u043C\u0433 (\u0434\u044A\u043B\u0433\u043E\u0432\u0435\u0440\u0438\u0436\u043D\u0438 \u043E\u043C\u0435\u0433\u0430-3; ALA \u043E\u0442 \u0441\u0435\u043C\u0435\u043D\u0430 \u043D\u0435 \u0441\u0435 \u0431\u0440\u043E\u0438). null \u2014 \u043F\u0440\u043E\u0434\u0443\u043A\u0442, \u0447\u0438\u0439\u0442\u043E \u0441\u044A\u0441\u0442\u0430\u0432 \u0437\u0430\u0432\u0438\u0441\u0438 \u043E\u0442 \u043C\u0430\u0440\u043A\u0430\u0442\u0430. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430 \u0441\u0435 \u043E\u0442 \u0431\u0430\u0437\u0430\u0442\u0430, \u043D\u0435 \u0441\u0435 \u043F\u0438\u0448\u0435 \u043D\u0430 \u0440\u044A\u043A\u0430.",
+  per100g: {
+    cond_cinnamon: {
+      fdc: 171320,
+      fiber: 53.1,
+      fe: 8.32,
+      ca: 1002,
+      mg: 60,
+      k: 431,
+      b12: 0,
+      o3: 0
+    },
+    cond_coconut_milk: {
+      fdc: 170173,
+      fiber: null,
+      fe: 3.3,
+      ca: 18,
+      mg: 46,
+      k: 220,
+      b12: 0,
+      o3: 0
+    },
+    cond_ginger: {
+      fdc: 169231,
+      fiber: 2,
+      fe: 0.6,
+      ca: 16,
+      mg: 43,
+      k: 415,
+      b12: 0,
+      o3: 0
+    },
+    cond_honey: {
+      fdc: 169640,
+      fiber: 0.2,
+      fe: 0.42,
+      ca: 6,
+      mg: 2,
+      k: 52,
+      b12: 0,
+      o3: 0
+    },
+    cond_lemon_juice: {
+      fdc: 167747,
+      fiber: 0.3,
+      fe: 0.08,
+      ca: 6,
+      mg: 6,
+      k: 103,
+      b12: 0,
+      o3: 0
+    },
+    cond_mustard: {
+      fdc: 172234,
+      fiber: 4,
+      fe: 1.61,
+      ca: 63,
+      mg: 48,
+      k: 152,
+      b12: 0,
+      o3: 0
+    },
+    cond_soy: {
+      fdc: 174277,
+      fiber: 0.8,
+      fe: 1.45,
+      ca: 33,
+      mg: 74,
+      k: 435,
+      b12: 0,
+      o3: 0
+    },
+    cond_tomato_paste: {
+      fdc: 170459,
+      fiber: 4.1,
+      fe: 2.98,
+      ca: 36,
+      mg: 42,
+      k: 1014,
+      b12: 0,
+      o3: 0
+    },
+    cond_turmeric: {
+      fdc: 172231,
+      fiber: 22.7,
+      fe: 55,
+      ca: 168,
+      mg: 208,
+      k: 2080,
+      b12: 0,
+      o3: 0
+    },
+    cond_vinegar: {
+      fdc: 172237,
+      fiber: 0,
+      fe: 0.03,
+      ca: 6,
+      mg: 1,
+      k: 2,
+      b12: 0,
+      o3: 0
+    },
+    dairy_cheese: {
+      fdc: 173420,
+      fiber: 0,
+      fe: 0.65,
+      ca: 493,
+      mg: 19,
+      k: 62,
+      b12: 1.69,
+      o3: 0
+    },
+    dairy_cottage: {
+      fdc: 172179,
+      fiber: 0,
+      fe: 0.07,
+      ca: 83,
+      mg: 8,
+      k: 104,
+      b12: 0.43,
+      o3: 0
+    },
+    dairy_cottage_low: {
+      fdc: 173417,
+      fiber: 0,
+      fe: 0.14,
+      ca: 61,
+      mg: 5,
+      k: 86,
+      b12: 0.63,
+      o3: 0
+    },
+    dairy_greek: {
+      fdc: 171304,
+      fiber: 0,
+      fe: 0,
+      ca: 100,
+      mg: 11,
+      k: 141,
+      b12: 0.75,
+      o3: 4
+    },
+    dairy_kashkaval: {
+      fdc: 173414,
+      fiber: 0,
+      fe: 0.14,
+      ca: 710,
+      mg: 27,
+      k: 76,
+      b12: 1.1,
+      o3: 11
+    },
+    dairy_kefir: {
+      fdc: 170904,
+      fiber: 0,
+      fe: 0.04,
+      ca: 130,
+      mg: 12,
+      k: 164,
+      b12: 0.29,
+      o3: 0
+    },
+    dairy_milk: {
+      fdc: 171265,
+      fiber: 0,
+      fe: 0.03,
+      ca: 113,
+      mg: 10,
+      k: 132,
+      b12: 0.45,
+      o3: 0
+    },
+    dairy_milk_2: {
+      fdc: 171267,
+      fiber: 0,
+      fe: 0.02,
+      ca: 120,
+      mg: 11,
+      k: 140,
+      b12: 0.53,
+      o3: 0
+    },
+    dairy_milk_lf: {
+      fdc: 170872,
+      fiber: 0,
+      fe: 0.03,
+      ca: 125,
+      mg: 11,
+      k: 150,
+      b12: 0.47,
+      o3: 0
+    },
+    dairy_mozzarella: {
+      fdc: 170845,
+      fiber: 0,
+      fe: 0.44,
+      ca: 505,
+      mg: 20,
+      k: 76,
+      b12: 2.28,
+      o3: 0
+    },
+    dairy_parmesan: {
+      fdc: 170848,
+      fiber: 0,
+      fe: 0.82,
+      ca: 1184,
+      mg: 44,
+      k: 92,
+      b12: 1.2,
+      o3: 0
+    },
+    dairy_plant_milk: null,
+    dairy_ricotta: {
+      fdc: 170851,
+      fiber: 0,
+      fe: 0.13,
+      ca: 206,
+      mg: 20,
+      k: 219,
+      b12: 0.85,
+      o3: 5
+    },
+    dairy_skyr: {
+      fdc: 170894,
+      fiber: 0,
+      fe: 0.07,
+      ca: 110,
+      mg: 11,
+      k: 141,
+      b12: 0.75,
+      o3: 0
+    },
+    dairy_soy_milk: {
+      fdc: 172446,
+      fiber: 0.6,
+      fe: 0.64,
+      ca: 25,
+      mg: 25,
+      k: 118,
+      b12: 0,
+      o3: 0
+    },
+    dairy_soy_yogurt: null,
+    dairy_yogurt: {
+      fdc: 171284,
+      fiber: 0,
+      fe: 0.05,
+      ca: 121,
+      mg: 12,
+      k: 155,
+      b12: 0.37,
+      o3: 0
+    },
+    dairy_yogurt_0: {
+      fdc: 170887,
+      fiber: 0,
+      fe: 0.09,
+      ca: 199,
+      mg: 19,
+      k: 255,
+      b12: 0.61,
+      o3: 0
+    },
+    dairy_yogurt_2: {
+      fdc: 170886,
+      fiber: 0,
+      fe: 0.08,
+      ca: 183,
+      mg: 17,
+      k: 234,
+      b12: 0.56,
+      o3: 0
+    },
+    dairy_yogurt_lf: {
+      fdc: 170886,
+      fiber: 0,
+      fe: 0.08,
+      ca: 183,
+      mg: 17,
+      k: 234,
+      b12: 0.56,
+      o3: 0
+    },
+    eng_bread: {
+      fdc: 172816,
+      fiber: 2.2,
+      fe: 1.4,
+      ca: 86,
+      mg: 26,
+      k: 120,
+      b12: 0,
+      o3: 0
+    },
+    eng_bread_whole: {
+      fdc: 172690,
+      fiber: 6,
+      fe: 3.1,
+      ca: 33,
+      mg: 81,
+      k: 314,
+      b12: 0,
+      o3: 0
+    },
+    eng_buckwheat: {
+      fdc: 170686,
+      fiber: 2.7,
+      fe: 0.8,
+      ca: 7,
+      mg: 51,
+      k: 88,
+      b12: 0,
+      o3: 0
+    },
+    eng_bulgur: {
+      fdc: 170287,
+      fiber: 4.5,
+      fe: 0.96,
+      ca: 10,
+      mg: 32,
+      k: 68,
+      b12: 0,
+      o3: 0
+    },
+    eng_corn: {
+      fdc: 169998,
+      fiber: 2,
+      fe: 0.52,
+      ca: 2,
+      mg: 37,
+      k: 270,
+      b12: 0,
+      o3: 0
+    },
+    eng_couscous: {
+      fdc: 169700,
+      fiber: 1.4,
+      fe: 0.38,
+      ca: 8,
+      mg: 8,
+      k: 58,
+      b12: 0,
+      o3: 0
+    },
+    eng_lentil_pasta: null,
+    eng_millet: {
+      fdc: 168871,
+      fiber: 1.3,
+      fe: 0.63,
+      ca: 3,
+      mg: 44,
+      k: 62,
+      b12: 0,
+      o3: 0
+    },
+    eng_oats: {
+      fdc: 173904,
+      fiber: 10.1,
+      fe: 4.25,
+      ca: 52,
+      mg: 138,
+      k: 362,
+      b12: 0,
+      o3: 0
+    },
+    eng_pasta: {
+      fdc: 168928,
+      fiber: 1.8,
+      fe: 0.5,
+      ca: 7,
+      mg: 18,
+      k: 44,
+      b12: 0,
+      o3: 0
+    },
+    eng_potato: {
+      fdc: 170440,
+      fiber: 1.8,
+      fe: 0.31,
+      ca: 8,
+      mg: 20,
+      k: 328,
+      b12: 0,
+      o3: 0
+    },
+    eng_quinoa: {
+      fdc: 168917,
+      fiber: 2.8,
+      fe: 1.49,
+      ca: 17,
+      mg: 64,
+      k: 172,
+      b12: 0,
+      o3: 15
+    },
+    eng_rice: {
+      fdc: 169757,
+      fiber: 0.4,
+      fe: 0.2,
+      ca: 10,
+      mg: 12,
+      k: 35,
+      b12: 0,
+      o3: 0
+    },
+    eng_rice_brown: {
+      fdc: 169704,
+      fiber: 1.6,
+      fe: 0.56,
+      ca: 3,
+      mg: 39,
+      k: 86,
+      b12: 0,
+      o3: 0
+    },
+    eng_rice_cakes: {
+      fdc: 168107,
+      fiber: 4.2,
+      fe: 1.49,
+      ca: 11,
+      mg: 131,
+      k: 428,
+      b12: 0,
+      o3: 0
+    },
+    eng_rice_white: {
+      fdc: 169757,
+      fiber: 0.4,
+      fe: 0.2,
+      ca: 10,
+      mg: 12,
+      k: 35,
+      b12: 0,
+      o3: 0
+    },
+    eng_rye_bread: {
+      fdc: 172684,
+      fiber: 5.8,
+      fe: 2.83,
+      ca: 73,
+      mg: 40,
+      k: 166,
+      b12: 0,
+      o3: 0
+    },
+    eng_sweet_potato: {
+      fdc: 168482,
+      fiber: 3,
+      fe: 0.61,
+      ca: 30,
+      mg: 25,
+      k: 337,
+      b12: 0,
+      o3: 0
+    },
+    eng_tortilla: {
+      fdc: 173242,
+      fiber: 3.3,
+      fe: 3.3,
+      ca: 39,
+      mg: 26,
+      k: 131,
+      b12: 0,
+      o3: 0
+    },
+    fat_almond_butter: {
+      fdc: 168588,
+      fiber: 10.3,
+      fe: 3.49,
+      ca: 347,
+      mg: 279,
+      k: 748,
+      b12: 0,
+      o3: 0
+    },
+    fat_almonds: {
+      fdc: 170567,
+      fiber: 12.5,
+      fe: 3.71,
+      ca: 269,
+      mg: 270,
+      k: 733,
+      b12: 0,
+      o3: 0
+    },
+    fat_avocado: {
+      fdc: 171705,
+      fiber: 6.7,
+      fe: 0.55,
+      ca: 12,
+      mg: 29,
+      k: 485,
+      b12: 0,
+      o3: 0
+    },
+    fat_butter: {
+      fdc: 173430,
+      fiber: 0,
+      fe: 0.02,
+      ca: 24,
+      mg: 2,
+      k: 24,
+      b12: 0.17,
+      o3: 0
+    },
+    fat_cashew: {
+      fdc: 170162,
+      fiber: 3.3,
+      fe: 6.68,
+      ca: 37,
+      mg: 292,
+      k: 660,
+      b12: 0,
+      o3: 0
+    },
+    fat_chia: {
+      fdc: 170554,
+      fiber: 34.4,
+      fe: 7.72,
+      ca: 631,
+      mg: 335,
+      k: 407,
+      b12: 0,
+      o3: 0
+    },
+    fat_coconut_oil: {
+      fdc: 171412,
+      fiber: 0,
+      fe: 0.05,
+      ca: 1,
+      mg: 0,
+      k: 0,
+      b12: 0,
+      o3: 0
+    },
+    fat_flax: {
+      fdc: 169414,
+      fiber: 27.3,
+      fe: 5.73,
+      ca: 255,
+      mg: 392,
+      k: 813,
+      b12: 0,
+      o3: 0
+    },
+    fat_hazelnuts: {
+      fdc: 170581,
+      fiber: 9.7,
+      fe: 4.7,
+      ca: 114,
+      mg: 163,
+      k: 680,
+      b12: 0,
+      o3: 0
+    },
+    fat_nuts: {
+      fdc: 170585,
+      fiber: 6.4,
+      fe: 3.73,
+      ca: 87,
+      mg: 227,
+      k: 643,
+      b12: 0,
+      o3: 9
+    },
+    fat_oil: {
+      fdc: 171413,
+      fiber: 0,
+      fe: 0.56,
+      ca: 1,
+      mg: 0,
+      k: 1,
+      b12: 0,
+      o3: 0
+    },
+    fat_olives: {
+      fdc: 169094,
+      fiber: 1.6,
+      fe: 6.28,
+      ca: 88,
+      mg: 4,
+      k: 8,
+      b12: 0,
+      o3: 0
+    },
+    fat_peanut_butter: {
+      fdc: 172470,
+      fiber: 5,
+      fe: 1.74,
+      ca: 49,
+      mg: 168,
+      k: 558,
+      b12: 0,
+      o3: 0
+    },
+    fat_peanuts: {
+      fdc: 172430,
+      fiber: 8.5,
+      fe: 4.58,
+      ca: 92,
+      mg: 168,
+      k: 705,
+      b12: 0,
+      o3: 0
+    },
+    fat_peanuts_pistachio: {
+      fdc: 170184,
+      fiber: 10.6,
+      fe: 3.92,
+      ca: 105,
+      mg: 121,
+      k: 1025,
+      b12: 0,
+      o3: 0
+    },
+    fat_pumpkin_seeds: {
+      fdc: 170556,
+      fiber: 6,
+      fe: 8.82,
+      ca: 46,
+      mg: 592,
+      k: 809,
+      b12: 0,
+      o3: 0
+    },
+    fat_sunflower_oil: {
+      fdc: 171025,
+      fiber: 0,
+      fe: 0,
+      ca: 0,
+      mg: 0,
+      k: 0,
+      b12: 0,
+      o3: 0
+    },
+    fat_sunflower_seeds: {
+      fdc: 170562,
+      fiber: 8.6,
+      fe: 5.25,
+      ca: 78,
+      mg: 325,
+      k: 645,
+      b12: 0,
+      o3: 14
+    },
+    fat_tahini: {
+      fdc: 170189,
+      fiber: 9.3,
+      fe: 8.95,
+      ca: 426,
+      mg: 95,
+      k: 414,
+      b12: 0,
+      o3: 0
+    },
+    fat_walnuts: {
+      fdc: 170187,
+      fiber: 6.7,
+      fe: 2.91,
+      ca: 98,
+      mg: 158,
+      k: 441,
+      b12: 0,
+      o3: 0
+    },
+    fruit_apple: {
+      fdc: 171688,
+      fiber: 2.4,
+      fe: 0.12,
+      ca: 6,
+      mg: 5,
+      k: 107,
+      b12: 0,
+      o3: 0
+    },
+    fruit_banana: {
+      fdc: 173944,
+      fiber: 2.6,
+      fe: 0.26,
+      ca: 5,
+      mg: 27,
+      k: 358,
+      b12: 0,
+      o3: 0
+    },
+    fruit_blueberry: {
+      fdc: 171711,
+      fiber: 2.4,
+      fe: 0.28,
+      ca: 6,
+      mg: 6,
+      k: 77,
+      b12: 0,
+      o3: 0
+    },
+    fruit_grapefruit: {
+      fdc: 174673,
+      fiber: 1.6,
+      fe: 0.08,
+      ca: 22,
+      mg: 9,
+      k: 135,
+      b12: 0,
+      o3: 0
+    },
+    fruit_grapes: {
+      fdc: 174683,
+      fiber: 0.9,
+      fe: 0.36,
+      ca: 10,
+      mg: 7,
+      k: 191,
+      b12: 0,
+      o3: 0
+    },
+    fruit_kiwi: {
+      fdc: 168153,
+      fiber: 3,
+      fe: 0.31,
+      ca: 34,
+      mg: 17,
+      k: 312,
+      b12: 0,
+      o3: 0
+    },
+    fruit_lemon: {
+      fdc: 167746,
+      fiber: 2.8,
+      fe: 0.6,
+      ca: 26,
+      mg: 8,
+      k: 138,
+      b12: 0,
+      o3: 0
+    },
+    fruit_mandarin: {
+      fdc: 169105,
+      fiber: 1.8,
+      fe: 0.15,
+      ca: 37,
+      mg: 12,
+      k: 166,
+      b12: 0,
+      o3: 0
+    },
+    fruit_mango: {
+      fdc: 169910,
+      fiber: 1.6,
+      fe: 0.16,
+      ca: 11,
+      mg: 10,
+      k: 168,
+      b12: 0,
+      o3: 0
+    },
+    fruit_melon: {
+      fdc: 169092,
+      fiber: 0.9,
+      fe: 0.21,
+      ca: 9,
+      mg: 12,
+      k: 267,
+      b12: 0,
+      o3: 0
+    },
+    fruit_orange: {
+      fdc: 169097,
+      fiber: 2.4,
+      fe: 0.1,
+      ca: 40,
+      mg: 10,
+      k: 181,
+      b12: 0,
+      o3: 0
+    },
+    fruit_peach: {
+      fdc: 169928,
+      fiber: 1.5,
+      fe: 0.25,
+      ca: 6,
+      mg: 9,
+      k: 190,
+      b12: 0,
+      o3: 0
+    },
+    fruit_pear: {
+      fdc: 169118,
+      fiber: 3.1,
+      fe: 0.18,
+      ca: 9,
+      mg: 7,
+      k: 116,
+      b12: 0,
+      o3: 0
+    },
+    fruit_pineapple: {
+      fdc: 169124,
+      fiber: 1.4,
+      fe: 0.29,
+      ca: 13,
+      mg: 12,
+      k: 109,
+      b12: 0,
+      o3: 0
+    },
+    fruit_raspberry: {
+      fdc: 167755,
+      fiber: 6.5,
+      fe: 0.69,
+      ca: 25,
+      mg: 22,
+      k: 151,
+      b12: 0,
+      o3: 0
+    },
+    fruit_strawberry: {
+      fdc: 167762,
+      fiber: 2,
+      fe: 0.41,
+      ca: 16,
+      mg: 13,
+      k: 153,
+      b12: 0,
+      o3: 0
+    },
+    fruit_watermelon: {
+      fdc: 167765,
+      fiber: 0.4,
+      fe: 0.24,
+      ca: 7,
+      mg: 10,
+      k: 112,
+      b12: 0,
+      o3: 0
+    },
+    leg_black_beans: {
+      fdc: 173735,
+      fiber: 8.7,
+      fe: 2.1,
+      ca: 27,
+      mg: 70,
+      k: 355,
+      b12: 0,
+      o3: 0
+    },
+    leg_chickpeas: {
+      fdc: 173757,
+      fiber: 7.6,
+      fe: 2.89,
+      ca: 49,
+      mg: 48,
+      k: 291,
+      b12: 0,
+      o3: 0
+    },
+    leg_edamame: {
+      fdc: 168411,
+      fiber: 5.2,
+      fe: 2.27,
+      ca: 63,
+      mg: 64,
+      k: 436,
+      b12: 0,
+      o3: 3
+    },
+    leg_hummus: {
+      fdc: 172454,
+      fiber: 4,
+      fe: 1.56,
+      ca: 49,
+      mg: 29,
+      k: 173,
+      b12: 0,
+      o3: 0
+    },
+    leg_lentils: {
+      fdc: 172421,
+      fiber: 7.9,
+      fe: 3.33,
+      ca: 19,
+      mg: 36,
+      k: 369,
+      b12: 0,
+      o3: 0
+    },
+    leg_peas: {
+      fdc: 170419,
+      fiber: 5.7,
+      fe: 1.47,
+      ca: 25,
+      mg: 33,
+      k: 244,
+      b12: 0,
+      o3: 0
+    },
+    leg_white_beans: {
+      fdc: 175203,
+      fiber: 6.3,
+      fe: 3.7,
+      ca: 90,
+      mg: 63,
+      k: 561,
+      b12: 0,
+      o3: 0
+    },
+    pro_beef: {
+      fdc: 171797,
+      fiber: 0,
+      fe: 2.48,
+      ca: 24,
+      mg: 20,
+      k: 304,
+      b12: 2.73,
+      o3: 0
+    },
+    pro_beef_lean: {
+      fdc: 171815,
+      fiber: 0,
+      fe: 2.7,
+      ca: 7,
+      mg: 21,
+      k: 264,
+      b12: 1.75,
+      o3: 4
+    },
+    pro_chicken: {
+      fdc: 171054,
+      fiber: 0,
+      fe: 1.21,
+      ca: 15,
+      mg: 25,
+      k: 243,
+      b12: 0.33,
+      o3: 50
+    },
+    pro_chicken_breast: {
+      fdc: 171477,
+      fiber: 0,
+      fe: 1.04,
+      ca: 15,
+      mg: 29,
+      k: 256,
+      b12: 0.34,
+      o3: 30
+    },
+    pro_chicken_thigh: {
+      fdc: 172388,
+      fiber: 0,
+      fe: 1.13,
+      ca: 9,
+      mg: 24,
+      k: 269,
+      b12: 0.42,
+      o3: 10
+    },
+    pro_cod: {
+      fdc: 171955,
+      fiber: 0,
+      fe: 0.38,
+      ca: 16,
+      mg: 32,
+      k: 413,
+      b12: 0.91,
+      o3: 184
+    },
+    pro_egg_whites: {
+      fdc: 172183,
+      fiber: 0,
+      fe: 0.08,
+      ca: 7,
+      mg: 11,
+      k: 163,
+      b12: 0.09,
+      o3: 0
+    },
+    pro_eggs: {
+      fdc: 173424,
+      fiber: 0,
+      fe: 1.19,
+      ca: 50,
+      mg: 10,
+      k: 126,
+      b12: 1.11,
+      o3: 43
+    },
+    pro_fish: {
+      fdc: 173694,
+      fiber: 0,
+      fe: 0.37,
+      ca: 13,
+      mg: 53,
+      k: 328,
+      b12: 0.3,
+      o3: 762
+    },
+    pro_ground_meat: {
+      fdc: 171797,
+      fiber: 0,
+      fe: 2.48,
+      ca: 24,
+      mg: 20,
+      k: 304,
+      b12: 2.73,
+      o3: 0
+    },
+    pro_hake: {
+      fdc: 173713,
+      fiber: 0,
+      fe: 0.34,
+      ca: 48,
+      mg: 21,
+      k: 249,
+      b12: 2.3,
+      o3: 224
+    },
+    pro_lamb: {
+      fdc: 172550,
+      fiber: 0,
+      fe: 2.01,
+      ca: 11,
+      mg: 23,
+      k: 304,
+      b12: 2.54,
+      o3: 0
+    },
+    pro_mackerel: {
+      fdc: 175119,
+      fiber: 0,
+      fe: 1.63,
+      ca: 12,
+      mg: 76,
+      k: 314,
+      b12: 8.71,
+      o3: 2299
+    },
+    pro_plant_protein: null,
+    pro_pork: {
+      fdc: 167821,
+      fiber: 0,
+      fe: 0.99,
+      ca: 19,
+      mg: 26,
+      k: 408,
+      b12: 0.71,
+      o3: 0
+    },
+    pro_pork_lean: {
+      fdc: 168313,
+      fiber: 0,
+      fe: 1.43,
+      ca: 5,
+      mg: 36,
+      k: 451,
+      b12: 1,
+      o3: 0
+    },
+    pro_salmon: {
+      fdc: 175167,
+      fiber: 0,
+      fe: 0.34,
+      ca: 9,
+      mg: 27,
+      k: 363,
+      b12: 3.23,
+      o3: 1966
+    },
+    pro_sardines: {
+      fdc: 175139,
+      fiber: 0,
+      fe: 2.92,
+      ca: 382,
+      mg: 39,
+      k: 397,
+      b12: 8.94,
+      o3: 982
+    },
+    pro_sea_bass: {
+      fdc: 173694,
+      fiber: 0,
+      fe: 0.37,
+      ca: 13,
+      mg: 53,
+      k: 328,
+      b12: 0.3,
+      o3: 762
+    },
+    pro_shrimp: {
+      fdc: 171971,
+      fiber: 0,
+      fe: 0.32,
+      ca: 91,
+      mg: 37,
+      k: 170,
+      b12: 1.66,
+      o3: 276
+    },
+    pro_soy_mince: {
+      fdc: 174275,
+      fiber: 17.5,
+      fe: 9.24,
+      ca: 241,
+      mg: 290,
+      k: 2384,
+      b12: 0,
+      o3: 0
+    },
+    pro_tempeh: {
+      fdc: 174272,
+      fiber: null,
+      fe: 2.7,
+      ca: 111,
+      mg: 81,
+      k: 412,
+      b12: 0.08,
+      o3: 0
+    },
+    pro_tilapia: {
+      fdc: 175176,
+      fiber: 0,
+      fe: 0.56,
+      ca: 10,
+      mg: 27,
+      k: 302,
+      b12: 1.58,
+      o3: 91
+    },
+    pro_tofu: {
+      fdc: 172475,
+      fiber: 2.3,
+      fe: 2.66,
+      ca: 683,
+      mg: 58,
+      k: 237,
+      b12: 0,
+      o3: 0
+    },
+    pro_trout: {
+      fdc: 173718,
+      fiber: 0,
+      fe: 0.36,
+      ca: 30,
+      mg: 30,
+      k: 450,
+      b12: 4.11,
+      o3: 875
+    },
+    pro_tuna: {
+      fdc: 171986,
+      fiber: 0,
+      fe: 1.53,
+      ca: 11,
+      mg: 27,
+      k: 237,
+      b12: 2.99,
+      o3: 270
+    },
+    pro_turkey: {
+      fdc: 174516,
+      fiber: 0,
+      fe: 0.97,
+      ca: 14,
+      mg: 28,
+      k: 297,
+      b12: 1.76,
+      o3: 6
+    },
+    pro_whey: null,
+    sw_dark_chocolate: {
+      fdc: 170273,
+      fiber: 10.9,
+      fe: 11.9,
+      ca: 73,
+      mg: 228,
+      k: 715,
+      b12: 0.28,
+      o3: 0
+    },
+    veg_arugula: {
+      fdc: 169387,
+      fiber: 1.6,
+      fe: 1.46,
+      ca: 160,
+      mg: 47,
+      k: 369,
+      b12: 0,
+      o3: 0
+    },
+    veg_asparagus: {
+      fdc: 168389,
+      fiber: 2.1,
+      fe: 2.14,
+      ca: 24,
+      mg: 14,
+      k: 202,
+      b12: 0,
+      o3: 0
+    },
+    veg_beet: {
+      fdc: 169145,
+      fiber: 2.8,
+      fe: 0.8,
+      ca: 16,
+      mg: 23,
+      k: 325,
+      b12: 0,
+      o3: 0
+    },
+    veg_broccoli: {
+      fdc: 170379,
+      fiber: 2.6,
+      fe: 0.73,
+      ca: 47,
+      mg: 21,
+      k: 316,
+      b12: 0,
+      o3: 0
+    },
+    veg_brussels: {
+      fdc: 170383,
+      fiber: 3.8,
+      fe: 1.4,
+      ca: 42,
+      mg: 23,
+      k: 389,
+      b12: 0,
+      o3: 0
+    },
+    veg_cabbage: {
+      fdc: 169975,
+      fiber: 2.5,
+      fe: 0.47,
+      ca: 40,
+      mg: 12,
+      k: 170,
+      b12: 0,
+      o3: 0
+    },
+    veg_carrot: {
+      fdc: 170393,
+      fiber: 2.8,
+      fe: 0.3,
+      ca: 33,
+      mg: 12,
+      k: 320,
+      b12: 0,
+      o3: 0
+    },
+    veg_cauliflower: {
+      fdc: 169986,
+      fiber: 2,
+      fe: 0.42,
+      ca: 22,
+      mg: 15,
+      k: 299,
+      b12: 0,
+      o3: 0
+    },
+    veg_celery: {
+      fdc: 169988,
+      fiber: 1.6,
+      fe: 0.2,
+      ca: 40,
+      mg: 11,
+      k: 260,
+      b12: 0,
+      o3: 0
+    },
+    veg_cherry_tomato: {
+      fdc: 170457,
+      fiber: 1.2,
+      fe: 0.27,
+      ca: 10,
+      mg: 11,
+      k: 237,
+      b12: 0,
+      o3: 0
+    },
+    veg_cucumber: {
+      fdc: 168409,
+      fiber: 0.5,
+      fe: 0.28,
+      ca: 16,
+      mg: 13,
+      k: 147,
+      b12: 0,
+      o3: 0
+    },
+    veg_eggplant: {
+      fdc: 169228,
+      fiber: 3,
+      fe: 0.23,
+      ca: 9,
+      mg: 14,
+      k: 229,
+      b12: 0,
+      o3: 0
+    },
+    veg_garlic: {
+      fdc: 169230,
+      fiber: 2.1,
+      fe: 1.7,
+      ca: 181,
+      mg: 25,
+      k: 401,
+      b12: 0,
+      o3: 0
+    },
+    veg_green_beans: {
+      fdc: 169961,
+      fiber: 2.7,
+      fe: 1.03,
+      ca: 37,
+      mg: 25,
+      k: 211,
+      b12: 0,
+      o3: 0
+    },
+    veg_leek: {
+      fdc: 169246,
+      fiber: 1.8,
+      fe: 2.1,
+      ca: 59,
+      mg: 28,
+      k: 180,
+      b12: 0,
+      o3: 0
+    },
+    veg_lettuce: {
+      fdc: 169249,
+      fiber: 1.3,
+      fe: 0.86,
+      ca: 36,
+      mg: 13,
+      k: 194,
+      b12: 0,
+      o3: 0
+    },
+    veg_mushrooms: {
+      fdc: 169251,
+      fiber: 1,
+      fe: 0.5,
+      ca: 3,
+      mg: 9,
+      k: 318,
+      b12: 0.04,
+      o3: 0
+    },
+    veg_onion: {
+      fdc: 17e4,
+      fiber: 1.7,
+      fe: 0.21,
+      ca: 23,
+      mg: 10,
+      k: 146,
+      b12: 0,
+      o3: 0
+    },
+    veg_oyster_mushroom: {
+      fdc: 168580,
+      fiber: 2.3,
+      fe: 1.33,
+      ca: 3,
+      mg: 18,
+      k: 420,
+      b12: 0,
+      o3: 0
+    },
+    veg_pepper: {
+      fdc: 170108,
+      fiber: 2.1,
+      fe: 0.43,
+      ca: 7,
+      mg: 12,
+      k: 211,
+      b12: 0,
+      o3: 0
+    },
+    veg_pumpkin: {
+      fdc: 168448,
+      fiber: 0.5,
+      fe: 0.8,
+      ca: 21,
+      mg: 12,
+      k: 340,
+      b12: 0,
+      o3: 0
+    },
+    veg_spinach: {
+      fdc: 168462,
+      fiber: 2.2,
+      fe: 2.71,
+      ca: 99,
+      mg: 79,
+      k: 558,
+      b12: 0,
+      o3: 0
+    },
+    veg_tomato: {
+      fdc: 170457,
+      fiber: 1.2,
+      fe: 0.27,
+      ca: 10,
+      mg: 11,
+      k: 237,
+      b12: 0,
+      o3: 0
+    },
+    veg_zucchini: {
+      fdc: 169291,
+      fiber: 1,
+      fe: 0.37,
+      ca: 16,
+      mg: 18,
+      k: 261,
+      b12: 0,
+      o3: 0
+    }
+  }
+};
+
+// nutrition-engine/fiber.js
+var TABLE = micronutrients_default.per100g || {};
+function microPer100(id) {
+  return TABLE[id] || null;
+}
+function fiberPer100(id) {
+  const m = TABLE[id];
+  return m && m.fiber != null ? m.fiber : null;
+}
+
+// nutrition-engine/micronutrients.js
+var NUTRIENTS = ["fe", "ca", "mg", "k", "b12", "o3"];
+var LABEL = { fe: "\u0416\u0435\u043B\u044F\u0437\u043E", ca: "\u041A\u0430\u043B\u0446\u0438\u0439", mg: "\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439", k: "\u041A\u0430\u043B\u0438\u0439", b12: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D B12", o3: "\u041E\u043C\u0435\u0433\u0430-3 (EPA+DHA)" };
+var UNIT = { fe: "\u043C\u0433", ca: "\u043C\u0433", mg: "\u043C\u0433", k: "\u043C\u0433", b12: "\xB5\u0433", o3: "\u043C\u0433" };
+function microNeeds(profile, ctx = {}) {
+  const age = Number(profile.age) || 40;
+  const female = profile.sex === "F";
+  const plant = profile.diet?.pattern === "vegetarian" || profile.diet?.pattern === "vegan";
+  const plantFe = plant ? 1.8 : 1;
+  if (female && ctx.pregnant) {
+    return { fe: 27 * plantFe, ca: 1e3, mg: age < 31 ? 350 : 360, k: 2900, b12: 2.6, o3: 450 };
+  }
+  if (female && ctx.lactating) {
+    return { fe: 9 * plantFe, ca: 1e3, mg: age < 31 ? 310 : 320, k: 2800, b12: 2.8, o3: 450 };
+  }
+  const fe = (female && age < 51 ? 18 : 8) * plantFe;
+  return {
+    fe,
+    ca: female && age >= 51 || age >= 71 ? 1200 : 1e3,
+    mg: female ? age < 31 ? 310 : 320 : age < 31 ? 400 : 420,
+    k: female ? 2600 : 3400,
+    b12: 2.4,
+    o3: 250
+  };
+}
+function sourcesFor(code, profile) {
+  const ex = new Set(profile.exclusions || []);
+  const pattern = profile.diet?.pattern || "omnivore";
+  const meat = pattern === "omnivore";
+  const fish = (pattern === "omnivore" || pattern === "pescatarian") && !ex.has("FSH");
+  const dairy = pattern !== "vegan" && !ex.has("LAC");
+  const carbs = !["keto", "low_carb"].includes(profile.diet?.style);
+  const grains = carbs && !ex.has("GLU") && profile.diet?.style !== "paleo";
+  const legumes = carbs && profile.diet?.style !== "paleo";
+  const list2 = {
+    fe: [meat && "\u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E 2 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E", legumes && "\u043B\u0435\u0449\u0430, \u043D\u0430\u0445\u0443\u0442, \u0431\u043E\u0431", "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A", "\u0447\u0443\u0448\u043A\u0430 \u0438\u043B\u0438 \u0446\u0438\u0442\u0440\u0443\u0441 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E (\u0432\u0438\u0442\u0430\u043C\u0438\u043D C \u0443\u0441\u0438\u043B\u0432\u0430 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E)"],
+    ca: [dairy && "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435", !ex.has("SOY") && profile.diet?.style !== "paleo" && "\u0442\u043E\u0444\u0443", "\u0442\u0430\u0445\u0430\u043D", "\u043B\u0438\u0441\u0442\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", fish && "\u0441\u0430\u0440\u0434\u0438\u043D\u0438 \u0441 \u043A\u043E\u0441\u0442\u0438\u0442\u0435"],
+    mg: ["\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0438 \u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438", !ex.has("NUT") && "\u0431\u0430\u0434\u0435\u043C\u0438, \u043A\u0430\u0448\u0443", legumes && "\u0431\u043E\u0431\u043E\u0432\u0438", grains && "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A"],
+    k: [legumes && "\u0431\u043E\u0431\u043E\u0432\u0438", carbs && "\u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A", "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", carbs && "\u0431\u0430\u043D\u0430\u043D", "\u0433\u044A\u0431\u0438"],
+    b12: [meat && "\u043C\u0435\u0441\u043E", fish && "\u0440\u0438\u0431\u0430", dairy && "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435", pattern !== "vegan" && !ex.has("EGG") && "\u044F\u0439\u0446\u0430"],
+    o3: [fish && "\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u0441\u0430\u0440\u0434\u0438\u043D\u0438"]
+  }[code].filter(Boolean);
+  return list2;
+}
+function advice(code, profile) {
+  const pattern = profile.diet?.pattern;
+  if (code === "b12" && pattern === "vegan") return "\u041F\u0440\u0438 \u0432\u0435\u0433\u0430\u043D \u0445\u0440\u0430\u043D\u0435\u043D\u0435 B12 \u0438\u0434\u0432\u0430 \u0441\u0430\u043C\u043E \u043E\u0442 \u0434\u043E\u0431\u0430\u0432\u043A\u0430 \u0438\u043B\u0438 \u043E\u0431\u043E\u0433\u0430\u0442\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u2014 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0432\u0430 \u0441\u0435 \u0434\u043E\u0431\u0430\u0432\u043A\u0430.";
+  if (code === "o3" && !sourcesFor("o3", profile).length) return "\u0411\u0435\u0437 \u0440\u0438\u0431\u0430 EPA \u0438 DHA \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u0434\u043E\u0431\u0430\u0432\u043A\u0430 \u0441 \u0432\u043E\u0434\u043E\u0440\u0430\u0441\u043B\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E; \u043B\u0435\u043D\u044A\u0442 \u0438 \u0447\u0438\u044F\u0442\u0430 \u0434\u0430\u0432\u0430\u0442 ALA, \u043A\u043E\u0439\u0442\u043E \u0442\u044F\u043B\u043E\u0442\u043E \u043F\u0440\u0435\u0432\u0440\u044A\u0449\u0430 \u0432 \u043C\u0430\u043B\u043A\u0430 \u0441\u0442\u0435\u043F\u0435\u043D.";
+  const src = sourcesFor(code, profile);
+  return src.length ? `\u0418\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438: ${src.join(", ")}.` : "";
+}
+var fmt2 = (v) => String(v).replace(".", ",");
+function microReport(days, microPer1002, profile, ctx = {}) {
+  const total = Object.fromEntries(NUTRIENTS.map((k) => [k, 0]));
+  let grams = 0;
+  let known = 0;
+  for (const day of days) {
+    for (const meal of day.meals || []) {
+      for (const { id, grams: g } of meal.foods || []) {
+        grams += g;
+        const m = microPer1002(id);
+        if (!m) continue;
+        known += g;
+        for (const k of NUTRIENTS) total[k] += (Number(m[k]) || 0) * g / 100;
+      }
+    }
+  }
+  const n = days.length || 1;
+  const needs = microNeeds(profile, ctx);
+  const items = NUTRIENTS.map((code) => {
+    const value = total[code] / n;
+    const target = needs[code];
+    const pct = Math.round(value / target * 100);
+    if (code === "k" && ctx.restrictK) {
+      const shownK = Math.round(value);
+      return {
+        code,
+        label: LABEL[code],
+        value: shownK,
+        target: null,
+        pct: null,
+        status: "limited",
+        text: `${LABEL[code]}: ~${fmt2(shownK)} ${UNIT[code]} \u0434\u043D\u0435\u0432\u043D\u043E.`,
+        advice: "\u041A\u0430\u043B\u0438\u044F\u0442 \u043D\u0435 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u2014 \u043F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435\u0442\u043E (\u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F \u0438\u043B\u0438 \u043A\u0430\u043B\u0438\u0439) \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E\u0442\u043E \u0441\u0435 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u044F \u043E\u0442 \u043B\u0435\u043A\u0430\u0440."
+      };
+    }
+    const status = pct >= 90 ? "ok" : pct >= 67 ? "borderline" : "low";
+    const shown = code === "b12" || code === "fe" ? Math.round(value * 10) / 10 : Math.round(value);
+    const shownTarget = code === "fe" ? Math.round(target * 10) / 10 : target;
+    return {
+      code,
+      label: LABEL[code],
+      value: shown,
+      target: shownTarget,
+      pct,
+      status,
+      text: `${LABEL[code]}: ~${fmt2(shown)} ${UNIT[code]} \u0434\u043D\u0435\u0432\u043D\u043E (${pct}% \u043E\u0442 \u043D\u0443\u0436\u0434\u0430\u0442\u0430 ${fmt2(shownTarget)} ${UNIT[code]}).`,
+      advice: status === "ok" ? "" : advice(code, profile)
+    };
+  });
+  return { items, coverage: grams ? Math.round(known / grams * 100) : 0 };
 }
 
 // nutrition-engine/index.js
@@ -43486,7 +45350,8 @@ var PLAN_MODIFICATION_CODES = {
   simplify_meals: "\u043F\u043E-\u043F\u0440\u043E\u0441\u0442\u0438 \u044F\u0441\u0442\u0438\u044F, \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0442\u0432\u0435\u043D\u0435, \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u044F",
   more_variety: "\u043F\u043E\u0432\u0435\u0447\u0435 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435 \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u0442\u0435 \u044F\u0441\u0442\u0438\u044F",
   more_volume: "\u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0431\u0435\u043C (\u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438) \u043F\u0440\u0438 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438",
-  gentle_digestion: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E (\u0431\u0435\u0437 \u0445\u0440\u0430\u043D\u0438, \u043A\u043E\u0438\u0442\u043E \u043F\u043E\u0434\u0443\u0432\u0430\u0442)"
+  gentle_digestion: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E (\u0431\u0435\u0437 \u0445\u0440\u0430\u043D\u0438, \u043A\u043E\u0438\u0442\u043E \u043F\u043E\u0434\u0443\u0432\u0430\u0442)",
+  time_restricted_eating: "\u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u0447\u0430\u0441\u043E\u0432\u0438 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 (\u0438\u043D\u0442\u0435\u0440\u043C\u0438\u0442\u0435\u043D\u0442\u043D\u043E \u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435)"
 };
 var MEAL_COUNT_CODES = ["3_meals_per_day", "no_intermediate_meals", "4_meals_per_day", "5_meals_per_day"];
 function mergePlanModifications(existing = [], incoming = []) {
@@ -43510,13 +45375,16 @@ function mergePlanModifications(existing = [], incoming = []) {
 }
 function applyModifications(profile, mods = []) {
   const set = new Set(mods);
-  const out = { ...profile, diet: { ...profile.diet }, exclusions: [...profile.exclusions], slots: [...profile.slots] };
+  const out = { ...profile, diet: { ...profile.diet }, exclusions: [...profile.exclusions], slots: [...profile.slots], behaviors: [...profile.behaviors || []] };
   if (set.has("vegetarian") && PATTERN_RANK[out.diet.pattern] < PATTERN_RANK.vegetarian) out.diet.pattern = "vegetarian";
   if (set.has("low_carb") && out.diet.style !== "keto") out.diet.style = "low_carb";
   if (set.has("no_dairy") && !out.exclusions.includes("LAC")) out.exclusions.push("LAC");
   if (set.has("no_intermediate_meals") || set.has("3_meals_per_day")) out.slots = slotsFor(3, out.skipsBreakfast);
   if (set.has("4_meals_per_day")) out.slots = slotsFor(4, out.skipsBreakfast);
   if (set.has("5_meals_per_day")) out.slots = slotsFor(5, out.skipsBreakfast);
+  if (set.has("time_restricted_eating") && !out.behaviors.includes("IF") && !(out.adjustments || []).some((a) => /^MEDS_NO_FASTING/.test(a))) {
+    out.behaviors = [...out.behaviors, "IF"];
+  }
   if (set.has("smaller_portions")) {
     const extra = ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"].find((s) => !out.slots.includes(s));
     if (extra) out.slots = SLOT_ORDER2.filter((s) => out.slots.includes(s) || s === extra);
@@ -43567,11 +45435,19 @@ function buildNutritionPlan(userData, options) {
     onlyFoods: Array.isArray(userData?.userFoodList) ? userData.userFoodList.map(String) : []
   });
   const slots = policy.noLateMeal && profile.slots.length > 3 ? profile.slots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") : profile.slots;
-  const prescription = prescribe({ kcal, macros }, slots, policy, {
+  const rxOptions = {
     skipsBreakfast: profile.skipsBreakfast,
     noLateMeal: policy.noLateMeal,
     extraVeg: mods.includes("more_volume") ? 1 : 0
-  });
+  };
+  const prescription = prescribe({ kcal, macros }, slots, policy, rxOptions);
+  const metabolic = options.metabolic === false ? null : metabolicWeek(profile, userData || {}, { kcal, macros }, slots);
+  const dayPrescriptions = metabolic ? metabolic.days.map((d) => prescribe({ kcal: d.kcal, macros: d.macros }, d.slots, policy, {
+    ...rxOptions,
+    skipsBreakfast: rxOptions.skipsBreakfast || !d.slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"),
+    groupBias: d.bias,
+    mealScale: d.slots.length < slots.length ? slots.length / d.slots.length : 1
+  })) : null;
   const seed = typeof options.seed === "number" ? options.seed : hashSeed(options.seed ?? userData?.email ?? userData?.name ?? "");
   const freeDayNumber = options.freeDayNumber === void 0 ? policy.allowsFreeMeal ? 7 : null : options.freeDayNumber;
   const week = planWeek({
@@ -43586,18 +45462,44 @@ function buildNutritionPlan(userData, options) {
     slotAvoid: options.slotAvoid || [],
     simplify: mods.includes("simplify_meals"),
     variety: mods.includes("more_variety"),
-    dishPreference: options.dishPreference || {}
+    dishPreference: options.dishPreference || {},
+    dayPrescriptions
   });
   const weekPlan = {};
   week.days.forEach((day, i) => {
     weekPlan[`day${i + 1}`] = { meals: day.meals, dailyTotals: dayTotals(day.meals) };
+    const d = metabolic?.days[i];
+    if (d) {
+      weekPlan[`day${i + 1}`].energy = {
+        kind: d.kind,
+        kcal: d.kcal,
+        protein: d.macros.protein,
+        carbs: d.macros.carbs,
+        fats: d.macros.fats,
+        ...d.timing.post ? { postWorkoutMeal: d.timing.post } : {},
+        ...d.window ? { window: d.window } : {}
+      };
+    }
   });
-  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods };
+  const weekFoods = week.days.map((d) => ({ meals: d.foods || [] }));
+  const quality = menuQuality(weekFoods, { food, fiberPer100 }, profile, kcal);
+  const repro = reproductiveStatus(userData || {});
+  const enr = userData?._enrichment || {};
+  const restrictK = Number(enr.safety?.proteinCapPerKg) > 0 || (enr.labs || []).some((l) => l.key === "potassium" && l.status === "high");
+  const micro = microReport(weekFoods, microPer100, profile, { pregnant: repro.pregnant, lactating: repro.lactating, restrictK });
+  const metabolicPlan = metabolic ? {
+    training: { days: metabolic.week.days, source: metabolic.week.source, slot: metabolic.week.slot, fuel: metabolic.week.fuel, types: metabolic.week.types, sessionKcal: metabolic.week.sessionKcal },
+    fasting: metabolic.fasting,
+    text: describeMetabolicWeek(metabolic, profile),
+    quality,
+    micro
+  } : { quality, micro };
+  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods, metabolicPlan };
 }
 
 // nutrition-engine/food-guide.js
 var ruleDef = (code) => CONDITIONS[code] || PROTOCOLS[code] || {};
-var fmt = (n) => String(Math.round(n * 2) / 2).replace(".", ",");
+var fmt3 = (n) => String(Math.round(n * 2) / 2).replace(".", ",");
 function portionExample(group, ctx) {
   const { pattern, ex, style } = ctx;
   switch (group) {
@@ -43633,7 +45535,7 @@ function moderateOf(prescription, ctx, policy) {
     const example = portionExample(g, ctx);
     out.push({
       food: g === "MLK" && (ctx.pattern === "vegan" || ctx.ex.has("LAC")) ? "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u0439\u043E\u0433\u0443\u0440\u0442" : label,
-      amount: `${fmt(n)} ${n === 1 ? "\u043F\u043E\u0440\u0446\u0438\u044F" : "\u043F\u043E\u0440\u0446\u0438\u0438"} \u0434\u043D\u0435\u0432\u043D\u043E`,
+      amount: `${fmt3(n)} ${n === 1 ? "\u043F\u043E\u0440\u0446\u0438\u044F" : "\u043F\u043E\u0440\u0446\u0438\u0438"} \u0434\u043D\u0435\u0432\u043D\u043E`,
       example
     });
   }
@@ -43971,7 +45873,7 @@ var EXCLUSION_AVOID = {
   SOY: "\u0441\u043E\u044F",
   PORK: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E"
 };
-var fmt2 = (n) => String(n).replace(".", ",");
+var fmt4 = (n) => String(n).replace(".", ",");
 function round2(n) {
   return Math.round(Number(n) || 0);
 }
@@ -43980,8 +45882,8 @@ function recommendationsOf(prescription, stats, policy) {
   const mains = stats.mains || {};
   const list2 = [];
   list2.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
-  if (d.FRU > 0) list2.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt2(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
-  if (d.MLK > 0) list2.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt2(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  if (d.FRU > 0) list2.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt4(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
+  if (d.MLK > 0) list2.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt4(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
   if (mains.fish) list2.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
   if (mains.legume) list2.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
   if (d.STA > 0 && policy.style !== "keto") list2.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
@@ -44071,12 +45973,17 @@ function welcomeText({ name, goal, label, kcal, meals, freeDay, weekPlan }) {
   ].join(" ").replace(/\s+/g, " ");
 }
 function buildEngineStrategy(engine, userData, options) {
-  const { profile, policy, prescription, weekPlan, stats, macros } = engine;
+  const { profile, policy, prescription, weekPlan, stats, macros, metabolicPlan } = engine;
+  const fasting = metabolicPlan?.fasting || null;
+  const dayEnergy = Object.values(weekPlan || {}).map((d) => d?.energy).filter(Boolean);
+  const trainDays = dayEnergy.filter((e) => e.kind === "train");
+  const restDays = dayEnergy.filter((e) => e.kind !== "train");
+  const avgOf = (list2, k) => Math.round(list2.reduce((a, e) => a + e[k], 0) / (list2.length || 1));
   const label = dietLabelOf(profile);
   const slots = prescription.slots;
   const name = String(userData?.name || "").trim();
   const perKg = profile.weightKg ? (macros.protein / profile.weightKg).toFixed(1).replace(".", ",") : null;
-  const dailyText = ["STA", "PRO", "VEG", "FRU", "MLK", "FAT", "SWT"].filter((g) => prescription.daily[g] > 0).map((g) => `${GROUPS[g].label.toLowerCase()} ${fmt2(prescription.daily[g])}`).join("; ");
+  const dailyText = ["STA", "PRO", "VEG", "FRU", "MLK", "FAT", "SWT"].filter((g) => prescription.daily[g] > 0).map((g) => `${GROUPS[g].label.toLowerCase()} ${fmt4(prescription.daily[g])}`).join("; ");
   const mealsText = slots.map((s) => `${MEAL_LABELS[s] || s} ~${round2(prescription.meals[s].target.kcal)} kcal`).join(" \xB7 ");
   const mainsText = Object.entries(stats.mains || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${CATEGORY_LABELS[k] || k} \xD7${n}`).join(", ");
   const added = prescription.addedSlots || [];
@@ -44099,19 +46006,30 @@ function buildEngineStrategy(engine, userData, options) {
     afterDinnerMealJustification: slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") ? `\u041A\u044A\u0441\u043D\u0430\u0442\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0435 \u043B\u0435\u043A\u0430 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(lateKcal)} kcal, \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u043B\u0435\u0447\u043D\u0430 \u0438\u043B\u0438 \u0431\u0435\u043B\u0442\u044A\u0447\u043D\u0430.` : "\u041D\u0435 \u0441\u0430 \u043D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u0438",
     weeklyMealPattern: `\u041E\u0441\u043D\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043F\u0440\u0435\u0437 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430: ${mainsText}. \u0415\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435 \u0441\u0435 \u043F\u043E\u0432\u0442\u0430\u0440\u044F \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u0434\u0432\u0430 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E.`,
     calorieDistribution: mealsText,
-    macroDistribution: `\u0411\u0435\u043B\u0442\u044A\u043A ${round2(macros.protein)} \u0433${perKg ? ` (${perKg} \u0433/\u043A\u0433)` : ""}, \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${round2(macros.carbs)} \u0433, \u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${round2(macros.fats)} \u0433 \u2014 \u0441\u043F\u043E\u0440\u0435\u0434 \u043C\u043E\u0434\u0435\u043B\u0430 \u201E${policy.styleDef.label}\u201C.`,
+    macroDistribution: `\u0411\u0435\u043B\u0442\u044A\u043A ${round2(macros.protein)} \u0433${perKg ? ` (${perKg} \u0433/\u043A\u0433)` : ""}, \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 ${round2(macros.carbs)} \u0433, \u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${round2(macros.fats)} \u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0434\u0435\u043D\u044F \u2014 \u0441\u043F\u043E\u0440\u0435\u0434 \u043C\u043E\u0434\u0435\u043B\u0430 \u201E${policy.styleDef.label}\u201C.` + (trainDays.length && restDays.length ? ` \u0412 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 ~${avgOf(trainDays, "carbs")} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0438 ~${avgOf(trainDays, "kcal")} kcal, \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 ~${avgOf(restDays, "carbs")} \u0433 \u0438 ~${avgOf(restDays, "kcal")} kcal; \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u0435\u0434\u043D\u0430\u043A\u044A\u0432.` : ""),
     breakfastStrategy: !slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u0411\u0435\u0437 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u0434\u0435\u043D\u044F\u0442 \u0437\u0430\u043F\u043E\u0447\u0432\u0430 \u0441 \u043F\u044A\u0440\u0432\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0430 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438 \u0432 \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F. \u0421\u0443\u0442\u0440\u0438\u043D \u043F\u0438\u0439\u0442\u0435 \u0432\u043E\u0434\u0430." : added.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u041B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u044F \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0440\u0430\u0432\u043D\u043E\u043C\u0435\u0440\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F, \u0442\u0430\u043A\u0430 \u0447\u0435 \u043E\u0431\u044F\u0434\u044A\u0442 \u0438 \u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0434\u0430 \u0441\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438 \u043F\u043E\u0440\u0446\u0438\u0438." : "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u044A\u0447\u0435\u0442\u0430\u0432\u0430 \u0431\u0435\u043B\u0442\u044A\u043A, \u0437\u044A\u0440\u043D\u0435\u043D\u0438 \u0438 \u043F\u043B\u043E\u0434 \u0438\u043B\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A.",
     mealTiming: {
       pattern: `${slots.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F`,
-      fastingWindows: "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 2\u20133 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u043D.",
+      fastingWindows: fasting?.active ? `\u041D\u043E\u0449\u043D\u0430 \u043F\u0430\u0443\u0437\u0430 \u043E\u043A\u043E\u043B\u043E 12 \u0447\u0430\u0441\u0430 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D. \u0412 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0435 \u0432 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 ${fasting.windowText}; \u0432 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u0442\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430. \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 2\u20133 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u043D.` : "\u041D\u043E\u0449\u043D\u0430 \u043F\u0430\u0443\u0437\u0430 \u043E\u043A\u043E\u043B\u043E 12 \u0447\u0430\u0441\u0430 (\u043D\u0430\u043F\u0440. 20:00\u201308:00); \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 2\u20133 \u0447\u0430\u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0441\u044A\u043D.",
       flexibility: "\xB130\u201345 \u043C\u0438\u043D \u043E\u043A\u043E\u043B\u043E \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438\u0442\u0435 \u0447\u0430\u0441\u043E\u0432\u0435.",
       chronotypeGuidance: userData?.chronotype ? `\u0421\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441 \u0445\u0440\u043E\u043D\u043E\u0442\u0438\u043F: ${userData.chronotype}.` : "\u0421\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441\u044A\u0441 \u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u0435\u043D \u0434\u043D\u0435\u0432\u0435\u043D \u0440\u0438\u0442\u044A\u043C."
     },
     keyPrinciples: [
       policy.styleDef.label,
       "\u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u0432 \u043E\u0431\u043C\u0435\u043D\u043D\u0438 \u043F\u043E\u0440\u0446\u0438\u0438",
+      ...trainDays.length ? ["\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u0432\u0430\u0442 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430, \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0435\u043D"] : [],
+      ...fasting?.active ? [`\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u0447\u0430\u0441\u043E\u0432\u0438 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 (${fasting.protocol === "tre16" ? "16:8" : fasting.protocol === "tre14" ? "14:10" : "12:12"}) \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438`] : [],
       ...rules.map((r) => r.label)
     ],
+    // Метаболитната седмица: тренировъчни/почивни дни, горивото, часовият прозорец, качеството на менюто.
+    metabolicPlan: metabolicPlan ? {
+      principles: metabolicPlan.text || [],
+      training: metabolicPlan.training || null,
+      fasting: fasting ? { active: fasting.active, offered: fasting.offered, protocol: fasting.protocol, window: fasting.windowText, note: fasting.note, blocked: fasting.blocked } : null,
+      days: Object.fromEntries(Object.entries(weekPlan || {}).filter(([, d]) => d?.energy).map(([k, d]) => [k, d.energy])),
+      quality: metabolicPlan.quality,
+      micro: metabolicPlan.micro || null
+    } : null,
     preferredFoodCategories: recommendationsOf(prescription, stats, policy),
     avoidFoodCategories: avoidOf(profile, policy, blocked),
     foodsToInclude: recommendationsOf(prescription, stats, policy),
@@ -44393,7 +46311,9 @@ function reviewGoalOpinion(model, opinion, round3 = 1) {
   const nearDir = NEIGHBORS[algo.direction].includes(dir) || dir === algo.direction ? dir : algo.direction;
   return out("dissent", import_goal_model2.default.consistentDirection(nearDir, edgePct, algo.direction), edgePct, vetoes, objections);
 }
-var MODIFICATION_CODES = Object.keys(PLAN_MODIFICATION_CODES);
+var CLIENT_ONLY_CODES = /* @__PURE__ */ new Set(["time_restricted_eating"]);
+var MODIFICATION_CODES = Object.keys(PLAN_MODIFICATION_CODES).filter((c) => !CLIENT_ONLY_CODES.has(c));
+var COUNCIL_MODIFICATION_CODES = MODIFICATION_CODES;
 function normalizeWeeklyOpinion(raw) {
   if (!raw || typeof raw !== "object") return null;
   return {
@@ -44943,7 +46863,8 @@ var fmtKg = (v) => String(Math.round(v * 10) / 10).replace(".", ",");
 function weeklyQuestionsFor(ctx = {}) {
   const lead = Array.isArray(ctx.lead) ? ctx.lead : [];
   const direction = ctx.direction || (ctx.goal === "GAIN" ? "gain" : null);
-  return WEEKLY_CHECKIN_QUESTIONS.filter((q) => !q.onlyForLead || lead.includes(q.onlyForLead)).map((q) => {
+  const knownNoTraining = ctx.workoutsWeek === 0;
+  return WEEKLY_CHECKIN_QUESTIONS.filter((q) => !q.onlyForLead || lead.includes(q.onlyForLead)).filter((q) => !(q.id === "workouts" && knownNoTraining)).map((q) => {
     const out = { ...q, options: [...q.options] };
     delete out.onlyForLead;
     if (q.id === "weight" && direction === "gain") out.options = [...GAIN_WEIGHT_OPTIONS];
@@ -44953,6 +46874,9 @@ function weeklyQuestionsFor(ctx = {}) {
     if (q.id === "weightKg" && Number(ctx.deviceWeightKg) >= 30) {
       out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
       out.hint = (ctx.deviceWeightDays || 0) >= 3 ? `\u041E\u0442 \u0432\u0435\u0437\u043D\u0430\u0442\u0430: ${fmtKg(ctx.deviceWeightKg)} \u043A\u0433 \u2014 \u0441\u0440\u0435\u0434\u043D\u043E \u043E\u0442 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 ${ctx.deviceWeightDays} \u0434\u043D\u0438. \u0422\u043E \u0435 \u043F\u043E-\u0442\u043E\u0447\u043D\u043E \u043E\u0442 \u0435\u0434\u043D\u043E \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0435; \u0447\u0438\u0441\u043B\u043E \u0441 \u043D\u0430\u0434 2% \u0440\u0430\u0437\u043B\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u0434\u0430 \u0433\u043E \u0437\u0430\u043C\u0435\u043D\u0438.` : `\u041E\u0442 \u0432\u0435\u0437\u043D\u0430\u0442\u0430: ${fmtKg(ctx.deviceWeightKg)} \u043A\u0433 (\u0441\u0440\u0435\u0434\u043D\u043E \u043E\u0442 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0434\u043D\u0438). \u041F\u043E\u043F\u0440\u0430\u0432\u0435\u0442\u0435, \u0430\u043A\u043E \u043D\u0435 \u0435 \u0432\u044F\u0440\u043D\u043E.`;
+    }
+    if (q.id === "workouts" && Number(ctx.workoutsWeek) > 0) {
+      out.hint = `\u041F\u043E \u0432\u0435\u0447\u0435\u0440\u043D\u0438\u0442\u0435 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438: ${ctx.workoutsWeek} \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 (\u0432\u0441\u044F\u043A\u0430\u043A\u0432\u0438). \u041A\u043E\u043B\u043A\u043E \u043E\u0442 \u0442\u044F\u0445 \u0441\u0430 \u0441\u0438\u043B\u043E\u0432\u0438?`;
     }
     if (q.id === "adherence" && ctx.mealAdherence != null && (ctx.mealDays || 0) >= 3) {
       out.hint = `\u041F\u043E \u043E\u0442\u043C\u0435\u0442\u043A\u0438\u0442\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E: \u043E\u043A\u043E\u043B\u043E ${Math.round(ctx.mealAdherence)}% \u043E\u0442 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430.`;
@@ -45476,7 +47400,7 @@ function normalizeDigest(raw, now = /* @__PURE__ */ new Date()) {
   if (!insights.length && !coachNote) return null;
   return { insights, coachNote, approach, at: now.toISOString() };
 }
-var SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, huawei: 4, device_photo: 3, file: 2, manual: 1 };
+var SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, huawei: 4, device_photo: 3, phone: 2, file: 2, manual: 1 };
 var TRACKED_SOURCES = /* @__PURE__ */ new Set(["health_connect", "fitbit", "oura", "withings", "strava", "huawei"]);
 function dayOf(at) {
   return new Date(Date.parse(at)).toISOString().slice(0, 10);
@@ -45502,7 +47426,7 @@ function between(series, now, fromDays, toDays) {
 }
 var mean = (xs) => xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null;
 var r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
-var fmt3 = (v, d = 1) => String(Math.round(v * 10 ** d) / 10 ** d).replace(".", ",");
+var fmt5 = (v, d = 1) => String(Math.round(v * 10 ** d) / 10 ** d).replace(".", ",");
 function slopePerWeek(points) {
   if (points.length < 2) return null;
   const xs = points.map((p) => p.t / (7 * DAY_MS2));
@@ -45534,6 +47458,76 @@ function sportLabelOf(perWeek) {
   if (perWeek < 4.5) return "\u0421\u0440\u0435\u0434\u043D\u0430 (2\u20134 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
   return "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
 }
+var WEEKDAYS = ["\u043D\u0434", "\u043F\u043D", "\u0432\u0442", "\u0441\u0440", "\u0447\u0442", "\u043F\u0442", "\u0441\u0431"];
+function trainingPattern(facts2, now = /* @__PURE__ */ new Date()) {
+  const from = now.getTime() - 28 * DAY_MS2;
+  const days = /* @__PURE__ */ new Map();
+  for (const f of facts2 || []) {
+    const t = Date.parse(f.at);
+    if (!(t >= from) || t > now.getTime() || f.status === "pending") continue;
+    const day = dayOf(f.at);
+    if (f.kind === "train_check") {
+      const prev = days.get(day);
+      if (prev?.device) continue;
+      days.set(day, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
+    } else if (f.kind === "workout" && TRACKED_SOURCES.has(f.source)) {
+      const prev = days.get(day);
+      days.set(day, { yes: true, slot: prev?.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
+    }
+  }
+  if (days.size < 10) return null;
+  const all = [...days.entries()];
+  const yes = all.filter(([, d]) => d.yes);
+  const rate = yes.length / all.length;
+  const n = Array(7).fill(0);
+  const k = Array(7).fill(0);
+  for (const [day, d] of all) {
+    const dow = (/* @__PURE__ */ new Date(day + "T12:00:00Z")).getUTCDay();
+    n[dow]++;
+    if (d.yes) k[dow]++;
+  }
+  const A = 2;
+  const byWeekday = n.map((c, i) => Math.round((k[i] + A * rate) / (c + A) * 100) / 100);
+  const usual = byWeekday.map((p, i) => p >= 0.6 && n[i] >= 2 ? i : -1).filter((i) => i >= 0);
+  const rest = byWeekday.map((p, i) => p <= 0.2 && n[i] >= 2 ? i : -1).filter((i) => i >= 0);
+  const slots = yes.map(([, d]) => d.slot).filter(Boolean);
+  const am = slots.filter((s) => s === "am").length;
+  const slot = slots.length < 3 ? null : am / slots.length >= 0.7 ? "am" : am / slots.length <= 0.3 ? "pm" : "mixed";
+  const regularity = Math.round(mean(byWeekday.map((p) => Math.max(p, 1 - p))) * 100) / 100;
+  const mins = yes.map(([, d]) => d.minutes).filter((v) => v > 0);
+  const kcals = yes.map(([, d]) => d.kcal).filter((v) => v > 0);
+  return {
+    perWeek: r1(rate * 7),
+    answered: all.length,
+    usual,
+    rest,
+    byWeekday,
+    slot,
+    regularity,
+    minutes: mins.length ? Math.round(mean(mins)) : null,
+    kcal: kcals.length ? Math.round(mean(kcals)) : null
+  };
+}
+function trainingLastWeek(facts2, now = /* @__PURE__ */ new Date()) {
+  const from = now.getTime() - 7 * DAY_MS2;
+  const days = /* @__PURE__ */ new Map();
+  for (const f of facts2 || []) {
+    const t = Date.parse(f.at);
+    if (!(t >= from) || t > now.getTime() || f.status === "pending") continue;
+    const day = dayOf(f.at);
+    if (f.kind === "train_check") {
+      if (days.get(day)?.device) continue;
+      days.set(day, { yes: Number(f.value) > 0 });
+    } else if (f.kind === "workout" && TRACKED_SOURCES.has(f.source)) {
+      days.set(day, { yes: true, device: true });
+    }
+  }
+  if (days.size < 5) return null;
+  return { count: [...days.values()].filter((d) => d.yes).length, answered: days.size };
+}
+function weekdayList(days) {
+  return [...days].sort((a, b) => (a + 6) % 7 - (b + 6) % 7).map((i) => WEEKDAYS[i]).join(", ");
+}
 function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   const metrics = {};
   const signals = [];
@@ -45548,7 +47542,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     const slope = slopePerWeek(w14);
     metrics.weight = { last: r1(w14[w14.length - 1].value), avg7: r1(mean(between(weight, now, 0, 7).map((p) => p.value)) ?? w14[w14.length - 1].value), trendKgWeek: Math.round(slope * 100) / 100, days: w14.length };
     checkin.weightTrendKgWeek = metrics.weight.trendKgWeek;
-    signals.push({ code: "weight_trend", level: "info", text: `\u0422\u0435\u0433\u043B\u043E: ${fmt3(metrics.weight.avg7)} \u043A\u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0435\u043D\u0434\u0435\u043D\u0446\u0438\u044F ${slope > 0 ? "+" : ""}${fmt3(slope, 2)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (${w14.length} \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F).` });
+    signals.push({ code: "weight_trend", level: "info", text: `\u0422\u0435\u0433\u043B\u043E: ${fmt5(metrics.weight.avg7)} \u043A\u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0435\u043D\u0434\u0435\u043D\u0446\u0438\u044F ${slope > 0 ? "+" : ""}${fmt5(slope, 2)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (${w14.length} \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F).` });
   }
   const bf = dailySeries(facts2, "body_fat");
   const comp = [];
@@ -45569,7 +47563,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
       const dW = wch.to - wch.from;
       metrics.composition = { days: ch.days, weightChangeKg: r1(dW), leanChangeKg: r1(dLean) };
       if (dW <= -1 && dLean < 0 && -dLean >= -dW * 0.5) {
-        signals.push({ code: "lean_loss", level: "warn", text: `\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(dLean / dW * 100)}% \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u0438\u0442\u0435 ${fmt3(-dW)} \u043A\u0433 \u0437\u0430 ${ch.days} \u0434\u043D\u0438 \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u043D\u0435 \u0441\u0435 \u0437\u0430\u0434\u044A\u043B\u0431\u043E\u0447\u0430\u0432\u0430.` });
+        signals.push({ code: "lean_loss", level: "warn", text: `\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(dLean / dW * 100)}% \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u0438\u0442\u0435 ${fmt5(-dW)} \u043A\u0433 \u0437\u0430 ${ch.days} \u0434\u043D\u0438 \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u043D\u0435 \u0441\u0435 \u0437\u0430\u0434\u044A\u043B\u0431\u043E\u0447\u0430\u0432\u0430.` });
         hints.approach.push("increase_protein");
         checkin.leanLoss = true;
         reasons.push("\u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u043F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430");
@@ -45598,7 +47592,23 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     const perWeek = sessions / 2;
     metrics.workouts = { perWeek: r1(perWeek), minutesWeek: Math.round(workouts.reduce((s, p) => s + p.value, 0) / 2) };
     overrides.sportActivity = sportLabelOf(perWeek);
-    reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt3(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+    reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt5(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+  }
+  const lastWeek = trainingLastWeek(facts2, now);
+  if (lastWeek) checkin.workoutsWeek = lastWeek.count;
+  const training = trainingPattern(facts2, now);
+  if (training) {
+    metrics.training = training;
+    checkin.training = { perWeek: training.perWeek, usual: training.usual, rest: training.rest, slot: training.slot };
+    if (!metrics.workouts) {
+      overrides.sportActivity = sportLabelOf(training.perWeek);
+      reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435: ~${fmt5(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+    }
+    if (training.usual.length && training.regularity >= 0.75) {
+      signals.push({ code: "training_schedule", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u0434\u043D\u0438: \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${weekdayList(training.usual)}${training.slot === "am" ? ", \u0434\u043E \u043E\u0431\u044F\u0434" : training.slot === "pm" ? ", \u0441\u043B\u0435\u0434\u043E\u0431\u0435\u0434" : ""}. \u0412 \u0442\u0435\u0437\u0438 \u0434\u043D\u0438 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0435 \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430.` });
+    } else if (training.perWeek >= 1 && training.regularity < 0.65) {
+      signals.push({ code: "training_irregular", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u0441\u0430 ~${fmt5(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u0431\u0435\u0437 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u0438 \u0434\u043D\u0438 \u2014 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430 \u043F\u043E \u0441\u0440\u0435\u0434\u043D\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043F\u043E \u0434\u0435\u043D.` });
+    }
   }
   const active = between(dailySeries(facts2, "active_kcal"), now, 0, 7);
   if (active.length >= 4) metrics.activeKcal = Math.round(mean(active.map((p) => p.value)));
@@ -45632,7 +47642,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   if (sleep.length >= 5) {
     metrics.sleep = { avg7: r1(mean(sleep.map((p) => p.value))), nights: sleep.length };
     if (metrics.sleep.avg7 < 6.5) {
-      signals.push({ code: "sleep_short", level: "warn", text: `\u0421\u044A\u043D: ~${fmt3(metrics.sleep.avg7)} \u0447 \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u043E\u0434 7 \u0447 \u0433\u043B\u0430\u0434\u044A\u0442 \u0438 \u0436\u0435\u043B\u0430\u043D\u0438\u0435\u0442\u043E \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442.` });
+      signals.push({ code: "sleep_short", level: "warn", text: `\u0421\u044A\u043D: ~${fmt5(metrics.sleep.avg7)} \u0447 \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u043E\u0434 7 \u0447 \u0433\u043B\u0430\u0434\u044A\u0442 \u0438 \u0436\u0435\u043B\u0430\u043D\u0438\u0435\u0442\u043E \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442.` });
     }
   }
   const intake = between(dailySeries(facts2, "intake"), now, 0, 7);
@@ -45641,7 +47651,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   if (water.length >= 4) {
     metrics.water = { avg7: r1(mean(water.map((p) => p.value))) };
     if (ctx.waterNeedL && metrics.water.avg7 < ctx.waterNeedL * 0.6) {
-      signals.push({ code: "hydration_low", level: "info", text: `\u0412\u043E\u0434\u0430: ~${fmt3(metrics.water.avg7)} \u043B \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 ~${fmt3(ctx.waterNeedL)} \u043B.` });
+      signals.push({ code: "hydration_low", level: "info", text: `\u0412\u043E\u0434\u0430: ~${fmt5(metrics.water.avg7)} \u043B \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 ~${fmt5(ctx.waterNeedL)} \u043B.` });
     }
   }
   const bp = between(dailySeries(facts2, "bp"), now, 0, 28);
@@ -45662,8 +47672,8 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     metrics.glucose = { morning: r1(m), days: morning.length };
     if (m >= 5.6) {
       hints.clinical.push("IR");
-      signals.push({ code: "glucose_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D: ~${fmt3(m)} mmol/L \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u0442\u0430 \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0441\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438.` });
-      if (m >= 7) hints.cautions.push(`\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E ~${fmt3(m)} mmol/L \u043F\u043E \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440 \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
+      signals.push({ code: "glucose_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D: ~${fmt5(m)} mmol/L \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u0442\u0430 \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0441\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438.` });
+      if (m >= 7) hints.cautions.push(`\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E ~${fmt5(m)} mmol/L \u043F\u043E \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440 \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
       reasons.push("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D");
     }
   }
@@ -45682,17 +47692,22 @@ function essenceText(essence, digest = null) {
   if (!essence) return "";
   const m = essence.metrics || {};
   const rows = [];
-  if (m.weight) rows.push(`\u0442\u0435\u0433\u043B\u043E ${fmt3(m.weight.avg7)} \u043A\u0433, ${m.weight.trendKgWeek > 0 ? "+" : ""}${fmt3(m.weight.trendKgWeek, 2)} \u043A\u0433/\u0441\u0435\u0434\u043C.`);
-  if (m.bodyFat) rows.push(`\u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${fmt3(m.bodyFat.last)}%, \u0447\u0438\u0441\u0442\u0430 \u043C\u0430\u0441\u0430 ${fmt3(m.bodyFat.leanKg)} \u043A\u0433`);
+  if (m.weight) rows.push(`\u0442\u0435\u0433\u043B\u043E ${fmt5(m.weight.avg7)} \u043A\u0433, ${m.weight.trendKgWeek > 0 ? "+" : ""}${fmt5(m.weight.trendKgWeek, 2)} \u043A\u0433/\u0441\u0435\u0434\u043C.`);
+  if (m.bodyFat) rows.push(`\u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${fmt5(m.bodyFat.last)}%, \u0447\u0438\u0441\u0442\u0430 \u043C\u0430\u0441\u0430 ${fmt5(m.bodyFat.leanKg)} \u043A\u0433`);
   if (m.steps) rows.push(`\u043A\u0440\u0430\u0447\u043A\u0438 ~${m.steps.avg7}/\u0434\u0435\u043D`);
-  if (m.workouts) rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${fmt3(m.workouts.perWeek)}/\u0441\u0435\u0434\u043C. (${m.workouts.minutesWeek} \u043C\u0438\u043D)`);
-  if (m.sleep) rows.push(`\u0441\u044A\u043D ${fmt3(m.sleep.avg7)} \u0447`);
+  if (m.workouts) rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${fmt5(m.workouts.perWeek)}/\u0441\u0435\u0434\u043C. (${m.workouts.minutesWeek} \u043C\u0438\u043D)`);
+  else if (m.training) {
+    const t = m.training;
+    const when = [t.usual.length ? `\u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${weekdayList(t.usual)}` : "", t.slot === "am" ? "\u0434\u043E \u043E\u0431\u044F\u0434" : t.slot === "pm" ? "\u0441\u043B\u0435\u0434\u043E\u0431\u0435\u0434" : ""].filter(Boolean).join(", ");
+    rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ~${fmt5(t.perWeek)}/\u0441\u0435\u0434\u043C.${when ? ` (${when})` : ""}`);
+  }
+  if (m.sleep) rows.push(`\u0441\u044A\u043D ${fmt5(m.sleep.avg7)} \u0447`);
   if (m.restingHr) rows.push(`\u043F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439 ${m.restingHr.avg7} (\u0431\u0430\u0437\u0430 ${m.restingHr.base})`);
   if (m.hrv) rows.push(`HRV ${m.hrv.avg7} ms (\u0431\u0430\u0437\u0430 ${m.hrv.base})`);
   if (m.intake) rows.push(`\u043F\u0440\u0438\u0435\u043C \u043F\u043E \u0442\u0440\u0430\u043A\u0435\u0440 ~${m.intake.avg7} kcal`);
-  if (m.water) rows.push(`\u0432\u043E\u0434\u0430 ${fmt3(m.water.avg7)} \u043B`);
+  if (m.water) rows.push(`\u0432\u043E\u0434\u0430 ${fmt5(m.water.avg7)} \u043B`);
   if (m.bp) rows.push(`\u043A\u0440\u044A\u0432\u043D\u043E ~${m.bp.sys}/${m.bp.dia}`);
-  if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt3(m.glucose.morning)} mmol/L`);
+  if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt5(m.glucose.morning)} mmol/L`);
   const lines = [];
   if (rows.length) lines.push(`\u0434\u0430\u043D\u043D\u0438: ${rows.join("; ")}`);
   const warn = (essence.signals || []).filter((s) => s.level === "warn").map((s) => s.text);
@@ -45806,8 +47821,8 @@ var SYMPTOM_OPTIONS = [
   { value: "sometimes", label: "\u041F\u043E\u043D\u044F\u043A\u043E\u0433\u0430" },
   { value: "no", label: "\u041D\u0435" }
 ];
-var asList2 = (v) => (Array.isArray(v) ? v : String(v ?? "").split(/[,;|\n]/)).map((s) => String(s).trim()).filter(Boolean);
-var said = (data, field, values) => asList2(data?.[field]).some((x) => values.includes(x));
+var asList3 = (v) => (Array.isArray(v) ? v : String(v ?? "").split(/[,;|\n]/)).map((s) => String(s).trim()).filter(Boolean);
+var said = (data, field, values) => asList3(data?.[field]).some((x) => values.includes(x));
 var termKey = (t) => normLabel(t).replace(/[^a-zа-я0-9]+/gi, "_").slice(0, 40);
 function resolutionsOf(facts2) {
   const out = {};
@@ -45831,9 +47846,9 @@ function crossCheck(data, derived, resolutions = {}) {
   const noConditions = said(data, "medicalConditions", ["\u041D\u044F\u043C\u0430\u043C", "\u041D\u044F\u043C\u0430"]) || said(data, "healthConditions", ["\u041D\u044F\u043C\u0430\u043C", "\u041D\u044F\u043C\u0430"]);
   const conditionsText = [
     freeText,
-    ...asList2(data?.medicalConditions),
-    ...asList2(data?.healthConditions),
-    ...Object.keys(data || {}).filter((k) => /^medicalConditions_/.test(k)).flatMap((k) => asList2(data[k]))
+    ...asList3(data?.medicalConditions),
+    ...asList3(data?.healthConditions),
+    ...Object.keys(data || {}).filter((k) => /^medicalConditions_/.test(k)).flatMap((k) => asList3(data[k]))
   ].join(" ");
   const iris = derived?.irisRaw;
   for (const s of (iris?.systems || []).filter((x) => x.priority)) {
@@ -45872,7 +47887,7 @@ function crossCheck(data, derived, resolutions = {}) {
   const q = derived?.irisRaw?.questionnaire;
   if (q) {
     const known = normLabel([data?.dietDislike, data?.["medicalConditions_\u0410\u043B\u0435\u0440\u0433\u0438\u0438"], data?.foodSensitivities].flat().filter(Boolean).join(" "));
-    for (const term of asList2([q.foodIntolerances, q.allergies].filter(Boolean).join(","))) {
+    for (const term of asList3([q.foodIntolerances, q.allergies].filter(Boolean).join(","))) {
       const t = term.slice(0, 40);
       if (normLabel(t).length < 3 || known.includes(normLabel(t))) continue;
       const id = `allergy:${termKey(t)}`;
@@ -45892,7 +47907,7 @@ function crossCheck(data, derived, resolutions = {}) {
         questions.push({ id: medsId, source: "airis", topic: "\u041B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430", text: `\u0412 AIRIS \u0441\u0442\u0435 \u043F\u043E\u0441\u043E\u0447\u0438\u043B\u0438 \u201E${q.medications.slice(0, 120)}\u201C, \u0430 \u0432 NutriPlan \u2014 \u0447\u0435 \u043D\u0435 \u043F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u041F\u0440\u0438\u0435\u043C\u0430\u0442\u0435 \u043B\u0438 \u0433\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u043F\u0440\u0438\u0435\u043C\u0430\u043C \u0433\u0438" }, { value: "no", label: "\u041D\u0435, \u0432\u0435\u0447\u0435 \u043D\u0435" }] });
       }
     }
-    const npDiet = asList2(data?.dietPreference);
+    const npDiet = asList3(data?.dietPreference);
     for (const [airisLabel, npLabel] of [["\u0412\u0435\u0433\u0430\u043D", "\u0412\u0435\u0433\u0430\u043D"], ["\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0438", "\u0412\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0441\u043A\u0430"]]) {
       if (!(q.dietaryProfile || []).includes(airisLabel) || npDiet.includes(npLabel)) continue;
       const id = `pattern:${npLabel}`;
@@ -45915,7 +47930,7 @@ function crossCheck(data, derived, resolutions = {}) {
   }
   const v = derived?.voice;
   const strong = v && v.reliable !== false && (v.intensity === "\u0421\u0438\u043B\u043D\u043E" || v.intensity === "\u041E\u0441\u0435\u0437\u0430\u0435\u043C\u043E");
-  const rarely = ["\u0420\u044F\u0434\u043A\u043E", "\u041D\u0438\u043A\u043E\u0433\u0430"].includes(data?.overeatingFrequency) && (!asList2(data?.foodTriggers).length || said(data, "foodTriggers", ["\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u043E"]));
+  const rarely = ["\u0420\u044F\u0434\u043A\u043E", "\u041D\u0438\u043A\u043E\u0433\u0430"].includes(data?.overeatingFrequency) && (!asList3(data?.foodTriggers).length || said(data, "foodTriggers", ["\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u043E"]));
   if (strong && rarely && !resolutions.emoeat_vs_q) {
     questions.push({ id: "emoeat_vs_q", source: "emoeat", topic: "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435", text: "EmoEat \u043F\u043E\u043A\u0430\u0437\u0432\u0430, \u0447\u0435 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0447\u0435\u0441\u0442\u043E \u0438\u0434\u0432\u0430 \u0432 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u043D\u0430 \u0435\u043C\u043E\u0446\u0438\u0438, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0441\u0442\u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043B\u0438, \u0447\u0435 \u0440\u044F\u0434\u043A\u043E \u044F\u0434\u0435\u0442\u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u043E\u0442\u043E. \u041A\u043E\u0435 \u0435 \u043F\u043E-\u0431\u043B\u0438\u0437\u043E \u0434\u043E \u0432\u0430\u0441?", options: [{ value: "often", label: "\u0427\u0435\u0441\u0442\u043E \u044F\u043C \u043F\u0440\u0438 \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0443\u043C\u043E\u0440\u0430 \u0438\u043B\u0438 \u0441\u043A\u0443\u043A\u0430" }, { value: "rare", label: "\u0420\u044F\u0434\u043A\u043E \u2014 \u043D\u0435 \u0441\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043C" }] });
   }
@@ -46057,6 +48072,17 @@ function normalizeFact(raw) {
       fact.value2 = Math.round(v2);
     }
     if (kind === "workout" && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
+    return fact;
+  }
+  if (kind === "train_check") {
+    const v = Number(raw.value) > 0 ? 1 : 0;
+    const fact = { kind, key: "day", value: v, unit: "", at, source, confidence, status };
+    const slot = String(raw.slot || raw.key || "");
+    if (v && (slot === "am" || slot === "pm")) fact.slot = slot;
+    const minutes = Math.round(Number(raw.minutes));
+    if (v && minutes > 0) fact.minutes = Math.min(300, minutes);
+    const kcal = Math.round(Number(raw.kcal));
+    if (v && kcal > 0) fact.kcal = Math.min(3e3, kcal);
     return fact;
   }
   if (kind === "emoeat") {
@@ -46752,13 +48778,13 @@ var IRIS_CATEGORY = {
   immune: "Medical",
   nervous: "Stress"
 };
-var fmt4 = (v) => String(Math.round(Number(v) * 10) / 10).replace(".", ",");
+var fmt6 = (v) => String(Math.round(Number(v) * 10) / 10).replace(".", ",");
 var LAB_PROBLEMS = {
   vitd: (l) => problem(
     "Medical",
     l.value < 30 ? 64 : 52,
     "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D D",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043E\u043F\u0442\u0438\u043C\u0430\u043B\u043D\u0438\u0442\u0435 50.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043E\u043F\u0442\u0438\u043C\u0430\u043B\u043D\u0438\u0442\u0435 50.`,
     "\u0423\u043C\u043E\u0440\u0430, \u043F\u043E-\u0441\u043B\u0430\u0431 \u0438\u043C\u0443\u043D\u0438\u0442\u0435\u0442 \u0438 \u043F\u043E-\u0431\u0430\u0432\u043D\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435.",
     "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u043E-\u0437\u0434\u0440\u0430\u0432\u0438 \u043A\u043E\u0441\u0442\u0438",
     "LAB_VITD"
@@ -46767,7 +48793,7 @@ var LAB_PROBLEMS = {
     "Medical",
     62,
     "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D B12",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430.`,
     "\u0423\u043C\u043E\u0440\u0430, \u0438\u0437\u0442\u0440\u044A\u043F\u0432\u0430\u043D\u0435 \u0438 \u0441\u043F\u0430\u0434 \u043D\u0430 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044F\u0442\u0430.",
     "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u044F\u0441\u043D\u0430 \u043C\u0438\u0441\u044A\u043B",
     "LAB_B12"
@@ -46776,7 +48802,7 @@ var LAB_PROBLEMS = {
     "Medical",
     62,
     l.status === "high" ? "TSH \u043D\u0430\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430" : "TSH \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430\u0442\u0430 \u0436\u043B\u0435\u0437\u0430 \u0441\u0435 \u043E\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430\u0442\u0430 \u0436\u043B\u0435\u0437\u0430 \u0441\u0435 \u043E\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`,
     "\u041E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0435 \u043F\u043E-\u0431\u0430\u0432\u043D\u0430 \u0438\u043B\u0438 \u043F\u043E-\u0431\u044A\u0440\u0437\u0430 \u043E\u0442 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u043E\u0442\u043E.",
     "\u042F\u0441\u043D\u0430 \u043A\u0430\u0440\u0442\u0438\u043D\u0430 \u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u0433\u043B\u0435\u0434",
     "LAB_TSH"
@@ -46785,7 +48811,7 @@ var LAB_PROBLEMS = {
     "Medical",
     l.value < 30 ? 86 : 72,
     "\u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F",
-    `eGFR ${fmt4(l.value)} \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u0440\u0435\u0436\u0438\u043C\u044A\u0442 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    `eGFR ${fmt6(l.value)} \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u0440\u0435\u0436\u0438\u043C\u044A\u0442 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
     "\u041D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u043F\u0440\u0438 \u043C\u043D\u043E\u0433\u043E \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0441\u043E\u043B.",
     "\u0429\u0430\u0434\u044F\u0449 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u0440\u0435\u0436\u0438\u043C",
     "LAB_EGFR"
@@ -46794,7 +48820,7 @@ var LAB_PROBLEMS = {
     "Medical",
     74,
     "\u0412\u0438\u0441\u043E\u043A \u043A\u0430\u043B\u0438\u0439",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u0442 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u0442 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
     "\u0420\u0438\u0441\u043A \u0437\u0430 \u0441\u044A\u0440\u0434\u0435\u0447\u043D\u0438\u044F \u0440\u0438\u0442\u044A\u043C.",
     "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u043D\u0430 \u043A\u0430\u043B\u0438\u044F",
     "LAB_K"
@@ -46803,7 +48829,7 @@ var LAB_PROBLEMS = {
     "Medical",
     54,
     "\u041D\u0438\u0441\u044A\u043A HDL (\u201E\u0434\u043E\u0431\u044A\u0440\u201C) \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt4(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u0437\u0430\u0449\u0438\u0442\u043D\u0430\u0442\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0430.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u0437\u0430\u0449\u0438\u0442\u043D\u0430\u0442\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0430.`,
     "\u041F\u043E-\u0441\u043B\u0430\u0431\u0430 \u0437\u0430\u0449\u0438\u0442\u0430 \u043D\u0430 \u0441\u044A\u0434\u043E\u0432\u0435\u0442\u0435.",
     "\u041F\u043E-\u0434\u043E\u0431\u044A\u0440 \u043B\u0438\u043F\u0438\u0434\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B",
     "LAB_HDL"
@@ -51973,6 +53999,7 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     lead: goalModel.lead,
     deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
     deviceWeightDays: data?._enrichment?.checkin?.weightDays || 0,
+    workoutsWeek: data?._enrichment?.checkin?.workoutsWeek ?? null,
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0
   });
@@ -52198,6 +54225,9 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: "weightTrendKgWeek", value: String(dc.weightTrendKgWeek), source: "device" }];
     if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: "recoveryLow", value: "true", source: "device" }];
     if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: "leanLoss", value: "true", source: "device" }];
+    if (dc.workoutsWeek === 0 && !checkinAnswers.some((a) => a.questionId === "workouts")) {
+      checkinAnswers = [...checkinAnswers, { questionId: "workouts", value: "\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u0430", source: "device" }];
+    }
     const answeredKg = Number(String(checkinAnswers.find((a) => a.questionId === "weightKg")?.value || "").replace(",", "."));
     if (answeredKg >= 30 && answeredKg <= 300) enrichedData.weight = String(answeredKg);
     const answeredWaist = Number(String(checkinAnswers.find((a) => a.questionId === "waistCm")?.value || "").replace(",", "."));
@@ -53946,7 +55976,7 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
     profileSummary: profileBrief(compileProfile(data)),
     hardLimits: `\u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u043C\u0435\u0436\u0434\u0443 ${lim.min} \u0438 ${lim.max} kcal${lim.reasons.length ? `; ${lim.reasons.join("; ")}` : ""}`,
     softKcal: WEEKLY_SOFT_KCAL,
-    modificationCodes: Object.entries(PLAN_MODIFICATION_CODES).map(([k, v]) => `${k} (${v})`).join(", ")
+    modificationCodes: COUNCIL_MODIFICATION_CODES.map((k) => `${k} (${PLAN_MODIFICATION_CODES[k]})`).join(", ")
   };
   const review = (opinion2, round3) => reviewWeeklyOpinion(decision, opinion2, { ...ctx, adherence: decision.adherence }, round3);
   const { result, opinion, transcript } = await deliberate({

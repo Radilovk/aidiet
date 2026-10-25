@@ -9,6 +9,8 @@
  * 9–13 бутонът води към Google Play. Ако приложението още не споделя с
  * Health Connect (Samsung Health, Garmin), следва една стъпка с бутон към него.
  *
+ * Без нито едно здравно приложение — вграденият крачкомер на телефона.
+ *
  * Показва се най-много 2 пъти, през 14 дни; „Не сега“ отлага.
  */
 (function (global) {
@@ -295,6 +297,32 @@
         };
     }
 
+    /** Без гривна и здравно приложение: вграденият брояч на телефона (activity-tracker.js). */
+    async function pedometerView() {
+        var A = global.NutriPlanActivity;
+        if (!A || !A.pedometer.supported() || A.state().enabled) return null;
+        var st = await A.pedometer.status();
+        if (!st.available) return null;
+        return {
+            icon: 'fa-shoe-prints', title: 'Крачкомер в телефона',
+            text: 'Няма гривна или часовник — телефонът може да брои крачките. Пресмятаме ги по ръста и теглото ти — вечер не питаме за движението.',
+            note: 'Само брояч на крачки · изключваш по всяко време от Профил → Устройства',
+            primary: 'Включи', primaryIcon: 'fa-shoe-prints',
+            onPrimary: async function (btn, status) {
+                btn.disabled = true;
+                setStatus(status, 'Включване…');
+                try {
+                    await A.pedometer.enable();
+                    writeState({ pedometerAt: new Date().toISOString() });
+                    render({ icon: 'fa-check', title: 'Включено', text: 'Крачките се броят от днес. Активността за деня се смята сама.', secondary: 'Готово', onSecondary: close });
+                } catch (e) {
+                    btn.disabled = false;
+                    setStatus(status, e.message || 'Не успяхме да включим крачкомера.', 'error');
+                }
+            }
+        };
+    }
+
     async function offer() {
         if (!due() || busy() || overlay) return;
         var d = await global.NutriPlanHealth.detect();
@@ -306,6 +334,7 @@
             if (d.viaHc.length === 1) global.NutriPlanHealth.setSource(d.viaHc[0].pkg);
             view = connectView(d);
         }
+        if (!view && !d.apps.length) view = await pedometerView();
         if (!view || busy() || !due()) return;
         var st = readState();
         writeState({ shown: (st.shown || 0) + 1, lastAt: new Date().toISOString() });

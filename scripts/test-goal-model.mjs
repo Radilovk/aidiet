@@ -97,6 +97,10 @@ ok(pickWeighIn(83, { kg: 80, days: 1 }).kg === 83, 'едно измерване 
 ok(pickWeighIn(null, { kg: 80, days: 1 }).source === 'device', 'нищо въведено — везната');
 ok(pickWeighIn(75, {}).kg === 75 && pickWeighIn('абв', {}).kg === null, 'без везна — въведеното, ако е валидно');
 
+// 8в. Известното не се пита: 0 тренировки по вечерните отговори.
+ok(!weeklyQuestionsFor({ direction: 'recomp', lead: ['composition', 'workouts'], workoutsWeek: 0 }).some(q => q.id === 'workouts'), 'без тренировки по вечерните отговори — въпросът не се задава');
+ok(/3 тренировки/.test(weeklyQuestionsFor({ direction: 'recomp', lead: ['workouts'], workoutsWeek: 3 }).find(q => q.id === 'workouts').hint), 'с тренировки — въпросът за силовите, с подсказка');
+
 // 9. Екранът е съгласен с изчисленията.
 ok(GF.profileOf({ ...woman, goal: ['Отслабване', 'Антиейджинг'], weight: 79 }).group === 'lose', 'две отметки — вече не „здраве“');
 ok(GF.profileOf({ ...man, goal: ['Мускулна маса'], weight: 100, sportActivity: 'Средна (2–4 дни седмично)' }).group === 'tone', 'мускулна маса при излишък — екран „стягане“');

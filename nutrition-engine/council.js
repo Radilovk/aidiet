@@ -117,7 +117,10 @@ export function reviewGoalOpinion(model, opinion, round = 1) {
 
 /* ─── Седмичната корекция ───────────────────────────────────────────────── */
 
-const MODIFICATION_CODES = Object.keys(PLAN_MODIFICATION_CODES);
+// Храненето в часови прозорец е избор на клиента (въпросник или чат) — AI не го включва вместо него.
+const CLIENT_ONLY_CODES = new Set(['time_restricted_eating']);
+const MODIFICATION_CODES = Object.keys(PLAN_MODIFICATION_CODES).filter(c => !CLIENT_ONLY_CODES.has(c));
+export const COUNCIL_MODIFICATION_CODES = MODIFICATION_CODES;
 
 export function normalizeWeeklyOpinion(raw) {
   if (!raw || typeof raw !== 'object') return null;

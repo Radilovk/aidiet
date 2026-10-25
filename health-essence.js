@@ -57,7 +57,7 @@ export function normalizeDigest(raw, now = new Date()) {
  * Кой източник печели за един и същи ден: измереното автоматично (Health Connect
  * или профил в облака — device-links.js) > снимка > файл > ръчно.
  */
-const SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, huawei: 4, device_photo: 3, file: 2, manual: 1 };
+const SOURCE_RANK = { health_connect: 4, fitbit: 4, oura: 4, withings: 4, strava: 4, huawei: 4, device_photo: 3, phone: 2, file: 2, manual: 1 };
 /** Източниците, които мерят непрекъснато — от тях се брои откога има следене. */
 const TRACKED_SOURCES = new Set(['health_connect', 'fitbit', 'oura', 'withings', 'strava', 'huawei']);
 
@@ -128,6 +128,99 @@ function sportLabelOf(perWeek) {
   if (perWeek < 2.5) return 'Ниска (1–2 дни седмично)';
   if (perWeek < 4.5) return 'Средна (2–4 дни седмично)';
   return 'Висока (5–7 дни седмично)';
+}
+
+const WEEKDAYS = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+
+/**
+ * Моделът на тренировките от вечерния въпрос „Тренирахте ли днес?“ (train_check)
+ * и тренировките от устройства: колко пъти седмично, в кои дни от седмицата и
+ * в коя част от деня. Вероятността за ден от седмицата е свита към средната
+ * честота (2 псевдо-наблюдения), за да не прави 1 отговор от 1 правило.
+ * Без поне 10 отговорени дни за 4 седмици модел няма.
+ * @returns {null | { perWeek: number, answered: number, usual: number[], rest: number[],
+ *   byWeekday: number[], slot: 'am'|'pm'|'mixed'|null, regularity: number, minutes: number|null, kcal: number|null }}
+ */
+export function trainingPattern(facts, now = new Date()) {
+  const from = now.getTime() - 28 * DAY_MS;
+  const days = new Map();
+  for (const f of facts || []) {
+    const t = Date.parse(f.at);
+    if (!(t >= from) || t > now.getTime() || f.status === 'pending') continue;
+    const day = dayOf(f.at);
+    if (f.kind === 'train_check') {
+      const prev = days.get(day);
+      // Тренировка от устройство за деня не се отменя от „не“ на въпроса.
+      if (prev?.device) continue;
+      days.set(day, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
+    } else if (f.kind === 'workout' && TRACKED_SOURCES.has(f.source)) {
+      const prev = days.get(day);
+      days.set(day, { yes: true, slot: prev?.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
+    }
+  }
+  if (days.size < 10) return null;
+  const all = [...days.entries()];
+  const yes = all.filter(([, d]) => d.yes);
+  const rate = yes.length / all.length;
+  const n = Array(7).fill(0);
+  const k = Array(7).fill(0);
+  for (const [day, d] of all) {
+    const dow = new Date(day + 'T12:00:00Z').getUTCDay();
+    n[dow]++;
+    if (d.yes) k[dow]++;
+  }
+  const A = 2;
+  const byWeekday = n.map((c, i) => Math.round(((k[i] + A * rate) / (c + A)) * 100) / 100);
+  const usual = byWeekday.map((p, i) => (p >= 0.6 && n[i] >= 2 ? i : -1)).filter(i => i >= 0);
+  const rest = byWeekday.map((p, i) => (p <= 0.2 && n[i] >= 2 ? i : -1)).filter(i => i >= 0);
+  const slots = yes.map(([, d]) => d.slot).filter(Boolean);
+  const am = slots.filter(s => s === 'am').length;
+  const slot = slots.length < 3 ? null : am / slots.length >= 0.7 ? 'am' : am / slots.length <= 0.3 ? 'pm' : 'mixed';
+  // Колко предвидим е денят: средно max(p, 1−p) по дните от седмицата (0,5 — случаен, 1 — по график).
+  const regularity = Math.round(mean(byWeekday.map(p => Math.max(p, 1 - p))) * 100) / 100;
+  const mins = yes.map(([, d]) => d.minutes).filter(v => v > 0);
+  const kcals = yes.map(([, d]) => d.kcal).filter(v => v > 0);
+  return {
+    perWeek: r1(rate * 7),
+    answered: all.length,
+    usual,
+    rest,
+    byWeekday,
+    slot,
+    regularity,
+    minutes: mins.length ? Math.round(mean(mins)) : null,
+    kcal: kcals.length ? Math.round(mean(kcals)) : null,
+  };
+}
+
+/**
+ * Тренировките за последните 7 дни от вечерния въпрос и устройствата — за
+ * седмичния преглед (за да не се пита за известното). Само при поне 5
+ * отговорени дни от седмицата.
+ * @returns {null | { count: number, answered: number }}
+ */
+export function trainingLastWeek(facts, now = new Date()) {
+  const from = now.getTime() - 7 * DAY_MS;
+  const days = new Map();
+  for (const f of facts || []) {
+    const t = Date.parse(f.at);
+    if (!(t >= from) || t > now.getTime() || f.status === 'pending') continue;
+    const day = dayOf(f.at);
+    if (f.kind === 'train_check') {
+      if (days.get(day)?.device) continue;
+      days.set(day, { yes: Number(f.value) > 0 });
+    } else if (f.kind === 'workout' && TRACKED_SOURCES.has(f.source)) {
+      days.set(day, { yes: true, device: true });
+    }
+  }
+  if (days.size < 5) return null;
+  return { count: [...days.values()].filter(d => d.yes).length, answered: days.size };
+}
+
+/** „пн, ср, пт“ */
+export function weekdayList(days) {
+  // От понеделник към неделя.
+  return [...days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(i => WEEKDAYS[i]).join(', ');
 }
 
 /**
@@ -207,6 +300,24 @@ export function computeEssence(facts, now = new Date(), ctx = {}) {
     metrics.workouts = { perWeek: r1(perWeek), minutesWeek: Math.round(workouts.reduce((s, p) => s + p.value, 0) / 2) };
     overrides.sportActivity = sportLabelOf(perWeek);
     reasons.push(`тренировки по устройство: ~${fmt(perWeek)} седмично`);
+  }
+  // Тренировъчните дни от вечерния въпрос: честотата влиза в енергията (както
+  // при устройство), денят от седмицата и часът — в съветите и прегледа.
+  const lastWeek = trainingLastWeek(facts, now);
+  if (lastWeek) checkin.workoutsWeek = lastWeek.count;
+  const training = trainingPattern(facts, now);
+  if (training) {
+    metrics.training = training;
+    checkin.training = { perWeek: training.perWeek, usual: training.usual, rest: training.rest, slot: training.slot };
+    if (!metrics.workouts) {
+      overrides.sportActivity = sportLabelOf(training.perWeek);
+      reasons.push(`тренировки по отговорите: ~${fmt(training.perWeek)} седмично`);
+    }
+    if (training.usual.length && training.regularity >= 0.75) {
+      signals.push({ code: 'training_schedule', level: 'info', text: `Тренировъчни дни: обикновено ${weekdayList(training.usual)}${training.slot === 'am' ? ', до обяд' : training.slot === 'pm' ? ', следобед' : ''}. В тези дни по-голямото хранене с въглехидрати е след тренировката.` });
+    } else if (training.perWeek >= 1 && training.regularity < 0.65) {
+      signals.push({ code: 'training_irregular', level: 'info', text: `Тренировките са ~${fmt(training.perWeek)} седмично без постоянни дни — енергията се смята по средното, а не по ден.` });
+    }
   }
   const active = between(dailySeries(facts, 'active_kcal'), now, 0, 7);
   if (active.length >= 4) metrics.activeKcal = Math.round(mean(active.map(p => p.value)));
@@ -312,6 +423,11 @@ export function essenceText(essence, digest = null) {
   if (m.bodyFat) rows.push(`мазнини ${fmt(m.bodyFat.last)}%, чиста маса ${fmt(m.bodyFat.leanKg)} кг`);
   if (m.steps) rows.push(`крачки ~${m.steps.avg7}/ден`);
   if (m.workouts) rows.push(`тренировки ${fmt(m.workouts.perWeek)}/седм. (${m.workouts.minutesWeek} мин)`);
+  else if (m.training) {
+    const t = m.training;
+    const when = [t.usual.length ? `обикновено ${weekdayList(t.usual)}` : '', t.slot === 'am' ? 'до обяд' : t.slot === 'pm' ? 'следобед' : ''].filter(Boolean).join(', ');
+    rows.push(`тренировки ~${fmt(t.perWeek)}/седм.${when ? ` (${when})` : ''}`);
+  }
   if (m.sleep) rows.push(`сън ${fmt(m.sleep.avg7)} ч`);
   if (m.restingHr) rows.push(`пулс в покой ${m.restingHr.avg7} (база ${m.restingHr.base})`);
   if (m.hrv) rows.push(`HRV ${m.hrv.avg7} ms (база ${m.hrv.base})`);

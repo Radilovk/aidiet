@@ -104,33 +104,41 @@ const fmtKg = v => String(Math.round(v * 10) / 10).replace('.', ',');
  * Въпросите за конкретния клиент: посоката на въпроса за теглото следва целта,
  * а това, което приложението вече знае, се показва като подсказка (теглото от
  * везната е попълнено; спазването по отметките е до въпроса), за да не се гадае.
- * @param {{ goal?: string, direction?: string|null, lead?: string[], deviceWeightKg?: number|null, deviceWeightDays?: number, mealAdherence?: number|null, mealDays?: number }} [ctx]
+ * @param {{ goal?: string, direction?: string|null, lead?: string[], deviceWeightKg?: number|null, deviceWeightDays?: number, workoutsWeek?: number|null, mealAdherence?: number|null, mealDays?: number }} [ctx]
  */
 export function weeklyQuestionsFor(ctx = {}) {
   const lead = Array.isArray(ctx.lead) ? ctx.lead : [];
   const direction = ctx.direction || (ctx.goal === 'GAIN' ? 'gain' : null);
-  return WEEKLY_CHECKIN_QUESTIONS.filter(q => !q.onlyForLead || lead.includes(q.onlyForLead)).map((q) => {
-    /** @type {Record<string, any>} */
-    const out = { ...q, options: [...q.options] };
-    delete out.onlyForLead;
-    if (q.id === 'weight' && direction === 'gain') out.options = [...GAIN_WEIGHT_OPTIONS];
-    // Талията е водещ показател (коремни мазнини, стягане, смяна на състава) — не „по желание“.
-    if (q.id === 'waistCm' && lead.slice(0, 3).includes('waist')) {
-      out.text = 'Обиколка на талията на нивото на пъпа (см). За вашата цел тя показва напредъка по-точно от кантара.';
-    }
-    if (q.id === 'weightKg' && Number(ctx.deviceWeightKg) >= 30) {
-      out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
-      // При поне 3 сутрешни измервания средното им е по-точно от едно претегляне —
-      // число, различно с над 2%, не го заменя (виж runWeeklyAdaptation).
-      out.hint = (ctx.deviceWeightDays || 0) >= 3
-        ? `От везната: ${fmtKg(ctx.deviceWeightKg)} кг — средно от последните ${ctx.deviceWeightDays} дни. То е по-точно от едно претегляне; число с над 2% разлика няма да го замени.`
-        : `От везната: ${fmtKg(ctx.deviceWeightKg)} кг (средно от последните дни). Поправете, ако не е вярно.`;
-    }
-    if (q.id === 'adherence' && ctx.mealAdherence != null && (ctx.mealDays || 0) >= 3) {
-      out.hint = `По отметките в приложението: около ${Math.round(ctx.mealAdherence)}% от храненията.`;
-    }
-    return out;
-  });
+  // Вечерните отговори „Тренирахте ли днес?“ показват 0 тренировки за седмицата — известно, не се пита.
+  const knownNoTraining = ctx.workoutsWeek === 0;
+  return WEEKLY_CHECKIN_QUESTIONS
+    .filter(q => !q.onlyForLead || lead.includes(q.onlyForLead))
+    .filter(q => !(q.id === 'workouts' && knownNoTraining))
+    .map((q) => {
+      /** @type {Record<string, any>} */
+      const out = { ...q, options: [...q.options] };
+      delete out.onlyForLead;
+      if (q.id === 'weight' && direction === 'gain') out.options = [...GAIN_WEIGHT_OPTIONS];
+      // Талията е водещ показател (коремни мазнини, стягане, смяна на състава) — не „по желание“.
+      if (q.id === 'waistCm' && lead.slice(0, 3).includes('waist')) {
+        out.text = 'Обиколка на талията на нивото на пъпа (см). За вашата цел тя показва напредъка по-точно от кантара.';
+      }
+      if (q.id === 'weightKg' && Number(ctx.deviceWeightKg) >= 30) {
+        out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
+        // При поне 3 сутрешни измервания средното им е по-точно от едно претегляне —
+        // число, различно с над 2%, не го заменя (виж runWeeklyAdaptation).
+        out.hint = (ctx.deviceWeightDays || 0) >= 3
+          ? `От везната: ${fmtKg(ctx.deviceWeightKg)} кг — средно от последните ${ctx.deviceWeightDays} дни. То е по-точно от едно претегляне; число с над 2% разлика няма да го замени.`
+          : `От везната: ${fmtKg(ctx.deviceWeightKg)} кг (средно от последните дни). Поправете, ако не е вярно.`;
+      }
+      if (q.id === 'workouts' && Number(ctx.workoutsWeek) > 0) {
+        out.hint = `По вечерните отговори: ${ctx.workoutsWeek} тренировки тази седмица (всякакви). Колко от тях са силови?`;
+      }
+      if (q.id === 'adherence' && ctx.mealAdherence != null && (ctx.mealDays || 0) >= 3) {
+        out.hint = `По отметките в приложението: около ${Math.round(ctx.mealAdherence)}% от храненията.`;
+      }
+      return out;
+    });
 }
 /** Над толкова разлика едно претегляне не е колебание (вода, храна: 1–2% на ден). */
 const WEIGH_IN_TOLERANCE = 0.02;

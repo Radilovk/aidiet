@@ -94,6 +94,7 @@ import {
   weeklyLimits,
   councilSummary,
   weeklyCouncilNeeded,
+  COUNCIL_MODIFICATION_CODES,
   councilOutcome,
   summarizeCouncilOutcomes,
   GOAL_SOFT_PCT,
@@ -6024,6 +6025,7 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     lead: goalModel.lead,
     deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
     deviceWeightDays: data?._enrichment?.checkin?.weightDays || 0,
+    workoutsWeek: data?._enrichment?.checkin?.workoutsWeek ?? null,
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0,
   });
@@ -6306,6 +6308,10 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (dc.weightTrendKgWeek != null) checkinAnswers = [...checkinAnswers, { questionId: 'weightTrendKgWeek', value: String(dc.weightTrendKgWeek), source: 'device' }];
     if (dc.recoveryLow) checkinAnswers = [...checkinAnswers, { questionId: 'recoveryLow', value: 'true', source: 'device' }];
     if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: 'leanLoss', value: 'true', source: 'device' }];
+    // Без тренировка по вечерните отговори за седмицата — въпросът не е задаван, отговорът е известен.
+    if (dc.workoutsWeek === 0 && !checkinAnswers.some(a => a.questionId === 'workouts')) {
+      checkinAnswers = [...checkinAnswers, { questionId: 'workouts', value: 'Нито една', source: 'device' }];
+    }
     // Измереното от прегледа влиза в профила преди обсъждането на целта — посоката се
     // преценява с днешното тегло и талия.
     const answeredKg = Number(String(checkinAnswers.find(a => a.questionId === 'weightKg')?.value || '').replace(',', '.'));
@@ -8465,7 +8471,7 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
     profileSummary: profileBrief(compileProfile(data)),
     hardLimits: `корекция между ${lim.min} и ${lim.max} kcal${lim.reasons.length ? `; ${lim.reasons.join('; ')}` : ''}`,
     softKcal: WEEKLY_SOFT_KCAL,
-    modificationCodes: Object.entries(PLAN_MODIFICATION_CODES).map(([k, v]) => `${k} (${v})`).join(', '),
+    modificationCodes: COUNCIL_MODIFICATION_CODES.map(k => `${k} (${PLAN_MODIFICATION_CODES[k]})`).join(', '),
   };
   const review = (opinion, round) => reviewWeeklyOpinion(decision, opinion, { ...ctx, adherence: decision.adherence }, round);
   const { result, opinion, transcript } = await deliberate({

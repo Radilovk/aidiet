@@ -562,8 +562,9 @@ function addLeft(target, left) {
  * @param {boolean} [args.morningDrink]  сутрешна напитка вместо закуска
  * @param {Record<string, number>} [args.dishPreference]  предпочитание по ястие от изборите на клиента (−3…+3)
  * @param {Array<{ day: number, type: string, avoid: string[] }>} [args.slotAvoid]  храни, които да се избегнат в конкретно хранене (от AI прегледа)
+ * @param {Array<ReturnType<typeof import('./prescription.js').prescribe>>} [args.dayPrescriptions]  своя схема за всеки ден (тренировъчен/почивен, metabolic.js); основните хранения са едни и същи
  */
-export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {} }) {
+export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {}, dayPrescriptions = null }) {
   const rng = rngFrom(seed);
   const altRng = rngFrom((seed ^ 0x5bd1e995) >>> 0);
   const eligible = eligibleDishes(policy);
@@ -635,6 +636,10 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
   const days = [];
   let relaxed = null;
   for (let day = 1; day <= 7; day++) {
+    const dayRx = dayPrescriptions?.[day - 1] || prescription;
+    // Порциите на ястията растат с енергията на деня и с по-малкия брой хранения (часов прозорец).
+    ctx.appetite = Math.max(1, (dayRx.kcal || 0) / APPETITE_BASE_KCAL) * (dayRx.mealScale || 1);
+    snackCtx.appetite = ctx.appetite;
     const meals = [];
     // Без закуска не се натиска за закуска — предлага се напитка за хидратация.
     if (morningDrink) meals.push({ ...drink });
@@ -645,8 +650,8 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     /** Сглобените хранения на деня — за изравняването накрая. */
     const dayBuilt = [];
 
-    for (const type of slots) {
-      const plan = prescription.meals[type];
+    for (const type of dayRx.slots) {
+      const plan = dayRx.meals[type];
       if (type === 'Хранене 2' && day === freeDayNumber) {
         meals.push({ type: FREE_MEAL, name: FREE_MEAL, _plannedCalories: round(plan.target.kcal) });
         continue;
@@ -800,7 +805,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       dayBuilt.push({ i: meals.length - 1, type, kind, dish: best.dish, built: best.built, target, dessertToday, ctx: usedCtx, alts: alternatives, quota: plan.quota, baseCtx: kind === 'snack' || kind === 'late' ? snackCtx : ctx });
     }
     if (!meals.some(m => m.type === FREE_MEAL)) {
-      const dayTarget = dayTargetOf(prescription, slots);
+      const dayTarget = dayTargetOf(dayRx, dayRx.slots);
       balanceDay(meals, dayBuilt, dayTarget, policy);
       shakeForProteinGap(meals, dayBuilt, dayTarget, policy);
     }
@@ -815,7 +820,13 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       if (!m.alternatives.length) delete m.alternatives;
     }
     state.yesterdayDishes = todayDishes;
-    days.push({ meals });
+    // Храните и грамовете на деня — за качеството на менюто (фибри, разнообразие).
+    const foods = dayBuilt.map(e => ({
+      main: e.kind === 'main',
+      protein: e.built.totals.protein,
+      foods: describeMeal(e.built).map(l => ({ id: l.id, grams: l.grams })),
+    }));
+    days.push({ meals, foods });
   }
 
   const stats = {

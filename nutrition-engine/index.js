@@ -8,7 +8,7 @@
  * Всичко е детерминистично: едни и същи данни дават един и същ план.
  */
 
-import { compileProfile, slotsFor } from '../profile-code.js';
+import { compileProfile, slotsFor, reproductiveStatus } from '../profile-code.js';
 import { macroTargetsFor } from '../macro-targets.js';
 import { extractQuestionnaireBlockedTerms } from '../questionnaire-engine-map.js';
 import { interactionsFor } from '../drug-interactions.js';
@@ -17,6 +17,10 @@ import { prescribe } from './prescription.js';
 import { planWeek, hashSeed } from './week-planner.js';
 import { GROUPS } from './knowledge.js';
 import { dayTotals } from './plan-shape.js';
+import { metabolicWeek, menuQuality, describeMetabolicWeek } from './metabolic.js';
+import { fiberPer100, microPer100 } from './fiber.js';
+import { microReport } from './micronutrients.js';
+import { food } from './knowledge.js';
 
 export { ENGINE_ID, ENGINE_VERSION, FREE_MEAL, dayTotals, weeklySchemeFromPlan, isEnginePlan, reconcileEnginePlan, recomputeMealFromDescription } from './plan-shape.js';
 
@@ -54,6 +58,7 @@ export const PLAN_MODIFICATION_CODES = {
   more_variety: 'повече разнообразие в основните ястия',
   more_volume: 'повече обем (зеленчуци) при същите калории',
   gentle_digestion: 'щадящо храносмилането (без храни, които подуват)',
+  time_restricted_eating: 'хранене в часови прозорец в почивните дни (интермитентно гладуване)',
 };
 const MEAL_COUNT_CODES = ['3_meals_per_day', 'no_intermediate_meals', '4_meals_per_day', '5_meals_per_day'];
 
@@ -87,13 +92,17 @@ export function mergePlanModifications(existing = [], incoming = []) {
  */
 export function applyModifications(profile, mods = []) {
   const set = new Set(mods);
-  const out = { ...profile, diet: { ...profile.diet }, exclusions: [...profile.exclusions], slots: [...profile.slots] };
+  const out = { ...profile, diet: { ...profile.diet }, exclusions: [...profile.exclusions], slots: [...profile.slots], behaviors: [...(profile.behaviors || [])] };
   if (set.has('vegetarian') && PATTERN_RANK[out.diet.pattern] < PATTERN_RANK.vegetarian) out.diet.pattern = 'vegetarian';
   if (set.has('low_carb') && out.diet.style !== 'keto') out.diet.style = 'low_carb';
   if (set.has('no_dairy') && !out.exclusions.includes('LAC')) out.exclusions.push('LAC');
   if (set.has('no_intermediate_meals') || set.has('3_meals_per_day')) out.slots = slotsFor(3, out.skipsBreakfast);
   if (set.has('4_meals_per_day')) out.slots = slotsFor(4, out.skipsBreakfast);
   if (set.has('5_meals_per_day')) out.slots = slotsFor(5, out.skipsBreakfast);
+  // Часовият прозорец е като избран „Фастинг“ — но не и при лекарства с риск от хипогликемия.
+  if (set.has('time_restricted_eating') && !out.behaviors.includes('IF') && !(out.adjustments || []).some(a => /^MEDS_NO_FASTING/.test(a))) {
+    out.behaviors = [...out.behaviors, 'IF'];
+  }
   if (set.has('smaller_portions')) {
     const extra = ['Хранене 3', 'Хранене 5'].find(s => !out.slots.includes(s));
     if (extra) out.slots = SLOT_ORDER.filter(s => out.slots.includes(s) || s === extra);
@@ -158,11 +167,23 @@ export function buildNutritionPlan(userData, options) {
   });
   // Рефлукс: без хранене 2–3 часа преди лягане — късната закуска отпада.
   const slots = policy.noLateMeal && profile.slots.length > 3 ? profile.slots.filter(s => s !== 'Хранене 5') : profile.slots;
-  const prescription = prescribe({ kcal, macros }, slots, policy, {
+  const rxOptions = {
     skipsBreakfast: profile.skipsBreakfast,
     noLateMeal: policy.noLateMeal,
     extraVeg: mods.includes('more_volume') ? 1 : 0,
-  });
+  };
+  const prescription = prescribe({ kcal, macros }, slots, policy, rxOptions);
+  // Метаболитната седмица: тренировъчни и почивни дни, горивото и часът му,
+  // часовият прозорец. Средното за седмицата е точно kcal и macros.
+  const metabolic = options.metabolic === false ? null : metabolicWeek(profile, userData || {}, { kcal, macros }, slots);
+  const dayPrescriptions = metabolic
+    ? metabolic.days.map(d => prescribe({ kcal: d.kcal, macros: d.macros }, d.slots, policy, {
+      ...rxOptions,
+      skipsBreakfast: rxOptions.skipsBreakfast || !d.slots.includes('Хранене 1'),
+      groupBias: d.bias,
+      mealScale: d.slots.length < slots.length ? slots.length / d.slots.length : 1,
+    }))
+    : null;
   const seed = typeof options.seed === 'number' ? options.seed : hashSeed(options.seed ?? userData?.email ?? userData?.name ?? '');
   const freeDayNumber = options.freeDayNumber === undefined ? (policy.allowsFreeMeal ? 7 : null) : options.freeDayNumber;
   const week = planWeek({
@@ -178,14 +199,43 @@ export function buildNutritionPlan(userData, options) {
     simplify: mods.includes('simplify_meals'),
     variety: mods.includes('more_variety'),
     dishPreference: options.dishPreference || {},
+    dayPrescriptions,
   });
 
   const weekPlan = {};
   week.days.forEach((day, i) => {
     weekPlan[`day${i + 1}`] = { meals: day.meals, dailyTotals: dayTotals(day.meals) };
+    const d = metabolic?.days[i];
+    if (d) {
+      // Какъв е денят и защо — приложението го показва над храненията.
+      weekPlan[`day${i + 1}`].energy = {
+        kind: d.kind,
+        kcal: d.kcal,
+        protein: d.macros.protein,
+        carbs: d.macros.carbs,
+        fats: d.macros.fats,
+        ...(d.timing.post ? { postWorkoutMeal: d.timing.post } : {}),
+        ...(d.window ? { window: d.window } : {}),
+      };
+    }
   });
+  const weekFoods = week.days.map(d => ({ meals: d.foods || [] }));
+  const quality = menuQuality(weekFoods, { food, fiberPer100 }, profile, kcal);
+  // Микронутриентите — само измерване на готовото меню (не влизат в подбора).
+  // Нуждите — и при бременност/кърмене; при бъбречна граница или висок калий калият не се съветва нагоре.
+  const repro = reproductiveStatus(userData || {});
+  const enr = userData?._enrichment || {};
+  const restrictK = Number(enr.safety?.proteinCapPerKg) > 0 || (enr.labs || []).some(l => l.key === 'potassium' && l.status === 'high');
+  const micro = microReport(weekFoods, microPer100, profile, { pregnant: repro.pregnant, lactating: repro.lactating, restrictK });
+  const metabolicPlan = metabolic ? {
+    training: { days: metabolic.week.days, source: metabolic.week.source, slot: metabolic.week.slot, fuel: metabolic.week.fuel, types: metabolic.week.types, sessionKcal: metabolic.week.sessionKcal },
+    fasting: metabolic.fasting,
+    text: describeMetabolicWeek(metabolic, profile),
+    quality,
+    micro,
+  } : { quality, micro };
 
-  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods };
+  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods, metabolicPlan };
 }
 
 /** Хранителната схема с думи — както диетологът я дава на клиента. */

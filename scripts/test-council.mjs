@@ -87,6 +87,8 @@ const add = reviewWeeklyOpinion(algo, wop({ addModifications: ['gentle_digestion
 ok(add.verdict === 'accept' && add.modifications.includes('gentle_digestion') && add.modifications.includes('more_volume'), 'добавяне на промяна — прието');
 ok(reviewWeeklyOpinion({ ...algo, calorieAdjust: 0, adherence: 50 }, wop({ calorieAdjust: -100 }), ctx, 1).verdict === 'rebut', 'по-малко калории при неспазен план — възражение');
 
+ok(!normalizeWeeklyOpinion({ addModifications: ['time_restricted_eating', 'more_volume'] }).addModifications.includes('time_restricted_eating'), 'AI не включва часов прозорец вместо клиента');
+
 // ─── Протоколът ───
 const review = (o, round) => reviewGoalOpinion(age29, o, round);
 const conceded = await deliberate({

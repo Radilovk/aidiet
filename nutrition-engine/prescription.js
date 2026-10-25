@@ -141,7 +141,8 @@ const PLANT_PROTEIN_SHIFT = { 'Хранене 1': 0.05, 'Хранене 2': -0.0
 export function distributeExchanges(daily, slots, policy, options = {}) {
   const dist = DISTRIBUTIONS[policy.distribution] || DISTRIBUTIONS.standard;
   // По-голям енергиен разход — по-големи хранения: таваните растат над 2400 kcal.
-  const appetite = Math.max(1, (Number(options.kcal) || 0) / BOUNDS_BASE_KCAL);
+  // По-малко хранения в деня (часов прозорец) — същата храна в по-големи хранения.
+  const appetite = Math.max(1, (Number(options.kcal) || 0) / BOUNDS_BASE_KCAL) * (Number(options.mealScale) || 1);
   let current = [...slots];
   const added = [];
 
@@ -151,7 +152,9 @@ export function distributeExchanges(daily, slots, policy, options = {}) {
     let overflow = 0;
     for (const g of PLANNED_GROUPS) {
       const total = daily[g] || 0;
-      const weights = current.map(s => Math.max(0, (dist[s]?.[g] ?? 0) + (g === 'PRO' && policy.proteinBoost ? PLANT_PROTEIN_SHIFT[s] || 0 : 0)));
+      // Изместването на деня (metabolic.js): въглехидратите след тренировката или по-рано в почивния ден.
+      const bias = options.groupBias?.[g] || {};
+      const weights = current.map(s => Math.max(0, ((dist[s]?.[g] ?? 0) + (g === 'PRO' && policy.proteinBoost ? PLANT_PROTEIN_SHIFT[s] || 0 : 0)) * (bias[s] ?? 1)));
       const bounds = current.map(s => {
         const [lo, base] = MEAL_BOUNDS[s]?.[g] || [0, 0];
         // При кето и нисковъглехидратно мазнините носят енергията — таванът им расте.
@@ -188,7 +191,7 @@ export function quotaTarget(quota) {
  * @param {{ kcal: number, macros: { protein: number, carbs: number, fats: number } }} target
  * @param {string[]} slots
  * @param {ReturnType<typeof import('./policy.js').buildFoodPolicy>} policy
- * @param {{ skipsBreakfast?: boolean, extraVeg?: number, noLateMeal?: boolean }} [options]
+ * @param {{ skipsBreakfast?: boolean, extraVeg?: number, noLateMeal?: boolean, groupBias?: Record<string, Record<string, number>>, mealScale?: number }} [options]
  */
 export function prescribe(target, slots, policy, options = {}) {
   const daily = dailyExchanges({ ...target, extraVeg: options.extraVeg }, policy);
@@ -210,5 +213,5 @@ export function prescribe(target, slots, policy, options = {}) {
       target: { ...t, kcal: t.protein * 4 + t.carbs * 4 + t.fats * 9 },
     };
   }
-  return { kcal: target.kcal, macros: target.macros, daily, slots: finalSlots, addedSlots: added, meals };
+  return { kcal: target.kcal, macros: target.macros, daily, slots: finalSlots, addedSlots: added, meals, mealScale: Number(options.mealScale) || 1 };
 }
