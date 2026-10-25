@@ -150,7 +150,7 @@ const DEVICE_RELIABLE_DAYS = 3;
  * Въведеното печели (може да е поправка), освен когато везната има поне 3 дни
  * измервания и числото се различава с над 2% — тогава е по-вероятно вечерно
  * претегляне, с дрехи или грешка, отколкото промяна в тялото.
- * @param {number|null} typedKg
+ * @param {number|string|null} typedKg  въведеното (числото или текстът от отговора)
  * @param {{ kg?: number|null, days?: number }} device
  * @returns {{ kg: number|null, source: 'client'|'device'|null, typedKg: number|null }}
  */
@@ -317,7 +317,7 @@ function directionOfGoal(goal) {
  * @param {object} args
  * @param {ReturnType<typeof readCheckin>} args.checkin
  * @param {'LOSS'|'VISC'|'GAIN'|'MAINT'|string} args.goal
- * @param {'lose'|'gain'|'recomp'|'maintain'} [args.direction]  посоката от модела на целта (goal-model.js)
+ * @param {string} [args.direction]  посоката от модела на целта (goal-model.js): lose | gain | recomp | maintain
  * @param {number} args.kcal          текущият дневен прием
  * @param {number} args.tdee          разходът по формула (с текущото тегло)
  * @param {number} args.floorKcal     безопасният минимум
