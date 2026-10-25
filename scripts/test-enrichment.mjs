@@ -13,6 +13,7 @@ import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
 import { supplementsFor } from '../supplement-rules.js';
 import { reanalyze } from '../analysis-reanalysis.js';
+import { calculateBMR, calculateTDEE, calculateUnifiedActivityScore, calculateActivityTDEE, kcalPerStep } from '../energy.js';
 
 let pass = 0;
 let fail = 0;
@@ -39,12 +40,51 @@ const merged = mergeFacts(
 ok(merged.length === 2 && merged[0].value === 79 && merged[1].value === 79.5, 'сливане: един запис на ден/източник, най-новият първи');
 ok(mergeFacts([{ kind: 'weight', value: 80, at: daysAgo(500) }], [], NOW).length === 0, 'стари факти отпадат');
 
+const base0 = () => enrichUserDataEngineContext(JSON.parse(JSON.stringify(PROFILES.find(p => p.id === 'female_moderate'))));
+
+// ── Енергия от измерените крачки ─────────────────────────────────────────
+{
+  const person = { gender: 'Мъж', age: '40', height: '180', weight: '80', sportActivity: 'Никаква (0 дни седмично)', dailyActivityLevel: 'Високо' };
+  const bmr = calculateBMR(person);
+  const q = calculateActivityTDEE(bmr, person);
+  ok(q.tdee === calculateTDEE(bmr, calculateUnifiedActivityScore(person).combinedScore) && !q.activityData.measuredSteps, 'без измерване — по въпросника');
+  const at = (steps) => calculateActivityTDEE(bmr, { ...person, _enrichment: { activity: { steps } } });
+  const k10 = at(10000);
+  const k25 = at(25000);
+  ok(k25.tdee - k10.tdee === Math.round(22000 * kcalPerStep(person)) - Math.round(7000 * kcalPerStep(person)), `25 000 крачки не са „Високо“ като 10 000 (+${k25.tdee - k10.tdee} kcal)`);
+  ok(at(2000).tdee === calculateTDEE(bmr, 1), 'под заседналия минимум — само 1,2 × BMR');
+  ok(Math.abs(at(7000).tdee - calculateTDEE(bmr, 2)) < 120, 'около 7000 крачки — близо до досегашното „Средно“');
+  const sporty = calculateActivityTDEE(bmr, { ...person, sportActivity: 'Средна (2–4 дни седмично)', _enrichment: { activity: { steps: 7000 } } });
+  ok(sporty.tdee > at(7000).tdee, 'тренировките остават в множителя');
+}
+
 // ── Устройства ───────────────────────────────────────────────────────────
 const steps = n => Array.from({ length: n }, (_, i) => ({ kind: 'steps', value: 4200, at: daysAgo(i + 1), source: 'health_connect' }));
 let d = deriveEnrichment({ facts: steps(8) }, NOW);
 ok(d.overrides.dailyActivityLevel === 'Ниско', `крачки 4200 → Ниско (${d.overrides.dailyActivityLevel})`);
 d = deriveEnrichment({ facts: steps(5) }, NOW);
 ok(!d.overrides.dailyActivityLevel, 'под 7 дни крачки — без замяна');
+// Крачки: един източник (без смесване), без дните с тренировка, сверка телефон/гривна.
+{
+  const at = (n) => daysAgo(n).slice(0, 10) + 'T12:00:00.000Z';
+  const series = (n, value, source, from = 1) => Array.from({ length: n }, (_, i) => ({ kind: 'steps', value, at: at(i + from), source }));
+  let a = deriveEnrichment({ facts: [...series(8, 4000, 'phone'), ...series(8, 9000, 'health_connect')] }, NOW).activity;
+  ok(a.source === 'device' && a.steps === 9000 && a.disputed && a.ratio === 2.25, `телефон 4000 / гривна 9000 → гривната, разминаване (${JSON.stringify(a)})`);
+  const disputedData = applyEnrichment(base0(), { facts: [...series(8, 4000, 'phone'), ...series(8, 9000, 'health_connect')] }, NOW);
+  const q = disputedData._enrichment.crossCheck.questions.find(x => x.id === 'steps_source');
+  ok(q && q.options.map(o => o.value).join() === 'device,phone' && /125% повече/.test(q.text), 'разминаване → въпрос кое се носи по-постоянно');
+  ok(reanalyze(base0(), disputedData, {}, 'F').questions.some(x => x.id === 'steps_source'), 'въпросът стига до анализа');
+  const answered = [...series(8, 4000, 'phone'), ...series(8, 9000, 'health_connect'), normalizeFact({ kind: 'resolution', key: 'steps_source', value: 'phone', at: daysAgo(0) })];
+  a = deriveEnrichment({ facts: answered }, NOW).activity;
+  ok(a.source === 'phone' && a.steps === 4000, 'отговор „телефона“ → поредицата е от телефона');
+  ok(!applyEnrichment(base0(), { facts: answered }, NOW)._enrichment.crossCheck.questions.some(x => x.id === 'steps_source'), 'след отговор — без въпрос');
+  a = deriveEnrichment({ facts: [...series(4, 9000, 'health_connect'), ...series(8, 5000, 'phone', 5)] }, NOW).activity;
+  ok(a.source === 'phone' && a.steps === 5000 && !a.disputed, 'гривната има под 7 дни → само телефонът, без смесване');
+  const trained = [...series(7, 6000, 'phone'), ...series(3, 16000, 'phone', 8),
+    ...[8, 9, 10].map(n => ({ kind: 'train_check', value: 1, at: at(n), source: 'checkin' }))];
+  a = deriveEnrichment({ facts: trained }, NOW).activity;
+  ok(a.steps === 6000 && a.days === 10 && a.restDays === 7, `дните с тренировка не влизат в обичайните крачки (${a.steps})`);
+}
 d = deriveEnrichment({ facts: Array.from({ length: 6 }, (_, i) => ({ kind: 'sleep', value: 5.8, at: daysAgo(i + 1) })) }, NOW);
 ok(d.overrides.sleepHours === '5.8', 'сън от устройство');
 d = deriveEnrichment({ facts: [{ kind: 'weight', value: 81, at: daysAgo(1) }, { kind: 'weight', value: 80, at: daysAgo(2) }] }, NOW);

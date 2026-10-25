@@ -151,6 +151,43 @@ export function calculateTDEE(bmr, activityLevel) {
 }
 
 /**
+ * Крачките, които заседналият множител (1,2 × BMR) вече съдържа — около 3000
+ * дневно при заседнал начин на живот (Tudor-Locke 2011). Измерените над тях
+ * се добавят като разход на ходене.
+ */
+const SEDENTARY_STEPS = 3000;
+
+/** Нетен разход на крачка: ~0,5 kcal на кг на км (ACSM), крачка ~41,5% (мъже) / 41,3% (жени) от ръста. */
+export function kcalPerStep(data) {
+  const kg = parseFloat(String(data?.weight ?? '').replace(',', '.'));
+  const cm = parseFloat(String(data?.height ?? '').replace(',', '.'));
+  if (!(kg > 0) || !(cm > 0)) return 0;
+  const stride = cm * (data.gender === 'Жена' ? 0.413 : 0.415) / 100;
+  return 0.5 * kg * stride / 1000;
+}
+
+/**
+ * Разходът за деня. С измерени крачки (enrichment.js → stepsActivity: средно в
+ * ден без тренировка, от един източник) ежедневната активност не е стъпало
+ * Ниско/Средно/Високо, а самите крачки: множителят е само за тренировките
+ * (заседнало ниво + дни спорт), а ходенето над заседналия минимум се добавя в
+ * kcal. Така 25 000 крачки не са „Високо“ като 10 000, а 2000 — „Ниско“ като 4900.
+ * Без измерване — по въпросника, както досега.
+ * @returns {{ tdee: number, activityData: object }}
+ */
+export function calculateActivityTDEE(bmr, data) {
+  const activityData = calculateUnifiedActivityScore(data);
+  const measured = Number(data?._enrichment?.activity?.steps);
+  const perStep = kcalPerStep(data);
+  if (!(measured > 0) || !(perStep > 0)) return { tdee: calculateTDEE(bmr, activityData.combinedScore), activityData };
+  const walkKcal = Math.round(Math.max(0, measured - SEDENTARY_STEPS) * perStep);
+  return {
+    tdee: calculateTDEE(bmr, 1 + activityData.sportDays) + walkKcal,
+    activityData: { ...activityData, measuredSteps: measured, walkKcal },
+  };
+}
+
+/**
  * Macro ratios from the client profile code — diet-native targets.
  *
  * Протеинът е котва в г/кг (коригирано тегло при наднормено), стилът на

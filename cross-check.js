@@ -86,7 +86,7 @@ export function resolutionsOf(facts) {
 
 /**
  * @param {Record<string, any>} data — отговорите от въпросника (преди замените от обогатяването)
- * @param {{ hints?: any, essence?: any, iris?: any, irisRaw?: any, voice?: any }} derived
+ * @param {{ hints?: any, essence?: any, iris?: any, irisRaw?: any, voice?: any, activity?: any }} derived
  * @param {Record<string, string>} resolutions
  */
 export function crossCheck(data, derived, resolutions = {}) {
@@ -197,6 +197,15 @@ export function crossCheck(data, derived, resolutions = {}) {
   const rarely = ['Рядко', 'Никога'].includes(data?.overeatingFrequency) && (!asList(data?.foodTriggers).length || said(data, 'foodTriggers', ['Нито едно']));
   if (strong && rarely && !resolutions.emoeat_vs_q) {
     questions.push({ id: 'emoeat_vs_q', source: 'emoeat', topic: 'Емоционално хранене', text: 'EmoEat показва, че храната често идва в отговор на емоции, а във въпросника сте отбелязали, че рядко ядете повече от планираното. Кое е по-близо до вас?', options: [{ value: 'often', label: 'Често ям при напрежение, умора или скука' }, { value: 'rare', label: 'Рядко — не се разпознавам' }] });
+  }
+
+  // ── 4. Крачките: телефонът срещу гривната/часовника ─────────────────
+  // Постоянно разминаване в едни и същи дни — клиентът казва кое носи по-постоянно.
+  // До отговора се ползва устройството (enrichment.js → stepsActivity).
+  const act = derived?.activity;
+  if (act?.disputed && !resolutions.steps_source) {
+    const more = act.ratio > 1 ? 'гривната/часовникът' : 'телефонът';
+    questions.push({ id: 'steps_source', source: 'device', topic: 'Крачки', text: `Телефонът и гривната/часовникът отчитат различни крачки в едни и същи дни — ${more} показва около ${Math.round(((act.ratio > 1 ? act.ratio : 1 / act.ratio) - 1) * 100)}% повече. Кое носите по-постоянно през деня?`, options: [{ value: 'device', label: 'Гривната/часовника' }, { value: 'phone', label: 'Телефона (в джоба)' }] });
   }
 
   const confirmed = hypotheses.filter(h => h.status === 'confirmed');

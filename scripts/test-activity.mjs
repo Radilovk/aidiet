@@ -136,5 +136,30 @@ const stepsEss = computeEssence([phone, band,
   ...[2, 3, 4, 5].map(n => normalizeFact({ kind: 'steps', value: 6000, at: dayAt(n), source: 'phone' }))], NOW);
 ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 4 * 6000) / 5 / 100) * 100, 'гривната печели пред телефона за същия ден');
 
+// ── Режим на вечерния въпрос по данните (не тренира по въпросника) ─────────
+{
+  const store = {};
+  globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+  const key = (n) => { const d = new Date(Date.now() - n * 86400000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const days = (values) => Object.fromEntries(values.map((v, i) => [key(i + 1), v]));
+  store.userData = JSON.stringify({ gender: 'Жена', height: '165', weight: '62', sportActivity: 'Никаква (0 дни седмично)' });
+  store.np_activity_state = JSON.stringify({ ext: days([6000, 6200, 5800, 6100, 5900, 6300, 6000, 6100]) });
+  store.np_health_state = JSON.stringify({ connected: true });
+  ok(A.mode() === 'steps', 'без тренировки по крачките — без въпрос');
+  store.np_activity_state = JSON.stringify({ ext: days([6000, 14000, 5800, 6100, 15500, 6300, 6000, 6100]) });
+  ok(A.mode() === 'training', '2 дни много над обичайното → „Тренирахте ли днес?“');
+  store.gameData = JSON.stringify(Object.fromEntries([1, 2, 3, 4, 5, 6, 7].map(n => [key(n), { eveningCheck: { trained: 'no' } }])));
+  ok(A.mode() === 'steps', '7 пъти „не“ за 14 дни → разходки, въпросът спира');
+  store.gameData = JSON.stringify({ [key(20)]: { eveningCheck: { trained: 'pm' } } });
+  store.np_activity_state = JSON.stringify({ ext: days([6000, 6200, 5800, 6100, 5900, 6300, 6000, 6100]) });
+  ok(A.mode() === 'training', '„да“ в последните 28 дни → въпросът остава');
+  const est = A.estimateDay(A.profileOf(JSON.parse(store.userData)), { steps: 6000, trained: 'pm' });
+  ok(est.trainingKcal > 0, 'нетрениращ по въпросника, но тренирал → тренировката има разход');
+  store.gameData = '{}';
+  A.fillFromSteps({ [key(1)]: 9000 });
+  ok(JSON.parse(store.np_activity_state).ext[key(1)] === 9000, 'крачките от Health Connect се пазят за режима');
+  delete globalThis.localStorage;
+}
+
 console.log(`activity: ${pass} ok, ${fail} грешки`);
 process.exit(fail ? 1 : 0);

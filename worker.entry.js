@@ -55,7 +55,7 @@ import { DAYS_PER_CHUNK } from './step3-chunk.js';
 import { buildPlanEngineMeta } from './plan-engine.js';
 import {
   calculateBMR,
-  calculateUnifiedActivityScore,
+  calculateActivityTDEE,
   calculateTDEE,
   calculateMacronutrientRatios,
   calculateSafeDeficit,
@@ -2581,9 +2581,8 @@ function parseProfileWeightKg(data) {
 
 function computeBackendEnergyInputs(data) {
   ensureProfileMetricsOnData(data);
-  const activityData = calculateUnifiedActivityScore(data);
   const bmr = calculateBMR(data);
-  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const { tdee, activityData } = calculateActivityTDEE(bmr, data);
   const deficitData = calculateSafeDeficit(tdee, data);
   const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
   return { activityData, bmr, tdee, deficitData, macros };
@@ -8876,9 +8875,8 @@ function replacePromptVariables(template, variables) {
  */
 async function generateAnalysisPrompt(data, env, errorPreventionComment = null) {
   // Pre-calculate backend values for both custom and default prompts
-  const activityData = calculateUnifiedActivityScore(data);
   const bmr = calculateBMR(data);
-  const tdee = calculateTDEE(bmr, activityData.combinedScore);
+  const { tdee, activityData } = calculateActivityTDEE(bmr, data);
   const deficitData = calculateSafeDeficit(tdee, data);
   const macros = calculateMacronutrientRatios(data, activityData.combinedScore, tdee);
   const waterMin = (parseFloat(data.weight) * WATER_PER_KG_MULTIPLIER + BASE_WATER_NEED_LITERS).toFixed(2);
