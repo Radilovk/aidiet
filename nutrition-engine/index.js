@@ -128,7 +128,8 @@ function increaseProtein(macros, profile) {
 /**
  * @param {object} userData
  * @param {{ kcal: number, macros?: { protein: number, carbs: number, fats: number }, seed?: number|string, slotAvoid?: Array<{ day: number, type: string, avoid: string[] }>, dishPreference?: Record<string, number>,
- *   freeDayNumber?: number|null, previousWeek?: Iterable<string>, date?: Date, dietaryModifier?: string }} options
+ *   freeDayNumber?: number|null, previousWeek?: Iterable<string>, date?: Date, dietaryModifier?: string, metabolic?: boolean }} options
+ *   metabolic: false — без метаболитната седмица (всички дни с една цел)
  */
 export function buildNutritionPlan(userData, options) {
   const hints = userData?._aiHints || null;

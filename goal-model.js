@@ -20,7 +20,7 @@
  * мазнини (ACE: мъже 25%+, жени 32%+ — затлъстяване), над 65 г. оптималният
  * ИТМ е по-висок (Winter 2014), дефицит до 25%.
  */
-(function (global) {
+(function (/** @type {any} */ global) {
     'use strict';
 
     /** Етикет → код. Подцелите от картата „след раждане“ също са тук. */
@@ -39,6 +39,7 @@
     var ALL_OF_ABOVE = 'всички горепосочени';
 
     /** Свободен текст → цели (само добавя към отметките). */
+    /** @type {Array<[RegExp, string]>} */
     var TEXT_RULES = [
         [/отсла|свал|килогр|\bкг\b|тегло/, 'LOSS'],
         [/корем|талия|висцерал/, 'VISC'],
@@ -352,7 +353,7 @@
         if (codes.length > 1) codes = codes.filter(function (c) { return c !== 'MAINT'; });
         if (!codes.length) codes = ['MAINT'];
         var b = bodyContext(f);
-        var per = codes.map(function (c) { var r = forGoal(c, b, f); r.code = c; return r; });
+        var per = codes.map(function (c) { return Object.assign({ code: c }, forGoal(c, b, f)); });
 
         // Съчетаване: посоките се пресмятат за всяка цел. При противоположни
         // (дефицит за едната, излишък за другата) — смяна на състава по средата.
@@ -443,4 +444,5 @@
     };
     global.NutriPlanGoalModel = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
-}(typeof window !== 'undefined' ? window : globalThis));
+// globalThis — сървър и нови браузъри; this — стари WebView (APK допуска Chrome 60), класически скрипт.
+}(typeof globalThis !== 'undefined' ? globalThis : this));

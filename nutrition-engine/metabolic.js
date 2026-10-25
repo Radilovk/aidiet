@@ -138,6 +138,7 @@ export function trainingWeek(profile, userData = {}) {
   const order = ['glycolytic', 'endurance', 'mixed', 'aerobic', 'low'];
   const fuel = order.find(f => list.some(t => t.fuel === f)) || 'mixed';
   let days;
+  /** @type {'pattern'|'assumed'} */
   let source;
   let confidence;
   if (pattern?.usual?.length) {
@@ -276,7 +277,7 @@ export function weekTargets(profile, base, week, fasting, slots) {
   const restDays = 7 - trainDays;
   const swingG = trainDays && restDays ? swing * C : 0;
   const days = [1, 2, 3, 4, 5, 6, 7].map((d, i) => {
-    const kind = d === fasting.lowDay ? 'low' : week.days.includes(d) ? 'train' : 'rest';
+    const kind = /** @type {'train'|'rest'|'low'} */ (d === fasting.lowDay ? 'low' : week.days.includes(d) ? 'train' : 'rest');
     let carbs = C + carbShare * (kcal[i] - K) / 4;
     if (swingG) carbs += kind === 'train' ? swingG * restDays / 7 : -swingG * trainDays / 7;
     if (kind === 'low') carbs = Math.min(carbs, C * 0.6);
@@ -395,7 +396,7 @@ export function describeMetabolicWeek(mw, profile) {
  *   белтък на основно хранене — над прага за мускулен синтез, ~0,3 г/кг и поне 20 г (Moore 2015);
  *   въглехидрати към фибри — до 10:1 (критерий за качествени въглехидрати, Mozaffarian 2013).
  * Минералите и витамините — в micronutrients.js (само измерване).
- * @param {Array<{ foods: Array<{ id: string, grams: number }>, mealsProtein: number[] }>} days
+ * @param {Array<{ meals: Array<{ main?: boolean, protein?: number, foods: Array<{ id: string, grams: number }> }> }>} days
  * @param {{ food: (id: string) => any, fiberPer100: (id: string) => number|null }} lib
  */
 export function menuQuality(days, lib, profile, kcal) {

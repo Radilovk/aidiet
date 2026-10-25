@@ -14,20 +14,11 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res, err2) => function __init() {
-  if (err2) throw err2[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err2 = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __commonJS = (cb, mod) => function __require() {
-  try {
-    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-  } catch (e) {
-    throw mod = 0, e;
-  }
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -435,9 +426,7 @@ var require_goal_model = __commonJS({
         if (!codes.length) codes = ["MAINT"];
         var b = bodyContext(f);
         var per = codes.map(function(c) {
-          var r = forGoal(c, b, f);
-          r.code = c;
-          return r;
+          return Object.assign({ code: c }, forGoal(c, b, f));
         });
         var neg = per.filter(function(r) {
           return r.pct < 0;
@@ -538,7 +527,7 @@ var require_goal_model = __commonJS({
       };
       global.NutriPlanGoalModel = api;
       if (typeof module !== "undefined" && module.exports) module.exports = api;
-    })(typeof window !== "undefined" ? window : globalThis);
+    })(typeof globalThis !== "undefined" ? globalThis : exports);
   }
 });
 
@@ -43629,7 +43618,10 @@ function weekTargets(profile, base, week, fasting, slots) {
   const restDays = 7 - trainDays;
   const swingG = trainDays && restDays ? swing * C : 0;
   const days = [1, 2, 3, 4, 5, 6, 7].map((d, i) => {
-    const kind = d === fasting.lowDay ? "low" : week.days.includes(d) ? "train" : "rest";
+    const kind = (
+      /** @type {'train'|'rest'|'low'} */
+      d === fasting.lowDay ? "low" : week.days.includes(d) ? "train" : "rest"
+    );
     let carbs = C + carbShare * (kcal[i] - K) / 4;
     if (swingG) carbs += kind === "train" ? swingG * restDays / 7 : -swingG * trainDays / 7;
     if (kind === "low") carbs = Math.min(carbs, C * 0.6);
@@ -43657,9 +43649,9 @@ function weekTargets(profile, base, week, fasting, slots) {
     const fats = Math.max(minFat, Math.round((x.kcal - 4 * protein - 4 * carbs) / 9));
     const kcalDay = protein * 4 + carbs * 4 + fats * 9;
     let daySlots = [...slots];
-    let window2 = null;
+    let window = null;
     if (fasting.active && x.kind !== "train") {
-      window2 = fasting.windowText;
+      window = fasting.windowText;
       if (fasting.early) daySlots = daySlots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" && !(fasting.protocol === "tre16" && s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3"));
       else if (fasting.protocol !== "tre12") daySlots = daySlots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" && s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
       else daySlots = daySlots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5");
@@ -43678,7 +43670,7 @@ function weekTargets(profile, base, week, fasting, slots) {
       bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2"] = hasBreakfast ? 1.15 : 1.05;
       bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] = hasBreakfast ? 0.6 : 0.8;
     }
-    return { day: x.day, kind: x.kind, kcal: kcalDay, macros: { protein, carbs, fats }, slots: daySlots, bias, timing: x.timing, window: window2 };
+    return { day: x.day, kind: x.kind, kcal: kcalDay, macros: { protein, carbs, fats }, slots: daySlots, bias, timing: x.timing, window };
   });
 }
 function metabolicWeek(profile, userData, base, slots) {
@@ -50431,13 +50423,13 @@ async function checkRateLimit(env, request, endpoint) {
   const ip = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
   const config = RATE_LIMIT[endpoint];
   if (!config) return null;
-  const window2 = Math.floor(Date.now() / (config.windowSec * 1e3));
-  const key = `rl:${endpoint}:${ip}:${window2}`;
+  const window = Math.floor(Date.now() / (config.windowSec * 1e3));
+  const key = `rl:${endpoint}:${ip}:${window}`;
   const memCount = (memoryRateCounters.get(key) || 0) + 1;
   memoryRateCounters.set(key, memCount);
   if (memoryRateCounters.size > 5e3) {
     for (const k of memoryRateCounters.keys()) {
-      if (!k.endsWith(`:${window2}`)) memoryRateCounters.delete(k);
+      if (!k.endsWith(`:${window}`)) memoryRateCounters.delete(k);
     }
   }
   if (memCount > config.maxRequests) {
@@ -55978,7 +55970,7 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
     softKcal: WEEKLY_SOFT_KCAL,
     modificationCodes: COUNCIL_MODIFICATION_CODES.map((k) => `${k} (${PLAN_MODIFICATION_CODES[k]})`).join(", ")
   };
-  const review = (opinion2, round3) => reviewWeeklyOpinion(decision, opinion2, { ...ctx, adherence: decision.adherence }, round3);
+  const review = (opinion2, round3) => reviewWeeklyOpinion(decision, opinion2, ctx, round3);
   const { result, opinion, transcript } = await deliberate({
     ask: async () => normalizeWeeklyOpinion(await aiHelperJson(env, "admin_weekly_council_prompt", vars, data, "weekly_council")),
     rebut: async (op, objections) => normalizeWeeklyOpinion(await aiHelperJson(env, "admin_council_rebuttal_prompt", {

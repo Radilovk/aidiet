@@ -84,7 +84,8 @@ const fmt = (v) => String(v).replace('.', ',');
  * @param {object} profile
  * @param {{ pregnant?: boolean, lactating?: boolean, restrictK?: boolean }} [ctx]
  *   restrictK — бъбречна граница или висок калий в изследване: калият не се съветва нагоре
- * @returns {{ items: Array<{ code: string, label: string, value: number, target: number, pct: number, status: 'ok'|'borderline'|'low', text: string, advice: string }>, coverage: number }}
+ * @returns {{ items: Array<{ code: string, label: string, value: number, target: number|null, pct: number|null, status: string, text: string, advice: string }>, coverage: number }}
+ *   status: ok | borderline | low | limited (калият при бъбречна граница — без цел)
  */
 export function microReport(days, microPer100, profile, ctx = {}) {
   const total = Object.fromEntries(NUTRIENTS.map(k => [k, 0]));

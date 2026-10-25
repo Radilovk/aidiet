@@ -6075,7 +6075,10 @@ function previousWeighIn(userData, plan, history) {
  * Решението за следващата седмица — по правилата в nutrition-engine/monitoring.js.
  * @returns {{ adaptationLevel: number, calorieAdjust: number, kcal: number, modifications: string[],
  *   reasoning: string, changeSummary: string[], headline: string, motivationMessage: string,
- *   weight: string|null, weightKg: number|null, waistCm?: number|null, weeklyChangeKg: number|null, followed: boolean, adherence: number|null }}
+ *   weight: string|null, weightKg: number|null, waistCm?: number|null, weeklyChangeKg: number|null, followed: boolean, adherence: number|null,
+ *   context: { checkin: any, kcal: number, tdee: number, floorKcal: number, baseKcal: number, direction: string, goalModel: any },
+ *   council?: { verdict: string, concerns: string[], transcript: any[], algorithm: { calorieAdjust: number, modifications: string[] } } }}
+ *   context — с какво е изчислено решението (за съвета); council — обсъждането с AI, ако е имало
  */
 function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history) {
   const prev = previousWeighIn(userData, plan, history || []);
@@ -8473,7 +8476,7 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
     softKcal: WEEKLY_SOFT_KCAL,
     modificationCodes: COUNCIL_MODIFICATION_CODES.map(k => `${k} (${PLAN_MODIFICATION_CODES[k]})`).join(', '),
   };
-  const review = (opinion, round) => reviewWeeklyOpinion(decision, opinion, { ...ctx, adherence: decision.adherence }, round);
+  const review = (opinion, round) => reviewWeeklyOpinion(decision, opinion, ctx, round);
   const { result, opinion, transcript } = await deliberate({
     ask: async () => normalizeWeeklyOpinion(await aiHelperJson(env, 'admin_weekly_council_prompt', vars, data, 'weekly_council')),
     rebut: async (op, objections) => normalizeWeeklyOpinion(await aiHelperJson(env, 'admin_council_rebuttal_prompt', {
