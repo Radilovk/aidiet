@@ -81,6 +81,10 @@ export function referenceWeightKg(profile) {
 
 export function proteinPerKg(profile) {
   let perKg = PROTEIN_PER_KG_BY_GOAL[profile.goal] ?? DEFAULT_PROTEIN_PER_KG;
+  // Посоката от модела на целта: при дефицит и смяна на състава белтъкът пази
+  // мускулите, при покачване ги гради — каквато и да е целта по етикет.
+  if (profile.direction === 'lose' || profile.direction === 'recomp') perKg = Math.max(perKg, PROTEIN_PER_KG_BY_GOAL.LOSS);
+  if (profile.direction === 'gain') perKg = Math.max(perKg, PROTEIN_PER_KG_BY_GOAL.GAIN);
   const band = profile.activity?.sportBand || 0;
   if (band >= 3) perKg += 0.3;
   else if (band >= 2) perKg += 0.2;

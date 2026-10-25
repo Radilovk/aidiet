@@ -312,9 +312,14 @@
         return adh != null && adh >= 50;
     }
 
-    function weekSummary(allData, todayKey) {
+    /**
+     * @param {string} [todayKey] днешният ден (кой ден още не е свършил)
+     * @param {string} [endKey] последният ден на седмицата (по подразбиране — днес;
+     *   прегледът подава вчера, за да оценява завършената седмица)
+     */
+    function weekSummary(allData, todayKey, endKey) {
         todayKey = todayKey || dateKey(new Date());
-        var days = buildLast7Days(allData, todayKey);
+        var days = buildLast7Days(allData, endKey || todayKey);
         var recorded = days.filter(function (d) { return !!d.rec; });
         var scores = days.map(function (d) { return d.rec ? calcDayScore(d.rec, todayKey) : null; });
         var valid = scores.filter(function (s) { return s && s.score != null; });
@@ -322,7 +327,11 @@
             ? Math.round(valid.reduce(function (a, s) { return a + s.score; }, 0) / valid.length * 10) / 10
             : null;
         var engagementPct = avg(recorded.map(function (d) { return calcDayScore(d.rec, todayKey).engPct; })) || 0;
-        var mealAdh = days.map(function (d) { return dayMealAdherence(d.rec); }).filter(function (v) { return v != null; });
+        // Днешният ден още не е свършил: влиза само ако вече е изцяло отметнат (както на сървъра).
+        var mealAdh = days.map(function (d) {
+            var v = dayMealAdherence(d.rec);
+            return d.key < todayKey || v === 100 ? v : null;
+        }).filter(function (v) { return v != null; });
         var totalExtraCals = days.reduce(function (s, d) { return s + extraCalsOf(d.rec); }, 0);
         // Нетният баланс — само за завършени дни с поне половината хранения отметнати:
         // неотметнато хранене не значи неизядено, а днешният ден още не е свършил.

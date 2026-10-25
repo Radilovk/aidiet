@@ -219,6 +219,8 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   if (weights.length) {
     const w = weights.reduce((s, f) => s + Number(f.value), 0) / weights.length;
     checkin.weightKg = Math.round(w * 10) / 10;
+    // В колко различни дни е мерено — от това зависи дали везната бие въведеното число.
+    checkin.weightDays = new Set(weights.map(f => dayOf(f.at)).filter(Boolean)).size;
   }
   const intake = dailyMeanRanked(facts, 'intake', 7, now);
   if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);

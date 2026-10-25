@@ -166,7 +166,7 @@ export function calculateTDEE(bmr, activityLevel) {
 export function calculateMacronutrientRatios(data, _activityScore, tdee = null) {
   const profile = compileProfile(data);
   const maintenance = Number(tdee) || (data.gender === 'Мъж' ? 30 : 28) * (parseFloat(data.weight) || 70);
-  const intake = computeIntakeTarget(maintenance, data.goal, calculateSafeDeficit(maintenance, data.goal))
+  const intake = computeIntakeTarget(maintenance, data.goal, calculateSafeDeficit(maintenance, data))
     || maintenance;
   // Изместването от клиничния протокол е в macroTargetsFor — един източник.
   const targets = macroTargetsFor(profile, intake);
@@ -188,6 +188,21 @@ export function calculateMacronutrientRatios(data, _activityScore, tdee = null) 
  */
 export function calculateSafeDeficit(tdee, goal) {
   const MAX_DEFICIT_PERCENT = 0.25; // 25% maximum
+
+  // Целият профил: посоката и силата идват от модела на целта (цел + тяло + клинична рамка).
+  if (goal && typeof goal === 'object' && !Array.isArray(goal)) {
+    const model = compileProfile(goal).goalModel;
+    const pct = Math.max(-MAX_DEFICIT_PERCENT * 100, model.intakePct);
+    return {
+      targetCalories: Math.round(tdee * (1 + pct / 100)),
+      deficitPercent: Math.max(0, -pct),
+      maxDeficitCalories: Math.round(tdee * (1 - MAX_DEFICIT_PERCENT)),
+      direction: model.direction,
+      intakePct: pct,
+      goalCodes: model.codes,
+      note: model.reasons[0] || '',
+    };
+  }
   
   if (!goalIncludes(goal, 'Отслабване')) {
     return {

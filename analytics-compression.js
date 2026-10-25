@@ -276,7 +276,12 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
 
   // Спазване на храненията (отметнати / планирани, без свободното и напитката) —
   // това е числото за седмичното решение; ангажираността е отделен показател.
-  const mealAdh = days.map((d) => dayMealAdherence(d.rec)).filter((v) => v != null);
+  // Днешният ден още не е свършил: недоотметнатата вечеря не е пропусната вечеря.
+  // Влиза само ако вече е изцяло отметнат (оттам нагоре няма накъде).
+  const mealAdh = days.map((d) => {
+    const v = dayMealAdherence(d.rec);
+    return d.key < todayKey || v === 100 ? v : null;
+  }).filter((v) => v != null);
   const mealAdherence = mealAdh.length ? Math.round(mealAdh.reduce((a, b) => a + b, 0) / mealAdh.length) : null;
 
   const sleepByDay = days.map((d) => (

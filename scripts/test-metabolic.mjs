@@ -118,7 +118,12 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
   block({ compensationMethods: ['Гладуване'] }, 'компенсиране с гладуване');
   block({ age: '72' }, 'възраст над 70');
   block({ weight: '55', height: '180' }, 'ИТМ под 18,5');
-  block({ goal: 'Мускулна маса' }, 'цел мускулна маса');
+  // Мускулна маса при слабо тяло и тренировки е покачване (излишък) — прозорецът спира.
+  block({ goal: 'Мускулна маса', weight: '72' }, 'покачване на мускулна маса');
+  // При ИТМ 27 същата цел е смяна на състава — без излишък, прозорецът е съвместим.
+  ok(setup({ goal: 'Мускулна маса', dietPreference: ['Фастинг'] }).mw.fasting.active, 'мускулна маса при ИТМ 27 (смяна на състава): прозорецът е позволен');
+  // Антицелулит при нормално тегло не е сваляне — без по-лекия ден.
+  ok(!setup({ goal: 'Антицелулитна програма', weight: '72', dietPreference: ['Фастинг'] }).mw.fasting.lowDay, 'антицелулит при нормално тегло: без по-лек ден');
   const t2d = setup({ dietPreference: ['Фастинг'], medicalConditions: ['Диабет'] });
   ok(t2d.mw.fasting.protocol === 'tre12' && !t2d.mw.fasting.lowDay, 'диабет без лекарства: най-много 12:12, без лек ден');
 }
@@ -181,6 +186,24 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
   const a = buildNutritionPlan(BASE, { kcal: KCAL, seed: 'm' });
   const b = buildNutritionPlan(BASE, { kcal: KCAL, seed: 'm' });
   ok(JSON.stringify(a.weekPlan) === JSON.stringify(b.weekPlan) && a.metabolicPlan.micro.items.length === 6, 'шест показателя, менюто е детерминистично');
+}
+
+// ── Микронутриенти: нуждите и безопасността ─────────────────────────────
+{
+  const woman = compileProfile({ gender: 'Жена', age: '30', height: '165', weight: '62', goal: 'Подобряване на здравето' });
+  ok(microNeeds(woman).fe === 18 && microNeeds(woman, { pregnant: true }).fe === 27, 'бременност: желязо 27 мг');
+  ok(microNeeds(woman, { lactating: true }).fe === 9 && microNeeds(woman, { lactating: true }).b12 === 2.8, 'кърмене: желязо 9 мг, B12 2,8');
+  ok(microNeeds(woman, { pregnant: true }).o3 === 450, 'бременност: омега-3 450 мг (DHA)');
+  const days = [{ meals: [{ foods: [{ id: 'x', grams: 100 }] }] }];
+  const low = microReport(days, () => ({ fe: 1, ca: 10, mg: 10, k: 100, b12: 0.1, o3: 0 }), woman);
+  const k = low.items.find(i => i.code === 'k');
+  ok(k.status === 'low' && /Източници/.test(k.advice), 'нисък калий — съвет за източници');
+  const kidney = microReport(days, () => ({ fe: 1, ca: 10, mg: 10, k: 100, b12: 0.1, o3: 0 }), woman, { restrictK: true }).items.find(i => i.code === 'k');
+  ok(kidney.status === 'limited' && !/банан|картоф/.test(kidney.advice), 'бъбречна граница/висок калий — калият не се съветва нагоре');
+  const kidneyPlan = buildNutritionPlan({ gender: 'Жена', age: '60', height: '165', weight: '70', goal: 'Подобряване на здравето', _enrichment: { safety: { proteinCapPerKg: 0.8 } } }, { kcal: 1800, seed: 1 });
+  ok(kidneyPlan.metabolicPlan.micro.items.find(i => i.code === 'k').status === 'limited', 'планът: бъбречна граница стига до отчета');
+  const pregPlan = buildNutritionPlan({ gender: 'Жена', age: '30', height: '165', weight: '62', clinicalProtocol: 'postpartum_lactation', postpartumStatus: 'Бременна' }, { kcal: 2300, seed: 1 });
+  ok(pregPlan.metabolicPlan.micro.items.find(i => i.code === 'fe').target === 27, 'планът: бременност стига до нуждите');
 }
 
 console.log(`metabolic: ${pass} ok, ${fail} грешки`);

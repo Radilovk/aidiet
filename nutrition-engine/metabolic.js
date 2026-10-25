@@ -63,21 +63,32 @@ const OTHER_SESSION = { id: 'other', met: 5.0, fuel: 'mixed', label: 'трени
 const FUEL_CARB_SHARE = { glycolytic: 0.85, endurance: 0.8, mixed: 0.7, aerobic: 0.5, low: 0.3 };
 
 /**
- * Колко от разхода на тренировката се връща в същия ден, по цел:
- * отслабване — 60% (тренировката е качествена, дефицитът е в почивните дни);
- * стягане/рекомпозиция — 90% (горивото е в тренировката, дефицитът — извън нея);
- * мускулна маса — 100%; здраве — 80%.
+ * Посоката на тялото — от модела на целта (goal-model.js: целта в контекста на
+ * профила), не от етикета: антицелулит при нормално тегло не е отслабване,
+ * мускулна маса при наднормено тегло е смяна на състава. Без модела (стар
+ * профил) — по кода на целта, както досега.
  */
-const COUPLING_BY_GOAL = { LOSS: 0.6, VISC: 0.6, CELL: 0.6, PP: 0.6, TONE: 0.9, GAIN: 1.0 };
-const DEFAULT_COUPLING = 0.8;
+const GOAL_DIRECTION = { LOSS: 'lose', VISC: 'lose', CELL: 'lose', PP: 'lose', TONE: 'recomp', GAIN: 'gain' };
+export function directionOf(profile) {
+  return profile?.direction || GOAL_DIRECTION[profile?.goal] || 'maintain';
+}
+
+/**
+ * Колко от разхода на тренировката се връща в същия ден, по посока:
+ * сваляне — 60% (тренировката е качествена, дефицитът е в почивните дни);
+ * смяна на състава — 90% (горивото е в тренировката, дефицитът — извън нея);
+ * покачване — 100%; задържане — 80%.
+ */
+const COUPLING_BY_DIRECTION = { lose: 0.6, recomp: 0.9, gain: 1.0, maintain: 0.8 };
 
 /**
  * Разлика във въглехидратите между тренировъчен и почивен ден при еднакви
  * калории — дял от средните въглехидрати. По-голяма при метаболитен риск и
- * отслабване: там почивният ден на по-малко въглехидрати има най-голяма полза.
+ * сваляне: там почивният ден на по-малко въглехидрати има най-голяма полза.
+ * Коремните мазнини (висцерални) — най-голяма.
  */
-const CARB_SWING_BY_GOAL = { LOSS: 0.25, VISC: 0.3, CELL: 0.25, TONE: 0.25, GAIN: 0.15 };
-const DEFAULT_CARB_SWING = 0.15;
+const CARB_SWING_BY_DIRECTION = { lose: 0.25, recomp: 0.25, gain: 0.15, maintain: 0.15 };
+const VISCERAL_CARB_SWING = 0.3;
 const METABOLIC_RISK = ['IR', 'T2D', 'METS', 'PCOS', 'NAFLD', 'OB', 'OBS'];
 
 /** Обичайни дни, когато не са научени: равномерно през седмицата (1 = понеделник). */
@@ -153,13 +164,14 @@ export function fastingPlan(profile, userData = {}, week = { days: [], slot: nul
   const behaviors = new Set(profile.behaviors || []);
   const clinical = new Set(profile.clinical || []);
   const bmi = profile.weightKg && profile.heightCm ? profile.weightKg / ((profile.heightCm / 100) ** 2) : null;
-  if (clinical.has('PP') || profile.goal === 'PP' || profile.protocol === 'postpartum_lactation') blocked.push('бременност/кърмене');
+  if (clinical.has('PP') || (profile.goals || [profile.goal]).includes('PP') || profile.protocol === 'postpartum_lactation') blocked.push('бременност/кърмене');
   if ((profile.adjustments || []).some(a => /^MEDS_NO_FASTING/.test(a))) blocked.push('лекарства с риск от хипогликемия');
   if (behaviors.has('CMP')) blocked.push('компенсиране с гладуване');
   if (behaviors.has('EMO') && behaviors.has('OVR')) blocked.push('емоционално хранене с преяждане');
   if (bmi != null && bmi < 18.5) blocked.push('ниско тегло');
   if (profile.age != null && (profile.age < 18 || profile.age >= 70)) blocked.push('възраст');
-  if (profile.goal === 'GAIN') blocked.push('цел мускулна маса (енергията се събира трудно в кратък прозорец)');
+  // Излишъкът (покачване) трудно се изяжда в кратък прозорец; смяната на състава — може.
+  if (directionOf(profile) === 'gain') blocked.push('покачване на мускулна маса (енергията се събира трудно в кратък прозорец)');
   const chose = behaviors.has('IF');
   const early = /сутрешен/i.test(String(userData.chronotype || '')) || week.slot === 'am';
   if (blocked.length) {
@@ -175,7 +187,7 @@ export function fastingPlan(profile, userData = {}, week = { days: [], slot: nul
     : `${hours === 12 ? '08:00–20:00' : hours === 10 ? '10:00–20:00' : '12:00–20:00'}`;
   // Един по-лек ден (~75%) в седмицата — при цел отслабване и избран фастинг, в почивен ден.
   let lowDay = null;
-  if (chose && ['LOSS', 'VISC', 'CELL'].includes(profile.goal) && !gentle) {
+  if (chose && directionOf(profile) === 'lose' && !gentle) {
     // Почивен ден, след който няма тренировка (гликогенът за нея не се изчерпва);
     // неделята е денят със свободното хранене — тя не е лека.
     const rest = [1, 2, 3, 4, 5, 6].filter(d => !week.days.includes(d));
@@ -225,10 +237,12 @@ export function weekTargets(profile, base, week, fasting, slots) {
   const sexFloor = Math.round((KCAL_FLOOR[profile.sex] || 1200) * 1.06);
   const floor = Math.max(sexFloor, r0(K * DAY_MIN_SHARE));
   const metabolicRisk = (profile.clinical || []).some(c => METABOLIC_RISK.includes(c)) || profile.protocol === 'insulin_resistance';
-  const carbSensitive = metabolicRisk || ['LOSS', 'VISC', 'CELL'].includes(profile.goal);
+  const direction = directionOf(profile);
+  const carbSensitive = metabolicRisk || direction === 'lose';
   const w = week.confidence || 0;
-  const coupling = (COUPLING_BY_GOAL[profile.goal] ?? DEFAULT_COUPLING) * w;
-  let swing = (CARB_SWING_BY_GOAL[profile.goal] ?? DEFAULT_CARB_SWING) * w * (metabolicRisk ? 1.3 : 1);
+  const coupling = (COUPLING_BY_DIRECTION[direction] ?? COUPLING_BY_DIRECTION.maintain) * w;
+  const visceral = direction === 'lose' && (profile.goals || [profile.goal]).includes('VISC');
+  let swing = (visceral ? VISCERAL_CARB_SWING : CARB_SWING_BY_DIRECTION[direction] ?? CARB_SWING_BY_DIRECTION.maintain) * w * (metabolicRisk ? 1.3 : 1);
   if (style === 'keto') swing = 0; // кето пази кетозата всеки ден — въглехидратите не се циклират
   const carbShare = FUEL_CARB_SHARE[week.fuel] ?? 0.6;
   // Таванът на деня: и спрямо средното, и спрямо това, което храненията побират (~650 kcal средно).

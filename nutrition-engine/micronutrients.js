@@ -17,12 +17,25 @@ const NUTRIENTS = ['fe', 'ca', 'mg', 'k', 'b12', 'o3'];
 const LABEL = { fe: 'Желязо', ca: 'Калций', mg: 'Магнезий', k: 'Калий', b12: 'Витамин B12', o3: 'Омега-3 (EPA+DHA)' };
 const UNIT = { fe: 'мг', ca: 'мг', mg: 'мг', k: 'мг', b12: 'µг', o3: 'мг' };
 
-/** Дневната нужда по пол, възраст и модел на хранене. */
-export function microNeeds(profile) {
+/**
+ * Дневната нужда по пол, възраст, модел на хранене — и бременност/кърмене
+ * (NASEM DRI: бременност желязо 27 мг, магнезий 350–360, калий 2900, B12 2,6;
+ * кърмене желязо 9 мг — без менструация, калий 2800, B12 2,8; EFSA: +100–200 мг
+ * DHA при двете → омега-3 450 мг).
+ * @param {{ pregnant?: boolean, lactating?: boolean }} [ctx]
+ */
+export function microNeeds(profile, ctx = {}) {
   const age = Number(profile.age) || 40;
   const female = profile.sex === 'F';
   const plant = profile.diet?.pattern === 'vegetarian' || profile.diet?.pattern === 'vegan';
-  const fe = (female && age < 51 ? 18 : 8) * (plant ? 1.8 : 1);
+  const plantFe = plant ? 1.8 : 1;
+  if (female && ctx.pregnant) {
+    return { fe: 27 * plantFe, ca: 1000, mg: age < 31 ? 350 : 360, k: 2900, b12: 2.6, o3: 450 };
+  }
+  if (female && ctx.lactating) {
+    return { fe: 9 * plantFe, ca: 1000, mg: age < 31 ? 310 : 320, k: 2800, b12: 2.8, o3: 450 };
+  }
+  const fe = (female && age < 51 ? 18 : 8) * plantFe;
   return {
     fe,
     ca: (female && age >= 51) || age >= 71 ? 1200 : 1000,
@@ -69,9 +82,11 @@ const fmt = (v) => String(v).replace('.', ',');
  * @param {Array<{ meals: Array<{ foods: Array<{ id: string, grams: number }> }> }>} days
  * @param {(id: string) => any} microPer100
  * @param {object} profile
+ * @param {{ pregnant?: boolean, lactating?: boolean, restrictK?: boolean }} [ctx]
+ *   restrictK — бъбречна граница или висок калий в изследване: калият не се съветва нагоре
  * @returns {{ items: Array<{ code: string, label: string, value: number, target: number, pct: number, status: 'ok'|'borderline'|'low', text: string, advice: string }>, coverage: number }}
  */
-export function microReport(days, microPer100, profile) {
+export function microReport(days, microPer100, profile, ctx = {}) {
   const total = Object.fromEntries(NUTRIENTS.map(k => [k, 0]));
   let grams = 0;
   let known = 0;
@@ -87,11 +102,20 @@ export function microReport(days, microPer100, profile) {
     }
   }
   const n = days.length || 1;
-  const needs = microNeeds(profile);
+  const needs = microNeeds(profile, ctx);
   const items = NUTRIENTS.map((code) => {
     const value = total[code] / n;
     const target = needs[code];
     const pct = Math.round(value / target * 100);
+    // При бъбречна граница или висок калий нуждата не е цел — калият не се съветва нагоре.
+    if (code === 'k' && ctx.restrictK) {
+      const shownK = Math.round(value);
+      return {
+        code, label: LABEL[code], value: shownK, target: null, pct: null, status: 'limited',
+        text: `${LABEL[code]}: ~${fmt(shownK)} ${UNIT[code]} дневно.`,
+        advice: 'Калият не се увеличава — по изследването (бъбречна функция или калий) количеството се определя от лекар.',
+      };
+    }
     const status = pct >= 90 ? 'ok' : pct >= 67 ? 'borderline' : 'low';
     const shown = code === 'b12' || code === 'fe' ? Math.round(value * 10) / 10 : Math.round(value);
     const shownTarget = code === 'fe' ? Math.round(target * 10) / 10 : target;

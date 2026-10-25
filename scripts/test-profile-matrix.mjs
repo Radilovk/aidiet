@@ -82,7 +82,7 @@ function intakeOf(data) {
   const bmr = calculateBMR(data);
   const tdee = calculateTDEE(bmr, calculateUnifiedActivityScore(data).combinedScore);
   const min = data.gender === 'Мъж' ? 1500 : 1200;
-  return Math.max(min, computeIntakeTarget(tdee, data.goal, calculateSafeDeficit(tdee, data.goal)) || tdee);
+  return Math.max(min, computeIntakeTarget(tdee, data.goal, calculateSafeDeficit(tdee, data)) || tdee);
 }
 
 function makeProfile(i) {

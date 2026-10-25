@@ -178,6 +178,10 @@ export function applyBoundedMetabolicReview(analysis, options = {}) {
 export function computeIntakeTarget(tdee, goal, deficitData = {}) {
   const maintenance = Math.round(Number(tdee) || 0);
   if (!maintenance) return 0;
+  // Пресметнато по модела на целта (energy.calculateSafeDeficit с профила) — то е решението.
+  if (deficitData && deficitData.direction && Number(deficitData.targetCalories) > 0) {
+    return Math.round(Number(deficitData.targetCalories));
+  }
 
   if (goalIncludes(goal, 'Мускулна маса')) {
     return Math.round(maintenance * 1.1);

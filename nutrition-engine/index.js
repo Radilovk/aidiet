@@ -8,7 +8,7 @@
  * Всичко е детерминистично: едни и същи данни дават един и същ план.
  */
 
-import { compileProfile, slotsFor } from '../profile-code.js';
+import { compileProfile, slotsFor, reproductiveStatus } from '../profile-code.js';
 import { macroTargetsFor } from '../macro-targets.js';
 import { extractQuestionnaireBlockedTerms } from '../questionnaire-engine-map.js';
 import { interactionsFor } from '../drug-interactions.js';
@@ -222,7 +222,11 @@ export function buildNutritionPlan(userData, options) {
   const weekFoods = week.days.map(d => ({ meals: d.foods || [] }));
   const quality = menuQuality(weekFoods, { food, fiberPer100 }, profile, kcal);
   // Микронутриентите — само измерване на готовото меню (не влизат в подбора).
-  const micro = microReport(weekFoods, microPer100, profile);
+  // Нуждите — и при бременност/кърмене; при бъбречна граница или висок калий калият не се съветва нагоре.
+  const repro = reproductiveStatus(userData || {});
+  const enr = userData?._enrichment || {};
+  const restrictK = Number(enr.safety?.proteinCapPerKg) > 0 || (enr.labs || []).some(l => l.key === 'potassium' && l.status === 'high');
+  const micro = microReport(weekFoods, microPer100, profile, { pregnant: repro.pregnant, lactating: repro.lactating, restrictK });
   const metabolicPlan = metabolic ? {
     training: { days: metabolic.week.days, source: metabolic.week.source, slot: metabolic.week.slot, fuel: metabolic.week.fuel, types: metabolic.week.types, sessionKcal: metabolic.week.sessionKcal },
     fasting: metabolic.fasting,

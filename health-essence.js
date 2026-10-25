@@ -193,6 +193,30 @@ export function trainingPattern(facts, now = new Date()) {
   };
 }
 
+/**
+ * Тренировките за последните 7 дни от вечерния въпрос и устройствата — за
+ * седмичния преглед (за да не се пита за известното). Само при поне 5
+ * отговорени дни от седмицата.
+ * @returns {null | { count: number, answered: number }}
+ */
+export function trainingLastWeek(facts, now = new Date()) {
+  const from = now.getTime() - 7 * DAY_MS;
+  const days = new Map();
+  for (const f of facts || []) {
+    const t = Date.parse(f.at);
+    if (!(t >= from) || t > now.getTime() || f.status === 'pending') continue;
+    const day = dayOf(f.at);
+    if (f.kind === 'train_check') {
+      if (days.get(day)?.device) continue;
+      days.set(day, { yes: Number(f.value) > 0 });
+    } else if (f.kind === 'workout' && TRACKED_SOURCES.has(f.source)) {
+      days.set(day, { yes: true, device: true });
+    }
+  }
+  if (days.size < 5) return null;
+  return { count: [...days.values()].filter(d => d.yes).length, answered: days.size };
+}
+
 /** „пн, ср, пт“ */
 export function weekdayList(days) {
   // От понеделник към неделя.
@@ -279,6 +303,8 @@ export function computeEssence(facts, now = new Date(), ctx = {}) {
   }
   // Тренировъчните дни от вечерния въпрос: честотата влиза в енергията (както
   // при устройство), денят от седмицата и часът — в съветите и прегледа.
+  const lastWeek = trainingLastWeek(facts, now);
+  if (lastWeek) checkin.workoutsWeek = lastWeek.count;
   const training = trainingPattern(facts, now);
   if (training) {
     metrics.training = training;

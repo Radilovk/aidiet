@@ -5894,12 +5894,12 @@
                 card.setAttribute('aria-label', head + ' — подробности');
                 const openEnergy = function() {
                     const lines = (mp && mp.principles) || [];
-                    const quality = (mp && mp.quality && mp.quality.items) || [];
                     const micro = (mp && mp.micro && mp.micro.items) || [];
-                    const mark = function(q) { return q.status === 'ok' ? '✓ ' : q.status === 'borderline' ? '≈ ' : '• '; };
+                    // Клиентът вижда решението и какво да направи сам. Качеството на менюто е работа
+                    // на двигателя (за специалиста), а измерванията, които са наред, не са действие.
+                    const microTodo = micro.filter(function(q) { return q.status !== 'ok' && q.advice; });
                     openModal(head, lines
-                        .concat(quality.length ? ['Качество на менюто:'].concat(quality.map(function(q) { return mark(q) + q.text; })) : [])
-                        .concat(micro.length ? ['Минерали и витамини (средно за седмицата):'].concat(micro.map(function(q) { return mark(q) + q.text + (q.advice ? ' ' + q.advice : ''); })) : [])
+                        .concat(microTodo.length ? ['Какво да добавите:'].concat(microTodo.map(function(q) { return '• ' + q.label + ' — ' + q.advice; })) : [])
                         .join('\n\n'), '', null, null, null, null);
                 };
                 card.addEventListener('click', openEnergy);
@@ -6380,6 +6380,16 @@
             if (notice.cycleNumber != null && notice.adaptLevel != null) {
                 try {
                     var wInfo = JSON.parse(localStorage.getItem('gameWeeklyAI') || '{}');
+                    // Автоматичният преглед е седмичният преглед — следващият е след седмица, не сега.
+                    if (notice.auto) {
+                        var atMs = Date.parse(notice.at) || Date.now();
+                        wInfo.feedbackStatus = 'submitted';
+                        wInfo.cycleNumber = notice.cycleNumber;
+                        wInfo.lastRun = new Date(atMs).toISOString();
+                        wInfo.nextDue = new Date(atMs + 7 * 24 * 60 * 60 * 1000).toISOString();
+                        delete wInfo.pendingQuestions;
+                        delete wInfo.pendingAnswers;
+                    }
                     var wHist = (wInfo.adaptationHistory || []).filter(function(h) {
                         return h.cycleNumber !== notice.cycleNumber;
                     }).slice(-4);
@@ -11771,7 +11781,7 @@
             // Оценява се завършената седмица (до вчера): днешният ден още не е свършил
             // и непопълнената вечер не бива да го рисува в червено.
             var y = new Date(); y.setDate(y.getDate() - 1);
-            var sum = GS.weekSummary(allData, GS.dateKey(y));
+            var sum = GS.weekSummary(allData, GS.dateKey(new Date()), GS.dateKey(y));
             var noDataDays = sum.days.filter(function(day) {
                 if (!day.rec) return true;
                 var ds = GS.calcDayScore(day.rec);
@@ -12274,7 +12284,7 @@
             document.body.appendChild(overlay);
         }
 
-        function showWeeklySubmittedModal() {
+        function showWeeklySubmittedModal(text) {
             var old = document.getElementById('gameWeeklyAdaptModal');
             if (old) old.remove();
             var overlay = document.createElement('div');
@@ -12286,7 +12296,7 @@
                 + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = 'Отговорите са изпратени. Новото меню за седмицата влиза от утре сутрин — ще получите известие.';
+            msg.textContent = text || 'Отговорите са изпратени. Новото меню за седмицата влиза от утре сутрин — ще получите известие.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -12455,7 +12465,10 @@
                 loadingOverlay.remove();
                 if (qData.alreadySubmitted) {
                     finalizeWeeklyCycleOnSubmit(info.pendingQuestions || [], info.answers || [], qData.cycleNumber || info.pendingCycleNumber || ((info.cycleNumber || 0) + 1));
-                    showWeeklySubmittedModal();
+                    // Автоматичният преглед (без отговори, 3 дни след срока) вече е направил седмицата.
+                    showWeeklySubmittedModal(qData.auto
+                        ? 'Седмицата вече е настроена по отметките и данните от устройствата. Следващия път отговорете на въпросите — така корекцията е по-точна.'
+                        : null);
                     return;
                 }
                 var questions = qData.questions;
