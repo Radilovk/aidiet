@@ -380,7 +380,7 @@ export function describeMetabolicWeek(mw, profile) {
  *   пълнозърнести — поне половината от зърнените (DGA);
  *   белтък на основно хранене — над прага за мускулен синтез, ~0,3 г/кг и поне 20 г (Moore 2015);
  *   въглехидрати към фибри — до 10:1 (критерий за качествени въглехидрати, Mozaffarian 2013).
- * Витамини и минерали не се оценяват: базата има само макроси, фибри и натрий.
+ * Минералите и витамините — в micronutrients.js (само измерване).
  * @param {Array<{ foods: Array<{ id: string, grams: number }>, mealsProtein: number[] }>} days
  * @param {{ food: (id: string) => any, fiberPer100: (id: string) => number|null }} lib
  */

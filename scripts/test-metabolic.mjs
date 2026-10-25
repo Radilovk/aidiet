@@ -9,7 +9,8 @@ import { macroTargetsFor } from '../macro-targets.js';
 import { trainingWeek, fastingPlan, weekTargets, metabolicWeek, menuQuality } from '../nutrition-engine/metabolic.js';
 import { buildNutritionPlan, applyModifications } from '../nutrition-engine/index.js';
 import { buildEngineStrategy } from '../nutrition-engine/strategy.js';
-import { fiberPer100 } from '../nutrition-engine/fiber.js';
+import { fiberPer100, microPer100 } from '../nutrition-engine/fiber.js';
+import { microNeeds, microReport } from '../nutrition-engine/micronutrients.js';
 import { food } from '../nutrition-engine/knowledge.js';
 
 let pass = 0;
@@ -155,6 +156,31 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
   ok(q.items.find(i => i.code === 'oily_fish').value === 1, 'мазна риба: сьомгата се брои');
   ok(q.items.find(i => i.code === 'protein_meal').value === 50, 'белтък над прага в 1 от 2 основни хранения');
   ok(fiberPer100('pro_chicken_breast') === 0 && fiberPer100('pro_tempeh') === null, 'месо — 0 фибри; продукт според марката — без стойност');
+}
+
+// ── Микронутриенти: само измерване ───────────────────────────────────────
+{
+  const woman = compileProfile({ ...BASE, gender: 'Жена', age: '30' });
+  const older = compileProfile({ ...BASE, gender: 'Жена', age: '60' });
+  const vegan = compileProfile({ ...BASE, dietPreference: ['Веган'] });
+  ok(microNeeds(woman).fe === 18 && microNeeds(older).fe === 8 && microNeeds(older).ca === 1200, 'желязо и калций по пол и възраст (NASEM)');
+  ok(Math.abs(microNeeds(vegan).fe - 8 * 1.8) < 0.01, 'растително хранене: нуждата от желязо ×1,8');
+  ok(microPer100('pro_salmon').o3 > 1500 && microPer100('veg_spinach').fe > 2 && microPer100('eng_rice').fe < 0.5, 'стойностите от USDA (сьомга, спанак, необогатен ориз)');
+  const rep = microReport([{ meals: [{ foods: [{ id: 'veg_spinach', grams: 200 }, { id: 'dairy_yogurt', grams: 400 }] }] }], microPer100, woman);
+  const fe = rep.items.find(i => i.code === 'fe');
+  const ca = rep.items.find(i => i.code === 'ca');
+  ok(Math.abs(fe.value - Math.round((2.71 * 2 + 0.05 * 4) * 10) / 10) < 0.05 && ca.value === Math.round(99 * 2 + 121 * 4), 'сумата е грамове × стойност на 100 г');
+  ok(rep.coverage === 100, 'покритие 100% за храни с данни');
+
+  const vplan = buildNutritionPlan({ ...BASE, dietPreference: ['Веган'] }, { kcal: KCAL, seed: 2 });
+  const b12 = vplan.metabolicPlan.micro.items.find(i => i.code === 'b12');
+  ok(b12.status === 'low' && /добавка/.test(b12.advice), 'веган: B12 — ниско, съвет за добавка');
+  const kplan = buildNutritionPlan({ ...BASE, dietPreference: ['Кето'] }, { kcal: KCAL, seed: 2 });
+  ok(kplan.metabolicPlan.micro.items.every(i => !/бобови|картофи|банан|пълнозърнести/.test(i.advice)), 'кето: съветите не предлагат забранени за диетата храни');
+  // Измерването не пипа менюто: същият план със и без него.
+  const a = buildNutritionPlan(BASE, { kcal: KCAL, seed: 'm' });
+  const b = buildNutritionPlan(BASE, { kcal: KCAL, seed: 'm' });
+  ok(JSON.stringify(a.weekPlan) === JSON.stringify(b.weekPlan) && a.metabolicPlan.micro.items.length === 6, 'шест показателя, менюто е детерминистично');
 }
 
 console.log(`metabolic: ${pass} ok, ${fail} грешки`);

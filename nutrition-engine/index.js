@@ -18,7 +18,8 @@ import { planWeek, hashSeed } from './week-planner.js';
 import { GROUPS } from './knowledge.js';
 import { dayTotals } from './plan-shape.js';
 import { metabolicWeek, menuQuality, describeMetabolicWeek } from './metabolic.js';
-import { fiberPer100 } from './fiber.js';
+import { fiberPer100, microPer100 } from './fiber.js';
+import { microReport } from './micronutrients.js';
 import { food } from './knowledge.js';
 
 export { ENGINE_ID, ENGINE_VERSION, FREE_MEAL, dayTotals, weeklySchemeFromPlan, isEnginePlan, reconcileEnginePlan, recomputeMealFromDescription } from './plan-shape.js';
@@ -218,13 +219,17 @@ export function buildNutritionPlan(userData, options) {
       };
     }
   });
-  const quality = menuQuality(week.days.map(d => ({ meals: d.foods || [] })), { food, fiberPer100 }, profile, kcal);
+  const weekFoods = week.days.map(d => ({ meals: d.foods || [] }));
+  const quality = menuQuality(weekFoods, { food, fiberPer100 }, profile, kcal);
+  // Микронутриентите — само измерване на готовото меню (не влизат в подбора).
+  const micro = microReport(weekFoods, microPer100, profile);
   const metabolicPlan = metabolic ? {
     training: { days: metabolic.week.days, source: metabolic.week.source, slot: metabolic.week.slot, fuel: metabolic.week.fuel, types: metabolic.week.types, sessionKcal: metabolic.week.sessionKcal },
     fasting: metabolic.fasting,
     text: describeMetabolicWeek(metabolic, profile),
     quality,
-  } : { quality };
+    micro,
+  } : { quality, micro };
 
   return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods, metabolicPlan };
 }

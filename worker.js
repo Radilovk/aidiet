@@ -43286,126 +43286,1519 @@ function menuQuality(days, lib, profile, kcal) {
   return { items, fiberCoverage: Math.round(coverage * 100) };
 }
 
-// data/engine/fiber.json
-var fiber_default = {
-  about: "\u0424\u0438\u0431\u0440\u0438 (\u0433 \u043D\u0430 100 \u0433) \u0437\u0430 \u0445\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430 \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044F \u2014 USDA FoodData Central (SR Legacy), \u0432 \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435\u0442\u043E \u043E\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430: \u0437\u044A\u0440\u043D\u0435\u043D\u0438\u0442\u0435 \u0438 \u0431\u043E\u0431\u043E\u0432\u0438\u0442\u0435 \u2014 \u0441\u0433\u043E\u0442\u0432\u0435\u043D\u0438 (\u043E\u0441\u0432\u0435\u043D \u0445\u043B\u044F\u0431, \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438, \u0433\u0430\u043B\u0435\u0442\u0438 \u0438 \u0441\u0443\u0445\u0430 \u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430), \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435\u0442\u0435 \u2014 \u0441\u0443\u0440\u043E\u0432\u0438. \u0425\u0440\u0430\u043D\u0438\u0442\u0435 \u043E\u0442 \u0436\u0438\u0432\u043E\u0442\u0438\u043D\u0441\u043A\u0438 \u043F\u0440\u043E\u0438\u0437\u0445\u043E\u0434 \u0441\u0430 0 (\u0431\u0435\u0437 \u0444\u0438\u0431\u0440\u0438 \u043F\u043E \u043F\u0440\u0438\u0440\u043E\u0434\u0430, \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0441\u0435 \u043E\u0442 \u043A\u043E\u0434\u0430). null \u2014 \u043F\u0440\u043E\u0434\u0443\u043A\u0442, \u0447\u0438\u0439\u0442\u043E \u0441\u044A\u0441\u0442\u0430\u0432 \u0437\u0430\u0432\u0438\u0441\u0438 \u043E\u0442 \u043C\u0430\u0440\u043A\u0430\u0442\u0430; \u043D\u0435 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430. \u0411\u0438\u0431\u043B\u0438\u043E\u0442\u0435\u043A\u0430\u0442\u0430 (nutrition-library) \u043D\u0435 \u0441\u0435 \u043F\u043E\u043B\u0437\u0432\u0430 \u0437\u0430 \u0444\u0438\u0431\u0440\u0438: \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438\u0442\u0435 \u045D \u0441\u0430 \u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u0438 \u0447\u0435\u0441\u0442\u043E \u0441\u0430 \u0437\u0430\u043D\u0438\u0436\u0435\u043D\u0438.",
+// data/engine/micronutrients.json
+var micronutrients_default = {
+  about: "\u041C\u0438\u043A\u0440\u043E\u043D\u0443\u0442\u0440\u0438\u0435\u043D\u0442\u0438 \u043D\u0430 100 \u0433 \u0437\u0430 \u0445\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430 \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u044F \u2014 USDA FoodData Central, SR Legacy (2018-04), \u0437\u0430\u043F\u0438\u0441 \u043F\u043E fdc_id. \u0418\u0437\u0431\u043E\u0440\u044A\u0442 \u043D\u0430 \u0437\u0430\u043F\u0438\u0441: \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435\u0442\u043E (\u0441\u0443\u0440\u043E\u0432\u043E/\u0441\u0433\u043E\u0442\u0432\u0435\u043D\u043E) \u043F\u043E \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430; \u0437\u044A\u0440\u043D\u0435\u043D\u0438\u0442\u0435 \u2014 \u0431\u0435\u0437 \u0430\u043C\u0435\u0440\u0438\u043A\u0430\u043D\u0441\u043A\u043E\u0442\u043E \u043E\u0431\u043E\u0433\u0430\u0442\u044F\u0432\u0430\u043D\u0435 \u0441 \u0436\u0435\u043B\u044F\u0437\u043E (\u0443 \u043D\u0430\u0441 \u043D\u0435 \u0441\u0435 \u043E\u0431\u043E\u0433\u0430\u0442\u044F\u0432\u0430\u0442). \u0415\u0434\u0438\u043D\u0438\u0446\u0438: fiber \u0433, fe \u043C\u0433, ca \u043C\u0433, mg \u043C\u0433, k \u043C\u0433, b12 \xB5\u0433, o3 \u2014 EPA+DHA \u0432 \u043C\u0433 (\u0434\u044A\u043B\u0433\u043E\u0432\u0435\u0440\u0438\u0436\u043D\u0438 \u043E\u043C\u0435\u0433\u0430-3; ALA \u043E\u0442 \u0441\u0435\u043C\u0435\u043D\u0430 \u043D\u0435 \u0441\u0435 \u0431\u0440\u043E\u0438). null \u2014 \u043F\u0440\u043E\u0434\u0443\u043A\u0442, \u0447\u0438\u0439\u0442\u043E \u0441\u044A\u0441\u0442\u0430\u0432 \u0437\u0430\u0432\u0438\u0441\u0438 \u043E\u0442 \u043C\u0430\u0440\u043A\u0430\u0442\u0430. \u0413\u0435\u043D\u0435\u0440\u0438\u0440\u0430 \u0441\u0435 \u043E\u0442 \u0431\u0430\u0437\u0430\u0442\u0430, \u043D\u0435 \u0441\u0435 \u043F\u0438\u0448\u0435 \u043D\u0430 \u0440\u044A\u043A\u0430.",
   per100g: {
-    pro_tofu: 2.3,
-    pro_soy_mince: 17.5,
-    pro_tempeh: null,
-    leg_edamame: 5.2,
-    pro_whey: 0,
-    pro_plant_protein: null,
-    dairy_soy_yogurt: null,
-    dairy_soy_milk: 0.4,
+    cond_cinnamon: {
+      fdc: 171320,
+      fiber: 53.1,
+      fe: 8.32,
+      ca: 1002,
+      mg: 60,
+      k: 431,
+      b12: 0,
+      o3: 0
+    },
+    cond_coconut_milk: {
+      fdc: 170173,
+      fiber: null,
+      fe: 3.3,
+      ca: 18,
+      mg: 46,
+      k: 220,
+      b12: 0,
+      o3: 0
+    },
+    cond_ginger: {
+      fdc: 169231,
+      fiber: 2,
+      fe: 0.6,
+      ca: 16,
+      mg: 43,
+      k: 415,
+      b12: 0,
+      o3: 0
+    },
+    cond_honey: {
+      fdc: 169640,
+      fiber: 0.2,
+      fe: 0.42,
+      ca: 6,
+      mg: 2,
+      k: 52,
+      b12: 0,
+      o3: 0
+    },
+    cond_lemon_juice: {
+      fdc: 167747,
+      fiber: 0.3,
+      fe: 0.08,
+      ca: 6,
+      mg: 6,
+      k: 103,
+      b12: 0,
+      o3: 0
+    },
+    cond_mustard: {
+      fdc: 172234,
+      fiber: 4,
+      fe: 1.61,
+      ca: 63,
+      mg: 48,
+      k: 152,
+      b12: 0,
+      o3: 0
+    },
+    cond_soy: {
+      fdc: 174277,
+      fiber: 0.8,
+      fe: 1.45,
+      ca: 33,
+      mg: 74,
+      k: 435,
+      b12: 0,
+      o3: 0
+    },
+    cond_tomato_paste: {
+      fdc: 170459,
+      fiber: 4.1,
+      fe: 2.98,
+      ca: 36,
+      mg: 42,
+      k: 1014,
+      b12: 0,
+      o3: 0
+    },
+    cond_turmeric: {
+      fdc: 172231,
+      fiber: 22.7,
+      fe: 55,
+      ca: 168,
+      mg: 208,
+      k: 2080,
+      b12: 0,
+      o3: 0
+    },
+    cond_vinegar: {
+      fdc: 172237,
+      fiber: 0,
+      fe: 0.03,
+      ca: 6,
+      mg: 1,
+      k: 2,
+      b12: 0,
+      o3: 0
+    },
+    dairy_cheese: {
+      fdc: 173420,
+      fiber: 0,
+      fe: 0.65,
+      ca: 493,
+      mg: 19,
+      k: 62,
+      b12: 1.69,
+      o3: 0
+    },
+    dairy_cottage: {
+      fdc: 172179,
+      fiber: 0,
+      fe: 0.07,
+      ca: 83,
+      mg: 8,
+      k: 104,
+      b12: 0.43,
+      o3: 0
+    },
+    dairy_cottage_low: {
+      fdc: 173417,
+      fiber: 0,
+      fe: 0.14,
+      ca: 61,
+      mg: 5,
+      k: 86,
+      b12: 0.63,
+      o3: 0
+    },
+    dairy_greek: {
+      fdc: 171304,
+      fiber: 0,
+      fe: 0,
+      ca: 100,
+      mg: 11,
+      k: 141,
+      b12: 0.75,
+      o3: 4
+    },
+    dairy_kashkaval: {
+      fdc: 173414,
+      fiber: 0,
+      fe: 0.14,
+      ca: 710,
+      mg: 27,
+      k: 76,
+      b12: 1.1,
+      o3: 11
+    },
+    dairy_kefir: {
+      fdc: 170904,
+      fiber: 0,
+      fe: 0.04,
+      ca: 130,
+      mg: 12,
+      k: 164,
+      b12: 0.29,
+      o3: 0
+    },
+    dairy_milk: {
+      fdc: 171265,
+      fiber: 0,
+      fe: 0.03,
+      ca: 113,
+      mg: 10,
+      k: 132,
+      b12: 0.45,
+      o3: 0
+    },
+    dairy_milk_2: {
+      fdc: 171267,
+      fiber: 0,
+      fe: 0.02,
+      ca: 120,
+      mg: 11,
+      k: 140,
+      b12: 0.53,
+      o3: 0
+    },
+    dairy_milk_lf: {
+      fdc: 170872,
+      fiber: 0,
+      fe: 0.03,
+      ca: 125,
+      mg: 11,
+      k: 150,
+      b12: 0.47,
+      o3: 0
+    },
+    dairy_mozzarella: {
+      fdc: 170845,
+      fiber: 0,
+      fe: 0.44,
+      ca: 505,
+      mg: 20,
+      k: 76,
+      b12: 2.28,
+      o3: 0
+    },
+    dairy_parmesan: {
+      fdc: 170848,
+      fiber: 0,
+      fe: 0.82,
+      ca: 1184,
+      mg: 44,
+      k: 92,
+      b12: 1.2,
+      o3: 0
+    },
     dairy_plant_milk: null,
-    eng_bread_whole: 6,
-    eng_rye_bread: 5.8,
-    eng_bread: 2.7,
-    eng_tortilla: 2.4,
-    eng_rice_cakes: 4.2,
-    eng_oats: 10.1,
-    eng_buckwheat: 2.7,
-    eng_bulgur: 4.5,
-    eng_quinoa: 2.8,
-    eng_millet: 1.3,
-    eng_rice_brown: 1.8,
-    eng_rice: 0.4,
-    eng_rice_white: 0.4,
-    eng_pasta: 1.8,
-    eng_couscous: 1.4,
+    dairy_ricotta: {
+      fdc: 170851,
+      fiber: 0,
+      fe: 0.13,
+      ca: 206,
+      mg: 20,
+      k: 219,
+      b12: 0.85,
+      o3: 5
+    },
+    dairy_skyr: {
+      fdc: 170894,
+      fiber: 0,
+      fe: 0.07,
+      ca: 110,
+      mg: 11,
+      k: 141,
+      b12: 0.75,
+      o3: 0
+    },
+    dairy_soy_milk: {
+      fdc: 172446,
+      fiber: 0.6,
+      fe: 0.64,
+      ca: 25,
+      mg: 25,
+      k: 118,
+      b12: 0,
+      o3: 0
+    },
+    dairy_soy_yogurt: null,
+    dairy_yogurt: {
+      fdc: 171284,
+      fiber: 0,
+      fe: 0.05,
+      ca: 121,
+      mg: 12,
+      k: 155,
+      b12: 0.37,
+      o3: 0
+    },
+    dairy_yogurt_0: {
+      fdc: 170887,
+      fiber: 0,
+      fe: 0.09,
+      ca: 199,
+      mg: 19,
+      k: 255,
+      b12: 0.61,
+      o3: 0
+    },
+    dairy_yogurt_2: {
+      fdc: 170886,
+      fiber: 0,
+      fe: 0.08,
+      ca: 183,
+      mg: 17,
+      k: 234,
+      b12: 0.56,
+      o3: 0
+    },
+    dairy_yogurt_lf: {
+      fdc: 170886,
+      fiber: 0,
+      fe: 0.08,
+      ca: 183,
+      mg: 17,
+      k: 234,
+      b12: 0.56,
+      o3: 0
+    },
+    eng_bread: {
+      fdc: 172816,
+      fiber: 2.2,
+      fe: 1.4,
+      ca: 86,
+      mg: 26,
+      k: 120,
+      b12: 0,
+      o3: 0
+    },
+    eng_bread_whole: {
+      fdc: 172690,
+      fiber: 6,
+      fe: 3.1,
+      ca: 33,
+      mg: 81,
+      k: 314,
+      b12: 0,
+      o3: 0
+    },
+    eng_buckwheat: {
+      fdc: 170686,
+      fiber: 2.7,
+      fe: 0.8,
+      ca: 7,
+      mg: 51,
+      k: 88,
+      b12: 0,
+      o3: 0
+    },
+    eng_bulgur: {
+      fdc: 170287,
+      fiber: 4.5,
+      fe: 0.96,
+      ca: 10,
+      mg: 32,
+      k: 68,
+      b12: 0,
+      o3: 0
+    },
+    eng_corn: {
+      fdc: 169998,
+      fiber: 2,
+      fe: 0.52,
+      ca: 2,
+      mg: 37,
+      k: 270,
+      b12: 0,
+      o3: 0
+    },
+    eng_couscous: {
+      fdc: 169700,
+      fiber: 1.4,
+      fe: 0.38,
+      ca: 8,
+      mg: 8,
+      k: 58,
+      b12: 0,
+      o3: 0
+    },
     eng_lentil_pasta: null,
-    eng_potato: 1.8,
-    eng_sweet_potato: 3,
-    eng_corn: 2,
-    leg_peas: 5.5,
-    leg_lentils: 7.9,
-    leg_white_beans: 6.3,
-    leg_black_beans: 8.7,
-    leg_chickpeas: 7.6,
-    leg_hummus: 6,
-    veg_tomato: 1.2,
-    veg_cherry_tomato: 1.2,
-    veg_cucumber: 0.5,
-    veg_pepper: 2.1,
-    veg_lettuce: 1.3,
-    veg_arugula: 1.6,
-    veg_spinach: 2.2,
-    veg_broccoli: 2.6,
-    veg_cauliflower: 2,
-    veg_zucchini: 1,
-    veg_eggplant: 3,
-    veg_green_beans: 2.7,
-    veg_cabbage: 2.5,
-    veg_brussels: 3.8,
-    veg_mushrooms: 1,
-    veg_oyster_mushroom: 2.3,
-    veg_asparagus: 2.1,
-    veg_celery: 1.6,
-    veg_carrot: 2.8,
-    veg_beet: 2.8,
-    veg_pumpkin: 0.5,
-    veg_leek: 1.8,
-    veg_onion: 1.7,
-    fruit_apple: 2.4,
-    fruit_pear: 3.1,
-    fruit_orange: 2.4,
-    fruit_mandarin: 1.8,
-    fruit_grapefruit: 1.6,
-    fruit_peach: 1.5,
-    fruit_kiwi: 3,
-    fruit_banana: 2.6,
-    fruit_strawberry: 2,
-    fruit_raspberry: 6.5,
-    fruit_blueberry: 2.4,
-    fruit_grapes: 0.9,
-    fruit_watermelon: 0.4,
-    fruit_melon: 0.9,
-    fruit_pineapple: 1.4,
-    fruit_mango: 1.6,
-    fat_oil: 0,
-    fat_sunflower_oil: 0,
-    fat_coconut_oil: 0,
-    fat_butter: 0,
-    fat_avocado: 6.7,
-    fat_olives: 3.2,
-    fat_nuts: 7,
-    fat_almonds: 12.5,
-    fat_walnuts: 6.7,
-    fat_hazelnuts: 9.7,
-    fat_cashew: 3.3,
-    fat_peanuts_pistachio: 10.6,
-    fat_peanuts: 8.5,
-    fat_peanut_butter: 5,
-    fat_almond_butter: 10.3,
-    fat_tahini: 9.3,
-    fat_chia: 34.4,
-    fat_flax: 27.3,
-    fat_pumpkin_seeds: 6,
-    fat_sunflower_seeds: 8.6,
-    cond_coconut_milk: null,
-    cond_honey: 0.2,
-    sw_dark_chocolate: 10.9,
-    veg_garlic: 2.1,
-    fruit_lemon: 2.8,
-    cond_tomato_paste: 4.1,
-    cond_lemon_juice: 0.3,
-    cond_vinegar: 0,
-    cond_mustard: 4,
-    cond_soy: 0.8,
-    cond_cinnamon: 53.1,
-    cond_turmeric: 22.7,
-    cond_ginger: 2
+    eng_millet: {
+      fdc: 168871,
+      fiber: 1.3,
+      fe: 0.63,
+      ca: 3,
+      mg: 44,
+      k: 62,
+      b12: 0,
+      o3: 0
+    },
+    eng_oats: {
+      fdc: 173904,
+      fiber: 10.1,
+      fe: 4.25,
+      ca: 52,
+      mg: 138,
+      k: 362,
+      b12: 0,
+      o3: 0
+    },
+    eng_pasta: {
+      fdc: 168928,
+      fiber: 1.8,
+      fe: 0.5,
+      ca: 7,
+      mg: 18,
+      k: 44,
+      b12: 0,
+      o3: 0
+    },
+    eng_potato: {
+      fdc: 170440,
+      fiber: 1.8,
+      fe: 0.31,
+      ca: 8,
+      mg: 20,
+      k: 328,
+      b12: 0,
+      o3: 0
+    },
+    eng_quinoa: {
+      fdc: 168917,
+      fiber: 2.8,
+      fe: 1.49,
+      ca: 17,
+      mg: 64,
+      k: 172,
+      b12: 0,
+      o3: 15
+    },
+    eng_rice: {
+      fdc: 169757,
+      fiber: 0.4,
+      fe: 0.2,
+      ca: 10,
+      mg: 12,
+      k: 35,
+      b12: 0,
+      o3: 0
+    },
+    eng_rice_brown: {
+      fdc: 169704,
+      fiber: 1.6,
+      fe: 0.56,
+      ca: 3,
+      mg: 39,
+      k: 86,
+      b12: 0,
+      o3: 0
+    },
+    eng_rice_cakes: {
+      fdc: 168107,
+      fiber: 4.2,
+      fe: 1.49,
+      ca: 11,
+      mg: 131,
+      k: 428,
+      b12: 0,
+      o3: 0
+    },
+    eng_rice_white: {
+      fdc: 169757,
+      fiber: 0.4,
+      fe: 0.2,
+      ca: 10,
+      mg: 12,
+      k: 35,
+      b12: 0,
+      o3: 0
+    },
+    eng_rye_bread: {
+      fdc: 172684,
+      fiber: 5.8,
+      fe: 2.83,
+      ca: 73,
+      mg: 40,
+      k: 166,
+      b12: 0,
+      o3: 0
+    },
+    eng_sweet_potato: {
+      fdc: 168482,
+      fiber: 3,
+      fe: 0.61,
+      ca: 30,
+      mg: 25,
+      k: 337,
+      b12: 0,
+      o3: 0
+    },
+    eng_tortilla: {
+      fdc: 173242,
+      fiber: 3.3,
+      fe: 3.3,
+      ca: 39,
+      mg: 26,
+      k: 131,
+      b12: 0,
+      o3: 0
+    },
+    fat_almond_butter: {
+      fdc: 168588,
+      fiber: 10.3,
+      fe: 3.49,
+      ca: 347,
+      mg: 279,
+      k: 748,
+      b12: 0,
+      o3: 0
+    },
+    fat_almonds: {
+      fdc: 170567,
+      fiber: 12.5,
+      fe: 3.71,
+      ca: 269,
+      mg: 270,
+      k: 733,
+      b12: 0,
+      o3: 0
+    },
+    fat_avocado: {
+      fdc: 171705,
+      fiber: 6.7,
+      fe: 0.55,
+      ca: 12,
+      mg: 29,
+      k: 485,
+      b12: 0,
+      o3: 0
+    },
+    fat_butter: {
+      fdc: 173430,
+      fiber: 0,
+      fe: 0.02,
+      ca: 24,
+      mg: 2,
+      k: 24,
+      b12: 0.17,
+      o3: 0
+    },
+    fat_cashew: {
+      fdc: 170162,
+      fiber: 3.3,
+      fe: 6.68,
+      ca: 37,
+      mg: 292,
+      k: 660,
+      b12: 0,
+      o3: 0
+    },
+    fat_chia: {
+      fdc: 170554,
+      fiber: 34.4,
+      fe: 7.72,
+      ca: 631,
+      mg: 335,
+      k: 407,
+      b12: 0,
+      o3: 0
+    },
+    fat_coconut_oil: {
+      fdc: 171412,
+      fiber: 0,
+      fe: 0.05,
+      ca: 1,
+      mg: 0,
+      k: 0,
+      b12: 0,
+      o3: 0
+    },
+    fat_flax: {
+      fdc: 169414,
+      fiber: 27.3,
+      fe: 5.73,
+      ca: 255,
+      mg: 392,
+      k: 813,
+      b12: 0,
+      o3: 0
+    },
+    fat_hazelnuts: {
+      fdc: 170581,
+      fiber: 9.7,
+      fe: 4.7,
+      ca: 114,
+      mg: 163,
+      k: 680,
+      b12: 0,
+      o3: 0
+    },
+    fat_nuts: {
+      fdc: 170585,
+      fiber: 6.4,
+      fe: 3.73,
+      ca: 87,
+      mg: 227,
+      k: 643,
+      b12: 0,
+      o3: 9
+    },
+    fat_oil: {
+      fdc: 171413,
+      fiber: 0,
+      fe: 0.56,
+      ca: 1,
+      mg: 0,
+      k: 1,
+      b12: 0,
+      o3: 0
+    },
+    fat_olives: {
+      fdc: 169094,
+      fiber: 1.6,
+      fe: 6.28,
+      ca: 88,
+      mg: 4,
+      k: 8,
+      b12: 0,
+      o3: 0
+    },
+    fat_peanut_butter: {
+      fdc: 172470,
+      fiber: 5,
+      fe: 1.74,
+      ca: 49,
+      mg: 168,
+      k: 558,
+      b12: 0,
+      o3: 0
+    },
+    fat_peanuts: {
+      fdc: 172430,
+      fiber: 8.5,
+      fe: 4.58,
+      ca: 92,
+      mg: 168,
+      k: 705,
+      b12: 0,
+      o3: 0
+    },
+    fat_peanuts_pistachio: {
+      fdc: 170184,
+      fiber: 10.6,
+      fe: 3.92,
+      ca: 105,
+      mg: 121,
+      k: 1025,
+      b12: 0,
+      o3: 0
+    },
+    fat_pumpkin_seeds: {
+      fdc: 170556,
+      fiber: 6,
+      fe: 8.82,
+      ca: 46,
+      mg: 592,
+      k: 809,
+      b12: 0,
+      o3: 0
+    },
+    fat_sunflower_oil: {
+      fdc: 171025,
+      fiber: 0,
+      fe: 0,
+      ca: 0,
+      mg: 0,
+      k: 0,
+      b12: 0,
+      o3: 0
+    },
+    fat_sunflower_seeds: {
+      fdc: 170562,
+      fiber: 8.6,
+      fe: 5.25,
+      ca: 78,
+      mg: 325,
+      k: 645,
+      b12: 0,
+      o3: 14
+    },
+    fat_tahini: {
+      fdc: 170189,
+      fiber: 9.3,
+      fe: 8.95,
+      ca: 426,
+      mg: 95,
+      k: 414,
+      b12: 0,
+      o3: 0
+    },
+    fat_walnuts: {
+      fdc: 170187,
+      fiber: 6.7,
+      fe: 2.91,
+      ca: 98,
+      mg: 158,
+      k: 441,
+      b12: 0,
+      o3: 0
+    },
+    fruit_apple: {
+      fdc: 171688,
+      fiber: 2.4,
+      fe: 0.12,
+      ca: 6,
+      mg: 5,
+      k: 107,
+      b12: 0,
+      o3: 0
+    },
+    fruit_banana: {
+      fdc: 173944,
+      fiber: 2.6,
+      fe: 0.26,
+      ca: 5,
+      mg: 27,
+      k: 358,
+      b12: 0,
+      o3: 0
+    },
+    fruit_blueberry: {
+      fdc: 171711,
+      fiber: 2.4,
+      fe: 0.28,
+      ca: 6,
+      mg: 6,
+      k: 77,
+      b12: 0,
+      o3: 0
+    },
+    fruit_grapefruit: {
+      fdc: 174673,
+      fiber: 1.6,
+      fe: 0.08,
+      ca: 22,
+      mg: 9,
+      k: 135,
+      b12: 0,
+      o3: 0
+    },
+    fruit_grapes: {
+      fdc: 174683,
+      fiber: 0.9,
+      fe: 0.36,
+      ca: 10,
+      mg: 7,
+      k: 191,
+      b12: 0,
+      o3: 0
+    },
+    fruit_kiwi: {
+      fdc: 168153,
+      fiber: 3,
+      fe: 0.31,
+      ca: 34,
+      mg: 17,
+      k: 312,
+      b12: 0,
+      o3: 0
+    },
+    fruit_lemon: {
+      fdc: 167746,
+      fiber: 2.8,
+      fe: 0.6,
+      ca: 26,
+      mg: 8,
+      k: 138,
+      b12: 0,
+      o3: 0
+    },
+    fruit_mandarin: {
+      fdc: 169105,
+      fiber: 1.8,
+      fe: 0.15,
+      ca: 37,
+      mg: 12,
+      k: 166,
+      b12: 0,
+      o3: 0
+    },
+    fruit_mango: {
+      fdc: 169910,
+      fiber: 1.6,
+      fe: 0.16,
+      ca: 11,
+      mg: 10,
+      k: 168,
+      b12: 0,
+      o3: 0
+    },
+    fruit_melon: {
+      fdc: 169092,
+      fiber: 0.9,
+      fe: 0.21,
+      ca: 9,
+      mg: 12,
+      k: 267,
+      b12: 0,
+      o3: 0
+    },
+    fruit_orange: {
+      fdc: 169097,
+      fiber: 2.4,
+      fe: 0.1,
+      ca: 40,
+      mg: 10,
+      k: 181,
+      b12: 0,
+      o3: 0
+    },
+    fruit_peach: {
+      fdc: 169928,
+      fiber: 1.5,
+      fe: 0.25,
+      ca: 6,
+      mg: 9,
+      k: 190,
+      b12: 0,
+      o3: 0
+    },
+    fruit_pear: {
+      fdc: 169118,
+      fiber: 3.1,
+      fe: 0.18,
+      ca: 9,
+      mg: 7,
+      k: 116,
+      b12: 0,
+      o3: 0
+    },
+    fruit_pineapple: {
+      fdc: 169124,
+      fiber: 1.4,
+      fe: 0.29,
+      ca: 13,
+      mg: 12,
+      k: 109,
+      b12: 0,
+      o3: 0
+    },
+    fruit_raspberry: {
+      fdc: 167755,
+      fiber: 6.5,
+      fe: 0.69,
+      ca: 25,
+      mg: 22,
+      k: 151,
+      b12: 0,
+      o3: 0
+    },
+    fruit_strawberry: {
+      fdc: 167762,
+      fiber: 2,
+      fe: 0.41,
+      ca: 16,
+      mg: 13,
+      k: 153,
+      b12: 0,
+      o3: 0
+    },
+    fruit_watermelon: {
+      fdc: 167765,
+      fiber: 0.4,
+      fe: 0.24,
+      ca: 7,
+      mg: 10,
+      k: 112,
+      b12: 0,
+      o3: 0
+    },
+    leg_black_beans: {
+      fdc: 173735,
+      fiber: 8.7,
+      fe: 2.1,
+      ca: 27,
+      mg: 70,
+      k: 355,
+      b12: 0,
+      o3: 0
+    },
+    leg_chickpeas: {
+      fdc: 173757,
+      fiber: 7.6,
+      fe: 2.89,
+      ca: 49,
+      mg: 48,
+      k: 291,
+      b12: 0,
+      o3: 0
+    },
+    leg_edamame: {
+      fdc: 168411,
+      fiber: 5.2,
+      fe: 2.27,
+      ca: 63,
+      mg: 64,
+      k: 436,
+      b12: 0,
+      o3: 3
+    },
+    leg_hummus: {
+      fdc: 172454,
+      fiber: 4,
+      fe: 1.56,
+      ca: 49,
+      mg: 29,
+      k: 173,
+      b12: 0,
+      o3: 0
+    },
+    leg_lentils: {
+      fdc: 172421,
+      fiber: 7.9,
+      fe: 3.33,
+      ca: 19,
+      mg: 36,
+      k: 369,
+      b12: 0,
+      o3: 0
+    },
+    leg_peas: {
+      fdc: 170419,
+      fiber: 5.7,
+      fe: 1.47,
+      ca: 25,
+      mg: 33,
+      k: 244,
+      b12: 0,
+      o3: 0
+    },
+    leg_white_beans: {
+      fdc: 175203,
+      fiber: 6.3,
+      fe: 3.7,
+      ca: 90,
+      mg: 63,
+      k: 561,
+      b12: 0,
+      o3: 0
+    },
+    pro_beef: {
+      fdc: 171797,
+      fiber: 0,
+      fe: 2.48,
+      ca: 24,
+      mg: 20,
+      k: 304,
+      b12: 2.73,
+      o3: 0
+    },
+    pro_beef_lean: {
+      fdc: 171815,
+      fiber: 0,
+      fe: 2.7,
+      ca: 7,
+      mg: 21,
+      k: 264,
+      b12: 1.75,
+      o3: 4
+    },
+    pro_chicken: {
+      fdc: 171054,
+      fiber: 0,
+      fe: 1.21,
+      ca: 15,
+      mg: 25,
+      k: 243,
+      b12: 0.33,
+      o3: 50
+    },
+    pro_chicken_breast: {
+      fdc: 171477,
+      fiber: 0,
+      fe: 1.04,
+      ca: 15,
+      mg: 29,
+      k: 256,
+      b12: 0.34,
+      o3: 30
+    },
+    pro_chicken_thigh: {
+      fdc: 172388,
+      fiber: 0,
+      fe: 1.13,
+      ca: 9,
+      mg: 24,
+      k: 269,
+      b12: 0.42,
+      o3: 10
+    },
+    pro_cod: {
+      fdc: 171955,
+      fiber: 0,
+      fe: 0.38,
+      ca: 16,
+      mg: 32,
+      k: 413,
+      b12: 0.91,
+      o3: 184
+    },
+    pro_egg_whites: {
+      fdc: 172183,
+      fiber: 0,
+      fe: 0.08,
+      ca: 7,
+      mg: 11,
+      k: 163,
+      b12: 0.09,
+      o3: 0
+    },
+    pro_eggs: {
+      fdc: 173424,
+      fiber: 0,
+      fe: 1.19,
+      ca: 50,
+      mg: 10,
+      k: 126,
+      b12: 1.11,
+      o3: 43
+    },
+    pro_fish: {
+      fdc: 173694,
+      fiber: 0,
+      fe: 0.37,
+      ca: 13,
+      mg: 53,
+      k: 328,
+      b12: 0.3,
+      o3: 762
+    },
+    pro_ground_meat: {
+      fdc: 171797,
+      fiber: 0,
+      fe: 2.48,
+      ca: 24,
+      mg: 20,
+      k: 304,
+      b12: 2.73,
+      o3: 0
+    },
+    pro_hake: {
+      fdc: 173713,
+      fiber: 0,
+      fe: 0.34,
+      ca: 48,
+      mg: 21,
+      k: 249,
+      b12: 2.3,
+      o3: 224
+    },
+    pro_lamb: {
+      fdc: 172550,
+      fiber: 0,
+      fe: 2.01,
+      ca: 11,
+      mg: 23,
+      k: 304,
+      b12: 2.54,
+      o3: 0
+    },
+    pro_mackerel: {
+      fdc: 175119,
+      fiber: 0,
+      fe: 1.63,
+      ca: 12,
+      mg: 76,
+      k: 314,
+      b12: 8.71,
+      o3: 2299
+    },
+    pro_plant_protein: null,
+    pro_pork: {
+      fdc: 167821,
+      fiber: 0,
+      fe: 0.99,
+      ca: 19,
+      mg: 26,
+      k: 408,
+      b12: 0.71,
+      o3: 0
+    },
+    pro_pork_lean: {
+      fdc: 168313,
+      fiber: 0,
+      fe: 1.43,
+      ca: 5,
+      mg: 36,
+      k: 451,
+      b12: 1,
+      o3: 0
+    },
+    pro_salmon: {
+      fdc: 175167,
+      fiber: 0,
+      fe: 0.34,
+      ca: 9,
+      mg: 27,
+      k: 363,
+      b12: 3.23,
+      o3: 1966
+    },
+    pro_sardines: {
+      fdc: 175139,
+      fiber: 0,
+      fe: 2.92,
+      ca: 382,
+      mg: 39,
+      k: 397,
+      b12: 8.94,
+      o3: 982
+    },
+    pro_sea_bass: {
+      fdc: 173694,
+      fiber: 0,
+      fe: 0.37,
+      ca: 13,
+      mg: 53,
+      k: 328,
+      b12: 0.3,
+      o3: 762
+    },
+    pro_shrimp: {
+      fdc: 171971,
+      fiber: 0,
+      fe: 0.32,
+      ca: 91,
+      mg: 37,
+      k: 170,
+      b12: 1.66,
+      o3: 276
+    },
+    pro_soy_mince: {
+      fdc: 174275,
+      fiber: 17.5,
+      fe: 9.24,
+      ca: 241,
+      mg: 290,
+      k: 2384,
+      b12: 0,
+      o3: 0
+    },
+    pro_tempeh: {
+      fdc: 174272,
+      fiber: null,
+      fe: 2.7,
+      ca: 111,
+      mg: 81,
+      k: 412,
+      b12: 0.08,
+      o3: 0
+    },
+    pro_tilapia: {
+      fdc: 175176,
+      fiber: 0,
+      fe: 0.56,
+      ca: 10,
+      mg: 27,
+      k: 302,
+      b12: 1.58,
+      o3: 91
+    },
+    pro_tofu: {
+      fdc: 172475,
+      fiber: 2.3,
+      fe: 2.66,
+      ca: 683,
+      mg: 58,
+      k: 237,
+      b12: 0,
+      o3: 0
+    },
+    pro_trout: {
+      fdc: 173718,
+      fiber: 0,
+      fe: 0.36,
+      ca: 30,
+      mg: 30,
+      k: 450,
+      b12: 4.11,
+      o3: 875
+    },
+    pro_tuna: {
+      fdc: 171986,
+      fiber: 0,
+      fe: 1.53,
+      ca: 11,
+      mg: 27,
+      k: 237,
+      b12: 2.99,
+      o3: 270
+    },
+    pro_turkey: {
+      fdc: 174516,
+      fiber: 0,
+      fe: 0.97,
+      ca: 14,
+      mg: 28,
+      k: 297,
+      b12: 1.76,
+      o3: 6
+    },
+    pro_whey: null,
+    sw_dark_chocolate: {
+      fdc: 170273,
+      fiber: 10.9,
+      fe: 11.9,
+      ca: 73,
+      mg: 228,
+      k: 715,
+      b12: 0.28,
+      o3: 0
+    },
+    veg_arugula: {
+      fdc: 169387,
+      fiber: 1.6,
+      fe: 1.46,
+      ca: 160,
+      mg: 47,
+      k: 369,
+      b12: 0,
+      o3: 0
+    },
+    veg_asparagus: {
+      fdc: 168389,
+      fiber: 2.1,
+      fe: 2.14,
+      ca: 24,
+      mg: 14,
+      k: 202,
+      b12: 0,
+      o3: 0
+    },
+    veg_beet: {
+      fdc: 169145,
+      fiber: 2.8,
+      fe: 0.8,
+      ca: 16,
+      mg: 23,
+      k: 325,
+      b12: 0,
+      o3: 0
+    },
+    veg_broccoli: {
+      fdc: 170379,
+      fiber: 2.6,
+      fe: 0.73,
+      ca: 47,
+      mg: 21,
+      k: 316,
+      b12: 0,
+      o3: 0
+    },
+    veg_brussels: {
+      fdc: 170383,
+      fiber: 3.8,
+      fe: 1.4,
+      ca: 42,
+      mg: 23,
+      k: 389,
+      b12: 0,
+      o3: 0
+    },
+    veg_cabbage: {
+      fdc: 169975,
+      fiber: 2.5,
+      fe: 0.47,
+      ca: 40,
+      mg: 12,
+      k: 170,
+      b12: 0,
+      o3: 0
+    },
+    veg_carrot: {
+      fdc: 170393,
+      fiber: 2.8,
+      fe: 0.3,
+      ca: 33,
+      mg: 12,
+      k: 320,
+      b12: 0,
+      o3: 0
+    },
+    veg_cauliflower: {
+      fdc: 169986,
+      fiber: 2,
+      fe: 0.42,
+      ca: 22,
+      mg: 15,
+      k: 299,
+      b12: 0,
+      o3: 0
+    },
+    veg_celery: {
+      fdc: 169988,
+      fiber: 1.6,
+      fe: 0.2,
+      ca: 40,
+      mg: 11,
+      k: 260,
+      b12: 0,
+      o3: 0
+    },
+    veg_cherry_tomato: {
+      fdc: 170457,
+      fiber: 1.2,
+      fe: 0.27,
+      ca: 10,
+      mg: 11,
+      k: 237,
+      b12: 0,
+      o3: 0
+    },
+    veg_cucumber: {
+      fdc: 168409,
+      fiber: 0.5,
+      fe: 0.28,
+      ca: 16,
+      mg: 13,
+      k: 147,
+      b12: 0,
+      o3: 0
+    },
+    veg_eggplant: {
+      fdc: 169228,
+      fiber: 3,
+      fe: 0.23,
+      ca: 9,
+      mg: 14,
+      k: 229,
+      b12: 0,
+      o3: 0
+    },
+    veg_garlic: {
+      fdc: 169230,
+      fiber: 2.1,
+      fe: 1.7,
+      ca: 181,
+      mg: 25,
+      k: 401,
+      b12: 0,
+      o3: 0
+    },
+    veg_green_beans: {
+      fdc: 169961,
+      fiber: 2.7,
+      fe: 1.03,
+      ca: 37,
+      mg: 25,
+      k: 211,
+      b12: 0,
+      o3: 0
+    },
+    veg_leek: {
+      fdc: 169246,
+      fiber: 1.8,
+      fe: 2.1,
+      ca: 59,
+      mg: 28,
+      k: 180,
+      b12: 0,
+      o3: 0
+    },
+    veg_lettuce: {
+      fdc: 169249,
+      fiber: 1.3,
+      fe: 0.86,
+      ca: 36,
+      mg: 13,
+      k: 194,
+      b12: 0,
+      o3: 0
+    },
+    veg_mushrooms: {
+      fdc: 169251,
+      fiber: 1,
+      fe: 0.5,
+      ca: 3,
+      mg: 9,
+      k: 318,
+      b12: 0.04,
+      o3: 0
+    },
+    veg_onion: {
+      fdc: 17e4,
+      fiber: 1.7,
+      fe: 0.21,
+      ca: 23,
+      mg: 10,
+      k: 146,
+      b12: 0,
+      o3: 0
+    },
+    veg_oyster_mushroom: {
+      fdc: 168580,
+      fiber: 2.3,
+      fe: 1.33,
+      ca: 3,
+      mg: 18,
+      k: 420,
+      b12: 0,
+      o3: 0
+    },
+    veg_pepper: {
+      fdc: 170108,
+      fiber: 2.1,
+      fe: 0.43,
+      ca: 7,
+      mg: 12,
+      k: 211,
+      b12: 0,
+      o3: 0
+    },
+    veg_pumpkin: {
+      fdc: 168448,
+      fiber: 0.5,
+      fe: 0.8,
+      ca: 21,
+      mg: 12,
+      k: 340,
+      b12: 0,
+      o3: 0
+    },
+    veg_spinach: {
+      fdc: 168462,
+      fiber: 2.2,
+      fe: 2.71,
+      ca: 99,
+      mg: 79,
+      k: 558,
+      b12: 0,
+      o3: 0
+    },
+    veg_tomato: {
+      fdc: 170457,
+      fiber: 1.2,
+      fe: 0.27,
+      ca: 10,
+      mg: 11,
+      k: 237,
+      b12: 0,
+      o3: 0
+    },
+    veg_zucchini: {
+      fdc: 169291,
+      fiber: 1,
+      fe: 0.37,
+      ca: 16,
+      mg: 18,
+      k: 261,
+      b12: 0,
+      o3: 0
+    }
   }
 };
 
 // nutrition-engine/fiber.js
-var ANIMAL_KINDS = /* @__PURE__ */ new Set(["poultry", "red", "fish", "shellfish", "egg", "dairy"]);
-var TABLE = fiber_default.per100g || {};
+var TABLE = micronutrients_default.per100g || {};
+function microPer100(id) {
+  return TABLE[id] || null;
+}
 function fiberPer100(id) {
-  if (Object.prototype.hasOwnProperty.call(TABLE, id)) return TABLE[id];
-  const f = FOODS.get(id);
-  return f && ANIMAL_KINDS.has(f.kind) ? 0 : null;
+  const m = TABLE[id];
+  return m && m.fiber != null ? m.fiber : null;
+}
+
+// nutrition-engine/micronutrients.js
+var NUTRIENTS = ["fe", "ca", "mg", "k", "b12", "o3"];
+var LABEL = { fe: "\u0416\u0435\u043B\u044F\u0437\u043E", ca: "\u041A\u0430\u043B\u0446\u0438\u0439", mg: "\u041C\u0430\u0433\u043D\u0435\u0437\u0438\u0439", k: "\u041A\u0430\u043B\u0438\u0439", b12: "\u0412\u0438\u0442\u0430\u043C\u0438\u043D B12", o3: "\u041E\u043C\u0435\u0433\u0430-3 (EPA+DHA)" };
+var UNIT = { fe: "\u043C\u0433", ca: "\u043C\u0433", mg: "\u043C\u0433", k: "\u043C\u0433", b12: "\xB5\u0433", o3: "\u043C\u0433" };
+function microNeeds(profile) {
+  const age = Number(profile.age) || 40;
+  const female = profile.sex === "F";
+  const plant = profile.diet?.pattern === "vegetarian" || profile.diet?.pattern === "vegan";
+  const fe = (female && age < 51 ? 18 : 8) * (plant ? 1.8 : 1);
+  return {
+    fe,
+    ca: female && age >= 51 || age >= 71 ? 1200 : 1e3,
+    mg: female ? age < 31 ? 310 : 320 : age < 31 ? 400 : 420,
+    k: female ? 2600 : 3400,
+    b12: 2.4,
+    o3: 250
+  };
+}
+function sourcesFor(code, profile) {
+  const ex = new Set(profile.exclusions || []);
+  const pattern = profile.diet?.pattern || "omnivore";
+  const meat = pattern === "omnivore";
+  const fish = (pattern === "omnivore" || pattern === "pescatarian") && !ex.has("FSH");
+  const dairy = pattern !== "vegan" && !ex.has("LAC");
+  const carbs = !["keto", "low_carb"].includes(profile.diet?.style);
+  const grains = carbs && !ex.has("GLU") && profile.diet?.style !== "paleo";
+  const legumes = carbs && profile.diet?.style !== "paleo";
+  const list2 = {
+    fe: [meat && "\u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E 2 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E", legumes && "\u043B\u0435\u0449\u0430, \u043D\u0430\u0445\u0443\u0442, \u0431\u043E\u0431", "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A", "\u0447\u0443\u0448\u043A\u0430 \u0438\u043B\u0438 \u0446\u0438\u0442\u0440\u0443\u0441 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E (\u0432\u0438\u0442\u0430\u043C\u0438\u043D C \u0443\u0441\u0438\u043B\u0432\u0430 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E)"],
+    ca: [dairy && "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435", !ex.has("SOY") && profile.diet?.style !== "paleo" && "\u0442\u043E\u0444\u0443", "\u0442\u0430\u0445\u0430\u043D", "\u043B\u0438\u0441\u0442\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", fish && "\u0441\u0430\u0440\u0434\u0438\u043D\u0438 \u0441 \u043A\u043E\u0441\u0442\u0438\u0442\u0435"],
+    mg: ["\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0438 \u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438", !ex.has("NUT") && "\u0431\u0430\u0434\u0435\u043C\u0438, \u043A\u0430\u0448\u0443", legumes && "\u0431\u043E\u0431\u043E\u0432\u0438", grains && "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A"],
+    k: [legumes && "\u0431\u043E\u0431\u043E\u0432\u0438", carbs && "\u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u0441\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A", "\u0430\u0432\u043E\u043A\u0430\u0434\u043E", carbs && "\u0431\u0430\u043D\u0430\u043D", "\u0433\u044A\u0431\u0438"],
+    b12: [meat && "\u043C\u0435\u0441\u043E", fish && "\u0440\u0438\u0431\u0430", dairy && "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435", pattern !== "vegan" && !ex.has("EGG") && "\u044F\u0439\u0446\u0430"],
+    o3: [fish && "\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u0441\u0430\u0440\u0434\u0438\u043D\u0438"]
+  }[code].filter(Boolean);
+  return list2;
+}
+function advice(code, profile) {
+  const pattern = profile.diet?.pattern;
+  if (code === "b12" && pattern === "vegan") return "\u041F\u0440\u0438 \u0432\u0435\u0433\u0430\u043D \u0445\u0440\u0430\u043D\u0435\u043D\u0435 B12 \u0438\u0434\u0432\u0430 \u0441\u0430\u043C\u043E \u043E\u0442 \u0434\u043E\u0431\u0430\u0432\u043A\u0430 \u0438\u043B\u0438 \u043E\u0431\u043E\u0433\u0430\u0442\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u2014 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0432\u0430 \u0441\u0435 \u0434\u043E\u0431\u0430\u0432\u043A\u0430.";
+  if (code === "o3" && !sourcesFor("o3", profile).length) return "\u0411\u0435\u0437 \u0440\u0438\u0431\u0430 EPA \u0438 DHA \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u0434\u043E\u0431\u0430\u0432\u043A\u0430 \u0441 \u0432\u043E\u0434\u043E\u0440\u0430\u0441\u043B\u043E\u0432\u043E \u043C\u0430\u0441\u043B\u043E; \u043B\u0435\u043D\u044A\u0442 \u0438 \u0447\u0438\u044F\u0442\u0430 \u0434\u0430\u0432\u0430\u0442 ALA, \u043A\u043E\u0439\u0442\u043E \u0442\u044F\u043B\u043E\u0442\u043E \u043F\u0440\u0435\u0432\u0440\u044A\u0449\u0430 \u0432 \u043C\u0430\u043B\u043A\u0430 \u0441\u0442\u0435\u043F\u0435\u043D.";
+  const src = sourcesFor(code, profile);
+  return src.length ? `\u0418\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438: ${src.join(", ")}.` : "";
+}
+var fmt2 = (v) => String(v).replace(".", ",");
+function microReport(days, microPer1002, profile) {
+  const total = Object.fromEntries(NUTRIENTS.map((k) => [k, 0]));
+  let grams = 0;
+  let known = 0;
+  for (const day of days) {
+    for (const meal of day.meals || []) {
+      for (const { id, grams: g } of meal.foods || []) {
+        grams += g;
+        const m = microPer1002(id);
+        if (!m) continue;
+        known += g;
+        for (const k of NUTRIENTS) total[k] += (Number(m[k]) || 0) * g / 100;
+      }
+    }
+  }
+  const n = days.length || 1;
+  const needs = microNeeds(profile);
+  const items = NUTRIENTS.map((code) => {
+    const value = total[code] / n;
+    const target = needs[code];
+    const pct = Math.round(value / target * 100);
+    const status = pct >= 90 ? "ok" : pct >= 67 ? "borderline" : "low";
+    const shown = code === "b12" || code === "fe" ? Math.round(value * 10) / 10 : Math.round(value);
+    const shownTarget = code === "fe" ? Math.round(target * 10) / 10 : target;
+    return {
+      code,
+      label: LABEL[code],
+      value: shown,
+      target: shownTarget,
+      pct,
+      status,
+      text: `${LABEL[code]}: ~${fmt2(shown)} ${UNIT[code]} \u0434\u043D\u0435\u0432\u043D\u043E (${pct}% \u043E\u0442 \u043D\u0443\u0436\u0434\u0430\u0442\u0430 ${fmt2(shownTarget)} ${UNIT[code]}).`,
+      advice: status === "ok" ? "" : advice(code, profile)
+    };
+  });
+  return { items, coverage: grams ? Math.round(known / grams * 100) : 0 };
 }
 
 // nutrition-engine/index.js
@@ -43564,19 +44957,22 @@ function buildNutritionPlan(userData, options) {
       };
     }
   });
-  const quality = menuQuality(week.days.map((d) => ({ meals: d.foods || [] })), { food, fiberPer100 }, profile, kcal);
+  const weekFoods = week.days.map((d) => ({ meals: d.foods || [] }));
+  const quality = menuQuality(weekFoods, { food, fiberPer100 }, profile, kcal);
+  const micro = microReport(weekFoods, microPer100, profile);
   const metabolicPlan = metabolic ? {
     training: { days: metabolic.week.days, source: metabolic.week.source, slot: metabolic.week.slot, fuel: metabolic.week.fuel, types: metabolic.week.types, sessionKcal: metabolic.week.sessionKcal },
     fasting: metabolic.fasting,
     text: describeMetabolicWeek(metabolic, profile),
-    quality
-  } : { quality };
+    quality,
+    micro
+  } : { quality, micro };
   return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods, metabolicPlan };
 }
 
 // nutrition-engine/food-guide.js
 var ruleDef = (code) => CONDITIONS[code] || PROTOCOLS[code] || {};
-var fmt2 = (n) => String(Math.round(n * 2) / 2).replace(".", ",");
+var fmt3 = (n) => String(Math.round(n * 2) / 2).replace(".", ",");
 function portionExample(group, ctx) {
   const { pattern, ex, style } = ctx;
   switch (group) {
@@ -43612,7 +45008,7 @@ function moderateOf(prescription, ctx, policy) {
     const example = portionExample(g, ctx);
     out.push({
       food: g === "MLK" && (ctx.pattern === "vegan" || ctx.ex.has("LAC")) ? "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u0439\u043E\u0433\u0443\u0440\u0442" : label,
-      amount: `${fmt2(n)} ${n === 1 ? "\u043F\u043E\u0440\u0446\u0438\u044F" : "\u043F\u043E\u0440\u0446\u0438\u0438"} \u0434\u043D\u0435\u0432\u043D\u043E`,
+      amount: `${fmt3(n)} ${n === 1 ? "\u043F\u043E\u0440\u0446\u0438\u044F" : "\u043F\u043E\u0440\u0446\u0438\u0438"} \u0434\u043D\u0435\u0432\u043D\u043E`,
       example
     });
   }
@@ -43950,7 +45346,7 @@ var EXCLUSION_AVOID = {
   SOY: "\u0441\u043E\u044F",
   PORK: "\u0441\u0432\u0438\u043D\u0441\u043A\u043E"
 };
-var fmt3 = (n) => String(n).replace(".", ",");
+var fmt4 = (n) => String(n).replace(".", ",");
 function round2(n) {
   return Math.round(Number(n) || 0);
 }
@@ -43959,8 +45355,8 @@ function recommendationsOf(prescription, stats, policy) {
   const mains = stats.mains || {};
   const list2 = [];
   list2.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
-  if (d.FRU > 0) list2.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt3(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
-  if (d.MLK > 0) list2.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt3(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  if (d.FRU > 0) list2.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${fmt4(d.FRU)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
+  if (d.MLK > 0) list2.push(`\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440: ${fmt4(d.MLK)} \u043F\u043E\u0440\u0446\u0438\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`);
   if (mains.fish) list2.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
   if (mains.legume) list2.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
   if (d.STA > 0 && policy.style !== "keto") list2.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
@@ -44060,7 +45456,7 @@ function buildEngineStrategy(engine, userData, options) {
   const slots = prescription.slots;
   const name = String(userData?.name || "").trim();
   const perKg = profile.weightKg ? (macros.protein / profile.weightKg).toFixed(1).replace(".", ",") : null;
-  const dailyText = ["STA", "PRO", "VEG", "FRU", "MLK", "FAT", "SWT"].filter((g) => prescription.daily[g] > 0).map((g) => `${GROUPS[g].label.toLowerCase()} ${fmt3(prescription.daily[g])}`).join("; ");
+  const dailyText = ["STA", "PRO", "VEG", "FRU", "MLK", "FAT", "SWT"].filter((g) => prescription.daily[g] > 0).map((g) => `${GROUPS[g].label.toLowerCase()} ${fmt4(prescription.daily[g])}`).join("; ");
   const mealsText = slots.map((s) => `${MEAL_LABELS[s] || s} ~${round2(prescription.meals[s].target.kcal)} kcal`).join(" \xB7 ");
   const mainsText = Object.entries(stats.mains || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${CATEGORY_LABELS[k] || k} \xD7${n}`).join(", ");
   const added = prescription.addedSlots || [];
@@ -44104,7 +45500,8 @@ function buildEngineStrategy(engine, userData, options) {
       training: metabolicPlan.training || null,
       fasting: fasting ? { active: fasting.active, offered: fasting.offered, protocol: fasting.protocol, window: fasting.windowText, note: fasting.note, blocked: fasting.blocked } : null,
       days: Object.fromEntries(Object.entries(weekPlan || {}).filter(([, d]) => d?.energy).map(([k, d]) => [k, d.energy])),
-      quality: metabolicPlan.quality
+      quality: metabolicPlan.quality,
+      micro: metabolicPlan.micro || null
     } : null,
     preferredFoodCategories: recommendationsOf(prescription, stats, policy),
     avoidFoodCategories: avoidOf(profile, policy, blocked),
@@ -45180,7 +46577,7 @@ function between(series, now, fromDays, toDays) {
 }
 var mean = (xs) => xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null;
 var r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
-var fmt4 = (v, d = 1) => String(Math.round(v * 10 ** d) / 10 ** d).replace(".", ",");
+var fmt5 = (v, d = 1) => String(Math.round(v * 10 ** d) / 10 ** d).replace(".", ",");
 function slopePerWeek(points) {
   if (points.length < 2) return null;
   const xs = points.map((p) => p.t / (7 * DAY_MS2));
@@ -45279,7 +46676,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     const slope = slopePerWeek(w14);
     metrics.weight = { last: r1(w14[w14.length - 1].value), avg7: r1(mean(between(weight, now, 0, 7).map((p) => p.value)) ?? w14[w14.length - 1].value), trendKgWeek: Math.round(slope * 100) / 100, days: w14.length };
     checkin.weightTrendKgWeek = metrics.weight.trendKgWeek;
-    signals.push({ code: "weight_trend", level: "info", text: `\u0422\u0435\u0433\u043B\u043E: ${fmt4(metrics.weight.avg7)} \u043A\u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0435\u043D\u0434\u0435\u043D\u0446\u0438\u044F ${slope > 0 ? "+" : ""}${fmt4(slope, 2)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (${w14.length} \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F).` });
+    signals.push({ code: "weight_trend", level: "info", text: `\u0422\u0435\u0433\u043B\u043E: ${fmt5(metrics.weight.avg7)} \u043A\u0433 \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0435\u043D\u0434\u0435\u043D\u0446\u0438\u044F ${slope > 0 ? "+" : ""}${fmt5(slope, 2)} \u043A\u0433 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E (${w14.length} \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0438\u044F).` });
   }
   const bf = dailySeries(facts2, "body_fat");
   const comp = [];
@@ -45300,7 +46697,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
       const dW = wch.to - wch.from;
       metrics.composition = { days: ch.days, weightChangeKg: r1(dW), leanChangeKg: r1(dLean) };
       if (dW <= -1 && dLean < 0 && -dLean >= -dW * 0.5) {
-        signals.push({ code: "lean_loss", level: "warn", text: `\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(dLean / dW * 100)}% \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u0438\u0442\u0435 ${fmt4(-dW)} \u043A\u0433 \u0437\u0430 ${ch.days} \u0434\u043D\u0438 \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u043D\u0435 \u0441\u0435 \u0437\u0430\u0434\u044A\u043B\u0431\u043E\u0447\u0430\u0432\u0430.` });
+        signals.push({ code: "lean_loss", level: "warn", text: `\u041F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(dLean / dW * 100)}% \u043E\u0442 \u0437\u0430\u0433\u0443\u0431\u0435\u043D\u0438\u0442\u0435 ${fmt5(-dW)} \u043A\u0433 \u0437\u0430 ${ch.days} \u0434\u043D\u0438 \u0435 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u0438 \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u044A\u0442 \u043D\u0435 \u0441\u0435 \u0437\u0430\u0434\u044A\u043B\u0431\u043E\u0447\u0430\u0432\u0430.` });
         hints.approach.push("increase_protein");
         checkin.leanLoss = true;
         reasons.push("\u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u043F\u043E \u0432\u0435\u0437\u043D\u0430\u0442\u0430");
@@ -45329,7 +46726,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     const perWeek = sessions / 2;
     metrics.workouts = { perWeek: r1(perWeek), minutesWeek: Math.round(workouts.reduce((s, p) => s + p.value, 0) / 2) };
     overrides.sportActivity = sportLabelOf(perWeek);
-    reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt4(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+    reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E: ~${fmt5(perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
   }
   const training = trainingPattern(facts2, now);
   if (training) {
@@ -45337,12 +46734,12 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     checkin.training = { perWeek: training.perWeek, usual: training.usual, rest: training.rest, slot: training.slot };
     if (!metrics.workouts) {
       overrides.sportActivity = sportLabelOf(training.perWeek);
-      reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435: ~${fmt4(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+      reasons.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435: ~${fmt5(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
     }
     if (training.usual.length && training.regularity >= 0.75) {
       signals.push({ code: "training_schedule", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u0434\u043D\u0438: \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${weekdayList(training.usual)}${training.slot === "am" ? ", \u0434\u043E \u043E\u0431\u044F\u0434" : training.slot === "pm" ? ", \u0441\u043B\u0435\u0434\u043E\u0431\u0435\u0434" : ""}. \u0412 \u0442\u0435\u0437\u0438 \u0434\u043D\u0438 \u043F\u043E-\u0433\u043E\u043B\u044F\u043C\u043E\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u0435 \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430.` });
     } else if (training.perWeek >= 1 && training.regularity < 0.65) {
-      signals.push({ code: "training_irregular", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u0441\u0430 ~${fmt4(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u0431\u0435\u0437 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u0438 \u0434\u043D\u0438 \u2014 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430 \u043F\u043E \u0441\u0440\u0435\u0434\u043D\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043F\u043E \u0434\u0435\u043D.` });
+      signals.push({ code: "training_irregular", level: "info", text: `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u0441\u0430 ~${fmt5(training.perWeek)} \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u0431\u0435\u0437 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u0438 \u0434\u043D\u0438 \u2014 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430 \u043F\u043E \u0441\u0440\u0435\u0434\u043D\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043F\u043E \u0434\u0435\u043D.` });
     }
   }
   const active = between(dailySeries(facts2, "active_kcal"), now, 0, 7);
@@ -45377,7 +46774,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   if (sleep.length >= 5) {
     metrics.sleep = { avg7: r1(mean(sleep.map((p) => p.value))), nights: sleep.length };
     if (metrics.sleep.avg7 < 6.5) {
-      signals.push({ code: "sleep_short", level: "warn", text: `\u0421\u044A\u043D: ~${fmt4(metrics.sleep.avg7)} \u0447 \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u043E\u0434 7 \u0447 \u0433\u043B\u0430\u0434\u044A\u0442 \u0438 \u0436\u0435\u043B\u0430\u043D\u0438\u0435\u0442\u043E \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442.` });
+      signals.push({ code: "sleep_short", level: "warn", text: `\u0421\u044A\u043D: ~${fmt5(metrics.sleep.avg7)} \u0447 \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u043E\u0434 7 \u0447 \u0433\u043B\u0430\u0434\u044A\u0442 \u0438 \u0436\u0435\u043B\u0430\u043D\u0438\u0435\u0442\u043E \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442.` });
     }
   }
   const intake = between(dailySeries(facts2, "intake"), now, 0, 7);
@@ -45386,7 +46783,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   if (water.length >= 4) {
     metrics.water = { avg7: r1(mean(water.map((p) => p.value))) };
     if (ctx.waterNeedL && metrics.water.avg7 < ctx.waterNeedL * 0.6) {
-      signals.push({ code: "hydration_low", level: "info", text: `\u0412\u043E\u0434\u0430: ~${fmt4(metrics.water.avg7)} \u043B \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 ~${fmt4(ctx.waterNeedL)} \u043B.` });
+      signals.push({ code: "hydration_low", level: "info", text: `\u0412\u043E\u0434\u0430: ~${fmt5(metrics.water.avg7)} \u043B \u0434\u043D\u0435\u0432\u043D\u043E \u043F\u0440\u0438 \u043D\u0443\u0436\u0434\u0430 ~${fmt5(ctx.waterNeedL)} \u043B.` });
     }
   }
   const bp = between(dailySeries(facts2, "bp"), now, 0, 28);
@@ -45407,8 +46804,8 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
     metrics.glucose = { morning: r1(m), days: morning.length };
     if (m >= 5.6) {
       hints.clinical.push("IR");
-      signals.push({ code: "glucose_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D: ~${fmt4(m)} mmol/L \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u0442\u0430 \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0441\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438.` });
-      if (m >= 7) hints.cautions.push(`\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E ~${fmt4(m)} mmol/L \u043F\u043E \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440 \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
+      signals.push({ code: "glucose_high", level: "warn", text: `\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D: ~${fmt5(m)} mmol/L \u0441\u0440\u0435\u0434\u043D\u043E \u2014 \u043F\u0440\u0430\u0432\u0438\u043B\u0430\u0442\u0430 \u043F\u0440\u0438 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442 \u0441\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438.` });
+      if (m >= 7) hints.cautions.push(`\u041A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E ~${fmt5(m)} mmol/L \u043F\u043E \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440 \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`);
       reasons.push("\u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u043A\u0440\u044A\u0432\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D");
     }
   }
@@ -45427,22 +46824,22 @@ function essenceText(essence, digest = null) {
   if (!essence) return "";
   const m = essence.metrics || {};
   const rows = [];
-  if (m.weight) rows.push(`\u0442\u0435\u0433\u043B\u043E ${fmt4(m.weight.avg7)} \u043A\u0433, ${m.weight.trendKgWeek > 0 ? "+" : ""}${fmt4(m.weight.trendKgWeek, 2)} \u043A\u0433/\u0441\u0435\u0434\u043C.`);
-  if (m.bodyFat) rows.push(`\u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${fmt4(m.bodyFat.last)}%, \u0447\u0438\u0441\u0442\u0430 \u043C\u0430\u0441\u0430 ${fmt4(m.bodyFat.leanKg)} \u043A\u0433`);
+  if (m.weight) rows.push(`\u0442\u0435\u0433\u043B\u043E ${fmt5(m.weight.avg7)} \u043A\u0433, ${m.weight.trendKgWeek > 0 ? "+" : ""}${fmt5(m.weight.trendKgWeek, 2)} \u043A\u0433/\u0441\u0435\u0434\u043C.`);
+  if (m.bodyFat) rows.push(`\u043C\u0430\u0437\u043D\u0438\u043D\u0438 ${fmt5(m.bodyFat.last)}%, \u0447\u0438\u0441\u0442\u0430 \u043C\u0430\u0441\u0430 ${fmt5(m.bodyFat.leanKg)} \u043A\u0433`);
   if (m.steps) rows.push(`\u043A\u0440\u0430\u0447\u043A\u0438 ~${m.steps.avg7}/\u0434\u0435\u043D`);
-  if (m.workouts) rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${fmt4(m.workouts.perWeek)}/\u0441\u0435\u0434\u043C. (${m.workouts.minutesWeek} \u043C\u0438\u043D)`);
+  if (m.workouts) rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ${fmt5(m.workouts.perWeek)}/\u0441\u0435\u0434\u043C. (${m.workouts.minutesWeek} \u043C\u0438\u043D)`);
   else if (m.training) {
     const t = m.training;
     const when = [t.usual.length ? `\u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${weekdayList(t.usual)}` : "", t.slot === "am" ? "\u0434\u043E \u043E\u0431\u044F\u0434" : t.slot === "pm" ? "\u0441\u043B\u0435\u0434\u043E\u0431\u0435\u0434" : ""].filter(Boolean).join(", ");
-    rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ~${fmt4(t.perWeek)}/\u0441\u0435\u0434\u043C.${when ? ` (${when})` : ""}`);
+    rows.push(`\u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 ~${fmt5(t.perWeek)}/\u0441\u0435\u0434\u043C.${when ? ` (${when})` : ""}`);
   }
-  if (m.sleep) rows.push(`\u0441\u044A\u043D ${fmt4(m.sleep.avg7)} \u0447`);
+  if (m.sleep) rows.push(`\u0441\u044A\u043D ${fmt5(m.sleep.avg7)} \u0447`);
   if (m.restingHr) rows.push(`\u043F\u0443\u043B\u0441 \u0432 \u043F\u043E\u043A\u043E\u0439 ${m.restingHr.avg7} (\u0431\u0430\u0437\u0430 ${m.restingHr.base})`);
   if (m.hrv) rows.push(`HRV ${m.hrv.avg7} ms (\u0431\u0430\u0437\u0430 ${m.hrv.base})`);
   if (m.intake) rows.push(`\u043F\u0440\u0438\u0435\u043C \u043F\u043E \u0442\u0440\u0430\u043A\u0435\u0440 ~${m.intake.avg7} kcal`);
-  if (m.water) rows.push(`\u0432\u043E\u0434\u0430 ${fmt4(m.water.avg7)} \u043B`);
+  if (m.water) rows.push(`\u0432\u043E\u0434\u0430 ${fmt5(m.water.avg7)} \u043B`);
   if (m.bp) rows.push(`\u043A\u0440\u044A\u0432\u043D\u043E ~${m.bp.sys}/${m.bp.dia}`);
-  if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt4(m.glucose.morning)} mmol/L`);
+  if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt5(m.glucose.morning)} mmol/L`);
   const lines = [];
   if (rows.length) lines.push(`\u0434\u0430\u043D\u043D\u0438: ${rows.join("; ")}`);
   const warn = (essence.signals || []).filter((s) => s.level === "warn").map((s) => s.text);
@@ -46512,13 +47909,13 @@ var IRIS_CATEGORY = {
   immune: "Medical",
   nervous: "Stress"
 };
-var fmt5 = (v) => String(Math.round(Number(v) * 10) / 10).replace(".", ",");
+var fmt6 = (v) => String(Math.round(Number(v) * 10) / 10).replace(".", ",");
 var LAB_PROBLEMS = {
   vitd: (l) => problem(
     "Medical",
     l.value < 30 ? 64 : 52,
     "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D D",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043E\u043F\u0442\u0438\u043C\u0430\u043B\u043D\u0438\u0442\u0435 50.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043E\u043F\u0442\u0438\u043C\u0430\u043B\u043D\u0438\u0442\u0435 50.`,
     "\u0423\u043C\u043E\u0440\u0430, \u043F\u043E-\u0441\u043B\u0430\u0431 \u0438\u043C\u0443\u043D\u0438\u0442\u0435\u0442 \u0438 \u043F\u043E-\u0431\u0430\u0432\u043D\u043E \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435.",
     "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u043F\u043E-\u0437\u0434\u0440\u0430\u0432\u0438 \u043A\u043E\u0441\u0442\u0438",
     "LAB_VITD"
@@ -46527,7 +47924,7 @@ var LAB_PROBLEMS = {
     "Medical",
     62,
     "\u041D\u0438\u0441\u044A\u043A \u0432\u0438\u0442\u0430\u043C\u0438\u043D B12",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430.`,
     "\u0423\u043C\u043E\u0440\u0430, \u0438\u0437\u0442\u0440\u044A\u043F\u0432\u0430\u043D\u0435 \u0438 \u0441\u043F\u0430\u0434 \u043D\u0430 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044F\u0442\u0430.",
     "\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u044F\u0441\u043D\u0430 \u043C\u0438\u0441\u044A\u043B",
     "LAB_B12"
@@ -46536,7 +47933,7 @@ var LAB_PROBLEMS = {
     "Medical",
     62,
     l.status === "high" ? "TSH \u043D\u0430\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430" : "TSH \u043F\u043E\u0434 \u043D\u043E\u0440\u043C\u0430\u0442\u0430",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430\u0442\u0430 \u0436\u043B\u0435\u0437\u0430 \u0441\u0435 \u043E\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u0449\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430\u0442\u0430 \u0436\u043B\u0435\u0437\u0430 \u0441\u0435 \u043E\u0446\u0435\u043D\u044F\u0432\u0430 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440.`,
     "\u041E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0435 \u043F\u043E-\u0431\u0430\u0432\u043D\u0430 \u0438\u043B\u0438 \u043F\u043E-\u0431\u044A\u0440\u0437\u0430 \u043E\u0442 \u043E\u0447\u0430\u043A\u0432\u0430\u043D\u043E\u0442\u043E.",
     "\u042F\u0441\u043D\u0430 \u043A\u0430\u0440\u0442\u0438\u043D\u0430 \u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u0433\u043B\u0435\u0434",
     "LAB_TSH"
@@ -46545,7 +47942,7 @@ var LAB_PROBLEMS = {
     "Medical",
     l.value < 30 ? 86 : 72,
     "\u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u044F",
-    `eGFR ${fmt5(l.value)} \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u0440\u0435\u0436\u0438\u043C\u044A\u0442 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    `eGFR ${fmt6(l.value)} \u2014 \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D; \u0440\u0435\u0436\u0438\u043C\u044A\u0442 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
     "\u041D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u043F\u0440\u0438 \u043C\u043D\u043E\u0433\u043E \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0441\u043E\u043B.",
     "\u0429\u0430\u0434\u044F\u0449 \u0431\u044A\u0431\u0440\u0435\u0446\u0438\u0442\u0435 \u0440\u0435\u0436\u0438\u043C",
     "LAB_EGFR"
@@ -46554,7 +47951,7 @@ var LAB_PROBLEMS = {
     "Medical",
     74,
     "\u0412\u0438\u0441\u043E\u043A \u043A\u0430\u043B\u0438\u0439",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u0442 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430\u0442 \u0441 \u043B\u0435\u043A\u0430\u0440.`,
     "\u0420\u0438\u0441\u043A \u0437\u0430 \u0441\u044A\u0440\u0434\u0435\u0447\u043D\u0438\u044F \u0440\u0438\u0442\u044A\u043C.",
     "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u043D\u0430 \u043A\u0430\u043B\u0438\u044F",
     "LAB_K"
@@ -46563,7 +47960,7 @@ var LAB_PROBLEMS = {
     "Medical",
     54,
     "\u041D\u0438\u0441\u044A\u043A HDL (\u201E\u0434\u043E\u0431\u044A\u0440\u201C) \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B",
-    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt5(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u0437\u0430\u0449\u0438\u0442\u043D\u0430\u0442\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0430.`,
+    `\u041F\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 ${fmt6(l.value)} ${l.unit} \u2014 \u043F\u043E\u0434 \u0437\u0430\u0449\u0438\u0442\u043D\u0430\u0442\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u0430.`,
     "\u041F\u043E-\u0441\u043B\u0430\u0431\u0430 \u0437\u0430\u0449\u0438\u0442\u0430 \u043D\u0430 \u0441\u044A\u0434\u043E\u0432\u0435\u0442\u0435.",
     "\u041F\u043E-\u0434\u043E\u0431\u044A\u0440 \u043B\u0438\u043F\u0438\u0434\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B",
     "LAB_HDL"

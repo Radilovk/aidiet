@@ -265,6 +265,7 @@ export function buildEngineStrategy(engine, userData, options) {
       fasting: fasting ? { active: fasting.active, offered: fasting.offered, protocol: fasting.protocol, window: fasting.windowText, note: fasting.note, blocked: fasting.blocked } : null,
       days: Object.fromEntries(Object.entries(weekPlan || {}).filter(([, d]) => d?.energy).map(([k, d]) => [k, d.energy])),
       quality: metabolicPlan.quality,
+      micro: metabolicPlan.micro || null,
     } : null,
     preferredFoodCategories: recommendationsOf(prescription, stats, policy),
     avoidFoodCategories: avoidOf(profile, policy, blocked),

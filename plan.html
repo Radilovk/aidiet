@@ -5895,7 +5895,12 @@
                 const openEnergy = function() {
                     const lines = (mp && mp.principles) || [];
                     const quality = (mp && mp.quality && mp.quality.items) || [];
-                    openModal(head, lines.concat(quality.length ? ['Качество на менюто:'].concat(quality.map(function(q) { return (q.status === 'ok' ? '✓ ' : '• ') + q.text; })) : []).join('\n\n'), '', null, null, null, null);
+                    const micro = (mp && mp.micro && mp.micro.items) || [];
+                    const mark = function(q) { return q.status === 'ok' ? '✓ ' : q.status === 'borderline' ? '≈ ' : '• '; };
+                    openModal(head, lines
+                        .concat(quality.length ? ['Качество на менюто:'].concat(quality.map(function(q) { return mark(q) + q.text; })) : [])
+                        .concat(micro.length ? ['Минерали и витамини (средно за седмицата):'].concat(micro.map(function(q) { return mark(q) + q.text + (q.advice ? ' ' + q.advice : ''); })) : [])
+                        .join('\n\n'), '', null, null, null, null);
                 };
                 card.addEventListener('click', openEnergy);
                 card.addEventListener('keydown', function(e) {
