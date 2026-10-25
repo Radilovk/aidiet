@@ -536,3 +536,41 @@ export function weeklyMessage(decision, checkin) {
     message: 'Вървите по плана. Новото меню е със същите калории и нови ястия за разнообразие.',
   };
 }
+
+/* ─── Без да чакаме прегледа ────────────────────────────────────────────── */
+
+export const WEEKLY_CYCLE_MS = 7 * 86400000;
+/** Толкова след срока, без отговор от клиента, прегледът се прави автоматично. */
+export const WEEKLY_OVERDUE_GRACE_MS = 3 * 86400000;
+/** След толкова поредни автоматични прегледа без отговор — спират. */
+export const AUTO_WEEKLY_MAX_STREAK = 2;
+/** Без данни от приложението и устройствата толкова време — профилът е спящ. */
+export const AUTO_WEEKLY_DORMANT_MS = 30 * 86400000;
+
+/**
+ * Какво да стане с просрочен преглед. Автоматичен преглед се прави само ако има
+ * нови данни след последния (иначе няма какво да се коригира — и няма разход).
+ * @param {{ hasPlan: boolean, pending: boolean, lastReviewMs: number, activeMs: number, autoStreak: number, dueMs: number, now: number }} s
+ * @returns {'wait'|'no-plan'|'pending'|'dormant'|'streak'|'quiet'|'run'}
+ */
+export function autoWeeklyAction(s) {
+  if (!s.dueMs || s.now - s.dueMs < WEEKLY_OVERDUE_GRACE_MS) return 'wait';
+  if (!s.hasPlan) return 'no-plan';
+  if (s.pending) return 'pending';
+  if (s.now - (s.activeMs || 0) > AUTO_WEEKLY_DORMANT_MS) return 'dormant';
+  if ((s.autoStreak || 0) >= AUTO_WEEKLY_MAX_STREAK) return 'streak';
+  if ((s.activeMs || 0) <= (s.lastReviewMs || 0)) return 'quiet';
+  return 'run';
+}
+
+/**
+ * Промени в данните, които засягат безопасността — менюто се сглобява наново веднага:
+ * граници от изследвания, ново здравословно състояние, лекарства с конфликт с храни.
+ * @param {{ reasons?: string[] }|null} change  recalcLevel()
+ * @param {boolean} urgent  isUrgent() — променени граници за безопасност
+ */
+export function needsSafetyRebuild(change, urgent) {
+  if (urgent) return true;
+  const reasons = change?.reasons || [];
+  return reasons.includes('здравословно състояние') || reasons.some(r => r.startsWith('лекарства'));
+}

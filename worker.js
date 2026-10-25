@@ -45258,6 +45258,24 @@ function weeklyMessage(decision, checkin) {
     message: "\u0412\u044A\u0440\u0432\u0438\u0442\u0435 \u043F\u043E \u043F\u043B\u0430\u043D\u0430. \u041D\u043E\u0432\u043E\u0442\u043E \u043C\u0435\u043D\u044E \u0435 \u0441\u044A\u0441 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043D\u043E\u0432\u0438 \u044F\u0441\u0442\u0438\u044F \u0437\u0430 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435."
   };
 }
+var WEEKLY_CYCLE_MS = 7 * 864e5;
+var WEEKLY_OVERDUE_GRACE_MS = 3 * 864e5;
+var AUTO_WEEKLY_MAX_STREAK = 2;
+var AUTO_WEEKLY_DORMANT_MS = 30 * 864e5;
+function autoWeeklyAction(s) {
+  if (!s.dueMs || s.now - s.dueMs < WEEKLY_OVERDUE_GRACE_MS) return "wait";
+  if (!s.hasPlan) return "no-plan";
+  if (s.pending) return "pending";
+  if (s.now - (s.activeMs || 0) > AUTO_WEEKLY_DORMANT_MS) return "dormant";
+  if ((s.autoStreak || 0) >= AUTO_WEEKLY_MAX_STREAK) return "streak";
+  if ((s.activeMs || 0) <= (s.lastReviewMs || 0)) return "quiet";
+  return "run";
+}
+function needsSafetyRebuild(change, urgent) {
+  if (urgent) return true;
+  const reasons = change?.reasons || [];
+  return reasons.includes("\u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435") || reasons.some((r) => r.startsWith("\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430"));
+}
 
 // enrichment-emoeat.js
 var DRIVER_CODES = {
@@ -51841,7 +51859,14 @@ async function persistAnalyticsAndLedger(env, userId, summary, ledger, clientIdH
     profile.foodLedger = ledger;
     profile.foodLedgerSyncedAt = ledger.updatedAt;
   }
+  const seedDue = profile.plan?.weekPlan && !profile.weeklyDueSeeded && !profile.pendingWeekly;
+  if (seedDue) profile.weeklyDueSeeded = true;
   await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (seedDue) {
+    const hist = profile.weeklyAdaptHistory || [];
+    const from = Math.max(Date.parse(profile.planUpdatedAt || 0) || 0, Date.parse(hist[hist.length - 1]?.at || 0) || 0);
+    if (from) await scheduleWeeklyDue(env, userId, from + WEEKLY_CYCLE_MS);
+  }
   const clientId = clientIdHint || existing.clientId || "";
   if (analyticsChanged && clientId) {
     try {
@@ -51904,7 +51929,9 @@ function weeklyAlreadySubmitted(pending) {
     alreadySubmitted: true,
     code: "already_submitted",
     cycleNumber: pending?.notice?.cycleNumber ?? null,
-    submittedAt: pending?.notice?.at || null
+    submittedAt: pending?.notice?.at || null,
+    // Направен автоматично (без отговори) — клиентът показва друго съобщение.
+    auto: Boolean(pending?.auto || pending?.notice?.auto)
   };
 }
 function nextWeeklyCycle(history, gameWeeklyAI) {
@@ -52031,7 +52058,10 @@ async function savePendingWeeklyRelease(env, userId, clientId, release) {
     visibleAt: computeWeeklyReleaseVisibleAt(),
     clientId: clientId || profile.clientId || ""
   };
+  profile.autoWeeklyStreak = release.auto ? (Number(profile.autoWeeklyStreak) || 0) + 1 : 0;
+  profile.weeklyDueSeeded = true;
   await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  await scheduleWeeklyDue(env, userId, profile.pendingWeekly.visibleAt + WEEKLY_CYCLE_MS);
   if (clientId) {
     try {
       const clientData = await kvGetJSON(env, `client:${clientId}`);
@@ -52066,7 +52096,8 @@ function releasePendingWeeklyIfDue(profile) {
       algoDelta: pending.monitoring?.algoDelta ?? null,
       direction: pending.monitoring?.direction ?? null,
       algoDirection: pending.monitoring?.algoDirection ?? null,
-      goalCouncil: pending.monitoring?.goalCouncil ?? null
+      goalCouncil: pending.monitoring?.goalCouncil ?? null,
+      auto: pending.auto || false
     });
     profile.weeklyAdaptHistory = hist.slice(-5);
   }
@@ -52131,6 +52162,7 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
 }
 async function runWeeklyAdaptation(env, payload, jobId) {
   const { userId, gameWeeklyAI, answers: answers2, clientId } = payload;
+  const auto = payload.auto === true;
   const t0 = Date.now();
   const writeAdaptJob = async (body) => {
     if (!env.page_content || !jobId) return;
@@ -52241,8 +52273,8 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       decision.reasoning = `${decision.reasoning} \u041D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435\u0442\u043E \u0441\u0435 \u043E\u0442\u043B\u0430\u0433\u0430: \u043F\u0440\u0438 \u043F\u043E-\u043D\u0438\u0441\u044A\u043A \u043F\u0440\u0438\u0435\u043C \u043C\u0435\u043D\u044E\u0442\u043E \u043D\u0435 \u0441\u043F\u0430\u0437\u0432\u0430 \u043C\u0438\u043D\u0438\u043C\u0443\u043C\u0430 \u0437\u0430 \u0434\u0435\u043D.`;
       newPlan = await assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
     }
-    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
-    newPlan = await writePlanVoice(env, enrichedData, newPlan);
+    if (!auto) newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) => assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
+    newPlan = await writePlanVoice(env, enrichedData, newPlan, auto && plan.aiVoice ? { reuse: plan.aiVoice } : {});
     if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
     if (newPlan.personalHabits?.length && !plan.clinicalProtocol) newPlan.hacks = [...newPlan.personalHabits];
     else if (plan.hacks) newPlan.hacks = plan.hacks;
@@ -52254,15 +52286,17 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     }
     const notice = {
       id: jobId,
-      headline: decision.headline,
-      message: decision.motivationMessage,
+      headline: auto ? "\u041D\u043E\u0432\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0435 \u0433\u043E\u0442\u043E\u0432\u0430" : decision.headline,
+      message: auto ? "\u0422\u043E\u0437\u0438 \u043F\u044A\u0442 \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u0445\u043C\u0435 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0432\u0438, \u0437\u0430\u0442\u043E\u0432\u0430 \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0431\u043D\u043E\u0432\u0435\u043D \u043F\u043E \u043E\u0442\u043C\u0435\u0442\u043A\u0438\u0442\u0435 \u0438 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0442\u0430. \u0421\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u043F\u044A\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0435\u0442\u0435 \u043D\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E\u0442\u043E \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u2014 \u0442\u0430\u043A\u0430 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F\u0442\u0430 \u0435 \u043F\u043E-\u0442\u043E\u0447\u043D\u0430." : decision.motivationMessage,
       changes: decision.changeSummary.slice(0, 2),
       cycleNumber,
       adaptLevel: decision.adaptationLevel,
       at: (/* @__PURE__ */ new Date()).toISOString(),
-      changed: true
+      changed: true,
+      ...auto ? { auto: true } : {}
     };
     await savePendingWeeklyRelease(env, userId, clientId, {
+      auto,
       notice,
       plan: newPlan,
       userData: enrichedData,
@@ -52318,6 +52352,10 @@ async function handleWeeklyGenerateQuestions(request, env) {
     const { userData, plan, analytics, weeklyAdaptHistory, enrichment, pendingWeekly } = await resolveWeeklyJobInputs(env, body);
     if (pendingWeekly && !(pendingWeekly.visibleAt <= Date.now())) {
       return jsonResponse2({ success: true, ...weeklyAlreadySubmitted(pendingWeekly) });
+    }
+    const lastReview = weeklyAdaptHistory[weeklyAdaptHistory.length - 1];
+    if (lastReview?.auto && Date.now() - Date.parse(lastReview.at || 0) < 5 * 864e5) {
+      return jsonResponse2({ success: true, ...weeklyAlreadySubmitted({ auto: true, notice: { cycleNumber: lastReview.cycleNumber, at: lastReview.at } }) });
     }
     if (!plan?.weekPlan) {
       return jsonResponse2({ error: "Missing plan" }, 400);
@@ -53940,6 +53978,128 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
   decision.reasoning = `${decision.reasoning} ${councilSummary(result, opinion)}`.trim();
   console.log(`[council] \u0441\u0435\u0434\u043C\u0438\u0446\u0430: ${result.verdict}; ${decision.council.algorithm.calorieAdjust} \u2192 ${delta} kcal`);
   return decision;
+}
+var WEEKLY_DUE_PREFIX = "weekly_due:";
+var AUTO_WEEKLY_PER_RUN = 5;
+async function scheduleWeeklyDue(env, userId, dueMs) {
+  if (!env?.page_content || !userId || !Number.isFinite(dueMs)) return;
+  try {
+    await env.page_content.put(`${WEEKLY_DUE_PREFIX}${userId}`, "1", { metadata: { due: Math.round(dueMs) }, expirationTtl: 60 * 86400 });
+  } catch (e) {
+    console.warn("[AutoWeekly] \u0441\u0440\u043E\u043A\u044A\u0442 \u043D\u0435 \u0435 \u0437\u0430\u043F\u0438\u0441\u0430\u043D:", e.message);
+  }
+}
+async function processOverdueWeekly(env, now = Date.now()) {
+  if (!env?.page_content) return 0;
+  let started = 0;
+  let cursor;
+  do {
+    const page = await env.page_content.list({ prefix: WEEKLY_DUE_PREFIX, cursor });
+    for (const k of page.keys) {
+      const due = Number(k.metadata?.due) || 0;
+      if (!due || now - due < WEEKLY_OVERDUE_GRACE_MS) continue;
+      const userId = k.name.slice(WEEKLY_DUE_PREFIX.length);
+      const result = await runAutoWeekly(env, userId, now, due).catch((e) => {
+        console.warn(`[AutoWeekly] ${userId}: ${e.message}`);
+        return "error";
+      });
+      console.log(`[AutoWeekly] ${userId}: ${result}`);
+      if (result === "started" && ++started >= AUTO_WEEKLY_PER_RUN) return started;
+    }
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor);
+  return started;
+}
+async function runAutoWeekly(env, userId, now = Date.now(), dueMs = now - WEEKLY_OVERDUE_GRACE_MS) {
+  const dueKey = `${WEEKLY_DUE_PREFIX}${userId}`;
+  const profile = await kvGetJSON(env, `user_profile:${userId}`);
+  const state = profile?.plan?.weekPlan ? await kvGetJSON(env, `game_state:${userId}`) || {} : {};
+  const history = profile?.weeklyAdaptHistory || [];
+  const action = autoWeeklyAction({
+    hasPlan: Boolean(profile?.plan?.weekPlan),
+    pending: Boolean(profile?.pendingWeekly),
+    lastReviewMs: Date.parse(history[history.length - 1]?.at || profile?.planUpdatedAt || 0) || 0,
+    activeMs: Math.max(Date.parse(state.updatedAt || 0) || 0, Date.parse(profile?.enrichment?.updatedAt || 0) || 0),
+    autoStreak: Number(profile?.autoWeeklyStreak) || 0,
+    dueMs,
+    now
+  });
+  if (action === "no-plan" || action === "dormant") {
+    await env.page_content.delete(dueKey);
+    return action;
+  }
+  if (action === "streak" || action === "quiet") {
+    await scheduleWeeklyDue(env, userId, now + WEEKLY_CYCLE_MS);
+    return action;
+  }
+  if (action !== "run") return action;
+  const cycleNumber = nextWeeklyCycle(history, state.gameWeeklyAI);
+  const jobId = crypto.randomUUID();
+  const fromKey = new Date(now - 21 * 864e5).toISOString().slice(0, 10);
+  const gameData = Object.fromEntries(Object.entries(state.gameData || {}).filter(([k]) => k >= fromKey));
+  const payload = {
+    userId,
+    clientId: profile.clientId || "",
+    gameData,
+    gameWeeklyAI: { ...state.gameWeeklyAI || {}, cycleNumber },
+    answers: [],
+    questions: [],
+    auto: true
+  };
+  await scheduleWeeklyDue(env, userId, now + WEEKLY_CYCLE_MS);
+  if (env.PLAN_QUEUE) {
+    await env.page_content.put(PLAN_JOB_PREFIX + jobId, JSON.stringify({ status: "pending", type: "weekly_adapt", auto: true, startedAt: now }), { expirationTtl: PLAN_JOB_TTL_SEC });
+    await env.PLAN_QUEUE.send({ jobId, type: "weekly_adapt", payload }, { contentType: "json" });
+  } else {
+    await runWeeklyAdaptation(env, payload, jobId);
+  }
+  return "started";
+}
+async function runSafetyRebuild(env, payload, jobId) {
+  const { userId, reasons = [] } = payload || {};
+  const profile = await kvGetJSON(env, `user_profile:${userId}`);
+  if (!profile?.plan?.weekPlan || !profile.userData) return;
+  const data = JSON.parse(JSON.stringify(profile.userData));
+  data.userId = userId;
+  const plan = await regeneratePlanFromChat(env, data, profile.plan);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  profile.plan = plan;
+  profile.planUpdatedAt = now;
+  if (profile.pendingWeekly?.plan) {
+    try {
+      profile.pendingWeekly.plan = await regeneratePlanFromChat(env, JSON.parse(JSON.stringify(profile.pendingWeekly.userData || profile.userData)), profile.pendingWeekly.plan);
+    } catch (e) {
+      console.warn("[SafetyRebuild] \u0447\u0430\u043A\u0430\u0449\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043D\u0435 \u0435 \u0441\u0433\u043B\u043E\u0431\u0435\u043D\u0430 \u043D\u0430\u043D\u043E\u0432\u043E:", e.message);
+    }
+  }
+  const words2 = [...new Set(reasons.map((r) => r.startsWith("\u0433\u0440\u0430\u043D\u0438\u0446\u0438 \u0437\u0430 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442") ? "\u043D\u043E\u0432\u0438\u0442\u0435 \u0432\u0438 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F" : r === "\u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435" ? "\u0437\u0434\u0440\u0430\u0432\u043E\u0441\u043B\u043E\u0432\u043D\u043E\u0442\u043E \u0432\u0438 \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435" : r.startsWith("\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430") ? "\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430\u0442\u0430, \u043A\u043E\u0438\u0442\u043E \u043F\u0440\u0438\u0435\u043C\u0430\u0442\u0435" : null).filter(Boolean))];
+  const why = words2.length ? words2.slice(0, 2).join(" \u0438 ") : "\u043D\u043E\u0432\u0438\u0442\u0435 \u0432\u0438 \u0434\u0430\u043D\u043D\u0438";
+  profile.weeklyAdaptNotice = {
+    id: jobId,
+    kind: "safety",
+    headline: "\u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0431\u043D\u043E\u0432\u0435\u043D",
+    message: `\u041C\u0435\u043D\u044E\u0442\u043E \u0435 \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D\u043E \u0441 ${why}. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043E\u0441\u0442\u0430\u0432\u0430\u0442; \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u043E\u0442\u043E \u0449\u0435 \u043F\u0440\u0435\u0433\u043B\u0435\u0434\u0430\u043C\u0435 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u0438\u044F \u043F\u0440\u0435\u0433\u043B\u0435\u0434.`,
+    changes: [],
+    at: now,
+    changed: true
+  };
+  const ttl = userId.startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (profile.clientId) {
+    try {
+      const client = await kvGetJSON(env, `client:${profile.clientId}`);
+      if (client) {
+        client.plan = plan;
+        client.planUpdatedAt = now;
+        client.weeklyAdaptNotice = profile.weeklyAdaptNotice;
+        if (profile.pendingWeekly) client.pendingWeekly = profile.pendingWeekly;
+        await kvPutJSON(env, `client:${profile.clientId}`, client, null);
+      }
+    } catch (e) {
+      console.warn("[SafetyRebuild] \u043A\u0430\u0440\u0442\u043E\u043D\u044A\u0442 \u043D\u0435 \u0435 \u043E\u0431\u043D\u043E\u0432\u0435\u043D:", e.message);
+    }
+  }
+  console.log(`[SafetyRebuild] ${userId}: \u043C\u0435\u043D\u044E\u0442\u043E \u0435 \u0441\u0433\u043B\u043E\u0431\u0435\u043D\u043E \u043D\u0430\u043D\u043E\u0432\u043E (${why})`);
 }
 var COUNCIL_OUTCOME_PREFIX = "council_outcome:";
 var COUNCIL_OUTCOME_TTL = 400 * 24 * 60 * 60;
@@ -58382,6 +58542,11 @@ async function upsertUserProfilePlan(env, userId, updates) {
   };
   if (updates.clientId) profile.clientId = updates.clientId;
   await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (profile.planUpdatedAt !== existing.planUpdatedAt) {
+    const hist = profile.weeklyAdaptHistory || [];
+    const from = Math.max(Date.parse(profile.planUpdatedAt) || 0, Date.parse(hist[hist.length - 1]?.at || 0) || 0);
+    await scheduleWeeklyDue(env, userId, from + WEEKLY_CYCLE_MS);
+  }
   return profile;
 }
 async function handleSaveUserProfile(request, env) {
@@ -58492,6 +58657,16 @@ async function ingestEnrichmentFacts(env, userId, facts2, meta = {}) {
   if (meta.source) profile.moduleSources = { ...profile.moduleSources || {}, [meta.source]: nextStore.updatedAt };
   const ttl = String(userId).startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   if (!unchanged) await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  let rebuiltNow = false;
+  if (!unchanged && profile.plan?.weekPlan && needsSafetyRebuild(change, urgent) && env.PLAN_QUEUE) {
+    try {
+      const jobId = crypto.randomUUID();
+      await env.PLAN_QUEUE.send({ jobId, type: "safety_rebuild", payload: { userId, reasons: change.reasons } }, { contentType: "json" });
+      rebuiltNow = true;
+    } catch (e) {
+      console.warn("[SafetyRebuild] \u043D\u0435 \u0435 \u043F\u0443\u0441\u043D\u0430\u0442:", e.message);
+    }
+  }
   if (profile.clientId && !unchanged) {
     try {
       const client = await kvGetJSON(env, `client:${profile.clientId}`);
@@ -58513,7 +58688,7 @@ async function ingestEnrichmentFacts(env, userId, facts2, meta = {}) {
     level: change.level,
     reasons: change.reasons,
     urgent,
-    appliesAt: urgent ? "specialist" : change.level > 0 ? "weekly" : "next_voice",
+    appliesAt: rebuiltNow ? "now" : urgent ? "specialist" : change.level > 0 ? "weekly" : "next_voice",
     derived: publicEnrichmentView(nextData._enrichment),
     reanalysis: profile.userData ? reanalysisOf(profile.userData, nextStore) : null
   };
@@ -61097,6 +61272,7 @@ var worker_entry_default = {
     console.log("[Worker] Scheduled event triggered at:", (/* @__PURE__ */ new Date()).toISOString());
     ctx.waitUntil(handleScheduledNotifications(env));
     ctx.waitUntil(syncAllLinks(env).catch((e) => console.warn("[Links] scheduled sync failed:", e.message)));
+    ctx.waitUntil(processOverdueWeekly(env).catch((e) => console.warn("[AutoWeekly] scheduled run failed:", e.message)));
   },
   /**
    * Handle Cloudflare Queue messages for plan generation.
@@ -61118,6 +61294,8 @@ var worker_entry_default = {
       try {
         if (type === "weekly_adapt") {
           await runWeeklyAdaptation(env, payload, jobId);
+        } else if (type === "safety_rebuild") {
+          await runSafetyRebuild(env, payload, jobId);
         } else {
           await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
         }

@@ -111,6 +111,10 @@ import {
   decideWeeklyAdjustment,
   weeklyMessage,
   pickWeighIn,
+  autoWeeklyAction,
+  needsSafetyRebuild,
+  WEEKLY_CYCLE_MS,
+  WEEKLY_OVERDUE_GRACE_MS,
 } from './nutrition-engine/monitoring.js';
 import {
   buildEnergyContract,
@@ -5880,7 +5884,15 @@ async function persistAnalyticsAndLedger(env, userId, summary, ledger, clientIdH
     profile.foodLedger = ledger;
     profile.foodLedgerSyncedAt = ledger.updatedAt;
   }
+  // Клиент отпреди автоматичните прегледи: срокът се засява веднъж (един запис).
+  const seedDue = profile.plan?.weekPlan && !profile.weeklyDueSeeded && !profile.pendingWeekly;
+  if (seedDue) profile.weeklyDueSeeded = true;
   await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (seedDue) {
+    const hist = profile.weeklyAdaptHistory || [];
+    const from = Math.max(Date.parse(profile.planUpdatedAt || 0) || 0, Date.parse(hist[hist.length - 1]?.at || 0) || 0);
+    if (from) await scheduleWeeklyDue(env, userId, from + WEEKLY_CYCLE_MS);
+  }
 
   const clientId = clientIdHint || existing.clientId || '';
   if (analyticsChanged && clientId) {
@@ -5952,6 +5964,8 @@ function weeklyAlreadySubmitted(pending) {
     code: 'already_submitted',
     cycleNumber: pending?.notice?.cycleNumber ?? null,
     submittedAt: pending?.notice?.at || null,
+    // Направен автоматично (без отговори) — клиентът показва друго съобщение.
+    auto: Boolean(pending?.auto || pending?.notice?.auto),
   };
 }
 
@@ -6127,7 +6141,11 @@ async function savePendingWeeklyRelease(env, userId, clientId, release) {
     visibleAt: computeWeeklyReleaseVisibleAt(),
     clientId: clientId || profile.clientId || '',
   };
+  // Поредни автоматични прегледи без отговор от клиента — след 2 спират (виж runAutoWeekly).
+  profile.autoWeeklyStreak = release.auto ? (Number(profile.autoWeeklyStreak) || 0) + 1 : 0;
+  profile.weeklyDueSeeded = true;
   await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  await scheduleWeeklyDue(env, userId, profile.pendingWeekly.visibleAt + WEEKLY_CYCLE_MS);
   if (clientId) {
     try {
       const clientData = await kvGetJSON(env, `client:${clientId}`);
@@ -6164,6 +6182,7 @@ function releasePendingWeeklyIfDue(profile) {
       direction: pending.monitoring?.direction ?? null,
       algoDirection: pending.monitoring?.algoDirection ?? null,
       goalCouncil: pending.monitoring?.goalCouncil ?? null,
+      auto: pending.auto || false,
     });
     profile.weeklyAdaptHistory = hist.slice(-5);
   }
@@ -6244,6 +6263,9 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
 
 async function runWeeklyAdaptation(env, payload, jobId) {
   const { userId, gameWeeklyAI, answers, clientId } = payload;
+  // Автоматичен преглед (клиентът не е отговорил 3 дни след срока): по данните от
+  // приложението и устройствата, без въпросите и без нови AI текстове — по-евтино.
+  const auto = payload.auto === true;
   const t0 = Date.now();
   const writeAdaptJob = async (body) => {
     if (!env.page_content || !jobId) return;
@@ -6383,10 +6405,10 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       decision.reasoning = `${decision.reasoning} Намалението се отлага: при по-нисък прием менюто не спазва минимума за ден.`;
       newPlan = await assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, dishPreference });
     }
-    newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) =>
+    if (!auto) newPlan = await reviewMenuWithAI(env, enrichedData, newPlan, (swaps) =>
       assembleEngineValidated(env, enrichedData, analysis, { cycleNumber, previousWeek, slotAvoid: swaps, dishPreference }));
     // Новото меню получава свои бележки; тонът и портретът се пишат наново с данните от седмицата.
-    newPlan = await writePlanVoice(env, enrichedData, newPlan);
+    newPlan = await writePlanVoice(env, enrichedData, newPlan, auto && plan.aiVoice ? { reuse: plan.aiVoice } : {});
     if (plan.clinicalProtocol) newPlan.clinicalProtocol = plan.clinicalProtocol;
     // Клиничният протокол пази своите хакове; иначе личните навици на новата седмица.
     if (newPlan.personalHabits?.length && !plan.clinicalProtocol) newPlan.hacks = [...newPlan.personalHabits];
@@ -6401,15 +6423,19 @@ async function runWeeklyAdaptation(env, payload, jobId) {
 
     const notice = {
       id: jobId,
-      headline: decision.headline,
-      message: decision.motivationMessage,
+      headline: auto ? 'Новата седмица е готова' : decision.headline,
+      message: auto
+        ? 'Този път не получихме отговорите ви, затова планът е обновен по отметките и данните от устройствата. Следващия път отговорете на няколкото въпроса — така корекцията е по-точна.'
+        : decision.motivationMessage,
       changes: decision.changeSummary.slice(0, 2),
       cycleNumber,
       adaptLevel: decision.adaptationLevel,
       at: new Date().toISOString(),
       changed: true,
+      ...(auto ? { auto: true } : {}),
     };
     await savePendingWeeklyRelease(env, userId, clientId, {
+      auto,
       notice,
       plan: newPlan,
       userData: enrichedData,
@@ -6467,6 +6493,11 @@ async function handleWeeklyGenerateQuestions(request, env) {
     // отговор) — новото меню чака утрото. Второ питане само завършва с „Не успяхме“.
     if (pendingWeekly && !(pendingWeekly.visibleAt <= Date.now())) {
       return jsonResponse({ success: true, ...weeklyAlreadySubmitted(pendingWeekly) });
+    }
+    // Автоматичният преглед преди дни вече е новата седмица — без втори в същата седмица.
+    const lastReview = weeklyAdaptHistory[weeklyAdaptHistory.length - 1];
+    if (lastReview?.auto && Date.now() - Date.parse(lastReview.at || 0) < 5 * 86400000) {
+      return jsonResponse({ success: true, ...weeklyAlreadySubmitted({ auto: true, notice: { cycleNumber: lastReview.cycleNumber, at: lastReview.at } }) });
     }
     if (!plan?.weekPlan) {
       return jsonResponse({ error: 'Missing plan' }, 400);
@@ -8466,6 +8497,156 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
   decision.reasoning = `${decision.reasoning} ${councilSummary(result, opinion)}`.trim();
   console.log(`[council] седмица: ${result.verdict}; ${decision.council.algorithm.calorieAdjust} → ${delta} kcal`);
   return decision;
+}
+
+/* ─── Без да чакаме прегледа: безопасност веднага, пропуснат преглед след 3 дни ─── */
+
+const WEEKLY_DUE_PREFIX = 'weekly_due:';
+/** Най-много толкова автоматични прегледа на едно пускане на cron (цена и време). */
+const AUTO_WEEKLY_PER_RUN = 5;
+
+/**
+ * Срокът на следващия седмичен преглед — в метаданните на ключ, за да може cron
+ * да намери просрочените само със списък на ключовете (без четене на профили).
+ */
+async function scheduleWeeklyDue(env, userId, dueMs) {
+  if (!env?.page_content || !userId || !Number.isFinite(dueMs)) return;
+  try {
+    await env.page_content.put(`${WEEKLY_DUE_PREFIX}${userId}`, '1', { metadata: { due: Math.round(dueMs) }, expirationTtl: 60 * 86400 });
+  } catch (e) {
+    console.warn('[AutoWeekly] срокът не е записан:', e.message);
+  }
+}
+
+/** Cron: просрочените с над 3 дни прегледи — автоматично, по наличните данни. */
+async function processOverdueWeekly(env, now = Date.now()) {
+  if (!env?.page_content) return 0;
+  let started = 0;
+  let cursor;
+  do {
+    const page = await env.page_content.list({ prefix: WEEKLY_DUE_PREFIX, cursor });
+    for (const k of page.keys) {
+      const due = Number(k.metadata?.due) || 0;
+      if (!due || now - due < WEEKLY_OVERDUE_GRACE_MS) continue;
+      const userId = k.name.slice(WEEKLY_DUE_PREFIX.length);
+      const result = await runAutoWeekly(env, userId, now, due).catch(e => {
+        console.warn(`[AutoWeekly] ${userId}: ${e.message}`);
+        return 'error';
+      });
+      console.log(`[AutoWeekly] ${userId}: ${result}`);
+      if (result === 'started' && ++started >= AUTO_WEEKLY_PER_RUN) return started;
+    }
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor);
+  return started;
+}
+
+/**
+ * Един автоматичен преглед — по правилата в autoWeeklyAction (monitoring.js).
+ * @returns {Promise<'started'|'wait'|'no-plan'|'pending'|'dormant'|'quiet'|'streak'>}
+ */
+async function runAutoWeekly(env, userId, now = Date.now(), dueMs = now - WEEKLY_OVERDUE_GRACE_MS) {
+  const dueKey = `${WEEKLY_DUE_PREFIX}${userId}`;
+  const profile = await kvGetJSON(env, `user_profile:${userId}`);
+  const state = profile?.plan?.weekPlan ? ((await kvGetJSON(env, `game_state:${userId}`)) || {}) : {};
+  const history = profile?.weeklyAdaptHistory || [];
+  const action = autoWeeklyAction({
+    hasPlan: Boolean(profile?.plan?.weekPlan),
+    pending: Boolean(profile?.pendingWeekly),
+    lastReviewMs: Date.parse(history[history.length - 1]?.at || profile?.planUpdatedAt || 0) || 0,
+    activeMs: Math.max(Date.parse(state.updatedAt || 0) || 0, Date.parse(profile?.enrichment?.updatedAt || 0) || 0),
+    autoStreak: Number(profile?.autoWeeklyStreak) || 0,
+    dueMs,
+    now,
+  });
+  if (action === 'no-plan' || action === 'dormant') {
+    await env.page_content.delete(dueKey);
+    return action;
+  }
+  if (action === 'streak' || action === 'quiet') {
+    await scheduleWeeklyDue(env, userId, now + WEEKLY_CYCLE_MS);
+    return action;
+  }
+  if (action !== 'run') return action; // 'pending' — срокът се записва наново при нея
+  const cycleNumber = nextWeeklyCycle(history, state.gameWeeklyAI);
+  const jobId = crypto.randomUUID();
+  // Последните 3 седмици стигат за прегледа и пазят съобщението в опашката малко.
+  const fromKey = new Date(now - 21 * 86400000).toISOString().slice(0, 10);
+  const gameData = Object.fromEntries(Object.entries(state.gameData || {}).filter(([k]) => k >= fromKey));
+  const payload = {
+    userId,
+    clientId: profile.clientId || '',
+    gameData,
+    gameWeeklyAI: { ...(state.gameWeeklyAI || {}), cycleNumber },
+    answers: [],
+    questions: [],
+    auto: true,
+  };
+  // Срокът се мести веднага — следващият cron не пуска същия преглед втори път.
+  await scheduleWeeklyDue(env, userId, now + WEEKLY_CYCLE_MS);
+  if (env.PLAN_QUEUE) {
+    await env.page_content.put(PLAN_JOB_PREFIX + jobId, JSON.stringify({ status: 'pending', type: 'weekly_adapt', auto: true, startedAt: now }), { expirationTtl: PLAN_JOB_TTL_SEC });
+    await env.PLAN_QUEUE.send({ jobId, type: 'weekly_adapt', payload }, { contentType: 'json' });
+  } else {
+    await runWeeklyAdaptation(env, payload, jobId);
+  }
+  return 'started';
+}
+
+/**
+ * Безопасността не чака прегледа: менюто се сглобява наново с новите ограничения
+ * (калориите остават — те се пипат на прегледа), клиентът получава известие.
+ * Ако новата седмица вече чака, и тя се сглобява наново.
+ */
+async function runSafetyRebuild(env, payload, jobId) {
+  const { userId, reasons = [] } = payload || {};
+  const profile = await kvGetJSON(env, `user_profile:${userId}`);
+  if (!profile?.plan?.weekPlan || !profile.userData) return;
+  const data = JSON.parse(JSON.stringify(profile.userData));
+  // Обогатяването (изследвания, документи) се чете от този профил.
+  data.userId = userId;
+  const plan = await regeneratePlanFromChat(env, data, profile.plan);
+  const now = new Date().toISOString();
+  profile.plan = plan;
+  profile.planUpdatedAt = now;
+  if (profile.pendingWeekly?.plan) {
+    try {
+      profile.pendingWeekly.plan = await regeneratePlanFromChat(env, JSON.parse(JSON.stringify(profile.pendingWeekly.userData || profile.userData)), profile.pendingWeekly.plan);
+    } catch (e) {
+      console.warn('[SafetyRebuild] чакащата седмица не е сглобена наново:', e.message);
+    }
+  }
+  // Причините от recalcLevel — с думи за клиента.
+  const words = [...new Set(reasons.map(r => (r.startsWith('граници за безопасност') ? 'новите ви изследвания'
+    : r === 'здравословно състояние' ? 'здравословното ви състояние'
+      : r.startsWith('лекарства') ? 'лекарствата, които приемате' : null)).filter(Boolean))];
+  const why = words.length ? words.slice(0, 2).join(' и ') : 'новите ви данни';
+  profile.weeklyAdaptNotice = {
+    id: jobId,
+    kind: 'safety',
+    headline: 'Планът е обновен',
+    message: `Менюто е съобразено с ${why}. Калориите остават; останалото ще прегледаме на седмичния преглед.`,
+    changes: [],
+    at: now,
+    changed: true,
+  };
+  const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
+  await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  if (profile.clientId) {
+    try {
+      const client = await kvGetJSON(env, `client:${profile.clientId}`);
+      if (client) {
+        client.plan = plan;
+        client.planUpdatedAt = now;
+        client.weeklyAdaptNotice = profile.weeklyAdaptNotice;
+        if (profile.pendingWeekly) client.pendingWeekly = profile.pendingWeekly;
+        await kvPutJSON(env, `client:${profile.clientId}`, client, null);
+      }
+    } catch (e) {
+      console.warn('[SafetyRebuild] картонът не е обновен:', e.message);
+    }
+  }
+  console.log(`[SafetyRebuild] ${userId}: менюто е сглобено наново (${why})`);
 }
 
 const COUNCIL_OUTCOME_PREFIX = 'council_outcome:';
@@ -14363,6 +14544,13 @@ async function upsertUserProfilePlan(env, userId, updates) {
   };
   if (updates.clientId) profile.clientId = updates.clientId;
   await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  // Нов план: следващият преглед — седмица след по-късното от плана и последния преглед
+  // (автоматичният — 3 дни след срока). Запис само при нов план (лимитът на KV записите).
+  if (profile.planUpdatedAt !== existing.planUpdatedAt) {
+    const hist = profile.weeklyAdaptHistory || [];
+    const from = Math.max(Date.parse(profile.planUpdatedAt) || 0, Date.parse(hist[hist.length - 1]?.at || 0) || 0);
+    await scheduleWeeklyDue(env, userId, from + WEEKLY_CYCLE_MS);
+  }
   return profile;
 }
 
@@ -14523,6 +14711,17 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
 
   const ttl = String(userId).startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   if (!unchanged) await kvPutJSON(env, `user_profile:${userId}`, profile, ttl);
+  // Безопасността не чака седмичния преглед: менюто се сглобява наново веднага.
+  let rebuiltNow = false;
+  if (!unchanged && profile.plan?.weekPlan && needsSafetyRebuild(change, urgent) && env.PLAN_QUEUE) {
+    try {
+      const jobId = crypto.randomUUID();
+      await env.PLAN_QUEUE.send({ jobId, type: 'safety_rebuild', payload: { userId, reasons: change.reasons } }, { contentType: 'json' });
+      rebuiltNow = true;
+    } catch (e) {
+      console.warn('[SafetyRebuild] не е пуснат:', e.message);
+    }
+  }
   // Клиентският картон: есенцията от данните винаги; при безопасност — и сигнал,
   // който специалистът вижда, без да чака прегледа.
   if (profile.clientId && !unchanged) {
@@ -14547,7 +14746,7 @@ async function ingestEnrichmentFacts(env, userId, facts, meta = {}) {
     level: change.level,
     reasons: change.reasons,
     urgent,
-    appliesAt: urgent ? 'specialist' : (change.level > 0 ? 'weekly' : 'next_voice'),
+    appliesAt: rebuiltNow ? 'now' : urgent ? 'specialist' : (change.level > 0 ? 'weekly' : 'next_voice'),
     derived: publicEnrichmentView(nextData._enrichment),
     reanalysis: profile.userData ? reanalysisOf(profile.userData, nextStore) : null,
   };
@@ -17811,6 +18010,7 @@ export default {
     console.log('[Worker] Scheduled event triggered at:', new Date().toISOString());
     ctx.waitUntil(handleScheduledNotifications(env));
     ctx.waitUntil(syncAllLinks(env).catch(e => console.warn('[Links] scheduled sync failed:', e.message)));
+    ctx.waitUntil(processOverdueWeekly(env).catch(e => console.warn('[AutoWeekly] scheduled run failed:', e.message)));
   },
 
   /**
@@ -17833,6 +18033,8 @@ export default {
       try {
         if (type === 'weekly_adapt') {
           await runWeeklyAdaptation(env, payload, jobId);
+        } else if (type === 'safety_rebuild') {
+          await runSafetyRebuild(env, payload, jobId);
         } else {
           await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
         }

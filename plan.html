@@ -6342,6 +6342,16 @@
             if (notice.cycleNumber != null && notice.adaptLevel != null) {
                 try {
                     var wInfo = JSON.parse(localStorage.getItem('gameWeeklyAI') || '{}');
+                    // Автоматичният преглед е седмичният преглед — следващият е след седмица, не сега.
+                    if (notice.auto) {
+                        var atMs = Date.parse(notice.at) || Date.now();
+                        wInfo.feedbackStatus = 'submitted';
+                        wInfo.cycleNumber = notice.cycleNumber;
+                        wInfo.lastRun = new Date(atMs).toISOString();
+                        wInfo.nextDue = new Date(atMs + 7 * 24 * 60 * 60 * 1000).toISOString();
+                        delete wInfo.pendingQuestions;
+                        delete wInfo.pendingAnswers;
+                    }
                     var wHist = (wInfo.adaptationHistory || []).filter(function(h) {
                         return h.cycleNumber !== notice.cycleNumber;
                     }).slice(-4);
@@ -12208,7 +12218,7 @@
             document.body.appendChild(overlay);
         }
 
-        function showWeeklySubmittedModal() {
+        function showWeeklySubmittedModal(text) {
             var old = document.getElementById('gameWeeklyAdaptModal');
             if (old) old.remove();
             var overlay = document.createElement('div');
@@ -12220,7 +12230,7 @@
                 + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = 'Отговорите са изпратени. Новото меню за седмицата влиза от утре сутрин — ще получите известие.';
+            msg.textContent = text || 'Отговорите са изпратени. Новото меню за седмицата влиза от утре сутрин — ще получите известие.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -12389,7 +12399,10 @@
                 loadingOverlay.remove();
                 if (qData.alreadySubmitted) {
                     finalizeWeeklyCycleOnSubmit(info.pendingQuestions || [], info.answers || [], qData.cycleNumber || info.pendingCycleNumber || ((info.cycleNumber || 0) + 1));
-                    showWeeklySubmittedModal();
+                    // Автоматичният преглед (без отговори, 3 дни след срока) вече е направил седмицата.
+                    showWeeklySubmittedModal(qData.auto
+                        ? 'Седмицата вече е настроена по отметките и данните от устройствата. Следващия път отговорете на въпросите — така корекцията е по-точна.'
+                        : null);
                     return;
                 }
                 var questions = qData.questions;
