@@ -214,7 +214,8 @@ const GameNotifier = {
             // window passes with no config change (PWA refreshes on focus instead).
             // Смяна на режима на въпроса за активност (попълнен въпросник, включен крачкомер)
             // сменя бутоните и маха/връща въпроса — графикът се пренарежда.
-            const activityMode = this._activityMode();
+            // Режимът за графика (без деня): денят с неотбелязана тренировка не праща известие.
+            const activityMode = this._activityMode(null);
             const needsSchedule = configChanged ||
                 scheduledVersion !== String(currentVersion) ||
                 localStorage.getItem(this.LS_ACTIVITY_MODE_KEY) !== activityMode ||
@@ -1260,11 +1261,11 @@ const GameNotifier = {
         return !!(rec && rec.morningCheck && typeof rec.morningCheck.sleptWell === 'boolean');
     },
 
-    _hasRealEveningField(rec, field) {
+    _hasRealEveningField(rec, field, recordKey) {
         if (!rec || !rec.eveningCheck) return false;
         const val = rec.eveningCheck[field];
         if (field === 'waterIntake') return typeof val === 'boolean';
-        if (field === 'activityLevel' && this._activityMode() === 'training' && !rec.eveningCheck.trained) return false;
+        if (field === 'activityLevel' && this._activityMode(recordKey || rec.date) === 'training' && !rec.eveningCheck.trained) return false;
         return typeof val === 'number' && val >= 1 && val <= 3;
     },
 
@@ -1275,7 +1276,7 @@ const GameNotifier = {
         const rec = this._getGameRecord(recordKey);
         if (!rec) return false;
         if (meta.type === 'morning_check') return this._hasRealMorningAnswer(rec);
-        return this._hasRealEveningField(rec, meta.saveKind);
+        return this._hasRealEveningField(rec, meta.saveKind, recordKey);
     },
 
     _notificationIdForDay(notifType, dayOffset) {
@@ -1422,11 +1423,13 @@ const GameNotifier = {
         return type === 'evening_activity' || type === 'evening_balance' || type === 'evening_water';
     },
 
-    _getEveningSlots(cfg) {
+    _getEveningSlots(cfg, opts) {
         const normalized = this.normalizeConfig(cfg);
-        // Нетрениращ с крачкомер: активността се смята от крачките — без въпрос.
-        const activityMode = this._activityMode();
-        return this.EVENING_SLOT_DEFS.filter((def) => !(def.type === 'evening_activity' && activityMode === 'steps')).map((def) => {
+        // Нетрениращ с крачкомер: активността се смята от крачките — без известие.
+        // includeActivity: часът на слота е нужен и тогава (въпросът в ден с много крачки).
+        const activityMode = this._activityMode(null);
+        const keepActivity = !!(opts && opts.includeActivity);
+        return this.EVENING_SLOT_DEFS.filter((def) => !(def.type === 'evening_activity' && activityMode === 'steps' && !keepActivity)).map((def) => {
             const prefix = def.type.replace('evening_', '');
             const timeKey = 'evening' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'Time';
             const titleKey = timeKey.replace('Time', 'Title');
@@ -2043,7 +2046,7 @@ const GameNotifier = {
                         ts: new Date().toISOString()
                     };
                 }
-                if (this._hasRealEveningField(rec, field)) return false;
+                if (this._hasRealEveningField(rec, field, recordKey)) return false;
                 this._applyEveningValue(rec.eveningCheck, field, value, recordKey);
                 if (!rec.eveningCheck.ts) rec.eveningCheck.ts = new Date().toISOString();
                 gm.saveRecord(recordKey, rec);
@@ -2064,7 +2067,7 @@ const GameNotifier = {
                     ts: new Date().toISOString()
                 };
             }
-            if (this._hasRealEveningField(record, field)) return false;
+            if (this._hasRealEveningField(record, field, key)) return false;
             this._applyEveningValue(record.eveningCheck, field, value, key);
             allData[key] = record;
             localStorage.setItem('gameData', JSON.stringify(allData));
@@ -2079,11 +2082,16 @@ const GameNotifier = {
     /**
      * Режимът на въпроса за активност (activity-tracker.js): 'training' — „Тренирахте ли днес?“,
      * 'steps' — без въпрос (от крачките), 'ask' — „Колко се движихте днес?“.
+     * recordKey: денят (по подразбиране днес) — в ден с много крачки 'steps' става
+     * 'training' само в приложението; null — режимът за графика на известията.
      */
-    _activityMode() {
+    _activityMode(recordKey) {
         try {
             const A = typeof window !== 'undefined' && (window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity));
-            if (A && typeof A.mode === 'function') return A.mode();
+            if (A && typeof A.mode === 'function') {
+                if (recordKey === null) return A.mode();
+                return A.mode(this._normalizeRecordKey(recordKey === undefined ? Date.now() : recordKey));
+            }
             const data = JSON.parse(localStorage.getItem('userData') || '{}') || {};
             const sport = String(data.sportActivity || '');
             return sport && !/^Никаква/.test(sport) ? 'training' : 'ask';
@@ -2170,7 +2178,7 @@ const GameNotifier = {
         if (notifType === 'morning_check') {
             timeStr = cfg.morningTime || '07:00';
         } else {
-            const slot = this._getEveningSlots(cfg).find((s) => s.type === notifType);
+            const slot = this._getEveningSlots(cfg, { includeActivity: true }).find((s) => s.type === notifType);
             if (!slot) return null;
             timeStr = slot.time;
         }
@@ -2195,7 +2203,7 @@ const GameNotifier = {
         const requireSlotPassed = opts.requireSlotPassed !== false;
         const key = this._normalizeRecordKey(recordKey);
         const out = [];
-        const activityAsked = this._activityMode() !== 'steps';
+        const activityAsked = this._activityMode(key) !== 'steps';
         this.QUESTION_TYPE_ORDER.forEach((type) => {
             if (type === 'evening_activity' && !activityAsked) return;
             if (this._isQuestionAnswered(key, type)) return;
