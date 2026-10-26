@@ -2,7 +2,7 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v39';
+const CACHE_NAME = 'nutriplan-v40';
 // Android приложението (Capacitor) е на https://localhost и носи файловете си —
 // там service worker само връща стари версии след обновяване. Самоизключва се.
 const IS_NATIVE_APP_ORIGIN = self.location.origin === 'https://localhost';
@@ -45,6 +45,8 @@ const STATIC_CACHE = [
   `${BASE_PATH}/session-utils.js`,
   `${BASE_PATH}/auth-guard.js`,
   `${BASE_PATH}/game-scoring.js`,
+  `${BASE_PATH}/goal-model.js`,
+  `${BASE_PATH}/goal-focus.js`,
   `${BASE_PATH}/activity-tracker.js`,
   `${BASE_PATH}/game-analytics.html`,
   `${BASE_PATH}/plan-pending.html`,

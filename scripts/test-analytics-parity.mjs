@@ -37,6 +37,8 @@ function randomData(seed) {
     const rec = { meals, mealCalories, plannedCalories: 1800 + Math.round(r() * 600), mealSlots: SLOTS, extraMeals: [] };
     if (r() < 0.6) rec.morningCheck = { sleptWell: r() < 0.6 };
     if (r() < 0.6) rec.eveningCheck = { activityLevel: 1 + Math.floor(r() * 3), emotionalBalance: 1 + Math.floor(r() * 3), waterIntake: r() < 0.5 };
+    // Измерени крачки спрямо целта (крачкомер/гривна) — същото правило и в двете реализации.
+    if (rec.eveningCheck && r() < 0.5) Object.assign(rec.eveningCheck, { steps: Math.round(r() * 16000), equivSteps: Math.round(r() * 20000), stepTarget: [6000, 7000, 8000][Math.floor(r() * 3)] });
     if (r() < 0.3) rec.extraMeals.push({ calories: Math.round(r() * 400), isJunk: r() < 0.5 });
     if (r() < 0.15) rec.freeMeal = { mealKey: 'Хранене 2', calories: 900 };
     data[key] = rec;

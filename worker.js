@@ -1428,6 +1428,16 @@ function getPlannedCalories(rec) {
   if (rec?.lockedPlannedCalories > 0) return rec.lockedPlannedCalories;
   return rec?.plannedCalories || null;
 }
+function activityPctOf(ec) {
+  if (!ec) return null;
+  if (ec.equivSteps > 0 && ec.stepTarget > 0) return Math.min(100, Math.round(ec.equivSteps / ec.stepTarget * 100));
+  return ec.activityLevel != null ? Math.round((ec.activityLevel - 1) / 2 * 100) : null;
+}
+function isLowActivity(ec) {
+  if (!ec) return false;
+  if (ec.equivSteps > 0 && ec.stepTarget > 0) return ec.equivSteps < ec.stepTarget * 0.5;
+  return ec.activityLevel === 1;
+}
 function calcDayScore(rec, todayKey) {
   if (!rec) return emptyDayScore();
   const meals = planMealSlots(rec);
@@ -1483,13 +1493,14 @@ function calcDayScore(rec, todayKey) {
   }
   const sleepPts = rec.morningCheck ? rec.morningCheck.sleptWell ? 10 : 0 : null;
   const waterPts = rec.eveningCheck?.waterIntake != null ? rec.eveningCheck.waterIntake ? 10 : 0 : null;
-  const activityPts = rec.eveningCheck?.activityLevel != null ? [0, 0, 5, 10][rec.eveningCheck.activityLevel] || 0 : null;
+  const actPctDay = activityPctOf(rec.eveningCheck);
+  const activityPts = actPctDay != null ? Math.round(actPctDay / 10) : null;
   const balancePts = rec.eveningCheck?.emotionalBalance != null ? [0, 0, 5, 10][rec.eveningCheck.emotionalBalance] || 0 : null;
   const wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
   const answered = [sleepPts, waterPts, activityPts, balancePts].filter((v) => v != null).length;
   const wellnessMax = answered * 10;
   const allMealsOk = meals.length > 0 && meals.every((m) => rec.meals[m] === true);
-  const has5StarBlocker = !allMealsOk || excessCalories || answered === 0 || rec.morningCheck?.sleptWell === false || rec.eveningCheck?.waterIntake === false || rec.eveningCheck?.activityLevel === 1 || rec.eveningCheck?.emotionalBalance === 1 || junkCount > 0;
+  const has5StarBlocker = !allMealsOk || excessCalories || answered === 0 || rec.morningCheck?.sleptWell === false || rec.eveningCheck?.waterIntake === false || isLowActivity(rec.eveningCheck) || rec.eveningCheck?.emotionalBalance === 1 || junkCount > 0;
   const planMeals = planMealSlots(rec);
   const done = planMeals.filter((m) => rec.meals[m] === true).length;
   const mealEngPct = planMeals.length > 0 ? done / planMeals.length * 50 : 0;
@@ -1599,7 +1610,7 @@ function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
   const mealAdherence = mealAdh.length ? Math.round(mealAdh.reduce((a, b) => a + b, 0) / mealAdh.length) : null;
   const sleepByDay = days.map((d) => d.rec?.morningCheck?.sleptWell != null ? d.rec.morningCheck.sleptWell ? 100 : 0 : null);
   const balanceByDay = days.map((d) => d.rec?.eveningCheck?.emotionalBalance != null ? Math.round((d.rec.eveningCheck.emotionalBalance - 1) / 2 * 100) : null);
-  const actByDay = days.map((d) => d.rec?.eveningCheck?.activityLevel != null ? Math.round((d.rec.eveningCheck.activityLevel - 1) / 2 * 100) : null);
+  const actByDay = days.map((d) => activityPctOf(d.rec?.eveningCheck));
   const waterByDay = days.map((d) => d.rec?.eveningCheck?.waterIntake != null ? d.rec.eveningCheck.waterIntake ? 100 : 0 : null);
   const calAdherencePct = (() => {
     const vals = [];

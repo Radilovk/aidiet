@@ -48,7 +48,30 @@
         health: ['foods', 'supplements', 'limit', 'psychology', 'swaps', 'hacks']
     };
 
-    var STEP_TARGET = { lose: 8000, lose_soft: 6000, gain: 6000, tone: 7000, health: 7000 };
+    /**
+     * Дневната цел за крачки — по целта в контекста на профила:
+     *   отслабване 8000; стягане 7000; мускулна маса и след бременност 6000
+     *   (при масата енергията е за тренировките); здраве — 8000 под 60 г. и
+     *   7000 от 60 г. (Paluch 2022: ползата се изравнява при 8–10 хил. крачки
+     *   под 60 г. и при 6–8 хил. над 60).
+     * Захар/инсулин — поне 8000 (ходенето след хранене сваля гликемията).
+     * От 70 г. — най-много 7000; при ИТМ ≥ 35 — с 1000 по-малко (натоварване
+     * на ставите при старт). Никога под 6000.
+     */
+    var STEP_TARGET = { lose: 8000, lose_soft: 6000, gain: 6000, tone: 7000, health: 8000 };
+
+    function stepTargetOf(group, ud, glucose) {
+        var age = parseFloat(ud.age) || null;
+        var kg = parseFloat(String(ud.weight || '').replace(',', '.')) || null;
+        var cm = parseFloat(ud.height) || null;
+        var bmi = kg && cm ? kg / Math.pow(cm / 100, 2) : null;
+        var t = STEP_TARGET[group] || 8000;
+        if (group === 'health' && age != null && age >= 60) t = 7000;
+        if (glucose && group !== 'gain' && group !== 'lose_soft') t = Math.max(t, 8000);
+        if (age != null && age >= 70) t = Math.min(t, 7000);
+        if (bmi != null && bmi >= 35) t -= 1000;
+        return Math.max(6000, t);
+    }
     var WORKOUT_TARGET = { lose: 2, lose_soft: 1, gain: 3, tone: 3, health: 2 };
 
     function list(v) {
@@ -98,8 +121,10 @@
             sportDays: sportDaysOf(ud.sportActivity)
         }) : null;
         var goalText = list(ud.goal).map(function (g) { return String(g).trim(); }).filter(Boolean).join(', ');
+        var group = model ? groupOf(model, lactating) : (GOAL_GROUP[goalText] || 'health');
         return {
-            group: model ? groupOf(model, lactating) : (GOAL_GROUP[goalText] || 'health'),
+            group: group,
+            stepTarget: stepTargetOf(group, ud, glucose),
             goal: goalText,
             lead: model ? model.lead : [],
             direction: model ? model.direction : null,
@@ -189,7 +214,7 @@
                 return { key: key, icon: 'fa-utensils', label: 'Приети калории', value: x.avg7 + ' / ' + planKcal + ' kcal', tone: r.tone, note: r.note };
             }
             case 'steps': {
-                var target = STEP_TARGET[g];
+                var target = p.stepTarget;
                 r = x.avg7 >= target ? grade('good', 'Крачките са над целта от ' + target + '.')
                     : x.avg7 >= target * 0.7 ? grade('warn', 'Крачките са под целта от ' + target + ' — по 10 минути ходене след хранене стигат.')
                     : grade('bad', 'Малко движение — целта е ' + target + ' крачки на ден.');
@@ -316,7 +341,7 @@
         if (ck.engagementPct != null) c.engagement = { v: ck.engagementPct, label: 'ангажираност', text: ck.engagementPct + '%' };
         if (m.composition && isFinite(m.composition.leanChangeKg)) c.lean = { v: curve(m.composition.leanChangeKg, [[-1, 5], [-0.5, 25], [0, 75], [0.3, 100]]), label: 'мускулна маса', text: signed(m.composition.leanChangeKg, 1) + ' кг' };
         if (m.workouts) c.workouts = { v: 100 * clamp01(m.workouts.perWeek / WORKOUT_TARGET[g]), label: 'тренировки', text: fmt(m.workouts.perWeek, 1) + ' седмично' };
-        if (m.steps) c.steps = { v: 100 * clamp01(m.steps.avg7 / STEP_TARGET[g]), label: 'крачки', text: fmt(m.steps.avg7) + ' на ден' };
+        if (m.steps) c.steps = { v: 100 * clamp01(m.steps.avg7 / p.stepTarget), label: 'крачки', text: fmt(m.steps.avg7) + ' на ден' };
         else if (ck.actPct != null) c.steps = { v: ck.actPct, label: 'активност', text: ck.actPct + '%' };
         if (ck.balancePct != null) c.balance = { v: ck.balancePct, label: 'емоционален баланс', text: ck.balancePct + '%' };
         if (ck.junkCount != null) c.junk = { v: curve(ck.junkCount, [[0, 100], [2, 70], [4, 35], [6, 10]]), label: 'хранения извън плана', text: ck.junkCount + ' за 7 дни' };
@@ -390,6 +415,8 @@
 
     var api = {
         profileOf: profileOf,
+        /** Дневната цел за крачки по профила и целта. */
+        stepTarget: function (userData) { return profileOf(userData).stepTarget; },
         deviceOrder: deviceOrder,
         checkOrder: checkOrder,
         guideOrder: guideOrder,

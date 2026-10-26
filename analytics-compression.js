@@ -74,6 +74,20 @@ function getPlannedCalories(rec) {
  * @param {object|null} rec
  * @param {string} todayKey
  */
+/** Активността на деня в % — същото правило като game-scoring.js (activityPctOf). */
+export function activityPctOf(ec) {
+  if (!ec) return null;
+  if (ec.equivSteps > 0 && ec.stepTarget > 0) return Math.min(100, Math.round(ec.equivSteps / ec.stepTarget * 100));
+  return ec.activityLevel != null ? Math.round((ec.activityLevel - 1) / 2 * 100) : null;
+}
+
+/** Ниска активност: под половината от целта (измерено) или „Ниско“ (отговор). */
+function isLowActivity(ec) {
+  if (!ec) return false;
+  if (ec.equivSteps > 0 && ec.stepTarget > 0) return ec.equivSteps < ec.stepTarget * 0.5;
+  return ec.activityLevel === 1;
+}
+
 export function calcDayScore(rec, todayKey) {
   if (!rec) return emptyDayScore();
   // Звездите — по храненията от плана (без свободното и напитката), както ангажираността.
@@ -128,7 +142,8 @@ export function calcDayScore(rec, todayKey) {
 
   const sleepPts = rec.morningCheck ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
   const waterPts = rec.eveningCheck?.waterIntake != null ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
-  const activityPts = rec.eveningCheck?.activityLevel != null ? ([0, 0, 5, 10][rec.eveningCheck.activityLevel] || 0) : null;
+  const actPctDay = activityPctOf(rec.eveningCheck);
+  const activityPts = actPctDay != null ? Math.round(actPctDay / 10) : null;
   const balancePts = rec.eveningCheck?.emotionalBalance != null ? ([0, 0, 5, 10][rec.eveningCheck.emotionalBalance] || 0) : null;
   const wellnessEarned = (sleepPts || 0) + (waterPts || 0) + (activityPts || 0) + (balancePts || 0);
   // Само отговорените въпроси са в знаменателя; петата звезда иска поне една проверка.
@@ -139,7 +154,7 @@ export function calcDayScore(rec, todayKey) {
   const has5StarBlocker = !allMealsOk || excessCalories || answered === 0 ||
     (rec.morningCheck?.sleptWell === false) ||
     (rec.eveningCheck?.waterIntake === false) ||
-    (rec.eveningCheck?.activityLevel === 1) ||
+    isLowActivity(rec.eveningCheck) ||
     (rec.eveningCheck?.emotionalBalance === 1) ||
     junkCount > 0;
 
@@ -291,10 +306,7 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     d.rec?.eveningCheck?.emotionalBalance != null
       ? Math.round((d.rec.eveningCheck.emotionalBalance - 1) / 2 * 100) : null
   ));
-  const actByDay = days.map((d) => (
-    d.rec?.eveningCheck?.activityLevel != null
-      ? Math.round((d.rec.eveningCheck.activityLevel - 1) / 2 * 100) : null
-  ));
+  const actByDay = days.map((d) => activityPctOf(d.rec?.eveningCheck));
   const waterByDay = days.map((d) => (
     d.rec?.eveningCheck?.waterIntake != null ? (d.rec.eveningCheck.waterIntake ? 100 : 0) : null
   ));
