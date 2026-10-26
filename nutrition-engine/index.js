@@ -216,6 +216,9 @@ export function buildNutritionPlan(userData, options) {
         carbs: d.macros.carbs,
         fats: d.macros.fats,
         ...(d.timing.post ? { postWorkoutMeal: d.timing.post } : {}),
+        ...(d.timing.pre ? { preWorkoutMeal: d.timing.pre } : {}),
+        // Въглехидратите — преди тренировката, след нея белтък и зеленчуци (metabolic.js, принцип 7).
+        ...(d.carbsBefore ? { carbsBefore: true } : {}),
         ...(d.window ? { window: d.window } : {}),
       };
     }

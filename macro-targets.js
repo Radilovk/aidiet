@@ -61,6 +61,33 @@ export const PROTOCOL_MACRO_SHIFT = {
   longevity: { carbs: -10, protein: 0 },
   detox: { carbs: 0, protein: 5 },
 };
+/**
+ * Таван на въглехидратите при отслабване: при метаболитен риск (инсулинова
+ * резистентност, диабет тип 2, метаболитен синдром, PCOS, мастен черен дроб) —
+ * 30% от енергията; при ИТМ ≥ 30 — 35%. Без него въглехидратите са остатъкът
+ * след белтъка и мазнините — ~50% от енергията и при цел отслабване.
+ * Излишъкът отива в белтъка (до 2,2 г/кг референтно тегло), после в мазнините —
+ * до 8 пункта над дела на стила (повече ястията на диетата не носят). Каквото
+ * остане при много калории, се връща във въглехидратите: таванът е мек.
+ */
+const CARB_CEILING_METABOLIC = 0.30;
+const CARB_CEILING_OBESE = 0.35;
+const CARB_CEILING_RISK = ['IR', 'T2D', 'METS', 'PCOS', 'NAFLD'];
+const CARB_CEILING_PROTEIN_PER_KG = 2.2;
+const CARB_CEILING_FAT_EXTRA = 0.08;
+// Кърменето (PP) не е тук: там въглехидратите не се ограничават.
+const LOSS_GOALS = ['LOSS', 'VISC', 'CELL'];
+
+/** Таванът на въглехидратите като дял от енергията, или null без таван. */
+export function carbCeilingShare(profile) {
+  const losing = profile?.direction ? profile.direction === 'lose' : LOSS_GOALS.includes(profile?.goal);
+  if (!losing || profile?.protocol === 'postpartum_lactation') return null;
+  const clinical = profile.clinical || [];
+  if (clinical.some(c => CARB_CEILING_RISK.includes(c)) || profile.protocol === 'insulin_resistance') return CARB_CEILING_METABOLIC;
+  if (clinical.includes('OB') || clinical.includes('OBS')) return CARB_CEILING_OBESE;
+  return null;
+}
+
 /** Въглехидратите не падат под този дял заради протокол. */
 const PROTOCOL_MIN_CARB_SHARE = 0.15;
 
@@ -140,8 +167,22 @@ export function macroTargetsFor(profile, kcal) {
     fats = Math.max(minFat, Math.round(fats + (carbCut - proteinAdd) * energy / 900));
   }
 
+  const ceiling = style === 'keto' || style === 'low_carb' ? null : carbCeilingShare(profile);
+  const maxCarbs = ceiling ? Math.round(energy * ceiling / 4) : Infinity;
+  if (carbs > maxCarbs) {
+    let excess = carbs - maxCarbs; // г въглехидрати = kcal / 4
+    const proteinRoom = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * maxProteinShare / 4)) - protein);
+    const proteinAdd = Math.min(proteinRoom, excess);
+    protein += proteinAdd;
+    excess -= proteinAdd;
+    const fatRoom = Math.max(0, Math.round(energy * ((FAT_SHARE_BY_STYLE[style] ?? 0.30) + CARB_CEILING_FAT_EXTRA) / 9) - fats);
+    const fatAdd = Math.min(fatRoom, Math.floor(excess * 4 / 9));
+    fats += fatAdd;
+    carbs = maxCarbs + Math.max(0, excess - Math.round(fatAdd * 9 / 4));
+  }
+
   // Калориите на макросите трябва да са дневните калории — излишъкът или
-  // недостигът отива в макроса, който стилът оставя свободен.
+  // недостигът отива в макроса, който стилът оставя свободен (при таван — мазнините).
   const drift = energy - (protein * 4 + carbs * 4 + fats * 9);
   if (style === 'keto' || style === 'low_carb') fats = Math.max(minFat, fats + Math.round(drift / 9));
   else carbs = Math.max(0, carbs + Math.round(drift / 4));
