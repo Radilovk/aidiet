@@ -1,0 +1,99 @@
+name: Студио приложение — Android
+
+# Прави Android приложението на студиата. Пуска се ръчно: Actions → „Студио приложение — Android“ → Run workflow.
+#  * Винаги: debug APK (за пробно инсталиране на телефон: свали „studio-app-apk“ от Artifacts и го отвори на Android).
+#  * Ако има секрети за ключ (по-долу): и подписан AAB за Google Play (Play Console → Production / Internal testing).
+#
+# Секрети за Google Play (по желание; ключът се прави веднъж — виж studio-app/README.md):
+#   STUDIO_KEYSTORE_BASE64   — файлът .keystore, кодиран с base64
+#   STUDIO_KEYSTORE_PASSWORD — парола на хранилището
+#   STUDIO_KEY_ALIAS         — име (alias) на ключа
+#   STUDIO_KEY_PASSWORD      — парола на ключа
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Версия за магазина, напр. 1.0.0'
+        type: string
+        default: '1.0.0'
+
+permissions:
+  contents: read
+
+concurrency: studio-app-android
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: studio-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: studio-app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - run: npm ci
+
+      - name: Android проект, икони, настройки
+        env:
+          STUDIO_V_CODE: ${{ github.run_number }}
+          STUDIO_V_NAME: ${{ inputs.version }}
+        run: |
+          npx cap add android
+          npx @capacitor/assets generate --android --assetPath assets \
+            --iconBackgroundColor '#d32f2f' --iconBackgroundColorDark '#d32f2f' \
+            --splashBackgroundColor '#d32f2f' --splashBackgroundColorDark '#d32f2f'
+          python3 scripts/patch-android.py
+          npx cap sync android
+
+      - name: Debug APK (за пробване)
+        working-directory: studio-app/android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: studio-app-apk
+          path: studio-app/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Подписан AAB за Google Play (само ако има ключ)
+        env:
+          KS_B64: ${{ secrets.STUDIO_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.STUDIO_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.STUDIO_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.STUDIO_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "Няма секрети за ключ — пропускам подписания AAB (debug APK-то е качено)."
+            exit 0
+          fi
+          (cd android && ./gradlew --no-daemon bundleRelease)
+          printf '%s' "$KS_B64" | base64 --decode > "$RUNNER_TEMP/studio.keystore"
+          cp android/app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/studio.aab"
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore "$RUNNER_TEMP/studio.keystore" \
+            -storepass "$KS_PASS" -keypass "$KEY_PASS" "$RUNNER_TEMP/studio.aab" "$KEY_ALIAS"
+          echo "AAB_READY=1" >> "$GITHUB_ENV"
+          echo "AAB_PATH=$RUNNER_TEMP/studio.aab" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ env.AAB_READY == '1' }}
+        with:
+          name: studio-app-aab
+          path: ${{ env.AAB_PATH }}
+          retention-days: 30

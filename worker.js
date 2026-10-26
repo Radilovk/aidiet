@@ -9706,11 +9706,17 @@ var DEFAULT_SETTINGS = {
   },
   closed: [],
   // 'YYYY-MM-DD' days off
-  rules: { minNoticeMin: 120, daysAhead: 30, maxPerDay: 1, maxUpcoming: 8, freeCancelHours: 24 },
+  rules: { minNoticeMin: 120, daysAhead: 30, maxPerDay: 1, maxUpcoming: 8, freeCancelHours: 24, reminderHours: 4 },
+  // reminderHours: the phone's own reminder before the hour (0 = none)
   guarantee: "card_or_code",
   // card | card_or_code | none (a card needs the studio's Stripe)
   google: { calendarId: "" },
-  viber: true
+  viber: false,
+  // Viber messages (only with a PC running viber-sender/); the app's own reminders need nothing
+  listed: true,
+  // shown in the app's list of studios
+  notice: { id: 0, text: "", until: 0 }
+  // a message from the studio to its clients (shown in the app; id changes = a new one)
 };
 var str = (v, max) => String(v == null ? "" : v).trim().slice(0, max);
 var int = (v, min, max, dflt) => {
@@ -9762,16 +9768,24 @@ function normalizeSettings(raw) {
       daysAhead: int(r.daysAhead, 1, 365, d.rules.daysAhead),
       maxPerDay: int(r.maxPerDay, 1, 20, d.rules.maxPerDay),
       maxUpcoming: int(r.maxUpcoming, 1, 100, d.rules.maxUpcoming),
-      freeCancelHours: int(r.freeCancelHours, 0, 168, d.rules.freeCancelHours)
+      freeCancelHours: int(r.freeCancelHours, 0, 168, d.rules.freeCancelHours),
+      reminderHours: int(r.reminderHours, 0, 48, d.rules.reminderHours)
     },
     guarantee: ["card", "card_or_code", "none"].includes(s.guarantee) ? s.guarantee : d.guarantee,
     google: { calendarId: str(s.google && s.google.calendarId, 200) },
-    viber: s.viber !== false
+    viber: s.viber === true,
+    listed: s.listed !== false,
+    notice: {
+      id: int(s.notice && s.notice.id, 0, 4e9, 0),
+      text: str(s.notice && s.notice.text, 300),
+      until: int(s.notice && s.notice.until, 0, 4e12, 0)
+    }
   };
 }
-function publicSettings(st, version, hasStripe2) {
-  const { google, ...rest } = st;
-  return { ...rest, version, card: hasStripe2 && st.guarantee !== "none", calendar: Boolean(google.calendarId) };
+function publicSettings(st, version, hasStripe2, now = Date.now()) {
+  const { google, notice, ...rest } = st;
+  const live = notice.text && (!notice.until || notice.until > now);
+  return { ...rest, version, card: hasStripe2 && st.guarantee !== "none", calendar: Boolean(google.calendarId), notice: live ? notice : null };
 }
 
 // studio-platform/slots.js
@@ -10531,6 +10545,40 @@ async function handleMove(env, ctx, studio, b) {
   })());
   return json({ ok: true, time: String(b.time) });
 }
+async function handleForget(env, ctx, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return err("token", 401);
+  const now = Date.now();
+  const db = env.STUDIO_DB;
+  const upcoming = (await db.prepare("SELECT * FROM bookings WHERE studio_id = ? AND phone = ? AND status = 'booked' AND start_ms > ?").bind(studio.id, client.phone, now).all()).results || [];
+  for (const bk of upcoming) {
+    await db.prepare("UPDATE bookings SET status = 'canceled', changed_at = ? WHERE id = ?").bind(now, bk.id).run();
+    if (bk.code) await db.prepare("UPDATE codes SET uses_left = uses_left + 1 WHERE studio_id = ? AND code = ? AND uses_left IS NOT NULL").bind(studio.id, bk.code).run();
+  }
+  await db.prepare("UPDATE bookings SET name = '', phone = ?, card_pm = '', card_last4 = '', stripe_customer = '' WHERE studio_id = ? AND phone = ?").bind(`deleted:${newId()}`, studio.id, client.phone).run();
+  await db.prepare("DELETE FROM clients WHERE studio_id = ? AND phone = ?").bind(studio.id, client.phone).run();
+  await bumpRev(env, studio.id);
+  ctx.waitUntil((async () => {
+    for (const bk of upcoming) {
+      if (bk.gcal_event && studio.settings.google.calendarId) {
+        await deleteEvent(env, studio.settings.google.calendarId, bk.gcal_event).catch(() => {
+        });
+      }
+    }
+    if (client.stripe_customer && hasStripe(studio)) await stripe(env, studio, "DELETE", `customers/${client.stripe_customer}`).catch(() => {
+    });
+  })());
+  return json({ ok: true, released: upcoming.length });
+}
+async function handleList(env) {
+  const rows = (await env.STUDIO_DB.prepare("SELECT id, settings FROM studios ORDER BY created_at LIMIT 500").all()).results || [];
+  const studios = [];
+  for (const r of rows) {
+    const st = normalizeSettings(JSON.parse(r.settings || "{}"));
+    if (st.listed) studios.push({ id: r.id, name: st.brand.name, tagline: st.brand.tagline, address: st.address, color: st.brand.color, logo: st.brand.logo });
+  }
+  return json({ studios }, 200, { "Cache-Control": "public, max-age=300" });
+}
 async function handleVerifyStart(env, studio, b) {
   const phone = normPhone(b.phone);
   if (!phone || !env.page_content) return err("who");
@@ -10789,6 +10837,7 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
     const body = request.method === "GET" ? {} : await readBody(request, path === "admin/logo" ? 6e5 : 8192);
     if (!body) return err("body");
     if (path === "master/studio" && request.method === "POST") return await handleMaster(env, request, body);
+    if (request.method === "GET" && path === "list") return await handleList(env);
     const id = slugFrom(env, url, body);
     const studio = id ? await loadStudio(env, id) : null;
     if (!studio) return err("studio", 404);
@@ -10824,6 +10873,8 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
         return await handleCancel(env, ctx, studio, body);
       case "move":
         return await handleMove(env, ctx, studio, body);
+      case "forget":
+        return await handleForget(env, ctx, studio, body);
       case "verify/start":
         return await handleVerifyStart(env, studio, body);
       case "verify/finish":

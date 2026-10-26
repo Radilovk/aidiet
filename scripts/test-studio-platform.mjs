@@ -141,7 +141,7 @@ await t('admin: settings, Stripe keys, codes', async () => {
   const r = await api('POST', 'admin/settings', { studio: 'burgas', settings: {
     brand: { name: 'XBODY Burgas', color: '#112233' }, address: 'ул. Тест 1', price: 25,
     slot: { minutes: 30, buffer: 0 }, hours: { [wd]: [['09:00', '12:00']] }, rules: { minNoticeMin: 60, daysAhead: 30, maxPerDay: 1, maxUpcoming: 3 },
-    guarantee: 'card_or_code', google: { calendarId: 'studio@group.calendar.google.com' } } }, H(admin));
+    guarantee: 'card_or_code', viber: true, google: { calendarId: 'studio@group.calendar.google.com' } } }, H(admin));
   assert.equal(r.d.settings.brand.name, 'XBODY Burgas');
   assert.equal((await api('POST', 'admin/stripe', { studio: 'burgas', publishableKey: 'pk_test_a', secretKey: 'sk_live_b' }, H(admin))).status, 400);   // mixed modes
   assert.equal((await api('POST', 'admin/stripe', { studio: 'burgas', publishableKey: 'pk_test_a', secretKey: 'sk_test_b' }, H(admin))).d.set, true);
@@ -252,6 +252,46 @@ await t('admin: a client who called (no card), overlap refused, clients list', a
   assert.equal((await api('POST', 'admin/book', { studio: 'burgas', time: `${next} 11:40`, name: 'X', phone: '0877 555 667' }, H(admin))).status, 409);
   const c = (await api('GET', 'admin/clients?studio=burgas', null, H(admin))).d.clients;
   assert.ok(c.some((x) => x.name === 'По телефона' && x.ahead === 1));
+});
+
+await t('defaults: no Viber, reminder 4 h before; the list of studios shows only listed ones', async () => {
+  const sofia = (await api('GET', 'config?studio=sofia')).d;
+  assert.equal(sofia.viber, false);
+  assert.equal(sofia.rules.reminderHours, 4);
+  assert.equal(sofia.notice, null);
+  const tok2 = (await api('POST', 'master/studio', { id: 'hidden', name: 'Скрито', pin: '11122' }, { 'X-Master-Key': 'm'.repeat(20) })).d.id;
+  db.exec("UPDATE studios SET settings = json_set(settings, '$.listed', json('false')) WHERE id = 'hidden'");
+  const list = (await api('GET', 'list')).d.studios.map((x) => x.id);
+  assert.ok(list.includes('burgas') && list.includes('sofia') && !list.includes(tok2));
+});
+
+await t('studio notice: shown while live, gone after its end', async () => {
+  const set = async (notice) => {
+    const cur = JSON.parse(db.prepare("SELECT settings FROM studios WHERE id = 'burgas'").get().settings);
+    return api('POST', 'admin/settings', { studio: 'burgas', settings: { ...cur, notice } }, H(admin));
+  };
+  await set({ id: 1800000001, text: 'Утре сме затворени', until: Date.now() + 864e5 });
+  let cfg = (await api('GET', 'config?studio=burgas')).d;
+  assert.equal(cfg.notice.text, 'Утре сме затворени');
+  assert.equal(cfg.notice.id, 1800000001);
+  await set({ id: 1800000002, text: 'Старо', until: Date.now() - 1000 });
+  cfg = (await api('GET', 'config?studio=burgas')).d;
+  assert.equal(cfg.notice, null);
+});
+
+await t('delete my data: hours released, code use back, records scrubbed, only with the device token', async () => {
+  const who2 = { studio: 'burgas', phone: '0866 777 888', name: 'За изтриване', terms: true, code: 'FREE' };
+  const r = await api('POST', 'book', { ...who2, times: [`${next} 10:00`] });
+  assert.equal(r.d.booked.length, 1);
+  const tk = r.d.token;
+  assert.equal((await api('POST', 'forget', { ...who2, token: 'x'.repeat(48) })).status, 401);
+  const f = await api('POST', 'forget', { ...who2, token: tk });
+  assert.equal(f.d.released, 1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM clients WHERE phone = '+359866777888'").get().n, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE name = 'За изтриване' OR phone = '+359866777888'").get().n, 0);
+  assert.equal((await api('POST', 'mine', { ...who2, token: tk })).status, 401);
+  const free = (await api('GET', `availability?studio=burgas&month=${next.slice(0, 7)}`)).d.days[next] || [];
+  assert.ok(free.includes('10:00'));   // the hour is free again
 });
 
 await t('a code made by scripts/studio-admin.mjs (Node PBKDF2) opens the admin (WebCrypto)', async () => {

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Студио записване</title>
+<style>
+  html, body { height: 100%; margin: 0; background: #d32f2f; color: #fff; font: 16px/1.4 system-ui, -apple-system, sans-serif; }
+  body { display: grid; place-items: center; text-align: center; padding: 24px; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<!-- The app shows the live booking page (capacitor.config.json → server.url). This page is only the first
+     moment before it loads: if the page cannot be opened it stays, and the button tries again. -->
+<div>
+  <h1 style="font-size:22px;margin:0 0 8px">Студио записване</h1>
+  <p id="msg" style="margin:0 0 20px;opacity:.9">Зареждане…</p>
+  <button id="retry" style="display:none;border:0;border-radius:14px;padding:14px 24px;font:inherit;font-weight:700;background:#fff;color:#d32f2f"
+    onclick="location.href='https://biocode.website/studio.html'">Опитай отново</button>
+</div>
+<script>
+  setTimeout(function () {
+    document.getElementById('msg').textContent = 'Няма връзка с интернет. Записването иска връзка.';
+    document.getElementById('retry').style.display = 'inline-block';
+  }, 4000);
+  if (navigator.onLine) location.replace('https://biocode.website/studio.html');
+</script>
+</body>
+</html>

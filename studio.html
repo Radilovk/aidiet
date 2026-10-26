@@ -154,6 +154,17 @@ details.sec > div { padding-bottom: 14px; }
 
   <div id="offline" class="alert hidden">Няма връзка. Показаните часове може да не са актуални.</div>
 
+  <section class="card hidden" id="pick-card">
+    <b>Изберете студио</b>
+    <div id="pick-list" style="margin-top:8px"></div>
+    <label class="f">Или въведете кода на студиото<input id="pick-code" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="напр. burgas"></label>
+    <p class="err" id="pick-err"></p>
+    <button class="btn sec" id="pick-go">Отвори</button>
+  </section>
+
+  <section class="card note hidden" id="notice"><div class="row" style="align-items:flex-start"><div id="notice-text" style="flex:1"></div>
+    <button class="icon-btn" id="notice-x" aria-label="Затвори" style="flex:none;width:32px;height:32px">×</button></div></section>
+
   <section class="card hidden" id="studio-card">
     <p class="hero" id="s-hero"></p>
     <div class="facts" id="s-facts"></div>
@@ -163,6 +174,7 @@ details.sec > div { padding-bottom: 14px; }
   <section class="card hidden" id="mine-card">
     <div class="row" style="justify-content:space-between"><b>Моите часове</b><span class="small muted" id="mine-extra"></span></div>
     <ul class="mine" id="mine"></ul>
+    <p class="small" style="margin:10px 0 0"><button class="link" id="forget">Изтрий данните ми</button></p>
   </section>
 
   <div id="move-banner" class="alert hidden"></div>
@@ -178,8 +190,12 @@ details.sec > div { padding-bottom: 14px; }
     <div class="slots" id="slots"></div>
   </section>
 
-  <p class="small muted" style="text-align:center">
+  <p class="small muted hidden" style="text-align:center">
     <button class="link" id="old-client">Вече съм клиент — влез с телефона си</button>
+  </p>
+  <p class="small muted" style="text-align:center;margin-bottom:24px">
+    <a href="https://biocode.website/studio-privacy.html" target="_blank" rel="noopener">Поверителност</a>
+    <span id="switch-wrap"> · <button class="link" id="switch">Смени студио</button></span>
   </p>
 </div>
 
@@ -192,7 +208,13 @@ details.sec > div { padding-bottom: 14px; }
   const ROOT = 'biocode-bg.com';
   const host = location.hostname.toLowerCase();
   const SUB = host.endsWith('.' + ROOT) ? host.slice(0, -(ROOT.length + 1)) : '';
-  const STUDIO = (new URLSearchParams(location.search).get('s') || SUB || '').toLowerCase();
+  /* in the phone app (Capacitor) there is no studio in the address: the one chosen last is kept */
+  const APP = Boolean(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+  const CUR_KEY = 'studio:current';
+  let stored = '';
+  try { stored = localStorage.getItem(CUR_KEY) || ''; } catch (_) {}
+  const STUDIO = (new URLSearchParams(location.search).get('s') || SUB || stored || '').toLowerCase();
+  if (STUDIO && !SUB) { try { localStorage.setItem(CUR_KEY, STUDIO); } catch (_) {} }
   const API = SUB ? '' : 'https://aidiet.radilov-k.workers.dev';
   const MAX_PICK = 8;
   const $ = (id) => document.getElementById(id);
@@ -291,13 +313,63 @@ details.sec > div { padding-bottom: 14px; }
     $('studio-card').classList.remove('hidden');
     $('s-msg').textContent = cfg.texts.message || '';
     $('s-msg').classList.toggle('hidden', !cfg.texts.message);
+    renderNotice();
   }
 
+  /* a message from the studio (admin → Известие): a banner until closed; in the app also one reminder-style notification */
+  function renderNotice() {
+    const n = cfg && cfg.notice;
+    const seen = load('notice-seen', 0);
+    const show = Boolean(n && n.text && n.id !== seen);
+    $('notice').classList.toggle('hidden', !show);
+    if (!show) return;
+    $('notice-text').textContent = n.text;
+    if (APP && load('notice-told', 0) !== n.id) {
+      save('notice-told', n.id);
+      const ln = nativeLN();
+      if (ln) ln.checkPermissions().then((p) => {
+        if (p.display === 'granted') ln.schedule({ notifications: [{ id: 900000001, title: cfg.brand.name, body: n.text, schedule: { at: new Date(Date.now() + 2000) } }] }).catch(() => {});
+      }).catch(() => {});
+    }
+  }
+  $('notice-x').onclick = () => { if (cfg && cfg.notice) save('notice-seen', cfg.notice.id); $('notice').classList.add('hidden'); };
+
+  /* no studio chosen: the studios that show themselves, or the studio's own code */
+  function chooseStudio(id) {
+    try { localStorage.setItem(CUR_KEY, id); } catch (_) {}
+    location.href = location.pathname + '?s=' + encodeURIComponent(id);
+  }
+  async function showPicker() {
+    $('s-name').textContent = 'Изберете студио';
+    $('s-tag').textContent = '';
+    $('logo').textContent = '📅';
+    $('cal-card').classList.add('hidden');
+    $('pick-card').classList.remove('hidden');
+    $('switch-wrap').classList.add('hidden');
+    const r = await api('GET', 'list').catch(() => null);
+    const list = (r && r.status === 200 && r.d.studios) || [];
+    $('pick-list').innerHTML = list.length ? list.map((x) => `<button class="btn sec" data-pick="${esc(x.id)}" style="justify-content:flex-start;text-align:left">
+      <span class="logo" style="width:38px;height:38px;border-radius:10px;font-size:16px;background:${esc(x.color)}">${esc((x.name || '?').trim().charAt(0).toUpperCase())}</span>
+      <span><b>${esc(x.name)}</b><br><small class="muted">${esc(x.address || x.tagline || '')}</small></span></button>`).join('')
+      : '<p class="muted small">' + (r ? 'Още няма студиа в списъка.' : 'Няма връзка.') + '</p>';
+    $('pick-list').onclick = (e) => { const b = e.target.closest('[data-pick]'); if (b) chooseStudio(b.dataset.pick); };
+    $('pick-go').onclick = async () => {
+      const id = $('pick-code').value.trim().toLowerCase();
+      if (!/^[a-z0-9-]{2,40}$/.test(id)) { $('pick-err').textContent = 'Кодът е само латински букви, цифри и тире.'; return; }
+      const c = await fetch(`${API}/api/s/config?studio=${encodeURIComponent(id)}`).catch(() => null);
+      if (!c) { $('pick-err').textContent = 'Няма връзка.'; return; }
+      if (c.status !== 200) { $('pick-err').textContent = 'Няма такова студио.'; return; }
+      chooseStudio(id);
+    };
+  }
+  $('switch').onclick = () => { try { localStorage.removeItem(CUR_KEY); } catch (_) {} location.href = location.pathname; };
+  if (SUB) $('switch-wrap').classList.add('hidden');
+
   async function loadConfig() {
-    if (!STUDIO) { $('s-name').textContent = 'Няма избрано студио'; return false; }
+    if (!STUDIO) { await showPicker(); return false; }
     try {
       const r = await api('GET', 'config');
-      if (r.status === 404) { $('s-name').textContent = 'Студиото не е намерено'; return false; }
+      if (r.status === 404) { try { localStorage.removeItem(CUR_KEY); } catch (_) {} $('s-name').textContent = 'Студиото не е намерено'; return false; }
       if (r.status === 200) { cfg = r.d; save('cfg', cfg); }
     } catch (_) {
       $('offline').classList.remove('hidden');
@@ -389,7 +461,7 @@ details.sec > div { padding-bottom: 14px; }
     const i = picked.indexOf(t);
     if (i >= 0) picked.splice(i, 1);
     else if (picked.length >= MAX_PICK) { toast(`Най-много ${MAX_PICK} часа наведнъж.`); return; }
-    else picked.push(t);
+    else { picked.push(t); haptic(); }
     picked.sort();
     save('picked', picked);
     renderSlots();
@@ -595,10 +667,77 @@ details.sec > div { padding-bottom: 14px; }
     picked = picked.filter((t) => !booked.includes(t) && !failed.some((f) => f.time === t));
     save('picked', picked);
     Object.keys(months).forEach((k) => { months[k].at = 0; });
-    await Promise.all([refreshMine(), ensureMonth(ymOf(view.y, view.m), true)]);
+    await Promise.all([refreshMine(booked.length > 0), ensureMonth(ymOf(view.y, view.m), true)]);
     renderCal();
     renderBar();
     showDone(booked, failed);
+  }
+
+  /* a light tap on picking an hour, a "done" tap after a booking (the phone app only) */
+  function haptic(kind) {
+    try {
+      const H = APP && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+      if (!H) return;
+      if (kind === 'ok') H.notification({ type: 'SUCCESS' }); else H.impact({ style: 'LIGHT' });
+    } catch (_) {}
+  }
+
+  /* ── reminders: the phone's own notifications (Capacitor LocalNotifications), set when an hour is booked and re-set
+        whenever the list of hours changes — no server, no internet at the time. N hours before (the studio's setting,
+        4 by default); never at night: before 07:00 it moves to 07:00, if that is still ≥ 30 min ahead of the hour. ── */
+  const REM_BASE = 1000000000;   // our ids: 1e9 … 2e9 (a booking's id, folded)
+  function nativeLN() { return APP && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications; }
+  function reminderAt(startMs, now) {
+    const h = cfg && cfg.rules ? cfg.rules.reminderHours : 0;
+    if (!h) return null;
+    let at = startMs - h * 3600e3;
+    const p = zonedParts(at, tz());
+    if (p.hm < '07:00') {
+      at = zonedMs(p.ymd, '07:00', tz());
+      if (startMs - at < 30 * 60e3) return null;
+    }
+    return at > now + 30e3 ? at : null;
+  }
+  function remId(bookingId) { return REM_BASE + (parseInt(String(bookingId).slice(0, 7), 16) % 900000000); }
+  function remText(startMs, at) {
+    const s = zonedParts(startMs, tz());
+    const a = zonedParts(at, tz());
+    const day = s.ymd === a.ymd ? 'Днес' : 'Утре';
+    return `${day} в ${s.hm} ч. имате час в ${cfg.brand.name}.` + (cfg.address ? ` ${cfg.address}` : '');
+  }
+  async function syncReminders(ask) {
+    const ln = nativeLN();
+    if (!ln || !cfg) return;
+    try {
+      const now = Date.now();
+      const items = mine.filter((h) => h.status === 'booked').map((h) => {
+        const start = zonedMs(h.time.slice(0, 10), h.time.slice(11), tz());
+        return { id: remId(h.id), start, at: reminderAt(start, now) };
+      }).filter((x) => x.at);
+      const pend = ((await ln.getPending()).notifications || []).filter((n) => n.id >= REM_BASE && n.id < 2 * REM_BASE);
+      if (!items.length && !pend.length) return;
+      let perm = (await ln.checkPermissions()).display;
+      if (perm === 'prompt' && ask && items.length) perm = (await ln.requestPermissions()).display;
+      if (perm !== 'granted') {
+        if (ask && items.length) toast('Известията са изключени — включете ги от настройките на телефона, за да получавате напомняния.', 5000);
+        return;
+      }
+      if (pend.length) await ln.cancel({ notifications: pend.map((n) => ({ id: n.id })) });
+      if (items.length) {
+        await ln.schedule({ notifications: items.map((x) => ({
+          id: x.id, title: cfg.brand.name, body: remText(x.start, x.at),
+          schedule: { at: new Date(x.at), allowWhileIdle: true },
+        })) });
+      }
+    } catch (e) { console.warn('reminders', e); }
+  }
+  async function dropReminders() {
+    const ln = nativeLN();
+    if (!ln) return;
+    try {
+      const pend = ((await ln.getPending()).notifications || []).filter((n) => n.id >= REM_BASE && n.id < 2 * REM_BASE);
+      if (pend.length) await ln.cancel({ notifications: pend.map((n) => ({ id: n.id })) });
+    } catch (_) {}
   }
 
   /* ── done: the hours + add to the phone's calendar ── */
@@ -610,7 +749,7 @@ details.sec > div { padding-bottom: 14px; }
       const s = zonedMs(t.slice(0, 10), t.slice(11), tz());
       lines.push('BEGIN:VEVENT', `UID:${STUDIO}-${s}-${i}@studio`, `DTSTAMP:${z(Date.now())}`, `DTSTART:${z(s)}`, `DTEND:${z(s + st.slot.minutes * 60000)}`,
         `SUMMARY:${st.brand.name.replace(/[,;]/g, ' ')}`, `LOCATION:${(st.address || '').replace(/[,;]/g, ' ')}`,
-        'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:Напомняне', 'END:VALARM', 'END:VEVENT');
+        ...(st.rules.reminderHours ? ['BEGIN:VALARM', `TRIGGER:-PT${st.rules.reminderHours}H`, 'ACTION:DISPLAY', 'DESCRIPTION:Напомняне', 'END:VALARM'] : []), 'END:VEVENT');
     });
     lines.push('END:VCALENDAR');
     return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(lines.join('\r\n'));
@@ -622,10 +761,12 @@ details.sec > div { padding-bottom: 14px; }
       `&dates=${z(s)}/${z(s + cfg.slot.minutes * 60000)}&location=` + encodeURIComponent(cfg.address || '');
   }
   function showDone(booked, failed) {
+    if (booked.length) haptic('ok');
     const taken = failed.filter((f) => f.error === 'taken' || f.error === 'not_offered').map((f) => f.time);
     sheet(`${booked.length ? `<h3>Записани ✓</h3><ul class="list">${booked.map((t) => `<li><span>${esc(timeLabel(t))}</span><a class="small" href="${esc(gcalLink(t))}" target="_blank" rel="noopener">Google Календар</a></li>`).join('')}</ul>
-      <p class="small muted">Потвърждение идва по Viber на ${esc(me.phone)}.</p>
-      <a class="btn sec" href="${icsFor(booked)}" download="${esc(STUDIO)}-chasove.ics">📅 Добави в календара на телефона</a>` : ''}
+      <p class="small muted">${cfg.viber ? `Потвърждение идва по Viber на ${esc(me.phone)}.`
+        : cfg.rules.reminderHours ? (APP ? `Ще получите напомняне ${cfg.rules.reminderHours} ч. преди часа.` : 'Добавете часа в календара си, за да получите напомняне.') : ''}</p>
+      ${APP ? '' : `<a class="btn sec" href="${icsFor(booked)}" download="${esc(STUDIO)}-chasove.ics">📅 Добави в календара на телефона</a>`}` : ''}
       ${taken.length ? `<h3>${booked.length ? 'Тези не бяха записани' : 'Часът току-що беше зает'}</h3><ul class="list">${taken.map((t) => `<li>${esc(timeLabel(t))}</li>`).join('')}</ul><p class="small muted">Изберете друг свободен час.</p>` : ''}
       <button class="btn" data-close>Готово</button>`);
   }
@@ -640,7 +781,7 @@ details.sec > div { padding-bottom: 14px; }
     el.innerHTML = `<div class="sheet"><h3>Условия</h3>${own}
       <ul class="small">${free ? `<li>Промяна или отказ — безплатно до ${free} ч преди часа.</li>` : ''}
       ${cfg.card ? '<li>Картата е гаранция: при записване не се тегли нищо. При късен отказ или неявяване студиото може да таксува часа и сумата не се възстановява.</li>' : ''}
-      <li>Потвърждения и напомняния идват по Viber на посочения телефон.</li>
+      ${cfg.viber ? '<li>Потвърждения и напомняния идват по Viber на посочения телефон.</li>' : cfg.rules.reminderHours ? `<li>Приложението напомня ${cfg.rules.reminderHours} ч. преди часа (известие на телефона Ви, без интернет).</li>` : ''}
       <li>Име и телефон се ползват само за записванията и връзка с Вас.</li></ul>
       <button class="btn" data-x>Разбрах</button></div>`;
     el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-x]')) el.remove(); });
@@ -648,7 +789,7 @@ details.sec > div { padding-bottom: 14px; }
   }
 
   /* ── my hours: list, cancel, move ── */
-  async function refreshMine() {
+  async function refreshMine(askNotify) {
     if (!me.token || !me.phone) { renderMine(); return; }
     const r = await api('POST', 'mine', { phone: me.phone, token: me.token }).catch(() => null);
     if (r && r.status === 200) {
@@ -659,12 +800,13 @@ details.sec > div { padding-bottom: 14px; }
       save('me', me);
     } else if (r && r.status === 401) { me.token = ''; save('me', me); mine = []; }
     renderMine();
+    if (r && r.status === 200) await syncReminders(askNotify === true);   // the phone's reminders follow the list
   }
   function renderMine() {
     const now = Date.now();
     const ahead = mine.filter((h) => h.status === 'booked' && zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) > now);
     $('mine-card').classList.toggle('hidden', !ahead.length && !me.token);
-    $('old-client').parentNode.classList.toggle('hidden', Boolean(me.token));
+    $('old-client').parentNode.classList.toggle('hidden', Boolean(me.token) || !(cfg && cfg.viber));   // the login code comes by Viber
     $('mine-extra').textContent = [me.card ? '💳 ' + cardName(me.card) : '', codeOk(me.code) ? '🎟 ' + me.code.code : ''].filter(Boolean).join(' · ');
     $('mine').innerHTML = ahead.length ? ahead.map((h) => `<li><div class="when"><b>${esc(timeLabel(h.time))}</b>${h.late ? '<small>под ' + cfg.rules.freeCancelHours + ' ч до часа</small>' : ''}</div>
       <button class="btn mini sec" data-own="${esc(h.id)}">Промени</button></li>`).join('') : '<li class="muted small">Нямате предстоящи часове.</li>';
@@ -729,6 +871,23 @@ details.sec > div { padding-bottom: 14px; }
       renderBar();
     });
   }
+
+  /* ── delete my data (this studio): hours ahead released, the records no longer say who it was ── */
+  $('forget').onclick = () => {
+    sheet(`<h3>Изтриване на данните</h3><p class="small">Ще бъдат изтрити името, телефонът и запазената карта от <b>${esc(cfg.brand.name)}</b>, а предстоящите Ви часове ще бъдат освободени. Това не може да се върне.</p>
+      <p class="err" id="f-err"></p><button class="btn danger" data-go="yes">Да, изтрий</button><button class="btn sec" data-close>Не</button>`, async (e) => {
+      const go = e.target.closest('[data-go]');
+      if (!go) return;
+      busy(go, 'Изтриване…');
+      const r = await api('POST', 'forget', { phone: me.phone, token: me.token }).catch(() => ({ status: 0 }));
+      if (r.status !== 200) { unbusy(go); $('f-err').textContent = r.status === 0 ? 'Няма връзка.' : 'Не успя. Опитайте отново.'; return; }
+      await dropReminders();
+      try { Object.keys(localStorage).filter((k) => k.startsWith(`st:${STUDIO}:`)).forEach((k) => localStorage.removeItem(k)); } catch (_) {}
+      closeSheet();
+      toast('Данните са изтрити ✓');
+      setTimeout(() => location.reload(), 900);
+    });
+  };
 
   /* ── a new phone: the Viber code ── */
   $('old-client').onclick = () => {
@@ -1027,13 +1186,22 @@ details.sec > div { padding-bottom: 14px; }
       <details class="sec"><summary>📋 Правила за записване</summary><div>
         <div class="row">${f('r-notice', 'Най-късно преди часа (ч)', Math.round(s.rules.minNoticeMin / 60 * 10) / 10, 'number', 'min=0 step=0.5')}${f('r-ahead', 'До колко дни напред', s.rules.daysAhead, 'number', 'min=1 max=365')}</div>
         <div class="row">${f('r-day', 'Часове на ден (клиент)', s.rules.maxPerDay, 'number', 'min=1 max=20')}${f('r-up', 'Предстоящи общо (клиент)', s.rules.maxUpcoming, 'number', 'min=1 max=100')}</div>
-        ${f('r-free', 'Безплатен отказ до (ч преди часа)', s.rules.freeCancelHours, 'number', 'min=0 max=168')}
+        <div class="row">${f('r-free', 'Безплатен отказ до (ч преди часа)', s.rules.freeCancelHours, 'number', 'min=0 max=168')}${f('r-rem', 'Напомняне на телефона преди часа (ч, 0 = без)', s.rules.reminderHours, 'number', 'min=0 max=48')}</div>
+        <p class="small muted">Напомнянето е известие, което приложението само слага на телефона на клиента — без интернет в момента и без разход.</p>
         <label class="f">Гаранция при записване<select id="r-g">
           <option value="card_or_code" ${s.guarantee === 'card_or_code' ? 'selected' : ''}>Карта или код (препоръчително)</option>
           <option value="card" ${s.guarantee === 'card' ? 'selected' : ''}>Винаги карта (и с код)</option>
           <option value="none" ${s.guarantee === 'none' ? 'selected' : ''}>Без гаранция</option></select></label>
         ${adm.state.stripe.set ? '' : '<p class="small muted">Картата се иска само когато е свързан Stripe (по-долу).</p>'}
-        <label class="tick"><input type="checkbox" id="r-viber" ${s.viber ? 'checked' : ''}><span>Viber потвърждения и напомняния</span></label>
+        <label class="tick"><input type="checkbox" id="r-viber" ${s.viber ? 'checked' : ''}><span>Viber съобщения (само ако имаш компютър с viber-sender)</span></label>
+        <label class="tick"><input type="checkbox" id="s-listed" ${s.listed ? 'checked' : ''}><span>Показвай студиото в списъка на приложението</span></label>
+      </div></details>
+      <details class="sec"><summary>📣 Известие към клиентите ${s.notice && s.notice.text && (!s.notice.until || s.notice.until > Date.now()) ? '●' : ''}</summary><div>
+        <p class="small muted">Показва се като съобщение най-горе в приложението и като едно известие, когато клиентът го отвори. Не е мигновено — идва при отваряне на приложението.</p>
+        <label class="f">Текст (до 300 знака)<textarea id="nt-text" maxlength="300">${esc(s.notice ? s.notice.text : '')}</textarea></label>
+        <label class="f">Показвай<select id="nt-days"><option value="1">1 ден</option><option value="3">3 дни</option><option value="7" selected>7 дни</option><option value="30">30 дни</option><option value="0">докато го махна</option></select></label>
+        <button class="btn" id="nt-send">Изпрати известието</button>
+        <button class="btn sec" id="nt-clear">Махни известието</button>
       </div></details>
       <details class="sec"><summary>🏷 Студио и външен вид</summary><div>
         ${f('b-name2', 'Име на студиото', s.brand.name)}${f('b-tag', 'Подзаглавие', s.brand.tagline)}
@@ -1082,6 +1250,15 @@ details.sec > div { padding-bottom: 14px; }
     $('c-add').onclick = async () => { const d = $('c-day').value; if (!d) return; await saveSettings({ closed: [...new Set([...(s.closed || []), d])].sort() }); admSettings(); };
     body.querySelectorAll('[data-rmday]').forEach((b) => { b.onclick = async () => { await saveSettings({ closed: (s.closed || []).filter((x) => x !== b.dataset.rmday) }); admSettings(); }; });
     $('b-logo').onchange = uploadLogo;
+    $('nt-send').onclick = async () => {
+      const text = $('nt-text').value.trim();
+      if (!text) { toast('Напиши текст.'); return; }
+      const days = Number($('nt-days').value);
+      await saveSettings({ notice: { id: Math.floor(Date.now() / 1000), text, until: days ? Date.now() + days * 864e5 : 0 } });
+      toast('Известието е пуснато ✓');
+      admSettings();
+    };
+    $('nt-clear').onclick = async () => { await saveSettings({ notice: { id: Math.floor(Date.now() / 1000), text: '', until: 0 } }); toast('Известието е махнато'); admSettings(); };
     $('p-save').onclick = async () => {
       const pk = $('p-pk').value.trim();
       const sk = $('p-sk').value.trim();
@@ -1104,8 +1281,8 @@ details.sec > div { padding-bottom: 14px; }
       const num = (id) => Number($(id).value);
       await saveSettings({
         slot: { minutes: num('s-min'), buffer: num('s-buf'), step: 0 }, hours,
-        rules: { minNoticeMin: Math.round(num('r-notice') * 60), daysAhead: num('r-ahead'), maxPerDay: num('r-day'), maxUpcoming: num('r-up'), freeCancelHours: num('r-free') },
-        guarantee: $('r-g').value, viber: $('r-viber').checked,
+        rules: { minNoticeMin: Math.round(num('r-notice') * 60), daysAhead: num('r-ahead'), maxPerDay: num('r-day'), maxUpcoming: num('r-up'), freeCancelHours: num('r-free'), reminderHours: num('r-rem') },
+        guarantee: $('r-g').value, viber: $('r-viber').checked, listed: $('s-listed').checked,
         brand: { ...s.brand, name: $('b-name2').value, tagline: $('b-tag').value, color: $('b-color').value },
         price: num('b-price'), currency: $('b-cur').value.toUpperCase(), address: $('b-addr').value, mapUrl: $('b-map').value, phone: $('b-phone').value,
         texts: { hero: $('t-hero').value, message: $('t-msg').value, terms: $('t-terms').value },
@@ -1148,7 +1325,7 @@ details.sec > div { padding-bottom: 14px; }
   window.addEventListener('online', () => $('offline').classList.add('hidden'));
   window.addEventListener('offline', () => $('offline').classList.remove('hidden'));
   (async () => {
-    if (!(await loadConfig())) { $('cal-card').classList.add('hidden'); return; }
+    if (!(await loadConfig())) { if (STUDIO) $('cal-card').classList.add('hidden'); return; }
     const t = todayYmd();
     await Promise.all([refreshMine(), showMonth(+t.slice(0, 4), +t.slice(5, 7) - 1)]);
     tidyPicked();
