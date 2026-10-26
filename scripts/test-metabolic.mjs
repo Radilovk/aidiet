@@ -6,7 +6,7 @@
  */
 import { compileProfile } from '../profile-code.js';
 import { macroTargetsFor } from '../macro-targets.js';
-import { trainingWeek, fastingPlan, weekTargets, metabolicWeek, menuQuality } from '../nutrition-engine/metabolic.js';
+import { trainingWeek, fastingPlan, weekTargets, metabolicWeek, menuQuality, postWorkoutLow, describeMetabolicWeek } from '../nutrition-engine/metabolic.js';
 import { buildNutritionPlan, applyModifications } from '../nutrition-engine/index.js';
 import { buildEngineStrategy } from '../nutrition-engine/strategy.js';
 import { fiberPer100, microPer100 } from '../nutrition-engine/fiber.js';
@@ -26,8 +26,10 @@ const BASE = {
   sportTypes: ['Силови (фитнес, тежести)'], sportSessionMinutes: '60–90 мин', dietPreference: ['Балансирана'], chronotype: 'Вечерен',
 };
 const KCAL = 2100;
+// Научени тренировъчни дни (вечерния въпрос): пн, ср, пт следобед. Без тях дните са еднакви.
+const LEARNED = { _enrichment: { essence: { metrics: { training: { perWeek: 3, usual: [1, 3, 5], slot: 'pm', regularity: 1, kcal: 400 } } } } };
 const setup = (over = {}) => {
-  const data = { ...BASE, ...over };
+  const data = { ...BASE, ...LEARNED, ...over };
   const profile = compileProfile(data);
   const m = macroTargetsFor(profile, KCAL);
   const base = { kcal: KCAL, macros: { protein: m.protein, carbs: m.carbs, fats: m.fats } };
@@ -38,7 +40,7 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
 
 // ── Тренировъчната седмица ───────────────────────────────────────────────
 {
-  const { mw, profile } = setup();
+  const { mw, profile } = setup({ _enrichment: undefined });
   ok(mw.week.source === 'assumed' && JSON.stringify(mw.week.days) === '[1,3,5]' && mw.week.confidence === 0.5, 'без научени дни: пн, ср, пт с половин амплитуда');
   ok(mw.week.fuel === 'glycolytic' && mw.week.sessionKcal === Math.round(4 * 88 * 75 / 60), 'силова: гликолитична, (MET − 1) × кг × ч');
   const learned = trainingWeek(profile, { ...BASE, _enrichment: { essence: { metrics: { training: { perWeek: 3, usual: [2, 4, 0], slot: 'pm', regularity: 1, kcal: 350 } } } } });
@@ -61,6 +63,36 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
   ok(train.every(d => d.bias.STA[d.timing.post] > 1) || train.every(d => !d.timing.post), 'въглехидратите отиват в храненето след тренировката');
 }
 {
+  // Дните само от въпросника (без вечерни отговори) не делят седмицата.
+  const { mw } = setup({ _enrichment: undefined });
+  ok(mw.week.source === 'assumed' && mw.days.every(d => d.kind !== 'train'), 'предположени дни: без „тренировъчен ден“');
+  ok(new Set(mw.days.map(d => d.kcal)).size === 1, 'предположени дни: еднакви калории');
+}
+{
+  // Отслабване при ИТМ ≥ 30: въглехидратите преди тренировката, след нея белтък и зеленчуци.
+  const { mw, profile } = setup({ weight: '105' });
+  const train = mw.days.filter(d => d.kind === 'train');
+  ok(postWorkoutLow(profile, mw.week), 'ИТМ 32 и отслабване: въглехидрати преди тренировката');
+  ok(train.length && train.every(d => d.carbsBefore && d.bias.STA[d.timing.pre] > 1 && d.bias.STA[d.timing.post] < 1), 'тренировъчен ден: преди — повече, след — по-малко нишестени');
+  const text = describeMetabolicWeek(mw, profile).join(' ');
+  ok(/преди тренировката/.test(text) && !/възстановяване на гликогена/.test(text), 'текстът обяснява „преди“, без гликогена');
+  const plan = buildNutritionPlan({ ...BASE, ...LEARNED, weight: '105' }, { kcal: KCAL, seed: 1 });
+  ok(Object.values(plan.weekPlan).some(d => d.energy.carbsBefore && d.energy.preWorkoutMeal), 'денят в плана носи „въглехидрати преди“');
+  ok(!postWorkoutLow(compileProfile({ ...BASE, weight: '105', goal: 'Мускулна маса' }), mw.week), 'покачване: зареждане след тренировката остава');
+  ok(!postWorkoutLow(profile, { ...mw.week, fuel: 'endurance', minutes: 100 }), 'над 90 мин издръжливост: зареждане след тренировката остава');
+  ok(!postWorkoutLow(compileProfile(BASE), mw.week), 'без наднормено тегло и риск: по старому');
+}
+{
+  // Таванът на въглехидратите в базата при отслабване.
+  const share = (over, kcal = KCAL) => { const m = macroTargetsFor(compileProfile({ ...BASE, ...over }), kcal); return m.carbs * 4 / kcal; };
+  ok(share({ weight: '105' }) <= 0.351, `ИТМ ≥ 30: до 35% въглехидрати (${Math.round(share({ weight: '105' }) * 100)}%)`);
+  ok(share({ weight: '105', medicalConditions: ['Инсулинова резистентност'] }) <= 0.301, 'метаболитен риск: до 30%');
+  ok(share({}) > 0.4, 'без наднормено тегло и риск: без таван');
+  ok(share({ weight: '105', goal: 'Мускулна маса' }) > 0.36, 'покачване: без таван');
+  const m = macroTargetsFor(compileProfile({ ...BASE, weight: '105' }), KCAL);
+  ok(Math.abs(m.protein * 4 + m.carbs * 4 + m.fats * 9 - KCAL) <= 10, 'макросите дават калориите на деня');
+}
+{
   // При цел мускулна маса денят следва тренировката по-силно, отколкото при отслабване.
   const gap = (goal) => {
     const { mw } = setup({ goal });
@@ -76,7 +108,7 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
 }
 {
   // Метаболитен риск без тренировки: макросите не се пипат (клиничните са в macro-targets).
-  const { mw, base } = setup({ sportActivity: 'Никаква (0 дни седмично)', medicalConditions: ['Инсулинова резистентност'] });
+  const { mw, base } = setup({ sportActivity: 'Никаква (0 дни седмично)', medicalConditions: ['Инсулинова резистентност'], _enrichment: undefined });
   ok(mw.days.every(d => Math.abs(d.macros.carbs - base.macros.carbs) <= 1), 'без тренировки: въглехидратите на деня са средните');
   ok(mw.days.every(d => d.bias.STA['Хранене 4'] < 1), 'почивен ден при метаболитен риск: вечерята е по-лека на въглехидрати');
 }
@@ -134,7 +166,7 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
 
 // ── План от двигателя ────────────────────────────────────────────────────
 {
-  const plan = buildNutritionPlan({ ...BASE, dietPreference: ['Фастинг'] }, { kcal: KCAL, seed: 1 });
+  const plan = buildNutritionPlan({ ...BASE, ...LEARNED, dietPreference: ['Фастинг'] }, { kcal: KCAL, seed: 1 });
   const days = Object.values(plan.weekPlan);
   ok(days.every(d => d.energy && d.energy.kcal > 0), 'всеки ден носи целта си (energy)');
   const real = days.filter(d => !d.meals.some(m => m.type === 'Свободно хранене'));

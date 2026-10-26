@@ -5880,7 +5880,9 @@
                 const head = energy.kind === 'train' ? 'Тренировъчен ден' : energy.kind === 'low' ? 'По-лек ден' : 'Почивен ден';
                 const icon = energy.kind === 'train' ? 'fa-dumbbell' : energy.kind === 'low' ? 'fa-feather' : 'fa-leaf';
                 const detail = energy.kind === 'train'
-                    ? (energy.postWorkoutMeal && MEAL_NAMES[energy.postWorkoutMeal] ? 'Въглехидратите са най-много в ' + MEAL_NAMES[energy.postWorkoutMeal] + ' след тренировката' : 'Повече въглехидрати за тренировката')
+                    ? (energy.carbsBefore
+                        ? (energy.preWorkoutMeal && MEAL_NAMES[energy.preWorkoutMeal] ? 'Въглехидратите са в ' + MEAL_NAMES[energy.preWorkoutMeal] + ' преди тренировката, след нея — белтък и зеленчуци' : 'Въглехидратите са по-рано, след тренировката — белтък и зеленчуци')
+                        : energy.postWorkoutMeal && MEAL_NAMES[energy.postWorkoutMeal] ? 'Въглехидратите са най-много в ' + MEAL_NAMES[energy.postWorkoutMeal] + ' след тренировката' : 'Повече въглехидрати за тренировката')
                     : energy.window ? 'Хранене в прозорец ' + energy.window : (energy.kind === 'low' ? 'Пълният белтък, по-малко въглехидрати' : 'Повече зеленчуци и мазнини, въглехидратите — по-рано през деня');
                 const card = document.createElement('div');
                 card.className = 'meal-card breakfast-note-card meal-card--clickable day-energy-card';

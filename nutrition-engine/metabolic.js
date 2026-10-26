@@ -35,7 +35,18 @@
  *
  * 6. Колко уверено се разпределя: при научени тренировъчни дни (вечерния
  *    въпрос) — по редовността им. Когато дните са само предположение от
- *    въпросника, амплитудата е наполовина: грешен ден коства малко.
+ *    въпросника, дните са еднакви: грешен „тренировъчен“ ден би бил само
+ *    етикет с повече въглехидрати.
+ *
+ * 7. При отслабване с наднормено тегло или метаболитен риск въглехидратите на
+ *    тренировъчния ден са ПРЕДИ тренировката, а храненето след нея е белтък,
+ *    зеленчуци и мазнини („sleep low“ при вечерна тренировка). Запазеният
+ *    въглехидратен дефицит след натоварването подобрява инсулиновата
+ *    чувствителност на следващата сутрин (Taylor 2018), удължава окислението
+ *    на мазнини (Iwayama 2015) и засилва адаптацията на мускула (PDK4, GLUT4,
+ *    UCP3 — метаанализ 2024). При една тренировка на ден гликогенът се
+ *    възстановява за 24 ч и без бързо зареждане. Зареждане след тренировката
+ *    остава при дълга издръжлива тренировка (над 90 мин) и при покачване.
  *
  * Тренировката се оценява като нетен разход (MET − 1) × кг × ч (Compendium of
  * Physical Activities), а когато има отговори от вечерния въпрос — по тях (там
@@ -209,6 +220,16 @@ export function fastingPlan(profile, userData = {}, week = { days: [], slot: nul
   };
 }
 
+/**
+ * Въглехидратите — преди тренировката, след нея — белтък и зеленчуци (принцип 7).
+ * Не при кето (няма какво да се мести) и не при дълга издръжлива тренировка.
+ */
+export function postWorkoutLow(profile, week) {
+  if (directionOf(profile) !== 'lose' || profile?.diet?.style === 'keto') return false;
+  if (week?.fuel === 'endurance' && (week.minutes || 0) > 90) return false;
+  return (profile.clinical || []).some(c => METABOLIC_RISK.includes(c)) || profile.protocol === 'insulin_resistance';
+}
+
 /** Храненето преди и след тренировката по частта от деня. */
 function sessionSlots(slots, slot) {
   if (slot === 'am') return { pre: slots.includes('Хранене 1') ? 'Хранене 1' : null, post: 'Хранене 2' };
@@ -224,7 +245,7 @@ function sessionSlots(slots, slot) {
  * @param {ReturnType<typeof fastingPlan>} fasting
  * @param {string[]} slots храненията на клиента
  * @returns {Array<{ day: number, kind: 'train'|'rest'|'low', kcal: number, macros: { protein: number, carbs: number, fats: number },
- *   slots: string[], bias: Record<string, Record<string, number>>, timing: { pre: string|null, post: string|null }, window: string|null }>}
+ *   slots: string[], bias: Record<string, Record<string, number>>, timing: { pre: string|null, post: string|null }, window: string|null, carbsBefore: boolean }>}
  */
 export function weekTargets(profile, base, week, fasting, slots) {
   const K = r0(base.kcal);
@@ -276,6 +297,7 @@ export function weekTargets(profile, base, week, fasting, slots) {
   const trainDays = week.days.length;
   const restDays = 7 - trainDays;
   const swingG = trainDays && restDays ? swing * C : 0;
+  const lowAfter = postWorkoutLow(profile, week);
   const days = [1, 2, 3, 4, 5, 6, 7].map((d, i) => {
     const kind = /** @type {'train'|'rest'|'low'} */ (d === fasting.lowDay ? 'low' : week.days.includes(d) ? 'train' : 'rest');
     let carbs = C + carbShare * (kcal[i] - K) / 4;
@@ -286,13 +308,16 @@ export function weekTargets(profile, base, week, fasting, slots) {
     else if (style === 'low_carb') carbs = Math.min(LOW_CARB_MAX_G, carbs);
     // При метаболитен риск почивният ден се стреми към ≤25% от енергията от въглехидрати.
     // Само при тренировъчни дни — те поемат разликата; без тях макросите остават клиничните (macro-targets.js).
-    if (metabolicRisk && trainDays && kind !== 'train' && style !== 'keto') carbs = Math.min(carbs, kcal[i] * 0.25 / 4);
+    const riskCap = metabolicRisk && trainDays && kind !== 'train' && style !== 'keto';
+    if (riskCap) carbs = Math.min(carbs, kcal[i] * 0.25 / 4);
     // Колко може да се отдалечи денят от средното: ястията на диетата трябва да могат да го носят
     // (въглехидрати −30…+35%, мазнини до 1,35 пъти средните).
     if (style !== 'keto') carbs = Math.min(C * 1.35, Math.max(C * 0.7, carbs));
     carbs = Math.max(style === 'keto' ? 0 : 40, carbs);
     let fats = (kcal[i] - 4 * P - 4 * carbs) / 9;
-    const maxFat = Math.max(minFat, F * 1.35);
+    // При тавана за метаболитен риск мазнините може да са повече (до 1,6 пъти средните),
+    // иначе таванът на мазнините връща въглехидратите обратно и защитата не действа.
+    const maxFat = Math.max(minFat, F * (riskCap ? 1.6 : 1.35));
     if (fats > maxFat && style !== 'keto') {
       fats = maxFat;
       carbs = (kcal[i] - 4 * P - 9 * fats) / 4;
@@ -326,18 +351,26 @@ export function weekTargets(profile, base, week, fasting, slots) {
     }
     // Къде отиват въглехидратите в деня (STA — зърнени, FRU — плодове).
     const bias = { STA: {}, FRU: {} };
-    if (x.kind === 'train' && x.timing.post) {
-      bias.STA[x.timing.post] = 1.6;
-      if (x.timing.pre) { bias.STA[x.timing.pre] = 1.15; bias.FRU[x.timing.pre] = 1.4; }
-    } else if (x.kind !== 'train' && carbSensitive) {
-      // Почивен ден: въглехидратите — по-рано през деня, вечерята по-лека на тях.
-      // Без закуска обядът поема дела ѝ — изместването е по-меко, за да не прелее.
-      const hasBreakfast = daySlots.includes('Хранене 1');
+    const hasBreakfast = daySlots.includes('Хранене 1');
+    // Почивен ден: въглехидратите — по-рано през деня, вечерята по-лека на тях.
+    // Без закуска обядът поема дела ѝ — изместването е по-меко, за да не прелее.
+    const earlier = () => {
       if (hasBreakfast) bias.STA['Хранене 1'] = 1.2;
       bias.STA['Хранене 2'] = hasBreakfast ? 1.15 : 1.05;
       bias.STA['Хранене 4'] = hasBreakfast ? 0.6 : 0.8;
+    };
+    if (x.kind === 'train' && lowAfter) {
+      // Въглехидратите — преди тренировката; след нея — белтък, зеленчуци, мазнини.
+      if (x.timing.pre) { bias.STA[x.timing.pre] = 1.6; bias.FRU[x.timing.pre] = 1.4; }
+      else earlier();
+      if (x.timing.post) { bias.STA[x.timing.post] = 0.3; bias.FRU[x.timing.post] = 0.5; }
+    } else if (x.kind === 'train' && x.timing.post) {
+      bias.STA[x.timing.post] = 1.6;
+      if (x.timing.pre) { bias.STA[x.timing.pre] = 1.15; bias.FRU[x.timing.pre] = 1.4; }
+    } else if (x.kind !== 'train' && carbSensitive) {
+      earlier();
     }
-    return { day: x.day, kind: x.kind, kcal: kcalDay, macros: { protein, carbs, fats }, slots: daySlots, bias, timing: x.timing, window };
+    return { day: x.day, kind: x.kind, kcal: kcalDay, macros: { protein, carbs, fats }, slots: daySlots, bias, timing: x.timing, window, carbsBefore: x.kind === 'train' && lowAfter };
   });
 }
 
@@ -347,8 +380,11 @@ export function weekTargets(profile, base, week, fasting, slots) {
  */
 export function metabolicWeek(profile, userData, base, slots) {
   const week = trainingWeek(profile, userData);
-  const fasting = fastingPlan(profile, userData, week);
-  const days = weekTargets(profile, base, week, fasting, slots);
+  // Предположените дни (само от въпросника) не делят седмицата: дните са еднакви,
+  // докато вечерните отговори или устройството не покажат кои са тренировъчни.
+  const effective = week.source === 'pattern' ? week : { ...week, days: [] };
+  const fasting = fastingPlan(profile, userData, effective);
+  const days = weekTargets(profile, base, effective, fasting, slots);
   return { week, fasting, days };
 }
 
@@ -370,12 +406,26 @@ export function describeMetabolicWeek(mw, profile) {
     const which = week.source === 'pattern'
       ? `по отговорите Ви вечер тренирате обикновено ${train.map(d => DAY_SHORT[d.day - 1]).join(', ')}`
       : `приети са ${train.map(d => DAY_SHORT[d.day - 1]).join(', ')} — уточняват се от отговорите Ви вечер`;
-    lines.push(`Тренировъчни дни (${which}): ~${tK} kcal и ~${tC} г въглехидрати; почивни: ~${rK} kcal и ~${rC} г въглехидрати. Белтъкът е еднакъв всеки ден — ${days[0].macros.protein} г.`);
-    const slot = week.slot === 'am' ? 'обяда след сутрешната тренировка' : week.slot === 'pm' ? 'вечерята след тренировката, а лека закуска с плод — преди нея' : 'храненето след тренировката';
-    if (profile.diet?.style !== 'keto') lines.push(`В тренировъчния ден по-голямата част от въглехидратите е в ${slot}: тогава мускулът ги поема за възстановяване на гликогена.`);
+    // Разлика в калориите под 3% не е „повече енергия“ — само разпределение.
+    const sameKcal = Math.abs(tK - rK) < 0.03 * Math.max(tK, rK);
+    lines.push(sameKcal
+      ? `Тренировъчни дни (${which}): калориите са същите като в почивните (~${tK} kcal), разликата е във въглехидратите — ~${tC} г срещу ~${rC} г. Белтъкът е еднакъв всеки ден — ${days[0].macros.protein} г.`
+      : `Тренировъчни дни (${which}): ~${tK} kcal и ~${tC} г въглехидрати; почивни: ~${rK} kcal и ~${rC} г въглехидрати. Белтъкът е еднакъв всеки ден — ${days[0].macros.protein} г.`);
+    const lowAfter = postWorkoutLow(profile, week);
+    const hasPre = train.some(d => d.timing?.pre);
+    if (profile.diet?.style !== 'keto' && lowAfter) {
+      lines.push(hasPre
+        ? `В тренировъчния ден въглехидратите са преди тренировката — горивото е там, където трябва. След нея — белтък и зеленчуци: така тялото остава по-дълго в режим на използване на мазнини, а инсулиновата чувствителност на следващия ден е по-добра.`
+        : 'В тренировъчния ден въглехидратите са по-рано през деня, а след тренировката — белтък и зеленчуци: така тялото остава по-дълго в режим на използване на мазнини.');
+    } else if (profile.diet?.style !== 'keto') {
+      const slot = week.slot === 'am' ? 'обяда след сутрешната тренировка' : week.slot === 'pm' ? 'вечерята след тренировката, а лека закуска с плод — преди нея' : 'храненето след тренировката';
+      lines.push(`В тренировъчния ден по-голямата част от въглехидратите е в ${slot}: тогава мускулът ги поема за възстановяване на гликогена.`);
+    }
     if (rest.some(d => d.macros.carbs < tC) && profile.diet?.style !== 'keto') {
       lines.push('В почивния ден енергията е повече от мазнини и зеленчуци, а въглехидратите са по-рано през деня — инсулиновата чувствителност е по-висока сутрин.');
     }
+  } else if (!train.length && week.days.length && week.source !== 'pattern') {
+    lines.push('Дните са еднакви по енергия, докато вечерните Ви отговори (или устройството) покажат кои са тренировъчните. Въглехидратите са по-рано през деня, вечерята е по-лека на тях.');
   } else if (!train.length) {
     lines.push('Без тренировки дните са еднакви по енергия; въглехидратите са по-рано през деня, вечерята е по-лека на тях.');
   }

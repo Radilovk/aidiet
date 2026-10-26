@@ -254,7 +254,7 @@ export function buildEngineStrategy(engine, userData, options) {
     keyPrinciples: [
       policy.styleDef.label,
       'Хранителна схема в обменни порции',
-      ...(trainDays.length ? ['Въглехидратите следват тренировката, белтъкът е постоянен'] : []),
+      ...(trainDays.length ? [trainDays.some(e => e.carbsBefore) ? 'Въглехидратите — преди тренировката, след нея белтък и зеленчуци; белтъкът е постоянен' : 'Въглехидратите следват тренировката, белтъкът е постоянен'] : []),
       ...(fasting?.active ? [`Хранене в часови прозорец (${fasting.protocol === 'tre16' ? '16:8' : fasting.protocol === 'tre14' ? '14:10' : '12:12'}) в почивните дни`] : []),
       ...rules.map(r => r.label),
     ],

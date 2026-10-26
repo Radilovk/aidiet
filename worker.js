@@ -39773,6 +39773,20 @@ var PROTOCOL_MACRO_SHIFT = {
   longevity: { carbs: -10, protein: 0 },
   detox: { carbs: 0, protein: 5 }
 };
+var CARB_CEILING_METABOLIC = 0.3;
+var CARB_CEILING_OBESE = 0.35;
+var CARB_CEILING_RISK = ["IR", "T2D", "METS", "PCOS", "NAFLD"];
+var CARB_CEILING_PROTEIN_PER_KG = 2.2;
+var CARB_CEILING_FAT_EXTRA = 0.08;
+var LOSS_GOALS = ["LOSS", "VISC", "CELL"];
+function carbCeilingShare(profile) {
+  const losing = profile?.direction ? profile.direction === "lose" : LOSS_GOALS.includes(profile?.goal);
+  if (!losing || profile?.protocol === "postpartum_lactation") return null;
+  const clinical = profile.clinical || [];
+  if (clinical.some((c) => CARB_CEILING_RISK.includes(c)) || profile.protocol === "insulin_resistance") return CARB_CEILING_METABOLIC;
+  if (clinical.includes("OB") || clinical.includes("OBS")) return CARB_CEILING_OBESE;
+  return null;
+}
 var PROTOCOL_MIN_CARB_SHARE = 0.15;
 function referenceWeightKg(profile) {
   const w = Number(profile.weightKg) || 70;
@@ -39828,6 +39842,19 @@ function macroTargetsFor(profile, kcal) {
     carbs = Math.round(carbs - carbCut * energy / 400);
     protein = Math.round(protein + proteinAdd * energy / 400);
     fats = Math.max(minFat, Math.round(fats + (carbCut - proteinAdd) * energy / 900));
+  }
+  const ceiling = style === "keto" || style === "low_carb" ? null : carbCeilingShare(profile);
+  const maxCarbs = ceiling ? Math.round(energy * ceiling / 4) : Infinity;
+  if (carbs > maxCarbs) {
+    let excess = carbs - maxCarbs;
+    const proteinRoom = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * maxProteinShare / 4)) - protein);
+    const proteinAdd = Math.min(proteinRoom, excess);
+    protein += proteinAdd;
+    excess -= proteinAdd;
+    const fatRoom = Math.max(0, Math.round(energy * ((FAT_SHARE_BY_STYLE[style] ?? 0.3) + CARB_CEILING_FAT_EXTRA) / 9) - fats);
+    const fatAdd = Math.min(fatRoom, Math.floor(excess * 4 / 9));
+    fats += fatAdd;
+    carbs = maxCarbs + Math.max(0, excess - Math.round(fatAdd * 9 / 4));
   }
   const drift = energy - (protein * 4 + carbs * 4 + fats * 9);
   if (style === "keto" || style === "low_carb") fats = Math.max(minFat, fats + Math.round(drift / 9));
@@ -43589,6 +43616,11 @@ function fastingPlan(profile, userData = {}, week = { days: [], slot: null }) {
     note: chose ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 ${windowText} \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438; \u0432 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043E\u0431\u0433\u0440\u0430\u0436\u0434\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430.` : `\u0412\u044A\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442: \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 ${windowText} \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438 \u2014 \u0432\u043A\u043B\u044E\u0447\u0432\u0430 \u0441\u0435 \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435.`
   };
 }
+function postWorkoutLow(profile, week) {
+  if (directionOf(profile) !== "lose" || profile?.diet?.style === "keto") return false;
+  if (week?.fuel === "endurance" && (week.minutes || 0) > 90) return false;
+  return (profile.clinical || []).some((c) => METABOLIC_RISK.includes(c)) || profile.protocol === "insulin_resistance";
+}
 function sessionSlots(slots, slot) {
   if (slot === "am") return { pre: slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1") ? "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" : null, post: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" };
   if (slot === "pm") return { pre: slots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3") ? "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3" : "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2", post: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4" };
@@ -43636,6 +43668,7 @@ function weekTargets(profile, base, week, fasting, slots) {
   const trainDays = week.days.length;
   const restDays = 7 - trainDays;
   const swingG = trainDays && restDays ? swing * C : 0;
+  const lowAfter = postWorkoutLow(profile, week);
   const days = [1, 2, 3, 4, 5, 6, 7].map((d, i) => {
     const kind = (
       /** @type {'train'|'rest'|'low'} */
@@ -43646,11 +43679,12 @@ function weekTargets(profile, base, week, fasting, slots) {
     if (kind === "low") carbs = Math.min(carbs, C * 0.6);
     if (style === "keto") carbs = Math.min(KETO_MAX_CARB_G, C);
     else if (style === "low_carb") carbs = Math.min(LOW_CARB_MAX_G, carbs);
-    if (metabolicRisk && trainDays && kind !== "train" && style !== "keto") carbs = Math.min(carbs, kcal[i] * 0.25 / 4);
+    const riskCap = metabolicRisk && trainDays && kind !== "train" && style !== "keto";
+    if (riskCap) carbs = Math.min(carbs, kcal[i] * 0.25 / 4);
     if (style !== "keto") carbs = Math.min(C * 1.35, Math.max(C * 0.7, carbs));
     carbs = Math.max(style === "keto" ? 0 : 40, carbs);
     let fats = (kcal[i] - 4 * P - 4 * carbs) / 9;
-    const maxFat = Math.max(minFat, F * 1.35);
+    const maxFat = Math.max(minFat, F * (riskCap ? 1.6 : 1.35));
     if (fats > maxFat && style !== "keto") {
       fats = maxFat;
       carbs = (kcal[i] - 4 * P - 9 * fats) / 4;
@@ -43677,25 +43711,38 @@ function weekTargets(profile, base, week, fasting, slots) {
       if (daySlots.filter((s) => s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" || s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4").length < 2) daySlots = [...slots];
     }
     const bias = { STA: {}, FRU: {} };
-    if (x.kind === "train" && x.timing.post) {
+    const hasBreakfast = daySlots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1");
+    const earlier = () => {
+      if (hasBreakfast) bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"] = 1.2;
+      bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2"] = hasBreakfast ? 1.15 : 1.05;
+      bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] = hasBreakfast ? 0.6 : 0.8;
+    };
+    if (x.kind === "train" && lowAfter) {
+      if (x.timing.pre) {
+        bias.STA[x.timing.pre] = 1.6;
+        bias.FRU[x.timing.pre] = 1.4;
+      } else earlier();
+      if (x.timing.post) {
+        bias.STA[x.timing.post] = 0.3;
+        bias.FRU[x.timing.post] = 0.5;
+      }
+    } else if (x.kind === "train" && x.timing.post) {
       bias.STA[x.timing.post] = 1.6;
       if (x.timing.pre) {
         bias.STA[x.timing.pre] = 1.15;
         bias.FRU[x.timing.pre] = 1.4;
       }
     } else if (x.kind !== "train" && carbSensitive) {
-      const hasBreakfast = daySlots.includes("\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1");
-      if (hasBreakfast) bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1"] = 1.2;
-      bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2"] = hasBreakfast ? 1.15 : 1.05;
-      bias.STA["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4"] = hasBreakfast ? 0.6 : 0.8;
+      earlier();
     }
-    return { day: x.day, kind: x.kind, kcal: kcalDay, macros: { protein, carbs, fats }, slots: daySlots, bias, timing: x.timing, window };
+    return { day: x.day, kind: x.kind, kcal: kcalDay, macros: { protein, carbs, fats }, slots: daySlots, bias, timing: x.timing, window, carbsBefore: x.kind === "train" && lowAfter };
   });
 }
 function metabolicWeek(profile, userData, base, slots) {
   const week = trainingWeek(profile, userData);
-  const fasting = fastingPlan(profile, userData, week);
-  const days = weekTargets(profile, base, week, fasting, slots);
+  const effective = week.source === "pattern" ? week : { ...week, days: [] };
+  const fasting = fastingPlan(profile, userData, effective);
+  const days = weekTargets(profile, base, effective, fasting, slots);
   return { week, fasting, days };
 }
 var DAY_SHORT = ["\u043F\u043D", "\u0432\u0442", "\u0441\u0440", "\u0447\u0442", "\u043F\u0442", "\u0441\u0431", "\u043D\u0434"];
@@ -43712,12 +43759,21 @@ function describeMetabolicWeek(mw, profile) {
     const tK = avg(train, (d) => d.kcal);
     const rK = avg(rest, (d) => d.kcal);
     const which = week.source === "pattern" ? `\u043F\u043E \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0412\u0438 \u0432\u0435\u0447\u0435\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u0430\u0442\u0435 \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E ${train.map((d) => DAY_SHORT[d.day - 1]).join(", ")}` : `\u043F\u0440\u0438\u0435\u0442\u0438 \u0441\u0430 ${train.map((d) => DAY_SHORT[d.day - 1]).join(", ")} \u2014 \u0443\u0442\u043E\u0447\u043D\u044F\u0432\u0430\u0442 \u0441\u0435 \u043E\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0412\u0438 \u0432\u0435\u0447\u0435\u0440`;
-    lines.push(`\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u0434\u043D\u0438 (${which}): ~${tK} kcal \u0438 ~${tC} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438; \u043F\u043E\u0447\u0438\u0432\u043D\u0438: ~${rK} kcal \u0438 ~${rC} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438. \u0411\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u0435\u0434\u043D\u0430\u043A\u044A\u0432 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u2014 ${days[0].macros.protein} \u0433.`);
-    const slot = week.slot === "am" ? "\u043E\u0431\u044F\u0434\u0430 \u0441\u043B\u0435\u0434 \u0441\u0443\u0442\u0440\u0435\u0448\u043D\u0430\u0442\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430" : week.slot === "pm" ? "\u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430, \u0430 \u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0441 \u043F\u043B\u043E\u0434 \u2014 \u043F\u0440\u0435\u0434\u0438 \u043D\u0435\u044F" : "\u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430";
-    if (profile.diet?.style !== "keto") lines.push(`\u0412 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u044F \u0434\u0435\u043D \u043F\u043E-\u0433\u043E\u043B\u044F\u043C\u0430\u0442\u0430 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0435 \u0432 ${slot}: \u0442\u043E\u0433\u0430\u0432\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u044A\u0442 \u0433\u0438 \u043F\u043E\u0435\u043C\u0430 \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0433\u043B\u0438\u043A\u043E\u0433\u0435\u043D\u0430.`);
+    const sameKcal = Math.abs(tK - rK) < 0.03 * Math.max(tK, rK);
+    lines.push(sameKcal ? `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u0434\u043D\u0438 (${which}): \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u0442\u043E \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 (~${tK} kcal), \u0440\u0430\u0437\u043B\u0438\u043A\u0430\u0442\u0430 \u0435 \u0432\u044A\u0432 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u2014 ~${tC} \u0433 \u0441\u0440\u0435\u0449\u0443 ~${rC} \u0433. \u0411\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u0435\u0434\u043D\u0430\u043A\u044A\u0432 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u2014 ${days[0].macros.protein} \u0433.` : `\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438 \u0434\u043D\u0438 (${which}): ~${tK} kcal \u0438 ~${tC} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438; \u043F\u043E\u0447\u0438\u0432\u043D\u0438: ~${rK} kcal \u0438 ~${rC} \u0433 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438. \u0411\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u0435\u0434\u043D\u0430\u043A\u044A\u0432 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u2014 ${days[0].macros.protein} \u0433.`);
+    const lowAfter = postWorkoutLow(profile, week);
+    const hasPre = train.some((d) => d.timing?.pre);
+    if (profile.diet?.style !== "keto" && lowAfter) {
+      lines.push(hasPre ? `\u0412 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u044F \u0434\u0435\u043D \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u043F\u0440\u0435\u0434\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430 \u2014 \u0433\u043E\u0440\u0438\u0432\u043E\u0442\u043E \u0435 \u0442\u0430\u043C, \u043A\u044A\u0434\u0435\u0442\u043E \u0442\u0440\u044F\u0431\u0432\u0430. \u0421\u043B\u0435\u0434 \u043D\u0435\u044F \u2014 \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438: \u0442\u0430\u043A\u0430 \u0442\u044F\u043B\u043E\u0442\u043E \u043E\u0441\u0442\u0430\u0432\u0430 \u043F\u043E-\u0434\u044A\u043B\u0433\u043E \u0432 \u0440\u0435\u0436\u0438\u043C \u043D\u0430 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0438, \u0430 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430\u0442\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442 \u043D\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u0434\u0435\u043D \u0435 \u043F\u043E-\u0434\u043E\u0431\u0440\u0430.` : "\u0412 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u044F \u0434\u0435\u043D \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u043F\u043E-\u0440\u0430\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F, \u0430 \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430 \u2014 \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438: \u0442\u0430\u043A\u0430 \u0442\u044F\u043B\u043E\u0442\u043E \u043E\u0441\u0442\u0430\u0432\u0430 \u043F\u043E-\u0434\u044A\u043B\u0433\u043E \u0432 \u0440\u0435\u0436\u0438\u043C \u043D\u0430 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0438.");
+    } else if (profile.diet?.style !== "keto") {
+      const slot = week.slot === "am" ? "\u043E\u0431\u044F\u0434\u0430 \u0441\u043B\u0435\u0434 \u0441\u0443\u0442\u0440\u0435\u0448\u043D\u0430\u0442\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430" : week.slot === "pm" ? "\u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430, \u0430 \u043B\u0435\u043A\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0441 \u043F\u043B\u043E\u0434 \u2014 \u043F\u0440\u0435\u0434\u0438 \u043D\u0435\u044F" : "\u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0441\u043B\u0435\u0434 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430";
+      lines.push(`\u0412 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u044F \u0434\u0435\u043D \u043F\u043E-\u0433\u043E\u043B\u044F\u043C\u0430\u0442\u0430 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0435 \u0432 ${slot}: \u0442\u043E\u0433\u0430\u0432\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u044A\u0442 \u0433\u0438 \u043F\u043E\u0435\u043C\u0430 \u0437\u0430 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u0433\u043B\u0438\u043A\u043E\u0433\u0435\u043D\u0430.`);
+    }
     if (rest.some((d) => d.macros.carbs < tC) && profile.diet?.style !== "keto") {
       lines.push("\u0412 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u044F \u0434\u0435\u043D \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u0430 \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u043F\u043E-\u0440\u0430\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F \u2014 \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430\u0442\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442 \u0435 \u043F\u043E-\u0432\u0438\u0441\u043E\u043A\u0430 \u0441\u0443\u0442\u0440\u0438\u043D.");
     }
+  } else if (!train.length && week.days.length && week.source !== "pattern") {
+    lines.push("\u0414\u043D\u0438\u0442\u0435 \u0441\u0430 \u0435\u0434\u043D\u0430\u043A\u0432\u0438 \u043F\u043E \u0435\u043D\u0435\u0440\u0433\u0438\u044F, \u0434\u043E\u043A\u0430\u0442\u043E \u0432\u0435\u0447\u0435\u0440\u043D\u0438\u0442\u0435 \u0412\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 (\u0438\u043B\u0438 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E\u0442\u043E) \u043F\u043E\u043A\u0430\u0436\u0430\u0442 \u043A\u043E\u0438 \u0441\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u044A\u0447\u043D\u0438\u0442\u0435. \u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u043F\u043E-\u0440\u0430\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F, \u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0435 \u043F\u043E-\u043B\u0435\u043A\u0430 \u043D\u0430 \u0442\u044F\u0445.");
   } else if (!train.length) {
     lines.push("\u0411\u0435\u0437 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0434\u043D\u0438\u0442\u0435 \u0441\u0430 \u0435\u0434\u043D\u0430\u043A\u0432\u0438 \u043F\u043E \u0435\u043D\u0435\u0440\u0433\u0438\u044F; \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u043F\u043E-\u0440\u0430\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F, \u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u0435 \u043F\u043E-\u043B\u0435\u043A\u0430 \u043D\u0430 \u0442\u044F\u0445.");
   }
@@ -45488,6 +45544,9 @@ function buildNutritionPlan(userData, options) {
         carbs: d.macros.carbs,
         fats: d.macros.fats,
         ...d.timing.post ? { postWorkoutMeal: d.timing.post } : {},
+        ...d.timing.pre ? { preWorkoutMeal: d.timing.pre } : {},
+        // Въглехидратите — преди тренировката, след нея белтък и зеленчуци (metabolic.js, принцип 7).
+        ...d.carbsBefore ? { carbsBefore: true } : {},
         ...d.window ? { window: d.window } : {}
       };
     }
@@ -46028,7 +46087,7 @@ function buildEngineStrategy(engine, userData, options) {
     keyPrinciples: [
       policy.styleDef.label,
       "\u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0441\u0445\u0435\u043C\u0430 \u0432 \u043E\u0431\u043C\u0435\u043D\u043D\u0438 \u043F\u043E\u0440\u0446\u0438\u0438",
-      ...trainDays.length ? ["\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u0432\u0430\u0442 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430, \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0435\u043D"] : [],
+      ...trainDays.length ? [trainDays.some((e) => e.carbsBefore) ? "\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u2014 \u043F\u0440\u0435\u0434\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430, \u0441\u043B\u0435\u0434 \u043D\u0435\u044F \u0431\u0435\u043B\u0442\u044A\u043A \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438; \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0435\u043D" : "\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u0432\u0430\u0442 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430\u0442\u0430, \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0435 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0435\u043D"] : [],
       ...fasting?.active ? [`\u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0432 \u0447\u0430\u0441\u043E\u0432\u0438 \u043F\u0440\u043E\u0437\u043E\u0440\u0435\u0446 (${fasting.protocol === "tre16" ? "16:8" : fasting.protocol === "tre14" ? "14:10" : "12:12"}) \u0432 \u043F\u043E\u0447\u0438\u0432\u043D\u0438\u0442\u0435 \u0434\u043D\u0438`] : [],
       ...rules.map((r) => r.label)
     ],
