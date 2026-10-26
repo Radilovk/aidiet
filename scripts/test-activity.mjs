@@ -163,6 +163,18 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   store.gameData = '{}';
   A.fillFromSteps({ [key(1)]: 9000 });
   ok(JSON.parse(store.np_activity_state).ext[key(1)] === 9000, 'крачките от Health Connect се пазят');
+  // Индексът спрямо целта: еквивалентните крачки и целта се записват в деня.
+  globalThis.NutriPlanGoalFocus = { stepTarget: () => 7000 };
+  store.gameData = JSON.stringify({ [key(2)]: {} });
+  store.np_activity_state = JSON.stringify({ ext: { [key(2)]: 9100 } });
+  A.fillFromSteps();
+  const ec2 = JSON.parse(store.gameData)[key(2)].eveningCheck;
+  ok(ec2.steps === 9100 && ec2.equivSteps === 9100 && ec2.stepTarget === 7000, `денят носи крачките и целта (${JSON.stringify(ec2)})`);
+  // Трениращ с гривна (без крачкомер): отговорът „да“ ползва крачките от Health Connect.
+  store.userData = JSON.stringify({ gender: 'Мъж', height: '180', weight: '80', sportActivity: 'Средна (2–4 дни седмично)', sportTypes: ['Силови (фитнес, тежести)'] });
+  const ec3 = A.applyAnswer({}, 'pm', key(2));
+  ok(ec3.steps === 9100 && ec3.equivSteps > 9100 && ec3.stepTarget === 7000, 'трениращ с гривна: крачките от Health Connect + тренировката');
+  delete globalThis.NutriPlanGoalFocus;
   delete globalThis.localStorage;
 }
 

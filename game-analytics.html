@@ -1051,12 +1051,16 @@
             var sleepValid = sleepByDay.filter(function(v){return v!==null;});
             var sleepPct = sleepValid.length>0 ? Math.round(sleepValid.reduce(function(a,b){return a+b;},0)/sleepValid.length) : null;
 
-            var actByDay = days.map(function(d){
-                if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.activityLevel==null) return null;
-                return Math.round((d.rec.eveningCheck.activityLevel-1)/2*100);
-            });
+            // Измерено (крачки + тренировката спрямо целта по профила) или отговорът 1–3 (game-scoring.js).
+            var actByDay = days.map(function(d){ return GameScoring.activityPctOf(d.rec&&d.rec.eveningCheck); });
             var actValid = actByDay.filter(function(v){return v!==null;});
             var actPct = actValid.length>0 ? Math.round(actValid.reduce(function(a,b){return a+b;},0)/actValid.length) : null;
+            var actMeasured = days.map(function(d){ return d.rec&&d.rec.eveningCheck; })
+                .filter(function(e){ return e&&e.equivSteps>0&&e.stepTarget>0; });
+            var actStepsAvg = actMeasured.length ? Math.round(actMeasured.reduce(function(a,e){ return a+(e.steps||0); },0)/actMeasured.length/100)*100 : null;
+            var actTarget = actMeasured.length ? actMeasured[actMeasured.length-1].stepTarget : null;
+            var actAnswered = actValid.length - actMeasured.length;
+            var fmtSteps = function(n){ return Number(n).toLocaleString('bg-BG'); };
 
             var waterByDay = days.map(function(d){
                 if(!d.rec||!d.rec.eveningCheck||d.rec.eveningCheck.waterIntake==null) return null;
@@ -1130,7 +1134,7 @@
                 insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> 1 ден с калориен дефицит — следете дали приемате достатъчно хранителни вещества');
             }
             if(deficitDays.length>=2){
-                var deficitLowAct=deficitDays.filter(function(d){ return d.rec&&d.rec.eveningCheck&&d.rec.eveningCheck.activityLevel===1; }).length;
+                var deficitLowAct=deficitDays.filter(function(d){ return d.rec&&GameScoring.isLowActivity(d.rec.eveningCheck); }).length;
                 if(deficitLowAct>=Math.ceil(deficitDays.length/2)) insights.push('<i class="fas fa-bolt" style="color:#3b82f6"></i> В дните с калориен дефицит активността е по-ниска — ниският калориен прием влияе на енергийните нива');
             }
 
@@ -1183,7 +1187,9 @@
                     text:'Отразява качеството на съня ти на база сутрешните проверки.\n\nЦел: минимум 70%.',
                     why:'Недоспиването повишава апетита и прави дефицита по-труден за спазване. Препоръката за възрастни е 7–9 часа сън.' },
                 activity: { title:'Активност',
-                    text:'Показва колко активен си бил всеки ден (от вечерните проверки).\n\nЦел: минимум 70%.',
+                    text: actMeasured.length
+                        ? 'Изчислява се от крачките (крачкомер на телефона или гривна/часовник): крачките за деня плюс тренировката, превърната в крачки, спрямо твоята цел — ' + fmtSteps(actTarget) + ' крачки на ден. Целта е по целта ти и профила (възраст, тегло, кръвна захар).\n\n' + actMeasured.length + ' ' + (actMeasured.length===1?'ден е измерен':'дни са измерени') + (actAnswered>0 ? ', ' + actAnswered + ' — по отговорите ти вечер (Ниско 0%, Средно 50%, Високо 100%)' : '') + '.\n\nЦел: минимум 70%.'
+                        : 'Показва колко активен си бил всеки ден — по отговорите ти вечер (Ниско 0%, Средно 50%, Високо 100%). С включен крачкомер или свързана гривна се смята от реалните крачки спрямо твоята цел.\n\nЦел: минимум 70%.',
                     why:'СЗО препоръчва поне 150 минути умерена активност седмично. Всяко раздвижване се брои — включително разходката.' },
                 water: { title:'Хидратация',
                     text:'Дали си изпил препоръчаната вода за деня (от вечерните проверки). Твоята цел по плана: ' + waterGoalText + ' дневно.\n\nЦел: минимум 70% от дните.',
@@ -1389,7 +1395,8 @@
 
             if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
                 '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+
+                    (actStepsAvg!=null ? ' · ~'+fmtSteps(actStepsAvg)+' крачки/ден, цел '+fmtSteps(actTarget)+(actStepsAvg>actTarget?' (над целта)':'') : '')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(actPct,'linear-gradient(90deg,#f59e0b,#fbbf24)') + miniBarChart(actByDay,100,'#f59e0b') +
             '</div>';
 

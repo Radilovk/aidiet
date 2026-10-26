@@ -181,7 +181,7 @@
      * Активността за един ден.
      * @param {object} p профил (profileOf)
      * @param {{ steps?: number|null, trained?: 'am'|'pm'|'no'|null, baselineSteps?: number|null }} day
-     * @returns {{ steps: number, measured: boolean, stepsKcal: number, trainingKcal: number, activeKcal: number, level: 1|2|3, source: string }}
+     * @returns {{ steps: number, measured: boolean, stepsKcal: number, trainingKcal: number, activeKcal: number, equivSteps: number, level: 1|2|3, source: string }}
      */
     function estimateDay(p, day) {
         day = day || {};
@@ -199,6 +199,8 @@
             stepsKcal: stepsKcal,
             trainingKcal: tk,
             activeKcal: stepsKcal + tk,
+            // Крачките плюс тренировката, превърната в крачки — за индекса спрямо целта.
+            equivSteps: Math.round(equiv),
             level: /** @type {1|2|3} */ (levelOf(equiv)),
             source: trained ? 'training' : measured ? 'steps' : 'estimate'
         };
@@ -407,11 +409,18 @@
         return st;
     }
 
-    /** Крачките за ден: { steps, partial } или null. Днешният — с прогноза до края на деня. */
+    /**
+     * Крачките за ден: { steps, partial } или null. Днешният — с прогноза до края на деня.
+     * Без крачкомер — от Health Connect (гривна/часовник); днешното там е вечерното показание.
+     */
     function stepsFor(key, opts) {
         var st = readState();
         var d = st.days && st.days[key];
-        if (!st.enabled || !d) return null;
+        if (!st.enabled || !d) {
+            var e = st.ext && st.ext[key];
+            if (!(e >= MIN_REAL_DAY)) return null;
+            return key === dayKey(Date.now()) ? { steps: e, partial: true, projected: true } : { steps: e, partial: false };
+        }
         var today = dayKey(Date.now());
         if (key !== today) return { steps: Math.round(d.s), partial: !!d.part || d.s < MIN_REAL_DAY };
         if (!(opts && opts.project)) return { steps: Math.round(d.s), partial: true };
@@ -434,6 +443,22 @@
         if (vals.length < 3) return null;
         var mid = Math.floor(vals.length / 2);
         return vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
+    }
+
+    /** Целта за крачки по профила и целта (goal-focus.js); без модула — null (индексът остава по нивото). */
+    function stepTarget() {
+        try {
+            var GF = global.NutriPlanGoalFocus || (global.top && global.top.NutriPlanGoalFocus);
+            return GF && typeof GF.stepTarget === 'function' ? GF.stepTarget(userData()) : null;
+        } catch (_) { return null; }
+    }
+
+    /** Измереното в деня: крачки, еквивалент с тренировката и целта към този ден. */
+    function markMeasured(ec, est) {
+        ec.steps = est.steps;
+        ec.equivSteps = est.equivSteps;
+        var t = stepTarget();
+        if (t) ec.stepTarget = t;
     }
 
     // ── Режим на вечерния въпрос ─────────────────────────────────────────
@@ -551,7 +576,7 @@
         ec.activitySource = est.source;
         ec.activeKcal = est.activeKcal;
         ec.trainingKcal = est.trainingKcal;
-        if (est.measured) ec.steps = est.steps;
+        if (est.measured) markMeasured(ec, est);
         try {
             var E = global.NutriPlanEnrichment;
             // Самият отговор е съгласието: той влиза в плана като факт.
@@ -596,9 +621,9 @@
             rec.eveningCheck = Object.assign({ activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null }, ec, {
                 activityLevel: est.level,
                 activitySource: s.projected ? 'steps_projected' : 'steps',
-                steps: est.steps,
                 activeKcal: est.activeKcal
             });
+            markMeasured(rec.eveningCheck, est);
             changed.push(key);
         });
         if (!changed.length) return 0;
@@ -688,6 +713,7 @@
         dayShareUntil: dayShareUntil,
         mode: mode,
         hasStepSource: hasStepSource,
+        stepTarget: stepTarget,
         askTrainingOn: askTrainingOn,
         applyAnswer: applyAnswer,
         fillFromSteps: fillFromSteps,

@@ -54,5 +54,17 @@ ok(GF.evaluate('weight', { weight: { last: 80, trendKgWeek: -0.5, days: 2 } }, G
 ok(GF.deviceView({}, lose).cards.length === 0, 'без данни — без карти');
 ok(GF.evaluate('restingHr', M, GF.profileOf(lose)).tone === 'warn', 'пулс +6 над обичайния = внимание');
 
+// ── Цел за крачки по профила и целта ─────────────────────────────────────
+{
+  const base = { gender: 'Мъж', height: '180', weight: '85', age: '40' };
+  ok(GF.stepTarget({ ...base, goal: 'Отслабване', weight: '100' }) === 8000, 'отслабване: 8000');
+  ok(GF.stepTarget({ ...base, goal: 'Отслабване', weight: '125' }) === 7000, 'отслабване при ИТМ ≥ 35: 7000');
+  ok(GF.stepTarget({ ...base, goal: 'Мускулна маса', weight: '72', sportActivity: 'Средна (2–4 дни седмично)' }) === 6000, 'мускулна маса с тренировки: 6000');
+  ok(GF.stepTarget({ ...base, goal: 'Подобряване на здравето', weight: '75' }) === 8000, 'здраве под 60 г.: 8000');
+  ok(GF.stepTarget({ ...base, goal: 'Подобряване на здравето', weight: '75', age: '65' }) === 7000, 'здраве от 60 г.: 7000');
+  ok(GF.stepTarget({ ...base, goal: 'Стягане и оформяне на тялото', weight: '75', medicalConditions: ['Диабет'] }) === 8000, 'кръвна захар: поне 8000');
+  ok(GF.stepTarget({ ...base, goal: 'Отслабване', weight: '100', age: '74' }) === 7000, 'от 70 г.: най-много 7000');
+}
+
 console.log(`\n=== goal focus: ${pass} pass, ${fail} fail ===`);
 if (fail) process.exit(1);

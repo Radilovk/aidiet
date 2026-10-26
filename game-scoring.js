@@ -45,6 +45,24 @@
      * @param {object} rec - gameData day record
      * @param {string} [todayKey] - YYYY-MM-DD for deficit timing (defaults to today)
      */
+    /**
+     * Активността на деня в %. Измерена (крачкомер/гривна): крачките плюс
+     * тренировката като крачки спрямо целта по профила и целта (activity-tracker.js,
+     * goal-focus.js), до 100%. Без измерване — отговорът 1–3: 0 / 50 / 100%.
+     */
+    function activityPctOf(ec) {
+        if (!ec) return null;
+        if (ec.equivSteps > 0 && ec.stepTarget > 0) return Math.min(100, Math.round(ec.equivSteps / ec.stepTarget * 100));
+        return ec.activityLevel != null ? Math.round((ec.activityLevel - 1) / 2 * 100) : null;
+    }
+
+    /** Ниска активност: под половината от целта (измерено) или „Ниско“ (отговор). */
+    function isLowActivity(ec) {
+        if (!ec) return false;
+        if (ec.equivSteps > 0 && ec.stepTarget > 0) return ec.equivSteps < ec.stepTarget * 0.5;
+        return ec.activityLevel === 1;
+    }
+
     function calcDayScore(rec, todayKey) {
         if (!rec) return emptyDayScore();
         todayKey = todayKey || dateKey(new Date());
@@ -107,8 +125,8 @@
         var sleepPts = rec.morningCheck ? (rec.morningCheck.sleptWell ? 10 : 0) : null;
         var waterPts = rec.eveningCheck && rec.eveningCheck.waterIntake != null
             ? (rec.eveningCheck.waterIntake ? 10 : 0) : null;
-        var activityPts = rec.eveningCheck && rec.eveningCheck.activityLevel != null
-            ? ([0, 0, 5, 10][rec.eveningCheck.activityLevel] || 0) : null;
+        var actPctDay = activityPctOf(rec.eveningCheck);
+        var activityPts = actPctDay != null ? Math.round(actPctDay / 10) : null;
         var balancePts = rec.eveningCheck && rec.eveningCheck.emotionalBalance != null
             ? ([0, 0, 5, 10][rec.eveningCheck.emotionalBalance] || 0) : null;
 
@@ -121,7 +139,7 @@
         var allMealsOk = meals.length > 0 && meals.every(function (m) { return rec.meals[m] === true; });
         var badSleep = rec.morningCheck && rec.morningCheck.sleptWell === false;
         var badWater = rec.eveningCheck && rec.eveningCheck.waterIntake === false;
-        var lowActivity = rec.eveningCheck && rec.eveningCheck.activityLevel === 1;
+        var lowActivity = isLowActivity(rec.eveningCheck);
         var lowBalance = rec.eveningCheck && rec.eveningCheck.emotionalBalance === 1;
         var has5StarBlocker = !allMealsOk || excessCalories || answered === 0 ||
             badSleep || badWater || lowActivity || lowBalance || junkCount > 0;
@@ -340,7 +358,7 @@
         }, 0);
         var sleep = days.map(function (d) { var m = d.rec && d.rec.morningCheck; return m && m.sleptWell != null ? (m.sleptWell ? 100 : 0) : null; });
         var bal = days.map(function (d) { var e = d.rec && d.rec.eveningCheck; return e && e.emotionalBalance != null ? Math.round((e.emotionalBalance - 1) / 2 * 100) : null; });
-        var act = days.map(function (d) { var e = d.rec && d.rec.eveningCheck; return e && e.activityLevel != null ? Math.round((e.activityLevel - 1) / 2 * 100) : null; });
+        var act = days.map(function (d) { return activityPctOf(d.rec && d.rec.eveningCheck); });
         var water = days.map(function (d) { var e = d.rec && d.rec.eveningCheck; return e && e.waterIntake != null ? (e.waterIntake ? 100 : 0) : null; });
         var junk7 = 0;
         days.forEach(function (d) {
@@ -391,6 +409,8 @@
         planMealSlots: planMealSlots,
         getPlannedCalories: getPlannedCalories,
         calcDayScore: calcDayScore,
+        activityPctOf: activityPctOf,
+        isLowActivity: isLowActivity,
         computeHealthIndex: computeHealthIndex,
         buildLast7Days: buildLast7Days,
         countDaysWithRecords: countDaysWithRecords,
