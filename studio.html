@@ -194,6 +194,7 @@ details.sec > div { padding-bottom: 14px; }
     <button class="link" id="old-client">Вече съм клиент — влез с телефона си</button>
   </p>
   <p class="small muted" style="text-align:center;margin-bottom:24px">
+    <a href="https://biocode.website/studio-support.html" target="_blank" rel="noopener">Помощ и контакт</a> ·
     <a href="https://biocode.website/studio-privacy.html" target="_blank" rel="noopener">Поверителност</a>
     <span id="switch-wrap"> · <button class="link" id="switch">Смени студио</button></span>
   </p>
@@ -316,7 +317,8 @@ details.sec > div { padding-bottom: 14px; }
     renderNotice();
   }
 
-  /* a message from the studio (admin → Известие): a banner until closed; in the app also one reminder-style notification */
+  /* a message from the studio (admin → Известие): a banner in the page until it is closed — never a phone notification
+     (the only notifications are the reminders of the client's own booked hours; App Store 4.5.4) */
   function renderNotice() {
     const n = cfg && cfg.notice;
     const seen = load('notice-seen', 0);
@@ -324,13 +326,6 @@ details.sec > div { padding-bottom: 14px; }
     $('notice').classList.toggle('hidden', !show);
     if (!show) return;
     $('notice-text').textContent = n.text;
-    if (APP && load('notice-told', 0) !== n.id) {
-      save('notice-told', n.id);
-      const ln = nativeLN();
-      if (ln) ln.checkPermissions().then((p) => {
-        if (p.display === 'granted') ln.schedule({ notifications: [{ id: 900000001, title: cfg.brand.name, body: n.text, schedule: { at: new Date(Date.now() + 2000) } }] }).catch(() => {});
-      }).catch(() => {});
-    }
   }
   $('notice-x').onclick = () => { if (cfg && cfg.notice) save('notice-seen', cfg.notice.id); $('notice').classList.add('hidden'); };
 
@@ -713,7 +708,7 @@ details.sec > div { padding-bottom: 14px; }
       const items = mine.filter((h) => h.status === 'booked').map((h) => {
         const start = zonedMs(h.time.slice(0, 10), h.time.slice(11), tz());
         return { id: remId(h.id), start, at: reminderAt(start, now) };
-      }).filter((x) => x.at);
+      }).filter((x) => x.at).sort((a, b) => a.at - b.at).slice(0, 60);   // iOS keeps at most 64 pending notifications
       const pend = ((await ln.getPending()).notifications || []).filter((n) => n.id >= REM_BASE && n.id < 2 * REM_BASE);
       if (!items.length && !pend.length) return;
       let perm = (await ln.checkPermissions()).display;
@@ -926,6 +921,7 @@ details.sec > div { padding-bottom: 14px; }
   /* ══════════ ADMIN (7 taps on the logo → the 5-digit code) ══════════ */
   let taps = [];
   $('logo').addEventListener('click', () => {
+    if (APP) return;   // the store app has no hidden features (App Store 2.3.1): the admin is only on the studio's web address
     const now = Date.now();
     taps = taps.filter((t) => now - t < 3000).concat(now);
     if (taps.length >= 7) { taps = []; openAdmin(); }
@@ -1197,7 +1193,7 @@ details.sec > div { padding-bottom: 14px; }
         <label class="tick"><input type="checkbox" id="s-listed" ${s.listed ? 'checked' : ''}><span>Показвай студиото в списъка на приложението</span></label>
       </div></details>
       <details class="sec"><summary>📣 Известие към клиентите ${s.notice && s.notice.text && (!s.notice.until || s.notice.until > Date.now()) ? '●' : ''}</summary><div>
-        <p class="small muted">Показва се като съобщение най-горе в приложението и като едно известие, когато клиентът го отвори. Не е мигновено — идва при отваряне на приложението.</p>
+        <p class="small muted">Показва се като съобщение най-горе на страницата и в приложението, когато клиентът я отвори. Не е известие на телефона и не е мигновено. Не го ползвай за реклама на отстъпки.</p>
         <label class="f">Текст (до 300 знака)<textarea id="nt-text" maxlength="300">${esc(s.notice ? s.notice.text : '')}</textarea></label>
         <label class="f">Показвай<select id="nt-days"><option value="1">1 ден</option><option value="3">3 дни</option><option value="7" selected>7 дни</option><option value="30">30 дни</option><option value="0">докато го махна</option></select></label>
         <button class="btn" id="nt-send">Изпрати известието</button>

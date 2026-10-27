@@ -68,13 +68,19 @@ jobs:
 
       - run: npm ci
 
-      - name: iOS проект, икони, настройки
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: iOS проект, икони, настройки, манифест за поверителност
         run: |
+          gem install xcodeproj --no-document
           npx cap add ios
           npx @capacitor/assets generate --ios --assetPath assets \
             --iconBackgroundColor '#d32f2f' --iconBackgroundColorDark '#d32f2f' \
             --splashBackgroundColor '#d32f2f' --splashBackgroundColorDark '#d32f2f'
           python3 scripts/patch-ios.py
+          ruby scripts/add-privacy-manifest.rb
           npx cap sync ios
 
       - name: Ключ за App Store Connect
@@ -97,6 +103,21 @@ jobs:
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
             MARKETING_VERSION="${{ inputs.version }}" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             TARGETED_DEVICE_FAMILY=1
+
+      - name: Проверка на готовия пакет (преди качване)
+        run: |
+          APP=$(find "$RUNNER_TEMP/Studio.xcarchive/Products/Applications" -maxdepth 1 -name '*.app' | head -1)
+          [ -n "$APP" ] || { echo "::error::Няма .app в архива"; exit 1; }
+          [ -f "$APP/PrivacyInfo.xcprivacy" ] || { echo "::error::Няма PrivacyInfo.xcprivacy в пакета (Apple го изисква)"; exit 1; }
+          [ -f "$APP/Assets.car" ] || { echo "::error::Няма икони/ресурси (Assets.car)"; exit 1; }
+          enc=$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$APP/Info.plist")
+          [ "$enc" = "false" ] || { echo "::error::ITSAppUsesNonExemptEncryption не е false"; exit 1; }
+          family=$(/usr/libexec/PlistBuddy -c 'Print :UIDeviceFamily:0' "$APP/Info.plist")
+          [ "$family" = "1" ] || { echo "::error::Приложението не е само за iPhone (UIDeviceFamily=$family)"; exit 1; }
+          if /usr/libexec/PlistBuddy -c 'Print :NSAppTransportSecurity' "$APP/Info.plist" >/dev/null 2>&1; then
+            echo "::error::Има изключения от ATS (NSAppTransportSecurity) — Apple иска обосновка"; exit 1
+          fi
+          echo "Пакетът е наред: $(basename "$APP")"
 
       - name: Качване в App Store Connect (TestFlight)
         if: ${{ inputs.upload }}
