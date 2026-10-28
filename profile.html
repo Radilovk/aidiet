@@ -1292,6 +1292,21 @@
         .card-meter-row.is-done { background: rgba(21, 128, 61, 0.07); }
         .card-meter-w { flex-shrink: 0; font-weight: 800; font-size: 0.875rem; color: var(--ds-text-soft); }
         .card-meter-row.is-done .card-meter-w { color: var(--ds-success-text); }
+        /* Бърз отговор само на липсващите въпроси от въпросника */
+        .card-quick { margin: 4px 0 14px; padding: 14px; border-radius: 16px; border: 1px solid var(--glass-border); background: rgba(15, 118, 110, 0.04); }
+        .card-quick-title { font-weight: 700; margin: 0 0 4px; }
+        .card-quick-sub { font-size: 0.875rem; color: var(--ds-text-soft); margin: 0 0 12px; }
+        .card-quick-q { margin: 0 0 14px; }
+        .card-quick-label { display: block; font-weight: 600; font-size: 0.9375rem; margin-bottom: 8px; }
+        .card-quick-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .card-quick-chip { min-height: 40px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--glass-border); background: var(--card-bg, #fff); color: var(--text-dark); font: inherit; font-size: 0.875rem; cursor: pointer; }
+        .card-quick-chip[aria-pressed="true"] { background: var(--ds-fill-grad); color: var(--ds-on-fill); border-color: transparent; font-weight: 600; }
+        .card-quick input, .card-quick textarea { width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--card-bg, #fff); color: var(--text-dark); font: inherit; }
+        .card-quick input[type="number"] { max-width: 160px; }
+        .card-quick textarea { min-height: 64px; resize: vertical; margin-top: 8px; }
+        .card-quick-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+        .card-quick-status { font-size: 0.875rem; margin: 10px 0 0; color: var(--ds-text-soft); }
+        .card-quick-status[data-tone="error"] { color: #b91c1c; }
         .docs-note { margin-bottom: 10px; }
         .docs-text { width: 100%; margin-top: 10px; }
         .docs-card { margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(15, 118, 110, 0.06); border: 1px solid var(--glass-border); }
@@ -2086,6 +2101,7 @@
             <div class="card-meter-bar" role="progressbar" aria-label="Пълнота на профила" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cardMeterBar"><span id="cardMeterFill"></span></div>
             <p class="card-meter-hint" id="cardMeterHint">Колкото повече данни, толкова по-точен е планът.</p>
             <ul class="card-meter-list" id="cardMeterList"></ul>
+            <div class="card-quick" id="cardQuick" hidden></div>
         </div>
 
         <div id="cardSections">
@@ -2797,14 +2813,168 @@
         let _cardData = null;
         let _cardLoadError = '';
 
+        function storedUserData() {
+            try { return JSON.parse(localStorage.getItem('userData') || '{}') || {}; } catch (_) { return {}; }
+        }
+
+        function hasAnswer(v) {
+            return Array.isArray(v) ? v.length > 0 : v != null && String(v).trim() !== '';
+        }
+
         function questionnaireFill() {
-            let ud = {};
-            try { ud = JSON.parse(localStorage.getItem('userData') || '{}') || {}; } catch (_) {}
-            const filled = CARD_QUESTION_FIELDS.filter(f => {
-                const v = ud[f];
-                return Array.isArray(v) ? v.length > 0 : v != null && String(v).trim() !== '';
-            }).length;
-            return filled / CARD_QUESTION_FIELDS.length;
+            const ud = storedUserData();
+            return CARD_QUESTION_FIELDS.filter(f => hasAnswer(ud[f])).length / CARD_QUESTION_FIELDS.length;
+        }
+
+        // Кратките отговори за липсващите въпроси — същите формулировки и стойности
+        // като в questionnaire2.html, за да ги чете планът както от въпросника.
+        // one — един избор, many — няколко (none изключва другите), number, text (none — бърз отговор).
+        const CARD_QUICK_QUESTIONS = {
+            gender: { q: 'Пол', type: 'one', options: ['Мъж', 'Жена'] },
+            age: { q: 'Възраст (години)', type: 'number', min: 14, max: 100 },
+            height: { q: 'Ръст (см)', type: 'number', min: 120, max: 230 },
+            weight: { q: 'Тегло (кг)', type: 'number', min: 30, max: 300 },
+            goal: { q: 'Основна цел', type: 'one', options: ['Отслабване', 'Подобряване на здравето', 'Антиейджинг', 'Стягане и оформяне на тялото', 'Детокс и прочистване', 'Изчистване на коремните мазнини', 'Антицелулитна програма', 'Възстановяване на тялото след бременност'] },
+            dailyActivityLevel: { q: 'Активност през деня', type: 'one', options: ['Ниско', 'Средно', 'Високо'] },
+            sportActivity: { q: 'Спортна активност', type: 'one', options: ['Висока (5–7 дни седмично)', 'Средна (2–4 дни седмично)', 'Ниска (1–2 дни седмично)', 'Никаква (0 дни седмично)'] },
+            sleepHours: { q: 'Часове сън на нощ', type: 'one', options: ['Под 5', '5–6', '6–7', '7–8', 'Над 8'] },
+            stressLevel: { q: 'Ниво на стрес', type: 'one', options: ['Ниско', 'Средно', 'Високо'] },
+            waterIntake: { q: 'Вода дневно', type: 'one', options: ['под 1 л', '1–1.5 л', '1.5–2 л', 'над 2 л'] },
+            dietPreference: { q: 'Предпочитан тип хранене', type: 'many', none: 'Нямам предпочитания', options: ['Балансирана', 'Вегетарианска', 'Средиземноморска', 'Кето', 'Веган', 'Сезонна', 'Фастинг', 'Високопротеинова'] },
+            // Стойностите са като след преобразуването във въпросника (HEALTH_CONDITIONS_MAP).
+            medicalConditions: { q: 'Здравословни състояния', type: 'many', none: 'Нямам', options: [
+                ['Диабет / инсулинова резистентност', ['Инсулинова резистентност', 'Диабет']], ['Щитовидна жлеза', ['Хашимото']],
+                ['Храносмилателни проблеми', ['IBS', 'IBD', 'Рефлукс']], ['Сърдечно-съдови', ['Сърдечно-съдови']],
+                ['Метаболитни нарушения', ['Метаболитен синдром', 'Стеатоза']], ['Алергии и непоносимост', ['Алергии']],
+                ['Анемия', ['Анемия']], ['Проблеми със съня', ['Проблеми със съня']], ['Менопауза', ['Менопауза']], ['Друго', ['Друго']]] },
+            medications: { q: 'Лекарства или хранителни добавки', type: 'one', options: ['Да', 'Не'], details: { when: 'Да', field: 'medicationsDetails', placeholder: 'Кои и в каква дозировка?' } },
+            eatingHabits: { q: 'Хранителни навици', type: 'many', none: 'Нито една', options: ['Не закусвам', 'Хапвам на крак', 'Храня се предимно вечер', 'Хапвам сладко между храненията', 'Хапвам пред телевизора', 'Поръчвам храна или ям навън'] },
+            foodCravings: { q: 'Често изпитвате нужда от', type: 'many', none: 'Не изпитвам такава', options: ['Сладко', 'Тестени храни', 'Бургери / дюнери', 'Чипс / Солети'] },
+            overeatingFrequency: { q: 'Колко често ядете повече от планираното', type: 'one', options: ['Постоянно', 'Често', 'Понякога', 'Рядко', 'Никога'] },
+            drinksSweet: { q: 'Сокове, газирани, фрешове', type: 'one', options: ['Не консумирам', 'Рядко', 'Често', 'Много често'] },
+            drinksAlcohol: { q: 'Алкохол', type: 'one', options: ['Не консумирам', 'Рядко', 'Често', 'Много често'] },
+            dietLove: { q: 'Не мога без, обичам', type: 'text', none: 'Нищо специално', placeholder: 'напр. кафе, сирене, плодове' },
+            dietDislike: { q: 'Не обичам, непоносимост или алергия към', type: 'text', none: 'Няма', placeholder: 'напр. риба, лактоза' },
+        };
+        let _quickAnswers = {};
+
+        function missingQuestionFields() {
+            const ud = storedUserData();
+            return CARD_QUESTION_FIELDS.filter(f => !hasAnswer(ud[f]) && CARD_QUICK_QUESTIONS[f]);
+        }
+
+        function quickOptionValue(opt) { return Array.isArray(opt) ? opt[1] : [opt]; }
+        function quickOptionLabel(opt) { return Array.isArray(opt) ? opt[0] : opt; }
+
+        function quickIsPicked(field, opt) {
+            const cur = _quickAnswers[field];
+            const vals = quickOptionValue(opt);
+            return Array.isArray(cur) ? vals.every(v => cur.includes(v)) : cur === vals[0];
+        }
+
+        function renderQuickQuestions() {
+            const box = document.getElementById('cardQuick');
+            const fields = missingQuestionFields();
+            if (!fields.length) { box.hidden = true; box.innerHTML = ''; return; }
+            const chip = (field, opt, i) => `<button type="button" class="card-quick-chip" aria-pressed="${quickIsPicked(field, opt)}" onclick="pickQuickAnswer('${field}', ${i})">${escProfileHtml(quickOptionLabel(opt))}</button>`;
+            box.innerHTML = `<p class="card-quick-title">Липсват ${fields.length} ${fields.length === 1 ? 'отговор' : 'отговора'}</p>
+                <p class="card-quick-sub">Отговорете само на тях — с едно докосване. Може и частично.</p>
+                ${fields.map(f => {
+                    const qd = CARD_QUICK_QUESTIONS[f];
+                    const id = `cq_${f}`;
+                    let body;
+                    if (qd.type === 'number') {
+                        body = `<input type="number" id="${id}" inputmode="numeric" min="${qd.min}" max="${qd.max}" value="${escProfileHtml(_quickAnswers[f] || '')}" oninput="setQuickText('${f}', this.value)">`;
+                    } else if (qd.type === 'text') {
+                        body = `<div class="card-quick-chips">${chip(f, qd.none, -1)}</div>
+                            <textarea id="${id}" placeholder="${escProfileHtml(qd.placeholder || '')}" oninput="setQuickText('${f}', this.value)">${_quickAnswers[f] && _quickAnswers[f] !== qd.none ? escProfileHtml(_quickAnswers[f]) : ''}</textarea>`;
+                    } else {
+                        const opts = qd.options.map((o, i) => chip(f, o, i));
+                        if (qd.none) opts.push(chip(f, qd.none, -1));
+                        body = `<div class="card-quick-chips" role="group" aria-labelledby="${id}_l">${opts.join('')}</div>`;
+                        if (qd.details && _quickAnswers[f] === qd.details.when) {
+                            body += `<textarea placeholder="${escProfileHtml(qd.details.placeholder)}" oninput="setQuickText('${qd.details.field}', this.value)">${escProfileHtml(_quickAnswers[qd.details.field] || '')}</textarea>`;
+                        }
+                    }
+                    const labelAttr = qd.type === 'number' || qd.type === 'text' ? `for="${id}"` : `id="${id}_l"`;
+                    return `<div class="card-quick-q"><label class="card-quick-label" ${labelAttr}>${escProfileHtml(qd.q)}</label>${body}</div>`;
+                }).join('')}
+                <div class="card-quick-actions">
+                    <button type="button" class="btn btn-primary" id="cardQuickSave" onclick="saveQuickAnswers()"><i class="fas fa-check"></i> Запази отговорите</button>
+                    <button type="button" class="btn btn-secondary" onclick="openFullQuestionnaire()"><i class="fas fa-list"></i> Целият въпросник</button>
+                </div>
+                <p class="card-quick-status" id="cardQuickStatus" role="status"></p>`;
+        }
+
+        function pickQuickAnswer(field, idx) {
+            const qd = CARD_QUICK_QUESTIONS[field];
+            const opt = idx < 0 ? qd.none : qd.options[idx];
+            const vals = quickOptionValue(opt);
+            if (qd.type === 'many') {
+                let cur = Array.isArray(_quickAnswers[field]) ? _quickAnswers[field] : [];
+                if (idx < 0) cur = quickIsPicked(field, opt) ? [] : vals.slice();
+                else {
+                    cur = cur.filter(v => v !== qd.none);
+                    cur = quickIsPicked(field, opt) ? cur.filter(v => !vals.includes(v)) : cur.concat(vals.filter(v => !cur.includes(v)));
+                }
+                _quickAnswers[field] = cur;
+            } else {
+                _quickAnswers[field] = _quickAnswers[field] === vals[0] ? undefined : vals[0];
+            }
+            renderQuickQuestions();
+        }
+
+        function setQuickText(field, value) { _quickAnswers[field] = value; }
+
+        function openFullQuestionnaire() {
+            const c = document.getElementById('questionnaireContainer');
+            if (c && !c.classList.contains('open')) toggleQuestionnaire();
+            if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function saveQuickAnswers() {
+            const status = document.getElementById('cardQuickStatus');
+            const btn = document.getElementById('cardQuickSave');
+            const answers = {};
+            for (const [f, v] of Object.entries(_quickAnswers)) {
+                const qd = CARD_QUICK_QUESTIONS[f];
+                if (!hasAnswer(v)) continue;
+                if (qd && qd.type === 'number') {
+                    const n = Number(String(v).replace(',', '.'));
+                    if (!(n >= qd.min && n <= qd.max)) {
+                        status.dataset.tone = 'error';
+                        status.textContent = `${qd.q}: въведете число между ${qd.min} и ${qd.max}.`;
+                        return;
+                    }
+                    answers[f] = String(n);
+                } else {
+                    answers[f] = typeof v === 'string' ? v.trim() : v;
+                }
+            }
+            if (!Object.keys(answers).some(f => CARD_QUICK_QUESTIONS[f])) {
+                status.dataset.tone = 'error';
+                status.textContent = 'Изберете поне един отговор.';
+                return;
+            }
+            btn.disabled = true;
+            status.dataset.tone = '';
+            status.textContent = 'Записване…';
+            try {
+                await persistUserData(Object.assign({}, storedUserData(), answers));
+                _quickAnswers = {};
+                populateFormFields();
+                renderCardMeter();
+                renderQuickQuestions();
+                const left = missingQuestionFields().length;
+                showAlert(left
+                    ? `✓ Отговорите са запазени. Остават ${left} ${left === 1 ? 'въпрос' : 'въпроса'}.`
+                    : '✓ Въпросникът е попълнен изцяло. Новите отговори влизат в плана при следващото му обновяване.', 'info');
+            } catch (e) {
+                console.error('Error saving quick answers:', e);
+                btn.disabled = false;
+                status.dataset.tone = 'error';
+                status.textContent = 'Не успяхме да запазим отговорите. Опитайте отново.';
+            }
         }
 
         function cardModules(d, sources) {
@@ -2819,7 +2989,7 @@
             const iris = d && d.iris;
             return [
                 { id: 'q', weight: 30, icon: 'fa-clipboard-list', name: 'Първоначален въпросник', fill: qFill,
-                  status: qFill >= 1 ? 'Попълнен изцяло' : `Попълнен ${Math.round(qFill * 100)}%`,
+                  status: qFill >= 1 ? 'Попълнен изцяло' : `Попълнен ${Math.round(qFill * 100)}% · докоснете за липсващите въпроси`,
                   gives: 'основата на плана', action: 'questionnaire' },
                 { id: 'labs', weight: 20, icon: 'fa-vial', name: 'Кръвна картина и изследвания', fill: labs.length ? Math.min(1, labs.length / 6) : 0,
                   status: labs.length ? `${labs.length} ${labs.length === 1 ? 'показател' : 'показателя'} · ${day(labsAt)}` : 'Не са добавени',
@@ -2905,9 +3075,17 @@
 
         function openCardModule(id) {
             if (id === 'questionnaire') {
-                const c = document.getElementById('questionnaireContainer');
-                if (c && !c.classList.contains('open')) toggleQuestionnaire();
-                if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Непълен въпросник: само липсващите въпроси с кратки отговори, не целият формуляр.
+                const box = document.getElementById('cardQuick');
+                if (missingQuestionFields().length && box) {
+                    box.hidden = !box.hidden;
+                    if (!box.hidden) {
+                        renderQuickQuestions();
+                        box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    return;
+                }
+                openFullQuestionnaire();
                 return;
             }
             const section = document.getElementById(id);
@@ -4278,6 +4456,34 @@
             }
         });
 
+        /** Отговорите → localStorage и сървъра (клиентските отговори и профила към плана). */
+        async function persistUserData(updatedData) {
+            localStorage.setItem('userData', JSON.stringify(updatedData));
+            userData = updatedData;
+            originalData = JSON.parse(JSON.stringify(updatedData));
+
+            await window.NutriPlanPlanSync.syncClientAnswers(updatedData);
+
+            const storedUserId = localStorage.getItem('userId') || '';
+            if (storedUserId && localStorage.getItem('dietPlan')) {
+                let plan = null;
+                try { plan = JSON.parse(localStorage.getItem('dietPlan')); } catch (_) {}
+                if (plan) {
+                    const idToken = window.NutriPlanPlanReplaceAuth && typeof window.NutriPlanPlanReplaceAuth.getIdToken === 'function'
+                        ? await window.NutriPlanPlanReplaceAuth.getIdToken()
+                        : null;
+                    await window.NutriPlanPlanSync.saveUserProfile(
+                        storedUserId,
+                        plan,
+                        updatedData,
+                        localStorage.getItem('planSource') || '',
+                        idToken,
+                        localStorage.getItem('pendingClientId')
+                    );
+                }
+            }
+        }
+
         async function saveChanges() {
             // Validate data before saving
             const validationResult = validateFormDataWithDetails();
@@ -4290,31 +4496,7 @@
             const updatedData = collectFormData();
 
             try {
-                // Save to localStorage
-                localStorage.setItem('userData', JSON.stringify(updatedData));
-                userData = updatedData;
-                originalData = JSON.parse(JSON.stringify(updatedData));
-
-                await window.NutriPlanPlanSync.syncClientAnswers(updatedData);
-
-                const storedUserId = localStorage.getItem('userId') || '';
-                if (storedUserId && localStorage.getItem('dietPlan')) {
-                    let plan = null;
-                    try { plan = JSON.parse(localStorage.getItem('dietPlan')); } catch (_) {}
-                    if (plan) {
-                        const idToken = window.NutriPlanPlanReplaceAuth && typeof window.NutriPlanPlanReplaceAuth.getIdToken === 'function'
-                            ? await window.NutriPlanPlanReplaceAuth.getIdToken()
-                            : null;
-                        await window.NutriPlanPlanSync.saveUserProfile(
-                            storedUserId,
-                            plan,
-                            updatedData,
-                            localStorage.getItem('planSource') || '',
-                            idToken,
-                            localStorage.getItem('pendingClientId')
-                        );
-                    }
-                }
+                await persistUserData(updatedData);
 
                 // Update UI
                 if (updatedData.name) {

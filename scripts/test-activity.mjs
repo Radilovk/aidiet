@@ -170,10 +170,16 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   A.fillFromSteps();
   const ec2 = JSON.parse(store.gameData)[key(2)].eveningCheck;
   ok(ec2.steps === 9100 && ec2.equivSteps === 9100 && ec2.stepTarget === 7000, `денят носи крачките и целта (${JSON.stringify(ec2)})`);
+  ok(ec2.extraKcal > 0 && ec2.extraKcal < 150, `крачките над целта носят разход над обичайното (${ec2.extraKcal} kcal)`);
   // Трениращ с гривна (без крачкомер): отговорът „да“ ползва крачките от Health Connect.
   store.userData = JSON.stringify({ gender: 'Мъж', height: '180', weight: '80', sportActivity: 'Средна (2–4 дни седмично)', sportTypes: ['Силови (фитнес, тежести)'] });
   const ec3 = A.applyAnswer({}, 'pm', key(2));
   ok(ec3.steps === 9100 && ec3.equivSteps > 9100 && ec3.stepTarget === 7000, 'трениращ с гривна: крачките от Health Connect + тренировката');
+  store.userData = JSON.stringify({ gender: 'Жена', height: '165', weight: '65' });
+  store.gameData = JSON.stringify({ [key(4)]: {} });
+  store.np_activity_state = JSON.stringify({ ext: { [key(4)]: 6000 } });
+  A.fillFromSteps();
+  ok(JSON.parse(store.gameData)[key(4)].eveningCheck.extraKcal === 0, 'под целта — без разход над обичайното');
   delete globalThis.NutriPlanGoalFocus;
   delete globalThis.localStorage;
 }

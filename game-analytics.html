@@ -290,6 +290,8 @@
             border-radius: 999px;
             overflow: hidden;
         }
+        .game-act-wrap { position: relative; }
+        .game-act-target { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--text-dark, #1f2937); opacity: 0.45; border-radius: 1px; }
         .game-index-bar {
             height: 100%;
             border-radius: 999px;
@@ -1055,6 +1057,12 @@
             var actByDay = days.map(function(d){ return GameScoring.activityPctOf(d.rec&&d.rec.eveningCheck); });
             var actValid = actByDay.filter(function(v){return v!==null;});
             var actPct = actValid.length>0 ? Math.round(actValid.reduce(function(a,b){return a+b;},0)/actValid.length) : null;
+            // Показването е без горна граница: 160% е „над целта“, а не 100%. Индексът и звездите остават до 100%.
+            var actRawByDay = days.map(function(d){ return GameScoring.activityRawPctOf(d.rec&&d.rec.eveningCheck); });
+            var actRawValid = actRawByDay.filter(function(v){return v!==null;});
+            var actRawPct = actRawValid.length>0 ? Math.round(actRawValid.reduce(function(a,b){return a+b;},0)/actRawValid.length) : null;
+            var actOverDays = days.filter(function(d){ return GameScoring.extraBurnKcal(d.rec&&d.rec.eveningCheck)>0; }).length;
+            var actExtraBurn = days.reduce(function(s,d){ return s + GameScoring.extraBurnKcal(d.rec&&d.rec.eveningCheck); },0);
             var actMeasured = days.map(function(d){ return d.rec&&d.rec.eveningCheck; })
                 .filter(function(e){ return e&&e.equivSteps>0&&e.stepTarget>0; });
             var actStepsAvg = actMeasured.length ? Math.round(actMeasured.reduce(function(a,e){ return a+(e.steps||0); },0)/actMeasured.length/100)*100 : null;
@@ -1188,9 +1196,9 @@
                     why:'Недоспиването повишава апетита и прави дефицита по-труден за спазване. Препоръката за възрастни е 7–9 часа сън.' },
                 activity: { title:'Активност',
                     text: actMeasured.length
-                        ? 'Изчислява се от крачките (крачкомер на телефона или гривна/часовник): крачките за деня плюс тренировката, превърната в крачки, спрямо твоята цел — ' + fmtSteps(actTarget) + ' крачки на ден. Целта е по целта ти и профила (възраст, тегло, кръвна захар).\n\n' + actMeasured.length + ' ' + (actMeasured.length===1?'ден е измерен':'дни са измерени') + (actAnswered>0 ? ', ' + actAnswered + ' — по отговорите ти вечер (Ниско 0%, Средно 50%, Високо 100%)' : '') + '.\n\nЦел: минимум 70%.'
+                        ? 'Изчислява се от крачките (крачкомер на телефона или гривна/часовник): крачките за деня плюс тренировката, превърната в крачки, спрямо твоята цел — ' + fmtSteps(actTarget) + ' крачки на ден. Целта е по целта ти и профила (възраст, тегло, кръвна захар).\n\n' + actMeasured.length + ' ' + (actMeasured.length===1?'ден е измерен':'дни са измерени') + (actAnswered>0 ? ', ' + actAnswered + ' — по отговорите ти вечер (Ниско 0%, Средно 50%, Високо 100%)' : '') + '.\n\nЦел: минимум 70%. Над 100% — повече движение от целта (чертата на лентата); оценката и индексът броят до 100%.'
                         : 'Показва колко активен си бил всеки ден — по отговорите ти вечер (Ниско 0%, Средно 50%, Високо 100%). С включен крачкомер или свързана гривна се смята от реалните крачки спрямо твоята цел.\n\nЦел: минимум 70%.',
-                    why:'СЗО препоръчва поне 150 минути умерена активност седмично. Всяко раздвижване се брои — включително разходката.' },
+                    why:'СЗО препоръчва поне 150 минути умерена активност седмично. Всяко раздвижване се брои — включително разходката.\n\nПланът вече носи обичайните ти крачки. В ден с крачки над целта и над обичайното разходът е по-голям, а дефицитът — по-дълбок. Калориите на деня не се променят със задна дата: това става ясно вечерта. Седмичният преглед смята разхода по средните ти крачки, така че постоянно по-високата активност се отразява в следващия план. Дните с тренировка не се броят тук — тренировките вече са в плана.' },
                 water: { title:'Хидратация',
                     text:'Дали си изпил препоръчаната вода за деня (от вечерните проверки). Твоята цел по плана: ' + waterGoalText + ' дневно.\n\nЦел: минимум 70% от дните.',
                     why:'Водата помага за ситостта и храносмилането; нуждите растат при жега и тренировки.' },
@@ -1257,7 +1265,15 @@
                     '<span style="' + LABEL_STYLE + '">' + label + '</span>' +
                     '</div>';
             }
-            function miniBarChart(perDayValues, maxVal, color) {
+            // Активността: скалата е до 150%, чертата е целта (100%), над нея лентата е в друг цвят — както калориите.
+            var ACT_SCALE = 150;
+            function actBar(pct) {
+                if (pct==null) return pBar(null);
+                var over = pct>100;
+                return '<div class="game-index-bar-wrap game-act-wrap"><div class="game-index-bar" style="width:0%;background:'+(over?'linear-gradient(90deg,#f59e0b,#ea580c)':'linear-gradient(90deg,#f59e0b,#fbbf24)')+'" data-ga-bar="'+Math.min(100,Math.max(0,pct/ACT_SCALE*100)).toFixed(1)+'"></div>' +
+                    '<span class="game-act-target" style="left:'+(100/ACT_SCALE*100).toFixed(1)+'%" aria-hidden="true"></span></div>';
+            }
+            function miniBarChart(perDayValues, maxVal, color, overColor) {
                 var cols = perDayValues.map(function(v,idx){
                     var dow   = new Date(days[idx].key).getDay();
                     var label = DAY_NAMES[(dow+6)%7];
@@ -1266,7 +1282,7 @@
                     if(v===0) return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color+';opacity:.55', label);
                     var pct2 = maxVal>0?Math.min(100,Math.round(v/maxVal*100)):0;
                     var h    = Math.max(BAR_MIN_H, Math.round(pct2*BAR_MAX_H/100));
-                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"');
+                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+(overColor&&v>100?overColor:color), label, 'data-ga-bar-h="'+h+'px"');
                 });
                 return '<div class="game-day-dots">'+ cols.join('') +'</div>';
             }
@@ -1296,13 +1312,13 @@
                     cols.join('') +
                 '</div>';
             }
-            function ringChart(pct, color, r) {
+            function ringChart(pct, color, r, shown) {
                 r = r||26; var circ=2*Math.PI*r;
                 var offset = circ - (pct||0)/100*circ;
                 return '<svg class="game-ring-svg" width="'+(r*2+8)+'" height="'+(r*2+8)+'" viewBox="0 0 '+(r*2+8)+' '+(r*2+8)+'">' +
                     '<circle class="game-ring-bg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5"/>' +
                     '<circle class="game-ring-fg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5" stroke="'+color+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+circ+'" data-ga-ring-offset="'+offset.toFixed(2)+'"/>' +
-                    '<text x="'+(r+4)+'" y="'+(r+4)+'" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:'+(r>24?'0.9':'0.78')+'rem;font-weight:700;transform:rotate(90deg);transform-origin:'+(r+4)+'px '+(r+4)+'px" data-ga-ring-count="'+(pct!=null?pct:'')+'" data-ga-ring-target="'+(pct!=null?pct:'')+'" >'+(pct!=null?'0%':'?')+'</text>' +
+                    '<text x="'+(r+4)+'" y="'+(r+4)+'" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:'+(r>24?'0.9':'0.78')+'rem;font-weight:700;transform:rotate(90deg);transform-origin:'+(r+4)+'px '+(r+4)+'px" data-ga-ring-count="'+(pct!=null?pct:'')+'" data-ga-ring-target="'+(shown!=null?shown:pct!=null?pct:'')+'" >'+(pct!=null?'0%':'?')+'</text>' +
                     '</svg>';
             }
 
@@ -1338,7 +1354,7 @@
 
             html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
                 '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488',22) + '<div class="game-ring-label">Навици</div></div>' +
-                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22) + '<div class="game-ring-label">Активност</div></div>' : '') +
+                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22,actRawPct) + '<div class="game-ring-label">Активност</div></div>' : '') +
                 (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
                 (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
             '</div>';
@@ -1394,10 +1410,11 @@
             '</div>';
 
             if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
-                '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+
-                    (actStepsAvg!=null ? ' · ~'+fmtSteps(actStepsAvg)+' крачки/ден, цел '+fmtSteps(actTarget)+(actStepsAvg>actTarget?' (над целта)':'') : '')+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(actPct,'linear-gradient(90deg,#f59e0b,#fbbf24)') + miniBarChart(actByDay,100,'#f59e0b') +
+                '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actRawPct+'%</span></div>' +
+                '<div class="game-index-hint">'+(actRawPct>100?'<i class="fas fa-arrow-up" style="color:#ea580c"></i> Над целта':actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+
+                    (actStepsAvg!=null ? ' · ~'+fmtSteps(actStepsAvg)+' крачки/ден, цел '+fmtSteps(actTarget) : '')+' <i class="fas fa-circle-info"></i></div>' +
+                actBar(actRawPct) + miniBarChart(actRawByDay,ACT_SCALE,'#f59e0b','#ea580c') +
+                (actExtraBurn>0 ? '<div class="game-index-hint" style="margin-top:4px"><i class="fas fa-fire-flame-curved" style="color:#ea580c"></i> ~'+actExtraBurn+' kcal допълнителен разход в '+actOverDays+' '+(actOverDays===1?'ден':'дни')+' — реалният дефицит е по-голям; влиза в седмичния преглед на плана</div>' : '') +
             '</div>';
 
             if(waterPct!=null) html += '<div class="game-index-row" data-explain="water">' +

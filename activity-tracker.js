@@ -453,12 +453,22 @@
         } catch (_) { return null; }
     }
 
-    /** Измереното в деня: крачки, еквивалент с тренировката и целта към този ден. */
-    function markMeasured(ec, est) {
+    /**
+     * Измереното в деня: крачки, еквивалент с тренировката, целта към този ден и
+     * разходът на крачките над обичайните (extraKcal). Обичайните са тези, с
+     * които е сметнат планът: медианата на дните без тренировка, иначе нивото от
+     * въпросника; а под целта не се брои нищо — денят е „над нормата“ само над нея.
+     * Показва се като по-голям разход за деня (game-scoring.js, extraBurnKcal).
+     */
+    function markMeasured(ec, est, p) {
         ec.steps = est.steps;
         ec.equivSteps = est.equivSteps;
         var t = stepTarget();
         if (t) ec.stepTarget = t;
+        var base = baselineSteps();
+        var ref = Math.max(base != null ? base : (p ? p.typicalSteps : 7000), t || 0);
+        var over = est.steps - ref;
+        ec.extraKcal = over > 0 && p ? Math.round(over * kcalPerStep(p)) : 0;
     }
 
     // ── Режим на вечерния въпрос ─────────────────────────────────────────
@@ -576,7 +586,7 @@
         ec.activitySource = est.source;
         ec.activeKcal = est.activeKcal;
         ec.trainingKcal = est.trainingKcal;
-        if (est.measured) markMeasured(ec, est);
+        if (est.measured) markMeasured(ec, est, profileOf(userData()));
         try {
             var E = global.NutriPlanEnrichment;
             // Самият отговор е съгласието: той влиза в плана като факт.
@@ -623,7 +633,7 @@
                 activitySource: s.projected ? 'steps_projected' : 'steps',
                 activeKcal: est.activeKcal
             });
-            markMeasured(rec.eveningCheck, est);
+            markMeasured(rec.eveningCheck, est, p);
             changed.push(key);
         });
         if (!changed.length) return 0;

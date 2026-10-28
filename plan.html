@@ -2529,6 +2529,7 @@
         .dc-cal-num { font-size: 1.125rem; font-weight: 700; }
         .dc-cal-num small { font-size: 0.8125rem; font-weight: 600; opacity: 0.9; }
         .dc-cal-note { font-size: 0.8125rem; font-weight: 600; }
+        .dc-cal-bonus { font-size: 0.75rem; font-weight: 600; opacity: 0.85; margin-top: 2px; }
         .dc-cal-track { position: relative; height: 6px; margin-top: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.16); overflow: hidden; }
         .dc-cal-zone { position: absolute; top: 0; bottom: 0; background: rgba(255, 255, 255, 0.32); }
         .dc-cal-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: #ffffff; transition: width var(--ds-motion-expressive) var(--ds-ease-emphasis); }
@@ -10475,6 +10476,9 @@
                 return sum + (em.calories || 0);
             }, 0);
             var plan = (rec.lockedPlannedCalories > 0 ? rec.lockedPlannedCalories : rec.plannedCalories) || 0;
+            // Разходът над обичайния не мени целта със задна дата — показва, че денят е бил с по-голям дефицит.
+            var extraBurn = GS.extraBurnKcal(rec.eveningCheck);
+            var actRaw = GS.activityRawPctOf(rec.eveningCheck);
 
             // Отклонения — същите условия, които спират петата звезда.
             var flags = [];
@@ -10482,6 +10486,8 @@
             if (rec.morningCheck && rec.morningCheck.sleptWell === false) flags.push({ icon: 'fa-bed', text: 'Лош сън' });
             if (ec.waterIntake === false) flags.push({ icon: 'fa-tint', text: 'Малко вода' });
             if (ec.activityLevel === 1) flags.push({ icon: 'fa-walking', text: 'Малко движение' });
+            // Не е отклонение: измерената активност над целта се отбелязва, а не се реже до 100%.
+            else if (actRaw != null && actRaw > 100 && ec.equivSteps > 0) flags.push({ icon: 'fa-person-running', text: 'Активност ' + actRaw + '% — над целта' });
             if (ec.emotionalBalance === 1) flags.push({ icon: 'fa-cloud', text: 'Тежък ден' });
             if (ds.junkCount > 0) flags.push({ icon: 'fa-cookie-bite', text: ds.junkCount + (ds.junkCount === 1 ? ' вредна храна' : ' вредни храни') });
             if (ds.excessCalories && plan > 0 && eaten > plan) flags.push({ icon: 'fa-arrow-up', text: '+' + Math.round(eaten - plan) + ' kcal над плана' });
@@ -10494,7 +10500,7 @@
                 next = segs.filter(function(sg) { return !sg.done && !sg.locked; })[0] ||
                        segs.filter(function(sg) { return !sg.done; })[0] || null;
             }
-            return { segs: segs, closed: closed, isToday: isToday, eaten: Math.round(eaten), plan: Math.round(plan),
+            return { segs: segs, closed: closed, isToday: isToday, eaten: Math.round(eaten), plan: Math.round(plan), extraBurn: extraBurn,
                      flags: flags, next: next,
                      doneCount: segs.filter(function(sg) { return sg.done; }).length };
         }
@@ -10565,6 +10571,7 @@
                 calHtml = '<div class="dc-cal' + (over ? ' is-over' : inZone ? ' is-zone' : '') + '">' +
                     '<div class="dc-cal-row"><span class="dc-cal-num">' + m.eaten + ' <small>/ ' + m.plan + ' kcal</small></span>' +
                     '<span class="dc-cal-note">' + calNote + '</span></div>' +
+                    (m.extraBurn > 0 ? '<div class="dc-cal-bonus">Разходът е бил по-голям с ~' + m.extraBurn + ' kcal — реалният дефицит за деня е по-голям</div>' : '') +
                     '<div class="dc-cal-track" aria-hidden="true"><span class="dc-cal-zone" style="left:' + (0.9 / 1.3 * 100).toFixed(1) + '%;width:' + (0.2 / 1.3 * 100).toFixed(1) + '%"></span>' +
                     '<span class="dc-cal-fill" style="width:' + fillPct.toFixed(1) + '%"></span></div></div>';
             }
