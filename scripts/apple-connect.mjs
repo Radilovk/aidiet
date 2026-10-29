@@ -133,12 +133,17 @@ try {
       const no = ['gambling', 'unrestrictedWebAccess', 'lootBox', 'messagingAndChat', 'parentalControls', 'ageAssurance', 'advertising', 'userGeneratedContent', 'healthOrWellnessTopics'];
       const attributes = {}; none.forEach((k) => { attributes[k] = 'NONE'; }); no.forEach((k) => { attributes[k] = false; });
       // Apple adds required questions over time: whatever it reports as missing is answered "no"
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 12; i++) {
         try { await api('PATCH', `/v1/ageRatingDeclarations/${ar.id}`, { data: { type: 'ageRatingDeclarations', id: ar.id, attributes } }); return; }
         catch (e) {
-          const missing = [...String(e.message).matchAll(/attribute '(\w+)'/g)].map((m) => m[1]).filter((k) => !(k in attributes));
-          if (!missing.length) throw e;
-          missing.forEach((k) => { attributes[k] = false; });
+          const named = [...String(e.message).matchAll(/attribute '(\w+)'/g)].map((m) => m[1]);
+          if (!named.length) throw e;
+          let changed = false;
+          for (const k of named) {   // new question -> "no"; a question that wants a level instead of yes/no -> "NONE"
+            const next = k in attributes ? (typeof attributes[k] === 'boolean' ? 'NONE' : attributes[k]) : false;
+            if (next !== attributes[k]) { attributes[k] = next; changed = true; }
+          }
+          if (!changed) throw e;
         }
       }
     });
