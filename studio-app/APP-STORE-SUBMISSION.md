@@ -65,16 +65,14 @@
 
 **Export Compliance** (ако пита): *Uses encryption?* Yes → *Exempt (само HTTPS)*; пакетът вече го декларира.
 
-**Метаданни (български)**
-- Описание: „Записвайте час в любимото си студио за секунди. Изберете студио, ден и свободен час — виждате само часовете, които наистина са свободни. Приложението ви напомня за часа няколко часа по-рано (известие на телефона, без интернет), а в „Моите часове“ можете да преместите или откажете час. Данните ви можете да изтриете по всяко време.“
-- Ключови думи (до 100 знака): `записване,час,студио,тренировка,фитнес,резервация,напомняне,график`
-- Какво ново: `Първа версия.`
-
-**Metadata (English)** — добави и английска локализация (ревюиращите четат английски):
-- Name: `XB-Studio` *(името е уникално в целия магазин; ако е заето, App Store Connect ще го откаже при създаване — тогава `XB-Studio Booking`)*
-- Subtitle: `Appointments and reminders`
-- Description: „Book an appointment at your studio in seconds. Choose a studio, a day and a free hour — only really free hours are shown. The app reminds you a few hours before your appointment with a notification on your phone (works offline), and in “My appointments” you can move or cancel it. You can delete your data at any time.“
-- Keywords: `booking,appointment,studio,training,fitness,reservation,reminder,schedule`
+**Метаданни — на английски (Bulgarian не е сред езиците на App Store, затова основният език е English)**
+- Name: `XB-Studio` · Subtitle (до 30 знака): `Appointments and reminders`
+- Promotional text: `Book your studio appointment in seconds and get a reminder on your phone.`
+- Description: „Book an appointment at your studio in seconds. Enter the code your studio gave you and you will see only your studio: its free days and hours — only really free hours are shown. The app reminds you a few hours before your appointment with a notification on your phone (works offline), and in “My appointments” you can move or cancel it. The app is in Bulgarian. You can delete your data at any time.“
+- Keywords (до 100 знака): `booking,appointment,studio,training,fitness,reservation,reminder,schedule`
+- What's New: `First version.`
+- Категория: Health & Fitness · Support URL: `https://biocode.website/studio-support.html` · Privacy Policy URL: `https://biocode.website/studio-privacy.html`
+Интерфейсът на приложението е на български — спомени го в описанието (по-горе е направено) и в бележките за ревюиращия.
 
 ## 4. Демо студио за ревюиращия (задължително)
 Actions → „Студиа“ → `create`, id `demo`, име `Demo Studio`. После (на уеб адреса `https://biocode.website/studio.html?s=demo`,
