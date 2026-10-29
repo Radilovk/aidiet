@@ -12,10 +12,10 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'check | bundle-id | status | certs | metadata | delete-cert'
+        description: 'check | bundle-id | status | certs | metadata | testflight | delete-cert'
         required: true
         type: choice
-        options: [check, bundle-id, status, certs, metadata, delete-cert]
+        options: [check, bundle-id, status, certs, metadata, testflight, delete-cert]
       id:
         description: 'Само за delete-cert: id на сертификата (от действието certs)'
         required: false
@@ -42,6 +42,7 @@ jobs:
           APPSTORE_KEY_P8: ${{ secrets.APPSTORE_KEY_P8 }}
           ACTION: ${{ inputs.action }}
           CERT_ID: ${{ inputs.id }}
+          REVIEW_CONTACT: ${{ secrets.REVIEW_CONTACT }}
         run: |
           node scripts/apple-connect.mjs "$ACTION" "$CERT_ID" | tee -a "$GITHUB_STEP_SUMMARY"
           exit ${PIPESTATUS[0]}

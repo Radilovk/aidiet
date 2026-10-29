@@ -188,18 +188,42 @@ try {
     });
     await step('бележки за ревюиращия', async () => {
       let rd; try { rd = (await api('GET', `/v1/appStoreVersions/${ver.id}/appStoreReviewDetail`)).data; } catch (_) { rd = null; }
-      if (rd) await api('PATCH', `/v1/appStoreReviewDetails/${rd.id}`, { data: { type: 'appStoreReviewDetails', id: rd.id, attributes: { notes: T.notes, demoAccountRequired: false } } });
-      else await api('POST', '/v1/appStoreReviewDetails', { data: { type: 'appStoreReviewDetails', attributes: { notes: T.notes, demoAccountRequired: false },
+      // contact of the person Apple may call: GitHub secret REVIEW_CONTACT = "First|Last|+359...|email" (the repo is public)
+      const [cf, cl, cp, ce] = String(process.env.REVIEW_CONTACT || '').split('|').map((x) => x.trim());
+      const contact = cf && cl && cp && ce ? { contactFirstName: cf, contactLastName: cl, contactPhone: cp, contactEmail: ce } : {};
+      if (!contact.contactEmail && rd && !rd.attributes.contactEmail) throw new Error('липсва секрет REVIEW_CONTACT (Име|Фамилия|телефон|имейл)');
+      if (rd) await api('PATCH', `/v1/appStoreReviewDetails/${rd.id}`, { data: { type: 'appStoreReviewDetails', id: rd.id, attributes: { notes: T.notes, demoAccountRequired: false, ...contact } } });
+      else await api('POST', '/v1/appStoreReviewDetails', { data: { type: 'appStoreReviewDetails', attributes: { notes: T.notes, demoAccountRequired: false, ...contact },
         relationships: { appStoreVersion: { data: { type: 'appStoreVersions', id: ver.id } } } } });
     });
     console.log('\nОстава (само ти, в App Store Connect): App Privacy въпросник, DSA (не съм търговец), контакт за ревюто (име, телефон), скрийншоти.');
+  } else if (action === 'testflight') {
+    // an internal TestFlight group with every team member who may test (their Apple ID gets the TestFlight invitation)
+    const app = (await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`)).data[0];
+    if (!app) fail('Няма приложение в App Store Connect.');
+    const groups = (await api('GET', `/v1/apps/${app.id}/betaGroups?limit=50`)).data;
+    let g = groups.find((x) => x.attributes.isInternalGroup);
+    if (!g) {
+      g = (await api('POST', '/v1/betaGroups', { data: { type: 'betaGroups', attributes: { name: 'Вътрешни тестери', isInternalGroup: true, hasAccessToAllBuilds: true },
+        relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
+      console.log('✓ вътрешна група „Вътрешни тестери“ (всички build-ове)');
+    } else console.log(`✓ групата „${g.attributes.name}“ вече има`);
+    const users = (await api('GET', '/v1/users?limit=50')).data.filter((u) => (u.attributes.roles || []).some((r) => ['ADMIN', 'ACCOUNT_HOLDER', 'APP_MANAGER', 'DEVELOPER'].includes(r)));
+    for (const u of users) {
+      const em = u.attributes.username;
+      try {
+        await api('POST', '/v1/betaTesters', { data: { type: 'betaTesters', attributes: { email: em, firstName: u.attributes.firstName, lastName: u.attributes.lastName },
+          relationships: { betaGroups: { data: [{ type: 'betaGroups', id: g.id }] } } } });
+        console.log(`✓ тестер: ${u.attributes.firstName} ${u.attributes.lastName} (${em.replace(/^(.).*(@.*)$/, '$1***$2')})`);
+      } catch (e) { console.log(`• ${em.replace(/^(.).*(@.*)$/, '$1***$2')}: ${String(e.message).slice(0, 160)}`); }
+    }
   } else if (action === 'delete-cert') {
     const id = String(process.argv[3] || '').trim();
     if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
     await api('DELETE', `/v1/certificates/${id}`);
     console.log(`✓ Изтрит сертификат ${id}`);
   } else {
-    fail('действие: check | bundle-id | status | certs | metadata | delete-cert');
+    fail('действие: check | bundle-id | status | certs | metadata | testflight | delete-cert');
   }
 } catch (e) {
   fail(String(e.message).slice(0, 600));
