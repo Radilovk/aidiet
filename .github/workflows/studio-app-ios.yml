@@ -94,9 +94,11 @@ jobs:
       # правят през API само за това пускане и се изтриват в края; частният ключ не се пази никъде.
       - name: Сертификат и профил за App Store (през API)
         working-directory: .
-        run: |
-          node scripts/apple-signing.mjs prepare
-          cd studio-app && ruby scripts/set-manual-signing.rb
+        run: node scripts/apple-signing.mjs prepare
+
+      # отделна стъпка: PROFILE_NAME (от GITHUB_ENV) се вижда чак в следващата
+      - name: Ръчно подписване на приложението (само App целта)
+        run: ruby scripts/set-manual-signing.rb
 
       - name: Компилиране и подписване
         run: |
