@@ -75,6 +75,19 @@ try {
     const builds = await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`);
     for (const b of builds.data) console.log(`  build ${b.attributes.version} — ${b.attributes.processingState}${b.attributes.expired ? ' (изтекъл)' : ''}`);
     if (!builds.data.length) console.log('  (още няма качен build)');
+    // why a build is invalid: the upload record and the build's own state
+    try {
+      const ups = await api('GET', `/v1/apps/${app.id}/buildUploads?limit=5`);
+      for (const u of ups.data) {
+        console.log(`  качване ${u.attributes.cfBundleShortVersionString}(${u.attributes.cfBundleVersion}) — ${JSON.stringify(u.attributes.state)}`);
+      }
+    } catch (e) { console.log(`  (качванията не се четат: ${String(e.message).slice(0, 200)})`); }
+    for (const b of builds.data.slice(0, 2)) {
+      try {
+        const d = await api('GET', `/v1/builds/${b.id}?include=buildBundles,buildBetaDetail`);
+        for (const x of d.included || []) console.log(`  build ${b.attributes.version} · ${x.type} ${JSON.stringify(x.attributes).slice(0, 500)}`);
+      } catch (e) { console.log(`  (build ${b.attributes.version}: ${String(e.message).slice(0, 200)})`); }
+    }
   } else if (action === 'certs') {
     const certs = await api('GET', '/v1/certificates?limit=50&fields[certificates]=name,certificateType,displayName,serialNumber,expirationDate');
     console.log(certs.data.length ? 'Сертификати:' : 'Няма сертификати.');
