@@ -42,18 +42,37 @@
     }
 
     /**
+     * Разходът над обичайния в ден с крачки над целта (activity-tracker.js → extraKcal),
+     * закръглен до 10. Само за показване: става ясен вечерта, затова целта на деня не
+     * се мени със задна дата — денят е бил с по-голям дефицит. Компенсацията е в
+     * седмичния преглед: разходът там е по средните измерени крачки (energy.js).
+     * Дните с тренировка не се броят — тренировките вече са в разхода на плана.
+     */
+    function extraBurnKcal(ec) {
+        if (!ec || !(ec.extraKcal > 0) || ec.trained === 'am' || ec.trained === 'pm') return 0;
+        return Math.round(ec.extraKcal / 10) * 10;
+    }
+
+    /**
      * @param {object} rec - gameData day record
      * @param {string} [todayKey] - YYYY-MM-DD for deficit timing (defaults to today)
      */
     /**
-     * Активността на деня в %. Измерена (крачкомер/гривна): крачките плюс
+     * Активността на деня в % спрямо целта, без горна граница (за показване:
+     * 160% е „над целта“). Измерена (крачкомер/гривна): крачките плюс
      * тренировката като крачки спрямо целта по профила и целта (activity-tracker.js,
-     * goal-focus.js), до 100%. Без измерване — отговорът 1–3: 0 / 50 / 100%.
+     * goal-focus.js). Без измерване — отговорът 1–3: 0 / 50 / 100%.
      */
-    function activityPctOf(ec) {
+    function activityRawPctOf(ec) {
         if (!ec) return null;
-        if (ec.equivSteps > 0 && ec.stepTarget > 0) return Math.min(100, Math.round(ec.equivSteps / ec.stepTarget * 100));
+        if (ec.equivSteps > 0 && ec.stepTarget > 0) return Math.round(ec.equivSteps / ec.stepTarget * 100);
         return ec.activityLevel != null ? Math.round((ec.activityLevel - 1) / 2 * 100) : null;
+    }
+
+    /** Активността за оценката и индекса — до 100%: над целта не носи повече точки. */
+    function activityPctOf(ec) {
+        var v = activityRawPctOf(ec);
+        return v == null ? null : Math.min(100, v);
     }
 
     /** Ниска активност: под половината от целта (измерено) или „Ниско“ (отговор). */
@@ -408,8 +427,10 @@
         getMealSlots: getMealSlots,
         planMealSlots: planMealSlots,
         getPlannedCalories: getPlannedCalories,
+        extraBurnKcal: extraBurnKcal,
         calcDayScore: calcDayScore,
         activityPctOf: activityPctOf,
+        activityRawPctOf: activityRawPctOf,
         isLowActivity: isLowActivity,
         computeHealthIndex: computeHealthIndex,
         buildLast7Days: buildLast7Days,
