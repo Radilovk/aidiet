@@ -125,7 +125,7 @@ try {
         'Privacy policy and support: links at the bottom of the main screen ("Помощ и контакт", "Поверителност").',
         'No tracking, no ads, no analytics. The only notifications are reminders for the user\'s own booked appointments.',
         'The studios\' own admin tools are web-only and are not part of this app.',
-        'Contact: privacy@biocode.website',
+        'Contact: radilov.k@gmail.com',
       ].join('\n'),
     };
     await step('съдържание от трети страни (права)', async () => { await api('PATCH', `/v1/apps/${app.id}`, { data: { type: 'apps', id: app.id, attributes: { contentRightsDeclaration: 'USES_THIRD_PARTY_CONTENT' } } }); });

@@ -39,7 +39,7 @@
 | **Privacy manifest** | `PrivacyInfo.xcprivacy` в пакета | ✅ Добавя се автоматично; процесът проверява, че е в пакета, преди качване. |
 | **Export compliance** | Декларация за криптиране | ✅ `ITSAppUsesNonExemptEncryption=false` (само HTTPS). |
 | **1.2** Съдържание от потребители | Филтър/докладване, ако клиенти публикуват | ✅ Клиентите не публикуват нищо; студиата се добавят само от теб. Има страница „Помощ и контакт“ за сигнали. |
-| **1.5** Контакт | Работещ Support URL | ✅ `studio-support.html`. ⚠️ **Имейлът `privacy@biocode.website` трябва реално да получава поща** и да му отговаряш. |
+| **1.5** Контакт | Работещ Support URL | ✅ `studio-support.html`. ⚠️ **Имейлът `radilov.k@gmail.com` (реален, четеш го)** и да му отговаряш. |
 | **5.2** Интелектуална собственост | Без чужди марки/лога | ⚠️ Иконата е логото XBODY от PWA, а името „XB-Studio“ идва от него: имай право да ги ползваш (ти си ги ползвал до сега; ако марката е на друг — разрешение). Снимки и ревю само с неутрално студио „Demo Studio“. Лого на студио в списъка е на самото студио — писмено съгласие. |
 
 ## 3. App Store Connect — отговори (copy/paste)
@@ -101,7 +101,7 @@ How to test (all labels are in Bulgarian):
 Privacy policy and support: links at the bottom of the main screen ("Помощ и контакт", "Поверителност").
 No tracking, no ads, no analytics. The only notifications are reminders for the user's own booked appointments.
 The studios' own admin tools are web-only and are not part of this app.
-Contact: privacy@biocode.website
+Contact: radilov.k@gmail.com
 ```
 И **прикачи кратко видео** (екранен запис на iPhone, 40–60 сек) на тези стъпки — решава езиковата бариера.
 
@@ -118,7 +118,7 @@ Contact: privacy@biocode.website
 ## 7. Преди да натиснеш „Submit for Review“
 1. Мина целият списък в `TESTFLIGHT-CHECKLIST.md` на истински iPhone (особено карта и напомняне).
 2. Демо студиото работи, а бекендът (`aidiet.radilov-k.workers.dev`) и `biocode.website/studio.html` отговарят.
-3. Поддръжката (`privacy@biocode.website`) получава поща.
+3. Поддръжката (`radilov.k@gmail.com`) получава поща.
 4. DSA „Trader“ е попълнен, политиката за поверителност се отваря, декларациите са попълнени.
 5. **Замразяване:** докато е в ревю и след пускането, промени по `studio.html`/бекенда се правят само след проверка —
    приложението зарежда тази страница на живо.
