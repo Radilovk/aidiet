@@ -57,7 +57,7 @@ jobs:
           SID: ${{ inputs.id }}
           SNAME: ${{ inputs.name }}
           SPHONE: ${{ inputs.phone || secrets.STUDIO_ADMIN_PHONE }}
-          STUDIO_PIN: ${{ secrets[format('STUDIO_PIN_{0}', toUpper(inputs.id))] || secrets.STUDIO_DEFAULT_PIN }}
+          STUDIO_PIN: ${{ secrets[format('STUDIO_PIN_{0}', inputs.id)] || secrets.STUDIO_DEFAULT_PIN }}
         run: |
           case "$ACTION" in
             ensure-db) node scripts/studio-admin.mjs ensure-db > /dev/null ;;
