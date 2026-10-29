@@ -125,6 +125,7 @@ jobs:
           echo "Пакетът е наред: $(basename "$APP")"
 
       - name: Качване в App Store Connect (TestFlight)
+        id: upload
         if: ${{ inputs.upload }}
         run: |
           BUNDLE_ID=$(node -p "require('./capacitor.config.json').appId")
@@ -153,7 +154,11 @@ jobs:
             echo "Версия ${{ inputs.version }} (build ${{ github.run_number }}). След 10–30 минути обработка се вижда в TestFlight."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Изтриване на сертификата и профила от акаунта
+      # Apple проверява подписа и СЛЕД качването (минути по-късно): ако сертификатът е изтрит дотогава, build-ът става
+      # Invalid Binary (ITMS-90035). Затова след успешно качване сертификатът остава; следващото пускане чисти старите.
+      - name: Чистене на сертификата и профила
         if: ${{ always() }}
         working-directory: .
+        env:
+          KEEP_CERT: ${{ steps.upload.outcome == 'success' && '1' || '' }}
         run: node scripts/apple-signing.mjs cleanup
