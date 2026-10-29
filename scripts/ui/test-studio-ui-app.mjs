@@ -67,6 +67,17 @@ const step = async (name, fn) => { try { await fn(); console.log('✓', name); }
 const eq = (a, b, m) => { if (a !== b) throw new Error(`${m}: ${a} ≠ ${b}`); };
 
 await page.goto(PAGE);
+await step('invite-only studios: no list, only the code field; the right code opens that studio alone', async () => {
+  await page.waitForSelector('#pick-card:not(.hidden)');
+  await page.waitForFunction(() => document.getElementById('pick-title').textContent.includes('кода'));
+  if (await page.locator('[data-pick]').count()) throw new Error('a private studio is listed');
+  await page.screenshot({ path: `${OUT}/app-0-code-only.png` });
+  await page.fill('#pick-code', 'burgas'); await page.click('#pick-go');
+  await page.waitForSelector('#s-name:has-text("XBODY Бургас")');
+  await page.evaluate(() => localStorage.removeItem('studio:current'));
+  db.exec("UPDATE studios SET settings = json_set(settings, '$.listed', json('true'))");   // now both studios show themselves
+});
+await page.goto(PAGE);
 await step('app, no studio: the picker lists the studios; a click opens one', async () => {
   await page.waitForSelector('#pick-card:not(.hidden) [data-pick]');
   eq(await page.locator('[data-pick]').count(), 2, 'studios');

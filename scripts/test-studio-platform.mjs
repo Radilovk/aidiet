@@ -256,6 +256,9 @@ await t('admin: a client who called (no card), overlap refused, clients list', a
 
 await t('defaults: no Viber, reminder 4 h before; the list of studios shows only listed ones', async () => {
   const sofia = (await api('GET', 'config?studio=sofia')).d;
+  assert.equal(sofia.listed, false);   // invite-only by default: a studio is found with its code, not in a public list
+  assert.equal((await api('GET', 'list')).d.studios.filter((x) => x.id === 'sofia').length, 0);
+  db.exec("UPDATE studios SET settings = json_set(settings, '$.listed', json('true')) WHERE id IN ('burgas', 'sofia')");
   assert.equal(sofia.viber, false);
   assert.equal(sofia.rules.reminderHours, 4);
   assert.equal(sofia.notice, null);

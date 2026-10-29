@@ -155,9 +155,9 @@ details.sec > div { padding-bottom: 14px; }
   <div id="offline" class="alert hidden">Няма връзка. Показаните часове може да не са актуални.</div>
 
   <section class="card hidden" id="pick-card">
-    <b>Изберете студио</b>
+    <b id="pick-title">Изберете студио</b>
     <div id="pick-list" style="margin-top:8px"></div>
-    <label class="f">Или въведете кода на студиото<input id="pick-code" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="напр. burgas"></label>
+    <label class="f"><span id="pick-hint">Или въведете кода на студиото</span><input id="pick-code" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="напр. burgas"></label>
     <p class="err" id="pick-err"></p>
     <button class="btn sec" id="pick-go">Отвори</button>
   </section>
@@ -343,10 +343,15 @@ details.sec > div { padding-bottom: 14px; }
     $('switch-wrap').classList.add('hidden');
     const r = await api('GET', 'list').catch(() => null);
     const list = (r && r.status === 200 && r.d.studios) || [];
+    if (!list.length && r) {   // invite-only studios: nothing to choose from, only the code the client got from their studio
+      $('s-name').textContent = 'Добре дошли';
+      $('pick-title').textContent = 'Въведете кода на вашето студио';
+      $('pick-hint').textContent = 'Кодът ви е даден от студиото, при което сте записани (или е в QR кода / съобщението от него).';
+    }
     $('pick-list').innerHTML = list.length ? list.map((x) => `<button class="btn sec" data-pick="${esc(x.id)}" style="justify-content:flex-start;text-align:left">
       <span class="logo" style="width:38px;height:38px;border-radius:10px;font-size:16px;background:${esc(x.color)}">${esc((x.name || '?').trim().charAt(0).toUpperCase())}</span>
       <span><b>${esc(x.name)}</b><br><small class="muted">${esc(x.address || x.tagline || '')}</small></span></button>`).join('')
-      : '<p class="muted small">' + (r ? 'Още няма студиа в списъка.' : 'Няма връзка.') + '</p>';
+      : (r ? '' : '<p class="muted small">Няма връзка.</p>');
     $('pick-list').onclick = (e) => { const b = e.target.closest('[data-pick]'); if (b) chooseStudio(b.dataset.pick); };
     $('pick-go').onclick = async () => {
       const id = $('pick-code').value.trim().toLowerCase();
@@ -1190,7 +1195,16 @@ details.sec > div { padding-bottom: 14px; }
           <option value="none" ${s.guarantee === 'none' ? 'selected' : ''}>Без гаранция</option></select></label>
         ${adm.state.stripe.set ? '' : '<p class="small muted">Картата се иска само когато е свързан Stripe (по-долу).</p>'}
         <label class="tick"><input type="checkbox" id="r-viber" ${s.viber ? 'checked' : ''}><span>Viber съобщения (само ако имаш компютър с viber-sender)</span></label>
-        <label class="tick"><input type="checkbox" id="s-listed" ${s.listed ? 'checked' : ''}><span>Показвай студиото в списъка на приложението</span></label>
+        <label class="tick"><input type="checkbox" id="s-listed" ${s.listed ? 'checked' : ''}><span>Показвай студиото в списъка на приложението (изключено: клиентите го намират само с код или връзка)</span></label>
+      </div></details>
+      <details class="sec"><summary>👋 Покана на клиенти</summary><div>
+        <p class="small muted">Приложението е едно за всички студиа. Клиентът го сваля, въвежда <b>кода на вашето студио</b> и после вижда <b>само вашето</b> студио (помни се). Кодът не е парола — това е адресът на студиото.</p>
+        <div class="copy"><span style="flex:1"><b>Код:</b> ${esc(STUDIO)}</span></div>
+        <div class="copy" style="margin-top:8px"><span style="flex:1" id="inv-link">https://biocode.website/studio.html?s=${esc(STUDIO)}</span><button class="btn mini sec" id="inv-copy-link">Копирай</button></div>
+        <label class="f">Съобщение за клиентите (SMS, Viber, на касата)<textarea id="inv-msg" readonly style="min-height:110px">${esc(`Записвайте часове в ${s.brand.name} през приложението XB-Studio: свалете го от App Store или Google Play и въведете код: ${STUDIO}\nИли директно: https://biocode.website/studio.html?s=${STUDIO}`)}</textarea></label>
+        <button class="btn sec" id="inv-copy-msg">Копирай съобщението</button>
+        <button class="btn sec" id="inv-qr-btn">Покажи QR код</button>
+        <div id="inv-qr" style="display:flex;justify-content:center;margin-top:10px;background:#fff;border-radius:12px;padding:10px"></div>
       </div></details>
       <details class="sec"><summary>📣 Известие към клиентите ${s.notice && s.notice.text && (!s.notice.until || s.notice.until > Date.now()) ? '●' : ''}</summary><div>
         <p class="small muted">Показва се като съобщение най-горе на страницата и в приложението, когато клиентът я отвори. Не е известие на телефона и не е мигновено. Не го ползвай за реклама на отстъпки.</p>
@@ -1246,6 +1260,18 @@ details.sec > div { padding-bottom: 14px; }
     $('c-add').onclick = async () => { const d = $('c-day').value; if (!d) return; await saveSettings({ closed: [...new Set([...(s.closed || []), d])].sort() }); admSettings(); };
     body.querySelectorAll('[data-rmday]').forEach((b) => { b.onclick = async () => { await saveSettings({ closed: (s.closed || []).filter((x) => x !== b.dataset.rmday) }); admSettings(); }; });
     $('b-logo').onchange = uploadLogo;
+    const copyText = (t) => { try { navigator.clipboard.writeText(t); toast('Копирано'); } catch (_) { toast('Копирай ръчно'); } };
+    $('inv-copy-link').onclick = () => copyText($('inv-link').textContent);
+    $('inv-copy-msg').onclick = () => copyText($('inv-msg').value);
+    $('inv-qr-btn').onclick = () => {   // the QR of the link (the library is loaded only now)
+      const draw = () => { $('inv-qr').innerHTML = ''; new window.QRCode($('inv-qr'), { text: $('inv-link').textContent, width: 220, height: 220 }); };
+      if (window.QRCode) { draw(); return; }
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+      sc.onload = draw;
+      sc.onerror = () => toast('QR кодът не се зареди — ползвай връзката.');
+      document.head.appendChild(sc);
+    };
     $('nt-send').onclick = async () => {
       const text = $('nt-text').value.trim();
       if (!text) { toast('Напиши текст.'); return; }
