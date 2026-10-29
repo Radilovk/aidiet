@@ -1,0 +1,35 @@
+{
+  "appId": "com.biocode.studios",
+  "appName": "XB-Studio",
+  "webDir": "www",
+  "server": {
+    "url": "https://biocode.website/studio.html",
+    "cleartext": false,
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "biocode.website",
+      "*.stripe.com",
+      "*.stripe.network"
+    ]
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#f6f6f8"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#f6f6f8"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 700,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "showSpinner": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_studio",
+      "iconColor": "#d32f2f"
+    }
+  }
+}

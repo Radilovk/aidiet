@@ -1,0 +1,40 @@
+name: Студио приложение — Apple (App Store Connect)
+
+# Работи с акаунта в App Store Connect чрез API ключа от GitHub секретите (без Apple парола и без кодове за вход).
+#  * check     — работи ли ключът; какви приложения има акаунтът
+#  * bundle-id — регистрира Bundle ID на приложението (трябва преди „New App“ в App Store Connect)
+#  * status    — приложението, версиите и build-овете и в какво състояние са
+# Секрети: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (виж studio-app/README.md, стъпка 3).
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'check | bundle-id | status'
+        required: true
+        type: choice
+        options: [check, bundle-id, status]
+
+permissions:
+  contents: read
+
+concurrency: studio-app-apple
+
+jobs:
+  apple:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apple
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_P8: ${{ secrets.APPSTORE_KEY_P8 }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          node scripts/apple-connect.mjs "$ACTION" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit ${PIPESTATUS[0]}

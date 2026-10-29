@@ -1,0 +1,18 @@
+{
+  "name": "studio-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Native shell (iOS + Android) of the studio booking page: local reminders on the phone",
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/haptics": "^8.0.0",
+    "@capacitor/ios": "^8.3.1",
+    "@capacitor/local-notifications": "^8.0.2",
+    "@capacitor/splash-screen": "^8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.3.1"
+  }
+}

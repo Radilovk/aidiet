@@ -10,7 +10,7 @@
  *   node scripts/studio-admin.mjs domain <id>                <id>.<STUDIO_ROOT_DOMAIN> → this worker (custom domain)
  *   node scripts/studio-admin.mjs list                       the studios
  *
- * Env: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (D1:Edit, Workers KV:Edit, Workers Scripts:Edit; for `domain`
+ * Env: STUDIO_PIN (optional: the admin code, 5 digits, from a private GitHub secret), CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (D1:Edit, Workers KV:Edit, Workers Scripts:Edit; for `domain`
  * also Zone:Read + Workers Routes/Custom Domains:Edit on the zone).
  */
 import { execFileSync } from 'node:child_process';
@@ -93,15 +93,21 @@ try {
   } else if (action === 'create' || action === 'reset-pin') {
     const id = String(a1 || '').toLowerCase();
     if (!/^[a-z0-9-]{2,40}$/.test(id)) fail('id: малки латински букви, цифри и тире (напр. burgas)');
+    // the admin code: from the owner's private GitHub secret (STUDIO_PIN_<ID> or STUDIO_DEFAULT_PIN) — it never appears in
+    // the public log; else a random one goes by Viber to the phone (needs viber-sender/ running)
+    const fromSecret = /^\d{5}$/.test(String(process.env.STUDIO_PIN || '').trim());
     const phone = phoneOf(action === 'create' ? a3 : a2);
-    if (!phone) fail('Телефонът (за Viber с кода) липсва или е невалиден.');
+    if (!fromSecret && !phone) {
+      fail(`Няма код за вход. Създай GitHub секрет STUDIO_PIN_${id.toUpperCase().replace(/-/g, '_')} (5 цифри; или общ STUDIO_DEFAULT_PIN) ` +
+        '(Settings → Secrets and variables → Actions) и пусни отново — или въведи телефон за Viber.');
+    }
     const exists = sql(`SELECT id, settings FROM studios WHERE id = ${q(id)}`)[0];
-    const pin = String(randomInt(0, 100000)).padStart(5, '0');
+    const pin = fromSecret ? String(process.env.STUDIO_PIN).trim() : String(randomInt(0, 100000)).padStart(5, '0');
     let name = id;
     if (action === 'create') {
       if (exists) fail(`Студио ${id} вече има. За нов код: reset-pin.`);
       name = String(a2 || id).slice(0, 80);
-      const settings = JSON.stringify({ brand: { name }, phone });
+      const settings = JSON.stringify({ brand: { name }, ...(phone ? { phone } : {}) });
       sql(`INSERT INTO studios (id, settings, secrets, pin_hash, version, created_at) VALUES (${q(id)}, ${q(settings)}, '{}', ${q(pinHash(pin))}, 1, ${Date.now()})`);
       summary.push(`✓ студио ${id} („${name}“)`);
       try { await domain(id); summary.push(`✓ адрес https://${id}.${ROOT}`); } catch (e) {
@@ -114,8 +120,12 @@ try {
       sql(`DELETE FROM admin_sessions WHERE studio_id = ${q(id)}`);
       summary.push(`✓ нов admin код за ${id}; старите входове са затворени`);
     }
-    viberPin(phone, name, pin);
-    summary.push(`✓ кодът е на опашка за Viber към ${phone.slice(0, 5)}…${phone.slice(-3)} (изпраща го компютърът с viber-sender)`);
+    if (fromSecret) {
+      summary.push('✓ кодът за вход е този от твоя GitHub секрет (не се показва тук). Смени го после от Настройки → Сигурност.');
+    } else {
+      viberPin(phone, name, pin);
+      summary.push(`✓ кодът е на опашка за Viber към ${phone.slice(0, 5)}…${phone.slice(-3)} (изпраща го компютърът с viber-sender)`);
+    }
   } else if (action === 'domain') {
     await domain(String(a1 || '').toLowerCase());
   } else if (action === 'list') {

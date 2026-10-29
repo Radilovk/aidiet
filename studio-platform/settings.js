@@ -18,10 +18,12 @@ export const DEFAULT_SETTINGS = {
   hours: { mon: [['08:00', '20:00']], tue: [['08:00', '20:00']], wed: [['08:00', '20:00']],
     thu: [['08:00', '20:00']], fri: [['08:00', '20:00']], sat: [], sun: [] },
   closed: [],                                   // 'YYYY-MM-DD' days off
-  rules: { minNoticeMin: 120, daysAhead: 30, maxPerDay: 1, maxUpcoming: 8, freeCancelHours: 24 },
+  rules: { minNoticeMin: 120, daysAhead: 30, maxPerDay: 1, maxUpcoming: 8, freeCancelHours: 24, reminderHours: 4 },   // reminderHours: the phone's own reminder before the hour (0 = none)
   guarantee: 'card_or_code',                    // card | card_or_code | none (a card needs the studio's Stripe)
   google: { calendarId: '' },
-  viber: true,
+  viber: false,                                 // Viber messages (only with a PC running viber-sender/); the app's own reminders need nothing
+  listed: true,                                 // shown in the app's list of studios
+  notice: { id: 0, text: '', until: 0 },        // a message from the studio to its clients (shown in the app; id changes = a new one)
 };
 
 const str = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
@@ -73,15 +75,23 @@ export function normalizeSettings(raw) {
       maxPerDay: int(r.maxPerDay, 1, 20, d.rules.maxPerDay),
       maxUpcoming: int(r.maxUpcoming, 1, 100, d.rules.maxUpcoming),
       freeCancelHours: int(r.freeCancelHours, 0, 168, d.rules.freeCancelHours),
+      reminderHours: int(r.reminderHours, 0, 48, d.rules.reminderHours),
     },
     guarantee: ['card', 'card_or_code', 'none'].includes(s.guarantee) ? s.guarantee : d.guarantee,
     google: { calendarId: str(s.google && s.google.calendarId, 200) },
-    viber: s.viber !== false,
+    viber: s.viber === true,
+    listed: s.listed !== false,
+    notice: {
+      id: int(s.notice && s.notice.id, 0, 4e9, 0),
+      text: str(s.notice && s.notice.text, 300),
+      until: int(s.notice && s.notice.until, 0, 4e12, 0),
+    },
   };
 }
 
 /** what the client's app may see (no calendar id) */
-export function publicSettings(st, version, hasStripe) {
-  const { google, ...rest } = st;
-  return { ...rest, version, card: hasStripe && st.guarantee !== 'none', calendar: Boolean(google.calendarId) };
+export function publicSettings(st, version, hasStripe, now = Date.now()) {
+  const { google, notice, ...rest } = st;
+  const live = notice.text && (!notice.until || notice.until > now);   // an ended message is not sent
+  return { ...rest, version, card: hasStripe && st.guarantee !== 'none', calendar: Boolean(google.calendarId), notice: live ? notice : null };
 }

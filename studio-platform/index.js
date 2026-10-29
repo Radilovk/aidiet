@@ -573,6 +573,45 @@ async function handleMove(env, ctx, studio, b) {
   return json({ ok: true, time: String(b.time) });
 }
 
+/* ── "delete my data" (the app store asks for it): the client's own device token deletes them from this studio ── */
+async function handleForget(env, ctx, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return err('token', 401);
+  const now = Date.now();
+  const db = env.STUDIO_DB;
+  const upcoming = (await db.prepare("SELECT * FROM bookings WHERE studio_id = ? AND phone = ? AND status = 'booked' AND start_ms > ?")
+    .bind(studio.id, client.phone, now).all()).results || [];
+  for (const bk of upcoming) {   // the hours still ahead are released (a code's use comes back); nobody is messaged
+    await db.prepare("UPDATE bookings SET status = 'canceled', changed_at = ? WHERE id = ?").bind(now, bk.id).run();
+    if (bk.code) await db.prepare('UPDATE codes SET uses_left = uses_left + 1 WHERE studio_id = ? AND code = ? AND uses_left IS NOT NULL').bind(studio.id, bk.code).run();
+  }
+  // what remains of the history (the studio's own records) no longer says who it was
+  await db.prepare("UPDATE bookings SET name = '', phone = ?, card_pm = '', card_last4 = '', stripe_customer = '' WHERE studio_id = ? AND phone = ?")
+    .bind(`deleted:${newId()}`, studio.id, client.phone).run();
+  await db.prepare('DELETE FROM clients WHERE studio_id = ? AND phone = ?').bind(studio.id, client.phone).run();
+  await bumpRev(env, studio.id);
+  ctx.waitUntil((async () => {
+    for (const bk of upcoming) {
+      if (bk.gcal_event && studio.settings.google.calendarId) {
+        await deleteEvent(env, studio.settings.google.calendarId, bk.gcal_event).catch(() => {});
+      }
+    }
+    if (client.stripe_customer && hasStripe(studio)) await stripe(env, studio, 'DELETE', `customers/${client.stripe_customer}`).catch(() => {});
+  })());
+  return json({ ok: true, released: upcoming.length });
+}
+
+/** GET /api/s/list — the studios that show themselves in the app (name, place, color, logo), cached at the edge */
+async function handleList(env) {
+  const rows = (await env.STUDIO_DB.prepare('SELECT id, settings FROM studios ORDER BY created_at LIMIT 500').all()).results || [];
+  const studios = [];
+  for (const r of rows) {
+    const st = normalizeSettings(JSON.parse(r.settings || '{}'));
+    if (st.listed) studios.push({ id: r.id, name: st.brand.name, tagline: st.brand.tagline, address: st.address, color: st.brand.color, logo: st.brand.logo });
+  }
+  return json({ studios }, 200, { 'Cache-Control': 'public, max-age=300' });
+}
+
 /* ── a new device: a 4-digit code by Viber gives it the client's token ── */
 async function handleVerifyStart(env, studio, b) {
   const phone = normPhone(b.phone);
@@ -827,6 +866,8 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
     if (!body) return err('body');
     if (path === 'master/studio' && request.method === 'POST') return await handleMaster(env, request, body);
 
+    if (request.method === 'GET' && path === 'list') return await handleList(env);
+
     const id = slugFrom(env, url, body);
     const studio = id ? await loadStudio(env, id) : null;
     if (!studio) return err('studio', 404);
@@ -858,6 +899,7 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
       case 'mine': return await handleMine(env, studio, body);
       case 'cancel': return await handleCancel(env, ctx, studio, body);
       case 'move': return await handleMove(env, ctx, studio, body);
+      case 'forget': return await handleForget(env, ctx, studio, body);
       case 'verify/start': return await handleVerifyStart(env, studio, body);
       case 'verify/finish': return await handleVerifyFinish(env, studio, body);
       default: return err('not_found', 404);

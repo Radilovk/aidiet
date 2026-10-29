@@ -23,6 +23,10 @@ on:
       - '!fitness/worker.js'
       - '!fitness/exercise-translate-batch.js'
       - '!scripts/**'
+      - '!studio.html'
+      - '!studio-privacy.html'
+      - '!studio-app/**'
+      - '!studio-platform/**'
       - '**.json'
       - '**.png'
       - '**.jpg'
@@ -129,6 +133,11 @@ jobs:
             --exclude 'fitness/worker.js' \
             --exclude 'fitness/exercise-translate-batch.js' \
             --exclude 'scripts/' \
+            --exclude 'studio.html' \
+            --exclude 'studio-privacy.html' \
+            --exclude 'studio-app/' \
+            --exclude 'studio-platform/' \
+            --exclude 'viber-sender/' \
             --exclude 'client_______________*.json' \
             --exclude 'Errorlist.txt' \
             --exclude 'ai_communication.txt' \

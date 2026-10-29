@@ -7,7 +7,10 @@ name: Студиа
 #  * domain     — поддомейнът на студио наново (ако при create не е станал).
 #  * list       — студиата.
 #  * ensure-db  — базата и таблиците (прави се и при всеки деплой).
-# Телефонът: полето phone, иначе GitHub секрет STUDIO_ADMIN_PHONE (за да не се вижда в публичния лог).
+# Кодът за вход в admin (5 цифри) е ТАЕН: първо създай GitHub секрет STUDIO_PIN_<ID> (напр. STUDIO_PIN_BURGAS; без тире —
+# за id с тире или за „все едно кое студио“ има общ STUDIO_DEFAULT_PIN) → Settings → Secrets and variables → Actions.
+# Без такъв секрет кодът е случаен и отива по Viber на телефона (полето phone или секрет STUDIO_ADMIN_PHONE).
+# Кодът се сменя после от admin → Настройки → Сигурност.
 
 on:
   workflow_dispatch:
@@ -26,7 +29,7 @@ on:
         required: false
         type: string
       phone:
-        description: 'Телефон за Viber с admin кода (празно = GitHub секрет STUDIO_ADMIN_PHONE)'
+        description: 'Само ако няма секрет STUDIO_PIN_<ID>: телефон за Viber със случаен код (празно = секрет STUDIO_ADMIN_PHONE)'
         required: false
         type: string
 
@@ -54,6 +57,7 @@ jobs:
           SID: ${{ inputs.id }}
           SNAME: ${{ inputs.name }}
           SPHONE: ${{ inputs.phone || secrets.STUDIO_ADMIN_PHONE }}
+          STUDIO_PIN: ${{ secrets[format('STUDIO_PIN_{0}', toUpper(inputs.id))] || secrets.STUDIO_DEFAULT_PIN }}
         run: |
           case "$ACTION" in
             ensure-db) node scripts/studio-admin.mjs ensure-db > /dev/null ;;

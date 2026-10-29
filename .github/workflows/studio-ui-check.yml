@@ -1,0 +1,43 @@
+name: Страница на студиата — проверка
+
+# Страницата studio.html е и приложението за телефони (то я зарежда на живо). Затова всяка промяна по нея и по
+# бекенда на студиата минава през проверка в истински браузър: клиент, admin, приложение (с изкуствен телефон).
+# Не пуска нищо в продукция — само казва дали може.
+
+on:
+  pull_request:
+    paths:
+      - 'studio.html'
+      - 'studio-platform/**'
+      - 'scripts/ui/**'
+      - 'scripts/test-studio-ui.mjs'
+      - 'scripts/test-studio-platform.mjs'
+      - '.github/workflows/studio-ui-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'studio.html'
+      - 'studio-platform/**'
+      - 'scripts/ui/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Браузър (Playwright)
+        run: |
+          npm i --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: API на студиата
+        run: node scripts/test-studio-platform.mjs
+      - name: Страницата в браузър (клиент, admin, приложение)
+        run: node scripts/test-studio-ui.mjs
