@@ -5,6 +5,8 @@
  *   node scripts/apple-connect.mjs check       is the key valid? lists the apps of the account
  *   node scripts/apple-connect.mjs bundle-id   registers the app's Bundle ID (appId in studio-app/capacitor.config.json)
  *   node scripts/apple-connect.mjs status      the app, its versions and builds (state of each)
+ *   node scripts/apple-connect.mjs certs       the distribution certificates and App Store profiles of the account
+ *   node scripts/apple-connect.mjs delete-cert <id>   deletes one certificate (e.g. a leftover of a failed run)
  *
  * Env: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (the text of AuthKey_XXXX.p8). Nothing secret is printed.
  */
@@ -72,8 +74,20 @@ try {
     const builds = await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`);
     for (const b of builds.data) console.log(`  build ${b.attributes.version} — ${b.attributes.processingState}${b.attributes.expired ? ' (изтекъл)' : ''}`);
     if (!builds.data.length) console.log('  (още няма качен build)');
+  } else if (action === 'certs') {
+    const certs = await api('GET', '/v1/certificates?limit=50&fields[certificates]=name,certificateType,displayName,serialNumber,expirationDate');
+    console.log(certs.data.length ? 'Сертификати:' : 'Няма сертификати.');
+    for (const c of certs.data) console.log(`  • ${c.id} · ${c.attributes.certificateType} · ${c.attributes.displayName || c.attributes.name} · до ${c.attributes.expirationDate}`);
+    const profs = await api('GET', '/v1/profiles?limit=50&fields[profiles]=name,profileType,profileState,expirationDate');
+    console.log(profs.data.length ? 'Профили:' : 'Няма профили.');
+    for (const p of profs.data) console.log(`  • ${p.id} · ${p.attributes.profileType} · ${p.attributes.name} · ${p.attributes.profileState}`);
+  } else if (action === 'delete-cert') {
+    const id = String(process.argv[3] || '').trim();
+    if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
+    await api('DELETE', `/v1/certificates/${id}`);
+    console.log(`✓ Изтрит сертификат ${id}`);
   } else {
-    fail('действие: check | bundle-id | status');
+    fail('действие: check | bundle-id | status | certs | delete-cert');
   }
 } catch (e) {
   fail(String(e.message).slice(0, 600));

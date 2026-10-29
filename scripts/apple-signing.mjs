@@ -59,10 +59,13 @@ try {
     // 2. the distribution certificate
     const cert = await api('POST', '/v1/certificates', { data: { type: 'certificates', attributes: {
       certificateType: 'DISTRIBUTION', csrContent: readFileSync(join(dir, 'req.csr'), 'utf8') } } });
+    writeFileSync(STATE, JSON.stringify({ certId: cert.data.id }));   // from now on a failure still cleans up the certificate
     writeFileSync(join(dir, 'cert.cer'), Buffer.from(cert.data.attributes.certificateContent, 'base64'));
     run('openssl', ['x509', '-inform', 'der', '-in', join(dir, 'cert.cer'), '-out', join(dir, 'cert.pem')]);
     const pw = randomBytes(12).toString('hex');
-    run('openssl', ['pkcs12', '-export', '-inkey', join(dir, 'key.pem'), '-in', join(dir, 'cert.pem'), '-out', join(dir, 'cert.p12'), '-passout', `pass:${pw}`]);
+    // an old, widely readable format (OpenSSL 3's default one fails in macOS "security import": MAC verification failed)
+    run('openssl', ['pkcs12', '-export', '-inkey', join(dir, 'key.pem'), '-in', join(dir, 'cert.pem'), '-out', join(dir, 'cert.p12'),
+      '-passout', `pass:${pw}`, '-keypbe', 'PBE-SHA1-3DES', '-certpbe', 'PBE-SHA1-3DES', '-macalg', 'sha1']);
     // 3. a temporary keychain with it
     run('security', ['create-keychain', '-p', pw, KEYCHAIN]);
     run('security', ['set-keychain-settings', '-lut', '7200', KEYCHAIN]);
@@ -76,7 +79,8 @@ try {
     const bundle = bid.data.find((b) => b.attributes.identifier === BUNDLE);
     if (!bundle) fail(`Няма Bundle ID ${BUNDLE} (пусни Apple → bundle-id).`);
     const name = `XB-Studio AppStore ${process.env.GITHUB_RUN_ID || Date.now()}`;
-    const prof = await api('POST', '/v1/profiles', { data: { type: 'profiles', attributes: { name, profileType: 'IOS_APP_STORE' },
+    let prof;
+    prof = await api('POST', '/v1/profiles', { data: { type: 'profiles', attributes: { name, profileType: 'IOS_APP_STORE' },
       relationships: { bundleId: { data: { type: 'bundleIds', id: bundle.id } }, certificates: { data: [{ type: 'certificates', id: cert.data.id }] } } } });
     const pdir = join(homedir(), 'Library/MobileDevice/Provisioning Profiles'); mkdirSync(pdir, { recursive: true });
     const uuid = prof.data.attributes.uuid;
@@ -87,7 +91,7 @@ try {
   } else if (action === 'cleanup') {
     if (!existsSync(STATE)) { console.log('Няма какво да се чисти.'); process.exit(0); }
     const st = JSON.parse(readFileSync(STATE, 'utf8'));
-    for (const [what, path] of [['профил', `/v1/profiles/${st.profileId}`], ['сертификат', `/v1/certificates/${st.certId}`]]) {
+    for (const [what, path] of [['профил', st.profileId && `/v1/profiles/${st.profileId}`], ['сертификат', st.certId && `/v1/certificates/${st.certId}`]].filter((x) => x[1])) {
       try { await api('DELETE', path); console.log(`✓ изтрит ${what}`); } catch (e) { console.log(`! ${what} не се изтри: ${e.message}`); }
     }
   } else {
