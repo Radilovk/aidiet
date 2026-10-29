@@ -1,6 +1,6 @@
 {
   "appId": "com.biocode.studios",
-  "appName": "Студио записване",
+  "appName": "XB-Studio",
   "webDir": "www",
   "server": {
     "url": "https://biocode.website/studio.html",
@@ -24,7 +24,7 @@
     "SplashScreen": {
       "launchShowDuration": 700,
       "launchAutoHide": true,
-      "backgroundColor": "#d32f2f",
+      "backgroundColor": "#ffffff",
       "showSpinner": false
     },
     "LocalNotifications": {

@@ -8,7 +8,7 @@
 ## 1. Личен (Individual) акаунт — какво означава
 - Записване: приложението **Apple Developer** на iPhone → Enroll → Individual. Нужни са Apple ID с двуфакторна защита и
   документ за самоличност със снимка. Обикновено 1–2 дни. $99 на година.
-- В магазина като „продавач“ се вижда **личното ти име** (не марка). Името на приложението си остава „Студио записване“.
+- В магазина като „продавач“ се вижда **личното ти име** (не марка). Името на приложението е „XB-Studio“.
 - **Закон за дигиталните услуги (DSA, ЕС):** в App Store Connect → Business → *Digital Services Act* трябва да обявиш
   статус **Trader** (търговец) — приложението обслужва търговски услуги — и да дадеш **адрес, телефон и имейл**, които
   се показват публично в страницата на приложението в ЕС. Без това приложението не се показва в ЕС. Ползвай адрес, който
@@ -40,11 +40,11 @@
 | **Export compliance** | Декларация за криптиране | ✅ `ITSAppUsesNonExemptEncryption=false` (само HTTPS). |
 | **1.2** Съдържание от потребители | Филтър/докладване, ако клиенти публикуват | ✅ Клиентите не публикуват нищо; студиата се добавят само от теб. Има страница „Помощ и контакт“ за сигнали. |
 | **1.5** Контакт | Работещ Support URL | ✅ `studio-support.html`. ⚠️ **Имейлът `privacy@biocode.website` трябва реално да получава поща** и да му отговаряш. |
-| **5.2** Интелектуална собственост | Без чужди марки/лога | ⚠️ Снимки и ревю само с неутрално студио „Demo Studio“. Лого на студио в списъка е на самото студио — имай писмено съгласие на студиата. |
+| **5.2** Интелектуална собственост | Без чужди марки/лога | ⚠️ Иконата е логото XBODY от PWA, а името „XB-Studio“ идва от него: имай право да ги ползваш (ти си ги ползвал до сега; ако марката е на друг — разрешение). Снимки и ревю само с неутрално студио „Demo Studio“. Лого на студио в списъка е на самото студио — писмено съгласие. |
 
 ## 3. App Store Connect — отговори (copy/paste)
 **App Information**
-- Име: `Студио записване` · Подзаглавие (до 30 знака): `Часове и напомняния`
+- Име: `XB-Studio` · Подзаглавие (до 30 знака): `Часове и напомняния`
 - Категория: **Health & Fitness** (вторична: Lifestyle) · Цена: Free
 - Privacy Policy URL: `https://biocode.website/studio-privacy.html`
 - Support URL: `https://biocode.website/studio-support.html`
@@ -71,7 +71,7 @@
 - Какво ново: `Първа версия.`
 
 **Metadata (English)** — добави и английска локализация (ревюиращите четат английски):
-- Name: `Studio Booking` *(ако „Студио записване“/„Studio Booking“ е заето в магазина, избери друго)*
+- Name: `XB-Studio` *(името е уникално в целия магазин; ако е заето, App Store Connect ще го откаже при създаване — тогава `XB-Studio Booking`)*
 - Subtitle: `Appointments and reminders`
 - Description: „Book an appointment at your studio in seconds. Choose a studio, a day and a free hour — only really free hours are shown. The app reminds you a few hours before your appointment with a notification on your phone (works offline), and in “My appointments” you can move or cancel it. You can delete your data at any time.“
 - Keywords: `booking,appointment,studio,training,fitness,reservation,reminder,schedule`

@@ -77,8 +77,8 @@ jobs:
           gem install xcodeproj --no-document
           npx cap add ios
           npx @capacitor/assets generate --ios --assetPath assets \
-            --iconBackgroundColor '#d32f2f' --iconBackgroundColorDark '#d32f2f' \
-            --splashBackgroundColor '#d32f2f' --splashBackgroundColorDark '#d32f2f'
+            --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#ffffff' \
+            --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
           python3 scripts/patch-ios.py
           ruby scripts/add-privacy-manifest.rb
           npx cap sync ios

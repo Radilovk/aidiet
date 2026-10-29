@@ -5,7 +5,7 @@ Run in studio-app/ after `npx cap add ios`. Only changes what is needed (idempot
   - ITSAppUsesNonExemptEncryption = false  (the app only uses HTTPS: no export-compliance questions on every upload)
   - UIRequiredDeviceCapabilities armv7 → arm64  (the template still says armv7; App Store Connect wants 64-bit)
   - iPhone only, portrait  (no iPad screenshots / layouts to maintain)
-  - the name under the icon: short, so it is not cut ("Записване"); the store name stays "Студио записване"
+  - the name under the icon: "XB-Studio" (short enough not to be cut)
 """
 import plistlib
 import sys
@@ -22,7 +22,7 @@ info["ITSAppUsesNonExemptEncryption"] = False
 info["UIRequiredDeviceCapabilities"] = ["arm64"]
 info["UISupportedInterfaceOrientations"] = ["UIInterfaceOrientationPortrait"]
 info.pop("UISupportedInterfaceOrientations~ipad", None)
-info["CFBundleDisplayName"] = "Записване"
+info["CFBundleDisplayName"] = "XB-Studio"
 
 with plist_path.open("wb") as f:
     plistlib.dump(info, f)

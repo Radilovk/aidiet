@@ -1,4 +1,4 @@
-# Приложение „Студио записване“ (iPhone и Android)
+# Приложение „XB-Studio“ (iPhone и Android)
 
 Една обвивка за **всички студиа**. Показва живата страница за записване (`https://biocode.website/studio.html`), затова
 новите функции стигат до клиентите **без нова версия от магазина**. Клиентът избира студио (или въвежда неговия код),
@@ -16,12 +16,12 @@
 статус „Trader“ по DSA за ЕС): **`APP-STORE-SUBMISSION.md`, раздел 1**.
 
 ### 2. Име и Bundle ID — реши ги ПРЕДИ следващата стъпка (Bundle ID не се сменя)
-Сега са: **Bundle ID `com.biocode.studios`**, име **„Студио записване“** (`studio-app/capacitor.config.json`:
+Сега са: **Bundle ID `com.biocode.studios`**, име **„XB-Studio“** (`studio-app/capacitor.config.json`:
 `appId`, `appName`). Ако искаш други — смени ги там сега.
 
 ### 3. App Store Connect
-1. developer.apple.com → Certificates, Identifiers & Profiles → **Identifiers → +** → App IDs → App →
-   Description „Studio“, Bundle ID (Explicit) `com.biocode.studios`. Без никакви Capabilities (не са нужни).
+1. **Bundle ID** — регистрира се автоматично: GitHub → Actions → „Студио приложение — Apple (App Store Connect)“ →
+   действие `bundle-id` (след като си сложил секретите от точка 4). Ръчният начин: developer.apple.com → Identifiers → +.
 2. https://appstoreconnect.apple.com → My Apps → **+ New App**: платформа iOS, име, език **Bulgarian**,
    Bundle ID — избираш регистрирания, SKU — каквото и да е (напр. `studio-1`).
 3. Users and Access → **Integrations → App Store Connect API → +**: име „GitHub“, роля **Admin**. Изтегли
@@ -69,7 +69,24 @@ Apple, отговори за App Store Connect, демо студио, текс�
   офлайн екранът.
 - `scripts/patch-ios.py`, `scripts/patch-android.py` — малките поправки върху генерирания проект (идемпотентни);
   `scripts/add-privacy-manifest.rb` + `ios-extra/PrivacyInfo.xcprivacy` — манифестът за поверителност на Apple.
-- `assets/icon.png`, `assets/splash.png` — **временна** икона и старт екран; замени ги с твои (икона 1024×1024 без
-  прозрачност, старт 2732×2732) и пусни процеса пак.
+- `assets/icon.png`, `assets/splash.png` — иконата е логото от PWA (`xbody-icon-512.png`), качено на 1024×1024 върху бял
+  фон без прозрачност (изискване на Apple). За по-остра икона дай оригинал 1024×1024 и го сложи в `assets/icon.png`.
 - Проектите `ios/` и `android/` не се пазят в репото — правят се наново при всяко пускане.
 - Локално (на Mac): `cd studio-app && npm ci && npx cap add ios && python3 scripts/patch-ios.py && npx cap open ios`.
+
+## Промени и обновления — свободно
+- **Страницата** (`studio.html`, бекенд на студиата): промяна в `main` → стига до всички клиенти веднага, без нова
+  версия от Apple. Преди това я проверява `studio-ui-check.yml` (клиент, admin и приложение в истински браузър).
+  Не променяй предназначението на приложението (записване на часове в студиа) — Apple го следи.
+- **Обвивката** (икона, име, плъгини): пуска се наново процесът „iOS (TestFlight)“, после „нова версия“ в App Store
+  Connect (ревю 1–2 дни). Нужно е рядко.
+- Докато версията е в ревю, не публикувай големи промени по страницата.
+
+## Такси и правни въпроси (накратко)
+- **Apple:** само $99 на година. Безплатно приложение; за услуги, ползвани на място и платени извън приложението
+  (Guideline 3.1.3(e)), Apple **не взема комисионна**.
+- **Плащания:** всяко студио е със **свой Stripe акаунт** — парите отиват директно при студиото, платформата не ги
+  държи и не е платежен посредник. Такси на Stripe плаща студиото само когато реално тегли (напр. неявяване).
+  Приложението само записва карта като гаранция (SetupIntent), без таксуване при записване.
+- **Данни (GDPR):** студиата са администратор на данните на клиентите си, платформата е обработващ. Добре е да има
+  кратко писмено споразумение със студио (Data Processing Agreement) — не е правен съвет; питай юрист за точния текст.
