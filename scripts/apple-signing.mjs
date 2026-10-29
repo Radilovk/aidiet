@@ -6,7 +6,9 @@
  * Run on the macOS runner of studio-app-ios.yml:
  *
  *   node scripts/apple-signing.mjs prepare    certificate + profile; writes PROFILE_NAME, PROFILE_UUID to $GITHUB_ENV
- *   node scripts/apple-signing.mjs cleanup    deletes the certificate and the profile from the account (always run)
+ *   node scripts/apple-signing.mjs cleanup    deletes the certificate and the profile of a run that did not upload; after a
+ *                                             successful upload (KEEP_CERT=1) they stay — Apple re-checks the signature
+ *                                             minutes later and a revoked certificate makes the build Invalid (ITMS-90035)
  *
  * Env: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8, APPLE_TEAM_ID. The key needs the Admin role.
  */
@@ -53,6 +55,16 @@ const [action] = process.argv.slice(2);
 try {
   if (action === 'prepare') {
     const dir = join(TMP, 'signing'); mkdirSync(dir, { recursive: true });
+    // 0. certificates/profiles kept by earlier successful uploads are no longer needed (those builds are processed)
+    const profs = await api('GET', '/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=100');
+    for (const pr of profs.data.filter((x) => /^XB-Studio AppStore /.test(x.attributes.name))) {
+      let certs = [];
+      try { certs = (await api('GET', `/v1/profiles/${pr.id}/certificates`)).data; } catch (_) { /* profile without certificates */ }
+      try { await api('DELETE', `/v1/profiles/${pr.id}`); } catch (e) { console.log(`! профил ${pr.id}: ${e.message.slice(0, 150)}`); }
+      for (const c of certs) { try { await api('DELETE', `/v1/certificates/${c.id}`); console.log(`✓ изтрит стар сертификат ${c.id}`); } catch (e) { console.log(`! ${c.id}: ${e.message.slice(0, 150)}`); } }
+    }
+    const left = (await api('GET', '/v1/certificates?filter[certificateType]=DISTRIBUTION&limit=50')).data.length;
+    if (left >= 3) fail(`В акаунта вече има ${left} дистрибуционни сертификата (границата е 3). Виж ги с Apple → certs и изтрий излишните.`);
     // 1. a key and a signing request (the key never leaves this runner)
     run('openssl', ['req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', join(dir, 'key.pem'), '-out', join(dir, 'req.csr'),
       '-subj', '/CN=XB-Studio CI/O=XB-Studio/C=BG']);
@@ -90,6 +102,7 @@ try {
     console.log(`✓ сертификат ${cert.data.attributes.displayName || cert.data.id} и профил „${name}“ (${uuid})`);
   } else if (action === 'cleanup') {
     if (!existsSync(STATE)) { console.log('Няма какво да се чисти.'); process.exit(0); }
+    if (process.env.KEEP_CERT) { console.log('Качването мина: сертификатът и профилът остават, докато Apple обработи build-а; следващото пускане ги чисти.'); process.exit(0); }
     const st = JSON.parse(readFileSync(STATE, 'utf8'));
     for (const [what, path] of [['профил', st.profileId && `/v1/profiles/${st.profileId}`], ['сертификат', st.certId && `/v1/certificates/${st.certId}`]].filter((x) => x[1])) {
       try { await api('DELETE', path); console.log(`✓ изтрит ${what}`); } catch (e) { console.log(`! ${what} не се изтри: ${e.message}`); }
