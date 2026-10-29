@@ -128,6 +128,14 @@ await step('admin: settings — rename, change hour length, save', async () => {
   const st = JSON.parse(db.prepare("SELECT settings FROM studios WHERE id='burgas'").get().settings);
   if (st.slot.minutes !== 20 || st.brand.name !== 'XBODY Бургас Център') throw new Error('not saved ' + JSON.stringify(st.slot));
 });
+await step('admin: the invitation (code, link, message) for the clients', async () => {
+  await page.click('summary:has-text("Покана на клиенти")');
+  const link = await page.textContent('#inv-link');
+  if (!link.includes('studio.html?s=burgas')) throw new Error('link: ' + link);
+  const msg = await page.inputValue('#inv-msg');
+  if (!msg.includes('код: burgas') || !msg.includes('Център')) throw new Error('message: ' + msg);   // the studio's current name
+  await page.screenshot({ path: `${OUT}/5b-invite.png` });
+});
 await step('admin: close a day', async () => {
   await page.click('[data-tab=today]');
   await page.click('[data-a=close-day]');

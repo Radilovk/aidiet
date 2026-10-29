@@ -22,7 +22,7 @@ export const DEFAULT_SETTINGS = {
   guarantee: 'card_or_code',                    // card | card_or_code | none (a card needs the studio's Stripe)
   google: { calendarId: '' },
   viber: false,                                 // Viber messages (only with a PC running viber-sender/); the app's own reminders need nothing
-  listed: true,                                 // shown in the app's list of studios
+  listed: false,                                // shown in the app's list of studios (off: clients find the studio only with its code / link)
   notice: { id: 0, text: '', until: 0 },        // a message from the studio to its clients (shown in the app; id changes = a new one)
 };
 
@@ -80,7 +80,7 @@ export function normalizeSettings(raw) {
     guarantee: ['card', 'card_or_code', 'none'].includes(s.guarantee) ? s.guarantee : d.guarantee,
     google: { calendarId: str(s.google && s.google.calendarId, 200) },
     viber: s.viber === true,
-    listed: s.listed !== false,
+    listed: s.listed === true,
     notice: {
       id: int(s.notice && s.notice.id, 0, 4e9, 0),
       text: str(s.notice && s.notice.text, 300),
