@@ -132,10 +132,14 @@ try {
         'profanityOrCrudeHumor', 'sexualContentGraphicAndNudity', 'sexualContentOrNudity', 'violenceCartoonOrFantasy', 'violenceRealistic', 'violenceRealisticProlongedGraphicOrSadistic'];
       const no = ['gambling', 'unrestrictedWebAccess', 'lootBox', 'messagingAndChat', 'parentalControls', 'ageAssurance', 'advertising', 'userGeneratedContent', 'healthOrWellnessTopics'];
       const attributes = {}; none.forEach((k) => { attributes[k] = 'NONE'; }); no.forEach((k) => { attributes[k] = false; });
-      try { await api('PATCH', `/v1/ageRatingDeclarations/${ar.id}`, { data: { type: 'ageRatingDeclarations', id: ar.id, attributes } }); }
-      catch (e) {   // a field the API does not know (yet/any more): keep only the long-standing ones
-        for (const k of ['ageAssurance', 'advertising', 'userGeneratedContent', 'healthOrWellnessTopics']) delete attributes[k];
-        await api('PATCH', `/v1/ageRatingDeclarations/${ar.id}`, { data: { type: 'ageRatingDeclarations', id: ar.id, attributes } });
+      // Apple adds required questions over time: whatever it reports as missing is answered "no"
+      for (let i = 0; i < 6; i++) {
+        try { await api('PATCH', `/v1/ageRatingDeclarations/${ar.id}`, { data: { type: 'ageRatingDeclarations', id: ar.id, attributes } }); return; }
+        catch (e) {
+          const missing = [...String(e.message).matchAll(/attribute '(\w+)'/g)].map((m) => m[1]).filter((k) => !(k in attributes));
+          if (!missing.length) throw e;
+          missing.forEach((k) => { attributes[k] = false; });
+        }
       }
     });
     await step('цена: безплатно', async () => {
