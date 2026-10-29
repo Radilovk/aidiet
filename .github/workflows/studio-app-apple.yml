@@ -4,6 +4,7 @@ name: Студио приложение — Apple (App Store Connect)
 #  * check     — работи ли ключът; какви приложения има акаунтът
 #  * bundle-id — регистрира Bundle ID на приложението (трябва преди „New App“ в App Store Connect)
 #  * status    — приложението, версиите и build-овете и в какво състояние са
+#  * metadata  — попълва страницата в магазина (текстове, адреси, категория, рейтинг, цена, бележки, build)
 #  * certs     — сертификатите и профилите в акаунта; delete-cert — изтрива един сертификат (поле id)
 # Секрети: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (виж studio-app/README.md, стъпка 3).
 
@@ -11,10 +12,10 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'check | bundle-id | status | certs | delete-cert'
+        description: 'check | bundle-id | status | certs | metadata | delete-cert'
         required: true
         type: choice
-        options: [check, bundle-id, status, certs, delete-cert]
+        options: [check, bundle-id, status, certs, metadata, delete-cert]
       id:
         description: 'Само за delete-cert: id на сертификата (от действието certs)'
         required: false
