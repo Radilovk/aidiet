@@ -83,24 +83,27 @@ jobs:
           ruby scripts/add-privacy-manifest.rb
           npx cap sync ios
 
-      - name: Ключ за App Store Connect
+      - name: Ключ за App Store Connect (за качването)
         run: |
           mkdir -p "$HOME/private_keys"
           printf '%s' "$APPSTORE_KEY_P8" > "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
           chmod 600 "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
           echo "KEY_PATH=$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8" >> "$GITHUB_ENV"
 
-      - name: Компилиране и подписване (Xcode сам прави сертификата и профила)
+      # Подписването е без регистрирани устройства (автоматичното иска такова): сертификат и профил за магазина се
+      # правят през API само за това пускане и се изтриват в края; частният ключ не се пази никъде.
+      - name: Сертификат и профил за App Store (през API)
+        working-directory: .
+        run: |
+          node scripts/apple-signing.mjs prepare
+          cd studio-app && ruby scripts/set-manual-signing.rb
+
+      - name: Компилиране и подписване
         run: |
           xcodebuild archive \
             -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Studio.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$KEY_PATH" \
-            -authenticationKeyID "$APPSTORE_KEY_ID" \
-            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
             MARKETING_VERSION="${{ inputs.version }}" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             TARGETED_DEVICE_FAMILY=1
 
@@ -122,6 +125,7 @@ jobs:
       - name: Качване в App Store Connect (TestFlight)
         if: ${{ inputs.upload }}
         run: |
+          BUNDLE_ID=$(node -p "require('./capacitor.config.json').appId")
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -129,7 +133,9 @@ jobs:
             <key>method</key><string>app-store-connect</string>
             <key>destination</key><string>upload</string>
             <key>teamID</key><string>${APPLE_TEAM_ID}</string>
-            <key>signingStyle</key><string>automatic</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key><dict><key>${BUNDLE_ID}</key><string>${PROFILE_NAME}</string></dict>
             <key>uploadSymbols</key><true/>
           </dict></plist>
           PLIST
@@ -137,7 +143,6 @@ jobs:
             -archivePath "$RUNNER_TEMP/Studio.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath "$RUNNER_TEMP/export" \
-            -allowProvisioningUpdates \
             -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "$APPSTORE_KEY_ID" \
             -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
@@ -145,3 +150,8 @@ jobs:
             echo "### Качено в App Store Connect ✓"
             echo "Версия ${{ inputs.version }} (build ${{ github.run_number }}). След 10–30 минути обработка се вижда в TestFlight."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Изтриване на сертификата и профила от акаунта
+        if: ${{ always() }}
+        working-directory: .
+        run: node scripts/apple-signing.mjs cleanup
