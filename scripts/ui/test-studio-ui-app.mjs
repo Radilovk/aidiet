@@ -158,6 +158,34 @@ await step('no hidden admin in the app: 7 taps on the logo do nothing', async ()
   await page.waitForTimeout(400);
   if (await page.locator('.pin input').count()) throw new Error('the admin code form opened in the app');
 });
+await step('profile button bottom right: menu → studio (map link, hours) → back → my data → back; sits above the booking bar', async () => {
+  await page.reload();
+  await page.waitForSelector('.slot');
+  await page.waitForSelector('#fab:not(.hidden)');
+  await page.screenshot({ path: `${OUT}/app-4-fab.png` });
+  await page.click('#fab');
+  await page.waitForSelector('.menu');
+  await page.screenshot({ path: `${OUT}/app-5-menu.png` });
+  await page.click('[data-p=studio]');
+  await page.waitForSelector('.hrs');
+  if (!(await page.locator('.sheet a[href*="maps"]').count())) throw new Error('no navigation link');
+  eq(await page.locator('.hrs tr').count(), 7, 'hours rows');
+  await page.screenshot({ path: `${OUT}/app-6-studio.png` });
+  await page.click('[data-back]');
+  await page.waitForSelector('.menu');
+  await page.click('[data-p=me]');
+  await page.waitForSelector('text=Моите данни');
+  await page.screenshot({ path: `${OUT}/app-7-mydata.png` });
+  await page.click('[data-back]');
+  await page.waitForSelector('.menu');
+  await page.click('.sheet [data-close]');
+  await page.click('.slot:not(.mine)');
+  await page.waitForSelector('#bar:not(.hidden)');
+  await page.waitForTimeout(400);
+  const fab = await page.locator('#fab').boundingBox(), bar = await page.locator('#bar').boundingBox();
+  if (fab.y + fab.height > bar.y) throw new Error('the profile button hides behind the booking bar: fab ' + fab.y + '+' + fab.height + ' bar ' + bar.y + '+' + bar.height);
+  await page.screenshot({ path: `${OUT}/app-8-fab-bar.png` });
+});
 await step('delete my data: server clean, reminders gone, the phone forgets', async () => {
   await page.click('#forget');
   await page.click('.sheet [data-go=yes]');
