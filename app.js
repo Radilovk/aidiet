@@ -1035,6 +1035,7 @@
         }
         if (data.type === 'NUTRIPLAN_SWITCH_TAB') {
             if (data.tab) switchTab(data.tab, true);
+            if (data.tab === 'profile' && data.open) openProfileSection(data.open);
             return;
         }
         if (data.type === 'NUTRIPLAN_GAMEDATA_UPDATED') {
@@ -1171,6 +1172,30 @@
             if (buttons[i].getAttribute('data-tab-target') === tab) return i;
         }
         return -1;
+    }
+
+    /**
+     * Отваря секция в профила (изследвания, устройства, документи) — за бутоните
+     * „Направи анализа по-точен“ в здравния анализ. Секцията се показва, щом
+     * профилът зареди данните си (до ~6 с).
+     */
+    function openProfileSection(id) {
+        if (!/^(labsSection|devicesSection|docsSection)$/.test(String(id || ''))) return;
+        var frame = ensureFrameLoaded('profile');
+        var tries = 0;
+        (function attempt() {
+            try {
+                var w = frame && frame.contentWindow;
+                var section = w && w.document && w.document.getElementById(id);
+                if (w && typeof w.openCardModule === 'function' && section && !section.hidden) {
+                    w.openCardModule(id);
+                    // Картонът над секцията се дорисува след зареждане — превъртането се повтаря, когато застане.
+                    setTimeout(function () { try { section.scrollIntoView({ block: 'start' }); } catch (_) {} }, 900);
+                    return;
+                }
+            } catch (_) {}
+            if (++tries < 30) setTimeout(attempt, 200);
+        })();
     }
 
     function switchTab(tab, updateUrl) {
@@ -1329,6 +1354,7 @@
         });
 
         switchTab(initialTab, true);
+        if (initialTab === 'profile' && params.get('open')) openProfileSection(params.get('open'));
         // Стартовият екран се маха, щом активният таб е зареден (или до секунда и половина).
         var bootFrame = document.querySelector('[data-tab-view="' + state.activeTab + '"]');
         var bootTimer = setTimeout(endBoot, 1500);
