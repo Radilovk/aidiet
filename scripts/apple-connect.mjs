@@ -44,7 +44,8 @@ async function api(method, path, body) {
   let data = {};
   try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { raw: text.slice(0, 300) }; }
   if (!resp.ok) {
-    const why = (data.errors || []).map((e) => `${e.code || ''} ${e.title || ''}: ${e.detail || ''}`.trim()).join(' | ') || data.raw || '';
+    const assoc = (e) => Object.values((e.meta && e.meta.associatedErrors) || {}).flat().map((a) => `${a.code || ''}: ${a.detail || a.title || ''}`).join(' ; ');
+    const why = (data.errors || []).map((e) => `${e.code || ''} ${e.title || ''}: ${e.detail || ''}${assoc(e) ? ` [${assoc(e)}]` : ''}`.trim()).join(' | ') || data.raw || '';
     const err = new Error(`${method} ${path} → ${resp.status} ${why}`);
     err.status = resp.status;
     throw err;
@@ -285,5 +286,5 @@ try {
     fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | delete-cert');
   }
 } catch (e) {
-  fail(String(e.message).slice(0, 600));
+  fail(String(e.message).slice(0, 1800));
 }
