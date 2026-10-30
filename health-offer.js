@@ -157,7 +157,7 @@
         render({
             icon: 'fa-list-check', title: 'Още една стъпка',
             text: app.name + ' още не споделя данни. В ' + (app.setupApp || app.name) + ': ' + app.hcSetup,
-            note: 'После се върнете тук — данните се изтеглят сами.',
+            note: 'После се върни тук — данните се изтеглят сами.',
             primary: 'Отвори ' + (app.setupApp || app.name), primaryIcon: 'fa-arrow-up-right-from-square',
             onPrimary: function () {
                 global.NutriPlanHealth.openApp(app.pkg).catch(function () {});

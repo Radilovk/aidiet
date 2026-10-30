@@ -50,7 +50,7 @@ const raw = {
   mealNotes: [{ dishId: dish, note: 'Сгответе двойно — утре е обяд за работа.' }, { dishId: 'няма_такова', note: 'изпада' }],
 };
 const voice = normalizePlanVoice(raw, { dishIds: new Set(ids), blockedTerms: ['Без гъби'] });
-ok(voice && voice.tone.address === 'Вие', 'обръщението се запазва');
+ok(voice && voice.tone.address === 'ти', 'обръщението е винаги „ти“ — и когато AI върне „Вие“');
 ok(voice.psychology.length === 3 && !voice.psychology.some(s => /\d/.test(s)), 'насоки с грамове или дози се отхвърлят');
 ok(Object.keys(voice.mealNotes).length === 1 && voice.mealNotes[dish], 'бележка само за ястие от менюто');
 ok(normalizePlanVoice({ welcome: 'Обичате ли гъби?' }, { dishIds: [], blockedTerms: ['гъби'] }) === null, 'текст със забранена храна не минава');
@@ -59,7 +59,7 @@ ok(normalizePlanVoice({ welcome: 'Здравейте <script>' }, { dishIds: [] 
 
 // 4. Прилагането.
 applyPlanVoice(plan, voice);
-ok(plan.strategy.welcomeMessage === raw.welcome && plan.strategy.addressForm === 'Вие', 'писмото и обръщението влизат в стратегията');
+ok(plan.strategy.welcomeMessage === raw.welcome && plan.strategy.addressForm === 'ти', 'писмото и обръщението влизат в стратегията');
 ok(plan.psychology.length === 3 && plan.personalHabits.length === 3, 'насоките и навиците влизат в плана');
 ok(Object.values(engine.weekPlan).flatMap(d => d.meals).some(m => m.personalNote), 'бележката стига до храненето');
 const kcalBefore = JSON.stringify(Object.values(engine.weekPlan).flatMap(d => d.meals.map(m => [m.calories, m.description])));

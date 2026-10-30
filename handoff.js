@@ -395,7 +395,7 @@ export function handoffPreview(h) {
       lines: [
         a.weight_kg ? `Тегло: ${a.weight_kg} кг` : '',
         h.protocol?.products?.length ? `Препоръчан протокол: ${h.protocol.products.map(p => p.name).slice(0, 4).join(', ')}` : '',
-        'Нов профил: отговорите попълват въпросника (можете да ги промените). Съществуващ профил: влизат в него — за специалиста и асистента.',
+        'Нов профил: отговорите попълват въпросника (можеш да ги промениш). Съществуващ профил: влизат в него — за специалиста и асистента.',
       ].filter(Boolean),
       at: h.at,
     };
@@ -408,7 +408,7 @@ export function handoffPreview(h) {
       a.constitution ? `Конституция: ${a.constitution}` : '',
       a.systems.filter(s => s.priority).length ? `Фокус: ${a.systems.filter(s => s.priority).map(s => s.label || s.key).join(', ')}` : '',
       a.drivers.length ? `Хранителни насоки: ${a.drivers.length}` : '',
-      'Отговорите от въпросника попълват въпросника на NutriPlan — можете да ги промените.',
+      'Отговорите от въпросника попълват въпросника на NutriPlan — можеш да ги промениш.',
     ].filter(Boolean),
     at: h.at,
   };

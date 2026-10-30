@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Вашите хранителни насоки и макроелементи в NutriPlan.">
+    <meta name="description" content="Твоите хранителни насоки и макроелементи в NutriPlan.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -1222,7 +1222,7 @@
             <div class="macros-viz-header">
                 <div class="macros-viz-title">
                     <i class="fas fa-chart-pie"></i>
-                    <span>Вашата Хранителна Цел</span>
+                    <span>Твоята Хранителна Цел</span>
                 </div>
                 <div class="macros-viz-subtitle">Препоръчителен дневен прием</div>
             </div>
@@ -1276,7 +1276,7 @@
                 <div class="acc-content">
                     <div class="acc-content-inner">
                         <ul class="good-list" id="recommendedFoodsList">
-                            <li>Препоръките ще се появят тук, щом планът ви е готов.</li>
+                            <li>Препоръките ще се появят тук, щом планът ти е готов.</li>
                         </ul>
                         <div id="foodGuideCore"></div>
                     </div>
@@ -1291,7 +1291,7 @@
                 <div class="acc-content">
                     <div class="acc-content-inner">
                         <ul class="bad-list" id="forbiddenFoodsList">
-                            <li>Списъкът ще се появи тук, щом планът ви е готов.</li>
+                            <li>Списъкът ще се появи тук, щом планът ти е готов.</li>
                         </ul>
                         <div id="foodGuideLimit"></div>
                     </div>
@@ -1315,7 +1315,7 @@
                 </div>
                 <div class="acc-content">
                     <div class="acc-content-inner" id="psychologyContent">
-                        <p><strong>Не се обвинявайте:</strong> Ако "съгрешите" с едно хранене, просто продължете по план следващия път.</p>
+                        <p><strong>Не се обвинявай:</strong> Ако "съгрешиш" с едно хранене, просто продължи по план следващия път.</p>
                     </div>
                 </div>
             </div>
@@ -1350,7 +1350,7 @@
             <div class="plan-justification-header" onclick="openStrategyModal()">
                 <div class="plan-justification-title">
                     <i class="fas fa-award"></i>
-                    <span>Вашата хранителна стратегия</span>
+                    <span>Твоята хранителна стратегия</span>
                 </div>
                 <i class="fas fa-chevron-right plan-justification-toggle"></i>
             </div>
@@ -1366,7 +1366,7 @@
                 <div class="strategy-modal-header">
                     <div class="strategy-modal-title">
                         <i class="fas fa-award"></i>
-                        <span>Вашата хранителна стратегия</span>
+                        <span>Твоята хранителна стратегия</span>
                     </div>
                     <button class="strategy-modal-close" onclick="closeStrategyModal()">
                         <i class="fas fa-times"></i>
@@ -1422,7 +1422,7 @@
         <div id="emptyState" class="empty-state" style="display: none;">
             <i class="fas fa-compass"></i>
             <h2>Няма налични насоки</h2>
-            <p>Създайте вашия персонализиран хранителен план, за да видите вашите макро цели и хранителна стратегия.</p>
+            <p>Създай твоя персонализиран хранителен план, за да видиш твоите макро цели и хранителна стратегия.</p>
             <a href="questionnaire2.html" class="btn-primary" target="_top">
                 <i class="fas fa-play"></i> Създай план
             </a>
@@ -1557,8 +1557,8 @@
         }
 
         const DEFAULT_MESSAGES = {
-            psychology: 'Консултирайте се с диетолог за допълнителни съвети',
-            supplements: 'Консултирайте се с лекар преди приемане на нови добавки',
+            psychology: 'Консултирай се с диетолог за допълнителни съвети',
+            supplements: 'Консултирай се с лекар преди приемане на нови добавки',
             psychologyFallbackLabel: 'Съвет',
             supplementsFallbackLabel: 'Добавка'
         };
@@ -1794,7 +1794,7 @@
                 // Личните навици (от гласа на плана) носят по-точно заглавие от общите „хакове“.
                 const hacksTitle = document.getElementById('hacksTitle');
                 if (hacksTitle && Array.isArray(dietPlan.personalHabits) && dietPlan.personalHabits.length) {
-                    hacksTitle.textContent = dietPlan.strategy && dietPlan.strategy.addressForm === 'Вие' ? 'За Вашето ежедневие' : 'За твоето ежедневие';
+                    hacksTitle.textContent = 'За твоето ежедневие';
                 }
 
                 const hacksContent = document.getElementById('hacksContent');
@@ -2069,7 +2069,7 @@
                     note.id = 'npPendingReplaceNote';
                     note.setAttribute('role', 'status');
                     note.style.cssText = 'margin:12px 16px;padding:12px 14px;border-radius:12px;background:#FEF3C7;color:#78350F;font-size:.9rem;line-height:1.45';
-                    note.textContent = 'Новият план по промените ви очаква одобрение от специалист. Насоките по-долу са за сегашния ви план.';
+                    note.textContent = 'Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.';
                     var main = document.querySelector('main, .container, body');
                     if (main) main.insertBefore(note, main.firstChild);
                 });
@@ -2111,7 +2111,7 @@
                         <div style="position:absolute;inset:0;background:${isDark ? 'rgba(10,26,26,0.55)' : 'rgba(240,253,250,0.55)'};border-radius:inherit;" aria-hidden="true" id="guidelinesBannerOverlay"></div>
                         <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:180px;text-align:center;padding:20px;">
                             <i class="fas fa-compass" style="font-size:2.5rem;color:var(--primary-red);margin-bottom:12px;"></i>
-                            <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-dark);margin:0;">Вашите Хранителни Насоки</h2>
+                            <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-dark);margin:0;">Твоите Хранителни Насоки</h2>
                             <p style="color:var(--text-gray);margin-top:6px;font-size:0.9rem;">Препоръчителни и забранени храни, психология и съвети</p>
                         </div>`;
                     new MutationObserver(() => {

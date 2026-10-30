@@ -73,7 +73,7 @@ const GameNotifier = {
     COPY: {
         morning: {
             title: 'NutriPlan',
-            body:  'Спахте ли добре тази нощ?',
+            body:  'Спа ли добре тази нощ?',
             actions: [
                 { id: 'sleep_yes', title: 'Да', value: true },
                 { id: 'sleep_no',  title: 'Не', value: false }
@@ -81,7 +81,7 @@ const GameNotifier = {
         },
         eveningActivity: {
             title: 'NutriPlan',
-            body:  'Колко се движихте днес?',
+            body:  'Колко се движи днес?',
             actions: [
                 { id: 'activity_1', title: 'Малко', value: 1 },
                 { id: 'activity_2', title: 'Умерено', value: 2 },
@@ -90,7 +90,7 @@ const GameNotifier = {
         },
         eveningBalance: {
             title: 'NutriPlan',
-            body:  'Как се чувствахте днес?',
+            body:  'Как се чувстваше днес?',
             actions: [
                 { id: 'balance_1', title: 'Напрегнато', value: 1 },
                 { id: 'balance_2', title: 'Спокойно', value: 2 },
@@ -99,7 +99,7 @@ const GameNotifier = {
         },
         eveningWater: {
             title: 'NutriPlan',
-            body:  'Пихте ли достатъчно вода днес?',
+            body:  'Пи ли достатъчно вода днес?',
             actions: [
                 { id: 'water_no',  title: 'Не', value: false },
                 { id: 'water_yes', title: 'Да', value: true }
@@ -672,14 +672,14 @@ const GameNotifier = {
         const map = {
             sleep_yes:    { title: 'Супер! ✨', message: 'Добър старт на деня!', confetti: 28 },
             sleep_no:     { title: 'Записано', message: 'Благодарим за честността.', confetti: 12 },
-            activity_1:   { title: 'Записано', message: 'Спокоен ден — важно е да се отдъхнете.', confetti: 14 },
+            activity_1:   { title: 'Записано', message: 'Спокоен ден — важно е да се отдъхнеш.', confetti: 14 },
             activity_2:   { title: 'Браво! 💪', message: 'Умерен ритъм — точно в целта.', confetti: 22 },
             activity_3:   { title: 'Страхотно! 🔥', message: 'Висока активност — блестящо!', confetti: 32 },
             balance_1:    { title: 'Записано', message: 'Утре е нов ден — полека.', confetti: 10 },
             balance_2:    { title: 'Добре! 🙂', message: 'Спокойствието си струва.', confetti: 18 },
             balance_3:    { title: 'Чудесно! ✨', message: 'Позитивният заряд помага.', confetti: 30 },
-            water_yes:    { title: 'Браво! 💧', message: 'Пиете достатъчно вода — чудесно.', confetti: 26 },
-            water_no:     { title: 'Записано', message: 'Утре опитайте да пиете малко повече.', confetti: 10 },
+            water_yes:    { title: 'Браво! 💧', message: 'Пиеш достатъчно вода — чудесно.', confetti: 26 },
+            water_no:     { title: 'Записано', message: 'Утре опитай да пиеш малко повече.', confetti: 10 },
             train_am:     { title: 'Браво! 💪', message: 'Тренировката е отчетена в деня.', confetti: 30 },
             train_pm:     { title: 'Браво! 💪', message: 'Тренировката е отчетена в деня.', confetti: 30 },
             train_no:     { title: 'Записано', message: 'Активността за деня е по крачките.', confetti: 12 },
@@ -825,7 +825,7 @@ const GameNotifier = {
         const recordKey = this._dateKeyForTimestamp(fireAtTs);
         const cfg = this._getConfig();
         const title = cfg.eveningTitle || 'Вечерна проверка';
-        const body = cfg.eveningBody || 'Как мина денят Ви?';
+        const body = cfg.eveningBody || 'Как мина денят ти?';
         const url = this._buildQuickAnswerUrl('evening_check', { date: recordKey });
 
         if (this._capacitor) {
@@ -1345,9 +1345,9 @@ const GameNotifier = {
     /** Старите текстове от запазени настройки → новите (същите стойности, по-човешки думи). */
     LEGACY_COPY: {
         'AI Асистент': 'NutriPlan',
-        'Ниво на активност?': 'Колко се движихте днес?',
-        'Емоционален баланс?': 'Как се чувствахте днес?',
-        'Изпихте ли поне 2 л вода?': 'Пихте ли достатъчно вода днес?',
+        'Ниво на активност?': 'Колко се движи днес?',
+        'Емоционален баланс?': 'Как се чувстваше днес?',
+        'Изпи ли поне 2 л вода?': 'Пи ли достатъчно вода днес?',
         'Ниска': 'Малко', 'Умерена': 'Умерено', 'Висока': 'Много',
         'Напрегнат': 'Напрегнато', 'Спокоен': 'Спокойно', 'Позитивен': 'Позитивно'
     },
@@ -1832,7 +1832,7 @@ const GameNotifier = {
     _mealQuestion(label) {
         const P = typeof window !== 'undefined' && window.NutriPlanPersona;
         if (P) return P.mealQuestion(this._persona(), label);
-        return { title: 'Изядохте ли ' + label + '?', yes: 'Да, изядох', no: 'Пропуснах' };
+        return { title: 'Изяде ли ' + label + '?', yes: 'Да, изядох', no: 'Пропуснах' };
     },
 
     /** Едно напомняне на ден в рисковия час (само при осезаемо емоционално хранене). */
@@ -1939,7 +1939,7 @@ const GameNotifier = {
                     id: this.MEAL_ID_BASE + day * 10 + idx,
                     channelId: this.CHANNEL_ID,
                     title: q.title,
-                    body: meal.name ? meal.name + ' — отбележете с едно докосване.' : 'Отбележете с едно докосване.',
+                    body: meal.name ? meal.name + ' — отбележи с едно докосване.' : 'Отбележи с едно докосване.',
                     actionTypeId: this.MEAL_ACTION_TYPE_ID,
                     schedule: { at: new Date(ts), allowWhileIdle: true },
                     extra: {
@@ -2101,7 +2101,7 @@ const GameNotifier = {
     },
 
     TRAINING_COPY: {
-        body: 'Тренирахте ли днес?',
+        body: 'Тренира ли днес?',
         actions: [
             { id: 'train_am', title: 'Да, до обяд', value: 'am' },
             { id: 'train_pm', title: 'Да, следобед', value: 'pm' },

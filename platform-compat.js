@@ -119,22 +119,22 @@
         oem = oem || getAndroidOem();
         var app = 'NutriPlan';
         var common = [
-            'Изключете ограничения за батерията за ' + app + ' (Unrestricted / Без ограничения).',
-            'Разрешете автостарт и фонова работа, ако системата пита.'
+            'Изключи ограничения за батерията за ' + app + ' (Unrestricted / Без ограничения).',
+            'Разреши автостарт и фонова работа, ако системата пита.'
         ];
         var map = {
             huawei: [
-                'Настройки → Батерия → Стартиране на приложения → ' + app + ' → Управление ръчно → включете автостарт, вторичен старт и работа на фон.',
+                'Настройки → Батерия → Стартиране на приложения → ' + app + ' → Управление ръчно → включи автостарт, вторичен старт и работа на фон.',
                 'Настройки → Приложения → ' + app + ' → Батерия → Без ограничения.'
             ],
             xiaomi: [
                 'Настройки → Приложения → ' + app + ' → Автостарт → Вкл.',
                 'Настройки → Батерия → Без ограничения за ' + app + '.',
-                'Заключете приложението в списъка с последни (ако MIUI го спира).'
+                'Заключи приложението в списъка с последни (ако MIUI го спира).'
             ],
             samsung: [
                 'Настройки → Приложения → ' + app + ' → Батерия → Без ограничения.',
-                'Изключете „Поставяне в сън“ / Sleeping apps за ' + app + '.'
+                'Изключи „Поставяне в сън“ / Sleeping apps за ' + app + '.'
             ],
             oppo: [
                 'Настройки → Батерия → Управление на фон → ' + app + ' → Позволи.',
@@ -164,23 +164,23 @@
         if (isApk()) {
             recommendations = getBatteryOptimizationHints(oem);
             if (delivery !== 'apk-native') {
-                recommendations.unshift('APK: активирайте известията от системния диалог при първо пускане.');
+                recommendations.unshift('APK: активирай известията от системния диалог при първо пускане.');
             }
         } else if (delivery === 'pwa-sw') {
             if (isIOS() && !isInstalledPwa()) {
-                recommendations.push('iOS: Safari → Сподели → „Добави на началния екран“, после отворете от иконата.');
+                recommendations.push('iOS: Safari → Сподели → „Добави на началния екран“, после отвори от иконата.');
             }
             if (isAndroid()) {
                 recommendations.push('Android: Chrome, Firefox, Edge или Samsung Internet (последна версия).');
                 recommendations = recommendations.concat(getBatteryOptimizationHints(oem).slice(0, 2));
             }
             if (isInAppBrowser()) {
-                recommendations.unshift('Отворете сайта в Chrome/Safari (не във вграден браузър на Facebook/Instagram).');
+                recommendations.unshift('Отвори сайта в Chrome/Safari (не във вграден браузър на Facebook/Instagram).');
             }
         } else if (delivery === 'calendar') {
-            recommendations.push('Абонирайте се за календарни напомняния (.ics) — работи на всички Android/iOS версии.');
+            recommendations.push('Абонирай се за календарни напомняния (.ics) — работи на всички Android/iOS версии.');
             if (isIOS() && !isInstalledPwa()) {
-                recommendations.push('Или инсталирайте PWA от Safari за известия в приложението.');
+                recommendations.push('Или инсталирай PWA от Safari за известия в приложението.');
             }
         }
 

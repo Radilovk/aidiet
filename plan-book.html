@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Вашият персонализиран хранителен план — анализ, стратегия, менюта и насоки.">
+    <meta name="description" content="Твоят персонализиран хранителен план — анализ, стратегия, менюта и насоки.">
     <meta name="color-scheme" content="light">
     <meta name="theme-color" content="#F0FDFA">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1830,14 +1830,14 @@
     <!-- Loading screen -->
     <div class="loading-screen" id="loadingScreen">
         <div class="spinner"></div>
-        <p>Подготовка на вашия план...</p>
+        <p>Подготовка на твоя план...</p>
     </div>
 
     <!-- Error screen -->
     <div class="error-screen" id="errorScreen" style="display:none;">
         <i class="fas fa-exclamation-triangle"></i>
         <h2>Планът не е наличен</h2>
-        <p id="errorMessage">Моля, генерирайте нов план от въпросника.</p>
+        <p id="errorMessage">Моля, генерирай нов план от въпросника.</p>
         <a href="questionnaire2.html" class="btn-back"><i class="fas fa-arrow-left"></i> Към въпросника</a>
     </div>
 
@@ -1847,7 +1847,7 @@
         <!-- ===================== PAGE 1: COVER ===================== -->
         <div class="page cover-page" id="coverPage">
             <div class="cover-logo"><i class="fas fa-leaf"></i></div>
-            <div class="cover-title">Вашият Персонализиран<br>Хранителен План</div>
+            <div class="cover-title">Твоят Персонализиран<br>Хранителен План</div>
             <div class="cover-subtitle">Комплексна 7-дневна програма за здравословен живот — хранене, психология, добавки и практически съвети.</div>
             <div class="cover-user-name" id="coverUserName"></div>
             <div class="cover-date" id="coverDate"></div>
@@ -1863,7 +1863,7 @@
                 <div class="section-icon green"><i class="fas fa-list-ol"></i></div>
                 <div>
                     <div class="section-title">Съдържание</div>
-                    <div class="section-subtitle">Навигация по разделите на вашия план</div>
+                    <div class="section-subtitle">Навигация по разделите на твоя план</div>
                 </div>
             </div>
             <ol class="toc-list" id="tocList">
@@ -1880,7 +1880,7 @@
                 <div class="section-icon blue"><i class="fas fa-stethoscope"></i></div>
                 <div>
                     <div class="section-title">Здравословен Анализ</div>
-                    <div class="section-subtitle">Оценка на вашето текущо здравословно състояние</div>
+                    <div class="section-subtitle">Оценка на твоето текущо здравословно състояние</div>
                 </div>
             </div>
             <div class="health-score-display" id="healthScoreSection" style="display:none;">
@@ -1902,7 +1902,7 @@
                 <div class="section-icon green"><i class="fas fa-bullseye"></i></div>
                 <div>
                     <div class="section-title">Хранителна Стратегия и Цел</div>
-                    <div class="section-subtitle">Обосновка и дългосрочен подход за вашия план</div>
+                    <div class="section-subtitle">Обосновка и дългосрочен подход за твоя план</div>
                 </div>
             </div>
             <div class="strategy-grid" id="strategyGrid">
@@ -1925,7 +1925,7 @@
                 <div class="section-icon green"><i class="fas fa-check-circle"></i></div>
                 <div>
                     <div class="section-title">Препоръчителни Храни</div>
-                    <div class="section-subtitle">Храни, които активно подпомагат вашия хранителен план</div>
+                    <div class="section-subtitle">Храни, които активно подпомагат твоя хранителен план</div>
                 </div>
             </div>
             <ul class="food-list good" id="bookRecommendedList"></ul>
@@ -1975,7 +1975,7 @@
                 <div class="section-icon green"><i class="fas fa-pills"></i></div>
                 <div>
                     <div class="section-title">Хранителни Добавки</div>
-                    <div class="section-subtitle">Допълнителна подкрепа за вашия организъм</div>
+                    <div class="section-subtitle">Допълнителна подкрепа за твоя организъм</div>
                 </div>
             </div>
             <div id="bookSupplementsList"></div>
@@ -2007,7 +2007,7 @@
                 <div class="section-icon blue"><i class="fas fa-user-circle"></i></div>
                 <div>
                     <div class="section-title">Потребителски Данни</div>
-                    <div class="section-subtitle">Информация от вашия здравен въпросник</div>
+                    <div class="section-subtitle">Информация от твоя здравен въпросник</div>
                 </div>
             </div>
             <div class="user-data-grid" id="bookUserDataGrid"></div>
@@ -2208,7 +2208,7 @@
                 var qaStr = localStorage.getItem('questionnaireAnswers');
 
                 if (!planData) {
-                    showError('Няма наличен хранителен план. Моля, попълнете въпросника и генерирайте план.');
+                    showError('Няма наличен хранителен план. Моля, попълни въпросника и генерирай план.');
                     return;
                 }
 
@@ -2220,7 +2220,7 @@
 
                 // Validate
                 if (!dietPlan.weekPlan || typeof dietPlan.weekPlan !== 'object') {
-                    showError('Невалидна структура на плана. Моля, генерирайте нов план.');
+                    showError('Невалидна структура на плана. Моля, генерирай нов план.');
                     return;
                 }
 
@@ -2271,10 +2271,10 @@
             if (!wm || wm.length < 20) {
                 var modifier = (plan.strategy && plan.strategy.dietaryModifier) || 'Балансиран';
                 var goal = userData.goal || qaData.goal || 'здравословен живот';
-                wm = 'Здравейте, ' + name + '!\n\n';
-                wm += 'Този ' + modifier.toLowerCase() + ' план е създаден специално за Вас, базиран на вашата уникална комбинация от фактори. ';
-                wm += 'Целта Ви за ' + goal.toLowerCase() + ' е водеща при изграждането на плана.\n\n';
-                wm += 'Всяка калория, всеки макронутриент и всяко хранене са прецизно подбрани, за да Ви помогнат да постигнете желаните резултати.';
+                wm = 'Здравей, ' + name + '!\n\n';
+                wm += 'Този ' + modifier.toLowerCase() + ' план е създаден специално за теб, базиран на твоята уникална комбинация от фактори. ';
+                wm += 'Целта ти за ' + goal.toLowerCase() + ' е водеща при изграждането на плана.\n\n';
+                wm += 'Всяка калория, всеки макронутриент и всяко хранене са прецизно подбрани, за да ти помогнат да постигнеш желаните резултати.';
             }
 
             var welcomeEl = document.getElementById('coverWelcome');
@@ -2490,7 +2490,7 @@
                     html += '<div class="free-day-banner-book">';
                     html += '<div class="trophy">🍕</div>';
                     html += '<div class="title">Свободно хранене!</div>';
-                    html += '<div class="subtitle">Насладете се на любимата си храна — заслужихте го!</div>';
+                    html += '<div class="subtitle">Наслади се на любимата си храна — заслужено е!</div>';
                     html += '</div>';
                 }
 
@@ -2567,7 +2567,7 @@
                     } else {
                         // Free meal body
                         html += '<div class="meal-card-body">';
-                        html += '<div class="desc-text" style="color:var(--tx-amber);">Можете свободно да консумирате любимата си храна. Препоръка: преди любимата храна да се консумира зеленолистна салата, поръсена със семена или смлени ядки, подправена със зехтин и лимонов сок.</div>';
+                        html += '<div class="desc-text" style="color:var(--tx-amber);">Можеш свободно да консумираш любимата си храна. Препоръка: преди любимата храна да се консумира зеленолистна салата, поръсена със семена или смлени ядки, подправена със зехтин и лимонов сок.</div>';
                         html += '</div>';
                     }
 
@@ -2672,7 +2672,7 @@
             }
 
             page.style.display = 'block';
-            var items = normalizeItems(plan.psychology, 'Консултирайте се с диетолог за допълнителни съвети');
+            var items = normalizeItems(plan.psychology, 'Консултирай се с диетолог за допълнителни съвети');
             var list = document.getElementById('bookPsychologyList');
             list.innerHTML = items.map(function(item) {
                 var text = itemToString(item);
@@ -2693,7 +2693,7 @@
             }
 
             page.style.display = 'block';
-            var items = normalizeItems(plan.supplements, 'Консултирайте се с лекар преди приемане на нови добавки');
+            var items = normalizeItems(plan.supplements, 'Консултирай се с лекар преди приемане на нови добавки');
             var container = document.getElementById('bookSupplementsList');
             container.innerHTML = items.map(function(item) {
                 var d = supplementDetails(item);
@@ -2934,7 +2934,7 @@
         }
         var printer = platform.getPlugin('NutriPrint');
         if (!printer || typeof printer.print !== 'function') {
-            showBookNotice('Обновете приложението до последната версия, за да запазите плана като PDF.');
+            showBookNotice('Обнови приложението до последната версия, за да запазиш плана като PDF.');
             return;
         }
         var name = 'NutriPlan - хранителен план';
@@ -2943,9 +2943,9 @@
             if (ud && ud.name) name = 'NutriPlan - ' + String(ud.name).slice(0, 40);
         } catch (_) {}
         printer.print({ name: name }).then(function () {
-            showBookNotice('Изберете „Запази като PDF“ или принтер от горното меню.');
+            showBookNotice('Избери „Запази като PDF“ или принтер от горното меню.');
         }).catch(function () {
-            showBookNotice('Печатът не успя. Опитайте отново след малко.');
+            showBookNotice('Печатът не успя. Опитай отново след малко.');
         });
     }
     </script>

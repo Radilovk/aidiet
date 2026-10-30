@@ -55,7 +55,7 @@ export function isCleanClientText(text) {
  * @returns {{ text: string, removed: string[] }}
  */
 export function guardClientText(text, options = {}) {
-  const fallback = options.fallback || 'Не успях да отговоря добре на това. Опитайте да зададете въпроса по друг начин.';
+  const fallback = options.fallback || 'Не успях да отговоря добре на това. Опитай да зададеш въпроса по друг начин.';
   const src = String(text ?? '');
   if (!src.trim()) return { text: fallback, removed: [] };
   const removed = [];

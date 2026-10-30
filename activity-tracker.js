@@ -556,7 +556,7 @@
         return key && askTrainingOn(key) ? 'training' : 'steps';
     }
 
-    var TRAINING_QUESTION = 'Тренирахте ли днес?';
+    var TRAINING_QUESTION = 'Тренира ли днес?';
     var TRAINING_ACTIONS = [
         { id: 'train_am', title: 'Да, до обяд', value: 'am' },
         { id: 'train_pm', title: 'Да, следобед', value: 'pm' },

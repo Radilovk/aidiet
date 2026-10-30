@@ -18,7 +18,7 @@ export const FREE_MEAL = 'Свободно хранене';
 export const FIXED_DESSERT = {
   name: 'Пълномаслен шоколад с лешници',
   weight: '30г',
-  description: 'Насладете се на 2 реда млечен или черен шоколад с цели лешници.',
+  description: 'Наслади се на 2 реда млечен или черен шоколад с цели лешници.',
   calories: 168,
   macros: { protein: 2, carbs: 14, fats: 12 },
 };

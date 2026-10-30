@@ -1126,7 +1126,7 @@ async function handleSubmit() {
 
             const poll = async () => {
                 polls++;
-                if (polls > MAX_POLLS) throw new Error('Генерирането отне твърде дълго. Моля, опитайте отново.');
+                if (polls > MAX_POLLS) throw new Error('Генерирането отне твърде дълго. Моля, опитай отново.');
                 const statusRes = await fetch(`${WORKER_URL}/api/plan-job-status?jobId=${encodeURIComponent(activeJobId)}`);
                 if (!statusRes.ok) {
                     if (statusRes.status === 429 || statusRes.status >= 500) {

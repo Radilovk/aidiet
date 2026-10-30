@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Управлявайте вашия профил и преглеждайте вашия персонализиран хранителен план в NutriPlan.">
+    <meta name="description" content="Управлявай твоя профил и преглеждай твоя персонализиран хранителен план в NutriPlan.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -2114,7 +2114,7 @@
                 <i class="fas fa-chevron-down profile-contact-chevron" id="labsChevron"></i>
             </div>
             <div class="profile-contact-wrapper" id="labsWrapper">
-                <p class="labs-intro">Качете снимка на резултатите от кръвни изследвания. Разчитаме ги, Вие проверявате стойностите, и чак тогава те влизат в плана: правилата на храненето, добавките и бележките за специалиста. Изследванията не са диагноза — диагноза поставя лекар.</p>
+                <p class="labs-intro">Качи снимка на резултатите от кръвни изследвания. Разчитаме ги, ти проверяваш стойностите, и чак тогава те влизат в плана: правилата на храненето, добавките и бележките за специалиста. Изследванията не са диагноза — диагноза поставя лекар.</p>
                 <label class="labs-consent">
                     <input type="checkbox" id="labsConsent" onchange="onLabsConsent(this.checked)">
                     <span>Съгласен/на съм резултатите да се съхраняват и използват за хранителния ми план. Мога да ги изтрия по всяко време.</span>
@@ -2130,8 +2130,8 @@
                 </div>
                 <div class="labs-status" id="labsStatus" role="status"></div>
                 <div id="labsReview" hidden>
-                    <div class="labs-sub">Проверете стойностите</div>
-                    <p class="labs-note">Сравнете всяко число с бланката. Отметнатите влизат в плана; несигурно разчетените са отбелязани.</p>
+                    <div class="labs-sub">Провери стойностите</div>
+                    <p class="labs-note">Сравни всяко число с бланката. Отметнатите влизат в плана; несигурно разчетените са отбелязани.</p>
                     <label class="labs-date">Дата на изследването <input type="date" id="labsDate" class="form-input"></label>
                     <div id="labsRows"></div>
                     <button type="button" class="btn btn-primary labs-confirm" onclick="confirmLabs()"><i class="fas fa-check"></i> Потвърди и добави</button>
@@ -2149,7 +2149,7 @@
                 <i class="fas fa-chevron-down profile-contact-chevron" id="devicesChevron"></i>
             </div>
             <div class="profile-contact-wrapper" id="devicesWrapper">
-                <p class="labs-intro">Активност, сън, пулс, тегло, кръвно и захар от гривна, часовник, пръстен или везна — планът следи реалните стойности. Само четене; спирате и изтривате по всяко време.</p>
+                <p class="labs-intro">Активност, сън, пулс, тегло, кръвно и захар от гривна, часовник, пръстен или везна — планът следи реалните стойности. Само четене; спираш и изтриваш по всяко време.</p>
                 <!-- Съгласието е самото действие (разрешение, вход, качване); полето пази състоянието за кода. -->
                 <input type="checkbox" id="devicesConsent" hidden>
                 <div class="devices-source" id="devicesHcBox" hidden>
@@ -2159,17 +2159,17 @@
                 </div>
                 <div class="devices-source" id="devicesStepsBox" hidden>
                     <div class="labs-sub">Крачкомер в телефона</div>
-                    <p class="labs-note">Без гривна и часовник: вграденият брояч на телефона, пресметнат по ръста и теглото Ви. Вечер не се пита колко сте се движили — това се смята само.</p>
+                    <p class="labs-note">Без гривна и часовник: вграденият брояч на телефона, пресметнат по ръста и теглото ти. Вечер не се пита за движението — то се смята само.</p>
                     <div class="labs-actions devices-actions" id="devicesStepsActions"></div>
                 </div>
                 <div class="devices-source" id="devicesLinksBox" hidden>
                     <div class="labs-sub">Профил в приложението на устройството</div>
-                    <p class="labs-note">Влезте с профила си веднъж — данните се теглят сами на всеки няколко часа, на телефон с Android, iPhone или в браузъра.</p>
+                    <p class="labs-note">Влез с профила си веднъж — данните се теглят сами на всеки няколко часа, на телефон с Android, iPhone или в браузъра.</p>
                     <div class="devices-links" id="devicesLinks"></div>
                 </div>
                 <details class="devices-source devices-other">
                     <summary class="labs-sub">Друг начин: снимка или файл</summary>
-                    <p class="labs-note">Екранна снимка от приложението или снимка на дисплея на уреда — разчитаме стойностите и ги проверявате. Или файл с експорт (CSV/JSON).</p>
+                    <p class="labs-note">Екранна снимка от приложението или снимка на дисплея на уреда — разчитаме стойностите и ги проверяваш. Или файл с експорт (CSV/JSON).</p>
                     <div class="labs-actions devices-manual">
                         <button type="button" class="btn btn-primary devices-needs-consent" onclick="allowDevices();document.getElementById('devicesPhoto').click()"><i class="fas fa-camera"></i> Снимка на екран</button>
                         <button type="button" class="btn btn-secondary devices-needs-consent" onclick="allowDevices();document.getElementById('devicesFile').click()"><i class="fas fa-file-arrow-up"></i> Файл</button>
@@ -2179,7 +2179,7 @@
                 </details>
                 <div class="labs-status" id="devicesStatus" role="status"></div>
                 <div id="devicesReview" hidden>
-                    <div class="labs-sub" id="devicesReviewTitle">Проверете стойностите</div>
+                    <div class="labs-sub" id="devicesReviewTitle">Провери стойностите</div>
                     <p class="labs-note" id="devicesReviewNote"></p>
                     <div id="devicesRows"></div>
                     <button type="button" class="btn btn-primary labs-confirm" onclick="confirmDeviceReview()"><i class="fas fa-check"></i> Потвърди и добави</button>
@@ -2197,7 +2197,7 @@
                 <i class="fas fa-chevron-down profile-contact-chevron" id="docsChevron"></i>
             </div>
             <div class="profile-contact-wrapper" id="docsWrapper">
-                <p class="labs-intro">Епикриза, писмо от лекар, рецепта, образно изследване, алергологичен тест или важна информация, която не е във въпросника. AI преценява дали и доколко документът засяга плана и предлага какво да се промени. Вие проверявате предложението и чак тогава то влиза в профила.</p>
+                <p class="labs-intro">Епикриза, писмо от лекар, рецепта, образно изследване, алергологичен тест или важна информация, която не е във въпросника. AI преценява дали и доколко документът засяга плана и предлага какво да се промени. Ти проверяваш предложението и чак тогава то влиза в профила.</p>
                 <label class="labs-consent">
                     <input type="checkbox" id="docsConsent" onchange="onDocsConsent(this.checked)">
                     <span>Съгласен/на съм документите да се съхраняват и използват за хранителния ми план. Мога да ги изтрия по всяко време.</span>
@@ -2213,7 +2213,7 @@
                     <input type="file" id="docsFile" accept="image/*,application/pdf" hidden onchange="onDocsFile(this)">
                 </div>
                 <div id="docsTextBox" hidden>
-                    <textarea id="docsText" class="form-textarea docs-text" rows="5" maxlength="12000" placeholder="Поставете или напишете текста на документа или информацията за здравето си"></textarea>
+                    <textarea id="docsText" class="form-textarea docs-text" rows="5" maxlength="12000" placeholder="Постави или напиши текста на документа или информацията за здравето си"></textarea>
                     <button type="button" class="btn btn-primary labs-confirm" onclick="assessDocsText()"><i class="fas fa-wand-magic-sparkles"></i> Прецени</button>
                 </div>
                 <div class="labs-status" id="docsStatus" role="status"></div>
@@ -2236,7 +2236,7 @@
                  aria-controls="questionnaireContent">
                 <div class="questionnaire-title">
                     <i class="fas fa-clipboard-list"></i>
-                    <span>Вашите данни</span>
+                    <span>Твоите данни</span>
                 </div>
                 <i class="fas fa-chevron-down questionnaire-toggle"></i>
             </div>
@@ -2427,7 +2427,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Допълнителни бележки</label>
-                <textarea class="form-textarea" id="additionalNotes" data-field="additionalNotes" data-diet-related="true" disabled placeholder="Добавете допълнителни бележки..."></textarea>
+                <textarea class="form-textarea" id="additionalNotes" data-field="additionalNotes" data-diet-related="true" disabled placeholder="Добави допълнителни бележки..."></textarea>
             </div>
         </div>
 
@@ -2497,13 +2497,13 @@
             <div class="profile-contact-header" onclick="toggleProfileContact()" role="button" tabindex="0" aria-expanded="false" aria-controls="profileContactWrapper" onkeydown="handleProfileContactKeydown(event)">
                 <div class="section-title">
                     <i class="fas fa-envelope"></i>
-                    Свържете се с нас
+                    Свържи се с нас
                 </div>
                 <i class="fas fa-chevron-down profile-contact-chevron" id="profileContactChevron"></i>
             </div>
             <div class="profile-contact-wrapper" id="profileContactWrapper">
             <p style="color: var(--text-light); margin: 16px 0 20px; font-size: 0.95rem;">
-                Имате въпрос, предложение или нужда от помощ? Пишете ни и ще се свържем с Вас.
+                Имаш въпрос, предложение или нужда от помощ? Пиши ни и ще се свържем с теб.
             </p>
             <form id="profileContactForm" onsubmit="submitProfileContactForm(event)" novalidate>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -2522,7 +2522,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Съобщение *</label>
-                    <textarea id="profileContactMessage" class="form-textarea" required rows="5" placeholder="Напишете вашето съобщение тук..."></textarea>
+                    <textarea id="profileContactMessage" class="form-textarea" required rows="5" placeholder="Напиши твоето съобщение тук..."></textarea>
                 </div>
                 <div id="profileContactStatus" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center;"></div>
                 <button type="submit" id="profileContactBtn" class="btn btn-primary" style="width: 100%;">
@@ -2542,7 +2542,7 @@
             </div>
             <div class="profile-contact-wrapper" id="planBackupWrapper">
                 <p style="color: var(--text-light); margin: 16px 0 12px; font-size: 0.95rem;">
-                    Запазете плана си чрез Google Drive. Данните се съхраняват в скрита папка,
+                    Запази плана си чрез Google Drive. Данните се съхраняват в скрита папка,
                     видима само за това приложение, и се възстановяват автоматично след преинсталиране.
                 </p>
 
@@ -2688,14 +2688,14 @@
                 const res = await E.extractLabs(data, mime);
                 _labsCatalog = res.markersCatalog || _labsCatalog;
                 if (!res.markers || !res.markers.length) {
-                    labsSetStatus('Не открихме познати показатели. Опитайте с по-ясна снимка или въведете ръчно.', 'warn');
+                    labsSetStatus('Не открихме познати показатели. Опитай с по-ясна снимка или въведи ръчно.', 'warn');
                     return;
                 }
                 document.getElementById('labsDate').value = res.date || new Date().toISOString().slice(0, 10);
                 document.getElementById('labsRows').innerHTML = '';
                 res.markers.forEach(m => addLabRow(m));
                 document.getElementById('labsReview').hidden = false;
-                labsSetStatus(`Разчетени показатели: ${res.markers.length}. Проверете ги.`);
+                labsSetStatus(`Разчетени показатели: ${res.markers.length}. Провери ги.`);
             } catch (e) {
                 labsSetStatus(e.message || 'Не успяхме да прочетем изследването.', 'error');
             }
@@ -2725,7 +2725,7 @@
             if (!_labsCatalog) {
                 try { const res = await window.NutriPlanEnrichment.getCached(); _labsCatalog = res.markers; } catch (_) {}
             }
-            if (!_labsCatalog) { labsSetStatus('Каталогът с показатели не се зареди. Проверете връзката.', 'error'); return; }
+            if (!_labsCatalog) { labsSetStatus('Каталогът с показатели не се зареди. Провери връзката.', 'error'); return; }
             const first = Object.keys(_labsCatalog)[0];
             if (!document.getElementById('labsDate').value) document.getElementById('labsDate').value = new Date().toISOString().slice(0, 10);
             addLabRow({ key: first, unit: _labsCatalog[first].unit });
@@ -2747,7 +2747,7 @@
                     status: 'confirmed',
                 }))
                 .filter(f => f.key && String(f.value).trim());
-            if (!facts.length) { labsSetStatus('Отметнете поне една стойност.', 'warn'); return; }
+            if (!facts.length) { labsSetStatus('Отметни поне една стойност.', 'warn'); return; }
             labsSetStatus('Добавяме…');
             try {
                 const res = await E.submit({ facts }, 'labs');
@@ -2849,8 +2849,8 @@
                 ['Анемия', ['Анемия']], ['Проблеми със съня', ['Проблеми със съня']], ['Менопауза', ['Менопауза']], ['Друго', ['Друго']]] },
             medications: { q: 'Лекарства или хранителни добавки', type: 'one', options: ['Да', 'Не'], details: { when: 'Да', field: 'medicationsDetails', placeholder: 'Кои и в каква дозировка?' } },
             eatingHabits: { q: 'Хранителни навици', type: 'many', none: 'Нито една', options: ['Не закусвам', 'Хапвам на крак', 'Храня се предимно вечер', 'Хапвам сладко между храненията', 'Хапвам пред телевизора', 'Поръчвам храна или ям навън'] },
-            foodCravings: { q: 'Често изпитвате нужда от', type: 'many', none: 'Не изпитвам такава', options: ['Сладко', 'Тестени храни', 'Бургери / дюнери', 'Чипс / Солети'] },
-            overeatingFrequency: { q: 'Колко често ядете повече от планираното', type: 'one', options: ['Постоянно', 'Често', 'Понякога', 'Рядко', 'Никога'] },
+            foodCravings: { q: 'Често изпитваш нужда от', type: 'many', none: 'Не изпитвам такава', options: ['Сладко', 'Тестени храни', 'Бургери / дюнери', 'Чипс / Солети'] },
+            overeatingFrequency: { q: 'Колко често ядеш повече от планираното', type: 'one', options: ['Постоянно', 'Често', 'Понякога', 'Рядко', 'Никога'] },
             drinksSweet: { q: 'Сокове, газирани, фрешове', type: 'one', options: ['Не консумирам', 'Рядко', 'Често', 'Много често'] },
             drinksAlcohol: { q: 'Алкохол', type: 'one', options: ['Не консумирам', 'Рядко', 'Често', 'Много често'] },
             dietLove: { q: 'Не мога без, обичам', type: 'text', none: 'Нищо специално', placeholder: 'напр. кафе, сирене, плодове' },
@@ -2878,7 +2878,7 @@
             if (!fields.length) { box.hidden = true; box.innerHTML = ''; return; }
             const chip = (field, opt, i) => `<button type="button" class="card-quick-chip" aria-pressed="${quickIsPicked(field, opt)}" onclick="pickQuickAnswer('${field}', ${i})">${escProfileHtml(quickOptionLabel(opt))}</button>`;
             box.innerHTML = `<p class="card-quick-title">Липсват ${fields.length} ${fields.length === 1 ? 'отговор' : 'отговора'}</p>
-                <p class="card-quick-sub">Отговорете само на тях — с едно докосване. Може и частично.</p>
+                <p class="card-quick-sub">Отговори само на тях — с едно докосване. Може и частично.</p>
                 ${fields.map(f => {
                     const qd = CARD_QUICK_QUESTIONS[f];
                     const id = `cq_${f}`;
@@ -2943,7 +2943,7 @@
                     const n = Number(String(v).replace(',', '.'));
                     if (!(n >= qd.min && n <= qd.max)) {
                         status.dataset.tone = 'error';
-                        status.textContent = `${qd.q}: въведете число между ${qd.min} и ${qd.max}.`;
+                        status.textContent = `${qd.q}: въведи число между ${qd.min} и ${qd.max}.`;
                         return;
                     }
                     answers[f] = String(n);
@@ -2953,7 +2953,7 @@
             }
             if (!Object.keys(answers).some(f => CARD_QUICK_QUESTIONS[f])) {
                 status.dataset.tone = 'error';
-                status.textContent = 'Изберете поне един отговор.';
+                status.textContent = 'Избери поне един отговор.';
                 return;
             }
             btn.disabled = true;
@@ -2973,7 +2973,7 @@
                 console.error('Error saving quick answers:', e);
                 btn.disabled = false;
                 status.dataset.tone = 'error';
-                status.textContent = 'Не успяхме да запазим отговорите. Опитайте отново.';
+                status.textContent = 'Не успяхме да запазим отговорите. Опитай отново.';
             }
         }
 
@@ -2989,7 +2989,7 @@
             const iris = d && d.iris;
             return [
                 { id: 'q', weight: 30, icon: 'fa-clipboard-list', name: 'Първоначален въпросник', fill: qFill,
-                  status: qFill >= 1 ? 'Попълнен изцяло' : `Попълнен ${Math.round(qFill * 100)}% · докоснете за липсващите въпроси`,
+                  status: qFill >= 1 ? 'Попълнен изцяло' : `Попълнен ${Math.round(qFill * 100)}% · докосни за липсващите въпроси`,
                   gives: 'основата на плана', action: 'questionnaire' },
                 { id: 'labs', weight: 20, icon: 'fa-vial', name: 'Кръвна картина и изследвания', fill: labs.length ? Math.min(1, labs.length / 6) : 0,
                   status: labs.length ? `${labs.length} ${labs.length === 1 ? 'показател' : 'показателя'} · ${day(labsAt)}` : 'Не са добавени',
@@ -3023,8 +3023,8 @@
             const authFailed = /token|401|403/i.test(_cardLoadError);
             document.getElementById('cardMeterHint').textContent = _cardLoadError && !_cardData
                 ? (authFailed
-                    ? 'Изследванията, устройствата и тестовете не се заредиха — излезте и влезте отново в профила си.'
-                    : 'Изследванията, устройствата и тестовете не се заредиха — проверете връзката.')
+                    ? 'Изследванията, устройствата и тестовете не се заредиха — излез и влез отново в профила си.'
+                    : 'Изследванията, устройствата и тестовете не се заредиха — провери връзката.')
                 : pct >= 100
                 ? 'Профилът е пълен — планът използва всички данни.'
                 : next ? `Следващо: ${next.name.toLowerCase()} (+${Math.round(next.weight * (1 - next.fill))}%) — ${next.gives}.` : '';
@@ -3185,7 +3185,7 @@
                 if (!res.assessment) { docsSetStatus('Не открихме информация, свързана със здравето или храненето.', 'warn'); return; }
                 _docsPending = { assessment: res.assessment, date: res.date, planChanges: res.planChanges || [], relevant: res.relevant };
                 renderDocsReview();
-                docsSetStatus(res.relevant ? 'Проверете предложението.' : 'Документът почти не засяга плана — може да го запазите само за специалиста.', res.relevant ? '' : 'warn');
+                docsSetStatus(res.relevant ? 'Провери предложението.' : 'Документът почти не засяга плана — може да го запазиш само за специалиста.', res.relevant ? '' : 'warn');
             } catch (e) {
                 docsSetStatus(e.message || 'Не успяхме да прочетем документа.', 'error');
             }
@@ -3324,13 +3324,13 @@
                 const res = await window.NutriPlanEnrichment.extractDevice(data, mime);
                 _deviceKinds = res.kindsCatalog || _deviceKinds;
                 if (!res.readings || !res.readings.length) {
-                    devicesSetStatus('Не открихме измервания. Опитайте с екранна снимка, на която числата се виждат ясно.', 'warn');
+                    devicesSetStatus('Не открихме измервания. Опитай с екранна снимка, на която числата се виждат ясно.', 'warn');
                     return;
                 }
                 _deviceReview = { source: 'device_photo' };
                 const today = new Date().toISOString().slice(0, 10);
-                document.getElementById('devicesReviewTitle').textContent = 'Проверете стойностите';
-                document.getElementById('devicesReviewNote').textContent = 'Сравнете всяко число с екрана. Отметнатите влизат в плана; несигурно разчетените са отбелязани.';
+                document.getElementById('devicesReviewTitle').textContent = 'Провери стойностите';
+                document.getElementById('devicesReviewNote').textContent = 'Сравни всяко число с екрана. Отметнатите влизат в плана; несигурно разчетените са отбелязани.';
                 const rows = document.getElementById('devicesRows');
                 rows.innerHTML = '';
                 res.readings.forEach(r => rows.appendChild(deviceRow(r, res.date || today)));
@@ -3404,7 +3404,7 @@
                     })
                     .filter(f => String(f.value).trim());
             }
-            if (!facts || !facts.length) { devicesSetStatus('Отметнете поне една стойност.', 'warn'); return; }
+            if (!facts || !facts.length) { devicesSetStatus('Отметни поне една стойност.', 'warn'); return; }
             devicesSetStatus('Добавяме…');
             try {
                 const res = await window.NutriPlanEnrichment.submit({ facts }, 'device');
@@ -3499,8 +3499,8 @@
                 const cloud = (_links || []).find(l => l.id === 'huawei');
                 if (a.bridge && cloud && cloud.linked) return;
                 hints.push(a.bridge && cloud
-                    ? `<div class="devices-hint"><span>${escProfileHtml(a.name)} — свържете профила си веднъж и данните идват сами.</span><button type="button" class="btn btn-primary" onclick="connectLink('huawei')"><i class="fas fa-link"></i> Свържи</button></div>`
-                    : `<div class="devices-hint"><span>${escProfileHtml(a.name)} не споделя данни с други приложения — добавете експорт или снимка по-долу.</span></div>`);
+                    ? `<div class="devices-hint"><span>${escProfileHtml(a.name)} — свържи профила си веднъж и данните идват сами.</span><button type="button" class="btn btn-primary" onclick="connectLink('huawei')"><i class="fas fa-link"></i> Свържи</button></div>`
+                    : `<div class="devices-hint"><span>${escProfileHtml(a.name)} не споделя данни с други приложения — добави експорт или снимка по-долу.</span></div>`);
             });
             // Само каквото изисква действие — без списък с приложения.
             box.innerHTML = hints.join('');
@@ -3708,7 +3708,7 @@
                 _links = res.providers || _links.map(x => x.id === id ? { ...x, linked: false } : x);
                 try { localStorage.setItem('np_links_cache', JSON.stringify({ at: Date.now(), providers: _links })); } catch (_) {}
                 renderLinks();
-                devicesSetStatus('Изключено. Достъпа можете да оттеглите и от настройките на профила при доставчика.', 'ok');
+                devicesSetStatus('Изключено. Достъпа можеш да оттеглиш и от настройките на профила при доставчика.', 'ok');
                 loadDeviceEssence();
             } catch (e) {
                 devicesSetStatus(e.message || 'Не успяхме да изключим профила.', 'error');
@@ -3729,7 +3729,7 @@
                 devicesSetStatus(`${l.name} е свързан. Данните за последните 14 дни са добавени.`, 'ok');
                 loadDeviceEssence();
             } else {
-                devicesSetStatus('Профилът не е свързан. Може да опитате отново.', 'error');
+                devicesSetStatus('Профилът не е свързан. Може да опиташ отново.', 'error');
             }
         }
 
@@ -3804,7 +3804,7 @@
             try {
                 await window.NutriPlanHealth.disconnect();
                 document.getElementById('devicesConsent').checked = false;
-                devicesSetStatus('Изключено. Достъпа в Health Connect можете да оттеглите от настройките му.', 'ok');
+                devicesSetStatus('Изключено. Достъпа в Health Connect можеш да оттеглиш от настройките му.', 'ok');
             } catch (e) {
                 devicesSetStatus(e.message || 'Не успяхме да изтрием данните.', 'error');
             }
@@ -3825,8 +3825,8 @@
 
         const _DRIVE_ERROR_MSGS = {
             no_data:       'Няма данни за запазване.',
-            auth_failed:   'Google Sign-In неуспешен. Проверете акаунта в настройките.',
-            upload_failed: 'Качването неуспешно. Опитайте отново.',
+            auth_failed:   'Google Sign-In неуспешен. Провери акаунта в настройките.',
+            upload_failed: 'Качването неуспешно. Опитай отново.',
             no_backup:     'Не е намерено резервно копие в Google Drive.',
             invalid_data:  'Резервното копие е повредено или непълно.',
             not_native:    'Функцията работи само в инсталираното APK приложение.',
@@ -3850,7 +3850,7 @@
 
         async function driveSyncPlan() {
             if (typeof DriveBackup === 'undefined') {
-                _setDriveStatus('Грешка при зареждане на услугата. Презаредете приложението.', false);
+                _setDriveStatus('Грешка при зареждане на услугата. Презареди приложението.', false);
                 return;
             }
             document.getElementById('driveSyncBtn').disabled = true;
@@ -3866,7 +3866,7 @@
 
         async function driveRestorePlan() {
             if (typeof DriveBackup === 'undefined') {
-                _setDriveStatus('Грешка при зареждане на услугата. Презаредете приложението.', false);
+                _setDriveStatus('Грешка при зареждане на услугата. Презареди приложението.', false);
                 return;
             }
             document.getElementById('driveRestoreBtn').disabled = true;
@@ -3874,7 +3874,7 @@
             const result = await DriveBackup.restorePlan();
             document.getElementById('driveRestoreBtn').disabled = false;
             if (result.success) {
-                _setDriveStatus('Планът е възстановен от Google Drive! Отидете на Моят план.', true);
+                _setDriveStatus('Планът е възстановен от Google Drive! Отиди на Моят план.', true);
             } else {
                 _setDriveStatus(_DRIVE_ERROR_MSGS[result.error] || ('Грешка: ' + result.error), false);
             }
@@ -3960,7 +3960,7 @@
                 status.style.display = 'block';
                 status.style.background = '#fee2e2';
                 status.style.color = '#dc2626';
-                status.textContent = 'Моля, попълнете Име и Съобщение.';
+                status.textContent = 'Моля, попълни Име и Съобщение.';
                 return;
             }
 
@@ -3987,7 +3987,7 @@
                     status.style.display = 'block';
                     status.style.background = '#d1fae5';
                     status.style.color = '#065f46';
-                    status.textContent = '✅ Съобщението е изпратено успешно! Ще се свържем с вас скоро.';
+                    status.textContent = '✅ Съобщението е изпратено успешно! Ще се свържем с теб скоро.';
                     document.getElementById('profileContactForm').reset();
                 } else {
                     throw new Error(result.error || 'Грешка при изпращане');
@@ -4222,9 +4222,9 @@
             try {
                 if (localStorage.getItem('npPlanRegenFailed') === '1') {
                     localStorage.removeItem('npPlanRegenFailed');
-                    showAlert('Новият план по промените ви не можа да се изготви. Сегашният ви план остава — опитайте отново с „Запази и регенерирай план“.', 'warning');
+                    showAlert('Новият план по промените ти не можа да се изготви. Сегашният ти план остава — опитай отново с „Запази и регенерирай план“.', 'warning');
                 } else if (localStorage.getItem('planReplacePending') === '1') {
-                    showAlert('Новият план по промените ви очаква одобрение от специалист. Дотогава ползвате сегашния си план.', 'info');
+                    showAlert('Новият план по промените ти очаква одобрение от специалист. Дотогава ползваш сегашния си план.', 'info');
                 }
             } catch (_) {}
         }
@@ -4268,17 +4268,17 @@
                                     console.log('[PWA] Profile restored from backend in profile.html');
                                     loadUserData();
                                 } else {
-                                    showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
+                                    showAlert('Няма налични данни. Моля, попълни въпросника.', 'warning');
                                     setTimeout(() => { navigateTopLevel('questionnaire2.html'); }, 2000);
                                 }
                             })
                             .catch(() => {
                                 // Мрежова грешка ≠ няма профил: без пренасочване към въпросника.
-                                showAlert('Няма връзка със сървъра. Проверете интернета и опитайте отново.', 'warning');
+                                showAlert('Няма връзка със сървъра. Провери интернета и опитай отново.', 'warning');
                             });
                         return;
                     }
-                    showAlert('Няма налични данни. Моля, попълнете въпросника.', 'warning');
+                    showAlert('Няма налични данни. Моля, попълни въпросника.', 'warning');
                     setTimeout(() => {
                         navigateTopLevel('questionnaire2.html');
                     }, 2000);
@@ -4362,7 +4362,7 @@
             document.getElementById('editBtn').classList.add('hidden');
             document.getElementById('cancelBtn').classList.remove('hidden');
             
-            showAlert('Режим на редактиране е активиран. Променете желаните полета.', 'info');
+            showAlert('Режим на редактиране е активиран. Промени желаните полета.', 'info');
         }
 
         function cancelEditing() {
@@ -4488,7 +4488,7 @@
             // Validate data before saving
             const validationResult = validateFormDataWithDetails();
             if (!validationResult.isValid) {
-                showAlert(`⚠️ Моля, попълнете правилно полето: ${validationResult.fieldLabel}`, 'warning');
+                showAlert(`⚠️ Моля, попълни правилно полето: ${validationResult.fieldLabel}`, 'warning');
                 return;
             }
             
@@ -4510,7 +4510,7 @@
                 cancelEditing();
             } catch (error) {
                 console.error('Error saving data:', error);
-                showAlert('⚠️ Грешка при запазване на данните. Моля, опитайте отново.', 'warning');
+                showAlert('⚠️ Грешка при запазване на данните. Моля, опитай отново.', 'warning');
             }
         }
 
@@ -4518,13 +4518,13 @@
             // Validate data before saving
             const validationResult = validateFormDataWithDetails();
             if (!validationResult.isValid) {
-                showAlert(`⚠️ Моля, попълнете правилно полето: ${validationResult.fieldLabel}`, 'warning');
+                showAlert(`⚠️ Моля, попълни правилно полето: ${validationResult.fieldLabel}`, 'warning');
                 return;
             }
 
             const updatedData = collectFormData();
             if (!window.NutriPlanRegenFields?.hasDietRelatedProfileChanges(originalData, updatedData)) {
-                showAlert('Няма промени по полетата, свързани с плана. Използвайте „Запази“.', 'warning');
+                showAlert('Няма промени по полетата, свързани с плана. Използвай „Запази“.', 'warning');
                 return;
             }
 
@@ -4549,7 +4549,7 @@
 
             // Винаги потвърждение: замяната на плана не е действие с едно докосване.
             const fullRegenMessage = replacingExistingPlan
-                ? 'Ще се изготви нов хранителен план по новите данни. Той ще замени сегашния, след като специалист го прегледа и одобри — дотогава ползвате сегашния план.'
+                ? 'Ще се изготви нов хранителен план по новите данни. Той ще замени сегашния, след като специалист го прегледа и одобри — дотогава ползваш сегашния план.'
                 : 'Ще се изготви нов хранителен план по новите данни. Отнема около минута.';
             if (!confirm(fullRegenMessage + '\n\nПродължаване?')) {
                 return;
@@ -4651,7 +4651,7 @@
                     clearAlert();
 
                     const processingMsg = (sync && sync.PROFILE_REGEN_PROCESSING_MSG) ||
-                        'В момента обработваме постъпилите промени. Скоро ще получите актуализация на Вашия план.';
+                        'В момента обработваме постъпилите промени. Скоро ще получиш актуализация на Твоя план.';
                     if (sync && typeof sync.startProfileRegenBackgroundPoll === 'function') {
                         sync.startProfileRegenBackgroundPoll();
                     }
@@ -4680,7 +4680,7 @@
                         localStorage.removeItem('planJobId');
                         localStorage.removeItem('planJobSource');
                         localStorage.removeItem('pendingPlanPayload');
-                        throw new Error('Генерирането отне твърде дълго. Моля, опитайте отново.');
+                        throw new Error('Генерирането отне твърде дълго. Моля, опитай отново.');
                     }
                     const statusResp = await fetch(
                         WORKER_PROFILE + '/api/plan-job-status?jobId=' + encodeURIComponent(activeJobId)
@@ -4698,7 +4698,7 @@
                     } else if (statusData.status === 'failed') {
                         throw new Error(statusData.error || 'Генерирането на плана не успя');
                     } else if (statusData.status === 'not_found') {
-                        throw new Error('Сесията за генериране е изтекла. Моля, опитайте отново.');
+                        throw new Error('Сесията за генериране е изтекла. Моля, опитай отново.');
                     } else {
                         await new Promise(r => setTimeout(r, nextPollDelay()));
                         return poll();
@@ -4756,7 +4756,7 @@
                 }
                 resetRegenerateButton();
                 const errorMsg = isNetworkError
-                    ? 'Връзката беше прекъсната, но заявката може да продължава на сървъра. Отворете страницата отново, за да се възстанови проверката.'
+                    ? 'Връзката беше прекъсната, но заявката може да продължава на сървъра. Отвори страницата отново, за да се възстанови проверката.'
                     : (error.message || 'Неизвестна грешка');
                 showAlert(`⚠️ Грешка при регенериране на плана: ${errorMsg}`, 'warning');
             }
@@ -4813,7 +4813,7 @@
         }
 
         // --- Alert Functions ---
-        const PLAN_REVIEW_SYSTEM_MSG = 'Планът предстои да бъде преразгледан и активиран от специалист. Ще получите известие на имейл, когато новият план е готов.';
+        const PLAN_REVIEW_SYSTEM_MSG = 'Планът предстои да бъде преразгледан и активиран от специалист. Ще получиш известие на имейл, когато новият план е готов.';
 
         let _alertDismissTimer = null;
         /** Текст от сървъра/анализа — като текст, не като HTML. */
@@ -5284,7 +5284,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."');
+                        alert('За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай NutriPlan..."');
                     };
                 }
                 installBanner.classList.add('show');
@@ -5295,7 +5295,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-share"></i><span>Виж как</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран) (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)');
+                        alert('За да добавиш приложението към началния екран:\n\n1. Натисни бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превърти надолу и избери "Add to Home Screen" (Добави към начален екран) (Добави към начален екран)\n3. Потвърди, като натиснеш "Add" (Добави)');
                     };
                 }
                 installBanner.classList.add('show');
@@ -5307,7 +5307,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Натиснете "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърсете иконата (⊕) в адресната лента\n• Кликнете и изберете "Инсталирай"\n\n💡 ВАЖНО: Ако не виждате опцията веднага:\n• Презаредете страницата (F5)\n• Изчакайте 2-3 секунди\n• Кликнете на някой бутон на страницата');
+                        alert('📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отвори менюто на браузъра (⋮) в горния десен ъгъл\n2. Избери "Инсталирай приложение" или "Добави към начален екран"\n3. Натисни "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърси иконата (⊕) в адресната лента\n• Кликни и избери "Инсталирай"\n\n💡 ВАЖНО: Ако не виждаш опцията веднага:\n• Презареди страницата (F5)\n• Изчакай 2-3 секунди\n• Кликни на някой бутон на страницата');
                     };
                 }
                 installBanner.classList.add('show');
@@ -5318,7 +5318,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                        alert('За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието');
                     };
                 }
                 installBanner.classList.add('show');
@@ -5329,7 +5329,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                        alert('За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието');
                     };
                 }
                 installBanner.classList.add('show');
@@ -5340,7 +5340,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                        alert('За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието');
                     };
                 }
                 installBanner.classList.add('show');
@@ -5406,46 +5406,46 @@
             
             if (isIOS && isSafari) {
                 message = '📱 Как да инсталирам на iPhone/iPad?\n\n' +
-                         '1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n' +
-                         '2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n' +
-                         '3. Потвърдете, като натиснете "Add" (Добави)\n\n' +
-                         '✨ След това приложението ще е на началния ви екран!';
+                         '1. Натисни бутона Share/Споделяне (⬆️) в долната част на екрана\n' +
+                         '2. Превърти надолу и избери "Add to Home Screen" (Добави към начален екран)\n' +
+                         '3. Потвърди, като натиснеш "Add" (Добави)\n\n' +
+                         '✨ След това приложението ще е на началния ти екран!';
             } else if (isIOS) {
-                message = '⚠️ За да инсталирате приложението на iPhone/iPad, моля използвайте Safari браузъра.\n\n' +
-                         'Отворете това приложение в Safari и следвайте инструкциите.';
+                message = '⚠️ За да инсталираш приложението на iPhone/iPad, моля използвай Safari браузъра.\n\n' +
+                         'Отвори това приложение в Safari и следвай инструкциите.';
             } else if (isAndroid && (isChrome || isEdge)) {
                 const browserName = isChrome ? 'Chrome' : 'Edge';
                 message = `📱 Как да инсталирам на Android (${browserName})?\n\n` +
                          '✅ БЪРЗ НАЧИН:\n' +
-                         '1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n' +
-                         '2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n' +
-                         '3. Натиснете "Инсталирай" в диалога\n\n' +
+                         '1. Отвори менюто на браузъра (⋮) в горния десен ъгъл\n' +
+                         '2. Избери "Инсталирай приложение" или "Добави към начален екран"\n' +
+                         '3. Натисни "Инсталирай" в диалога\n\n' +
                          '✅ АЛТЕРНАТИВА:\n' +
-                         '• Потърсете иконата (⊕) в адресната лента\n' +
-                         '• Кликнете и изберете "Инсталирай"\n\n' +
-                         '💡 ВАЖНО: Ако не виждате опцията веднага:\n' +
-                         '• Презаредете страницата (F5)\n' +
-                         '• Изчакайте 2-3 секунди\n' +
-                         '• Кликнете на някой бутон на страницата';
+                         '• Потърси иконата (⊕) в адресната лента\n' +
+                         '• Кликни и избери "Инсталирай"\n\n' +
+                         '💡 ВАЖНО: Ако не виждаш опцията веднага:\n' +
+                         '• Презареди страницата (F5)\n' +
+                         '• Изчакай 2-3 секунди\n' +
+                         '• Кликни на някой бутон на страницата';
             } else if (isAndroid) {
                 message = '📱 Как да инсталирам на Android?\n\n' +
-                         '1. Отворете менюто на браузъра (обикновено в горната част)\n' +
-                         '2. Потърсете опцията "Добави към начален екран" или "Инсталирай"\n' +
-                         '3. Потвърдете действието\n\n' +
-                         'Препоръчваме да използвате Chrome или Edge за най-добро изживяване.';
+                         '1. Отвори менюто на браузъра (обикновено в горната част)\n' +
+                         '2. Потърси опцията "Добави към начален екран" или "Инсталирай"\n' +
+                         '3. Потвърди действието\n\n' +
+                         'Препоръчваме да използваш Chrome или Edge за най-добро изживяване.';
             } else if (!isMobile && (isChrome || isEdge)) {
                 const browserName = isChrome ? 'Chrome' : 'Edge';
                 message = `💻 Как да инсталирам в ${browserName}?\n\n` +
-                         '1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n' +
-                         '2. Кликнете върху нея и изберете "Инсталирай"\n' +
-                         '3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."\n\n' +
+                         '1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n' +
+                         '2. Кликни върху нея и избери "Инсталирай"\n' +
+                         '3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай NutriPlan..."\n\n' +
                          'След инсталация приложението ще се отвори в отделен прозорец.';
             } else {
                 message = '💻 Инсталация на приложението\n\n' +
-                         'За да инсталирате приложението:\n\n' +
-                         '1. Отворете менюто на браузъра\n' +
-                         '2. Потърсете опцията "Инсталирай" или "Добави към начален екран"\n' +
-                         '3. Потвърдете действието\n\n' +
+                         'За да инсталираш приложението:\n\n' +
+                         '1. Отвори менюто на браузъра\n' +
+                         '2. Потърси опцията "Инсталирай" или "Добави към начален екран"\n' +
+                         '3. Потвърди действието\n\n' +
                          'Препоръчваме Chrome или Edge за най-добро изживяване.';
             }
             

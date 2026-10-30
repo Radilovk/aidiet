@@ -39,7 +39,7 @@ ok(!p.riskWindow && !p.nudge, 'слаб интензитет — без напо
 p = P.build({ emoeat: { archetype: 'Строгият глас', intensity: 'Силно' }, now: NOW });
 ok(p.noScores && p.tone === 'gentle' && p.density === 'minimal' && p.flexible, 'Строгият глас — без оценки, мек, кратък');
 ok(P.mealQuestion(p, 'обяда').title === 'Как мина обяда?' && P.mealQuestion(p, 'обяда').no === 'Не този път', 'мек тон — меки думи във въпроса');
-ok(P.mealQuestion({ tone: 'direct' }, 'обяда').title === 'Изядохте ли обяда?', 'прям тон — прям въпрос');
+ok(P.mealQuestion({ tone: 'direct' }, 'обяда').title === 'Изяде ли обяда?', 'прям тон — прям въпрос');
 
 // Редът: само основните хранения (честото отмятане храни контрола).
 ok(P.build({ emoeat: { archetype: 'Редът', intensity: 'Осезаемо' }, now: NOW }).mealChecks === 'main', 'Редът — само основните');

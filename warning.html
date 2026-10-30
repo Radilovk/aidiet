@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Важна информация за медицински рискове - моля консултирайте се с лекар преди да продължите.">
+    <meta name="description" content="Важна информация за медицински рискове - моля консултирай се с лекар преди да продължиш.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -352,7 +352,7 @@
             </div>
 
             <h1 class="warning-title">Медицинско Предупреждение</h1>
-            <p class="warning-subtitle">Вашата цел е в противоречие с текущото ви здравословно състояние</p>
+            <p class="warning-subtitle">Твоята цел е в противоречие с текущото ти здравословно състояние</p>
 
             <div class="info-section" id="infoSection">
                 <!-- Will be filled by JavaScript -->
@@ -469,16 +469,16 @@
             // Tone depends on whether the user can proceed or not
             if (canProceed) {
                 // Advisory tone — only medium-severity issues, user can continue
-                document.querySelector('.warning-title').textContent = 'Предупреждения за вашия план';
+                document.querySelector('.warning-title').textContent = 'Предупреждения за твоя план';
                 document.querySelector('.warning-subtitle').textContent =
-                    'Нашият AI анализ установи потенциални забележки. Можете да продължите, но препоръчваме да вземете предвид информацията по-долу.';
+                    'Нашият AI анализ установи потенциални забележки. Можеш да продължиш, но препоръчваме да вземеш предвид информацията по-долу.';
                 document.querySelector('.warning-icon i').className = 'fas fa-info-circle';
                 document.querySelector('.warning-icon').style.setProperty('--icon-color', 'var(--severity-medium)');
             } else {
                 // Error tone — at least one high-severity issue, must go back
                 document.querySelector('.warning-title').textContent = 'Установени Проблеми';
                 document.querySelector('.warning-subtitle').textContent =
-                    'Открихме проблеми с въведената информация. Моля, прегледайте ги и коригирайте данните си — отговорите ви са запазени.';
+                    'Открихме проблеми с въведената информация. Моля, прегледай ги и коригирай данните си — отговорите ти са запазени.';
             }
 
             // Category icons mapping
@@ -546,8 +546,8 @@
             if (canProceed) {
                 document.getElementById('recommendationText').textContent =
                     'Описаните по-долу забележки са с умерена важност. ' +
-                    'Препоръчваме да ги вземете предвид и при нужда да консултирате лекар. ' +
-                    'Можете да продължите: планът ще отчете вашата ситуация и ще бъде прегледан от специалист преди да го получите.';
+                    'Препоръчваме да ги вземеш предвид и при нужда да консултираш лекар. ' +
+                    'Можеш да продължиш: планът ще отчете твоята ситуация и ще бъде прегледан от специалист преди да го получиш.';
 
                 // Add "Continue anyway" button (guarded against duplicates)
                 const actionButtons = document.querySelector('.action-buttons');
@@ -561,9 +561,9 @@
                 }
             } else {
                 document.getElementById('recommendationText').textContent =
-                    'Моля, върнете се към въпросника и прегледайте внимателно въведената информация. ' +
-                    'Уверете се, че целите ви са реалистични и безопасни, и че данните не си противоречат. ' +
-                    'Ако имате здравословни проблеми, препоръчваме консултация с лекар преди да започнете хранителен режим.';
+                    'Моля, върни се към въпросника и прегледай внимателно въведената информация. ' +
+                    'Увери се, че целите ти са реалистични и безопасни, и че данните не си противоречат. ' +
+                    'Ако имаш здравословни проблеми, препоръчваме консултация с лекар преди да започнеш хранителен режим.';
             }
         }
 

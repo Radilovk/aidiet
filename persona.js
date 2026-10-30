@@ -160,7 +160,7 @@
         var tone = persona && persona.tone;
         if (tone === 'gentle' || tone === 'warm') return { title: 'Как мина ' + label + '?', yes: 'Изядох го', no: 'Не този път' };
         if (tone === 'playful') return { title: label.charAt(0).toUpperCase() + label.slice(1) + ' — отметнато ли е?', yes: 'Готово ✓', no: 'Не днес' };
-        return { title: 'Изядохте ли ' + label + '?', yes: 'Да, изядох', no: 'Пропуснах' };
+        return { title: 'Изяде ли ' + label + '?', yes: 'Да, изядох', no: 'Пропуснах' };
     }
 
     /** В рисковия час ли сме (за SOS картата). */

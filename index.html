@@ -3227,13 +3227,13 @@
                 if (PlatformDetector.isIOS() && !PlatformDetector.isPWA()) {
                     return {
                         show: true,
-                        message: 'За известия на iOS, инсталирайте приложението: Safari → Share → Add to Home Screen',
+                        message: 'За известия на iOS, инсталирай приложението: Safari → Share → Add to Home Screen',
                         type: 'warning'
                     };
                 } else if (window.NutriPlanCompat && window.NutriPlanCompat.shouldOfferCalendarFallback()) {
                     return {
                         show: true,
-                        message: 'За напомняния без браузърни известия — абонирайте се за календар (.ics). Работи на всички Android/iOS.',
+                        message: 'За напомняния без браузърни известия — абонирай се за календар (.ics). Работи на всички Android/iOS.',
                         type: 'calendar',
                         calendarUrl: window.GameNotifier
                             ? window.GameNotifier.getCalendarSubscribeUrl()
@@ -3242,7 +3242,7 @@
                 } else if (!PlatformDetector.supportsNotifications()) {
                     return {
                         show: true,
-                        message: 'Вашият браузър не поддържа известия. Моля, използвайте по-нова версия.',
+                        message: 'Твоят браузър не поддържа известия. Моля, използвай по-нова версия.',
                         type: 'error'
                     };
                 }
@@ -3298,7 +3298,7 @@
             const banner = document.createElement('div');
             banner.id = 'notif-banner';
             banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#0D9488;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
-            banner.innerHTML = '<span>📅 Абонирайте се за автоматични напомняния</span>';
+            banner.innerHTML = '<span>📅 Абонирай се за автоматични напомняния</span>';
             const btn = document.createElement('a');
             btn.textContent = 'Абонирай се';
             btn.href = calUrl;
@@ -3345,10 +3345,10 @@
 
         // Installation instruction texts
         const INSTALL_INSTRUCTIONS = {
-            DESKTOP: 'За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."',
-            ANDROID: '📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Натиснете "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърсете иконата (⊕) в адресната лента\n• Кликнете и изберете "Инсталирай"\n\n💡 ВАЖНО: Ако не виждате опцията веднага:\n• Презаредете страницата (F5)\n• Изчакайте 2-3 секунди\n• Кликнете на някой бутон на страницата',
-            IOS: 'За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)',
-            MOBILE_GENERIC: 'За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието'
+            DESKTOP: 'За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай NutriPlan..."',
+            ANDROID: '📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отвори менюто на браузъра (⋮) в горния десен ъгъл\n2. Избери "Инсталирай приложение" или "Добави към начален екран"\n3. Натисни "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърси иконата (⊕) в адресната лента\n• Кликни и избери "Инсталирай"\n\n💡 ВАЖНО: Ако не виждаш опцията веднага:\n• Презареди страницата (F5)\n• Изчакай 2-3 секунди\n• Кликни на някой бутон на страницата',
+            IOS: 'За да добавиш приложението към началния екран:\n\n1. Натисни бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превърти надолу и избери "Add to Home Screen" (Добави към начален екран)\n3. Потвърди, като натиснеш "Add" (Добави)',
+            MOBILE_GENERIC: 'За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието'
         };
 
         // Helper function to check if banner was recently dismissed
@@ -3926,7 +3926,7 @@
             } else {
                 const statusDiv = document.getElementById('notificationStatus');
                 if (statusDiv) {
-                    statusDiv.textContent = 'Известията са отказани. Можете да ги разрешите от настройките на браузъра.';
+                    statusDiv.textContent = 'Известията са отказани. Можеш да ги разрешиш от настройките на браузъра.';
                 }
             }
         }
@@ -3940,7 +3940,7 @@
 
             // Check if on iOS and not in standalone mode
             if (isIOS && !isInStandaloneMode()) {
-                alert('За да използвате известия на iOS, моля първо инсталирайте приложението на началния екран.');
+                alert('За да използваш известия на iOS, моля първо инсталирай приложението на началния екран.');
                 return false;
             }
 
@@ -3977,9 +3977,9 @@
 
             // Show a contextual message before requesting permission
             const contextMessages = {
-                'questionnaire': 'Искате ли да получавате известия за вашия хранителен план?',
-                'plan': 'Искате ли да получавате напомняния за вашите хранения?',
-                'action': 'Искате ли да получавате известия от NutriPlan?'
+                'questionnaire': 'Искаш ли да получаваш известия за твоя хранителен план?',
+                'plan': 'Искаш ли да получаваш напомняния за твоите хранения?',
+                'action': 'Искаш ли да получаваш известия от NutriPlan?'
             };
 
             const message = contextMessages[context] || contextMessages['action'];
@@ -4216,7 +4216,7 @@
 
             <!-- Email / password sign-in -->
             <input id="loginEmailInput" type="email" class="login-modal-email-input"
-                   placeholder="вашия@имейл.com" autocomplete="email" inputmode="email">
+                   placeholder="твоя@имейл.com" autocomplete="email" inputmode="email">
             <input id="loginPasswordInput" type="password" class="login-modal-email-input login-modal-form-input"
                    placeholder="Парола" autocomplete="current-password">
             <button class="login-modal-primary-btn" id="loginPasswordBtn">Вход</button>
@@ -4225,7 +4225,7 @@
             <button class="login-modal-forgot" id="loginForgotBtn"
                     onclick="window.indexLoginForgotPassword()">Забравена парола?</button>
             <button class="login-modal-forgot login-modal-switch" id="loginSwitchBtn"
-                    onclick="window.indexToggleLoginMode()">Нямате профил? Попълнете въпросника</button>
+                    onclick="window.indexToggleLoginMode()">Нямаш профил? Попълни въпросника</button>
 
             <div id="loginModalError"></div>
             <div id="loginModalSuccess"></div>
@@ -4533,7 +4533,7 @@
             if (title)     title.textContent = 'Добре дошли в NutriPlan';
             if (sub)       sub.textContent   = 'Имейл и парола';
             if (btn)       btn.textContent   = 'Вход';
-            if (switchBtn) switchBtn.textContent = 'Нямате профил? Попълнете въпросника';
+            if (switchBtn) switchBtn.textContent = 'Нямаш профил? Попълни въпросника';
             if (forgot)    forgot.style.display = '';
         }
 
@@ -4545,7 +4545,7 @@
 
             const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
             if (!emailRe.test(email)) {
-                loginShowError('Моля, въведете валиден имейл адрес.');
+                loginShowError('Моля, въведи валиден имейл адрес.');
                 return;
             }
             if (!password || password.length < 6) {
@@ -4565,20 +4565,20 @@
                 console.error('Login/register error:', err.code, err.message);
                 loginShowError(
                     err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
-                        ? 'Грешен имейл или парола. Опитайте отново или използвайте „Забравена парола?".' :
+                        ? 'Грешен имейл или парола. Опитай отново или използвай „Забравена парола?".' :
                     err.code === 'auth/user-not-found'
-                        ? 'Нямате профил с тази поща. Натиснете „Регистрирай се" за нов акаунт.' :
+                        ? 'Нямаш профил с тази поща. Натисни „Регистрирай се" за нов акаунт.' :
                     err.code === 'auth/email-already-in-use'
-                        ? 'Вече има акаунт с този имейл. Влезте или използвайте „Забравена парола?".' :
+                        ? 'Вече има акаунт с този имейл. Влез или използвай „Забравена парола?".' :
                     err.code === 'auth/too-many-requests'
-                        ? 'Твърде много опити. Изчакайте малко и опитайте отново.' :
+                        ? 'Твърде много опити. Изчакай малко и опитай отново.' :
                     err.code === 'auth/weak-password'
-                        ? 'Паролата е твърде слаба. Използвайте поне 6 символа.' :
+                        ? 'Паролата е твърде слаба. Използвай поне 6 символа.' :
                     err.code === 'auth/network-request-failed'
-                        ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                        ? 'Мрежова грешка. Провери интернет връзката си.' :
                     err.code === 'auth/unauthorized-domain'
-                        ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
-                    'Грешка при вход. Опитайте отново.'
+                        ? 'Домейнът не е оторизиран. Свържи се с администратора.' :
+                    'Грешка при вход. Опитай отново.'
                 );
             } finally {
                 if (btn) btn.disabled = false;
@@ -4590,7 +4590,7 @@
             const email = (document.getElementById('loginEmailInput')?.value || '').trim().toLowerCase();
             const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
             if (!emailRe.test(email)) {
-                loginShowError('Въведете имейл адреса си в полето по-горе, след което натиснете „Забравена парола?".');
+                loginShowError('Въведи имейл адреса си в полето по-горе, след което натиснеш „Забравена парола?".');
                 return;
             }
             loginClearMessages();
@@ -4604,13 +4604,13 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    loginShowError(data.error || 'Грешка при изпращане на имейл. Моля опитайте отново.');
+                    loginShowError(data.error || 'Грешка при изпращане на имейл. Моля опитай отново.');
                 } else {
-                    loginShowSuccess('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                    loginShowSuccess('Ако имаш акаунт с този имейл, ще получиш линк за нулиране на паролата. Провери входящата поща и папката за спам.');
                 }
             } catch (err) {
                 console.error('Password reset error:', err);
-                loginShowError('Мрежова грешка. Проверете интернет връзката си.');
+                loginShowError('Мрежова грешка. Провери интернет връзката си.');
             } finally {
                 if (btn) btn.disabled = false;
             }

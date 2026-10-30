@@ -406,7 +406,7 @@ export function exchangeCode(fetchFn, env, provider, { code, redirectUri, verifi
 }
 
 export async function refreshToken(fetchFn, env, provider, link) {
-  if (!link?.refresh) throw new Error('Няма токен за подновяване — свържете профила отново');
+  if (!link?.refresh) throw new Error('Няма токен за подновяване — свържи профила отново');
   const t = await tokenRequest(fetchFn, env, provider, { grant_type: 'refresh_token', refresh_token: link.refresh });
   return { ...link, ...t, refresh: t.refresh || link.refresh };
 }

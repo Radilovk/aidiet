@@ -115,7 +115,7 @@
             '<div class="aup-icon" aria-hidden="true"><i class="fas fa-arrow-up-from-bracket"></i></div>' +
             '<h2 class="aup-title" id="aupTitle">Има нова версия на приложението</h2>' +
             '<p class="aup-text">Версия ' + esc(rel.version) + ' е готова (сега: build ' + esc(current) + '). ' +
-            'Обновете, за да виждате същото като в уеб версията — новите екрани, поправки и данни. Планът и профилът остават.</p>' +
+            'Обнови, за да виждаш същото като в уеб версията — новите екрани, поправки и данни. Планът и профилът остават.</p>' +
             '<div class="aup-actions">' +
             '<a class="aup-btn aup-primary" href="' + esc(rel.url) + '" data-act="get"><i class="fab fa-android"></i>Изтегли и инсталирай</a>' +
             '<button type="button" class="aup-btn aup-ghost" data-act="later">По-късно</button>' +

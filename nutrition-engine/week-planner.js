@@ -342,7 +342,7 @@ function toPlanMeal(type, dish, built, withDessert = false) {
     if (steps.tip) meal.recipeTip = steps.tip;
     meal.recipe = steps.steps.join(' ');
   } else {
-    const recipe = [dish.prep, built.flavour?.length ? `Овкусете с: ${built.flavour.join(', ')}.` : '']
+    const recipe = [dish.prep, built.flavour?.length ? `Овкуси с: ${built.flavour.join(', ')}.` : '']
       .filter(Boolean).join(' ');
     if (recipe) meal.recipe = recipe;
   }

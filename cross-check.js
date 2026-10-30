@@ -30,7 +30,7 @@ export const IRIS_SYSTEMS = {
     text: /подув|газ(ове|ов)|тежест|киселин|запек|диари|рефлукс|колит|гастрит|храносмил/i,
     action: 'gentle_digestion',
     actionLabel: 'щадящо храносмилането меню',
-    ask: 'AIRIS отбелязва храносмилането като приоритет, а във въпросника няма оплаквания. Имате ли подуване, тежест, киселини или нередовно изхождане?',
+    ask: 'AIRIS отбелязва храносмилането като приоритет, а във въпросника няма оплаквания. Имаш ли подуване, тежест, киселини или нередовно изхождане?',
   },
   metabolic: {
     label: 'Обмяна (захар и мазнини)',
@@ -43,7 +43,7 @@ export const IRIS_SYSTEMS = {
     // (въпросникът събира „Рефлукс“ в общия код GI, затова и текстът).
     guard: ['GERD', 'GAST'],
     guardText: /рефлукс|киселин|гастрит|херни/i,
-    ask: 'AIRIS отбелязва обмяната като приоритет, а във въпросника няма оплаквания. Имате ли рязък глад или сънливост след хранене, или повишена захар или холестерол при изследване?',
+    ask: 'AIRIS отбелязва обмяната като приоритет, а във въпросника няма оплаквания. Имаш ли рязък глад или сънливост след хранене, или повишена захар или холестерол при изследване?',
   },
   nervous: {
     label: 'Нервна система (стрес и сън)',
@@ -52,7 +52,7 @@ export const IRIS_SYSTEMS = {
     signals: ['recovery_low', 'sleep_short'],
     behaviors: ['EMO'],
     action: null,
-    ask: 'AIRIS отбелязва нервната система като приоритет, а във въпросника стресът е нисък. Чувствате ли се напрегнати или изтощени през повечето дни?',
+    ask: 'AIRIS отбелязва нервната система като приоритет, а във въпросника стресът е нисък. Чувстваш ли напрежение или изтощение през повечето дни?',
   },
   circulatory: { label: 'Кръвообращение', codes: ['HTN', 'CVD', 'DYSL'], signals: ['bp_high'], text: /кръвно|сърдеч/i, action: null },
   endocrine: { label: 'Ендокринна система', codes: ['HYPO', 'HYPER', 'ENDO', 'PCOS', 'HORM', 'ADR', 'MENO'], text: /щитовид|хормон|цикъл/i, action: null },
@@ -153,7 +153,7 @@ export function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[id];
       if (answer === 'yes') overrides.dietDislike = [overrides.dietDislike || data?.dietDislike, t].filter(Boolean).join(', ');
       else if (!answer) {
-        questions.push({ id, source: 'airis', topic: 'Непоносимост', text: `В AIRIS сте посочили непоносимост или алергия към „${t}“, а в NutriPlan я няма. Да я изключим ли от плана?`, options: [{ value: 'yes', label: 'Да, изключи я' }, { value: 'no', label: 'Не е актуално' }] });
+        questions.push({ id, source: 'airis', topic: 'Непоносимост', text: `В AIRIS е посочена непоносимост или алергия към „${t}“, а в NutriPlan я няма. Да я изключим ли от плана?`, options: [{ value: 'yes', label: 'Да, изключи я' }, { value: 'no', label: 'Не е актуално' }] });
       }
     }
     if (q.medications && data?.medications !== 'Да') {
@@ -165,7 +165,7 @@ export function crossCheck(data, derived, resolutions = {}) {
         overrides.medications = 'Да';
         overrides.medicationsDetails = [data?.medicationsDetails, q.medications].filter(Boolean).join('; ');
       } else if (!answer) {
-        questions.push({ id: medsId, source: 'airis', topic: 'Лекарства', text: `В AIRIS сте посочили „${q.medications.slice(0, 120)}“, а в NutriPlan — че не приемате лекарства. Приемате ли ги в момента?`, options: [{ value: 'yes', label: 'Да, приемам ги' }, { value: 'no', label: 'Не, вече не' }] });
+        questions.push({ id: medsId, source: 'airis', topic: 'Лекарства', text: `В AIRIS са посочени „${q.medications.slice(0, 120)}“, а в NutriPlan — че не приемаш лекарства. Приемаш ли ги в момента?`, options: [{ value: 'yes', label: 'Да, приемам ги' }, { value: 'no', label: 'Не, вече не' }] });
       }
     }
     const npDiet = asList(data?.dietPreference);
@@ -175,7 +175,7 @@ export function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[id];
       if (answer === 'yes') overrides.dietPreference = [...new Set([...npDiet, npLabel])];
       else if (!answer) {
-        questions.push({ id, source: 'airis', topic: 'Режим на хранене', text: `В AIRIS сте посочили ${npLabel.toLowerCase()} режим, а в NutriPlan — не. Да го приложим ли в плана?`, options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Не' }] });
+        questions.push({ id, source: 'airis', topic: 'Режим на хранене', text: `В AIRIS е посочен ${npLabel.toLowerCase()} режим, а в NutriPlan — не. Да го приложим ли в плана?`, options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Не' }] });
       }
       break;
     }
@@ -196,7 +196,7 @@ export function crossCheck(data, derived, resolutions = {}) {
   const strong = v && v.reliable !== false && (v.intensity === 'Силно' || v.intensity === 'Осезаемо');
   const rarely = ['Рядко', 'Никога'].includes(data?.overeatingFrequency) && (!asList(data?.foodTriggers).length || said(data, 'foodTriggers', ['Нито едно']));
   if (strong && rarely && !resolutions.emoeat_vs_q) {
-    questions.push({ id: 'emoeat_vs_q', source: 'emoeat', topic: 'Емоционално хранене', text: 'EmoEat показва, че храната често идва в отговор на емоции, а във въпросника сте отбелязали, че рядко ядете повече от планираното. Кое е по-близо до вас?', options: [{ value: 'often', label: 'Често ям при напрежение, умора или скука' }, { value: 'rare', label: 'Рядко — не се разпознавам' }] });
+    questions.push({ id: 'emoeat_vs_q', source: 'emoeat', topic: 'Емоционално хранене', text: 'EmoEat показва, че храната често идва в отговор на емоции, а във въпросника е отбелязано, че рядко ядеш повече от планираното. Кое е по-близо до теб?', options: [{ value: 'often', label: 'Често ям при напрежение, умора или скука' }, { value: 'rare', label: 'Рядко — не се разпознавам' }] });
   }
 
   // ── 4. Крачките: телефонът срещу гривната/часовника ─────────────────

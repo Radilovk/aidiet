@@ -15,13 +15,13 @@
 
     var APPS = [
         { id: 'samsung', name: 'Samsung Health', pkg: 'com.sec.android.app.shealth', hc: true,
-          hcSetup: 'Настройки → Health Connect → разрешете споделянето.' },
+          hcSetup: 'Настройки → Health Connect → разреши споделянето.' },
         { id: 'googlefit', name: 'Google Fit', pkg: 'com.google.android.apps.fitness', hc: true },
         { id: 'fitbit', name: 'Fitbit', pkg: 'com.fitbit.FitbitMobile', hc: true, cloud: 'fitbit' },
         { id: 'garmin', name: 'Garmin Connect', pkg: 'com.garmin.android.apps.connectmobile', hc: true,
-          hcSetup: 'Още → Настройки → Health Connect → включете.' },
+          hcSetup: 'Още → Настройки → Health Connect → включи.' },
         { id: 'mifitness', name: 'Mi Fitness', pkg: 'com.xiaomi.wearable', hc: true,
-          hcSetup: 'Профил → настройки за данни → Health Connect → включете синхронизацията.' },
+          hcSetup: 'Профил → настройки за данни → Health Connect → включи синхронизацията.' },
         { id: 'zepplife', name: 'Zepp Life', pkg: 'com.xiaomi.hm.health', hc: true },
         { id: 'zepp', name: 'Zepp (Amazfit)', pkg: 'com.huami.watch.hmwatchmanager', hc: true },
         { id: 'oura', name: 'Oura', pkg: 'com.ouraring.oura', hc: true, cloud: 'oura' },
@@ -33,7 +33,7 @@
         { id: 'mfp', name: 'MyFitnessPal', pkg: 'com.myfitnesspal.android', hc: true },
         // Мост: прехвърля данните на Huawei/Honor (и др.) в Health Connect.
         { id: 'healthsync', name: 'Health Sync', pkg: 'nl.appyhapps.healthsync', hc: true,
-          hcSetup: 'изберете Huawei Health като източник и Health Connect като цел.' },
+          hcSetup: 'избери Huawei Health като източник и Health Connect като цел.' },
         // Не пишат в Health Connect сами — през Health Sync, иначе файл/снимка.
         { id: 'huawei', name: 'Huawei Health', pkg: 'com.huawei.health', hc: false, bridge: 'healthsync' },
         { id: 'honor', name: 'Honor Health', pkg: 'com.hihonor.health', hc: false, bridge: 'healthsync' }
