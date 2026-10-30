@@ -29,7 +29,8 @@ const BODIES = [
   { gender: 'Мъж', age: 58, height: 172, weight: 88 },
   { gender: 'Мъж', age: 71, height: 170, weight: 72 },
 ];
-const ACTIVITY = ['Ниска (0–1 ден седмично)', 'Средна (2–4 дни седмично)', 'Висока (5+ дни седмично)'];
+// Точните опции от въпросника (questionnaire2.html) — друг текст не се разпознава и тества само ниска активност.
+const ACTIVITY = ['Никаква (0 дни седмично)', 'Ниска (1–2 дни седмично)', 'Средна (2–4 дни седмично)', 'Висока (5–7 дни седмично)'];
 const DIETS = [null, 'Вегетарианска', 'Веган', 'Пескетарианска', 'Кето', 'Нисковъглехидратна', 'Средиземноморска', 'DASH',
   'Високопротеинова', 'Без глутен', 'Без млечни', 'Low-FODMAP', 'Палео'];
 const G = 'Храносмилателни проблеми';
@@ -91,7 +92,7 @@ function makeProfile(i) {
   const diet = DIETS[(i * 5 + 2) % DIETS.length];
   let cond = CONDITIONS[(i * 11) % CONDITIONS.length];
   const allergy = ALLERGIES[(i * 13 + 3) % ALLERGIES.length];
-  const activity = ACTIVITY[(i * 2) % ACTIVITY.length];
+  const activity = ACTIVITY[(i * 3) % ACTIVITY.length];
   const skip = i % 7 === 0;
   const sweets = i % 5 === 0;
   let { gender, age } = body;
@@ -125,6 +126,7 @@ for (let i = 0; i < N; i++) {
   if (meta.allergy) bump(`алергия:${meta.allergy.excl}`);
   bump(`възраст:${meta.age < 35 ? '<35' : meta.age < 55 ? '35-54' : '55+'}`);
   bump(`тегло:${meta.weight >= 100 ? '100+' : meta.weight < 65 ? '<65' : '65-99'}`);
+  bump(`спорт:${prof.activity.sportBand}`);
 
   // 1. Класификация: разпознати ли са състоянието, алергията и диетата?
   if (meta.cond && !prof.clinical.includes(meta.cond.code)) fail('класификация: състоянието не е разпознато', meta.cond.code);

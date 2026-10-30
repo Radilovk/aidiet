@@ -74,6 +74,12 @@ const CARB_CEILING_METABOLIC = 0.30;
 const CARB_CEILING_OBESE = 0.35;
 const CARB_CEILING_RISK = ['IR', 'T2D', 'METS', 'PCOS', 'NAFLD'];
 const CARB_CEILING_PROTEIN_PER_KG = 2.2;
+/**
+ * Веган: тофу, бобови и сейтан носят белтък заедно с въглехидрати — менюто
+ * реално стига до ~25% от енергията. Над това целта е недостижима (менютата
+ * излизаха на 70–85% от белтъка), затова таванът премества излишъка в мазнините.
+ */
+const VEGAN_CEILING_PROTEIN_SHARE = 0.25;
 const CARB_CEILING_FAT_EXTRA = 0.08;
 // Кърменето (PP) не е тук: там въглехидратите не се ограничават.
 const LOSS_GOALS = ['LOSS', 'VISC', 'CELL'];
@@ -171,7 +177,8 @@ export function macroTargetsFor(profile, kcal) {
   const maxCarbs = ceiling ? Math.round(energy * ceiling / 4) : Infinity;
   if (carbs > maxCarbs) {
     let excess = carbs - maxCarbs; // г въглехидрати = kcal / 4
-    const proteinRoom = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * maxProteinShare / 4)) - protein);
+    const proteinShare = profile.diet?.pattern === 'vegan' ? Math.min(maxProteinShare, VEGAN_CEILING_PROTEIN_SHARE) : maxProteinShare;
+    const proteinRoom = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * proteinShare / 4)) - protein);
     const proteinAdd = Math.min(proteinRoom, excess);
     protein += proteinAdd;
     excess -= proteinAdd;

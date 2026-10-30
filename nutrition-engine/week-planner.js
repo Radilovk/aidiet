@@ -18,6 +18,7 @@ import { normalizeFoodKey } from '../food-utils.js';
 import { FREE_MEAL, FIXED_DESSERT, FIXED_DESSERT_WEIGHT_GRAMS, morningDrinkFor } from './plan-shape.js';
 import { mealBenefits } from './benefits.js';
 import { renderRecipe } from './recipes.js';
+import { LATE_SNACK_MAX_KCAL } from './prescription.js';
 
 export const MEAL_KIND = {
   'Хранене 1': 'breakfast',
@@ -31,12 +32,18 @@ const CANDIDATES_PER_MEAL = 12;
 /** Колко тежи липсата на капацитет по група при предварителното подреждане. */
 const FIT_WEIGHTS = { PRO: 2, STA: 1.2, FRU: 0.8, MLK: 0.8, VEG: 0.4, FAT: 0.6 };
 const CARRY_LIMIT = 0.4;
-const LATE_SNACK_MAX_KCAL = 175;
 const SNACK_BAN = /пилеш|говежд|свинск|риба|сьомга|скумри|пъстърва|хек|треска|тилапи|ориз|паста|хляб|галети|бял|захар|мед\b|сироп|шоколад|кус-кус|булгур/;
 /** Колко пъти седмично едно ястие може да се повтори в даден вид хранене. */
 const MAX_USES_PER_WEEK = { main: 2, breakfast: 3, snack: 3, late: 3 };
 /** Над тези калории порциите в ястията растат пропорционално. */
 const APPETITE_BASE_KCAL = 1800;
+/**
+ * Колко носи обичайно едно хранене от вида — рецептите са оразмерени за него.
+ * Хранене с по-голяма цел (без закуска денят е в две основни хранения по
+ * 800–1000 kcal) получава по-голяма чиния, иначе месото спираше на 150 г и
+ * денят падаше с 10–15%.
+ */
+const KIND_BASE_KCAL = { main: 550, breakfast: 450, snack: 250, late: 150 };
 
 /* ─── Детерминистичен случаен ред ─────────────────────────────────────── */
 
@@ -722,6 +729,8 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       };
       const avoid = slotAvoid.filter(a => a.day === day && a.type === type).flatMap(a => a.avoid);
       let slotCtx = kind === 'snack' ? snackCtx : ctx;
+      const slotAppetite = Math.max(slotCtx.appetite || 1, kcalOf(target) / (KIND_BASE_KCAL[kind] || 550));
+      if (slotAppetite > (slotCtx.appetite || 1)) slotCtx = { ...slotCtx, appetite: slotAppetite };
       // Протеин на прах — най-много веднъж на ден.
       if (state.supplementToday) {
         const basePolicy = slotCtx.policy;

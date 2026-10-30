@@ -10,9 +10,13 @@
  */
 
 import { GROUPS, KCAL_LEVELS, DISTRIBUTIONS, MEAL_BOUNDS } from './knowledge.js';
+import { slotCeilingKcal } from '../plan-normalize.js';
 
 export const PLANNED_GROUPS = ['STA', 'FRU', 'MLK', 'VEG', 'PRO', 'FAT', 'SWT'];
 const MACROS = ['protein', 'carbs', 'fats'];
+/** Късната закуска е лека — най-много толкова kcal. */
+export const LATE_SNACK_MAX_KCAL = 175;
+const SNACK_SLOTS = ['Хранене 3', 'Хранене 5'];
 
 const roundHalf = x => Math.round(x * 2) / 2;
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
@@ -187,6 +191,35 @@ export function quotaTarget(quota) {
 }
 
 /**
+ * Междинните хранения имат таван (следобедната — до 15% от деня, 350–450 kcal;
+ * късната — 175 kcal), който спазва и изравняването на деня. Над него целта им
+ * е невъзможна: при 2800+ kcal закуската получаваше 600–800 kcal, а
+ * остатъкът се губеше и денят падаше с 6–20%. Излишъкът отива в основните
+ * хранения и закуската, по макрос пропорционално на целите им.
+ */
+function capSnackTargets(meals, slots, dailyKcal) {
+  const excess = { protein: 0, carbs: 0, fats: 0 };
+  for (const s of slots.filter(x => SNACK_SLOTS.includes(x))) {
+    const t = meals[s].target;
+    const cap = s === 'Хранене 5' ? Math.min(slotCeilingKcal(s, dailyKcal), LATE_SNACK_MAX_KCAL) : slotCeilingKcal(s, dailyKcal);
+    if (!(t.kcal > cap)) continue;
+    const f = cap / t.kcal;
+    for (const k of MACROS) { excess[k] += t[k] * (1 - f); t[k] *= f; }
+    t.kcal = cap;
+  }
+  const receivers = slots.filter(x => !SNACK_SLOTS.includes(x));
+  if (!receivers.length) return;
+  for (const k of MACROS) {
+    const sum = receivers.reduce((a, s) => a + meals[s].target[k], 0);
+    for (const s of receivers) meals[s].target[k] += excess[k] * (sum > 0 ? meals[s].target[k] / sum : 1 / receivers.length);
+  }
+  for (const s of receivers) {
+    const t = meals[s].target;
+    t.kcal = t.protein * 4 + t.carbs * 4 + t.fats * 9;
+  }
+}
+
+/**
  * Пълното предписание за деня.
  * @param {{ kcal: number, macros: { protein: number, carbs: number, fats: number } }} target
  * @param {string[]} slots
@@ -213,5 +246,6 @@ export function prescribe(target, slots, policy, options = {}) {
       target: { ...t, kcal: t.protein * 4 + t.carbs * 4 + t.fats * 9 },
     };
   }
+  capSnackTargets(meals, finalSlots, target.kcal);
   return { kcal: target.kcal, macros: target.macros, daily, slots: finalSlots, addedSlots: added, meals, mealScale: Number(options.mealScale) || 1 };
 }

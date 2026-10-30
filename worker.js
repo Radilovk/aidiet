@@ -39839,6 +39839,7 @@ var CARB_CEILING_METABOLIC = 0.3;
 var CARB_CEILING_OBESE = 0.35;
 var CARB_CEILING_RISK = ["IR", "T2D", "METS", "PCOS", "NAFLD"];
 var CARB_CEILING_PROTEIN_PER_KG = 2.2;
+var VEGAN_CEILING_PROTEIN_SHARE = 0.25;
 var CARB_CEILING_FAT_EXTRA = 0.08;
 var LOSS_GOALS = ["LOSS", "VISC", "CELL"];
 function carbCeilingShare(profile) {
@@ -39909,7 +39910,8 @@ function macroTargetsFor(profile, kcal) {
   const maxCarbs = ceiling ? Math.round(energy * ceiling / 4) : Infinity;
   if (carbs > maxCarbs) {
     let excess = carbs - maxCarbs;
-    const proteinRoom = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * maxProteinShare / 4)) - protein);
+    const proteinShare = profile.diet?.pattern === "vegan" ? Math.min(maxProteinShare, VEGAN_CEILING_PROTEIN_SHARE) : maxProteinShare;
+    const proteinRoom = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * proteinShare / 4)) - protein);
     const proteinAdd = Math.min(proteinRoom, excess);
     protein += proteinAdd;
     excess -= proteinAdd;
@@ -41099,6 +41101,8 @@ function buildFoodPolicy(profile, options = {}) {
 // nutrition-engine/prescription.js
 var PLANNED_GROUPS = ["STA", "FRU", "MLK", "VEG", "PRO", "FAT", "SWT"];
 var MACROS = ["protein", "carbs", "fats"];
+var LATE_SNACK_MAX_KCAL = 175;
+var SNACK_SLOTS = ["\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3", "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5"];
 var roundHalf = (x) => Math.round(x * 2) / 2;
 var clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 function interpolate(values, kcal) {
@@ -41221,6 +41225,30 @@ function quotaTarget(quota) {
   }
   return t;
 }
+function capSnackTargets(meals, slots, dailyKcal) {
+  const excess = { protein: 0, carbs: 0, fats: 0 };
+  for (const s of slots.filter((x) => SNACK_SLOTS.includes(x))) {
+    const t = meals[s].target;
+    const cap = s === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5" ? Math.min(slotCeilingKcal(s, dailyKcal), LATE_SNACK_MAX_KCAL) : slotCeilingKcal(s, dailyKcal);
+    if (!(t.kcal > cap)) continue;
+    const f = cap / t.kcal;
+    for (const k of MACROS) {
+      excess[k] += t[k] * (1 - f);
+      t[k] *= f;
+    }
+    t.kcal = cap;
+  }
+  const receivers = slots.filter((x) => !SNACK_SLOTS.includes(x));
+  if (!receivers.length) return;
+  for (const k of MACROS) {
+    const sum = receivers.reduce((a, s) => a + meals[s].target[k], 0);
+    for (const s of receivers) meals[s].target[k] += excess[k] * (sum > 0 ? meals[s].target[k] / sum : 1 / receivers.length);
+  }
+  for (const s of receivers) {
+    const t = meals[s].target;
+    t.kcal = t.protein * 4 + t.carbs * 4 + t.fats * 9;
+  }
+}
 function prescribe(target, slots, policy, options = {}) {
   const daily = dailyExchanges({ ...target, extraVeg: options.extraVeg }, policy);
   const { quotas, slots: finalSlots, added } = distributeExchanges(daily, slots, policy, { ...options, kcal: target.kcal });
@@ -41238,6 +41266,7 @@ function prescribe(target, slots, policy, options = {}) {
       target: { ...t, kcal: t.protein * 4 + t.carbs * 4 + t.fats * 9 }
     };
   }
+  capSnackTargets(meals, finalSlots, target.kcal);
   return { kcal: target.kcal, macros: target.macros, daily, slots: finalSlots, addedSlots: added, meals, mealScale: Number(options.mealScale) || 1 };
 }
 
@@ -42650,7 +42679,9 @@ function portionLine(foodId, grams) {
 var COOKING_FAT_COOK_MAX_G = 20;
 var COOKING_FAT_KETO_MAX_G = 30;
 var ADJUSTABLE = /* @__PURE__ */ new Set(["STA", "LEG", "PRO", "FAT"]);
+var SNACK_ADJUSTABLE = /* @__PURE__ */ new Set([...ADJUSTABLE, "MLK", "FRU"]);
 var APPETITE_GROUPS = /* @__PURE__ */ new Set(["STA", "LEG", "PRO", "VEG"]);
+var SNACK_APPETITE_GROUPS = /* @__PURE__ */ new Set([...APPETITE_GROUPS, "MLK", "FRU", "FAT"]);
 function totalsOf(parts, fixed) {
   const t = { kcal: 0, protein: 0, carbs: 0, fats: 0 };
   const add = (id, g) => {
@@ -42813,6 +42844,7 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   const parts = [];
   let carbId = null;
   const refs = partRefs(dish);
+  const snackLike = mealKind === "snack" || mealKind === "late";
   for (let i = 0; i < dish.parts.length; i++) {
     const spec = dish.parts[i];
     if (spec.onlyStyles && !spec.onlyStyles.includes(ctx.policy.style)) continue;
@@ -42836,12 +42868,14 @@ function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
       carbId = carb;
     }
     const fatScale = spec.group === "FAT" ? ctx.policy.styleDef.fatPartScale || 1 : 1;
-    const sizeScale = APPETITE_GROUPS.has(spec.group) ? ctx.appetite || 1 : fatScale;
+    const grows = (snackLike ? SNACK_APPETITE_GROUPS : APPETITE_GROUPS).has(spec.group);
+    const sizeScale = grows ? Math.max(ctx.appetite || 1, fatScale) : fatScale;
     parts.push(makePart(spec.group, option, [spec.range[0], spec.range[1] * sizeScale], {
       with: spec.with,
       ref: refs[i],
-      weight: parts.some((p) => p.group === spec.group) ? 0.5 : 1
-    }, fatScale, APPETITE_GROUPS.has(spec.group) ? ctx.appetite || 1 : 1));
+      weight: parts.some((p) => p.group === spec.group) ? 0.5 : 1,
+      adjustable: (snackLike ? SNACK_ADJUSTABLE : ADJUSTABLE).has(spec.group)
+    }, fatScale, grows ? ctx.appetite || 1 : 1));
   }
   const fixedAll = dish.fixed.filter(([id]) => ctx.policy.allowed(id));
   const flavour = fixedAll.filter(([id]) => food(id).group === "FREE").map(([id]) => food(id).label);
@@ -42933,10 +42967,10 @@ var MEAL_KIND = {
 var CANDIDATES_PER_MEAL = 12;
 var FIT_WEIGHTS = { PRO: 2, STA: 1.2, FRU: 0.8, MLK: 0.8, VEG: 0.4, FAT: 0.6 };
 var CARRY_LIMIT = 0.4;
-var LATE_SNACK_MAX_KCAL = 175;
 var SNACK_BAN = /пилеш|говежд|свинск|риба|сьомга|скумри|пъстърва|хек|треска|тилапи|ориз|паста|хляб|галети|бял|захар|мед\b|сироп|шоколад|кус-кус|булгур/;
 var MAX_USES_PER_WEEK = { main: 2, breakfast: 3, snack: 3, late: 3 };
 var APPETITE_BASE_KCAL = 1800;
+var KIND_BASE_KCAL = { main: 550, breakfast: 450, snack: 250, late: 150 };
 function hashSeed(value) {
   const s = String(value ?? "");
   let h = 2166136261;
@@ -43475,6 +43509,8 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       };
       const avoid = slotAvoid.filter((a) => a.day === day && a.type === type).flatMap((a) => a.avoid);
       let slotCtx = kind === "snack" ? snackCtx : ctx;
+      const slotAppetite = Math.max(slotCtx.appetite || 1, kcalOf(target) / (KIND_BASE_KCAL[kind] || 550));
+      if (slotAppetite > (slotCtx.appetite || 1)) slotCtx = { ...slotCtx, appetite: slotAppetite };
       if (state.supplementToday) {
         const basePolicy = slotCtx.policy;
         slotCtx = { ...slotCtx, policy: { ...basePolicy, allowed: (id) => basePolicy.allowed(id) && !food(id).flags.has("supplement") } };
