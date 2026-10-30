@@ -726,7 +726,7 @@
             <div class="game-analytics-header">
                 <div class="game-analytics-title">
                     <i class="fas fa-bullseye"></i>
-                    <span>За целта ти</span>
+                    <span>За Вашата цел</span>
                 </div>
                 <span id="goalFocusBadge" class="game-analytics-badge"></span>
             </div>
@@ -908,8 +908,8 @@
                 var got = (window.NutriPlanHealth && window.NutriPlanHealth.describeLast) ? window.NutriPlanHealth.describeLast() : '';
                 body.innerHTML = indicesHtml + (connected
                     ? '<div class="gf-empty"><span>Устройството е свързано' + (got ? ' · получено: ' + gfEsc(got) : '') + '. Изводите от измерванията се появяват при поне 4 дни данни.</span></div>'
-                    : '<div class="gf-empty"><span>Свържи гривна, часовник или везна — индексите стават по-точни.</span>' +
-                      '<button type="button" onclick="gfOpenDevices()">Свържи</button></div>');
+                    : '<div class="gf-empty"><span>Свържете гривна, часовник или везна — индексите стават по-точни.</span>' +
+                      '<button type="button" onclick="gfOpenDevices()">Свържете</button></div>');
             } else {
                 var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], coachNote: src.coachNote || '' });
                 v.cards.forEach(function (c) { c.tone = softTone(c.tone); });
@@ -980,6 +980,15 @@
             try { allData = JSON.parse(localStorage.getItem('gameData') || '{}'); } catch(e) {}
 
             var days = GS.buildLast7Days(allData, todayKey);
+            // Дните преди първия запис не са „пропуснати“ — клиентът още не е започнал.
+            var firstKey = Object.keys(allData).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k) && allData[k]; }).sort()[0] || null;
+            if (!firstKey) {
+                body.innerHTML = '<div class="game-encourage-note ga-card-enter"><i class="fas fa-seedling" style="color:#0D9488"></i> Анализът започва с първия отбелязан ден. Отбелязвайте храненията и отговаряйте на сутрешния и вечерния въпрос — тук ще видите навиците, калорийния баланс и тенденцията.</div>';
+                if (badge) badge.textContent = 'Начало';
+                window._gaChecks = {};
+                renderGoalFocus();
+                return;
+            }
             // Същите формули като на сървъра (решенията за плана се вземат там).
             var summary = GS.weekSummary(allData, todayKey);
             var waterGoalText = (function(){
@@ -996,7 +1005,7 @@
             var avgScore   = validScores.length>0 ? Math.round(validScores.reduce(function(a,s){return a+s.score;},0)/validScores.length*10)/10 : 0;
 
             var engPcts = days.map(function(d){ return d.rec ? calcDayScore(d.rec).engPct : null; });
-            var noDataDaysCount = days.filter(function(d){ return !d.rec; }).length;
+            var noDataDaysCount = days.filter(function(d){ return !d.rec && d.key >= firstKey && d.key < todayKey; }).length;
             var engForAvg = days.filter(function(d){ return d.rec; }).map(function(d){ return calcDayScore(d.rec).engPct; });
             var engagementPct = engForAvg.length
                 ? Math.round(engForAvg.reduce(function(a,b){return a+b;},0) / engForAvg.length)
@@ -1159,7 +1168,8 @@
             // ── Alerts ────────────────────────────────────────────────────────
             var alerts = [];
             var missedLast2 = days.slice(-2).filter(function(d){
-                if (!d.rec) return true;
+                if (d.key < firstKey) return false;
+                if (!d.rec) return d.key !== todayKey;
                 var s = calcDayScore(d.rec);
                 return s.score !== null && s.score < 2;
             });
@@ -1176,7 +1186,7 @@
             else if (engagementPct<60)                 { leadingCriterion='';             encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвайте храненията по план — резултатите идват!'; }
             else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-heart-pulse" style="color:#10b981"></i> Седмицата е напрегната. Няколко минути спокойно дишане или разходка вечер помагат — и не се наказвайте за пропуснато хранене.'; }
             else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотно! Продължавайте в същия дух — резултатите идват!'; }
-            if (badge) badge.textContent = leadingCriterion || (validScores.length+' дни');
+            if (badge) badge.textContent = leadingCriterion || (validScores.length + (validScores.length === 1 ? ' ден' : ' дни'));
 
             // ── Explanation modal ─────────────────────────────────────────────
             // Обясненията са без измислени проценти и „изследвания“: само това, което
@@ -1381,7 +1391,9 @@
 
             var hasDeficit = calBalanceByDay.some(function(v){ return v!==null && v<-50; });
             var calBalanceLabel;
-            if (netCalBalance === 0 && !hasDeficit) {
+            if (!calBalanceByDay.some(function(v){ return v !== null; })) {
+                calBalanceLabel = '<i class="fas fa-circle-info" style="color:#94a3b8"></i> Няма данни';
+            } else if (netCalBalance === 0 && !hasDeficit) {
                 calBalanceLabel = '<i class="fas fa-check-circle" style="color:#10b981"></i> Балансиран';
             } else if (netCalBalance > 0) {
                 calBalanceLabel = netCalBalance < 700
