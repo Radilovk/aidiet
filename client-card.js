@@ -165,7 +165,7 @@ export function buildClientCard(clientData, options = {}) {
   };
 }
 
-/** @typedef {'voice'|'profile'|'profile_full'|'health'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
+/** @typedef {'today'|'voice'|'profile'|'profile_full'|'health'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
 
 const CHAT_SECTION_ORDER = /** @type {const} */ ([
   'today', 'voice', 'profile', 'profile_full', 'health', 'summary', 'meals', 'analysis', 'strategy',
