@@ -7,12 +7,14 @@
  *   node scripts/apple-connect.mjs status      the app, its versions and builds (state of each)
  *   node scripts/apple-connect.mjs certs       the distribution certificates and App Store profiles of the account
  *   node scripts/apple-connect.mjs metadata    fills the store page (texts, URLs, category, age rating, free price, review notes, newest build)
+ *   node scripts/apple-connect.mjs screenshots uploads studio-app/store/*.png (1290x2796) as the iPhone screenshots of version 1.0
  *   node scripts/apple-connect.mjs delete-cert <id>   deletes one certificate (e.g. a leftover of a failed run)
  *
  * Env: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (the text of AuthKey_XXXX.p8). Nothing secret is printed.
  */
 import { createPrivateKey, sign } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const { APPSTORE_KEY_ID: KEY_ID, APPSTORE_ISSUER_ID: ISSUER, APPSTORE_KEY_P8: P8 } = process.env;
 const cfg = JSON.parse(readFileSync(new URL('../studio-app/capacitor.config.json', import.meta.url), 'utf8'));
@@ -217,13 +219,40 @@ try {
         console.log(`✓ тестер: ${u.attributes.firstName} ${u.attributes.lastName} (${em.replace(/^(.).*(@.*)$/, '$1***$2')})`);
       } catch (e) { console.log(`• ${em.replace(/^(.).*(@.*)$/, '$1***$2')}: ${String(e.message).slice(0, 160)}`); }
     }
+  } else if (action === 'screenshots') {
+    const app = (await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`)).data[0];
+    if (!app) fail('Няма приложение в App Store Connect.');
+    const vers = (await api('GET', `/v1/apps/${app.id}/appStoreVersions?limit=10`)).data;
+    const ver = vers.find((v) => /PREPARE_FOR_SUBMISSION|DEVELOPER_REJECTED|REJECTED/.test(v.attributes.appStoreState || '')) || vers[0];
+    const locs = (await api('GET', `/v1/appStoreVersions/${ver.id}/appStoreVersionLocalizations`)).data;
+    const loc = locs.find((l) => l.attributes.locale === (app.attributes.primaryLocale || 'en-US')) || locs[0];
+    const type = 'APP_IPHONE_67';
+    const sets = (await api('GET', `/v1/appStoreVersionLocalizations/${loc.id}/appScreenshotSets`)).data;
+    let set = sets.find((x) => x.attributes.screenshotDisplayType === type);
+    if (!set) set = (await api('POST', '/v1/appScreenshotSets', { data: { type: 'appScreenshotSets', attributes: { screenshotDisplayType: type },
+      relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: loc.id } } } } })).data;
+    for (const old of (await api('GET', `/v1/appScreenshotSets/${set.id}/appScreenshots`)).data) await api('DELETE', `/v1/appScreenshots/${old.id}`);
+    const dir = new URL('../studio-app/store/', import.meta.url);
+    const files = readdirSync(dir).filter((f) => /^\d.*\.png$/.test(f)).sort();
+    for (const f of files) {
+      const buf = readFileSync(new URL(f, dir));
+      const sh = await api('POST', '/v1/appScreenshots', { data: { type: 'appScreenshots', attributes: { fileName: f, fileSize: buf.length },
+        relationships: { appScreenshotSet: { data: { type: 'appScreenshotSets', id: set.id } } } } });
+      for (const op of sh.data.attributes.uploadOperations) {
+        const resp = await fetch(op.url, { method: op.method, headers: Object.fromEntries(op.requestHeaders.map((h) => [h.name, h.value])), body: buf.subarray(op.offset, op.offset + op.length) });
+        if (!resp.ok) throw new Error(`качване на ${f}: ${resp.status}`);
+      }
+      await api('PATCH', `/v1/appScreenshots/${sh.data.id}`, { data: { type: 'appScreenshots', id: sh.data.id, attributes: { uploaded: true, sourceFileChecksum: createHash('md5').update(buf).digest('hex') } } });
+      console.log(`✓ ${f}`);
+    }
+    console.log(`Качени ${files.length} скрийншота (${type}).`);
   } else if (action === 'delete-cert') {
     const id = String(process.argv[3] || '').trim();
     if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
     await api('DELETE', `/v1/certificates/${id}`);
     console.log(`✓ Изтрит сертификат ${id}`);
   } else {
-    fail('действие: check | bundle-id | status | certs | metadata | testflight | delete-cert');
+    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | delete-cert');
   }
 } catch (e) {
   fail(String(e.message).slice(0, 600));
