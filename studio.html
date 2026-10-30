@@ -18,7 +18,7 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+body { padding-top: env(safe-area-inset-top); padding-bottom: calc(96px + env(safe-area-inset-bottom)); }   /* the app's web view runs edge to edge (contentInset never): the page pads the notch itself */
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--brand); }
 .wrap { max-width: 560px; margin: 0 auto; padding: 0 16px; }
@@ -105,7 +105,7 @@ label.f textarea { min-height: 90px; resize: vertical; }
 .policy { font-size: 13px; color: var(--muted); background: var(--soft); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
 
 /* admin */
-.adm { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+.adm { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto; padding-top: env(safe-area-inset-top); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 .adm-top { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); }
 .adm-top .wrap { display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
 .adm-top h2 { margin: 0; font-size: 17px; flex: 1; }
@@ -523,8 +523,9 @@ details.sec > div { padding-bottom: 14px; }
   function policy() {
     const free = cfg.rules.freeCancelHours;
     const card = needCard() || (me.card && cfg.card);
-    return `<div class="policy">${card ? '<b>Сега не се тегли нищо</b> — картата е гаранция. ' : ''}${cfg.price ? `Плащате ${esc(money(cfg.price))} на час в студиото. ` : ''}` +
-      (free ? `Промяна или отказ — безплатно до ${free} ч преди часа.${card ? ' След това или при неявяване студиото може да таксува часа от картата.' : ''}` : '') + '</div>';
+    const text = `${card ? '<b>Сега не се тегли нищо</b> — картата е гаранция. ' : ''}${cfg.price ? `Плащате ${esc(money(cfg.price))} на час в студиото. ` : ''}` +
+      (free ? `Промяна или отказ — безплатно до ${free} ч преди часа.${card ? ' След това или при неявяване студиото може да таксува часа от картата.' : ''}` : '');
+    return text.trim() ? `<div class="policy">${text}</div>` : '';   // nothing to say → no empty grey box
   }
 
   function openBook(note) {
@@ -535,7 +536,7 @@ details.sec > div { padding-bottom: 14px; }
     const el = sheet(`<h3>${picked.length === 1 ? 'Вашият час' : 'Вашите часове'}</h3>
       <ul class="list">${picked.map((t) => `<li><span>${esc(timeLabel(t))}</span><button class="link" data-rm="${esc(t)}">махни</button></li>`).join('')}</ul>
       <label class="f">Име и фамилия<input id="b-name" autocomplete="name" value="${esc(me.name || '')}"></label>
-      <label class="f">Телефон (Viber — тук идват потвържденията)<input id="b-phone" type="tel" autocomplete="tel" value="${esc(me.phone || '')}" placeholder="0888 123 456"></label>
+      <label class="f">${cfg.viber ? 'Телефон (Viber — тук идват потвържденията)' : 'Телефон (за връзка със студиото)'}<input id="b-phone" type="tel" autocomplete="tel" value="${esc(me.phone || '')}" placeholder="0888 123 456"></label>
       ${first ? `<label class="f">Имейл (по желание)<input id="b-email" type="email" autocomplete="email" value="${esc(me.email || '')}"></label>` : ''}
       ${codeLine()}
       ${me.card && cfg.card && needCard() ? `<p class="small">💳 ${esc(cardName(me.card))} · <button class="link" data-go="new-card">друга карта</button></p>` : ''}
