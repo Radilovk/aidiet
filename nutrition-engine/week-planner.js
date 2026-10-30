@@ -18,6 +18,7 @@ import { normalizeFoodKey } from '../food-utils.js';
 import { FREE_MEAL, FIXED_DESSERT, FIXED_DESSERT_WEIGHT_GRAMS, morningDrinkFor } from './plan-shape.js';
 import { mealBenefits } from './benefits.js';
 import { renderRecipe } from './recipes.js';
+import { LATE_SNACK_MAX_KCAL } from './prescription.js';
 
 export const MEAL_KIND = {
   'Хранене 1': 'breakfast',
@@ -31,12 +32,18 @@ const CANDIDATES_PER_MEAL = 12;
 /** Колко тежи липсата на капацитет по група при предварителното подреждане. */
 const FIT_WEIGHTS = { PRO: 2, STA: 1.2, FRU: 0.8, MLK: 0.8, VEG: 0.4, FAT: 0.6 };
 const CARRY_LIMIT = 0.4;
-const LATE_SNACK_MAX_KCAL = 175;
 const SNACK_BAN = /пилеш|говежд|свинск|риба|сьомга|скумри|пъстърва|хек|треска|тилапи|ориз|паста|хляб|галети|бял|захар|мед\b|сироп|шоколад|кус-кус|булгур/;
 /** Колко пъти седмично едно ястие може да се повтори в даден вид хранене. */
 const MAX_USES_PER_WEEK = { main: 2, breakfast: 3, snack: 3, late: 3 };
 /** Над тези калории порциите в ястията растат пропорционално. */
 const APPETITE_BASE_KCAL = 1800;
+/**
+ * Колко носи обичайно едно хранене от вида — рецептите са оразмерени за него.
+ * Хранене с по-голяма цел (без закуска денят е в две основни хранения по
+ * 800–1000 kcal) получава по-голяма чиния, иначе месото спираше на 150 г и
+ * денят падаше с 10–15%.
+ */
+const KIND_BASE_KCAL = { main: 550, breakfast: 450, snack: 250, late: 150 };
 
 /* ─── Детерминистичен случаен ред ─────────────────────────────────────── */
 
@@ -214,6 +221,8 @@ function chooseOptions(dish, state, ctx, rng, target) {
         score -= uses * (part.group === 'PRO' && idx === 0 ? 1.4 : 0.7);
         if (state.lastMealFoods.has(id)) score -= 1.5;
         if (part.group === 'PRO' && state.mainFoodsToday.has(id)) score -= 6;
+        // Същата гарнитура и на обяд, и на вечеря (ориз два пъти) — диетологът я сменя.
+        if (part.group === 'STA' && state.mainStarchToday.has(id)) score -= 3;
       }
       score = score / option.length + rng() * 0.4;
       if (part.group === 'PRO' && idx === dish.parts.findIndex(p => p.group === 'PRO')) {
@@ -255,6 +264,9 @@ function scoreMeal(dish, built, state, ctx, plannedCategory, mealKind) {
   const foods = [...mealFoods(built)];
   score += foods.reduce((a, id) => a + ctx.preferenceOf(id), 0) / Math.max(1, foods.length);
   score -= limitPenalty(built, state, ctx.policy);
+  if (mealKind === 'main' && built.parts.some(p => p.group === 'STA' && p.foods.some((id, i) => p.grams[i] > 0 && state.mainStarchToday.has(id)))) score -= 4;
+  // Яйцата — веднъж на ден: закуска, обяд и вечеря с яйца не е меню.
+  if (state.eggsToday && foods.some(id => food(id).kind === 'egg')) score -= 4;
   return score;
 }
 
@@ -269,6 +281,7 @@ function recordUse(dish, built, state) {
     }
   }
   const kinds = new Set([...foods].map(id => food(id).kind).filter(Boolean));
+  if (kinds.has('egg')) state.eggsToday = true;
   for (const k of kinds) state.kindUses[k] = (state.kindUses[k] || 0) + 1;
   const flags = new Set([...foods].flatMap(id => [...food(id).flags]));
   for (const f of flags) state.flagUses[f] = (state.flagUses[f] || 0) + 1;
@@ -329,7 +342,7 @@ function toPlanMeal(type, dish, built, withDessert = false) {
     if (steps.tip) meal.recipeTip = steps.tip;
     meal.recipe = steps.steps.join(' ');
   } else {
-    const recipe = [dish.prep, built.flavour?.length ? `Овкусете с: ${built.flavour.join(', ')}.` : '']
+    const recipe = [dish.prep, built.flavour?.length ? `Овкуси с: ${built.flavour.join(', ')}.` : '']
       .filter(Boolean).join(' ');
     if (recipe) meal.recipe = recipe;
   }
@@ -628,6 +641,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     flagUses: {},
     lastMealFoods: new Set(),
     mainFoodsToday: new Set(),
+    mainStarchToday: new Set(),
     yesterdayDishes: new Set(),
     supplementToday: false,
     previousWeek,
@@ -645,6 +659,8 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     if (morningDrink) meals.push({ ...drink });
     const todayDishes = new Set();
     state.mainFoodsToday = new Set();
+    state.mainStarchToday = new Set();
+    state.eggsToday = false;
     state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
     /** Сглобените хранения на деня — за изравняването накрая. */
@@ -722,6 +738,8 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       };
       const avoid = slotAvoid.filter(a => a.day === day && a.type === type).flatMap(a => a.avoid);
       let slotCtx = kind === 'snack' ? snackCtx : ctx;
+      const slotAppetite = Math.max(slotCtx.appetite || 1, kcalOf(target) / (KIND_BASE_KCAL[kind] || 550));
+      if (slotAppetite > (slotCtx.appetite || 1)) slotCtx = { ...slotCtx, appetite: slotAppetite };
       // Протеин на прах — най-много веднъж на ден.
       if (state.supplementToday) {
         const basePolicy = slotCtx.policy;
@@ -790,6 +808,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       if (kind === 'main') {
         const proteinPart = best.built.parts.find(p => p.group === 'PRO' || p.group === 'LEG');
         for (const id of proteinPart?.foods || []) state.mainFoodsToday.add(id);
+        for (const part of best.built.parts) if (part.group === 'STA') part.foods.forEach((id, i) => { if (part.grams[i] > 0) state.mainStarchToday.add(id); });
       }
       for (const k of ['protein', 'carbs', 'fats']) carry[k] = target[k] - best.built.totals[k];
       const meal = toPlanMeal(type, best.dish, best.built, dessertToday);

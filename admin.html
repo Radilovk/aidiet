@@ -3099,12 +3099,12 @@
                     <summary><strong>📖 Как работи системата за нотификации</strong></summary>
                     <ul style="margin: 10px 0 0 20px; padding: 0; line-height: 1.8;">
                         <li><strong>Две нотификации на ден</strong> — сутрешна (по подразбиране 07:00) и вечерна (по подразбиране 20:00). И двете са директно свързани с въпросниците на геймификацията.</li>
-                        <li><strong>Сутрешна нотификация (morning_check)</strong>: „Спахте ли добре тази нощ?" Бутоните <strong>Да / Не / Пропуск</strong> записват отговора веднага — <em>без</em> отваряне на приложението. Tap извън бутоните отваря плана с AI въпросника.</li>
+                        <li><strong>Сутрешна нотификация (morning_check)</strong>: „Спа ли добре тази нощ?" Бутоните <strong>Да / Не / Пропуск</strong> записват отговора веднага — <em>без</em> отваряне на приложението. Tap извън бутоните отваря плана с AI въпросника.</li>
                         <li><strong>Три вечерни нотификации</strong> — отделни AI въпроси със silent бутони:
                             <ul style="margin: 4px 0 0 16px;">
-                                <li><code>evening_activity</code> — „Колко се движихте днес?" · Малко / Умерено / Много</li>
-                                <li><code>evening_balance</code> — „Как се чувствахте днес?" · Напрегнато / Спокойно / Позитивно</li>
-                                <li><code>evening_water</code> — „Пихте ли достатъчно вода днес?" · Не / Да / Пропуск</li>
+                                <li><code>evening_activity</code> — „Колко се движи днес?" · Малко / Умерено / Много</li>
+                                <li><code>evening_balance</code> — „Как се чувстваше днес?" · Напрегнато / Спокойно / Позитивно</li>
+                                <li><code>evening_water</code> — „Пи ли достатъчно вода днес?" · Не / Да / Пропуск</li>
                             </ul>
                         </li>
                         <li>Tap извън бутоните отваря съответния AI въпрос в приложението.</li>
@@ -3227,7 +3227,7 @@
                     </div>
                     <div style="margin-top: 12px;">
                         <label>Текст (AI въпрос)</label>
-                        <input type="text" id="gnEveningActivityBody" placeholder="Колко се движихте днес?"
+                        <input type="text" id="gnEveningActivityBody" placeholder="Колко се движи днес?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                     </div>
                     <div style="margin-top: 12px;">
@@ -3256,7 +3256,7 @@
                     </div>
                     <div style="margin-top: 12px;">
                         <label>Текст (AI въпрос)</label>
-                        <input type="text" id="gnEveningBalanceBody" placeholder="Как се чувствахте днес?"
+                        <input type="text" id="gnEveningBalanceBody" placeholder="Как се чувстваше днес?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                     </div>
                     <div style="margin-top: 12px;">
@@ -3285,7 +3285,7 @@
                     </div>
                     <div style="margin-top: 12px;">
                         <label>Текст (AI въпрос)</label>
-                        <input type="text" id="gnEveningWaterBody" placeholder="Пихте ли достатъчно вода днес?"
+                        <input type="text" id="gnEveningWaterBody" placeholder="Пи ли достатъчно вода днес?"
                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                     </div>
                     <div style="margin-top: 12px;">
@@ -8241,16 +8241,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                 document.getElementById('gnMorningTime').value  = cfg.morningTime  || '07:00';
                 document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'NutriPlan';
-                document.getElementById('gnMorningBody').value  = cfg.morningBody  || 'Спахте ли добре тази нощ?';
+                document.getElementById('gnMorningBody').value  = cfg.morningBody  || 'Спа ли добре тази нощ?';
                 document.getElementById('gnEveningActivityTime').value  = cfg.eveningActivityTime  || '20:00';
                 document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'NutriPlan';
-                document.getElementById('gnEveningActivityBody').value  = cfg.eveningActivityBody  || 'Колко се движихте днес?';
+                document.getElementById('gnEveningActivityBody').value  = cfg.eveningActivityBody  || 'Колко се движи днес?';
                 document.getElementById('gnEveningBalanceTime').value  = cfg.eveningBalanceTime  || '20:05';
                 document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'NutriPlan';
-                document.getElementById('gnEveningBalanceBody').value  = cfg.eveningBalanceBody  || 'Как се чувствахте днес?';
+                document.getElementById('gnEveningBalanceBody').value  = cfg.eveningBalanceBody  || 'Как се чувстваше днес?';
                 document.getElementById('gnEveningWaterTime').value  = cfg.eveningWaterTime  || '20:10';
                 document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'NutriPlan';
-                document.getElementById('gnEveningWaterBody').value  = cfg.eveningWaterBody  || 'Пихте ли достатъчно вода днес?';
+                document.getElementById('gnEveningWaterBody').value  = cfg.eveningWaterBody  || 'Пи ли достатъчно вода днес?';
 
                 renderAllGnActionRows(cfg);
 
@@ -8336,16 +8336,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             const cfg = {
                 morningTime:  document.getElementById('gnMorningTime').value  || '07:00',
                 morningTitle: document.getElementById('gnMorningTitle').value || 'NutriPlan',
-                morningBody:  document.getElementById('gnMorningBody').value  || 'Спахте ли добре тази нощ?',
+                morningBody:  document.getElementById('gnMorningBody').value  || 'Спа ли добре тази нощ?',
                 eveningActivityTime:  document.getElementById('gnEveningActivityTime').value  || '20:00',
                 eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'NutriPlan',
-                eveningActivityBody:  document.getElementById('gnEveningActivityBody').value  || 'Колко се движихте днес?',
+                eveningActivityBody:  document.getElementById('gnEveningActivityBody').value  || 'Колко се движи днес?',
                 eveningBalanceTime:   document.getElementById('gnEveningBalanceTime').value  || '20:05',
                 eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'NutriPlan',
-                eveningBalanceBody:   document.getElementById('gnEveningBalanceBody').value  || 'Как се чувствахте днес?',
+                eveningBalanceBody:   document.getElementById('gnEveningBalanceBody').value  || 'Как се чувстваше днес?',
                 eveningWaterTime:     document.getElementById('gnEveningWaterTime').value  || '20:10',
                 eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'NutriPlan',
-                eveningWaterBody:     document.getElementById('gnEveningWaterBody').value  || 'Пихте ли достатъчно вода днес?',
+                eveningWaterBody:     document.getElementById('gnEveningWaterBody').value  || 'Пи ли достатъчно вода днес?',
                 morningActions: (window.GnActionsUI && GnActionsUI.collect('gnMorningActions')) || [],
                 eveningActivityActions: (window.GnActionsUI && GnActionsUI.collect('gnEveningActivityActions')) || [],
                 eveningBalanceActions: (window.GnActionsUI && GnActionsUI.collect('gnEveningBalanceActions')) || [],
@@ -8420,11 +8420,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 }
 
                 const typeLabels = {
-                    morning_check: { title: 'NutriPlan', body: 'Спахте ли добре тази нощ?', url: '/plan.html?action=morning_check' },
-                    evening_activity: { title: 'NutriPlan', body: 'Колко се движихте днес?', url: '/plan.html?action=evening_activity' },
-                    evening_balance: { title: 'NutriPlan', body: 'Как се чувствахте днес?', url: '/plan.html?action=evening_balance' },
-                    evening_water: { title: 'NutriPlan', body: 'Пихте ли достатъчно вода днес?', url: '/plan.html?action=evening_water' },
-                    evening_check: { title: 'NutriPlan', body: 'Пихте ли достатъчно вода днес?', url: '/plan.html?action=evening_water' }
+                    morning_check: { title: 'NutriPlan', body: 'Спа ли добре тази нощ?', url: '/plan.html?action=morning_check' },
+                    evening_activity: { title: 'NutriPlan', body: 'Колко се движи днес?', url: '/plan.html?action=evening_activity' },
+                    evening_balance: { title: 'NutriPlan', body: 'Как се чувстваше днес?', url: '/plan.html?action=evening_balance' },
+                    evening_water: { title: 'NutriPlan', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' },
+                    evening_check: { title: 'NutriPlan', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' }
                 };
                 const tpl = typeLabels[type] || { title: 'Тестово известие от NutriPlan', body: 'Това е тестово известие.', url: '/plan.html' };
 
@@ -9339,39 +9339,39 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             // Default hacks object (same as in worker.js)
             const defaultHacks = {
                 'Отслабване': [
-                    '💧 Пийте чаша вода 20 мин. преди всяко хранене - намалява апетита с до 25%',
-                    '🥗 Започвайте всяко хранене със зеленчуци - увеличава ситостта',
+                    '💧 Чаша-две вода преди хранене - засищаш се по-бързо и изяждаш малко по-малко',
+                    '🥗 Започвай всяко хранене със зеленчуци - увеличава ситостта',
                     '🚶 10-минутна разходка след вечеря подобрява храносмилането и съня',
-                    '⏰ Не яжте 3 часа преди сън - подобрява метаболизма нощем',
-                    '🍽️ Използвайте по-малки чинии - визуално намалява порцията'
+                    '⏰ Последното хранене - 2–3 часа преди сън: по-спокоен сън и по-малко киселини',
+                    '🍽️ Сервирай порцията от плана в чиния, не от тенджерата - количеството остава точно'
                 ],
                 'Покачване на мускулна маса': [
-                    '💪 Консумирайте протеин в рамките на 30 мин. след тренировка',
-                    '🍳 Разпределете протеина равномерно през деня (минимум 4 порции)',
-                    '🛌 Спете минимум 7-8 часа - мускулите растат по време на сън',
-                    '🥛 Казеинов протеин преди сън за бавно освобождаване през нощта',
+                    '💪 Белтък във всяко хранене - за мускулите решава количеството за деня, не минутиш след тренировка',
+                    '🍳 Разпредели протеина равномерно през деня (минимум 4 порции)',
+                    '🛌 Спи 7–9 часа - възстановяването и растежът на мускулите зависят от съня',
+                    '🥛 Извара, кисело мляко или казеин преди сън - белтък за нощното възстановяване',
                     '🍌 Въглехидрати след тренировка попълват гликогеновите запаси'
                 ],
                 'Подобряване на здравето': [
                     '🌈 Яжте минимум 5 различни цвята плодове/зеленчуци дневно',
-                    '🐟 Консумирайте риба минимум 2 пъти седмично за омега-3',
+                    '🐟 Консумирай риба минимум 2 пъти седмично за омега-3',
                     '🧘 5 минути дихателни упражнения преди хранене подобрява храносмилането',
                     '☀️ 15 мин. сутрешна слънчева светлина регулира циркадния ритъм',
-                    '🍵 Зелен чай между храненията подобрява метаболизма'
+                    '🍵 Зелен чай или вода вместо сладки напитки между храненията'
                 ],
                 'Антиейджинг': [
-                    '🫐 Консумирайте тъмни плодове дневно - богати на антиоксиданти',
+                    '🫐 Консумирай тъмни плодове дневно - богати на антиоксиданти',
                     '🥑 Здравословните мазнини подобряват еластичността на кожата',
-                    '🍷 Ограничете захарта - ускорява стареенето чрез гликация',
+                    '🍷 Ограничи захарта - ускорява стареенето чрез гликация',
                     '💤 Качествен сън 7-9 часа - ключов за клетъчна регенерация',
                     '🏃 Редовна физическа активност стимулира митохондриите'
                 ],
                 'Друго': [
-                    '📱 Планирайте храненията предварително - намалява нездравословните избори',
-                    '🍴 Яжте бавно - минимум 20 мин. на хранене за по-добро усвояване',
-                    '📝 Водете хранителен дневник за по-добра осъзнатост',
-                    '🥤 Ограничете течните калории - сокове, газирани напитки',
-                    '🛒 Пазарувайте с пълен стомах - избягвате импулсивни покупки'
+                    '📱 Планирай храненията предварително - намалява нездравословните избори',
+                    '🍴 Яжте бавно - около 20 мин. на хранене, за да усетиш ситостта навреме',
+                    '📝 Води хранителен дневник за по-добра осъзнатост',
+                    '🥤 Ограничи течните калории - сокове, газирани напитки',
+                    '🛒 Пазарувай с пълен стомах - избягваш импулсивни покупки'
                 ]
             };
             

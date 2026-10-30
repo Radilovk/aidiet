@@ -107,7 +107,7 @@ const EXCLUSION_TEXT = {
   FSH: ['риба', 'алергия или непоносимост'],
   SHF: ['морски дарове', 'алергия или непоносимост'],
   SOY: ['соя и соеви продукти', 'алергия или непоносимост'],
-  PORK: ['свинско', 'по ваш избор'],
+  PORK: ['свинско', 'по твой избор'],
 };
 
 const FLAG_TEXT = {
@@ -183,7 +183,7 @@ function strictOf(profile, policy, ctx, blockedTerms) {
     // Вече изброено (изключение или клинично правило) — сравнение по корен на думата.
     const stem = t.slice(0, 4);
     if (stem.length >= 4 && out.some(x => x.food.toLowerCase().includes(stem))) continue;
-    if (t && t.length <= 40) add(t, 'не ги приемате');
+    if (t && t.length <= 40) add(t, 'не ги приемаш');
   }
   return out;
 }

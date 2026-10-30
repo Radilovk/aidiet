@@ -5,7 +5,7 @@
  * качеството на менюто. Без мрежа.
  */
 import { compileProfile } from '../profile-code.js';
-import { macroTargetsFor } from '../macro-targets.js';
+import { macroTargetsFor, KETO_MAX_CARB_G } from '../macro-targets.js';
 import { trainingWeek, fastingPlan, weekTargets, metabolicWeek, menuQuality, postWorkoutLow, describeMetabolicWeek } from '../nutrition-engine/metabolic.js';
 import { buildNutritionPlan, applyModifications } from '../nutrition-engine/index.js';
 import { buildEngineStrategy } from '../nutrition-engine/strategy.js';
@@ -104,7 +104,7 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
 }
 {
   const { mw } = setup({ dietPreference: ['Кето'] });
-  ok(mw.days.every(d => d.macros.carbs <= 30), 'кето: въглехидратите остават в кетогенната граница всеки ден');
+  ok(mw.days.every(d => d.macros.carbs <= KETO_MAX_CARB_G), 'кето: въглехидратите остават в кетогенната граница всеки ден');
 }
 {
   // Метаболитен риск без тренировки: макросите не се пипат (клиничните са в macro-targets).

@@ -361,7 +361,7 @@ const DEFAULT_VALIDATION_PROMPT_TEMPLATE = `Ти си медицински AI в
 
 // Error messages (Bulgarian)
 const ERROR_MESSAGES = {
-  PARSE_FAILURE: 'Имаше проблем с обработката на отговора. Моля опитайте отново.',
+  PARSE_FAILURE: 'Имаше проблем с обработката на отговора. Моля опитай отново.',
   MISSING_FIELDS: 'Липсват задължителни полета',
   KV_NOT_CONFIGURED: 'KV хранилището не е конфигурирано',
   PEP_STORAGE_NOT_CONFIGURED: 'PEP бекендът не е конфигуриран',
@@ -441,39 +441,39 @@ const ERROR_MESSAGE_PARSE_FAILURE = ERROR_MESSAGES.PARSE_FAILURE;
 // Default goal-based hacks (hardcoded tips per goal, managed via admin panel)
 const DEFAULT_GOAL_HACKS = {
   'Отслабване': [
-    '💧 Пийте чаша вода 20 мин. преди всяко хранене - намалява апетита с до 25%',
-    '🥗 Започвайте всяко хранене със зеленчуци - увеличава ситостта',
+    '💧 Чаша-две вода преди хранене - засищаш се по-бързо и изяждаш малко по-малко',
+    '🥗 Започвай всяко хранене със зеленчуци - увеличава ситостта',
     '🚶 10-минутна разходка след вечеря подобрява храносмилането и съня',
-    '⏰ Не яжте 3 часа преди сън - подобрява метаболизма нощем',
-    '🍽️ Използвайте по-малки чинии - визуално намалява порцията'
+    '⏰ Последното хранене - 2–3 часа преди сън: по-спокоен сън и по-малко киселини',
+    '🍽️ Сервирай порцията от плана в чиния, не от тенджерата - количеството остава точно'
   ],
   'Покачване на мускулна маса': [
-    '💪 Консумирайте протеин в рамките на 30 мин. след тренировка',
-    '🍳 Разпределете протеина равномерно през деня (минимум 4 порции)',
-    '🛌 Спете минимум 7-8 часа - мускулите растат по време на сън',
-    '🥛 Казеинов протеин преди сън за бавно освобождаване през нощта',
+    '💪 Белтък във всяко хранене - за мускулите решава количеството за деня, не минутиш след тренировка',
+    '🍳 Разпредели протеина равномерно през деня (минимум 4 порции)',
+    '🛌 Спи 7–9 часа - възстановяването и растежът на мускулите зависят от съня',
+    '🥛 Извара, кисело мляко или казеин преди сън - белтък за нощното възстановяване',
     '🍌 Въглехидрати след тренировка попълват гликогеновите запаси'
   ],
   'Подобряване на здравето': [
     '🌈 Яжте минимум 5 различни цвята плодове/зеленчуци дневно',
-    '🐟 Консумирайте риба минимум 2 пъти седмично за омега-3',
+    '🐟 Консумирай риба минимум 2 пъти седмично за омега-3',
     '🧘 5 минути дихателни упражнения преди хранене подобрява храносмилането',
     '☀️ 15 мин. сутрешна слънчева светлина регулира циркадния ритъм',
-    '🍵 Зелен чай между храненията подобрява метаболизма'
+    '🍵 Зелен чай или вода вместо сладки напитки между храненията'
   ],
   'Антиейджинг': [
-    '🫐 Консумирайте тъмни плодове дневно - богати на антиоксиданти',
+    '🫐 Консумирай тъмни плодове дневно - богати на антиоксиданти',
     '🥑 Здравословните мазнини подобряват еластичността на кожата',
-    '🍷 Ограничете захарта - ускорява стареенето чрез гликация',
+    '🍷 Ограничи захарта - ускорява стареенето чрез гликация',
     '💤 Качествен сън 7-9 часа - ключов за клетъчна регенерация',
     '🏃 Редовна физическа активност стимулира митохондриите'
   ],
   'Друго': [
-    '📱 Планирайте храненията предварително - намалява нездравословните избори',
-    '🍴 Яжте бавно - минимум 20 мин. на хранене за по-добро усвояване',
-    '📝 Водете хранителен дневник за по-добра осъзнатост',
-    '🥤 Ограничете течните калории - сокове, газирани напитки',
-    '🛒 Пазарувайте с пълен стомах - избягвате импулсивни покупки'
+    '📱 Планирай храненията предварително - намалява нездравословните избори',
+    '🍴 Яжте бавно - около 20 мин. на хранене, за да усетиш ситостта навреме',
+    '📝 Води хранителен дневник за по-добра осъзнатост',
+    '🥤 Ограничи течните калории - сокове, газирани напитки',
+    '🛒 Пазарувай с пълен стомах - избягваш импулсивни покупки'
   ]
 };
 
@@ -498,10 +498,10 @@ const CLINICAL_PROTOCOLS = {
     dietTypeHint: 'Нисковъглехидратна / Нисък ГИ',
     hacks: [
       '🥦 Метод на чинията: 50% зеленчуци, 25% протеин, 25% сложни въглехидрати',
-      '📊 Избирайте храни с ГИ под 55 — овесени ядки, бобови, зеленчуци',
-      '🚶 10 мин. разходка след хранене — понижава кръвната захар с до 30%',
-      '⏰ Не пропускайте хранения — стабилизира инсулина през деня',
-      '🫘 Добавете бобови към поне 1 хранене дневно — бавни въглехидрати + фибри'
+      '📊 Избирай храни с ГИ под 55 — овесени ядки, бобови, зеленчуци',
+      '🚶 10 мин. разходка след хранене — по-малък скок на кръвната захар',
+      '⏰ Не пропускай хранения — стабилизира инсулина през деня',
+      '🫘 Добави бобови към поне 1 хранене дневно — бавни въглехидрати + фибри'
     ]
   },
   'autoimmune_aip': {
@@ -520,11 +520,11 @@ const CLINICAL_PROTOCOLS = {
     macroModifiers: { carbReduction: 5, proteinIncrease: 5, fatIncrease: 0 },
     dietTypeHint: 'Автоимунен Палео Протокол (AIP)',
     hacks: [
-      '🍖 Костните бульони са лечебни за чревната лигавица — пийте 1-2 чаши дневно',
-      '🥬 Ферментирали зеленчуци подобряват чревната флора — добавете към всяко хранене',
+      '🍖 Костните бульони са лечебни за чревната лигавица — пий 1-2 чаши дневно',
+      '🥬 Ферментирали зеленчуци подобряват чревната флора — добави към всяко хранене',
       '🐟 Омега-3 мастни риби 3-4 пъти седмично за контрол на възпалението',
-      '❌ Избягвайте нощни зеленчуци (домати, пиперки) — те влошават автоимунните процеси',
-      '📝 Водете дневник на симптомите при реинтродукция на храни'
+      '❌ Избягвай нощни зеленчуци (домати, пиперки) — те влошават автоимунните процеси',
+      '📝 Води дневник на симптомите при реинтродукция на храни'
     ]
   },
   'gi_issues': {
@@ -543,7 +543,7 @@ const CLINICAL_PROTOCOLS = {
     dietTypeHint: 'Щадящ стомах / Нисък FODMAP',
     hacks: [
       '🥝 2 кивита дневно — доказано подобряват перисталтиката',
-      '💧 Пийте магнезиева вода (0.5-1L дневно) за нормална чревна функция',
+      '💧 Пий магнезиева вода (0.5-1L дневно) за нормална чревна функция',
       '🥗 Горчиви храни (артишок, рукола) стимулират жлъчката и храносмилането',
       '🚶 Разходка след хранене подобрява чревния транзит',
       '⏰ Яжте на редовни часове — подобрява чревния ритъм'
@@ -566,8 +566,8 @@ const CLINICAL_PROTOCOLS = {
     macroModifiers: { carbReduction: 5, proteinIncrease: 10, fatIncrease: 0 },
     dietTypeHint: 'Високопротеинова / Средиземноморска',
     hacks: [
-      '💪 Разпределете протеина равномерно — мин. 25-30г на хранене за мускулна синтеза',
-      '🫘 Включете фитоестрогени ежедневно — соя, ленено семе, нахут',
+      '💪 Разпредели протеина равномерно — мин. 25-30г на хранене за мускулна синтеза',
+      '🫘 Включи фитоестрогени ежедневно — соя, ленено семе, нахут',
       '🦴 Калций от храна: броколи, бадеми, сардини, сусам',
       '🏋️ Силови тренировки 2-3 пъти седмично — критично за запазване на мускулна маса',
       '🌙 Магнезий вечер подобрява съня и намалява мускулните крампи'
@@ -591,7 +591,7 @@ const CLINICAL_PROTOCOLS = {
     hacks: [
       '🫐 Горски плодове ежедневно — полифеноли за здрава съединителна тъкан',
       '💧 Мин. 2.5л вода дневно + билкови чайове за лимфен дренаж',
-      '🧂 Ограничете натрия под 2000mg дневно — намалява задържането на течности',
+      '🧂 Ограничи натрия под 2000mg дневно — намалява задържането на течности',
       '🍵 2-3 чаши зелен чай дневно — подобрява микроциркулацията',
       '🚶 Ежедневна разходка 30 мин. стимулира лимфния дренаж'
     ]
@@ -612,7 +612,7 @@ const CLINICAL_PROTOCOLS = {
     macroModifiers: { carbReduction: 0, proteinIncrease: 5, fatIncrease: 5 },
     dietTypeHint: 'Противовъзпалителна / Балансирана',
     hacks: [
-      '☕ Никога не пийте кафе на гладно — повишава кортизола допълнително',
+      '☕ Никога не пий кафе на гладно — повишава кортизола допълнително',
       '🍽️ Всяко хранене трябва да съдържа протеин + мазнини + фибри за стабилна захар',
       '🧘 5 мин. дихателни упражнения преди хранене подобрява усвояването',
       '🌙 Магнезий вечер — намалява кортизола и подобрява съня',
@@ -637,7 +637,7 @@ const CLINICAL_PROTOCOLS = {
     hacks: [
       '🥚 Яйцата са отличен източник на холин — 2 на ден при кърмене',
       '🐟 DHA от риба подобрява развитието на бебето — 2-3 порции седмично',
-      '🍊 Приемайте желязо с витамин C за по-добро усвояване',
+      '🍊 Приемай желязо с витамин C за по-добро усвояване',
       '💧 Допълнителни 500мл вода при кърмене — критично за млекопроизводството',
       '⚖️ Безопасен темп на отслабване: макс. 0.5кг/седмица при лактация'
     ]
@@ -662,7 +662,7 @@ const CLINICAL_PROTOCOLS = {
       '🫒 Зехтин екстра върджин като основна мазнина — мононенаситени за метаболизма',
       '🫐 Полифеноли от горски плодове и куркума „потъмняват" мастните клетки',
       '🚶 HIIT или бързо ходене — най-ефективни за висцерални мазнини',
-      '🍺 Елиминирайте алкохола — директно увеличава коремните мазнини'
+      '🍺 Елиминирай алкохола — директно увеличава коремните мазнини'
     ]
   },
   'post_smoking': {
@@ -704,9 +704,9 @@ const CLINICAL_PROTOCOLS = {
     macroModifiers: { carbReduction: 10, proteinIncrease: 0, fatIncrease: 10 },
     dietTypeHint: 'Периодично гладуване (TRF 16:8) / Кетогенни цикли',
     hacks: [
-      '⏰ TRF 16:8 — ядете в 8-часов прозорец за стимулиране на автофагия',
+      '⏰ TRF 16:8 — ядеш в 8-часов прозорец за стимулиране на автофагия',
       '🥦 Кръстоцветни зеленчуци ежедневно — сулфорафан за клетъчна защита',
-      '🐟 Protein Pacing: разпределете протеина на пулсове за оптимален mTOR баланс',
+      '🐟 Protein Pacing: разпредели протеина на пулсове за оптимален mTOR баланс',
       '🍇 Полифеноли от тъмни плодове, зелен чай и зехтин за клетъчна младост',
       '🧬 Фисетин 2-3 дни месечно — сенолитик за изчистване на стареещи клетки'
     ]
@@ -1024,7 +1024,7 @@ function detectGoalContradiction(data, config) {
         'Хормонален дисбаланс',
         'Повишен риск от здравословни усложнения'
       ],
-      recommendation: 'При вашето текущо тегло целта за отслабване е медицински неподходяща и опасна. Препоръчваме да консултирате лекар и да работите за постигане на здравословно тегло чрез балансирано хранене.'
+      recommendation: 'При твоето текущо тегло целта за отслабване е медицински неподходяща и опасна. Препоръчваме да консултираш лекар и да работиш за постигане на здравословно тегло чрез балансирано хранене.'
     };
   }
   
@@ -1345,7 +1345,7 @@ const memoryRateCounters = new Map();
 
 function rateLimitedResponse(config) {
   return new Response(
-    JSON.stringify({ error: 'Твърде много заявки. Моля, изчакайте малко и опитайте отново.', rateLimited: true }),
+    JSON.stringify({ error: 'Твърде много заявки. Моля, изчакай малко и опитай отново.', rateLimited: true }),
     { status: 429, headers: { ...CORS_HEADERS, 'Retry-After': String(config.windowSec) } }
   );
 }
@@ -1413,7 +1413,7 @@ const PLAN_EDITING_LOCK_ENABLED = true;
 const PLAN_EDITING_ALLOWED_CLIENT_IDS = new Set(['client_1781138769382_8b8mu']);
 const PLAN_EDITING_ALLOWED_USER_IDS = new Set(['fb_Os1kJ6EpeCcQwelBVp5UdVeK8kq1']);
 const PLAN_EDITING_ALLOWED_EMAILS = new Set(['radilov.k@gmail.com']);
-const PLAN_EDITING_MESSAGE = 'Вашият хранителен план е в процес на редакция. Моля, опитайте по-късно.';
+const PLAN_EDITING_MESSAGE = 'Твоят хранителен план е в процес на редакция. Моля, опитай по-късно.';
 
 // Cache for admin configuration to reduce KV reads
 let adminConfigCache = null;
@@ -3174,7 +3174,7 @@ async function handleGeneratePlan(request, env, ctx) {
         return jsonResponse({
           error: coreError.message,
           validationErrors: coreError.validationErrors,
-          suggestion: "Моля, опитайте отново или свържете се с поддръжката"
+          suggestion: "Моля, опитай отново или свържи се с поддръжката"
         }, 400);
       }
       return jsonResponse({ error: `${ERROR_MESSAGES.PLAN_GENERATION_FAILED}: ${coreError.message}` }, 500);
@@ -3606,7 +3606,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     const { hasContradiction, canProceed: contradictionCanProceed } = detectGoalContradiction(data, valConfig);
     if (hasContradiction && !contradictionCanProceed) {
       return jsonResponse({
-        error: 'Установена е рискова комбинация между цел и здравословно състояние. Моля, коригирайте въпросника.',
+        error: 'Установена е рискова комбинация между цел и здравословно състояние. Моля, коригирай въпросника.',
         validationFailed: true,
       }, 400);
     }
@@ -3986,12 +3986,12 @@ function escapeHtml(str) {
  * All fields can be overridden via admin panel (stored in KV under 'email_template_plan_ready').
  */
 const DEFAULT_EMAIL_TEMPLATE = {
-  subject: 'Вашият персонален хранителен план е готов! 🥗',
+  subject: 'Твоят персонален хранителен план е готов! 🥗',
   headerTitle: '🍽️ Nutri Plan',
   headerSubtitle: 'Персонален хранителен план',
-  greeting: 'Здравейте, {name}! 👋',
-  paragraph1: 'Радваме се да ви съобщим, че вашият <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!',
-  paragraph2: 'Нашият специалист внимателно е разгледал вашите данни и е изготвил индивидуален план, съобразен с вашите цели и нужди.',
+  greeting: 'Здравей, {name}! 👋',
+  paragraph1: 'Радваме се да ти съобщим, че твоят <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!',
+  paragraph2: 'Нашият специалист внимателно е разгледал твоите данни и е изготвил индивидуален план, съобразен с твоите цели и нужди.',
   buttonText: 'Виж моя план →',
   contactEmail: 'info@biocode.online'
 };
@@ -4000,12 +4000,12 @@ const PLAN_APP_BASE_URL = 'https://biocode.website';
 const PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
 
 const DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
-  subject: 'Вашият хранителен план е актуализиран 🥗',
+  subject: 'Твоят хранителен план е актуализиран 🥗',
   headerTitle: '🍽️ Nutri Plan',
   headerSubtitle: 'Актуализация на план',
-  greeting: 'Здравейте, {name}! 👋',
-  paragraph1: 'Специалистът направи промени във вашия <strong>персонален хранителен план</strong>.',
-  paragraph2: 'Натиснете бутона по-долу, за да заредите новата версия. Линкът е еднократен и валиден 72 часа.',
+  greeting: 'Здравей, {name}! 👋',
+  paragraph1: 'Специалистът направи промени във твоя <strong>персонален хранителен план</strong>.',
+  paragraph2: 'Натисни бутона по-долу, за да заредиш новата версия. Линкът е еднократен и валиден 72 часа.',
   buttonText: 'Зареди обновения план →',
   contactEmail: 'info@biocode.online'
 };
@@ -4030,7 +4030,7 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Вашият план е готов</title>
+  <title>Твоят план е готов</title>
 </head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:30px 0;">
@@ -4062,7 +4062,7 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fffe;border:1px solid #e0f2e9;border-radius:8px;margin-bottom:30px;">
                 <tr>
                   <td style="padding:20px;">
-                    <p style="color:#333;font-size:15px;margin:0 0 10px;font-weight:600;">Какво включва вашият план:</p>
+                    <p style="color:#333;font-size:15px;margin:0 0 10px;font-weight:600;">Какво включва твоят план:</p>
                     <ul style="color:#555;font-size:15px;line-height:1.8;margin:0;padding-left:20px;">
                       <li>7-дневна програма с подробни рецепти</li>
                       <li>Изчислени калории и макронутриенти</li>
@@ -4105,7 +4105,7 @@ function buildPlanUpdatedEmailHtml(clientName, tpl, buttonUrl) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Планът ви е актуализиран</title>
+  <title>Планът ти е актуализиран</title>
 </head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:30px 0;">
@@ -4429,7 +4429,7 @@ async function handleForgotPassword(request, env) {
     return jsonResponse({ success: true });
   } catch (error) {
     console.error('[ForgotPassword] Unhandled error:', error.message);
-    return jsonResponse({ error: 'Грешка при изпращане на имейл. Моля опитайте отново.' }, 500);
+    return jsonResponse({ error: 'Грешка при изпращане на имейл. Моля опитай отново.' }, 500);
   }
 }
 
@@ -5575,8 +5575,8 @@ async function deliverPlanUpdateToClient(env, clientData, clientId, kind = 'upda
     await sendPushNotificationToUser(pushUserId, {
       title: kind === 'ready' ? 'Планът е готов' : 'Обновен план',
       body: kind === 'ready'
-        ? 'Вашият хранителен план е готов за преглед.'
-        : 'Планът ви е актуализиран.',
+        ? 'Твоят хранителен план е готов за преглед.'
+        : 'Планът ти е актуализиран.',
       url: '/index.html?app=1&tab=plan',
       icon: '/icon-192x192.png',
       notificationType: 'plan_updated',
@@ -6348,7 +6348,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
         if (hints.exclusions.length) {
           enrichedData._aiHints = { ...(enrichedData._aiHints || {}), exclusions: [...new Set([...(enrichedData._aiHints?.exclusions || []), ...hints.exclusions])] };
         }
-        decision.changeSummary = [...decision.changeSummary, 'Взето е предвид вашето мнение'].slice(0, 4);
+        decision.changeSummary = [...decision.changeSummary, 'Взето е предвид твоето мнение'].slice(0, 4);
       }
     }
     // Седмичната корекция: второ мнение от AI, проверено от алгоритъма (вето / възражение) —
@@ -6433,7 +6433,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       id: jobId,
       headline: auto ? 'Новата седмица е готова' : decision.headline,
       message: auto
-        ? 'Този път не получихме отговорите ви, затова планът е обновен по отметките и данните от устройствата. Следващия път отговорете на няколкото въпроса — така корекцията е по-точна.'
+        ? 'Този път не получихме отговорите ти, затова планът е обновен по отметките и данните от устройствата. Следващия път отговори на няколкото въпроса — така корекцията е по-точна.'
         : decision.motivationMessage,
       changes: decision.changeSummary.slice(0, 2),
       cycleNumber,
@@ -7114,7 +7114,7 @@ const ALLOWED_MEAL_TYPES = ['Напитка', 'Хранене 1', 'Хранен�
 const FIXED_DESSERT = {
   name: 'Пълномаслен шоколад с лешници',
   weight: '30г',
-  description: 'Насладете се на 2 реда млечен или черен шоколад с цели лешници.',
+  description: 'Наслади се на 2 реда млечен или черен шоколад с цели лешници.',
   calories: 168,
   macros: { protein: 2, carbs: 14, fats: 12 }
 };
@@ -8625,10 +8625,10 @@ async function runSafetyRebuild(env, payload, jobId) {
     }
   }
   // Причините от recalcLevel — с думи за клиента.
-  const words = [...new Set(reasons.map(r => (r.startsWith('граници за безопасност') ? 'новите ви изследвания'
-    : r === 'здравословно състояние' ? 'здравословното ви състояние'
-      : r.startsWith('лекарства') ? 'лекарствата, които приемате' : null)).filter(Boolean))];
-  const why = words.length ? words.slice(0, 2).join(' и ') : 'новите ви данни';
+  const words = [...new Set(reasons.map(r => (r.startsWith('граници за безопасност') ? 'новите ти изследвания'
+    : r === 'здравословно състояние' ? 'здравословното ти състояние'
+      : r.startsWith('лекарства') ? 'лекарствата, които приемаш' : null)).filter(Boolean))];
+  const why = words.length ? words.slice(0, 2).join(' и ') : 'новите ти данни';
   profile.weeklyAdaptNotice = {
     id: jobId,
     kind: 'safety',
@@ -9418,9 +9418,9 @@ async function callOpenAI(env, prompt, modelName = 'gpt-4o-mini', maxTokens = nu
         let errorMessage = `OpenAI API завърши с причина: ${reason}`;
         
         if (reason === 'content_filter') {
-          errorMessage = 'OpenAI AI отказа да генерира отговор поради филтър за съдържание. Моля, опитайте с различни данни.';
+          errorMessage = 'OpenAI AI отказа да генерира отговор поради филтър за съдържание. Моля, опитай с различни данни.';
         } else if (reason === 'length') {
-          errorMessage = 'OpenAI AI достигна лимита на дължина. Опитайте да опростите въпроса.';
+          errorMessage = 'OpenAI AI достигна лимита на дължина. Опитай да опростиш въпроса.';
         }
         
         throw new Error(errorMessage);
@@ -9727,11 +9727,11 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
           let errorMessage = `Gemini API отказ: ${reason}`;
           
           if (reason === 'SAFETY') {
-            errorMessage = 'Gemini AI отказа да генерира отговор поради съображения за сигурност. Моля, опитайте с различни данни или контактирайте поддръжката.';
+            errorMessage = 'Gemini AI отказа да генерира отговор поради съображения за сигурност. Моля, опитай с различни данни или контактирай поддръжката.';
           } else if (reason === 'RECITATION') {
             errorMessage = 'Gemini AI отказа да генерира отговор поради потенциално копиране на съдържание.';
           } else if (reason === 'MAX_TOKENS') {
-            errorMessage = 'Gemini AI достигна лимита на токени. Опитайте да опростите въпроса.';
+            errorMessage = 'Gemini AI достигна лимита на токени. Опитай да опростиш въпроса.';
           }
           
           throw new Error(errorMessage);
@@ -9739,7 +9739,7 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
         
         // Check if content exists
         if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
-          throw new Error('Gemini API върна празен отговор. Моля, опитайте отново.');
+          throw new Error('Gemini API върна празен отговор. Моля, опитай отново.');
         }
         
         return candidate.content.parts[0].text;
@@ -9949,7 +9949,7 @@ async function handleAnalyzeFoodImage(request, env) {
 
     // Validate required fields
     if (!imageData) {
-      return jsonResponse({ error: 'Липсва изображение. Моля, направете снимка на храната.' }, 400);
+      return jsonResponse({ error: 'Липсва изображение. Моля, направи снимка на храната.' }, 400);
     }
 
     // Validate mime type
@@ -9970,7 +9970,7 @@ async function handleAnalyzeFoodImage(request, env) {
     const MAX_IMAGE_SIZE_BYTES = 20971520; // 20MB
     const estimatedSizeBytes = (base64Data.length * 3) / 4;
     if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
-      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвайте по-малко изображение.' }, 400);
+      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвай по-малко изображение.' }, 400);
     }
 
     // Build diet context for the prompt
@@ -10072,7 +10072,7 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
         success: true,
         analysis: null,
         parseError: true,
-        message: 'Снимката не беше разпозната. Опитайте отново с по-ясна снимка.'
+        message: 'Снимката не беше разпозната. Опитай отново с по-ясна снимка.'
       });
     }
 
@@ -10124,7 +10124,7 @@ async function handleAnalyzeMenuImage(request, env) {
     const { imageData, mimeType, userData, dietPlan, mealContext } = body;
 
     if (!imageData) {
-      return jsonResponse({ error: 'Липсва изображение. Моля, направете снимка на менюто.' }, 400);
+      return jsonResponse({ error: 'Липсва изображение. Моля, направи снимка на менюто.' }, 400);
     }
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -10141,7 +10141,7 @@ async function handleAnalyzeMenuImage(request, env) {
     const MAX_IMAGE_SIZE_BYTES = 20971520; // 20MB
     const estimatedSizeBytes = (base64Data.length * 3) / 4;
     if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
-      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвайте по-малко изображение.' }, 400);
+      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвай по-малко изображение.' }, 400);
     }
 
     // Build diet context for the prompt
@@ -10186,7 +10186,7 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
 - Избери НАЙ-ПОДХОДЯЩОТО ястие спрямо профила и целта на клиента
 - Дай оценка за подходящост от 0 до 5 (5 = отлично, 0 = абсолютно неподходящо)
 - Посочи и до 2 алтернативи ако има
-- Дай конкретна адаптация за поръчката (напр. "Поискайте без сос", "Добавете само лимон")
+- Дай конкретна адаптация за поръчката (напр. "Поискай без сос", "Добави само лимон")
 
 Върни ТОЧНО този JSON:
 {
@@ -10194,7 +10194,7 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
   "suitabilityScore": число от 0 до 5,
   "description": "Кратко описание на ястието (1-2 изречения)",
   "reasoning": "Защо е подходящо за целта и профила на клиента (2-3 изречения)",
-  "adaptationTip": "Конкретна препоръка за адаптация при поръчката (напр. 'Поръчайте салатата без дресинг, добавете само лимон и зехтин')",
+  "adaptationTip": "Конкретна препоръка за адаптация при поръчката (напр. 'Поръчай салатата без дресинг, добави само лимон и зехтин')",
   "alternatives": [
     {
       "name": "Алтернативно ястие 1",
@@ -10228,7 +10228,7 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
         success: true,
         analysis: null,
         parseError: true,
-        message: 'Снимката не беше разпозната. Опитайте отново с по-ясна снимка.'
+        message: 'Снимката не беше разпозната. Опитай отново с по-ясна снимка.'
       });
     }
 
@@ -10259,7 +10259,7 @@ async function handleAnalyzeKidsFoodImage(request, env) {
 
     // Validate required fields
     if (!imageData) {
-      return jsonResponse({ error: 'Липсва изображение. Моля, направете снимка на храната.' }, 400);
+      return jsonResponse({ error: 'Липсва изображение. Моля, направи снимка на храната.' }, 400);
     }
 
     // Validate mime type
@@ -10279,7 +10279,7 @@ async function handleAnalyzeKidsFoodImage(request, env) {
     const MAX_IMAGE_SIZE_BYTES = 20971520;
     const estimatedSizeBytes = (base64Data.length * 3) / 4;
     if (estimatedSizeBytes > MAX_IMAGE_SIZE_BYTES) {
-      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвайте по-малко изображение.' }, 400);
+      return jsonResponse({ error: 'Изображението е твърде голямо. Моля, използвай по-малко изображение.' }, 400);
     }
 
     const ageLabel = ageGroup || '3-7';
@@ -10633,13 +10633,13 @@ function generateMockResponse(prompt) {
         "Сладкиши и рафинирана захар",
         "Алкохол (особено концентрати)"
       ],
-      psychology: "Не се обвинявайте: Ако 'съгрешите' с едно хранене, просто продължете по план следващия път. Едно хранене не разваля прогреса. Слушайте тялото си: Хранете се, когато сте гладни, а не когато сте емоционални или отегчени.",
+      psychology: "Не се обвинявай: Ако 'съгрешиш' с едно хранене, просто продължи по план следващия път. Едно хранене не разваля прогреса. Слушай тялото си: храни се, когато огладнееш, а не от емоции или скука.",
       waterIntake: "Поне 2.5 литра вода дневно, разпределени през целия ден",
       supplements: "Витамин D3 (2000 IU), Омега-3 (1000mg), Магнезий (200mg)"
     });
   } else {
     // Mock chat response
-    return "Благодаря за въпроса! Като ваш личен диетолог, бих искал да ви подкрепя в постигането на целите ви. Важно е да следвате плана, но също така да слушате тялото си. Имате ли конкретен въпрос за храненията или нуждаете ли се от допълнителна мотивация?";
+    return "Благодаря за въпроса! Като твой личен диетолог, бих искал да те подкрепя в постигането на целите ти. Важно е да следваш плана, но също така да слушаш тялото си. Имаш ли конкретен въпрос за храненията или нуждаеш ли се от допълнителна мотивация?";
   }
 }
 
@@ -11620,7 +11620,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
     // Validate that at least some answers exist
     const answeredCount = Object.values(data.answers).filter(a => a && String(a).trim().length > 0).length;
     if (answeredCount < 4) {
-      return jsonResponse({ error: 'Моля, отговорете на поне 4 въпроса за пълноценен анализ' }, 400);
+      return jsonResponse({ error: 'Моля, отговори на поне 4 въпроса за пълноценен анализ' }, 400);
     }
 
     const prompt = await generateEmoeatPrompt(data.answers, data.profile, env);
@@ -11642,7 +11642,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
     if (!parsed || !parsed.headline || !actions.length) {
       console.error('handleGenerateEmoeatAnalysis: Failed to parse AI response');
       return jsonResponse({
-        error: 'Анализът не можа да бъде генериран. Моля, опитайте отново.',
+        error: 'Анализът не можа да бъде генериран. Моля, опитай отново.',
         rawResponse: typeof aiResponse === 'string' ? aiResponse.substring(0, 200) : null
       }, 500);
     }
@@ -13764,16 +13764,16 @@ async function handleGetCalendarIcs(request, env) {
   const defaults = {
     morningTime:  '07:00',
     morningTitle: 'NutriPlan',
-    morningBody:  'Спахте ли добре тази нощ?',
+    morningBody:  'Спа ли добре тази нощ?',
     eveningActivityTime:  '20:00',
     eveningActivityTitle: 'NutriPlan',
-    eveningActivityBody:  'Колко се движихте днес?',
+    eveningActivityBody:  'Колко се движи днес?',
     eveningBalanceTime:   '20:05',
     eveningBalanceTitle:  'NutriPlan',
-    eveningBalanceBody:   'Как се чувствахте днес?',
+    eveningBalanceBody:   'Как се чувстваше днес?',
     eveningWaterTime:     '20:10',
     eveningWaterTitle:    'NutriPlan',
-    eveningWaterBody:     'Пихте ли достатъчно вода днес?',
+    eveningWaterBody:     'Пи ли достатъчно вода днес?',
     eveningTime:  '20:00',
   };
   let cfg = Object.assign({}, defaults);
@@ -13786,9 +13786,9 @@ async function handleGetCalendarIcs(request, env) {
   // Старите текстове от запазени настройки → новите (същото като local-scheduler.js).
   const LEGACY_COPY = {
     'AI Асистент': 'NutriPlan',
-    'Ниво на активност?': 'Колко се движихте днес?',
-    'Емоционален баланс?': 'Как се чувствахте днес?',
-    'Изпихте ли поне 2 л вода?': 'Пихте ли достатъчно вода днес?',
+    'Ниво на активност?': 'Колко се движи днес?',
+    'Емоционален баланс?': 'Как се чувстваше днес?',
+    'Изпи ли поне 2 л вода?': 'Пи ли достатъчно вода днес?',
   };
   for (const key of Object.keys(cfg)) {
     if (/(Title|Body)$/.test(key) && typeof cfg[key] === 'string' && LEGACY_COPY[cfg[key].trim()]) cfg[key] = LEGACY_COPY[cfg[key].trim()];
@@ -13888,7 +13888,7 @@ async function handleGetCalendarIcs(request, env) {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:NutriPlan Напомняния',
-    'X-WR-CALDESC:Сутрешни и вечерни напомняния за вашия диетичен план',
+    'X-WR-CALDESC:Сутрешни и вечерни напомняния за твоя диетичен план',
     'REFRESH-INTERVAL;VALUE=DURATION:PT24H',
     'X-PUBLISHED-TTL:PT24H',
     ...events,
@@ -15004,7 +15004,7 @@ async function handleLabExtract(request, env) {
     if (isPdf) {
       // PDF се чете директно само от Gemini; иначе — снимка на страницата.
       if (!env.GEMINI_API_KEY) {
-        return jsonResponse({ error: 'PDF не се поддържа — качете снимка на страницата с резултатите.' }, 415);
+        return jsonResponse({ error: 'PDF не се поддържа — качи снимка на страницата с резултатите.' }, 415);
       }
       const config = await getAdminConfig(env);
       response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2000, config.visionThinkingBudget ?? AI_TASKS.lab_extraction.thinking);
@@ -15029,7 +15029,7 @@ async function handleLabExtract(request, env) {
     return jsonResponse({ success: true, date, markers, markersCatalog: LAB_MARKERS });
   } catch (error) {
     console.error('Error extracting labs:', error);
-    return jsonResponse({ error: 'Не успяхме да прочетем изследването. Опитайте с по-ясна снимка.' }, 500);
+    return jsonResponse({ error: 'Не успяхме да прочетем изследването. Опитай с по-ясна снимка.' }, 500);
   }
 }
 
@@ -15089,7 +15089,7 @@ async function handleDeviceExtract(request, env) {
     return jsonResponse({ success: true, date, readings, kindsCatalog: publicDeviceKinds() });
   } catch (error) {
     console.error('Error extracting device data:', error);
-    return jsonResponse({ error: 'Не успяхме да прочетем снимката. Опитайте с по-ясна екранна снимка.' }, 500);
+    return jsonResponse({ error: 'Не успяхме да прочетем снимката. Опитай с по-ясна екранна снимка.' }, 500);
   }
 }
 
@@ -15107,7 +15107,7 @@ async function handleDocumentAssess(request, env) {
     const authError = await checkFirebaseOwner(userId, idToken, env, request);
     if (authError) return authError;
     const plain = String(text || '').trim().slice(0, 12000);
-    if (!imageData && !plain) return jsonResponse({ error: 'Добавете файл или текст.' }, 400);
+    if (!imageData && !plain) return jsonResponse({ error: 'Добави файл или текст.' }, 400);
 
     const profile = await kvGetJSON(env, `user_profile:${userId}`);
     const data = applyEnrichment(normalizeQuestionnaireData({ ...(profile?.userData || {}) }), profile?.enrichment || { facts: [] });
@@ -15132,7 +15132,7 @@ async function handleDocumentAssess(request, env) {
       const base64Data = String(imageData).startsWith('data:') ? String(imageData).slice(String(imageData).indexOf(',') + 1) : String(imageData);
       if ((base64Data.length * 3) / 4 > 15 * 1024 * 1024) return jsonResponse({ error: 'Файлът е твърде голям (до 15 MB).' }, 400);
       if (isPdf) {
-        if (!env.GEMINI_API_KEY) return jsonResponse({ error: 'PDF не се поддържа — качете снимка на страницата.' }, 415);
+        if (!env.GEMINI_API_KEY) return jsonResponse({ error: 'PDF не се поддържа — качи снимка на страницата.' }, 415);
         const config = await getAdminConfig(env);
         response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget ?? AI_TASKS.document_image.thinking);
       } else {
@@ -15157,7 +15157,7 @@ async function handleDocumentAssess(request, env) {
     });
   } catch (error) {
     console.error('Error assessing document:', error);
-    return jsonResponse({ error: 'Не успяхме да прочетем документа. Опитайте с по-ясна снимка или въведете текста.' }, 500);
+    return jsonResponse({ error: 'Не успяхме да прочетем документа. Опитай с по-ясна снимка или въведи текста.' }, 500);
   }
 }
 
@@ -15378,7 +15378,7 @@ async function handleLinksCallback(request, env, provider) {
   const state = url.searchParams.get('state') || '';
   const code = url.searchParams.get('code') || '';
   const pending = state ? await kvGetJSON(env, `link_state:${state}`) : null;
-  if (!pending || pending.provider !== provider) return linkResultPage(false, 'Връзката не е завършена', 'Заявката е изтекла. Опитайте отново от профила в NutriPlan.');
+  if (!pending || pending.provider !== provider) return linkResultPage(false, 'Връзката не е завършена', 'Заявката е изтекла. Опитай отново от профила в NutriPlan.');
   await env.page_content.delete(`link_state:${state}`).catch(() => {});
   const back = (status) => {
     if (!pending.returnTo) return null;
@@ -15387,7 +15387,7 @@ async function handleLinksCallback(request, env, provider) {
     u.searchParams.set('link_status', status);
     return Response.redirect(u.toString(), 302);
   };
-  if (!code) return back('denied') || linkResultPage(false, 'Достъпът не е разрешен', 'Профилът не е свързан. Може да опитате отново по всяко време.', pending.fromApp);
+  if (!code) return back('denied') || linkResultPage(false, 'Достъпът не е разрешен', 'Профилът не е свързан. Може да опиташ отново по всяко време.', pending.fromApp);
   try {
     const token = await linkExchangeCode(fetch, env, provider, { code, redirectUri: linkRedirectUri(request, provider), verifier: pending.verifier });
     const link = { ...token, linkedAt: new Date().toISOString() };
@@ -15943,28 +15943,28 @@ async function handleGetNotificationTemplates(request, env) {
     // Default templates
     const defaultTemplates = {
       meals: {
-        breakfast: { title: 'Време за закуска', body: 'Започнете деня си със здравословна закуска 🍳', time: '08:00' },
-        lunch: { title: 'Време за обяд', body: 'Време е за вашия здравословен обяд 🥗', time: '13:00' },
-        dinner: { title: 'Време за вечеря', body: 'Не забравяйте вечерята си 🍽️', time: '19:00' },
+        breakfast: { title: 'Време за закуска', body: 'Започни деня си със здравословна закуска 🍳', time: '08:00' },
+        lunch: { title: 'Време за обяд', body: 'Време е за твоя здравословен обяд 🥗', time: '13:00' },
+        dinner: { title: 'Време за вечеря', body: 'Не забравяй вечерята си 🍽️', time: '19:00' },
         snack: { title: 'Време за междинна закуска', body: 'Време е за здравословна междинна закуска 🍎', time: '10:30' }
       },
       water: {
         title: 'Време за вода',
-        body: 'Не забравяйте да пиете вода! 💧',
+        body: 'Не забравяй да пиеш вода! 💧',
         frequency: 2
       },
       sleep: {
         title: 'Време за сън',
-        body: 'Подгответе се за почивка. Добър сън е важен за здравето ви! 😴',
+        body: 'Подготви се за почивка. Добър сън е важен за здравето ти! 😴',
         time: '22:00'
       },
       activity: {
-        morning: { title: 'Сутрешна активност', body: 'Започнете деня с лека физическа активност! 🏃', time: '07:00' },
-        day: { title: 'Време за движение', body: 'Направете кратка разходка или упражнения! 🚶', time: '15:00' }
+        morning: { title: 'Сутрешна активност', body: 'Започни деня с лека физическа активност! 🏃', time: '07:00' },
+        day: { title: 'Време за движение', body: 'Направи кратка разходка или упражнения! 🚶', time: '15:00' }
       },
       supplements: {
         title: 'Хранителни добавки',
-        body: 'Не забравяйте да приемете вашите хранителни добавки 💊',
+        body: 'Не забравяй да приемеш твоите хранителни добавки 💊',
         times: []
       }
     };
@@ -16168,7 +16168,7 @@ async function checkAndSendWaterReminders(userId, waterSettings, currentHour, cu
       const templates = await getNotificationTemplates(env);
       await sendPushNotificationToUser(userId, {
         title: templates.water?.title || 'Време за вода',
-        body: templates.water?.body || 'Не забравяйте да пиете вода! 💧',
+        body: templates.water?.body || 'Не забравяй да пиеш вода! 💧',
         url: '/plan.html',
         notificationType: 'water'
       }, env);
@@ -16186,7 +16186,7 @@ async function checkAndSendSleepReminder(userId, sleepTime, currentTime, env) {
     const templates = await getNotificationTemplates(env);
     await sendPushNotificationToUser(userId, {
       title: templates.sleep?.title || 'Време за сън',
-      body: templates.sleep?.body || 'Подгответе се за почивка 😴',
+      body: templates.sleep?.body || 'Подготви се за почивка 😴',
       url: '/plan.html',
       notificationType: 'sleep'
     }, env);
@@ -16204,7 +16204,7 @@ async function checkAndSendActivityReminders(userId, activityPrefs, currentTime,
     console.log(`[Cron] Sending morning activity reminder to user ${userId}`);
     await sendPushNotificationToUser(userId, {
       title: templates.activity?.morning?.title || 'Сутрешна активност',
-      body: templates.activity?.morning?.body || 'Започнете деня с активност! 🏃',
+      body: templates.activity?.morning?.body || 'Започни деня с активност! 🏃',
       url: '/plan.html',
       notificationType: 'activity'
     }, env);
@@ -16215,7 +16215,7 @@ async function checkAndSendActivityReminders(userId, activityPrefs, currentTime,
     console.log(`[Cron] Sending day activity reminder to user ${userId}`);
     await sendPushNotificationToUser(userId, {
       title: templates.activity?.day?.title || 'Време за движение',
-      body: templates.activity?.day?.body || 'Направете кратка разходка! 🚶',
+      body: templates.activity?.day?.body || 'Направи кратка разходка! 🚶',
       url: '/plan.html',
       notificationType: 'activity'
     }, env);
@@ -16252,18 +16252,18 @@ async function getNotificationTemplates(env) {
   // Return defaults if not found
   return {
     meals: {
-      breakfast: { title: 'Време за закуска', body: 'Започнете деня си със здравословна закуска 🍳' },
-      lunch: { title: 'Време за обяд', body: 'Време е за вашия здравословен обяд 🥗' },
-      dinner: { title: 'Време за вечеря', body: 'Не забравяйте вечерята си 🍽️' },
+      breakfast: { title: 'Време за закуска', body: 'Започни деня си със здравословна закуска 🍳' },
+      lunch: { title: 'Време за обяд', body: 'Време е за твоя здравословен обяд 🥗' },
+      dinner: { title: 'Време за вечеря', body: 'Не забравяй вечерята си 🍽️' },
       snack: { title: 'Време за междинна закуска', body: 'Време е за здравословна междинна закуска 🍎' }
     },
-    water: { title: 'Време за вода', body: 'Не забравяйте да пиете вода! 💧' },
-    sleep: { title: 'Време за сън', body: 'Подгответе се за почивка. Добър сън е важен! 😴' },
+    water: { title: 'Време за вода', body: 'Не забравяй да пиеш вода! 💧' },
+    sleep: { title: 'Време за сън', body: 'Подготви се за почивка. Добър сън е важен! 😴' },
     activity: {
-      morning: { title: 'Сутрешна активност', body: 'Започнете деня с активност! 🏃' },
-      day: { title: 'Време за движение', body: 'Направете кратка разходка! 🚶' }
+      morning: { title: 'Сутрешна активност', body: 'Започни деня с активност! 🏃' },
+      day: { title: 'Време за движение', body: 'Направи кратка разходка! 🚶' }
     },
-    supplements: { title: 'Хранителни добавки', body: 'Не забравяйте добавките 💊' }
+    supplements: { title: 'Хранителни добавки', body: 'Не забравяй добавките 💊' }
   };
 }
 

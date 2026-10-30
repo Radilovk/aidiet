@@ -11,7 +11,7 @@
     var PLAN_VERSION_CHECK_DATE_KEY = 'np_plan_version_check_date';
     var PLAN_VERSION_CHECK_INTERVAL_MS = 15 * 60 * 1000;
     var PLAN_EDITING_LOCK_ENABLED = true;
-    var PLAN_EDITING_MESSAGE = 'Вашият хранителен план е в процес на редакция. Моля, опитайте по-късно.';
+    var PLAN_EDITING_MESSAGE = 'Твоят хранителен план е в процес на редакция. Моля, опитай по-късно.';
     var PLAN_EDITING_ALLOWED = {
         clientIds: { 'client_1781138769382_8b8mu': true },
         userIds: { 'fb_Os1kJ6EpeCcQwelBVp5UdVeK8kq1': true },
@@ -21,7 +21,7 @@
     var _planUpdateApplyInFlight = null;
     var _planUpdatePromptVisible = false;
     var _planUpdatePromptShownSession = false;
-    var PROFILE_REGEN_PROCESSING_MSG = 'В момента обработваме постъпилите промени. Скоро ще получите актуализация на Вашия план.';
+    var PROFILE_REGEN_PROCESSING_MSG = 'В момента обработваме постъпилите промени. Скоро ще получиш актуализация на Твоя план.';
     var _profileRegenPollActive = false;
 
     function setLocalPlanUpdatedAt(ts) {
@@ -370,7 +370,7 @@
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:5000;display:none;align-items:center;justify-content:center;padding:20px;';
         overlay.innerHTML = [
             '<div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);">',
-            '<h3 id="npPlanReplaceTitle" style="margin:0 0 8px;font-size:1.05rem;color:var(--text-dark,#111);">Потвърдете новия план</h3>',
+            '<h3 id="npPlanReplaceTitle" style="margin:0 0 8px;font-size:1.05rem;color:var(--text-dark,#111);">Потвърди новия план</h3>',
             '<p id="npPlanReplaceMessage" style="margin:0 0 16px;font-size:.85rem;color:var(--text-light,#6b7280);line-height:1.5;"></p>',
             '<input id="npPlanReplaceEmail" type="email" readonly aria-label="Имейл" style="width:100%;padding:12px 14px;border:1.5px solid rgba(13,148,136,.25);border-radius:12px;font-size:.9rem;margin-bottom:10px;box-sizing:border-box;background:rgba(13,148,136,.06);color:var(--text-light,#6b7280);">',
             '<input id="npPlanReplacePassword" type="password" placeholder="Парола" autocomplete="current-password" aria-label="Парола" style="width:100%;padding:12px 14px;border:1.5px solid rgba(13,148,136,.25);border-radius:12px;font-size:.9rem;margin-bottom:10px;box-sizing:border-box;">',
@@ -429,7 +429,7 @@
                     return;
                 }
                 if (!auth || typeof auth.signIn !== 'function') {
-                    errEl.textContent = 'Автентикацията не е налична. Презаредете страницата.';
+                    errEl.textContent = 'Автентикацията не е налична. Презареди страницата.';
                     return;
                 }
                 confirmBtn.disabled = true;
@@ -445,7 +445,7 @@
                         code === 'auth/user-not-found'
                     ) ? 'Няма акаунт с този имейл.' : (
                         code === 'auth/too-many-requests'
-                    ) ? 'Твърде много опити. Изчакайте.' : (err.message || 'Грешка при вход.');
+                    ) ? 'Твърде много опити. Изчакай.' : (err.message || 'Грешка при вход.');
                 } finally {
                     confirmBtn.disabled = false;
                 }
@@ -952,10 +952,10 @@
                         resolve({ updated: false, reason: 'current' });
                         return;
                     }
-                    errEl.textContent = 'Неуспешно. Опитайте отново.';
+                    errEl.textContent = 'Неуспешно. Опитай отново.';
                     errEl.style.display = 'block';
                 } catch (_) {
-                    errEl.textContent = 'Неуспешно. Опитайте отново.';
+                    errEl.textContent = 'Неуспешно. Опитай отново.';
                     errEl.style.display = 'block';
                 } finally {
                     confirmBtn.disabled = false;

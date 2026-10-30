@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Вашият комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти с AI анализ.">
+    <meta name="description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти с AI анализ.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -16,7 +16,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/plan.html">
     <meta property="og:title" content="Диетичен План - NutriPlan">
-    <meta property="og:description" content="Вашият комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти.">
+    <meta property="og:description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
     
@@ -24,7 +24,7 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:url" content="https://biocode.website/plan.html">
     <meta name="twitter:title" content="Диетичен План - NutriPlan">
-    <meta name="twitter:description" content="Вашият комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти.">
+    <meta name="twitter:description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти.">
     <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
     
     <link rel="canonical" href="https://biocode.website/plan.html">
@@ -1102,7 +1102,7 @@
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            z-index: 1000;
+            z-index: 1002; /* над балона на асистента (1000) и банера (1001) */
             opacity: 0;
             visibility: hidden;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -3142,7 +3142,7 @@
             background: rgba(0,0,0,0.6);
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
-            z-index: 1000;
+            z-index: 1002; /* над балона на асистента (1000) и банера (1001) */
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -4123,8 +4123,8 @@
                            autocomplete="current-password" class="pa-pw-input">
                     <button id="paPwBtn" class="pa-primary-btn">Вход</button>
                     <p style="margin:12px 0 4px;font-size:0.82rem;color:var(--text-gray,#6b7280);">
-                        Нямате профил?
-                        <button onclick="navigateTopLevel('questionnaire2.html')" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Попълнете въпросника</button>
+                        Нямаш профил?
+                        <button onclick="navigateTopLevel('questionnaire2.html')" style="background:none;border:none;color:#0D9488;font-size:0.82rem;cursor:pointer;padding:0;text-decoration:underline;">Попълни въпросника</button>
                     </p>
                     <button id="paForgotBtn" style="background:none;border:none;color:var(--text-gray,#6b7280);font-size:0.82rem;cursor:pointer;padding:4px 0;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Забравена парола?</button>
                     <div id="planAuthError"></div>
@@ -4154,16 +4154,16 @@
                         console.error('Login error:', err.code, err.message);
                         showAuthError(
                             err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
-                                ? 'Грешна парола. Използвайте „Забравена парола?" за нулиране.' :
+                                ? 'Грешна парола. Използвай „Забравена парола?" за нулиране.' :
                             err.code === 'auth/user-not-found'
-                                ? 'Нямате профил. Попълнете въпросника от началната страница.' :
+                                ? 'Нямаш профил. Попълни въпросника от началната страница.' :
                             err.code === 'auth/too-many-requests'
-                                ? 'Твърде много опити. Изчакайте и опитайте отново.' :
+                                ? 'Твърде много опити. Изчакай и опитай отново.' :
                             err.code === 'auth/network-request-failed'
-                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                                ? 'Мрежова грешка. Провери интернет връзката си.' :
                             err.code === 'auth/unauthorized-domain'
-                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
-                            'Грешка при вход. Опитайте отново.'
+                                ? 'Домейнът не е оторизиран. Свържи се с администратора.' :
+                            'Грешка при вход. Опитай отново.'
                         );
                     } finally { this.disabled = false; }
                 });
@@ -4179,13 +4179,13 @@
                         });
                         const data = await res.json().catch(() => ({}));
                         if (!res.ok) {
-                            showAuthError(data.error || 'Грешка при изпращане. Опитайте отново.');
+                            showAuthError(data.error || 'Грешка при изпращане. Опитай отново.');
                         } else {
-                            showPlanAuthSuccess('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                            showPlanAuthSuccess('Ако имаш акаунт с този имейл, ще получиш линк за нулиране на паролата. Провери входящата поща и папката за спам.');
                         }
                     } catch (err) {
                         console.error('Password reset error:', err);
-                        showAuthError('Мрежова грешка. Проверете интернет връзката си.');
+                        showAuthError('Мрежова грешка. Провери интернет връзката си.');
                     } finally { this.disabled = false; }
                 });
             } else {
@@ -4193,7 +4193,7 @@
                 authForm.innerHTML = `
                     <div style="font-size:2rem;margin-bottom:12px;">🌿</div>
                     <h3>Добре дошли в NutriPlan</h3>
-                    <p>Влезте, за да заредите плана си</p>
+                    <p>Влез, за да заредиш плана си</p>
                     <input id="paEmailInput" type="email" placeholder="Имейл адрес"
                            autocomplete="email" class="pa-pw-input" style="margin-bottom:8px;">
                     <input id="paPwInputFull" type="password" placeholder="Парола"
@@ -4220,7 +4220,7 @@
                 pwBtnFull.addEventListener('click', async function () {
                     const em = (emailIn.value || '').trim();
                     const pw = pwInFull.value;
-                    if (!em) { showAuthError('Въведете имейл адрес.'); return; }
+                    if (!em) { showAuthError('Въведи имейл адрес.'); return; }
                     if (!pw || pw.length < 6) { showAuthError('Паролата трябва да е поне 6 символа.'); return; }
                     this.disabled = true;
                     try {
@@ -4231,21 +4231,21 @@
                             err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
                                 ? 'Грешен имейл или парола.' :
                             err.code === 'auth/user-not-found'
-                                ? 'Нямате профил с този имейл. Попълнете въпросника от началната страница.' :
+                                ? 'Нямаш профил с този имейл. Попълни въпросника от началната страница.' :
                             err.code === 'auth/too-many-requests'
-                                ? 'Твърде много опити. Изчакайте и опитайте отново.' :
+                                ? 'Твърде много опити. Изчакай и опитай отново.' :
                             err.code === 'auth/network-request-failed'
-                                ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                                ? 'Мрежова грешка. Провери интернет връзката си.' :
                             err.code === 'auth/unauthorized-domain'
-                                ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
-                            'Грешка при вход. Опитайте отново.'
+                                ? 'Домейнът не е оторизиран. Свържи се с администратора.' :
+                            'Грешка при вход. Опитай отново.'
                         );
                     } finally { this.disabled = false; }
                 });
 
                 document.getElementById('paForgotBtnFull').addEventListener('click', async function () {
                     const em = (emailIn.value || '').trim();
-                    if (!em) { showAuthError('Въведете имейл адреса си по-горе.'); return; }
+                    if (!em) { showAuthError('Въведи имейл адреса си по-горе.'); return; }
                     this.disabled = true;
                     try {
                         const res = await fetch(WORKER_URL + '/api/auth/forgot-password', {
@@ -4255,13 +4255,13 @@
                         });
                         const data = await res.json().catch(() => ({}));
                         if (!res.ok) {
-                            showAuthError(data.error || 'Грешка при изпращане. Проверете имейл адреса.');
+                            showAuthError(data.error || 'Грешка при изпращане. Провери имейл адреса.');
                         } else {
-                            showPlanAuthSuccessFull('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                            showPlanAuthSuccessFull('Ако имаш акаунт с този имейл, ще получиш линк за нулиране на паролата. Провери входящата поща и папката за спам.');
                         }
                     } catch (err) {
                         console.error('Password reset error:', err);
-                        showAuthError('Мрежова грешка. Проверете интернет връзката си.');
+                        showAuthError('Мрежова грешка. Провери интернет връзката си.');
                     } finally { this.disabled = false; }
                 });
             }
@@ -4502,7 +4502,7 @@
                     <div id="foodCaptureContent">
                         <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
                         <div class="food-capture-text" id="foodCaptureHint">
-                            Натиснете за да направите снимка
+                            Натисни за да направиш снимка
                         </div>
                     </div>
                 </div>
@@ -4795,12 +4795,12 @@
                         // Chrome or Firefox on iOS
                         info.notificationsSupported = false;
                         info.recommendations.push('Chrome и Firefox на iOS не поддържат известия');
-                        info.recommendations.push('Моля използвайте Safari и инсталирайте приложението');
+                        info.recommendations.push('Моля използвай Safari и инсталирай приложението');
                         info.recommendations.push('Safari → Share → Add to Home Screen');
                     } else if (!PlatformDetector.isPWA()) {
-                        info.recommendations.push('Инсталирайте приложението на начален екран за известия');
+                        info.recommendations.push('Инсталирай приложението на начален екран за известия');
                         info.recommendations.push('Safari → Share → Add to Home Screen');
-                        info.recommendations.push('След това отворете от началния екран');
+                        info.recommendations.push('След това отвори от началния екран');
                     }
                 } else if (PlatformDetector.isAndroid()) {
                     const compat = window.NutriPlanCompat && window.NutriPlanCompat.getCompatibilityProfile();
@@ -4816,7 +4816,7 @@
                     if (compat && compat.recommendations.length) {
                         compat.recommendations.forEach((r) => info.recommendations.push(r));
                     } else if (!info.notificationsSupported) {
-                        info.recommendations.push('Използвайте Chrome, Firefox, Edge или Samsung Internet (актуална версия)');
+                        info.recommendations.push('Използвай Chrome, Firefox, Edge или Samsung Internet (актуална версия)');
                         info.recommendations.push('Алтернатива: абонамент за календарни напомняния');
                     }
                 } else {
@@ -4824,8 +4824,8 @@
                     info.notificationsSupported = PlatformDetector.supportsNotifications();
                     info.limitedSupport = false;
                     if (!info.notificationsSupported) {
-                        info.recommendations.push('Вашият браузър не поддържа известия');
-                        info.recommendations.push('Използвайте модерен браузър: Chrome, Firefox, Edge или Safari 16+');
+                        info.recommendations.push('Твоят браузър не поддържа известия');
+                        info.recommendations.push('Използвай модерен браузър: Chrome, Firefox, Edge или Safari 16+');
                     }
                 }
                 
@@ -4890,14 +4890,14 @@
                 backgroundDark: '#2d4a2e'
             },
             modification: {
-                activatedMessage: '🔓 Режимът за промяна на плана е активиран. Сега мога да променям вашия план според желанията ви.',
+                activatedMessage: '🔓 Режимът за промяна на плана е активиран. Сега мога да променям твоя план според желанията ти.',
                 modeLabel: 'Режим: Промяна на план',
                 icon: { color: '#FF5722' },
                 background: '#FFEBEE',
                 backgroundDark: '#4a2d2d'
             },
             report: {
-                activatedMessage: '📝 Режимът за докладване на проблем е активиран. Опишете проблема, който срещате, и той ще бъде изпратен до администратора.',
+                activatedMessage: '📝 Режимът за докладване на проблем е активиран. Опиши проблема, който срещаш, и той ще бъде изпратен до администратора.',
                 modeLabel: 'Режим: Докладване на проблем',
                 icon: { color: '#ff9800' },
                 background: '#FFF3E0',
@@ -5311,7 +5311,7 @@
                         _loadDietDataCalled = true;
                         const sync = window.NutriPlanPlanSync;
                         if (!sync || typeof sync.restoreProfileFromServer !== 'function') {
-                            showError('Не открихме план за този профил. Ако вече имате план, опитайте отново; иначе попълнете въпросника.', true);
+                            showError('Не открихме план за този профил. Ако вече имаш план, опитай отново; иначе попълни въпросника.', true);
                             return;
                         }
                         let restoreEmail = '';
@@ -5325,11 +5325,11 @@
                                     console.log('[PWA] Plan restored from backend in plan.html');
                                     loadDietData();
                                 } else {
-                                    showError('Не открихме план за този профил. Ако вече имате план, опитайте отново; иначе попълнете въпросника.', true);
+                                    showError('Не открихме план за този профил. Ако вече имаш план, опитай отново; иначе попълни въпросника.', true);
                                 }
                             })
                             .catch(function () {
-                                showError('Няма връзка със сървъра. Проверете интернета и опитайте отново.', false);
+                                showError('Няма връзка със сървъра. Провери интернета и опитай отново.', false);
                             });
                         return;
                     }
@@ -5337,7 +5337,7 @@
                     if (window.NutriPlanDiagnostics) {
                         window.NutriPlanDiagnostics.fail('plan', 'load-diet-data', 'Missing plan or userId');
                     }
-                    showError('Не открихме план за този профил. Ако вече имате план, опитайте отново; иначе попълнете въпросника.', true);
+                    showError('Не открихме план за този профил. Ако вече имаш план, опитай отново; иначе попълни въпросника.', true);
                     return;
                 }
 
@@ -5402,7 +5402,7 @@
                 if (window.NutriPlanDiagnostics) {
                         window.NutriPlanDiagnostics.fail('plan', 'load-diet-data', error.message || 'Unknown error');
                 }
-                showError('Възникна грешка при показването на плана. Опитайте отново; ако се повтаря, пишете ни от профила.', false);
+                showError('Възникна грешка при показването на плана. Опитай отново; ако се повтаря, пиши ни от профила.', false);
             }
         }
 
@@ -5431,9 +5431,9 @@
                         const modifier = strategy.dietaryModifier || 'Балансиран';
                         const goal = (userData && userData.goal) ? userData.goal : 'здравословен живот';
 
-                        welcomeMessage = `Здравейте${userData && userData.name ? ', ' + userData.name : ''}.\n\n`;
-                        welcomeMessage += `Тип хранене: ${modifier}. Планът е изграден около целта Ви — ${goal.toLowerCase()}. `;
-                        welcomeMessage += `Следвайте го спокойно през първата седмица и отбелязвайте храненията — според това ще го настройваме.`;
+                        welcomeMessage = `Здравей${userData && userData.name ? ', ' + userData.name : ''}.\n\n`;
+                        welcomeMessage += `Тип хранене: ${modifier}. Планът е изграден около целта ти — ${goal.toLowerCase()}. `;
+                        welcomeMessage += `Следвай го спокойно през първата седмица и отбелязвай храненията — според това ще го настройваме.`;
                     }
                 }
 
@@ -5468,14 +5468,11 @@
                     if (welcomeMessageElement) {
                         welcomeMessageElement.textContent = welcomeMessage;
                     }
-                    // Обръщението от гласа на плана („ти“ или „Вие“) важи и за заглавието и бутона.
-                    const informal = strategy.addressForm === 'ти';
+                    // Обръщението на NutriPlan е „ти“ — и в заглавието.
                     const firstName = userData && userData.name ? String(userData.name).trim().split(/\s+/)[0] : '';
                     const titleEl = document.getElementById('welcomeModalTitle');
                     if (titleEl) {
-                        titleEl.textContent = firstName
-                            ? `${firstName}, ${informal ? 'твоят' : 'Вашият'} план е готов`
-                            : `${informal ? 'Твоят' : 'Вашият'} план е готов`;
+                        titleEl.textContent = firstName ? `${firstName}, твоят план е готов` : 'Твоят план е готов';
                     }
                     const noteBox = document.getElementById('specialistNote');
                     const noteText = document.getElementById('specialistNoteText');
@@ -5887,11 +5884,19 @@
                         ? (energy.preWorkoutMeal && MEAL_NAMES[energy.preWorkoutMeal] ? 'Въглехидратите са в ' + MEAL_NAMES[energy.preWorkoutMeal] + ' преди тренировката, след нея — белтък и зеленчуци' : 'Въглехидратите са по-рано, след тренировката — белтък и зеленчуци')
                         : energy.postWorkoutMeal && MEAL_NAMES[energy.postWorkoutMeal] ? 'Въглехидратите са най-много в ' + MEAL_NAMES[energy.postWorkoutMeal] + ' след тренировката' : 'Повече въглехидрати за тренировката')
                     : energy.window ? 'Хранене в прозорец ' + energy.window : (energy.kind === 'low' ? 'Пълният белтък, по-малко въглехидрати' : 'Повече зеленчуци и мазнини, въглехидратите — по-рано през деня');
+                // Числата са на менюто на деня — същите като „изядено / план“ в картата на деня
+                // (целта на двигателя се разминаваше с тях); при свободно хранене — целта.
+                const menuSum = (dayData.meals || []).reduce(function(t, m) {
+                    if (m && m.macros) { t.kcal += Number(m.calories) || 0; t.protein += Number(m.macros.protein) || 0; t.carbs += Number(m.macros.carbs) || 0; t.fats += Number(m.macros.fats) || 0; }
+                    else if (m && m.type === 'Свободно хранене') t.free = true;
+                    return t;
+                }, { kcal: 0, protein: 0, carbs: 0, fats: 0, free: false });
+                const shown = menuSum.kcal > 0 && !menuSum.free ? menuSum : energy;
                 const card = document.createElement('div');
                 card.className = 'meal-card breakfast-note-card meal-card--clickable day-energy-card';
                 card.innerHTML =
                     '<div class="meal-info">' +
-                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + energy.kcal + ' kcal · В ' + energy.carbs + ' г · Б ' + energy.protein + ' г · М ' + energy.fats + ' г</div>' +
+                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + Math.round(shown.kcal) + ' kcal · В ' + Math.round(shown.carbs) + ' г · Б ' + Math.round(shown.protein) + ' г · М ' + Math.round(shown.fats) + ' г</div>' +
                     '<div class="meal-name" style="font-size:0.92em;font-weight:600">' + escapeHtml(detail) + '</div>' +
                     '</div>';
                 card.setAttribute('role', 'button');
@@ -5904,7 +5909,7 @@
                     // на двигателя (за специалиста), а измерванията, които са наред, не са действие.
                     const microTodo = micro.filter(function(q) { return q.status !== 'ok' && q.advice; });
                     openModal(head, lines
-                        .concat(microTodo.length ? ['Какво да добавите:'].concat(microTodo.map(function(q) { return '• ' + q.label + ' — ' + q.advice; })) : [])
+                        .concat(microTodo.length ? ['Какво да добавиш:'].concat(microTodo.map(function(q) { return '• ' + q.label + ' — ' + q.advice; })) : [])
                         .join('\n\n'), '', null, null, null, null);
                 };
                 card.addEventListener('click', openEnergy);
@@ -6150,8 +6155,8 @@
 
         // --- Helper: Normalize array to exactly 3 items ---
         const DEFAULT_MESSAGES = {
-            psychology: 'Консултирайте се с диетолог за допълнителни съвети',
-            supplements: 'Консултирайте се с лекар преди приемане на нови добавки'
+            psychology: 'Консултирай се с диетолог за допълнителни съвети',
+            supplements: 'Консултирай се с лекар преди приемане на нови добавки'
         };
         
         const ICON_CLASSES = {
@@ -6686,7 +6691,7 @@
             openModal(
                 'Свободно хранене',
                 'Можеш свободно да консумираш любимата си храна.\n\nВажно: Любимата храна може да бъде консумирана след прием на зеленолистна салата, поръсена със семена или смлени ядки, поправена със зехтин и лимонов сок.',
-                'Насладете се на любимата си храна — заслужихте го!',
+                'Наслади се на любимата си храна — заслужено е!',
                 null, null, null, null
             );
         }
@@ -6747,9 +6752,9 @@
             overlay.id = 'mealSwapSheet';
             var html = '<div class="swap-sheet" role="dialog" aria-modal="true" aria-labelledby="swapSheetTitle">' +
                 '<div class="swap-sheet-head"><div><div class="swap-sheet-kicker">' + escapeHtml(getMealDisplayLabel(meal.type)) + '</div>' +
-                '<h3 id="swapSheetTitle">Изберете ястие</h3></div>' +
+                '<h3 id="swapSheetTitle">Избери ястие</h3></div>' +
                 '<button type="button" class="swap-sheet-close" aria-label="Затвори"><i class="fas fa-times"></i></button></div>' +
-                '<p class="swap-sheet-note">Вариантите са със сходни калории и белтък и следват Вашия режим.</p><div class="swap-sheet-list">';
+                '<p class="swap-sheet-note">Вариантите са със сходни калории и белтък и следват Твоя режим.</p><div class="swap-sheet-list">';
             options.forEach(function(opt, i) {
                 var current = i === 0;
                 var isOriginal = opt.dishId === originalId;
@@ -6810,7 +6815,7 @@
             const label = document.getElementById('mPersonalNoteLabel');
             if (!box || !text) return;
             text.textContent = note || '';
-            if (label) label.textContent = dietPlan && dietPlan.strategy && dietPlan.strategy.addressForm === 'Вие' ? 'Лично за Вас' : 'Лично за теб';
+            if (label) label.textContent = 'Лично за теб';
             box.hidden = !note;
         }
 
@@ -7125,7 +7130,7 @@
                 </div>
                 <div id="chatInputBar" style="flex-shrink: 0; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--text-light); background: var(--card-bg);">
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="chatInput" placeholder="Напишете съобщение..." 
+                        <input type="text" id="chatInput" placeholder="Напиши съобщение..." 
                             aria-label="Съобщение до асистента"
                             style="flex: 1; min-height: 48px; padding: 10px 16px; border: 1px solid var(--text-light); border-radius: 24px; outline: none; font-size: 1rem; background: var(--card-bg); color: var(--text-dark);"
                             onkeypress="if(event.key==='Enter') sendMessage()">
@@ -7150,7 +7155,7 @@
                 });
             } else {
                 // Show welcome message
-                addMessageToChat(`Здравейте, ${(userData && userData.name) || 'приятелю'}! 👋\n\nАз съм вашият асистент по хранителния план. Как мога да ви помогна днес?`, 'assistant', false);
+                addMessageToChat(`Здравей, ${(userData && userData.name) || 'приятелю'}! 👋\n\nАз съм твоят асистент по хранителния план. Как мога да ти помогна днес?`, 'assistant', false);
             }
 
             // Show Demo mode warning
@@ -7404,12 +7409,12 @@
                 if (window.gameModule) {
                     if (!window.gameModule.isEnabled()) {
                         window.gameModule.activateGame();
-                addMessageToChat('Геймификацията е активирана!\n\nОтсега ще събирам данни за:\n• Отбелязване на храненията\n• Сутрешна проверка (05:00) – качество на съня\n• Вечерна проверка (20:00) – активност, емоционален баланс, вода\n• Дневна оценка и насърчение\n\nАнализът ще е наличен в таба „Профил“ → раздел „Геймификация“.\n\nЗа да тествате сега, напишете *game-morning или *game-evening.', 'assistant');
+                addMessageToChat('Геймификацията е активирана!\n\nОтсега ще събирам данни за:\n• Отбелязване на храненията\n• Сутрешна проверка (05:00) – качество на съня\n• Вечерна проверка (20:00) – активност, емоционален баланс, вода\n• Дневна оценка и насърчение\n\nАнализът ще е наличен в таба „Профил“ → раздел „Геймификация“.\n\nЗа да тестваш сега, напиши *game-morning или *game-evening.', 'assistant');
                     } else {
-                        addMessageToChat('Геймификацията вече е активирана. Следете оценките в таба „Профил".', 'assistant');
+                        addMessageToChat('Геймификацията вече е активирана. Следи оценките в таба „Профил".', 'assistant');
                     }
                 } else {
-                    addMessageToChat('⚠️ Геймификационният модул се зарежда. Моля, опитайте след малко.', 'assistant');
+                    addMessageToChat('⚠️ Геймификационният модул се зарежда. Моля, опитай след малко.', 'assistant');
                 }
                 return;
             }
@@ -7447,7 +7452,7 @@
                         addMessageToChat('Стартирам седмичната процедура…', 'assistant');
                     } else {
                         var days = weekResult && weekResult.daysRecorded != null ? weekResult.daysRecorded : 0;
-                        addMessageToChat('За тест са нужни поне 3 дни с gamification данни (имате ' + days + '). Попълнете сутрешни/вечерни въпроси или отбележете хранения.', 'assistant');
+                        addMessageToChat('За тест са нужни поне 3 дни с gamification данни (имаш ' + days + '). Попълни сутрешни/вечерни въпроси или отбележи хранения.', 'assistant');
                     }
                 } else {
                     addMessageToChat('Геймификационният модул не е зареждан.', 'assistant');
@@ -7473,14 +7478,14 @@
             
             // Check demo version daily limit
             if (!isDemoLimitUnlocked && getDailyChatCount() >= MAX_DAILY_CHAT_MESSAGES) {
-                addMessageToChat(`⚠️ Демо версията позволява до ${MAX_DAILY_CHAT_MESSAGES} чат заявки на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.`, 'assistant');
+                addMessageToChat(`⚠️ Демо версията позволява до ${MAX_DAILY_CHAT_MESSAGES} чат заявки на ден. Лимитът за днес е достигнат. Моля, свържи се с нас за пълен достъп.`, 'assistant');
                 input.value = '';
                 return;
             }
             
             // Enhancement #9: Check for duplicate messages
             if (isDuplicateMessage(message)) {
-                addMessageToChat('⚠️ Това съобщение току-що бе изпратено. Моля, изчакайте отговора.', 'assistant');
+                addMessageToChat('⚠️ Това съобщение току-що бе изпратено. Моля, изчакай отговора.', 'assistant');
                 input.value = ''; // Clear input
                 return;
             }
@@ -7489,13 +7494,13 @@
             if (isSending || sendMessageTimeout) {
                 var prevPlaceholder = input.getAttribute('data-ph') || input.placeholder;
                 input.setAttribute('data-ph', prevPlaceholder);
-                showToast('Изчакайте отговора на предишното съобщение');
+                showToast('Изчакай отговора на предишното съобщение');
                 return;
             }
             
             // Enhancement #7: Rate limiting check
             if (!checkRateLimit()) {
-                addMessageToChat('⚠️ Твърде много съобщения. Моля, изчакайте малко.', 'assistant');
+                addMessageToChat('⚠️ Твърде много съобщения. Моля, изчакай малко.', 'assistant');
                 return;
             }
             
@@ -7768,7 +7773,7 @@
                             offlineMessageQueue = offlineMessageQueue.filter(m => m.id !== messageId);
                             saveOfflineQueue();
                         }
-                        addMessageToChat('✓ Вашият доклад за проблем е изпратен успешно до администратора. Благодарим ви за обратната връзка!', 'assistant');
+                        addMessageToChat('✓ Твоят доклад за проблем е изпратен успешно до администратора. Благодарим ти за обратната връзка!', 'assistant');
                     } else {
                         throw new Error('Report submission failed');
                     }
@@ -7778,7 +7783,7 @@
             } catch (error) {
                 console.error('Report problem error:', error);
                 removeTypingIndicator(typingId);
-                addMessageToChat('❌ Грешка при изпращане на доклада. Моля, опитайте отново по-късно.', 'assistant');
+                addMessageToChat('❌ Грешка при изпращане на доклада. Моля, опитай отново по-късно.', 'assistant');
                 throw error;
             } finally {
                 isSending = false;
@@ -8315,7 +8320,7 @@
         function startNewChat() {
             // Confirm before clearing history
             if (chatHistory.length > 0) {
-                if (!confirm('Това ще изтрие цялата история на чата. Сигурни ли сте?')) {
+                if (!confirm('Това ще изтрие цялата история на чата. Продължаваме ли?')) {
                     return;
                 }
             }
@@ -8332,7 +8337,7 @@
                 cancelActiveTyping({ complete: true });
                 chatMessages.innerHTML = '';
                 // Show welcome message
-                addMessageToChat(`Здравейте, ${(userData && userData.name) || 'приятелю'}! 👋\n\nАз съм вашият асистент по хранителния план. Как мога да ви помогна днес?`, 'assistant', false);
+                addMessageToChat(`Здравей, ${(userData && userData.name) || 'приятелю'}! 👋\n\nАз съм твоят асистент по хранителния план. Как мога да ти помогна днес?`, 'assistant', false);
             }
             
             // Reset mode UI
@@ -8398,7 +8403,7 @@
         }
 
         function resetFoodCaptureUI(mode) {
-            const hint = mode === 'menu' ? 'Натиснете за да снимате менюто' : 'Натиснете за да направите снимка';
+            const hint = mode === 'menu' ? 'Натисни за да снимаш менюто' : 'Натисни за да направиш снимка';
             const captureArea = document.getElementById('foodCaptureArea');
             if (captureArea) captureArea.classList.remove('has-image');
             const captureContent = document.getElementById('foodCaptureContent');
@@ -8582,7 +8587,7 @@
 
             // Validate file type — accept any image type, canvas will convert to JPEG
             if (!file.type.startsWith('image/')) {
-                alert('Файлът не е изображение. Моля, изберете изображение във формат JPG, PNG или WebP.');
+                alert('Файлът не е изображение. Моля, избери изображение във формат JPG, PNG или WebP.');
                 return;
             }
 
@@ -8607,7 +8612,7 @@
                     captureContent.innerHTML = `
                         <img src="${compressedBase64}" class="food-preview-img" alt="${foodAnalysisMode === 'menu' ? 'Снимка на меню' : 'Снимка на храна'}">
                         <div style="margin-top:8px;font-size:0.8rem;color:var(--text-light);">
-                            <i class="fas fa-redo"></i> Натиснете за нова снимка
+                            <i class="fas fa-redo"></i> Натисни за нова снимка
                         </div>
                     `;
                 }
@@ -8655,12 +8660,12 @@
                     callback(compressed);
                 };
                 img.onerror = function() {
-                    alert('Неуспешно зареждане на изображението. Моля, опитайте с друго.');
+                    alert('Неуспешно зареждане на изображението. Моля, опитай с друго.');
                 };
                 img.src = e.target.result;
             };
             reader.onerror = function() {
-                alert('Неуспешно четене на файла. Моля, опитайте отново.');
+                alert('Неуспешно четене на файла. Моля, опитай отново.');
             };
             reader.readAsDataURL(file);
         }
@@ -8675,7 +8680,7 @@
                     resultsDiv.innerHTML = `
                         <div class="food-result-section demo-mode-notice demo-limit-reached" style="border-left:3px solid #ffc107;">
                             <h4 style="color:#7a3b00;"><i class="fas fa-info-circle"></i> Демо лимит</h4>
-                            <p style="font-size:0.88rem;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.</p>
+                            <p style="font-size:0.88rem;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържи се с нас за пълен достъп.</p>
                         </div>
                     `;
                     resultsDiv.classList.add('visible');
@@ -8744,7 +8749,7 @@
                         resultsDiv.innerHTML = `
                             <div class="food-result-section">
                                 <h4><i class="fas fa-camera"></i> Снимката не беше разпозната</h4>
-                                <p style="font-size:0.88rem;line-height:1.6;">Опитайте със снимка отгоре, на добра светлина, с цялата чиния в кадъра — или изберете храната ръчно.</p>
+                                <p style="font-size:0.88rem;line-height:1.6;">Опитай със снимка отгоре, на добра светлина, с цялата чиния в кадъра — или избери храната ръчно.</p>
                             </div>
                         `;
                         resultsDiv.classList.add('visible');
@@ -8919,7 +8924,7 @@
                     resultsDiv.innerHTML = `
                         <div class="food-result-section demo-mode-notice demo-limit-reached" style="border-left:3px solid #ffc107;">
                             <h4 style="color:#7a3b00;"><i class="fas fa-info-circle"></i> Демо лимит</h4>
-                            <p style="font-size:0.88rem;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържете се с нас за пълен достъп.</p>
+                            <p style="font-size:0.88rem;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържи се с нас за пълен достъп.</p>
                         </div>
                     `;
                     resultsDiv.classList.add('visible');
@@ -8983,7 +8988,7 @@
                         resultsDiv.innerHTML = `
                             <div class="food-result-section">
                                 <h4><i class="fas fa-camera"></i> Менюто не беше разчетено</h4>
-                                <p style="font-size:0.88rem;line-height:1.6;">Опитайте с по-близка и ясна снимка на менюто, без отблясъци.</p>
+                                <p style="font-size:0.88rem;line-height:1.6;">Опитай с по-близка и ясна снимка на менюто, без отблясъци.</p>
                             </div>
                         `;
                         resultsDiv.classList.add('visible');
@@ -9367,7 +9372,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."');
+                        alert('За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай NutriPlan..."');
                     };
                 }
                 installBanner.classList.add('show');
@@ -9378,7 +9383,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-share"></i><span>Виж как</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран) (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)');
+                        alert('За да добавиш приложението към началния екран:\n\n1. Натисни бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превърти надолу и избери "Add to Home Screen" (Добави към начален екран) (Добави към начален екран)\n3. Потвърди, като натиснеш "Add" (Добави)');
                     };
                 }
                 installBanner.classList.add('show');
@@ -9390,7 +9395,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Натиснете "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърсете иконата (⊕) в адресната лента\n• Кликнете и изберете "Инсталирай"\n\n💡 ВАЖНО: Ако не виждате опцията веднага:\n• Презаредете страницата (F5)\n• Изчакайте 2-3 секунди\n• Кликнете на някой бутон на страницата');
+                        alert('📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отвори менюто на браузъра (⋮) в горния десен ъгъл\n2. Избери "Инсталирай приложение" или "Добави към начален екран"\n3. Натисни "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърси иконата (⊕) в адресната лента\n• Кликни и избери "Инсталирай"\n\n💡 ВАЖНО: Ако не виждаш опцията веднага:\n• Презареди страницата (F5)\n• Изчакай 2-3 секунди\n• Кликни на някой бутон на страницата');
                     };
                 }
                 installBanner.classList.add('show');
@@ -9401,7 +9406,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                        alert('За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието');
                     };
                 }
                 installBanner.classList.add('show');
@@ -9412,7 +9417,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                        alert('За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието');
                     };
                 }
                 installBanner.classList.add('show');
@@ -9423,7 +9428,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието');
+                        alert('За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието');
                     };
                 }
                 installBanner.classList.add('show');
@@ -9733,7 +9738,7 @@
                 : null;
             const hints = compat && compat.recommendations.length
                 ? compat.recommendations.slice(0, 2)
-                : ['Разрешете известия и изключете ограничения за батерия за NutriPlan в системните настройки.'];
+                : ['Разреши известия и изключи ограничения за батерия за NutriPlan в системните настройки.'];
             const el = document.createElement('div');
             el.id = 'apk-battery-hint';
             el.style.cssText = 'position:fixed;bottom:72px;left:16px;right:16px;z-index:9998;background:rgba(15,23,42,0.94);color:#e2e8f0;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45;border:1px solid rgba(45,212,191,0.25);max-width:480px;margin:0 auto;';
@@ -9796,8 +9801,8 @@
             banner.id = 'notif-banner';
             banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#0D9488;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
             banner.innerHTML = isCapacitorApp
-                ? '<span>🔔 Разрешете Android известия, за да се показват сутрешните и вечерните напомняния в APK.</span>'
-                : '<span>🔔 Разрешете известия за напомняния за храна и съобщения</span>';
+                ? '<span>🔔 Разреши Android известия, за да се показват сутрешните и вечерните напомняния в APK.</span>'
+                : '<span>🔔 Разреши известия за напомняния за храна и съобщения</span>';
             const btn = document.createElement('button');
             btn.textContent = 'Разреши';
             btn.style.cssText = 'background:#fff;color:#0D9488;border:none;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer;white-space:nowrap;';
@@ -10540,7 +10545,7 @@
                 var nx = m.next;
                 var nextText = !nx ? 'Всичко за деня е отбелязано'
                     : nx.locked ? 'Следва: ' + nx.label + ' (от ' + nx.unlockHour + ':00)'
-                    : nx.kind === 'morning' ? 'Следва: как спахте?'
+                    : nx.kind === 'morning' ? 'Следва: как спа?'
                     : nx.kind === 'evening' ? 'Следва: вечерната проверка'
                     : 'Следва: ' + nx.label;
                 head = '<div class="dc-kicker">Днес · ' + m.doneCount + ' от ' + m.segs.length + '</div>' +
@@ -11271,7 +11276,7 @@
                     existing.classList.remove('game-bubble--exit'); // cancel any exit animation
                     var name = getUserName();
                     grEl.textContent = opts.greeting ? opts.greeting :
-                                       (opts.showName && name) ? 'Здравейте, '+name+'!' : 'Вашият асистент';
+                                       (opts.showName && name) ? 'Здравей, '+name+'!' : 'Твоят асистент';
                     awEl.classList.remove('visible');
                     fillAnswers(awEl);
                     qEl.textContent = question;
@@ -11315,8 +11320,8 @@
                 gr.className = 'game-bubble-greeting';
                 var name = getUserName();
                 gr.textContent = opts.greeting ? opts.greeting :
-                                 (opts.showName && name) ? 'Здравейте, '+name+'!' :
-                                 'Вашият асистент';
+                                 (opts.showName && name) ? 'Здравей, '+name+'!' :
+                                 'Твоят асистент';
                 hdr.appendChild(av); hdr.appendChild(gr);
                 // Затваряне без отговор — въпросите за този кръг спират.
                 var closeBtn = document.createElement('button');
@@ -11407,7 +11412,7 @@
             if (!force && rec.morningCheck) { if (doneCb) doneCb(); return; }
             var meta = getPromptDayMeta(recordKey);
             showBubble(
-                meta.prefix + gameNotifyQuestion('morning_check', 'Спахте ли добре тази нощ?'),
+                meta.prefix + gameNotifyQuestion('morning_check', 'Спа ли добре тази нощ?'),
                 gameNotifyAnswers('morning_check', YES_NO),
                 function(val) {
                     var r = getRecord(recordKey);
@@ -11477,21 +11482,21 @@
             }
             if (step === 'activity') {
                 if (isActivityAnswered(rec.eveningCheck, recordKey)) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движихте днес?'),
+                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движи днес?'),
                     gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
                     function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
                 return;
             }
             if (step === 'balance') {
                 if (rec.eveningCheck.emotionalBalance != null) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + gameNotifyQuestion('evening_balance', 'Как се чувствахте днес?'),
+                showBubble(prefix + gameNotifyQuestion('evening_balance', 'Как се чувстваше днес?'),
                     gameNotifyAnswers('evening_balance', BALANCE_1_3),
                     function(v){ saveField('emotionalBalance', v, doneCb); }, hdrOpts);
                 return;
             }
             if (step === 'water') {
                 if (rec.eveningCheck.waterIntake != null) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + gameNotifyQuestion('evening_water', 'Пихте ли достатъчно вода днес?'),
+                showBubble(prefix + gameNotifyQuestion('evening_water', 'Пи ли достатъчно вода днес?'),
                     gameNotifyAnswers('evening_water', NO_YES),
                     function(v){ saveField('waterIntake', v, doneCb); }, hdrOpts);
             }
@@ -11541,19 +11546,19 @@
             }
             function q3() {
                 if (eveData.waterIntake != null) { finish(); return; }
-                showBubble(prefix+'Пихте ли достатъчно вода днес?', NO_YES, function(v) {
+                showBubble(prefix+'Пи ли достатъчно вода днес?', NO_YES, function(v) {
                     eveData.waterIntake = v;
                     finish();
                 }, hdrOpts);
             }
             function q2() {
                 if (eveData.emotionalBalance != null) { q3(); return; }
-                showBubble(prefix+'Как се чувствахте днес?', BALANCE_1_3,
+                showBubble(prefix+'Как се чувстваше днес?', BALANCE_1_3,
                     function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
             }
             function q1() {
                 if (activityDone || eveData.activityLevel != null) { q2(); return; }
-                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движихте днес?'),
+                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движи днес?'),
                     gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
                     function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
             }
@@ -11633,8 +11638,8 @@
                 (function(dayKey, daysAgo) {
                     var greeting = daysAgo === 1 ? 'Вчерашни данни' : 'Данни от преди ' + daysAgo + ' дни';
                     var msg = daysAgo === 1
-                        ? 'Вчерашните въпроси не са попълнени. Искате ли да ги попълните сега?'
-                        : 'Данните от ' + daysAgo + ' дни назад не са попълнени. Искате ли да ги въведете сега?';
+                        ? 'Вчерашните въпроси не са попълнени. Искаш ли да ги попълниш сега?'
+                        : 'Данните от ' + daysAgo + ' дни назад не са попълнени. Искаш ли да ги въведеш сега?';
                     setTimeout(function(){
                         // Do not interrupt a question queue that is already in progress
                         if (_queueDepth > 0) return;
@@ -11656,13 +11661,13 @@
 
         // ── Encouragement ─────────────────────────────────────────────────────
         var ENC = {
-            sleep:   '<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!',
-            water:   '<i class="fas fa-droplet" style="color:#06B6D4"></i> Целта е 2 л вода на ден. Поставете бутилка на видно място!',
+            sleep:   '<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягай по-рано — тялото ти ще ти благодари!',
+            water:   '<i class="fas fa-droplet" style="color:#06B6D4"></i> Целта е 2 л вода на ден. Постави бутилка на видно място!',
             activity:'<i class="fas fa-person-walking" style="color:#0D9488"></i> Дори 15 мин. разходка подобрява метаболизма и настроението!',
             junk:    '<i class="fas fa-leaf" style="color:#10b981"></i> Вредните храни са изкушение, но планът работи. Утре нов старт!',
-            perfect: '<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотен ден! Спазихте плана отлично. Резултатите идват!',
-            good:    '<i class="fas fa-check-circle" style="color:#10b981"></i> Добре се справяте! Малките крачки водят до голямата цел!',
-            def:     '<i class="fas fa-dumbbell" style="color:#0D9488"></i> На прав път сте! Последователността е ключът!'
+            perfect: '<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотен ден! Планът е спазен отлично. Резултатите идват!',
+            good:    '<i class="fas fa-check-circle" style="color:#10b981"></i> Добре се справяш! Малките крачки водят до голямата цел!',
+            def:     '<i class="fas fa-dumbbell" style="color:#0D9488"></i> На прав път си! Последователността е ключът!'
         };
         function buildEncouragement(recordKey) {
             var rec = getRecord(recordKey || getTodayKey());
@@ -11697,13 +11702,13 @@
         // ── Day-end modal ─────────────────────────────────────────────────────
         var DAY_LEVELS = [
             { min:5, iconClass:'fas fa-trophy', iconColor:'#fbbf24', title:'Перфектен резултат!',  color:'#fbbf24',
-              msg:'Изпълнихте плана 100%! Вие сте шампион. Резултатите ще дойдат!', confetti:true  },
+              msg:'Планът е изпълнен 100%! Ти си шампион. Резултатите ще дойдат!', confetti:true  },
             { min:4, iconClass:'fas fa-award',  iconColor:'#10b981', title:'Отличен резултат!',    color:'#10b981',
               msg:'Браво! Почти перфектно. Малко крачки = голям успех!', confetti:true  },
             { min:3, iconClass:'fas fa-thumbs-up', iconColor:'#0D9488', title:'Задоволителен резултат!',   color:'#0D9488',
-              msg:'Справихте се добре. Утре може дори по-добре!', confetti:false },
+              msg:'Добре се справи. Утре може дори по-добре!', confetti:false },
             { min:2, iconClass:'fas fa-dumbbell', iconColor:'#f59e0b', title:'Може по-добре', color:'#f59e0b',
-              msg:'Трудно е понякога, но не се отказвайте. Всеки ден е нов шанс!', confetti:false },
+              msg:'Трудно е понякога, но не се отказвай. Всеки ден е нов шанс!', confetti:false },
             { min:0, iconClass:'fas fa-seedling', iconColor:'#6366f1', title:'Нов старт утре!', color:'#6366f1',
               msg:'Днес беше предизвикателно. Малките промени правят голяма разлика!', confetti:false }
         ];
@@ -11963,11 +11968,11 @@
         function weeklyErrorText(err) {
             var st = err && err.status;
             var msg = (err && err.message) || '';
-            if (st === 401 || st === 403) return 'Входът в профила е изтекъл. Излезте и влезте отново, после опитайте пак.';
-            if (st === 400 && /Недостатъчно данни/.test(msg)) return 'Нужни са отметки поне за 3 дни от последната седмица. Отбелязвайте храненията и опитайте пак след ден-два.';
-            if (st === 400 && /Missing plan/.test(msg)) return 'Не намираме плана ви на сървъра. Отворете профила, за да се синхронизира, и опитайте пак.';
-            if (!st) return 'Няма връзка със сървъра. Проверете интернета и опитайте пак.';
-            return 'Сървърът не отговори както трябва. Опитайте пак след малко.';
+            if (st === 401 || st === 403) return 'Входът в профила е изтекъл. Излез и влез отново, после опитай пак.';
+            if (st === 400 && /Недостатъчно данни/.test(msg)) return 'Нужни са отметки поне за 3 дни от последната седмица. Отбелязвай храненията и опитай пак след ден-два.';
+            if (st === 400 && /Missing plan/.test(msg)) return 'Не намираме плана ти на сървъра. Отвори профила, за да се синхронизира, и опитай пак.';
+            if (!st) return 'Няма връзка със сървъра. Провери интернета и опитай пак.';
+            return 'Сървърът не отговори както трябва. Опитай пак след малко.';
         }
 
         function getWeeklyPayloadBase() {
@@ -12114,7 +12119,7 @@
                     ta.className = 'game-qa-text';
                     ta.rows = 3;
                     ta.maxLength = 400;
-                    ta.placeholder = 'Напишете свободно (може да оставите празно)';
+                    ta.placeholder = 'Напиши свободно (може да оставиш празно)';
                     ta.className = 'game-qa-text game-qa-input';
                     ta.setAttribute('aria-labelledby', 'gameQaQ');
                     optsWrap.appendChild(ta);
@@ -12277,7 +12282,7 @@
             modal.innerHTML = '<div class="game-modal-title">Не успяхме</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = message || 'Опитайте отново по-късно.';
+            msg.textContent = message || 'Опитай отново по-късно.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -12308,7 +12313,7 @@
                 + '<div class="game-modal-title">Благодарим!</div>';
             var msg = document.createElement('div');
             msg.className = 'game-modal-msg';
-            msg.textContent = text || 'Отговорите са изпратени. Новото меню за седмицата влиза от утре сутрин — ще получите известие.';
+            msg.textContent = text || 'Отговорите са изпратени. Новото меню за седмицата влиза от утре сутрин — ще получиш известие.';
             modal.appendChild(msg);
             var btn = document.createElement('button');
             btn.className = 'game-modal-btn';
@@ -12422,8 +12427,8 @@
             gn.addPlanReminder({
                 key: 'weekly_release',
                 ts: tomorrow8.getTime(),
-                title: 'Новото ви меню е готово',
-                body: 'Планът за седмицата е обновен според прегледа ви. Отворете го, за да видите промените.',
+                title: 'Новото ти меню е готово',
+                body: 'Планът за седмицата е обновен според прегледа ти. Отвори го, за да видиш промените.',
                 url: '/plan.html'
             });
             if (info && info.nextDue) {
@@ -12433,7 +12438,7 @@
                     key: 'weekly_checkin',
                     ts: due.getTime(),
                     title: 'Седмичен преглед',
-                    body: 'Претеглете се сутрин на гладно и отговорете на няколко кратки въпроса — планът се настройва по резултата.',
+                    body: 'Претегли се сутрин на гладно и отговори на няколко кратки въпроса — планът се настройва по резултата.',
                     url: '/plan.html'
                 });
             }
@@ -12455,7 +12460,7 @@
                     key: 'weekly_checkin',
                     ts: due.getTime(),
                     title: 'Седмичен преглед',
-                    body: 'Отговорете на няколко кратки въпроса — планът за следващата седмица се настройва по тях.',
+                    body: 'Отговори на няколко кратки въпроса — планът за следващата седмица се настройва по тях.',
                     url: '/plan.html'
                 });
             }
@@ -12479,7 +12484,7 @@
                     finalizeWeeklyCycleOnSubmit(info.pendingQuestions || [], info.answers || [], qData.cycleNumber || info.pendingCycleNumber || ((info.cycleNumber || 0) + 1));
                     // Автоматичният преглед (без отговори, 3 дни след срока) вече е направил седмицата.
                     showWeeklySubmittedModal(qData.auto
-                        ? 'Седмицата вече е настроена по отметките и данните от устройствата. Следващия път отговорете на въпросите — така корекцията е по-точна.'
+                        ? 'Седмицата вече е настроена по отметките и данните от устройствата. Следващия път отговори на въпросите — така корекцията е по-точна.'
                         : null);
                     return;
                 }

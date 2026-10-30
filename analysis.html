@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Здравен анализ и детайлни препоръки от NutriPlan за вашия хранителен режим.">
+    <meta name="description" content="Здравен анализ и детайлни препоръки от NutriPlan за твоя хранителен режим.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -1944,7 +1944,7 @@
                 <div class="loading-icon"><i class="fas fa-heart-pulse"></i></div>
             </div>
             <p class="loading-text">Подготвяме анализа</p>
-            <p class="loading-subtext">Синхронизираме здравните данни и визуализациите за вашия екран.</p>
+            <p class="loading-subtext">Синхронизираме здравните данни и визуализациите за твоя екран.</p>
             <div class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></div>
         </div>
     </div>
@@ -2031,7 +2031,7 @@
 
 
         <section class="insight-section" id="dataSection" hidden aria-labelledby="dataTitle">
-            <div class="insight-head"><i class="fas fa-database" aria-hidden="true"></i><h2 id="dataTitle">Вашите данни</h2></div>
+            <div class="insight-head"><i class="fas fa-database" aria-hidden="true"></i><h2 id="dataTitle">Твоите данни</h2></div>
             <div class="seg" role="tablist" aria-label="Източник" id="dataTabs"></div>
             <div class="data-panel" id="labsInsight" role="tabpanel" hidden>
                 <p class="insight-sub" id="labsSub"></p>
@@ -2067,12 +2067,12 @@
         </section>
 
         <section class="insight-section" id="moreDataSection" hidden aria-labelledby="moreTitle">
-            <div class="insight-head"><i class="fas fa-plus" aria-hidden="true"></i><h2 id="moreTitle">Направете анализа по-точен</h2></div>
+            <div class="insight-head"><i class="fas fa-plus" aria-hidden="true"></i><h2 id="moreTitle">Направи анализа по-точен</h2></div>
             <ul class="more-data-list" id="moreDataList"></ul>
         </section>
 
         <div class="cta-section section-anim" id="ctaSection">
-            <h2 id="ctaTitle">Готови ли сте за промяна?</h2>
+            <h2 id="ctaTitle">Да започнем ли?</h2>
             <p id="ctaSubtitle">Планът е изграден около тези находки.</p>
             <button class="btn-primary" onclick="goToPlan()">
                 Виж Хранителния План
@@ -2087,7 +2087,7 @@
             <i class="fas fa-exclamation-circle"></i>
         </div>
         <h2 style="color: var(--text-dark); margin-bottom: 16px;">Грешка</h2>
-        <p id="errorMessage" style="color: var(--text-gray); margin-bottom: 24px;">Не може да се зареди анализът. Моля, опитайте отново.</p>
+        <p id="errorMessage" style="color: var(--text-gray); margin-bottom: 24px;">Не може да се зареди анализът. Моля, опитай отново.</p>
         <div id="errorDetails" style="display: none; background: var(--input-bg); padding: 16px; border-radius: 12px; margin-bottom: 24px; text-align: left;">
             <h3 style="color: var(--text-dark); font-size: 0.9rem; margin-bottom: 8px;">
                 <i class="fas fa-info-circle"></i> Детайли за грешката:
@@ -2101,8 +2101,8 @@
 
     <script>
         // Constants
-        const DEFAULT_RISK_PADDING_MESSAGE = 'Консултирайте се с лекар за допълнителна оценка';
-        const DEFAULT_IMPROVEMENT_PADDING_MESSAGE = 'Продължете да следвате плана за оптимални резултати';
+        const DEFAULT_RISK_PADDING_MESSAGE = 'Консултирай се с лекар за допълнителна оценка';
+        const DEFAULT_IMPROVEMENT_PADDING_MESSAGE = 'Продължи да следваш плана за оптимални резултати';
         
         // Helper function to pad array to minimum length
         function padArrayToMinLength(array, minLength, defaultValue) {
@@ -2305,7 +2305,7 @@
                 const planData = localStorage.getItem('dietPlan');
                 
                 if (!planData) {
-                    showError('Няма налични данни за план. Моля, започнете отначало.');
+                    showError('Няма налични данни за план. Моля, започни отначало.');
                     return;
                 }
 
@@ -2603,8 +2603,8 @@
                     const st = HYP_STATE[h.status] || HYP_STATE.unconfirmed;
                     const note = h.status === 'confirmed'
                         ? (h.applied && h.action ? `В менюто: ${h.action}.` : `Потвърдено от ${(h.evidence || []).join(', ')}.`)
-                        : h.status === 'disputed' ? 'Отговорете на въпроса в чата.'
-                        : h.status === 'rejected' ? 'Не се отнася за вас.'
+                        : h.status === 'disputed' ? 'Отговори на въпроса в чата.'
+                        : h.status === 'rejected' ? 'Не се отнася за теб.'
                         : 'Без потвърждение — не влиза в оценката.';
                     return `<li class="hyp-item"><div class="hyp-top"><span>${escA(h.label)}</span><span class="hyp-state" data-s="${escA(h.status)}"><i class="fas ${st[0]}" aria-hidden="true"></i>${st[1]}</span></div><p>${escA(note)}</p></li>`;
                 }).join('')}</ul>` : ''}`;
@@ -3000,12 +3000,12 @@
             const text = notice.querySelector('p');
             if (state === 'ready') {
                 if (icon) icon.className = 'fas fa-hourglass-half';
-                if (strong) strong.textContent = 'Планът ви предстои да бъде одобрен';
-                if (text) text.textContent = 'Планът е готов и е изпратен към специалист за преглед. Ще получите известие по имейл.';
+                if (strong) strong.textContent = 'Планът ти предстои да бъде одобрен';
+                if (text) text.textContent = 'Планът е готов и е изпратен към специалист за преглед. Ще получиш известие по имейл.';
             } else if (state === 'error') {
                 if (icon) icon.className = 'fas fa-exclamation-triangle';
                 if (strong) strong.textContent = 'Планът се забави';
-                if (text) text.textContent = 'Анализът е запазен, но финалният план не беше получен. Моля, отворете статуса или опитайте отново по-късно.';
+                if (text) text.textContent = 'Анализът е запазен, но финалният план не беше получен. Моля, отвори статуса или опитай отново по-късно.';
             }
         }
 
@@ -3101,8 +3101,8 @@
                 document.body.style.paddingBottom = '';
                 const ctaTitle = document.getElementById('ctaTitle');
                 const ctaSubtitle = document.getElementById('ctaSubtitle');
-                if (ctaTitle) ctaTitle.textContent = 'Вашият план е готов!';
-                if (ctaSubtitle) ctaSubtitle.textContent = 'Специалистът одобри персонализирания ви хранителен пакет.';
+                if (ctaTitle) ctaTitle.textContent = 'Твоят план е готов!';
+                if (ctaSubtitle) ctaSubtitle.textContent = 'Специалистът одобри персонализирания ти хранителен пакет.';
                 const ctaSection = document.getElementById('ctaSection');
                 if (ctaSection) {
                     const notice = ctaSection.querySelector('.pending-notice');
@@ -3120,8 +3120,8 @@
                 // Update CTA heading and subtitle
                 const ctaTitle = document.getElementById('ctaTitle');
                 const ctaSubtitle = document.getElementById('ctaSubtitle');
-                if (ctaTitle) ctaTitle.textContent = 'Анализът ви е готов!';
-                if (ctaSubtitle) ctaSubtitle.textContent = 'Планът ви се изготвя автоматично и преди да го получите, се преглежда и одобрява от специалист.';
+                if (ctaTitle) ctaTitle.textContent = 'Анализът ти е готов!';
+                if (ctaSubtitle) ctaSubtitle.textContent = 'Планът ти се изготвя автоматично и преди да го получиш, се преглежда и одобрява от специалист.';
 
                 // Inject a pending-plan notice above the CTA (only when plan is ready for review)
                 const ctaSection = document.getElementById('ctaSection');
@@ -3138,8 +3138,8 @@
                         <div class="pending-notice-inner">
                             <i class="fas fa-hourglass-half"></i>
                             <div>
-                                <strong>Планът ви предстои да бъде одобрен</strong>
-                                <p>Нашият специалист ще прегледа данните ви и ще активира плана. Ще получите известие по имейл.</p>
+                                <strong>Планът ти предстои да бъде одобрен</strong>
+                                <p>Нашият специалист ще прегледа данните ти и ще активира плана. Ще получиш известие по имейл.</p>
                             </div>
                         </div>`;
                         ctaSection.insertBefore(notice, ctaSection.firstChild);

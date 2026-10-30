@@ -30,7 +30,7 @@ import { validateWeekPlanDayCoherence, validateWeeklyDishVariety } from '../meal
 import { profileBrief, normalizeIntakeHints, normalizeFeedbackHints, normalizeSwaps, collectFreeText, collectQuestionAnswers, describeCodes } from '../nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from '../profile-code.js';
 import { textIssues, isCleanClientText, guardClientText } from '../nutrition-engine/text-guard.js';
-import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment, weeklyQuestionsFor } from '../nutrition-engine/monitoring.js';
+import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment, weeklyQuestionsFor, weeklyMessage } from '../nutrition-engine/monitoring.js';
 
 let validatorIssues = 0;
 let pass = 0;
@@ -271,6 +271,15 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(notFollowed.calorieAdjust === 0, 'история: неспазена седмица не се брои за застой');
   const partial = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin(kgAns(90, 'Повечето'), { status: 'active', mealDays: 5, mealAdherence: 50 }, { prevWeightKg: 90 }) });
   ok(partial.calorieAdjust === 0 && /Спазване на плана: около 65%/.test(partial.reasoning), 'частично спазване — без корекция, с обяснение');
+  // Текстът към клиента: без „?%“, без противоречие, без похвала при неясен резултат.
+  const noAdh = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin([{ questionId: 'weightKg', value: '89' }], null, { prevWeightKg: 90, daysSincePrev: 7 }) });
+  ok(!/\?%/.test(noAdh.reasoning) && /Няма данни дали планът е спазван/.test(noAdh.reasoning), 'без данни за спазването — ясно изречение, не „около ?%“');
+  ok(!/Отлична/.test(weeklyMessage(noAdh, {}).headline), 'без данни за спазването — без похвала');
+  const tired = decideWeeklyAdjustment({ ...lossBase, checkin: readCheckin([...kgAns(89.9), { questionId: 'hunger', value: 'Често' }, { questionId: 'energy', value: 'Ниска' }], null, { prevWeightKg: 90, daysSincePrev: 7 }), history: [{ weight: 'flat', followed: true }] });
+  ok(tired.calorieAdjust === 0 && !/приемът се намалява/.test(tired.reasoning) && /глад/.test(weeklyMessage(tired, {}).message), 'застой + глад и умора — без „приемът се намалява“, съобщението казва причината');
+  const noTrain = decideWeeklyAdjustment({ goal: 'GAIN', kcal: 2800, tdee: 2550, floorKcal: 1500, weightKg: 75, checkin: readCheckin([...kgAns(74.6), { questionId: 'workouts', value: 'Нито една' }], null, { prevWeightKg: 75, daysSincePrev: 7 }) });
+  ok(noTrain.calorieAdjust === 0 && !/увеличава\./.test(noTrain.reasoning.split('. ')[0] + '.'), 'маса без тренировки — без „приемът се увеличава“ преди отмяната');
+  ok(!/Отлична/.test(weeklyMessage(decideWeeklyAdjustment({ ...base, checkin: readCheckin([], null), history: [] }), {}).headline), 'без тегло — без похвала');
   const zeroApp = readCheckin([{ questionId: 'adherence', value: 'Почти всички' }], { status: 'active', mealDays: 4, mealAdherence: 0 });
   ok(zeroApp.adherence === 48, 'спазване: 0% от приложението се отчита (не се губи като null)');
   const gainBase = { goal: 'GAIN', kcal: 2800, tdee: 2550, floorKcal: 1500, weightKg: 75, baseKcal: 2800 };
@@ -419,7 +428,7 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const r = renderRecipe('m_chicken_skewers', { PRO: ['пилешко филе'], VEG: ['чушки', 'тиквички'], STA: ['киноа'], FAT: ['зехтин'] });
   ok(r && !r.steps.some(s => /\{|\}/.test(s)), 'рецепта: всички места са попълнени');
   ok(r && r.steps[0].includes('пилешко филе, чушки и тиквички'), `рецепта: няколко продукта със запетая, без „… и … и …“ (${r?.steps[0]})`);
-  ok(r && !r.steps.some(s => /изпечете киноа/i.test(s)), 'рецепта: киноата се вари, не се пече');
+  ok(r && !r.steps.some(s => /изпечи киноа/i.test(s)), 'рецепта: киноата се вари, не се пече');
   ok(renderRecipe('няма_такова', {}) === null, 'рецепта: непознато ястие → без рецепта (остава краткото приготвяне)');
 }
 

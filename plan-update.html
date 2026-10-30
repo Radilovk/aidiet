@@ -62,7 +62,7 @@
     <div class="card">
         <div class="icon" id="stateIcon">🌿</div>
         <h1 id="stateTitle">Зареждаме плана…</h1>
-        <p id="stateMessage">Моля, изчакайте.</p>
+        <p id="stateMessage">Моля, изчакай.</p>
         <div class="spinner" id="stateSpinner"></div>
         <a id="stateAction" class="btn" href="index.html?app=1&tab=plan" style="display:none;">Към плана</a>
     </div>
@@ -106,7 +106,7 @@
         }
 
         if (!window.NutriPlanPlanSync || typeof window.NutriPlanPlanSync.claimPlanFromToken !== 'function') {
-            showError('Страницата не е заредена коректно. Опитайте отново.');
+            showError('Страницата не е заредена коректно. Опитай отново.');
             return;
         }
 
@@ -116,10 +116,10 @@
             } else {
                 showError(result && result.reason === 'claim-failed'
                     ? 'Линкът е изтекъл или вече е използван.'
-                    : 'Неуспешно зареждане. Опитайте отново по-късно.');
+                    : 'Неуспешно зареждане. Опитай отново по-късно.');
             }
         }).catch(function () {
-            showError('Мрежова грешка. Проверете интернет връзката.');
+            showError('Мрежова грешка. Провери интернет връзката.');
         });
     })();
     </script>

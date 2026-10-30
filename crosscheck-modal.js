@@ -117,7 +117,7 @@
         foot.appendChild(later);
         if (queue.length > 1) foot.appendChild(el('span', 'npq-count', '1 от ' + queue.length));
         card.appendChild(foot);
-        card.appendChild(el('p', 'npq-note', 'Двата източника си противоречат — отговорът ви решава кое влиза в плана.'));
+        card.appendChild(el('p', 'npq-note', 'Двата източника си противоречат — отговорът ти решава кое влиза в плана.'));
         root.appendChild(card);
         opts.firstChild.focus();
     }

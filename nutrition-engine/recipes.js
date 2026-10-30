@@ -36,7 +36,7 @@ function joinList(labels) {
   return `${labels.slice(0, -1).join(', ')} и ${labels[labels.length - 1]}`;
 }
 
-/** Продукти, които се пекат; зърнените само се варят („изпечете киноа“ няма). */
+/** Продукти, които се пекат; зърнените само се варят („изпечи киноа“ няма). */
 const BAKES = /картоф|батат|тикв|сладк/;
 
 /**
@@ -72,20 +72,20 @@ function fillStep(step, labelsByRef) {
     if (!labels.length) return null;
     const next = tokens[i + 1] || '';
     if (labels.length > 1 && /\sи\s$/.test(out)) {
-      // „Нарежете {PRO} и {VEG}“ → „пилешко филе, чушки и тиквички“
+      // „Нарежи {PRO} и {VEG}“ → „пилешко филе, чушки и тиквички“
       out = out.replace(/\sи\s$/, ', ') + joinList(labels);
     } else if (labels.length > 1 && /^\s+и\s/.test(next)) {
-      // „Нарежете {VEG} и лука“ → „чушки, домати, краставици и лука“
+      // „Нарежи {VEG} и лука“ → „чушки, домати, краставици и лука“
       out += labels.join(', ');
     } else {
       out += joinList(labels);
     }
   }
-  // Зърнените се варят — „сварете или изпечете киноа“ → „сварете киноа“.
+  // Зърнените се варят — „свари или изпечи киноа“ → „свари киноа“.
   const bakes = BAKES.test(out.toLowerCase());
-  return out.replace(/(сварете|Сварете) или изпечете/g, (all, verb) => (bakes ? all : verb))
+  return out.replace(/(свари|Свари) или изпечи/g, (all, verb) => (bakes ? all : verb))
     // Маслото не се „поднася“ — слага се върху горещото ястие.
-    .replace(/^(?:Поднесете|Сервирайте|Поръсете|Добавете)(?: с| със)? масло(?: при сервиране)?\.$/, 'Сложете малко масло върху горещото ястие.')
+    .replace(/^(?:Поднеси|Сервирай|Поръси|Добави)(?: с| със)? масло(?: при сервиране)?\.$/, 'Сложи малко масло върху горещото ястие.')
     // Пред с и з българският иска „със“.
     .replace(/(^|\s)с\s(?=[сзСЗ])/g, '$1със ')
     .replace(/\s+/g, ' ').trim();
@@ -111,7 +111,7 @@ export function renderRecipe(dishId, labelsByRef, flavour = [], absentLabels = [
   if (!steps.length) return null;
   const known = steps.join(' ').toLowerCase();
   const extra = flavour.filter(f => !known.includes(String(f).toLowerCase().slice(0, 4)));
-  if (extra.length) steps.push(`Овкусете ${/^[сз]/i.test(extra[0]) ? 'със' : 'с'} ${joinList(extra)}.`);
+  if (extra.length) steps.push(`Овкуси ${/^[сз]/i.test(extra[0]) ? 'със' : 'с'} ${joinList(extra)}.`);
   let tip = recipe.tip ? fillStep(recipe.tip, labelsByRef) : null;
   if (tip) {
     const low = tip.toLowerCase();

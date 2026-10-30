@@ -5,7 +5,7 @@
     <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Текущ анализ и здравен индекс за вашия хранителен план в NutriPlan.">
+    <meta name="description" content="Текущ анализ и здравен индекс за твоя хранителен план в NutriPlan.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -726,7 +726,7 @@
             <div class="game-analytics-header">
                 <div class="game-analytics-title">
                     <i class="fas fa-bullseye"></i>
-                    <span>За целта ти</span>
+                    <span>За Твоята цел</span>
                 </div>
                 <span id="goalFocusBadge" class="game-analytics-badge"></span>
             </div>
@@ -980,6 +980,15 @@
             try { allData = JSON.parse(localStorage.getItem('gameData') || '{}'); } catch(e) {}
 
             var days = GS.buildLast7Days(allData, todayKey);
+            // Дните преди първия запис не са „пропуснати“ — клиентът още не е започнал.
+            var firstKey = Object.keys(allData).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k) && allData[k]; }).sort()[0] || null;
+            if (!firstKey) {
+                body.innerHTML = '<div class="game-encourage-note ga-card-enter"><i class="fas fa-seedling" style="color:#0D9488"></i> Анализът започва с първия отбелязан ден. Отбелязвай храненията и отговаряй на сутрешния и вечерния въпрос — тук ще видиш навиците, калорийния баланс и тенденцията.</div>';
+                if (badge) badge.textContent = 'Начало';
+                window._gaChecks = {};
+                renderGoalFocus();
+                return;
+            }
             // Същите формули като на сървъра (решенията за плана се вземат там).
             var summary = GS.weekSummary(allData, todayKey);
             var waterGoalText = (function(){
@@ -996,7 +1005,7 @@
             var avgScore   = validScores.length>0 ? Math.round(validScores.reduce(function(a,s){return a+s.score;},0)/validScores.length*10)/10 : 0;
 
             var engPcts = days.map(function(d){ return d.rec ? calcDayScore(d.rec).engPct : null; });
-            var noDataDaysCount = days.filter(function(d){ return !d.rec; }).length;
+            var noDataDaysCount = days.filter(function(d){ return !d.rec && d.key >= firstKey && d.key < todayKey; }).length;
             var engForAvg = days.filter(function(d){ return d.rec; }).map(function(d){ return calcDayScore(d.rec).engPct; });
             var engagementPct = engForAvg.length
                 ? Math.round(engForAvg.reduce(function(a,b){return a+b;},0) / engForAvg.length)
@@ -1108,7 +1117,7 @@
             if(sleepGoodEng.length>0&&sleepBadEng.length>0){
                 var sgAvg=Math.round(sleepGoodEng.reduce(function(a,b){return a+b;},0)/sleepGoodEng.length);
                 var sbAvg=Math.round(sleepBadEng.reduce(function(a,b){return a+b;},0)/sleepBadEng.length);
-                if(sgAvg-sbAvg>15) insights.push('<i class="fas fa-bed" style="color:#6366f1"></i> В дните с добър сън ангажираността ви е <strong>'+sgAvg+'%</strong> (vs '+sbAvg+'% без добър сън)');
+                if(sgAvg-sbAvg>15) insights.push('<i class="fas fa-bed" style="color:#6366f1"></i> В дните с добър сън ангажираността ти е <strong>'+sgAvg+'%</strong> (vs '+sbAvg+'% без добър сън)');
             }
             var lowBalanceDays  = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]<=40; });
             var highBalanceDays = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]>=60; });
@@ -1120,7 +1129,7 @@
                 var isConsumed = !e.isAddedToPlan || e.countCalories !== false;
                 return e.isJunk && isConsumed;
             }).length);},0);
-            if(lowBalanceDays.length>0&&hbJunk===0&&lbJunk>0) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с нисък емоционален баланс се появяват повече вредни хранения — стресът влияе на избора ви');
+            if(lowBalanceDays.length>0&&hbJunk===0&&lbJunk>0) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с нисък емоционален баланс се появяват повече вредни хранения — стресът влияе на избора ти');
             else if(lowBalanceDays.length>0&&hbJunk<lbJunk) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> Забелязваме повече вредни хранения в дни с по-нисък емоционален баланс');
             var streak=0, currentStreak=0;
             var streakStart = days.length - 1;
@@ -1131,15 +1140,15 @@
             for(var si=streakStart;si>=0;si--){
                 if(days[si].rec&&calcDayScore(days[si].rec).score>=4){ streak++; currentStreak=Math.max(currentStreak,streak); } else break;
             }
-            if(currentStreak>=3) insights.push('<i class="fas fa-fire" style="color:#f59e0b"></i> Имате текуща серия от <strong>'+currentStreak+' отлични дни</strong> подред! Продължавайте!');
-            else if(currentStreak===2) insights.push('<i class="fas fa-bolt" style="color:#0D9488"></i> Два отлични дни подред — вие сте в страхотен ритъм!');
+            if(currentStreak>=3) insights.push('<i class="fas fa-fire" style="color:#f59e0b"></i> Имаш текуща серия от <strong>'+currentStreak+' отлични дни</strong> подред! Продължавай!');
+            else if(currentStreak===2) insights.push('<i class="fas fa-bolt" style="color:#0D9488"></i> Два отлични дни подред — ти си в страхотен ритъм!');
             var deficitDays = days.filter(function(d,i){
                 return calBalanceByDay[i]!==null && calBalanceByDay[i]<-100 && d.rec && (d.rec.morningCheck||d.rec.eveningCheck);
             });
             if(deficitDays.length>=2){
-                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> '+deficitDays.length+' дни с калориен дефицит — следете дали приемате достатъчно хранителни вещества за постигане на целите си');
+                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> '+deficitDays.length+' дни с калориен дефицит — следи дали приемаш достатъчно хранителни вещества за постигане на целите си');
             } else if(deficitDays.length===1){
-                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> 1 ден с калориен дефицит — следете дали приемате достатъчно хранителни вещества');
+                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> 1 ден с калориен дефицит — следи дали приемаш достатъчно хранителни вещества');
             }
             if(deficitDays.length>=2){
                 var deficitLowAct=deficitDays.filter(function(d){ return d.rec&&GameScoring.isLowActivity(d.rec.eveningCheck); }).length;
@@ -1150,33 +1159,34 @@
             var scenario = null;
             if(validScores.length>=3){
                 var projected = Math.min(5, Math.round((avgScore + (trendUp?0.5:trendDown?-0.3:0))*10)/10);
-                if(trendUp && projected>=4) scenario = '<i class="fas fa-chart-line" style="color:#10b981"></i> Ако запазите текущата тенденция, ще достигнете средна оценка <strong>'+projected+'/5</strong> за седмицата — отлично!';
+                if(trendUp && projected>=4) scenario = '<i class="fas fa-chart-line" style="color:#10b981"></i> Ако запазиш текущата тенденция, ще достигнеш средна оценка <strong>'+projected+'/5</strong> за седмицата — отлично!';
                 else if(trendDown) scenario = '<i class="fas fa-chart-line" style="color:#ef4444;transform:rotate(90deg);display:inline-block"></i> Наблюдаваме спад в последните дни. Малко повече внимание към плана ще обърне тенденцията.';
                 else if(avgScore>=4) scenario = '<i class="fas fa-star" style="color:#fbbf24"></i> Стабилна и силна седмица! Ако запазите ритъма, ще затвърдите навиците дългосрочно.';
-                else if(engagementPct<50) scenario = '<i class="fas fa-lightbulb" style="color:#0D9488"></i> Увеличете ангажираността с 20% (отбелязвайте хранения редовно) и оценката ви ще скочи значително.';
+                else if(engagementPct<50) scenario = '<i class="fas fa-lightbulb" style="color:#0D9488"></i> Увеличи ангажираността с 20% (отбелязвай хранения редовно) и оценката ти ще скочи значително.';
             }
 
             // ── Alerts ────────────────────────────────────────────────────────
             var alerts = [];
             var missedLast2 = days.slice(-2).filter(function(d){
-                if (!d.rec) return true;
+                if (d.key < firstKey) return false;
+                if (!d.rec) return d.key !== todayKey;
                 var s = calcDayScore(d.rec);
                 return s.score !== null && s.score < 2;
             });
-            if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни имате ниска ангажираност — проверете дали имате нужда от промяна в плана.');
-            if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> Открихме '+junkCount7+' вредни хранения за седмицата. Опитайте да намалите до 1-2 максимум.');
-            if(waterPct!=null&&waterPct<40) alerts.push('<i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратацията ви е ниска тази седмица — достатъчният прием на вода подпомага метаболизма и енергията.');
+            if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни имаш ниска ангажираност — провери дали имаш нужда от промяна в плана.');
+            if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> Открихме '+junkCount7+' вредни хранения за седмицата. Опитай да намалиш до 1-2 максимум.');
+            if(waterPct!=null&&waterPct<40) alerts.push('<i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратацията ти е ниска тази седмица — достатъчният прием на вода подпомага метаболизма и енергията.');
             if(sleepPct!=null&&sleepPct<30) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Качеството на съня е ниско тази седмица — това пряко влияе на метаболизма и избора на храна.');
 
             // ── Encouragement ─────────────────────────────────────────────────
             var leadingCriterion='', encourageText='<i class="fas fa-dumbbell" style="color:#0D9488"></i> Последователността е ключът към успеха!';
-            if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='<i class="fas fa-leaf" style="color:#10b981"></i> Намалете вредните храни — планът работи когато го следвате!'; }
-            else if (waterPct!=null&&waterPct<50)      { leadingCriterion='Хидратация'; encourageText='<i class="fas fa-droplet" style="color:#06B6D4"></i> Пийте повече вода през деня — целта ви по плана е ' + waterGoalText + '.'; }
-            else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягайте по-рано — тялото ви ще ви благодари!'; }
-            else if (engagementPct<60)                 { leadingCriterion='';             encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвайте храненията по план — резултатите идват!'; }
-            else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-heart-pulse" style="color:#10b981"></i> Седмицата е напрегната. Няколко минути спокойно дишане или разходка вечер помагат — и не се наказвайте за пропуснато хранене.'; }
-            else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотно! Продължавайте в същия дух — резултатите идват!'; }
-            if (badge) badge.textContent = leadingCriterion || (validScores.length+' дни');
+            if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='<i class="fas fa-leaf" style="color:#10b981"></i> Намали вредните храни — планът работи когато го следваш!'; }
+            else if (waterPct!=null&&waterPct<50)      { leadingCriterion='Хидратация'; encourageText='<i class="fas fa-droplet" style="color:#06B6D4"></i> Пий повече вода през деня — целта ти по плана е ' + waterGoalText + '.'; }
+            else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягай по-рано — тялото ти ще ти благодари!'; }
+            else if (engagementPct<60)                 { leadingCriterion='';             encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвай храненията по план — резултатите идват!'; }
+            else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-heart-pulse" style="color:#10b981"></i> Седмицата е напрегната. Няколко минути спокойно дишане или разходка вечер помагат — и не се наказвай за пропуснато хранене.'; }
+            else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотно! Продължавай в същия дух — резултатите идват!'; }
+            if (badge) badge.textContent = leadingCriterion || (validScores.length + (validScores.length === 1 ? ' ден' : ' дни'));
 
             // ── Explanation modal ─────────────────────────────────────────────
             // Обясненията са без измислени проценти и „изследвания“: само това, което
@@ -1359,7 +1369,7 @@
                 (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
             '</div>';
 
-            if(trendUp)   html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#10b981;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line"></i> Тенденцията е нагоре — вие се подобрявате!</div>';
+            if(trendUp)   html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#10b981;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line"></i> Тенденцията е нагоре — ти се подобряваш!</div>';
             if(trendDown) html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#ef4444;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line" style="transform:rotate(90deg)"></i> Леко затихване — малко повече фокус ще промени всичко</div>';
 
             if(alerts.length>0){
@@ -1381,7 +1391,9 @@
 
             var hasDeficit = calBalanceByDay.some(function(v){ return v!==null && v<-50; });
             var calBalanceLabel;
-            if (netCalBalance === 0 && !hasDeficit) {
+            if (!calBalanceByDay.some(function(v){ return v !== null; })) {
+                calBalanceLabel = '<i class="fas fa-circle-info" style="color:#94a3b8"></i> Няма данни';
+            } else if (netCalBalance === 0 && !hasDeficit) {
                 calBalanceLabel = '<i class="fas fa-check-circle" style="color:#10b981"></i> Балансиран';
             } else if (netCalBalance > 0) {
                 calBalanceLabel = netCalBalance < 700

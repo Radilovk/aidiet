@@ -298,7 +298,7 @@
         var FALLBACK_COPY = {
             morning_check: {
                 title: 'NutriPlan',
-                body: 'Спахте ли добре тази нощ?',
+                body: 'Спа ли добре тази нощ?',
                 actions: [
                     { id: 'sleep_yes', title: 'Да' },
                     { id: 'sleep_no', title: 'Не' }
@@ -306,7 +306,7 @@
             },
             evening_activity: {
                 title: 'NutriPlan',
-                body: 'Колко се движихте днес?',
+                body: 'Колко се движи днес?',
                 actions: [
                     { id: 'activity_1', title: 'Малко' },
                     { id: 'activity_2', title: 'Умерено' },
@@ -315,7 +315,7 @@
             },
             evening_balance: {
                 title: 'NutriPlan',
-                body: 'Как се чувствахте днес?',
+                body: 'Как се чувстваше днес?',
                 actions: [
                     { id: 'balance_1', title: 'Напрегнато' },
                     { id: 'balance_2', title: 'Спокойно' },
@@ -324,7 +324,7 @@
             },
             evening_water: {
                 title: 'NutriPlan',
-                body: 'Пихте ли достатъчно вода днес?',
+                body: 'Пи ли достатъчно вода днес?',
                 actions: [
                     { id: 'water_no', title: 'Не' },
                     { id: 'water_yes', title: 'Да' }
@@ -517,7 +517,7 @@
             render(
                 '<div class="badge">⚠️ Грешка</div>' +
                 '<h1 class="title">Неуспешно зареждане</h1>' +
-                '<p class="subtitle">Моля, опитайте отново или отворете приложението.</p>' +
+                '<p class="subtitle">Моля, опитай отново или отвори приложението.</p>' +
                 '<div class="footer-actions">' +
                     '<button class="solid" id="retryBtn">Опитай отново</button>' +
                     '<button class="ghost" id="openPlanBtn">Отвори приложението</button>' +
@@ -537,7 +537,7 @@
                 '<div class="success">' +
                     '<div class="success-icon">…</div>' +
                     '<h2>Записваме отговора</h2>' +
-                    '<p>Моля, изчакайте момент.</p>' +
+                    '<p>Моля, изчакай момент.</p>' +
                 '</div>'
             );
             var saved = false;
@@ -557,7 +557,7 @@
                 render(
                     '<div class="badge">⚠️</div>' +
                     '<h1 class="title">Неуспешен запис</h1>' +
-                    '<p class="subtitle">Отворете приложението и отговорете отново.</p>' +
+                    '<p class="subtitle">Отвори приложението и отговори отново.</p>' +
                     '<div class="footer-actions"><button class="solid" id="openPlanBtn">Отвори приложението</button></div>'
                 );
                 document.getElementById('openPlanBtn').addEventListener('click', viewPlan);
@@ -600,11 +600,11 @@
                 }
                 // Пропуснато, вече отговорено или неуспешен запис — различни неща, различни думи.
                 if (actionId === 'skip' || outcome.needsApp) {
-                    renderAlreadyAnswered('Пропуснато', 'Можете да отговорите по-късно от приложението.');
+                    renderAlreadyAnswered('Пропуснато', 'Можеш да отговориш по-късно от приложението.');
                 } else if (gn._isQuestionAnswered && gn._isQuestionAnswered(recordKey, notifType)) {
                     renderAlreadyAnswered('Вече е записано', 'За ' + dateLabel(recordKey) + ' вече има отговор.');
                 } else {
-                    renderAlreadyAnswered('Неуспешен запис', 'Отворете приложението и отговорете отново.');
+                    renderAlreadyAnswered('Неуспешен запис', 'Отвори приложението и отговори отново.');
                 }
                 return;
             }

@@ -37,9 +37,15 @@ const FAT_SHARE_BY_STYLE = {
 /** Нисковъглехидратна: ≤25% от калориите и ≤130 г/ден (клиничната граница). */
 export const LOW_CARB_SHARE = 0.25;
 export const LOW_CARB_MAX_G = 130;
-/** Кето: ≤30 г/ден и ≤8% от калориите. */
-export const KETO_MAX_CARB_G = 30;
-export const KETO_CARB_SHARE = 0.08;
+/**
+ * Кето: ≤50 г/ден и ≤10% от калориите — общи въглехидрати, както ги брои
+ * целият план. Кетогенният праг е 20–50 г нетни (без фибрите) на ден (ADA
+ * 2019, Feinman 2015); фибрите от зеленчуци, авокадо и ядки са 15–20 г, т.е.
+ * 50 г общи ≈ 30–35 г нетни. При 30 г общи решателят отказваше точно
+ * авокадото и ядките, а денят оставаше средно 7–8% под калориите.
+ */
+export const KETO_MAX_CARB_G = 50;
+export const KETO_CARB_SHARE = 0.10;
 
 export const MIN_FAT_G_PER_KG = 0.7;
 
@@ -74,6 +80,12 @@ const CARB_CEILING_METABOLIC = 0.30;
 const CARB_CEILING_OBESE = 0.35;
 const CARB_CEILING_RISK = ['IR', 'T2D', 'METS', 'PCOS', 'NAFLD'];
 const CARB_CEILING_PROTEIN_PER_KG = 2.2;
+/**
+ * Веган: тофу, бобови и сейтан носят белтък заедно с въглехидрати — менюто
+ * реално стига до ~25% от енергията. Над това целта е недостижима (менютата
+ * излизаха на 70–85% от белтъка), затова таванът премества излишъка в мазнините.
+ */
+const VEGAN_CEILING_PROTEIN_SHARE = 0.25;
 const CARB_CEILING_FAT_EXTRA = 0.08;
 // Кърменето (PP) не е тук: там въглехидратите не се ограничават.
 const LOSS_GOALS = ['LOSS', 'VISC', 'CELL'];
@@ -171,7 +183,8 @@ export function macroTargetsFor(profile, kcal) {
   const maxCarbs = ceiling ? Math.round(energy * ceiling / 4) : Infinity;
   if (carbs > maxCarbs) {
     let excess = carbs - maxCarbs; // г въглехидрати = kcal / 4
-    const proteinRoom = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * maxProteinShare / 4)) - protein);
+    const proteinShare = profile.diet?.pattern === 'vegan' ? Math.min(maxProteinShare, VEGAN_CEILING_PROTEIN_SHARE) : maxProteinShare;
+    const proteinRoom = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * proteinShare / 4)) - protein);
     const proteinAdd = Math.min(proteinRoom, excess);
     protein += proteinAdd;
     excess -= proteinAdd;

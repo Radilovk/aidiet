@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
+    <meta name="description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -16,7 +16,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/">
     <meta property="og:title" content="NutriPlan — хранене по твоя мярка">
-    <meta property="og:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
+    <meta property="og:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
 
@@ -24,7 +24,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://biocode.website/">
     <meta name="twitter:title" content="NutriPlan — хранене по твоя мярка">
-    <meta name="twitter:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
+    <meta name="twitter:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
 
     <link rel="canonical" href="https://biocode.website/">
@@ -846,6 +846,7 @@
         .lp-ps-days span { width: 20px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-size: 9px; font-weight: 700; color: #6B8480; }
         .lp-ps-days span.on { background: #0B2B2A; color: #fff; }
         [data-theme="dark"] .lp-ps-days span.on { background: #2DD4BF; color: #04211F; }
+        /* Лентата на деня — както в приложението (plan.html, renderDayStrip): стъпките на деня и калориите с целевата зона ±10%. */
         .lp-ps-summary {
             margin: 4px 14px 10px;
             padding: 12px;
@@ -853,36 +854,26 @@
             background: #0B2B2A;
             color: #E3F4F1;
             display: grid;
-            grid-template-columns: 56px 1fr;
-            grid-template-rows: auto auto;
-            column-gap: 12px;
-            align-items: center;
+            gap: 8px;
         }
         [data-theme="dark"] .lp-ps-summary { background: #13302E; }
-        .lp-ring { width: 56px; height: 56px; grid-row: span 2; transform: rotate(-90deg); }
-        .lp-ring circle { fill: none; stroke-width: 7; }
-        .lp-ring-track { stroke: rgba(255, 255, 255, 0.12); }
-        .lp-ring-fill {
-            stroke: #2DD4BF;
-            stroke-linecap: round;
-            stroke-dasharray: 169.6;
-            stroke-dashoffset: 169.6;
-        }
-        .hero.visible .lp-ring-fill { animation: lpRing 1.6s var(--lp-ease) 0.9s forwards; }
-        @keyframes lpRing { to { stroke-dashoffset: 56; } }
-        .lp-ps-kcal b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; display: block; }
-        .lp-ps-kcal span { font-size: 9.5px; opacity: 0.7; }
-        .lp-ps-macros { display: grid; gap: 4px; margin-top: 6px; }
-        .lp-ps-macros div { display: grid; grid-template-columns: 58px 1fr; align-items: center; font-size: 8.5px; opacity: 0.85; }
-        .lp-ps-macros i { height: 4px; border-radius: 4px; background: rgba(255,255,255,0.12); position: relative; overflow: hidden; }
-        .lp-ps-macros i::after {
-            content: ''; position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: inherit;
+        .lp-ds-kicker { font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+        .lp-ds-title { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; margin-top: 2px; }
+        .lp-ds-segs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+        .lp-ds-segs i { height: 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.14); }
+        .lp-ds-segs i.done { background: #2DD4BF; }
+        .lp-ds-segs i.next { background: transparent; box-shadow: inset 0 0 0 1.5px #2DD4BF; }
+        .lp-ds-kcal { display: flex; justify-content: space-between; align-items: baseline; font-size: 9.5px; }
+        .lp-ds-kcal b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+        .lp-ds-kcal small, .lp-ds-note { font-size: 9.5px; opacity: 0.7; }
+        .lp-ds-track { position: relative; height: 5px; border-radius: 5px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+        .lp-ds-zone { position: absolute; top: 0; bottom: 0; left: 69.2%; width: 15.4%; background: rgba(45, 212, 191, 0.28); }
+        .lp-ds-fill {
+            position: absolute; inset: 0 auto 0 0; width: 16.2%; border-radius: inherit;
             background: linear-gradient(90deg, #14B8A6, #5EEAD4);
             transform-origin: left; transform: scaleX(0);
         }
-        .hero.visible .lp-ps-macros i::after { animation: lpBar 1.2s var(--lp-ease) 1.1s forwards; }
-        .hero.visible .lp-ps-macros div:nth-child(2) i::after { animation-delay: 1.2s; }
-        .hero.visible .lp-ps-macros div:nth-child(3) i::after { animation-delay: 1.3s; }
+        .hero.visible .lp-ds-fill { animation: lpBar 1.2s var(--lp-ease) 1.1s forwards; }
         @keyframes lpBar { to { transform: scaleX(1); } }
         .lp-ps-meals { list-style: none; padding: 0 14px; display: grid; gap: 8px; flex: 1; }
         .lp-meal {
@@ -1151,7 +1142,7 @@
         [data-theme="dark"] .lp-program-go, [data-theme="dark"] .lp-program-ico { filter: brightness(1.35); }
 
         /* --- steps --- */
-        .lp-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; position: relative; padding-top: 34px; }
+        .lp-steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; position: relative; padding-top: 34px; }
         .lp-steps::before, .lp-steps::after {
             content: ''; position: absolute; top: 0; left: 0; height: 2px; border-radius: 2px;
         }
@@ -1170,6 +1161,7 @@
         .lp-steps.is-in .lp-step:nth-child(1)::before { transition-delay: 0.3s; }
         .lp-steps.is-in .lp-step:nth-child(2)::before { transition-delay: 0.85s; }
         .lp-steps.is-in .lp-step:nth-child(3)::before { transition-delay: 1.4s; }
+        .lp-steps.is-in .lp-step:nth-child(4)::before { transition-delay: 1.95s; }
         .lp-step-n { display: block; font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 1.1rem; color: var(--lp-accent); margin-bottom: 10px; }
         .lp-step h3 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 10px; color: var(--lp-ink); }
         .lp-step p { color: var(--lp-ink-2); line-height: 1.6; font-size: 0.98rem; max-width: 300px; }
@@ -1343,8 +1335,7 @@
         }
         @media (prefers-reduced-motion: reduce) {
             .lp-enter, .lp-phone, .lp-meal, .lp-chip, .lp-reveal, .lp-tile--chat .lp-bubble { opacity: 1 !important; transform: none !important; translate: none !important; animation: none !important; transition: none !important; }
-            .lp-ring-fill { stroke-dashoffset: 56 !important; animation: none !important; }
-            .lp-ps-macros i::after, .lp-meal-check { transform: none !important; animation: none !important; }
+            .lp-ds-fill, .lp-meal-check { transform: none !important; animation: none !important; }
             .lp-orbit, .lp-pulse, .lp-scroll-cue span, .lp-mini-swap, .lp-mini-swap em, .lp-typing i { animation: none !important; }
             .lp-steps::after, .lp-step::before { transform: none !important; transition: none !important; }
         }
@@ -2197,14 +2188,14 @@
                     <span class="lp-line lp-enter" style="--d:1">Хранене по</span>
                     <span class="lp-line lp-enter" style="--d:2"><em>твоя</em> мярка.</span>
                 </h1>
-                <p class="lp-lead lp-enter" style="--d:3">Седемдневен план, изграден от над 30 твои показателя — здраве, цели, вкусове и ритъм на деня. Прегледан от специалист. Под ръка всеки ден.</p>
+                <p class="lp-lead lp-enter" style="--d:3">Меню за седмицата с точни грамажи — по тялото, здравето и вкусовете ти. Всяка седмица се коригира според резултата ти.</p>
                 <div class="cta-group lp-enter" style="--d:4">
                     <a href="questionnaire2.html" class="nav-btn lp-btn" id="heroCTABtn">Създай моя план</a>
                     <button type="button" class="btn-outline lp-btn-ghost" id="heroLoginBtn" onclick="window.indexOpenLoginModal()">Вход</button>
                 </div>
                 <ul class="lp-hero-meta lp-enter" style="--d:5">
                     <li><i class="fas fa-check" aria-hidden="true"></i> Прегледан от специалист</li>
-                    <li><i class="fas fa-check" aria-hidden="true"></i> Готов за минути</li>
+                    <li><i class="fas fa-check" aria-hidden="true"></i> Корекция всяка седмица</li>
                     <li><i class="fas fa-check" aria-hidden="true"></i> Android и уеб</li>
                 </ul>
             </div>
@@ -2222,16 +2213,13 @@
                             <div class="lp-ps-days"><span>П</span><span class="on">В</span><span>С</span><span>Ч</span><span>П</span></div>
                         </div>
                         <div class="lp-ps-summary">
-                            <svg class="lp-ring" viewBox="0 0 64 64">
-                                <circle cx="32" cy="32" r="27" class="lp-ring-track"/>
-                                <circle cx="32" cy="32" r="27" class="lp-ring-fill"/>
-                            </svg>
-                            <div class="lp-ps-kcal"><b>1 240</b><span>от 1 850 kcal</span></div>
-                            <div class="lp-ps-macros">
-                                <div><span>Протеин</span><i style="--w:72%"></i></div>
-                                <div><span>Въглехидр.</span><i style="--w:58%"></i></div>
-                                <div><span>Мазнини</span><i style="--w:64%"></i></div>
+                            <div>
+                                <div class="lp-ds-kicker">Днес · 2 от 6</div>
+                                <div class="lp-ds-title">Следва: обяд</div>
                             </div>
+                            <div class="lp-ds-segs"><i class="done"></i><i class="done"></i><i class="next"></i><i></i><i></i><i></i></div>
+                            <div class="lp-ds-kcal"><span><b>390</b> <small>/ 1 850 kcal</small></span><span class="lp-ds-note">до плана: 1 460</span></div>
+                            <div class="lp-ds-track"><span class="lp-ds-zone"></span><span class="lp-ds-fill"></span></div>
                         </div>
                         <ul class="lp-ps-meals">
                             <li class="lp-meal done" style="--i:0">
@@ -2393,7 +2381,7 @@
         <div class="lp-wrap">
             <header class="lp-head lp-reveal">
                 <p class="lp-kicker">Как работи</p>
-                <h2 class="lp-h2">Три стъпки до <em>първата седмица</em>.</h2>
+                <h2 class="lp-h2">Четири стъпки. <em>Една система</em>.</h2>
             </header>
             <ol class="lp-steps lp-reveal">
                 <li class="lp-step">
@@ -2404,12 +2392,17 @@
                 <li class="lp-step">
                     <span class="lp-step-n">02</span>
                     <h3>Анализираме</h3>
-                    <p>Седемстепенен анализ на профила ти. Специалист преглежда резултата.</p>
+                    <p>Енергия, белтък и ограничения по здравето ти — изчислени, не налучкани. Специалист преглежда резултата.</p>
                 </li>
                 <li class="lp-step">
                     <span class="lp-step-n">03</span>
                     <h3>Храниш се</h3>
                     <p>Планът е в приложението — с напомняния, замени и консултант.</p>
+                </li>
+                <li class="lp-step">
+                    <span class="lp-step-n">04</span>
+                    <h3>Напредваш</h3>
+                    <p>Всяка седмица няколко въпроса — тегло, глад, енергия. Менюто се обновява, а калориите се коригират, когато резултатът го изисква.</p>
                 </li>
             </ol>
         </div>
@@ -3234,13 +3227,13 @@
                 if (PlatformDetector.isIOS() && !PlatformDetector.isPWA()) {
                     return {
                         show: true,
-                        message: 'За известия на iOS, инсталирайте приложението: Safari → Share → Add to Home Screen',
+                        message: 'За известия на iOS, инсталирай приложението: Safari → Share → Add to Home Screen',
                         type: 'warning'
                     };
                 } else if (window.NutriPlanCompat && window.NutriPlanCompat.shouldOfferCalendarFallback()) {
                     return {
                         show: true,
-                        message: 'За напомняния без браузърни известия — абонирайте се за календар (.ics). Работи на всички Android/iOS.',
+                        message: 'За напомняния без браузърни известия — абонирай се за календар (.ics). Работи на всички Android/iOS.',
                         type: 'calendar',
                         calendarUrl: window.GameNotifier
                             ? window.GameNotifier.getCalendarSubscribeUrl()
@@ -3249,7 +3242,7 @@
                 } else if (!PlatformDetector.supportsNotifications()) {
                     return {
                         show: true,
-                        message: 'Вашият браузър не поддържа известия. Моля, използвайте по-нова версия.',
+                        message: 'Твоят браузър не поддържа известия. Моля, използвай по-нова версия.',
                         type: 'error'
                     };
                 }
@@ -3305,7 +3298,7 @@
             const banner = document.createElement('div');
             banner.id = 'notif-banner';
             banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#0D9488;color:#fff;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 32px);font-size:14px;';
-            banner.innerHTML = '<span>📅 Абонирайте се за автоматични напомняния</span>';
+            banner.innerHTML = '<span>📅 Абонирай се за автоматични напомняния</span>';
             const btn = document.createElement('a');
             btn.textContent = 'Абонирай се';
             btn.href = calUrl;
@@ -3352,10 +3345,10 @@
 
         // Installation instruction texts
         const INSTALL_INSTRUCTIONS = {
-            DESKTOP: 'За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan..."',
-            ANDROID: '📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отворете менюто на браузъра (⋮) в горния десен ъгъл\n2. Изберете "Инсталирай приложение" или "Добави към начален екран"\n3. Натиснете "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърсете иконата (⊕) в адресната лента\n• Кликнете и изберете "Инсталирай"\n\n💡 ВАЖНО: Ако не виждате опцията веднага:\n• Презаредете страницата (F5)\n• Изчакайте 2-3 секунди\n• Кликнете на някой бутон на страницата',
-            IOS: 'За да добавите приложението към началния екран:\n\n1. Натиснете бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превъртете надолу и изберете "Add to Home Screen" (Добави към начален екран)\n3. Потвърдете, като натиснете "Add" (Добави)',
-            MOBILE_GENERIC: 'За да добавите приложението към началния екран:\n\n1. Отворете менюто на браузъра (обикновено в горната част)\n2. Потърсете опцията "Добави към начален екран" или подобна\n3. Потвърдете действието'
+            DESKTOP: 'За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай NutriPlan..."',
+            ANDROID: '📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отвори менюто на браузъра (⋮) в горния десен ъгъл\n2. Избери "Инсталирай приложение" или "Добави към начален екран"\n3. Натисни "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърси иконата (⊕) в адресната лента\n• Кликни и избери "Инсталирай"\n\n💡 ВАЖНО: Ако не виждаш опцията веднага:\n• Презареди страницата (F5)\n• Изчакай 2-3 секунди\n• Кликни на някой бутон на страницата',
+            IOS: 'За да добавиш приложението към началния екран:\n\n1. Натисни бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превърти надолу и избери "Add to Home Screen" (Добави към начален екран)\n3. Потвърди, като натиснеш "Add" (Добави)',
+            MOBILE_GENERIC: 'За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието'
         };
 
         // Helper function to check if banner was recently dismissed
@@ -3933,7 +3926,7 @@
             } else {
                 const statusDiv = document.getElementById('notificationStatus');
                 if (statusDiv) {
-                    statusDiv.textContent = 'Известията са отказани. Можете да ги разрешите от настройките на браузъра.';
+                    statusDiv.textContent = 'Известията са отказани. Можеш да ги разрешиш от настройките на браузъра.';
                 }
             }
         }
@@ -3947,7 +3940,7 @@
 
             // Check if on iOS and not in standalone mode
             if (isIOS && !isInStandaloneMode()) {
-                alert('За да използвате известия на iOS, моля първо инсталирайте приложението на началния екран.');
+                alert('За да използваш известия на iOS, моля първо инсталирай приложението на началния екран.');
                 return false;
             }
 
@@ -3984,9 +3977,9 @@
 
             // Show a contextual message before requesting permission
             const contextMessages = {
-                'questionnaire': 'Искате ли да получавате известия за вашия хранителен план?',
-                'plan': 'Искате ли да получавате напомняния за вашите хранения?',
-                'action': 'Искате ли да получавате известия от NutriPlan?'
+                'questionnaire': 'Искаш ли да получаваш известия за твоя хранителен план?',
+                'plan': 'Искаш ли да получаваш напомняния за твоите хранения?',
+                'action': 'Искаш ли да получаваш известия от NutriPlan?'
             };
 
             const message = contextMessages[context] || contextMessages['action'];
@@ -4223,7 +4216,7 @@
 
             <!-- Email / password sign-in -->
             <input id="loginEmailInput" type="email" class="login-modal-email-input"
-                   placeholder="вашия@имейл.com" autocomplete="email" inputmode="email">
+                   placeholder="твоя@имейл.com" autocomplete="email" inputmode="email">
             <input id="loginPasswordInput" type="password" class="login-modal-email-input login-modal-form-input"
                    placeholder="Парола" autocomplete="current-password">
             <button class="login-modal-primary-btn" id="loginPasswordBtn">Вход</button>
@@ -4232,7 +4225,7 @@
             <button class="login-modal-forgot" id="loginForgotBtn"
                     onclick="window.indexLoginForgotPassword()">Забравена парола?</button>
             <button class="login-modal-forgot login-modal-switch" id="loginSwitchBtn"
-                    onclick="window.indexToggleLoginMode()">Нямате профил? Попълнете въпросника</button>
+                    onclick="window.indexToggleLoginMode()">Нямаш профил? Попълни въпросника</button>
 
             <div id="loginModalError"></div>
             <div id="loginModalSuccess"></div>
@@ -4540,7 +4533,7 @@
             if (title)     title.textContent = 'Добре дошли в NutriPlan';
             if (sub)       sub.textContent   = 'Имейл и парола';
             if (btn)       btn.textContent   = 'Вход';
-            if (switchBtn) switchBtn.textContent = 'Нямате профил? Попълнете въпросника';
+            if (switchBtn) switchBtn.textContent = 'Нямаш профил? Попълни въпросника';
             if (forgot)    forgot.style.display = '';
         }
 
@@ -4552,7 +4545,7 @@
 
             const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
             if (!emailRe.test(email)) {
-                loginShowError('Моля, въведете валиден имейл адрес.');
+                loginShowError('Моля, въведи валиден имейл адрес.');
                 return;
             }
             if (!password || password.length < 6) {
@@ -4572,20 +4565,20 @@
                 console.error('Login/register error:', err.code, err.message);
                 loginShowError(
                     err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
-                        ? 'Грешен имейл или парола. Опитайте отново или използвайте „Забравена парола?".' :
+                        ? 'Грешен имейл или парола. Опитай отново или използвай „Забравена парола?".' :
                     err.code === 'auth/user-not-found'
-                        ? 'Нямате профил с тази поща. Натиснете „Регистрирай се" за нов акаунт.' :
+                        ? 'Нямаш профил с тази поща. Натисни „Регистрирай се" за нов акаунт.' :
                     err.code === 'auth/email-already-in-use'
-                        ? 'Вече има акаунт с този имейл. Влезте или използвайте „Забравена парола?".' :
+                        ? 'Вече има акаунт с този имейл. Влез или използвай „Забравена парола?".' :
                     err.code === 'auth/too-many-requests'
-                        ? 'Твърде много опити. Изчакайте малко и опитайте отново.' :
+                        ? 'Твърде много опити. Изчакай малко и опитай отново.' :
                     err.code === 'auth/weak-password'
-                        ? 'Паролата е твърде слаба. Използвайте поне 6 символа.' :
+                        ? 'Паролата е твърде слаба. Използвай поне 6 символа.' :
                     err.code === 'auth/network-request-failed'
-                        ? 'Мрежова грешка. Проверете интернет връзката си.' :
+                        ? 'Мрежова грешка. Провери интернет връзката си.' :
                     err.code === 'auth/unauthorized-domain'
-                        ? 'Домейнът не е оторизиран. Свържете се с администратора.' :
-                    'Грешка при вход. Опитайте отново.'
+                        ? 'Домейнът не е оторизиран. Свържи се с администратора.' :
+                    'Грешка при вход. Опитай отново.'
                 );
             } finally {
                 if (btn) btn.disabled = false;
@@ -4597,7 +4590,7 @@
             const email = (document.getElementById('loginEmailInput')?.value || '').trim().toLowerCase();
             const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
             if (!emailRe.test(email)) {
-                loginShowError('Въведете имейл адреса си в полето по-горе, след което натиснете „Забравена парола?".');
+                loginShowError('Въведи имейл адреса си в полето по-горе, след което натиснеш „Забравена парола?".');
                 return;
             }
             loginClearMessages();
@@ -4611,13 +4604,13 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    loginShowError(data.error || 'Грешка при изпращане на имейл. Моля опитайте отново.');
+                    loginShowError(data.error || 'Грешка при изпращане на имейл. Моля опитай отново.');
                 } else {
-                    loginShowSuccess('Ако имате акаунт с този имейл, ще получите линк за нулиране на паролата. Проверете входящата поща и папката за спам.');
+                    loginShowSuccess('Ако имаш акаунт с този имейл, ще получиш линк за нулиране на паролата. Провери входящата поща и папката за спам.');
                 }
             } catch (err) {
                 console.error('Password reset error:', err);
-                loginShowError('Мрежова грешка. Проверете интернет връзката си.');
+                loginShowError('Мрежова грешка. Провери интернет връзката си.');
             } finally {
                 if (btn) btn.disabled = false;
             }

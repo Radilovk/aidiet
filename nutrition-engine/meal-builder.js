@@ -39,8 +39,15 @@ const COOKING_FAT_KETO_MAX_G = 30;
 
 /** Групите, чиито количества се донастройват по целта. */
 const ADJUSTABLE = new Set(['STA', 'LEG', 'PRO', 'FAT']);
+/**
+ * Междинната закуска е млечно, плод и ядки — без тях като донастройваеми тя
+ * оставаше със същия размер и при 1600, и при 3000 kcal (средно 81% от целта
+ * си), а недостигът не се побираше във вечерята.
+ */
+const SNACK_ADJUSTABLE = new Set([...ADJUSTABLE, 'MLK', 'FRU']);
 /** Групите, чиито порции растат с апетита на клиент с голям разход. */
 const APPETITE_GROUPS = new Set(['STA', 'LEG', 'PRO', 'VEG']);
+const SNACK_APPETITE_GROUPS = new Set([...APPETITE_GROUPS, 'MLK', 'FRU', 'FAT']);
 
 function totalsOf(parts, fixed) {
   const t = { kcal: 0, protein: 0, carbs: 0, fats: 0 };
@@ -251,6 +258,7 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
   const parts = [];
   let carbId = null;
   const refs = partRefs(dish);
+  const snackLike = mealKind === 'snack' || mealKind === 'late';
   for (let i = 0; i < dish.parts.length; i++) {
     const spec = dish.parts[i];
     if (spec.onlyStyles && !spec.onlyStyles.includes(ctx.policy.style)) continue;
@@ -279,12 +287,14 @@ export function buildMeal({ dish, choice, quota, target, mealKind, ctx }) {
     }
     const fatScale = spec.group === 'FAT' ? (ctx.policy.styleDef.fatPartScale || 1) : 1;
     // Голям енергиен разход — по-голяма чиния от същото ястие (в таваните на порциите).
-    const sizeScale = APPETITE_GROUPS.has(spec.group) ? (ctx.appetite || 1) : fatScale;
+    const grows = (snackLike ? SNACK_APPETITE_GROUPS : APPETITE_GROUPS).has(spec.group);
+    const sizeScale = grows ? Math.max(ctx.appetite || 1, fatScale) : fatScale;
     parts.push(makePart(spec.group, option, [spec.range[0], spec.range[1] * sizeScale], {
       with: spec.with,
       ref: refs[i],
       weight: parts.some(p => p.group === spec.group) ? 0.5 : 1,
-    }, fatScale, APPETITE_GROUPS.has(spec.group) ? (ctx.appetite || 1) : 1));
+      adjustable: (snackLike ? SNACK_ADJUSTABLE : ADJUSTABLE).has(spec.group),
+    }, fatScale, grows ? (ctx.appetite || 1) : 1));
   }
   // Подправките и сосовете (чесън, лимон, канела) овкусяват ястието — не са
   // съставка с грамаж и не влизат в описанието, а в рецептата.
