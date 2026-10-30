@@ -1649,19 +1649,20 @@
             transform: scaleY(1.2);
         }
         
+        /* Цветовете на макросите — токените в design-system.css (едни и същи навсякъде). */
         .macro-segment.protein {
-            background: linear-gradient(90deg, #6366f1, #4f46e5);
+            background: var(--ds-macro-protein);
             box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
         }
         
         .macro-segment.fats {
-            background: linear-gradient(90deg, #fbbf24, #f59e0b);
-            box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+            background: var(--ds-macro-fats);
+            box-shadow: 0 0 12px rgba(225, 29, 72, 0.35);
         }
         
         .macro-segment.carbs {
-            background: linear-gradient(90deg, #f87171, #ef4444);
-            box-shadow: 0 0 12px rgba(248, 113, 113, 0.4);
+            background: var(--ds-macro-carbs);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
         }
         
         .macro-segment.fiber {
@@ -1725,15 +1726,15 @@
         }
         
         .macro-dot.protein {
-            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            background: var(--ds-macro-protein);
         }
         
         .macro-dot.fats {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            background: var(--ds-macro-fats);
         }
         
         .macro-dot.carbs {
-            background: linear-gradient(135deg, #f87171, #ef4444);
+            background: var(--ds-macro-carbs);
         }
         
         .macro-dot.fiber {
@@ -3331,9 +3332,9 @@
         .food-macro-segment {
             transition: width 0.4s ease;
         }
-        .food-macro-segment.protein { background: #6366f1; }
-        .food-macro-segment.fats { background: #fbbf24; }
-        .food-macro-segment.carbs { background: #f87171; }
+        .food-macro-segment.protein { background: var(--ds-macro-protein); }
+        .food-macro-segment.fats { background: var(--ds-macro-fats); }
+        .food-macro-segment.carbs { background: var(--ds-macro-carbs); }
         .food-macro-segment.fiber { background: #0D9488; }
         .food-macros-legend {
             display: flex;
@@ -3352,9 +3353,9 @@
             height: 10px;
             border-radius: 50%;
         }
-        .food-macro-dot.protein { background: #6366f1; }
-        .food-macro-dot.fats { background: #fbbf24; }
-        .food-macro-dot.carbs { background: #f87171; }
+        .food-macro-dot.protein { background: var(--ds-macro-protein); }
+        .food-macro-dot.fats { background: var(--ds-macro-fats); }
+        .food-macro-dot.carbs { background: var(--ds-macro-carbs); }
         .food-macro-dot.fiber { background: #0D9488; }
 
         /* Suitability badge */
@@ -8832,7 +8833,7 @@
                     <div class="food-macros-legend">
                         <span class="food-macro-label"><span class="food-macro-dot protein"></span> Протеин: ${Math.round(totalP)}г (${pPct}%)</span>
                         <span class="food-macro-label"><span class="food-macro-dot fats"></span> Мазнини: ${Math.round(totalF)}г (${fPct}%)</span>
-                        <span class="food-macro-label"><span class="food-macro-dot carbs"></span> Въглех.: ${Math.round(totalC)}г (${cPct}%)</span>
+                        <span class="food-macro-label"><span class="food-macro-dot carbs"></span> Въглехидрати: ${Math.round(totalC)}г (${cPct}%)</span>
                     </div>
                 </div>`;
             }

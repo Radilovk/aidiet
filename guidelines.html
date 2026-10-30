@@ -601,15 +601,15 @@
         }
 
         .macro-card.protein {
-            --macro-color: #6366f1;
+            --macro-color: var(--ds-macro-protein);
         }
 
         .macro-card.carbs {
-            --macro-color: #3b82f6;
+            --macro-color: var(--ds-macro-carbs);
         }
 
         .macro-card.fats {
-            --macro-color: #f59e0b;
+            --macro-color: var(--ds-macro-fats);
         }
 
         .macro-icon {
@@ -658,22 +658,19 @@
         }
 
         .macro-card.protein .macro-percentage {
-            background: rgba(99, 102, 241, 0.1);
-            color: #4F46E5;
+            background: var(--ds-macro-protein-bg);
+            color: var(--ds-macro-protein-text);
         }
 
         .macro-card.carbs .macro-percentage {
-            background: rgba(59, 130, 246, 0.1);
-            color: #1D4ED8;
+            background: var(--ds-macro-carbs-bg);
+            color: var(--ds-macro-carbs-text);
         }
 
         .macro-card.fats .macro-percentage {
-            background: rgba(245, 158, 11, 0.1);
-            color: #B45309;
+            background: var(--ds-macro-fats-bg);
+            color: var(--ds-macro-fats-text);
         }
-        [data-theme="dark"] .macro-card.protein .macro-percentage { color: #A5B4FC; }
-        [data-theme="dark"] .macro-card.carbs .macro-percentage { color: #93C5FD; }
-        [data-theme="dark"] .macro-card.fats .macro-percentage { color: #FCD34D; }
 
         /* === STRATEGY PANEL === */
         .plan-justification-container {

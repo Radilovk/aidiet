@@ -313,6 +313,20 @@
     --ds-error-bg: #FEE4E2;
     --ds-risk-fill: #C2410C;            /* бял текст: 5.2:1 */
 
+    /* === МАКРОСИ — една схема навсякъде: индиго / кехлибар / розово-червено ===
+       Различни по тон И по светлост (индиго–синьо се бъркаха; кехлибарът е светъл,
+       розовото — тъмно, различими и при цветна слепота). Текстът ≥ 4.5:1 върху фона. */
+    --ds-macro-protein: #6366F1;
+    --ds-macro-protein-text: #4338CA;
+    --ds-macro-protein-bg: rgba(99, 102, 241, 0.12);
+    --ds-macro-carbs: #F59E0B;
+    --ds-macro-carbs-text: #B45309;
+    --ds-macro-carbs-bg: rgba(245, 158, 11, 0.14);
+    --ds-macro-fats: #E11D48;
+    --ds-macro-fats-text: #BE123C;
+    --ds-macro-fats-bg: rgba(225, 29, 72, 0.10);
+    --ds-macro-fiber: #0D9488;
+
     /* === ДВИЖЕНИЕ === */
     --ds-motion-press: 120ms;
     --ds-motion-fast: 180ms;
@@ -389,6 +403,9 @@
     --ds-accent-text: #2DD4BF;
     --ds-text-soft: #9AB3AF;
     --ds-success-text: #4ADE80;
+    --ds-macro-protein-text: #A5B4FC;
+    --ds-macro-carbs-text: #FCD34D;
+    --ds-macro-fats-text: #FDA4AF;
     --ds-success-bg: rgba(74, 222, 128, 0.12);
     --ds-warning-text: #FBBF24;
     --ds-warning-bg: rgba(251, 191, 36, 0.10);
