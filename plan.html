@@ -5887,11 +5887,19 @@
                         ? (energy.preWorkoutMeal && MEAL_NAMES[energy.preWorkoutMeal] ? 'Въглехидратите са в ' + MEAL_NAMES[energy.preWorkoutMeal] + ' преди тренировката, след нея — белтък и зеленчуци' : 'Въглехидратите са по-рано, след тренировката — белтък и зеленчуци')
                         : energy.postWorkoutMeal && MEAL_NAMES[energy.postWorkoutMeal] ? 'Въглехидратите са най-много в ' + MEAL_NAMES[energy.postWorkoutMeal] + ' след тренировката' : 'Повече въглехидрати за тренировката')
                     : energy.window ? 'Хранене в прозорец ' + energy.window : (energy.kind === 'low' ? 'Пълният белтък, по-малко въглехидрати' : 'Повече зеленчуци и мазнини, въглехидратите — по-рано през деня');
+                // Числата са на менюто на деня — същите като „изядено / план“ в картата на деня
+                // (целта на двигателя се разминаваше с тях); при свободно хранене — целта.
+                const menuSum = (dayData.meals || []).reduce(function(t, m) {
+                    if (m && m.macros) { t.kcal += Number(m.calories) || 0; t.protein += Number(m.macros.protein) || 0; t.carbs += Number(m.macros.carbs) || 0; t.fats += Number(m.macros.fats) || 0; }
+                    else if (m && m.type === 'Свободно хранене') t.free = true;
+                    return t;
+                }, { kcal: 0, protein: 0, carbs: 0, fats: 0, free: false });
+                const shown = menuSum.kcal > 0 && !menuSum.free ? menuSum : energy;
                 const card = document.createElement('div');
                 card.className = 'meal-card breakfast-note-card meal-card--clickable day-energy-card';
                 card.innerHTML =
                     '<div class="meal-info">' +
-                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + energy.kcal + ' kcal · В ' + energy.carbs + ' г · Б ' + energy.protein + ' г · М ' + energy.fats + ' г</div>' +
+                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + Math.round(shown.kcal) + ' kcal · В ' + Math.round(shown.carbs) + ' г · Б ' + Math.round(shown.protein) + ' г · М ' + Math.round(shown.fats) + ' г</div>' +
                     '<div class="meal-name" style="font-size:0.92em;font-weight:600">' + escapeHtml(detail) + '</div>' +
                     '</div>';
                 card.setAttribute('role', 'button');

@@ -265,6 +265,8 @@ function scoreMeal(dish, built, state, ctx, plannedCategory, mealKind) {
   score += foods.reduce((a, id) => a + ctx.preferenceOf(id), 0) / Math.max(1, foods.length);
   score -= limitPenalty(built, state, ctx.policy);
   if (mealKind === 'main' && built.parts.some(p => p.group === 'STA' && p.foods.some((id, i) => p.grams[i] > 0 && state.mainStarchToday.has(id)))) score -= 4;
+  // Яйцата — веднъж на ден: закуска, обяд и вечеря с яйца не е меню.
+  if (state.eggsToday && foods.some(id => food(id).kind === 'egg')) score -= 4;
   return score;
 }
 
@@ -279,6 +281,7 @@ function recordUse(dish, built, state) {
     }
   }
   const kinds = new Set([...foods].map(id => food(id).kind).filter(Boolean));
+  if (kinds.has('egg')) state.eggsToday = true;
   for (const k of kinds) state.kindUses[k] = (state.kindUses[k] || 0) + 1;
   const flags = new Set([...foods].flatMap(id => [...food(id).flags]));
   for (const f of flags) state.flagUses[f] = (state.flagUses[f] || 0) + 1;
@@ -657,6 +660,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     const todayDishes = new Set();
     state.mainFoodsToday = new Set();
     state.mainStarchToday = new Set();
+    state.eggsToday = false;
     state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
     /** Сглобените хранения на деня — за изравняването накрая. */

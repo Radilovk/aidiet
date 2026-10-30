@@ -29403,7 +29403,7 @@ var diet_patterns_default = {
     },
     keto: {
       label: "\u041A\u0435\u0442\u043E\u0433\u0435\u043D\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
-      basis: "\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u226430 \u0433/\u0434\u0435\u043D \u043E\u0442 \u043D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435; \u0443\u043C\u0435\u0440\u0435\u043D \u0431\u0435\u043B\u0442\u044A\u043A; \u043C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 \u0434\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430",
+      basis: "\u0412\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438 \u226450 \u0433/\u0434\u0435\u043D \u043E\u0431\u0449\u043E (\u224830 \u0433 \u043D\u0435\u0442\u043D\u0438) \u043E\u0442 \u043D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435; \u0443\u043C\u0435\u0440\u0435\u043D \u0431\u0435\u043B\u0442\u044A\u043A; \u043C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 \u0434\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430",
       anchors: {
         VEG: [
           3,
@@ -39820,8 +39820,8 @@ var FAT_SHARE_BY_STYLE = {
 };
 var LOW_CARB_SHARE = 0.25;
 var LOW_CARB_MAX_G = 130;
-var KETO_MAX_CARB_G = 30;
-var KETO_CARB_SHARE = 0.08;
+var KETO_MAX_CARB_G = 50;
+var KETO_CARB_SHARE = 0.1;
 var MIN_FAT_G_PER_KG = 0.7;
 var PROTOCOL_MACRO_SHIFT = {
   insulin_resistance: { carbs: -10, protein: 5 },
@@ -43164,6 +43164,7 @@ function scoreMeal(dish, built, state, ctx, plannedCategory, mealKind) {
   score += foods.reduce((a, id) => a + ctx.preferenceOf(id), 0) / Math.max(1, foods.length);
   score -= limitPenalty(built, state, ctx.policy);
   if (mealKind === "main" && built.parts.some((p) => p.group === "STA" && p.foods.some((id, i) => p.grams[i] > 0 && state.mainStarchToday.has(id)))) score -= 4;
+  if (state.eggsToday && foods.some((id) => food(id).kind === "egg")) score -= 4;
   return score;
 }
 function recordUse(dish, built, state) {
@@ -43177,6 +43178,7 @@ function recordUse(dish, built, state) {
     }
   }
   const kinds = new Set([...foods].map((id) => food(id).kind).filter(Boolean));
+  if (kinds.has("egg")) state.eggsToday = true;
   for (const k of kinds) state.kindUses[k] = (state.kindUses[k] || 0) + 1;
   const flags = new Set([...foods].flatMap((id) => [...food(id).flags]));
   for (const f of flags) state.flagUses[f] = (state.flagUses[f] || 0) + 1;
@@ -43460,6 +43462,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     const todayDishes = /* @__PURE__ */ new Set();
     state.mainFoodsToday = /* @__PURE__ */ new Set();
     state.mainStarchToday = /* @__PURE__ */ new Set();
+    state.eggsToday = false;
     state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
     const dayBuilt = [];
