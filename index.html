@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
+    <meta name="description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -16,7 +16,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/">
     <meta property="og:title" content="NutriPlan — хранене по твоя мярка">
-    <meta property="og:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
+    <meta property="og:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
 
@@ -24,7 +24,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://biocode.website/">
     <meta name="twitter:title" content="NutriPlan — хранене по твоя мярка">
-    <meta name="twitter:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
+    <meta name="twitter:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
 
     <link rel="canonical" href="https://biocode.website/">
@@ -1151,7 +1151,7 @@
         [data-theme="dark"] .lp-program-go, [data-theme="dark"] .lp-program-ico { filter: brightness(1.35); }
 
         /* --- steps --- */
-        .lp-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; position: relative; padding-top: 34px; }
+        .lp-steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; position: relative; padding-top: 34px; }
         .lp-steps::before, .lp-steps::after {
             content: ''; position: absolute; top: 0; left: 0; height: 2px; border-radius: 2px;
         }
@@ -1170,6 +1170,7 @@
         .lp-steps.is-in .lp-step:nth-child(1)::before { transition-delay: 0.3s; }
         .lp-steps.is-in .lp-step:nth-child(2)::before { transition-delay: 0.85s; }
         .lp-steps.is-in .lp-step:nth-child(3)::before { transition-delay: 1.4s; }
+        .lp-steps.is-in .lp-step:nth-child(4)::before { transition-delay: 1.95s; }
         .lp-step-n { display: block; font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 1.1rem; color: var(--lp-accent); margin-bottom: 10px; }
         .lp-step h3 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 10px; color: var(--lp-ink); }
         .lp-step p { color: var(--lp-ink-2); line-height: 1.6; font-size: 0.98rem; max-width: 300px; }
@@ -2197,14 +2198,14 @@
                     <span class="lp-line lp-enter" style="--d:1">Хранене по</span>
                     <span class="lp-line lp-enter" style="--d:2"><em>твоя</em> мярка.</span>
                 </h1>
-                <p class="lp-lead lp-enter" style="--d:3">Седемдневен план, изграден от над 30 твои показателя — здраве, цели, вкусове и ритъм на деня. Прегледан от специалист. Под ръка всеки ден.</p>
+                <p class="lp-lead lp-enter" style="--d:3">Меню за седмицата с точни грамажи — по тялото, здравето и вкусовете ти. Всяка седмица се коригира според резултата ти.</p>
                 <div class="cta-group lp-enter" style="--d:4">
                     <a href="questionnaire2.html" class="nav-btn lp-btn" id="heroCTABtn">Създай моя план</a>
                     <button type="button" class="btn-outline lp-btn-ghost" id="heroLoginBtn" onclick="window.indexOpenLoginModal()">Вход</button>
                 </div>
                 <ul class="lp-hero-meta lp-enter" style="--d:5">
                     <li><i class="fas fa-check" aria-hidden="true"></i> Прегледан от специалист</li>
-                    <li><i class="fas fa-check" aria-hidden="true"></i> Готов за минути</li>
+                    <li><i class="fas fa-check" aria-hidden="true"></i> Корекция всяка седмица</li>
                     <li><i class="fas fa-check" aria-hidden="true"></i> Android и уеб</li>
                 </ul>
             </div>
@@ -2393,7 +2394,7 @@
         <div class="lp-wrap">
             <header class="lp-head lp-reveal">
                 <p class="lp-kicker">Как работи</p>
-                <h2 class="lp-h2">Три стъпки до <em>първата седмица</em>.</h2>
+                <h2 class="lp-h2">Четири стъпки. <em>Една система</em>.</h2>
             </header>
             <ol class="lp-steps lp-reveal">
                 <li class="lp-step">
@@ -2404,12 +2405,17 @@
                 <li class="lp-step">
                     <span class="lp-step-n">02</span>
                     <h3>Анализираме</h3>
-                    <p>Седемстепенен анализ на профила ти. Специалист преглежда резултата.</p>
+                    <p>Енергия, белтък и ограничения по здравето ти — изчислени, не налучкани. Специалист преглежда резултата.</p>
                 </li>
                 <li class="lp-step">
                     <span class="lp-step-n">03</span>
                     <h3>Храниш се</h3>
                     <p>Планът е в приложението — с напомняния, замени и консултант.</p>
+                </li>
+                <li class="lp-step">
+                    <span class="lp-step-n">04</span>
+                    <h3>Напредваш</h3>
+                    <p>Всяка седмица няколко въпроса — тегло, глад, енергия. Менюто се обновява, а калориите се коригират, когато резултатът го изисква.</p>
                 </li>
             </ol>
         </div>
