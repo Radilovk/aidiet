@@ -19,7 +19,7 @@ const ruleDef = code => CONDITIONS[code] || PROTOCOLS[code] || {};
 const fmt = n => String(Math.round(n * 2) / 2).replace('.', ',');
 
 /** Колко е една обменна порция — с примери според модела и изключенията. */
-function portionExample(group, ctx) {
+export function portionExample(group, ctx) {
   const { pattern, ex, style } = ctx;
   switch (group) {
     case 'STA':
@@ -284,13 +284,13 @@ function occasionalOf(policy, ctx) {
   // Ограниченията от клиничните правила — като „рядко“, с точната честота.
   const lim = policy.limitFlags || {};
   if (lim.high_gi_fruit != null) {
-    out.push({ food: 'Банан, грозде, диня, сушени плодове', portion: '1 порция', frequency: `до ${lim.high_gi_fruit} пъти седмично`, when: 'с белтък или кисело мляко' });
+    out.push({ food: 'Банан, грозде, диня, сушени плодове', portion: '1 порция (1 малък банан, 1 чаша грозде, 1 резен диня или 2–3 сушени плода)', frequency: `до ${lim.high_gi_fruit} пъти седмично`, when: 'с белтък или кисело мляко' });
   }
   if (lim.high_gi != null && !ctx.flagExcluded('high_gi')) {
-    out.push({ food: 'Бял ориз, бял хляб, картофи', portion: '1 порция', frequency: `до ${lim.high_gi} пъти седмично`, when: 'със зеленчуци и белтък' });
+    out.push({ food: 'Бял ориз, бял хляб, картофи', portion: '1 порция (3–4 с.л. сварен ориз, 1 филия или 1 малък картоф)', frequency: `до ${lim.high_gi} пъти седмично`, when: 'със зеленчуци и белтък' });
   }
   if (lim.salty != null) {
-    out.push({ food: 'Солени храни (сирене, маслини, туршии)', portion: '1 малка порция', frequency: `до ${lim.salty} пъти седмично`, when: 'без допълнително солене' });
+    out.push({ food: 'Солени храни (сирене, маслини, туршии)', portion: '1 малка порция (30 г сирене или 5–6 маслини)', frequency: `до ${lim.salty} пъти седмично`, when: 'без допълнително солене' });
   }
   return out.slice(0, 10);
 }
