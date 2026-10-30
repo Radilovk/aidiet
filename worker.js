@@ -14,11 +14,20 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err2) => function __init() {
+  if (err2) throw err2[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err2 = [e], e;
+  }
 };
 var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  try {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  } catch (e) {
+    throw mod = 0, e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -52067,6 +52076,7 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 }
 var PLAN_JOB_PREFIX = "plan_job:";
 var PLAN_JOB_TTL_SEC = 86400;
+var WEEKLY_PAYLOAD_PREFIX = "weekly_payload:";
 var SOFIA_PARTS = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Sofia",
   year: "numeric",
@@ -54710,7 +54720,8 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
         JSON.stringify({ status: "pending", type: "weekly_adapt", startedAt: Date.now() }),
         { expirationTtl: PLAN_JOB_TTL_SEC }
       );
-      await env.PLAN_QUEUE.send({ jobId, type: "weekly_adapt", payload }, { contentType: "json" });
+      await env.page_content.put(WEEKLY_PAYLOAD_PREFIX + jobId, JSON.stringify(payload), { expirationTtl: PLAN_JOB_TTL_SEC });
+      await env.PLAN_QUEUE.send({ jobId, type: "weekly_adapt", payloadKey: WEEKLY_PAYLOAD_PREFIX + jobId }, { contentType: "json" });
     } else if (ctx) {
       ctx.waitUntil(runWeeklyAdaptation(env, payload, jobId));
     } else {
@@ -63577,11 +63588,21 @@ var worker_entry_default = {
   async queue(batch, env) {
     for (const message of batch.messages) {
       const body = message.body || {};
-      const { jobId, type, payload, data, clientId, generationOptions } = body;
+      const { jobId, type, payloadKey, data, clientId, generationOptions } = body;
+      let { payload } = body;
       console.log(`Queue consumer: received job ${jobId}${type ? ` (${type})` : ""}`);
       try {
         if (type === "weekly_adapt") {
+          if (!payload && payloadKey) payload = await kvGetJSON(env, payloadKey);
+          if (!payload) {
+            console.error(`Queue consumer: job ${jobId} \u2014 \u0442\u043E\u0432\u0430\u0440\u044A\u0442 \u043B\u0438\u043F\u0441\u0432\u0430 (${payloadKey})`);
+            await env.page_content.put(PLAN_JOB_PREFIX + jobId, JSON.stringify({ status: "failed", type: "weekly_adapt", jobId, error: "payload_missing" }), { expirationTtl: PLAN_JOB_TTL_SEC });
+            message.ack();
+            continue;
+          }
           await runWeeklyAdaptation(env, payload, jobId);
+          if (payloadKey) await env.page_content.delete(payloadKey).catch(() => {
+          });
         } else if (type === "safety_rebuild") {
           await runSafetyRebuild(env, payload, jobId);
         } else {
