@@ -846,6 +846,7 @@
         .lp-ps-days span { width: 20px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-size: 9px; font-weight: 700; color: #6B8480; }
         .lp-ps-days span.on { background: #0B2B2A; color: #fff; }
         [data-theme="dark"] .lp-ps-days span.on { background: #2DD4BF; color: #04211F; }
+        /* Лентата на деня — както в приложението (plan.html, renderDayStrip): стъпките на деня и калориите с целевата зона ±10%. */
         .lp-ps-summary {
             margin: 4px 14px 10px;
             padding: 12px;
@@ -853,36 +854,26 @@
             background: #0B2B2A;
             color: #E3F4F1;
             display: grid;
-            grid-template-columns: 56px 1fr;
-            grid-template-rows: auto auto;
-            column-gap: 12px;
-            align-items: center;
+            gap: 8px;
         }
         [data-theme="dark"] .lp-ps-summary { background: #13302E; }
-        .lp-ring { width: 56px; height: 56px; grid-row: span 2; transform: rotate(-90deg); }
-        .lp-ring circle { fill: none; stroke-width: 7; }
-        .lp-ring-track { stroke: rgba(255, 255, 255, 0.12); }
-        .lp-ring-fill {
-            stroke: #2DD4BF;
-            stroke-linecap: round;
-            stroke-dasharray: 169.6;
-            stroke-dashoffset: 169.6;
-        }
-        .hero.visible .lp-ring-fill { animation: lpRing 1.6s var(--lp-ease) 0.9s forwards; }
-        @keyframes lpRing { to { stroke-dashoffset: 56; } }
-        .lp-ps-kcal b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; display: block; }
-        .lp-ps-kcal span { font-size: 9.5px; opacity: 0.7; }
-        .lp-ps-macros { display: grid; gap: 4px; margin-top: 6px; }
-        .lp-ps-macros div { display: grid; grid-template-columns: 58px 1fr; align-items: center; font-size: 8.5px; opacity: 0.85; }
-        .lp-ps-macros i { height: 4px; border-radius: 4px; background: rgba(255,255,255,0.12); position: relative; overflow: hidden; }
-        .lp-ps-macros i::after {
-            content: ''; position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: inherit;
+        .lp-ds-kicker { font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+        .lp-ds-title { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; margin-top: 2px; }
+        .lp-ds-segs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+        .lp-ds-segs i { height: 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.14); }
+        .lp-ds-segs i.done { background: #2DD4BF; }
+        .lp-ds-segs i.next { background: transparent; box-shadow: inset 0 0 0 1.5px #2DD4BF; }
+        .lp-ds-kcal { display: flex; justify-content: space-between; align-items: baseline; font-size: 9.5px; }
+        .lp-ds-kcal b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+        .lp-ds-kcal small, .lp-ds-note { font-size: 9.5px; opacity: 0.7; }
+        .lp-ds-track { position: relative; height: 5px; border-radius: 5px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+        .lp-ds-zone { position: absolute; top: 0; bottom: 0; left: 69.2%; width: 15.4%; background: rgba(45, 212, 191, 0.28); }
+        .lp-ds-fill {
+            position: absolute; inset: 0 auto 0 0; width: 16.2%; border-radius: inherit;
             background: linear-gradient(90deg, #14B8A6, #5EEAD4);
             transform-origin: left; transform: scaleX(0);
         }
-        .hero.visible .lp-ps-macros i::after { animation: lpBar 1.2s var(--lp-ease) 1.1s forwards; }
-        .hero.visible .lp-ps-macros div:nth-child(2) i::after { animation-delay: 1.2s; }
-        .hero.visible .lp-ps-macros div:nth-child(3) i::after { animation-delay: 1.3s; }
+        .hero.visible .lp-ds-fill { animation: lpBar 1.2s var(--lp-ease) 1.1s forwards; }
         @keyframes lpBar { to { transform: scaleX(1); } }
         .lp-ps-meals { list-style: none; padding: 0 14px; display: grid; gap: 8px; flex: 1; }
         .lp-meal {
@@ -1344,8 +1335,7 @@
         }
         @media (prefers-reduced-motion: reduce) {
             .lp-enter, .lp-phone, .lp-meal, .lp-chip, .lp-reveal, .lp-tile--chat .lp-bubble { opacity: 1 !important; transform: none !important; translate: none !important; animation: none !important; transition: none !important; }
-            .lp-ring-fill { stroke-dashoffset: 56 !important; animation: none !important; }
-            .lp-ps-macros i::after, .lp-meal-check { transform: none !important; animation: none !important; }
+            .lp-ds-fill, .lp-meal-check { transform: none !important; animation: none !important; }
             .lp-orbit, .lp-pulse, .lp-scroll-cue span, .lp-mini-swap, .lp-mini-swap em, .lp-typing i { animation: none !important; }
             .lp-steps::after, .lp-step::before { transform: none !important; transition: none !important; }
         }
@@ -2223,16 +2213,13 @@
                             <div class="lp-ps-days"><span>П</span><span class="on">В</span><span>С</span><span>Ч</span><span>П</span></div>
                         </div>
                         <div class="lp-ps-summary">
-                            <svg class="lp-ring" viewBox="0 0 64 64">
-                                <circle cx="32" cy="32" r="27" class="lp-ring-track"/>
-                                <circle cx="32" cy="32" r="27" class="lp-ring-fill"/>
-                            </svg>
-                            <div class="lp-ps-kcal"><b>1 240</b><span>от 1 850 kcal</span></div>
-                            <div class="lp-ps-macros">
-                                <div><span>Протеин</span><i style="--w:72%"></i></div>
-                                <div><span>Въглехидр.</span><i style="--w:58%"></i></div>
-                                <div><span>Мазнини</span><i style="--w:64%"></i></div>
+                            <div>
+                                <div class="lp-ds-kicker">Днес · 2 от 6</div>
+                                <div class="lp-ds-title">Следва: обяд</div>
                             </div>
+                            <div class="lp-ds-segs"><i class="done"></i><i class="done"></i><i class="next"></i><i></i><i></i><i></i></div>
+                            <div class="lp-ds-kcal"><span><b>390</b> <small>/ 1 850 kcal</small></span><span class="lp-ds-note">до плана: 1 460</span></div>
+                            <div class="lp-ds-track"><span class="lp-ds-zone"></span><span class="lp-ds-fill"></span></div>
                         </div>
                         <ul class="lp-ps-meals">
                             <li class="lp-meal done" style="--i:0">
