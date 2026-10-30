@@ -221,6 +221,8 @@ function chooseOptions(dish, state, ctx, rng, target) {
         score -= uses * (part.group === 'PRO' && idx === 0 ? 1.4 : 0.7);
         if (state.lastMealFoods.has(id)) score -= 1.5;
         if (part.group === 'PRO' && state.mainFoodsToday.has(id)) score -= 6;
+        // Същата гарнитура и на обяд, и на вечеря (ориз два пъти) — диетологът я сменя.
+        if (part.group === 'STA' && state.mainStarchToday.has(id)) score -= 3;
       }
       score = score / option.length + rng() * 0.4;
       if (part.group === 'PRO' && idx === dish.parts.findIndex(p => p.group === 'PRO')) {
@@ -262,6 +264,7 @@ function scoreMeal(dish, built, state, ctx, plannedCategory, mealKind) {
   const foods = [...mealFoods(built)];
   score += foods.reduce((a, id) => a + ctx.preferenceOf(id), 0) / Math.max(1, foods.length);
   score -= limitPenalty(built, state, ctx.policy);
+  if (mealKind === 'main' && built.parts.some(p => p.group === 'STA' && p.foods.some((id, i) => p.grams[i] > 0 && state.mainStarchToday.has(id)))) score -= 4;
   return score;
 }
 
@@ -635,6 +638,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     flagUses: {},
     lastMealFoods: new Set(),
     mainFoodsToday: new Set(),
+    mainStarchToday: new Set(),
     yesterdayDishes: new Set(),
     supplementToday: false,
     previousWeek,
@@ -652,6 +656,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     if (morningDrink) meals.push({ ...drink });
     const todayDishes = new Set();
     state.mainFoodsToday = new Set();
+    state.mainStarchToday = new Set();
     state.supplementToday = false;
     let carry = { protein: 0, carbs: 0, fats: 0 };
     /** Сглобените хранения на деня — за изравняването накрая. */
@@ -799,6 +804,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       if (kind === 'main') {
         const proteinPart = best.built.parts.find(p => p.group === 'PRO' || p.group === 'LEG');
         for (const id of proteinPart?.foods || []) state.mainFoodsToday.add(id);
+        for (const part of best.built.parts) if (part.group === 'STA') part.foods.forEach((id, i) => { if (part.grams[i] > 0) state.mainStarchToday.add(id); });
       }
       for (const k of ['protein', 'carbs', 'fats']) carry[k] = target[k] - best.built.totals[k];
       const meal = toPlanMeal(type, best.dish, best.built, dessertToday);
