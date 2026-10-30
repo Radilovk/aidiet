@@ -332,6 +332,8 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
   const modifications = [];
   let delta = 0;
   let recomp = false;
+  // Седмицата върви по плана — само тогава съобщението хвали (weeklyMessage).
+  let onTrack = false;
   // Посоката е от целта в контекста на профила, не от етикета: антиейджинг при
   // затлъстяване е сваляне, мускулна маса при наднормено тегло — смяна на състава.
   const dir = direction || directionOfGoal(goal);
@@ -357,7 +359,9 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
     reasons.push(`Спазване на плана: около ${adherence}% — калориите остават, менюто се опростява, за да се спазва по-лесно.`);
     changes.push('По-прости и повтарящи се ястия');
   } else if (outcome && !followed) {
-    reasons.push(`Спазване на плана: около ${adherence ?? '?'}% — резултатът по теглото още не показва дали калориите са верни; приемът остава.`);
+    reasons.push(adherence != null
+      ? `Спазване на плана: около ${adherence}% — резултатът по теглото още не показва дали калориите са верни; приемът остава.`
+      : 'Няма данни дали планът е спазван (отговор или отметки на храненията) — без тях теглото не показва дали калориите са верни; приемът остава.');
   } else if (outcome && followed) {
     const weeks = streak(history, goalKind, cls) + 1;
     if (losing) {
@@ -365,6 +369,7 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
       const firstWeekWater = outcome === 'fast_loss' && !lactating && !(history || []).length
         && checkin.energy !== 3 && !(checkin.weeklyChangeKg != null && -checkin.weeklyChangeKg >= base * FIRST_WEEK_FAST_RATE);
       if (firstWeekWater) {
+        onTrack = true;
         reasons.push(`Първата седмица${measured ? ` (${measured})` : ''} теглото пада бързо основно от вода и гликоген — приемът остава; темпото се преценява от втората седмица.`);
       } else if (outcome === 'fast_loss') {
         delta = +MAX_WEEKLY_STEP;
@@ -375,6 +380,7 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
         reasons.push(`По тракера приемът е около ${checkin.intakeKcal} kcal дневно при план ${kcal} kcal — калориите на плана остават; първо приемът да се доближи до плана.`);
       } else if (cls === 'stall' && checkin.waistChangeCm != null && checkin.waistChangeCm <= -WAIST_PROGRESS_CM) {
         recomp = true;
+        onTrack = true;
         reasons.push(`Кантарът стои, но талията е с ${fmtKg(-checkin.waistChangeCm)} см по-малко — тялото губи мазнини; приемът остава.`);
       } else if (cls === 'stall') {
         if (weeks >= 2) {
@@ -384,6 +390,7 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
           reasons.push(`${measured ? `${measured}. ` : ''}Една седмица без спад е обичайна (вода, гликоген, цикъл) — приемът остава, следим и следващата.`);
         }
       } else {
+        onTrack = true;
         reasons.push(`Темпото отговаря на очакваното (около ${expectedLoss.toFixed(1).replace('.', ',')} кг седмично${measured ? `; измерено ${measured}` : ''}) — приемът остава.`);
       }
     } else if (gaining) {
@@ -403,6 +410,7 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
           reasons.push('Една седмица без покачване — приемът остава, следим и следващата.');
         }
       } else {
+        onTrack = true;
         reasons.push('Теглото расте по план — приемът остава.');
       }
     } else if (recomposing) {
@@ -415,6 +423,7 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
         reasons.push('Смяната на състава иска силови тренировки — без тях калориите не решават; приемът остава.');
       } else if (waistDown) {
         recomp = true;
+        onTrack = true;
         reasons.push(`Талията е с ${fmtKg(-checkin.waistChangeCm)} см по-малко${measured ? ` при ${measured}` : ''} — съставът се подобрява; приемът остава.`);
       } else if (cls === 'down' && (drifting || outcome === 'fast_loss') && weeks >= 2) {
         delta = +100;
@@ -423,6 +432,7 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
         delta = -100;
         reasons.push(`Теглото расте втора поредна седмица${measured ? ` (${measured})` : ''} без по-малка талия — приемът се намалява леко.`);
       } else {
+        onTrack = cls === 'flat';
         reasons.push(`Теглото се задържа${measured ? ` (${measured})` : ''} — при смяна на състава това е очакваното; следим талията и тренировките.`);
       }
     } else if (cls === 'up' && weeks >= 2) {
@@ -432,6 +442,7 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
       delta = +100;
       reasons.push('Теглото пада втора поредна седмица при цел поддържане — приемът се увеличава леко.');
     } else {
+      onTrack = cls === 'flat';
       reasons.push(`Теглото се задържа в нормалните граници${measured ? ` (${measured})` : ''} — приемът остава.`);
     }
   } else if (!outcome && checkin.weightKg) {
@@ -440,15 +451,26 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
     reasons.push('Без данни за теглото калориите остават — претеглете се сутрин на гладно преди следващия преглед.');
   }
 
+  // Обявената корекция отпада по правило за безопасност: фактът остава, а
+  // „приемът се намалява“ се маха — иначе две поредни изречения си противоречат.
+  let deltaReason = delta ? reasons.length - 1 : -1;
+  const cancelDelta = (text) => {
+    if (deltaReason >= 0) reasons[deltaReason] = reasons[deltaReason].replace(/\s—\s[^—]*$/, '.');
+    reasons.push(text);
+    deltaReason = -1;
+  };
+
   // Чест глад и ниска енергия при дефицит и спазен план: не се реже повече,
   // а ако няма корекция — дефицитът се смекчава.
   if (losing && adherence != null && adherence >= 60 && checkin.hunger === 3 && checkin.energy === 3) {
+    onTrack = false;
     if (delta < 0) {
       delta = 0;
-      reasons.push('Чест глад и ниска енергия — калориите не се намаляват тази седмица.');
+      cancelDelta('Чест глад и ниска енергия — калориите не се намаляват тази седмица.');
     } else if (delta === 0) {
       delta = +100;
       reasons.push('Чест глад и ниска енергия — дефицитът се смекчава.');
+      deltaReason = reasons.length - 1;
     }
   } else if (checkin.hunger === 3) {
     modifications.push('more_volume');
@@ -476,19 +498,24 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
   // повече калории отиват в мазнини.
   if ((gaining || recomposing) && checkin.workouts === 0 && delta > 0) {
     delta = 0;
-    reasons.push('Без силови тренировки тази седмица — приемът не се увеличава.');
+    cancelDelta('Без силови тренировки тази седмица — приемът не се увеличава.');
   }
 
   // Сигнали от устройства: при ниско възстановяване (пулс/HRV) или загуба на
   // мускулна маса по везната дефицитът не се задълбочава.
   if (delta < 0 && checkin.recoveryLow) {
     delta = 0;
-    reasons.push('Пулсът в покой и HRV показват натоварване — тази седмица калориите не се намаляват; приоритет са сънят и възстановяването.');
+    onTrack = false;
+    cancelDelta('Пулсът в покой и HRV показват натоварване — тази седмица калориите не се намаляват; приоритет са сънят и възстановяването.');
   }
   if (checkin.leanLoss) {
-    if (delta < 0) delta = 0;
+    onTrack = false;
     modifications.push('increase_protein');
-    reasons.push('По везната част от загубеното тегло е мускулна маса — повече белтък, без по-голям дефицит.');
+    const text = 'По везната част от загубеното тегло е мускулна маса — повече белтък, без по-голям дефицит.';
+    if (delta < 0) {
+      delta = 0;
+      cancelDelta(text);
+    } else reasons.push(text);
     changes.push('Повече белтък за пазене на мускулите');
   }
 
@@ -516,6 +543,9 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
     intakeKcal: checkin.intakeKcal,
     followed,
     adherence,
+    onTrack,
+    // Решаващата причина на седмицата — съобщението към клиента я казва, когато калориите остават.
+    note: reasons[reasons.length - 1] || '',
   };
 }
 
@@ -539,9 +569,19 @@ export function weeklyMessage(decision, checkin) {
       message: 'Приемът се увеличава леко — за енергия и за запазване на мускулната маса. Продължавайте да спазвате плана.',
     };
   }
+  if (decision.onTrack) {
+    return {
+      headline: 'Отлична седмица — продължаваме',
+      message: 'Вървите по плана. Новото меню е със същите калории и нови ястия за разнообразие.',
+    };
+  }
+  // Без похвала, когато резултатът е неясен: няма тегло, няма данни за спазването или седмицата е в застой.
+  const noWeight = !decision.weight && !decision.weightKg;
   return {
-    headline: 'Отлична седмица — продължаваме',
-    message: 'Вървите по плана. Новото меню е със същите калории и нови ястия за разнообразие.',
+    headline: 'Нова седмица — същите калории',
+    message: noWeight
+      ? 'Без претегляне калориите остават същите. Претеглете се сутрин на гладно преди следващия преглед — така корекцията е точна. Менюто е ново, за разнообразие.'
+      : `${decision.note || 'Калориите остават същите.'} Менюто е ново, за разнообразие.`,
   };
 }
 
