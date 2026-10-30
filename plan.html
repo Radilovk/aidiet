@@ -3295,6 +3295,7 @@
             align-items: center;
             gap: 8px;
         }
+        .food-plan-compare { font-size: 0.85rem; color: var(--text-light); border-top: 1px dashed rgba(0,0,0,0.08); }
         .food-item-row {
             display: flex;
             justify-content: space-between;
@@ -4510,11 +4511,11 @@
 
                 <!-- Meal Context Selector -->
                 <select id="foodMealContext" style="width:100%;min-height:48px;padding:10px 14px;border:1px solid var(--text-light);border-radius:12px;font-size:0.9rem;background:var(--card-bg);color:var(--text-dark);margin-bottom:12px;outline:none;">
-                    <option value="Хранене 1">Хранене 1 – Закуска</option>
-                    <option value="Хранене 2" selected>Хранене 2 – Обяд</option>
-                    <option value="Хранене 3">Хранене 3 – Следобедна закуска</option>
-                    <option value="Хранене 4">Хранене 4 – Вечеря</option>
-                    <option value="Хранене 5">🫐 Хранене 5 – Късна закуска</option>
+                    <option value="Хранене 1">Закуска</option>
+                    <option value="Хранене 2" selected>Обяд</option>
+                    <option value="Хранене 3">Следобедна закуска</option>
+                    <option value="Хранене 4">Вечеря</option>
+                    <option value="Хранене 5">Късна закуска</option>
                 </select>
 
                 <!-- Analyze Button -->
@@ -8592,22 +8593,48 @@
             }
         })();
 
+        /** Днешните хранения на плана (без напитката) — за избора на хранене и сравнението със снимката. */
+        function todayPlanMeals() {
+            try {
+                const day = dietPlan && dietPlan.weekPlan && dietPlan.weekPlan['day' + dateKeyToPlanDay(todayDateKey())];
+                return ((day && day.meals) || []).filter(m => m && /^Хранене [1-5]$/.test(m.type));
+            } catch (_) { return []; }
+        }
+
+        /**
+         * Опциите са днешните хранения на клиента (без закуска — без закуска, без късна — без
+         * късна), а изборът по час е сред тях: в 22 ч при план без късна закуска — вечерята.
+         */
         function autoSelectMealContext() {
             const hour = new Date().getHours();
             const select = document.getElementById('foodMealContext');
             if (!select) return;
-            
-            if (hour >= 5 && hour < 10) {
-                select.value = 'Хранене 1';
-            } else if (hour >= 10 && hour < 14) {
-                select.value = 'Хранене 2';
-            } else if (hour >= 14 && hour < 17) {
-                select.value = 'Хранене 3';
-            } else if (hour >= 17 && hour < 22) {
-                select.value = 'Хранене 4';
-            } else {
-                select.value = 'Хранене 5';
+            const today = todayPlanMeals().map(m => m.type);
+            if (today.length) {
+                select.innerHTML = today.map(t => '<option value="' + t + '">' + escapeHtml(getMealDisplayLabel(t)) + '</option>').join('');
             }
+            const byHour = hour >= 5 && hour < 10 ? 'Хранене 1' : hour >= 10 && hour < 14 ? 'Хранене 2'
+                : hour >= 14 && hour < 17 ? 'Хранене 3' : hour >= 17 && hour < 22 ? 'Хранене 4' : 'Хранене 5';
+            const order = ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5'];
+            const options = [...select.options].map(o => o.value);
+            // Часът на храненето, ако го има днес; иначе най-близкото преди него (вечерта е след обяда).
+            const pick = options.includes(byHour) ? byHour
+                : order.slice(0, order.indexOf(byHour)).reverse().find(t => options.includes(t)) || options[0];
+            if (pick) select.value = pick;
+        }
+
+        /** Каквото е по плана за избраното хранене днес и докъде е денят — сравнява се със снимката. */
+        function photoPlanContext() {
+            if (!dietPlan) return null;
+            const slot = (document.getElementById('foodMealContext') || {}).value || '';
+            const meal = todayPlanMeals().find(m => m.type === slot);
+            const today = typeof chatToday === 'function' ? chatToday() : null;
+            return {
+                summary: dietPlan.summary,
+                slotMeal: meal ? { label: getMealDisplayLabel(meal.type), name: meal.name, calories: Math.round(Number(meal.calories) || 0), macros: meal.macros || null } : null,
+                today: today ? { eatenKcal: today.eatenKcal, planKcal: today.planKcal } : null,
+                forbidden: Array.isArray(dietPlan.forbidden) ? dietPlan.forbidden.slice(0, 12) : [],
+            };
         }
 
         function handleFoodImageSelected(event) {
@@ -8746,9 +8773,7 @@
                     dietDislike: userData.dietDislike
                 } : null;
 
-                const compactPlan = dietPlan ? {
-                    summary: dietPlan.summary
-                } : null;
+                const compactPlan = photoPlanContext();
 
                 const response = await fetch(WORKER_URL + '/api/analyze-food-image', {
                     method: 'POST',
@@ -8836,6 +8861,19 @@
                     <span class="food-item-weight">${escapeHtmlWithBreaks(analysis.totalWeight || '')}</span>
                     <span class="food-item-cals">${Math.round(analysis.totalCalories || 0)} kcal</span>
                 </div>`;
+                // Спрямо плана: колко е било планирано за това хранене днес.
+                const planned = photoPlanContext();
+                const slotMeal = planned && planned.slotMeal;
+                if (slotMeal && slotMeal.calories > 0 && analysis.totalCalories > 0) {
+                    const diff = Math.round(analysis.totalCalories - slotMeal.calories);
+                    const diffText = Math.abs(diff) <= slotMeal.calories * 0.1 ? 'в рамките на плана'
+                        : (diff > 0 ? '+' + diff + ' kcal над плана' : Math.abs(diff) + ' kcal под плана');
+                    html += `<div class="food-item-row food-plan-compare">
+                        <span class="food-item-name">${escapeHtmlWithBreaks(slotMeal.label)} по плана</span>
+                        <span class="food-item-weight"></span>
+                        <span class="food-item-cals">${slotMeal.calories} kcal · ${diffText}</span>
+                    </div>`;
+                }
                 html += '</div>';
             }
 
@@ -8855,13 +8893,13 @@
                     <h4><i class="fas fa-chart-pie"></i> Макронутриенти</h4>
                     <div class="food-macros-bar">
                         <div class="food-macro-segment protein" style="width:${pPct}%"></div>
-                        <div class="food-macro-segment fats" style="width:${fPct}%"></div>
                         <div class="food-macro-segment carbs" style="width:${cPct}%"></div>
+                        <div class="food-macro-segment fats" style="width:${fPct}%"></div>
                     </div>
                     <div class="food-macros-legend">
                         <span class="food-macro-label"><span class="food-macro-dot protein"></span> Протеин: ${Math.round(totalP)}г (${pPct}%)</span>
-                        <span class="food-macro-label"><span class="food-macro-dot fats"></span> Мазнини: ${Math.round(totalF)}г (${fPct}%)</span>
                         <span class="food-macro-label"><span class="food-macro-dot carbs"></span> Въглехидрати: ${Math.round(totalC)}г (${cPct}%)</span>
+                        <span class="food-macro-label"><span class="food-macro-dot fats"></span> Мазнини: ${Math.round(totalF)}г (${fPct}%)</span>
                     </div>
                 </div>`;
             }
@@ -8869,7 +8907,8 @@
             // 3. Diet suitability assessment
             if (analysis.dietSuitability) {
                 const suit = analysis.dietSuitability;
-                const score = suit.score != null ? suit.score : 3;
+                const raw = suit.score != null ? Number(suit.score) : 3;
+                const score = raw > 5 ? Math.round(raw / 2) : Math.round(raw);
                 const suitClass = score >= 4 ? 'suitable' : score >= 2 ? 'partial' : 'unsuitable';
 
                 html += `<div class="food-result-section">
@@ -8988,7 +9027,7 @@
                     dietDislike: userData.dietDislike
                 } : null;
 
-                const compactPlan = dietPlan ? { summary: dietPlan.summary } : null;
+                const compactPlan = photoPlanContext();
 
                 const response = await fetch(WORKER_URL + '/api/analyze-menu-image', {
                     method: 'POST',
@@ -9048,6 +9087,12 @@
         function renderMenuAnalysisResults(analysis) {
             const resultsDiv = document.getElementById('foodResults');
             if (!resultsDiv) return;
+            if (!analysis.recommendedDish || analysis.dishesRead === 0) {
+                resultsDiv.innerHTML = '<div class="food-result-section"><div class="food-suggestions"><i class="fas fa-camera"></i> Менюто не се чете ясно. Снимай по-отблизо, на добра светлина, без отблясъци — една страница наведнъж.</div></div>';
+                resultsDiv.classList.add('visible');
+                _lastFoodAnalysis = null;
+                return;
+            }
 
             const score = Math.min(5, Math.max(0, Math.round(analysis.suitabilityScore != null ? analysis.suitabilityScore : 3)));
             const scoreColors = ['#6b7280', '#ef4444', '#f97316', '#fbbf24', '#84cc16', '#0D9488'];
@@ -9072,16 +9117,9 @@
                 </div>
                 <div class="menu-result-body">`;
 
-            if (analysis.description) {
-                html += `<div class="menu-info-block">
-                    <div class="menu-info-block-label"><i class="fas fa-info-circle"></i> Описание</div>
-                    ${escapeHtmlWithBreaks(analysis.description)}
-                </div>`;
-            }
-
             if (analysis.reasoning) {
                 html += `<div class="menu-info-block">
-                    <div class="menu-info-block-label"><i class="fas fa-balance-scale"></i> Аргументация</div>
+                    <div class="menu-info-block-label"><i class="fas fa-balance-scale"></i> Защо това ястие</div>
                     ${escapeHtmlWithBreaks(analysis.reasoning)}
                 </div>`;
             }

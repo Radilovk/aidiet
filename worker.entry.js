@@ -3712,6 +3712,25 @@ function chatContextHasMealGrams(text) {
 /**
  * Handle chat assistant requests — client sends pre-built NPCF contextText.
  */
+/**
+ * Планът за снимката на храна или меню: дневните цели, какво е планирано за това
+ * хранене днес, докъде е денят и какво не бива. Без него „подходящо ли е“ се
+ * преценяваше само по дневните калории.
+ */
+function photoPlanContextText(dietPlan) {
+  if (!dietPlan) return '';
+  const parts = [];
+  if (dietPlan.summary) parts.push(`Дневно: ${typeof dietPlan.summary === 'string' ? dietPlan.summary : JSON.stringify(dietPlan.summary)}`);
+  const m = dietPlan.slotMeal;
+  if (m && m.name) {
+    const mac = m.macros ? ` (белтък ${m.macros.protein} г, въглехидрати ${m.macros.carbs} г, мазнини ${m.macros.fats} г)` : '';
+    parts.push(`Планирано за ${m.label || 'това хранене'} днес: ${m.name} — ${m.calories} kcal${mac}. Сравни с него.`);
+  }
+  if (dietPlan.today && dietPlan.today.planKcal) parts.push(`Днес до момента: ${dietPlan.today.eatenKcal || 0} от ${dietPlan.today.planKcal} kcal по плана.`);
+  if (Array.isArray(dietPlan.forbidden) && dietPlan.forbidden.length) parts.push(`Да се избягва: ${dietPlan.forbidden.slice(0, 12).map(String).join(', ')}.`);
+  return parts.join('\n');
+}
+
 async function handleChat(request, env) {
   try {
     const body = await request.json();
@@ -9988,10 +10007,7 @@ async function handleAnalyzeFoodImage(request, env) {
       dietContext = parts.join('. ');
     }
 
-    let planContext = '';
-    if (dietPlan && dietPlan.summary) {
-      planContext = typeof dietPlan.summary === 'string' ? dietPlan.summary : JSON.stringify(dietPlan.summary);
-    }
+    const planContext = photoPlanContextText(dietPlan);
 
     const mealTime = mealContext || 'неуточнено';
 
@@ -10043,6 +10059,9 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
 
 ВАЖНО:
 - calories за ВСЯКА храна е ЗАДЪЛЖИТЕЛНО числово поле — изчисли го ВИНАГИ: протеини×4 + въглехидрати×4 + мазнини×9
+- Изброй всяка видима съставка поотделно с грамаж (напр. пиле 120 г, царевица 60 г), не „салата“ като едно цяло — така клиентът вижда какво е преброено
+- Ако е дадено планираното за това хранене, сравни калориите и белтъка с него в explanation
+- Пиши на „ти“
 - Оценявай грамажа визуално спрямо размера на чинията/контейнера
 - Ако не можеш да разпознаеш храната, постави confidence: "low" и обясни
 - Всички числа да са числа (не текст)
@@ -10077,6 +10096,10 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
         message: 'Снимката не беше разпозната. Опитай отново с по-ясна снимка.'
       });
     }
+
+    // Оценката е от 5 — интерфейсът и „вредна храна“ (≤ 2) я четат така; промпт с 1–10 се свежда.
+    const suitScore = Number(analysisResult?.dietSuitability?.score);
+    if (suitScore > 5) analysisResult.dietSuitability.score = Math.round(suitScore / 2);
 
     // b6 guarantee: every food item MUST have numeric calories.
     // If the AI left calories missing or zero, compute from macros (protein*4 + carbs*4 + fats*9).
@@ -10160,10 +10183,7 @@ async function handleAnalyzeMenuImage(request, env) {
       dietContext = parts.join('. ');
     }
 
-    let planContext = '';
-    if (dietPlan && dietPlan.summary) {
-      planContext = typeof dietPlan.summary === 'string' ? dietPlan.summary : JSON.stringify(dietPlan.summary);
-    }
+    const planContext = photoPlanContextText(dietPlan);
 
     const mealTime = mealContext || 'неуточнено';
 
@@ -10189,6 +10209,8 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
 - Дай оценка за подходящост от 0 до 5 (5 = отлично, 0 = абсолютно неподходящо)
 - Посочи и до 2 алтернативи ако има
 - Дай конкретна адаптация за поръчката (напр. "Поискай без сос", "Добави само лимон")
+- Ако е дадено планираното за това хранене, предпочети ястие, близко до него по калории и белтък
+- Пиши на „ти“
 
 Върни ТОЧНО този JSON:
 {
