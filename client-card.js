@@ -168,12 +168,13 @@ export function buildClientCard(clientData, options = {}) {
 /** @typedef {'voice'|'profile'|'profile_full'|'health'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
 
 const CHAT_SECTION_ORDER = /** @type {const} */ ([
-  'voice', 'profile', 'profile_full', 'health', 'summary', 'meals', 'analysis', 'strategy',
+  'today', 'voice', 'profile', 'profile_full', 'health', 'summary', 'meals', 'analysis', 'strategy',
   'recommendations', 'forbidden', 'psychology', 'supplements', 'water',
 ]);
 
 // Данните от устройствата са кратки и обясняват почти всеки въпрос („защо не отслабвам“) — винаги.
-const CHAT_BASE = ['voice', 'profile', 'health', 'summary', 'meals', 'recommendations', 'forbidden'];
+// „Днес“ — винаги: без него „какво да ям сега“ и „колко ми остава“ нямат верен отговор.
+const CHAT_BASE = ['today', 'voice', 'profile', 'health', 'summary', 'meals', 'recommendations', 'forbidden'];
 const CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
 
 const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */ ([
@@ -210,10 +211,24 @@ function serializeVoice(voice) {
   return `#VC v1 ${esc(rows.join(' | ')).slice(0, 1400)}`;
 }
 
+/**
+ * Днешният ден от устройството на клиента (plan.html → userData._today): дата и час,
+ * кой ден от плана е, храненията с отметки, добавеното по снимка и изяденото.
+ */
+function serializeToday(t) {
+  if (!t || typeof t !== 'object' || !t.date) return '';
+  const meals = (Array.isArray(t.meals) ? t.meals : []).slice(0, 8)
+    .map(m => `${m.label}: ${m.name}${m.kcal ? ` (${m.kcal} kcal)` : ''} ${m.done ? '✓ изядено' : '— предстои'}${!m.done && m.alts?.length ? `; „Друго ястие“: ${m.alts.join(', ')}` : ''}`);
+  const extra = (Array.isArray(t.extra) ? t.extra : []).slice(0, 6).map(e => `${e.name}${e.kcal ? ` (${e.kcal} kcal)` : ''}`);
+  const head = `${t.weekday || ''} ${t.date} ${t.time || ''} · ден ${t.planDay} от плана${t.planKcal ? ` · изядено ${t.eatenKcal || 0} от ${t.planKcal} kcal по плана` : ''}`;
+  return `#TD v1 ${esc([head.trim(), ...meals, extra.length ? `извън плана: ${extra.join(', ')}` : ''].filter(Boolean).join(' | ')).slice(0, 900)}`;
+}
+
 export function buildChatContextSections(userData, plan) {
   const p = plan || {};
   const hasNotes = Boolean(userData?.additionalNotes);
   const sections = {
+    today: serializeToday(userData?._today),
     voice: serializeVoice(p.aiVoice),
     profile: serializeUserProfile(userData, 'strategy'),
     profile_full: serializeUserProfile(userData, 'full', {

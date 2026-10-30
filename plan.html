@@ -7332,7 +7332,35 @@
 
         function invalidateChatContextCache() { /* reserved for plan reload hooks */ }
 
-        /** Есенцията от устройствата и изследванията (същата като в картона на специалиста). */
+        /**
+         * Днешният ден за асистента: дата, час, ден от плана, храненията с отметки
+         * и изяденото — иначе „какво да ям сега“ и „колко ми остава“ нямат верен отговор.
+         */
+        function chatToday() {
+            try {
+                const key = todayDateKey();
+                const dayNum = dateKeyToPlanDay(key);
+                const day = dietPlan && dietPlan.weekPlan && dietPlan.weekPlan['day' + dayNum];
+                let rec = {};
+                try { rec = (JSON.parse(localStorage.getItem('gameData') || '{}') || {})[key] || {}; } catch (_) {}
+                const done = rec.meals || {};
+                const meals = ((day && day.meals) || []).filter(m => m && m.type && m.type !== 'Напитка').map(m => {
+                    const label = getMealDisplayLabel(m.type);
+                    const alts = (Array.isArray(m.alternatives) ? m.alternatives : []).slice(0, 3).map(a => a && a.name).filter(Boolean);
+                    return { label: label, name: m.name || '', kcal: Math.round(Number(m.calories) || Number(m._plannedCalories) || 0), done: done[m.type] === true || done[label] === true, alts: alts };
+                });
+                const extra = (rec.extraMeals || []).map(e => ({ name: e.name || e.foodName || 'добавена храна', kcal: Math.round(Number(e.calories) || 0) }));
+                const now = new Date();
+                return {
+                    date: key, weekday: now.toLocaleDateString('bg-BG', { weekday: 'long' }),
+                    time: _zp(now.getHours()) + ':' + _zp(now.getMinutes()), planDay: dayNum, meals: meals, extra: extra,
+                    planKcal: meals.reduce((s, m) => s + m.kcal, 0),
+                    eatenKcal: meals.filter(m => m.done).reduce((s, m) => s + m.kcal, 0) + extra.reduce((s, e) => s + e.kcal, 0),
+                };
+            } catch (_) { return null; }
+        }
+
+        /** Есенцията от устройствата и изследванията (същата като в картона на специалиста) и днешният ден. */
         function chatUserData() {
             if (!userData) return userData;
             let essence = '';
@@ -7341,8 +7369,8 @@
                 essence = localStorage.getItem('np_health_essence') || '';
                 questions = JSON.parse(localStorage.getItem('np_open_questions') || '[]') || [];
             } catch (_) {}
-            if (!essence && !questions.length) return userData;
-            return Object.assign({}, userData, essence ? { _healthEssence: essence } : {}, questions.length ? { _openQuestions: questions } : {});
+            const today = chatToday();
+            return Object.assign({}, userData, essence ? { _healthEssence: essence } : {}, questions.length ? { _openQuestions: questions } : {}, today ? { _today: today } : {});
         }
 
         // Въпросът, който асистентът е задал в последния си отговор — следващото
