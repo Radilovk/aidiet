@@ -3204,6 +3204,8 @@ function cleanResponseFromRegenerate(aiResponse, regenerateIndex) {
 // KV key prefix and TTL for async plan generation jobs
 const PLAN_JOB_PREFIX = 'plan_job:';
 const PLAN_JOB_TTL_SEC = 86400; // 24 hours
+// Товарът на седмичния преглед: планът е ~200 KB, а съобщение в опашката е до 128 KB.
+const WEEKLY_PAYLOAD_PREFIX = 'weekly_payload:';
 /**
  * Новият седмичен план влиза от началото на следващия ден (00:00 софийско време):
  * прегледът е в края на седмицата с текущия план, а не 1–7 дни по-късно в
@@ -6582,7 +6584,9 @@ async function handleWeeklyAdaptPlan(request, env, ctx) {
         JSON.stringify({ status: 'pending', type: 'weekly_adapt', startedAt: Date.now() }),
         { expirationTtl: PLAN_JOB_TTL_SEC }
       );
-      await env.PLAN_QUEUE.send({ jobId, type: 'weekly_adapt', payload }, { contentType: 'json' });
+      // В опашката — само ключът; целият товар (с плана) не се побира в съобщението.
+      await env.page_content.put(WEEKLY_PAYLOAD_PREFIX + jobId, JSON.stringify(payload), { expirationTtl: PLAN_JOB_TTL_SEC });
+      await env.PLAN_QUEUE.send({ jobId, type: 'weekly_adapt', payloadKey: WEEKLY_PAYLOAD_PREFIX + jobId }, { contentType: 'json' });
     } else if (ctx) {
       ctx.waitUntil(runWeeklyAdaptation(env, payload, jobId));
     } else {
@@ -18035,11 +18039,20 @@ export default {
   async queue(batch, env) {
     for (const message of batch.messages) {
       const body = message.body || {};
-      const { jobId, type, payload, data, clientId, generationOptions } = body;
+      const { jobId, type, payloadKey, data, clientId, generationOptions } = body;
+      let { payload } = body;
       console.log(`Queue consumer: received job ${jobId}${type ? ` (${type})` : ''}`);
       try {
         if (type === 'weekly_adapt') {
+          if (!payload && payloadKey) payload = await kvGetJSON(env, payloadKey);
+          if (!payload) {
+            console.error(`Queue consumer: job ${jobId} — товарът липсва (${payloadKey})`);
+            await env.page_content.put(PLAN_JOB_PREFIX + jobId, JSON.stringify({ status: 'failed', type: 'weekly_adapt', jobId, error: 'payload_missing' }), { expirationTtl: PLAN_JOB_TTL_SEC });
+            message.ack();
+            continue;
+          }
           await runWeeklyAdaptation(env, payload, jobId);
+          if (payloadKey) await env.page_content.delete(payloadKey).catch(() => {});
         } else if (type === 'safety_rebuild') {
           await runSafetyRebuild(env, payload, jobId);
         } else {

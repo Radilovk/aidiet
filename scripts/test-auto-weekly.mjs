@@ -10,6 +10,8 @@ import {
   WEEKLY_OVERDUE_GRACE_MS,
 } from '../nutrition-engine/monitoring.js';
 import { recalcLevel } from '../enrichment.js';
+import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
+import { buildNutritionPlan } from '../nutrition-engine/index.js';
 
 let pass = 0;
 let fail = 0;
@@ -122,6 +124,38 @@ const syncReq = new Request('https://x/api/user/sync-analytics', {
 });
 await quiet(() => worker.fetch(syncReq, env, ctx))();
 ok(kv.store.get('weekly_due:u_old')?.metadata?.due === Date.parse(iso(realNow - 20 * DAY)) + 7 * DAY, 'стар клиент: срокът е засят от датата на плана');
+
+// Ръчният преглед: планът (~200 KB) не се побира в съобщение на опашката (до 128 KB).
+// Преди — send гърмеше, сървърът връщаше 500 и клиентът виждаше „Не успяхме“.
+const QUEUE_MAX_BYTES = 128 * 1024;
+const strictQueue = [];
+const strictEnv = { page_content: kv, PLAN_QUEUE: { send: async (m) => {
+  if (Buffer.byteLength(JSON.stringify(m)) > QUEUE_MAX_BYTES) throw new Error('Queue message too large');
+  strictQueue.push(m);
+} } };
+const qData = { gender: 'Жена', age: '35', height: '165', weight: '78', goal: 'Отслабване', lossKg: '8', sleepHours: '7–8', stressLevel: 'Умерено', sportActivity: 'Умерена', eatingHabits: ['Храня се редовно'], foodCravings: [], medicalConditions: ['Нямам'], medications: 'Не', dietPreference: [] };
+enrichUserDataEngineContext(qData);
+const bigPlan = { weekPlan: buildNutritionPlan(qData, { kcal: 1700, seed: 'weekly' }).weekPlan };
+ok(Buffer.byteLength(JSON.stringify(bigPlan)) > QUEUE_MAX_BYTES, 'реален план — по-голям от съобщение в опашката');
+const adaptGame = {};
+for (let i = 1; i <= 6; i++) adaptGame[iso(realNow - i * DAY).slice(0, 10)] = { meals: { 'Хранене 1': true } };
+const adaptReq = new Request('https://x/api/weekly/adapt-plan', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ userId: 'u_adapt', gameData: adaptGame, gameWeeklyAI: { cycleNumber: 1 }, plan: bigPlan, userData: qData,
+    questions: [{ id: 'energy' }], answers: [{ questionId: 'energy', value: 'Добра' }] }),
+});
+const adaptRes = await quiet(() => worker.fetch(adaptReq, strictEnv, ctx))();
+const adaptJson = await adaptRes.json();
+ok(adaptRes.status === 200 && adaptJson.submitted === true, `ръчен преглед с реален план — приет (${adaptRes.status} ${adaptJson.error || ''})`);
+const adaptMsg = strictQueue.find(m => m.type === 'weekly_adapt');
+const stored = adaptMsg?.payloadKey && JSON.parse(kv.store.get(adaptMsg.payloadKey)?.value || 'null');
+ok(stored?.plan?.weekPlan && stored.answers?.length === 1, 'товарът с плана чака в KV, в опашката е само ключът');
+
+// Изтекъл товар: задачата се маркира неуспешна, съобщението не се върти в опашката.
+let acked = false;
+await quiet(() => worker.queue({ messages: [{ body: { jobId: 'gone', type: 'weekly_adapt', payloadKey: 'weekly_payload:gone' }, ack: () => { acked = true; }, retry: () => {} }] }, strictEnv))();
+ok(acked && JSON.parse(kv.store.get('plan_job:gone')?.value || '{}').status === 'failed', 'липсващ товар — неуспех, без безкрайни повторения');
 
 console.log(`\n=== auto weekly: ${pass} pass, ${fail} fail ===`);
 if (fail) process.exit(1);
