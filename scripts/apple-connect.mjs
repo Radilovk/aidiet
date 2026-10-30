@@ -8,6 +8,7 @@
  *   node scripts/apple-connect.mjs certs       the distribution certificates and App Store profiles of the account
  *   node scripts/apple-connect.mjs metadata    fills the store page (texts, URLs, category, age rating, free price, review notes, newest build)
  *   node scripts/apple-connect.mjs screenshots uploads studio-app/store/*.png (1290x2796) as the iPhone screenshots of version 1.0
+ *   node scripts/apple-connect.mjs submit      checks everything and sends version 1.0 for App Review (only on the owner's explicit go)
  *   node scripts/apple-connect.mjs delete-cert <id>   deletes one certificate (e.g. a leftover of a failed run)
  *
  * Env: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (the text of AuthKey_XXXX.p8). Nothing secret is printed.
@@ -246,13 +247,42 @@ try {
       console.log(`✓ ${f}`);
     }
     console.log(`Качени ${files.length} скрийншота (${type}).`);
+  } else if (action === 'submit') {
+    const app = (await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`)).data[0];
+    if (!app) fail('Няма приложение в App Store Connect.');
+    const vers = (await api('GET', `/v1/apps/${app.id}/appStoreVersions?limit=10`)).data;
+    const ver = vers.find((v) => /PREPARE_FOR_SUBMISSION|DEVELOPER_REJECTED|REJECTED/.test(v.attributes.appStoreState || ''));
+    if (!ver) fail(`Няма версия, готова за подаване (${vers.map((v) => v.attributes.appStoreState).join(', ') || 'няма версии'}).`);
+    const problems = [];
+    const b = (await api('GET', `/v1/appStoreVersions/${ver.id}/build`).catch(() => ({ data: null }))).data;
+    if (!b) problems.push('няма прикачен build');
+    else if (b.attributes.processingState !== 'VALID') problems.push(`build ${b.attributes.version} е ${b.attributes.processingState}`);
+    const locs = (await api('GET', `/v1/appStoreVersions/${ver.id}/appStoreVersionLocalizations`)).data;
+    const loc = locs.find((l) => l.attributes.locale === (app.attributes.primaryLocale || 'en-US')) || locs[0];
+    if (!loc.attributes.description) problems.push('няма описание');
+    const sets = (await api('GET', `/v1/appStoreVersionLocalizations/${loc.id}/appScreenshotSets`)).data;
+    let shots = 0; for (const x of sets) shots += (await api('GET', `/v1/appScreenshotSets/${x.id}/appScreenshots`)).data.length;
+    if (!shots) problems.push('няма скрийншоти');
+    const rd = (await api('GET', `/v1/appStoreVersions/${ver.id}/appStoreReviewDetail`).catch(() => ({ data: null }))).data;
+    if (!rd || !rd.attributes.contactEmail || !rd.attributes.contactPhone || !rd.attributes.notes) problems.push('липсва контакт или бележки за ревюиращия');
+    if (problems.length) fail(`Не е готово за подаване: ${problems.join('; ')}.`);
+    console.log(`✓ проверките минаха: build ${b.attributes.version}, ${shots} скрийншота, контакт и бележки`);
+    await api('PATCH', `/v1/appStoreVersions/${ver.id}`, { data: { type: 'appStoreVersions', id: ver.id, attributes: { releaseType: 'AFTER_APPROVAL' } } })
+      .then(() => console.log('✓ публикуване: веднага след одобрение'), (e) => console.log(`• releaseType: ${String(e.message).slice(0, 160)}`));
+    let sub = (await api('GET', `/v1/apps/${app.id}/reviewSubmissions?filter[platform]=IOS&filter[state]=READY_FOR_REVIEW&limit=5`).catch(() => ({ data: [] }))).data[0];
+    if (!sub) sub = (await api('POST', '/v1/reviewSubmissions', { data: { type: 'reviewSubmissions', attributes: { platform: 'IOS' }, relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
+    await api('POST', '/v1/reviewSubmissionItems', { data: { type: 'reviewSubmissionItems', relationships: {
+      reviewSubmission: { data: { type: 'reviewSubmissions', id: sub.id } }, appStoreVersion: { data: { type: 'appStoreVersions', id: ver.id } } } } })
+      .catch((e) => { if (!/already|exists|duplicate/i.test(e.message)) throw e; });
+    const done = await api('PATCH', `/v1/reviewSubmissions/${sub.id}`, { data: { type: 'reviewSubmissions', id: sub.id, attributes: { submitted: true } } });
+    console.log(`✓ ПОДАДЕНО за ревю (състояние: ${done.data.attributes.state}).`);
   } else if (action === 'delete-cert') {
     const id = String(process.argv[3] || '').trim();
     if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
     await api('DELETE', `/v1/certificates/${id}`);
     console.log(`✓ Изтрит сертификат ${id}`);
   } else {
-    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | delete-cert');
+    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | delete-cert');
   }
 } catch (e) {
   fail(String(e.message).slice(0, 600));
