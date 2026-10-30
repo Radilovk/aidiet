@@ -2009,6 +2009,7 @@ var CHAT_SECTION_ORDER = (
     "health",
     "summary",
     "meals",
+    "meals_week",
     "analysis",
     "strategy",
     "recommendations",
@@ -2019,7 +2020,7 @@ var CHAT_SECTION_ORDER = (
   ]
 );
 var CHAT_BASE = ["today", "voice", "profile", "health", "summary", "meals", "recommendations", "forbidden"];
-var CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
+var CHAT_MODIFICATION = CHAT_SECTION_ORDER.filter((id) => id !== "meals");
 var CHAT_INTENTS = (
   /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */
   [
@@ -2030,14 +2031,28 @@ var CHAT_INTENTS = (
     [/(?<![\p{L}\p{N}])(психол|мотивац|стрес|навик|емоци|тригер)/iu, "psychology"],
     [/(?<![\p{L}\p{N}])(добавк|витамин|минерал|суплемент)/iu, "supplements"],
     [/(?<![\p{L}\p{N}])(вода|хидрат|течност)/iu, "water"],
-    [/(?<![\p{L}\p{N}])(анамнез|история|лекарств|медицин|сън|активност|спорт|хронотип)/iu, "profile_full"]
+    [/(?<![\p{L}\p{N}])(анамнез|история|лекарств|медицин|сън|активност|спорт|хронотип)/iu, "profile_full"],
+    // Седмицата — само когато въпросът е за друг ден; иначе днес и утре (~3 пъти по-малко токени).
+    [/(?<![\p{L}\p{N}])(понеделн|вторн|сряда|сряд|четвърт|петък|събот|недел|седмиц|вчера|вдругиден|друг ден|другия ден|ден \d|цялото меню|всички дни)/iu, "meals_week"]
   ]
 );
-function serializeVoice(voice) {
-  if (!voice || typeof voice !== "object") return "";
+var PERSONA_TONE = { warm: "\u0442\u043E\u043F\u043B\u043E \u0438 \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u044F\u0449\u043E", gentle: "\u043C\u0435\u043A\u043E, \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A", direct: "\u043A\u0440\u0430\u0442\u043A\u043E \u0438 \u043F\u043E \u0441\u044A\u0449\u0435\u0441\u0442\u0432\u043E", playful: "\u043B\u0435\u043A\u043E, \u0441 \u043C\u0430\u043B\u043A\u0438 \u043F\u0440\u0435\u0434\u0438\u0437\u0432\u0438\u043A\u0430\u0442\u0435\u043B\u0441\u0442\u0432\u0430" };
+function personaRows(persona) {
+  if (!persona || typeof persona !== "object") return [];
+  const hm2 = (m) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+  return [
+    persona.tone && PERSONA_TONE[persona.tone] ? `\u043F\u043E\u0434\u0445\u043E\u0434: ${PERSONA_TONE[persona.tone]}${persona.noScores ? "; \u0431\u0435\u0437 \u043E\u0446\u0435\u043D\u043A\u0438, \u0442\u043E\u0447\u043A\u0438 \u0438 \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F" : ""}` : "",
+    persona.archetype ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat): ${persona.archetype}` : "",
+    persona.riskWindow && persona.emotional ? `\u0440\u0438\u0441\u043A\u043E\u0432 \u0447\u0430\u0441 \u0437\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043E\u0442 \u0435\u043C\u043E\u0446\u0438\u044F: ${hm2(persona.riskWindow.from)}\u2013${hm2(persona.riskWindow.to)}` : ""
+  ].filter(Boolean);
+}
+function serializeVoice(voice, persona) {
+  const pRows = personaRows(persona);
+  if (!voice || typeof voice !== "object") return pRows.length ? `#VC v1 ${esc2(["\u043E\u0431\u0440\u044A\u0449\u0435\u043D\u0438\u0435: \u0442\u0438", ...pRows].join(" | ")).slice(0, 1400)}` : "";
   const p = voice.portrait || {};
   const rows = [
     `\u043E\u0431\u0440\u044A\u0449\u0435\u043D\u0438\u0435: ${voice.tone?.address || "\u0442\u0438"}${voice.tone?.style ? `; \u0442\u043E\u043D: ${voice.tone.style}` : ""}`,
+    ...pRows,
     p.summary ? `\u0447\u043E\u0432\u0435\u043A\u044A\u0442: ${p.summary}` : "",
     p.emotional ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E: ${p.emotional}` : "",
     p.personality ? `\u0441\u0442\u0438\u043B: ${p.personality}` : "",
@@ -2053,12 +2068,16 @@ function serializeToday(t) {
   const head = `${t.weekday || ""} ${t.date} ${t.time || ""} \xB7 \u0434\u0435\u043D ${t.planDay} \u043E\u0442 \u043F\u043B\u0430\u043D\u0430${t.planKcal ? ` \xB7 \u0438\u0437\u044F\u0434\u0435\u043D\u043E ${t.eatenKcal || 0} \u043E\u0442 ${t.planKcal} kcal \u043F\u043E \u043F\u043B\u0430\u043D\u0430` : ""}`;
   return `#TD v1 ${esc2([head.trim(), ...meals, extra.length ? `\u0438\u0437\u0432\u044A\u043D \u043F\u043B\u0430\u043D\u0430: ${extra.join(", ")}` : ""].filter(Boolean).join(" | ")).slice(0, 900)}`;
 }
+function todayAndTomorrow(today) {
+  const d = Number(today?.planDay);
+  return d >= 1 && d <= 7 ? { days: [`day${d}`, `day${d % 7 + 1}`] } : {};
+}
 function buildChatContextSections(userData, plan) {
   const p = plan || {};
   const hasNotes = Boolean(userData?.additionalNotes);
   const sections = {
     today: serializeToday(userData?._today),
-    voice: serializeVoice(p.aiVoice),
+    voice: serializeVoice(p.aiVoice, userData?._persona),
     profile: serializeUserProfile(userData, "strategy"),
     profile_full: serializeUserProfile(userData, "full", {
       hasNotesSection: hasNotes,
@@ -2066,7 +2085,9 @@ function buildChatContextSections(userData, plan) {
     }),
     health: userData?._healthEssence ? `#HD v1 ${esc2(String(userData._healthEssence).slice(0, 2400))}` : "",
     summary: serializePlanSummary(p.summary) || "",
-    meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : "",
+    // Днес и утре; цялата седмица — отделна секция, само ако въпросът е за друг ден.
+    meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan, todayAndTomorrow(userData?._today)) : "",
+    meals_week: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : "",
     analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || "",
     strategy: serializeStrategyForMealPlan(p.strategy) || "",
     recommendations: p.recommendations ? `#RC v1 ${serializeList(p.recommendations, 15)}` : "",
@@ -2093,6 +2114,7 @@ function selectChatSections(message, mode = "consultation") {
     for (const id of ids) picked.add(id);
   }
   if (picked.has("profile_full")) picked.delete("profile");
+  if (picked.has("meals_week")) picked.delete("meals");
   return CHAT_SECTION_ORDER.filter((id) => picked.has(id));
 }
 function assembleChatContextPrompt(sections, selectedIds) {
@@ -52505,16 +52527,8 @@ async function handleChat(request, env) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_MESSAGE }, 400);
     }
     let effectiveContextText = contextText;
-    if (userData && userPlan) {
-      const serverContext = buildChatContext(
-        userData,
-        userPlan,
-        message,
-        mode || "consultation"
-      ).contextText;
-      if (!chatContextHasMealGrams(effectiveContextText)) {
-        effectiveContextText = serverContext;
-      }
+    if (!chatContextHasMealGrams(effectiveContextText) && userData && userPlan?.weekPlan) {
+      effectiveContextText = buildChatContext(userData, userPlan, message, mode || "consultation").contextText;
     } else if (!effectiveContextText) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
@@ -52537,7 +52551,7 @@ async function handleChat(request, env) {
     const askedId = typeof body._askedQuestionId === "string" ? body._askedQuestionId : "";
     const clarifyQ = chatMode === "consultation" ? relevantQuestion(sanitizeQuestions(effectiveUserData._openQuestions), message, askedId) : null;
     if (clarifyQ) chatPrompt += clarifyPromptBlock(clarifyQ, { asked: clarifyQ.id === askedId });
-    let aiResponse = await callAIModel(env, chatPrompt, 2e3, "chat_consultation", null, effectiveUserData, null, true);
+    let aiResponse = await callAIModel(env, chatPrompt, 2e3, chatMode === "modification" ? "chat_modification" : "chat_consultation", null, effectiveUserData, null, true);
     const clarify = extractClarify(aiResponse, clarifyQ);
     aiResponse = clarify.text;
     const regenerateIndex = aiResponse.indexOf("[REGENERATE_PLAN:");
@@ -56900,7 +56914,8 @@ async function getChatPrompts(env) {
 7. \u0417\u0430\u0434\u0430\u0432\u0430\u0439 \u0432\u044A\u043F\u0440\u043E\u0441 \u0441\u0430\u043C\u043E \u0430\u043A\u043E \u0431\u0435\u0437 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0448 \u0434\u0430 \u043F\u043E\u043C\u043E\u0433\u043D\u0435\u0448 \u2014 \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u0435\u0434\u0438\u043D.
 8. \u041D\u0435 \u043F\u043E\u0437\u0434\u0440\u0430\u0432\u044F\u0432\u0430\u0439 \u0432\u044A\u0432 \u0432\u0441\u0435\u043A\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u2014 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440\u044A\u0442 \u0432\u0435\u0447\u0435 \u0442\u0435\u0447\u0435. \u0411\u0435\u0437 \u0442\u0435\u0440\u043C\u0438\u043D\u0438 (BMR, TDEE, \u043C\u0430\u043A\u0440\u043E\u0441\u0438) \u2014 \u0441 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0438 \u0434\u0443\u043C\u0438.
 9. \u0417\u0430 \u201E\u0434\u043D\u0435\u0441\u201C, \u201E\u0441\u0435\u0433\u0430\u201C, \u201E\u0442\u0430\u0437\u0438 \u0432\u0435\u0447\u0435\u0440\u201C \u2014 \u0441\u0435\u043A\u0446\u0438\u044F\u0442\u0430 today: \u0434\u0430\u0442\u0430\u0442\u0430, \u0447\u0430\u0441\u0430, \u043E\u0442\u043C\u0435\u0442\u043D\u0430\u0442\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0438 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u0438\u0442\u0435 \u043D\u0430 \u201E\u0414\u0440\u0443\u0433\u043E \u044F\u0441\u0442\u0438\u0435\u201C.
-10. \u0410\u0434\u0430\u043F\u0442\u0438\u0440\u0430\u0439 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043A\u043E\u043C\u0443\u043D\u0438\u043A\u0430\u0446\u0438\u044F \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442\u0430: {communicationStyle}
+10. \u0422\u043E\u043D\u044A\u0442 \u0435 \u043E\u0442 \u0441\u0435\u043A\u0446\u0438\u044F\u0442\u0430 voice: \u043E\u0431\u0440\u044A\u0449\u0435\u043D\u0438\u0435\u0442\u043E, \u0441\u0442\u0438\u043B\u044A\u0442, \u0442\u0440\u0438\u0433\u0435\u0440\u0438\u0442\u0435 \u0438 \u043F\u043E\u0434\u0445\u043E\u0434\u044A\u0442 \u043A\u044A\u043C \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A. \u041F\u0440\u0438 \u201E\u0431\u0435\u0437 \u043E\u0446\u0435\u043D\u043A\u0438\u201C \u2014 \u0431\u0435\u0437 \u043E\u0446\u0435\u043D\u043A\u0438 \u0438 \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F; \u043F\u0440\u0438 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B \u2014 \u0431\u0435\u0437 \u0432\u0438\u043D\u0430 \u0438 \u043D\u0430\u0442\u0438\u0441\u043A, \u0435\u0434\u043D\u043E \u043C\u0430\u043B\u043A\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435; \u0430\u043A\u043E \u043F\u0438\u0448\u0435 \u0432 \u0440\u0438\u0441\u043A\u043E\u0432\u0438\u044F \u0441\u0438 \u0447\u0430\u0441 \u0437\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043E\u0442 \u0435\u043C\u043E\u0446\u0438\u044F \u0438 \u0438\u0441\u043A\u0430 \u0445\u0440\u0430\u043D\u0430 \u0438\u0437\u0432\u044A\u043D \u043F\u043B\u0430\u043D\u0430 \u2014 \u043F\u044A\u0440\u0432\u043E \u043F\u0430\u0443\u0437\u0430 \u0438 \u0432\u044A\u043F\u0440\u043E\u0441 \u201E\u0433\u043B\u0430\u0434 \u043B\u0438 \u0435 \u0438\u043B\u0438 \u043D\u0435\u0449\u043E \u0434\u0440\u0443\u0433\u043E\u201C.
+11. \u0410\u0434\u0430\u043F\u0442\u0438\u0440\u0430\u0439 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043A\u043E\u043C\u0443\u043D\u0438\u043A\u0430\u0446\u0438\u044F \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442\u0430: {communicationStyle}
 
 \u041F\u0420\u0418\u041C\u0415\u0420\u0418:
 - "\u0417\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0432 \u043F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A \u0435 \u043E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0431\u0430\u043D\u0430\u043D \u2014 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0438 \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0441\u0430 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0442\u0438."
@@ -57127,6 +57142,8 @@ function isFlashWithoutThinking(modelName) {
   return /gemini-(2\.5|3(\.\d+)?)-flash/i.test(String(modelName || "")) && !/pro/i.test(String(modelName || ""));
 }
 var AI_TASKS = {
+  // Консултацията е 3–4 изречения по готов контекст: без мислене и с кратък таван.
+  chat_consultation: { tier: "main", thinking: "minimal", maxTokens: 600 },
   chat: { tier: "main", thinking: "low", maxTokens: 1e3 },
   plan_voice: { tier: "main", thinking: "low" },
   plan_voice_repair: { tier: "lite", thinking: "minimal" },
@@ -57151,6 +57168,7 @@ var AI_TASKS = {
 };
 function aiTaskOf(stepName) {
   const name = String(stepName || "");
+  if (name === "chat_consultation") return AI_TASKS.chat_consultation;
   if (name.startsWith("chat")) return AI_TASKS.chat;
   return AI_TASKS[name] || null;
 }

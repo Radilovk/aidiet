@@ -3750,16 +3750,9 @@ async function handleChat(request, env) {
     }
 
     let effectiveContextText = contextText;
-    if (userData && userPlan) {
-      const serverContext = buildChatContext(
-        userData,
-        userPlan,
-        message,
-        mode || 'consultation',
-      ).contextText;
-      if (!chatContextHasMealGrams(effectiveContextText)) {
-        effectiveContextText = serverContext;
-      }
+    // Сървърът сглобява контекст само когато клиентът не е пратил годен (с грамажите на ястията).
+    if (!chatContextHasMealGrams(effectiveContextText) && userData && userPlan?.weekPlan) {
+      effectiveContextText = buildChatContext(userData, userPlan, message, mode || 'consultation').contextText;
     } else if (!effectiveContextText) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
@@ -3787,7 +3780,7 @@ async function handleChat(request, env) {
       : null;
     if (clarifyQ) chatPrompt += clarifyPromptBlock(clarifyQ, { asked: clarifyQ.id === askedId });
 
-    let aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
+    let aiResponse = await callAIModel(env, chatPrompt, 2000, chatMode === 'modification' ? 'chat_modification' : 'chat_consultation', null, effectiveUserData, null, true);
     const clarify = extractClarify(aiResponse, clarifyQ);
     aiResponse = clarify.text;
     
@@ -9271,7 +9264,8 @@ async function getChatPrompts(env) {
 7. Задавай въпрос само ако без отговора не можеш да помогнеш — най-много един.
 8. Не поздравявай във всеки отговор — разговорът вече тече. Без термини (BMR, TDEE, макроси) — с ежедневни думи.
 9. За „днес“, „сега“, „тази вечер“ — секцията today: датата, часа, отметнатите хранения и вариантите на „Друго ястие“.
-10. Адаптирай стила на комуникация към клиента: {communicationStyle}
+10. Тонът е от секцията voice: обръщението, стилът, тригерите и подходът към този човек. При „без оценки“ — без оценки и сравнения; при емоционален профил — без вина и натиск, едно малко действие; ако пише в рисковия си час за хранене от емоция и иска храна извън плана — първо пауза и въпрос „глад ли е или нещо друго“.
+11. Адаптирай стила на комуникация към клиента: {communicationStyle}
 
 ПРИМЕРИ:
 - "Закуската в понеделник е овесена каша с банан — калориите и грамажите са в плана ти."
@@ -9598,6 +9592,8 @@ function isFlashWithoutThinking(modelName) {
  * клиента — малко (трябва да спазват ограниченията); преписване и разпознаване — минимално.
  */
 const AI_TASKS = {
+  // Консултацията е 3–4 изречения по готов контекст: без мислене и с кратък таван.
+  chat_consultation: { tier: 'main', thinking: 'minimal', maxTokens: 600 },
   chat: { tier: 'main', thinking: 'low', maxTokens: 1000 },
   plan_voice: { tier: 'main', thinking: 'low' },
   plan_voice_repair: { tier: 'lite', thinking: 'minimal' },
@@ -9623,6 +9619,7 @@ const AI_TASKS = {
 
 function aiTaskOf(stepName) {
   const name = String(stepName || '');
+  if (name === 'chat_consultation') return AI_TASKS.chat_consultation;
   if (name.startsWith('chat')) return AI_TASKS.chat;
   return AI_TASKS[name] || null;
 }

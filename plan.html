@@ -7371,7 +7371,13 @@
                 questions = JSON.parse(localStorage.getItem('np_open_questions') || '[]') || [];
             } catch (_) {}
             const today = chatToday();
-            return Object.assign({}, userData, essence ? { _healthEssence: essence } : {}, questions.length ? { _openQuestions: questions } : {}, today ? { _today: today } : {});
+            // Персоната от EmoEat (persona.js): подходът, „без оценки“ и рисковият час — за тона на асистента.
+            let persona = null;
+            try {
+                const p = JSON.parse(localStorage.getItem('np_persona') || 'null');
+                if (p) persona = { tone: p.tone, noScores: !!p.noScores, archetype: p.archetype || '', emotional: !!p.emotional, riskWindow: p.riskWindow || null };
+            } catch (_) {}
+            return Object.assign({}, userData, essence ? { _healthEssence: essence } : {}, questions.length ? { _openQuestions: questions } : {}, today ? { _today: today } : {}, persona ? { _persona: persona } : {});
         }
 
         // Въпросът, който асистентът е задал в последния си отговор — следващото
@@ -7401,6 +7407,12 @@
                 const sections = chatCtx.buildChatContextSections(chatData, dietPlan);
                 const selectedIds = chatCtx.selectChatSections(message, chatMode);
                 base.contextText = chatCtx.assembleChatContextPrompt(sections, selectedIds);
+                // Контекстът е готов: при консултация целият план и профил не пътуват с всяко
+                // съобщение (десетки KB, които сървърът само парсва) — само каквото ползва.
+                if (chatMode !== 'modification') {
+                    base.userData = { name: chatData.name, goal: chatData.goal, _openQuestions: chatData._openQuestions };
+                    base.userPlan = { communicationStyle: dietPlan.communicationStyle || (dietPlan.strategy && dietPlan.strategy.communicationStyle) || null };
+                }
             } catch (err) {
                 console.warn('[chat] context build failed, server will rebuild from userPlan', err);
             }
@@ -7659,12 +7671,13 @@
                 // Transform chatHistory to API format {role, content}
                 // Enhancement #10: Limit conversation history to last 10 messages to reduce payload
                 // Keep most recent context while avoiding excessive data transfer
-                const MAX_HISTORY_MESSAGES = 10;
+                // Последните 3 размени, всяко съобщение до 500 знака — нишката се пази, токените не растат.
+                const MAX_HISTORY_MESSAGES = 6;
                 const recentHistory = chatHistory.slice(-MAX_HISTORY_MESSAGES);
                 
                 const apiHistory = recentHistory.map(msg => ({
                     role: msg.role === 'user' ? 'user' : 'assistant',
-                    content: msg.text || msg.content || ''
+                    content: String(msg.text || msg.content || '').slice(0, 500)
                 }));
                 
                 if (chatHistory.length > MAX_HISTORY_MESSAGES) {
