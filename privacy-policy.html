@@ -1,121 +1,44 @@
 <!DOCTYPE html>
-<html lang="bg">
+<html lang="bg" class="no-js">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Политика за поверителност на NutriPlan — как събираме, използваме и защитаваме вашите данни.">
+    <meta name="description" content="Политика за поверителност на NutriPlan — как събираме, използваме и защитаваме данните ти.">
     <meta name="robots" content="index, follow">
     <title>Политика за поверителност — NutriPlan</title>
     <link rel="icon" type="image/png" href="/icon-192x192.png">
-    <style>
-        :root {
-            --primary: #007C80;
-            --bg: #F0FDFA;
-            --text: #1a2e2e;
-            --muted: #4E6B6B;
-            --border: #cce8e4;
-            --surface: #ffffff;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0A1A1A;
-                --text: #e0f5f0;
-                --muted: #7faba6;
-                --primary: #2DD4BF;
-                --border: #1a3232;
-                --surface: #0f2828;
-            }
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.7;
-        }
-        header {
-            background: linear-gradient(135deg, #042F2E 0%, #0F766E 100%);
-            color: #fff;
-            padding: 24px 5%;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        header a { color: rgba(255,255,255,0.92); text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; min-height: 44px; }
-        header a:hover { color: #fff; }
-        header .sep { color: rgba(255,255,255,0.88); }
-        header h1 { font-size: 1.5rem; font-weight: 700; }
-        main {
-            max-width: 820px;
-            margin: 0 auto;
-            padding: 40px 5% 80px;
-        }
-        .meta {
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 32px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-        }
-        h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin: 36px 0 12px;
-        }
-        h3 {
-            font-size: 1.05rem;
-            font-weight: 600;
-            margin: 24px 0 8px;
-        }
-        p { margin-bottom: 12px; }
-        ul, ol { padding-left: 24px; margin-bottom: 12px; }
-        li { margin-bottom: 6px; }
-        a { color: var(--primary); }
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin: 16px 0;
-        }
-        .highlight {
-            background: rgba(0,154,158,0.08);
-            border-left: 4px solid var(--primary);
-            padding: 14px 18px;
-            border-radius: 0 8px 8px 0;
-            margin: 16px 0;
-        }
-        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        th { background: rgba(0,154,158,0.12); padding: 10px 12px; text-align: left; font-weight: 600; }
-        td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
-        footer {
-            text-align: center;
-            padding: 32px 5%;
-            color: var(--muted);
-            font-size: 0.85rem;
-            border-top: 1px solid var(--border);
-        }
-        footer a { color: var(--primary); text-decoration: none; }
-    </style>
+    <meta name="theme-color" content="#F4FBFA">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+    <script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.querySelector('meta[name="theme-color"]').setAttribute('content','#071312');})();</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:ital,wght@1,600&display=swap">
+    <link rel="stylesheet" href="protocol-page.css?v=20261031a">
+    <link rel="stylesheet" href="site-footer.css?v=20261031a">
 </head>
 <body>
 
-<header>
-    <a href="/">NutriPlan</a>
-    <span class="sep">›</span>
-    <h1>Политика за поверителност</h1>
-</header>
+    <header class="topbar">
+        <div class="wrap">
+            <a class="brand" href="index.html?stay=1" aria-label="NutriPlan — начало">
+                <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span>NutriPlan
+            </a>
+            <button class="icon-btn" id="theme-toggle" type="button" aria-label="Смени светла / тъмна тема">
+                <span class="i-moon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><span class="i-sun"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+            </button>
+        </div>
+    </header>
 
-<main>
-    <div class="meta">
-        Последна актуализация: 1 юни 2026 г. &nbsp;·&nbsp;
-        Версия: 1.0 &nbsp;·&nbsp;
-        Език: Български
-    </div>
+<main class="wrap">
+        <section class="doc-hero">
+            <span class="chip">Правни</span>
+            <h1>Политика за <em>поверителност</em></h1>
+            <p class="updated">Последна актуализация: 31 октомври 2026 г. · Версия 1.1</p>
+        </section>
+        <div class="prose">
 
-    <div class="highlight">
-        <strong>Резюме:</strong> NutriPlan събира само данните, необходими за изготвяне на вашия персонализиран здравен план. Здравните ви данни се обработват с повишена защита по GDPR. Не продаваме данните ви. Можете да поискате изтриването им по всяко време.
+    <div class="card callout">
+        <strong>Резюме:</strong> NutriPlan събира само данните, необходими за изготвяне на твоя персонализиран здравен план. Здравните ти данни се обработват с повишена защита по GDPR. Не продаваме данните ти. Можеш да изтриеш профила и данните си по всяко време — от приложението или по имейл.
     </div>
 
     <h2>1. Администратор на данните</h2>
@@ -128,7 +51,7 @@
 
     <h2>2. Каква информация събираме</h2>
 
-    <h3>2.1 Данни, предоставени от вас (здравни данни — чл. 9 GDPR)</h3>
+    <h3>2.1 Данни, предоставени от теб (здравни данни — чл. 9 GDPR)</h3>
     <ul>
         <li>Възраст, пол, ръст, тегло, целево тегло</li>
         <li>Хранителни навици, алергии, непоносимости</li>
@@ -150,14 +73,14 @@
         <li>Cloudflare Workers logs (анонимизирани IP адреси, без профилиране)</li>
     </ul>
 
-    <h3>2.5 Допълнителни данни — само с ваше отделно съгласие</h3>
+    <h3>2.5 Допълнителни данни — само с твое отделно съгласие</h3>
     <ul>
-        <li><strong>Health Connect (Android):</strong> само четене за последните 14 дни на: крачки, активни калории, тренировки, сън, тегло, телесни мазнини, пулс в покой, вариабилност на пулса (HRV), кръвно налягане, кръвна захар, приети калории и изпита вода. Обобщават се по дни и се използват единствено за персонализиране на хранителния ви план и съветите (активност, сън, тенденция на теглото, състав на тялото, възстановяване, кръвно и захар). Обобщението е видимо за вас, за вашия диетолог и за асистента в чата. Не записваме нищо в Health Connect, не ги използваме за реклама и не ги предаваме на трети страни, освен доколкото е нужно за изготвяне на плана. Използването на информацията от Health Connect спазва <a href="https://support.google.com/googleplay/android-developer/answer/12991134">правилата за разрешенията на Health Connect</a>, включително изискванията за ограничена употреба (Limited Use).</li>
-        <li><strong>Лабораторни изследвания:</strong> снимката или PDF файлът се изпращат на AI доставчика само за разчитане на стойностите и не се съхраняват. Съхраняват се само стойностите, които сте проверили и потвърдили.</li>
-        <li><strong>Снимки и файлове от приложения и уреди:</strong> екранната снимка се изпраща на AI доставчика само за разчитане на стойностите и не се съхранява; файлът (CSV/JSON) се чете на устройството ви. Съхраняват се само стойностите, които сте потвърдили.</li>
+        <li><strong>Health Connect (Android):</strong> само четене за последните 14 дни на: крачки, активни калории, тренировки, сън, тегло, телесни мазнини, пулс в покой, вариабилност на пулса (HRV), кръвно налягане, кръвна захар, приети калории и изпита вода. Обобщават се по дни и се използват единствено за персонализиране на хранителния ти план и съветите (активност, сън, тенденция на теглото, състав на тялото, възстановяване, кръвно и захар). Обобщението е видимо за теб, за твоя диетолог и за асистента в чата. Не записваме нищо в Health Connect, не ги използваме за реклама и не ги предаваме на трети страни, освен доколкото е нужно за изготвяне на плана. Използването на информацията от Health Connect спазва <a href="https://support.google.com/googleplay/android-developer/answer/12991134">правилата за разрешенията на Health Connect</a>, включително изискванията за ограничена употреба (Limited Use).</li>
+        <li><strong>Лабораторни изследвания:</strong> снимката или PDF файлът се изпращат на AI доставчика само за разчитане на стойностите и не се съхраняват. Съхраняват се само проверените и потвърдени от теб стойности.</li>
+        <li><strong>Снимки и файлове от приложения и уреди:</strong> екранната снимка се изпраща на AI доставчика само за разчитане на стойностите и не се съхранява; файлът (CSV/JSON) се чете на устройството ти. Съхраняват се само потвърдените от теб стойности.</li>
         <li><strong>Обобщение с AI:</strong> веднъж седмично обобщените стойности (без суровите измервания и без лични данни) се изпращат на AI доставчика за кратко обобщение и съвети към плана.</li>
-        <li><strong>AIRIS (ирисов анализ) и други модули:</strong> когато продължите от модул към NutriPlan, модулът оставя обобщението на резултата си на сървъра на NutriPlan под еднократен линк, валиден до 30 дни (без снимки на очите и документи). То се добавя към профила ви само след като потвърдите на страницата на NutriPlan; ако не потвърдите, изтрива се автоматично. Модулите не получават данни от NutriPlan.</li>
-        <li><strong>EmoEat:</strong> само обобщеният резултат от теста (без отделните отговори), ако изберете да го свържете с плана.</li>
+        <li><strong>AIRIS (ирисов анализ) и други модули:</strong> когато продължиш от модул към NutriPlan, модулът оставя обобщението на резултата си на сървъра на NutriPlan под еднократен линк, валиден до 30 дни (без снимки на очите и документи). То се добавя към профила ти само след като потвърдиш на страницата на NutriPlan; ако не потвърдиш, изтрива се автоматично. Модулите не получават данни от NutriPlan.</li>
+        <li><strong>EmoEat:</strong> само обобщеният резултат от теста (без отделните отговори), ако избереш да го свържеш с плана.</li>
         <li>Тези данни се изтриват от приложението по всяко време — от раздел „Изследвания“ или „Устройства“ в профила.</li>
     </ul>
 
@@ -170,7 +93,7 @@
     </ul>
 
     <h2>3. Как използваме данните</h2>
-    <table>
+    <div class="table-scroll"><table>
         <thead>
             <tr><th>Цел</th><th>Правно основание</th></tr>
         </thead>
@@ -181,36 +104,36 @@
             <tr><td>Подобряване на AI моделите (анонимизирано)</td><td>Легитимен интерес (чл. 6(1)(е) GDPR)</td></tr>
             <tr><td>Съхранение на резервно копие (Google Drive)</td><td>Съгласие</td></tr>
         </tbody>
-    </table>
+    </table></div>
 
     <h2>4. Споделяне на данни с трети страни</h2>
     <div class="card">
-        <p><strong>OpenAI / Google Gemini:</strong> Здравните ви данни се изпращат на AI доставчика единствено за генериране на вашия план. Данните се обработват за конкретната заявка и не се използват за тренинг на модели (при API достъп).</p>
+        <p><strong>AI доставчици (Google Gemini, Anthropic, OpenAI — според избрания модел):</strong> данните ти се изпращат на доставчика единствено за конкретната заявка — план, анализ на снимка или отговор в чата. Обработват се само за нея и не се използват за обучение на модели (при API достъп).</p>
         <p><strong>Google Firebase:</strong> Автентикация и синхронизация на профил.</p>
         <p><strong>Cloudflare:</strong> Хостинг на уеб услугата и Workers backend.</p>
-        <p><strong>НЕ продаваме, НЕ отдаваме под наем и НЕ разкриваме данните ви на рекламодатели или брокери на данни.</strong></p>
+        <p><strong>НЕ продаваме, НЕ отдаваме под наем и НЕ разкриваме данните ти на рекламодатели или брокери на данни.</strong></p>
     </div>
 
     <h2>5. Съхранение и сигурност</h2>
     <ul>
-        <li>Данните се съхраняват в криптирана Cloudflare KV база, достъпна само с вашия Firebase UID</li>
+        <li>Данните се съхраняват в криптирана Cloudflare KV база, достъпна само с твоя Firebase UID</li>
         <li>Местно (на устройството): <code>localStorage</code> в изолираното пространство на приложението</li>
         <li>Предаването на данни използва HTTPS/TLS</li>
         <li>Период на съхранение: до изтриване на акаунта + 30 дни (технически резервни копия)</li>
     </ul>
 
-    <h2>6. Вашите права (GDPR)</h2>
+    <h2>6. Твоите права (GDPR)</h2>
     <ul>
-        <li><strong>Право на достъп:</strong> можете да поискате копие на всичките си данни</li>
-        <li><strong>Право на коригиране:</strong> актуализирайте данните директно от приложението</li>
-        <li><strong>Право на изтриване ("право да бъдеш забравен"):</strong> изпратете заявка на <a href="mailto:privacy@biocode.website">privacy@biocode.website</a> — изтриваме в рамките на 30 дни</li>
-        <li><strong>Право на оттегляне на съгласие:</strong> можете да оттеглите съгласието за нотификации от настройките на телефона по всяко време</li>
+        <li><strong>Право на достъп:</strong> можеш да поискаш копие на всичките си данни</li>
+        <li><strong>Право на коригиране:</strong> актуализирай данните директно от приложението</li>
+        <li><strong>Право на изтриване ("право да бъдеш забравен"):</strong> от приложението — Профил → „Изтрий профила“ (данните се изтриват веднага), или със заявка на <a href="mailto:privacy@biocode.website">privacy@biocode.website</a> — изтриваме в рамките на 30 дни. Подробно: <a href="delete-account.html">Изтриване на профил</a></li>
+        <li><strong>Право на оттегляне на съгласие:</strong> можеш да оттеглиш съгласието за нотификации от настройките на телефона по всяко време</li>
         <li><strong>Право на преносимост:</strong> данните са достъпни в JSON формат при поискване</li>
         <li><strong>Право на жалба:</strong> до Комисията за защита на личните данни (КЗЛД), София</li>
     </ul>
 
     <h2>7. Разрешения на приложението (Android)</h2>
-    <table>
+    <div class="table-scroll"><table>
         <thead>
             <tr><th>Разрешение</th><th>Причина</th><th>Задължително</th></tr>
         </thead>
@@ -219,11 +142,11 @@
             <tr><td>SCHEDULE_EXACT_ALARM</td><td>Точно планиране на нотификациите</td><td>По избор</td></tr>
             <tr><td>VIBRATE / WAKE_LOCK</td><td>Вибрация при нотификация</td><td>По избор</td></tr>
             <tr><td>RECEIVE_BOOT_COMPLETED</td><td>Пренасрочване на напомняния след рестарт</td><td>По избор</td></tr>
-            <tr><td>Галерия / снимки</td><td>Качване на снимка за профил (по ваш избор)</td><td>По избор</td></tr>
+            <tr><td>Камера / галерия</td><td>Снимка на храна, меню, изследване или профил — само когато я избереш</td><td>По избор</td></tr>
             <tr><td>Health Connect (само четене): крачки, активни калории, тренировки, сън, тегло, телесни мазнини, пулс в покой, HRV, кръвно налягане, кръвна захар, хранене, вода</td><td>Сверяване на плана и съветите с реалните данни от часовник, гривна, везна и апарати</td><td>По избор</td></tr>
         </tbody>
-    </table>
-    <p>Приложението НЕ изисква достъп до GPS локация, контакти, SMS, микрофон или камера без ваше активно действие.</p>
+    </table></div>
+    <p>Приложението НЕ изисква достъп до GPS локация, контакти, SMS, микрофон или камера без твое активно действие.</p>
 
     <h2>8. Непълнолетни</h2>
     <p>Услугата е предназначена за лица над 13 години. Потребители между 13 и 18 години трябва да имат съгласието на родител или настойник. Лица под 13 години не могат да ползват приложението. Ако разберем, че сме събрали данни на дете под 13 г., незабавно ги изтриваме.</p>
@@ -233,25 +156,81 @@
     <ul>
         <li>Не съдържат рекламно съдържание</li>
         <li>Могат да бъдат изключени по всяко време от Настройки → Приложения → NutriPlan → Известия</li>
-        <li>Използват системния звук за известия, избран от вас в настройките на телефона</li>
+        <li>Използват системния звук за известия, избран от теб в настройките на телефона</li>
     </ul>
 
     <h2>10. Бисквитки и локално съхранение</h2>
-    <p>Приложението не използва бисквитки за реклама. Използва <code>localStorage</code> и <code>sessionStorage</code> в рамките на устройството ви единствено за съхранение на плана и профила ви локално (офлайн достъп).</p>
+    <p>Приложението не използва бисквитки за реклама. Използва <code>localStorage</code> и <code>sessionStorage</code> в рамките на устройството ти единствено за съхранение на плана и профила ти локално (офлайн достъп).</p>
 
     <h2>11. Промени в политиката</h2>
-    <p>При съществени промени ще ви уведомим чрез известие в приложението. Актуалната версия е винаги достъпна на <a href="https://biocode.website/privacy-policy.html">biocode.website/privacy-policy.html</a>. Продължаването на ползването на приложението след промяна се счита за приемане.</p>
+    <p>При съществени промени ще те уведомим чрез известие в приложението. Актуалната версия е винаги достъпна на <a href="https://biocode.website/privacy-policy.html">biocode.website/privacy-policy.html</a>. Продължаването на ползването на приложението след промяна се счита за приемане.</p>
 
     <h2>12. Контакт</h2>
     <div class="card">
         <p>За въпроси относно поверителността: <a href="mailto:privacy@biocode.website">privacy@biocode.website</a></p>
-        <p>Молби за изтриване на данни: <a href="mailto:privacy@biocode.website">privacy@biocode.website</a> (отговор до 30 дни)</p>
+        <p>Изтриване на данни: от приложението веднага или на <a href="mailto:privacy@biocode.website">privacy@biocode.website</a> (до 30 дни) — <a href="delete-account.html">как</a></p>
     </div>
-</main>
+        </div>
+    </main>
 
-<footer>
-    <p>&copy; 2026 NutriPlan · <a href="/">Начало</a> · <a href="/terms.html">Условия за ползване</a> · <a href="/privacy-policy.html">Поверителност</a></p>
-</footer>
+    <!-- site-footer:start — генерира се от scripts/build-protocol-pages.mjs, не редактирай тук -->
+    <footer class="sf" role="contentinfo">
+        <script>try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())document.documentElement.classList.add('is-native')}catch(e){}</script>
+        <div class="sf-wrap">
+            <div class="sf-top">
+                <div class="sf-brand">
+                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span>NutriPlan</a>
+                    <p class="sf-tag">Хранене по твоя мярка.</p>
+                    <p class="sf-about">Седмично меню с точни грамажи — по тялото, здравето и вкусовете ти. Коригира се всяка седмица според резултата.</p>
+                    <div class="sf-stores sf-web" aria-label="Мобилни магазини">
+                        <span class="sf-store"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg><span><small>Скоро в</small><b>Google Play</b></span></span>
+                        <span class="sf-store"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg><span><small>Скоро в</small><b>App Store</b></span></span>
+                    </div>
+                </div>
+                <nav class="sf-cols" aria-label="Карта на сайта">
+                    <div>
+                        <h2 class="sf-h">Продукт</h2>
+                        <ul>
+                            <li><a href="index.html?stay=1#how-it-works">Как работи</a></li>
+                            <li><a href="features.html">Възможности</a></li>
+                            <li><a href="questionnaire2.html">Създай план</a></li>
+                            <li class="sf-web"><a href="index.html?stay=1#android-install">Приложението</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="sf-h">Програми</h2>
+                        <ul>
+                            <li><a href="protocol-landing.html">Клинични протоколи</a></li>
+                            <li><a href="emoeat.html">Емоционално хранене</a></li>
+                            <li><a href="longevity.html">Дълголетие <small>с профил</small></a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="sf-h">Помощ</h2>
+                        <ul>
+                            <li><a href="help.html">Въпроси и отговори</a></li>
+                            <li><a href="index.html?stay=1#contact">Контакт</a></li>
+                            <li><a href="delete-account.html">Изтриване на профил</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="sf-h">Правни</h2>
+                        <ul>
+                            <li><a href="privacy-policy.html">Поверителност</a></li>
+                            <li><a href="terms.html">Условия за ползване</a></li>
+                            <li><a href="help.html#health">Здраве и безопасност</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+            <div class="sf-bottom">
+                <p>© 2026 NutriPlan · biocode.website</p>
+                <p>Хранителни насоки, не медицинска услуга. При заболяване — с лекар.</p>
+            </div>
+        </div>
+    </footer>
+    <!-- site-footer:end -->
 
+    <script src="protocol-page.js?v=20261031a" defer></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* Лендинг на състояние: тема, лента, поява, плаващ бутон и utm към въпросника. */
+/* Публичните страници: тема, лента, поява, плаващ бутон, utm към въпросника и стандартен план. */
 (function () {
     var root = document.documentElement;
     root.classList.remove('no-js');
@@ -23,6 +23,18 @@
         var url = new URL(a.getAttribute('href'), location.href);
         incoming.forEach(function (v, k) { if (/^utm_/.test(k)) url.searchParams.set(k, v); });
         a.href = url.pathname.replace(/^\//, '') + url.search;
+    });
+
+    // Стандартен план: изборът на протокол от предишно посещение не бива да остане във въпросника.
+    document.querySelectorAll('a[data-standard-plan]').forEach(function (a) {
+        a.addEventListener('click', function () {
+            try {
+                var answers = JSON.parse(localStorage.getItem('questionnaireAnswers') || '{}') || {};
+                delete answers.clinicalProtocol;
+                delete answers._protocolSelectedFromLanding;
+                localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+            } catch (e) { /* без запис — въпросникът тръгва без протокол по адреса */ }
+        });
     });
 
     var bar = document.querySelector('.topbar');

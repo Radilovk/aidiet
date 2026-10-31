@@ -1,0 +1,123 @@
+/* Общ футър на публичните страници: начална, протоколи, помощ, правни.
+ * Маркировката се вмъква от scripts/build-protocol-pages.mjs (един източник).
+ * Изолиран от стиловете на страницата: собствени нулирания на h2/ul/p/a. */
+
+.sf {
+    background: #071918;
+    color: #B4CFCA;
+    padding: 56px 0 calc(28px + env(safe-area-inset-bottom));
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    text-align: left;
+}
+:root[data-theme="dark"] .sf { background: #040F0E; border-top: 1px solid rgba(178, 236, 226, 0.08); }
+.sf *, .sf *::before, .sf *::after { box-sizing: border-box; }
+
+.sf-wrap { width: min(1160px, 100%); margin: 0 auto; padding: 0 24px; }
+.sf-top {
+    display: grid;
+    grid-template-columns: minmax(240px, 1.1fr) 2.9fr;
+    gap: 48px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid rgba(178, 236, 226, 0.08);
+}
+
+.sf-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+}
+.sf-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(135deg, #0D9488, #0F766E);
+    box-shadow: 0 6px 16px -6px rgba(13, 148, 136, 0.7);
+}
+.sf-mark svg, .sf-store svg { display: block; }
+.sf p { margin: 0; }
+.sf-tag { margin-top: 6px !important; font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 1.02rem; color: #85A39E; }
+.sf-about { margin-top: 12px !important; max-width: 30em; font-size: 0.9rem; color: #85A39E; }
+
+.sf-stores { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.sf-store {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px 8px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(178, 236, 226, 0.16);
+    color: #E3F4F1;
+}
+.sf-store span { display: block; line-height: 1.2; }
+.sf-store small { display: block; font-size: 0.64rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #85A39E; }
+.sf-store b { display: block; font-size: 0.92rem; font-weight: 700; }
+
+.sf-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; }
+.sf-h {
+    all: unset;
+    display: block;
+    margin-bottom: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #85A39E;
+}
+.sf ul { list-style: none; margin: 0; padding: 0; }
+.sf li { margin: 0; padding: 0; }
+.sf li::before, .sf li::marker { content: none; }
+.sf-cols a {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    min-height: 40px;
+    color: #B4CFCA;
+    font-size: 0.92rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.sf-cols a:hover { color: #fff; }
+.sf-cols a:focus-visible, .sf-logo:focus-visible { outline: 2px solid #2DD4BF; outline-offset: 3px; border-radius: 6px; }
+.sf-cols a small {
+    padding: 1px 7px;
+    border: 1px solid rgba(178, 236, 226, 0.16);
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #85A39E;
+}
+
+.sf-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 24px;
+    padding-top: 22px;
+    font-size: 0.8rem;
+    color: #7E9C97;
+}
+
+/* В приложението от магазина: без препратки към сваляне и към други магазини. */
+html.is-native .sf-web { display: none !important; }
+
+@media (max-width: 900px) {
+    .sf-top { grid-template-columns: 1fr; gap: 36px; }
+}
+@media (max-width: 560px) {
+    .sf { padding-top: 44px; }
+    .sf-wrap { padding: 0 20px; }
+    .sf-cols { grid-template-columns: 1fr 1fr; gap: 24px 16px; }
+}

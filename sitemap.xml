@@ -1,33 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Генерирано от scripts/build-protocol-pages.mjs -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://biocode.website/</loc>
-    <lastmod>2026-02-07</lastmod>
-    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://biocode.website/questionnaire2.html</loc>
-    <lastmod>2026-02-07</lastmod>
-    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/features.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://biocode.website/plan.html</loc>
-    <lastmod>2026-02-07</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>https://biocode.website/protocol-landing.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://biocode.website/profile.html</loc>
-    <lastmod>2026-02-07</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://biocode.website/analysis.html</loc>
-    <lastmod>2026-02-07</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>https://biocode.website/protocol-insulin-resistance.html</loc>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-autoimmune-aip.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-gi-issues.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-menopause-sarcopenia.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-cellulite-reduction.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-chronic-stress.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-postpartum-lactation.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-visceral-fat.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-post-smoking.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-longevity.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/protocol-detox.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/emoeat.html</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/help.html</loc>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/delete-account.html</loc>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/privacy-policy.html</loc>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/terms.html</loc>
+    <priority>0.3</priority>
   </url>
 </urlset>

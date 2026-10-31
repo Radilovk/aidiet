@@ -5087,45 +5087,73 @@ async function handleDeleteClients(request, env) {
       return jsonResponse({ error: 'Missing clientIds array' }, 400);
     }
 
-    let clientsList = await env.page_content.get('clients_list');
-    clientsList = clientsList ? JSON.parse(clientsList) : [];
+    const result = await purgeClientData(env, { clientIds: normalizedClientIds });
+    return jsonResponse({ success: true, ...result });
+  } catch (error) {
+    console.error('Error deleting clients:', error);
+    return jsonResponse({ error: `Failed to delete clients: ${error.message}` }, 500);
+  }
+}
 
-    const userIdsToDelete = new Set();
-    const authKeysToDelete = new Set();
-    const firebaseUidsToDelete = new Set();
-    const pushSubscriptionKeysToDelete = new Set();
-    const notificationPreferenceKeysToDelete = new Set();
-    const missingClientIds = [];
-    const deletedClientIds = [];
+/**
+ * Изтрива клиентски записи и всичко на свързаните потребители: профил, вход
+ * (KV и Firebase), известия, връзки с устройства, игра и имейл индекс.
+ * Общо за админското изтриване и за изтриването на собствения профил.
+ * @param {any} env
+ * @param {{ clientIds?: string[], userIds?: string[], tolerateAuthFailure?: boolean }} target
+ */
+async function purgeClientData(env, { clientIds = [], userIds = [], tolerateAuthFailure = false }) {
+  let clientsList = await env.page_content.get('clients_list');
+  clientsList = clientsList ? JSON.parse(clientsList) : [];
 
-    for (const clientId of normalizedClientIds) {
-      const clientRaw = await env.page_content.get(`client:${clientId}`);
-      if (!clientRaw) {
-        missingClientIds.push(clientId);
-        continue;
-      }
+  const userIdsToDelete = new Set(userIds.map(id => String(id || '').trim()).filter(Boolean));
+  const emails = new Set();
+  const missingClientIds = [];
+  const deletedClientIds = [];
 
-      const clientData = JSON.parse(clientRaw);
-      deletedClientIds.push(clientId);
-
-      if (clientData.userId) {
-        const userId = String(clientData.userId).trim();
-        if (userId) {
-          userIdsToDelete.add(userId);
-          pushSubscriptionKeysToDelete.add(`push_subscription_${userId}`);
-          notificationPreferenceKeysToDelete.add(`notification_preferences_${userId}`);
-          if (userId.startsWith(FIREBASE_USER_ID_PREFIX)) {
-            const firebaseUid = userId.slice(FIREBASE_USER_ID_PREFIX.length);
-            authKeysToDelete.add(`auth:${firebaseUid}`);
-            firebaseUidsToDelete.add(firebaseUid);
-          }
-        }
-      }
+  for (const clientId of clientIds) {
+    const clientRaw = await env.page_content.get(`client:${clientId}`);
+    if (!clientRaw) {
+      missingClientIds.push(clientId);
+      continue;
     }
+    const clientData = JSON.parse(clientRaw);
+    deletedClientIds.push(clientId);
+    const userId = String(clientData.userId || '').trim();
+    if (userId) userIdsToDelete.add(userId);
+    const email = normalizeEmail(clientData.answers?.email);
+    if (email) emails.add(email);
+  }
 
-    let deletedFirebaseAuthCount = 0;
-    let alreadyMissingFirebaseAuthCount = 0;
-    if (firebaseUidsToDelete.size > 0) {
+  const keysToDelete = new Set(deletedClientIds.map(clientId => `client:${clientId}`));
+  const firebaseUidsToDelete = new Set();
+  for (const userId of userIdsToDelete) {
+    keysToDelete.add(`user_profile:${userId}`);
+    keysToDelete.add(`push_subscription_${userId}`);
+    keysToDelete.add(`notification_preferences_${userId}`);
+    keysToDelete.add(`game_state:${userId}`);
+    LINK_SOURCES.forEach(provider => keysToDelete.add(`link:${userId}:${provider}`));
+    if (userId.startsWith(FIREBASE_USER_ID_PREFIX)) {
+      const firebaseUid = userId.slice(FIREBASE_USER_ID_PREFIX.length);
+      keysToDelete.add(`auth:${firebaseUid}`);
+      firebaseUidsToDelete.add(firebaseUid);
+    }
+  }
+
+  // Имейл индексът се маха само ако сочи към изтрития клиент или потребител.
+  const deletedClientSet = new Set(deletedClientIds);
+  for (const email of emails) {
+    const index = await getEmailIndex(env, email);
+    if (index && (deletedClientSet.has(index.clientId) || userIdsToDelete.has(index.userId))) {
+      keysToDelete.add(`email_index:${email}`);
+    }
+  }
+
+  let deletedFirebaseAuthCount = 0;
+  let alreadyMissingFirebaseAuthCount = 0;
+  let firebaseAuthError = null;
+  if (firebaseUidsToDelete.size > 0) {
+    try {
       const adminToken = await getFirebaseAdminToken(env);
       for (const firebaseUid of firebaseUidsToDelete) {
         const deletionResult = await deleteFirebaseAuthUser(firebaseUid, env, adminToken);
@@ -5135,48 +5163,90 @@ async function handleDeleteClients(request, env) {
           alreadyMissingFirebaseAuthCount += 1;
         }
       }
+    } catch (error) {
+      // Админът спира при грешка; собственото изтриване продължава — клиентът трие входа сам.
+      if (!tolerateAuthFailure) throw error;
+      firebaseAuthError = error.message;
+    }
+  }
+
+  let pushSubscriptionsList = await kvGetJSON(env, 'push_subscriptions_list');
+  if (!Array.isArray(pushSubscriptionsList)) {
+    pushSubscriptionsList = [];
+  }
+  const updatedPushSubscriptionsList = pushSubscriptionsList.filter(userId => !userIdsToDelete.has(userId));
+
+  await Promise.all([...keysToDelete].map(key => env.page_content.delete(key)));
+
+  if (deletedClientIds.length > 0) {
+    clientsList = clientsList.filter(clientId => !deletedClientSet.has(clientId));
+    await env.page_content.put('clients_list', JSON.stringify(clientsList));
+  }
+
+  if (updatedPushSubscriptionsList.length !== pushSubscriptionsList.length) {
+    await env.page_content.put('push_subscriptions_list', JSON.stringify(updatedPushSubscriptionsList));
+  }
+
+  return {
+    deletedClientIds,
+    deletedClientCount: deletedClientIds.length,
+    deletedProfileCount: userIdsToDelete.size,
+    deletedAuthCount: firebaseUidsToDelete.size,
+    deletedFirebaseAuthCount,
+    alreadyMissingFirebaseAuthCount,
+    deletedPushSubscriptionCount: userIdsToDelete.size,
+    deletedNotificationPreferenceCount: userIdsToDelete.size,
+    missingClientIds,
+    remainingClients: clientsList.length,
+    firebaseAuthError
+  };
+}
+
+/**
+ * POST /api/user/delete-account — потребителят изтрива собствения си профил
+ * (изискване на App Store 5.1.1(v) и Google Play). Самоличността идва само от
+ * Firebase ID токена (Authorization: Bearer или body.idToken). Изтриват се
+ * клиентските записи на същия потребител, профилът, входът и свързаните данни.
+ */
+async function handleDeleteOwnAccount(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    if (!env.FIREBASE_PROJECT_ID) return jsonResponse({ error: 'Firebase is not configured on the server' }, 500);
+
+    const body = await request.json().catch(() => ({}));
+    const header = request.headers.get('Authorization') || '';
+    const token = (typeof body?.idToken === 'string' && body.idToken) || (header.startsWith('Bearer ') ? header.slice(7) : '');
+    if (!token) return jsonResponse({ error: 'Missing Firebase ID token' }, 401);
+
+    let firebaseUser;
+    try {
+      firebaseUser = await verifyFirebaseIdToken(token, env);
+    } catch (error) {
+      return jsonResponse({ error: 'Invalid Firebase ID token' }, 401);
     }
 
-    let pushSubscriptionsList = await kvGetJSON(env, 'push_subscriptions_list');
-    if (!Array.isArray(pushSubscriptionsList)) {
-      pushSubscriptionsList = [];
-    }
-    const updatedPushSubscriptionsList = pushSubscriptionsList.filter(userId => !userIdsToDelete.has(userId));
+    const userId = `${FIREBASE_USER_ID_PREFIX}${firebaseUser.uid}`;
+    const profile = await kvGetJSON(env, `user_profile:${userId}`);
+    const email = normalizeEmail(firebaseUser.email);
+    const emailIndex = email ? await getEmailIndex(env, email) : null;
 
-    await Promise.all([
-      ...deletedClientIds.map(clientId => env.page_content.delete(`client:${clientId}`)),
-      ...Array.from(userIdsToDelete).map(userId => env.page_content.delete(`user_profile:${userId}`)),
-      ...Array.from(authKeysToDelete).map(authKey => env.page_content.delete(authKey)),
-      ...Array.from(pushSubscriptionKeysToDelete).map(key => env.page_content.delete(key)),
-      ...Array.from(notificationPreferenceKeysToDelete).map(key => env.page_content.delete(key))
-    ]);
-
-    if (deletedClientIds.length > 0) {
-      const deletedIdsSet = new Set(deletedClientIds);
-      clientsList = clientsList.filter(clientId => !deletedIdsSet.has(clientId));
-      await env.page_content.put('clients_list', JSON.stringify(clientsList));
+    // Чужд запис не се трие: клиентът е на потребителя по userId, или е
+    // анонимният запис, към който сочи собственият му профил.
+    const clientIds = [];
+    for (const clientId of new Set([profile?.clientId, emailIndex?.clientId].filter(Boolean).map(String))) {
+      const client = await kvGetJSON(env, `client:${clientId}`);
+      if (!client) continue;
+      const owner = String(client.userId || '');
+      const ownsAnonymous = clientId === String(profile?.clientId || '') && !owner.startsWith(FIREBASE_USER_ID_PREFIX);
+      if (owner === userId || ownsAnonymous) clientIds.push(clientId);
     }
 
-    if (updatedPushSubscriptionsList.length !== pushSubscriptionsList.length) {
-      await env.page_content.put('push_subscriptions_list', JSON.stringify(updatedPushSubscriptionsList));
-    }
-
-    return jsonResponse({
-      success: true,
-      deletedClientIds,
-      deletedClientCount: deletedClientIds.length,
-      deletedProfileCount: userIdsToDelete.size,
-      deletedAuthCount: authKeysToDelete.size,
-      deletedFirebaseAuthCount,
-      alreadyMissingFirebaseAuthCount,
-      deletedPushSubscriptionCount: pushSubscriptionKeysToDelete.size,
-      deletedNotificationPreferenceCount: notificationPreferenceKeysToDelete.size,
-      missingClientIds,
-      remainingClients: clientsList.length
-    });
+    const result = await purgeClientData(env, { clientIds, userIds: [userId], tolerateAuthFailure: true });
+    if (result.firebaseAuthError) console.warn('Own account: Firebase auth not deleted on server:', result.firebaseAuthError);
+    return jsonResponse({ success: true, deletedClientCount: result.deletedClientCount, deletedFirebaseAuth: !result.firebaseAuthError });
   } catch (error) {
-    console.error('Error deleting clients:', error);
-    return jsonResponse({ error: `Failed to delete clients: ${error.message}` }, 500);
+    console.error('Error deleting own account:', error);
+    return jsonResponse({ error: 'Failed to delete account' }, 500);
   }
 }
 
@@ -17857,6 +17927,8 @@ export default {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === '/api/user/delete-account' && request.method === 'POST') {
+        return await handleDeleteOwnAccount(request, env);
       } else if (url.pathname === '/api/enrichment' && request.method === 'POST') {
         return await handleEnrichmentSubmit(request, env);
       } else if (url.pathname === '/api/enrichment/get' && request.method === 'POST') {
