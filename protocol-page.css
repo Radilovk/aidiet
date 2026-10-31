@@ -1,6 +1,7 @@
-/* Лендинг страници за готовите състояния (protocol-<slug>.html).
+/* Публичните страници извън приложението: протоколите (protocol-<slug>.html,
+ * protocol-landing.html), помощ, изтриване на профил и правните текстове.
  * Самостоятелни и леки: без design-system.css и иконни шрифтове.
- * Цветовете следват NutriPlan; --acc идва от състоянието. */
+ * Цветовете следват NutriPlan; --acc идва от състоянието. Футърът — site-footer.css. */
 
 :root {
     --acc: #0F766E;
@@ -49,7 +50,6 @@ body {
         var(--bg);
     background-repeat: no-repeat;
     -webkit-font-smoothing: antialiased;
-    padding-bottom: calc(88px + env(safe-area-inset-bottom));
 }
 
 a { color: inherit; }
@@ -400,15 +400,210 @@ h1 {
 }
 .chips a span { width: 8px; height: 8px; border-radius: 50%; background: var(--dot); }
 
-.footer {
-    margin: 40px 0 0;
-    padding: 24px 0 8px;
-    border-top: 1px solid var(--line);
-    color: var(--text-3);
-    font-size: 0.85rem;
-    text-align: center;
+main.wrap { padding-bottom: 56px; }
+.others-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.others-head h2 { margin: 0; }
+.others-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    color: var(--acc-text);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
 }
-.footer a { color: var(--text-2); }
+
+/* ── Всички протоколи (protocol-landing.html) ── */
+.wrap--wide { max-width: 1040px; }
+.hub-hero { padding-top: 40px; }
+.hub-hero h1 { max-width: 15em; margin-left: auto; margin-right: auto; }
+.hub-hero h1 em,
+.doc-hero h1 em {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    color: var(--acc-text);
+}
+.hub-hero .lead { max-width: 34em; }
+
+.pgrid { display: grid; gap: 12px; }
+.pcard {
+    --pc-tint: color-mix(in srgb, var(--acc) 10%, transparent);
+    --pc-text: var(--acc);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--card);
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    overflow: hidden;
+    transition: transform .25s cubic-bezier(.2, .8, .2, 1), border-color .2s ease, box-shadow .25s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+:root[data-theme="dark"] .pcard {
+    --pc-tint: color-mix(in srgb, var(--acc) 24%, transparent);
+    --pc-text: color-mix(in srgb, var(--acc) 45%, #ffffff);
+}
+.pcard::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: linear-gradient(90deg, var(--acc), color-mix(in srgb, var(--acc) 30%, transparent));
+    opacity: .85;
+}
+.pcard-ic {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 8px;
+    color: var(--pc-text);
+    background: var(--pc-tint);
+}
+.pcard-cat {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--pc-text);
+}
+.pcard h3 { margin: 0; font-size: 1.08rem; line-height: 1.3; font-weight: 800; letter-spacing: -0.01em; color: var(--text); }
+.pcard p { margin: 0; font-size: 0.93rem; line-height: 1.55; color: var(--text-2); }
+.pcard-go {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--pc-text);
+}
+.pcard-go svg { transition: transform .2s ease; }
+.pcard:active { transform: scale(0.99); }
+/* Телефон: компактен списък — иконка, текст, стрелка; цялата карта е връзката. */
+@media (max-width: 719px) {
+    .pgrid { gap: 10px; }
+    .pcard {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) 18px;
+        column-gap: 14px;
+        row-gap: 2px;
+        align-items: start;
+        padding: 16px 14px 16px 16px;
+        border-radius: 18px;
+    }
+    .pcard::before { inset: 0 auto 0 0; width: 3px; height: auto; background: var(--acc); }
+    .pcard-ic { grid-row: 1 / span 3; margin: 2px 0 0; }
+    .pcard-cat, .pcard h3, .pcard p { grid-column: 2; }
+    .pcard h3 { font-size: 1rem; }
+    .pcard p { font-size: 0.88rem; }
+    .pcard-go { grid-column: 3; grid-row: 1 / span 3; align-self: center; margin: 0; padding: 0; font-size: 0; }
+}
+
+@media (hover: hover) {
+    .pcard:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--acc) 35%, transparent); box-shadow: 0 1px 2px rgba(15, 47, 46, 0.04), 0 22px 40px -18px color-mix(in srgb, var(--acc) 45%, transparent); }
+    .pcard:hover .pcard-go svg { transform: translateX(3px); }
+}
+
+.pcard--standard { --acc: #0F766E; border-style: dashed; background: transparent; box-shadow: none; }
+.pcard--standard::before { display: none; }
+.page-hub .topbar .wrap { max-width: 1040px; }
+.cta--ghost {
+    margin-top: 12px;
+    color: var(--acc-text);
+    background: var(--tint);
+    box-shadow: none;
+}
+
+/* ── Текстови страници: помощ, изтриване на профил, правни ── */
+.doc-hero { padding: 36px 0 4px; }
+.doc-hero h1 { margin-top: 12px; font-size: clamp(1.9rem, 7.6vw, 2.5rem); }
+.doc-hero .lead { margin: 0; max-width: 34em; }
+.doc-hero .updated { margin: 14px 0 0; font-size: 0.85rem; color: var(--text-3); }
+.prose { color: var(--text-2); }
+.prose h2 { margin: 36px 0 12px; font-size: 1.2rem; line-height: 1.3; font-weight: 800; letter-spacing: -0.01em; color: var(--text); scroll-margin-top: 80px; }
+.prose h3 { margin: 22px 0 8px; font-size: 1rem; font-weight: 700; color: var(--text); }
+.prose p { margin: 0 0 12px; }
+.prose ul, .prose ol { margin: 0 0 14px; padding-left: 1.2em; }
+.prose li { margin: 4px 0; }
+.prose li::marker { color: var(--acc-text); }
+.prose a { color: var(--acc-text); font-weight: 600; text-underline-offset: 2px; }
+.prose strong { color: var(--text); }
+.prose code { font-size: 0.86em; padding: 1px 6px; border-radius: 6px; background: var(--tint); }
+.prose .card { margin: 0 0 14px; }
+.prose .card p:last-child, .prose .card ul:last-child { margin-bottom: 0; }
+.prose .callout { border-color: color-mix(in srgb, var(--acc) 30%, transparent); background: color-mix(in srgb, var(--card) 88%, var(--acc)); }
+.table-scroll { overflow-x: auto; margin: 0 0 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); -webkit-overflow-scrolling: touch; }
+.prose table { width: 100%; min-width: 460px; border-collapse: collapse; font-size: 0.9rem; }
+.prose th, .prose td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.prose th { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); background: var(--tint); }
+.prose tr:last-child td { border-bottom: 0; }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; padding: 0; list-style: none; }
+.toc a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--text-2);
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* Въпроси и отговори */
+.faq { display: grid; gap: 10px; margin: 0 0 8px; }
+.faq details {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+.faq details[open] { border-color: color-mix(in srgb, var(--acc) 28%, transparent); box-shadow: var(--shadow); }
+.faq summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: 56px;
+    padding: 14px 18px;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+    content: '';
+    flex: 0 0 10px;
+    height: 10px;
+    border-right: 2px solid var(--text-3);
+    border-bottom: 2px solid var(--text-3);
+    transform: rotate(45deg) translate(-2px, -2px);
+    transition: transform .2s ease;
+}
+.faq details[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+.faq .faq-a { padding: 0 18px 16px; color: var(--text-2); }
+.faq .faq-a p { margin: 0 0 10px; }
+.faq .faq-a p:last-child { margin-bottom: 0; }
+
+/* Действия и контакт */
+.actions { display: grid; gap: 10px; margin: 18px 0 0; }
+.actions .cta { margin-top: 0; }
+.contact-card { display: flex; gap: 14px; align-items: flex-start; }
+.contact-card .ic { flex: 0 0 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--tint); color: var(--acc-text); }
+.contact-card strong { display: block; color: var(--text); }
 
 /* Плаващ бутон (след като главният излезе от екрана) */
 .dock {
@@ -433,11 +628,23 @@ h1 {
 .reveal.is-in { opacity: 1; transform: none; }
 .no-js .reveal { opacity: 1; transform: none; }
 
+/* Плаващият бутон не бива да скрива долния край на футъра. */
+@media (max-width: 719px) {
+    .has-dock .sf { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+}
+
 @media (min-width: 720px) {
     .duo { grid-template-columns: 1fr 1fr; }
     .hero { padding-top: 48px; }
-    body { padding-bottom: 0; }
     .dock { display: none; }
+    .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .steps--row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .steps--row li { flex-direction: column; }
+    .steps--row li::before { flex: none; width: 32px; height: 32px; }
+        .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 980px) {
+    .pgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -445,4 +652,5 @@ h1 {
     .orb::before, .orb::after { animation: none; }
     .reveal { opacity: 1; transform: none; transition: none; }
     .dock { transition: none; }
+    .pcard, .pcard-go svg { transition: none; }
 }

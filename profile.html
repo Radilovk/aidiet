@@ -1904,6 +1904,69 @@
             box-shadow: 0 12px 28px rgba(0,0,0,0.24);
         }
 
+        /* ── Изтриване на профила ───────────────────────────────────────────── */
+        .profile-delete-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 14px;
+            border: 0;
+            background: none;
+            color: var(--ds-text-secondary);
+            font: inherit;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            cursor: pointer;
+        }
+        .profile-delete-link:hover { color: var(--ds-error-text); }
+        .delete-account-dialog {
+            width: min(440px, calc(100% - 32px));
+            max-height: calc(100% - 32px);
+            margin: auto;
+            padding: 0;
+            border: 1px solid var(--ds-border-primary);
+            border-radius: 22px;
+            background: #fff;
+            color: var(--ds-text-primary);
+            box-shadow: 0 30px 60px -20px rgba(0,0,0,0.35);
+        }
+        [data-theme="dark"] .delete-account-dialog { background: #102B2B; }
+        .delete-account-dialog::backdrop { background: rgba(4, 15, 14, 0.55); backdrop-filter: blur(2px); }
+        .delete-account-body { padding: 24px 22px 20px; }
+        .delete-account-icon {
+            width: 48px; height: 48px; border-radius: 16px;
+            display: grid; place-items: center;
+            margin-bottom: 14px;
+            background: rgba(239,68,68,0.10);
+            color: var(--ds-error-text);
+            font-size: 1.15rem;
+        }
+        .delete-account-body h2 { margin: 0 0 8px; font-size: 1.2rem; font-weight: 800; letter-spacing: -0.01em; }
+        .delete-account-body p { margin: 0 0 10px; font-size: 0.92rem; line-height: 1.55; color: var(--ds-text-secondary); }
+        .delete-account-body ul { margin: 0 0 14px; padding-left: 1.1em; font-size: 0.9rem; line-height: 1.55; color: var(--ds-text-secondary); }
+        .delete-account-body li { margin: 3px 0; }
+        .delete-account-confirm {
+            display: flex; gap: 10px; align-items: flex-start;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(13, 148, 136, 0.07);
+            font-size: 0.88rem; line-height: 1.45;
+            cursor: pointer;
+        }
+        .delete-account-confirm input { width: 20px; height: 20px; margin: 1px 0 0; flex: 0 0 20px; accent-color: #dc2626; }
+        .delete-account-status { min-height: 1.2em; margin: 12px 0 0 !important; font-size: 0.86rem !important; color: var(--ds-error-text) !important; }
+        .delete-account-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+        .delete-account-actions button {
+            min-height: 48px; border-radius: 14px; font: inherit; font-size: 0.92rem; font-weight: 700; cursor: pointer;
+        }
+        .delete-account-cancel { border: 1px solid var(--ds-border-primary); background: transparent; color: inherit; }
+        .delete-account-go { border: 0; background: #dc2626; color: #fff; }
+        .delete-account-go:disabled { opacity: 0.45; cursor: not-allowed; }
+        .delete-account-more { display: block; margin-top: 14px; font-size: 0.82rem; color: var(--ds-text-secondary); text-align: center; }
+
         @keyframes profileIn {
             from { opacity: 0; transform: translateY(18px) scale(0.97); }
             to   { opacity: 1; transform: translateY(0)    scale(1);    }
@@ -4187,6 +4250,41 @@
             const logoutBtn = document.getElementById('logoutBtn');
             if (!logoutBtn) return;
             logoutBtn.classList.toggle('hidden', !visible);
+            const deleteBtn = document.getElementById('deleteAccountBtn');
+            if (deleteBtn) deleteBtn.classList.toggle('hidden', !visible);
+        }
+
+        /** Изтриване на профила: потвърждение с отметка, после NutriPlanDeleteAccount (модула с Firebase). */
+        function openDeleteAccount() {
+            const dialog = document.getElementById('deleteAccountDialog');
+            if (!dialog) return;
+            document.getElementById('deleteAccountConfirm').checked = false;
+            document.getElementById('deleteAccountGo').disabled = true;
+            document.getElementById('deleteAccountStatus').textContent = '';
+            if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+        }
+        function closeDeleteAccount() {
+            const dialog = document.getElementById('deleteAccountDialog');
+            if (!dialog) return;
+            if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open');
+        }
+        async function confirmDeleteAccount() {
+            const go = document.getElementById('deleteAccountGo');
+            const status = document.getElementById('deleteAccountStatus');
+            if (!document.getElementById('deleteAccountConfirm').checked) return;
+            go.disabled = true;
+            go.textContent = 'Изтриване…';
+            status.textContent = '';
+            try {
+                if (typeof window.NutriPlanDeleteAccount !== 'function') throw new Error('no-session');
+                await window.NutriPlanDeleteAccount();
+            } catch (error) {
+                go.disabled = false;
+                go.textContent = 'Изтрий завинаги';
+                status.textContent = error && error.message === 'no-session'
+                    ? 'Влез отново в профила си и опитай пак.'
+                    : 'Профилът не беше изтрит — няма връзка или сървърът не отговори. Опитай отново.';
+            }
         }
 
         async function clearProfileSessionFallback() {
@@ -5801,11 +5899,37 @@
     </script>
 
     <!-- Logout button -->
-    <div style="display:flex;justify-content:center;padding:12px 0 8px;">
+    <div style="display:flex;flex-direction:column;align-items:center;padding:12px 0 8px;">
         <button class="spa-logout-btn" id="logoutBtn" onclick="doLogout()" aria-label="Изход от акаунта">
             <i class="fas fa-sign-out-alt"></i> Изход от акаунта
         </button>
+        <button type="button" class="profile-delete-link hidden" id="deleteAccountBtn" onclick="openDeleteAccount()">Изтрий профила</button>
     </div>
+
+    <dialog class="delete-account-dialog" id="deleteAccountDialog" aria-labelledby="deleteAccountTitle">
+        <div class="delete-account-body">
+            <div class="delete-account-icon" aria-hidden="true"><i class="fas fa-user-slash"></i></div>
+            <h2 id="deleteAccountTitle">Изтриване на профила</h2>
+            <p>Изтриват се веднага и не могат да се възстановят:</p>
+            <ul>
+                <li>профилът, въпросникът и планът ти;</li>
+                <li>историята — седмични прегледи, отметки, анализи;</li>
+                <li>връзките с устройства и напомнянията;</li>
+                <li>акаунтът за вход.</li>
+            </ul>
+            <p>Резервното копие в твоя Google Drive (ако е включено) остава там — изтрий го оттам.</p>
+            <label class="delete-account-confirm">
+                <input type="checkbox" id="deleteAccountConfirm" onchange="document.getElementById('deleteAccountGo').disabled = !this.checked">
+                <span>Разбирам, че профилът и планът се изтриват завинаги.</span>
+            </label>
+            <p class="delete-account-status" id="deleteAccountStatus" role="alert"></p>
+            <div class="delete-account-actions">
+                <button type="button" class="delete-account-cancel" onclick="closeDeleteAccount()">Отказ</button>
+                <button type="button" class="delete-account-go" id="deleteAccountGo" onclick="confirmDeleteAccount()" disabled>Изтрий завинаги</button>
+            </div>
+            <a class="delete-account-more" href="delete-account.html" target="_blank" rel="noopener">Какво се изтрива и какво остава</a>
+        </div>
+    </dialog>
 
     <!-- Chat Assistant Button -->
     <button class="fab-chat" onclick="if(!requestShellAction('NUTRIPLAN_OPEN_CHAT'))window.location.href='plan.html?chat=1'" aria-label="Отвори чат асистент">
@@ -5836,7 +5960,7 @@
     <script type="module">
         import { initializeApp, getApps, getApp }
                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword }
+        import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, deleteUser }
                 from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
         const firebaseConfig = {
@@ -5893,6 +6017,34 @@
                     if (emailEl && !qData?.email) emailEl.textContent = user.email || '';
                 }
             });
+
+            /* Изтриване на собствения профил: сървърът трие данните и входа по
+             * Firebase токена; после входът се трие и оттук (ако сървърът не е
+             * успял), устройството се изчиства изцяло и се връщаме към началото. */
+            window.NutriPlanDeleteAccount = async function() {
+                const user = auth.currentUser;
+                if (!user) throw new Error('no-session');
+                const idToken = await user.getIdToken(true);
+                const res = await fetch('https://aidiet.radilov-k.workers.dev/api/user/delete-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+                    body: '{}'
+                });
+                if (!res.ok) throw new Error('server-' + res.status);
+                await deleteUser(user).catch(() => {});
+                await signOut(auth).catch(() => {});
+                try {
+                    if (window.GameNotifier && typeof window.GameNotifier.cancelAll === 'function') window.GameNotifier.cancelAll();
+                } catch (_) {}
+                if (window.NutriPlanSession && typeof window.NutriPlanSession.clearUserSessionData === 'function') {
+                    await window.NutriPlanSession.clearUserSessionData();
+                } else {
+                    _clearUserPlanData();
+                }
+                document.cookie = 'np_uid=; Max-Age=0; path=/';
+                if (requestShellAction('NUTRIPLAN_LOGOUT', { deleted: true })) return;
+                window.location.replace('index.html?stay=1&deleted=1');
+            };
 
             window.doLogout = async function() {
                 /* Sign out and clear FIRST, ask the shell to navigate afterwards.

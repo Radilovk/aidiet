@@ -162,9 +162,20 @@
                 '<h2 id="npPlanEditingTitle" style="margin:0 0 10px;font-size:1.15rem;font-weight:700;color:#0F2F2E;">План в процес на редакция</h2>',
                 '<p id="npPlanEditingMessage" style="margin:0 0 20px;font-size:.92rem;line-height:1.55;color:var(--text-light,#6b7280);"></p>',
                 '<a href="index.html?stay=1" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 20px;border-radius:14px;font-weight:700;text-decoration:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;">Към началото</a>',
+                // Изтриването на профила остава достъпно и при заключване (App Store / Google Play).
+                '<a id="npPlanEditingDelete" href="delete-account.html" style="display:block;margin-top:14px;min-height:44px;line-height:44px;font-size:.82rem;font-weight:600;color:var(--text-light,#6b7280);text-decoration:underline;text-underline-offset:3px;">Изтрий профила</a>',
                 '</div>'
             ].join('');
             document.body.appendChild(overlay);
+            // В профила — същият прозорец за потвърждение; другаде — страницата с начините.
+            var del = document.getElementById('npPlanEditingDelete');
+            if (del) {
+                del.addEventListener('click', function (e) {
+                    if (typeof window.openDeleteAccount !== 'function') return;
+                    e.preventDefault();
+                    window.openDeleteAccount();
+                });
+            }
         }
         var msgEl = document.getElementById('npPlanEditingMessage');
         if (msgEl) msgEl.textContent = message || PLAN_EDITING_MESSAGE;

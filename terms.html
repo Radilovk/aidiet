@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bg">
+<html lang="bg" class="no-js">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -7,122 +7,42 @@
     <meta name="robots" content="index, follow">
     <title>Условия за ползване — NutriPlan</title>
     <link rel="icon" type="image/png" href="/icon-192x192.png">
-    <style>
-        :root {
-            --primary: #007C80;
-            --bg: #F0FDFA;
-            --text: #1a2e2e;
-            --muted: #4E6B6B;
-            --border: #cce8e4;
-            --surface: #ffffff;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0A1A1A;
-                --text: #e0f5f0;
-                --muted: #7faba6;
-                --primary: #2DD4BF;
-                --border: #1a3232;
-                --surface: #0f2828;
-            }
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.7;
-        }
-        header {
-            background: linear-gradient(135deg, #042F2E 0%, #0F766E 100%);
-            color: #fff;
-            padding: 24px 5%;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        header a { color: rgba(255,255,255,0.92); text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; min-height: 44px; }
-        header a:hover { color: #fff; }
-        header .sep { color: rgba(255,255,255,0.88); }
-        header h1 { font-size: 1.5rem; font-weight: 700; }
-        main {
-            max-width: 820px;
-            margin: 0 auto;
-            padding: 40px 5% 80px;
-        }
-        .meta {
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 32px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-        }
-        h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin: 36px 0 12px;
-        }
-        h3 {
-            font-size: 1.05rem;
-            font-weight: 600;
-            margin: 24px 0 8px;
-        }
-        p { margin-bottom: 12px; }
-        ul, ol { padding-left: 24px; margin-bottom: 12px; }
-        li { margin-bottom: 6px; }
-        a { color: var(--primary); }
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin: 16px 0;
-        }
-        .warning {
-            background: rgba(239,68,68,0.08);
-            border-left: 4px solid #ef4444;
-            padding: 14px 18px;
-            border-radius: 0 8px 8px 0;
-            margin: 16px 0;
-        }
-        .highlight {
-            background: rgba(0,154,158,0.08);
-            border-left: 4px solid var(--primary);
-            padding: 14px 18px;
-            border-radius: 0 8px 8px 0;
-            margin: 16px 0;
-        }
-        footer {
-            text-align: center;
-            padding: 32px 5%;
-            color: var(--muted);
-            font-size: 0.85rem;
-            border-top: 1px solid var(--border);
-        }
-        footer a { color: var(--primary); text-decoration: none; }
-    </style>
+    <meta name="theme-color" content="#F4FBFA">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+    <script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.querySelector('meta[name="theme-color"]').setAttribute('content','#071312');})();</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:ital,wght@1,600&display=swap">
+    <link rel="stylesheet" href="protocol-page.css?v=20261031a">
+    <link rel="stylesheet" href="site-footer.css?v=20261031a">
 </head>
 <body>
 
-<header>
-    <a href="/">NutriPlan</a>
-    <span class="sep">›</span>
-    <h1>Условия за ползване</h1>
-</header>
+    <header class="topbar">
+        <div class="wrap">
+            <a class="brand" href="index.html?stay=1" aria-label="NutriPlan — начало">
+                <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span>NutriPlan
+            </a>
+            <button class="icon-btn" id="theme-toggle" type="button" aria-label="Смени светла / тъмна тема">
+                <span class="i-moon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><span class="i-sun"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+            </button>
+        </div>
+    </header>
 
-<main>
-    <div class="meta">
-        Последна актуализация: 1 юни 2026 г. &nbsp;·&nbsp;
-        Версия: 1.0
-    </div>
+<main class="wrap">
+        <section class="doc-hero">
+            <span class="chip">Правни</span>
+            <h1>Условия за <em>ползване</em></h1>
+            <p class="updated">Последна актуализация: 31 октомври 2026 г. · Версия 1.1</p>
+        </section>
+        <div class="prose">
 
-    <div class="highlight">
-        Моля, прочетете внимателно тези условия преди да използвате NutriPlan. Използването на приложението означава, че приемате тези условия.
+    <div class="card callout">
+        Прочети тези условия, преди да използваш NutriPlan. Използването на приложението означава, че ги приемаш.
     </div>
 
     <h2>1. Обхват и страни</h2>
-    <p>Тези Условия за ползване ("Условията") уреждат отношенията между Biocode / NutriPlan ("Ние", "Нас") и всеки потребител ("Вие") на уебсайта <a href="https://biocode.website">biocode.website</a> и мобилното приложение NutriPlan (com.biocode.nutriplan).</p>
+    <p>Тези Условия за ползване ("Условията") уреждат отношенията между Biocode / NutriPlan ("ние") и всеки потребител ("ти") на уебсайта <a href="https://biocode.website">biocode.website</a> и мобилното приложение NutriPlan (com.biocode.nutriplan).</p>
 
     <h2>2. Описание на услугата</h2>
     <p>NutriPlan е AI-базирана платформа за персонализирано хранене, включваща:</p>
@@ -135,22 +55,22 @@
     </ul>
 
     <h2>3. Медицинска декларация — важно</h2>
-    <div class="warning">
+    <div class="card callout">
         <strong>⚠️ NutriPlan НЕ е медицинска услуга и НЕ замества лекарска консултация.</strong>
-        <p style="margin-top:8px;">Информацията и препоръките в приложението са само с информационна цел. Преди да промените диетата си — особено при наличие на медицински заболявания, бременност, или при прием на медикаменти — консултирайте се с лекар или диетолог. Ние не носим отговорност за здравословни последствия от следването на препоръките без лекарско наблюдение.</p>
+        <p>Информацията и препоръките в приложението са само с информационна цел. Преди да промениш храненето си — особено при заболяване, бременност или прием на медикаменти — консултирай се с лекар или диетолог. Ние не носим отговорност за здравословни последствия от следването на препоръките без лекарско наблюдение.</p>
     </div>
 
     <h2>4. Изисквания за ползване</h2>
     <ul>
-        <li>Трябва да сте навършили <strong>13 години</strong>. Лица под 13 г. нямат право да ползват услугата.</li>
+        <li>Трябва да имаш навършени <strong>13 години</strong>. Лица под 13 г. нямат право да ползват услугата.</li>
         <li>Лица между 13 и 18 години трябва да имат изричното съгласие на родител или настойник.</li>
-        <li>Трябва да предоставите вярна и актуална информация при попълване на профила.</li>
+        <li>Трябва да предоставиш вярна и актуална информация при попълване на профила.</li>
     </ul>
 
     <h2>5. Акаунт и сигурност</h2>
     <ul>
-        <li>Вие сте отговорни за сигурността на акаунта си.</li>
-        <li>При съмнение за неоторизиран достъп, свържете се с нас незабавно на <a href="mailto:privacy@biocode.website">privacy@biocode.website</a>.</li>
+        <li>Сигурността на акаунта е твоя отговорност.</li>
+        <li>При съмнение за неоторизиран достъп, свържи се с нас незабавно на <a href="mailto:privacy@biocode.website">privacy@biocode.website</a>.</li>
         <li>Един акаунт е предназначен за един потребител.</li>
     </ul>
 
@@ -165,7 +85,7 @@
     </ul>
 
     <h2>7. Интелектуална собственост</h2>
-    <p>Всички права върху приложението, дизайна, кода и AI алгоритмите принадлежат на Biocode / NutriPlan. Вашият персонализиран хранителен план е предназначен само за лична употреба.</p>
+    <p>Всички права върху приложението, дизайна, кода и AI алгоритмите принадлежат на Biocode / NutriPlan. Твоят персонализиран хранителен план е предназначен само за лична употреба.</p>
 
     <h2>8. Ограничение на отговорността</h2>
     <div class="card">
@@ -173,16 +93,16 @@
         <ul>
             <li>Здравословни последствия от следване на препоръките без лекарска консултация</li>
             <li>Загуба на данни поради технически проблеми извън нашия контрол</li>
-            <li>Временна недостъпност на услугата (плановате поддръжки или форсмажор)</li>
+            <li>Временна недостъпност на услугата (планирана поддръжка или форсмажор)</li>
             <li>Непреки или последващи вреди</li>
         </ul>
     </div>
 
     <h2>9. Прекратяване на акаунт</h2>
-    <p>Можете да изтриете акаунта си по всяко време от Профил → Настройки или като изпратите заявка на <a href="mailto:privacy@biocode.website">privacy@biocode.website</a>. Запазваме си правото да прекратим акаунти при нарушаване на тези условия.</p>
+    <p>Можеш да изтриеш акаунта си по всяко време от Профил → „Изтрий профила“ или със заявка на <a href="mailto:privacy@biocode.website">privacy@biocode.website</a> (<a href="delete-account.html">как</a>). Запазваме си правото да прекратим акаунти при нарушаване на тези условия.</p>
 
     <h2>10. Промени в условията</h2>
-    <p>При съществени промени ще ви уведомим чрез известие в приложението минимум 14 дни предварително. Актуалните условия са винаги достъпни на <a href="https://biocode.website/terms.html">biocode.website/terms.html</a>.</p>
+    <p>При съществени промени ще те уведомим чрез известие в приложението минимум 14 дни предварително. Актуалните условия са винаги достъпни на <a href="https://biocode.website/terms.html">biocode.website/terms.html</a>.</p>
 
     <h2>11. Приложимо право</h2>
     <p>Тези условия се уреждат от законодателството на Република България и Европейския съюз. Споровете се решават в компетентния съд в България.</p>
@@ -192,11 +112,67 @@
         <p>За въпроси: <a href="mailto:privacy@biocode.website">privacy@biocode.website</a></p>
         <p>Уебсайт: <a href="https://biocode.website">biocode.website</a></p>
     </div>
-</main>
+        </div>
+    </main>
 
-<footer>
-    <p>&copy; 2026 NutriPlan · <a href="/">Начало</a> · <a href="/terms.html">Условия за ползване</a> · <a href="/privacy-policy.html">Поверителност</a></p>
-</footer>
+    <!-- site-footer:start — генерира се от scripts/build-protocol-pages.mjs, не редактирай тук -->
+    <footer class="sf" role="contentinfo">
+        <script>try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())document.documentElement.classList.add('is-native')}catch(e){}</script>
+        <div class="sf-wrap">
+            <div class="sf-top">
+                <div class="sf-brand">
+                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span>NutriPlan</a>
+                    <p class="sf-tag">Хранене по твоя мярка.</p>
+                    <p class="sf-about">Седмично меню с точни грамажи — по тялото, здравето и вкусовете ти. Коригира се всяка седмица според резултата.</p>
+                    <div class="sf-stores sf-web" aria-label="Мобилни магазини">
+                        <span class="sf-store"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg><span><small>Скоро в</small><b>Google Play</b></span></span>
+                        <span class="sf-store"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg><span><small>Скоро в</small><b>App Store</b></span></span>
+                    </div>
+                </div>
+                <nav class="sf-cols" aria-label="Карта на сайта">
+                    <div>
+                        <h2 class="sf-h">Продукт</h2>
+                        <ul>
+                            <li><a href="index.html?stay=1#how-it-works">Как работи</a></li>
+                            <li><a href="features.html">Възможности</a></li>
+                            <li><a href="questionnaire2.html">Създай план</a></li>
+                            <li class="sf-web"><a href="index.html?stay=1#android-install">Приложението</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="sf-h">Програми</h2>
+                        <ul>
+                            <li><a href="protocol-landing.html">Клинични протоколи</a></li>
+                            <li><a href="emoeat.html">Емоционално хранене</a></li>
+                            <li><a href="longevity.html">Дълголетие <small>с профил</small></a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="sf-h">Помощ</h2>
+                        <ul>
+                            <li><a href="help.html">Въпроси и отговори</a></li>
+                            <li><a href="index.html?stay=1#contact">Контакт</a></li>
+                            <li><a href="delete-account.html">Изтриване на профил</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="sf-h">Правни</h2>
+                        <ul>
+                            <li><a href="privacy-policy.html">Поверителност</a></li>
+                            <li><a href="terms.html">Условия за ползване</a></li>
+                            <li><a href="help.html#health">Здраве и безопасност</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+            <div class="sf-bottom">
+                <p>© 2026 NutriPlan · biocode.website</p>
+                <p>Хранителни насоки, не медицинска услуга. При заболяване — с лекар.</p>
+            </div>
+        </div>
+    </footer>
+    <!-- site-footer:end -->
 
+    <script src="protocol-page.js?v=20261031a" defer></script>
 </body>
 </html>

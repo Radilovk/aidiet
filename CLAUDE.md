@@ -7,7 +7,11 @@
 ## NutriPlan (PWA + Android APK, `com.biocode.nutriplan`)
 - Страници: `index.html` (вход), `questionnaire2.html`, `plan.html`, `profile.html`, `analysis.html`,
   `plan-pending.html`, `plan-book.html`, `game-analytics.html`, `guidelines.html`, `quick-answer.html`,
-  `food-picker.html`, `features.html`, `warning.html`, `privacy-policy.html`, `terms.html`.
+  `food-picker.html`, `features.html`, `warning.html`, `privacy-policy.html`, `terms.html`, `help.html` (въпроси и отговори),
+  `delete-account.html` (изтриване на профил — адресът за Google Play; в приложението: Профил → „Изтрий профила“, `/api/user/delete-account`).
+- Публични страници извън приложението: `protocol-landing.html` + `protocol-<slug>.html`, `sitemap.xml` и общият футър
+  (`site-footer.css`, между маркерите `site-footer:start/end`) се генерират от `protocol-states.js` със
+  `npm run build:protocol-pages` (проверка: `test:protocol-pages`). Стил: `protocol-page.css`. Футърът не се редактира на ръка.
 - Общ фронтенд JS: `app.js`, `app-ui.js`/`app-ui.css`, `design-system.css`, `platform.js`, `platform-compat.js`,
   `session-utils.js`, `auth-guard.js`, `plan-sync.js`, `local-scheduler.js`, `notification-launch.js`,
   `health-sync.js`, `activity-tracker.js` (крачкомер + въпрос за тренировка; дневните цели — `nutrition-engine/metabolic.js`), `native-backup.js`, `drive-backup.js`, `meal-swaps.js`, `game-scoring.js`, `sw.js`, `manifest.json`.

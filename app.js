@@ -974,7 +974,7 @@
     }
 
     /** Clear the signed-in user's data from shell storage; never throws. */
-    function clearShellSession() {
+    function clearShellSession(full) {
         var session = window.NutriPlanSession;
         var signedOut = Promise.resolve();
         try {
@@ -982,11 +982,15 @@
                 signedOut = Promise.resolve(window.NutriPlanAuthSignOut()).catch(function () {});
             }
         } catch (_) {}
-        return signedOut.then(function () { return clearShellStorage(session); });
+        return signedOut.then(function () { return clearShellStorage(session, full); });
     }
 
-    function clearShellStorage(session) {
+    /** full — след изтрит профил: без запазена аналитика на устройството. */
+    function clearShellStorage(session, full) {
         try {
+            if (full && session && typeof session.clearUserSessionData === 'function') {
+                return Promise.resolve(session.clearUserSessionData()).catch(function () {});
+            }
             if (session && typeof session.clearAuthSessionKeepingAnalytics === 'function') {
                 return Promise.resolve(session.clearAuthSessionKeepingAnalytics()).catch(function () {});
             }
@@ -1061,12 +1065,14 @@
             // signed out and cleared already, but the shell owns the storage the
             // next screen reads — leaving that to the caller is how logout came
             // to be "navigate only" inside the app.
-            clearShellSession().then(function() {
+            // deleted — профилът е изтрит: всичко от устройството и към началото със съобщение.
+            var deleted = data.deleted === true;
+            clearShellSession(deleted).then(function() {
                 // Излязъл потребител не получава повече напомняния за плана.
                 try {
                     if (window.GameNotifier && typeof window.GameNotifier.cancelAll === 'function') window.GameNotifier.cancelAll();
                 } catch (_) {}
-                window.location.replace('index.html?stay=1&login=1');
+                window.location.replace(deleted ? 'index.html?stay=1&deleted=1' : 'index.html?stay=1&login=1');
             });
             return;
         }

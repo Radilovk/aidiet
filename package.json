@@ -40,6 +40,7 @@
     "test:handoff": "node scripts/test-handoff.mjs",
     "build:protocol-pages": "node scripts/build-protocol-pages.mjs",
     "test:protocol-pages": "node scripts/build-protocol-pages.mjs --check",
+    "test:account-deletion": "node scripts/test-account-deletion.mjs",
     "test:crosscheck": "node scripts/test-crosscheck.mjs",
     "test:chat-clarify": "node scripts/test-chat-clarify.mjs",
     "test:engine": "node scripts/test-nutrition-engine.mjs",
