@@ -165,16 +165,17 @@ export function buildClientCard(clientData, options = {}) {
   };
 }
 
-/** @typedef {'voice'|'profile'|'profile_full'|'health'|'summary'|'meals'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
+/** @typedef {'today'|'voice'|'profile'|'profile_full'|'health'|'summary'|'meals'|'meals_week'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
 
 const CHAT_SECTION_ORDER = /** @type {const} */ ([
-  'voice', 'profile', 'profile_full', 'health', 'summary', 'meals', 'analysis', 'strategy',
+  'today', 'voice', 'profile', 'profile_full', 'health', 'summary', 'meals', 'meals_week', 'analysis', 'strategy',
   'recommendations', 'forbidden', 'psychology', 'supplements', 'water',
 ]);
 
 // Данните от устройствата са кратки и обясняват почти всеки въпрос („защо не отслабвам“) — винаги.
-const CHAT_BASE = ['voice', 'profile', 'health', 'summary', 'meals', 'recommendations', 'forbidden'];
-const CHAT_MODIFICATION = [...CHAT_SECTION_ORDER];
+// „Днес“ — винаги: без него „какво да ям сега“ и „колко ми остава“ нямат верен отговор.
+const CHAT_BASE = ['today', 'voice', 'profile', 'health', 'summary', 'meals', 'recommendations', 'forbidden'];
+const CHAT_MODIFICATION = CHAT_SECTION_ORDER.filter(id => id !== 'meals');
 
 const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */ ([
   [/(?<![\p{L}\p{N}])(калори|kcal|ккал|bmr|tdee|енерги|макро|протеин|белтък|въглехидрат|мазнин|bmi|метабол)/iu, ['summary', 'analysis']],
@@ -185,6 +186,8 @@ const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} 
   [/(?<![\p{L}\p{N}])(добавк|витамин|минерал|суплемент)/iu, 'supplements'],
   [/(?<![\p{L}\p{N}])(вода|хидрат|течност)/iu, 'water'],
   [/(?<![\p{L}\p{N}])(анамнез|история|лекарств|медицин|сън|активност|спорт|хронотип)/iu, 'profile_full'],
+  // Седмицата — само когато въпросът е за друг ден; иначе днес и утре (~3 пъти по-малко токени).
+  [/(?<![\p{L}\p{N}])(понеделн|вторн|сряда|сряд|четвърт|петък|събот|недел|седмиц|вчера|вдругиден|друг ден|другия ден|ден \d|цялото меню|всички дни)/iu, 'meals_week'],
 ]);
 
 /**
@@ -196,11 +199,25 @@ const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} 
  * Как говорим на този човек — тонът и портретът от гласа на плана, за да
  * отговаря консултантът в същия стил (обръщение, подход към тригерите).
  */
-function serializeVoice(voice) {
-  if (!voice || typeof voice !== 'object') return '';
+/** Персоната от EmoEat (persona.js): подходът и рисковият час на емоционалното хранене. */
+const PERSONA_TONE = { warm: 'топло и подкрепящо', gentle: 'меко, без натиск', direct: 'кратко и по същество', playful: 'леко, с малки предизвикателства' };
+function personaRows(persona) {
+  if (!persona || typeof persona !== 'object') return [];
+  const hm = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+  return [
+    persona.tone && PERSONA_TONE[persona.tone] ? `подход: ${PERSONA_TONE[persona.tone]}${persona.noScores ? '; без оценки, точки и сравнения' : ''}` : '',
+    persona.archetype ? `емоционален профил (EmoEat): ${persona.archetype}` : '',
+    persona.riskWindow && persona.emotional ? `рисков час за хранене от емоция: ${hm(persona.riskWindow.from)}–${hm(persona.riskWindow.to)}` : '',
+  ].filter(Boolean);
+}
+
+function serializeVoice(voice, persona) {
+  const pRows = personaRows(persona);
+  if (!voice || typeof voice !== 'object') return pRows.length ? `#VC v1 ${esc(['обръщение: ти', ...pRows].join(' | ')).slice(0, 1400)}` : '';
   const p = voice.portrait || {};
   const rows = [
     `обръщение: ${voice.tone?.address || 'ти'}${voice.tone?.style ? `; тон: ${voice.tone.style}` : ''}`,
+    ...pRows,
     p.summary ? `човекът: ${p.summary}` : '',
     p.emotional ? `емоционално: ${p.emotional}` : '',
     p.personality ? `стил: ${p.personality}` : '',
@@ -210,11 +227,31 @@ function serializeVoice(voice) {
   return `#VC v1 ${esc(rows.join(' | ')).slice(0, 1400)}`;
 }
 
+/**
+ * Днешният ден от устройството на клиента (plan.html → userData._today): дата и час,
+ * кой ден от плана е, храненията с отметки, добавеното по снимка и изяденото.
+ */
+function serializeToday(t) {
+  if (!t || typeof t !== 'object' || !t.date) return '';
+  const meals = (Array.isArray(t.meals) ? t.meals : []).slice(0, 8)
+    .map(m => `${m.label}: ${m.name}${m.kcal ? ` (${m.kcal} kcal)` : ''} ${m.done ? '✓ изядено' : '— предстои'}${!m.done && m.alts?.length ? `; „Друго ястие“: ${m.alts.join(', ')}` : ''}`);
+  const extra = (Array.isArray(t.extra) ? t.extra : []).slice(0, 6).map(e => `${e.name}${e.kcal ? ` (${e.kcal} kcal)` : ''}`);
+  const head = `${t.weekday || ''} ${t.date} ${t.time || ''} · ден ${t.planDay} от плана${t.planKcal ? ` · изядено ${t.eatenKcal || 0} от ${t.planKcal} kcal по плана` : ''}`;
+  return `#TD v1 ${esc([head.trim(), ...meals, extra.length ? `извън плана: ${extra.join(', ')}` : ''].filter(Boolean).join(' | ')).slice(0, 900)}`;
+}
+
+/** Днешният и утрешният ден на плана — без „днес“ (сървърът без устройството): цялата седмица. */
+function todayAndTomorrow(today) {
+  const d = Number(today?.planDay);
+  return d >= 1 && d <= 7 ? { days: [`day${d}`, `day${(d % 7) + 1}`] } : {};
+}
+
 export function buildChatContextSections(userData, plan) {
   const p = plan || {};
   const hasNotes = Boolean(userData?.additionalNotes);
   const sections = {
-    voice: serializeVoice(p.aiVoice),
+    today: serializeToday(userData?._today),
+    voice: serializeVoice(p.aiVoice, userData?._persona),
     profile: serializeUserProfile(userData, 'strategy'),
     profile_full: serializeUserProfile(userData, 'full', {
       hasNotesSection: hasNotes,
@@ -222,7 +259,9 @@ export function buildChatContextSections(userData, plan) {
     }),
     health: userData?._healthEssence ? `#HD v1 ${esc(String(userData._healthEssence).slice(0, 2400))}` : '',
     summary: serializePlanSummary(p.summary) || '',
-    meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : '',
+    // Днес и утре; цялата седмица — отделна секция, само ако въпросът е за друг ден.
+    meals: p.weekPlan ? serializeWeekPlanClient(p.weekPlan, todayAndTomorrow(userData?._today)) : '',
+    meals_week: p.weekPlan ? serializeWeekPlanClient(p.weekPlan) : '',
     analysis: serializeAnalysisForStep(p.analysis || p.step0, 4) || '',
     strategy: serializeStrategyForMealPlan(p.strategy) || '',
     recommendations: p.recommendations ? `#RC v1 ${serializeList(p.recommendations, 15)}` : '',
@@ -254,6 +293,7 @@ export function selectChatSections(message, mode = 'consultation') {
     for (const id of ids) picked.add(id);
   }
   if (picked.has('profile_full')) picked.delete('profile');
+  if (picked.has('meals_week')) picked.delete('meals');
   return CHAT_SECTION_ORDER.filter((id) => picked.has(id));
 }
 

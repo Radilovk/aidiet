@@ -448,11 +448,11 @@ const DEFAULT_GOAL_HACKS = {
     '🍽️ Сервирай порцията от плана в чиния, не от тенджерата - количеството остава точно'
   ],
   'Покачване на мускулна маса': [
-    '💪 Белтък във всяко хранене - за мускулите решава количеството за деня, не минутиш след тренировка',
+    '💪 Белтък във всяко хранене - за мускулите решава количеството за деня, не минутите след тренировка',
     '🍳 Разпредели протеина равномерно през деня (минимум 4 порции)',
     '🛌 Спи 7–9 часа - възстановяването и растежът на мускулите зависят от съня',
     '🥛 Извара, кисело мляко или казеин преди сън - белтък за нощното възстановяване',
-    '🍌 Въглехидрати след тренировка попълват гликогеновите запаси'
+    '🍌 Въглехидрати в храненето преди тренировка - енергия за натоварването'
   ],
   'Подобряване на здравето': [
     '🌈 Яжте минимум 5 различни цвята плодове/зеленчуци дневно',
@@ -3714,6 +3714,25 @@ function chatContextHasMealGrams(text) {
 /**
  * Handle chat assistant requests — client sends pre-built NPCF contextText.
  */
+/**
+ * Планът за снимката на храна или меню: дневните цели, какво е планирано за това
+ * хранене днес, докъде е денят и какво не бива. Без него „подходящо ли е“ се
+ * преценяваше само по дневните калории.
+ */
+function photoPlanContextText(dietPlan) {
+  if (!dietPlan) return '';
+  const parts = [];
+  if (dietPlan.summary) parts.push(`Дневно: ${typeof dietPlan.summary === 'string' ? dietPlan.summary : JSON.stringify(dietPlan.summary)}`);
+  const m = dietPlan.slotMeal;
+  if (m && m.name) {
+    const mac = m.macros ? ` (белтък ${m.macros.protein} г, въглехидрати ${m.macros.carbs} г, мазнини ${m.macros.fats} г)` : '';
+    parts.push(`Планирано за ${m.label || 'това хранене'} днес: ${m.name} — ${m.calories} kcal${mac}. Сравни с него.`);
+  }
+  if (dietPlan.today && dietPlan.today.planKcal) parts.push(`Днес до момента: ${dietPlan.today.eatenKcal || 0} от ${dietPlan.today.planKcal} kcal по плана.`);
+  if (Array.isArray(dietPlan.forbidden) && dietPlan.forbidden.length) parts.push(`Да се избягва: ${dietPlan.forbidden.slice(0, 12).map(String).join(', ')}.`);
+  return parts.join('\n');
+}
+
 async function handleChat(request, env) {
   try {
     const body = await request.json();
@@ -3733,16 +3752,9 @@ async function handleChat(request, env) {
     }
 
     let effectiveContextText = contextText;
-    if (userData && userPlan) {
-      const serverContext = buildChatContext(
-        userData,
-        userPlan,
-        message,
-        mode || 'consultation',
-      ).contextText;
-      if (!chatContextHasMealGrams(effectiveContextText)) {
-        effectiveContextText = serverContext;
-      }
+    // Сървърът сглобява контекст само когато клиентът не е пратил годен (с грамажите на ястията).
+    if (!chatContextHasMealGrams(effectiveContextText) && userData && userPlan?.weekPlan) {
+      effectiveContextText = buildChatContext(userData, userPlan, message, mode || 'consultation').contextText;
     } else if (!effectiveContextText) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
@@ -3770,7 +3782,7 @@ async function handleChat(request, env) {
       : null;
     if (clarifyQ) chatPrompt += clarifyPromptBlock(clarifyQ, { asked: clarifyQ.id === askedId });
 
-    let aiResponse = await callAIModel(env, chatPrompt, 2000, 'chat_consultation', null, effectiveUserData, null, true);
+    let aiResponse = await callAIModel(env, chatPrompt, 2000, chatMode === 'modification' ? 'chat_modification' : 'chat_consultation', null, effectiveUserData, null, true);
     const clarify = extractClarify(aiResponse, clarifyQ);
     aiResponse = clarify.text;
     
@@ -9249,16 +9261,19 @@ async function getChatPrompts(env) {
 ВАЖНИ ПРАВИЛА:
 1. Можеш да четеш плана, но НЕ МОЖЕШ да го променяш.
 2. Бъди КРАТЪК но информативен - максимум 3-4 изречения, прост език.
-3. Ако клиентът иска промяна, кажи: "За промяна активирай режима за промяна на плана."
+3. Ако клиентът иска друго ястие, насочи го към бутона „Друго ястие“ на картата на храненето — там са равностойните варианти по калории и белтък. Не повтаряй това, ако не е питал за смяна.
 4. НИКОГА не използвай [REGENERATE_PLAN:...] инструкции.
 5. Винаги поддържай мотивиращ тон.
 6. Форматирай отговорите си ясно - използвай нови редове за разделяне на мисли.
-7. Задавай максимум 1 въпрос на отговор.
-8. Адаптирай стила на комуникация към клиента: {communicationStyle}
+7. Задавай въпрос само ако без отговора не можеш да помогнеш — най-много един.
+8. Не поздравявай във всеки отговор — разговорът вече тече. Без термини (BMR, TDEE, макроси) — с ежедневни думи.
+9. За „днес“, „сега“, „тази вечер“ — секцията today: датата, часа, отметнатите хранения и вариантите на „Друго ястие“.
+10. Тонът е от секцията voice: обръщението, стилът, тригерите и подходът към този човек. При „без оценки“ — без оценки и сравнения; при емоционален профил — без вина и натиск, едно малко действие; ако пише в рисковия си час за хранене от емоция и иска храна извън плана — първо пауза и въпрос „глад ли е или нещо друго“.
+11. Адаптирай стила на комуникация към клиента: {communicationStyle}
 
 ПРИМЕРИ:
-- "Закуската в понеделник е овесена каша с банан — калориите и грамажите са в плана ти. За промяна, активирай режима за промяна."
-- "Можеш да замениш рибата с пилешко - и двете са отлични източници на протеин. За промяна, активирай режима за промяна."`,
+- "Закуската в понеделник е овесена каша с банан — калориите и грамажите са в плана ти."
+- "Рибата може да се смени с пилешко — и двете са добър белтък. Натисни „Друго ястие“ на картата на вечерята."`,
     modification: `ТЕКУЩ РЕЖИМ: ПРОМЯНА НА ПЛАНА
 
 ВАЖНИ ПРАВИЛА:
@@ -9581,6 +9596,8 @@ function isFlashWithoutThinking(modelName) {
  * клиента — малко (трябва да спазват ограниченията); преписване и разпознаване — минимално.
  */
 const AI_TASKS = {
+  // Консултацията е 3–4 изречения по готов контекст: без мислене и с кратък таван.
+  chat_consultation: { tier: 'main', thinking: 'minimal', maxTokens: 600 },
   chat: { tier: 'main', thinking: 'low', maxTokens: 1000 },
   plan_voice: { tier: 'main', thinking: 'low' },
   plan_voice_repair: { tier: 'lite', thinking: 'minimal' },
@@ -9606,6 +9623,7 @@ const AI_TASKS = {
 
 function aiTaskOf(stepName) {
   const name = String(stepName || '');
+  if (name === 'chat_consultation') return AI_TASKS.chat_consultation;
   if (name.startsWith('chat')) return AI_TASKS.chat;
   return AI_TASKS[name] || null;
 }
@@ -9990,10 +10008,7 @@ async function handleAnalyzeFoodImage(request, env) {
       dietContext = parts.join('. ');
     }
 
-    let planContext = '';
-    if (dietPlan && dietPlan.summary) {
-      planContext = typeof dietPlan.summary === 'string' ? dietPlan.summary : JSON.stringify(dietPlan.summary);
-    }
+    const planContext = photoPlanContextText(dietPlan);
 
     const mealTime = mealContext || 'неуточнено';
 
@@ -10045,6 +10060,9 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
 
 ВАЖНО:
 - calories за ВСЯКА храна е ЗАДЪЛЖИТЕЛНО числово поле — изчисли го ВИНАГИ: протеини×4 + въглехидрати×4 + мазнини×9
+- Изброй всяка видима съставка поотделно с грамаж (напр. пиле 120 г, царевица 60 г), не „салата“ като едно цяло — така клиентът вижда какво е преброено
+- Ако е дадено планираното за това хранене, сравни калориите и белтъка с него в explanation
+- Пиши на „ти“
 - Оценявай грамажа визуално спрямо размера на чинията/контейнера
 - Ако не можеш да разпознаеш храната, постави confidence: "low" и обясни
 - Всички числа да са числа (не текст)
@@ -10079,6 +10097,10 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
         message: 'Снимката не беше разпозната. Опитай отново с по-ясна снимка.'
       });
     }
+
+    // Оценката е от 5 — интерфейсът и „вредна храна“ (≤ 2) я четат така; промпт с 1–10 се свежда.
+    const suitScore = Number(analysisResult?.dietSuitability?.score);
+    if (suitScore > 5) analysisResult.dietSuitability.score = Math.round(suitScore / 2);
 
     // b6 guarantee: every food item MUST have numeric calories.
     // If the AI left calories missing or zero, compute from macros (protein*4 + carbs*4 + fats*9).
@@ -10162,10 +10184,7 @@ async function handleAnalyzeMenuImage(request, env) {
       dietContext = parts.join('. ');
     }
 
-    let planContext = '';
-    if (dietPlan && dietPlan.summary) {
-      planContext = typeof dietPlan.summary === 'string' ? dietPlan.summary : JSON.stringify(dietPlan.summary);
-    }
+    const planContext = photoPlanContextText(dietPlan);
 
     const mealTime = mealContext || 'неуточнено';
 
@@ -10191,6 +10210,8 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
 - Дай оценка за подходящост от 0 до 5 (5 = отлично, 0 = абсолютно неподходящо)
 - Посочи и до 2 алтернативи ако има
 - Дай конкретна адаптация за поръчката (напр. "Поискай без сос", "Добави само лимон")
+- Ако е дадено планираното за това хранене, предпочети ястие, близко до него по калории и белтък
+- Пиши на „ти“
 
 Върни ТОЧНО този JSON:
 {

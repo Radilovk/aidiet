@@ -456,7 +456,8 @@ function compactMealItems(description) {
 export function serializeWeekPlanClient(weekPlan, options = {}) {
   if (!weekPlan) return '';
   const dayFilter = options.days?.length ? new Set(options.days) : null;
-  const lines = ['#PL v2 chat|day|type|name|kcal|g|P|C|F|items'];
+  // Легендата е за асистента: иначе повтаря кодовете („вечеря (H4)“) и не знае кой ден е понеделник.
+  const lines = ['#PL v2 chat|day|type|name|kcal|g|P|C|F|items — day1 понеделник … day7 неделя; H1 закуска, H2 обяд, H3 следобедна закуска, H4 вечеря, H5 късна закуска, SF свободно хранене — в отговора пиши имената, не кодовете'];
   for (const [dayKey, dayData] of Object.entries(weekPlan)) {
     if (dayFilter && !dayFilter.has(dayKey)) continue;
     if (!dayData?.meals?.length) continue;

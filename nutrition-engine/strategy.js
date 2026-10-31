@@ -7,7 +7,7 @@
 import { dietLabelOf, encodeProfileCode, libraryDietProfileOf, GOALS } from '../profile-code.js';
 import { waterNeedLiters } from '../analysis-deterministic.js';
 import { GROUPS, CONDITIONS, PROTOCOLS } from './knowledge.js';
-import { buildFoodGuide } from './food-guide.js';
+import { buildFoodGuide, portionExample } from './food-guide.js';
 import { weeklySchemeFromPlan, ENGINE_ID } from './plan-shape.js';
 
 export const MEAL_LABELS = {
@@ -57,14 +57,20 @@ function round(n) {
   return Math.round(Number(n) || 0);
 }
 
+/** „N порции (1 порция = …)“ — мярката е там, където е числото, не по-надолу в насоките. */
+function portionsText(n, group, policy, exclusions) {
+  const ex = portionExample(group, { pattern: policy.pattern, style: policy.style, ex: new Set(exclusions || []) });
+  return `${fmt(n)} ${n === 1 ? 'порция' : 'порции'} дневно${ex ? ` (${ex})` : ''}`;
+}
+
 /** Препоръките — конкретни числа от схемата и рамката на седмицата. */
-function recommendationsOf(prescription, stats, policy) {
+function recommendationsOf(prescription, stats, policy, exclusions) {
   const d = prescription.daily;
   const mains = stats.mains || {};
   const list = [];
   list.push(`Зеленчуци на всяко основно хранене — около ${round(d.VEG * 100)} г дневно`);
-  if (d.FRU > 0) list.push(`Плодове: ${fmt(d.FRU)} порции дневно, цели плодове вместо сок`);
-  if (d.MLK > 0) list.push(`Кисело мляко или кефир: ${fmt(d.MLK)} порции дневно`);
+  if (d.FRU > 0) list.push(`Плодове: ${portionsText(d.FRU, 'FRU', policy, exclusions)}, цели плодове вместо сок`);
+  if (d.MLK > 0) list.push(`${policy.pattern === 'vegan' || (exclusions || []).includes('LAC') ? 'Растително мляко или йогурт' : 'Кисело мляко или кефир'}: ${portionsText(d.MLK, 'MLK', policy, exclusions)}`);
   if (mains.fish) list.push(`Риба ${mains.fish} пъти седмично${policy.styleDef.prefer?.includes('oily_fish') ? ', предимно мазна (сьомга, скумрия, пъстърва)' : ''}`);
   if (mains.legume) list.push(`Бобови (леща, боб, нахут) ${mains.legume} пъти седмично`);
   if (d.STA > 0 && policy.style !== 'keto') list.push('Пълнозърнест хляб, булгур, елда и кафяв ориз вместо бели храни');
@@ -268,9 +274,9 @@ export function buildEngineStrategy(engine, userData, options) {
       quality: metabolicPlan.quality,
       micro: metabolicPlan.micro || null,
     } : null,
-    preferredFoodCategories: recommendationsOf(prescription, stats, policy),
+    preferredFoodCategories: recommendationsOf(prescription, stats, policy, profile.exclusions),
     avoidFoodCategories: avoidOf(profile, policy, blocked),
-    foodsToInclude: recommendationsOf(prescription, stats, policy),
+    foodsToInclude: recommendationsOf(prescription, stats, policy, profile.exclusions),
     foodsToAvoid: avoidOf(profile, policy, blocked),
     psychologicalSupport: psychologyTipsOf(profile, userData),
     foodGuide: buildFoodGuide(engine, userData, { blockedTerms: blocked }),

@@ -1863,7 +1863,7 @@
         .problem-change[data-c="better"] { background: var(--ds-success-bg); color: var(--ds-success-text); }
         .problem-iris { margin-top: 10px; font-size: 0.8125rem; line-height: 1.45; color: var(--ds-text-soft); }
         .more-data-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-        .more-data-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--ds-touch-primary, 48px); padding: 10px 14px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(15, 118, 110, 0.05); color: var(--text-dark); font: inherit; font-size: 0.9rem; font-weight: 600; text-align: left; cursor: pointer; transition: transform var(--ds-motion-press, 120ms) var(--ds-ease-standard); }
+        .more-data-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--ds-touch-primary, 48px); padding: 10px 14px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(15, 118, 110, 0.05); color: var(--text-dark); font: inherit; font-size: 0.9rem; font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; transition: transform var(--ds-motion-press, 120ms) var(--ds-ease-standard); }
         .more-data-btn:active { transform: scale(var(--ds-press-scale, 0.97)); }
         .more-data-btn i:first-child { color: var(--ds-fill); width: 20px; text-align: center; }
         [data-theme="dark"] .more-data-btn i:first-child { color: var(--primary-red); }
@@ -2611,12 +2611,13 @@
             return true;
         }
 
+        // Всеки бутон води точно там, където се добавят тези данни (същото като картона в профила).
         const MORE_DATA = [
-            { key: 'labs', icon: 'fa-vial', label: 'Кръвни изследвания', note: 'точни граници за захар, мазнини, желязо, витамин D' },
-            { key: 'device', icon: 'fa-heart-pulse', label: 'Гривна, часовник, пръстен или везна', note: 'реален сън, активност и пулс' },
-            { key: 'emoeat', icon: 'fa-heart', label: 'Тест за емоционално хранене', note: 'кога и защо идва гладът' },
-            { key: 'iris', icon: 'fa-eye', label: 'Ирисов анализ', note: 'приоритетни системи за сверка' },
-            { key: 'documents', icon: 'fa-file-medical', label: 'Епикриза или писмо от лекар', note: 'диагнози, лекарства, ограничения' }
+            { key: 'labs', icon: 'fa-vial', label: 'Кръвни изследвания', note: 'точни граници за захар, мазнини, желязо, витамин D', section: 'labsSection' },
+            { key: 'device', icon: 'fa-heart-pulse', label: 'Гривна, часовник, пръстен или везна', note: 'реален сън, активност и пулс', section: 'devicesSection' },
+            { key: 'emoeat', icon: 'fa-heart', label: 'Тест за емоционално хранене', note: 'кога и защо идва гладът', href: './emoeat.html?from=nutriplan' },
+            { key: 'iris', icon: 'fa-eye', label: 'Ирисов анализ', note: 'приоритетни системи за сверка', href: 'https://radilovk.github.io/airis1.0/?from=nutriplan', external: true },
+            { key: 'documents', icon: 'fa-file-medical', label: 'Епикриза или писмо от лекар', note: 'диагнози, лекарства, ограничения', section: 'docsSection' }
         ];
 
         function renderMoreData(re) {
@@ -2626,13 +2627,18 @@
             const have = new Set(re ? presentSources(re) : ['questionnaire']);
             const missing = MORE_DATA.filter(m => !have.has(m.key));
             section.hidden = !missing.length;
-            document.getElementById('moreDataList').innerHTML = missing.map(m =>
-                `<li><button type="button" class="more-data-btn" onclick="openProfileCard()"><i class="fas ${m.icon}" aria-hidden="true"></i><span>${m.label}<small>${m.note}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button></li>`).join('');
+            document.getElementById('moreDataList').innerHTML = missing.map(m => {
+                const inner = `<i class="fas ${m.icon}" aria-hidden="true"></i><span>${m.label}<small>${m.note}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i>`;
+                return m.href
+                    ? `<li><a class="more-data-btn" href="${m.href}"${m.external ? ' target="_blank" rel="noopener"' : ''}>${inner}</a></li>`
+                    : `<li><button type="button" class="more-data-btn" onclick="openProfileCard('${m.section}')">${inner}</button></li>`;
+            }).join('');
         }
 
-        function openProfileCard() {
-            if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'profile' })) return;
-            navigateTopLevel('index.html?app=1&tab=profile');
+        /** Профилът — направо на секцията за качване (изследвания, устройства, документи), не в началото му. */
+        function openProfileCard(section) {
+            if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'profile', open: section })) return;
+            navigateTopLevel('index.html?app=1&tab=profile&open=' + encodeURIComponent(section));
         }
 
         async function answerQuestion(btn) {

@@ -60,7 +60,10 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
   ok(avg(train, d => d.kcal) > avg(rest, d => d.kcal), 'тренировъчният ден е с повече енергия');
   ok(avg(train, d => d.macros.carbs) > avg(rest, d => d.macros.carbs) * 1.15, 'въглехидратите следват тренировката');
   ok(days.every(d => d.macros.fats >= Math.round(88 * 0.7)), 'мазнините не падат под 0,7 г/кг');
-  ok(train.every(d => d.bias.STA[d.timing.post] > 1) || train.every(d => !d.timing.post), 'въглехидратите отиват в храненето след тренировката');
+  // ИТМ 27 и отслабване: въглехидратите — в храненето преди тренировката, не след нея (принцип 7).
+  ok(train.every(d => d.carbsBefore && d.bias.STA[d.timing.pre] > 1 && !(d.bias.STA[d.timing.post] > 1)), 'наднормено тегло и отслабване: въглехидратите — преди тренировката');
+  const lean = setup({ weight: '72', goal: 'Мускулна маса', lossKg: '' }).mw.days.filter(d => d.kind === 'train');
+  ok(lean.length && lean.every(d => !d.carbsBefore && (d.bias.STA[d.timing.post] > 1 || !d.timing.post)), 'слаб и покачване: въглехидратите — след тренировката');
 }
 {
   // Дните само от въпросника (без вечерни отговори) не делят седмицата.
@@ -78,9 +81,13 @@ const avg = (days, f) => (days.length ? sum(days, f) / days.length : 0);
   ok(/преди тренировката/.test(text) && !/възстановяване на гликогена/.test(text), 'текстът обяснява „преди“, без гликогена');
   const plan = buildNutritionPlan({ ...BASE, ...LEARNED, weight: '105' }, { kcal: KCAL, seed: 1 });
   ok(Object.values(plan.weekPlan).some(d => d.energy.carbsBefore && d.energy.preWorkoutMeal), 'денят в плана носи „въглехидрати преди“');
-  ok(!postWorkoutLow(compileProfile({ ...BASE, weight: '105', goal: 'Мускулна маса' }), mw.week), 'покачване: зареждане след тренировката остава');
+  // Затлъстяване и цел „мускулна маса“ е смяна на състава, не покачване — въглехидратите пак са преди тренировката.
+  ok(postWorkoutLow(compileProfile({ ...BASE, weight: '105', goal: 'Мускулна маса' }), mw.week), 'ИТМ 32 и „мускулна маса“: въглехидрати преди тренировката');
+  ok(postWorkoutLow(compileProfile({ ...BASE, weight: '125', goal: 'Стягане и оформяне на тялото' }), mw.week), 'ИТМ 39 и „стягане“: въглехидрати преди тренировката');
+  ok(postWorkoutLow(compileProfile(BASE), mw.week), 'ИТМ 27 и отслабване: въглехидрати преди тренировката');
+  ok(!postWorkoutLow(compileProfile({ ...BASE, weight: '72', goal: 'Мускулна маса' }), mw.week), 'слаб и покачване: зареждане след тренировката остава');
   ok(!postWorkoutLow(profile, { ...mw.week, fuel: 'endurance', minutes: 100 }), 'над 90 мин издръжливост: зареждане след тренировката остава');
-  ok(!postWorkoutLow(compileProfile(BASE), mw.week), 'без наднормено тегло и риск: по старому');
+  ok(!postWorkoutLow(compileProfile({ ...BASE, weight: '74', goal: 'Поддържане', lossKg: '' }), mw.week), 'нормално тегло и поддържане: по старому');
 }
 {
   // Таванът на въглехидратите в базата при отслабване.

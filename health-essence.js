@@ -314,7 +314,7 @@ export function computeEssence(facts, now = new Date(), ctx = {}) {
       reasons.push(`тренировки по отговорите: ~${fmt(training.perWeek)} седмично`);
     }
     if (training.usual.length && training.regularity >= 0.75) {
-      signals.push({ code: 'training_schedule', level: 'info', text: `Тренировъчни дни: обикновено ${weekdayList(training.usual)}${training.slot === 'am' ? ', до обяд' : training.slot === 'pm' ? ', следобед' : ''}. В тези дни по-голямото хранене с въглехидрати е след тренировката.` });
+      signals.push({ code: 'training_schedule', level: 'info', text: `Тренировъчни дни: обикновено ${weekdayList(training.usual)}${training.slot === 'am' ? ', до обяд' : training.slot === 'pm' ? ', следобед' : ''}. Планът разпределя въглехидратите на тези дни спрямо тренировката.` });
     } else if (training.perWeek >= 1 && training.regularity < 0.65) {
       signals.push({ code: 'training_irregular', level: 'info', text: `Тренировките са ~${fmt(training.perWeek)} седмично без постоянни дни — енергията се смята по средното, а не по ден.` });
     }
