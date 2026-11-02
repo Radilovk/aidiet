@@ -1,4 +1,4 @@
-# redeploy: night studio + notes (2026-11-02)
+# redeploy: night studio, OIDC runner (2026-11-02)
 # Temporary bridge: deploys the Разказвач library worker (Radilovk/tts → server/)
 # with this repo's Cloudflare secrets. Lives only on a claude/* branch.
 name: Deploy Razkazvach library worker
