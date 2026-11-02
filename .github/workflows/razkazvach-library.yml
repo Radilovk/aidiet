@@ -1,4 +1,4 @@
-# redeploy: community library (2026-10-22)
+# redeploy: night studio + notes (2026-11-02)
 # Temporary bridge: deploys the Разказвач library worker (Radilovk/tts → server/)
 # with this repo's Cloudflare secrets. Lives only on a claude/* branch.
 name: Deploy Razkazvach library worker
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Radilovk/tts
-          ref: claude/pensive-ramanujan-uz7r77
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
