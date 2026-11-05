@@ -280,7 +280,10 @@ try {
   } else if (action === 'availability') {
     const app = (await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`)).data[0];
     if (!app) fail('Няма приложение в App Store Connect.');
-    const fix = String(process.argv[3] || '').trim() === 'fix';
+    // fix = every country; a list of country codes (e.g. BGR or BGR,GRC) = only those
+    const arg = String(process.argv[3] || '').trim().toUpperCase();
+    const fix = arg === 'FIX';
+    const only = !fix && /^[A-Z]{3}(,[A-Z]{3})*$/.test(arg) ? arg.split(',') : null;
     let av = null;
     try { av = (await api('GET', `/v1/apps/${app.id}/appAvailabilityV2`)).data; } catch (e) { if (e.status !== 404) throw e; }
     let ta = [];
@@ -293,6 +296,17 @@ try {
     }
     const on = ta.filter((t) => t.attributes.available).length;
     console.log(av ? `Наличност: в ${on} от ${ta.length} държави; нови държави автоматично: ${av.attributes.availableInNewTerritories ? 'да' : 'не'}` : 'Наличност: не е зададена (приложението не се продава никъде).');
+    if (only) {
+      if (!av) fail('Първо пусни availability с fix (за да се създаде наличността), после с кода на държавата.');
+      let n = 0;
+      for (const t of ta) {
+        const terr = (await api('GET', `/v1/territoryAvailabilities/${t.id}/territory`).catch(() => ({ data: null }))).data;
+        const want = Boolean(terr && only.includes(terr.id));
+        if (t.attributes.available !== want) { await api('PATCH', `/v1/territoryAvailabilities/${t.id}`, { data: { type: 'territoryAvailabilities', id: t.id, attributes: { available: want } } }); n++; }
+      }
+      console.log(`✓ на продажба само в: ${only.join(', ')} (${n} промени)`);
+      process.exit(0);
+    }
     if (!fix) process.exit(0);
     if (!av) {
       const terr = (await api('GET', '/v1/territories?limit=200')).data;
