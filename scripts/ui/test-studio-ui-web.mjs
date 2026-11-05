@@ -75,8 +75,8 @@ await step('pick 2 hours, book (no Stripe → no card)', async () => {
 });
 await step('my hours after reload; nothing asked again', async () => {
   await page.reload();
-  await page.waitForSelector('#mine li .when');
-  if ((await page.locator('#mine li .when').count()) !== 2) throw new Error('not 2 hours');
+  await page.waitForSelector('#mine [data-own]');
+  if ((await page.locator('#mine [data-own]').count()) !== 2) throw new Error('not 2 hours');
   if (await page.isVisible('#old-client')) throw new Error('login link still shown');
 });
 await step('move one hour', async () => {
@@ -92,7 +92,7 @@ await step('cancel one hour (asks twice)', async () => {
   await page.locator('#mine [data-own]').first().click();
   await page.click('[data-go=cancel]'); await page.click('[data-go=cancel]');
   await page.waitForSelector('text=Часът е отказан');
-  await page.waitForFunction(() => document.querySelectorAll('#mine li .when').length === 1);
+  await page.waitForFunction(() => document.querySelectorAll('#mine [data-own]').length === 1);
 });
 await step('admin: 7 taps, wrong code, right code', async () => {
   for (let i = 0; i < 7; i++) await page.click('#logo');
