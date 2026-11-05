@@ -161,6 +161,20 @@ await step('move one hour → the reminder follows; cancel → it goes', async (
   await page.waitForSelector('text=Часът е отказан');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.length === 1);
 });
+await step('held hours (as in XBody): a grey dot, a dashed "проведен" hour; pull down refreshes', async () => {
+  const phone = db.prepare("SELECT phone FROM clients WHERE studio_id='burgas'").get().phone;
+  const at = Date.now() - 2 * 864e5;
+  db.prepare("INSERT INTO bookings (id, studio_id, start_ms, end_ms, status, phone, name, created_at, changed_at) VALUES ('past1','burgas',?,?,'booked',?,'Иван Петров',?,?)").run(at, at + 18e5, phone, at, at);
+  const ymd = zonedParts(at, 'Europe/Sofia').ymd;
+  await page.reload();
+  await page.waitForSelector('.slot');
+  if (!(await page.locator(`[data-day="${ymd}"]`).count())) await page.click('#prev');
+  await page.waitForSelector(`[data-day="${ymd}"].done-day`);
+  await page.click(`[data-day="${ymd}"]`);
+  await page.waitForSelector('.slot.done');
+  if (!/Проведени/.test(await page.locator('#day-title').textContent())) throw new Error('title');
+  await page.screenshot({ path: `${OUT}/app-9-done-hours.png` });
+});
 await step('a notice from the studio: a banner only (no phone notification); closed → not again', async () => {
   const cur = JSON.parse(db.prepare("SELECT settings FROM studios WHERE id='burgas'").get().settings);
   await call('POST', 'admin/settings', { studio: 'burgas', settings: { ...cur, notice: { id: 1800000009, text: 'Утре сме затворени!', until: Date.now() + 864e5 } } }, A);

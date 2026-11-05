@@ -324,9 +324,10 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
 
 /* ════ XBody: the pills, the info card, the next hour, the hour being moved ════ */
 .pills { display: flex; gap: 10px; justify-content: center; margin: 12px 0 0; }
-.pills button { flex: 1 1 0; max-width: 200px; min-height: 40px; border-radius: 999px; padding: 0 10px; font-size: 14px; font-weight: 500; cursor: pointer;
+.pills a { text-decoration: none; display: flex; align-items: center; justify-content: center; }
+.pills button, .pills a { flex: 1 1 0; max-width: 200px; min-height: 40px; border-radius: 999px; padding: 0 10px; font-size: 14px; font-weight: 500; cursor: pointer;
   background: color-mix(in srgb, var(--brand) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent); color: var(--brand); transition: transform .12s ease; }
-.pills button:active { transform: scale(.96); }
+.pills button:active, .pills a:active { transform: scale(.96); }
 #studio-card { position: relative; overflow: hidden; text-align: center; padding: 18px 16px 14px; }
 #studio-card::before { content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--brand), transparent); animation: line .9s ease-out .3s both; }
 .info-h { margin: 0 0 8px; font-size: 18px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
@@ -342,6 +343,20 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
 .slot.own.moving small { color: var(--brand); }
 .slot.own.moving::after { content: none; }
 @keyframes line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ════ held hours, pull to refresh, the studio's own buttons ════ */
+.day.done-day { color: var(--text); font-weight: 700; }
+.day.done-day::after { content: ""; position: absolute; left: 50%; bottom: 4px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--faint); }
+.legend i.done { background: var(--faint); }
+.slot.done { background: transparent; border-style: dashed; color: var(--muted); cursor: default; }
+.slot.done:active { transform: none; }
+.ptr { position: fixed; top: calc(env(safe-area-inset-top) + 8px); left: 50%; z-index: 31; width: 36px; height: 36px; margin-left: -18px; border-radius: 50%;
+  background: var(--card); box-shadow: 0 4px 14px rgba(0,0,0,.16); opacity: 0; transform: translateY(-40px) rotate(0); transition: opacity .15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d32f2f' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: center; background-size: 20px; pointer-events: none; }
+.ptr.spin { opacity: 1; animation: spin .8s linear infinite; transform: translateY(0); }
+@keyframes spin { to { transform: translateY(0) rotate(360deg); } }
+.pills { flex-wrap: wrap; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -390,7 +405,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       <button class="icon-btn" id="next" aria-label="Следващ месец"></button>
     </div>
     <div class="grid" id="grid"></div>
-    <div class="legend" aria-hidden="true"><span><i></i>ваш час</span><span><i class="cart"></i>избран час</span></div>
+    <div class="legend" aria-hidden="true"><span><i></i>ваш час</span><span><i class="done"></i>проведен</span><span><i class="cart"></i>избран час</span></div>
     <div id="day-title" class="small muted" style="margin-top:12px"></div>
     <div class="slots" id="slots"></div>
   </section>
@@ -415,6 +430,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
   <p class="err" id="onb-err"></p>
   <button class="btn" id="onb-go" type="button">Продължи</button>
 </div></section>
+<div class="ptr" id="ptr" aria-hidden="true"></div>
 <button class="fab hidden" id="fab" type="button" aria-label="Моят профил"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Моят профил</button>
 <div class="bar hidden" id="bar"><div class="wrap"><div class="txt" id="bar-txt"></div><button class="btn" id="bar-go">Запази</button></div></div>
 
@@ -550,6 +566,9 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     if (cfg.phone) facts.push(`<a href="tel:${esc(cfg.phone.replace(/[^\d+]/g, ''))}">${ic('phone')}${esc(cfg.phone)}</a>`);
     $('s-facts').innerHTML = facts.join('');
     $('studio-card').classList.remove('hidden');
+    $('pills').innerHTML = `<button type="button" data-pill="terms">Правила и условия</button>` +
+      (cfg.links || []).map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a>`).join('') +
+      ((cfg.links || []).length < 2 ? `<button type="button" data-pill="studio">Студиото</button>` : '');
     $('pills').classList.remove('hidden');
     $('fab').classList.remove('hidden');
     setTimeout(maybeOnboard, 0);
@@ -639,17 +658,25 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     mine.filter((h) => h.status === 'booked').forEach((h) => { set[h.time.slice(0, 10)] = true; });
     return set;
   }
+  function doneDays() {   // the hours already held (the last 60 days), as in XBody
+    const set = {};
+    mine.filter((h) => h.status === 'done').forEach((h) => { set[h.time.slice(0, 10)] = true; });
+    return set;
+  }
   function renderCal() {
     if (!view) return;
     const ym = ymOf(view.y, view.m);
     $('month').textContent = `${MONTHS[view.m]} ${view.y}`;
     if (!$('prev').firstChild) { $('prev').innerHTML = `<span style="display:inline-flex;transform:scaleX(-1)">${ic('chev')}</span>`; $('next').innerHTML = ic('chev'); }
     const now = new Date();
-    $('prev').disabled = view.y * 12 + view.m <= now.getFullYear() * 12 + now.getMonth();
+    const firstDone = mine.filter((h) => h.status === 'done').map((h) => h.time).sort()[0];
+    const floor = firstDone ? (+firstDone.slice(0, 4)) * 12 + (+firstDone.slice(5, 7) - 1) : now.getFullYear() * 12 + now.getMonth();
+    $('prev').disabled = view.y * 12 + view.m <= Math.min(floor, now.getFullYear() * 12 + now.getMonth());
     const last = new Date(lastBookable());
     $('next').disabled = view.y * 12 + view.m >= last.getFullYear() * 12 + last.getMonth();
     const data = (months[ym] && months[ym].days) || {};
     const md = mineDays();
+    const dd = doneDays();
     const first = new Date(Date.UTC(view.y, view.m, 1)).getUTCDay();
     const days = new Date(Date.UTC(view.y, view.m + 1, 0)).getUTCDate();
     let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map((d) => `<div class="wd">${d}</div>`).join('');
@@ -658,7 +685,8 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       const ymd = `${ym}-${String(d).padStart(2, '0')}`;
       const has = (data[ymd] || []).length > 0;
       const cart = picked.some((t) => t.startsWith(ymd));
-      html += `<button class="day${has ? ' has' : ''}${md[ymd] ? ' mine-day' : ''}${cart ? ' cart' : ''}${selDay === ymd ? ' sel' : ''}${ymd === todayYmd() ? ' today' : ''}" data-day="${ymd}"${has || md[ymd] ? '' : ' disabled'}><span>${d}</span></button>`;
+      const done = dd[ymd] && !md[ymd];
+      html += `<button class="day${has ? ' has' : ''}${md[ymd] ? ' mine-day' : ''}${done ? ' done-day' : ''}${cart ? ' cart' : ''}${selDay === ymd ? ' sel' : ''}${ymd === todayYmd() ? ' today' : ''}" data-day="${ymd}"${has || md[ymd] || dd[ymd] ? '' : ' disabled'}><span>${d}</span></button>`;
     }
     $('grid').innerHTML = html;
     renderSlots();
@@ -673,13 +701,15 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       $('slots').innerHTML = '';
       return;
     }
-    const freeCount = list.length;
+    const freeCount = selDay >= todayYmd() ? list.length : 0;
     const own = mine.filter((h) => h.status === 'booked' && h.time.startsWith(selDay));
-    $('day-title').textContent = `${freeCount ? 'Свободни часове' : 'Вашите часове'} · ${dayLabel(selDay)}`;
+    const held = mine.filter((h) => h.status === 'done' && h.time.startsWith(selDay));
+    $('day-title').textContent = `${freeCount ? 'Свободни часове' : selDay < todayYmd() ? 'Проведени' : 'Вашите часове'} · ${dayLabel(selDay)}`;
     const cells = own.map((h) => ({ t: h.time.slice(11), html: moving && moving.id === h.id
         ? `<button class="slot own moving" data-own="${esc(h.id)}"><b>${esc(h.time.slice(11))}</b><small>премества се</small></button>`
         : `<button class="slot own" data-own="${esc(h.id)}"><b>${esc(h.time.slice(11))}</b><small>вашият час</small></button>` }))
-      .concat(list.map((t) => { const key = `${selDay} ${t}`; const ch = picked.includes(key);
+      .concat(held.map((h) => ({ t: h.time.slice(11), html: `<button class="slot done" disabled><b>${esc(h.time.slice(11))}</b><small>проведен</small></button>` })))
+      .concat((selDay >= todayYmd() ? list : []).map((t) => { const key = `${selDay} ${t}`; const ch = picked.includes(key);
         return { t, html: `<button class="slot${ch ? ' picked' : ''}" data-slot="${esc(key)}"${ch ? ' aria-pressed="true"' : ''}><b>${esc(t)}</b>${ch ? '<small>избран</small>' : ''}</button>` }; }))
       .sort((a, b) => (a.t < b.t ? -1 : 1));
     $('slots').innerHTML = cells.length ? cells.map((c) => c.html).join('') : '<div class="empty">Няма свободни часове в този ден.</div>';
@@ -690,7 +720,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     await ensureMonth(ymOf(y, m));
     if (!selDay || !selDay.startsWith(ymOf(y, m))) {   // the first day with free hours
       const d = (months[ymOf(y, m)] || { days: {} }).days;
-      selDay = Object.keys(d).sort()[0] || '';
+      selDay = Object.keys(d).sort()[0] || Object.keys(doneDays()).filter((x) => x.startsWith(ymOf(y, m))).sort().pop() || '';
     }
     renderCal();
   }
@@ -1230,6 +1260,30 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     $('cal-card').scrollIntoView({ behavior: 'smooth' });
   };
   $('pills').onclick = (e) => { const b = e.target.closest('[data-pill]'); if (!b) return; if (b.dataset.pill === 'terms') showTerms(); else openStudioInfo(true); };
+
+  /* pull down at the top = everything fresh (the hours, my hours) — as in XBody */
+  (function pullToRefresh() {
+    let y0 = null, pulled = 0, busyNow = false;
+    const ptr = $('ptr');
+    addEventListener('touchstart', (e) => { y0 = scrollY <= 0 && !back && e.touches.length === 1 ? e.touches[0].clientY : null; pulled = 0; }, { passive: true });
+    addEventListener('touchmove', (e) => {
+      if (y0 === null || busyNow) return;
+      pulled = Math.max(0, e.touches[0].clientY - y0);
+      ptr.style.opacity = Math.min(1, pulled / 80);
+      ptr.style.transform = `translateY(${Math.min(pulled, 90) - 40}px) rotate(${pulled * 3}deg)`;
+    }, { passive: true });
+    addEventListener('touchend', async () => {
+      if (y0 === null || busyNow) return;
+      y0 = null;
+      if (pulled < 80 || !cfg) { ptr.style.opacity = 0; ptr.style.transform = ''; return; }
+      busyNow = true; ptr.style.transform = ''; ptr.classList.add('spin'); haptic();
+      Object.keys(months).forEach((k) => { months[k].at = 0; });
+      await Promise.all([refreshMine(), view ? ensureMonth(ymOf(view.y, view.m), true) : null]).catch(() => {});
+      renderCal();
+      ptr.classList.remove('spin'); ptr.style.opacity = 0; busyNow = false;
+    });
+  })();
+
   function openMine() {
     sheet(`<h3>Моите часове</h3><ul class="mine">${$('mine').innerHTML}</ul>${$('mine-extra').textContent ? `<p class="small muted">${esc($('mine-extra').textContent)}</p>` : ''}
       <button class="btn sec" data-close>Затвори</button>`, (e) => { const b = e.target.closest('[data-own]'); if (b) openOwn(mine.find((h) => h.id === b.dataset.own)); });
@@ -1645,6 +1699,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
         <label class="f">Текст на началната страница<textarea id="t-hero">${esc(s.texts.hero)}</textarea></label>
         <label class="f">Послание / съобщение (подчертано)<textarea id="t-msg">${esc(s.texts.message)}</textarea></label>
         <label class="f">Условия и правила на студиото<textarea id="t-terms">${esc(s.texts.terms)}</textarea></label>
+        <label class="f">Бутони горе (до 3, по един на ред: заглавие | https://адрес), напр. „Чести въпроси | https://…“<textarea id="t-links" style="min-height:70px">${esc((s.links || []).map((l) => `${l.title} | ${l.url}`).join('\n'))}</textarea></label>
       </div></details>
       <details class="sec"><summary>📆 Почивни дни</summary><div>
         <div class="row">${f('c-day', 'Дата', '', 'date')}<button class="btn mini" id="c-add" style="flex:none;margin-top:28px">Добави</button></div>
@@ -1732,6 +1787,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
         brand: { ...s.brand, name: $('b-name2').value, tagline: $('b-tag').value, color: $('b-color').value },
         price: num('b-price'), currency: $('b-cur').value.toUpperCase(), address: $('b-addr').value, mapUrl: $('b-map').value, phone: $('b-phone').value,
         texts: { hero: $('t-hero').value, message: $('t-msg').value, terms: $('t-terms').value },
+        links: $('t-links').value.split('\n').map((l) => l.split('|')).filter((p) => p.length >= 2).map((p) => ({ title: p[0].trim(), url: p.slice(1).join('|').trim() })),
         google: { calendarId: $('g-id').value.trim() },
       });
       adm.state = (await aapi('GET', 'admin/state')).d;
