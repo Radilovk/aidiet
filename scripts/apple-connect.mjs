@@ -10,6 +10,7 @@
  *   node scripts/apple-connect.mjs screenshots uploads studio-app/store/*.png (1290x2796) as the iPhone screenshots of version 1.0
  *   node scripts/apple-connect.mjs submit      checks everything and sends version 1.0 for App Review (only on the owner's explicit go)
  *   node scripts/apple-connect.mjs availability [fix]   in which countries the app is on sale; fix = all countries (and new ones)
+ *   node scripts/apple-connect.mjs new-version <x.y>   a new App Store version (after the previous one is on sale)
  *   node scripts/apple-connect.mjs delete-cert <id>   deletes one certificate (e.g. a leftover of a failed run)
  *
  * Env: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (the text of AuthKey_XXXX.p8). Nothing secret is printed.
@@ -181,7 +182,8 @@ try {
       const locs = (await api('GET', `/v1/appStoreVersions/${ver.id}/appStoreVersionLocalizations`)).data;
       const loc = locs.find((l) => l.attributes.locale === locale) || locs[0];
       await api('PATCH', `/v1/appStoreVersionLocalizations/${loc.id}`, { data: { type: 'appStoreVersionLocalizations', id: loc.id, attributes: {
-        description: T.description, keywords: T.keywords, promotionalText: T.promo, supportUrl: T.support, marketingUrl: 'https://biocode.website/studio-support.html' } } });
+        description: T.description, keywords: T.keywords, promotionalText: T.promo, supportUrl: T.support, marketingUrl: 'https://biocode.website/studio-support.html',
+        ...(vers.length > 1 ? { whatsNew: process.env.WHATS_NEW || 'Improvements to booking, reminders and your profile.' } : {}) } } });
     });
     await step('най-новият готов build към версията', async () => {
       const builds = (await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`)).data;
@@ -323,13 +325,24 @@ try {
       }
       console.log(`✓ включени още ${n} държави (общо ${ta.length})`);
     }
+  } else if (action === 'new-version') {
+    const vs = String(process.argv[3] || '').trim();
+    if (!/^\d+\.\d+(\.\d+)?$/.test(vs)) fail('Дай номер на версията, напр. 1.1');
+    const app = (await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`)).data[0];
+    if (!app) fail('Няма приложение в App Store Connect.');
+    const vers = (await api('GET', `/v1/apps/${app.id}/appStoreVersions?limit=10`)).data;
+    const open = vers.find((v) => /PREPARE_FOR_SUBMISSION|DEVELOPER_REJECTED|REJECTED/.test(v.attributes.appStoreState || ''));
+    if (open) { console.log(`Вече има версия за подготвяне: ${open.attributes.versionString} (${open.attributes.appStoreState}).`); process.exit(0); }
+    const made = await api('POST', '/v1/appStoreVersions', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: vs, releaseType: 'AFTER_APPROVAL' },
+      relationships: { app: { data: { type: 'apps', id: app.id } } } } });
+    console.log(`✓ нова версия ${made.data.attributes.versionString} (${made.data.attributes.appStoreState})`);
   } else if (action === 'delete-cert') {
     const id = String(process.argv[3] || '').trim();
     if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
     await api('DELETE', `/v1/certificates/${id}`);
     console.log(`✓ Изтрит сертификат ${id}`);
   } else {
-    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | availability | delete-cert');
+    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | availability | new-version | delete-cert');
   }
 } catch (e) {
   fail(String(e.message).slice(0, 600));
