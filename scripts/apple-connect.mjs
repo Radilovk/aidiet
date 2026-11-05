@@ -108,8 +108,8 @@ try {
     const T = {
       subtitle: 'Appointments and reminders',
       promo: 'Book your studio appointment in seconds and get a reminder on your phone.',
-      description: 'Book an appointment at your studio in seconds. Enter the code your studio gave you and you will see only your studio: its free days and hours — only really free hours are shown. The app reminds you a few hours before your appointment with a notification on your phone (works offline), and in “My appointments” you can move or cancel it. The app is in Bulgarian. You can delete your data at any time.',
-      keywords: 'booking,appointment,studio,training,fitness,reservation,reminder,schedule',
+      description: 'Book an appointment at your studio in seconds. Enter the code your studio gave you and you will see only your studio: its free days and hours — only really free hours are shown, your own and past appointments are marked in the calendar. The app reminds you a few hours before your appointment with a notification on your phone, and in “My profile” you can move or cancel it, see the studio’s address, hours and directions, and read its rules. Studios that use the XEMS training system also offer a training profile (so the trainer can set up your sessions safely), your progress from the studio’s scale and trainings, and daily nutrition guidance. The app is in Bulgarian. You can delete your data at any time.',
+      keywords: 'booking,appointment,studio,training,fitness,EMS,reminder,schedule,progress',
       support: 'https://biocode.website/studio-support.html',
       privacy: 'https://biocode.website/studio-privacy.html',
       notes: [
@@ -119,16 +119,25 @@ try {
         '',
         'How to test (all labels are in Bulgarian):',
         '1. Open the app. Choose "Demo Studio" in the list (or type the code "demo" and tap "Отвори").',
-        '2. Tap any day marked with a dot, then tap one or more free hours (e.g. 10:00). A bar at the bottom appears: tap "Запази".',
-        '3. Enter any name and phone number (e.g. "Test User", "0888123456"), tick the terms checkbox, tap "Запази ... час".',
-        '4. The app asks to allow notifications (the app is fully usable if you decline). Allow them.',
-        '   The appointment now shows under "Моите часове". The app schedules ONE local reminder on the device a few hours',
-        '   before the appointment (not a push notification; no data leaves the device for this). This is a native capability',
-        '   a website cannot provide.',
-        '5. "Моите часове" -> "Промени" -> "Премести в друг час" / "Откажи часа" to move or cancel.',
-        '6. "Моите часове" -> "Изтрий данните ми" deletes the user\'s data (Guideline 5.1.1(v)).',
-        'Privacy policy and support: links at the bottom of the main screen ("Помощ и контакт", "Поверителност").',
-        'No tracking, no ads, no analytics. The only notifications are reminders for the user\'s own booked appointments.',
+        '2. First open: enter any name, e-mail and phone (e.g. "Test User", test@example.com, 0888123456), tick the rules box',
+        '   ("Приемам правилата и условията"), tap "Продължи".',
+        '3. Tap a day in bold, then one or more free hours. A dark bar appears at the bottom: tap "Запази", then "Запази N часа".',
+        '4. In the confirmation, tap "Напомняне ... преди часа": only then the app asks to allow notifications (fully usable if',
+        '   declined). It schedules ONE local reminder on the device before the appointment (not a push notification).',
+        '5. "Моят профил" (button at the bottom right) -> "Моите часове" -> "Промени" to move or cancel an appointment.',
+        '6. "Моят профил" -> "Моите данни" -> "Изтрий данните ми" deletes the user\'s data (Guideline 5.1.1(v)).',
+        '',
+        'Training profile, progress and nutrition (only in studios that use the XEMS training system; Demo Studio has it on):',
+        '7. "Моят профил" -> "Профил за тренировките": sex, birth year, height, weight, goal, activity, focus areas. The question',
+        '   "is there a medical reason not to train with EMS" is optional; if answered, a SEPARATE consent tick is required before',
+        '   anything is sent, and it goes only to that studio for a safe session (no diagnosis, no medical claims).',
+        '8. "Хранене": daily calories, protein and water as general guidance from the profile and the studio scale (not a diet or',
+        '   treatment). "Моят прогрес" opens the client\'s results page from the studio after a training or a weigh-in.',
+        'This data is used only for the user\'s own trainings: no ads, no tracking, no analytics, not shared with third parties',
+        'other than the studio\'s own training system. It is described in the privacy policy and in the App Privacy answers.',
+        '',
+        'Privacy policy, support and rules: "Моят профил" and the buttons at the top of the studio page.',
+        'The only notifications are reminders for the user\'s own booked appointments.',
         'The studios\' own admin tools are web-only and are not part of this app.',
         'Contact: radilov.k@gmail.com',
       ].join('\n'),
@@ -183,7 +192,7 @@ try {
       const loc = locs.find((l) => l.attributes.locale === locale) || locs[0];
       await api('PATCH', `/v1/appStoreVersionLocalizations/${loc.id}`, { data: { type: 'appStoreVersionLocalizations', id: loc.id, attributes: {
         description: T.description, keywords: T.keywords, promotionalText: T.promo, supportUrl: T.support, marketingUrl: 'https://biocode.website/studio-support.html',
-        ...(vers.length > 1 ? { whatsNew: process.env.WHATS_NEW || 'Improvements to booking, reminders and your profile.' } : {}) } } });
+        ...(vers.length > 1 ? { whatsNew: process.env.WHATS_NEW || 'New design. Past appointments in the calendar, studio address, hours and directions, clearer rules. Studios with the XEMS training system: training profile, progress and daily nutrition guidance.' } : {}) } } });
     });
     await step('най-новият готов build към версията', async () => {
       const builds = (await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`)).data;
