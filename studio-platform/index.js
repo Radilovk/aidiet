@@ -355,6 +355,13 @@ async function handleBook(env, ctx, studio, b) {
   const starts = raw.map((t) => ({ t, ms: startOf(st, t, now) }));
   let client = await getClient(env, studio.id, who.phone);
   if (!client && !b.terms) return err('terms', 403);
+  if (b.terms && typeof b.termsText === 'string' && b.termsText.length > 20 && env.page_content) {
+    // the legal record of the consent: WHEN and to WHICH exact text (kept by its hash; the same text is stored once)
+    const text = b.termsText.slice(0, 12000);
+    const hash = String(await sha256(text)).slice(0, 16);
+    await env.page_content.put(`studio:terms:${studio.id}:${hash}`, text);
+    await env.page_content.put(`studio:consent:${studio.id}:${who.phone}`, JSON.stringify({ at: now, hash, name: who.name, ver: String(b.termsVer || '').slice(0, 20) }));
+  }
   const ok = starts.filter((x) => x.ms);
   const failed = starts.filter((x) => !x.ms).map((x) => ({ time: x.t, error: 'not_offered' }));
   if (!ok.length) return json({ booked: [], failed }, 409);
@@ -589,6 +596,7 @@ async function handleForget(env, ctx, studio, b) {
   await db.prepare("UPDATE bookings SET name = '', phone = ?, card_pm = '', card_last4 = '', stripe_customer = '' WHERE studio_id = ? AND phone = ?")
     .bind(`deleted:${newId()}`, studio.id, client.phone).run();
   await db.prepare('DELETE FROM clients WHERE studio_id = ? AND phone = ?').bind(studio.id, client.phone).run();
+  if (env.page_content) await env.page_content.delete(`studio:consent:${studio.id}:${client.phone}`).catch(() => {});
   await bumpRev(env, studio.id);
   ctx.waitUntil((async () => {
     for (const bk of upcoming) {
@@ -862,7 +870,7 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
   const path = url.pathname.slice('/api/s/'.length);
   const limit = (name) => (opts.rateLimit ? opts.rateLimit(name) : null);
   try {
-    const body = request.method === 'GET' ? {} : await readBody(request, path === 'admin/logo' ? 600000 : 8192);
+    const body = request.method === 'GET' ? {} : await readBody(request, path === 'admin/logo' ? 600000 : path === 'book' ? 20000 : 8192);
     if (!body) return err('body');
     if (path === 'master/studio' && request.method === 'POST') return await handleMaster(env, request, body);
 
