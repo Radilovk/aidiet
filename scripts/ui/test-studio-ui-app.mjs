@@ -111,8 +111,17 @@ await step('book 08:00 and 15:00 (3 days ahead): the notification permission is 
   await page.fill('#b-name', 'Иван Петров'); await page.fill('#b-phone', '0888 111 222'); await page.check('#b-terms');
   await page.click('[data-go=book]');
   await page.waitForSelector('text=Записани ✓');
-  eq((await ln()).asked, 1, 'asked');
+  await page.waitForSelector('#rem-on');
+  eq((await ln()).asked, 0, 'the phone is not asked before the tap on "Включи"');
   await page.screenshot({ path: `${OUT}/app-2-done.png` });
+  await page.click('#rem-on');
+  await page.waitForSelector('text=Напомнянията са включени');
+  eq((await ln()).asked, 1, 'asked');
+  const ck = [...store.keys()].find((k) => k.startsWith('studio:consent:burgas:'));
+  if (!ck) throw new Error('the acceptance of the rules was not recorded');
+  const rec = JSON.parse(store.get(ck));
+  const txt = store.get(`studio:terms:burgas:${rec.hash}`);
+  if (!rec.at || !/Промяна, отказ и неявяване/.test(txt || '')) throw new Error('the consent record lacks the time or the exact rules text');
   await page.click('.sheet [data-close]');
 });
 await step('reminders are 4 h before; 08:00 would be 04:00 → moved to 07:00; no .ics button in the app', async () => {

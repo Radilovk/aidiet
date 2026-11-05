@@ -559,7 +559,7 @@ details.sec > div { padding-bottom: 14px; }
       ${first ? `<label class="f">Имейл (по желание)<input id="b-email" type="email" autocomplete="email" value="${esc(me.email || '')}"></label>` : ''}
       ${codeLine()}
       ${me.card && cfg.card && needCard() ? `<p class="small">💳 ${esc(cardName(me.card))} · <button class="link" data-go="new-card">друга карта</button></p>` : ''}
-      ${first ? `<label class="tick"><input type="checkbox" id="b-terms"><span>Приемам <button class="link" data-go="terms">условията на студиото</button>${cfg.texts.terms ? '' : ''}.</span></label>` : ''}
+      ${needTick() ? `<label class="tick"><input type="checkbox" id="b-terms"><span>Прочетох и приемам <button class="link" data-go="terms">правилата и условията</button> за записване, промяна и отказ на час${first ? '' : ' (обновени)'}.</span></label>` : ''}
       ${policy()}
       <p class="err" id="b-err">${esc(note || '')}</p>
       <button class="btn" data-go="book">${needCard() && !(me.card && me.token) ? 'Напред — карта като гаранция' : `Запази ${picked.length === 1 ? 'часа' : picked.length + ' часа'}`}</button>
@@ -608,8 +608,8 @@ details.sec > div { padding-bottom: 14px; }
       const err = $('b-err');
       if (me.name.length < 2) { err.textContent = 'Въведете име.'; return; }
       if (me.phone.replace(/\D/g, '').length < 9) { err.textContent = 'Въведете телефон.'; return; }
-      if ($('b-terms') && !$('b-terms').checked) { err.textContent = 'Моля, приемете условията.'; return; }
-      me.terms = true;
+      if ($('b-terms') && !$('b-terms').checked) { err.textContent = 'Моля, прочетете и приемете правилата и условията.'; return; }
+      if ($('b-terms')) { me.terms = true; me.termsV = termsVer(); tickedNow = true; }
       if (needCard() && !(me.card && me.token)) { cardStep(false); return; }
       busy(go, 'Записване…');
       await sendBook(needCard() ? { useSaved: true } : {});
@@ -662,9 +662,10 @@ details.sec > div { padding-bottom: 14px; }
     }
   }
 
+  let tickedNow = false;   // the rules were ticked in THIS booking (only then the acceptance is recorded)
   async function sendBook(extra) {
     const times = picked.slice();
-    const r = await api('POST', 'book', { ...me, times, token: me.token, terms: me.terms || undefined,
+    const r = await api('POST', 'book', { ...me, times, token: me.token, terms: tickedNow || undefined, termsText: tickedNow ? termsText() : undefined, termsVer: tickedNow ? me.termsV : undefined,
       code: codeOk(me.code) ? me.code.code : undefined, ...extra }).catch(() => ({ status: 0, d: {} }));
     const d = r.d || {};
     if (d.token) me.token = d.token;
@@ -682,6 +683,7 @@ details.sec > div { padding-bottom: 14px; }
       openBook(errs[d.error] || (r.status === 429 ? 'Твърде много опити — след малко.' : 'Записването не успя. Опитайте отново.'));
       return;
     }
+    tickedNow = false;
     const booked = (d.booked || []).map((x) => x.time);
     const failed = d.failed || [];
     picked = picked.filter((t) => !booked.includes(t) && !failed.some((f) => f.time === t));
@@ -723,7 +725,46 @@ details.sec > div { padding-bottom: 14px; }
     const s = zonedParts(startMs, tz());
     const a = zonedParts(at, tz());
     const day = s.ymd === a.ymd ? 'Днес' : 'Утре';
-    return `${day} в ${s.hm} ч. имате час в ${cfg.brand.name}.` + (cfg.address ? ` ${cfg.address}` : '');
+    return `${day} в ${s.hm} ч.` + (cfg.address ? ` · ${cfg.address}` : '') + '. До скоро!';
+  }
+  const remTitle = (startMs, at) => `⏰ ${cfg.brand.name} · след ${Math.max(1, Math.round((startMs - at) / 3600e3))} ч.`;
+
+  /* the offer to turn reminders on: a card inside the "Записани ✓" sheet that shows what the reminder will look like; the phone's own
+     question comes only after the tap on "Включи" (and only once — if it was answered before, nothing is offered) */
+  async function reminderOffer() {
+    const ln = nativeLN();
+    const slot = document.getElementById('rem-slot');
+    if (!ln || !slot || !(cfg.rules && cfg.rules.reminderHours)) return;
+    try {
+      if ((await ln.checkPermissions()).display !== 'prompt') return;
+    } catch (_) { return; }
+    const h = cfg.rules.reminderHours;
+    slot.innerHTML = `<div style="margin:12px 0 4px;padding:12px;border-radius:18px;background:var(--soft)">
+      <div style="display:flex;gap:10px;align-items:center;background:var(--card);border-radius:14px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.12)">
+        <div class="logo" style="width:36px;height:36px;border-radius:9px;flex:none;font-size:17px">${esc((cfg.brand.name || '?').slice(0, 1).toUpperCase())}</div>
+        <div style="min-width:0"><b style="display:block;font-size:14px">⏰ ${esc(cfg.brand.name)} · след ${h} ч.</b><span class="small muted">Днес в 18:00 ч.${cfg.address ? ' · ' + esc(cfg.address) : ''}. До скоро!</span></div>
+      </div>
+      <p class="small muted" style="margin:10px 2px">Ще Ви напомним ${h} ч. преди часа — на телефона, без интернет.</p>
+      <button class="btn mini" id="rem-on" style="width:100%">🔔 Включи напомнянията</button></div>`;
+    document.getElementById('rem-on').onclick = async () => {
+      try {
+        const perm = (await ln.requestPermissions()).display;
+        if (perm === 'granted') { await syncReminders(false); slot.innerHTML = '<p class="small" style="color:var(--ok)">Напомнянията са включени ✓</p>'; }
+        else slot.innerHTML = '<p class="small muted">Известията са изключени. Можете да ги включите от настройките на телефона.</p>';
+      } catch (_) { slot.innerHTML = ''; }
+    };
+  }
+  let lnReady = false;
+  function setupNotificationTaps(ln) {   // a tap on the reminder (or its buttons) opens the right place in the app
+    if (lnReady || !ln || !ln.addListener) return;
+    lnReady = true;
+    try {
+      if (ln.registerActionTypes) ln.registerActionTypes({ types: [{ id: 'HOUR', actions: [{ id: 'open', title: 'Моите часове' }, { id: 'map', title: 'Навигация' }] }] });
+      ln.addListener('localNotificationActionPerformed', (ev) => {
+        if (ev && ev.actionId === 'map' && mapLink()) { location.href = mapLink(); return; }
+        if (!$('mine-card').classList.contains('hidden')) $('mine-card').scrollIntoView({ behavior: 'smooth' });
+      });
+    } catch (_) {}
   }
   async function syncReminders(ask) {
     const ln = nativeLN();
@@ -737,15 +778,15 @@ details.sec > div { padding-bottom: 14px; }
       const pend = ((await ln.getPending()).notifications || []).filter((n) => n.id >= REM_BASE && n.id < 2 * REM_BASE);
       if (!items.length && !pend.length) return;
       let perm = (await ln.checkPermissions()).display;
-      if (perm === 'prompt' && ask && items.length) perm = (await ln.requestPermissions()).display;
       if (perm !== 'granted') {
-        if (ask && items.length) toast('Известията са изключени — включете ги от настройките на телефона, за да получавате напомняния.', 5000);
+        if (ask && items.length && perm === 'denied') toast('Известията са изключени — включете ги от настройките на телефона, за да получавате напомняния.', 5000);
         return;
       }
       if (pend.length) await ln.cancel({ notifications: pend.map((n) => ({ id: n.id })) });
       if (items.length) {
+        setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
-          id: x.id, title: cfg.brand.name, body: remText(x.start, x.at),
+          id: x.id, title: remTitle(x.start, x.at), body: remText(x.start, x.at), actionTypeId: 'HOUR', group: STUDIO,
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
       }
@@ -786,28 +827,49 @@ details.sec > div { padding-bottom: 14px; }
     sheet(`${booked.length ? `<h3>Записани ✓</h3><ul class="list">${booked.map((t) => `<li><span>${esc(timeLabel(t))}</span><a class="small" href="${esc(gcalLink(t))}" target="_blank" rel="noopener">Google Календар</a></li>`).join('')}</ul>
       <p class="small muted">${cfg.viber ? `Потвърждение идва по Viber на ${esc(me.phone)}.`
         : cfg.rules.reminderHours ? (APP ? `Ще получите напомняне ${cfg.rules.reminderHours} ч. преди часа.` : 'Добавете часа в календара си, за да получите напомняне.') : ''}</p>
+      <div id="rem-slot"></div>
       ${APP ? '' : `<a class="btn sec" href="${icsFor(booked)}" download="${esc(STUDIO)}-chasove.ics">📅 Добави в календара на телефона</a>`}` : ''}
       ${taken.length ? `<h3>${booked.length ? 'Тези не бяха записани' : 'Часът току-що беше зает'}</h3><ul class="list">${taken.map((t) => `<li>${esc(timeLabel(t))}</li>`).join('')}</ul><p class="small muted">Изберете друг свободен час.</p>` : ''}
       <button class="btn" data-close>Готово</button>`);
+    if (booked.length) reminderOffer();
   }
 
-  function showTerms() {
-    const t = (cfg.texts.terms || '').trim();
+  /* ── the rules (Правила и условия): built from the studio's own settings, so what the client accepts is exactly what applies.
+        The same text is what the booking sends with the tick (the server keeps it with the time of acceptance). ── */
+  function termsParts() {
     const free = cfg.rules.freeCancelHours;
-    const own = t ? `<div style="white-space:pre-line">${esc(t)}</div>` : '';
+    const card = Boolean(cfg.card) && cfg.guarantee !== 'none';
+    const parts = [];
+    const book = ['Часовете се записват в приложението на студиото.'];
+    if (card && cfg.guarantee === 'card') book.push('При записване се дава карта като гаранция. От нея не се тегли нищо при записването.');
+    else if (card) book.push('При първото записване се дава карта като гаранция — от нея не се тегли нищо при записването. С код за посещения (пакет, ваучер) часът не изисква карта.');
+    book.push(cfg.price ? `Часът се плаща на място в студиото (${money(cfg.price)}).` : 'Часът се плаща на място в студиото.');
+    parts.push(['Записване на час', book]);
+    const cancel = [free ? `Промяна или отказ — безплатно до ${free} ч. преди часа.` : 'Промяна или отказ — възможни до началото на часа.'];
+    if (free) cancel.push(card ? `При промяна или отказ по-малко от ${free} ч. преди часа, както и при неявяване, студиото може да таксува часа от картата Ви и сумата не се възстановява.`
+      : `При промяна или отказ по-малко от ${free} ч. преди часа, както и при неявяване, часът се счита за проведен и студиото може да търси заплащането му.`);
+    else if (card) cancel.push('При неявяване студиото може да таксува часа от картата Ви.');
+    parts.push(['Промяна, отказ и неявяване', cancel]);
+    if (cfg.viber) parts.push(['Напомняния', ['Потвърждения и напомняния получавате по Viber на посочения телефон. Напомнянията са част от услугата.']]);
+    else if (cfg.rules.reminderHours) parts.push(['Напомняния', [`Приложението Ви напомня ${cfg.rules.reminderHours} ч. преди часа с известие на телефона (работи и без интернет). Можете да го изключите от настройките на телефона.`]]);
+    parts.push(['Лични данни', ['Името, телефонът и (по желание) имейлът се ползват само за записванията, напомнянията и връзка с Вас. Можете да ги изтриете по всяко време от Моят профил → Изтрий данните ми.']]);
+    const own = (cfg.texts.terms || '').trim();
+    if (own) parts.push([`Правила на ${cfg.brand.name}`, [own]]);
+    return parts;
+  }
+  const termsText = () => `Правила и условия — ${cfg.brand.name}\n` + termsParts().map(([h, l]) => `${h}\n${l.map((x) => '- ' + x).join('\n')}`).join('\n');
+  const termsVer = () => { let h = 5381; const t = termsText(); for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) >>> 0; return h.toString(36); };
+  const needTick = () => !me.token || me.termsV !== termsVer();
+  function showTerms() {
     const el = document.createElement('div');
     el.className = 'back';
     el.style.zIndex = 50;
-    el.innerHTML = `<div class="sheet"><h3>Условия</h3>${own}
-      <ul class="small">${free ? `<li>Промяна или отказ — безплатно до ${free} ч преди часа.</li>` : ''}
-      ${cfg.card ? '<li>Картата е гаранция: при записване не се тегли нищо. При късен отказ или неявяване студиото може да таксува часа и сумата не се възстановява.</li>' : ''}
-      ${cfg.viber ? '<li>Потвърждения и напомняния идват по Viber на посочения телефон.</li>' : cfg.rules.reminderHours ? `<li>Приложението напомня ${cfg.rules.reminderHours} ч. преди часа (известие на телефона Ви, без интернет).</li>` : ''}
-      <li>Име и телефон се ползват само за записванията и връзка с Вас.</li></ul>
-      <button class="btn" data-x>Разбрах</button></div>`;
+    el.innerHTML = `<div class="sheet"><h3>Правила и условия</h3><p class="small muted" style="margin-top:0">${esc(cfg.brand.name)}</p>
+      ${termsParts().map(([h, l]) => `<h4 style="margin:14px 0 4px">${esc(h)}</h4><ul class="small" style="margin:0;padding-left:18px">${l.map((x) => `<li style="white-space:pre-line">${esc(x)}</li>`).join('')}</ul>`).join('')}
+      <button class="btn" data-x style="margin-top:16px">Разбрах</button></div>`;
     el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-x]')) el.remove(); });
     document.body.appendChild(el);
   }
-
 
   /* ── the profile menu (the button at the bottom right): my hours, my data, the studio (where, when), terms, help ── */
   const hoursTable = () => {
