@@ -222,6 +222,44 @@ await step('profile button bottom right: menu → studio (map link, hours) → b
   if (fab.y + fab.height > bar.y) throw new Error('the profile button hides behind the booking bar: fab ' + fab.y + '+' + fab.height + ' bar ' + bar.y + '+' + bar.height);
   await page.screenshot({ path: `${OUT}/app-8-fab-bar.png` });
 });
+await step('XEMS module: off by default; with the studio code — Моят прогрес, Хранене, Профил (health only with its own consent)', async () => {
+  await page.click('#fab');
+  if (await page.locator('[data-p=xems-food]').count()) throw new Error('the module shows without an XEMS code');
+  await page.click('.sheet [data-close]');
+  const sent = [];
+  await page.route('https://license.biocode-bg.com/**', async (route) => {
+    const u = route.request().url();
+    if (u.endsWith('/v1/card/find')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, url: 'https://license.biocode-bg.com/c/abc123', at: Math.floor(Date.now() / 1000), n: 3 }) });
+    if (u.includes('/v1/history/abc123')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true,
+      body: [{ t: Date.now() - 20 * 864e5, w: 72 }, { t: Date.now() - 2 * 864e5, w: 71, fat: 24, water: 52 }], sessions: [{ start: Date.now() - 5 * 864e5, scores: { kcal: 420 } }] }) });
+    if (u.endsWith('/v1/profile')) { sent.push(JSON.parse(route.request().postData())); return route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); }
+    return route.fulfill({ status: 404, body: '{}' });
+  });
+  const cur = JSON.parse(db.prepare("SELECT settings FROM studios WHERE id='burgas'").get().settings);
+  await call('POST', 'admin/settings', { studio: 'burgas', settings: { ...cur, xems: 'xbody' } }, A);
+  await page.reload(); await page.waitForSelector('.slot');
+  await page.click('#fab');
+  await page.waitForSelector('[data-p=xems-card]:not([disabled])');
+  await page.screenshot({ path: `${OUT}/app-x1-menu.png` });
+  await page.click('[data-p=xems-food]');
+  await page.waitForSelector('.xtiles');
+  await page.screenshot({ path: `${OUT}/app-x2-food.png` });
+  await page.click('[data-xb]');
+  await page.click('[data-p=xems-data]');
+  await page.click('.xchip[data-k=sex][data-v=F]'); await page.fill('#x-by', '1990'); await page.fill('#x-h', '168'); await page.fill('#x-w', '71');
+  await page.click('.xchip[data-k=goal][data-v=tone]'); await page.click('.xchip[data-k=fit][data-v=mid]'); await page.click('.xchip[data-k=focus][data-v=abs]');
+  await page.click('.xchip[data-h="1"]'); await page.click('.xchip[data-k=contra][data-v=hernia]');
+  await page.screenshot({ path: `${OUT}/app-x3-profile.png` });
+  await page.click('[data-go=send]');
+  if (!/съгласието/.test(await page.locator('#x-err').textContent())) throw new Error('health data went without its consent');
+  eq(sent.length, 0, 'sent without consent');
+  await page.check('#x-consent'); await page.click('[data-go=send]');
+  await page.waitForSelector('text=Профилът е изпратен до студиото');
+  eq(sent.length, 1, 'sent'); eq(sent[0].profile.healthConsent, true, 'consent flag'); eq(sent[0].studio, 'xbody', 'studio code');
+  if (sent[0].key.length !== 64) throw new Error('the key is not a hash');
+  await page.click('.sheet [data-xb]');
+  await page.click('.sheet [data-close]');
+});
 await step('delete my data: server clean, reminders gone, the phone forgets', async () => {
   await page.click('#fab'); await page.click('[data-p=me]'); await page.click('[data-go=forget]');
   await page.click('.sheet [data-go=yes]');
