@@ -37,6 +37,8 @@ a { color: var(--brand); }
 .hero { white-space: pre-line; margin: 0 0 8px; }
 .facts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--muted); }
 .facts a { color: inherit; text-decoration: none; }
+.facts span, .facts a { display: inline-flex; align-items: center; gap: 5px; }
+.facts .i { width: 15px; height: 15px; color: var(--brand); }
 .facts b { color: var(--text); }
 .note { border-left: 4px solid var(--brand); white-space: pre-line; }
 .alert { padding: 10px 14px; border-radius: 12px; margin: 10px 0; font-size: 14px; background: #fdecea; color: #8a1c1c; }
@@ -113,6 +115,7 @@ body.has-bar .fab { bottom: calc(92px + env(safe-area-inset-bottom)); }
 .menu button, .menu a { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 2px; background: none; border: 0; text-align: left; color: var(--text); text-decoration: none; font-size: 16px; cursor: pointer; }
 .menu small { display: block; color: var(--muted); font-size: 13px; }
 .menu .go { margin-left: auto; color: var(--muted); }
+.menu .i { color: var(--brand); width: 20px; height: 20px; }
 .hrs { width: 100%; border-collapse: collapse; font-size: 14px; margin: 6px 0 4px; }
 .hrs td { padding: 5px 0; border-top: 1px solid var(--line); } .hrs td:last-child { text-align: right; }
 
@@ -132,7 +135,24 @@ body.has-bar .fab { bottom: calc(92px + env(safe-area-inset-bottom)); }
 .list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .pay { min-height: 60px; margin-top: 12px; }
 .err { color: var(--bad); font-size: 14px; min-height: 0; margin: 8px 0 0; }
-.policy { font-size: 13px; color: var(--muted); background: var(--soft); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+.policy { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: var(--muted); background: var(--soft); border-radius: 14px; padding: 12px; margin-top: 12px; }
+.policy b { color: var(--text); }
+.policy .i { color: var(--brand); margin-top: 1px; }
+.i { width: 18px; height: 18px; flex: none; display: inline-block; vertical-align: -3px; }
+.saved-card { display: flex; align-items: center; gap: 10px; margin: 12px 0 4px; padding: 14px 12px; border-radius: 14px; border: 1px solid var(--line); font-weight: 700; }
+.saved-card .i { color: var(--brand); }
+.saved-card small { margin-left: auto; font-weight: 500; color: var(--ok); font-size: 12px; }
+.saved-card button { margin-left: 8px; }
+.who { margin: 2px 0 6px; font-size: 13px; color: var(--muted); }
+.hours { list-style: none; margin: 4px 0 6px; padding: 0; }
+.hours li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); font-size: 15px; }
+.hours li:last-child { border-bottom: 0; }
+.round { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--soft); color: var(--muted); cursor: pointer; }
+.round .i { width: 15px; height: 15px; }
+.acts { position: sticky; bottom: calc(-18px - env(safe-area-inset-bottom)); margin: 10px -18px calc(-18px - env(safe-area-inset-bottom)); padding: 4px 18px calc(16px + env(safe-area-inset-bottom));
+  background: var(--card); box-shadow: 0 -10px 16px -12px rgba(0,0,0,.25); }
+.btn.quiet { background: transparent; color: var(--text); opacity: .75; min-height: 42px; margin-top: 2px; }
+.pay { min-height: 56px; margin: 14px 0 4px; }
 
 /* admin */
 .adm { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto; padding-top: env(safe-area-inset-top); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
@@ -173,6 +193,80 @@ details.sec > div { padding-bottom: 14px; }
 .copy { display: flex; gap: 8px; align-items: center; background: var(--soft); border-radius: 10px; padding: 8px 10px; font-size: 13px; word-break: break-all; }
 .toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #222; color: #fff;
   padding: 10px 16px; border-radius: 12px; z-index: 60; font-size: 14px; max-width: 90vw; }
+/* ════ the look (iOS): grouped background, soft cards without borders, large type, calm motion ════ */
+:root { --bg: #f2f2f7; --card: #fff; --text: #1c1c1e; --muted: #6e6e73; --line: rgba(60,60,67,.13); --soft: #f2f2f7; --r: 20px;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 28px rgba(0,0,0,.06); --ease: cubic-bezier(.2,.8,.2,1); }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #000; --card: #1c1c1e; --text: #f5f5f7; --muted: #98989f; --line: rgba(84,84,88,.45); --soft: #2c2c2e; --shadow: none; }
+}
+html, body { font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+h1, h2, h3, .top h1 { letter-spacing: -.02em; }
+.wrap { padding: 0 16px; }
+.card { border: 0; border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; margin: 14px 0; }
+.top { padding: 20px 0 6px; gap: 14px; }
+.top .logo { width: 58px; height: 58px; border-radius: 17px; box-shadow: 0 6px 18px color-mix(in srgb, var(--brand) 28%, transparent); }
+.top h1 { font-size: 25px; font-weight: 800; }
+.top p { font-size: 14px; }
+.hero { font-size: 16px; margin-bottom: 10px; }
+.facts { gap: 8px; }
+.facts span, .facts a { padding: 6px 10px; border-radius: 999px; background: var(--soft); color: var(--text); font-size: 13px; }
+.note { border-left: 0; position: relative; padding-left: 18px; color: var(--muted); }
+.note::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 4px; background: var(--brand); }
+/* the next hour */
+.next { display: flex; align-items: center; gap: 14px; padding: 4px 0 12px; }
+.next .date { width: 56px; flex: none; text-align: center; border-radius: 14px; overflow: hidden; background: var(--soft); }
+.next .date i { display: block; font-style: normal; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #fff; background: var(--brand); padding: 3px 0; }
+.next .date b { display: block; font-size: 22px; padding: 4px 0 6px; }
+.next .what { flex: 1; min-width: 0; }
+.next .what b { display: block; font-size: 17px; }
+.next .what small { color: var(--muted); font-size: 13px; }
+.sec-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 8px; }
+.mine li { padding: 12px 0; }
+/* calendar */
+.cal-head h2 { font-size: 19px; font-weight: 800; }
+.icon-btn { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--soft); color: var(--text); display: grid; place-items: center; }
+.icon-btn .i { width: 18px; height: 18px; }
+.grid { gap: 2px; }
+.grid .wd { font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.day { border-radius: 50%; font-size: 16px; transition: background .15s, color .15s, transform .12s; max-width: 46px; justify-self: center; width: 100%; }
+.day:not(:disabled):active { transform: scale(.92); }
+.day.today:not(.sel) { color: var(--brand); }
+.day.mine-day { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand) 55%, transparent); }
+.day.sel { background: linear-gradient(145deg, color-mix(in srgb, var(--brand) 88%, #fff), color-mix(in srgb, var(--brand) 80%, #000)); box-shadow: 0 6px 14px color-mix(in srgb, var(--brand) 35%, transparent); }
+#day-title { font-size: 15px !important; font-weight: 700; color: var(--text) !important; margin-top: 16px !important; }
+#day-title::first-letter { text-transform: uppercase; }
+.slots { grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+.slot { position: relative; border: 2px solid transparent; background: var(--soft); border-radius: 14px; min-height: 48px; padding: 10px 0; font-size: 16px; font-weight: 700;
+  transition: transform .12s var(--ease), background .15s, border-color .15s; }
+.slot:active { transform: scale(.94); }
+.slot.picked { background: color-mix(in srgb, var(--brand) 10%, var(--card)); border-color: var(--brand); color: var(--brand); animation: pop .25s var(--ease); }
+.slot.picked::after { content: ""; position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: var(--brand)
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat;
+  box-shadow: 0 0 0 2px var(--card); }
+.slot.own { background: linear-gradient(145deg, color-mix(in srgb, var(--brand) 88%, #fff), color-mix(in srgb, var(--brand) 80%, #000)); color: #fff; border-color: transparent; font-size: 15px; line-height: 1.1; }
+.slot.own small { display: block; font-size: 10px; font-weight: 600; opacity: .85; text-transform: uppercase; letter-spacing: .04em; }
+@keyframes pop { 0% { transform: scale(.9); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
+/* floating parts: glass */
+.fab { background: color-mix(in srgb, var(--card) 82%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.14); height: 48px; padding: 0 18px 0 14px; font-size: 15px; }
+.fab:active { transform: scale(.96); }
+.bar { animation: rise .32s var(--ease); background: rgba(28,28,30,.92); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+/* sheets: slide up, the backdrop fades in */
+.back { animation: fadein .2s ease; background: rgba(0,0,0,.38); }
+.sheet { animation: rise .34s var(--ease); border-radius: 24px 24px 0 0; padding-top: 8px; }
+.sheet h3 { font-size: 22px; font-weight: 800; margin: 6px 0 10px; }
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+.ok-badge { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--ok); color: #fff; animation: pop .45s var(--ease); flex: none; }
+.ok-badge .i { width: 20px; height: 20px; stroke-width: 2.6; }
+.menu button, .menu a { padding: 14px 2px; font-size: 16px; }
+.menu li { border-top: 1px solid var(--line); }
+.onb-card { box-shadow: var(--shadow); border: 0; }
+.onb-card .logo { width: 64px; height: 64px; border-radius: 18px; box-shadow: 0 8px 20px color-mix(in srgb, var(--brand) 30%, transparent); }
+label.f { font-weight: 600; color: var(--text); font-size: 13px; }
+label.f input, label.f select, label.f textarea { background: var(--soft); border-color: transparent; }
+.tick { font-size: 15px; align-items: center; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
@@ -185,7 +279,7 @@ details.sec > div { padding-bottom: 14px; }
   <div id="offline" class="alert hidden">Няма връзка. Показаните часове може да не са актуални.</div>
 
   <section class="card hidden" id="pick-card">
-    <b id="pick-title">Изберете студио</b>
+    <p class="sec-title" id="pick-title">Студиа</p>
     <div id="pick-list" style="margin-top:8px"></div>
     <label class="f"><span id="pick-hint">Или въведете кода на студиото</span><input id="pick-code" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="напр. burgas"></label>
     <p class="err" id="pick-err"></p>
@@ -202,7 +296,7 @@ details.sec > div { padding-bottom: 14px; }
   <section class="card note hidden" id="s-msg"></section>
 
   <section class="card hidden" id="mine-card">
-    <div class="row" style="justify-content:space-between"><b>Моите часове</b><span class="small muted" id="mine-extra"></span></div>
+    <div class="row" style="justify-content:space-between"><p class="sec-title" style="margin:0">Моите часове</p><span class="small muted" id="mine-extra" style="text-align:right"></span></div>
     <ul class="mine" id="mine"></ul>
     <p class="hidden"><button class="link" id="forget">Изтрий данните ми</button></p>
   </section>
@@ -211,9 +305,9 @@ details.sec > div { padding-bottom: 14px; }
 
   <section class="card" id="cal-card">
     <div class="cal-head">
-      <button class="icon-btn" id="prev" aria-label="Предишен месец">‹</button>
+      <button class="icon-btn" id="prev" aria-label="Предишен месец"></button>
       <h2 id="month"></h2>
-      <button class="icon-btn" id="next" aria-label="Следващ месец">›</button>
+      <button class="icon-btn" id="next" aria-label="Следващ месец"></button>
     </div>
     <div class="grid" id="grid"></div>
     <div id="day-title" class="small muted" style="margin-top:12px"></div>
@@ -260,6 +354,29 @@ details.sec > div { padding-bottom: 14px; }
   const API = SUB ? '' : 'https://aidiet.radilov-k.workers.dev';
   const MAX_PICK = 8;
   const $ = (id) => document.getElementById(id);
+  /* icons: one thin line style (SVG), drawn in the colour around them */
+  const IC = {
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+    cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+    pin: '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    doc: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
+    help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/>',
+    shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    swap: '<path d="M7 7h12l-3-3M17 17H5l3 3"/>',
+    chev: '<path d="M9 6l6 6-6 6"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    card: '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/>',
+    ticket: '<path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/><path d="M14 7v10" stroke-dasharray="2 2"/>',
+    bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    nav: '<path d="M4 11l16-7-7 16-2-7z"/>',
+    trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  };
+  const ic = (n) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   /* ── the phone's memory (per studio): settings copy, the client, the chosen hours ── */
@@ -347,10 +464,9 @@ details.sec > div { padding-bottom: 14px; }
     $('s-hero').textContent = cfg.texts.hero || '';
     $('s-hero').classList.toggle('hidden', !cfg.texts.hero);
     const facts = [];
-    if (cfg.price) facts.push(`<span><b>${esc(money(cfg.price))}</b> / ${cfg.slot.minutes} мин</span>`);
-    else facts.push(`<span><b>${cfg.slot.minutes} мин</b> час</span>`);
-    if (cfg.address) facts.push(cfg.mapUrl ? `<a href="${esc(cfg.mapUrl)}" target="_blank" rel="noopener">${esc(cfg.address)}</a>` : `<span>${esc(cfg.address)}</span>`);
-    if (cfg.phone) facts.push(`<a href="tel:${esc(cfg.phone.replace(/[^\d+]/g, ''))}">${esc(cfg.phone)}</a>`);
+    facts.push(`<span>${ic('clock')}${cfg.price ? `<b>${esc(money(cfg.price))}</b>&nbsp;/ ${cfg.slot.minutes} мин` : `${cfg.slot.minutes} мин`}</span>`);
+    if (cfg.address) facts.push(`<a href="${esc(mapLink())}" target="_blank" rel="noopener">${ic('pin')}${esc(cfg.address)}</a>`);
+    if (cfg.phone) facts.push(`<a href="tel:${esc(cfg.phone.replace(/[^\d+]/g, ''))}">${ic('phone')}${esc(cfg.phone)}</a>`);
     $('s-facts').innerHTML = facts.join('');
     $('studio-card').classList.remove('hidden');
     $('fab').classList.remove('hidden');
@@ -388,8 +504,8 @@ details.sec > div { padding-bottom: 14px; }
     const list = (r && r.status === 200 && r.d.studios) || [];
     if (!list.length && r) {   // invite-only studios: nothing to choose from, only the code the client got from their studio
       $('s-name').textContent = 'Добре дошли';
-      $('pick-title').textContent = 'Въведете кода на вашето студио';
-      $('pick-hint').textContent = 'Кодът ви е даден от студиото, при което сте записани (или е в QR кода / съобщението от него).';
+      $('pick-title').textContent = 'Код на студиото';
+      $('pick-hint').textContent = 'Даден ви е от студиото — в съобщение или QR код.';
     }
     $('pick-list').innerHTML = list.length ? list.map((x) => `<button class="btn sec" data-pick="${esc(x.id)}" style="justify-content:flex-start;text-align:left">
       <span class="logo" style="width:38px;height:38px;border-radius:10px;font-size:16px;background:${esc(x.color)}">${esc((x.name || '?').trim().charAt(0).toUpperCase())}</span>
@@ -445,6 +561,7 @@ details.sec > div { padding-bottom: 14px; }
     if (!view) return;
     const ym = ymOf(view.y, view.m);
     $('month').textContent = `${MONTHS[view.m]} ${view.y}`;
+    if (!$('prev').firstChild) { $('prev').innerHTML = `<span style="display:inline-flex;transform:scaleX(-1)">${ic('chev')}</span>`; $('next').innerHTML = ic('chev'); }
     const now = new Date();
     $('prev').disabled = view.y * 12 + view.m <= now.getFullYear() * 12 + now.getMonth();
     const last = new Date(lastBookable());
@@ -458,7 +575,7 @@ details.sec > div { padding-bottom: 14px; }
     for (let d = 1; d <= days; d++) {
       const ymd = `${ym}-${String(d).padStart(2, '0')}`;
       const has = (data[ymd] || []).length > 0;
-      html += `<button class="day${has ? ' has' : ''}${md[ymd] ? ' mine-day' : ''}${selDay === ymd ? ' sel' : ''}" data-day="${ymd}"${has || md[ymd] ? '' : ' disabled'}>${d}</button>`;
+      html += `<button class="day${has ? ' has' : ''}${md[ymd] ? ' mine-day' : ''}${selDay === ymd ? ' sel' : ''}${ymd === todayYmd() ? ' today' : ''}" data-day="${ymd}"${has || md[ymd] ? '' : ' disabled'}>${d}</button>`;
     }
     $('grid').innerHTML = html;
     renderSlots();
@@ -475,11 +592,10 @@ details.sec > div { padding-bottom: 14px; }
     }
     $('day-title').textContent = dayLabel(selDay);
     const own = mine.filter((h) => h.status === 'booked' && h.time.startsWith(selDay));
-    $('slots').innerHTML = own.map((h) => `<button class="slot picked" data-own="${esc(h.id)}">${esc(h.time.slice(11))}<br><small>ваш час</small></button>`).join('') +
-      (list.length ? list.map((t) => {
-        const key = `${selDay} ${t}`;
-        return `<button class="slot${picked.includes(key) ? ' picked' : ''}" data-slot="${esc(key)}">${esc(t)}</button>`;
-      }).join('') : (own.length ? '' : '<div class="empty">Няма свободни часове в този ден.</div>'));
+    const cells = own.map((h) => ({ t: h.time.slice(11), html: `<button class="slot own" data-own="${esc(h.id)}">${esc(h.time.slice(11))}<small>ваш час</small></button>` }))
+      .concat(list.map((t) => { const key = `${selDay} ${t}`; return { t, html: `<button class="slot${picked.includes(key) ? ' picked' : ''}" data-slot="${esc(key)}">${esc(t)}</button>` }; }))
+      .sort((a, b) => (a.t < b.t ? -1 : 1));
+    $('slots').innerHTML = cells.length ? cells.map((c) => c.html).join('') : '<div class="empty" style="grid-column:1/-1">Няма свободни часове в този ден.</div>';
   }
   async function showMonth(y, m) {
     view = { y, m };
@@ -558,7 +674,7 @@ details.sec > div { padding-bottom: 14px; }
   function codeLine() {
     if (codeOk(me.code)) {
       const c = me.code;
-      return `<p class="small">Код <b>${esc(c.code)}</b>${c.label ? ` (${esc(c.label)})` : ''}${c.expires ? ` · до ${endDate(c.expires)}` : ''}${c.usesLeft != null ? ` · остават ${c.usesLeft}` : ''} · <button class="link" data-go="code-off">махни</button></p>`;
+      return `<p class="small" style="display:flex;align-items:center;gap:6px">${ic('ticket')}Код <b>${esc(c.code)}</b>${c.label ? ` (${esc(c.label)})` : ''}${c.expires ? ` · до ${endDate(c.expires)}` : ''}${c.usesLeft != null ? ` · остават ${c.usesLeft}` : ''} · <button class="link" data-go="code-off">махни</button></p>`;
     }
     return `<p class="small" id="code-row"><button class="link" data-go="code-open">Имам код (промокод, пакет, ваучер)</button></p>
       <div class="row hidden" id="code-box"><label class="f" style="margin:0"><input id="code-in" autocomplete="off" autocapitalize="characters" maxlength="40" placeholder="Код"></label>
@@ -567,9 +683,11 @@ details.sec > div { padding-bottom: 14px; }
   function policy() {
     const free = cfg.rules.freeCancelHours;
     const card = needCard() || (me.card && cfg.card);
-    const text = `${card ? '<b>Сега не се тегли нищо</b> — картата е гаранция. ' : ''}${cfg.price ? `Плащате ${esc(money(cfg.price))} на час в студиото. ` : ''}` +
-      (free ? `Промяна или отказ — безплатно до ${free} ч преди часа.${card ? ' След това или при неявяване студиото може да таксува часа от картата.' : ''}` : '');
-    return text.trim() ? `<div class="policy">${text}</div>` : '';   // nothing to say → no empty grey box
+    const pay = cfg.price ? `плащате ${esc(money(cfg.price * Math.max(1, picked.length)))} на място` : '';
+    if (card) return `<div class="policy">${ic('shield')}<div><b>Сега не се тегли нищо</b> — картата е гаранция${pay ? '; ' + pay : ''}.<br>` +
+      (free ? `Промяна или отказ — безплатно до <b>${free} ч</b> преди часа. След това или при неявяване студиото може да таксува часа от картата и сумата не се възстановява.` : 'При неявяване студиото може да таксува часа от картата.') + '</div></div>';
+    if (!free && !pay) return '';
+    return `<div class="policy">${ic('clock')}<div>${pay ? pay.charAt(0).toUpperCase() + pay.slice(1) + '. ' : ''}${free ? `Промяна или отказ — безплатно до <b>${free} ч</b> преди часа.` : ''}</div></div>`;
   }
 
   function openBook(note) {
@@ -577,17 +695,18 @@ details.sec > div { padding-bottom: 14px; }
     renderBar();
     if (!picked.length) { renderSlots(); return; }
     const first = !me.token;
-    const el = sheet(`<h3>${picked.length === 1 ? 'Вашият час' : 'Вашите часове'}</h3>
-      <ul class="list">${picked.map((t) => `<li><span>${esc(timeLabel(t))}</span><button class="link" data-rm="${esc(t)}">махни</button></li>`).join('')}</ul>
+    const el = sheet(`<h3>${picked.length === 1 ? 'Избран час' : 'Избрани часове'}</h3>
+      <ul class="hours">${picked.map((t) => `<li><span>${esc(dayLabel(t.slice(0, 10)))} · <b>${esc(t.slice(11))}</b></span><button class="round" data-rm="${esc(t)}" aria-label="Премахни">${ic('x')}</button></li>`).join('')}</ul>
+      ${me.name && me.phone ? `<p class="who">${esc([me.name, me.phone].join(' · '))}</p>` : ''}
       ${me.name && me.phone ? '' : `<label class="f">Име и фамилия<input id="b-name" autocomplete="name" value="${esc(me.name || '')}"></label>
       <label class="f">Телефон<input id="b-phone" type="tel" autocomplete="tel" value="${esc(me.phone || '')}" placeholder="0888 123 456"></label>`}
       ${codeLine()}
-      ${me.card && cfg.card && needCard() ? `<p class="small">${esc(cardName(me.card))} · <button class="link" data-go="new-card">друга карта</button></p>` : ''}
+      ${me.card && cfg.card && needCard() ? `<div class="saved-card">${ic('card')}${esc(cardName(me.card))}<small>запазена</small><button class="link" data-go="new-card">смени</button></div>` : ''}
       ${needTick() && !tickedNow ? `<label class="tick"><input type="checkbox" id="b-terms"><span>Приемам <button class="link" data-go="terms">правилата и условията</button></span></label>` : ''}
       ${policy()}
       <p class="err" id="b-err">${esc(note || '')}</p>
-      <button class="btn" data-go="book">${needCard() && !(me.card && me.token) ? 'Напред' : `Запази ${picked.length === 1 ? 'часа' : picked.length + ' часа'}`}</button>
-      <button class="btn sec" data-close>Още часове</button>`, bookClick);
+      <div class="acts"><button class="btn" data-go="book">${needCard() && !(me.card && me.token) ? `${ic('card')}Към картата` : `${ic('check')}Запази ${picked.length === 1 ? '1 час' : picked.length + ' часа'}`}</button>
+      <button class="btn quiet" data-close>${ic('plus')}Добави още часове</button></div>`, bookClick);
     return el;
   }
   const cardName = (c) => `${({ visa: 'Visa', mastercard: 'Mastercard', amex: 'Amex', maestro: 'Maestro' }[c.brand] || c.brand || 'Карта')} •••• ${c.last4}`;
@@ -652,9 +771,10 @@ details.sec > div { padding-bottom: 14px; }
     }));
   }
   async function cardStep(fresh) {
-    const el = sheet(`<h3>Карта като гаранция</h3>${policy()}<div class="pay" id="pay"><p class="muted small">Зареждане…</p></div>
-      <p class="err" id="c-err"></p><button class="btn" id="c-go" disabled>Запази ${picked.length === 1 ? 'часа' : picked.length + ' часа'}</button>
-      <button class="btn sec" id="c-back">Назад</button>`);
+    const el = sheet(`<h3>Гаранция с карта</h3>${policy()}<div class="pay" id="pay"><p class="muted small">Зареждане…</p></div>
+      <p class="err" id="c-err" role="alert"></p>
+      <div class="acts"><button class="btn" id="c-go" disabled>${ic('lock')}Запази ${picked.length === 1 ? '1 час' : picked.length + ' часа'}</button>
+      <button class="btn quiet" id="c-back">Назад</button></div>`);
     el.querySelector('#c-back').onclick = () => openBook();
     const r = await api('POST', 'guarantee', { ...me, times: picked, token: me.token, newCard: fresh || undefined }).catch(() => ({ status: 0 }));
     if (r.status === 200 && r.d.saved) { me.card = r.d.saved; save('me', me); await sendBook({ useSaved: true }); return; }
@@ -663,8 +783,9 @@ details.sec > div { padding-bottom: 14px; }
       const S = await loadStripe();
       const stripe = S(r.d.publishableKey, { locale: 'bg' });
       const dark = matchMedia('(prefers-color-scheme: dark)').matches;
-      const elements = stripe.elements({ clientSecret: r.d.clientSecret, appearance: { theme: dark ? 'night' : 'stripe', variables: { colorPrimary: cfg.brand.color, borderRadius: '12px' } } });
-      const pay = elements.create('payment', { layout: 'tabs' });
+      const elements = stripe.elements({ clientSecret: r.d.clientSecret, appearance: { theme: dark ? 'night' : 'stripe', variables: { colorPrimary: cfg.brand.color, fontSizeBase: '16px', borderRadius: '12px' } } });
+      const pay = elements.create('payment', { layout: 'tabs', wallets: { applePay: 'auto', googlePay: 'auto' } });
+      pay.on('loaderror', () => { el.querySelector('#c-err').textContent = 'Формата за карта не се зареди. Проверете връзката.'; });
       el.querySelector('#pay').innerHTML = '';
       pay.mount('#pay');
       pay.on('ready', () => { el.querySelector('#c-go').disabled = false; });
@@ -675,6 +796,7 @@ details.sec > div { padding-bottom: 14px; }
           confirmParams: { return_url: location.href.split('#')[0], payment_method_data: { billing_details: { name: me.name, phone: me.phone, email: me.email || undefined } } } });
         if (res.error || !res.setupIntent || res.setupIntent.status !== 'succeeded') {
           unbusy(btn);
+          btn.innerHTML = `${ic('lock')}Опитай отново`;
           el.querySelector('#c-err').textContent = (res.error && res.error.message) || 'Картата не беше потвърдена.';
           return;
         }
@@ -768,7 +890,7 @@ details.sec > div { padding-bottom: 14px; }
         <div class="logo" style="width:36px;height:36px;border-radius:9px;flex:none;font-size:17px">${esc((cfg.brand.name || '?').slice(0, 1).toUpperCase())}</div>
         <div style="min-width:0"><b style="display:block;font-size:14px">${esc(cfg.brand.name)}</b><span class="small muted">Днес в 18:00${cfg.address ? ' · ' + esc(cfg.address) : ''}</span></div>
       </div>
-      <button class="btn mini" id="rem-on" style="width:100%;margin-top:10px;padding:11px">Напомняне ${h} ч. преди часа</button></div>`;
+      <button class="btn mini" id="rem-on" style="width:100%;margin-top:10px;padding:11px">${ic('bell')}Напомняне ${h} ч. преди часа</button></div>`;
     document.getElementById('rem-on').onclick = async () => {
       try {
         const perm = (await ln.requestPermissions()).display;
@@ -847,7 +969,7 @@ details.sec > div { padding-bottom: 14px; }
   function showDone(booked, failed) {
     if (booked.length) haptic('ok');
     const taken = failed.filter((f) => f.error === 'taken' || f.error === 'not_offered').map((f) => f.time);
-    sheet(`${booked.length ? `<h3>Записани</h3><ul class="list">${booked.map((t) => `<li><span>${esc(timeLabel(t))}</span>${APP ? '' : `<a class="small" href="${esc(gcalLink(t))}" target="_blank" rel="noopener">Календар</a>`}</li>`).join('')}</ul>
+    sheet(`${booked.length ? `<h3 style="display:flex;align-items:center;gap:10px"><span class="ok-badge">${ic('check')}</span>Записани</h3><ul class="list">${booked.map((t) => `<li><span>${esc(timeLabel(t))}</span>${APP ? '' : `<a class="small" href="${esc(gcalLink(t))}" target="_blank" rel="noopener">Календар</a>`}</li>`).join('')}</ul>
       <div id="rem-slot"></div>
       ${APP ? '' : `<a class="btn sec" href="${icsFor(booked)}" download="${esc(STUDIO)}-chasove.ics">Добави в календара</a>`}` : ''}
       ${taken.length ? `<h3>${booked.length ? 'Тези не бяха записани' : 'Часът току-що беше зает'}</h3><ul class="list">${taken.map((t) => `<li>${esc(timeLabel(t))}</li>`).join('')}</ul><p class="small muted">Изберете друг свободен час.</p>` : ''}
@@ -928,13 +1050,13 @@ details.sec > div { padding-bottom: 14px; }
     const ahead = mine.filter((h) => h.status === 'booked' && zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) > Date.now()).length;
     const el = sheet(`<h3>Моят профил</h3>
       <ul class="menu">
-        <li><button data-p="mine"><span>Моите часове<small>${ahead ? ahead + ' предстоящи' : 'Няма предстоящи'}</small></span><span class="go">›</span></button></li>
-        <li><button data-p="me"><span>Моите данни<small>${me.name ? esc(me.name) : 'Още не сте записвали час'}</small></span><span class="go">›</span></button></li>
-        <li><button data-p="studio"><span>Студиото — къде и кога<small>${cfg.address ? esc(cfg.address) : 'Адрес, телефон, работно време'}</small></span><span class="go">›</span></button></li>
-        <li><button data-p="terms"><span>Условия</span><span class="go">›</span></button></li>
-        <li><a href="https://biocode.website/studio-support.html" target="_blank" rel="noopener"><span>Помощ и контакт</span><span class="go">›</span></a></li>
-        <li><a href="https://biocode.website/studio-privacy.html" target="_blank" rel="noopener"><span>Поверителност</span><span class="go">›</span></a></li>
-        ${$('switch-wrap') && APP ? '<li><button data-p="switch"><span>Смени студио</span><span class="go">›</span></button></li>' : ''}
+        <li><button data-p="mine">${ic('cal')}<span>Моите часове<small>${ahead ? ahead + ' предстоящи' : 'Няма предстоящи'}</small></span><span class="go">${ic('chev')}</span></button></li>
+        <li><button data-p="me">${ic('user')}<span>Моите данни<small>${me.name ? esc(me.name) : 'Още не сте записвали час'}</small></span><span class="go">${ic('chev')}</span></button></li>
+        <li><button data-p="studio">${ic('pin')}<span>Студиото<small>${cfg.address ? esc(cfg.address) : 'Адрес, телефон, работно време'}</small></span><span class="go">${ic('chev')}</span></button></li>
+        <li><button data-p="terms">${ic('doc')}<span>Правила и условия</span><span class="go">${ic('chev')}</span></button></li>
+        <li><a href="https://biocode.website/studio-support.html" target="_blank" rel="noopener">${ic('help')}<span>Помощ и контакт</span><span class="go">${ic('chev')}</span></a></li>
+        <li><a href="https://biocode.website/studio-privacy.html" target="_blank" rel="noopener">${ic('shield')}<span>Поверителност</span><span class="go">${ic('chev')}</span></a></li>
+        ${APP ? `<li><button data-p="switch">${ic('swap')}<span>Смени студио</span><span class="go">${ic('chev')}</span></button></li>` : ''}
       </ul><button class="btn sec" data-close>Затвори</button>`, (e) => {
       const b = e.target.closest('[data-p]');
       if (!b) return;
@@ -951,9 +1073,9 @@ details.sec > div { padding-bottom: 14px; }
     const map = mapLink();
     sheet(`<h3>${esc(cfg.brand.name)}</h3>
       ${cfg.address ? `<p style="margin:4px 0">${esc(cfg.address)}</p>` : ''}
-      ${map ? `<a class="btn" href="${esc(map)}" target="_blank" rel="noopener">Навигация</a>` : ''}
-      ${cfg.phone ? `<a class="btn sec" href="tel:${esc(cfg.phone.replace(/[^\d+]/g, ''))}">Обади се: ${esc(cfg.phone)}</a>` : ''}
-      <b style="display:block;margin-top:14px">Работно време</b>${hoursTable()}
+      ${map ? `<a class="btn" href="${esc(map)}" target="_blank" rel="noopener">${ic('nav')}Навигация</a>` : ''}
+      ${cfg.phone ? `<a class="btn sec" href="tel:${esc(cfg.phone.replace(/[^\d+]/g, ''))}">${ic('phone')}Обади се</a>` : ''}
+      <b style="display:flex;align-items:center;gap:6px;margin-top:16px">${ic('clock')}Работно време</b>${hoursTable()}
       <p class="small muted">Час: ${cfg.slot.minutes} мин${cfg.price ? ' · ' + esc(money(cfg.price)) : ''}. Записване до ${cfg.rules.daysAhead} дни напред.</p>
       <button class="btn sec" data-back>Назад</button>`, (e) => { if (e.target.closest('[data-back]')) openProfile(); });
   }
@@ -962,7 +1084,7 @@ details.sec > div { padding-bottom: 14px; }
       <ul class="list"><li><span class="muted">Име</span><span>${esc(me.name || '—')}</span></li><li><span class="muted">Телефон</span><span>${esc(me.phone || '—')}</span></li>
       ${me.card ? `<li><span class="muted">Карта</span><span>${esc(cardName(me.card))}</span></li>` : ''}${codeOk(me.code) ? `<li><span class="muted">Код</span><span>${esc(me.code.code)}</span></li>` : ''}</ul>
       <p class="small muted">Данните се пазят на устройството и в студиото ${esc(cfg.brand.name)} — само за записванията Ви. Можете да ги изтриете по всяко време.</p>
-      ${me.token ? '<button class="btn danger" data-go="forget">Изтрий данните ми</button>' : ''}
+      ${me.token ? `<button class="btn danger" data-go="forget">${ic('trash')}Изтрий данните ми</button>` : ''}
       <button class="btn sec" data-back>Назад</button>`, (e) => {
       if (e.target.closest('[data-back]')) { openProfile(); return; }
       if (e.target.closest('[data-go=forget]')) { closeSheet(); $('forget').click(); }
@@ -990,8 +1112,15 @@ details.sec > div { padding-bottom: 14px; }
     $('mine-card').classList.toggle('hidden', !ahead.length && !me.token);
     $('old-client').parentNode.classList.toggle('hidden', Boolean(me.token) || !(cfg && cfg.viber));   // the login code comes by Viber
     $('mine-extra').textContent = [me.card ? cardName(me.card) : '', codeOk(me.code) ? me.code.code : ''].filter(Boolean).join(' · ');
-    $('mine').innerHTML = ahead.length ? ahead.map((h) => `<li><div class="when"><b>${esc(timeLabel(h.time))}</b>${h.late ? '<small>под ' + cfg.rules.freeCancelHours + ' ч до часа</small>' : ''}</div>
-      <button class="btn mini sec" data-own="${esc(h.id)}">Промени</button></li>`).join('') : '<li class="muted small">Нямате предстоящи часове.</li>';
+    const sorted = ahead.slice().sort((a, b) => (a.time < b.time ? -1 : 1));
+    const n = sorted[0];
+    const rel = (t) => { const d = Math.round((zonedMs(t.slice(0, 10), '12:00', tz()) - zonedMs(todayYmd(), '12:00', tz())) / 864e5); return d === 0 ? 'днес' : d === 1 ? 'утре' : `след ${d} дни`; };
+    const MON = ['яну', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек'];
+    $('mine').innerHTML = n ? `<li class="next" style="border-top:0"><div class="date"><i>${MON[+n.time.slice(5, 7) - 1]}</i><b>${+n.time.slice(8, 10)}</b></div>
+        <div class="what"><b>${esc(n.time.slice(11))} · ${esc(rel(n.time))}</b><small>${esc(dayLabel(n.time.slice(0, 10)))}${n.late ? ' · под ' + cfg.rules.freeCancelHours + ' ч до часа' : ''}</small></div>
+        <button class="btn mini sec" data-own="${esc(n.id)}">Промени</button></li>` +
+      sorted.slice(1).map((h) => `<li><div class="when"><b>${esc(timeLabel(h.time))}</b>${h.late ? '<small>под ' + cfg.rules.freeCancelHours + ' ч до часа</small>' : ''}</div>
+      <button class="btn mini sec" data-own="${esc(h.id)}">Промени</button></li>`).join('') : '<li class="muted small" style="border-top:0">Нямате предстоящи часове.</li>';
   }
   $('mine').onclick = (e) => { const b = e.target.closest('[data-own]'); if (b) openOwn(mine.find((h) => h.id === b.dataset.own)); };
 

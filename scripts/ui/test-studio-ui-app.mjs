@@ -37,7 +37,7 @@ await call('POST', 'admin/settings', { studio: 'burgas', settings: { brand: { na
 const A = { Authorization: 'Bearer ' + tok };
 
 const browser = await launch();
-const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const ctx = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 390, height: 844 } });
 // a fake phone: Capacitor + LocalNotifications that remember what was asked
 await ctx.addInitScript(() => {
   const st = JSON.parse(localStorage.getItem('__ln') || '{"perm":"prompt","pending":[],"asked":0,"log":[]}');
@@ -69,7 +69,7 @@ const eq = (a, b, m) => { if (a !== b) throw new Error(`${m}: ${a} ≠ ${b}`); }
 await page.goto(PAGE);
 await step('invite-only studios: no list, only the code field; the right code opens that studio alone', async () => {
   await page.waitForSelector('#pick-card:not(.hidden)');
-  await page.waitForFunction(() => document.getElementById('pick-title').textContent.includes('кода'));
+  await page.waitForFunction(() => document.getElementById('pick-title').textContent.includes('Код'));
   if (await page.locator('[data-pick]').count()) throw new Error('a private studio is listed');
   await page.screenshot({ path: `${OUT}/app-0-code-only.png` });
   await page.fill('#pick-code', 'burgas'); await page.click('#pick-go');

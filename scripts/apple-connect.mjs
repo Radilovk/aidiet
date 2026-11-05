@@ -9,6 +9,7 @@
  *   node scripts/apple-connect.mjs metadata    fills the store page (texts, URLs, category, age rating, free price, review notes, newest build)
  *   node scripts/apple-connect.mjs screenshots uploads studio-app/store/*.png (1290x2796) as the iPhone screenshots of version 1.0
  *   node scripts/apple-connect.mjs submit      checks everything and sends version 1.0 for App Review (only on the owner's explicit go)
+ *   node scripts/apple-connect.mjs availability [fix]   in which countries the app is on sale; fix = all countries (and new ones)
  *   node scripts/apple-connect.mjs delete-cert <id>   deletes one certificate (e.g. a leftover of a failed run)
  *
  * Env: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (the text of AuthKey_XXXX.p8). Nothing secret is printed.
@@ -276,13 +277,57 @@ try {
       .catch((e) => { if (!/already|exists|duplicate/i.test(e.message)) throw e; });
     const done = await api('PATCH', `/v1/reviewSubmissions/${sub.id}`, { data: { type: 'reviewSubmissions', id: sub.id, attributes: { submitted: true } } });
     console.log(`✓ ПОДАДЕНО за ревю (състояние: ${done.data.attributes.state}).`);
+  } else if (action === 'availability') {
+    const app = (await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`)).data[0];
+    if (!app) fail('Няма приложение в App Store Connect.');
+    // fix = every country; a list of country codes (e.g. BGR or BGR,GRC) = only those
+    const arg = String(process.argv[3] || '').trim().toUpperCase();
+    const fix = arg === 'FIX';
+    const only = !fix && /^[A-Z]{3}(,[A-Z]{3})*$/.test(arg) ? arg.split(',') : null;
+    let av = null;
+    try { av = (await api('GET', `/v1/apps/${app.id}/appAvailabilityV2`)).data; } catch (e) { if (e.status !== 404) throw e; }
+    let ta = [];
+    if (av) {
+      for (let next = `/v2/appAvailabilities/${av.id}/territoryAvailabilities?limit=200`; next;) {
+        const r = await api('GET', next.replace('https://api.appstoreconnect.apple.com', ''));
+        ta = ta.concat(r.data);
+        next = r.links && r.links.next;
+      }
+    }
+    const on = ta.filter((t) => t.attributes.available).length;
+    console.log(av ? `Наличност: в ${on} от ${ta.length} държави; нови държави автоматично: ${av.attributes.availableInNewTerritories ? 'да' : 'не'}` : 'Наличност: не е зададена (приложението не се продава никъде).');
+    if (only) {
+      if (!av) fail('Първо пусни availability с fix (за да се създаде наличността), после с кода на държавата.');
+      let n = 0;
+      for (const t of ta) {
+        const terr = (await api('GET', `/v1/territoryAvailabilities/${t.id}/territory`).catch(() => ({ data: null }))).data;
+        const want = Boolean(terr && only.includes(terr.id));
+        if (t.attributes.available !== want) { await api('PATCH', `/v1/territoryAvailabilities/${t.id}`, { data: { type: 'territoryAvailabilities', id: t.id, attributes: { available: want } } }); n++; }
+      }
+      console.log(`✓ на продажба само в: ${only.join(', ')} (${n} промени)`);
+      process.exit(0);
+    }
+    if (!fix) process.exit(0);
+    if (!av) {
+      const terr = (await api('GET', '/v1/territories?limit=200')).data;
+      await api('POST', '/v2/appAvailabilities', { data: { type: 'appAvailabilities', attributes: { availableInNewTerritories: true },
+        relationships: { app: { data: { type: 'apps', id: app.id } }, territoryAvailabilities: { data: terr.map((t) => ({ type: 'territoryAvailabilities', id: `\${${t.id}}` })) } } },
+        included: terr.map((t) => ({ type: 'territoryAvailabilities', id: `\${${t.id}}`, attributes: { available: true }, relationships: { territory: { data: { type: 'territories', id: t.id } } } })) });
+      console.log(`✓ на продажба във всички ${terr.length} държави`);
+    } else {
+      let n = 0;
+      for (const t of ta.filter((x) => !x.attributes.available)) {
+        await api('PATCH', `/v1/territoryAvailabilities/${t.id}`, { data: { type: 'territoryAvailabilities', id: t.id, attributes: { available: true } } }); n++;
+      }
+      console.log(`✓ включени още ${n} държави (общо ${ta.length})`);
+    }
   } else if (action === 'delete-cert') {
     const id = String(process.argv[3] || '').trim();
     if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
     await api('DELETE', `/v1/certificates/${id}`);
     console.log(`✓ Изтрит сертификат ${id}`);
   } else {
-    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | delete-cert');
+    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | availability | delete-cert');
   }
 } catch (e) {
   fail(String(e.message).slice(0, 600));
