@@ -75,12 +75,12 @@ await step('pick 2 hours, book (no Stripe → no card)', async () => {
 });
 await step('my hours after reload; nothing asked again', async () => {
   await page.reload();
-  await page.waitForSelector('#mine [data-own]');
+  await page.waitForSelector('#mine [data-own]', { state: 'attached' });
   if ((await page.locator('#mine [data-own]').count()) !== 2) throw new Error('not 2 hours');
   if (await page.isVisible('#old-client')) throw new Error('login link still shown');
 });
 await step('move one hour', async () => {
-  await page.locator('#mine [data-own]').first().click();
+  await page.click('#fab'); await page.click('[data-p=mine]'); await page.locator('.sheet [data-own]').first().click();
   await page.click('[data-go=move]');
   await page.waitForSelector('#move-banner:not(.hidden)');
   await page.locator('[data-slot]').last().click();
@@ -89,7 +89,7 @@ await step('move one hour', async () => {
   await page.waitForSelector('text=Часът е преместен');
 });
 await step('cancel one hour (asks twice)', async () => {
-  await page.locator('#mine [data-own]').first().click();
+  await page.click('#fab'); await page.click('[data-p=mine]'); await page.locator('.sheet [data-own]').first().click();
   await page.click('[data-go=cancel]'); await page.click('[data-go=cancel]');
   await page.waitForSelector('text=Часът е отказан');
   await page.waitForFunction(() => document.querySelectorAll('#mine [data-own]').length === 1);

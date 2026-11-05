@@ -148,7 +148,7 @@ await step('reminders are 4 h before; 08:00 would be 04:00 → moved to 07:00; n
   if (await page.locator('a[download]').count()) throw new Error('.ics button shown in the app');
 });
 await step('move one hour → the reminder follows; cancel → it goes', async () => {
-  await page.locator('#mine [data-own]').last().click();
+  await page.click('#fab'); await page.click('[data-p=mine]'); await page.locator('.sheet [data-own]').last().click();
   await page.click('[data-go=move]');
   await page.click(`[data-slot="${day} 16:00"]`);
   await page.click('.sheet [data-go=ok]');
@@ -156,7 +156,7 @@ await step('move one hour → the reminder follows; cancel → it goes', async (
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => /16:00/.test(n.body)));
   let s = await ln();
   eq(s.pending.length, 2, 'still 2');
-  await page.locator('#mine [data-own]').last().click();
+  await page.click('#fab'); await page.click('[data-p=mine]'); await page.locator('.sheet [data-own]').last().click();
   await page.click('[data-go=cancel]'); await page.click('[data-go=cancel]');
   await page.waitForSelector('text=Часът е отказан');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.length === 1);
