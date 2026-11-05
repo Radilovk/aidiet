@@ -76,7 +76,7 @@ a { color: var(--brand); }
 .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; padding: 13px 16px; border-radius: 14px; border: 0;
   background: var(--brand); color: #fff; font-weight: 700; font-size: 16px; cursor: pointer; text-decoration: none; margin-top: 10px; -webkit-tap-highlight-color: transparent; }
 @supports (background: color-mix(in srgb, red, blue)) {
-  .btn:not(.sec):not(.danger) { background: linear-gradient(145deg, color-mix(in srgb, var(--brand) 88%, #fff), color-mix(in srgb, var(--brand) 78%, #000));
+  .btn:not(.sec):not(.danger):not(.quiet) { background: linear-gradient(145deg, color-mix(in srgb, var(--brand) 88%, #fff), color-mix(in srgb, var(--brand) 78%, #000));
     box-shadow: 0 8px 20px color-mix(in srgb, var(--brand) 32%, transparent); }
 }
 .btn:active { transform: scale(.985); }
@@ -358,6 +358,26 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
 @keyframes spin { to { transform: translateY(0) rotate(360deg); } }
 .pills { flex-wrap: wrap; }
 
+/* ════ the XEMS module ════ */
+.xchips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; }
+.xchip { min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--slot-line); background: var(--card); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .12s, background .15s; }
+.xchip:active { transform: scale(.96); }
+.xchip[aria-pressed="true"] { background: color-mix(in srgb, var(--brand) 10%, var(--card)); border-color: var(--brand); color: var(--brand); }
+.xnums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.xnum span { display: flex; align-items: center; gap: 4px; }
+.xnum em { font-style: normal; color: var(--muted); font-size: 13px; }
+.sheet .sec-title { margin: 16px 0 8px; }
+.xtiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.xtile { text-align: center; padding: 14px 6px; border-radius: 16px; background: var(--soft); }
+.xtile .i { color: var(--brand); width: 22px; height: 22px; }
+.xtile b { display: block; font-size: 22px; margin-top: 4px; }
+.xtile b em { font-style: normal; font-size: 14px; margin-left: 2px; }
+.xtile small { font-size: 11px; color: var(--muted); }
+.xtips { display: grid; gap: 8px; }
+.xtip { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; background: var(--soft); font-size: 14px; }
+.xtip .i { color: var(--brand); margin-top: 1px; }
+.xtip small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -472,6 +492,13 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     plus: '<path d="M12 5v14M5 12h14"/>',
     nav: '<path d="M4 11l16-7-7 16-2-7z"/>',
     trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+    chart: '<path d="M4 19h16"/><path d="M6 15l4-4 3 3 5-6"/><path d="M15 8h3v3"/>',
+    fire: '<path d="M12 21c-4 0-6.5-2.6-6.5-6.2 0-3.4 2.6-5.3 3.6-8.3.6 1.8 1.6 2.9 2.8 3.4.3-2.5 1.4-4.6 3.1-6.4.2 3 3.5 5.4 3.5 10.3C18.5 18.4 16 21 12 21z"/>',
+    egg: '<path d="M12 3c3.3 0 6 5.2 6 9.5S15.3 21 12 21s-6-4.2-6-8.5S8.7 3 12 3z"/>',
+    drop: '<path d="M12 3.5s6 6.4 6 10.6A6 6 0 0 1 6 14.1C6 9.9 12 3.5 12 3.5z"/>',
+    scale: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9.5a4 4 0 0 1 6 0M12 9.5l1.2-1.5"/>',
+    idcard: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.5 1.7-2.2 3-2.2s2.4.7 3 2.2M14 10h4M14 13.5h3"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>',
   };
   const ic = (n) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1174,6 +1201,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     const el = sheet(`<h3>Моят профил</h3>
       <ul class="menu">
         <li><button data-p="mine">${ic('cal')}<span>Моите часове<small>${ahead ? ahead + ' предстоящи' : 'Няма предстоящи'}</small></span><span class="go">${ic('chev')}</span></button></li>
+        ${window.Xems && Xems.on() ? Xems.menuItems() : ''}
         <li><button data-p="me">${ic('user')}<span>Моите данни<small>${me.name ? esc(me.name) : 'Още не сте записвали час'}</small></span><span class="go">${ic('chev')}</span></button></li>
         <li><button data-p="studio">${ic('pin')}<span>Студиото<small>${cfg.address ? esc(cfg.address) : 'Адрес, телефон, работно време'}</small></span><span class="go">${ic('chev')}</span></button></li>
         <li><button data-p="terms">${ic('doc')}<span>Правила и условия</span><span class="go">${ic('chev')}</span></button></li>
@@ -1184,12 +1212,17 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       const b = e.target.closest('[data-p]');
       if (!b) return;
       const k = b.dataset.p;
+      if (k.startsWith('xems-') && window.Xems) { Xems.open(k); return; }
       if (k === 'mine') openMine();
       else if (k === 'terms') { closeSheet(); showTerms(); }
       else if (k === 'switch') { $('switch').click(); }
       else if (k === 'studio') openStudioInfo();
       else if (k === 'me') openMyData();
     });
+    if (window.Xems && Xems.on()) {   // the card may have news: the menu updates itself once it is known
+      const before = Xems.menuItems();
+      Xems.refresh().then(() => { if (document.querySelector('.sheet .menu') && Xems.menuItems() !== before) openProfile(); });
+    }
     return el;
   }
   function openStudioInfo(alone) {
@@ -1229,7 +1262,8 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     renderMine();
     if (r && r.status === 200) await syncReminders(askNotify === true);   // the phone's reminders follow the list
   }
-  function renderMine() {
+  function renderMine() { renderMineList(); if (view) renderCal(); }   // the calendar's dots follow my hours
+  function renderMineList() {
     const now = Date.now();
     const ahead = mine.filter((h) => h.status === 'booked' && zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) > now);
     $('mine-card').classList.toggle('hidden', !ahead.length && !me.token);
@@ -1360,6 +1394,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       const r = await api('POST', 'forget', { phone: me.phone, token: me.token }).catch(() => ({ status: 0 }));
       if (r.status !== 200) { unbusy(go); $('f-err').textContent = r.status === 0 ? 'Няма връзка.' : 'Не успя. Опитайте отново.'; return; }
       await dropReminders();
+      if (window.Xems) Xems.forget();
       try { Object.keys(localStorage).filter((k) => k.startsWith(`st:${STUDIO}:`)).forEach((k) => localStorage.removeItem(k)); } catch (_) {}
       closeSheet();
       toast('Данните са изтрити');
@@ -1699,6 +1734,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
         <label class="f">Текст на началната страница<textarea id="t-hero">${esc(s.texts.hero)}</textarea></label>
         <label class="f">Послание / съобщение (подчертано)<textarea id="t-msg">${esc(s.texts.message)}</textarea></label>
         <label class="f">Условия и правила на студиото<textarea id="t-terms">${esc(s.texts.terms)}</textarea></label>
+        <label class="f">XEMS код на студиото (Моят прогрес, Хранене, Профил за тренировките) — празно = изключено<input id="t-xems" value="${esc(s.xems || '')}" autocapitalize="none" placeholder="напр. xbody"></label>
         <label class="f">Бутони горе (до 3, по един на ред: заглавие | https://адрес), напр. „Чести въпроси | https://…“<textarea id="t-links" style="min-height:70px">${esc((s.links || []).map((l) => `${l.title} | ${l.url}`).join('\n'))}</textarea></label>
       </div></details>
       <details class="sec"><summary>📆 Почивни дни</summary><div>
@@ -1787,6 +1823,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
         brand: { ...s.brand, name: $('b-name2').value, tagline: $('b-tag').value, color: $('b-color').value },
         price: num('b-price'), currency: $('b-cur').value.toUpperCase(), address: $('b-addr').value, mapUrl: $('b-map').value, phone: $('b-phone').value,
         texts: { hero: $('t-hero').value, message: $('t-msg').value, terms: $('t-terms').value },
+        xems: $('t-xems').value.trim().toLowerCase(),
         links: $('t-links').value.split('\n').map((l) => l.split('|')).filter((p) => p.length >= 2).map((p) => ({ title: p[0].trim(), url: p.slice(1).join('|').trim() })),
         google: { calendarId: $('g-id').value.trim() },
       });
@@ -1837,7 +1874,292 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && view && !adm) ensureMonth(ymOf(view.y, view.m)).then(renderCal);
   });
+  window.StudioApp = {
+    cfg: () => cfg, me: () => me, mine: () => mine, studio: () => STUDIO, sheet, closeSheet, ic, esc, toast, busy, unbusy,
+    openProfile, showTerms, timeLabel, todayYmd, tz: () => tz(), zonedMs, perWeek: () => {
+      const since = Date.now() - 28 * 864e5;
+      return mine.filter((h) => (h.status === 'done' || h.status === 'booked') && zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) > since).length / 4;
+    },
+    next: () => mine.filter((h) => h.status === 'booked').map((h) => h.time).sort()[0] || '',
+  };
 })();
 </script>
+<script>
+/* ════ XEMS module (Моят прогрес · Хранене · Моят профил за тренировките), the same as in XBody (xbody.html).
+   ON only for a studio with an XEMS code (admin → Настройки → XEMS код); every other studio does not see it.
+   The data goes only to that studio's system (license.biocode-bg.com): the card is found by SHA-256 hashes of the
+   e-mail / phone; the profile (and the health answers) only after the client's own consent. No medical claims. ════ */
+(function () {
+  'use strict';
+  const A = window.StudioApp;
+  if (!A) return;
+  const API = 'https://license.biocode-bg.com';
+  const GOALS = [['tone', 'Стягане и тонус'], ['fat', 'Отслабване'], ['cellulite', 'Целулит'], ['drain', 'Отводняване'], ['massage', 'Възстановяване']];
+  const FITNESS = [['low', 'Рядко'], ['mid', '1–2 пъти седмично'], ['high', 'Тренирам редовно']];
+  const FOCUS = [['abs', 'Корем'], ['glutes', 'Седалище'], ['legs', 'Бедра'], ['arms', 'Ръце'], ['back', 'Гръб'], ['chest', 'Гърди']];
+  const COND = [['back', 'Болки в кръста'], ['neck', 'Врат и рамене'], ['knees', 'Колене'], ['injury', 'Стара травма'],
+    ['desk', 'Седяща работа'], ['stress', 'Стрес или лош сън'], ['sensitive', 'Чувствителност към тока'], ['postpartum', 'Раждане през последната година']];
+  const CONTRA = [['pregnancy', 'Бременност'], ['implant', 'Пейсмейкър или метален имплант'], ['cardiovascular', 'Сърдечно заболяване'],
+    ['circulation', 'Тромбоза или разширени вени'], ['hernia', 'Херния'], ['cancer', 'Онкологично заболяване'], ['bleeding', 'Склонност към кървене'],
+    ['epilepsy', 'Епилепсия'], ['neurological', 'Неврологично заболяване'], ['recent_surgery', 'Операция скоро'], ['skin_lesion', 'Рани по кожата'],
+    ['kidney', 'Бъбречно заболяване'], ['tuberculosis', 'Туберкулоза']];
+  const { ic, esc } = A;
+  const key = (n) => `st:${A.studio()}:xems:${n}`;
+  const load = (n, d) => { try { const v = JSON.parse(localStorage.getItem(key(n)) || 'null'); return v == null ? d : v; } catch (_) { return d; } };
+  const save = (n, v) => { try { localStorage.setItem(key(n), JSON.stringify(v)); } catch (_) {} };
+  const on = () => { const c = A.cfg(); return Boolean(c && c.xems); };
+  const digits = (p) => { let d = String(p || '').replace(/\D/g, ''); if (d.length > 9) d = d.slice(-9); return d.length >= 7 ? d : ''; };
+  function contact() { const m = A.me() || {}; return { name: m.name || '', email: (m.email || '').toLowerCase(), phone: digits(m.phone), phoneRaw: m.phone || '' }; }
+  async function sha(v) {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('xems-card:' + v));
+    return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('');
+  }
+
+  /* ── the card (Моят прогрес): found by hashes, kept 12 h (or until a held hour newer than the last check) ── */
+  let card = load('card', null);
+  async function lookup(force) {
+    const c = contact();
+    const who = c.email + '|' + c.phone;
+    if (!c.email && !c.phone) { card = null; return; }
+    const lastHeld = A.mine().filter((h) => h.status === 'done').map((h) => A.zonedMs(h.time.slice(0, 10), h.time.slice(11), A.tz())).sort().pop() || 0;
+    if (!force && card && card.who === who && Date.now() - card.at < 12 * 3600e3 && !(lastHeld > card.at)) return;
+    try {
+      const body = { studio: A.cfg().xems };
+      if (c.email) body.ek = await sha(c.email);
+      if (c.phone) body.pk = await sha(c.phone);
+      const r = await fetch(API + '/v1/card/find', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => null);
+      if (r.ok || r.status === 404) {
+        const url = d && d.ok && typeof d.url === 'string' && d.url.startsWith('https://') ? d.url : null;
+        card = { who, url, upd: url ? (d.at > 0 ? d.at * 1000 : Date.now()) : 0, n: url && typeof d.n === 'number' ? d.n : null, at: Date.now() };
+        save('card', card);
+      }
+    } catch (_) { /* offline: the last known card stays */ }
+  }
+  const news = () => Boolean(card && card.url && card.upd && Date.now() - card.upd < 3 * 864e5 && card.upd > load('seen', 0));
+  const cardId = () => { const m = card && card.url && /\/c\/([A-Za-z0-9_-]+)/.exec(card.url); return m ? m[1] : ''; };
+
+  /* ── the profile for the trainings ── */
+  const prof = () => Object.assign({ focus: [], cond: [], contra: [] }, load('profile', {}));
+  const sent = () => load('sent', null);
+  const labels = (list, vals) => list.filter((o) => (vals || []).includes(o[0])).map((o) => o[1]);
+  function missing(p) {
+    const out = [];
+    const about = [['sex', 'пол'], ['by', 'година на раждане'], ['h', 'ръст'], ['w', 'тегло']].filter((f) => !p[f[0]]).map((f) => f[1]);
+    if (about.length) out.push(about.join(', '));
+    if (!p.goal) out.push('цел');
+    if (!p.fit) out.push('колко често спортувате');
+    if (!(p.focus || []).length) out.push('зони');
+    if (!(p.contra || []).length && !p.healthNo) out.push('въпросът за здравето');
+    return out;
+  }
+
+  /* ── Хранене: the same rules as in XBody (Mifflin–St Jeor / Katch–McArdle by the scale, protein by goal, water by weight) ── */
+  async function loadFood() {
+    const id = cardId();
+    const f = load('food', null);
+    if (!id || (f && f.id === id && Date.now() - f.at < 6 * 3600e3 && f.at >= (card.upd || 0))) return false;
+    try {
+      const r = await fetch(API + '/v1/history/' + id);
+      const d = r.ok ? await r.json() : null;
+      if (!d || !d.ok) return false;
+      const raw = Array.isArray(d.body) ? d.body : [];
+      const gone = raw.filter((m) => m && m.del).map((m) => m.t);
+      const body = raw.filter((m) => m && m.w > 0 && !m.del && !gone.includes(m.t)).sort((a, b) => a.t - b.t);
+      const last = body[body.length - 1] || null;
+      const win = last ? body.filter((m) => m.t > last.t - 35 * 864e5) : [];
+      let trend = 0, span = 0;
+      if (win.length >= 2) {
+        span = (win[win.length - 1].t - win[0].t) / 864e5;
+        if (span >= 14) {
+          const mx = win.reduce((a, m) => a + m.t, 0) / win.length, my = win.reduce((a, m) => a + m.w, 0) / win.length;
+          let sxy = 0, sxx = 0;
+          win.forEach((m) => { sxy += (m.t - mx) * (m.w - my); sxx += (m.t - mx) ** 2; });
+          trend = sxx > 0 ? Math.round(sxy / sxx * 7 * 864e5 * 100) / 100 : 0;
+        }
+      }
+      const recent = (Array.isArray(d.sessions) ? d.sessions : []).filter((x) => x && (x.start || x.id) > Date.now() - 28 * 864e5);
+      const kc = recent.map((x) => (x.scores && x.scores.kcal > 0 ? x.scores.kcal : 0)).filter(Boolean);
+      save('food', { id, at: Date.now(), t: last ? last.t : 0, w: last ? last.w : 0, fat: last && last.fat > 0 ? last.fat : 0,
+        water: last && last.water > 0 ? last.water : 0, visc: last && last.visc > 0 ? last.visc : 0, trend: span >= 14 ? trend : null, span: Math.round(span),
+        wk: recent.length / 4, kcal: kc.length ? Math.round(kc.reduce((a, b) => a + b, 0) / kc.length) : 0 });
+      return true;
+    } catch (_) { return false; }
+  }
+  const round = (v, st) => Math.round(v / st) * st;
+  const thousands = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  function foodPlan() {
+    const p = prof();
+    if ((p.contra || []).includes('pregnancy') || (p.contra || []).includes('kidney')) return { stop: (p.contra || []).includes('pregnancy') ? 'бременност' : 'бъбречно заболяване' };
+    const f = load('food', null);
+    const own = f && f.id === cardId() ? f : null;
+    const fresh = own && own.w > 0 && Date.now() - own.t < 120 * 864e5;
+    const w = fresh ? own.w : (p.w || (own && own.w) || 0);
+    const fat = fresh && own.fat > 0 ? own.fat : 0;
+    const age = p.by ? new Date().getFullYear() - p.by : 0;
+    let bmr = 0;
+    if (w && fat) bmr = 370 + 21.6 * w * (1 - fat / 100);
+    else if (w && p.sex && age && p.h) bmr = 10 * w + 6.25 * p.h - 5 * age + (p.sex === 'M' ? 5 : -161);
+    if (!bmr) return { miss: [['sex', 'пол'], ['by', 'година на раждане'], ['h', 'ръст'], ['w', 'тегло']].filter((x) => !p[x[0]] && !(x[0] === 'w' && w)).map((x) => x[1]) };
+    const factor = { low: 1.3, mid: 1.4, high: 1.55 }[p.fit] || 1.35;
+    const wk = own && own.wk > 0 ? own.wk : A.perWeek();
+    const tdee = bmr * factor + wk * (own && own.kcal > 0 ? own.kcal : 200) * 0.8 / 7;
+    const postpartum = (p.cond || []).includes('postpartum');
+    const cut = postpartum || (age > 0 && age < 18) ? 0 : ({ fat: 0.18, tone: 0.1, cellulite: 0.1 }[p.goal] || 0);
+    const trend = fresh && typeof own.trend === 'number' ? own.trend : null;
+    const pct = trend !== null && w ? trend / w * 100 : null;
+    let adj = 0;
+    if (pct !== null && pct < -1) adj = 150; else if (pct !== null && cut && p.goal === 'fat' && pct > -0.1 && own.span >= 21) adj = -100;
+    const kcal = round(Math.max(tdee * (1 - cut) + adj, bmr * 1.1, tdee * 0.75), 50);
+    let ref = w;
+    if (p.h) { const m = p.h / 100; if (w / (m * m) > 27) ref = 23 * m * m + 0.25 * (w - 23 * m * m); }
+    let perKg = { fat: 1.6, tone: 1.6, cellulite: 1.6 }[p.goal] || 1.3;
+    if (p.fit === 'high') perKg += 0.3; else if (p.fit === 'mid') perKg += 0.2;
+    if (age >= 60) perKg = Math.max(perKg, 1.4);
+    if (postpartum) perKg = Math.max(perKg, 1.5);
+    perKg = Math.min(2.2, perKg);
+    const protein = round(Math.min(ref * perKg, kcal * 0.35 / 4), 5);
+    const lowWater = fresh && own.water > 0 && own.water < (p.sex === 'M' ? 50 : 45);
+    return { kcal, protein, water: Math.min(3.5, Math.max(1.5, Math.round((w * 0.033 + (lowWater ? 0.3 : 0)) * 10) / 10)), cut, wk,
+      meal: Math.min(40, Math.max(20, round(protein / 4, 5))), scaleAt: fresh ? own.t : 0, fat, goal: p.goal, trend, adj, lowWater, highVisc: fresh && own.visc >= 10 };
+  }
+  function foodSub() { const f = foodPlan(); return f.stop ? 'Насоки за Вас' : f.kcal ? `≈ ${thousands(f.kcal)} kcal · ${f.protein} г протеин на ден` : 'Калории, протеин и вода за Вас'; }
+
+  /* ── the menu lines (inside Моят профил) ── */
+  function menuItems() {
+    const done = sent();
+    const miss = done ? missing(prof()) : null;
+    const prog = !card || !card.url ? 'Ще се появи след първата тренировка или измерване' : card.n === 0 ? (news() ? 'Ново измерване' : 'Измерванията на кантара') : news() ? 'Нов анализ от тренировката' : 'Тренировки и измервания';
+    return `<li><button data-p="xems-card"${card && card.url ? '' : ' disabled style="opacity:.55"'}>${ic('chart')}<span>Моят прогрес${news() ? ' <b style="color:var(--brand)">•</b>' : ''}<small>${esc(prog)}</small></span><span class="go">${ic('chev')}</span></button></li>
+      <li><button data-p="xems-food">${ic('fire')}<span>Хранене<small>${esc(foodSub())}</small></span><span class="go">${ic('chev')}</span></button></li>
+      <li><button data-p="xems-data">${ic('idcard')}<span>Профил за тренировките<small>${esc(!done ? 'Попълнете — отнема около минута' : miss.length ? 'Остава: ' + miss.join(', ') : 'Попълнен')}</small></span><span class="go">${ic('chev')}</span></button></li>`;
+  }
+  const back = '<button class="btn sec" data-xb>Назад</button>';
+  function open(k) {
+    if (k === 'xems-card') {
+      if (!card || !card.url) return;
+      const target = news() && card.n !== 0 ? card.url.replace('/c/', '/r/') : card.url;
+      save('seen', card.upd || Date.now());
+      const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+      window.open(target + (target.includes('?') ? '&' : '?') + 'theme=' + (dark ? 'dark' : 'light'), '_blank', 'noopener');
+      return;
+    }
+    if (k === 'xems-food') { openFood(); loadFood().then((ch) => { if (ch) openFood(); }); return; }
+    if (k === 'xems-data') openData(!sent());
+  }
+
+  function tip(i, text, sub) { return `<div class="xtip">${ic(i)}<span>${text}${sub ? `<small>${sub}</small>` : ''}</span></div>`; }
+  const GOAL_TIP = { fat: 'Отслабването идва от по-малко захар и тестени, не от пропуснати хранения.', tone: 'Разделете протеина в 3–4 хранения — така мускулите го използват най-добре.',
+    cellulite: 'По-малко сол и готови храни, повече вода и зеленчуци.', drain: 'По-малко сол, повече вода, зеленчуци и плодове.', massage: 'Вода и протеин и на следващия ден помагат на мускулите да се възстановят.' };
+  function openFood() {
+    const f = foodPlan();
+    const nx = A.next();
+    let html = '<h3>Хранене</h3>';
+    if (f.stop) {
+      html += `<div class="policy">${ic('info')}<div>При ${f.stop} храненето се определя заедно със специалист. Попитайте треньора си при следващата тренировка.</div></div>`;
+    } else if (f.kcal) {
+      html += `<div class="xtiles"><div class="xtile">${ic('fire')}<b>${thousands(f.kcal)}</b><small>kcal ${f.cut ? (f.goal === 'fat' ? 'за отслабване' : 'за стягане') : 'на ден'}</small></div>
+        <div class="xtile">${ic('egg')}<b>${f.protein}<em>г</em></b><small>протеин</small></div>
+        <div class="xtile">${ic('drop')}<b>${String(f.water).replace('.', ',')}<em>л</em></b><small>вода на ден</small></div></div>`;
+      const src = [];
+      if (f.scaleAt) src.push('по измерването от ' + new Date(f.scaleAt).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' }));
+      if (f.trend !== null && Math.abs(f.trend) >= 0.1) src.push('теглото ' + (f.trend < 0 ? '−' : '+') + Math.abs(f.trend).toFixed(1).replace('.', ',') + ' кг седмично');
+      if (f.wk >= 0.5) src.push(Math.round(f.wk) + (Math.round(f.wk) === 1 ? ' тренировка' : ' тренировки') + ' седмично');
+      html += `<p class="small muted" style="text-align:center;margin:8px 0 0">${esc(src.length ? src.join(' · ') : 'по данните в профила Ви')}. Ориентир за деня, не диета.</p>`;
+    } else {
+      html += `<button class="next-btn" data-go="fill">${ic('fire')}<span><small>Нека сметнем калориите Ви</small><strong>Остава: ${esc((f.miss || []).join(', '))}</strong></span><span class="go">${ic('chev')}</span></button>`;
+    }
+    html += `<p class="sec-title" style="margin:18px 0 6px">${nx ? 'Тренировка ' + esc(A.timeLabel(nx)) : 'В деня на тренировка'}</p><div class="xtips">` +
+      tip('clock', 'Хапнете леко 1–2 часа преди — не на гладно и не на пълен стомах.') +
+      tip('drop', 'Половин литър вода в повече — чаша преди и след.') +
+      tip('egg', 'До час след нея — протеин' + (f.meal ? ', около ' + f.meal + ' г' : '') + '.', 'Кисело мляко, яйца, извара, риба или пиле.') +
+      tip('check', GOAL_TIP[f.goal] || GOAL_TIP.tone) +
+      (f.lowWater ? tip('drop', 'Кантарът показва малко вода в тялото — пийте по малко през целия ден.') : '') + '</div>' + back;
+    A.sheet(html, (e) => { if (e.target.closest('[data-xb]')) A.openProfile(); else if (e.target.closest('[data-go=fill]')) openData(true); });
+  }
+
+  /* Профил за тренировките: view or edit; the health answer needs its own consent */
+  let st = null, health = null;
+  function chips(k, list, multi) {
+    return `<div class="xchips">${list.map((o) => { const onn = multi ? (st[k] || []).includes(o[0]) : st[k] === o[0];
+      return `<button type="button" class="xchip" data-k="${k}" data-v="${o[0]}"${multi ? ' data-m="1"' : ''} aria-pressed="${onn}">${o[1]}</button>`; }).join('')}</div>`;
+  }
+  const num = (id, cap, unit, v, min, max) => `<label class="f xnum">${cap}<span><input id="${id}" type="number" inputmode="numeric" min="${min}" max="${max}" value="${esc(v || '')}" placeholder="—"><em>${unit}</em></span></label>`;
+  const row = (k, v) => (v ? `<li><span class="muted">${k}</span><span style="text-align:right">${esc(v)}</span></li>` : '');
+  function collect() {
+    const n = (id) => { const el = document.getElementById(id); if (!el) return null; const v = parseInt(el.value, 10); return Number.isFinite(v) ? v : null; };
+    if (document.getElementById('x-by')) { st.by = n('x-by'); st.h = n('x-h'); st.w = n('x-w'); }
+    const note = document.getElementById('x-note'); if (note) st.note = note.value.trim().slice(0, 300);
+    st.healthNo = health === false;
+    if (health !== true) st.contra = [];
+  }
+  function openData(edit) {
+    if (!st || !edit) { st = prof(); health = (st.contra || []).length ? true : st.healthNo ? false : null; }
+    const c = contact();
+    let html = '<h3>Профил за тренировките</h3>';
+    if (!edit) {
+      html += `<ul class="list">${row('За Вас', [st.sex ? (st.sex === 'F' ? 'Жена' : 'Мъж') : '', st.by ? (new Date().getFullYear() - st.by) + ' г.' : '', st.h ? st.h + ' см' : '', st.w ? st.w + ' кг' : ''].filter(Boolean).join(' · '))}
+        ${row('Цел', labels(GOALS, [st.goal])[0])}${row('Спорт', labels(FITNESS, [st.fit])[0])}${row('Зони', labels(FOCUS, st.focus).join(', '))}
+        ${row('Да имаме предвид', labels(COND, st.cond).join(', '))}${row('Здраве', (st.contra || []).length ? labels(CONTRA, st.contra).join(', ') : st.healthNo ? 'Няма медицинска причина' : '')}${row('Бележка', st.note)}</ul>
+        <button class="btn" data-go="edit">Промени</button>${back}`;
+    } else {
+      html += `<p class="small muted" style="margin-top:0">Помага на треньора да настрои интензитета, зоните и почивките спрямо Вас. Отива само в ${esc(A.cfg().brand.name)}.</p>
+        <p class="sec-title">За Вас</p>${chips('sex', [['F', 'Жена'], ['M', 'Мъж']], false)}
+        <div class="xnums">${num('x-by', 'Година на раждане', '', st.by, 1920, 2016)}${num('x-h', 'Ръст', 'см', st.h, 100, 230)}${num('x-w', 'Тегло', 'кг', st.w, 30, 250)}</div>
+        <p class="sec-title">Цел</p>${chips('goal', GOALS, false)}
+        <p class="sec-title">Колко често спортувате</p>${chips('fit', FITNESS, false)}
+        <p class="sec-title">Зони за акцент <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500">· няколко</span></p>${chips('focus', FOCUS, true)}
+        <p class="sec-title">Какво да имаме предвид <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500">· няколко</span></p>${chips('cond', COND, true)}
+        <p class="sec-title">Има ли медицинска причина да не тренирате с EMS?</p>
+        <div class="xchips"><button type="button" class="xchip" data-h="0" aria-pressed="${health === false}">Не</button><button type="button" class="xchip" data-h="1" aria-pressed="${health === true}">Да или не знам</button></div>
+        ${health === true ? `${chips('contra', CONTRA, true)}<p class="small muted">Ще го обсъдим с Вас преди тренировката.</p>` : ''}
+        <label class="f">Нещо друго, което да знаем<textarea id="x-note" maxlength="300" style="min-height:64px" placeholder="по желание">${esc(st.note || '')}</textarea></label>
+        ${health === true ? `<label class="tick"><input type="checkbox" id="x-consent"><span>Съгласен/на съм данните за здравето ми да се изпратят на ${esc(A.cfg().brand.name)}, само за безопасна тренировка.</span></label>` : ''}
+        <p class="err" id="x-err"></p>
+        <div class="acts"><button class="btn" data-go="send">Запази профила</button><button class="btn quiet" data-xb>Назад</button></div>`;
+    }
+    A.sheet(html, onClick(edit));
+  }
+  const onClick = (edit) => async (e) => {
+    if (e.target.closest('[data-xb]')) { if (edit && sent()) openData(false); else A.openProfile(); return; }
+    if (e.target.closest('[data-go=edit]')) { openData(true); return; }
+    const chip = e.target.closest('.xchip');
+    if (chip) {
+      const y = document.querySelector('.sheet').scrollTop;
+      collect();
+      if (chip.dataset.h !== undefined) health = chip.dataset.h === '1';
+      else if (chip.dataset.m) { const l = st[chip.dataset.k] || []; const i = l.indexOf(chip.dataset.v); if (i >= 0) l.splice(i, 1); else l.push(chip.dataset.v); st[chip.dataset.k] = l; }
+      else st[chip.dataset.k] = st[chip.dataset.k] === chip.dataset.v ? '' : chip.dataset.v;
+      openData(true);
+      const sh = document.querySelector('.sheet'); if (sh) sh.scrollTop = y;
+      return;
+    }
+    const go = e.target.closest('[data-go=send]');
+    if (!go) return;
+    collect();
+    const err = document.getElementById('x-err');
+    const c = contact();
+    if (!c.name || !c.phone) { err.textContent = 'Първо запишете час — така студиото има името и телефона Ви.'; return; }
+    if (health === true && !(document.getElementById('x-consent') || {}).checked) { err.textContent = 'Моля, потвърдете съгласието за данните за здравето.'; return; }
+    save('profile', st);
+    A.busy(go, 'Запазване…');
+    try {
+      const k = await sha(c.email || c.phone);
+      const p = { consent: true, healthConsent: health === true, name: c.name, email: c.email, phone: c.phoneRaw, sex: st.sex || '', by: st.by, h: st.h, w: st.w,
+        goal: st.goal || '', fit: st.fit || '', focus: st.focus || [], cond: st.cond || [], contra: st.contra || [], note: st.note || '' };
+      const r = await fetch(API + '/v1/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studio: A.cfg().xems, key: k, profile: Object.assign({ t: Math.floor(Date.now() / 1000) }, p) }) });
+      const d = await r.json().catch(() => null);
+      if (d && d.ok) { save('sent', Date.now()); A.toast('Профилът е изпратен до студиото'); openData(false); return; }
+      A.unbusy(go); err.textContent = 'Не успяхме да запазим. Опитайте отново след малко.';
+    } catch (_) { A.unbusy(go); err.textContent = 'Няма връзка. Данните са запазени на телефона — опитайте отново.'; }
+  };
+  /* "Изтрий данните ми" also forgets this module's data on the phone */
+  function forget() { ['card', 'seen', 'profile', 'sent', 'food'].forEach((n) => { try { localStorage.removeItem(key(n)); } catch (_) {} }); card = null; }
+
+  window.Xems = { on, menuItems, open, forget, refresh: () => (on() ? lookup(false) : Promise.resolve()) };
+})();
+</script>
+
 </body>
 </html>
