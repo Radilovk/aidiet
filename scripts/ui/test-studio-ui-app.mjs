@@ -201,7 +201,7 @@ await step('profile button bottom right: menu → studio (map link, hours) → b
   await page.click('[data-back]');
   await page.waitForSelector('.menu');
   await page.click('.sheet [data-close]');
-  await page.click('.slot:not(.mine)');
+  await page.click('[data-slot]');
   await page.waitForSelector('#bar:not(.hidden)');
   await page.waitForTimeout(400);
   const fab = await page.locator('#fab').boundingBox(), bar = await page.locator('#bar').boundingBox();
