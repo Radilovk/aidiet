@@ -51,6 +51,12 @@ const step = async (name, fn) => { try { await fn(); console.log('✓', name); }
 
 await page.goto(PAGE + '?s=burgas');
 await step('studio shown', async () => { await page.waitForSelector('text=XBODY Бургас'); await page.waitForSelector('.slot'); });
+await step('first open: onboarding (name, phone, rules)', async () => {
+  await page.waitForSelector('#onb:not(.hidden)');
+  await page.screenshot({ path: `${OUT}/0-onboarding.png` });
+  await page.fill('#onb-name', 'Иван Петров'); await page.fill('#onb-phone', '0888 111 222'); await page.check('#onb-terms'); await page.click('#onb-go');
+  await page.waitForSelector('#onb', { state: 'hidden' });
+});
 await page.screenshot({ path: `${OUT}/1-client.png`, fullPage: true });
 await step('pick 2 hours, book (no Stripe → no card)', async () => {
   let days = page.locator('.day.has');
@@ -60,11 +66,10 @@ await step('pick 2 hours, book (no Stripe → no card)', async () => {
   await slots.nth(0).click(); await slots.nth(1).click();
   await page.waitForSelector('#bar:not(.hidden)');
   await page.click('#bar-go');
-  await page.fill('#b-name', 'Иван Петров'); await page.fill('#b-phone', '0888 111 222');
-  await page.check('#b-terms');
+  if (await page.locator('#b-name').count()) throw new Error('the booking sheet asks for the data again');
   await page.screenshot({ path: `${OUT}/2-book.png` });
   await page.click('[data-go=book]');
-  await page.waitForSelector('text=Записани ✓');
+  await page.waitForSelector('text=Записани');
   await page.screenshot({ path: `${OUT}/3-done.png` });
   await page.click('.sheet [data-close]');
 });
@@ -81,12 +86,12 @@ await step('move one hour', async () => {
   await page.locator('[data-slot]').last().click();
   await page.screenshot({ path: `${OUT}/3b-move.png` });
   await page.click('.sheet [data-go=ok]');
-  await page.waitForSelector('text=Часът е преместен ✓');
+  await page.waitForSelector('text=Часът е преместен');
 });
 await step('cancel one hour (asks twice)', async () => {
   await page.locator('#mine [data-own]').first().click();
   await page.click('[data-go=cancel]'); await page.click('[data-go=cancel]');
-  await page.waitForSelector('text=Часът е отказан ✓');
+  await page.waitForSelector('text=Часът е отказан');
   await page.waitForFunction(() => document.querySelectorAll('#mine li .when').length === 1);
 });
 await step('admin: 7 taps, wrong code, right code', async () => {

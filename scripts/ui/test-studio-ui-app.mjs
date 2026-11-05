@@ -100,6 +100,18 @@ await step('a wrong studio code is refused', async () => {
 });
 
 let day = '';
+await step('first open: the data once (name, phone, rules), then the calendar', async () => {
+  await page.goto(PAGE);
+  await page.waitForSelector('#onb:not(.hidden)');
+  await page.screenshot({ path: `${OUT}/app-onb.png` });
+  await page.click('#onb-go');
+  if (!(await page.locator('#onb-err').textContent())) throw new Error('empty form accepted');
+  await page.fill('#onb-name', 'Иван Петров'); await page.fill('#onb-phone', '0888 111 222'); await page.click('#onb-go');
+  if (!/правилата/.test(await page.locator('#onb-err').textContent())) throw new Error('the rules were not required');
+  await page.check('#onb-terms'); await page.click('#onb-go');
+  await page.waitForSelector('#onb', { state: 'hidden' });
+  await page.waitForSelector('.slot');
+});
 await step('book 08:00 and 15:00 (3 days ahead): the notification permission is asked ONCE, after the booking', async () => {
   let days = page.locator('.day.has');
   if ((await days.count()) < 4) { await page.click('#next'); await page.waitForTimeout(700); days = page.locator('.day.has'); }   // end of the month
@@ -108,14 +120,15 @@ await step('book 08:00 and 15:00 (3 days ahead): the notification permission is 
   await page.click(`[data-slot="${day} 08:00"]`); await page.click(`[data-slot="${day} 15:00"]`);
   eq((await ln()).asked, 0, 'asked before booking');
   await page.click('#bar-go');
-  await page.fill('#b-name', 'Иван Петров'); await page.fill('#b-phone', '0888 111 222'); await page.check('#b-terms');
+  await page.waitForSelector('[data-go=book]');
+  eq(await page.locator('#b-name').count(), 0, 'the booking sheet asks for the data again');
   await page.click('[data-go=book]');
-  await page.waitForSelector('text=Записани ✓');
+  await page.waitForSelector('text=Записани');
   await page.waitForSelector('#rem-on');
   eq((await ln()).asked, 0, 'the phone is not asked before the tap on "Включи"');
   await page.screenshot({ path: `${OUT}/app-2-done.png` });
   await page.click('#rem-on');
-  await page.waitForSelector('text=Напомнянията са включени');
+  await page.waitForSelector('text=Напомнянето е включено');
   eq((await ln()).asked, 1, 'asked');
   const ck = [...store.keys()].find((k) => k.startsWith('studio:consent:burgas:'));
   if (!ck) throw new Error('the acceptance of the rules was not recorded');
@@ -139,13 +152,13 @@ await step('move one hour → the reminder follows; cancel → it goes', async (
   await page.click('[data-go=move]');
   await page.click(`[data-slot="${day} 16:00"]`);
   await page.click('.sheet [data-go=ok]');
-  await page.waitForSelector('text=Часът е преместен ✓');
+  await page.waitForSelector('text=Часът е преместен');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => /16:00/.test(n.body)));
   let s = await ln();
   eq(s.pending.length, 2, 'still 2');
   await page.locator('#mine [data-own]').last().click();
   await page.click('[data-go=cancel]'); await page.click('[data-go=cancel]');
-  await page.waitForSelector('text=Часът е отказан ✓');
+  await page.waitForSelector('text=Часът е отказан');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.length === 1);
 });
 await step('a notice from the studio: a banner only (no phone notification); closed → not again', async () => {
@@ -196,9 +209,9 @@ await step('profile button bottom right: menu → studio (map link, hours) → b
   await page.screenshot({ path: `${OUT}/app-8-fab-bar.png` });
 });
 await step('delete my data: server clean, reminders gone, the phone forgets', async () => {
-  await page.click('#forget');
+  await page.click('#fab'); await page.click('[data-p=me]'); await page.click('[data-go=forget]');
   await page.click('.sheet [data-go=yes]');
-  await page.waitForSelector('text=Данните са изтрити ✓');
+  await page.waitForSelector('text=Данните са изтрити');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.filter((n) => n.id < 2e9 && n.id >= 1e9).length === 0);
   eq(db.prepare("SELECT COUNT(*) n FROM clients WHERE studio_id='burgas'").get().n, 0, 'clients');
   eq(db.prepare("SELECT COUNT(*) n FROM bookings WHERE name = 'Иван Петров'").get().n, 0, 'names');
