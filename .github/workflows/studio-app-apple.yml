@@ -12,12 +12,12 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'check | bundle-id | status | certs | metadata | testflight | screenshots | submit | delete-cert'
+        description: 'check | bundle-id | status | certs | metadata | testflight | screenshots | submit | availability | delete-cert'
         required: true
         type: choice
-        options: [check, bundle-id, status, certs, metadata, testflight, screenshots, submit, delete-cert]
+        options: [check, bundle-id, status, certs, metadata, testflight, screenshots, submit, availability, delete-cert]
       id:
-        description: 'Само за delete-cert: id на сертификата (от действието certs)'
+        description: 'delete-cert: id на сертификата; availability: fix = всички държави'
         required: false
         type: string
 
