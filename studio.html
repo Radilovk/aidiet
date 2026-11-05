@@ -266,6 +266,62 @@ h1, h2, h3, .top h1 { letter-spacing: -.02em; }
 label.f { font-weight: 600; color: var(--text); font-size: 13px; }
 label.f input, label.f select, label.f textarea { background: var(--soft); border-color: transparent; }
 .tick { font-size: 15px; align-items: center; }
+/* ════ the calendar and the hours: exactly as in XBody (xbody.html) ════
+   lit (bold) days = free hours; faint = none; the dot = the client's own hour; the chosen day = a red gradient circle;
+   a day with a chosen (not yet booked) hour = a dashed ring */
+:root { --faint: #cfcbd3; --slot-line: #dcd9df; }
+@media (prefers-color-scheme: dark) { :root { --faint: #5b5560; --slot-line: #3a353f; } }
+#cal-card { padding: 14px 10px 12px; }
+.cal-head { padding: 0 4px 10px; margin: 0; }
+.cal-head h2 { font-size: 18px; font-weight: 700; }
+.icon-btn { width: 40px; height: 40px; background: transparent; transition: background-color .15s; }
+.icon-btn:active { background: var(--line); }
+.icon-btn:disabled { opacity: .25; }
+.grid { gap: 0; }
+.grid .wd { font-size: 12px; font-weight: 700; text-transform: none; padding: 4px 0 6px; color: var(--muted); }
+.grid .wd:nth-child(6), .grid .wd:nth-child(7) { color: var(--brand); }
+.day { position: relative; height: 46px; aspect-ratio: auto; max-width: none; border-radius: 0; background: transparent !important; box-shadow: none !important;
+  color: var(--faint); font-size: 16px; font-weight: 400; display: flex; align-items: center; justify-content: center; padding: 0; }
+.day:disabled { opacity: 1; color: var(--faint); }
+.day span { position: relative; z-index: 1; }
+.day::before { content: ""; position: absolute; top: 50%; left: 50%; width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%; transition: transform .2s ease, background-color .2s ease; }
+.day.has, .day.mine-day { color: var(--text); font-weight: 700; }
+.day.has::after { content: none; }
+.day.mine-day::after { content: ""; position: absolute; left: 50%; bottom: 4px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--brand); }
+.day.today:not(.sel) { color: var(--text); }
+.day.today::before { box-shadow: inset 0 0 0 1.5px var(--line); }
+.day.cart:not(.sel)::before { border: 1.5px dashed var(--brand); }
+.day.sel { color: #fff; }
+.day.sel::before { background: linear-gradient(145deg, color-mix(in srgb, var(--brand) 85%, #fff), color-mix(in srgb, var(--brand) 78%, #000)); box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 45%, transparent); animation: dayPop .35s cubic-bezier(.3, 1.4, .5, 1) both; }
+.day.sel.mine-day::after { background: #fff; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; padding: 8px 4px 2px; font-size: 11.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
+.legend i.cart { width: 10px; height: 10px; background: none; border: 1.5px dashed var(--brand); }
+#day-title { margin: 20px 2px 10px !important; padding-left: 10px; border-left: 3px solid var(--brand); font-size: 13px !important; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--muted) !important; line-height: 1.2; }
+#day-title::first-letter { text-transform: none; }
+.slots { grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 0; }
+.slot { min-height: 64px; border-radius: 14px; border: 1px solid var(--slot-line); background: var(--card); color: var(--text); padding: 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease; }
+.slot b { font-size: 19px; font-weight: 700; letter-spacing: .02em; }
+.slot small { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.slot:active { transform: scale(.96); }
+.slot.own { border-color: transparent; color: #fff; background: linear-gradient(145deg, color-mix(in srgb, var(--brand) 85%, #fff), color-mix(in srgb, var(--brand) 78%, #000)); box-shadow: 0 8px 22px color-mix(in srgb, var(--brand) 38%, transparent); font-size: inherit; line-height: inherit; }
+.slot.own small { color: rgba(255,255,255,.88); font-size: 10.5px; opacity: 1; }
+.slot.own::after { content: ""; position: absolute; top: 8px; right: 10px; width: 14px; height: 14px; opacity: .9;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M8 12.5l3 3 5-6'/%3E%3C/svg%3E") center/contain no-repeat; }
+.slot.picked { border: 2px solid var(--brand); background: color-mix(in srgb, var(--brand) 8%, var(--card)); color: var(--text); animation: none; }
+.slot.picked small { color: var(--brand); }
+.slot.picked::after { top: 7px; right: 9px; box-shadow: none; }
+.empty { grid-column: 1 / -1; padding: 18px 12px; text-align: center; font-size: 14px; color: var(--muted); border: 1px dashed var(--slot-line); border-radius: 14px; }
+@keyframes dayPop { 0% { transform: scale(.4); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes glow { 0%, 100% { box-shadow: 0 8px 22px color-mix(in srgb, var(--brand) 32%, transparent); } 50% { box-shadow: 0 8px 30px color-mix(in srgb, var(--brand) 60%, transparent); } }
+.slots .slot { animation: rise .38s ease-out both; }
+.slots .slot:nth-child(2) { animation-delay: .04s; } .slots .slot:nth-child(3) { animation-delay: .08s; } .slots .slot:nth-child(4) { animation-delay: .12s; }
+.slots .slot:nth-child(5) { animation-delay: .16s; } .slots .slot:nth-child(6) { animation-delay: .2s; } .slots .slot:nth-child(n+7) { animation-delay: .24s; }
+.slots .slot.own { animation: rise .38s ease-out both, glow 2.2s ease-in-out .4s infinite; }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -310,6 +366,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       <button class="icon-btn" id="next" aria-label="Следващ месец"></button>
     </div>
     <div class="grid" id="grid"></div>
+    <div class="legend" aria-hidden="true"><span><i></i>ваш час</span><span><i class="cart"></i>избран час</span></div>
     <div id="day-title" class="small muted" style="margin-top:12px"></div>
     <div class="slots" id="slots"></div>
   </section>
@@ -570,12 +627,13 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     const md = mineDays();
     const first = new Date(Date.UTC(view.y, view.m, 1)).getUTCDay();
     const days = new Date(Date.UTC(view.y, view.m + 1, 0)).getUTCDate();
-    let html = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'].map((d) => `<div class="wd">${d}</div>`).join('');
+    let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map((d) => `<div class="wd">${d}</div>`).join('');
     for (let i = 0; i < (first + 6) % 7; i++) html += '<div></div>';
     for (let d = 1; d <= days; d++) {
       const ymd = `${ym}-${String(d).padStart(2, '0')}`;
       const has = (data[ymd] || []).length > 0;
-      html += `<button class="day${has ? ' has' : ''}${md[ymd] ? ' mine-day' : ''}${selDay === ymd ? ' sel' : ''}${ymd === todayYmd() ? ' today' : ''}" data-day="${ymd}"${has || md[ymd] ? '' : ' disabled'}>${d}</button>`;
+      const cart = picked.some((t) => t.startsWith(ymd));
+      html += `<button class="day${has ? ' has' : ''}${md[ymd] ? ' mine-day' : ''}${cart ? ' cart' : ''}${selDay === ymd ? ' sel' : ''}${ymd === todayYmd() ? ' today' : ''}" data-day="${ymd}"${has || md[ymd] ? '' : ' disabled'}><span>${d}</span></button>`;
     }
     $('grid').innerHTML = html;
     renderSlots();
@@ -590,12 +648,14 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       $('slots').innerHTML = '';
       return;
     }
-    $('day-title').textContent = dayLabel(selDay);
+    const freeCount = list.length;
     const own = mine.filter((h) => h.status === 'booked' && h.time.startsWith(selDay));
-    const cells = own.map((h) => ({ t: h.time.slice(11), html: `<button class="slot own" data-own="${esc(h.id)}">${esc(h.time.slice(11))}<small>ваш час</small></button>` }))
-      .concat(list.map((t) => { const key = `${selDay} ${t}`; return { t, html: `<button class="slot${picked.includes(key) ? ' picked' : ''}" data-slot="${esc(key)}">${esc(t)}</button>` }; }))
+    $('day-title').textContent = `${freeCount ? 'Свободни часове' : 'Вашите часове'} · ${dayLabel(selDay)}`;
+    const cells = own.map((h) => ({ t: h.time.slice(11), html: `<button class="slot own" data-own="${esc(h.id)}"><b>${esc(h.time.slice(11))}</b><small>вашият час</small></button>` }))
+      .concat(list.map((t) => { const key = `${selDay} ${t}`; const ch = picked.includes(key);
+        return { t, html: `<button class="slot${ch ? ' picked' : ''}" data-slot="${esc(key)}"${ch ? ' aria-pressed="true"' : ''}><b>${esc(t)}</b>${ch ? '<small>избран</small>' : ''}</button>` }; }))
       .sort((a, b) => (a.t < b.t ? -1 : 1));
-    $('slots').innerHTML = cells.length ? cells.map((c) => c.html).join('') : '<div class="empty" style="grid-column:1/-1">Няма свободни часове в този ден.</div>';
+    $('slots').innerHTML = cells.length ? cells.map((c) => c.html).join('') : '<div class="empty">Няма свободни часове в този ден.</div>';
   }
   async function showMonth(y, m) {
     view = { y, m };
@@ -623,7 +683,13 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     else { picked.push(t); haptic(); }
     picked.sort();
     save('picked', picked);
-    renderSlots();
+    // only the tapped hour and its day change (the rest stays still — no re-drawing)
+    const on = picked.includes(t);
+    s.classList.toggle('picked', on);
+    s.setAttribute('aria-pressed', on ? 'true' : 'false');
+    s.innerHTML = `<b>${esc(t.slice(11))}</b>${on ? '<small>избран</small>' : ''}`;
+    const d = $('grid').querySelector(`[data-day="${t.slice(0, 10)}"]`);
+    if (d) d.classList.toggle('cart', picked.some((x) => x.startsWith(t.slice(0, 10))));
     renderBar();
   };
 
