@@ -322,6 +322,27 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
 .slots .slot:nth-child(5) { animation-delay: .16s; } .slots .slot:nth-child(6) { animation-delay: .2s; } .slots .slot:nth-child(n+7) { animation-delay: .24s; }
 .slots .slot.own { animation: rise .38s ease-out both, glow 2.2s ease-in-out .4s infinite; }
 
+/* ════ XBody: the pills, the info card, the next hour, the hour being moved ════ */
+.pills { display: flex; gap: 10px; justify-content: center; margin: 12px 0 0; }
+.pills button { flex: 1 1 0; max-width: 200px; min-height: 40px; border-radius: 999px; padding: 0 10px; font-size: 14px; font-weight: 500; cursor: pointer;
+  background: color-mix(in srgb, var(--brand) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent); color: var(--brand); transition: transform .12s ease; }
+.pills button:active { transform: scale(.96); }
+#studio-card { position: relative; overflow: hidden; text-align: center; padding: 18px 16px 14px; }
+#studio-card::before { content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--brand), transparent); animation: line .9s ease-out .3s both; }
+.info-h { margin: 0 0 8px; font-size: 18px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+#studio-card .hero { color: var(--muted); font-size: 15px; }
+#studio-card .facts { justify-content: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.next-btn { display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; text-align: left; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent); background: color-mix(in srgb, var(--brand) 8%, var(--card)); color: var(--text); }
+.next-btn .i { color: var(--brand); width: 22px; height: 22px; }
+.next-btn small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.next-btn strong { font-size: 15px; }
+.next-btn .go { margin-left: auto; color: var(--muted); }
+.slot.own.moving { background: var(--card) !important; color: var(--brand); border: 2px dashed var(--brand); box-shadow: none; animation: none; }
+.slot.own.moving small { color: var(--brand); }
+.slot.own.moving::after { content: none; }
+@keyframes line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -345,13 +366,16 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
   <section class="card note hidden" id="notice"><div class="row" style="align-items:flex-start"><div id="notice-text" style="flex:1"></div>
     <button class="icon-btn" id="notice-x" aria-label="Затвори" style="flex:none;width:32px;height:32px">×</button></div></section>
 
+  <div class="pills hidden" id="pills"><button type="button" data-pill="terms">Правила и условия</button><button type="button" data-pill="studio">Студиото</button></div>
   <section class="card hidden" id="studio-card">
+    <h2 class="info-h">Запазване на часове</h2>
     <p class="hero" id="s-hero"></p>
     <div class="facts" id="s-facts"></div>
+    <button type="button" class="next-btn hidden" id="next-btn"></button>
   </section>
   <section class="card note hidden" id="s-msg"></section>
 
-  <section class="card hidden" id="mine-card">
+  <section class="card hidden" id="mine-card" hidden>
     <div class="row" style="justify-content:space-between"><p class="sec-title" style="margin:0">Моите часове</p><span class="small muted" id="mine-extra" style="text-align:right"></span></div>
     <ul class="mine" id="mine"></ul>
     <p class="hidden"><button class="link" id="forget">Изтрий данните ми</button></p>
@@ -385,13 +409,13 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
   <div class="logo" id="onb-logo"></div>
   <h1 id="onb-h"></h1><p>Данните се попълват веднъж.</p>
   <label class="f">Име и фамилия<input id="onb-name" autocomplete="name"></label>
-  <label class="f">Телефон<input id="onb-phone" type="tel" autocomplete="tel" placeholder="0888 123 456"></label>
   <label class="f">Имейл<input id="onb-email" type="email" autocomplete="email"></label>
+  <label class="f">Телефон<input id="onb-phone" type="tel" autocomplete="tel" placeholder="0888 123 456"></label>
   <label class="tick" id="onb-tick-row"><input type="checkbox" id="onb-terms"><span>Приемам <button class="link" id="onb-rules" type="button">правилата и условията</button></span></label>
   <p class="err" id="onb-err"></p>
   <button class="btn" id="onb-go" type="button">Продължи</button>
 </div></section>
-<button class="fab hidden" id="fab" type="button" aria-label="Моят профил"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Профил</button>
+<button class="fab hidden" id="fab" type="button" aria-label="Моят профил"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Моят профил</button>
 <div class="bar hidden" id="bar"><div class="wrap"><div class="txt" id="bar-txt"></div><button class="btn" id="bar-go">Запази</button></div></div>
 
 <script>
@@ -526,6 +550,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     if (cfg.phone) facts.push(`<a href="tel:${esc(cfg.phone.replace(/[^\d+]/g, ''))}">${ic('phone')}${esc(cfg.phone)}</a>`);
     $('s-facts').innerHTML = facts.join('');
     $('studio-card').classList.remove('hidden');
+    $('pills').classList.remove('hidden');
     $('fab').classList.remove('hidden');
     setTimeout(maybeOnboard, 0);
     $('s-msg').textContent = cfg.texts.message || '';
@@ -651,7 +676,9 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     const freeCount = list.length;
     const own = mine.filter((h) => h.status === 'booked' && h.time.startsWith(selDay));
     $('day-title').textContent = `${freeCount ? 'Свободни часове' : 'Вашите часове'} · ${dayLabel(selDay)}`;
-    const cells = own.map((h) => ({ t: h.time.slice(11), html: `<button class="slot own" data-own="${esc(h.id)}"><b>${esc(h.time.slice(11))}</b><small>вашият час</small></button>` }))
+    const cells = own.map((h) => ({ t: h.time.slice(11), html: moving && moving.id === h.id
+        ? `<button class="slot own moving" data-own="${esc(h.id)}"><b>${esc(h.time.slice(11))}</b><small>премества се</small></button>`
+        : `<button class="slot own" data-own="${esc(h.id)}"><b>${esc(h.time.slice(11))}</b><small>вашият час</small></button>` }))
       .concat(list.map((t) => { const key = `${selDay} ${t}`; const ch = picked.includes(key);
         return { t, html: `<button class="slot${ch ? ' picked' : ''}" data-slot="${esc(key)}"${ch ? ' aria-pressed="true"' : ''}><b>${esc(t)}</b>${ch ? '<small>избран</small>' : ''}</button>` }; }))
       .sort((a, b) => (a.t < b.t ? -1 : 1));
@@ -973,7 +1000,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       if (ln.registerActionTypes) ln.registerActionTypes({ types: [{ id: 'HOUR', actions: [{ id: 'open', title: 'Моите часове' }, { id: 'map', title: 'Навигация' }] }] });
       ln.addListener('localNotificationActionPerformed', (ev) => {
         if (ev && ev.actionId === 'map' && mapLink()) { location.href = mapLink(); return; }
-        if (!$('mine-card').classList.contains('hidden')) $('mine-card').scrollIntoView({ behavior: 'smooth' });
+        openMine();
       });
     } catch (_) {}
   }
@@ -1127,7 +1154,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       const b = e.target.closest('[data-p]');
       if (!b) return;
       const k = b.dataset.p;
-      if (k === 'mine') { closeSheet(); $('mine-card').classList.contains('hidden') ? toast('Нямате предстоящи часове.') : $('mine-card').scrollIntoView({ behavior: 'smooth' }); }
+      if (k === 'mine') openMine();
       else if (k === 'terms') { closeSheet(); showTerms(); }
       else if (k === 'switch') { $('switch').click(); }
       else if (k === 'studio') openStudioInfo();
@@ -1135,7 +1162,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     });
     return el;
   }
-  function openStudioInfo() {
+  function openStudioInfo(alone) {
     const map = mapLink();
     sheet(`<h3>${esc(cfg.brand.name)}</h3>
       ${cfg.address ? `<p style="margin:4px 0">${esc(cfg.address)}</p>` : ''}
@@ -1143,7 +1170,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       ${cfg.phone ? `<a class="btn sec" href="tel:${esc(cfg.phone.replace(/[^\d+]/g, ''))}">${ic('phone')}Обади се</a>` : ''}
       <b style="display:flex;align-items:center;gap:6px;margin-top:16px">${ic('clock')}Работно време</b>${hoursTable()}
       <p class="small muted">Час: ${cfg.slot.minutes} мин${cfg.price ? ' · ' + esc(money(cfg.price)) : ''}. Записване до ${cfg.rules.daysAhead} дни напред.</p>
-      <button class="btn sec" data-back>Назад</button>`, (e) => { if (e.target.closest('[data-back]')) openProfile(); });
+      <button class="btn sec" ${alone ? 'data-close>Затвори' : 'data-back>Назад'}</button>`, (e) => { if (e.target.closest('[data-back]')) openProfile(); });
   }
   function openMyData() {
     sheet(`<h3>Моите данни</h3>
@@ -1180,6 +1207,11 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     $('mine-extra').textContent = [me.card ? cardName(me.card) : '', codeOk(me.code) ? me.code.code : ''].filter(Boolean).join(' · ');
     const sorted = ahead.slice().sort((a, b) => (a.time < b.time ? -1 : 1));
     const n = sorted[0];
+    $('next-btn').classList.toggle('hidden', !n);
+    if (n) {
+      $('next-btn').innerHTML = `${ic('cal')}<span><small>Следващ час</small><strong>${esc(timeLabel(n.time))}</strong></span><span class="go">${ic('chev')}</span>`;
+      $('next-btn').dataset.day = n.time.slice(0, 10);
+    }
     const rel = (t) => { const d = Math.round((zonedMs(t.slice(0, 10), '12:00', tz()) - zonedMs(todayYmd(), '12:00', tz())) / 864e5); return d === 0 ? 'днес' : d === 1 ? 'утре' : `след ${d} дни`; };
     const MON = ['яну', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек'];
     $('mine').innerHTML = n ? `<li class="next" style="border-top:0"><div class="date"><i>${MON[+n.time.slice(5, 7) - 1]}</i><b>${+n.time.slice(8, 10)}</b></div>
@@ -1187,6 +1219,20 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
         <button class="btn mini sec" data-own="${esc(n.id)}">Промени</button></li>` +
       sorted.slice(1).map((h) => `<li><div class="when"><b>${esc(timeLabel(h.time))}</b>${h.late ? '<small>под ' + cfg.rules.freeCancelHours + ' ч до часа</small>' : ''}</div>
       <button class="btn mini sec" data-own="${esc(h.id)}">Промени</button></li>`).join('') : '<li class="muted small" style="border-top:0">Нямате предстоящи часове.</li>';
+  }
+  $('next-btn').onclick = async () => {   // as in XBody: the calendar goes to that day
+    const k = $('next-btn').dataset.day;
+    if (!k) return;
+    const y = +k.slice(0, 4), m = +k.slice(5, 7) - 1;
+    selDay = k;
+    if (!view || view.y !== y || view.m !== m) await showMonth(y, m);
+    selDay = k; renderCal();
+    $('cal-card').scrollIntoView({ behavior: 'smooth' });
+  };
+  $('pills').onclick = (e) => { const b = e.target.closest('[data-pill]'); if (!b) return; if (b.dataset.pill === 'terms') showTerms(); else openStudioInfo(true); };
+  function openMine() {
+    sheet(`<h3>Моите часове</h3><ul class="mine">${$('mine').innerHTML}</ul>${$('mine-extra').textContent ? `<p class="small muted">${esc($('mine-extra').textContent)}</p>` : ''}
+      <button class="btn sec" data-close>Затвори</button>`, (e) => { const b = e.target.closest('[data-own]'); if (b) openOwn(mine.find((h) => h.id === b.dataset.own)); });
   }
   $('mine').onclick = (e) => { const b = e.target.closest('[data-own]'); if (b) openOwn(mine.find((h) => h.id === b.dataset.own)); };
 
@@ -1205,9 +1251,10 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       if (go.dataset.go === 'move') {
         closeSheet();
         moving = { id: h.id, time: h.time };
+        renderSlots();
         $('move-banner').innerHTML = `Изберете нов час за <b>${esc(timeLabel(h.time))}</b> · <button class="link" id="move-x">откажи</button>`;
         $('move-banner').classList.remove('hidden');
-        $('move-x').onclick = () => { moving = null; $('move-banner').classList.add('hidden'); renderBar(); };
+        $('move-x').onclick = () => { moving = null; $('move-banner').classList.add('hidden'); renderBar(); renderSlots(); };
         renderBar();
         $('cal-card').scrollIntoView({ behavior: 'smooth' });
         return;
