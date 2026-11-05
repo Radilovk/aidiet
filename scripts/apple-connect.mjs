@@ -288,20 +288,22 @@ try {
     try { av = (await api('GET', `/v1/apps/${app.id}/appAvailabilityV2`)).data; } catch (e) { if (e.status !== 404) throw e; }
     let ta = [];
     if (av) {
-      for (let next = `/v2/appAvailabilities/${av.id}/territoryAvailabilities?limit=200`; next;) {
+      for (let next = `/v2/appAvailabilities/${av.id}/territoryAvailabilities?limit=200&include=territory`; next;) {
         const r = await api('GET', next.replace('https://api.appstoreconnect.apple.com', ''));
         ta = ta.concat(r.data);
         next = r.links && r.links.next;
       }
     }
+    const terrOf = (t) => (t.relationships && t.relationships.territory && t.relationships.territory.data && t.relationships.territory.data.id) || '';
     const on = ta.filter((t) => t.attributes.available).length;
-    console.log(av ? `Наличност: в ${on} от ${ta.length} държави; нови държави автоматично: ${av.attributes.availableInNewTerritories ? 'да' : 'не'}` : 'Наличност: не е зададена (приложението не се продава никъде).');
+    console.log(av ? `Наличност: в ${on} от ${ta.length} държави (${ta.filter((t) => t.attributes.available).map(terrOf).slice(0, 12).join(', ') || 'никъде'}); нови държави автоматично: ${av.attributes.availableInNewTerritories ? 'да' : 'не'}` : 'Наличност: не е зададена (приложението не се продава никъде).');
     if (only) {
       if (!av) fail('Първо пусни availability с fix (за да се създаде наличността), после с кода на държавата.');
       let n = 0;
       for (const t of ta) {
-        const terr = (await api('GET', `/v1/territoryAvailabilities/${t.id}/territory`).catch(() => ({ data: null }))).data;
-        const want = Boolean(terr && only.includes(terr.id));
+        const id = terrOf(t);
+        if (!id) fail('Не се чете държавата на запис за наличност — нищо повече не е променено.');
+        const want = only.includes(id);
         if (t.attributes.available !== want) { await api('PATCH', `/v1/territoryAvailabilities/${t.id}`, { data: { type: 'territoryAvailabilities', id: t.id, attributes: { available: want } } }); n++; }
       }
       console.log(`✓ на продажба само в: ${only.join(', ')} (${n} промени)`);
