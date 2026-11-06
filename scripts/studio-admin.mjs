@@ -9,6 +9,8 @@
  *   node scripts/studio-admin.mjs reset-pin <id> <phone>     a new admin code, by Viber
  *   node scripts/studio-admin.mjs domain <id>                <id>.<STUDIO_ROOT_DOMAIN> → this worker (custom domain)
  *   node scripts/studio-admin.mjs list                       the studios
+ *   node scripts/studio-admin.mjs stripe-env <id>            the studio takes cards with the Stripe keys already in the worker
+ *                                                           (STRIPE_PUBLISHABLE_KEY / STRIPE_SECRET_KEY — the owner's own account)
  *
  * Env: STUDIO_PIN (optional: the admin code, 5 digits, from a private GitHub secret), CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (D1:Edit, Workers KV:Edit, Workers Scripts:Edit; for `domain`
  * also Zone:Read + Workers Routes/Custom Domains:Edit on the zone).
@@ -133,8 +135,13 @@ try {
       summary.push(`${s.id} — ${(JSON.parse(s.settings || '{}').brand || {}).name || ''} · v${s.version} · https://${s.id}.${ROOT}`);
     }
     if (!summary.length) summary.push('(няма студиа)');
+  } else if (action === 'stripe-env') {
+    const id = String(a1 || '').toLowerCase();
+    if (!sql(`SELECT id FROM studios WHERE id = ${q(id)}`).length) fail(`Няма студио ${id}.`);
+    sql(`UPDATE studios SET secrets = '{"envStripe":true}', version = version + 1 WHERE id = ${q(id)}`);
+    summary.push(`✓ ${id}: картите минават през твоя Stripe (ключовете в Worker-а); в admin → Stripe се вижда „свързан“`);
   } else {
-    fail('действие: ensure-db | create | reset-pin | domain | list');
+    fail('действие: ensure-db | create | reset-pin | domain | list | stripe-env');
   }
 } catch (e) {
   fail(String(e.stderr || e.message).split('\n').filter(Boolean).slice(-4).join(' | '));

@@ -835,7 +835,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     const card = needCard() || (me.card && cfg.card);
     const pay = cfg.price ? `плащате ${esc(money(cfg.price * Math.max(1, picked.length)))} на място` : '';
     if (card) return `<div class="policy">${ic('shield')}<div><b>Сега не се тегли нищо</b> — картата е гаранция${pay ? '; ' + pay : ''}.<br>` +
-      (free ? `Промяна или отказ — безплатно до <b>${free} ч</b> преди часа. След това или при неявяване студиото може да таксува часа от картата и сумата не се възстановява.` : 'При неявяване студиото може да таксува часа от картата.') + '</div></div>';
+      (free ? `Промяна или отказ — безплатно до <b>${free} ч</b> преди часа. След това или при неявяване часът се таксува автоматично от картата и сумата не се възстановява.` : 'При неявяване часът се таксува автоматично от картата.') + '</div></div>';
     if (!free && !pay) return '';
     return `<div class="policy">${ic('clock')}<div>${pay ? pay.charAt(0).toUpperCase() + pay.slice(1) + '. ' : ''}${free ? `Промяна или отказ — безплатно до <b>${free} ч</b> преди часа.` : ''}</div></div>`;
   }
@@ -1164,9 +1164,9 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     book.push(cfg.price ? `Часът се плаща на място в студиото (${money(cfg.price)}).` : 'Часът се плаща на място в студиото.');
     parts.push(['Записване на час', book]);
     const cancel = [free ? `Промяна или отказ — безплатно до ${free} ч. преди часа.` : 'Промяна или отказ — възможни до началото на часа.'];
-    if (free) cancel.push(card ? `При промяна или отказ по-малко от ${free} ч. преди часа, както и при неявяване, студиото може да таксува часа от картата Ви и сумата не се възстановява.`
+    if (free) cancel.push(card ? `При промяна или отказ по-малко от ${free} ч. преди часа, както и при неявяване, часът се таксува автоматично от картата Ви и сумата не се възстановява.`
       : `При промяна или отказ по-малко от ${free} ч. преди часа, както и при неявяване, часът се счита за проведен и студиото може да търси заплащането му.`);
-    else if (card) cancel.push('При неявяване студиото може да таксува часа от картата Ви.');
+    else if (card) cancel.push('При неявяване часът се таксува автоматично от картата Ви.');
     parts.push(['Промяна, отказ и неявяване', cancel]);
     if (cfg.viber) parts.push(['Напомняния', ['Потвърждения и напомняния получавате по Viber на посочения телефон. Напомнянията са част от услугата.']]);
     else if (cfg.rules.reminderHours) parts.push(['Напомняния', [`Приложението Ви напомня ${cfg.rules.reminderHours} ч. преди часа с известие на телефона (работи и без интернет). Можете да го изключите от настройките на телефона.`]]);
@@ -1329,7 +1329,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     const late = h.late;
     const free = cfg.rules.freeCancelHours;
     sheet(`<h3>Вашият час</h3><p>${esc(timeLabel(h.time))}</p>
-      ${late ? `<div class="alert">До часа остават по-малко от ${free} ч. Промяна вече не е възможна онлайн; при отказ часът се счита за проведен${cfg.card ? ' и може да бъде таксуван от картата Ви' : ''}.</div>` : ''}
+      ${late ? `<div class="alert">До часа остават по-малко от ${free} ч. Промяна вече не е възможна онлайн; при отказ часът се счита за проведен${cfg.card ? ' и се таксува автоматично от картата Ви' : ''}.</div>` : ''}
       ${late ? '' : '<button class="btn" data-go="move">Премести в друг час</button>'}
       ${APP ? '' : `<a class="btn sec" href="${esc(gcalLink(h.time))}" target="_blank" rel="noopener">Добави в календара</a>`}
       <button class="btn danger" data-go="cancel">Откажи часа</button>
