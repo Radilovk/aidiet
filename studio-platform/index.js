@@ -116,11 +116,14 @@ async function loadStudio(env, id, fresh = false) {
     id: row.id, version: row.version, pinHash: row.pin_hash,
     settings: normalizeSettings(JSON.parse(row.settings || '{}')), secrets: JSON.parse(row.secrets || '{}'),
   } : null;
+  // the owner's own studio may take cards with the Stripe keys already in the worker (studio-admin.mjs stripe-env);
+  // the secret key is read from the worker's env at the moment of a call, never stored with the studio
+  if (out && out.secrets.envStripe && env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY) out.secrets = { pk: env.STRIPE_PUBLISHABLE_KEY, envSk: true };
   studioMemo.set(id, { at: Date.now(), row: out });
   return out;
 }
 
-function hasStripe(studio) { return Boolean(studio.secrets.pk && studio.secrets.sk); }
+function hasStripe(studio) { return Boolean(studio.secrets.pk && (studio.secrets.sk || studio.secrets.envSk)); }
 /** what a booking needs: 'card' | 'card_or_code' | 'none' (no Stripe: a card cannot be taken, so none) */
 function guaranteeOf(studio) { return hasStripe(studio) ? studio.settings.guarantee : 'none'; }
 
@@ -131,7 +134,7 @@ async function bumpRev(env, id) {
 
 /* ── Stripe (the studio's own account) ── */
 async function stripe(env, studio, method, path, params) {
-  const sk = await unseal(env, studio.secrets.sk);
+  const sk = studio.secrets.envSk ? String(env.STRIPE_SECRET_KEY || '') : await unseal(env, studio.secrets.sk);
   if (!sk) throw new Error('stripe: no key');
   const form = new URLSearchParams();
   for (const [k, v] of Object.entries(params || {})) if (v !== undefined && v !== null && v !== '') form.append(k, String(v));

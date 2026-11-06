@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'create | reset-pin | domain | list | ensure-db'
+        description: 'create | reset-pin | domain | list | ensure-db | stripe-env'
         required: true
         type: choice
-        options: [create, reset-pin, domain, list, ensure-db]
+        options: [create, reset-pin, domain, list, ensure-db, stripe-env]
       id:
         description: 'id на студиото = поддомейн (малки латински букви, цифри, тире), напр. burgas'
         required: false

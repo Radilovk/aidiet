@@ -312,4 +312,14 @@ await t('STUDIO_SECRET_KEY as base64url (cf-bridge secret-generate) seals the St
   assert.ok(!db.prepare("SELECT secrets FROM studios WHERE id = 'plovdiv'").get().secrets.includes('sk_test_y'));
 });
 
+await t('stripe-env: the owner\'s studio takes cards with the worker\'s Stripe keys; nothing secret is stored or shown', async () => {
+  db.prepare("INSERT INTO studios (id, settings, secrets, pin_hash, version, created_at) VALUES ('xbody', '{}', '{\"envStripe\":true}', '', 1, 0)").run();
+  delete env.STRIPE_SECRET_KEY; delete env.STRIPE_PUBLISHABLE_KEY;
+  assert.equal((await api('GET', 'config?studio=xbody')).d.card, false);   // no keys in the worker: no card
+  env.STRIPE_PUBLISHABLE_KEY = 'pk_test_env'; env.STRIPE_SECRET_KEY = 'sk_test_env';
+  await new Promise((r) => setTimeout(r, 10));
+  const cfg = (await api('GET', 'config?studio=xbody&fresh=1')).d;
+  assert.ok(!JSON.stringify(cfg).includes('sk_test_env'));
+});
+
 console.log(`\n${passed} проверки минаха`);
