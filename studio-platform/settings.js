@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS = {
   viber: false,                                 // Viber messages (only with a PC running viber-sender/); the app's own reminders need nothing
   listed: false,                                // shown in the app's list of studios (off: clients find the studio only with its code / link)
   notice: { id: 0, text: '', until: 0 },        // a message from the studio to its clients (shown in the app; id changes = a new one)
+  acuity: false,                                // XBODY Burgas while Acuity still runs: the hours taken there are taken here too
   xems: '',                                     // the studio's XEMS code (Моят прогрес, Хранене, Профил за тренировките); '' = off
   links: [],                                    // up to 3 buttons at the top of the page (e.g. Чести въпроси, Ефекти): { title, url }
 };
@@ -83,6 +84,7 @@ export function normalizeSettings(raw) {
     google: { calendarId: str(s.google && s.google.calendarId, 200) },
     viber: s.viber === true,
     listed: s.listed === true,
+    acuity: s.acuity === true,
     xems: /^[a-z0-9][a-z0-9-]{3,23}$/.test(String(s.xems || '')) ? String(s.xems) : '',
     links: (Array.isArray(s.links) ? s.links : []).map((l) => ({ title: str(l && l.title, 30), url: str(l && l.url, 500) }))
       .filter((l) => l.title && /^https:\/\//.test(l.url)).slice(0, 3),

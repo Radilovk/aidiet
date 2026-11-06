@@ -17718,7 +17718,12 @@ export default {
 
     // the studio platform (many studios: /api/s/…) answers its own preflight and routes
     const studioResp = (await handleStudioSite(request, env)) ||
-      (await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name) }));
+      (await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name),
+        // XBODY Burgas in the studio app while Acuity still runs: its free hours (the same cached answer as xbody.html's)
+        acuityFree: async (ym) => {
+          const r = await handleXbodyAvailability(new Request(`https://studio.local/api/xbody/availability?month=${ym}`), env, ctx);
+          return r.status === 200 ? ((await r.json()).days || {}) : null;
+        } }));
     if (studioResp) return studioResp;
 
     // Handle CORS preflight

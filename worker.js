@@ -14,20 +14,11 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res, err2) => function __init() {
-  if (err2) throw err2[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err2 = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __commonJS = (cb, mod) => function __require() {
-  try {
-    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-  } catch (e) {
-    throw mod = 0, e;
-  }
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -9755,8 +9746,14 @@ var DEFAULT_SETTINGS = {
   // Viber messages (only with a PC running viber-sender/); the app's own reminders need nothing
   listed: false,
   // shown in the app's list of studios (off: clients find the studio only with its code / link)
-  notice: { id: 0, text: "", until: 0 }
+  notice: { id: 0, text: "", until: 0 },
   // a message from the studio to its clients (shown in the app; id changes = a new one)
+  acuity: false,
+  // XBODY Burgas while Acuity still runs: the hours taken there are taken here too
+  xems: "",
+  // the studio's XEMS code (Моят прогрес, Хранене, Профил за тренировките); '' = off
+  links: []
+  // up to 3 buttons at the top of the page (e.g. Чести въпроси, Ефекти): { title, url }
 };
 var str = (v, max) => String(v == null ? "" : v).trim().slice(0, max);
 var int = (v, min, max, dflt) => {
@@ -9815,6 +9812,9 @@ function normalizeSettings(raw) {
     google: { calendarId: str(s.google && s.google.calendarId, 200) },
     viber: s.viber === true,
     listed: s.listed === true,
+    acuity: s.acuity === true,
+    xems: /^[a-z0-9][a-z0-9-]{3,23}$/.test(String(s.xems || "")) ? String(s.xems) : "",
+    links: (Array.isArray(s.links) ? s.links : []).map((l) => ({ title: str(l && l.title, 30), url: str(l && l.url, 500) })).filter((l) => l.title && /^https:\/\//.test(l.url)).slice(0, 3),
     notice: {
       id: int(s.notice && s.notice.id, 0, 4e9, 0),
       text: str(s.notice && s.notice.text, 300),
@@ -10123,11 +10123,12 @@ async function loadStudio(env, id, fresh = false) {
     settings: normalizeSettings(JSON.parse(row.settings || "{}")),
     secrets: JSON.parse(row.secrets || "{}")
   } : null;
+  if (out && out.secrets.envStripe && env.STRIPE_PUBLISHABLE_KEY && env.STRIPE_SECRET_KEY) out.secrets = { pk: env.STRIPE_PUBLISHABLE_KEY, envSk: true };
   studioMemo.set(id, { at: Date.now(), row: out });
   return out;
 }
 function hasStripe(studio) {
-  return Boolean(studio.secrets.pk && studio.secrets.sk);
+  return Boolean(studio.secrets.pk && (studio.secrets.sk || studio.secrets.envSk));
 }
 function guaranteeOf(studio) {
   return hasStripe(studio) ? studio.settings.guarantee : "none";
@@ -10140,7 +10141,7 @@ async function bumpRev(env, id) {
   }
 }
 async function stripe(env, studio, method, path, params) {
-  const sk = await unseal(env, studio.secrets.sk);
+  const sk = studio.secrets.envSk ? String(env.STRIPE_SECRET_KEY || "") : await unseal(env, studio.secrets.sk);
   if (!sk) throw new Error("stripe: no key");
   const form2 = new URLSearchParams();
   for (const [k, v] of Object.entries(params || {})) if (v !== void 0 && v !== null && v !== "") form2.append(k, String(v));
@@ -10250,7 +10251,28 @@ async function viberBooking(env, studio, event, b, now = Date.now()) {
     console.warn("[studio-viber] queue failed:", e.message);
   }
 }
+var acuityFree = null;
 async function busyForMonth(env, studio, ym) {
+  const google = await googleBusy(env, studio, ym);
+  return studio.settings.acuity ? google.concat(await acuityBusy(studio, ym)) : google;
+}
+async function acuityBusy(studio, ym) {
+  if (!acuityFree) throw new Error("acuity: not wired");
+  const free = await acuityFree(ym);
+  if (!free) throw new Error("acuity: no answer");
+  const st = studio.settings;
+  const have = new Set(Object.values(free).flat().map((t) => `${String(t).slice(0, 10)} ${String(t).slice(11, 16)}`));
+  const out = [];
+  for (const [day, list2] of Object.entries(slotsForMonth({ ...st, rules: { ...st.rules, minNoticeMin: 0 } }, ym, []))) {
+    for (const hm2 of list2) {
+      if (have.has(`${day} ${hm2}`)) continue;
+      const start = zonedMs(day, hm2, st.timezone);
+      out.push({ start, end: start + st.slot.minutes * 6e4 });
+    }
+  }
+  return out;
+}
+async function googleBusy(env, studio, ym) {
   const cal2 = studio.settings.google.calendarId;
   if (!cal2) return [];
   const key = `studio:busy:${studio.id}:${ym}`;
@@ -10364,6 +10386,12 @@ async function handleBook(env, ctx, studio, b) {
   const starts = raw.map((t) => ({ t, ms: startOf(st, t, now) }));
   let client = await getClient(env, studio.id, who.phone);
   if (!client && !b.terms) return err("terms", 403);
+  if (b.terms && typeof b.termsText === "string" && b.termsText.length > 20 && env.page_content) {
+    const text2 = b.termsText.slice(0, 12e3);
+    const hash = String(await sha256(text2)).slice(0, 16);
+    await env.page_content.put(`studio:terms:${studio.id}:${hash}`, text2);
+    await env.page_content.put(`studio:consent:${studio.id}:${who.phone}`, JSON.stringify({ at: now, hash, name: who.name, ver: String(b.termsVer || "").slice(0, 20) }));
+  }
   const ok = starts.filter((x) => x.ms);
   const failed = starts.filter((x) => !x.ms).map((x) => ({ time: x.t, error: "not_offered" }));
   if (!ok.length) return json({ booked: [], failed }, 409);
@@ -10406,6 +10434,14 @@ async function handleBook(env, ctx, studio, b) {
       busy = await busyTimes(env, st.google.calendarId, Math.min(...ok.map((x) => x.ms)) - 864e5, Math.max(...ok.map((x) => x.ms)) + 864e5, st.timezone);
     } catch (e) {
       console.error("[studio] google check failed:", e.message);
+      return err("calendar", 503);
+    }
+  }
+  if (st.acuity) {
+    try {
+      for (const ym of [...new Set(ok.map((x) => zonedParts(x.ms, st.timezone).ymd.slice(0, 7)))]) busy = busy.concat(await acuityBusy(studio, ym));
+    } catch (e) {
+      console.error("[studio] acuity check failed:", e.message);
       return err("calendar", 503);
     }
   }
@@ -10569,6 +10605,13 @@ async function handleMove(env, ctx, studio, b) {
       return err("calendar", 503);
     }
   }
+  if (st.acuity) {
+    try {
+      if (!isFree(st, ms, await acuityBusy(studio, zonedParts(ms, st.timezone).ymd.slice(0, 7)))) return err("taken", 409);
+    } catch (e) {
+      return err("calendar", 503);
+    }
+  }
   const len = st.slot.minutes * 6e4;
   const pad = st.slot.buffer * 6e4;
   const r = await env.STUDIO_DB.prepare(
@@ -10597,6 +10640,8 @@ async function handleForget(env, ctx, studio, b) {
   }
   await db.prepare("UPDATE bookings SET name = '', phone = ?, card_pm = '', card_last4 = '', stripe_customer = '' WHERE studio_id = ? AND phone = ?").bind(`deleted:${newId()}`, studio.id, client.phone).run();
   await db.prepare("DELETE FROM clients WHERE studio_id = ? AND phone = ?").bind(studio.id, client.phone).run();
+  if (env.page_content) await env.page_content.delete(`studio:consent:${studio.id}:${client.phone}`).catch(() => {
+  });
   await bumpRev(env, studio.id);
   ctx.waitUntil((async () => {
     for (const bk of upcoming) {
@@ -10871,10 +10916,11 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
   if (!url.pathname.startsWith("/api/s/")) return null;
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (!env.STUDIO_DB) return err("not_configured", 503);
+  acuityFree = opts.acuityFree || null;
   const path = url.pathname.slice("/api/s/".length);
   const limit = (name) => opts.rateLimit ? opts.rateLimit(name) : null;
   try {
-    const body = request.method === "GET" ? {} : await readBody(request, path === "admin/logo" ? 6e5 : 8192);
+    const body = request.method === "GET" ? {} : await readBody(request, path === "admin/logo" ? 6e5 : path === "book" ? 2e4 : 8192);
     if (!body) return err("body");
     if (path === "master/studio" && request.method === "POST") return await handleMaster(env, request, body);
     if (request.method === "GET" && path === "list") return await handleList(env);
@@ -63289,7 +63335,14 @@ var worker_entry_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     console.log(`${request.method} ${url.pathname}`);
-    const studioResp = await handleStudioSite(request, env) || await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name) });
+    const studioResp = await handleStudioSite(request, env) || await handleStudioApi(request, env, ctx, {
+      rateLimit: (name) => checkRateLimit(env, request, name),
+      // XBODY Burgas in the studio app while Acuity still runs: its free hours (the same cached answer as xbody.html's)
+      acuityFree: async (ym) => {
+        const r = await handleXbodyAvailability(new Request(`https://studio.local/api/xbody/availability?month=${ym}`), env, ctx);
+        return r.status === 200 ? (await r.json()).days || {} : null;
+      }
+    });
     if (studioResp) return studioResp;
     if (request.method === "OPTIONS") {
       console.log("CORS preflight request");
