@@ -99,6 +99,10 @@ try {
     // the public log; else a random one goes by Viber to the phone (needs viber-sender/ running)
     const fromSecret = /^\d{5}$/.test(String(process.env.STUDIO_PIN || '').trim());
     const phone = phoneOf(action === 'create' ? a3 : a2);
+    if (!fromSecret && String(process.env.STUDIO_PIN || '').length) {   // a secret is there but not 5 digits: say what is wrong, never the value
+      const raw = String(process.env.STUDIO_PIN);
+      console.log(`! кодът от секрета не е 5 цифри: ${raw.trim().length} знака${/^\d+$/.test(raw.trim()) ? ', само цифри' : ', има и други знаци'}`);
+    }
     if (!fromSecret && !phone) {
       fail(`Няма код за вход. Създай GitHub секрет STUDIO_PIN_${id.toUpperCase().replace(/-/g, '_')} (5 цифри; или общ STUDIO_DEFAULT_PIN) ` +
         '(Settings → Secrets and variables → Actions) и пусни отново — или въведи телефон за Viber.');
