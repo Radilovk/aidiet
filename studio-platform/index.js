@@ -247,7 +247,30 @@ async function viberBooking(env, studio, event, b, now = Date.now()) {
 }
 
 /* ── availability ── */
+/* the hours taken elsewhere: the studio's Google Calendar and, for XBODY Burgas while Acuity still takes bookings,
+   every hour of our schedule that Acuity no longer offers (booked there) — so the two never give the same hour */
+let acuityFree = null;   // set per request by the worker: (ym) → { 'YYYY-MM-DD': ['…T08:00:00+0200', …] } | null
 async function busyForMonth(env, studio, ym) {
+  const google = await googleBusy(env, studio, ym);
+  return studio.settings.acuity ? google.concat(await acuityBusy(studio, ym)) : google;
+}
+async function acuityBusy(studio, ym) {
+  if (!acuityFree) throw new Error('acuity: not wired');
+  const free = await acuityFree(ym);
+  if (!free) throw new Error('acuity: no answer');
+  const st = studio.settings;
+  const have = new Set(Object.values(free).flat().map((t) => `${String(t).slice(0, 10)} ${String(t).slice(11, 16)}`));
+  const out = [];
+  for (const [day, list] of Object.entries(slotsForMonth({ ...st, rules: { ...st.rules, minNoticeMin: 0 } }, ym, []))) {
+    for (const hm of list) {
+      if (have.has(`${day} ${hm}`)) continue;
+      const start = zonedMs(day, hm, st.timezone);
+      out.push({ start, end: start + st.slot.minutes * 60e3 });
+    }
+  }
+  return out;
+}
+async function googleBusy(env, studio, ym) {
   const cal = studio.settings.google.calendarId;
   if (!cal) return [];
   const key = `studio:busy:${studio.id}:${ym}`;
@@ -418,6 +441,11 @@ async function handleBook(env, ctx, studio, b) {
       return err('calendar', 503);
     }
   }
+  if (st.acuity) {   // XBODY Burgas: an hour taken in Acuity meanwhile is not booked here
+    try {
+      for (const ym of [...new Set(ok.map((x) => zonedParts(x.ms, st.timezone).ymd.slice(0, 7)))]) busy = busy.concat(await acuityBusy(studio, ym));
+    } catch (e) { console.error('[studio] acuity check failed:', e.message); return err('calendar', 503); }
+  }
 
   // each hour: inserted only when nothing overlaps it (with the buffer) — one statement, so two phones cannot both win
   const pad = st.slot.buffer * 60000;
@@ -566,6 +594,9 @@ async function handleMove(env, ctx, studio, b) {
     try {
       if (!isFree(st, ms, await busyTimes(env, st.google.calendarId, ms - 864e5, ms + 864e5, st.timezone))) return err('taken', 409);
     } catch (e) { return err('calendar', 503); }
+  }
+  if (st.acuity) {
+    try { if (!isFree(st, ms, await acuityBusy(studio, zonedParts(ms, st.timezone).ymd.slice(0, 7)))) return err('taken', 409); } catch (e) { return err('calendar', 503); }
   }
   const len = st.slot.minutes * 60000;
   const pad = st.slot.buffer * 60000;
@@ -870,6 +901,7 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
   if (!url.pathname.startsWith('/api/s/')) return null;
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (!env.STUDIO_DB) return err('not_configured', 503);
+  acuityFree = opts.acuityFree || null;
   const path = url.pathname.slice('/api/s/'.length);
   const limit = (name) => (opts.rateLimit ? opts.rateLimit(name) : null);
   try {

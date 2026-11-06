@@ -97,8 +97,14 @@ try {
     if (!/^[a-z0-9-]{2,40}$/.test(id)) fail('id: малки латински букви, цифри и тире (напр. burgas)');
     // the admin code: from the owner's private GitHub secret (STUDIO_PIN_<ID> or STUDIO_DEFAULT_PIN) — it never appears in
     // the public log; else a random one goes by Viber to the phone (needs viber-sender/ running)
-    const fromSecret = /^\d{5}$/.test(String(process.env.STUDIO_PIN || '').trim());
+    const pick = [process.env.STUDIO_PIN_OWN, process.env.STUDIO_PIN_DEFAULT, process.env.STUDIO_PIN].map((v) => String(v || '').trim()).find((v) => /^\d{5}$/.test(v));
+    if (pick) process.env.STUDIO_PIN = pick;
+    const fromSecret = Boolean(pick);
     const phone = phoneOf(action === 'create' ? a3 : a2);
+    if (!fromSecret) {   // which secret is there and why it is not used (lengths only, never the value)
+      const desc = (v) => (v === undefined || v === '' ? 'няма' : `${String(v).trim().length} знака${/^\d+$/.test(String(v).trim()) ? '' : ' (не само цифри)'}`);
+      console.log(`! STUDIO_PIN_${String(a1 || '').toUpperCase()}: ${desc(process.env.STUDIO_PIN_OWN)} · STUDIO_DEFAULT_PIN: ${desc(process.env.STUDIO_PIN_DEFAULT)}`);
+    }
     if (!fromSecret && String(process.env.STUDIO_PIN || '').length) {   // a secret is there but not 5 digits: say what is wrong, never the value
       const raw = String(process.env.STUDIO_PIN);
       console.log(`! кодът от секрета не е 5 цифри: ${raw.trim().length} знака${/^\d+$/.test(raw.trim()) ? ', само цифри' : ', има и други знаци'}`);

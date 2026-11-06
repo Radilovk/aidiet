@@ -81,10 +81,11 @@ globalThis.fetch = async (input, init = {}) => {
   return new Response('{}', { status: 404 });
 };
 
+let acuityFreeMock = null;   // the worker's Acuity hook (XBODY Burgas while Acuity still runs)
 async function api(method, path, body, headers = {}) {
   const r = await handleStudioApi(new Request(`https://w.test/api/s/${path}`, {
     method, headers: { 'Content-Type': 'application/json', ...headers }, body: method === 'GET' ? undefined : JSON.stringify(body || {}),
-  }), env, ctx);
+  }), env, ctx, acuityFreeMock ? { acuityFree: acuityFreeMock } : {});
   await Promise.all(waits.splice(0));
   return { status: r.status, d: await r.json().catch(() => null) };
 }
@@ -320,6 +321,22 @@ await t('stripe-env: the owner\'s studio takes cards with the worker\'s Stripe k
   await new Promise((r) => setTimeout(r, 10));
   const cfg = (await api('GET', 'config?studio=xbody&fresh=1')).d;
   assert.ok(!JSON.stringify(cfg).includes('sk_test_env'));
+});
+
+await t('acuity: an hour booked in Acuity is not shown and cannot be booked here; Acuity down = no hours (never a double booking)', async () => {
+  const { zonedParts: zp } = await import('../studio-platform/slots.js');
+  db.prepare("INSERT INTO studios (id, settings, secrets, pin_hash, version, created_at) VALUES ('acu', ?, '{}', '', 1, 0)").run(JSON.stringify({
+    acuity: true, slot: { minutes: 45 }, guarantee: 'none', rules: { minNoticeMin: 0, daysAhead: 60, maxPerDay: 3, maxUpcoming: 9, freeCancelHours: 24 },
+    hours: { mon: [['08:00', '10:15']], tue: [['08:00', '10:15']], wed: [['08:00', '10:15']], thu: [['08:00', '10:15']], fri: [['08:00', '10:15']], sat: [['08:00', '10:15']], sun: [['08:00', '10:15']] } }));
+  const day = zp(Date.now() + 3 * 864e5, 'Europe/Sofia').ymd, ym = day.slice(0, 7);
+  acuityFreeMock = async (m) => (m === ym ? { [day]: [`${day}T08:00:00+0200`, `${day}T09:30:00+0200`] } : {});   // 08:45 is booked in Acuity
+  const av = (await api('GET', `availability?studio=acu&month=${ym}`)).d;
+  assert.deepEqual(av.days[day], ['08:00', '09:30']);
+  const r = await api('POST', 'book', { studio: 'acu', name: 'А', phone: '0888000111', terms: true, times: [`${day} 08:45`] });
+  assert.equal((r.d.booked || []).length, 0);
+  acuityFreeMock = async () => null;   // Acuity does not answer
+  assert.equal((await api('POST', 'book', { studio: 'acu', name: 'А', phone: '0888000111', terms: true, times: [`${day} 08:00`] })).d.error, 'calendar');
+  acuityFreeMock = null;
 });
 
 console.log(`\n${passed} проверки минаха`);
