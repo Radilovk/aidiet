@@ -12,7 +12,7 @@
 <meta property="og:description" content="Свободните часове, бързо записване и напомняния. За iPhone и Android.">
 <meta property="og:image" content="https://biocode.website/studio-app/landing/icon.png">
 <meta property="og:url" content="https://biocode.website/xb-studio.html">
-<link rel="icon" href="studio-app/landing/icon.png">
+<link rel="icon" href="studio-app/landing/mark.png">
 <link rel="apple-touch-icon" href="studio-app/landing/icon.png">
 <style>
 :root {
@@ -21,9 +21,10 @@
   --accent: #d32f2f; --edge: transparent; --bezel: #1b1b1e;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #0a0a0c; --card: #161619; --ink: #f5f5f7; --muted: #a3a3ad; --line: rgba(255,255,255,.09);
-    --soft: rgba(255,92,84,.14); --shadow: 0 1px 2px rgba(0,0,0,.5), 0 18px 50px rgba(0,0,0,.55);
-    --accent: #ff6259; --edge: rgba(255,255,255,.08); --bezel: #2a2a2f; }
+  /* the XEMS window's dark: warm plum layers, never one flat black */
+  :root { --bg: #121014; --card: #24212a; --ink: #f3f1f4; --muted: #a8a2ab; --line: #34303a;
+    --soft: rgba(239,68,68,.16); --shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 18px 44px rgba(0,0,0,.45);
+    --accent: #f87171; --edge: rgba(255,255,255,.06); --bezel: #3a353f; }
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
@@ -41,7 +42,7 @@ p { margin: 0; }
 .top.scrolled { border-color: var(--line); }
 .top .wrap { display: flex; align-items: center; gap: 10px; height: 56px; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; text-decoration: none; }
-.brand img { width: 30px; height: 30px; border-radius: 8px; }
+.brand img { width: 30px; height: 30px; border-radius: 50%; }
 .top .get { margin-left: auto; font-size: 15px; font-weight: 600; padding: 8px 16px; border-radius: 999px; background: var(--ink); color: var(--bg); text-decoration: none; }
 
 /* hero */
@@ -111,7 +112,7 @@ section { padding: 72px 0; }
   opacity: 0; transform: translateY(10px); transition: opacity .6s, transform .6s; }
 .in .note { opacity: 1; transform: none; }
 .in .note:nth-child(4) { transition-delay: .15s; } .in .note:nth-child(5) { transition-delay: .3s; }
-.note img { width: 36px; height: 36px; border-radius: 9px; flex: none; }
+.note img { width: 36px; height: 36px; border-radius: 50%; flex: none; }
 .note > div { flex: 1; min-width: 0; }
 .note b { display: flex; justify-content: space-between; gap: 10px; font-weight: 600; }
 .note b small { font-weight: 400; opacity: .7; font-size: 13px; }
@@ -291,17 +292,30 @@ footer .sp { margin-left: auto; }
 @media (max-width: 360px) { .stat .v { font-size: 30px; } .ben h3 { font-size: 15.5px; } }
 @media (max-width: 380px) { .phone { width: 190px; } .phones { height: 420px; } .btn span { font-size: 17px; } }
 @media (prefers-color-scheme: dark) {
-  /* cards keep their edge on a dark page (a shadow alone disappears) */
+  /* depth: a lit ambient background (as in the app), lighter cards, the brand red where it matters */
+  body { background: #121014; }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background:
+    radial-gradient(60vmax 40vmax at 85% -5%, rgba(239,68,68,.20), transparent 65%),
+    radial-gradient(50vmax 40vmax at -10% 35%, rgba(150,90,170,.14), transparent 65%),
+    radial-gradient(60vmax 45vmax at 50% 110%, rgba(239,68,68,.10), transparent 65%),
+    linear-gradient(180deg, #19161c 0%, #121014 50%, #0f0d11 100%); }
+  .top { background: color-mix(in srgb, #19161c 72%, transparent); }
   .card, .rule, .ben, .place, .meters, .stat, .lock, .qr, .btn.alt { box-shadow: inset 0 0 0 1px var(--edge), var(--shadow); }
-  .stat:nth-child(1) { box-shadow: 0 20px 60px -20px rgba(229,57,53,.55); }
-  .stat:nth-child(2) { background: linear-gradient(150deg, #24242a, #141417); }
-  .glow { background: radial-gradient(closest-side, rgba(255,72,62,.32), transparent); }
-  .phone { box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 0 0 1px rgba(0,0,0,.6), 0 40px 90px -20px rgba(0,0,0,.8), 0 0 80px -30px rgba(255,72,62,.35); }
-  .phone .scr { background: #0b0b0e; }
-  .top .get, .btn.main { background: #f5f5f7; color: #0a0a0c; }
-  .bi, .num { box-shadow: 0 10px 28px -10px rgba(255,72,62,.65); }
-  .final img.ic { box-shadow: 0 0 0 1px var(--edge), 0 20px 60px -20px rgba(255,72,62,.45); }
-  .hero h1 em { background: linear-gradient(120deg, #ff5a50, #ff8a7a); -webkit-background-clip: text; background-clip: text; }
+  .why .stats .stat:nth-child(2) { background: linear-gradient(150deg, #2f2b35, #211e25); }
+  .stat:nth-child(1) { box-shadow: 0 22px 60px -22px rgba(239,68,68,.6); }
+  .ben::before { background: radial-gradient(closest-side, rgba(239,68,68,.16), transparent); }
+  .glow { background: radial-gradient(closest-side, rgba(239,68,68,.34), transparent); }
+  .phone { box-shadow: 0 0 0 1px rgba(255,255,255,.12) inset, 0 40px 90px -20px rgba(0,0,0,.75), 0 0 90px -30px rgba(239,68,68,.4); }
+  .phone .scr { background: #121014; }
+  .btn.main { background: linear-gradient(160deg, #ef4444, #b91c1c); color: #fff; box-shadow: 0 14px 34px -12px rgba(239,68,68,.7), inset 0 1px 0 rgba(255,255,255,.22); }
+  .btn.alt { background: #24212a; }
+  .bi, .num { box-shadow: 0 10px 28px -10px rgba(239,68,68,.7); }
+  .rule .ico { background: rgba(239,68,68,.16); }
+  .lock { background: radial-gradient(120% 80% at 20% 0%, #6a2226, transparent 60%), radial-gradient(90% 70% at 100% 100%, #3a1d40, transparent 60%), #1a171d; }
+  .final img.ic { box-shadow: 0 0 0 1px var(--edge), 0 20px 60px -20px rgba(239,68,68,.5); }
+  .hero h1 em { background: linear-gradient(120deg, #f87171, #fca5a5); -webkit-background-clip: text; background-clip: text; }
+  .dock .btn { box-shadow: 0 16px 40px -10px rgba(0,0,0,.6), 0 10px 30px -14px rgba(239,68,68,.6); }
+  footer { background: rgba(0,0,0,.18); }
 }
 </style>
 </head>
@@ -309,7 +323,7 @@ footer .sp { margin-left: auto; }
 
 <header class="top" id="top">
   <div class="wrap">
-    <a class="brand" href="#"><img src="studio-app/landing/icon.png" alt="">XB-Studio</a>
+    <a class="brand" href="#"><img src="studio-app/landing/mark.png" alt="">XB-Studio</a>
     <a class="get" href="#get" data-dl>Изтегли</a>
   </div>
 </header>
@@ -386,8 +400,8 @@ footer .sp { margin-left: auto; }
       <div class="lock rise" id="lock" aria-hidden="true">
         <div class="time">19:00</div>
         <div class="date">неделя, 15 ноември</div>
-        <div class="note"><img src="studio-app/landing/icon.png" alt=""><div><b>XBODY <small>сега</small></b>Утре в 08:45 — очакваме те.</div></div>
-        <div class="note"><img src="studio-app/landing/icon.png" alt=""><div><b>Твоята седмица · XBODY <small>18:00</small></b>Пн 08:45 · Ср 18:30 · Пт 13:15</div></div>
+        <div class="note"><img src="studio-app/landing/mark.png" alt=""><div><b>XBODY <small>сега</small></b>Утре в 08:45 — очакваме те.</div></div>
+        <div class="note"><img src="studio-app/landing/mark.png" alt=""><div><b>Твоята седмица · XBODY <small>18:00</small></b>Пн 08:45 · Ср 18:30 · Пт 13:15</div></div>
       </div>
       <div>
         <div class="kicker rise">Напомняния</div>

@@ -74,8 +74,8 @@ Apple, отговори за App Store Connect, демо студио, текс�
   офлайн екранът.
 - `scripts/patch-ios.py`, `scripts/patch-android.py` — малките поправки върху генерирания проект (идемпотентни);
   `scripts/add-privacy-manifest.rb` + `ios-extra/PrivacyInfo.xcprivacy` — манифестът за поверителност на Apple.
-- `assets/icon.png`, `assets/splash.png` — иконата е логото от PWA (`xbody-icon-512.png`), качено на 1024×1024 върху бял
-  фон без прозрачност (изискване на Apple). За по-остра икона дай оригинал 1024×1024 и го сложи в `assets/icon.png`.
+- `assets/icon-only.png` (iOS), `assets/icon-foreground.png` + `icon-background.png` (Android, адаптивна), `assets/splash.png` — логото като точен кръг върху бял
+  фон без прозрачност (изискване на Apple); на Android кръгът е в безопасната зона, за да не се реже.
 - Проектите `ios/` и `android/` не се пазят в репото — правят се наново при всяко пускане.
 - Локално (на Mac): `cd studio-app && npm ci && npx cap add ios && python3 scripts/patch-ios.py && npx cap open ios`.
 
