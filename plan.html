@@ -3588,46 +3588,6 @@
         .food-confidence.low { background: rgba(239,68,68,0.15); color: #dc2626; }
 
         /* --- МОИТЕ ХРАНИ И ПРОДУКТИ BANNER --- */
-        .my-foods-banner {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: var(--ds-fill-grad);
-            border-radius: var(--radius);
-            padding: 20px 22px;
-            margin: 24px 0 8px;
-            cursor: pointer;
-            text-decoration: none;
-            color: var(--ds-on-fill);
-            box-shadow:
-                0 8px 28px rgba(13,148,136,0.35),
-                0 2px 8px rgba(13,148,136,0.2);
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
-            animation: myFoodsPulse 3.2s ease-in-out infinite;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .my-foods-banner::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(ellipse at 15% 50%, rgba(255,255,255,0.22) 0%, transparent 55%),
-                radial-gradient(ellipse at 85% 50%, rgba(255,255,255,0.10) 0%, transparent 55%);
-            pointer-events: none;
-        }
-        .my-foods-banner::after {
-            content: '';
-            position: absolute;
-            top: -40%;
-            left: -10%;
-            width: 55%;
-            height: 200%;
-            background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
-            animation: myFoodsShimmer 3.2s ease-in-out infinite;
-            pointer-events: none;
-        }
         @keyframes myFoodsShimmer {
             0%   { transform: translateX(-120%); }
             50%  { transform: translateX(250%); }
@@ -3641,51 +3601,10 @@
                 box-shadow: 0 12px 36px rgba(13,148,136,0.45), 0 4px 12px rgba(13,148,136,0.3), 0 0 0 10px rgba(13,148,136,0);
             }
         }
-        .my-foods-banner:hover {
-            transform: translateY(-3px) scale(1.01);
-            box-shadow: 0 14px 40px rgba(13,148,136,0.5), 0 4px 14px rgba(13,148,136,0.3);
-            animation: none;
-        }
-        .my-foods-banner:active { transform: scale(0.97); }
-        .my-foods-icon {
-            flex-shrink: 0;
-            position: relative;
-            display: flex;
-            line-height: 0;
-            animation: myFoodsWiggle 3.2s ease-in-out infinite;
-        }
-        .my-foods-icon svg {
-            width: 36px; height: 36px;
-            fill: none; stroke: currentColor; stroke-width: 2;
-            stroke-linecap: round; stroke-linejoin: round;
-        }
         @keyframes myFoodsWiggle {
             0%, 80%, 100% { transform: rotate(0deg) scale(1); }
             88%  { transform: rotate(-12deg) scale(1.12); }
             94%  { transform: rotate(10deg) scale(1.08); }
-        }
-        .my-foods-text { flex: 1; position: relative; }
-        .my-foods-title {
-            font-size: 1.08rem;
-            font-weight: 800;
-            letter-spacing: -0.2px;
-            text-shadow: 0 1px 4px rgba(0,0,0,0.18);
-        }
-        .my-foods-sub {
-            font-size: 0.82rem;
-            opacity: 0.88;
-            margin-top: 3px;
-            line-height: 1.4;
-        }
-        .my-foods-arrow {
-            font-size: 1.25rem;
-            flex-shrink: 0;
-            opacity: 0.9;
-            transition: transform 0.3s ease;
-        }
-        .my-foods-banner:hover .my-foods-arrow { transform: translateX(4px); }
-        [data-theme="dark"] .my-foods-banner {
-            background: var(--ds-fill-grad);
         }
 
         /* --- BOTTOM NAVIGATION --- */
@@ -4426,14 +4345,6 @@
         <!-- MEAL PLAN SECTION -->
         <div id="mealContainer" aria-live="polite"></div>
 
-        <!-- Моите храни и продукти banner -->
-        <a href="food-picker.html" class="my-foods-banner" aria-label="Моите храни и продукти" onclick="navigateTopLevel(getFoodPickerUrl()); return false;">
-            <span class="my-foods-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>
-            <div class="my-foods-text">
-                <div class="my-foods-title">Моите храни и продукти</div>
-            </div>
-            <i class="fas fa-chevron-right my-foods-arrow"></i>
-        </a>
 
     </main>
 
@@ -4520,7 +4431,7 @@
                          aria-controls="macroBreakdownContent">
                         <div class="macro-breakdown-title">
                             <i class="fas fa-chart-pie"></i>
-                            <span>Хранителни Макроелементи</span>
+                            <span>Хранителен състав</span>
                         </div>
                         <i class="fas fa-chevron-down macro-breakdown-toggle"></i>
                     </div>
@@ -5854,8 +5765,10 @@
                 card.className = 'meal-card breakfast-note-card meal-card--clickable day-energy-card';
                 card.innerHTML =
                     '<div class="meal-info">' +
-                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + Math.round(shown.kcal) + ' kcal · белтък ' + Math.round(shown.protein) + ' г · въглехидрати ' + Math.round(shown.carbs) + ' г · мазнини ' + Math.round(shown.fats) + ' г</div>' +
+                    // Калориите вече са в картата на деня — тук типът на деня, какво значи и макросите.
+                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + '</div>' +
                     '<div class="meal-name" style="font-size:0.92em;font-weight:600">' + escapeHtml(detail) + '</div>' +
+                    '<div class="meal-meta">Белтък ' + Math.round(shown.protein) + ' г · въглехидрати ' + Math.round(shown.carbs) + ' г · мазнини ' + Math.round(shown.fats) + ' г</div>' +
                     '</div>';
                 card.setAttribute('role', 'button');
                 card.setAttribute('tabindex', '0');
@@ -5970,7 +5883,7 @@
                         swapBtn.type = 'button';
                         swapBtn.className = 'meal-swap-btn';
                         swapBtn.setAttribute('aria-label', 'Друго ястие за ' + (meal.name || 'това хранене'));
-                        swapBtn.innerHTML = '<i class="fas fa-shuffle" aria-hidden="true"></i> ' + (meal._originalDishId ? 'Сменено' : 'Друго ястие');
+                        swapBtn.innerHTML = '<i class="fas fa-shuffle" aria-hidden="true"></i> ' + (meal._originalDishId ? 'Сменено' : 'Смени');
                         swapBtn.addEventListener('click', function(e) {
                             e.stopPropagation();
                             openMealSwapSheet(dayNum, planIdx);
@@ -6712,7 +6625,7 @@
                 '<div class="swap-sheet-head"><div><div class="swap-sheet-kicker">' + escapeHtml(getMealDisplayLabel(meal.type)) + '</div>' +
                 '<h3 id="swapSheetTitle">Избери ястие</h3></div>' +
                 '<button type="button" class="swap-sheet-close" aria-label="Затвори"><i class="fas fa-times"></i></button></div>' +
-                '<p class="swap-sheet-note">Вариантите са със сходни калории и белтък и следват Твоя режим.</p><div class="swap-sheet-list">';
+                '<p class="swap-sheet-note">Със сходни калории и белтък — по твоя режим.</p><div class="swap-sheet-list">';
             options.forEach(function(opt, i) {
                 var current = i === 0;
                 var isOriginal = opt.dishId === originalId;
@@ -6721,7 +6634,7 @@
                     '<span class="swap-option-name">' + escapeHtml(opt.name || '') + '</span>' +
                     '<span class="swap-option-meta">' + (opt.calories ? Math.round(opt.calories) + ' kcal' : '') + (p ? ' · ' + p + ' г белтък' : '') +
                     (opt.prepTime ? ' · ~' + Math.round(opt.prepTime) + ' мин' : '') + '</span>' +
-                    (current ? '<span class="swap-option-tag">Сега</span>' : isOriginal ? '<span class="swap-option-tag swap-option-tag--orig">По план</span>' : '') +
+                    (current ? '<span class="swap-option-tag">Избрано</span>' : isOriginal ? '<span class="swap-option-tag swap-option-tag--orig">По план</span>' : '') +
                     '</button>';
             });
             html += '</div></div>';
@@ -10412,7 +10325,7 @@
                     : nx.kind === 'morning' ? 'Следва: как спа?'
                     : nx.kind === 'evening' ? 'Следва: вечерната проверка'
                     : 'Следва: ' + nx.label;
-                head = '<div class="dc-kicker">Днес · ' + m.doneCount + ' от ' + m.segs.length + '</div>' +
+                head = '<div class="dc-kicker">Днес · отбелязани ' + m.doneCount + ' от ' + m.segs.length + '</div>' +
                     '<div class="dc-title">' + esc(nextText) + '</div>';
             }
 
