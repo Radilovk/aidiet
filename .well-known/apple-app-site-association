@@ -1,0 +1,20 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "67VQXZL7KG.com.biocode.studios"
+        ],
+        "components": [
+          {
+            "/": "/studio.html",
+            "?": {
+              "s": "?*"
+            },
+            "comment": "a studio's invite link (studio.html?s=…) opens in XB-Studio when it is installed; the plain page (and its admin) stays in the browser"
+          }
+        ]
+      }
+    ]
+  }
+}
