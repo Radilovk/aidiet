@@ -1318,6 +1318,36 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       await pn.register();
     } catch (e) { console.warn('push', e); }
   }
+  /* ── Android (APK outside Google Play): a new version is offered in the app itself — checked at most twice a day,
+        one small request to GitHub; "Обнови" opens the download in the phone's browser ── */
+  const APK_URL = 'https://github.com/Radilovk/aidiet/releases/download/studio-android-latest/XB-Studio.apk';
+  const newer = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+    for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+  async function checkApkUpdate() {
+    const capApp = isAndroid() && window.Capacitor.Plugins.App;
+    if (!capApp || !capApp.getInfo) return;
+    try {
+      const mine = (await capApp.getInfo()).version;
+      let rel = load('apkRel', null);
+      if (!rel || Date.now() - rel.at > 12 * 3600e3) {
+        const r = await fetch('https://api.github.com/repos/Radilovk/aidiet/releases/tags/studio-android-latest', { headers: { Accept: 'application/vnd.github+json' } });
+        const d = r.ok ? await r.json() : null;
+        const m = d && /(\d+\.\d+\.\d+)/.exec(d.name || '');
+        rel = { v: m ? m[1] : '', at: Date.now() };
+        save('apkRel', rel);
+      }
+      if (!rel.v || !newer(rel.v, mine) || load('apkSkip', '') === rel.v || document.getElementById('apk-up')) return;
+      const el = document.createElement('section');
+      el.className = 'card note'; el.id = 'apk-up';
+      el.style.color = 'var(--text)';
+      el.innerHTML = `<div class="row" style="align-items:center;gap:10px"><b style="flex:1;font-size:15px;white-space:nowrap">Нова версия · ${esc(rel.v)}</b>
+        <button class="btn mini" id="apk-go" style="width:auto;flex:none;margin:0;min-height:34px;padding:0 16px;font-size:14px">Обнови</button>
+        <button class="icon-btn" id="apk-x" aria-label="Затвори" style="flex:none;width:32px;height:32px">×</button></div>`;
+      $('notice').before(el);
+      $('apk-go').onclick = () => { location.href = APK_URL; };
+      $('apk-x').onclick = () => { save('apkSkip', rel.v); el.remove(); };
+    } catch (_) {}
+  }
   async function dropReminders() {
     const ln = nativeLN();
     if (!ln) return;
@@ -2188,6 +2218,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     renderBar();
     if (APP) setupNotificationTaps(nativeLN());   // a tap on a reminder that opened the app is handled too
     upcomingOnOpen();
+    checkApkUpdate();
   })();
   /* back from another app (e.g. Viber): the hours fresh, at most every 2 minutes */
   document.addEventListener('visibilitychange', () => {
