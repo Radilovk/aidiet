@@ -17,7 +17,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
-    <title>Анализ</title>
+    <title>Напредък</title>
     <!-- Prefetch adjacent tabs so the browser caches them before they are needed -->
     <link rel="prefetch" href="./index.html">
     <link rel="prefetch" href="./plan.html">
@@ -908,8 +908,7 @@
                 var got = (window.NutriPlanHealth && window.NutriPlanHealth.describeLast) ? window.NutriPlanHealth.describeLast() : '';
                 body.innerHTML = indicesHtml + (connected
                     ? '<div class="gf-empty"><span>Устройството е свързано' + (got ? ' · получено: ' + gfEsc(got) : '') + '. Изводите от измерванията се появяват при поне 4 дни данни.</span></div>'
-                    : '<div class="gf-empty"><span>Свържи гривна, часовник или везна — индексите стават по-точни.</span>' +
-                      '<button type="button" onclick="gfOpenDevices()">Свържи</button></div>');
+                    : ''); // Поканата за устройство е само в Профил → Клиентски картон.
             } else {
                 var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], coachNote: src.coachNote || '' });
                 v.cards.forEach(function (c) { c.tone = softTone(c.tone); });
@@ -944,15 +943,6 @@
             var open = el.classList.toggle('open');
             el.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
-        function gfOpenDevices() {
-            try { sessionStorage.setItem('np_open_devices', '1'); } catch (_) {}
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ type: 'NUTRIPLAN_SWITCH_TAB', tab: 'profile' }, window.location.origin);
-            } else {
-                window.location.href = 'index.html?app=1&tab=profile';
-            }
-        }
-
         function loadGameAnalytics() {
             document.body.style.opacity = '1';
             var restoredTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -1568,7 +1558,7 @@
         </a>
         <a href="index.html?app=1&tab=analytics" class="bottom-nav-item active" aria-current="page">
             <i class="fas fa-chart-bar"></i>
-            <span>Анализ</span>
+            <span>Напредък</span>
         </a>
         <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>

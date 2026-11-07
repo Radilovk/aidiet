@@ -1221,7 +1221,6 @@
                     <i class="fas fa-chart-pie"></i>
                     <span>Твоята Хранителна Цел</span>
                 </div>
-                <div class="macros-viz-subtitle">Препоръчителен дневен прием</div>
             </div>
 
             <div class="calories-display">
@@ -1323,9 +1322,7 @@
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
-                    <div class="acc-content-inner" id="supplementsContent">
-                        <p style="color: var(--text-light); font-style: italic;">Препоръки за хранителни добавки...</p>
-                    </div>
+                    <div class="acc-content-inner" id="supplementsContent"></div>
                 </div>
             </div>
 
@@ -1335,9 +1332,7 @@
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
-                    <div class="acc-content-inner" id="hacksContent">
-                        <p style="color: var(--text-light); font-style: italic;">Практически съвети за по-добри резултати...</p>
-                    </div>
+                    <div class="acc-content-inner" id="hacksContent"></div>
                 </div>
             </div>
         </div>
@@ -1553,9 +1548,13 @@
             return match ? Math.round(parseFloat(match[1])) : 0;
         }
 
+        /** Секция без съдържание от плана не се показва — без шаблонен текст на мястото ѝ. */
+        function hideGuide(el) {
+            const item = el.closest('.acc-item');
+            if (item) item.hidden = true;
+        }
+
         const DEFAULT_MESSAGES = {
-            psychology: 'Консултирай се с диетолог за допълнителни съвети',
-            supplements: 'Консултирай се с лекар преди приемане на нови добавки',
             psychologyFallbackLabel: 'Съвет',
             supplementsFallbackLabel: 'Добавка'
         };
@@ -1667,7 +1666,7 @@
             }
         }
 
-        function normalizeToThreeItems(data, defaultMessage) {
+        function normalizeToThreeItems(data) {
             if (typeof data === 'string') {
                 try {
                     const parsed = JSON.parse(data);
@@ -1681,7 +1680,7 @@
 
             if (!Array.isArray(data)) return null;
             const items = data.slice(0, MIN_ITEMS_COUNT);
-            return items.length > 0 ? items : [defaultMessage];
+            return items.length > 0 ? items : null;
         }
 
         function generateListItemText(content, contentType, index) {
@@ -1734,7 +1733,7 @@
                 const psychologyContent = document.getElementById('psychologyContent');
                 if (psychologyContent) {
                     if (dietPlan.psychology) {
-                        const normalized = normalizeToThreeItems(dietPlan.psychology, DEFAULT_MESSAGES.psychology);
+                        const normalized = normalizeToThreeItems(dietPlan.psychology);
                         if (normalized) {
                             let html = '<ul class="info-list">';
                             normalized.forEach((tip, index) => {
@@ -1748,10 +1747,10 @@
                         } else if (typeof dietPlan.psychology === 'string') {
                             psychologyContent.innerHTML = formatContentWithBulletPoints(dietPlan.psychology, ICON_CLASSES.psychology);
                         } else {
-                            psychologyContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.psychology}</p>`;
+                            hideGuide(psychologyContent);
                         }
                     } else {
-                        psychologyContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.psychology}</p>`;
+                        hideGuide(psychologyContent);
                     }
                 }
 
@@ -1760,7 +1759,7 @@
                     if (Array.isArray(dietPlan.supplements) && dietPlan.supplements.length === 0) {
                         supplementsContent.innerHTML = '<p style="color: var(--ds-text-soft);">Към момента няма показания за добавки. Изследванията (при качване) уточняват препоръката.</p>';
                     } else if (dietPlan.supplements) {
-                        const normalized = normalizeToThreeItems(dietPlan.supplements, DEFAULT_MESSAGES.supplements);
+                        const normalized = normalizeToThreeItems(dietPlan.supplements);
                         if (normalized) {
                             let html = '<ul class="info-list">';
                             normalized.forEach((supplement, index) => {
@@ -1774,10 +1773,10 @@
                         } else if (typeof dietPlan.supplements === 'string') {
                             supplementsContent.innerHTML = formatContentWithBulletPoints(dietPlan.supplements, ICON_CLASSES.supplements);
                         } else {
-                            supplementsContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.supplements}</p>`;
+                            hideGuide(supplementsContent);
                         }
                     } else {
-                        supplementsContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">${DEFAULT_MESSAGES.supplements}</p>`;
+                        hideGuide(supplementsContent);
                     }
                 }
 
@@ -1806,7 +1805,7 @@
                         html += '</ul>';
                         hacksContent.innerHTML = html;
                     } else {
-                        hacksContent.innerHTML = `<p style="color: var(--text-light); font-style: italic;">Практически съвети за постигане на целта...</p>`;
+                        hideGuide(hacksContent);
                     }
                 }
 
@@ -2174,7 +2173,7 @@
         </a>
         <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
             <i class="fas fa-chart-bar"></i>
-            <span>Анализ</span>
+            <span>Напредък</span>
         </a>
         <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>

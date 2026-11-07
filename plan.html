@@ -3481,37 +3481,6 @@
             color: var(--ds-error-text);
         }
 
-        /* Mode toggle tabs (Храна / Меню) */
-        .food-mode-toggle {
-            display: flex;
-            background: var(--bg-color);
-            border-radius: 12px;
-            padding: 4px;
-            margin-bottom: 16px;
-            gap: 4px;
-        }
-        .food-mode-tab {
-            flex: 1;
-            padding: 9px 12px;
-            border: none;
-            border-radius: 9px;
-            font-size: 0.88rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            background: transparent;
-            color: var(--text-gray);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        .food-mode-tab.active {
-            background: var(--card-bg);
-            color: var(--primary-red);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
         /* Menu result card */
         .menu-result-card {
             background: var(--bg-color);
@@ -4461,7 +4430,6 @@
             <span class="my-foods-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>
             <div class="my-foods-text">
                 <div class="my-foods-title">Моите храни и продукти</div>
-                <div class="my-foods-sub">Персонализирай списъка с продукти за хранителния си план</div>
             </div>
             <i class="fas fa-chevron-right my-foods-arrow"></i>
         </a>
@@ -4489,22 +4457,12 @@
                 <button type="button" class="food-analysis-close" onclick="closeFoodAnalysis()" aria-label="Затвори"><i class="fas fa-times" aria-hidden="true"></i></button>
             </div>
             <div class="food-analysis-body">
-                <!-- Mode toggle: Food / Menu -->
-                <div class="food-mode-toggle">
-                    <button class="food-mode-tab active" id="modeTabFood" onclick="switchFoodMode('food')">
-                        <i class="fas fa-drumstick-bite"></i> Храна
-                    </button>
-                    <button class="food-mode-tab" id="modeTabMenu" onclick="switchFoodMode('menu')">
-                        <i class="fas fa-book-open"></i> Меню от ресторант
-                    </button>
-                </div>
-
                 <!-- Capture Area -->
                 <div class="food-capture-area" id="foodCaptureArea" onclick="triggerFoodCapture()">
                     <div id="foodCaptureContent">
                         <div class="food-capture-icon"><i class="fas fa-camera"></i></div>
                         <div class="food-capture-text" id="foodCaptureHint">
-                            Натисни за да направиш снимка
+                            Снимай чинията или менюто
                         </div>
                     </div>
                 </div>
@@ -4519,7 +4477,7 @@
                 </select>
 
                 <!-- Analyze Button -->
-                <button class="food-analyze-btn" id="foodAnalyzeBtn" onclick="handleFoodAnalyzeClick()" disabled>
+                <button class="food-analyze-btn" id="foodAnalyzeBtn" onclick="handleFoodAnalyzeClick()" disabled hidden>
                     <i class="fas fa-paper-plane"></i> Изпрати за анализ
                 </button>
 
@@ -6081,7 +6039,7 @@
             // Enhance meal cards with game checkmarks if game is enabled
             // (window._gameCurrentPlanDay already set at the top of renderDay)
             // Store planned calories in game record for this day (used for calorie balance computation)
-            if (typeof window.gameModule !== 'undefined' && window.gameModule.isEnabled()) {
+            if (typeof window.gameModule !== 'undefined') {
                 var planCalTotal = effectiveMeals.reduce(function(s, m) { return s + (m.calories || m._plannedCalories || 0); }, 0);
                 if (planCalTotal > 0) {
                     (function(cal) {
@@ -7445,22 +7403,6 @@
                 return;
             }
 
-            // Gamification command
-            if (message.toLowerCase() === '*game') {
-                input.value = '';
-                if (window.gameModule) {
-                    if (!window.gameModule.isEnabled()) {
-                        window.gameModule.activateGame();
-                addMessageToChat('Геймификацията е активирана!\n\nОтсега ще събирам данни за:\n• Отбелязване на храненията\n• Сутрешна проверка (05:00) – качество на съня\n• Вечерна проверка (20:00) – активност, емоционален баланс, вода\n• Дневна оценка и насърчение\n\nАнализът ще е наличен в таба „Профил“ → раздел „Геймификация“.\n\nЗа да тестваш сега, напиши *game-morning или *game-evening.', 'assistant');
-                    } else {
-                        addMessageToChat('Геймификацията вече е активирана. Следи оценките в таба „Профил".', 'assistant');
-                    }
-                } else {
-                    addMessageToChat('⚠️ Геймификационният модул се зарежда. Моля, опитай след малко.', 'assistant');
-                }
-                return;
-            }
-
             // Gamification test commands
             if (message.toLowerCase() === '*game-morning') {
                 input.value = '';
@@ -8412,7 +8354,6 @@
         let foodAnalysisImageData = null;  // Base64 image data
         let foodAnalysisImageMime = null;  // MIME type
         let foodAnalysisInProgress = false;
-        let foodAnalysisMode = 'food';     // 'food' | 'menu'
         let _lastFoodAnalysis = null;      // Stores latest analysis for "add to my menu"
         // Какво да се запише в дневника — едва когато клиентът натисне „Добави в моето меню“.
         let _pendingFoodLog = null;
@@ -8426,8 +8367,6 @@
         function openFreeMealCapture(dayKey, mealKey) {
             _freeMealTarget = { dayKey: dayKey, mealKey: mealKey };
             openFoodAnalysis();
-            const toggle = document.querySelector('.food-mode-toggle');
-            if (toggle) toggle.style.display = 'none';
             const ctx = document.getElementById('foodMealContext');
             if (ctx) ctx.style.display = 'none';
             const title = document.getElementById('foodAnalysisTitle');
@@ -8439,14 +8378,12 @@
         // Restore the dialog to its ordinary extra-food role.
         function clearFreeMealCapture() {
             _freeMealTarget = null;
-            const toggle = document.querySelector('.food-mode-toggle');
-            if (toggle) toggle.style.display = '';
             const ctx = document.getElementById('foodMealContext');
             if (ctx) ctx.style.display = '';
         }
 
-        function resetFoodCaptureUI(mode) {
-            const hint = mode === 'menu' ? 'Натисни за да снимаш менюто' : 'Натисни за да направиш снимка';
+        function resetFoodCaptureUI() {
+            const hint = 'Снимай чинията или менюто';
             const captureArea = document.getElementById('foodCaptureArea');
             if (captureArea) captureArea.classList.remove('has-image');
             const captureContent = document.getElementById('foodCaptureContent');
@@ -8461,7 +8398,7 @@
             const analyzeBtn = document.getElementById('foodAnalyzeBtn');
             if (analyzeBtn) {
                 analyzeBtn.disabled = true;
-                analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за анализ';
+                analyzeBtn.hidden = true; // Анализът тръгва сам след снимката.
             }
             const results = document.getElementById('foodResults');
             if (results) {
@@ -8470,27 +8407,8 @@
             }
         }
 
-        function switchFoodMode(mode) {
-            foodAnalysisMode = mode;
-            const tabFood = document.getElementById('modeTabFood');
-            const tabMenu = document.getElementById('modeTabMenu');
-            const title = document.getElementById('foodAnalysisTitle');
-            if (tabFood) tabFood.classList.toggle('active', mode === 'food');
-            if (tabMenu) tabMenu.classList.toggle('active', mode === 'menu');
-            if (title) {
-                title.innerHTML = mode === 'menu'
-                    ? '<i class="fas fa-book-open"></i> Меню от ресторант'
-                    : '<i class="fas fa-utensils"></i> Анализ на Храна';
-            }
-            resetFoodCaptureUI(mode);
-        }
-
         function handleFoodAnalyzeClick() {
-            if (foodAnalysisMode === 'menu') {
-                analyzeMenuImage();
-            } else {
-                analyzeFoodImage();
-            }
+            analyzeFoodImage();
         }
 
         function openFoodAnalysis() {
@@ -8499,23 +8417,6 @@
                 overlay.classList.add('active');
                 // Reset state
                 resetFoodAnalysis();
-
-                // Show demo mode notice inside the modal
-                if (!isDemoLimitUnlocked) {
-                    const usedToday = getDailyImageCount();
-                    const remaining = Math.max(0, MAX_DAILY_IMAGE_ANALYSES - usedToday);
-                    const body = overlay.querySelector('.food-analysis-body');
-                    if (body) {
-                        const existingNotice = body.querySelector('.demo-notice');
-                        if (!existingNotice) {
-                            const notice = document.createElement('div');
-                            notice.className = 'demo-notice demo-mode-notice';
-                            notice.style.cssText = '';
-                            notice.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Демо режим:</strong> Системата е в демо режим и позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Оставащи днес: <strong>${remaining}</strong>.`;
-                            body.insertBefore(notice, body.firstChild);
-                        }
-                    }
-                }
             }
         }
 
@@ -8554,16 +8455,10 @@
 
         function resetFoodAnalysis() {
             foodAnalysisInProgress = false;
-            foodAnalysisMode = 'food';
-
-            const tabFood = document.getElementById('modeTabFood');
-            const tabMenu = document.getElementById('modeTabMenu');
-            if (tabFood) tabFood.classList.add('active');
-            if (tabMenu) tabMenu.classList.remove('active');
             const title = document.getElementById('foodAnalysisTitle');
             if (title) title.innerHTML = '<i class="fas fa-utensils"></i> Анализ на Храна';
 
-            resetFoodCaptureUI('food');
+            resetFoodCaptureUI();
         }
 
         function triggerFoodCapture() {
@@ -8666,6 +8561,7 @@
             const analyzeBtn = document.getElementById('foodAnalyzeBtn');
             if (analyzeBtn) {
                 analyzeBtn.disabled = true;
+                analyzeBtn.hidden = false;
                 analyzeBtn.innerHTML = '<div class="food-spinner"></div> Обработка на изображението...';
             }
 
@@ -8679,19 +8575,15 @@
                 if (captureArea && captureContent) {
                     captureArea.classList.add('has-image');
                     captureContent.innerHTML = `
-                        <img src="${compressedBase64}" class="food-preview-img" alt="${foodAnalysisMode === 'menu' ? 'Снимка на меню' : 'Снимка на храна'}">
+                        <img src="${compressedBase64}" class="food-preview-img" alt="Снимката">
                         <div style="margin-top:8px;font-size:0.8rem;color:var(--text-light);">
                             <i class="fas fa-redo"></i> Натисни за нова снимка
                         </div>
                     `;
                 }
 
-                // Enable analyze button
-                const analyzeBtn = document.getElementById('foodAnalyzeBtn');
-                if (analyzeBtn) {
-                    analyzeBtn.disabled = false;
-                    analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за анализ';
-                }
+                // Анализът тръгва сам — без отделно „Изпрати“.
+                analyzeFoodImage();
             });
         }
 
@@ -8809,7 +8701,9 @@
 
                 if (result.success && result.analysis) {
                     incrementDailyImageCount();
-                    renderFoodAnalysisResults(result.analysis);
+                    // Сървърът сам познава менюто на ресторант и връща препоръка от него.
+                    if (result.kind === 'menu') renderMenuAnalysisResults(result.analysis);
+                    else renderFoodAnalysisResults(result.analysis);
                 } else if (result.parseError) {
                     // Неразчетен отговор — ясно какво да направи клиентът, не суровия текст на AI.
                     if (resultsDiv) {
@@ -8839,7 +8733,7 @@
                 foodAnalysisInProgress = false;
                 if (analyzeBtn) {
                     analyzeBtn.disabled = false;
-                    analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати за повторен анализ';
+                    analyzeBtn.innerHTML = '<i class="fas fa-redo"></i> Анализирай отново';
                 }
             }
         }
@@ -8967,7 +8861,7 @@
             resultsDiv.appendChild(actionDiv);
 
             _pendingFoodLog = null;
-            if (window.gameModule && window.gameModule.isEnabled() && analysis.foods && analysis.foods.length > 0) {
+            if (window.gameModule && analysis.foods && analysis.foods.length > 0) {
                 const foodNames = analysis.foods.map(function(f) { return f.name; }).join(', ');
                 const totalCals = analysis.totalCalories || 0;
                 const suitScore = analysis.dietSuitability ? analysis.dietSuitability.score : 3;
@@ -8994,108 +8888,6 @@
         // ═══════════════════════════════════════════════════════════
         // END FOOD IMAGE ANALYSIS FEATURE
         // ═══════════════════════════════════════════════════════════
-
-        async function analyzeMenuImage() {
-            if (!foodAnalysisImageData || foodAnalysisInProgress) return;
-
-            // Check daily image analysis limit
-            if (!isDemoLimitUnlocked && getDailyImageCount() >= MAX_DAILY_IMAGE_ANALYSES) {
-                const resultsDiv = document.getElementById('foodResults');
-                if (resultsDiv) {
-                    resultsDiv.innerHTML = `
-                        <div class="food-result-section demo-mode-notice demo-limit-reached" style="border-left:3px solid #ffc107;">
-                            <h4 style="color:#7a3b00;"><i class="fas fa-info-circle"></i> Демо лимит</h4>
-                            <p style="font-size:0.88rem;">Демо версията позволява до ${MAX_DAILY_IMAGE_ANALYSES} AI анализа на изображения на ден. Лимитът за днес е достигнат. Моля, свържи се с нас за пълен достъп.</p>
-                        </div>
-                    `;
-                    resultsDiv.classList.add('visible');
-                }
-                return;
-            }
-
-            foodAnalysisInProgress = true;
-            const analyzeBtn = document.getElementById('foodAnalyzeBtn');
-            const resultsDiv = document.getElementById('foodResults');
-
-            if (analyzeBtn) {
-                analyzeBtn.disabled = true;
-                analyzeBtn.innerHTML = '<div class="food-spinner"></div> Анализиране на менюто...';
-            }
-            if (resultsDiv) {
-                resultsDiv.classList.remove('visible');
-                resultsDiv.innerHTML = '';
-            }
-
-            try {
-                const mealContext = document.getElementById('foodMealContext')?.value || 'Обяд';
-
-                const compactUserData = userData ? {
-                    name: userData && userData.name,
-                    goal: userData.goal,
-                    weight: userData.weight,
-                    height: userData.height,
-                    gender: userData.gender,
-                    dietPreference: userData.dietPreference,
-                    medicalConditions: userData.medicalConditions,
-                    dietDislike: userData.dietDislike
-                } : null;
-
-                const compactPlan = photoPlanContext();
-
-                const response = await fetch(WORKER_URL + '/api/analyze-menu-image', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        imageData: foodAnalysisImageData,
-                        mimeType: foodAnalysisImageMime,
-                        userData: compactUserData,
-                        dietPlan: compactPlan,
-                        mealContext: mealContext
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `HTTP ${response.status}`);
-                }
-
-                const result = await response.json();
-
-                if (result.success && result.analysis) {
-                    incrementDailyImageCount();
-                    renderMenuAnalysisResults(result.analysis);
-                } else if (result.parseError) {
-                    if (resultsDiv) {
-                        resultsDiv.innerHTML = `
-                            <div class="food-result-section">
-                                <h4><i class="fas fa-camera"></i> Менюто не беше разчетено</h4>
-                                <p style="font-size:0.88rem;line-height:1.6;">Опитай с по-близка и ясна снимка на менюто, без отблясъци.</p>
-                            </div>
-                        `;
-                        resultsDiv.classList.add('visible');
-                    }
-                } else {
-                    throw new Error(result.error || 'Неуспешен анализ');
-                }
-            } catch (error) {
-                console.error('Menu analysis error:', error);
-                if (resultsDiv) {
-                    resultsDiv.innerHTML = `
-                        <div class="food-result-section" style="border-left:3px solid #ef4444;">
-                            <h4 style="color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Грешка</h4>
-                            <p style="font-size:0.88rem;color:var(--text-light);">${escapeHtmlWithBreaks(error.message)}</p>
-                        </div>
-                    `;
-                    resultsDiv.classList.add('visible');
-                }
-            } finally {
-                foodAnalysisInProgress = false;
-                if (analyzeBtn) {
-                    analyzeBtn.disabled = false;
-                    analyzeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Анализирай отново';
-                }
-            }
-        }
 
         function renderMenuAnalysisResults(analysis) {
             const resultsDiv = document.getElementById('foodResults');
@@ -9182,7 +8974,7 @@
             // correctly affect junkCount / engPct without inflating the calorie total.
             // Сканирането на меню не значи, че ястието е изядено — записва се при „Добави“.
             _pendingFoodLog = null;
-            if (window.gameModule && window.gameModule.isEnabled()) {
+            if (window.gameModule) {
                 const menuCtxEl = document.getElementById('foodMealContext');
                 _pendingFoodLog = { name: analysis.recommendedDish || 'Препоръчано ястие', calories: 0, score: score, context: menuCtxEl ? menuCtxEl.value : '' };
             }
@@ -9263,7 +9055,7 @@
 
             // Link the newly-added plan entry to the most recently logged extraMeals entry in the
             // game record. This lets the check button toggle calorie inclusion for this meal.
-            if (window.gameModule && window.gameModule.isEnabled() && _pendingFoodLog) {
+            if (window.gameModule && _pendingFoodLog) {
                 var pending = _pendingFoodLog;
                 _pendingFoodLog = null;
                 window.gameModule.logExtraFood(pending.name, pending.calories, pending.score, pending.context);
@@ -10027,7 +9819,6 @@
     // GAMIFICATION MODULE — syncs analytics to server for admin AI assistant
     // ═══════════════════════════════════════════════════════════════════════════
     (function() {
-        var GAME_ENABLED_KEY       = 'gameEnabled';
         var GAME_DATA_KEY          = 'gameData';
         var GAME_WEEKLY_AI_KEY     = 'gameWeeklyAI';
         var ANALYTICS_WORKER       = 'https://aidiet.radilov-k.workers.dev';
@@ -10089,7 +9880,6 @@
 
         // Periodically re-evaluate time locks so buttons unlock at the right hour
         function _refreshTimeLocks() {
-            if (!isGameEnabled()) return;
             var container = document.getElementById('mealContainer');
             if (!container) return;
             var dayKey = getCurrentViewDayKey();
@@ -10112,8 +9902,6 @@
             });
         }
 
-        function isGameEnabled() { return true; }
-        function enableGame()    { localStorage.setItem(GAME_ENABLED_KEY, 'true'); }
 
         var _gameDataCache = null; // in-memory cache to avoid repeated JSON.parse
 
@@ -10629,8 +10417,7 @@
                     : nx.kind === 'evening' ? 'Следва: вечерната проверка'
                     : 'Следва: ' + nx.label;
                 head = '<div class="dc-kicker">Днес · ' + m.doneCount + ' от ' + m.segs.length + '</div>' +
-                    '<div class="dc-title">' + esc(nextText) + '</div>' +
-                    '<div class="dc-hint">Оценката се показва след вечерната проверка</div>';
+                    '<div class="dc-title">' + esc(nextText) + '</div>';
             }
 
             var segHtml = m.segs.map(function(sg, idx) {
@@ -10669,7 +10456,7 @@
             }
 
             card.innerHTML = '<div class="dc-head" aria-live="polite">' + head +
-                    '<span class="dc-more" aria-hidden="true">Анализ <i class="fas fa-chevron-right"></i></span></div>' +
+                    '<span class="dc-more" aria-hidden="true">Напредък <i class="fas fa-chevron-right"></i></span></div>' +
                 '<div class="dc-strip" role="group" aria-label="Стъпки на деня">' + segHtml + '</div>' +
                 calHtml +
                 (chips.length ? '<div class="dc-chips">' + chips.join('') + '</div>' : '');
@@ -10900,7 +10687,6 @@
 
         // ── Meal checkmarks ───────────────────────────────────────────────────
         function enhanceMealCards() {
-            if (!isGameEnabled()) return;
             var container = document.getElementById('mealContainer');
             if (!container) return;
             var dayKey = getCurrentViewDayKey();
@@ -11204,7 +10990,6 @@
         // ── Extra food logging ────────────────────────────────────────────────
         // mealContext: the meal slot name (e.g. 'Обяд', 'Вечеря', etc.)
         function logExtraFood(name, calories, suitabilityScore, mealContext) {
-            if (!isGameEnabled()) return;
             var rec = getTodayRecord();
             var isJunk = (suitabilityScore != null && suitabilityScore <= JUNK_SUITABILITY_MAX);
             // Ensure freeMealRatings object exists (backward compat with stored records)
@@ -11685,7 +11470,7 @@
         // Same-day unanswered notification questions → quick-answer catch-up chain
         // (real answers, app stays open, integrated into analysis).
         function checkOpenAppPrompts() {
-            if (IS_SHELL_CHAT || !isGameEnabled()) return;
+            if (IS_SHELL_CHAT) return;
             if (_openPromptPending || _queueDepth > 0) return;
             var gn = window.GameNotifier || (window.top && window.top.GameNotifier);
             if (!gn || typeof gn.getCatchUpTypesForToday !== 'function') return;
@@ -11703,7 +11488,6 @@
 
         // ── Retroactive entry (last 2 days) ─────────────────────────────────
         function checkRetroEntry() {
-            if (!isGameEnabled()) return;
             var allData = getGameData();
             for (var offset = 1; offset <= 2; offset++) {
                 var pastDate = new Date(); pastDate.setDate(pastDate.getDate() - offset);
@@ -12609,7 +12393,6 @@
         }
 
         function resumeWeeklyFeedbackIfNeeded() {
-            if (!isGameEnabled()) return;
             var info = getWeeklyAIState();
             if (info.feedbackStatus !== 'questions' || !info.pendingQuestions || !info.pendingQuestions.length) return;
             var questions = info.pendingQuestions;
@@ -12623,7 +12406,6 @@
 
         // ── Time-based prompts ────────────────────────────────────────────────
         function checkTimePrompts() {
-            if (!isGameEnabled()) return;
             // Do not interrupt a queue that is already in progress (e.g. the
             // on-open queue started by checkOpenAppPrompts).
             if (_queueDepth > 0 || _openPromptPending) return;
@@ -12649,7 +12431,6 @@
 
         // ── Weekly AI trigger ─────────────────────────────────────────────────
         function triggerWeeklyTestFlow() {
-            if (!isGameEnabled()) enableGame();
             invalidateGameDataCache();
             var info = ensureWeeklyMeta(getWeeklyAIState());
             info.lastRun = null;
@@ -12665,7 +12446,6 @@
         }
 
         function maybeRequestWeeklyAI() {
-            if (!isGameEnabled()) return;
             var info = ensureWeeklyMeta(getWeeklyAIState());
             var now = Date.now();
             if (info.lastRun && now - new Date(info.lastRun).getTime() < 7 * 24 * 60 * 60 * 1000) {
@@ -12703,22 +12483,10 @@
             }, tries ? 5000 : 1600);
         }
 
-        // ── Activate ──────────────────────────────────────────────────────────
-        function activateGame() {
-            enableGame();
-            setTimeout(function(){
-                enhanceMealCards();
-                checkOpenAppPrompts();
-                showEncouragement(buildEncouragement());
-                startPromptInterval();
-                maybeRequestWeeklyAI();
-            }, 200);
-        }
-
         // ── Init on page load ─────────────────────────────────────────────────
         (function initGameModule() {
             function setupGame() {
-                if (IS_SHELL_CHAT || !isGameEnabled()) return;
+                if (IS_SHELL_CHAT) return;
                 setTimeout(function(){
                     enhanceMealCards();
                     checkOpenAppPrompts();
@@ -12738,8 +12506,6 @@
 
         // ── Public API ────────────────────────────────────────────────────────
         window.gameModule = {
-            isEnabled:               isGameEnabled,
-            activateGame:            activateGame,
             getTodayRecord:          getTodayRecord,
             saveTodayRecord:         saveTodayRecord,
             getRecord:               getRecord,
@@ -12783,7 +12549,6 @@
         // Called by renderDay when user navigates to a past day (up to 2 days back).
         // Automatically asks any unanswered gamification questions for that day.
         window._gameCheckPastDayQuestions = function(dayKey) {
-            if (!isGameEnabled()) return;
             if (_queueDepth > 0 || document.getElementById('gameBubble')) return;
             var today = getTodayKey();
             if (!dayKey || dayKey >= today) return; // only past days
@@ -12852,7 +12617,7 @@
         </a>
         <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
             <i class="fas fa-chart-bar"></i>
-            <span>Анализ</span>
+            <span>Напредък</span>
         </a>
         <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>

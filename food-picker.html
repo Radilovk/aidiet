@@ -178,23 +178,6 @@
         .fp-category[open] .cat-chevron { transform: rotate(180deg); }
 
         /* ── Category toolbar ── */
-        .cat-toolbar {
-            display: flex;
-            gap: 8px;
-            padding: 10px 18px 8px;
-            border-bottom: 1px solid var(--border);
-        }
-        .btn-cat {
-            font-size: 0.78rem;
-            padding: 4px 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: transparent;
-            color: var(--text-gray);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .btn-cat:hover, .btn-cat:focus { background: var(--primary-light); color: var(--primary); outline: none; }
 
         /* Warning color for the counter when below the minimum selection */
         .fp-bar-count.below-min { color: #f59e0b; }
@@ -483,7 +466,7 @@
         <i class="fas fa-arrow-left"></i>
     </button>
     <h1><i class="fas fa-leaf" style="margin-right:8px;"></i>Моите храни и продукти</h1>
-    <p>Персонализиран списък с храни и продукти за твоя хранителен план — избери всичко, с което разполагаш и обичаш</p>
+    <p>Избери какво имаш и обичаш.</p>
 </div>
 
 <!-- Sticky count bar -->
@@ -576,18 +559,10 @@ function incrementDemoFoodPickerCount() {
 function isDemoLimitUnlocked() {
     return localStorage.getItem('chatDemoLimitUnlocked') === 'true';
 }
-function showDemoNotice(limitReached) {
-    const wrap = document.getElementById('fpDemoNotice');
-    const box = document.getElementById('fpDemoBox');
-    const text = document.getElementById('fpDemoText');
-    wrap.style.display = 'block';
-    if (limitReached) {
-        box.classList.add('limit-reached');
-        text.innerHTML = '<strong>Демо режим — лимит достигнат:</strong> В демо версията се позволява само едно генериране на план чрез тази функция.';
-    } else {
-        box.classList.remove('limit-reached');
-        text.innerHTML = '<strong>Демо режим:</strong> В демо версията се позволява само едно генериране на план чрез тази функция.';
-    }
+function showDemoNotice() {
+    document.getElementById('fpDemoNotice').style.display = 'block';
+    document.getElementById('fpDemoBox').classList.add('limit-reached');
+    document.getElementById('fpDemoText').innerHTML = '<strong>Демо лимит:</strong> в демо версията планът се генерира оттук само веднъж.';
 }
 
 
@@ -786,15 +761,6 @@ function buildUI(blockedTerms = []) {
         `;
         details.appendChild(summary);
 
-        // Toolbar
-        const toolbar = document.createElement('div');
-        toolbar.className = 'cat-toolbar';
-        toolbar.innerHTML = `
-            <button class="btn-cat" onclick="selectAllInCat('${cat.id}')"><i class="fas fa-check-double" style="margin-right:4px;"></i>Избери всички</button>
-            <button class="btn-cat" onclick="clearCat('${cat.id}')"><i class="fas fa-xmark" style="margin-right:4px;"></i>Изчисти</button>
-        `;
-        details.appendChild(toolbar);
-
         // Food grid
         const grid = document.createElement('div');
         grid.className = 'fp-foods';
@@ -932,19 +898,6 @@ function updateTotal() {
     bar.classList.toggle('below-min', count > 0 && count < MIN_SELECTED_FOODS);
 }
 
-function selectAllInCat(catId) {
-    const grid = document.getElementById(`grid-${catId}`);
-    grid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        if (!cb.checked) {
-            cb.checked = true;
-            selected[cb.value] = true;
-            cb.closest('.fp-item').classList.add('checked');
-        }
-    });
-    updateBadge(catId);
-    updateTotal();
-}
-
 function clearCat(catId) {
     const grid = document.getElementById(`grid-${catId}`);
     grid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
@@ -1022,7 +975,7 @@ async function handleSubmit() {
 
     // Demo mode check: limit plan generation to once
     if (!isDemoLimitUnlocked() && getDemoFoodPickerCount() >= DEMO_MAX_PLAN_GENERATIONS) {
-        showDemoNotice(true);
+        showDemoNotice();
         showToast('Демо лимит: само 1 генериране е позволено.', true);
         return;
     }
@@ -1241,10 +1194,9 @@ function restoreFromStorage() {
     buildUI(blockedTerms);
     restoreFromStorage();
 
-    // Show demo notice on load
-    if (!isDemoLimitUnlocked()) {
-        const limitReached = getDemoFoodPickerCount() >= DEMO_MAX_PLAN_GENERATIONS;
-        showDemoNotice(limitReached);
+    // Демо бележката — само когато лимитът е достигнат.
+    if (!isDemoLimitUnlocked() && getDemoFoodPickerCount() >= DEMO_MAX_PLAN_GENERATIONS) {
+        showDemoNotice();
     }
 
     if (DEBUG_MODE) {

@@ -1003,7 +1003,7 @@
         .lp-numbers { padding: 0 0 20px; position: relative; z-index: 2; margin-top: -10px; }
         .lp-numbers-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             border-top: 1px solid var(--lp-line);
             border-bottom: 1px solid var(--lp-line);
         }
@@ -1272,8 +1272,9 @@
         .android-btn.secondary { background: transparent; color: var(--lp-muted); border: 1px dashed var(--lp-line); }
         .android-btn.secondary:hover { background: transparent; color: var(--lp-ink); transform: none; }
         .android-install-card--soon { background: transparent; border-style: dashed; }
-        .android-note { margin: auto 0 0 !important; padding-top: 14px; border-top: 1px dashed var(--lp-line); font-size: 0.84rem !important; color: var(--lp-muted) !important; }
-        .lp-version { margin-top: 22px; font-size: 0.8rem; color: var(--lp-muted); }
+        .android-install-cards.single { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+        /* Слоганът вече е в началото на страницата — футърът тук не го повтаря. */
+        .sf .sf-tag, .sf .sf-about { display: none; }
         html.is-native .sf-web { display: none !important; }
         .lp-deleted-note {
             position: fixed; z-index: 10050;
@@ -1327,10 +1328,7 @@
             .lp-scroll-cue { display: none; }
             .lp-section { padding: 80px 0; }
             .lp-head { margin-bottom: 36px; }
-            .lp-numbers-grid { grid-template-columns: 1fr 1fr; }
-            .lp-num { padding: 26px 18px; }
-            .lp-num:nth-child(odd) { border-left: 0; padding-left: 0; }
-            .lp-num:nth-child(n+3) { border-top: 1px solid var(--lp-line); }
+            .lp-num { padding: 24px 10px; }
             .lp-bento, .lp-programs { grid-template-columns: 1fr; }
             .lp-tile--plan, .lp-tile--chat { grid-column: auto; }
             .lp-tile--plan { grid-template-columns: 1fr; gap: 22px; }
@@ -1991,7 +1989,9 @@
         #loginModal {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.55);
+            background: rgba(10, 26, 26, 0.28);
+            -webkit-backdrop-filter: blur(6px);
+            backdrop-filter: blur(6px);
             z-index: 99998;
             display: none;
             align-items: center;
@@ -2001,12 +2001,12 @@
         #loginModal.active { display: flex; }
         .login-modal-box {
             background: var(--bg-color, #F0FDFA);
-            border-radius: 24px;
-            padding: 40px 32px 32px;
-            max-width: 400px;
+            border-radius: 20px;
+            padding: 26px 22px 18px;
+            max-width: 340px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
             position: relative;
         }
         .login-modal-close {
@@ -2024,32 +2024,20 @@
         [data-theme="dark"] .login-modal-box {
             background: #0D2424;
         }
-        .login-modal-icon {
-            width: 96px;
-            height: 96px;
-            display: block;
-            margin: 0 auto 14px;
-            object-fit: cover;
-        }
         .login-modal-title {
-            margin: 0 0 8px;
-            font-size: 1.4rem;
+            margin: 0 0 18px;
+            font-size: 1.15rem;
             font-weight: 700;
             color: var(--text-dark, #0F2F2E);
-        }
-        .login-modal-sub {
-            margin: 0 0 24px;
-            color: var(--text-gray, #4b5563);
-            font-size: 0.93rem;
         }
         .login-modal-email-input,
         .login-modal-form-input {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e0e0e0;
+            padding: 11px 14px;
+            border: 1px solid #d6e2e0;
             border-radius: 12px;
             font-size: 1rem;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
             box-sizing: border-box;
             background: var(--card-bg, #fff);
             color: var(--text-dark, #0F2F2E);
@@ -2118,7 +2106,7 @@
             <iframe class="spa-tab-view" data-tab-view="plan" title="Моят план" data-src="plan.html?embedded=1"></iframe>
             <iframe class="spa-tab-view" data-tab-view="guidelines" title="Насоки" data-src="guidelines.html?embedded=1"></iframe>
             <iframe class="spa-tab-view" data-tab-view="profile" title="Профил" data-src="profile.html?embedded=1"></iframe>
-            <iframe class="spa-tab-view" data-tab-view="analytics" title="Анализ" data-src="game-analytics.html?embedded=1"></iframe>
+            <iframe class="spa-tab-view" data-tab-view="analytics" title="Напредък" data-src="game-analytics.html?embedded=1"></iframe>
         </div>
         <nav class="bottom-nav spa-bottom-nav" aria-label="Основна навигация">
             <span class="spa-nav-pill" aria-hidden="true"></span>
@@ -2132,7 +2120,7 @@
             </button>
             <button type="button" class="bottom-nav-item" data-tab-target="analytics">
                 <i class="fas fa-chart-bar"></i>
-                <span>Анализ</span>
+                <span>Напредък</span>
             </button>
             <button type="button" class="bottom-nav-item" data-tab-target="profile">
                 <i class="fas fa-user"></i>
@@ -2158,7 +2146,7 @@
     <nav class="top-nav" role="navigation" aria-label="Главна навигация">
         <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
         <div class="top-nav-actions">
-        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Смени темата"><i id="themeIcon" class="fas fa-moon" aria-hidden="true"></i></button>
+        <button type="button" class="theme-toggle-btn" id="navLoginBtn" onclick="window.indexOpenLoginModal()" aria-label="Вход"><i class="far fa-user" aria-hidden="true"></i></button>
         <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
             <span class="bar"></span>
             <span class="bar"></span>
@@ -2176,9 +2164,7 @@
         <a href="questionnaire2.html" class="nav-menu-top-link" id="startNowBtn" style="display:none;"><i class="fas fa-clipboard-list"></i> Създай моя план</a>
 
         <div class="nav-menu-section-label">Начална страница</div>
-        <a href="index.html?stay=1" onclick="closeNavMenu()"><i class="fas fa-home"></i> Начало</a>
         <a href="features.html" onclick="closeNavMenu()"><i class="fas fa-star"></i> Всички възможности</a>
-        <a href="index.html?stay=1#features" onclick="closeNavMenu()"><i class="fas fa-th-large"></i> Какво получаваш</a>
         <a href="index.html?stay=1#programs" onclick="closeNavMenu()"><i class="fas fa-layer-group"></i> Програми</a>
         <a href="index.html?stay=1#how-it-works" onclick="closeNavMenu()"><i class="fas fa-info-circle"></i> Как работи</a>
         <a href="help.html" onclick="closeNavMenu()"><i class="fas fa-circle-question"></i> Въпроси и отговори</a>
@@ -2258,7 +2244,7 @@
                         <div class="lp-ps-nav">
                             <span class="on"><i class="fas fa-utensils"></i>План</span>
                             <span><i class="fas fa-compass"></i>Насоки</span>
-                            <span><i class="fas fa-chart-bar"></i>Анализ</span>
+                            <span><i class="fas fa-chart-bar"></i>Напредък</span>
                             <span><i class="fas fa-user"></i>Профил</span>
                         </div>
                     </div>
@@ -2290,7 +2276,6 @@
     <section class="lp-numbers" id="numbers" aria-label="NutriPlan в числа">
         <div class="lp-wrap lp-numbers-grid lp-reveal">
             <div class="lp-num"><b data-count="30" data-suffix="+">30+</b><span>показателя в анализа</span></div>
-            <div class="lp-num"><b data-count="7">7</b><span>дни, ястие по ястие</span></div>
             <div class="lp-num"><b data-count="11">11</b><span>клинични протокола</span></div>
             <div class="lp-num"><b>24/7</b><span>консултант, който знае плана ти</span></div>
         </div>
@@ -2453,10 +2438,6 @@
                         </label>
                     </div>
                     <label class="lp-field">
-                        <span>Тема</span>
-                        <input type="text" id="contactSubject" placeholder="Накратко">
-                    </label>
-                    <label class="lp-field">
                         <span>Съобщение *</span>
                         <textarea id="contactMessage" required rows="5" placeholder="Какво искаш да ни кажеш?"></textarea>
                     </label>
@@ -2478,8 +2459,8 @@
                 <p class="lp-sub">С известия за храненията и старт с едно докосване. Android и iPhone.</p>
             </header>
 
-            <div class="android-install-cards">
-                <div class="android-install-card lp-reveal">
+            <div class="android-install-cards" id="installCards">
+                <div class="android-install-card lp-reveal" data-platform="web">
                     <div class="card-icon"><i class="fas fa-bolt"></i></div>
                     <h3>От браузъра</h3>
                     <p>Най-бързо. Без файл за сваляне.</p>
@@ -2493,7 +2474,7 @@
                     </button>
                 </div>
 
-                <div class="android-install-card lp-reveal">
+                <div class="android-install-card lp-reveal" data-platform="android">
                     <div class="card-icon"><i class="fab fa-android"></i></div>
                     <h3>APK файл</h3>
                     <p>Пълното Android приложение.</p>
@@ -2532,7 +2513,7 @@
                     </script>
                 </div>
 
-                <div class="android-install-card lp-reveal">
+                <div class="android-install-card lp-reveal" data-platform="ios">
                     <div class="card-icon"><i class="fab fa-apple"></i></div>
                     <h3>iPhone и iPad</h3>
                     <p>От Safari — на началния екран като приложение.</p>
@@ -2541,10 +2522,22 @@
                         <li>Бутон <strong>„Сподели“</strong> → <strong>„Добави към началния екран“</strong></li>
                         <li>Отвори NutriPlan от иконата</li>
                     </ol>
-                    <p class="android-note">Скоро и в App Store и Google Play.</p>
                 </div>
             </div>
-            <p class="lp-version" data-app-version>Версия...</p>
+            <script>
+            /* Само начинът за устройството, от което е отворена страницата; на компютър — всички. */
+            (function () {
+                var ua = navigator.userAgent || '';
+                var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+                var platform = ios ? 'ios' : (/Android/.test(ua) ? 'android' : '');
+                if (!platform) return;
+                var box = document.getElementById('installCards');
+                box.querySelectorAll('[data-platform]').forEach(function (card) {
+                    if (card.getAttribute('data-platform') !== platform) card.remove();
+                });
+                box.classList.add('single');
+            })();
+            </script>
         </div>
     </section>
     </main>
@@ -2732,7 +2725,7 @@
             event.preventDefault();
             const name = document.getElementById('contactName').value.trim();
             const email = document.getElementById('contactEmail').value.trim();
-            const subject = document.getElementById('contactSubject').value.trim();
+            const subject = '';
             const message = document.getElementById('contactMessage').value.trim();
             const status = document.getElementById('contactFormStatus');
             const btn = document.getElementById('contactSubmitBtn');
@@ -3031,6 +3024,8 @@
             }
 
             if (heroLoginBtn) heroLoginBtn.style.display = isAuthenticated ? 'none' : '';
+            const navLoginBtn = document.getElementById('navLoginBtn');
+            if (navLoginBtn) navLoginBtn.style.display = isAuthenticated ? 'none' : '';
             if (navLogoutBtn) navLogoutBtn.style.display = isAuthenticated ? 'flex' : 'none';
             if (heroSection) heroSection.classList.add('visible');
             if (window.NutriPlanDiagnostics) {
@@ -3089,15 +3084,13 @@
             // If redirected here from a protected page that requires login:
             // – Wait briefly for Firebase to resolve auth state.
             // – If already logged in, redirect to target page immediately.
-            // – Otherwise, show the login modal.
+            // – Otherwise, stay on the landing page; the login form opens only from „Вход“.
             if (params.has('login')) {
                 let alreadyLoggedIn = false;
                 if (window._indexAuthUser) {
                     try { alreadyLoggedIn = !!(await window._indexAuthUser); } catch (_) {}
                 }
                 if (!alreadyLoggedIn) {
-                    window.indexOpenLoginModal ? window.indexOpenLoginModal() : document.getElementById('loginModal')?.classList.add('active');
-                    // Make hero section visible when showing login modal
                     const heroSection = document.querySelector('.hero');
                     if (heroSection) heroSection.classList.add('visible');
                 }
@@ -3155,6 +3148,8 @@
 
             // Authenticated — hide the login button, show logout in nav-menu
             if (heroLoginBtn) heroLoginBtn.style.display = 'none';
+            const navLoginBtn = document.getElementById('navLoginBtn');
+            if (navLoginBtn) navLoginBtn.style.display = 'none';
             const navLogoutBtn = document.getElementById('navLogoutBtn');
             if (navLogoutBtn) navLogoutBtn.style.display = 'flex';
 
@@ -3523,6 +3518,8 @@
 
         // Show install banner
         function showInstallBanner() {
+            // На лендинга инсталирането е в секция „Приложение“ — без изскачащ банер върху страницата.
+            if (!document.body.classList.contains('spa-mode')) return;
             if (PWA_DEBUG) console.log('Showing install banner');
             const installBanner = document.getElementById('installBanner');
             if (installBanner) {
@@ -3762,7 +3759,7 @@
         function showIosInstallBanner() {
             const hasDismissed = localStorage.getItem('ios_install_dismissed');
 
-            if (isIOS && !isInStandaloneMode() && !hasDismissed) {
+            if (isIOS && !isInStandaloneMode() && !hasDismissed && document.body.classList.contains('spa-mode')) {
                 const iosBanner = document.getElementById('ios-banner');
                 const shareIconImg = document.getElementById('ios-share-icon-img');
 
@@ -4241,14 +4238,13 @@
         </a>
         <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
             <i class="fas fa-chart-bar"></i>
-            <span>Анализ</span>
+            <span>Напредък</span>
         </a>
         <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
         </nav>
-    <script src="./drive-backup.js"></script>
     <!-- NativeBackup: mirrors key localStorage values to Capacitor Preferences so
          plan data survives APK reinstall via Android Auto Backup. -->
     <script src="./native-backup.js"></script>
@@ -4291,9 +4287,7 @@
     <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriPlan">
         <div class="login-modal-box">
             <button class="login-modal-close" onclick="window.indexCloseLoginModal()" aria-label="Затвори">✕</button>
-            <img src="./docs/9653256.png" alt="Вход" class="login-modal-icon">
-            <h2 class="login-modal-title" id="loginModalTitle">Добре дошли в NutriPlan</h2>
-            <p class="login-modal-sub" id="loginModalSub">Имейл и парола</p>
+            <h2 class="login-modal-title" id="loginModalTitle">Вход</h2>
 
             <!-- Email / password sign-in -->
             <input id="loginEmailInput" type="email" class="login-modal-email-input"
@@ -4301,8 +4295,6 @@
             <input id="loginPasswordInput" type="password" class="login-modal-email-input login-modal-form-input"
                    placeholder="Парола" autocomplete="current-password">
             <button class="login-modal-primary-btn" id="loginPasswordBtn">Вход</button>
-
-            <br>
             <button class="login-modal-forgot" id="loginForgotBtn"
                     onclick="window.indexLoginForgotPassword()">Забравена парола?</button>
             <button class="login-modal-forgot login-modal-switch" id="loginSwitchBtn"
@@ -4351,11 +4343,6 @@
             await signOut(auth).catch(() => {});
             window.history.replaceState(null, '', 'index.html?stay=1&login=1');
             loginClearMessages();
-            if (typeof window.indexOpenLoginModal === 'function') {
-                window.indexOpenLoginModal();
-            } else {
-                document.getElementById('loginModal')?.classList.add('active');
-            }
         }
 
         /* ── Derive userId locally — no backend round-trip needed ───────────── */
@@ -4533,6 +4520,8 @@
             }
             if (navMyPlanLink) navMyPlanLink.style.display = 'none';
             if (heroLoginBtn) heroLoginBtn.style.display = '';
+            const navLoginBtn = document.getElementById('navLoginBtn');
+            if (navLoginBtn) navLoginBtn.style.display = '';
             if (navLogoutBtn) navLogoutBtn.style.display = 'none';
         }
 
@@ -4607,12 +4596,10 @@
 
         function _applyLoginMode() {
             const title     = document.getElementById('loginModalTitle');
-            const sub       = document.getElementById('loginModalSub');
             const btn       = document.getElementById('loginPasswordBtn');
             const switchBtn = document.getElementById('loginSwitchBtn');
             const forgot    = document.getElementById('loginForgotBtn');
-            if (title)     title.textContent = 'Добре дошли в NutriPlan';
-            if (sub)       sub.textContent   = 'Имейл и парола';
+            if (title)     title.textContent = 'Вход';
             if (btn)       btn.textContent   = 'Вход';
             if (switchBtn) switchBtn.textContent = 'Нямаш профил? Попълни въпросника';
             if (forgot)    forgot.style.display = '';
@@ -4716,17 +4703,5 @@
         };
     </script>
 
-    <script>
-    (function() {
-        fetch('./twa-manifest.json', { cache: 'no-store' })
-            .then(function(r) { return r.ok ? r.json() : null; })
-            .then(function(manifest) {
-                if (!manifest || !manifest.appVersion) return;
-                var text = 'Версия ' + manifest.appVersion + (manifest.versionCode ? ' • build ' + manifest.versionCode : '');
-                document.querySelectorAll('[data-app-version]').forEach(function(el) { el.textContent = text; });
-            })
-            .catch(function() {});
-    })();
-    </script>
 </body>
 </html>
