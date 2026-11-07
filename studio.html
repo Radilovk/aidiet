@@ -1259,12 +1259,16 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         return;
       }
       if (pend.length) await ln.cancel({ notifications: pend.map((n) => ({ id: n.id })) });
+      if (isAndroid() && ln.createChannel && !androidChannel) {   // Android 8+: the sound and vibration live on the channel
+        androidChannel = true;
+        await ln.createChannel({ id: 'studio', name: 'Напомняния', description: 'Напомняния за записаните часове', importance: 4, visibility: 1, sound: 'studio.wav', vibration: true }).catch(() => {});
+      }
       setupPush();
       if (items.length) {
         setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
           id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : { id: x.bid },
-          sound: remSound(), relevanceScore: 1, interruptionLevel: 'active',   // a normal alert with sound — respects Focus / Do Not Disturb
+          sound: remSound(), relevanceScore: 1, interruptionLevel: 'active', ...(isAndroid() ? { channelId: 'studio' } : {}),   // a normal alert with sound — respects Focus / Do Not Disturb
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
       }
@@ -1273,7 +1277,9 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   /* ── push (app 1.2+, iOS): the studio's own changes reach the phone at once (booked / canceled by the studio, a word to
         the clients with hours ahead). The same permission as the reminders — no second question. Older apps: nothing. ── */
   const pushPlugin = () => (APP && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios' && window.Capacitor.Plugins.PushNotifications) || null;
-  const remSound = () => (pushPlugin() ? 'studio.wav' : 'default');   // the studio's soft chime ships with 1.2; before it, the phone's sound
+  const isAndroid = () => Boolean(APP && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android');
+  let androidChannel = false;
+  const remSound = () => (pushPlugin() || isAndroid() ? 'studio.wav' : 'default');   // the studio's soft chime ships with 1.2; before it, the phone's sound
   let pushReady = false;
   async function setupPush() {
     const pn = pushPlugin();
