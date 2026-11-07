@@ -65,7 +65,7 @@ function siteFooter() {
                 <div class="sf-brand">
                     <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark">${svg(I.leafMark, 18, 2.2)}</span>NutriPlan</a>
                     <p class="sf-tag">Хранене по твоя мярка.</p>
-                    <p class="sf-about">Седмично меню с точни грамажи — по тялото, здравето и вкусовете ти. Коригира се всяка седмица според резултата.</p>
+                    <p class="sf-about">Седмично меню с точни грамажи — според тялото, здравето и вкусовете ти. Донастройва се всяка седмица.</p>
                     <div class="sf-stores sf-web" aria-label="Мобилни магазини">
                         <span class="sf-store">${storeSvg(STORE.play)}<span><small>Скоро в</small><b>Google Play</b></span></span>
                         <span class="sf-store">${storeSvg(STORE.apple)}<span><small>Скоро в</small><b>App Store</b></span></span>

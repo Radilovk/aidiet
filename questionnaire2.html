@@ -1551,7 +1551,7 @@
             detox: {
                 addAfter: 'email',
                 questions: [
-                    { "id": "detoxReason", "text": "Защо искаш reset седмица?", "type": "checkbox", "options": ["Умора и липса на енергия", "Проблеми с кожата", "Храносмилателни проблеми", "Главоболие", "Желание за \"рестарт\"", "Друго"], "hasOtherInput": true }
+                    { "id": "detoxReason", "text": "Защо искаш седмица за нов старт?", "type": "checkbox", "options": ["Умора и липса на енергия", "Проблеми с кожата", "Храносмилателни проблеми", "Главоболие", "Желание за \"рестарт\"", "Друго"], "hasOtherInput": true }
                 ],
                 removeQuestions: []
             }
@@ -1814,21 +1814,21 @@
         
         // Имената на програмите (като в protocol-states.js) — режим на хранене, не лечение.
         const PROTOCOL_NAMES = {
-            insulin_resistance: { name: 'Стабилна енергия', icon: '🩸' },
-            autoimmune_aip: { name: 'AIP меню', icon: '🛡️' },
-            gi_issues: { name: 'Леко храносмилане', icon: '🌿' },
-            menopause_sarcopenia: { name: 'Сила след 40', icon: '💪' },
-            cellulite_reduction: { name: 'Стегнато тяло', icon: '✨' },
-            chronic_stress: { name: 'Хранене при натоварен живот', icon: '🧘' },
-            postpartum_lactation: { name: 'Мама: хранене при кърмене', icon: '🤱' },
-            visceral_fat: { name: 'Талия', icon: '🔥' },
-            post_smoking: { name: 'След цигарите', icon: '🚭' },
+            insulin_resistance: { name: 'Баланс на кръвната захар', icon: '🩸' },
+            autoimmune_aip: { name: 'Автоимунна диета (AIP)', icon: '🛡️' },
+            gi_issues: { name: 'Добро храносмилане', icon: '🌿' },
+            menopause_sarcopenia: { name: 'Хранене в менопаузата', icon: '💪' },
+            cellulite_reduction: { name: 'Антицелулитно хранене', icon: '✨' },
+            chronic_stress: { name: 'Хранене при стрес', icon: '🧘' },
+            postpartum_lactation: { name: 'Хранене при кърмене', icon: '🤱' },
+            visceral_fat: { name: 'Коремни мазнини', icon: '🔥' },
+            post_smoking: { name: 'След отказване от цигарите', icon: '🚭' },
             longevity: { name: 'Дълголетие', icon: '🧬' },
-            detox: { name: 'Reset седмица', icon: '🌱' }
+            detox: { name: 'Седмица за нов старт', icon: '🌱' }
         };
         // Стойността се пази (двигателят я чете), показва се само друг надпис.
         const OPTION_LABELS = {
-            'Детокс и прочистване': 'Reset — лек рестарт на храненето',
+            'Детокс и прочистване': 'Лека седмица за нов старт',
             'chronotype:Сутрешен': 'Сутрин',
             'chronotype:Вечерен': 'Вечер',
             'chronotype:Неутрален': 'Няма разлика',
