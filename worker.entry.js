@@ -836,7 +836,7 @@ const PROTOCOL_SPECIFIC_FIELDS = {
     { id: 'longevitySupplDetails', label: 'Детайли за добавките за дълголетие' }
   ],
   detox: [
-    { id: 'detoxReason', label: 'Причина за детокс програма' },
+    { id: 'detoxReason', label: 'Причина за reset седмица' },
     { id: 'toxinExposure', label: 'Излагане на токсини' },
     { id: 'liverSymptoms', label: 'Симптоми свързани с черния дроб' }
   ]
