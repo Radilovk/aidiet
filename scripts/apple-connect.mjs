@@ -368,13 +368,24 @@ try {
     // the Team ID (public: it is in every signed app) for .well-known/apple-app-site-association — spaced, since the
     // same value is also a GitHub secret and the log would hide it
     if (bid.attributes.seedId) console.log(`Team ID (без интервалите): ${bid.attributes.seedId.split('').join(' ')}`);
+  } else if (action === 'cancel') {
+    // takes a version that waits for review back (Apple has not started): a newer build can then be attached and
+    // the same version submitted again — one review, not two
+    const app = (await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`)).data[0];
+    const subs = (await api('GET', `/v1/apps/${app.id}/reviewSubmissions?filter[platform]=IOS&limit=10`)).data;
+    const open = subs.filter((x) => /WAITING_FOR_REVIEW|READY_FOR_REVIEW/.test(x.attributes.state || ''));
+    if (!open.length) { console.log('Няма подаване, което чака ревю (' + subs.map((x) => x.attributes.state).join(', ') + ').'); process.exit(0); }
+    for (const x of open) {
+      await api('PATCH', `/v1/reviewSubmissions/${x.id}`, { data: { type: 'reviewSubmissions', id: x.id, attributes: { canceled: true } } });
+      console.log(`✓ отменено подаване ${x.id} (${x.attributes.state})`);
+    }
   } else if (action === 'delete-cert') {
     const id = String(process.argv[3] || '').trim();
     if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
     await api('DELETE', `/v1/certificates/${id}`);
     console.log(`✓ Изтрит сертификат ${id}`);
   } else {
-    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | availability | new-version | capability | delete-cert');
+    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | cancel | availability | new-version | capability | delete-cert');
   }
 } catch (e) {
   fail(String(e.message).slice(0, 600));
