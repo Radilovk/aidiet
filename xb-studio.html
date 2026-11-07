@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>XB-Studio — XBODY студиата в приложение</title>
-<meta name="description" content="20 минути EMS тренировка с личен треньор. Свободните часове в реално време, записване с два допира, напомняния и твоят прогрес. XBODY Бургас и София — за iPhone и Android.">
+<meta name="description" content="Отслабване, стегнато тяло и здрав гръб — 20 минути EMS тренировка с личен треньор. Свободните часове в реално време, записване с два допира, напомняния и твоят прогрес. XBODY Бургас и София — за iPhone и Android.">
 <meta name="theme-color" content="#f6f6f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0e" media="(prefers-color-scheme: dark)">
 <meta name="apple-itunes-app" content="app-id=6828255289">
@@ -49,6 +49,7 @@ p { margin: 0; }
   padding: 6px 12px; border-radius: 999px; margin-bottom: 20px; }
 .eyebrow i { width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
 .hero h1 { font-size: clamp(40px, 6.4vw, 68px); font-weight: 750; }
+.nw { white-space: nowrap; }
 .hero h1 em { font-style: normal; background: linear-gradient(120deg, var(--red), #ef5350); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .lead { font-size: clamp(18px, 2.1vw, 21px); color: var(--muted); margin: 20px 0 32px; max-width: 30ch; }
 
@@ -118,6 +119,19 @@ section { padding: 72px 0; }
 .list .t { flex: none; width: 108px; font-weight: 650; }
 .list .d { color: var(--muted); }
 
+/* results */
+.benefits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 40px; }
+.ben { background: var(--card); border-radius: 26px; padding: 28px 24px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.ben::before { content: ""; position: absolute; inset: auto -30% -60% auto; width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(211,47,47,.12), transparent); }
+.bi { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: #fff; margin-bottom: 20px;
+  background: linear-gradient(135deg, #ef5350, var(--red2)); box-shadow: 0 10px 24px -10px rgba(183,28,28,.7); }
+.bi svg { width: 26px; height: 26px; }
+.ben h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+.ben p { color: var(--muted); font-size: 16px; }
+.fine { color: var(--muted); font-size: 13px; margin-top: 18px; }
+.results + .why { padding-top: 24px; }
+
 /* rules */
 .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
 .rule { background: var(--card); border-radius: 26px; padding: 28px; box-shadow: var(--shadow); }
@@ -181,6 +195,7 @@ footer .sp { margin-left: auto; }
 .rise.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .rise, .note { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
 
+@media (max-width: 1020px) and (min-width: 861px) { .benefits { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 860px) {
   .hero { padding-top: 32px; }
   .hero .wrap, .split, .studio { grid-template-columns: 1fr; gap: 36px; }
@@ -191,11 +206,14 @@ footer .sp { margin-left: auto; }
   .phone::after { top: 16px; width: 66px; height: 19px; }
   .p1 { right: auto; left: 0; } .p2 { right: 0; top: 56px; }
   .grid3, .rules, .stats { grid-template-columns: 1fr; }
+  .benefits { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ben { padding: 22px 18px; } .ben h3 { font-size: 19px; } .ben p { font-size: 15px; }
   .stat .v { font-size: 56px; }
   section { padding: 56px 0; }
   .split .lock { order: 2; }
   .places { grid-template-columns: 1fr; }
 }
+@media (max-width: 520px) { .benefits { grid-template-columns: 1fr; } }
 @media (max-width: 380px) { .phone { width: 190px; } .phones { height: 420px; } .btn span { font-size: 17px; } }
 </style>
 </head>
@@ -213,8 +231,8 @@ footer .sp { margin-left: auto; }
     <div class="wrap">
       <div>
         <div class="eyebrow"><i></i>XBODY · Бургас · София</div>
-        <h1>20 минути.<br><em>Цялото тяло.</em></h1>
-        <p class="lead">EMS тренировка с личен треньор — и цялото студио в телефона ти. Свободен час, два допира, готово.</p>
+        <h1><span class="nw">По-стегнат.</span><br><span class="nw">По-лек.</span><br><em class="nw">По-силен.</em></h1>
+        <p class="lead">Отслабване, стегнато тяло и здрав гръб с 20 минути EMS тренировка и личен треньор. Записваш се с два допира.</p>
         <div class="dl" id="get"></div>
         <p class="other" id="other"></p>
         <details class="how-android" id="howto" hidden>
@@ -235,6 +253,24 @@ footer .sp { margin-left: auto; }
     </div>
   </div>
 
+  <section class="results">
+    <div class="wrap">
+      <div class="kicker rise">Резултатът</div>
+      <h2 class="h2 rise">Тялото, което искаш. С тренировка, която обичаш.</h2>
+      <div class="benefits">
+        <div class="ben rise b1"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-8.5z"/></svg></div>
+          <h3>Отслабване</h3><p>Изгаряш мазнини и ускоряваш метаболизма — мускулите продължават да работят и след тренировката.</p></div>
+        <div class="ben rise b2"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11M4 9l5-5M15 20l5-5M2.5 11.5l3 3M18.5 2.5l3 3"/></svg></div>
+          <h3>Стегнато тяло</h3><p>Корем, ханш, бедра и ръце — всяка мускулна група работи едновременно. Оформя фигурата видимо.</p></div>
+        <div class="ben rise b3"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M8 5h8M7 9h10M8 13h8M7 17h10"/></svg></div>
+          <h3>Здрав гръб</h3><p>Дълбоките мускули поддържат гръбнака. По-малко болки, по-добра стойка.</p></div>
+        <div class="ben rise b4"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
+          <h3>Сила и енергия</h3><p>Повече сила, по-добра издръжливост и лекота в ежедневието — още от първите седмици.</p></div>
+      </div>
+      <p class="fine rise">Резултатите са индивидуални. Преди първата тренировка треньорът проверява за противопоказания.</p>
+    </div>
+  </section>
+
   <section class="why">
     <div class="wrap">
       <div class="kicker rise">Защо XBODY</div>
@@ -242,7 +278,7 @@ footer .sp { margin-left: auto; }
       <div class="stats">
         <div class="stat rise"><div class="v">20<small>мин</small></div><p>Толкова трае активната част. Ефектът е като от около 90 минути стандартна тренировка.</p></div>
         <div class="stat rise"><div class="v">1<small>:</small>1</div><p>Личен треньор на всяка тренировка. Интензитетът се настройва точно за теб.</p></div>
-        <div class="stat rise"><div class="v">0<small>кг</small></div><p>Без тежести и удари. Дълбоките мускули работят, ставите почиват.</p></div>
+        <div class="stat rise"><div class="v">0<small>кг</small></div><p>Без тежести и удари. Щадящо за ставите — подходящо на всяка възраст.</p></div>
       </div>
     </div>
   </section>
