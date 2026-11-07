@@ -6,6 +6,8 @@
     permission; without it the reminder is "about on time" (a minute or two), which is fine for a 4-hour reminder
   - version from the CI run: STUDIO_V_CODE / STUDIO_V_NAME
   - the soft studio chime (res/raw/studio.wav) for the reminders' notification channel (the same sound as on iOS)
+  - the launch screen: the template puts the splash as android:background of every view, so Android stretched it
+    into a title bar on top ("XB-Studio" + a flattened logo); now it is the window background only, with no title bar
 """
 import os
 import re
@@ -31,6 +33,20 @@ if not manifest.exists():
 (res / "raw").mkdir(parents=True, exist_ok=True)
 shutil.copyfile("ios-extra/studio.wav", res / "raw" / "studio.wav")
 
+styles = res / "values" / "styles.xml"
+st = styles.read_text(encoding="utf-8")
+st = re.sub(r'<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">.*?</style>',
+    """<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:background">@null</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>""", st, count=1, flags=re.S)
+styles.write_text(st, encoding="utf-8")
+
 text = manifest.read_text(encoding="utf-8")
 if 'xmlns:tools=' not in text:
     text = text.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android"',
@@ -48,4 +64,4 @@ if code:
 if name:
     g = re.sub(r'versionName\s+"[^"]*"', f'versionName "{name}"', g, count=1)
 gradle.write_text(g, encoding="utf-8")
-print("android: notification icon, studio sound, no exact-alarm permission, version", code or "-", name or "-")
+print("android: launch screen without a title bar, notification icon, studio sound, no exact-alarm permission, version", code or "-", name or "-")
