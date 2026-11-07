@@ -43,7 +43,14 @@ await ctx.addInitScript(() => {
   const st = JSON.parse(localStorage.getItem('__ln') || '{"perm":"prompt","pending":[],"asked":0,"log":[]}');
   const save = () => localStorage.setItem('__ln', JSON.stringify(st));
   if (!localStorage.getItem('__ln')) save();
-  window.Capacitor = { isNativePlatform: () => true, Plugins: { LocalNotifications: {
+  const on = {};
+  window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'ios', Plugins: {
+  PushNotifications: {   // app 1.2: the same permission as the reminders; register → the device token
+    checkPermissions: async () => ({ receive: st.perm }),
+    addListener: (ev, fn) => { on[ev] = fn; return { remove() {} }; },
+    register: async () => { st.registered = (st.registered || 0) + 1; save(); setTimeout(() => on.registration && on.registration({ value: 'ab'.repeat(32) }), 10); },
+  },
+  LocalNotifications: {
     checkPermissions: async () => ({ display: st.perm }),
     requestPermissions: async () => { st.asked++; st.perm = 'granted'; save(); return { display: 'granted' }; },
     getPending: async () => ({ notifications: st.pending.map((n) => ({ id: n.id })) }),
@@ -144,10 +151,12 @@ await step('reminders: one the evening before (both hours), 4 h before each (08:
   const prev = zonedParts(at('12:00') - 864e5, 'Europe/Sofia').ymd;
   const times = s.pending.map((n) => n.at).sort((a, b) => a - b);
   eq(JSON.stringify(times), JSON.stringify([zonedMs(prev, '19:00', 'Europe/Sofia'), at('07:00'), at('11:00')]), 'the three reminders');
-  if (!s.pending.every((n) => n.sound === 'default' && n.level === 'active')) throw new Error('no sound / level');
+  if (!s.pending.every((n) => n.sound === 'studio.wav' && n.level === 'active')) throw new Error('no sound / level');
   if (!/Утре в 08:00 и 15:00/.test(s.pending.find((n) => n.at === zonedMs(prev, '19:00', 'Europe/Sofia')).body)) throw new Error('evening text');
   if (!/Днес в 08:00/.test(s.pending.find((n) => n.at === at('07:00')).body)) throw new Error('text: ' + JSON.stringify(s.pending.map((n) => n.body)));
   if (await page.locator('a[download]').count()) throw new Error('.ics button shown in the app');
+  await page.waitForFunction(() => localStorage.getItem(Object.keys(localStorage).find((k) => k.endsWith('pushTok')) || '_'));
+  eq(db.prepare('SELECT COUNT(*) AS n FROM push_tokens').get().n, 1, 'the phone registered for push');
 });
 await step('move one hour → the reminder follows; cancel → it goes', async () => {
   await page.click('#fab'); await page.click('[data-p=mine]'); await page.locator('.sheet [data-own]').last().click();

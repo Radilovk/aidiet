@@ -14,20 +14,11 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res, err2) => function __init() {
-  if (err2) throw err2[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err2 = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __commonJS = (cb, mod) => function __require() {
-  try {
-    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-  } catch (e) {
-    throw mod = 0, e;
-  }
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -9911,6 +9902,83 @@ function isOfferedStart(st, start) {
   return dayStarts(st, ymd2).includes(hm2) && zonedMs(ymd2, hm2, st.timezone) === start;
 }
 
+// studio-platform/push.js
+var TOPIC = "com.biocode.studios";
+var HOST = "https://api.push.apple.com";
+var PUSH_SOUND = "studio.wav";
+var pushReady = (env) => Boolean(env && env.APNS_KEY_P8 && env.APNS_KEY_ID && env.APNS_TEAM_ID);
+var b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+var b64urlText = (s) => b64url(new TextEncoder().encode(s));
+var jwtMemo = { kid: "", at: 0, jwt: "" };
+async function providerToken(env) {
+  const now = Math.floor(Date.now() / 1e3);
+  if (jwtMemo.jwt && jwtMemo.kid === env.APNS_KEY_ID && now - jwtMemo.at < 3e3) return jwtMemo.jwt;
+  const pem = String(env.APNS_KEY_P8).replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  const der = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("pkcs8", der, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const head = b64urlText(JSON.stringify({ alg: "ES256", kid: env.APNS_KEY_ID }));
+  const body = b64urlText(JSON.stringify({ iss: env.APNS_TEAM_ID, iat: now }));
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(`${head}.${body}`));
+  jwtMemo = { kid: env.APNS_KEY_ID, at: now, jwt: `${head}.${body}.${b64url(sig)}` };
+  return jwtMemo.jwt;
+}
+async function savePushToken(env, studioId, phone, token, on) {
+  const t = String(token || "").toLowerCase();
+  if (!/^[0-9a-f]{32,200}$/.test(t)) return false;
+  if (on === false) {
+    await env.STUDIO_DB.prepare("DELETE FROM push_tokens WHERE studio_id = ? AND token = ?").bind(studioId, t).run();
+    return true;
+  }
+  await env.STUDIO_DB.prepare(
+    `INSERT INTO push_tokens (studio_id, phone, token, created_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT (studio_id, token) DO UPDATE SET phone = excluded.phone, created_at = excluded.created_at`
+  ).bind(studioId, phone, t, Date.now()).run();
+  return true;
+}
+async function forgetPushTokens(env, studioId, phone) {
+  await env.STUDIO_DB.prepare("DELETE FROM push_tokens WHERE studio_id = ? AND phone = ?").bind(studioId, phone).run();
+}
+async function sendOne(env, token, payload) {
+  const r = await fetch(`${HOST}/3/device/${token}`, {
+    method: "POST",
+    headers: {
+      authorization: `bearer ${await providerToken(env)}`,
+      "apns-topic": TOPIC,
+      "apns-push-type": "alert",
+      "apns-priority": "10",
+      "apns-expiration": String(Math.floor(Date.now() / 1e3) + 2 * 86400),
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  if (r.status === 200) return "ok";
+  const why = await r.json().then((o) => o.reason).catch(() => "");
+  return r.status === 410 || why === "BadDeviceToken" || why === "Unregistered" || why === "DeviceTokenNotForTopic" ? "gone" : `fail ${r.status} ${why}`;
+}
+async function pushTo(env, studio, phones, msg) {
+  const { title = "", body, extra = {} } = msg;
+  if (!pushReady(env) || !phones.length) return 0;
+  const list2 = [...new Set(phones)].slice(0, 500);
+  const rows = [];
+  for (let i = 0; i < list2.length; i += 50) {
+    const part = list2.slice(i, i + 50);
+    rows.push(...(await env.STUDIO_DB.prepare(`SELECT token FROM push_tokens WHERE studio_id = ? AND phone IN (${part.map(() => "?").join(",")})`).bind(studio.id, ...part).all()).results || []);
+  }
+  const payload = { aps: { alert: { title: title || studio.settings.brand.name, body }, sound: PUSH_SOUND, "thread-id": studio.id }, studio: studio.id, ...extra };
+  let sent = 0;
+  for (const { token } of rows) {
+    try {
+      const r = await sendOne(env, token, payload);
+      if (r === "ok") sent++;
+      else if (r === "gone") await env.STUDIO_DB.prepare("DELETE FROM push_tokens WHERE studio_id = ? AND token = ?").bind(studio.id, token).run();
+      else console.warn("[studio] push:", r);
+    } catch (e) {
+      console.warn("[studio] push failed:", e.message);
+    }
+  }
+  return sent;
+}
+
 // studio-platform/google.js
 var SCOPE = "https://www.googleapis.com/auth/calendar.events";
 var tokenMemo = null;
@@ -9928,8 +9996,8 @@ function serviceAccountEmail(env) {
   const sa = account(env);
   return sa ? sa.client_email : "";
 }
-var b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
-var b64json = (o) => b64url(new TextEncoder().encode(JSON.stringify(o)));
+var b64url2 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+var b64json = (o) => b64url2(new TextEncoder().encode(JSON.stringify(o)));
 async function accessToken(env) {
   if (tokenMemo && tokenMemo.exp > Date.now() + 6e4) return tokenMemo.token;
   const sa = account(env);
@@ -9948,7 +10016,7 @@ async function accessToken(env) {
   const resp = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${unsigned}.${b64url(sig)}` })
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${unsigned}.${b64url2(sig)}` })
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || !data.access_token) throw new Error(`google token ${resp.status}`);
@@ -10339,6 +10407,19 @@ function startOf(st, t, now) {
   const ms = zonedMs(m[1], m[2], st.timezone);
   return isOfferedStart(st, ms) && inWindow(st, ms, now) ? ms : null;
 }
+var WD = ["\u043D\u0435\u0434\u0435\u043B\u044F", "\u043F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A", "\u0432\u0442\u043E\u0440\u043D\u0438\u043A", "\u0441\u0440\u044F\u0434\u0430", "\u0447\u0435\u0442\u0432\u044A\u0440\u0442\u044A\u043A", "\u043F\u0435\u0442\u044A\u043A", "\u0441\u044A\u0431\u043E\u0442\u0430"];
+var MON = ["\u044F\u043D\u0443\u0430\u0440\u0438", "\u0444\u0435\u0432\u0440\u0443\u0430\u0440\u0438", "\u043C\u0430\u0440\u0442", "\u0430\u043F\u0440\u0438\u043B", "\u043C\u0430\u0439", "\u044E\u043D\u0438", "\u044E\u043B\u0438", "\u0430\u0432\u0433\u0443\u0441\u0442", "\u0441\u0435\u043F\u0442\u0435\u043C\u0432\u0440\u0438", "\u043E\u043A\u0442\u043E\u043C\u0432\u0440\u0438", "\u043D\u043E\u0435\u043C\u0432\u0440\u0438", "\u0434\u0435\u043A\u0435\u043C\u0432\u0440\u0438"];
+function hourLabel(st, ms) {
+  const p = zonedParts(ms, st.timezone);
+  const d = /* @__PURE__ */ new Date(p.ymd + "T12:00:00Z");
+  return `${WD[d.getUTCDay()]}, ${d.getUTCDate()} ${MON[d.getUTCMonth()]}, ${p.hm}`;
+}
+async function handlePush(env, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return err("token", 401);
+  if (!await savePushToken(env, studio.id, client.phone, b.push, b.on !== false)) return err("push");
+  return json({ ok: true, live: pushReady(env) });
+}
 function readWho(b) {
   return {
     phone: normPhone(b.phone),
@@ -10649,6 +10730,7 @@ async function handleForget(env, ctx, studio, b) {
   }
   await db.prepare("UPDATE bookings SET name = '', phone = ?, card_pm = '', card_last4 = '', stripe_customer = '' WHERE studio_id = ? AND phone = ?").bind(`deleted:${newId()}`, studio.id, client.phone).run();
   await db.prepare("DELETE FROM clients WHERE studio_id = ? AND phone = ?").bind(studio.id, client.phone).run();
+  await forgetPushTokens(env, studio.id, client.phone);
   if (env.page_content) await env.page_content.delete(`studio:consent:${studio.id}:${client.phone}`).catch(() => {
   });
   await bumpRev(env, studio.id);
@@ -10806,6 +10888,9 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     if (b.action === "cancel" && bk.status === "booked") {
       await env.STUDIO_DB.prepare("UPDATE bookings SET status = 'canceled', changed_at = ? WHERE id = ?").bind(Date.now(), bk.id).run();
       await afterCancel(env, ctx, studio, bk, false);
+      if (bk.start_ms > Date.now() && b.push !== false) {
+        ctx.waitUntil(pushTo(env, studio, [bk.phone], { body: `\u0427\u0430\u0441\u044A\u0442 \u0442\u0438 ${hourLabel(studio.settings, bk.start_ms)} \u0435 \u043E\u0442\u043C\u0435\u043D\u0435\u043D. \u0418\u0437\u0431\u0435\u0440\u0438 \u043D\u043E\u0432, \u043A\u043E\u0433\u0430\u0442\u043E \u0442\u0438 \u0435 \u0443\u0434\u043E\u0431\u043D\u043E.`, extra: { kind: "canceled" } }));
+      }
     } else if (b.action === "noshow" && bk.status === "booked") {
       await env.STUDIO_DB.prepare("UPDATE bookings SET status = 'noshow', changed_at = ? WHERE id = ?").bind(Date.now(), bk.id).run();
     } else if (b.action === "restore" && bk.status === "noshow") {
@@ -10857,6 +10942,7 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     const bk = { id, start_ms: ms, end_ms: ms + len, phone, name };
     ctx.waitUntil((async () => {
       if (b.viber !== false) await viberBooking(env, studio, "booked", bk);
+      if (b.push !== false) await pushTo(env, studio, [phone], { body: `\u0417\u0430\u043F\u0438\u0441\u0430\u0445\u043C\u0435 \u0442\u0435: ${hourLabel(st, ms)}. \u0414\u043E \u0441\u043A\u043E\u0440\u043E!`, extra: { kind: "booked", id } });
       if (st.google.calendarId) {
         try {
           const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name);
@@ -10868,6 +10954,14 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     })());
     return json({ ok: true, id });
   }
+  if (path === "notify") {
+    const text2 = String(b.text || "").trim().slice(0, 200);
+    if (!text2) return err("text");
+    if (!pushReady(env)) return json({ ok: false, sent: 0, reason: "push_off" });
+    const phones = ((await env.STUDIO_DB.prepare("SELECT DISTINCT phone FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ?").bind(studio.id, Date.now()).all()).results || []).map((r) => r.phone);
+    return json({ ok: true, sent: await pushTo(env, studio, phones, { body: text2, extra: { kind: "notice" } }) });
+  }
+  if (path === "push") return json({ live: pushReady(env), devices: (await env.STUDIO_DB.prepare("SELECT COUNT(*) AS n FROM push_tokens WHERE studio_id = ?").bind(studio.id).first() || {}).n || 0 });
   if (path === "clients") {
     const rows = (await env.STUDIO_DB.prepare(
       `SELECT c.phone, c.name, c.email, c.card_last4, c.code, c.created_at,
@@ -10970,6 +11064,8 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
         return await handleMove(env, ctx, studio, body);
       case "forget":
         return await handleForget(env, ctx, studio, body);
+      case "push":
+        return await handlePush(env, studio, body);
       case "verify/start":
         return await handleVerifyStart(env, studio, body);
       case "verify/finish":
@@ -52996,10 +53092,10 @@ async function getFirebaseAdminToken(env) {
     false,
     ["sign"]
   );
-  const b64url2 = (obj) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const b64url3 = (obj) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   const now = Math.floor(Date.now() / 1e3);
-  const header = b64url2({ alg: "RS256", typ: "JWT" });
-  const payload = b64url2({
+  const header = b64url3({ alg: "RS256", typ: "JWT" });
+  const payload = b64url3({
     iss: sa.client_email,
     sub: sa.client_email,
     aud: "https://oauth2.googleapis.com/token",

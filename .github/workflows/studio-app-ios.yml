@@ -81,6 +81,7 @@ jobs:
             --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
           python3 scripts/patch-ios.py
           ruby scripts/add-privacy-manifest.rb
+          ruby scripts/add-entitlements.rb
           npx cap sync ios
 
       - name: Ключ за App Store Connect (за качването)
@@ -92,6 +93,11 @@ jobs:
 
       # Подписването е без регистрирани устройства (автоматичното иска такова): сертификат и профил за магазина се
       # правят през API само за това пускане и се изтриват в края; частният ключ не се пази никъде.
+      # push + връзките към студиата: Bundle ID-то трябва да ги има, преди да се направи профилът
+      - name: Възможности на Bundle ID (през API)
+        working-directory: .
+        run: node scripts/apple-connect.mjs capability
+
       - name: Сертификат и профил за App Store (през API)
         working-directory: .
         run: node scripts/apple-signing.mjs prepare
@@ -122,6 +128,10 @@ jobs:
           if /usr/libexec/PlistBuddy -c 'Print :NSAppTransportSecurity' "$APP/Info.plist" >/dev/null 2>&1; then
             echo "::error::Има изключения от ATS (NSAppTransportSecurity) — Apple иска обосновка"; exit 1
           fi
+          ents=$(codesign -d --entitlements :- "$APP" 2>/dev/null)
+          echo "$ents" | grep -q 'aps-environment' || { echo "::error::Подписаното приложение няма разрешение за push"; exit 1; }
+          echo "$ents" | grep -q 'applinks:biocode.website' || { echo "::error::Подписаното приложение няма връзките към biocode.website"; exit 1; }
+          [ -f "$APP/studio.wav" ] || { echo "::error::Няма звука studio.wav в пакета"; exit 1; }
           echo "Пакетът е наред: $(basename "$APP")"
 
       - name: Качване в App Store Connect (TestFlight)

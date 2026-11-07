@@ -5,10 +5,12 @@
   "description": "Native shell (iOS + Android) of the studio booking page: local reminders on the phone",
   "dependencies": {
     "@capacitor/android": "^8.3.1",
+    "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.3.1",
     "@capacitor/haptics": "^8.0.0",
     "@capacitor/ios": "^8.3.1",
     "@capacitor/local-notifications": "^8.0.2",
+    "@capacitor/push-notifications": "^8.1.3",
     "@capacitor/splash-screen": "^8.0.2"
   },
   "devDependencies": {

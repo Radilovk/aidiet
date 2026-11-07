@@ -11,6 +11,7 @@
  */
 import { normalizeSettings, publicSettings } from './settings.js';
 import { slotsForMonth, zonedMs, zonedParts, isOfferedStart, inWindow, isFree } from './slots.js';
+import { pushTo, pushReady, savePushToken, forgetPushTokens } from './push.js';
 import { busyTimes, addEvent, moveEvent, deleteEvent, checkCalendar, serviceAccountEmail } from './google.js';
 
 const CORS = {
@@ -327,6 +328,23 @@ function startOf(st, t, now) {
   return isOfferedStart(st, ms) && inWindow(st, ms, now) ? ms : null;
 }
 
+const WD = ['неделя', 'понеделник', 'вторник', 'сряда', 'четвъртък', 'петък', 'събота'];
+const MON = ['януари', 'февруари', 'март', 'април', 'май', 'юни', 'юли', 'август', 'септември', 'октомври', 'ноември', 'декември'];
+/** "четвъртък, 12 ноември, 08:00" in the studio's time */
+function hourLabel(st, ms) {
+  const p = zonedParts(ms, st.timezone);
+  const d = new Date(p.ymd + 'T12:00:00Z');
+  return `${WD[d.getUTCDay()]}, ${d.getUTCDate()} ${MON[d.getUTCMonth()]}, ${p.hm}`;
+}
+
+/** POST /api/s/push — this phone's push token (studio app 1.2+): { phone, token (the client's), push, on } */
+async function handlePush(env, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return err('token', 401);
+  if (!(await savePushToken(env, studio.id, client.phone, b.push, b.on !== false))) return err('push');
+  return json({ ok: true, live: pushReady(env) });
+}
+
 function readWho(b) {
   return {
     phone: normPhone(b.phone),
@@ -630,6 +648,7 @@ async function handleForget(env, ctx, studio, b) {
   await db.prepare("UPDATE bookings SET name = '', phone = ?, card_pm = '', card_last4 = '', stripe_customer = '' WHERE studio_id = ? AND phone = ?")
     .bind(`deleted:${newId()}`, studio.id, client.phone).run();
   await db.prepare('DELETE FROM clients WHERE studio_id = ? AND phone = ?').bind(studio.id, client.phone).run();
+  await forgetPushTokens(env, studio.id, client.phone);
   if (env.page_content) await env.page_content.delete(`studio:consent:${studio.id}:${client.phone}`).catch(() => {});
   await bumpRev(env, studio.id);
   ctx.waitUntil((async () => {
@@ -782,6 +801,9 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     if (b.action === 'cancel' && bk.status === 'booked') {
       await env.STUDIO_DB.prepare("UPDATE bookings SET status = 'canceled', changed_at = ? WHERE id = ?").bind(Date.now(), bk.id).run();
       await afterCancel(env, ctx, studio, bk, false);
+      if (bk.start_ms > Date.now() && b.push !== false) {
+        ctx.waitUntil(pushTo(env, studio, [bk.phone], { body: `Часът ти ${hourLabel(studio.settings, bk.start_ms)} е отменен. Избери нов, когато ти е удобно.`, extra: { kind: 'canceled' } }));
+      }
     } else if (b.action === 'noshow' && bk.status === 'booked') {
       await env.STUDIO_DB.prepare("UPDATE bookings SET status = 'noshow', changed_at = ? WHERE id = ?").bind(Date.now(), bk.id).run();
     } else if (b.action === 'restore' && bk.status === 'noshow') {
@@ -828,6 +850,7 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     const bk = { id, start_ms: ms, end_ms: ms + len, phone, name };
     ctx.waitUntil((async () => {
       if (b.viber !== false) await viberBooking(env, studio, 'booked', bk);
+      if (b.push !== false) await pushTo(env, studio, [phone], { body: `Записахме те: ${hourLabel(st, ms)}. До скоро!`, extra: { kind: 'booked', id } });
       if (st.google.calendarId) {
         try {
           const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name);
@@ -837,6 +860,15 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     })());
     return json({ ok: true, id });
   }
+  if (path === 'notify') {   // { text } — a phone notification to the clients with hours ahead (closed tomorrow, …); never marketing
+    const text = String(b.text || '').trim().slice(0, 200);
+    if (!text) return err('text');
+    if (!pushReady(env)) return json({ ok: false, sent: 0, reason: 'push_off' });
+    const phones = ((await env.STUDIO_DB.prepare("SELECT DISTINCT phone FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ?")
+      .bind(studio.id, Date.now()).all()).results || []).map((r) => r.phone);
+    return json({ ok: true, sent: await pushTo(env, studio, phones, { body: text, extra: { kind: 'notice' } }) });
+  }
+  if (path === 'push') return json({ live: pushReady(env), devices: ((await env.STUDIO_DB.prepare('SELECT COUNT(*) AS n FROM push_tokens WHERE studio_id = ?').bind(studio.id).first()) || {}).n || 0 });
   if (path === 'clients') {   // the studio's clients, newest first, with their hours
     const rows = (await env.STUDIO_DB.prepare(
       `SELECT c.phone, c.name, c.email, c.card_last4, c.code, c.created_at,
@@ -943,6 +975,7 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
       case 'cancel': return await handleCancel(env, ctx, studio, body);
       case 'move': return await handleMove(env, ctx, studio, body);
       case 'forget': return await handleForget(env, ctx, studio, body);
+      case 'push': return await handlePush(env, studio, body);
       case 'verify/start': return await handleVerifyStart(env, studio, body);
       case 'verify/finish': return await handleVerifyFinish(env, studio, body);
       default: return err('not_found', 404);
