@@ -138,13 +138,13 @@ await step('book 08:00 and 15:00 (3 days ahead): the notification permission is 
   if (!rec.at || !/Промяна, отказ и неявяване/.test(txt || '')) throw new Error('the consent record lacks the time or the exact rules text');
   await page.click('.sheet [data-close]');
 });
-await step('reminders: one the evening before (both hours), 4 h before each (08:00 → 07:00); with sound, time-sensitive', async () => {
+await step('reminders: one the evening before (both hours), 4 h before each (08:00 → 07:00); with sound, a normal alert', async () => {
   const s = await ln();
   const at = (hm) => zonedMs(day, hm, 'Europe/Sofia');
   const prev = zonedParts(at('12:00') - 864e5, 'Europe/Sofia').ymd;
   const times = s.pending.map((n) => n.at).sort((a, b) => a - b);
   eq(JSON.stringify(times), JSON.stringify([zonedMs(prev, '19:00', 'Europe/Sofia'), at('07:00'), at('11:00')]), 'the three reminders');
-  if (!s.pending.every((n) => n.sound === 'default' && n.level === 'timeSensitive')) throw new Error('no sound / level');
+  if (!s.pending.every((n) => n.sound === 'default' && n.level === 'active')) throw new Error('no sound / level');
   if (!/Утре в 08:00 и 15:00/.test(s.pending.find((n) => n.at === zonedMs(prev, '19:00', 'Europe/Sofia')).body)) throw new Error('evening text');
   if (!/Днес в 08:00/.test(s.pending.find((n) => n.at === at('07:00')).body)) throw new Error('text: ' + JSON.stringify(s.pending.map((n) => n.body)));
   if (await page.locator('a[download]').count()) throw new Error('.ics button shown in the app');

@@ -123,10 +123,10 @@ try {
         '2. First open: enter any name, e-mail and phone (e.g. "Test User", test@example.com, 0888123456), tick the rules box',
         '   ("Приемам правилата и условията"), tap "Продължи".',
         '3. Tap a day in bold, then one or more free hours. A dark bar appears at the bottom: tap "Запази", then "Запази N часа".',
-        '4. In the confirmation, tap "Напомняне ... преди часа": only then the app asks to allow notifications (fully usable if',
-        '   declined). It schedules local reminders on the device for that appointment (the evening before, a few hours before and',
-        '   one hour before) — not push notifications. They are marked Time Sensitive (Apple\'s own example: an appointment reminder),',
-        '   so they reach the user even in a Focus mode; they are never used for anything else (no marketing, no news).',
+        '4. In the confirmation, tap "Включи напомнянията": only then the app asks to allow notifications (fully usable if',
+        '   declined). It schedules local reminders on the device for that appointment (the evening before at 19:00 and',
+        '   4 hours before) — not push notifications, normal alerts that respect Focus / Do Not Disturb; never used for marketing.',
+        '   Optional, off by default: "Моят профил" -> "Напомняния" -> "Моята седмица" (a Sunday-evening overview of the week).',
         '   Tapping a reminder opens the full-screen "Твоята тренировка" (the appointment, a countdown, directions, change/cancel).',
         '5. "Моят профил" (button at the bottom right) -> "Моите часове" -> "Промени" to move or cancel an appointment.',
         '6. "Моят профил" -> "Моите данни" -> "Изтрий данните ми" deletes the user\'s data (Guideline 5.1.1(v)).',
@@ -196,7 +196,7 @@ try {
       const loc = locs.find((l) => l.attributes.locale === locale) || locs[0];
       await api('PATCH', `/v1/appStoreVersionLocalizations/${loc.id}`, { data: { type: 'appStoreVersionLocalizations', id: loc.id, attributes: {
         description: T.description, keywords: T.keywords, promotionalText: T.promo, supportUrl: T.support, marketingUrl: 'https://biocode.website/studio-support.html',
-        ...(vers.length > 1 ? { whatsNew: process.env.WHATS_NEW || 'Reminders you will not miss: the evening before, a few hours before and an hour before your appointment, with a full-screen view of your training. A refreshed, lighter design.' } : {}) } } });
+        ...(vers.length > 1 ? { whatsNew: process.env.WHATS_NEW || 'Reminders the evening before and a few hours before your appointment, an optional Sunday overview of your week, and a refreshed, lighter design.' } : {}) } } });
     });
     await step('най-новият готов build към версията', async () => {
       const builds = (await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`)).data;
