@@ -348,7 +348,7 @@
    DARK THEME (Glassmorphism + Glow)
    =========================== */
 [data-theme="dark"] {
-    --ds-bg-primary: #0F2B2B;
+    --ds-bg-primary: #0A1A1A;
     --ds-bg-secondary: #133838;
     --ds-bg-tertiary: #184040;
     --ds-bg-card: rgba(20, 55, 55, 0.78);

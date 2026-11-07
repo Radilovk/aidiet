@@ -278,7 +278,7 @@
         
         [data-theme="dark"] .option-label {
             border-color: #374151;
-            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(30, 41, 59, 0.95) 100%);
+            background: linear-gradient(145deg, var(--card-bg) 0%, rgba(13, 38, 38, 0.95) 100%);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
         .option-label:active { 
@@ -476,6 +476,10 @@
             box-shadow: none;
             cursor: not-allowed;
             color: #a0a0a0;
+        }
+        [data-theme="dark"] .btn-next:disabled {
+            background: rgba(45, 212, 191, 0.10);
+            color: rgba(224, 245, 240, 0.45);
         }
         .btn-next i { margin-left: 8px; }
 
