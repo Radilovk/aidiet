@@ -30,6 +30,7 @@
 - `xbody.html` (+ `xbody-*`, `acuity/`), `studio.html` + `studio-platform/`, `emoeat.html`, `kids.html`,
   `longevity.html`, `protocols.html`, `protocol-landing.html`, `pep*.html`, `reta.html`, `aix.html`,
   `lqto2026.html`, `vaprosnikhomeo.html`, `dopamine-test.html`, `health.html`.
+- `xb-studio.html` (+ `studio-app/landing/`) — публичната страница на приложението XB-Studio (iOS/Android сваляне, студиата от живия списък).
 - `admin.html` (+ `admin-*`) — админ панел на NutriPlan, не влиза в приложението.
 - `viber-sender/`, `workflows/`, `migrations/`, `samples/`, `clients/` — помощни.
 
