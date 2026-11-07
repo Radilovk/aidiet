@@ -20,17 +20,20 @@ export const pushReady = (env) => Boolean(env && env.APNS_KEY_P8 && env.APNS_KEY
 const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const b64urlText = (s) => b64url(new TextEncoder().encode(s));
 
+const id10 = (v) => String(v || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();   // a stray space or slash in a pasted ID does not matter
+
 let jwtMemo = { kid: '', at: 0, jwt: '' };
 async function providerToken(env) {   // ES256, kept 50 min (Apple: refresh between 20 and 60 min)
   const now = Math.floor(Date.now() / 1000);
-  if (jwtMemo.jwt && jwtMemo.kid === env.APNS_KEY_ID && now - jwtMemo.at < 3000) return jwtMemo.jwt;
+  const kid = id10(env.APNS_KEY_ID);
+  if (jwtMemo.jwt && jwtMemo.kid === kid && now - jwtMemo.at < 3000) return jwtMemo.jwt;
   const pem = String(env.APNS_KEY_P8).replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
   const der = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
   const key = await crypto.subtle.importKey('pkcs8', der, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
-  const head = b64urlText(JSON.stringify({ alg: 'ES256', kid: env.APNS_KEY_ID }));
-  const body = b64urlText(JSON.stringify({ iss: env.APNS_TEAM_ID, iat: now }));
+  const head = b64urlText(JSON.stringify({ alg: 'ES256', kid }));
+  const body = b64urlText(JSON.stringify({ iss: id10(env.APNS_TEAM_ID), iat: now }));
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(`${head}.${body}`));
-  jwtMemo = { kid: env.APNS_KEY_ID, at: now, jwt: `${head}.${body}.${b64url(sig)}` };
+  jwtMemo = { kid, at: now, jwt: `${head}.${body}.${b64url(sig)}` };
   return jwtMemo.jwt;
 }
 

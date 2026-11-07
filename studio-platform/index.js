@@ -864,7 +864,8 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     const text = String(b.text || '').trim().slice(0, 200);
     if (!text) return err('text');
     if (!pushReady(env)) return json({ ok: false, sent: 0, reason: 'push_off' });
-    const phones = ((await env.STUDIO_DB.prepare("SELECT DISTINCT phone FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ?")
+    // { phone }: only that client (a test from the studio's own phone)
+    const phones = b.phone ? [normPhone(b.phone)].filter(Boolean) : ((await env.STUDIO_DB.prepare("SELECT DISTINCT phone FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ?")
       .bind(studio.id, Date.now()).all()).results || []).map((r) => r.phone);
     return json({ ok: true, sent: await pushTo(env, studio, phones, { body: text, extra: { kind: 'notice' } }) });
   }

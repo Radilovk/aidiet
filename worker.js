@@ -9909,17 +9909,19 @@ var PUSH_SOUND = "studio.wav";
 var pushReady = (env) => Boolean(env && env.APNS_KEY_P8 && env.APNS_KEY_ID && env.APNS_TEAM_ID);
 var b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 var b64urlText = (s) => b64url(new TextEncoder().encode(s));
+var id10 = (v) => String(v || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 var jwtMemo = { kid: "", at: 0, jwt: "" };
 async function providerToken(env) {
   const now = Math.floor(Date.now() / 1e3);
-  if (jwtMemo.jwt && jwtMemo.kid === env.APNS_KEY_ID && now - jwtMemo.at < 3e3) return jwtMemo.jwt;
+  const kid = id10(env.APNS_KEY_ID);
+  if (jwtMemo.jwt && jwtMemo.kid === kid && now - jwtMemo.at < 3e3) return jwtMemo.jwt;
   const pem = String(env.APNS_KEY_P8).replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
   const der = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
   const key = await crypto.subtle.importKey("pkcs8", der, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
-  const head = b64urlText(JSON.stringify({ alg: "ES256", kid: env.APNS_KEY_ID }));
-  const body = b64urlText(JSON.stringify({ iss: env.APNS_TEAM_ID, iat: now }));
+  const head = b64urlText(JSON.stringify({ alg: "ES256", kid }));
+  const body = b64urlText(JSON.stringify({ iss: id10(env.APNS_TEAM_ID), iat: now }));
   const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(`${head}.${body}`));
-  jwtMemo = { kid: env.APNS_KEY_ID, at: now, jwt: `${head}.${body}.${b64url(sig)}` };
+  jwtMemo = { kid, at: now, jwt: `${head}.${body}.${b64url(sig)}` };
   return jwtMemo.jwt;
 }
 async function savePushToken(env, studioId, phone, token, on) {
@@ -10958,7 +10960,7 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     const text2 = String(b.text || "").trim().slice(0, 200);
     if (!text2) return err("text");
     if (!pushReady(env)) return json({ ok: false, sent: 0, reason: "push_off" });
-    const phones = ((await env.STUDIO_DB.prepare("SELECT DISTINCT phone FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ?").bind(studio.id, Date.now()).all()).results || []).map((r) => r.phone);
+    const phones = b.phone ? [normPhone(b.phone)].filter(Boolean) : ((await env.STUDIO_DB.prepare("SELECT DISTINCT phone FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ?").bind(studio.id, Date.now()).all()).results || []).map((r) => r.phone);
     return json({ ok: true, sent: await pushTo(env, studio, phones, { body: text2, extra: { kind: "notice" } }) });
   }
   if (path === "push") return json({ live: pushReady(env), devices: (await env.STUDIO_DB.prepare("SELECT COUNT(*) AS n FROM push_tokens WHERE studio_id = ?").bind(studio.id).first() || {}).n || 0 });

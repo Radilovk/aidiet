@@ -319,7 +319,7 @@ await t('push (app 1.2): the device registers with its token; the studio cancels
     return url.endsWith(dead) ? new Response(JSON.stringify({ reason: 'Unregistered' }), { status: 410 }) : new Response('', { status: 200 });
   };
   try {
-    env.APNS_KEY_P8 = privateKey.export({ type: 'pkcs8', format: 'pem' }); env.APNS_KEY_ID = 'KEY1234567'; env.APNS_TEAM_ID = 'TEAM123456';
+    env.APNS_KEY_P8 = privateKey.export({ type: 'pkcs8', format: 'pem' }); env.APNS_KEY_ID = 'KEY1234567/ '; env.APNS_TEAM_ID = 'TEAM123456';
     assert.equal((await api('GET', 'admin/push?studio=burgas', null, H(admin))).d.devices, 2);
     const id = r.d.booked[0].id || db.prepare("SELECT id FROM bookings WHERE phone = '+359855111222' AND status = 'booked'").get().id;
     await api('POST', 'admin/booking', { studio: 'burgas', id, action: 'cancel' }, H(admin));
