@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>XB-Studio — XBODY студиата в приложение</title>
+<meta name="description" content="20 минути EMS тренировка с личен треньор. Свободните часове в реално време, записване с два допира, напомняния и твоят прогрес. XBODY Бургас и София — за iPhone и Android.">
+<meta name="theme-color" content="#f6f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0c0e" media="(prefers-color-scheme: dark)">
+<meta name="apple-itunes-app" content="app-id=6828255289">
+<meta property="og:title" content="XB-Studio — XBODY студиата в приложение">
+<meta property="og:description" content="Свободните часове в реално време, записване с два допира, напомняния. За iPhone и Android.">
+<meta property="og:image" content="https://biocode.website/studio-app/landing/icon.png">
+<meta property="og:url" content="https://biocode.website/xb-studio.html">
+<link rel="icon" href="studio-app/landing/icon.png">
+<link rel="apple-touch-icon" href="studio-app/landing/icon.png">
+<style>
+:root {
+  --bg: #f6f6f8; --card: #ffffff; --ink: #111114; --muted: #6b6b73; --line: rgba(17,17,20,.08);
+  --red: #d32f2f; --red2: #b71c1c; --soft: #fdeeee; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0c0c0e; --card: #17171a; --ink: #f4f4f6; --muted: #9a9aa3; --line: rgba(255,255,255,.08);
+    --soft: rgba(211,47,47,.14); --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 40px rgba(0,0,0,.45); }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.5 -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: inherit; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+h1, h2, h3 { margin: 0; letter-spacing: -.02em; line-height: 1.1; font-family: -apple-system, "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+
+/* top bar */
+.top { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: color-mix(in srgb, var(--bg) 78%, transparent); border-bottom: 1px solid transparent; transition: border-color .2s; }
+.top.scrolled { border-color: var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 10px; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 650; text-decoration: none; }
+.brand img { width: 30px; height: 30px; border-radius: 8px; }
+.top .get { margin-left: auto; font-size: 15px; font-weight: 600; padding: 8px 16px; border-radius: 999px; background: var(--ink); color: var(--bg); text-decoration: none; }
+
+/* hero */
+.hero { padding: 56px 0 24px; }
+.hero .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--red); background: var(--soft);
+  padding: 6px 12px; border-radius: 999px; margin-bottom: 20px; }
+.eyebrow i { width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+.hero h1 { font-size: clamp(40px, 6.4vw, 68px); font-weight: 750; }
+.hero h1 em { font-style: normal; background: linear-gradient(120deg, var(--red), #ef5350); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lead { font-size: clamp(18px, 2.1vw, 21px); color: var(--muted); margin: 20px 0 32px; max-width: 30ch; }
+
+/* download */
+.dl { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 12px; padding: 14px 22px 14px 18px; border-radius: 16px; text-decoration: none;
+  font-weight: 600; line-height: 1.15; transition: transform .15s, box-shadow .15s; }
+.btn:active { transform: scale(.98); }
+.btn svg { width: 26px; height: 26px; flex: none; }
+.btn small { display: block; font-size: 12px; font-weight: 500; opacity: .72; }
+.btn span { font-size: 18px; }
+.btn.main { background: var(--ink); color: var(--bg); box-shadow: var(--shadow); }
+.btn.alt { background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.btn:hover { transform: translateY(-1px); }
+.other { margin-top: 14px; font-size: 15px; }
+.other a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.qr { display: none; align-items: center; gap: 14px; margin-top: 22px; padding: 12px 16px 12px 12px; background: var(--card); border-radius: 18px;
+  box-shadow: inset 0 0 0 1px var(--line); width: fit-content; font-size: 14px; }
+.qr img { width: 84px; height: 84px; background: #fff; padding: 6px; border-radius: 10px; }
+.desktop .qr { display: flex; }
+.how-android { margin-top: 16px; font-size: 15px; color: var(--muted); }
+.how-android summary { cursor: pointer; width: fit-content; }
+.how-android ol { margin: 10px 0 0; padding-left: 20px; }
+.how-android li { margin: 4px 0; }
+
+/* phone */
+.phones { position: relative; height: 620px; }
+.phone { position: absolute; width: 280px; aspect-ratio: 390/844; border-radius: 46px; padding: 10px; background: #1b1b1e;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset, 0 40px 80px -20px rgba(0,0,0,.35), 0 20px 40px -10px rgba(0,0,0,.2); }
+.phone .scr { height: 100%; border-radius: 37px; overflow: hidden; background: #f6f6f8; padding-top: 40px; }
+.phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.phone::after { content: ""; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 84px; height: 24px; border-radius: 20px; background: #000; }
+.p1 { right: 150px; top: 10px; transform: rotate(-4deg); }
+.p2 { right: 0; top: 70px; transform: rotate(4deg); }
+.glow { position: absolute; inset: 15% 5% 5% 15%; background: radial-gradient(closest-side, rgba(211,47,47,.28), transparent); filter: blur(30px); }
+
+/* sections */
+section { padding: 72px 0; }
+.kicker { font-size: 14px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--red); margin-bottom: 12px; }
+.h2 { font-size: clamp(30px, 4.2vw, 44px); font-weight: 720; max-width: 20ch; }
+.sub { color: var(--muted); font-size: 19px; margin-top: 14px; max-width: 46ch; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+.card { background: var(--card); border-radius: 26px; padding: 28px; box-shadow: var(--shadow); }
+.num { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-weight: 700; color: #fff;
+  background: linear-gradient(135deg, #ef5350, var(--red2)); margin-bottom: 18px; font-size: 16px; }
+.card h3 { font-size: 21px; font-weight: 680; margin-bottom: 8px; }
+.card p { color: var(--muted); font-size: 16px; }
+
+/* reminders */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+.lock { border-radius: 36px; padding: 36px 22px 28px; color: #fff; position: relative; overflow: hidden; min-height: 420px;
+  background: radial-gradient(120% 80% at 20% 0%, #5b1d1d, transparent 60%), radial-gradient(90% 70% at 100% 100%, #2b1530, transparent 60%), #0f0f13; }
+.lock .time { text-align: center; font-size: 72px; font-weight: 300; letter-spacing: -.03em; line-height: 1; }
+.lock .date { text-align: center; font-size: 17px; opacity: .8; margin: 6px 0 26px; }
+.note { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 20px; margin-top: 10px;
+  background: rgba(255,255,255,.14); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); font-size: 15px; line-height: 1.35;
+  opacity: 0; transform: translateY(10px); transition: opacity .6s, transform .6s; }
+.in .note { opacity: 1; transform: none; }
+.in .note:nth-child(4) { transition-delay: .15s; } .in .note:nth-child(5) { transition-delay: .3s; }
+.note img { width: 36px; height: 36px; border-radius: 9px; flex: none; }
+.note > div { flex: 1; min-width: 0; }
+.note b { display: flex; justify-content: space-between; gap: 10px; font-weight: 600; }
+.note b small { font-weight: 400; opacity: .7; font-size: 13px; }
+.list { margin: 28px 0 0; padding: 0; list-style: none; }
+.list li { display: flex; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+.list li:first-child { border-top: 0; }
+.list .t { flex: none; width: 108px; font-weight: 650; }
+.list .d { color: var(--muted); }
+
+/* rules */
+.rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+.rule { background: var(--card); border-radius: 26px; padding: 28px; box-shadow: var(--shadow); }
+.rule .big { font-size: 34px; font-weight: 750; letter-spacing: -.02em; }
+.rule .big small { font-size: 17px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.rule p { color: var(--muted); font-size: 16px; margin-top: 6px; }
+
+/* why */
+.why { padding-top: 40px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+.stat { padding: 30px 28px; border-radius: 26px; color: #fff; background: linear-gradient(150deg, #e53935, #8e1515); box-shadow: 0 20px 50px -20px rgba(183,28,28,.6); }
+.stat:nth-child(2) { background: linear-gradient(150deg, #26262b, #0f0f12); box-shadow: var(--shadow); }
+.stat:nth-child(3) { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+.stat .v { font-size: 64px; font-weight: 760; letter-spacing: -.04em; line-height: 1; }
+.stat .v small { font-size: 22px; font-weight: 650; letter-spacing: 0; margin-left: 4px; opacity: .85; }
+.stat p { margin-top: 14px; font-size: 16px; opacity: .85; }
+.stat:nth-child(3) p { color: var(--muted); opacity: 1; }
+
+/* rules */
+.rule .ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; font-weight: 700;
+  color: var(--red); background: var(--soft); margin-bottom: 16px; }
+.rule h3 { font-size: 21px; font-weight: 680; }
+
+/* progress */
+.meters { background: var(--card); border-radius: 30px; padding: 30px; box-shadow: var(--shadow); display: grid; gap: 22px; }
+.m { display: grid; grid-template-columns: 1fr auto; row-gap: 10px; }
+.m span { color: var(--muted); font-size: 15px; }
+.m b { font-size: 17px; }
+.m i { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--line); position: relative; overflow: hidden; }
+.m i::after { content: ""; position: absolute; inset: 0; width: 0; border-radius: inherit; background: linear-gradient(90deg, #ef5350, var(--red2));
+  transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+.meters.in .m i::after { width: var(--w); }
+
+/* studios */
+.places { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 40px; }
+.place { display: flex; gap: 16px; align-items: center; padding: 22px; border-radius: 26px; background: var(--card); box-shadow: var(--shadow);
+  text-decoration: none; transition: transform .2s; }
+.place:hover { transform: translateY(-2px); }
+.place h3 { font-size: 19px; font-weight: 680; }
+.place p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.pl-logo { width: 56px; height: 56px; flex: none; border-radius: 16px; display: grid; place-items: center; font-weight: 800; color: #fff;
+  background: var(--red); overflow: hidden; font-size: 22px; }
+.pl-logo img { width: 100%; height: 100%; object-fit: cover; }
+.place .go { margin-left: auto; color: var(--red); font-size: 22px; font-weight: 600; }
+
+/* final */
+.final { text-align: center; padding: 88px 0 72px; }
+.final img.ic { width: 96px; height: 96px; border-radius: 22px; box-shadow: var(--shadow); }
+.final .h2 { margin: 22px auto 12px; }
+.final .sub { margin: 0 auto 30px; }
+.final .dl { justify-content: center; }
+.final .web { margin-top: 18px; font-size: 15px; }
+.final .web a { color: var(--muted); }
+footer { border-top: 1px solid var(--line); padding: 26px 0 40px; font-size: 14px; color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; }
+footer a { text-decoration: none; }
+footer a:hover { color: var(--ink); }
+footer .sp { margin-left: auto; }
+
+.rise { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+.rise.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .rise, .note { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
+
+@media (max-width: 860px) {
+  .hero { padding-top: 32px; }
+  .hero .wrap, .split, .studio { grid-template-columns: 1fr; gap: 36px; }
+  .lead { max-width: none; }
+  .phones { height: 480px; max-width: 380px; margin: 0 auto; width: 100%; }
+  .phone { width: 220px; border-radius: 38px; padding: 8px; }
+  .phone .scr { border-radius: 30px; padding-top: 32px; }
+  .phone::after { top: 16px; width: 66px; height: 19px; }
+  .p1 { right: auto; left: 0; } .p2 { right: 0; top: 56px; }
+  .grid3, .rules, .stats { grid-template-columns: 1fr; }
+  .stat .v { font-size: 56px; }
+  section { padding: 56px 0; }
+  .split .lock { order: 2; }
+  .places { grid-template-columns: 1fr; }
+}
+@media (max-width: 380px) { .phone { width: 190px; } .phones { height: 420px; } .btn span { font-size: 17px; } }
+</style>
+</head>
+<body>
+
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="studio-app/landing/icon.png" alt="">XB-Studio</a>
+    <a class="get" href="#get" data-dl>Изтегли</a>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <div class="eyebrow"><i></i>XBODY · Бургас · София</div>
+        <h1>20 минути.<br><em>Цялото тяло.</em></h1>
+        <p class="lead">EMS тренировка с личен треньор — и цялото студио в телефона ти. Свободен час, два допира, готово.</p>
+        <div class="dl" id="get"></div>
+        <p class="other" id="other"></p>
+        <details class="how-android" id="howto" hidden>
+          <summary>Как се инсталира на Android</summary>
+          <ol>
+            <li>Натисни „Изтегли за Android“ и отвори изтегления файл.</li>
+            <li>Ако телефонът попита — разреши „Инсталиране от този източник“.</li>
+            <li>Отвори XB-Studio и избери своето студио.</li>
+          </ol>
+        </details>
+        <div class="qr"><img src="studio-app/landing/qr.svg" alt="QR код към тази страница"><span>Сканирай с камерата<br>на телефона си</span></div>
+      </div>
+      <div class="phones" aria-hidden="true">
+        <div class="glow"></div>
+        <div class="phone p1"><div class="scr"><img src="studio-app/landing/screen-home.webp" alt="" width="390" height="844"></div></div>
+        <div class="phone p2"><div class="scr"><img src="studio-app/landing/screen-pick.webp" alt="" width="390" height="844"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="why">
+    <div class="wrap">
+      <div class="kicker rise">Защо XBODY</div>
+      <h2 class="h2 rise">Максимален ефект. Минимум време.</h2>
+      <div class="stats">
+        <div class="stat rise"><div class="v">20<small>мин</small></div><p>Толкова трае активната част. Ефектът е като от около 90 минути стандартна тренировка.</p></div>
+        <div class="stat rise"><div class="v">1<small>:</small>1</div><p>Личен треньор на всяка тренировка. Интензитетът се настройва точно за теб.</p></div>
+        <div class="stat rise"><div class="v">0<small>кг</small></div><p>Без тежести и удари. Дълбоките мускули работят, ставите почиват.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="kicker rise">Как работи</div>
+      <h2 class="h2 rise">По-бързо от загрявката.</h2>
+      <div class="grid3">
+        <div class="card rise"><div class="num">1</div><h3>Избираш ден</h3><p>Виждаш само реално свободните часове.</p></div>
+        <div class="card rise"><div class="num">2</div><h3>Докосваш час</h3><p>Един или няколко наведнъж.</p></div>
+        <div class="card rise"><div class="num">3</div><h3>Готово</h3><p>Местиш или отказваш с едно докосване.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap split">
+      <div class="lock rise" id="lock" aria-hidden="true">
+        <div class="time">19:00</div>
+        <div class="date">неделя, 15 ноември</div>
+        <div class="note"><img src="studio-app/landing/icon.png" alt=""><div><b>XBODY <small>сега</small></b>Утре в 08:45 — очакваме те.</div></div>
+        <div class="note"><img src="studio-app/landing/icon.png" alt=""><div><b>Твоята седмица · XBODY <small>18:00</small></b>Пн 08:45 · Ср 18:30 · Пт 13:15</div></div>
+      </div>
+      <div>
+        <div class="kicker rise">Напомняния</div>
+        <h2 class="h2 rise">Нито една пропусната тренировка.</h2>
+        <p class="sub rise">Кратко, спокойно, с мек звук. Работи и без интернет.</p>
+        <ul class="list rise">
+          <li><span class="t">Вечерта преди</span><span class="d">Часът ти за утре.</span></li>
+          <li><span class="t">Часове преди</span><span class="d">Навреме, за да се приготвиш.</span></li>
+          <li><span class="t">Всяка неделя</span><span class="d">По желание — седмицата ти накратко.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="kicker rise">Ясни правила</div>
+      <h2 class="h2 rise">Без предплащане. Без изненади.</h2>
+      <div class="rules">
+        <div class="rule rise"><div class="ico">€</div><h3>Нищо предварително</h3><p>Картата е само гаранция — пазена сигурно от Stripe.</p></div>
+        <div class="rule rise"><div class="ico">↺</div><h3>Свобода да промениш</h3><p>Преместваш или отказваш безплатно в срока на студиото.</p></div>
+        <div class="rule rise"><div class="ico">✓</div><h3>Честно към всички</h3><p>Таксува се автоматично само при неявяване.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap split">
+      <div>
+        <div class="kicker rise">Твоят прогрес</div>
+        <h2 class="h2 rise">Виждаш резултата. Не само го усещаш.</h2>
+        <p class="sub rise">Данните от кантара на студиото — направо в приложението.</p>
+        <p class="muted rise" style="font-size:13px;margin-top:18px">Примерни данни.</p>
+      </div>
+      <div class="meters rise" aria-hidden="true">
+        <div class="m"><span>Мускулна маса</span><b>+1,8 кг</b><i style="--w:78%"></i></div>
+        <div class="m"><span>Мазнини</span><b>−3,2 %</b><i style="--w:64%"></i></div>
+        <div class="m"><span>Вода</span><b>58 %</b><i style="--w:58%"></i></div>
+        <div class="m"><span>Тренировки</span><b>24</b><i style="--w:88%"></i></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="studios">
+    <div class="wrap">
+      <div class="kicker rise">Студиа</div>
+      <h2 class="h2 rise">Избери своето студио.</h2>
+      <div class="places" id="places">
+        <a class="place rise" href="studio.html?s=xbody"><div class="pl-logo">X</div><div><h3>XBODY Бургас</h3><p>Ability Fitness &amp; SPA, Хотел България, ул. „Александровска“ 21</p></div><span class="go">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <div class="final">
+    <div class="wrap">
+      <img class="ic rise" src="studio-app/landing/icon.png" alt="XB-Studio">
+      <h2 class="h2 rise">Следващата ти тренировка е на два допира.</h2>
+      <p class="sub rise">Безплатно за iPhone и Android.</p>
+      <div class="dl" id="get2"></div>
+      <p class="web">или <a href="#studios">запази час в браузъра</a></p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>XB-Studio</span>
+    <a href="studio-support.html">Помощ и контакт</a>
+    <a href="studio-privacy.html">Поверителност</a>
+    <span class="sp">Данните ти се изтриват с едно докосване от „Моят профил“.</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var IOS = 'https://apps.apple.com/bg/app/xb-studio/id6828255289';
+  var APK = 'https://github.com/Radilovk/aidiet/releases/download/studio-android-latest/XB-Studio.apk';
+  var apple = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.97-3.46-1.07-1.57-2.74-1.78-3.33-1.8-1.42-.14-2.77.83-3.49.83-.72 0-1.83-.81-3.01-.79-1.55.02-2.98.9-3.78 2.29-1.61 2.8-.41 6.93 1.16 9.2.77 1.11 1.68 2.36 2.88 2.31 1.16-.05 1.59-.75 2.99-.75 1.4 0 1.79.75 3.01.72 1.24-.02 2.03-1.13 2.79-2.25.88-1.29 1.24-2.53 1.26-2.6-.03-.01-2.42-.93-2.45-3.7zM14.08 5.84c.64-.77 1.07-1.85.95-2.92-.92.04-2.03.61-2.69 1.38-.59.68-1.11 1.77-.97 2.82 1.02.08 2.07-.52 2.71-1.28z"/></svg>';
+  var droid = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.5.5 0 0 0-.87-.5l-1.86 3.22A11.4 11.4 0 0 0 12 8.1c-1.73 0-3.36.37-4.71 1.02L5.43 5.8a.5.5 0 0 0-.87.5L6.4 9.48C3.85 10.86 2.13 13.4 2 16.36h20c-.13-2.96-1.85-5.5-4.4-6.88zM7 13.86a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>';
+  var btnIOS = function (cls) { return '<a class="btn ' + cls + '" href="' + IOS + '">' + apple + '<div><small>Изтегли от</small><span>App Store</span></div></a>'; };
+  var btnAPK = function (cls) { return '<a class="btn ' + cls + '" href="' + APK + '" download>' + droid + '<div><small>Изтегли за</small><span>Android</span></div></a>'; };
+
+  var ua = navigator.userAgent || '';
+  var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var android = /Android/i.test(ua);
+  var os = ios ? 'ios' : android ? 'android' : 'desktop';
+  document.documentElement.classList.add(os);
+
+  var get = document.getElementById('get'), get2 = document.getElementById('get2'), other = document.getElementById('other');
+  if (os === 'ios') {
+    get.innerHTML = get2.innerHTML = btnIOS('main');
+    other.innerHTML = 'Имаш Android? <a href="' + APK + '" download>Изтегли за Android</a>';
+  } else if (os === 'android') {
+    get.innerHTML = get2.innerHTML = btnAPK('main');
+    other.innerHTML = 'Имаш iPhone? <a href="' + IOS + '">App Store</a>';
+    document.getElementById('howto').hidden = false;
+  } else {
+    get.innerHTML = get2.innerHTML = btnIOS('main') + btnAPK('alt');
+  }
+  var link = os === 'ios' ? IOS : os === 'android' ? APK : '#get';
+  document.querySelectorAll('[data-dl]').forEach(function (a) { a.href = link; if (os === 'android') a.setAttribute('download', ''); });
+
+  // the studios: the platform's live list (a new studio appears here by itself)
+  var esc = function (t) { return String(t || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var API = 'https://aidiet.radilov-k.workers.dev';
+  fetch(API + '/api/s/list').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    if (!d || !d.studios || !d.studios.length) return;
+    document.getElementById('places').innerHTML = d.studios.map(function (x) {
+      var logo = x.logo ? '<img alt="" src="' + API + '/api/s/logo?studio=' + encodeURIComponent(x.id) + '&v=' + x.logo + '">' : esc((x.name || '?').slice(0, 1));
+      return '<a class="place in" href="studio.html?s=' + encodeURIComponent(x.id) + '"><div class="pl-logo" style="background:' + esc(x.color || '#d32f2f') + '">' + logo +
+        '</div><div><h3>' + esc(x.name) + '</h3><p>' + esc(x.address || x.tagline || '') + '</p></div><span class="go">→</span></a>';
+    }).join('');
+  }).catch(function () {});
+
+  var top = document.getElementById('top');
+  addEventListener('scroll', function () { top.classList.toggle('scrolled', scrollY > 8); }, { passive: true });
+
+  var els = document.querySelectorAll('.rise, #lock');
+  if (!('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function (list) {
+    list.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } });
+  }, { threshold: .15, rootMargin: '0px 0px -40px 0px' });
+  els.forEach(function (e) { io.observe(e); });
+})();
+</script>
+</body>
+</html>
