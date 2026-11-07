@@ -99,7 +99,9 @@ jobs:
         run: |
           APK="$RUNNER_TEMP/out/XB-Studio.apk"
           [ -f "$APK" ] || { echo "::error::Няма APK"; exit 1; }
-          unzip -l "$APK" | grep -q 'res/raw/studio.wav' || { echo "::error::Няма звука в пакета"; exit 1; }
+          # a release build shortens the files' paths inside the APK: the sound is looked up by its resource name
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/aapt2" dump resources "$APK" | grep -q 'raw/studio' || { echo "::error::Няма звука в пакета"; exit 1; }
           echo "APK: $(du -h "$APK" | cut -f1)"
 
       - uses: actions/upload-artifact@v4
