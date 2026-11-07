@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
+    <meta name="description" content="Седемдневен хранителен план от над 30 твои данни, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -16,7 +16,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/">
     <meta property="og:title" content="NutriPlan — хранене по твоя мярка">
-    <meta property="og:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
+    <meta property="og:description" content="Седемдневен хранителен план от над 30 твои данни, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
 
@@ -24,7 +24,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://biocode.website/">
     <meta name="twitter:title" content="NutriPlan — хранене по твоя мярка">
-    <meta name="twitter:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
+    <meta name="twitter:description" content="Седемдневен хранителен план от над 30 твои данни, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
 
     <link rel="canonical" href="https://biocode.website/">
@@ -87,6 +87,7 @@
     <script src="./platform-compat.js"></script>
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
+    <script src="./partner-ref.js"></script>
     <script src="./enrichment-client.js"></script>
     <script src="./health-apps.js"></script>
     <script src="./health-sync.js"></script>
@@ -2174,7 +2175,7 @@
         <div class="nav-menu-section-label">Програми</div>
         <a href="emoeat.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално хранене</a>
         <a href="longevity.html" onclick="closeNavMenu()"><i class="fas fa-dna"></i> Дълголетие</a>
-        <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични протоколи</a>
+        <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-layer-group"></i> Програми</a>
         <div class="nav-menu-divider"></div>
         <button class="nav-menu-logout" id="navLogoutBtn" onclick="window.indexSignOut()">
             <i class="fas fa-sign-out-alt"></i> Изход
@@ -2275,8 +2276,8 @@
     <!-- Numbers -->
     <section class="lp-numbers" id="numbers" aria-label="NutriPlan в числа">
         <div class="lp-wrap lp-numbers-grid lp-reveal">
-            <div class="lp-num"><b data-count="30" data-suffix="+">30+</b><span>показателя в анализа</span></div>
-            <div class="lp-num"><b data-count="11">11</b><span>клинични протокола</span></div>
+            <div class="lp-num"><b data-count="30" data-suffix="+">30+</b><span>фактора в плана</span></div>
+            <div class="lp-num"><b data-count="11">11</b><span>програми по цел</span></div>
             <div class="lp-num"><b>24/7</b><span>консултант, който знае плана ти</span></div>
         </div>
     </section>
@@ -2330,7 +2331,7 @@
                 <article class="lp-tile lp-reveal">
                     <span class="lp-tile-ico"><i class="fas fa-capsules"></i></span>
                     <h3>Добавки и движение</h3>
-                    <p>Препоръки, проверени за взаимодействия, и активност, съобразена с плана.</p>
+                    <p>Добавки и активност, съобразени с плана.</p>
                 </article>
 
                 <article class="lp-tile lp-reveal">
@@ -2364,9 +2365,9 @@
                     <span class="lp-program-go">Влез и разгледай <i class="fas fa-arrow-right"></i></span>
                 </a>
                 <a class="lp-program lp-reveal" href="protocol-landing.html" style="--tone:#0d9488">
-                    <span class="lp-program-ico"><i class="fas fa-stethoscope"></i></span>
-                    <h3>Клинични протоколи</h3>
-                    <p>Инсулинова резистентност, автоимунни състояния, храносмилане, менопауза, кърмене и още — 11 протокола.</p>
+                    <span class="lp-program-ico"><i class="fas fa-layer-group"></i></span>
+                    <h3>Програми по цел</h3>
+                    <p>Стабилна енергия, AIP меню, леко храносмилане, сила след 40, кърмене и още — 11 програми.</p>
                     <span class="lp-program-go">Разгледай <i class="fas fa-arrow-right"></i></span>
                 </a>
             </div>
@@ -2388,8 +2389,8 @@
                 </li>
                 <li class="lp-step">
                     <span class="lp-step-n">02</span>
-                    <h3>Анализираме</h3>
-                    <p>Енергия, белтък и ограничения по здравето ти — изчислени, не налучкани. Специалист преглежда резултата.</p>
+                    <h3>Изчисляваме</h3>
+                    <p>Енергия, белтък и ограничения по твоите данни — изчислени, не налучкани. Специалист проверява менюто.</p>
                 </li>
                 <li class="lp-step">
                     <span class="lp-step-n">03</span>
@@ -2569,7 +2570,7 @@
                     <div>
                         <h2 class="sf-h">Програми</h2>
                         <ul>
-                            <li><a href="protocol-landing.html">Клинични протоколи</a></li>
+                            <li><a href="protocol-landing.html">Програми</a></li>
                             <li><a href="emoeat.html">Емоционално хранене</a></li>
                             <li><a href="longevity.html">Дълголетие <small>с профил</small></a></li>
                         </ul>
@@ -2594,7 +2595,7 @@
             </div>
             <div class="sf-bottom">
                 <p>© 2026 NutriPlan · biocode.website</p>
-                <p>Хранителни насоки, не медицинска услуга. При заболяване — с лекар.</p>
+                <p>Хранителни насоки и навици. Не е медицинско изделие, не поставя диагноза и не лекува.</p>
             </div>
         </div>
     </footer>

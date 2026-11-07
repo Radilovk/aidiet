@@ -5885,6 +5885,15 @@
                 render: client => escapeHtml(client.goal || '—')
             },
             {
+                key: 'partnerRef',
+                label: 'Партньор',
+                defaultVisible: true,
+                getValue: client => client.partnerRef || '',
+                render: client => client.partnerRef
+                    ? `<span style="font-weight:700;"><i class="fas fa-handshake"></i> ${escapeHtml(client.partnerRef)}</span>`
+                    : '<span style="opacity:0.5;">—</span>'
+            },
+            {
                 key: 'planStatus',
                 label: 'Статус',
                 defaultVisible: true,
@@ -5983,7 +5992,8 @@
                     client.id,
                     client.userId,
                     client.gender,
-                    client.planStatus
+                    client.planStatus,
+                    client.partnerRef
                 ].some(value => String(value || '').toLowerCase().includes(searchTerm));
             });
 

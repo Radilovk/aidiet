@@ -53492,6 +53492,10 @@ async function handleSaveClientData(request, env, ctx) {
       planUpdatedAt: data.plan ? (/* @__PURE__ */ new Date()).toISOString() : existingClientData?.planUpdatedAt || null,
       submittedAt: (/* @__PURE__ */ new Date()).toISOString()
     };
+    const partnerRef = String(data.partnerRef || "").trim().toLowerCase();
+    if (!clientData.partnerRef && /^[a-z0-9][a-z0-9-]{1,31}$/.test(partnerRef)) {
+      clientData.partnerRef = partnerRef;
+    }
     if (data.plan) {
       clientData.planStatus = "pending";
       clientData.planActivatedAt = null;
@@ -53532,7 +53536,8 @@ async function handleSaveClientData(request, env, ctx) {
 \u{1F194} ID: ${clientId}
 \u{1F4E7} \u0418\u043C\u0435\u0439\u043B: ${clientData.answers?.email || "\u2014"}
 \u{1F3AF} \u0426\u0435\u043B: ${clientData.answers?.goal || "\u2014"}
-\u{1F4C5} \u0414\u0430\u0442\u0430: ${formatDateBG(clientData.submittedAt)}`
+` + (clientData.partnerRef ? `\u{1F91D} \u041F\u0430\u0440\u0442\u043D\u044C\u043E\u0440: ${clientData.partnerRef}
+` : "") + `\u{1F4C5} \u0414\u0430\u0442\u0430: ${formatDateBG(clientData.submittedAt)}`
     );
     return jsonResponse2({
       success: true,
@@ -53572,6 +53577,7 @@ async function handleGetClientsList(request, env) {
             planStatus: clientData.planStatus || "none",
             planUpdatedAt: clientData.planUpdatedAt || null,
             planActivatedAt: clientData.planActivatedAt || null,
+            partnerRef: clientData.partnerRef || "",
             planGenerationError: clientData.planStatus === "failed" ? clientData.planGenerationError || "" : ""
           };
         }

@@ -4941,6 +4941,12 @@ async function handleSaveClientData(request, env, ctx) {
       submittedAt: new Date().toISOString()
     };
 
+    // Партньорът (студио, диетолог, треньор), довел клиента — първият код остава.
+    const partnerRef = String(data.partnerRef || '').trim().toLowerCase();
+    if (!clientData.partnerRef && /^[a-z0-9][a-z0-9-]{1,31}$/.test(partnerRef)) {
+      clientData.partnerRef = partnerRef;
+    }
+
     if (data.plan) {
       clientData.planStatus = 'pending';
       clientData.planActivatedAt = null;
@@ -4990,6 +4996,7 @@ async function handleSaveClientData(request, env, ctx) {
       `🆔 ID: ${clientId}\n` +
       `📧 Имейл: ${clientData.answers?.email || '—'}\n` +
       `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
+      (clientData.partnerRef ? `🤝 Партньор: ${clientData.partnerRef}\n` : '') +
       `📅 Дата: ${formatDateBG(clientData.submittedAt)}`
     );
 
@@ -5043,6 +5050,7 @@ async function handleGetClientsList(request, env) {
             planStatus: clientData.planStatus || 'none',
             planUpdatedAt: clientData.planUpdatedAt || null,
             planActivatedAt: clientData.planActivatedAt || null,
+            partnerRef: clientData.partnerRef || '',
             planGenerationError: clientData.planStatus === 'failed' ? (clientData.planGenerationError || '') : ''
           };
         }

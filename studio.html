@@ -2115,7 +2115,9 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       tip('drop', 'Половин литър вода в повече — чаша преди и след.') +
       tip('egg', 'До час след нея — протеин' + (f.meal ? ', около ' + f.meal + ' г' : '') + '.', 'Кисело мляко, яйца, извара, риба или пиле.') +
       tip('check', GOAL_TIP[f.goal] || GOAL_TIP.tone) +
-      (f.lowWater ? tip('drop', 'Кантарът показва малко вода в тялото — пийте по малко през целия ден.') : '') + '</div>' + back;
+      (f.lowWater ? tip('drop', 'Кантарът показва малко вода в тялото — пийте по малко през целия ден.') : '') + '</div>' +
+      /* Мост към NutriPlan: пълен седмичен план в грамове; кодът на студиото го записва като партньор. */
+      (f.stop ? '' : `<a class="btn sec" style="margin-top:14px" href="https://biocode.website/questionnaire2.html?ref=${encodeURIComponent(A.studio())}" target="_blank" rel="noopener">${ic('fire')}Пълен план в грамове — NutriPlan</a>`) + back;
     A.sheet(html, (e) => { if (e.target.closest('[data-xb]')) A.openProfile(); else if (e.target.closest('[data-go=fill]')) openData(true); });
   }
 

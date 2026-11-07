@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Здравен анализ и детайлни препоръки от NutriPlan за твоя хранителен режим.">
+    <meta name="description" content="Основата на твоя хранителен план в NutriPlan: фокуси, цел и темп.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -17,7 +17,7 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
-    <title>Здравен Анализ</title>
+    <title>Основа на плана</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1821,19 +1821,11 @@
         .change-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
         .change-answer { min-height: 44px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--ds-fill); background: transparent; color: var(--text-dark); font: inherit; font-weight: 600; cursor: pointer; }
         .change-answer:disabled { opacity: 0.6; cursor: default; }
-        /* Изследвания: стойността върху нормалния диапазон */
+        /* Изследвания: добавените стойности */
         .lab-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
         .lab-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: baseline; }
         .lab-name { font-size: 0.9rem; font-weight: 600; color: var(--text-dark); }
         .lab-val { font-size: 0.9rem; font-weight: 800; color: var(--text-dark); font-variant-numeric: tabular-nums; text-align: right; }
-        .lab-status { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
-        .lab-status[data-status="normal"] { background: var(--ds-success-bg); color: var(--ds-success-text); }
-        .lab-status[data-status="high"], .lab-status[data-status="low"] { background: var(--ds-warning-bg); color: var(--ds-warning-text); }
-        .lab-track { grid-column: 1 / -1; position: relative; height: 12px; border-radius: 999px; background: rgba(15, 118, 110, 0.08); }
-        .lab-zone { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: var(--ds-success-bg); border: 1px solid rgba(21, 128, 61, 0.25); }
-        .lab-dot { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; box-shadow: 0 0 0 2px var(--card-bg); background: var(--ds-success-text); }
-        .lab-dot[data-status="high"], .lab-dot[data-status="low"] { background: var(--ds-warning-text); }
-        .lab-axis { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--ds-text-soft); font-variant-numeric: tabular-nums; }
         /* Устройства: стойности за седмицата */
         .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
         .metric-tile { padding: 12px 14px; border-radius: 16px; background: rgba(15, 118, 110, 0.06); border: 1px solid var(--glass-border); }
@@ -1842,19 +1834,12 @@
         .metric-tile .m-unit { font-size: 0.875rem; font-weight: 600; color: var(--ds-text-soft); margin-left: 2px; }
         .metric-tile .m-note { font-size: 0.8125rem; color: var(--ds-text-soft); margin-top: 2px; }
         .metric-tile[data-tone="warn"] { background: var(--ds-warning-bg); border-color: var(--ds-warning-border); }
-        /* EmoEat и AIRIS */
+        /* EmoEat */
         .persona { display: grid; gap: 8px; }
         .persona-name { font-size: 1.25rem; font-weight: 800; color: var(--text-dark); }
         .persona-text { font-size: 0.9rem; line-height: 1.5; color: var(--text-dark); margin: 0; }
         .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
         .chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border-radius: 999px; font-size: 0.8125rem; font-weight: 600; color: var(--text-dark); background: rgba(15, 118, 110, 0.08); }
-        .hyp-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
-        .hyp-item { padding: 10px 12px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(15, 118, 110, 0.04); }
-        .hyp-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 700; font-size: 0.9rem; color: var(--text-dark); }
-        .hyp-state { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(15, 118, 110, 0.08); color: var(--ds-text-soft); }
-        .hyp-state[data-s="confirmed"] { background: var(--ds-success-bg); color: var(--ds-success-text); }
-        .hyp-state[data-s="disputed"] { background: var(--ds-warning-bg); color: var(--ds-warning-text); }
-        .hyp-item p { margin: 4px 0 0; font-size: 0.8125rem; line-height: 1.45; color: var(--ds-text-soft); }
         /* Карти на проблемите: източник и промяна */
         .problem-sources { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
         .problem-sources .chip { font-size: 0.75rem; min-height: 24px; }
@@ -1862,7 +1847,6 @@
         [data-theme="dark"] .problem-sources .chip i { color: var(--primary-red); }
         .problem-change { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--ds-warning-bg); color: var(--ds-warning-text); }
         .problem-change[data-c="better"] { background: var(--ds-success-bg); color: var(--ds-success-text); }
-        .problem-iris { margin-top: 10px; font-size: 0.8125rem; line-height: 1.45; color: var(--ds-text-soft); }
         /* ── По-малко шум: един фокус горе, детайли при докосване ── */
         .container { padding-top: 12px; }
         .overall-score-section, [data-theme="dark"] .overall-score-section { margin-top: 4px; padding: 20px 16px; }
@@ -1882,7 +1866,6 @@
         [data-theme="dark"] .seg [role="tab"][aria-selected="true"] { background: rgba(45, 212, 191, 0.16); }
         .panel-in { animation: panelIn var(--ds-motion-standard, 240ms) var(--ds-ease-standard) both; }
         @keyframes panelIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .lab-dot { transition: left var(--ds-motion-expressive, 600ms) var(--ds-ease-standard); }
         .more-toggle { margin-top: 8px; min-height: var(--ds-touch-min, 44px); padding: 0 4px; border: none; background: none; font: inherit; font-size: 0.875rem; font-weight: 700; color: var(--ds-fill); cursor: pointer; }
         [data-theme="dark"] .more-toggle { color: var(--primary-red); }
         /* Прогноза */
@@ -1893,7 +1876,7 @@
         .fc-list.warn i { color: var(--ds-warning-text); margin-top: 3px; }
         /* Проблеми: компактен ред */
         .problems-container { gap: 10px; margin-bottom: 8px; }
-        .problem-card, [data-theme="dark"] .problem-card { padding: 0; border-radius: 18px; box-shadow: 0 1px 3px rgba(20, 35, 50, 0.08); border: 1px solid var(--glass-border); border-left: 4px solid var(--severity-borderline); }
+        .problem-card, [data-theme="dark"] .problem-card { padding: 0; border-radius: 18px; box-shadow: 0 1px 3px rgba(20, 35, 50, 0.08); border: 1px solid var(--glass-border); border-left: 4px solid var(--severity-normal); }
         .problem-card::before { display: none; }
         .problem-card:hover { transform: none; }
         .problem-card.severity-risky, [data-theme="dark"] .problem-card.severity-risky { border-left-color: var(--severity-risky); box-shadow: 0 1px 3px rgba(20, 35, 50, 0.08); }
@@ -1926,7 +1909,7 @@
     <!-- Sticky Header -->
     <header class="analysis-header">
         <button class="back-btn" type="button" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left"></i></button>
-        <h1>Здравен Анализ</h1>
+        <h1>Основа на плана</h1>
         <span class="header-spacer" aria-hidden="true"></span>
     </header>
 
@@ -1937,8 +1920,8 @@
                 <div class="loading-spinner"></div>
                 <div class="loading-icon"><i class="fas fa-heart-pulse"></i></div>
             </div>
-            <p class="loading-text">Подготвяме анализа</p>
-            <p class="loading-subtext">Синхронизираме здравните данни и визуализациите за твоя екран.</p>
+            <p class="loading-text">Подготвяме основата на плана</p>
+            <p class="loading-subtext">Зареждаме фокусите и целта ти.</p>
             <div class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></div>
         </div>
     </div>
@@ -1946,7 +1929,7 @@
     <!-- Main Content -->
     <div class="container" id="mainContent" style="display: none;">
         <!-- Overall Health Score Section -->
-        <div class="overall-score-section" id="overallScoreSection" style="display: none;">
+        <div class="overall-score-section" id="overallScoreSection" style="display: none;" hidden>
             <div class="score-grid">
                 <div class="score-card">
                     <div class="score-card-header">
@@ -2018,7 +2001,7 @@
             <button type="button" class="more-toggle" id="changesMore" hidden onclick="toggleChanges()"></button>
         </section>
 
-        <h2 class="problems-title" id="problemsTitle">Главни проблеми</h2>
+        <h2 class="problems-title" id="problemsTitle">Фокуси на плана</h2>
         <div class="problems-container" id="problemsContainer">
             <!-- Problems will be inserted here by JavaScript -->
         </div>
@@ -2038,31 +2021,19 @@
             <div class="data-panel" id="emoInsight" role="tabpanel" hidden>
                 <div class="persona" id="emoBody"></div>
             </div>
-            <div class="data-panel" id="irisInsight" role="tabpanel" hidden>
-                <div id="irisBody"></div>
-            </div>
         </section>
 
         <!-- Прогноза за 12 месеца: един сценарий наведнъж -->
         <section class="insight-section forecast-compact" id="forecastSection" style="display: none;" aria-labelledby="forecastTitle">
-            <div class="insight-head"><i class="fas fa-calendar-days" aria-hidden="true"></i><h2 id="forecastTitle">След 12 месеца</h2></div>
-            <div class="seg" role="tablist" aria-label="Сценарий">
-                <button type="button" role="tab" id="fcTabPlan" aria-selected="true" aria-controls="fcPlan" onclick="showForecast('plan')">С плана</button>
-                <button type="button" role="tab" id="fcTabNone" aria-selected="false" aria-controls="fcNone" onclick="showForecast('none')">Без промяна</button>
-            </div>
-            <div class="fc-panel" id="fcPlan" role="tabpanel" aria-labelledby="fcTabPlan">
+            <div class="insight-head"><i class="fas fa-calendar-days" aria-hidden="true"></i><h2 id="forecastTitle">Цел и темп</h2></div>
+            <div class="fc-panel" id="fcPlan">
                 <div class="fc-hero" id="fcPlanWeight"></div>
-                <ul class="fc-list good" id="optimisticImprovements"></ul>
-            </div>
-            <div class="fc-panel" id="fcNone" role="tabpanel" aria-labelledby="fcTabNone" hidden>
-                <div class="fc-hero" id="fcNoneWeight"></div>
-                <ul class="fc-list warn" id="pessimisticRisks"></ul>
             </div>
         </section>
 
         <div class="cta-section section-anim" id="ctaSection">
             <h2 id="ctaTitle">Да започнем ли?</h2>
-            <p id="ctaSubtitle">Планът е изграден около тези находки.</p>
+            <p id="ctaSubtitle">Планът е изграден около тези фокуси.</p>
             <button class="btn-primary" onclick="goToPlan()">
                 Виж Хранителния План
                 <i class="fas fa-arrow-right"></i>
@@ -2336,7 +2307,6 @@
             labs: { label: 'Изследвания', icon: 'fa-vial' },
             device: { label: 'Устройство', icon: 'fa-heart-pulse' },
             emoeat: { label: 'EmoEat', icon: 'fa-heart' },
-            iris: { label: 'AIRIS', icon: 'fa-eye' },
             documents: { label: 'Документ', icon: 'fa-file-medical' }
         };
         let _baseAnalysis = null;
@@ -2360,7 +2330,6 @@
             if ((re.labs || []).length) out.push('labs');
             if (re.devices) out.push('device');
             if (re.emoeat) out.push('emoeat');
-            if (re.iris) out.push('iris');
             if ((re.documents || []).length) out.push('documents');
             return out;
         }
@@ -2397,7 +2366,6 @@
                 { id: 'labsInsight', label: 'Изследвания', on: renderLabs(re.labs || []) },
                 { id: 'devicesInsight', label: 'Устройства', on: renderDevices(re.devices) },
                 { id: 'emoInsight', label: 'EmoEat', on: renderEmo(re.emoeat) },
-                { id: 'irisInsight', label: 'AIRIS', on: renderIris(re.iris) },
             ].filter(t => t.on);
             const section = document.getElementById('dataSection');
             if (!tabs.length) { section.hidden = true; return; }
@@ -2414,15 +2382,6 @@
             const panel = document.getElementById(id);
             panel.setAttribute('aria-labelledby', id + 'Tab');
             panel.classList.remove('panel-in'); void panel.offsetWidth; panel.classList.add('panel-in');
-            panel.querySelectorAll('.lab-dot[data-left]').forEach(d => { requestAnimationFrame(() => { d.style.left = d.dataset.left; }); });
-        }
-
-        function showForecast(which) {
-            const plan = which === 'plan';
-            document.getElementById('fcPlan').hidden = !plan;
-            document.getElementById('fcNone').hidden = plan;
-            document.getElementById('fcTabPlan').setAttribute('aria-selected', String(plan));
-            document.getElementById('fcTabNone').setAttribute('aria-selected', String(!plan));
         }
 
         let _changesOpen = false;
@@ -2491,42 +2450,16 @@
             document.getElementById('changesSection').hidden = false;
         }
 
-        /** Скала на показателя: нормата в средата, с място за стойности извън нея. */
-        function labScale(l) {
-            const [lo, hi] = l.range || [null, null];
-            let min, max;
-            if (lo != null && hi != null) { const span = hi - lo; min = Math.max(0, lo - span * 0.6); max = hi + span * 0.6; }
-            else if (hi != null) { min = 0; max = hi * 1.6; }
-            else if (lo != null) { min = 0; max = lo * 2.2; }
-            else { min = 0; max = Math.max(1, l.value * 1.5); }
-            max = Math.max(max, l.value * 1.08);
-            const pos = v => Math.max(0, Math.min(100, (v - min) / (max - min) * 100));
-            return { min, max, pos, zoneFrom: lo != null ? pos(lo) : 0, zoneTo: hi != null ? pos(hi) : 100 };
-        }
-
-        const LAB_STATUS = { normal: ['fa-check', 'в норма'], high: ['fa-arrow-up', 'над нормата'], low: ['fa-arrow-down', 'под нормата'] };
-
+        /** Стойностите от изследванията — както са добавени; без „норма“ и „отклонение“ (приложението не тълкува). */
         function renderLabs(labs) {
             if (!labs.length) return false;
             const day = iso => (iso ? new Date(iso).toLocaleDateString('bg-BG', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
             const latest = labs.reduce((m, l) => (l.at > m ? l.at : m), '');
-            document.getElementById('labsSub').textContent = `Зелено — нормата. Изследване от ${day(latest).replace(/\s*г\.$/, '')}`;
-            document.getElementById('labList').innerHTML = labs.map(l => {
-                const sc = labScale(l);
-                const st = LAB_STATUS[l.status] || LAB_STATUS.normal;
-                const [lo, hi] = l.range || [null, null];
-                const norm = lo != null && hi != null ? `норма ${fmtNum(lo)}–${fmtNum(hi)}` : lo != null ? `норма над ${fmtNum(lo)}` : hi != null ? `норма под ${fmtNum(hi)}` : '';
-                const aria = `${l.label}: ${fmtNum(l.value)} ${l.unit}, ${st[1]}${norm ? `, ${norm}` : ''}`;
-                return `<li class="lab-row" title="${escA(aria)}">
-                    <span class="lab-name">${escA(l.label)}<span class="lab-status" data-status="${escA(l.status)}"><i class="fas ${st[0]}" aria-hidden="true"></i>${st[1]}</span></span>
+            document.getElementById('labsSub').textContent = `Добавени стойности · ${day(latest).replace(/\s*г\.$/, '')}`;
+            document.getElementById('labList').innerHTML = labs.map(l => `<li class="lab-row">
+                    <span class="lab-name">${escA(l.label)}</span>
                     <span class="lab-val">${fmtNum(l.value)} <small>${escA(l.unit)}</small></span>
-                    <div class="lab-track" role="img" aria-label="${escA(aria)}">
-                        <div class="lab-zone" style="left:${sc.zoneFrom}%;width:${Math.max(2, sc.zoneTo - sc.zoneFrom)}%"></div>
-                        <div class="lab-dot" data-status="${escA(l.status)}" data-left="${sc.pos(l.value)}%" style="left:0%"></div>
-                    </div>
-                    <div class="lab-axis" aria-hidden="true"><span>${fmtNum(sc.min)}</span><span>${escA(norm)}</span><span>${fmtNum(sc.max)}</span></div>
-                </li>`;
-            }).join('');
+                </li>`).join('');
             return true;
         }
 
@@ -2562,30 +2495,7 @@
             return true;
         }
 
-        const HYP_STATE = {
-            confirmed: ['fa-check', 'Потвърдено'],
-            unconfirmed: ['fa-circle-question', 'Хипотеза'],
-            disputed: ['fa-comment-dots', 'Чака отговор'],
-            rejected: ['fa-xmark', 'Отхвърлено']
-        };
 
-        function renderIris(iris) {
-            if (!iris) return false;
-            const hyps = iris.hypotheses || [];
-            document.getElementById('irisBody').innerHTML = `
-                ${iris.constitution ? `<div class="persona-name">${escA(iris.constitution)}</div>` : ''}
-                ${!hyps.length && (iris.focus || []).length ? `<div class="chip-row">${iris.focus.map(f => `<span class="chip">${escA(f)}</span>`).join('')}</div>` : ''}
-                ${hyps.length ? `<ul class="hyp-list">${hyps.map(h => {
-                    const st = HYP_STATE[h.status] || HYP_STATE.unconfirmed;
-                    const note = h.status === 'confirmed'
-                        ? (h.applied && h.action ? `В менюто: ${h.action}.` : `Потвърдено от ${(h.evidence || []).join(', ')}.`)
-                        : h.status === 'disputed' ? 'Отговори на въпроса в чата.'
-                        : h.status === 'rejected' ? 'Не се отнася за теб.'
-                        : 'Без потвърждение — не влиза в оценката.';
-                    return `<li class="hyp-item"><div class="hyp-top"><span>${escA(h.label)}</span><span class="hyp-state" data-s="${escA(h.status)}"><i class="fas ${st[0]}" aria-hidden="true"></i>${st[1]}</span></div><p>${escA(note)}</p></li>`;
-                }).join('')}</ul>` : ''}`;
-            return true;
-        }
 
         async function answerQuestion(btn) {
             const E = window.NutriPlanEnrichment;
@@ -2629,8 +2539,8 @@
                         <div style="font-size: 3rem; color: var(--primary-red); margin-bottom: 20px;">
                             <i class="fas fa-check-circle"></i>
                         </div>
-                        <h2 style="color: var(--text-dark); margin-bottom: 15px;">Отлично!</h2>
-                        <p style="color: var(--text-gray); font-size: 1.1rem;">Не са открити проблемни области, които изискват специално внимание.</p>
+                        <h2 style="color: var(--text-dark); margin-bottom: 15px;">Без специални фокуси</h2>
+                        <p style="color: var(--text-gray); font-size: 1.1rem;">Планът следва целта ти.</p>
                     </div>
                 `;
                 return;
@@ -2796,9 +2706,7 @@
             }
 
             // Show the overall score section (section-anim class applied before display)
-            const overallScoreEl = document.getElementById('overallScoreSection');
-            overallScoreEl.classList.add('section-anim');
-            overallScoreEl.style.display = 'block';
+            // Без оценка на здравето: секцията с процента не се показва (приложението не оценява състояние).
 
             // Animate circular ring after a short delay (CSS transition handles the smoothing)
             setTimeout(() => {
@@ -2811,53 +2719,40 @@
         }
 
         function displayForecasts(analysis) {
-            const pes = analysis && analysis.forecastPessimistic;
+            // Само целта и темпът с плана — без сценарий „без промяна“ и без здравни прогнози.
             const opt = analysis && analysis.forecastOptimistic;
             const section = document.getElementById('forecastSection');
-            if (!pes && !opt) { section.style.display = 'none'; return; }
-            // Тегло — едно изречение отгоре; под него до 3 точки. Без повторение на проблемите.
-            const fill = (heroId, listId, f, items, icon) => {
-                document.getElementById(heroId).textContent = (f && typeof f === 'object' && f.weight) || (typeof f === 'string' ? f : '');
-                document.getElementById(listId).innerHTML = (items || []).slice(0, 3).map(t => `<li><i class="fas ${icon}" aria-hidden="true"></i><span>${escA(t)}</span></li>`).join('');
-            };
-            fill('fcPlanWeight', 'optimisticImprovements', opt, opt && opt.improvements, 'fa-check');
-            fill('fcNoneWeight', 'pessimisticRisks', pes, pes && pes.risks, 'fa-triangle-exclamation');
-            showForecast('plan');
+            const weight = (opt && typeof opt === 'object' && opt.weight) || (typeof opt === 'string' ? opt : '');
+            if (!weight) { section.style.display = 'none'; return; }
+            document.getElementById('fcPlanWeight').textContent = weight;
             section.classList.add('section-anim');
             section.style.display = 'block';
         }
 
-        const SEVERITY_ICONS = { Critical: 'fa-circle-exclamation', Risky: 'fa-triangle-exclamation', Borderline: 'fa-circle-info', Normal: 'fa-circle-check' };
 
         /** Проблемът — един ред (заглавие и тежест); описание, последица и източници при докосване. */
         function createProblemCard(problem, index) {
             const card = document.createElement('article');
-            const severity = (problem.severity || 'Normal').toLowerCase();
-            card.className = `problem-card severity-${severity} card-anim`;
+            // Фокус на плана — без степен, без цвят за риск и без „ниво на риск“.
+            card.className = 'problem-card severity-normal card-anim';
             card.style.transitionDelay = `${Math.min(index, 5) * 0.05}s`;
             const categoryIcon = categoryIcons[problem.category] || 'fa-heartbeat';
-            const severityLabel = severityLabels[problem.severity] || problem.severity;
-            const severityValue = problem.severityValue || 50;
             const id = `problemDetails${index}`;
-            const change = problem.change === 'new' ? ['fa-plus', 'ново'] : problem.change === 'worse' ? ['fa-arrow-up', 'по-висок риск'] : problem.change === 'better' ? ['fa-arrow-down', 'по-нисък риск'] : null;
+            const change = problem.change === 'new' ? ['fa-plus', 'ново'] : null;
             const sources = (problem.sources || []).filter(src => SOURCE_META[src]);
             card.innerHTML = `
                 <button type="button" class="problem-row" aria-expanded="false" aria-controls="${id}">
                     <span class="problem-icon"><i class="fas ${categoryIcon}" aria-hidden="true"></i></span>
                     <span class="problem-main">
-                        <span class="problem-name">${escA(problem.title || 'Проблем')}</span>
-                        <span class="problem-meta"><span class="sev sev-${severity}"><i class="fas ${SEVERITY_ICONS[problem.severity] || 'fa-circle-info'}" aria-hidden="true"></i>${escA(severityLabel)}</span>${change ? `<span class="problem-change" data-c="${problem.change}"><i class="fas ${change[0]}" aria-hidden="true"></i>${change[1]}</span>` : ''}</span>
+                        <span class="problem-name">${escA(problem.title || 'Фокус')}</span>
+                        ${change ? `<span class="problem-meta"><span class="problem-change" data-c="${problem.change}"><i class="fas ${change[0]}" aria-hidden="true"></i>${change[1]}</span></span>` : ''}
                     </span>
                     <i class="fas fa-chevron-down problem-chev" aria-hidden="true"></i>
                 </button>
                 <div class="problem-details" id="${id}" hidden>
                     <p class="problem-description">${escA(problem.description || '')}</p>
                     ${problem.impact ? `<p class="problem-impact"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i><span>${escA(problem.impact)}</span></p>` : ''}
-                    <div class="severity-meter" aria-label="Ниво на риск ${severityValue} от 100">
-                        <div class="meter-track"><div class="meter-fill ${severity}" style="width: 0%" data-width="${severityValue}%"></div></div>
-                    </div>
                     ${sources.length ? `<div class="problem-sources">${sources.map(src => `<span class="chip"><i class="fas ${SOURCE_META[src].icon}" aria-hidden="true"></i>${SOURCE_META[src].label}</span>`).join('')}</div>` : ''}
-                    ${problem.irisNote ? `<p class="problem-iris"><i class="fas fa-eye" aria-hidden="true"></i> ${escA(problem.irisNote)}</p>` : ''}
                 </div>`;
             const btn = card.querySelector('.problem-row');
             btn.addEventListener('click', () => {

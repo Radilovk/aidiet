@@ -4453,7 +4453,7 @@
     <div class="food-analysis-overlay" id="foodAnalysisOverlay" role="dialog" aria-modal="true">
         <div class="food-analysis-modal">
             <div class="food-analysis-header">
-                <h3 id="foodAnalysisTitle"><i class="fas fa-utensils"></i> Анализ на Храна</h3>
+                <h3 id="foodAnalysisTitle"><i class="fas fa-utensils"></i> Снимка на храната</h3>
                 <button type="button" class="food-analysis-close" onclick="closeFoodAnalysis()" aria-label="Затвори"><i class="fas fa-times" aria-hidden="true"></i></button>
             </div>
             <div class="food-analysis-body">
@@ -8456,7 +8456,7 @@
         function resetFoodAnalysis() {
             foodAnalysisInProgress = false;
             const title = document.getElementById('foodAnalysisTitle');
-            if (title) title.innerHTML = '<i class="fas fa-utensils"></i> Анализ на Храна';
+            if (title) title.innerHTML = '<i class="fas fa-utensils"></i> Снимка на храната';
 
             resetFoodCaptureUI();
         }

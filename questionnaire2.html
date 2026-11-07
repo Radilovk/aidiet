@@ -1026,6 +1026,7 @@
     </style>
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
+    <script src="./partner-ref.js"></script>
     <script src="./handoff-client.js"></script>
     <script>
         // Apply color scheme from admin settings
@@ -1159,10 +1160,10 @@
     <!-- Protocol Selection Banner (shown when coming from protocol landing page) -->
     <div class="protocol-banner-overlay" id="protocolBannerOverlay" aria-hidden="true"></div>
     <div class="protocol-banner" id="protocolBanner" role="alert" aria-live="polite">
-        <div class="protocol-banner-icon" id="protocolBannerIcon">🏥</div>
+        <div class="protocol-banner-icon" id="protocolBannerIcon">🌿</div>
         <div class="protocol-banner-text">
-            <div class="protocol-banner-title" id="protocolBannerTitle">Клиничен протокол</div>
-            <div class="protocol-banner-subtitle" id="protocolBannerSubtitle">Въпросникът е адаптиран за твоето състояние</div>
+            <div class="protocol-banner-title" id="protocolBannerTitle">Програма</div>
+            <div class="protocol-banner-subtitle" id="protocolBannerSubtitle">Въпросникът е съобразен с програмата</div>
         </div>
     </div>
 
@@ -2162,7 +2163,7 @@
             detox: {
                 addAfter: 'email',
                 questions: [
-                    { "id": "detoxReason", "text": "Защо искаш детокс програма?", "type": "checkbox", "options": ["Умора и липса на енергия", "Проблеми с кожата", "Храносмилателни проблеми", "Главоболие", "Желание за \"рестарт\"", "Друго"], "hasOtherInput": true },
+                    { "id": "detoxReason", "text": "Защо искаш reset седмица?", "type": "checkbox", "options": ["Умора и липса на енергия", "Проблеми с кожата", "Храносмилателни проблеми", "Главоболие", "Желание за \"рестарт\"", "Друго"], "hasOtherInput": true },
                     { "id": "toxinExposure", "text": "Имаш ли контакт със следните?", "type": "checkbox", "options": ["Замърсен въздух (град)", "Работа с химикали", "Честа употреба на лекарства", "Консумация на преработени храни", "Пушене (активно или пасивно)", "Нищо от изброените"], "negativeOption": "Нищо от изброените" },
                     { "id": "liverSymptoms", "text": "Имаш ли някои от следните симптоми?", "type": "checkbox", "options": ["Жълтеникава кожа", "Тъмна урина", "Болки в дясната страна", "Лош дъх сутрин", "Непоносимост към мазни храни", "Нито едно"], "negativeOption": "Нито едно" }
                 ],
@@ -2425,19 +2426,23 @@
             renderStep();
         }
         
-        // Protocol name mapping for banner display
+        // Имената на програмите (като в protocol-states.js) — режим на хранене, не лечение.
         const PROTOCOL_NAMES = {
-            insulin_resistance: { name: 'Инсулинова резистентност', icon: '🩸' },
-            autoimmune_aip: { name: 'Автоимунен протокол (AIP)', icon: '🛡️' },
-            gi_issues: { name: 'Стомашно-чревни проблеми', icon: '🌿' },
-            menopause_sarcopenia: { name: 'Менопауза и Саркопения', icon: '💪' },
-            cellulite_reduction: { name: 'Редукция на целулит', icon: '✨' },
-            chronic_stress: { name: 'Хроничен стрес', icon: '🧘' },
-            postpartum_lactation: { name: 'След бременност & Лактация', icon: '🤱' },
-            visceral_fat: { name: 'Висцерални мазнини', icon: '🔥' },
-            post_smoking: { name: 'След спиране на цигарите', icon: '🚭' },
-            longevity: { name: 'Дълголетие (Longevity)', icon: '🧬' },
-            detox: { name: 'Детоксикация', icon: '🌱' }
+            insulin_resistance: { name: 'Стабилна енергия', icon: '🩸' },
+            autoimmune_aip: { name: 'AIP меню', icon: '🛡️' },
+            gi_issues: { name: 'Леко храносмилане', icon: '🌿' },
+            menopause_sarcopenia: { name: 'Сила след 40', icon: '💪' },
+            cellulite_reduction: { name: 'Стегнато тяло', icon: '✨' },
+            chronic_stress: { name: 'Хранене при натоварен живот', icon: '🧘' },
+            postpartum_lactation: { name: 'Мама: хранене при кърмене', icon: '🤱' },
+            visceral_fat: { name: 'Талия', icon: '🔥' },
+            post_smoking: { name: 'След цигарите', icon: '🚭' },
+            longevity: { name: 'Дълголетие', icon: '🧬' },
+            detox: { name: 'Reset седмица', icon: '🌱' }
+        };
+        // Стойността се пази (двигателят я чете), показва се само друг надпис.
+        const OPTION_LABELS = {
+            'Детокс и прочистване': 'Reset — лек рестарт на храненето'
         };
         
         function showProtocolBannerIfNeeded() {
@@ -2810,7 +2815,7 @@
 
                     label.appendChild(input);
                     label.appendChild(checkmark);
-                    label.appendChild(document.createTextNode(opt));
+                    label.appendChild(document.createTextNode(OPTION_LABELS[opt] || opt));
                     grid.appendChild(label);
                     
                     // Insert detail field immediately after specific options (like Allergies, Autoimmune)
@@ -4045,6 +4050,8 @@
                     cleanAnswers[key] = val;
                 }
                 const clientData = { id: clientId, timestamp: new Date().toISOString(), answers: cleanAnswers };
+                const partnerRef = window.NutriPlanPartnerRef ? window.NutriPlanPartnerRef.get() : '';
+                if (partnerRef) clientData.partnerRef = partnerRef;
                 const postClient = () => fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

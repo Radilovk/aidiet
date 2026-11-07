@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Генерира публичните страници на клиничните протоколи от protocol-states.js:
+ * Генерира публичните страници на програмите от protocol-states.js:
  *   - protocol-<slug>.html — по една за всяко състояние, водят към
  *     questionnaire2.html?protocol=<id>;
- *   - protocol-landing.html — всички протоколи (картите от лендинга);
+ *   - protocol-landing.html — всички програми (картите от лендинга);
  *   - sitemap.xml — публичните страници.
  * Вмъква и общия футър на сайта между маркерите site-footer:start/end в
  * статичните публични страници (SITE_FOOTER_PAGES). Всичко е статично —
@@ -84,7 +84,7 @@ function siteFooter() {
                     <div>
                         <h2 class="sf-h">Програми</h2>
                         <ul>
-                            <li><a href="protocol-landing.html">Клинични протоколи</a></li>
+                            <li><a href="protocol-landing.html">Програми</a></li>
                             <li><a href="emoeat.html">Емоционално хранене</a></li>
                             <li><a href="longevity.html">Дълголетие <small>с профил</small></a></li>
                         </ul>
@@ -109,7 +109,7 @@ function siteFooter() {
             </div>
             <div class="sf-bottom">
                 <p>© 2026 NutriPlan · biocode.website</p>
-                <p>Хранителни насоки, не медицинска услуга. При заболяване — с лекар.</p>
+                <p>Хранителни насоки и навици. Не е медицинско изделие, не поставя диагноза и не лекува.</p>
             </div>
         </div>
     </footer>
@@ -127,7 +127,8 @@ const topbar = () => `<header class="topbar">
         </div>
     </header>`;
 
-const themeInit = `<script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.querySelector('meta[name="theme-color"]').setAttribute('content','#071312');})();</script>`;
+const themeInit = `<script src="partner-ref.js"></script>
+    <script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.querySelector('meta[name="theme-color"]').setAttribute('content','#071312');})();</script>`;
 
 const fonts = `<link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -138,8 +139,8 @@ const fonts = `<link rel="preconnect" href="https://fonts.googleapis.com">
 function page(s) {
     const url = `${SITE}/${statePageUrl(s)}`;
     const cta = `questionnaire2.html?protocol=${encodeURIComponent(s.id)}`;
-    const title = `${s.shortName} — хранителен протокол | NutriPlan`;
-    const ctaLabel = 'Създай моя план по протокола';
+    const title = `${s.name}: ${s.audience} | NutriPlan`;
+    const ctaLabel = 'Създай моя план';
     const others = PROTOCOL_STATES.filter((o) => o.id !== s.id);
     const ld = {
         '@context': 'https://schema.org',
@@ -149,7 +150,6 @@ function page(s) {
         url,
         inLanguage: 'bg-BG',
         isPartOf: { '@type': 'WebSite', name: 'NutriPlan', url: `${SITE}/` },
-        about: { '@type': 'MedicalCondition', name: s.name },
     };
     return `<!DOCTYPE html>
 <!-- Генерирано от scripts/build-protocol-pages.mjs — редактирай protocol-states.js и пусни npm run build:protocol-pages -->
@@ -190,7 +190,7 @@ function page(s) {
         </section>
 
         <section class="section reveal" aria-labelledby="h-for">
-            <h2 id="h-for"><span class="kicker">За кого е</span>Подходящ ли е за теб</h2>
+            <h2 id="h-for"><span class="kicker">За кого е</span>Подходяща ли е за теб</h2>
             <div class="card for-whom">
                 <span class="ic">${svg(I.user, 22)}</span>
                 <p>${esc(s.forWhom)}</p>
@@ -198,7 +198,7 @@ function page(s) {
         </section>
 
         <section class="section reveal" aria-labelledby="h-what">
-            <h2 id="h-what"><span class="kicker">Протоколът</span>Какво получаваш</h2>
+            <h2 id="h-what"><span class="kicker">Програмата</span>Какво получаваш</h2>
             <div class="card">
                 <p>${esc(s.description)}</p>
                 <p>${esc(s.benefits)}</p>
@@ -227,24 +227,24 @@ function page(s) {
         <section class="section reveal" aria-labelledby="h-steps">
             <h2 id="h-steps"><span class="kicker">Три стъпки</span>Как стигаш до плана</h2>
             <ol class="steps">
-                <li><div><strong>Кратък въпросник</strong><span>Протоколът вече е избран — питаме само за теб: тяло, режим, вкус и здраве.</span></div></li>
-                <li><div><strong>Анализ</strong><span>NutriPlan съчетава протокола с твоите данни и смята калориите и състава на всяко хранене. Специалист преглежда резултата.</span></div></li>
+                <li><div><strong>Кратък въпросник</strong><span>Програмата вече е избрана — питаме само за теб: тяло, режим, вкус и цели.</span></div></li>
+                <li><div><strong>Изчисляване</strong><span>NutriPlan съчетава програмата с твоите данни и смята калориите и състава на всяко хранене. Специалист проверява менюто.</span></div></li>
                 <li><div><strong>Твоят план</strong><span>Седмично меню, замени за всяко ястие и асистент, който отговаря на въпроси за храната.</span></div></li>
             </ol>
         </section>
 
         <section class="final reveal" aria-labelledby="h-final">
-            <h2 id="h-final">Започни с протокола „${esc(s.shortName)}“</h2>
-            <p>Планът се изгражда около протокола и се променя заедно с теб.</p>
+            <h2 id="h-final">Започни с „${esc(s.name)}“</h2>
+            <p>Планът се изгражда около програмата и се променя заедно с теб.</p>
             <a class="cta" href="${cta}" data-cta data-cta-anchor>${ctaLabel}${svg(I.arrow)}</a>
         </section>
 
-        <p class="note">Протоколът е хранителен подход и не замества лечение или консултация с лекар. При заболяване, бременност или прием на лекарства обсъди промените с лекуващия си лекар.</p>
+        <p class="note">Хранителни насоки и навици. NutriPlan не е медицинско изделие, не поставя диагноза и не лекува. При заболяване, бременност или прием на лекарства обсъди промените с лекаря си.</p>
 
         <nav class="others" aria-labelledby="h-others">
             <div class="others-head">
-                <h2 id="h-others">Други състояния</h2>
-                <a class="others-all" href="protocol-landing.html">${svg(I.grid, 16)}Всички протоколи</a>
+                <h2 id="h-others">Други програми</h2>
+                <a class="others-all" href="protocol-landing.html">${svg(I.grid, 16)}Всички програми</a>
             </div>
             <div class="chips">${others.map((o) => `<a href="${statePageUrl(o)}" style="--dot:${o.accent}"><span></span>${esc(o.shortName)}</a>`).join('')}</div>
         </nav>
@@ -266,8 +266,8 @@ function page(s) {
 function hubPage() {
     const url = `${SITE}/protocol-landing.html`;
     const n = PROTOCOL_STATES.length;
-    const title = 'Клинични протоколи — хранене по състоянието ти | NutriPlan';
-    const description = `${n} хранителни протокола — кръвна захар, автоимунни състояния, храносмилане, менопауза, кърмене и още. Седмично меню по протокола и по твоите данни.`;
+    const title = 'Програми — хранене по целта ти | NutriPlan';
+    const description = `${n} хранителни програми — стабилна енергия, AIP, леко храносмилане, сила след 40, кърмене и още. Седмично меню в грамове по програмата и по твоите данни.`;
     const ld = {
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
@@ -284,12 +284,12 @@ function hubPage() {
                     <span class="pcard-cat">${esc(s.category)}</span>
                     <h3>${esc(s.shortName)}</h3>
                     <p>${esc(s.shortDescription)}</p>
-                    <span class="pcard-go">Виж протокола${svg(I.arrow, 16)}</span>
+                    <span class="pcard-go">Виж програмата${svg(I.arrow, 16)}</span>
                 </a>`).join('') + `
                 <a class="pcard pcard--standard reveal" href="questionnaire2.html" data-standard-plan>
                     <span class="pcard-ic">${svg(I.sliders, 22, 1.9)}</span>
-                    <span class="pcard-cat">Без протокол</span>
-                    <h3>Нямаш конкретно състояние?</h3>
+                    <span class="pcard-cat">Без програма</span>
+                    <h3>Нямаш конкретна цел?</h3>
                     <p>Стандартният план — изцяло по твоите цели и данни.</p>
                     <span class="pcard-go">Към стандартния план${svg(I.arrow, 16)}</span>
                 </a>`;
@@ -320,18 +320,18 @@ function hubPage() {
 
     <main class="wrap wrap--wide">
         <section class="hero hub-hero" aria-labelledby="hub-title">
-            <span class="chip">Клинични протоколи</span>
-            <h1 id="hub-title">Хранене, съобразено със <em>състоянието ти</em></h1>
-            <p class="lead">Протоколът определя какво влиза в чинията и какво се ограничава. Менюто и грамажите се смятат по твоите данни — и се коригират всяка седмица.</p>
+            <span class="chip">Програми</span>
+            <h1 id="hub-title">Хранене, съобразено с <em>целта ти</em></h1>
+            <p class="lead">Програмата определя какво влиза в чинията и какво се ограничава. Менюто и грамажите се смятат по твоите данни — и се коригират всяка седмица.</p>
             <ul class="meta">
-                <li>${svg(I.list, 16)}${n} протокола</li>
+                <li>${svg(I.list, 16)}${n} програми</li>
                 <li>${svg(I.clock, 16)}Около 5 минути</li>
                 <li>${svg(I.calendar, 16)}Седмично меню</li>
             </ul>
         </section>
 
         <section class="section" aria-labelledby="h-pick">
-            <h2 id="h-pick"><span class="kicker">${n} протокола</span>Избери състояние</h2>
+            <h2 id="h-pick"><span class="kicker">${n} програми</span>Избери програма</h2>
             <div class="pgrid">${cards}
             </div>
         </section>
@@ -339,13 +339,13 @@ function hubPage() {
         <section class="section reveal" aria-labelledby="h-steps">
             <h2 id="h-steps"><span class="kicker">Три стъпки</span>Как стигаш до плана</h2>
             <ol class="steps steps--row">
-                <li><div><strong>Избираш протокол</strong><span>Отваряш състоянието и виждаш на какво стъпва менюто.</span></div></li>
-                <li><div><strong>Кратък въпросник</strong><span>Тяло, режим, вкус и здраве. Специалист преглежда резултата.</span></div></li>
+                <li><div><strong>Избираш програма</strong><span>Отваряш програмата и виждаш на какво стъпва менюто.</span></div></li>
+                <li><div><strong>Кратък въпросник</strong><span>Тяло, режим, вкус и цели. Специалист проверява менюто.</span></div></li>
                 <li><div><strong>Твоят план</strong><span>Седмично меню с грамажи, замени и асистент. Коригира се всяка седмица.</span></div></li>
             </ol>
         </section>
 
-        <p class="note">Протоколите са хранителен подход и не заместват лечение или консултация с лекар. При заболяване, бременност или прием на лекарства обсъди промените с лекуващия си лекар.</p>
+        <p class="note">Хранителни насоки и навици. NutriPlan не е медицинско изделие, не поставя диагноза и не лекува. При заболяване, бременност или прием на лекарства обсъди промените с лекаря си.</p>
     </main>
 
     ${siteFooter()}

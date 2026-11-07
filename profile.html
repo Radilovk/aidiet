@@ -2158,7 +2158,7 @@
         <!-- КЛИЕНТСКИ КАРТОН: колко пълен е профилът и какво още да се добави -->
         <div class="form-section card-meter" id="cardMeter">
             <div class="card-meter-head">
-                <div class="section-title"><i class="fas fa-id-card"></i> Клиентски картон</div>
+                <div class="section-title"><i class="fas fa-id-card"></i> Пълнота на профила</div>
                 <div class="card-meter-pct" id="cardMeterPct">0%</div>
             </div>
             <div class="card-meter-bar" role="progressbar" aria-label="Пълнота на профила" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cardMeterBar"><span id="cardMeterFill"></span></div>
@@ -2523,18 +2523,18 @@
                  aria-controls="analysisBodyWrap">
                 <div class="analysis-title">
                     <i class="fas fa-chart-line"></i>
-                    <span>Здравен Анализ</span>
+                    <span>Основа на плана</span>
                 </div>
                 <i class="fas fa-chevron-down analysis-toggle-chevron" id="analysisChevron"></i>
             </div>
             <div id="analysisBodyWrap" style="display:none;">
                 <div id="analysisContent" class="analysis-body">
-                    <p style="color: var(--text-light); font-style: italic;">Няма наличен анализ</p>
+                    <p style="color: var(--text-light); font-style: italic;">Още няма основа на плана</p>
                 </div>
                 <div style="text-align: center; padding: 15px;">
                     <button class="btn btn-primary" onclick="viewFullAnalysis()" style="display: inline-flex; align-items: center; gap: 8px;">
                         <i class="fas fa-chart-line"></i>
-                        Виж пълен анализ
+                        Виж основата на плана
                     </button>
                 </div>
             </div>
@@ -2749,8 +2749,6 @@
             } catch (_) { /* без връзка — секцията остава само за качване */ }
         }
 
-        const LAB_STATUS_TEXT = { normal: 'в норма', high: 'над нормата', low: 'под нормата' };
-
         function renderLabsCurrent(d) {
             const box = document.getElementById('labsCurrent');
             if (!box) return;
@@ -2760,12 +2758,11 @@
             box.innerHTML = `
                 <div class="labs-sub">В плана</div>
                 <ul class="labs-list">${labs.map(l => `
-                    <li class="labs-item" data-status="${l.status}">
+                    <li class="labs-item">
                         <span class="labs-item-name">${escProfileHtml(l.label)}</span>
                         <span class="labs-item-val">${fmt(l.value)} ${escProfileHtml(l.unit)}</span>
-                        <span class="labs-item-status">${LAB_STATUS_TEXT[l.status] || ''}</span>
                     </li>`).join('')}</ul>
-                ${(d.supplements || []).length ? `<div class="labs-sub">Добавки по изследване</div><ul class="labs-list">${d.supplements.map(s => `<li class="labs-item"><span class="labs-item-name">${window.NutriPlanSupplementShop ? `<a href="${escProfileHtml(window.NutriPlanSupplementShop.url(s.name))}" target="_blank" rel="noopener">${escProfileHtml(s.name)}</a>` : escProfileHtml(s.name)} — ${escProfileHtml(s.dosage)}</span><span class="labs-item-status">${escProfileHtml(s.reason || '')}</span></li>`).join('')}</ul>` : ''}
+                ${(d.supplements || []).length ? `<div class="labs-sub">Добавки — за разговор със специалиста</div><ul class="labs-list">${d.supplements.map(s => `<li class="labs-item"><span class="labs-item-name">${window.NutriPlanSupplementShop ? `<a href="${escProfileHtml(window.NutriPlanSupplementShop.url(s.name))}" target="_blank" rel="noopener">${escProfileHtml(s.name)}</a>` : escProfileHtml(s.name)} — ${escProfileHtml(s.dosage)}</span><span class="labs-item-status">${escProfileHtml(s.reason || '')}</span></li>`).join('')}</ul>` : ''}
                 ${(d.cautions || []).length ? `<div class="labs-sub">За специалиста и лекаря</div><ul class="labs-cautions">${d.cautions.map(c => `<li>${escProfileHtml(c)}</li>`).join('')}</ul>` : ''}
                 <button type="button" class="labs-delete" onclick="deleteLabs()"><i class="fas fa-trash-can"></i> Изтрий данните от изследвания</button>`;
         }
@@ -2782,7 +2779,7 @@
             }
         }
 
-        // ── Клиентски картон: пълнота на профила ─────────────────────────────
+        // ── Пълнота на профила ──────────────────────────────────────────────
         // Тежестта е по това колко данните менят плана: въпросникът е основата,
         // изследванията и устройствата носят измерено, модулите — контекст.
         const CARD_QUESTION_FIELDS = ['gender', 'age', 'height', 'weight', 'goal', 'dailyActivityLevel', 'sportActivity',
@@ -2964,23 +2961,19 @@
             const deviceSources = (d && d.essence && d.essence.sources) || [];
             const docs = (d && d.documents) || [];
             const emo = d && d.emoeat;
-            const iris = d && d.iris;
             return [
-                { id: 'q', weight: 30, icon: 'fa-clipboard-list', name: 'Първоначален въпросник', fill: qFill,
+                { id: 'q', weight: 40, icon: 'fa-clipboard-list', name: 'Първоначален въпросник', fill: qFill,
                   status: qFill >= 1 ? 'Попълнен изцяло' : `Попълнен ${Math.round(qFill * 100)}%`,
                   action: 'questionnaire' },
-                { id: 'labs', weight: 20, icon: 'fa-vial', name: 'Кръвна картина и изследвания', fill: labs.length ? Math.min(1, labs.length / 6) : 0,
+                { id: 'labs', weight: 20, icon: 'fa-vial', name: 'Стойности от изследвания', fill: labs.length ? Math.min(1, labs.length / 6) : 0,
                   status: labs.length ? `${labs.length} ${labs.length === 1 ? 'показател' : 'показателя'} · ${day(labsAt)}` : 'Не са добавени',
                   action: 'labsSection' },
                 { id: 'devices', weight: 15, icon: 'fa-heart-pulse', name: 'Гривна, часовник, пръстен, везна', fill: deviceSources.length ? 1 : 0,
                   status: deviceSources.length ? `Свързани данни: ${deviceSources.length} вида` : 'Не са свързани',
                   action: 'devicesSection' },
-                { id: 'emoeat', weight: 15, icon: 'fa-heart', name: 'Тест за емоционално хранене (EmoEat)', fill: emo ? 1 : 0,
+                { id: 'emoeat', weight: 15, icon: 'fa-heart', name: 'Стил на хранене (EmoEat)', fill: emo ? 1 : 0,
                   status: emo ? `${day(src.emoeat || emo.at)}${emo.archetype ? ` · ${emo.archetype}` : ''}` : 'Не е направен',
                   href: './emoeat.html?from=nutriplan' },
-                { id: 'iris', weight: 10, icon: 'fa-eye', name: 'Ирисова диагностика (AIRIS)', fill: iris ? 1 : 0,
-                  status: iris ? `${day(src.airis || iris.at)}${iris.focus && iris.focus.length ? ` · фокус: ${iris.focus.join(', ')}` : ''}` : 'Не е направена',
-                  href: 'https://radilovk.github.io/airis1.0/?from=nutriplan', external: true },
                 { id: 'docs', weight: 10, icon: 'fa-file-medical', name: 'Други документи', fill: docs.length ? 1 : 0,
                   status: docs.length ? `${docs.length} ${docs.length === 1 ? 'документ' : 'документа'}` : 'Няма добавени',
                   action: 'docsSection' },
@@ -3183,7 +3176,7 @@
                 ${list('Факти от документа', a.findings)}
                 ${a.clinical.length ? `<div class="labs-sub">Нови състояния за профила</div><p class="labs-note">Отметнатите включват хранителните правила на състоянието.</p>${checks('clinical', a.clinical)}` : ''}
                 ${a.exclusions.length ? `<div class="labs-sub">Храни за изключване</div>${checks('exclusions', a.exclusions)}` : ''}
-                ${a.medications.length ? `<div class="labs-sub">Лекарства</div><p class="labs-note">Проверяват се за взаимодействия с храни и добавки.</p>${checks('medications', a.medications)}` : ''}
+                ${a.medications.length ? `<div class="labs-sub">Лекарства</div><p class="labs-note">Специалистът ги взима предвид.</p>${checks('medications', a.medications)}` : ''}
                 ${list('За специалиста', a.cautions)}
                 <label class="labs-date">Дата на документа <input type="date" id="docsDate" class="form-input" value="${escProfileHtml(p.date || new Date().toISOString().slice(0, 10))}"></label>
                 <button type="button" class="btn btn-primary labs-confirm" onclick="confirmDocument()"><i class="fas fa-check"></i> Потвърди и добави</button>
@@ -4728,185 +4721,16 @@
                 // Show analysis section
                 analysisSection.style.display = 'block';
                 
-                // Build analysis summary (showing only problematic areas - REQUIREMENT 2)
-                let html = '';
-                
-                // Only show if we have problems
-                if (analysis.keyProblems && Array.isArray(analysis.keyProblems) && analysis.keyProblems.length > 0) {
-                    html += '<div style="margin-bottom: 20px;">';
-                    html += '<h4 style="color: var(--primary-red); margin-bottom: 10px;">Ключови области за внимание:</h4>';
-                    html += '<ul style="list-style: none; padding: 0;">';
-                    
-                    analysis.keyProblems.forEach((problem, index) => {
-                        // Skip "Normal" severity (REQUIREMENT 2)
-                        if (problem.severity === 'Normal') {
-                            return;
-                        }
-                        
-                        let severityColor = '#0D9488'; // default teal
-                        let severityIcon = 'fa-check-circle';
-                        
-                        if (problem.severity === 'Critical') {
-                            severityColor = '#ef4444';
-                            severityIcon = 'fa-exclamation-circle';
-                        } else if (problem.severity === 'Risky') {
-                            severityColor = '#f97316';
-                            severityIcon = 'fa-exclamation-triangle';
-                        } else if (problem.severity === 'Borderline') {
-                            severityColor = '#fbbf24';
-                            severityIcon = 'fa-info-circle';
-                        }
-                        
-                        html += `
-                            <li style="margin-bottom: 15px; padding: 12px; background: var(--soft-red); border-radius: 8px; border-left: 4px solid ${severityColor};">
-                                <div style="display: flex; align-items: flex-start; gap: 10px;">
-                                    <i class="fas ${severityIcon}" style="color: ${severityColor}; margin-top: 2px; font-size: 1.1rem;"></i>
-                                    <div style="flex: 1;">
-                                        <strong style="color: var(--text-dark);">${escProfileHtml(problem.title || 'Проблем')}</strong>
-                                        <p style="margin: 5px 0 0 0; color: var(--text-light); font-size: 0.9rem;">${escProfileHtml(problem.description || '')}</p>
-                                    </div>
-                                </div>
-                            </li>
-                        `;
-                    });
-                    
-                    html += '</ul>';
-                    html += '</div>';
-                } else {
-                    html += '<p style="color: var(--text-light); font-style: italic;">Не са открити проблемни области</p>';
-                }
-                
-                // Health status score - displayed as circular widget with silhouette
-                // Unified calculation: same logic as analysis.html
-                let profileHealthScoreForAnimation = null;
-                let profileGaugeColor = '#0D9488';
-                {
-                    const MIN_HEALTH_SCORE = 15;
-                    const MAX_HEALTH_SCORE = 100;
-                    let healthScore = null;
+                // Фокусите на плана — без степен на риск и без оценка на здравето.
+                const focuses = (analysis.keyProblems || []).filter(p => p && p.severity !== 'Normal');
+                analysisContent.innerHTML = focuses.length
+                    ? `<ul style="list-style: none; padding: 0; margin: 0;">${focuses.map(p => `
+                        <li style="margin-bottom: 12px; padding: 12px; background: var(--soft-red); border-radius: 8px;">
+                            <strong style="color: var(--text-dark);">${escProfileHtml(p.title || 'Фокус')}</strong>
+                            <p style="margin: 5px 0 0 0; color: var(--text-light); font-size: 0.9rem;">${escProfileHtml(p.description || '')}</p>
+                        </li>`).join('')}</ul>`
+                    : '<p style="color: var(--text-light);">Без специални фокуси — планът следва целта ти.</p>';
 
-                    // Primary: use AI-provided currentHealthStatus.score
-                    if (analysis.currentHealthStatus && typeof analysis.currentHealthStatus.score === 'number') {
-                        healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(analysis.currentHealthStatus.score)));
-                    } else {
-                        // Fallback: calculate from problem severityValues (same as analysis.html)
-                        const problems = (analysis.keyProblems || []).filter(p => p.severity !== 'Normal');
-                        if (problems.length > 0) {
-                            let totalSeverity = 0;
-                            problems.forEach(problem => {
-                                totalSeverity += (problem.severityValue || 50);
-                            });
-                            const avgSeverity = totalSeverity / problems.length;
-                            const cappedSeverity = Math.min(avgSeverity, MAX_HEALTH_SCORE);
-                            const rawHealthScore = MAX_HEALTH_SCORE - cappedSeverity;
-                            healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(rawHealthScore)));
-                            // Strategic adjustment: 10% reduction (same as analysis.html)
-                            const healthReduction = Math.floor(healthScore * 0.10);
-                            healthScore = Math.max(MIN_HEALTH_SCORE, healthScore - healthReduction);
-                        }
-                    }
-
-                    if (healthScore !== null) {
-                        const criticalCount = (analysis.keyProblems || []).filter(p => p.severity === 'Critical').length;
-                        const riskyCount = (analysis.keyProblems || []).filter(p => p.severity === 'Risky').length;
-                        const borderlineCount = (analysis.keyProblems || []).filter(p => p.severity === 'Borderline').length;
-                        const totalProblems = criticalCount + riskyCount + borderlineCount;
-
-                        let gaugeColor = '#0D9488';
-                        let healthLabel = 'Добро';
-
-                        if (healthScore < 25) {
-                            gaugeColor = '#ef4444';
-                            healthLabel = 'Влошено';
-                        } else if (healthScore < 50) {
-                            gaugeColor = '#f97316';
-                            healthLabel = 'Нуждае се от внимание';
-                        } else if (healthScore < 75) {
-                            gaugeColor = '#fbbf24';
-                            healthLabel = 'Умерено';
-                        } else {
-                            gaugeColor = '#0D9488';
-                            healthLabel = 'Добро';
-                        }
-
-                        profileHealthScoreForAnimation = healthScore;
-                        profileGaugeColor = gaugeColor;
-
-                        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                        const emptyColor = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
-
-                        html += `
-                            <div style="padding: 24px 20px 20px; background: linear-gradient(145deg, var(--soft-red), rgba(13,148,136,0.03)); border-radius: 16px; text-align: center; border: 1px solid rgba(13,148,136,0.1);">
-                                <div style="font-weight: 700; color: var(--text-dark); font-size: 0.95rem; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                    <i class="fas fa-heartbeat" style="color: ${gaugeColor}; margin-right: 6px;"></i>
-                                    Здравен статус
-                                </div>
-
-                                <!-- Circular Health Widget -->
-                                <div class="health-viz-wrap">
-                                    <svg class="health-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
-                                        <defs>
-                                            <linearGradient id="profileHealthRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop id="profileHealthRingColor" offset="0%" stop-color="${gaugeColor}"/>
-                                            </linearGradient>
-                                        </defs>
-
-                                        <circle id="profileHealthRing" cx="50" cy="50" r="44" fill="none"
-                                                stroke="url(#profileHealthRingGrad)" stroke-width="5" stroke-linecap="round"
-                                                stroke-dasharray="276.46" stroke-dashoffset="276.46"
-                                                style="transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1); filter: drop-shadow(0 0 7px ${gaugeColor}99);"/>
-                                    </svg>
-                                    <svg class="health-silhouette-svg" viewBox="0 0 512 512" aria-hidden="true">
-                                        <defs>
-                                            <linearGradient id="profileBodyGrad" x1="0" y1="512" x2="0" y2="0" gradientUnits="userSpaceOnUse">
-                                                <stop offset="${healthScore}%" stop-color="${gaugeColor}"/>
-                                                <stop offset="${healthScore}%" stop-color="${emptyColor}"/>
-                                            </linearGradient>
-                                        </defs>
-                                        <g fill="url(#profileBodyGrad)">
-                                            <circle cx="256" cy="56" r="40"/>
-                                            <path d="M199.3,295.62h0l-30.4,172.2a24,24,0,0,0,19.5,27.8,23.76,23.76,0,0,0,27.6-19.5l21-119.9v.2s5.2-32.5,17.5-32.5h3.1c12.5,0,17.5,32.5,17.5,32.5v-.1l21,119.9a23.92,23.92,0,1,0,47.1-8.4l-30.4-172.2-4.9-29.7c-2.9-18.1-4.2-47.6.5-59.7,4-10.4,14.13-14.2,23.2-14.2H424a24,24,0,0,0,0-48H88a24,24,0,0,0,0,48h92.5c9.23,0,19.2,3.8,23.2,14.2,4.7,12.1,3.4,41.6.5,59.7Z"/>
-                                        </g>
-                                    </svg>
-                                </div>
-
-                                <!-- Score display -->
-                                <div style="font-size: 2.4rem; font-weight: 900; color: ${gaugeColor}; line-height: 1; margin-bottom: 6px; letter-spacing: -2px;">${healthScore}%</div>
-                                <div style="font-size: 0.82rem; font-weight: 700; color: ${gaugeColor}; text-transform: uppercase; letter-spacing: 1.5px;">${healthLabel}</div>
-
-                                ${totalProblems > 0 ? `
-                                <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(13,148,136,0.12);">
-                                    ${criticalCount > 0 ? `<span class="health-badge critical"><i class="fas fa-exclamation-circle"></i> ${criticalCount} критични</span>` : ''}
-                                    ${riskyCount > 0 ? `<span class="health-badge risky"><i class="fas fa-exclamation-triangle"></i> ${riskyCount} рискови</span>` : ''}
-                                    ${borderlineCount > 0 ? `<span class="health-badge borderline"><i class="fas fa-info-circle"></i> ${borderlineCount} гранични</span>` : ''}
-                                </div>
-                                ` : ''}
-                            </div>
-                        `;
-                    }
-                }
-                
-                analysisContent.innerHTML = html;
-
-                // Цветът на здравния статус е ивица отляво — фонът остава плътният
-                // акцент, за да е четим белият текст при всеки статус.
-                const analysisHeader = document.querySelector('.analysis-container .analysis-header');
-                if (analysisHeader) {
-                    analysisHeader.style.boxShadow = `inset 6px 0 0 ${profileGaugeColor}`;
-                }
-
-                // Animate the circular health ring after DOM is ready
-                if (profileHealthScoreForAnimation !== null) {
-                    const circumference = 2 * Math.PI * 44; // ≈ 276.46
-                    setTimeout(() => {
-                        const ring = document.getElementById('profileHealthRing');
-                        if (ring) {
-                            const dashOffset = circumference * (1 - profileHealthScoreForAnimation / 100);
-                            ring.style.strokeDashoffset = dashOffset.toFixed(2);
-                        }
-                    }, 400);
-                }
-                
             } catch (error) {
                 console.error('Error loading analysis:', error);
                 if (window.NutriPlanDiagnostics) {

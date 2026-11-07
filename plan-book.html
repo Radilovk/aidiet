@@ -1851,6 +1851,7 @@
             <div class="cover-subtitle">Комплексна 7-дневна програма за здравословен живот — хранене, психология, добавки и практически съвети.</div>
             <div class="cover-user-name" id="coverUserName"></div>
             <div class="cover-date" id="coverDate"></div>
+            <div class="cover-date">Създадено с AI, проверено от специалист. Хранителни насоки — не е медицинско изделие.</div>
             <div class="cover-welcome" id="coverWelcome" style="display:none;">
                 <div class="cover-welcome-label"><i class="fas fa-comment-dots"></i> Лично послание</div>
                 <div class="cover-welcome-text" id="coverWelcomeText"></div>
@@ -1877,22 +1878,17 @@
         <!-- ===================== PAGE 3: ANALYSIS ===================== -->
         <div class="page" id="analysisPage" style="display:none;">
             <div class="section-header">
-                <div class="section-icon blue"><i class="fas fa-stethoscope"></i></div>
+                <div class="section-icon blue"><i class="fas fa-compass"></i></div>
                 <div>
-                    <div class="section-title">Здравословен Анализ</div>
-                    <div class="section-subtitle">Оценка на твоето текущо здравословно състояние</div>
+                    <div class="section-title">Основа на плана</div>
+                    <div class="section-subtitle">Фокусите, около които е изграден планът</div>
                 </div>
-            </div>
-            <div class="health-score-display" id="healthScoreSection" style="display:none;">
-                <div class="health-score-label">Здравословен Статус</div>
-                <div class="health-score-value" id="bookHealthScore">—</div>
-                <div class="health-score-status" id="bookHealthLabel">—</div>
             </div>
             <div id="bookProblemsContainer"></div>
             <div class="forecast-grid-book" id="bookForecastGrid" style="display:none;"></div>
             <div class="page-footer">
                 <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
-                <div>Здравословен Анализ</div>
+                <div>Основа на плана</div>
             </div>
         </div>
 
@@ -2113,12 +2109,6 @@
             'Mental': 'fa-brain'
         };
 
-        const severityLabels = {
-            'Normal': 'Нормално',
-            'Borderline': 'Гранично',
-            'Risky': 'Рисково',
-            'Critical': 'Критично'
-        };
 
         /** Слотовете на двигателя („Хранене 1…5“) → имената, които клиентът вижда в приложението. */
         const BOOK_MEAL_LABELS = {
@@ -2297,94 +2287,35 @@
             var analysis = plan.analysis;
             var problems = analysis.keyProblems.filter(function(p) { return p.severity !== 'Normal'; });
 
-            // Health score calculation
-            // MIN_HEALTH_SCORE (15): represents the floor — 0 would mean death, so 15
-            // indicates alive but in very poor health.
-            // STRATEGIC_REDUCTION (0.10): a 10% strategic reduction applied to the
-            // fallback calculation to slightly underestimate current status, encouraging
-            // user motivation to improve. Matches the logic in analysis.html.
-            var MIN_HEALTH_SCORE = 15;
-            var MAX_HEALTH_SCORE = 100;
-            var STRATEGIC_REDUCTION = 0.10;
-
-            var healthScore = 50;
-            if (analysis.currentHealthStatus && typeof analysis.currentHealthStatus.score === 'number') {
-                // Use AI-provided score (already includes strategic reduction)
-                healthScore = Math.max(MIN_HEALTH_SCORE, Math.min(MAX_HEALTH_SCORE, Math.round(analysis.currentHealthStatus.score)));
-            } else if (problems.length > 0) {
-                // Fallback: derive score from average problem severity
-                var totalSev = 0;
-                problems.forEach(function(p) { totalSev += (p.severityValue || 50); });
-                var avg = totalSev / problems.length;
-                var rawScore = Math.max(MIN_HEALTH_SCORE, Math.round(MAX_HEALTH_SCORE - Math.min(avg, MAX_HEALTH_SCORE)));
-                // Apply strategic reduction so the displayed score motivates improvement
-                healthScore = Math.max(MIN_HEALTH_SCORE, rawScore - Math.floor(rawScore * STRATEGIC_REDUCTION));
-            }
-
-            var gaugeColor, healthLabel;
-            // Тъмни нюанси на цветовете на статуса — текстът е върху бяло.
-            if (healthScore < 25) { gaugeColor = '#B42318'; healthLabel = 'Влошено'; }
-            else if (healthScore < 50) { gaugeColor = '#C2410C'; healthLabel = 'Нуждае се от внимание'; }
-            else if (healthScore < 75) { gaugeColor = '#9A4A06'; healthLabel = 'Умерено'; }
-            else { gaugeColor = '#0F766E'; healthLabel = 'Добро'; }
-
-            var scoreSection = document.getElementById('healthScoreSection');
-            scoreSection.style.display = 'block';
-            document.getElementById('bookHealthScore').textContent = healthScore + '%';
-            document.getElementById('bookHealthScore').style.color = gaugeColor;
-            document.getElementById('bookHealthLabel').textContent = healthLabel;
-            document.getElementById('bookHealthLabel').style.color = gaugeColor;
-
             // Problem cards
             var container = document.getElementById('bookProblemsContainer');
             container.innerHTML = '';
 
             if (problems.length === 0) {
-                container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--green-700);font-size:1.1rem;"><i class="fas fa-check-circle" style="font-size:2rem;margin-bottom:12px;display:block;"></i>Не са открити проблемни области!</div>';
+                container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--green-700);font-size:1.1rem;"><i class="fas fa-check-circle" style="font-size:2rem;margin-bottom:12px;display:block;"></i>Без специални фокуси — планът следва целта ти.</div>';
             } else {
                 problems.forEach(function(p) {
-                    var sev = (p.severity || 'normal').toLowerCase();
-                    var sevLabel = severityLabels[p.severity] || p.severity;
+                    // Фокус — без степен на риск.
                     var catIcon = categoryIcons[p.category] || 'fa-heartbeat';
-                    var sevVal = p.severityValue || 50;
 
                     var html = '<div class="problem-card-book">';
                     html += '<div class="problem-top">';
-                    html += '<div class="problem-title-text"><i class="fas ' + catIcon + '"></i> ' + esc(p.title || 'Проблем') + '</div>';
-                    html += '<span class="severity-pill ' + sev + '">' + esc(sevLabel) + '</span>';
+                    html += '<div class="problem-title-text"><i class="fas ' + catIcon + '"></i> ' + esc(p.title || 'Фокус') + '</div>';
                     html += '</div>';
                     html += '<div class="problem-desc">' + escNl(p.description || '') + '</div>';
-                    if (p.impact) {
-                        html += '<div class="problem-impact"><i class="fas fa-exclamation-triangle"></i><span>' + esc(p.impact) + '</span></div>';
-                    }
-                    html += '<div class="severity-bar"><div class="severity-bar-fill ' + sev + '" style="width:' + sevVal + '%;"></div></div>';
                     html += '</div>';
 
                     container.innerHTML += html;
                 });
             }
 
-            // Forecast
+            // Само целта и темпът — без сценарий „без промяна“ и без здравни прогнози.
+            var opt = analysis.forecastOptimistic;
+            var weight = (opt && typeof opt === 'object' && opt.weight) || (typeof opt === 'string' ? opt : '');
             var fg = document.getElementById('bookForecastGrid');
-            if (analysis.forecastPessimistic || analysis.forecastOptimistic) {
+            if (weight) {
                 fg.style.display = 'grid';
-                var fgHtml = '';
-
-                if (analysis.forecastPessimistic && analysis.forecastPessimistic.risks && analysis.forecastPessimistic.risks.length > 0) {
-                    fgHtml += '<div class="forecast-card-book pessimistic">';
-                    fgHtml += '<h4><i class="fas fa-exclamation-triangle"></i> Без промяна</h4>';
-                    fgHtml += '<ul>' + analysis.forecastPessimistic.risks.slice(0,5).map(function(r){ return '<li>'+esc(r)+'</li>'; }).join('') + '</ul>';
-                    fgHtml += '</div>';
-                }
-
-                if (analysis.forecastOptimistic && analysis.forecastOptimistic.improvements && analysis.forecastOptimistic.improvements.length > 0) {
-                    fgHtml += '<div class="forecast-card-book optimistic">';
-                    fgHtml += '<h4><i class="fas fa-check-circle"></i> При промяна</h4>';
-                    fgHtml += '<ul>' + analysis.forecastOptimistic.improvements.slice(0,5).map(function(r){ return '<li>'+esc(r)+'</li>'; }).join('') + '</ul>';
-                    fgHtml += '</div>';
-                }
-
-                fg.innerHTML = fgHtml;
+                fg.innerHTML = '<div class="forecast-card-book optimistic"><h4><i class="fas fa-flag-checkered"></i> Цел и темп</h4><p>' + esc(weight) + '</p></div>';
             }
         }
 
@@ -2840,7 +2771,7 @@
 
             if (document.getElementById('analysisPage').style.display !== 'none') {
                 pageNum++;
-                items.push({ title: 'Здравословен Анализ', page: pageNum });
+                items.push({ title: 'Основа на плана', page: pageNum });
             }
             if (document.getElementById('strategyPage').style.display !== 'none') {
                 pageNum++;
