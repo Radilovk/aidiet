@@ -2506,7 +2506,7 @@
             </button>
             <button class="btn btn-primary hidden" id="saveAndRegenerateBtn" onclick="saveAndRegeneratePlan()">
                 <i class="fas fa-sync-alt"></i>
-                Запази и регенерирай план
+                Запази и обнови плана
             </button>
             <button class="btn btn-secondary hidden" id="cancelBtn" onclick="cancelEditing()">
                 <i class="fas fa-times"></i>
@@ -4095,7 +4095,7 @@
             try {
                 if (localStorage.getItem('npPlanRegenFailed') === '1') {
                     localStorage.removeItem('npPlanRegenFailed');
-                    showAlert('Новият план по промените ти не можа да се изготви. Сегашният ти план остава — опитай отново с „Запази и регенерирай план“.', 'warning');
+                    showAlert('Новият план по промените ти не можа да се изготви. Сегашният ти план остава — опитай отново с „Запази и обнови плана“.', 'warning');
                 } else if (localStorage.getItem('planReplacePending') === '1') {
                     showAlert('Новият план по промените ти очаква одобрение от специалист. Дотогава ползваш сегашния си план.', 'info');
                 }
@@ -4444,7 +4444,7 @@
                 const btn = document.getElementById('saveAndRegenerateBtn');
                 if (!btn) return;
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Запази и регенерирай план';
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Запази и обнови плана';
             };
 
             try {
