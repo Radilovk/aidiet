@@ -197,6 +197,7 @@ footer .sp { margin-left: auto; }
 .rise.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .rise, .note { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
 
+
 @media (max-width: 860px) {
   .hero { padding-top: 32px; }
   .hero .wrap, .split, .studio { grid-template-columns: 1fr; gap: 36px; }
@@ -214,6 +215,80 @@ footer .sp { margin-left: auto; }
   .split .lock { order: 2; }
   .places { grid-template-columns: 1fr; }
 }
+/* ── phone first: compact rhythm, lists instead of stacked cards, the download always under the thumb ── */
+.dock { display: none; }
+@media (max-width: 860px) {
+  body { font-size: 16px; }
+  .wrap { padding: 0 18px; }
+  .top .get { display: none; }
+  .hero { padding: 20px 0 8px; }
+  .hero .wrap { gap: 26px; }
+  .eyebrow { margin-bottom: 14px; font-size: 13px; }
+  .hero h1 { font-size: clamp(40px, 11.5vw, 50px); line-height: 1.02; }
+  .lead { font-size: 17px; margin: 16px 0 24px; }
+  .btn { width: 100%; justify-content: center; padding: 15px 20px; border-radius: 18px; }
+  .dl { flex-direction: column; align-items: stretch; }
+  .other { text-align: center; }
+  .how-android summary { margin: 0 auto; }
+  .phones { height: 430px; margin-top: 4px; }
+  .phone { width: 205px; }
+  section { padding: 44px 0; }
+  .kicker { font-size: 12.5px; margin-bottom: 8px; }
+  .h2 { font-size: clamp(27px, 7.6vw, 32px); }
+  .sub { font-size: 16px; margin-top: 10px; }
+
+  /* effects: two columns of short tiles */
+  .benefits { margin-top: 24px; gap: 10px; }
+  .ben { padding: 18px 16px 20px; border-radius: 22px; }
+  .bi { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; }
+  .bi svg { width: 22px; height: 22px; }
+  .ben h3 { font-size: 16.5px; line-height: 1.2; margin-bottom: 6px; }
+  .ben p { font-size: 14px; line-height: 1.4; }
+
+  /* numbers: one row */
+  .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 22px; }
+  .stat { padding: 18px 12px 16px; border-radius: 20px; text-align: center; }
+  .stat .v { font-size: 36px; }
+  .stat .v small { display: block; font-size: 12.5px; margin: 6px 0 0; letter-spacing: .02em; }
+  .stat p { font-size: 12px; line-height: 1.35; margin-top: 8px; }
+  .fine { text-align: center; }
+
+  /* steps and rules: one card, rows inside */
+  .grid3, .rules { grid-template-columns: 1fr; gap: 0; margin-top: 22px; background: var(--card); border-radius: 24px; box-shadow: inset 0 0 0 1px var(--edge), var(--shadow); overflow: hidden; }
+  .grid3 .card, .rules .rule { display: grid; grid-template-columns: 40px 1fr; column-gap: 14px; align-items: start; padding: 16px 18px;
+    background: transparent; border-radius: 0; box-shadow: none; }
+  .grid3 .card + .card, .rules .rule + .rule { border-top: 1px solid var(--line); }
+  .num, .rule .ico { grid-row: span 2; margin: 2px 0 0; width: 36px; height: 36px; font-size: 16px; border-radius: 11px; }
+  .grid3 .card h3, .rule h3 { font-size: 17px; margin: 0 0 2px; }
+  .grid3 .card p, .rule p { font-size: 14.5px; margin: 0; }
+
+  /* reminders */
+  .split { gap: 22px; }
+  .lock { min-height: 0; padding: 26px 16px 18px; border-radius: 30px; }
+  .lock .time { font-size: 58px; }
+  .lock .date { font-size: 15px; margin-bottom: 16px; }
+  .note { font-size: 14px; padding: 11px 12px; border-radius: 18px; }
+  .list { margin-top: 16px; }
+  .list li { padding: 12px 0; }
+  .list .t { width: 112px; font-size: 15px; }
+  .list .d { font-size: 15px; }
+
+  .meters { padding: 22px; border-radius: 24px; gap: 18px; }
+  .places { margin-top: 22px; }
+  .place { padding: 16px; border-radius: 22px; }
+  .place p { font-size: 13.5px; }
+  .final { padding: 52px 0 40px; }
+  .final img.ic { width: 76px; height: 76px; border-radius: 18px; }
+  .final .dl { max-width: 360px; margin: 0 auto; }
+  footer { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+  /* the dock: the download button stays under the thumb once the hero's button scrolls away */
+  .dock { display: block; position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 20;
+    transform: translateY(140%); transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+  .dock.show { transform: none; }
+  .dock .btn { width: 100%; box-shadow: 0 14px 40px -10px rgba(0,0,0,.45); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+}
+@media (max-width: 360px) { .stat .v { font-size: 30px; } .ben h3 { font-size: 15.5px; } }
 @media (max-width: 380px) { .phone { width: 190px; } .phones { height: 420px; } .btn span { font-size: 17px; } }
 @media (prefers-color-scheme: dark) {
   /* cards keep their edge on a dark page (a shadow alone disappears) */
@@ -376,6 +451,7 @@ footer .sp { margin-left: auto; }
     </div>
   </div>
 </main>
+<div class="dock" id="dock" aria-hidden="true"></div>
 
 <footer>
   <div class="wrap">
@@ -413,6 +489,19 @@ footer .sp { margin-left: auto; }
     get.innerHTML = get2.innerHTML = btnIOS('main') + btnAPK('alt');
   }
   var link = os === 'ios' ? IOS : os === 'android' ? APK : '#get';
+  // the dock (phones): the same button, shown while neither download button is on the screen
+  var dock = document.getElementById('dock');
+  if (os !== 'desktop' && 'IntersectionObserver' in window) {
+    dock.innerHTML = os === 'ios' ? btnIOS('main') : btnAPK('main');
+    var seen = new Set();
+    var dio = new IntersectionObserver(function (list) {
+      list.forEach(function (x) { if (x.isIntersecting) seen.add(x.target); else seen.delete(x.target); });
+      var past = get.getBoundingClientRect().bottom < 0;
+      dock.classList.toggle('show', !seen.size && past);
+      dock.setAttribute('aria-hidden', dock.classList.contains('show') ? 'false' : 'true');
+    });
+    dio.observe(get); dio.observe(get2);
+  }
   document.querySelectorAll('[data-dl]').forEach(function (a) { a.href = link; if (os === 'android') a.setAttribute('download', ''); });
 
   // the studios: the platform's live list (a new studio appears here by itself)
