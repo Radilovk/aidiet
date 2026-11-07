@@ -1108,7 +1108,9 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   let tickedNow = false;   // the rules were ticked in THIS booking (only then the acceptance is recorded)
   async function sendBook(extra) {
     const times = picked.slice();
-    const r = await api('POST', 'book', { ...me, times, token: me.token, terms: tickedNow || undefined, termsText: tickedNow ? termsText() : undefined, termsVer: tickedNow ? me.termsV : undefined,
+    // the rules accepted on this phone (now, or on the first screen earlier) and not yet recorded by the studio
+    const sendTerms = tickedNow || (!me.termsSent && me.termsV === termsVer());
+    const r = await api('POST', 'book', { ...me, times, token: me.token, terms: sendTerms || undefined, termsText: sendTerms ? termsText() : undefined, termsVer: sendTerms ? me.termsV : undefined,
       code: codeOk(me.code) ? me.code.code : undefined, ...extra }).catch(() => ({ status: 0, d: {} }));
     const d = r.d || {};
     if (d.token) me.token = d.token;
@@ -1127,6 +1129,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       return;
     }
     tickedNow = false;
+    if (sendTerms) { me.termsSent = true; save('me', me); }
     const booked = (d.booked || []).map((x) => x.time);
     const failed = d.failed || [];
     picked = picked.filter((t) => !booked.includes(t) && !failed.some((f) => f.time === t));
@@ -1450,7 +1453,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   }
   const termsText = () => `Правила и условия — ${cfg.brand.name}\n` + termsParts().map(([h, l]) => `${h}\n${l.map((x) => '- ' + x).join('\n')}`).join('\n');
   const termsVer = () => { let h = 5381; const t = termsText(); for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) >>> 0; return h.toString(36); };
-  const needTick = () => !me.token || me.termsV !== termsVer();
+  const needTick = () => me.termsV !== termsVer();   // accepted once on this phone (first screen or booking) = not asked again
   function showTerms() {
     openPage(null, 'Правила и условия', `<p class="small muted" style="margin:0 0 4px">${esc(cfg.brand.name)}</p>
       ${termsParts().map(([h, l]) => `<h4>${esc(h)}</h4><ul>${l.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`).join('')}`);
