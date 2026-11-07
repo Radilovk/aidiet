@@ -1139,7 +1139,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     }
     return at > now + 30e3 ? at : null;
   }
-  function remId(bookingId) { return REM_BASE + (parseInt(String(bookingId).slice(0, 7), 16) % 900000000); }
+  function remId(bookingId, k = 0) { return REM_BASE + (parseInt(String(bookingId).slice(0, 7), 16) % 300000000) * 3 + k; }   // k: 0 the main one, 1 the evening before, 2 an hour before
   function remText(startMs, at) {
     const s = zonedParts(startMs, tz());
     const a = zonedParts(at, tz());
@@ -1147,6 +1147,12 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     return `${day} в ${s.hm}` + (cfg.address ? ` · ${cfg.address}` : '');
   }
   const remTitle = () => cfg.brand.name;
+  function remBody(x) {
+    const hm = zonedParts(x.start, tz()).hm;
+    if (x.kind === 'eve') return `Утре в ${hm} те очакваме. Вода и удобни дрехи — и си готов.`;
+    if (x.kind === 'hour') return `Тренировката ти е след 1 час, в ${hm}. Ела 5 мин по-рано.`;
+    return remText(x.start, x.at);
+  }
 
   /* the offer to turn reminders on: a card inside the "Записани ✓" sheet that shows what the reminder will look like; the phone's own
      question comes only after the tap on "Включи" (and only once — if it was answered before, nothing is offered) */
@@ -1191,10 +1197,19 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     if (!ln || !cfg) return;
     try {
       const now = Date.now();
-      const items = mine.filter((h) => h.status === 'booked').map((h) => {
+      /* three calm touches for each hour: the evening before (19:00), the studio's reminder (4 h by default), an hour before */
+      const items = [];
+      for (const h of mine.filter((x) => x.status === 'booked')) {
         const start = zonedMs(h.time.slice(0, 10), h.time.slice(11), tz());
-        return { id: remId(h.id), bid: h.id, start, at: reminderAt(start, now) };
-      }).filter((x) => x.at).sort((a, b) => a.at - b.at).slice(0, 60);   // iOS keeps at most 64 pending notifications
+        const s = zonedParts(start, tz());
+        const main = reminderAt(start, now);
+        if (main) items.push({ id: remId(h.id, 0), bid: h.id, start, at: main, kind: 'main' });
+        const eve = zonedMs(zonedParts(start - 864e5, tz()).ymd, '19:00', tz());
+        if (s.hm < '13:00' && eve > now + 30e3 && start - eve > 10 * 3600e3) items.push({ id: remId(h.id, 1), bid: h.id, start, at: eve, kind: 'eve' });
+        const hour = start - 3600e3;
+        if (hour > now + 30e3 && (!main || Math.abs(main - hour) > 45 * 60e3)) items.push({ id: remId(h.id, 2), bid: h.id, start, at: hour, kind: 'hour' });
+      }
+      items.sort((a, b) => a.at - b.at).splice(60);   // iOS keeps at most 64 pending notifications
       const pend = ((await ln.getPending()).notifications || []).filter((n) => n.id >= REM_BASE && n.id < 2 * REM_BASE);
       if (!items.length && !pend.length) return;
       let perm = (await ln.checkPermissions()).display;
@@ -1206,7 +1221,8 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       if (items.length) {
         setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
-          id: x.id, title: remTitle(x.start, x.at), body: remText(x.start, x.at), actionTypeId: 'HOUR', group: STUDIO, extra: { id: x.bid },
+          id: x.id, title: remTitle(x.start, x.at), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: { id: x.bid },
+          sound: 'default', relevanceScore: 1, interruptionLevel: 'timeSensitive',   // time-sensitive once the app has Apple's entitlement (1.2); until then a normal alert with sound
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
       }

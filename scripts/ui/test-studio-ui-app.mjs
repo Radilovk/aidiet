@@ -48,7 +48,7 @@ await ctx.addInitScript(() => {
     requestPermissions: async () => { st.asked++; st.perm = 'granted'; save(); return { display: 'granted' }; },
     getPending: async () => ({ notifications: st.pending.map((n) => ({ id: n.id })) }),
     cancel: async ({ notifications }) => { st.pending = st.pending.filter((p) => !notifications.some((n) => n.id === p.id)); st.log.push('cancel:' + notifications.length); save(); },
-    schedule: async ({ notifications }) => { notifications.forEach((n) => { st.pending.push({ id: n.id, at: new Date(n.schedule.at).getTime(), body: n.body, title: n.title }); }); st.log.push('schedule:' + notifications.length); save(); },
+    schedule: async ({ notifications }) => { notifications.forEach((n) => { st.pending.push({ id: n.id, at: new Date(n.schedule.at).getTime(), body: n.body, title: n.title, sound: n.sound, level: n.interruptionLevel }); }); st.log.push('schedule:' + notifications.length); save(); },
   } } };
 });
 const page = await ctx.newPage();
@@ -137,13 +137,14 @@ await step('book 08:00 and 15:00 (3 days ahead): the notification permission is 
   if (!rec.at || !/Промяна, отказ и неявяване/.test(txt || '')) throw new Error('the consent record lacks the time or the exact rules text');
   await page.click('.sheet [data-close]');
 });
-await step('reminders are 4 h before; 08:00 would be 04:00 → moved to 07:00; no .ics button in the app', async () => {
+await step('reminders: the evening before (morning hours), 4 h before (08:00 → 07:00), an hour before; with sound, time-sensitive', async () => {
   const s = await ln();
-  eq(s.pending.length, 2, 'pending');
   const at = (hm) => zonedMs(day, hm, 'Europe/Sofia');
-  const times = s.pending.map((n) => n.at).sort();
-  eq(times[0], at('07:00'), '08:00 hour → 07:00');
-  eq(times[1], at('11:00'), '15:00 hour → 11:00');
+  const prev = zonedParts(at('12:00') - 864e5, 'Europe/Sofia').ymd;
+  const times = s.pending.map((n) => n.at).sort((a, b) => a - b);
+  eq(JSON.stringify(times), JSON.stringify([zonedMs(prev, '19:00', 'Europe/Sofia'), at('07:00'), at('11:00'), at('14:00')]), 'the four reminders');
+  if (!s.pending.every((n) => n.sound === 'default' && n.level === 'timeSensitive')) throw new Error('no sound / level');
+  if (!/Утре в 08:00/.test(s.pending.find((n) => n.at === zonedMs(prev, '19:00', 'Europe/Sofia')).body)) throw new Error('evening text');
   if (!/Днес в 08:00/.test(s.pending.find((n) => n.at === at('07:00')).body)) throw new Error('text: ' + JSON.stringify(s.pending.map((n) => n.body)));
   if (await page.locator('a[download]').count()) throw new Error('.ics button shown in the app');
 });
@@ -155,11 +156,11 @@ await step('move one hour → the reminder follows; cancel → it goes', async (
   await page.waitForSelector('text=Часът е преместен');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => /16:00/.test(n.body)));
   let s = await ln();
-  eq(s.pending.length, 2, 'still 2');
+  eq(s.pending.length, 4, 'still 4');
   await page.click('#fab'); await page.click('[data-p=mine]'); await page.locator('.sheet [data-own]').last().click();
   await page.click('[data-go=cancel]'); await page.click('[data-go=cancel]');
   await page.waitForSelector('text=Часът е отказан');
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.length === 1);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.length === 2);
 });
 await step('held hours (as in XBody): a grey dot, a dashed "проведен" hour; pull down refreshes', async () => {
   const phone = db.prepare("SELECT phone FROM clients WHERE studio_id='burgas'").get().phone;
