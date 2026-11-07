@@ -120,7 +120,7 @@ section { padding: 72px 0; }
 .list .d { color: var(--muted); }
 
 /* results */
-.benefits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 40px; }
+.benefits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
 .ben { background: var(--card); border-radius: 26px; padding: 28px 24px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
 .ben::before { content: ""; position: absolute; inset: auto -30% -60% auto; width: 180px; height: 180px; border-radius: 50%;
   background: radial-gradient(closest-side, rgba(211,47,47,.12), transparent); }
@@ -130,9 +130,6 @@ section { padding: 72px 0; }
 .ben h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
 .ben p { color: var(--muted); font-size: 16px; }
 .fine { color: var(--muted); font-size: 13px; margin-top: 18px; }
-.also { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-.also span { font-size: 15px; font-weight: 600; padding: 10px 16px; border-radius: 999px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
-.also span::before { content: "✓"; color: var(--red); margin-right: 8px; }
 .results + .why { padding-top: 24px; }
 
 /* rules */
@@ -198,7 +195,6 @@ footer .sp { margin-left: auto; }
 .rise.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .rise, .note { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
 
-@media (max-width: 1020px) and (min-width: 861px) { .benefits { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 860px) {
   .hero { padding-top: 32px; }
   .hero .wrap, .split, .studio { grid-template-columns: 1fr; gap: 36px; }
@@ -216,7 +212,6 @@ footer .sp { margin-left: auto; }
   .split .lock { order: 2; }
   .places { grid-template-columns: 1fr; }
 }
-@media (max-width: 520px) { .benefits { grid-template-columns: 1fr; } }
 @media (max-width: 380px) { .phone { width: 190px; } .phones { height: 420px; } .btn span { font-size: 17px; } }
 </style>
 </head>
@@ -259,21 +254,14 @@ footer .sp { margin-left: auto; }
   <section class="results">
     <div class="wrap">
       <div class="kicker rise">Резултатът</div>
-      <h2 class="h2 rise">Тялото, което искаш. За 20 минути.</h2>
+      <h2 class="h2 rise">Тялото, което искаш.</h2>
       <div class="benefits">
-        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c-1.5 3-1.5 6 0 9s1.5 6 0 9M16 3c1.5 3 1.5 6 0 9s-1.5 6 0 9"/></svg></div>
-          <h3>Оформяне и стягане</h3><p>Активира дълбоките мускули и ги тонизира, без да увеличава обема им.</p></div>
-        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-8.5z"/></svg></div>
-          <h3>Отслабване</h3><p>3 пъти по-интензивно изгаряне на калории. Мазнините горят до 48 часа след тренировката.</p></div>
-        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5"/></svg></div>
-          <h3>Антицелулитен ефект</h3><p>По-добро кръвообращение, по-малко задържани течности и лимфен дренаж.</p></div>
-        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg></div>
-          <h3>Гладка и стегната кожа</h3><p>Стимулира колагена, заглажда кожата и подобрява еластичността ѝ.</p></div>
-      </div>
-      <div class="also rise">
-        <span>Щадящо за ставите — и при болки в гърба, коленете или раменете</span>
-        <span>След бременност — стяга корема и таза</span>
-        <span>Рехабилитация на отслабени мускули</span>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c-1.5 3-1.5 6 0 9s1.5 6 0 9M16 3c1.5 3 1.5 6 0 9s-1.5 6 0 9"/></svg></div><h3>Стягане</h3><p>Тонизира дълбоките мускули.</p></div>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-8.5z"/></svg></div><h3>Отслабване</h3><p>3× повече изгорени калории.</p></div>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5"/></svg></div><h3>Антицелулитен ефект</h3><p>Видимо по-гладка кожа.</p></div>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c3-2 6 2 9 0s6-2 9 0M3 13c3-2 6 2 9 0s6-2 9 0M3 18c3-2 6 2 9 0s6-2 9 0"/></svg></div><h3>Лимфен дренаж</h3><p>Извежда задържаните течности.</p></div>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3c-2 4-2 7 1 9s3 5 1 9M17 3c2 4 2 7-1 9s-3 5-1 9"/><path d="M9 12h6"/></svg></div><h3>Моделиране на тялото</h3><p>Оформя фигурата, без да добавя обем.</p></div>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/><path d="M8.5 12h2l1-2 1.5 4 1-2h1.5"/></svg></div><h3>Рехабилитация</h3><p>Възстановява отслабени мускули.</p></div>
       </div>
     </div>
   </section>
@@ -287,7 +275,7 @@ footer .sp { margin-left: auto; }
         <div class="stat rise"><div class="v">3<small>×</small></div><p>по-интензивно изгаряне на калории.</p></div>
         <div class="stat rise"><div class="v">2<small>× седмично</small></div><p>са достатъчни за видими резултати.</p></div>
       </div>
-      <p class="fine rise">С личен треньор на всяка тренировка. Резултатите са индивидуални; преди първата тренировка треньорът проверява за противопоказания.</p>
+      <p class="fine rise">С личен треньор на всяка тренировка.</p>
     </div>
   </section>
 
