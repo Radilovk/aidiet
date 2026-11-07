@@ -1140,18 +1140,20 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     return at > now + 30e3 ? at : null;
   }
   function remId(bookingId, k = 0) { return REM_BASE + (parseInt(String(bookingId).slice(0, 7), 16) % 300000000) * 3 + k; }   // k: 0 the main one, 1 the evening before, 2 an hour before
-  function remText(startMs, at) {
-    const s = zonedParts(startMs, tz());
-    const a = zonedParts(at, tz());
-    const day = s.ymd === a.ymd ? 'Днес' : 'Утре';
-    return `${day} в ${s.hm}` + (cfg.address ? ` · ${cfg.address}` : '');
-  }
-  const remTitle = () => cfg.brand.name;
+  const WEEK_BASE = 1950000000;   // the Sunday reminders (next to the hours' ids, which stay under 1.9e9)
+  const remPrefs = () => ({ hours: true, weekly: false, ...load('remPrefs', {}) });
+  const WD_SHORT = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const NUDGES = ['Нова седмица, нова енергия. Запази своя час.', 'Време е за тренировка. Избери удобен час.', 'Една тренировка тази седмица прави разлика.'];
+  const remTitle = (x) => (x.kind === 'week' && x.week.length ? `Твоята седмица · ${cfg.brand.name}` : cfg.brand.name);
   function remBody(x) {
-    const hm = zonedParts(x.start, tz()).hm;
-    if (x.kind === 'eve') return `Утре в ${hm} те очакваме. Вода и удобни дрехи — и си готов.`;
-    if (x.kind === 'hour') return `Тренировката ти е след 1 час, в ${hm}. Ела 5 мин по-рано.`;
-    return remText(x.start, x.at);
+    const hm = zonedParts(x.start || 0, tz()).hm;
+    if (x.kind === 'eve') return `Утре в ${x.hms.join(' и ')} — очакваме те.`;
+    if (x.kind === 'week') {
+      if (!x.week.length) return NUDGES[x.n % NUDGES.length];
+      const list = x.week.map(({ h }) => `${WD_SHORT[new Date(h.time.slice(0, 10) + 'T12:00:00Z').getUTCDay()]} ${h.time.slice(11)}`);
+      return list.slice(0, 4).join(' · ') + (list.length > 4 ? ` · +${list.length - 4}` : '');
+    }
+    return `Днес в ${hm} — до скоро.`;
   }
 
   /* the offer to turn reminders on: a card inside the "Записани ✓" sheet that shows what the reminder will look like; the phone's own
@@ -1167,15 +1169,37 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     slot.innerHTML = `<div style="margin:12px 0 4px;padding:12px;border-radius:18px;background:var(--soft)">
       <div style="display:flex;gap:10px;align-items:center;background:var(--card);border-radius:14px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.10)">
         <div class="logo" style="width:36px;height:36px;border-radius:9px;flex:none;font-size:17px">${esc((cfg.brand.name || '?').slice(0, 1).toUpperCase())}</div>
-        <div style="min-width:0"><b style="display:block;font-size:14px">${esc(cfg.brand.name)}</b><span class="small muted">Днес в 18:00${cfg.address ? ' · ' + esc(cfg.address) : ''}</span></div>
+        <div style="min-width:0"><b style="display:block;font-size:14px">${esc(cfg.brand.name)}</b><span class="small muted">Утре в 18:00 — очакваме те.</span></div>
       </div>
-      <button class="btn mini" id="rem-on" style="width:100%;margin-top:10px;padding:11px">${ic('bell')}Напомняне ${h} ч. преди часа</button></div>`;
+      <p class="small muted" style="margin:8px 2px 0">Вечерта преди и ${h} ч. преди часа.</p>
+      <button class="btn mini" id="rem-on" style="width:100%;margin-top:8px;padding:11px">${ic('bell')}Включи напомнянията</button></div>`;
     document.getElementById('rem-on').onclick = async () => {
       try {
         const perm = (await ln.requestPermissions()).display;
-        if (perm === 'granted') { await syncReminders(false); slot.innerHTML = '<p class="small" style="color:var(--ok)">Напомнянето е включено</p>'; }
+        if (perm === 'granted') {
+          await syncReminders(false);
+          // the Sunday overview is a separate, explicit choice (Apple 4.5.4) — offered once, right here, and changeable in the profile
+          slot.innerHTML = `<p class="small" style="color:var(--ok);margin:10px 2px 6px">Напомнянията са включени</p>
+            <label class="tick"><input type="checkbox" id="rem-week"><span>И всяка неделя вечер — твоята седмица</span></label>`;
+          document.getElementById('rem-week').onchange = (e) => setRemPref('weekly', e.target.checked);
+        }
         else slot.innerHTML = '<p class="small muted">Известията са изключени в настройките на телефона.</p>';
       } catch (_) { slot.innerHTML = ''; }
+    };
+  }
+  function setRemPref(k, v) { save('remPrefs', { ...remPrefs(), [k]: v }); syncReminders(false); }
+  function openReminders() {
+    const p = remPrefs(), h = cfg.rules.reminderHours;
+    sheet(`<h3>Напомняния</h3>
+      <label class="tick"><input type="checkbox" id="rp-hours" ${p.hours ? 'checked' : ''}><span>Преди всеки час<small class="muted" style="display:block">Вечерта преди в 19:00${h ? ` и ${h} ч. преди` : ''}</small></span></label>
+      <label class="tick"><input type="checkbox" id="rp-week" ${p.weekly ? 'checked' : ''}><span>Моята седмица<small class="muted" style="display:block">В неделя в 18:00 — часовете за седмицата или покана за нов</small></span></label>
+      <p class="small muted">Звук и вибрация — според настройките на телефона.</p>
+      <button class="btn sec" data-back>Назад</button>`, (e) => { if (e.target.closest('[data-back]')) openProfile(); });
+    $('rp-hours').onchange = (e) => setRemPref('hours', e.target.checked);
+    $('rp-week').onchange = async (e) => {
+      const ln = nativeLN();
+      if (e.target.checked && ln) { try { if ((await ln.checkPermissions()).display === 'prompt') await ln.requestPermissions(); } catch (_) {} }
+      setRemPref('weekly', e.target.checked);
     };
   }
   let lnReady = false;
@@ -1186,10 +1210,11 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       if (ln.registerActionTypes) ln.registerActionTypes({ types: [{ id: 'HOUR', actions: [{ id: 'open', title: 'Моите часове' }, { id: 'map', title: 'Навигация' }] }] });
       ln.addListener('localNotificationActionPerformed', (ev) => {
         if (ev && ev.actionId === 'map' && mapLink()) { location.href = mapLink(); return; }
+        if (ev && ev.notification && ev.notification.extra && ev.notification.extra.weekly) { $('cal-card').scrollIntoView({ behavior: 'smooth' }); return; }
         showUpcoming(ev && ev.notification && ev.notification.extra && ev.notification.extra.id, true);
       });
       // the reminder arrives while the app is open: the same full screen at once (not only the small banner)
-      ln.addListener('localNotificationReceived', (n) => showUpcoming(n && n.extra && n.extra.id, true));
+      ln.addListener('localNotificationReceived', (n) => { if (!(n && n.extra && n.extra.weekly)) showUpcoming(n && n.extra && n.extra.id, true); });
     } catch (_) {}
   }
   async function syncReminders(ask) {
@@ -1197,17 +1222,33 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     if (!ln || !cfg) return;
     try {
       const now = Date.now();
-      /* three calm touches for each hour: the evening before (19:00), the studio's reminder (4 h by default), an hour before */
+      /* the reminders: the day before at 19:00 (one per day, all its hours), 4 h before each hour (the studio's setting; before
+         07:00 → 07:00), and — only if the client turned it on — every Sunday at 18:00: the coming week's hours, or a light nudge */
+      const prefs = remPrefs();
       const items = [];
-      for (const h of mine.filter((x) => x.status === 'booked')) {
-        const start = zonedMs(h.time.slice(0, 10), h.time.slice(11), tz());
-        const s = zonedParts(start, tz());
-        const main = reminderAt(start, now);
-        if (main) items.push({ id: remId(h.id, 0), bid: h.id, start, at: main, kind: 'main' });
-        const eve = zonedMs(zonedParts(start - 864e5, tz()).ymd, '19:00', tz());
-        if (s.hm < '13:00' && eve > now + 30e3 && start - eve > 10 * 3600e3) items.push({ id: remId(h.id, 1), bid: h.id, start, at: eve, kind: 'eve' });
-        const hour = start - 3600e3;
-        if (hour > now + 30e3 && (!main || Math.abs(main - hour) > 45 * 60e3)) items.push({ id: remId(h.id, 2), bid: h.id, start, at: hour, kind: 'hour' });
+      const booked = mine.filter((x) => x.status === 'booked').map((h) => ({ h, start: zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) }))
+        .filter((x) => x.start > now).sort((a, b) => a.start - b.start);
+      if (prefs.hours) {
+        const byDay = {};
+        for (const { h, start } of booked) {
+          const main = reminderAt(start, now);
+          if (main) items.push({ id: remId(h.id, 0), bid: h.id, start, at: main, kind: 'main' });
+          (byDay[h.time.slice(0, 10)] = byDay[h.time.slice(0, 10)] || []).push({ h, start });
+        }
+        for (const [day, list] of Object.entries(byDay)) {
+          const eve = zonedMs(zonedParts(zonedMs(day, '12:00', tz()) - 864e5, tz()).ymd, '19:00', tz());
+          if (eve > now + 30e3) items.push({ id: remId(list[0].h.id, 1), bid: list[0].h.id, start: list[0].start, at: eve, kind: 'eve', hms: list.map((x) => x.h.time.slice(11)) });
+        }
+      }
+      if (prefs.weekly) {
+        let sun = zonedParts(now, tz()).ymd;
+        while (new Date(sun + 'T12:00:00Z').getUTCDay() !== 0) sun = zonedParts(zonedMs(sun, '12:00', tz()) + 864e5, tz()).ymd;
+        for (let i = 0; i < 6; i++) {
+          const at = zonedMs(sun, '18:00', tz());
+          const from = zonedMs(sun, '23:59', tz()), to = from + 7 * 864e5;
+          if (at > now + 30e3) items.push({ id: WEEK_BASE + i, at, kind: 'week', n: i, week: booked.filter((x) => x.start > from && x.start <= to) });
+          sun = zonedParts(zonedMs(sun, '12:00', tz()) + 7 * 864e5, tz()).ymd;
+        }
       }
       items.sort((a, b) => a.at - b.at).splice(60);   // iOS keeps at most 64 pending notifications
       const pend = ((await ln.getPending()).notifications || []).filter((n) => n.id >= REM_BASE && n.id < 2 * REM_BASE);
@@ -1221,7 +1262,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       if (items.length) {
         setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
-          id: x.id, title: remTitle(x.start, x.at), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: { id: x.bid },
+          id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : { id: x.bid },
           sound: 'default', relevanceScore: 1, interruptionLevel: 'timeSensitive',   // time-sensitive once the app has Apple's entitlement (1.2); until then a normal alert with sound
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
@@ -1310,7 +1351,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     else if (card) cancel.push('При неявяване часът се таксува автоматично от картата Ви.');
     parts.push(['Промяна, отказ и неявяване', cancel]);
     if (cfg.viber) parts.push(['Напомняния', ['Потвърждения и напомняния получавате по Viber на посочения телефон. Напомнянията са част от услугата.']]);
-    else if (cfg.rules.reminderHours) parts.push(['Напомняния', [`Приложението Ви напомня ${cfg.rules.reminderHours} ч. преди часа с известие на телефона. Можете да го изключите от настройките на телефона.`]]);
+    else if (cfg.rules.reminderHours) parts.push(['Напомняния', [`Приложението Ви напомня с известие на телефона вечерта преди часа и ${cfg.rules.reminderHours} ч. преди него. По желание — и всяка неделя с часовете за седмицата. Включват се и се изключват от Профил → Напомняния.`]]);
     parts.push(['Лични данни', ['Името, телефонът и (по желание) имейлът се ползват само за записванията, напомнянията и връзка с Вас. Можете да ги изтриете по всяко време от Моят профил → Изтрий данните ми.']]);
     const own = (cfg.texts.terms || '').trim();
     if (own) parts.push([`Правила на ${cfg.brand.name}`, [own]]);
@@ -1338,6 +1379,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         <li><button data-p="mine">${ic('cal')}<span>Моите часове<small>${ahead ? ahead + ' предстоящи' : 'Няма предстоящи'}</small></span><span class="go">${ic('chev')}</span></button></li>
         ${window.Xems && Xems.on() ? Xems.menuItems() : ''}
         <li><button data-p="me">${ic('user')}<span>Моите данни<small>${me.name ? esc(me.name) : 'Още не сте записвали час'}</small></span><span class="go">${ic('chev')}</span></button></li>
+        ${APP && nativeLN() ? `<li><button data-p="rem">${ic('bell')}<span>Напомняния<small>${[remPrefs().hours && 'Преди часа', remPrefs().weekly && 'Всяка неделя'].filter(Boolean).join(' · ') || 'Изключени'}</small></span><span class="go">${ic('chev')}</span></button></li>` : ''}
         <li><button data-p="studio">${ic('pin')}<span>Студиото<small>${cfg.address ? esc(cfg.address) : 'Адрес, телефон, работно време'}</small></span><span class="go">${ic('chev')}</span></button></li>
         <li><button data-p="terms">${ic('doc')}<span>Правила и условия</span><span class="go">${ic('chev')}</span></button></li>
         <li><a href="https://biocode.website/studio-support.html">${ic('help')}<span>Помощ и контакт</span><span class="go">${ic('chev')}</span></a></li>
@@ -1353,6 +1395,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       else if (k === 'switch') { $('switch').click(); }
       else if (k === 'studio') openStudioInfo();
       else if (k === 'me') openMyData();
+      else if (k === 'rem') openReminders();
     });
     if (window.Xems && Xems.on()) {   // the card may have news: the menu updates itself once it is known
       const before = Xems.menuItems();
