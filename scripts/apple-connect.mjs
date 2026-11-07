@@ -356,9 +356,19 @@ try {
     const have = (found.included || []).filter((c) => c.type === 'bundleIdCapabilities').map((c) => c.attributes.capabilityType);
     console.log(`Възможности: ${have.join(', ') || 'няма'}`);
     if (have.includes('USERNOTIFICATIONS_TIMESENSITIVE')) { console.log('✓ Time Sensitive вече е включено'); process.exit(0); }
-    await api('POST', '/v1/bundleIdCapabilities', { data: { type: 'bundleIdCapabilities', attributes: { capabilityType: 'USERNOTIFICATIONS_TIMESENSITIVE' },
+    const add = (type) => api('POST', '/v1/bundleIdCapabilities', { data: { type: 'bundleIdCapabilities', attributes: { capabilityType: type },
       relationships: { bundleId: { data: { type: 'bundleIds', id: bid.id } } } } });
-    console.log('✓ включено: Time Sensitive Notifications');
+    let type = 'USERNOTIFICATIONS_TIMESENSITIVE';
+    try { await add(type); } catch (e) {
+      // the name Apple uses: taken from its own list of valid values
+      const valid = (String(e.message).match(/'([A-Z_]+)'/g) || []).map((x) => x.replace(/'/g, ''));
+      const guess = valid.find((v) => /TIME.?SENSITIVE/.test(v)) || valid.find((v) => /SENSITIVE/.test(v));
+      console.log(`Валидни имена: ${valid.join(', ')}`);
+      if (!guess) fail('Apple не предлага Time Sensitive за Bundle ID през API.');
+      type = guess;
+      await add(type);
+    }
+    console.log(`✓ включено: ${type}`);
   } else if (action === 'delete-cert') {
     const id = String(process.argv[3] || '').trim();
     if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
