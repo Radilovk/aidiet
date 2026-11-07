@@ -5418,6 +5418,21 @@
 
         // Dynamic sub-question texts — auto-extracted from questionnaire2.html
         const DYNAMIC_QUESTION_TEXTS = {
+            // Въпроси за хранителното поведение (от 11.2026); по-долу — старите въпроси по цел × състояние.
+            'dq_b_energy_dip': 'Спада ли енергията 1–2 часа след хранене?',
+            'dq_b_sweet': 'Тегли ли към сладко след хранене или следобед?',
+            'dq_b_evening': 'Силен глад вечер?',
+            'dq_b_stress_eat': 'Яде повече под напрежение?',
+            'dq_b_skip': 'Пропуска хранения в натоварени дни, после яде повече?',
+            'dq_b_bloat': 'Подуване след хранене?',
+            'dq_b_trigger_foods': 'Храни, след които се чувства зле',
+            'dq_b_salt': 'Досолява ли храната?',
+            'dq_b_sleep_hunger': 'След лоша нощ — повече сладко/тестено?',
+            'dq_b_energy_level': 'Енергия през повечето дни',
+            'dq_b_plateau': 'Теглото е стояло седмици въпреки диета?',
+            'dq_b_carbs_gain': 'Качва по-лесно от въглехидрати от преди?',
+            'dq_b_breastfeeding': 'Кърми ли в момента?',
+            'dq_b_move_pain': 'Болка в ставите/гърба ограничава движението?',
             'dq_anti_anx_1': 'Как оценявате нивата си на енергия — чувствате ли се изтощени, но превъзбудени вечер?',
             'dq_anti_anx_2': 'Изпитвате ли физически проявления на тревожност — стягане в гърдите или стискане на челюстта?',
             'dq_anti_anx_3': 'Забелязвате ли промени в сензорната си чувствителност (раздразнителност към шум или ярка светлина)?',
@@ -10530,7 +10545,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     answersHtml += `
                         <details>
                             <summary style="cursor:pointer;font-weight:700;font-size:0.9rem;color:var(--primary-red);padding:6px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;" aria-label="Персонализирани клинични въпроси — разгъни/свий">
-                                🔬 Персонализирани клинични въпроси (${dynamicRemaining.length} отговора)
+                                Допълнителни въпроси (${dynamicRemaining.length} отговора)
                                 <i class="fas fa-chevron-down" style="margin-left:auto;font-size:0.75rem;color:var(--text-gray);" aria-hidden="true"></i>
                             </summary>
                             <div style="margin-top:6px;">
