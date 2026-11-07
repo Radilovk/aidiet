@@ -246,7 +246,7 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
   await page.waitForSelector('.viewer iframe[src*="license.biocode-bg.com/"]');
   await page.click('.viewer [data-vx]');
   await page.waitForSelector('.viewer', { state: 'detached' });
-  await page.click('#fab');
+  await page.waitForSelector('.sheet .menu');   // the menu is still there under the page
   await page.click('[data-p=xems-food]');
   await page.waitForSelector('.xtiles');
   await page.screenshot({ path: `${OUT}/app-x2-food.png` });
@@ -265,6 +265,27 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
   if (sent[0].key.length !== 64) throw new Error('the key is not a hash');
   await page.click('.sheet [data-xb]');
   await page.click('.sheet [data-close]');
+});
+await step('every link stays in the app: rules, studio buttons, help — a full-screen page with Close; a sheet under it stays', async () => {
+  await page.route('https://biocode.website/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Помощ</h1>' }));
+  const cur = JSON.parse(db.prepare("SELECT settings FROM studios WHERE id='burgas'").get().settings);
+  await call('POST', 'admin/settings', { studio: 'burgas', settings: { ...cur, links: [{ title: 'Чести въпроси', url: 'https://biocode.website/faq.html' }] } }, A);
+  await page.reload(); await page.waitForSelector('.slot');
+  const pages = ctx.pages().length;
+  await page.click('#pills a[data-title="Чести въпроси"]');
+  await page.waitForSelector('.viewer iframe[src="https://biocode.website/faq.html"]');
+  eq(await page.locator('.viewer-top b').textContent(), 'Чести въпроси', 'title');
+  await page.click('.viewer [data-vx]'); await page.waitForSelector('.viewer', { state: 'detached' });
+  await page.click('#pills [data-pill=terms]');
+  await page.waitForSelector('.viewer-body h4');
+  await page.screenshot({ path: `${OUT}/app-rules.png` });
+  await page.click('.viewer [data-vx]'); await page.waitForSelector('.viewer', { state: 'detached' });
+  await page.click('#fab'); await page.click('.menu a[href*="studio-support"]');
+  await page.waitForSelector('.viewer iframe');
+  await page.click('.viewer [data-vx]'); await page.waitForSelector('.viewer', { state: 'detached' });
+  if (!(await page.locator('.sheet .menu').count())) throw new Error('the menu under the page closed');
+  await page.click('.sheet [data-close]');
+  eq(ctx.pages().length, pages, 'a new browser tab/screen was opened');
 });
 await step('delete my data: server clean, reminders gone, the phone forgets', async () => {
   await page.click('#fab'); await page.click('[data-p=me]'); await page.click('[data-go=forget]');
