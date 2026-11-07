@@ -287,6 +287,20 @@ await step('every link stays in the app: rules, studio buttons, help — a full-
   await page.click('.sheet [data-close]');
   eq(ctx.pages().length, pages, 'a new browser tab/screen was opened');
 });
+await step('upcoming hour: a full screen on opening the app before the training; "Ще дойда" — not again', async () => {
+  const phone = db.prepare("SELECT phone FROM clients WHERE studio_id='burgas'").get().phone;
+  const at = Math.ceil((Date.now() + 2 * 3600e3) / 18e5) * 18e5;
+  db.prepare("INSERT INTO bookings (id, studio_id, start_ms, end_ms, status, phone, name, created_at, changed_at) VALUES ('soon1','burgas',?,?,'booked',?,'Иван Петров',?,?)").run(at, at + 18e5, phone, Date.now(), Date.now());
+  await page.reload();
+  await page.waitForSelector('.upcoming .up-time');
+  await page.screenshot({ path: `${OUT}/app-upcoming.png` });
+  if (!/след/.test(await page.locator('#up-left').textContent())) throw new Error('no countdown');
+  await page.click('.upcoming [data-up=ok]');
+  await page.waitForSelector('.upcoming', { state: 'detached' });
+  await page.reload(); await page.waitForSelector('.slot'); await page.waitForTimeout(600);
+  eq(await page.locator('.upcoming').count(), 0, 'shown again after "Ще дойда"');
+  db.prepare("DELETE FROM bookings WHERE id = 'soon1'").run();
+});
 await step('delete my data: server clean, reminders gone, the phone forgets', async () => {
   await page.click('#fab'); await page.click('[data-p=me]'); await page.click('[data-go=forget]');
   await page.click('.sheet [data-go=yes]');

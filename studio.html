@@ -399,6 +399,26 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
 .viewer-body li::before { content: ""; position: absolute; left: 2px; top: 19px; width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
 
 
+/* ════ "Предстоящ час": the full screen ════ */
+.upcoming { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; padding: calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 24px);
+  color: #fff; text-align: center; background: radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--brand) 82%, #fff), color-mix(in srgb, var(--brand) 70%, #000) 70%); animation: fadein .25s ease; }
+.upcoming.out { opacity: 0; transform: scale(.98); transition: opacity .22s, transform .22s; }
+.up-inner { width: 100%; max-width: 420px; animation: rise .45s var(--ease); }
+.up-ring { width: 104px; height: 104px; margin: 0 auto 18px; border-radius: 30px; display: grid; place-items: center; background: rgba(255,255,255,.16);
+  box-shadow: 0 0 0 0 rgba(255,255,255,.45); animation: ring 2.2s ease-out infinite; }
+.up-ring .logo { width: 80px; height: 80px; border-radius: 22px; box-shadow: 0 10px 24px rgba(0,0,0,.25); }
+.up-kicker { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.up-when { margin: 8px 0 0; font-size: 22px; font-weight: 700; }
+.up-when::first-letter { text-transform: uppercase; }
+.up-time { font-size: 76px; font-weight: 800; letter-spacing: -.03em; line-height: 1; margin: 6px 0 8px; font-variant-numeric: tabular-nums; }
+.up-left { display: inline-block; margin: 0; padding: 6px 14px; border-radius: 999px; background: rgba(255,255,255,.18); font-weight: 600; }
+.up-where { margin: 18px 0 0; font-size: 17px; font-weight: 700; } .up-where span { font-size: 14px; font-weight: 500; opacity: .85; }
+.up-acts { margin-top: 26px; }
+.upcoming .btn.up-ok { background: #fff !important; color: var(--brand) !important; box-shadow: 0 10px 26px rgba(0,0,0,.22) !important; }
+.upcoming .btn.sec { background: rgba(255,255,255,.18); color: #fff; }
+.upcoming .btn.quiet { color: #fff; opacity: .85; }
+@keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.45); } 80%, 100% { box-shadow: 0 0 0 26px rgba(255,255,255,0); } }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -1082,8 +1102,10 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       if (ln.registerActionTypes) ln.registerActionTypes({ types: [{ id: 'HOUR', actions: [{ id: 'open', title: 'Моите часове' }, { id: 'map', title: 'Навигация' }] }] });
       ln.addListener('localNotificationActionPerformed', (ev) => {
         if (ev && ev.actionId === 'map' && mapLink()) { location.href = mapLink(); return; }
-        openMine();
+        showUpcoming(ev && ev.notification && ev.notification.extra && ev.notification.extra.id, true);
       });
+      // the reminder arrives while the app is open: the same full screen at once (not only the small banner)
+      ln.addListener('localNotificationReceived', (n) => showUpcoming(n && n.extra && n.extra.id, true));
     } catch (_) {}
   }
   async function syncReminders(ask) {
@@ -1093,7 +1115,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       const now = Date.now();
       const items = mine.filter((h) => h.status === 'booked').map((h) => {
         const start = zonedMs(h.time.slice(0, 10), h.time.slice(11), tz());
-        return { id: remId(h.id), start, at: reminderAt(start, now) };
+        return { id: remId(h.id), bid: h.id, start, at: reminderAt(start, now) };
       }).filter((x) => x.at).sort((a, b) => a.at - b.at).slice(0, 60);   // iOS keeps at most 64 pending notifications
       const pend = ((await ln.getPending()).notifications || []).filter((n) => n.id >= REM_BASE && n.id < 2 * REM_BASE);
       if (!items.length && !pend.length) return;
@@ -1106,7 +1128,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       if (items.length) {
         setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
-          id: x.id, title: remTitle(x.start, x.at), body: remText(x.start, x.at), actionTypeId: 'HOUR', group: STUDIO,
+          id: x.id, title: remTitle(x.start, x.at), body: remText(x.start, x.at), actionTypeId: 'HOUR', group: STUDIO, extra: { id: x.bid },
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
       }
@@ -1288,6 +1310,68 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     e.preventDefault();
     openPage(href, (a.dataset.title || a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40));
   }, true);
+
+
+  /* ── "Предстоящ час": a full screen over the app, from the reminder (a tap on it, or when it arrives with the app open)
+        and on every opening of the app in the hours before the training, until the client says "Ще дойда" ── */
+  function upcomingHour(id) {
+    const now = Date.now();
+    const list = mine.filter((h) => h.status === 'booked').map((h) => ({ ...h, start: zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) }))
+      .filter((h) => h.start > now - 15 * 60e3).sort((a, b) => a.start - b.start);
+    return (id && list.find((h) => h.id === id)) || list[0] || null;
+  }
+  function untilText(ms) {
+    const m = Math.max(0, Math.round(ms / 60e3));
+    if (m < 1) return 'сега';
+    if (m < 60) return `след ${m} мин`;
+    const h = Math.floor(m / 60), r = m % 60;
+    return h < 24 ? `след ${h} ч${r ? ` ${r} мин` : ''}` : `след ${Math.round(h / 24)} дни`;
+  }
+  let upTimer = null;
+  function showUpcoming(id, force) {
+    if (!cfg) return;
+    const h = upcomingHour(id);
+    if (!h) return;
+    const acked = load('acked', []);
+    if (!force && acked.includes(h.id)) return;
+    document.querySelector('.upcoming') && document.querySelector('.upcoming').remove();
+    const el = document.createElement('div');
+    el.className = 'upcoming';
+    const free = cfg.rules.freeCancelHours;
+    const late = h.start - Date.now() < free * 3600e3;
+    el.innerHTML = `<div class="up-inner">
+      <div class="up-ring"><div class="logo" id="up-logo"></div></div>
+      <p class="up-kicker">Предстоящ час</p>
+      <h2 class="up-when">${esc(dayLabel(h.time.slice(0, 10)))}</h2>
+      <div class="up-time">${esc(h.time.slice(11))}</div>
+      <p class="up-left" id="up-left">${esc(untilText(h.start - Date.now()))}</p>
+      <p class="up-where">${esc(cfg.brand.name)}${cfg.address ? `<br><span>${esc(cfg.address)}</span>` : ''}</p>
+      <div class="up-acts">
+        <button class="btn up-ok" data-up="ok">${ic('check')}Ще дойда</button>
+        ${mapLink() ? `<a class="btn sec" href="${esc(mapLink())}">${ic('nav')}Навигация</a>` : ''}
+        ${late ? '' : `<button class="btn quiet" data-up="change">Промени или откажи</button>`}
+      </div></div>`;
+    brandLogo(el.querySelector('#up-logo'));
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-up]');
+      if (!b) return;
+      if (!acked.includes(h.id)) { acked.push(h.id); save('acked', acked.slice(-50)); }
+      close();
+      if (b.dataset.up === 'change') openOwn(mine.find((x) => x.id === h.id));
+      else haptic('ok');
+    });
+    const close = () => { clearInterval(upTimer); el.classList.add('out'); setTimeout(() => el.remove(), 240); };
+    clearInterval(upTimer);
+    upTimer = setInterval(() => { const t = el.querySelector('#up-left'); if (t) t.textContent = untilText(h.start - Date.now()); }, 30e3);
+    document.body.appendChild(el);
+    haptic();
+  }
+  // on opening the app (and on coming back to it) in the hours before the training
+  function upcomingOnOpen() {
+    const h = upcomingHour();
+    const ahead = Math.max(cfg && cfg.rules.reminderHours ? cfg.rules.reminderHours : 4, 3) * 3600e3;
+    if (h && h.start - Date.now() <= ahead) showUpcoming(h.id, false);
+  }
 
   /* ── my hours: list, cancel, move ── */
   async function refreshMine(askNotify) {
@@ -1910,10 +1994,12 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     await Promise.all([refreshMine(), showMonth(+t.slice(0, 4), +t.slice(5, 7) - 1)]);
     tidyPicked();
     renderBar();
+    if (APP) setupNotificationTaps(nativeLN());   // a tap on a reminder that opened the app is handled too
+    upcomingOnOpen();
   })();
   /* back from another app (e.g. Viber): the hours fresh, at most every 2 minutes */
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && view && !adm) ensureMonth(ymOf(view.y, view.m)).then(renderCal);
+    if (document.visibilityState === 'visible' && view && !adm) { ensureMonth(ymOf(view.y, view.m)).then(renderCal); upcomingOnOpen(); }
   });
   window.StudioApp = {
     cfg: () => cfg, me: () => me, mine: () => mine, studio: () => STUDIO, sheet, closeSheet, ic, esc, toast, busy, unbusy, openPage,
