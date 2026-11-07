@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="NutriPlan — Всички функции и предимства. Снимка на чинията и менюто, AI план, програми по цел, дълголетие, емоционално хранене и още.">
+    <meta name="description" content="Какво включва NutriPlan: седмично меню в грамове, асистент, снимка на чинията и менюто, седмична корекция и проверка от специалист.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -13,8 +13,8 @@
     <meta name="apple-mobile-web-app-title" content="NutriPlan">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/features.html">
-    <meta property="og:title" content="NutriPlan — Функции и Предимства">
-    <meta property="og:description" content="Снимка на чинията и менюто, AI план, програми по цел и повече — всичко в едно приложение.">
+    <meta property="og:title" content="Какво включва NutriPlan">
+    <meta property="og:description" content="Седмично меню в грамове, асистент, снимки на храна и корекция всяка седмица — всичко в едно приложение.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
     <link rel="canonical" href="https://biocode.website/features.html">
@@ -22,7 +22,7 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
-    <title>NutriPlan — Функции и Предимства</title>
+    <title>Какво включва NutriPlan</title>
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="./site-footer.css?v=20261031a">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -57,12 +57,12 @@
         body{background-color:var(--bg-color);color:var(--text-dark);overflow-x:hidden;transition:background-color .3s,color .3s;}
 
         /* NAV */
-        nav{display:flex;justify-content:space-between;align-items:center;
+        nav[role="navigation"]{display:flex;justify-content:space-between;align-items:center;
             padding:calc(20px + var(--safe-area-inset-top)) calc(5% + var(--safe-area-inset-right)) 20px calc(5% + var(--safe-area-inset-left));
             min-height:calc(60px + var(--safe-area-inset-top));background:var(--white);
             backdrop-filter:blur(var(--glass-blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
             position:fixed;width:100%;top:0;z-index:1000;box-shadow:var(--shadow);border-bottom:1px solid var(--glass-border);}
-        [data-theme="dark"] nav{background:rgba(10,28,28,0.92);box-shadow:0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(45,212,191,0.08);border-bottom-color:rgba(45,212,191,0.12);}
+        [data-theme="dark"] nav[role="navigation"]{background:rgba(10,28,28,0.92);box-shadow:0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(45,212,191,0.08);border-bottom-color:rgba(45,212,191,0.12);}
         .logo{font-size:1.5rem;font-weight:800;color:var(--text-dark);min-height:44px;display:flex;align-items:center;gap:10px;text-decoration:none;}
         .logo i{color:var(--primary-red);}
         .nav-btn{background:var(--ds-fill-grad);color: var(--ds-on-fill);padding:12px 28px;border-radius:50px;text-decoration:none;font-weight:700;transition:all .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 6px 20px rgba(13,148,136,.35);display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;}
@@ -235,7 +235,7 @@
         </a>
         <div style="display:flex;gap:10px;align-items:center;">
             <a href="questionnaire2.html" class="nav-btn" id="startNowBtn" style="display:none;">
-                <i class="fas fa-clipboard-list" aria-hidden="true"></i> Започни промяната
+                <i class="fas fa-clipboard-list" aria-hidden="true"></i> Създай моя план
             </a>
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
                 <span class="bar"></span><span class="bar"></span><span class="bar"></span>
@@ -247,208 +247,186 @@
     <nav class="nav-menu" id="navMenu" role="dialog" aria-modal="true" aria-label="Навигационно меню">
         <a href="index.html?app=1&tab=plan" class="nav-menu-top-link" id="navMyPlanLink" style="display:none;"><i class="fas fa-user-check"></i> Моят План</a>
         <div class="nav-menu-section-label">Начална страница</div>
-        <a href="index.html" onclick="closeNavMenu()"><i class="fas fa-home"></i> Начало</a>
-        <a href="features.html" onclick="closeNavMenu()" style="color:var(--primary-red);"><i class="fas fa-star"></i> Функции и Предимства</a>
-        <a href="index.html#how-it-works" onclick="closeNavMenu()"><i class="fas fa-info-circle"></i> Как работи</a>
-        <a href="index.html#contact" onclick="closeNavMenu()"><i class="fas fa-envelope"></i> Контакти</a>
+        <a href="features.html" onclick="closeNavMenu()" style="color:var(--primary-red);"><i class="fas fa-list-check"></i> Какво включва</a>
+        <a href="index.html?stay=1#how-it-works" onclick="closeNavMenu()"><i class="fas fa-info-circle"></i> Как работи</a>
+        <a href="help.html" onclick="closeNavMenu()"><i class="fas fa-circle-question"></i> Въпроси и отговори</a>
+        <a href="index.html?stay=1#contact" onclick="closeNavMenu()"><i class="fas fa-envelope"></i> Контакт</a>
         <div class="nav-menu-divider"></div>
-        <div class="nav-menu-section-label">Модули</div>
-        <a href="emoeat.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално Хранене</a>
+        <div class="nav-menu-section-label">Програми</div>
+        <a href="emoeat.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално хранене</a>
         <a href="longevity.html" onclick="closeNavMenu()"><i class="fas fa-dna"></i> Дълголетие</a>
-        <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-layer-group"></i> Програми</a>
+        <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-layer-group"></i> Всички програми</a>
     </nav>
 
     <main id="main-content">
 
         <!-- Hero -->
         <section class="page-hero reveal">
-            <span class="badge"><i class="fas fa-star"></i> Пълен списък</span>
-            <h1>Всички функции на <span>NutriPlan</span></h1>
-            <p>От снимка на чинията и ресторантското меню до програми по цел и AI асистент — открий всичко, което платформата предлага.</p>
+            <span class="badge"><i class="fas fa-list-check"></i> Какво включва</span>
+            <h1>Всичко в <span>NutriPlan</span></h1>
+            <p>Седмично меню в грамове, асистент, снимки на храна и корекция всяка седмица — какво получаваш и как ти помага.</p>
             <div class="cta-group">
-                <a href="questionnaire2.html" class="nav-btn"><i class="fas fa-rocket"></i> Започни сега</a>
-                <a href="#core" class="btn-outline">Виж функциите</a>
+                <a href="questionnaire2.html" class="nav-btn"><i class="fas fa-arrow-right"></i> Създай моя план</a>
             </div>
         </section>
 
         <!-- Stats -->
         <div class="stats-bar">
-            <div class="stat-item"><div class="stat-num">30+</div><div class="stat-label">Индивидуални критерия</div></div>
-            <div class="stat-item"><div class="stat-num">7</div><div class="stat-label">Стъпки AI анализ</div></div>
-            <div class="stat-item"><div class="stat-num">11</div><div class="stat-label">Програми по цел</div></div>
-            <div class="stat-item"><div class="stat-num">24/7</div><div class="stat-label">AI консултант</div></div>
-            <div class="stat-item"><div class="stat-num"><i class="fas fa-user-doctor" aria-hidden="true"></i></div><div class="stat-label">Прегледан от специалист</div></div>
+            <div class="stat-item"><div class="stat-num">30+</div><div class="stat-label">въпроса за теб</div></div>
+            <div class="stat-item"><div class="stat-num">11</div><div class="stat-label">програми по цел</div></div>
+            <div class="stat-item"><div class="stat-num">24/7</div><div class="stat-label">асистент по плана ти</div></div>
+            <div class="stat-item"><div class="stat-num"><i class="fas fa-user-doctor" aria-hidden="true"></i></div><div class="stat-label">проверено от специалист</div></div>
         </div>
 
-        <!-- TOP FEATURES (Highlight) -->
+        <!-- Всеки ден -->
         <section class="section reveal" id="core">
             <div class="section-title">
-                <h2>&#128293; Топ <span>Функции</span></h2>
-                <p>Най-мощните и уникални инструменти в платформата.</p>
+                <h2>Всеки <span>ден</span></h2>
+                <p>Какво правиш с плана от сутрин до вечер.</p>
             </div>
 
             <div style="display:flex;flex-direction:column;gap:20px;margin-bottom:48px;">
-
+                <div class="feature-highlight">
+                    <div class="hl-icon icon-indigo"><i class="fas fa-utensils"></i></div>
+                    <div class="hl-body">
+                        <h3>Седмично меню в грамове</h3>
+                        <p>Всяко ястие е с грамове, калории и рецепта стъпка по стъпка. Не ти харесва? Смени го с едно докосване — денят се преизчислява.</p>
+                        <a href="questionnaire2.html" class="card-link"><i class="fas fa-arrow-right"></i> Създай моя план</a>
+                    </div>
+                </div>
                 <div class="feature-highlight">
                     <div class="hl-icon icon-teal"><i class="fas fa-camera"></i></div>
                     <div class="hl-body">
-                        <h3><i class="fas fa-drumstick-bite" style="color:var(--primary-red);margin-right:6px;"></i>
-                            Фото анализ на храна <span class="new-badge">AI</span></h3>
-                        <p>Снимай ястието с телефона и получи <strong>незабавен AI анализ</strong> — калории, макронутриенти, дали пасва на плана ти и дали да го ядеш. Директно от страницата на плана, без напускане на приложението.</p>
-                        <a href="index.html?app=1&tab=plan" class="card-link"><i class="fas fa-arrow-right"></i> Отвори в Моят план</a>
+                        <h3>Снимка на чинията</h3>
+                        <p>Снимай ястието и разбери колко калории има и дали отговаря на плана ти.</p>
+                        <a href="index.html?app=1&tab=plan" class="card-link"><i class="fas fa-arrow-right"></i> Отвори плана</a>
                     </div>
                 </div>
-
                 <div class="feature-highlight">
                     <div class="hl-icon icon-blue"><i class="fas fa-book-open"></i></div>
                     <div class="hl-body">
-                        <h3><i class="fas fa-utensils" style="color:#0891b2;margin-right:6px;"></i>
-                            Фото анализ на ресторантско меню <span class="new-badge">AI</span></h3>
-                        <p>Снимай менюто на ресторанта. AI преглежда всички опции и препоръчва кои ястия отговарят на твоите цели и ограничения — никога повече лоши избори при хранене навън.</p>
-                        <a href="index.html?app=1&tab=plan" class="card-link"><i class="fas fa-arrow-right"></i> Отвори в Моят план</a>
+                        <h3>Избор от менюто в ресторанта</h3>
+                        <p>Снимай менюто — приложението ти подсказва кое ястие отговаря най-добре на плана ти.</p>
+                        <a href="index.html?app=1&tab=plan" class="card-link"><i class="fas fa-arrow-right"></i> Отвори плана</a>
                     </div>
                 </div>
-
-                <div class="feature-highlight">
-                    <div class="hl-icon icon-indigo"><i class="fas fa-brain"></i></div>
-                    <div class="hl-body">
-                        <h3>7-Степенен AI Анализ и Персонализиран план</h3>
-                        <p>Алгоритъмът анализира 30+ критерия — метаболизъм, BMR, здравословни цели, хранителни предпочитания, алергии, медикаменти, стрес и сън — и генерира <strong>7-дневен комплексен план</strong> с хранене, психология, добавки и физически активности.</p>
-                        <a href="questionnaire2.html" class="card-link"><i class="fas fa-arrow-right"></i> Започни въпросника</a>
-                    </div>
-                </div>
-
-
             </div>
 
-            <!-- Core feature cards -->
             <div class="feature-grid">
-
                 <div class="feature-card">
                     <div class="feature-tag"><i class="fas fa-comments"></i> 24/7</div>
                     <div class="icon-wrap icon-teal"><i class="fas fa-comments"></i></div>
-                    <h3>AI Консултант</h3>
-                    <p>Личен AI асистент, познаващ твоя план и профил. Задавай въпроси по всяко време — отговорите комбинират диетология, психология и медицина.</p>
-                    <a href="index.html?app=1&tab=plan" class="card-link"><i class="fas fa-arrow-right"></i> Отвори плана</a>
+                    <h3>Асистент, който познава плана ти</h3>
+                    <p>Питай за продукти, замени и хранене навън — отговаря според твоя план и профил.</p>
                 </div>
-
                 <div class="feature-card">
-                    <div class="feature-tag"><i class="fas fa-sync-alt"></i> УМЕН</div>
-                    <div class="icon-wrap icon-blue"><i class="fas fa-edit"></i></div>
-                    <h3>Умни Промени в Плана</h3>
-                    <p>Поискай промяна — AI обяснява здравословните аспекти и прави корекция само след твоето изрично съгласие. Никакви неочаквани замени.</p>
-                    <a href="index.html?app=1&tab=plan" class="card-link"><i class="fas fa-arrow-right"></i> Отвори плана</a>
+                    <div class="feature-tag"><i class="fas fa-check"></i> Ден</div>
+                    <div class="icon-wrap icon-cyan"><i class="fas fa-calendar-check"></i></div>
+                    <h3>Отбелязване и напредък</h3>
+                    <p>Отбелязваш храненията, съня и водата и виждаш седмицата си — какво върви и какво да подобриш.</p>
+                    <a href="game-analytics.html" class="card-link"><i class="fas fa-arrow-right"></i> Напредък</a>
                 </div>
-
                 <div class="feature-card">
-                    <div class="feature-tag"><i class="fas fa-file-pdf"></i> ЕКСПОРТ</div>
-                    <div class="icon-wrap icon-rose"><i class="fas fa-file-pdf"></i></div>
-                    <h3>PDF Експорт на Плана</h3>
-                    <p>Изтегли пълния 7-дневен план като PDF — с ястия, калории, макроси и забранени храни. Работи и без интернет.</p>
-                    <a href="index.html?app=1&tab=plan" class="card-link"><i class="fas fa-arrow-right"></i> Отвори плана</a>
+                    <div class="feature-tag"><i class="fas fa-shoe-prints"></i> Движение</div>
+                    <div class="icon-wrap icon-amber"><i class="fas fa-person-walking"></i></div>
+                    <h3>Крачки и устройства</h3>
+                    <p>Крачкомерът на телефона или гривна, часовник и везна — движението ти влиза в плана.</p>
                 </div>
-
-                <div class="feature-card">
-                    <div class="feature-tag"><i class="fas fa-compass"></i> НАСОКИ</div>
-                    <div class="icon-wrap icon-amber"><i class="fas fa-compass"></i></div>
-                    <h3>Хранителни Насоки</h3>
-                    <p>Персонализирани макро цели, дневни калории, разрешени и забранени храни, психологически съвети и препоръки за добавки — на едно място.</p>
-                    <a href="index.html?app=1&tab=guidelines" class="card-link"><i class="fas fa-arrow-right"></i> Насоки</a>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-tag"><i class="fas fa-chart-bar"></i> ПЛАН</div>
-                    <div class="icon-wrap icon-cyan"><i class="fas fa-chart-bar"></i></div>
-                    <h3>Основа на плана</h3>
-                    <p>Фокусите, целта и темпът, около които е изграден планът ти.</p>
-                    <a href="analysis.html" class="card-link"><i class="fas fa-arrow-right"></i> Основа на плана</a>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-tag"><i class="fas fa-user"></i> ПРОФИЛ</div>
-                    <div class="icon-wrap icon-green"><i class="fas fa-user-edit"></i></div>
-                    <h3>Профил и Регенерация</h3>
-                    <p>Редактирай здравните си данни по всяко време. Едно натискане генерира изцяло нов персонализиран план на база актуализирания ти профил.</p>
-                    <a href="index.html?app=1&tab=profile" class="card-link"><i class="fas fa-arrow-right"></i> Профил</a>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-tag"><i class="fas fa-pills"></i> ДОБАВКИ</div>
-                    <div class="icon-wrap icon-amber"><i class="fas fa-capsules"></i></div>
-                    <h3>Препоръки за Добавки</h3>
-                    <p>Препоръки за витамини и минерали, съобразени с плана. При прием на лекарства — първо с лекаря.</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-tag"><i class="fas fa-running"></i> АКТИВНОСТ</div>
-                    <div class="icon-wrap icon-purple"><i class="fas fa-dumbbell"></i></div>
-                    <h3>Физически Активности</h3>
-                    <p>Персонализирана програма за движение, интегрирана с хранителния план — за оптимални резултати без претоварване.</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-tag"><i class="fas fa-bell"></i> PWA</div>
-                    <div class="icon-wrap icon-indigo"><i class="fas fa-mobile-screen"></i></div>
-                    <h3>Работи като Приложение</h3>
-                    <p>Инсталирай на телефона — работи offline, с push известия за хранения и директен достъп от началния екран без App Store.</p>
-                </div>
-
             </div>
         </section>
 
-        <!-- Specialized Modules -->
+        <!-- Всяка седмица -->
         <section class="section section-alt reveal">
             <div class="section-title">
-                <h2>Специализирани <span>Модули</span></h2>
-                <p>Самостоятелни програми с дълбок AI анализ за специфични цели и нужди.</p>
+                <h2>Всяка <span>седмица</span></h2>
+                <p>Планът не стои на място — следва резултатите ти.</p>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-tag"><i class="fas fa-rotate"></i> Корекция</div>
+                    <div class="icon-wrap icon-teal"><i class="fas fa-sliders"></i></div>
+                    <h3>Седмична корекция</h3>
+                    <p>Отговаряш на няколко въпроса — тегло, глад, енергия. Менюто се обновява, а калориите се коригират, когато е нужно.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-tag"><i class="fas fa-user-doctor"></i> Специалист</div>
+                    <div class="icon-wrap icon-indigo"><i class="fas fa-user-doctor"></i></div>
+                    <h3>Проверка от специалист</h3>
+                    <p>Специалист проверява менюто, преди да го получиш. Програмата предлага, човек проверява.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-tag"><i class="fas fa-hand"></i> Одобрение</div>
+                    <div class="icon-wrap icon-blue"><i class="fas fa-pen-to-square"></i></div>
+                    <h3>Промени само с твое одобрение</h3>
+                    <p>Поискай промяна в чата — виждаш какво и защо се сменя, преди да бъде приложено.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Под ръка -->
+        <section class="section reveal">
+            <div class="section-title">
+                <h2>Винаги <span>под ръка</span></h2>
+                <p>Всичко за плана ти на едно място.</p>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="icon-wrap icon-teal"><i class="fas fa-compass"></i></div>
+                    <h3>Насоки</h3>
+                    <p>Какво да ядеш, какво да ограничаваш, замени за любимите храни и съвети за всеки ден.</p>
+                    <a href="guidelines.html" class="card-link"><i class="fas fa-arrow-right"></i> Насоки</a>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap icon-cyan"><i class="fas fa-file-pdf"></i></div>
+                    <h3>Книга на плана</h3>
+                    <p>Целият план в PDF — ястия, грамове и насоки. Свали го, разпечатай го или го отвори без интернет.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap icon-indigo"><i class="fas fa-user-pen"></i></div>
+                    <h3>Профил</h3>
+                    <p>Промени данните си по всяко време. Ако промяната засяга менюто, планът се изготвя наново.</p>
+                    <a href="profile.html" class="card-link"><i class="fas fa-arrow-right"></i> Профил</a>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap icon-amber"><i class="fas fa-capsules"></i></div>
+                    <h3>Добавки</h3>
+                    <p>Препоръки за витамини и минерали, съобразени с плана. Ако приемаш лекарства — първо с лекаря.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap icon-blue"><i class="fas fa-mobile-alt"></i></div>
+                    <h3>Приложение на телефона</h3>
+                    <p>Напомняния за храненията и бърз достъп от началния екран. За Android и iPhone.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Програми -->
+        <section class="section section-alt reveal">
+            <div class="section-title">
+                <h2>Програми за <span>конкретни цели</span></h2>
+                <p>Когато целта е по-конкретна — менюто следва програмата.</p>
             </div>
             <div class="modules-grid">
                 <a href="emoeat.html" class="module-card card-emoeat">
                     <div class="module-card-bg"></div>
                     <div class="module-card-overlay"></div>
                     <div class="module-card-content">
-                        <div class="module-icon">&#128156;</div>
-                        <h3>Емоционално Хранене</h3>
-                        <p>Разкрий подсъзнателните тригери. CBT, DBT, HALT, RAIN терапии за трайна промяна на хранителното поведение.</p>
+                        <div class="module-icon"><i class="fas fa-heart"></i></div>
+                        <h3>Емоционално хранене</h3>
+                        <p>Разбери откъде идва гладът, който не е истински глад, и как да го овладееш.</p>
                     </div>
                 </a>
                 <a href="longevity.html" class="module-card card-longevity">
                     <div class="module-card-bg"></div>
                     <div class="module-card-overlay"></div>
                     <div class="module-card-content">
-                        <div class="module-icon">&#129516;</div>
-                        <h3>Дълголетие и Антиейджинг</h3>
-                        <p>Забави стареенето, активирай автофагия и оптимизирай митохондриите с научно-базирани протоколи.</p>
-                    </div>
-                </a>
-                <a href="protocol-landing.html" class="module-card card-protocols">
-                    <div class="module-card-bg"></div>
-                    <div class="module-card-overlay"></div>
-                    <div class="module-card-content">
-                        <div class="module-icon">&#127973;</div>
-                        <h3>Програми по цел</h3>
-                        <p>11 програми — хранителни режими за конкретни цели.</p>
-                    </div>
-                </a>
-                <a href="xbody.html" class="module-card card-xbody">
-                    <div class="module-card-bg"></div>
-                    <div class="module-card-overlay"></div>
-                    <div class="module-card-content">
-                        <div class="module-icon">&#9889;</div>
-                        <h3>XBody — EMS Тренировки</h3>
-                        <p>Резервирай EMS и физиотерапевтични сесии онлайн.</p>
+                        <div class="module-icon"><i class="fas fa-dna"></i></div>
+                        <h3>Дълголетие</h3>
+                        <p>Хранене и навици за по-бавно остаряване и повече енергия.</p>
                     </div>
                 </a>
             </div>
-        </section>
-
-        <!-- Clinical Protocols -->
-        <section class="section reveal">
-            <div class="section-title">
-                <h2>11 <span>програми</span> по цел</h2>
-                <p>Специализирани планове за хранене и добавки, съобразени с конкретни здравословни условия.</p>
-            </div>
-            <div class="protocols-list">
+            <div class="protocols-list" style="margin-top:28px;">
                 <a class="protocol-pill" href="protocol-insulin-resistance.html"><div class="protocol-dot" style="background:#0e7490;"></div><span>Баланс на кръвната захар</span></a>
                 <a class="protocol-pill" href="protocol-autoimmune-aip.html"><div class="protocol-dot" style="background:#6d28d9;"></div><span>Автоимунна диета (AIP)</span></a>
                 <a class="protocol-pill" href="protocol-gi-issues.html"><div class="protocol-dot" style="background:#b45309;"></div><span>Добро храносмилане</span></a>
@@ -462,64 +440,43 @@
                 <a class="protocol-pill" href="protocol-detox.html"><div class="protocol-dot" style="background:#15803d;"></div><span>Седмица за нов старт</span></a>
             </div>
             <div style="text-align:center;margin-top:32px;">
-                <a href="protocol-landing.html" class="nav-btn"><i class="fas fa-layer-group"></i> Виж всички програми</a>
+                <a href="protocol-landing.html" class="nav-btn"><i class="fas fa-layer-group"></i> Всички програми</a>
             </div>
         </section>
 
-        <!-- Benefits -->
-        <section class="section section-alt reveal">
+        <!-- Защо -->
+        <section class="section reveal">
             <div class="section-title">
-                <h2>Защо <span>NutriPlan</span>?</h2>
-                <p>Предимства, с които се открояваме от всяко друго приложение за диета.</p>
+                <h2>Защо <span>NutriPlan</span></h2>
+                <p>Какво го отличава от обикновено приложение за диета.</p>
             </div>
             <div class="benefits-cols">
                 <div class="benefit-item">
                     <div class="benefit-icon"><i class="fas fa-user-doctor"></i></div>
                     <div class="benefit-text">
-                        <strong>Прегледан от специалист</strong>
-                        <span>Планът минава през специалист, а асистентът отговаря на въпросите ви денонощно.</span>
+                        <strong>Проверено от специалист</strong>
+                        <span>Менюто минава през специалист, преди да го получиш.</span>
                     </div>
                 </div>
                 <div class="benefit-item">
-                    <div class="benefit-icon"><i class="fas fa-camera"></i></div>
+                    <div class="benefit-icon"><i class="fas fa-scale-balanced"></i></div>
                     <div class="benefit-text">
-                        <strong>Фото анализ в реално време</strong>
-                        <span>Снимай и получи AI отговор за секунди — дали ястието пасва на плана ти.</span>
+                        <strong>Точни грамове, не общи съвети</strong>
+                        <span>Знаеш какво и колко да ядеш на всяко хранене.</span>
                     </div>
                 </div>
                 <div class="benefit-item">
-                    <div class="benefit-icon"><i class="fas fa-person-circle-check"></i></div>
+                    <div class="benefit-icon"><i class="fas fa-rotate"></i></div>
                     <div class="benefit-text">
-                        <strong>100% персонализирано</strong>
-                        <span>Никакви стандартни диети — всеки план е уникален за твоя метаболизъм и начин на живот.</span>
-                    </div>
-                </div>
-                <div class="benefit-item">
-                    <div class="benefit-icon"><i class="fas fa-layer-group"></i></div>
-                    <div class="benefit-text">
-                        <strong>Комплексен подход</strong>
-                        <span>Хранене + психология + добавки + активности — всичко взаимосвързано.</span>
-                    </div>
-                </div>
-                <div class="benefit-item">
-                    <div class="benefit-icon"><i class="fas fa-bolt"></i></div>
-                    <div class="benefit-text">
-                        <strong>5 минути до плана</strong>
-                        <span>Попълни въпросника и получи пълен персонализиран план веднага.</span>
+                        <strong>Коригира се всяка седмица</strong>
+                        <span>Планът следва резултатите ти, а не стои на място.</span>
                     </div>
                 </div>
                 <div class="benefit-item">
                     <div class="benefit-icon"><i class="fas fa-lock"></i></div>
                     <div class="benefit-text">
-                        <strong>Данните само при теб</strong>
-                        <span>Всичко се пази на твоето устройство — никакви профили, никакво проследяване.</span>
-                    </div>
-                </div>
-                <div class="benefit-item">
-                    <div class="benefit-icon"><i class="fas fa-mobile-screen"></i></div>
-                    <div class="benefit-text">
-                        <strong>Работи като приложение</strong>
-                        <span>Инсталирай на телефона — работи offline, без App Store, с push известия.</span>
+                        <strong>Данните ти — само за плана</strong>
+                        <span>Използват се само за твоя план и можеш да ги изтриеш по всяко време.</span>
                     </div>
                 </div>
             </div>
@@ -527,10 +484,10 @@
 
         <!-- CTA -->
         <section class="cta-section reveal">
-            <h2>Готов за промяната?</h2>
-            <p>Попълни въпросника и получи своя персонализиран план само за минути.</p>
+            <h2>Започни с въпросника</h2>
+            <p>Отнема около 5 минути. Планът идва след проверка от специалист.</p>
             <a href="questionnaire2.html" class="btn-white">
-                <i class="fas fa-rocket"></i> Започни сега
+                <i class="fas fa-arrow-right"></i> Създай моя план
             </a>
         </section>
 
@@ -555,7 +512,7 @@
                         <h2 class="sf-h">Продукт</h2>
                         <ul>
                             <li><a href="index.html?stay=1#how-it-works">Как работи</a></li>
-                            <li><a href="features.html">Възможности</a></li>
+                            <li><a href="features.html">Какво включва</a></li>
                             <li><a href="questionnaire2.html">Създай план</a></li>
                             <li class="sf-web"><a href="index.html?stay=1#android-install">Приложението</a></li>
                         </ul>

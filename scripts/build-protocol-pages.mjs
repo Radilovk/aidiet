@@ -76,7 +76,7 @@ function siteFooter() {
                         <h2 class="sf-h">Продукт</h2>
                         <ul>
                             <li><a href="index.html?stay=1#how-it-works">Как работи</a></li>
-                            <li><a href="features.html">Възможности</a></li>
+                            <li><a href="features.html">Какво включва</a></li>
                             <li><a href="questionnaire2.html">Създай план</a></li>
                             <li class="sf-web"><a href="index.html?stay=1#android-install">Приложението</a></li>
                         </ul>
