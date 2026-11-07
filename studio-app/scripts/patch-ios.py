@@ -6,6 +6,7 @@ Run in studio-app/ after `npx cap add ios`. Only changes what is needed (idempot
   - UIRequiredDeviceCapabilities armv7 → arm64  (the template still says armv7; App Store Connect wants 64-bit)
   - iPhone only, portrait  (no iPad screenshots / layouts to maintain)
   - the name under the icon: "XB-Studio" (short enough not to be cut)
+  - AppDelegate: hands the APNs device token to Capacitor's push plugin (the two methods its docs ask for)
 """
 import plistlib
 import sys
@@ -27,3 +28,23 @@ info["CFBundleDisplayName"] = "XB-Studio"
 with plist_path.open("wb") as f:
     plistlib.dump(info, f)
 print("Info.plist: encryption flag, arm64, portrait, display name")
+
+# push: the device token (or the failure) goes to @capacitor/push-notifications
+delegate = Path("ios/App/App/AppDelegate.swift")
+src = delegate.read_text()
+if "capacitorDidRegisterForRemoteNotifications" not in src:
+    methods = """
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+    }
+"""
+    end = src.rstrip().rfind("}")
+    if end < 0:
+        sys.exit("AppDelegate.swift: no class end found")
+    src = src[:end] + methods + src[end:]
+    delegate.write_text(src)
+    print("AppDelegate.swift: push token methods")

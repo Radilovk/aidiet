@@ -1259,15 +1259,46 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         return;
       }
       if (pend.length) await ln.cancel({ notifications: pend.map((n) => ({ id: n.id })) });
+      setupPush();
       if (items.length) {
         setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
           id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : { id: x.bid },
-          sound: 'default', relevanceScore: 1, interruptionLevel: 'active',   // a normal alert with sound — respects Focus / Do Not Disturb
+          sound: remSound(), relevanceScore: 1, interruptionLevel: 'active',   // a normal alert with sound — respects Focus / Do Not Disturb
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
       }
     } catch (e) { console.warn('reminders', e); }
+  }
+  /* ── push (app 1.2+, iOS): the studio's own changes reach the phone at once (booked / canceled by the studio, a word to
+        the clients with hours ahead). The same permission as the reminders — no second question. Older apps: nothing. ── */
+  const pushPlugin = () => (APP && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios' && window.Capacitor.Plugins.PushNotifications) || null;
+  const remSound = () => (pushPlugin() ? 'studio.wav' : 'default');   // the studio's soft chime ships with 1.2; before it, the phone's sound
+  let pushReady = false;
+  async function setupPush() {
+    const pn = pushPlugin();
+    if (!pn || !me.token || !me.phone) return;
+    try {
+      if ((await pn.checkPermissions()).receive !== 'granted') return;
+      if (!pushReady) {
+        pushReady = true;
+        pn.addListener('registration', async ({ value }) => {
+          const key = `${me.phone}|${value}`;
+          if (load('pushTok', '') === key) return;
+          const r = await api('POST', 'push', { phone: me.phone, token: me.token, push: value }).catch(() => null);
+          if (r && r.status === 200) save('pushTok', key);
+        });
+        // in the app when it comes: the list is fresh at once (the phone shows the banner itself)
+        pn.addListener('pushNotificationReceived', () => refreshMine());
+        pn.addListener('pushNotificationActionPerformed', async (ev) => {
+          const d = (ev && ev.notification && ev.notification.data) || {};
+          await refreshMine();
+          if (d.kind === 'booked' && d.id) showUpcoming(d.id, true);
+          else if (d.kind === 'canceled') $('cal-card').scrollIntoView({ behavior: 'smooth' });
+        });
+      }
+      await pn.register();
+    } catch (e) { console.warn('push', e); }
   }
   async function dropReminders() {
     const ln = nativeLN();
@@ -1656,7 +1687,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       busy(go, 'Изтриване…');
       const r = await api('POST', 'forget', { phone: me.phone, token: me.token }).catch(() => ({ status: 0 }));
       if (r.status !== 200) { unbusy(go); $('f-err').textContent = r.status === 0 ? 'Няма връзка.' : 'Не успя. Опитайте отново.'; return; }
-      await dropReminders();
+      await dropReminders(); save('pushTok', '');
       if (window.Xems) Xems.forget();
       try { Object.keys(localStorage).filter((k) => k.startsWith(`st:${STUDIO}:`)).forEach((k) => localStorage.removeItem(k)); } catch (_) {}
       closeSheet();
@@ -1983,9 +2014,10 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         <div id="inv-qr" style="display:flex;justify-content:center;margin-top:10px;background:#fff;border-radius:12px;padding:10px"></div>
       </div></details>
       <details class="sec"><summary>📣 Известие към клиентите ${s.notice && s.notice.text && (!s.notice.until || s.notice.until > Date.now()) ? '●' : ''}</summary><div>
-        <p class="small muted">Показва се като съобщение най-горе на страницата и в приложението, когато клиентът я отвори. Не е известие на телефона и не е мигновено. Не го ползвай за реклама на отстъпки.</p>
+        <p class="small muted">Показва се най-горе в приложението и на страницата. Не го ползвай за реклама на отстъпки.</p>
         <label class="f">Текст (до 300 знака)<textarea id="nt-text" maxlength="300">${esc(s.notice ? s.notice.text : '')}</textarea></label>
         <label class="f">Показвай<select id="nt-days"><option value="1">1 ден</option><option value="3">3 дни</option><option value="7" selected>7 дни</option><option value="30">30 дни</option><option value="0">докато го махна</option></select></label>
+        <label class="tick"><input type="checkbox" id="nt-push"><span>И като известие на телефона — на клиентите с предстоящи часове<small class="muted" style="display:block" id="nt-push-info">приложение 1.2+</small></span></label>
         <button class="btn" id="nt-send">Изпрати известието</button>
         <button class="btn sec" id="nt-clear">Махни известието</button>
       </div></details>
@@ -2055,9 +2087,13 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       if (!text) { toast('Напиши текст.'); return; }
       const days = Number($('nt-days').value);
       await saveSettings({ notice: { id: Math.floor(Date.now() / 1000), text, until: days ? Date.now() + days * 864e5 : 0 } });
-      toast('Известието е пуснато ✓');
+      if ($('nt-push') && $('nt-push').checked) {
+        const r = await aapi('POST', 'admin/notify', { text: text.slice(0, 200) });
+        toast(r.status === 200 && r.d.ok ? `Известието е пуснато ✓ · на ${r.d.sent} телефона` : 'Известието е пуснато ✓ (известия на телефона още не са включени)');
+      } else toast('Известието е пуснато ✓');
       admSettings();
     };
+    aapi('POST', 'admin/push', {}).then((r) => { if (r.status === 200 && $('nt-push-info')) $('nt-push-info').textContent = r.d.live ? `${r.d.devices} телефона с приложение 1.2+` : 'ще работи, когато бъде включено (ключ от Apple)'; }).catch(() => {});
     $('nt-clear').onclick = async () => { await saveSettings({ notice: { id: Math.floor(Date.now() / 1000), text: '', until: 0 } }); toast('Известието е махнато'); admSettings(); };
     $('p-save').onclick = async () => {
       const pk = $('p-pk').value.trim();
@@ -2137,8 +2173,19 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   })();
   /* back from another app (e.g. Viber): the hours fresh, at most every 2 minutes */
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && view && !adm) { ensureMonth(ymOf(view.y, view.m)).then(renderCal); upcomingOnOpen(); }
+    if (document.visibilityState === 'visible' && view && !adm) {
+      ensureMonth(ymOf(view.y, view.m)).then(renderCal);
+      if (Date.now() - lastMine > 120e3) { lastMine = Date.now(); refreshMine().then(upcomingOnOpen); } else upcomingOnOpen();
+    }
   });
+  let lastMine = Date.now();
+  /* a studio link opened on the phone (universal link, app 1.2+) opens here, in the app */
+  try {
+    const capApp = APP && window.Capacitor.Plugins.App;
+    if (capApp && capApp.addListener) capApp.addListener('appUrlOpen', ({ url }) => {
+      if (/^https:\/\/biocode\.website\/studio\.html/.test(url || '') && url !== location.href) location.href = url;
+    });
+  } catch (_) {}
   window.StudioApp = {
     cfg: () => cfg, me: () => me, mine: () => mine, studio: () => STUDIO, sheet, closeSheet, ic, esc, toast, busy, unbusy, openPage,
     openProfile, showTerms, timeLabel, todayYmd, tz: () => tz(), zonedMs, perWeek: () => {

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- push: only what the studio changes for the client (booked / canceled by the studio, a word to the clients with
+	     hours ahead) — normal alerts, no Time Sensitive, no background modes -->
+	<key>aps-environment</key>
+	<string>production</string>
+	<!-- the studio links (biocode.website/studio.html?…) open in the app when it is installed -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:biocode.website</string>
+	</array>
+</dict>
+</plist>

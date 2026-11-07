@@ -298,6 +298,56 @@ await t('delete my data: hours released, code use back, records scrubbed, only w
   assert.ok(free.includes('10:00'));   // the hour is free again
 });
 
+await t('push (app 1.2): the device registers with its token; the studio cancels / books → Apple gets a signed alert; a dead device is forgotten', async () => {
+  const { generateKeyPairSync, createVerify } = globalThis.process.getBuiltinModule('node:crypto');
+  const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+  const who3 = { studio: 'burgas', phone: '0855 111 222', name: 'Пуш', terms: true, code: 'FREE' };
+  const r = await api('POST', 'book', { ...who3, times: [`${next} 10:00`] });
+  assert.equal(r.d.booked.length, 1);
+  const dev = 'ab'.repeat(32), dead = 'cd'.repeat(32);
+  assert.equal((await api('POST', 'push', { ...who3, token: 'x'.repeat(48), push: dev })).status, 401);   // only with the client's own device key
+  assert.equal((await api('POST', 'push', { ...who3, token: r.d.token, push: 'not-hex' })).status, 400);
+  let o = await api('POST', 'push', { ...who3, token: r.d.token, push: dev });
+  assert.equal(o.d.live, false);   // no APNs key in the worker yet: kept, nothing sent, nothing breaks
+  await api('POST', 'push', { ...who3, token: r.d.token, push: dead });
+  const sent = [];
+  const before = globalThis.fetch;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = String(input);
+    if (!url.startsWith('https://api.push.apple.com/3/device/')) return before(input, init);
+    sent.push({ token: url.split('/').pop(), headers: init.headers, body: JSON.parse(init.body) });
+    return url.endsWith(dead) ? new Response(JSON.stringify({ reason: 'Unregistered' }), { status: 410 }) : new Response('', { status: 200 });
+  };
+  try {
+    env.APNS_KEY_P8 = privateKey.export({ type: 'pkcs8', format: 'pem' }); env.APNS_KEY_ID = 'KEY1234567'; env.APNS_TEAM_ID = 'TEAM123456';
+    assert.equal((await api('GET', 'admin/push?studio=burgas', null, H(admin))).d.devices, 2);
+    const id = r.d.booked[0].id || db.prepare("SELECT id FROM bookings WHERE phone = '+359855111222' AND status = 'booked'").get().id;
+    await api('POST', 'admin/booking', { studio: 'burgas', id, action: 'cancel' }, H(admin));
+    assert.equal(sent.length, 2);
+    const a = sent.find((x) => x.token === dev);
+    assert.match(a.body.aps.alert.body, /^Часът ти .+ 10:00 е отменен/);
+    assert.equal(a.body.aps.sound, 'studio.wav');
+    assert.equal(a.headers['apns-topic'], 'com.biocode.studios');
+    const [h, p, sig] = a.headers.authorization.slice(7).split('.');
+    assert.equal(JSON.parse(Buffer.from(h, 'base64url')).kid, 'KEY1234567');
+    assert.equal(JSON.parse(Buffer.from(p, 'base64url')).iss, 'TEAM123456');
+    assert.ok(createVerify('SHA256').update(`${h}.${p}`).verify({ key: publicKey, dsaEncoding: 'ieee-p1363' }, Buffer.from(sig, 'base64url')));
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM push_tokens WHERE token = ?').get(dead).n, 0);   // Apple: no more → forgotten
+    sent.length = 0;
+    await api('POST', 'admin/book', { studio: 'burgas', time: `${next} 10:00`, name: 'Пуш', phone: '0855 111 222', viber: false }, H(admin));
+    assert.equal(sent.length, 1);
+    assert.match(sent[0].body.aps.alert.body, /^Записахме те: .+ 10:00/);
+    sent.length = 0;
+    const n = (await api('POST', 'admin/notify', { studio: 'burgas', text: 'Утре сме затворени.' }, H(admin))).d;
+    assert.equal(n.sent, 1);   // only the clients with hours ahead and a registered phone
+    assert.equal(sent[0].body.aps.alert.body, 'Утре сме затворени.');
+    await api('POST', 'forget', { ...who3, token: r.d.token });
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM push_tokens WHERE phone = '+359855111222'").get().n, 0);
+  } finally {
+    globalThis.fetch = before; delete env.APNS_KEY_P8; delete env.APNS_KEY_ID; delete env.APNS_TEAM_ID;
+  }
+});
+
 await t('a code made by scripts/studio-admin.mjs (Node PBKDF2) opens the admin (WebCrypto)', async () => {
   const { pbkdf2Sync } = await import('node:crypto');
   const salt = 'a1b2c3d4e5f60718';

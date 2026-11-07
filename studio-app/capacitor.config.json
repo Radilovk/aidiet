@@ -30,6 +30,12 @@
     "LocalNotifications": {
       "smallIcon": "ic_stat_studio",
       "iconColor": "#d32f2f"
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "alert",
+        "sound"
+      ]
     }
   }
 }

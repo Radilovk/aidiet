@@ -67,3 +67,13 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
   studio_id TEXT NOT NULL,
   expires_ms INTEGER NOT NULL
 );
+
+-- the client's phones for push notifications (studio app 1.2+, iOS): only what the studio changes for them / tells them
+CREATE TABLE IF NOT EXISTS push_tokens (
+  studio_id TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  token TEXT NOT NULL,                 -- APNs device token (hex)
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (studio_id, token)
+);
+CREATE INDEX IF NOT EXISTS push_tokens_phone ON push_tokens (studio_id, phone);

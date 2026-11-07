@@ -11,7 +11,7 @@
  *   node scripts/apple-connect.mjs submit      checks everything and sends version 1.0 for App Review (only on the owner's explicit go)
  *   node scripts/apple-connect.mjs availability [fix]   in which countries the app is on sale; fix = all countries (and new ones)
  *   node scripts/apple-connect.mjs new-version <x.y>   a new App Store version (after the previous one is on sale)
- *   node scripts/apple-connect.mjs capability  the Bundle ID gets Time Sensitive Notifications (the reminders of booked hours)
+ *   node scripts/apple-connect.mjs capability  the Bundle ID gets Push Notifications + Associated Domains (the app's entitlements)
  *   node scripts/apple-connect.mjs delete-cert <id>   deletes one certificate (e.g. a leftover of a failed run)
  *
  * Env: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (the text of AuthKey_XXXX.p8). Nothing secret is printed.
@@ -127,6 +127,9 @@ try {
         '   declined). It schedules local reminders on the device for that appointment (the evening before at 19:00 and',
         '   4 hours before) — not push notifications, normal alerts that respect Focus / Do Not Disturb; never used for marketing.',
         '   Optional, off by default: "Моят профил" -> "Напомняния" -> "Моята седмица" (a Sunday-evening overview of the week).',
+        '   Push notifications (APNs, the same permission): only when the studio itself books or cancels an appointment for the user,',
+        '   or sends a service message (e.g. "closed tomorrow") to users who have appointments ahead. Never marketing.',
+        '   Studio links (https://biocode.website/studio.html?...) open in the app when it is installed (Associated Domains).',
         '   Tapping a reminder opens the full-screen "Твоята тренировка" (the appointment, a countdown, directions, change/cancel).',
         '5. "Моят профил" (button at the bottom right) -> "Моите часове" -> "Промени" to move or cancel an appointment.',
         '6. "Моят профил" -> "Моите данни" -> "Изтрий данните ми" deletes the user\'s data (Guideline 5.1.1(v)).',
@@ -196,7 +199,7 @@ try {
       const loc = locs.find((l) => l.attributes.locale === locale) || locs[0];
       await api('PATCH', `/v1/appStoreVersionLocalizations/${loc.id}`, { data: { type: 'appStoreVersionLocalizations', id: loc.id, attributes: {
         description: T.description, keywords: T.keywords, promotionalText: T.promo, supportUrl: T.support, marketingUrl: 'https://biocode.website/studio-support.html',
-        ...(vers.length > 1 ? { whatsNew: process.env.WHATS_NEW || 'Reminders the evening before and a few hours before your appointment, an optional Sunday overview of your week, and a refreshed, lighter design.' } : {}) } } });
+        ...(vers.length > 1 ? { whatsNew: process.env.WHATS_NEW || 'Instant notice when the studio books or changes your appointment, a soft new reminder sound, studio links that open in the app, and an optional Sunday overview of your week.' } : {}) } } });
     });
     await step('най-новият готов build към версията', async () => {
       const builds = (await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`)).data;
@@ -350,16 +353,21 @@ try {
       relationships: { app: { data: { type: 'apps', id: app.id } } } } });
     console.log(`✓ нова версия ${made.data.attributes.versionString} (${made.data.attributes.appStoreState})`);
   } else if (action === 'capability') {
+    // the Bundle ID's capabilities that the app's entitlements need (studio-app/ios-extra/App.entitlements): push and the
+    // studio links. Both are switched on through Apple's API; the App Store profile made for each build then carries them.
     const found = await api('GET', `/v1/bundleIds?filter[identifier]=${encodeURIComponent(BUNDLE)}&limit=5&include=bundleIdCapabilities`);
     const bid = found.data.find((b) => b.attributes.identifier === BUNDLE);
     if (!bid) fail(`Няма Bundle ID ${BUNDLE}.`);
     const have = (found.included || []).filter((c) => c.type === 'bundleIdCapabilities').map((c) => c.attributes.capabilityType);
-    console.log(`Възможности: ${have.join(', ') || 'няма'}`);
-    if (have.includes('USERNOTIFICATIONS_TIMESENSITIVE')) { console.log('✓ Time Sensitive вече е включено'); process.exit(0); }
-    // Apple's API cannot switch this one on (it is not among its capability types): one tick in the developer portal
-    console.log('✗ Time Sensitive още не е включено. Apple го включва само ръчно: developer.apple.com → Certificates, IDs & Profiles →');
-    console.log(`  Identifiers → ${BUNDLE} → отметка „Time Sensitive Notifications“ → Save. После пусни това действие отново за проверка.`);
-    process.exit(1);
+    for (const type of ['PUSH_NOTIFICATIONS', 'ASSOCIATED_DOMAINS']) {
+      if (have.includes(type)) { console.log(`✓ ${type}`); continue; }
+      await api('POST', '/v1/bundleIdCapabilities', { data: { type: 'bundleIdCapabilities', attributes: { capabilityType: type },
+        relationships: { bundleId: { data: { type: 'bundleIds', id: bid.id } } } } });
+      console.log(`✓ ${type} — включено сега`);
+    }
+    // the Team ID (public: it is in every signed app) for .well-known/apple-app-site-association — spaced, since the
+    // same value is also a GitHub secret and the log would hide it
+    if (bid.attributes.seedId) console.log(`Team ID (без интервалите): ${bid.attributes.seedId.split('').join(' ')}`);
   } else if (action === 'delete-cert') {
     const id = String(process.argv[3] || '').trim();
     if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
