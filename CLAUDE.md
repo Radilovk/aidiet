@@ -15,6 +15,10 @@
 - Общ фронтенд JS: `app.js`, `app-ui.js`/`app-ui.css`, `design-system.css`, `platform.js`, `platform-compat.js`,
   `session-utils.js`, `auth-guard.js`, `plan-sync.js`, `local-scheduler.js`, `notification-launch.js`,
   `health-sync.js`, `activity-tracker.js` (крачкомер + въпрос за тренировка; дневните цели — `nutrition-engine/metabolic.js`), `native-backup.js`, `drive-backup.js`, `meal-swaps.js`, `game-scoring.js`, `sw.js`, `manifest.json`.
+- Преводи: `i18n.js` + `i18n/<език>.json` (bg е изходният език; речник „точен български текст → превод“,
+  `data-i18n` за двусмислени текстове, `patterns` за текст с числа). Поддържани: bg, en, de, es. Преведена е `index.html`
+  (landing); останалите страници са още на български. Нов текст на преведена страница → добави го във всички речници
+  (`npm run test:i18n` проверява, че ключовете съвпадат).
 - APK: `capacitor.config.json` (webDir `capacitor-shell`, генерира се в CI), `android-res/` (Java/gradle/patch-ове),
   `.github/workflows/build-apk.yml` (копира корена в shell с изключения), `publish-apk-release.yml`.
   Нов root файл влиза в APK автоматично, освен ако не е в изключенията на `build-apk.yml`.

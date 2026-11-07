@@ -41,6 +41,7 @@
     <link rel="prefetch" href="./game-analytics.html">
     <link rel="prefetch" href="./quick-answer.html">
     <!-- Design System 2026 -->
+    <script src="./i18n.js?v=20261107a"></script>
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="./site-footer.css?v=20261107a">
     <!-- Fonts & Icons -->
@@ -248,6 +249,16 @@
             gap: 9px;
         }
         .logo i { color: var(--primary-red); }
+        /* Избор на език — тих, до бутона за вход. */
+        .lang-pick { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 10px; border-radius: 12px; color: var(--text-dark); cursor: pointer; transition: background 0.25s; }
+        .lang-pick:hover { background: rgba(15, 118, 110, 0.08); }
+        .lang-pick i { font-size: 0.95rem; opacity: 0.8; }
+        .lang-pick select { appearance: none; -webkit-appearance: none; border: 0; background: transparent; color: inherit; font: 600 0.82rem/1 'Inter', sans-serif; letter-spacing: 0.04em; cursor: pointer; padding: 0; }
+        .lang-pick select:focus-visible { outline: 2px solid #2DD4BF; outline-offset: 4px; border-radius: 4px; }
+        .lang-pick option, .nav-menu-lang option { color: #0b1f1e; }
+        .nav-menu-lang { display: flex; align-items: center; gap: 10px; padding: 6px 16px 10px; }
+        .nav-menu-lang select { flex: 1; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(15, 118, 110, 0.2); background: transparent; color: inherit; font: 500 0.95rem 'Inter', sans-serif; }
+        @media (max-width: 380px) { .lang-pick { padding: 0 6px; } .lang-pick i { display: none; } }
         .top-nav-actions { display: flex; align-items: center; gap: 6px; }
         .theme-toggle-btn {
             width: 42px; height: 42px;
@@ -2146,6 +2157,7 @@
     <nav class="top-nav" role="navigation" aria-label="Главна навигация">
         <a href="#" class="logo" aria-label="NutriDeus начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> <span class="wm">Nutri<span class="wm-deus">Deus</span></span></a>
         <div class="top-nav-actions">
+            <label class="lang-pick" title="Език / Language"><i class="fas fa-globe" aria-hidden="true"></i><select data-lang-picker="short" aria-label="Език / Language"><option value="bg">BG · Български</option></select></label>
         <button type="button" class="theme-toggle-btn" id="navLoginBtn" onclick="window.indexOpenLoginModal()" aria-label="Вход"><i class="far fa-user" aria-hidden="true"></i></button>
         <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
             <span class="bar"></span>
@@ -2175,6 +2187,9 @@
         <a href="emoeat.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално хранене</a>
         <a href="longevity.html" onclick="closeNavMenu()"><i class="fas fa-dna"></i> Дълголетие</a>
         <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични протоколи</a>
+        <div class="nav-menu-divider"></div>
+        <div class="nav-menu-section-label">Език · Language</div>
+        <label class="nav-menu-lang"><i class="fas fa-globe" aria-hidden="true"></i><select data-lang-picker aria-label="Език / Language"><option value="bg">BG · Български</option></select></label>
         <div class="nav-menu-divider"></div>
         <button class="nav-menu-logout" id="navLogoutBtn" onclick="window.indexSignOut()">
             <i class="fas fa-sign-out-alt"></i> Изход
@@ -2213,7 +2228,7 @@
                                 <div class="lp-ps-kicker">Вторник</div>
                                 <div class="lp-ps-title">Моят план</div>
                             </div>
-                            <div class="lp-ps-days"><span>П</span><span class="on">В</span><span>С</span><span>Ч</span><span>П</span></div>
+                            <div class="lp-ps-days"><span data-i18n="day.mock.0">П</span><span class="on" data-i18n="day.mock.1">В</span><span data-i18n="day.mock.2">С</span><span data-i18n="day.mock.3">Ч</span><span data-i18n="day.mock.4">П</span></div>
                         </div>
                         <div class="lp-ps-summary">
                             <div>
