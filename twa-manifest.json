@@ -1,8 +1,8 @@
 {
   "packageId": "com.biocode.nutriplan",
   "host": "biocode.website",
-  "name": "NutriPlan - Интелигентна Хранителна Платформа",
-  "launcherName": "NutriPlan",
+  "name": "NutriDeus - Интелигентна Хранителна Платформа",
+  "launcherName": "NutriDeus",
   "display": "standalone",
   "orientation": "portrait",
   "themeColor": "#F0FDFA",

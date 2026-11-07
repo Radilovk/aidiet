@@ -9,7 +9,7 @@
 
 /** @type {Array<[string, RegExp]>} */
 const RULES = [
-  // AI говори за себе си вместо като асистента на NutriPlan.
+  // AI говори за себе си вместо като асистента на NutriDeus.
   ['ai_self', /(като|аз съм)\s+(ai|ии|изкуствен[а-я]*\s+интелект|езиков[а-я]*\s+модел|чатбот|бот)|\b(as an ai|i am an ai|language model|chatgpt|openai|gemini|claude|anthropic)\b/i],
   // Незапълнен шаблон.
   ['placeholder', /\{\{?\s*[a-z_а-я]+\s*\}?\}|\[(име|name|клиент|client|храна|food)[^\]]{0,20}\]|<(име|name)>/i],

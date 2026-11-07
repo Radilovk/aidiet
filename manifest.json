@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "NutriPlan - Интелигентна Хранителна Платформа",
-  "short_name": "NutriPlan",
+  "name": "NutriDeus - Интелигентна Хранителна Платформа",
+  "short_name": "NutriDeus",
   "description": "Комплексна здравна платформа с екип от специалисти. Персонализиран план за хранене, психология, добавки и активности чрез 7-степенен AI анализ с 30+ критерия. 24/7 AI консултант на разположение.",
   "start_url": "/",
   "scope": "/",
@@ -73,14 +73,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "NutriPlan — Начален екран (мобилен)"
+      "label": "NutriDeus — Начален екран (мобилен)"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "NutriPlan — Начален екран (таблет/десктоп)"
+      "label": "NutriDeus — Начален екран (таблет/десктоп)"
     }
   ],
   "categories": ["health", "lifestyle", "food"],

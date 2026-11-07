@@ -1,4 +1,4 @@
-# Cloudflare KV Keys для NutriPlan
+# Cloudflare KV Keys для NutriDeus
 
 Това са начални стойности за KV ключовете, използвани от admin панела и worker-а.
 

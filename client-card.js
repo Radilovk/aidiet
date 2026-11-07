@@ -1,5 +1,5 @@
 /**
- * NutriPlan Client Card (CC v1) — compressed, structured dossier for admin AI assistant.
+ * NutriDeus Client Card (CC v1) — compressed, structured dossier for admin AI assistant.
  * Extends NPCF (context-compression.js) with plan metadata, outputs, and analytics slot.
  */
 

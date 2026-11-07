@@ -10,12 +10,12 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <meta name="apple-mobile-web-app-title" content="NutriDeus">
 
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/">
-    <meta property="og:title" content="NutriPlan — хранене по твоя мярка">
+    <meta property="og:title" content="NutriDeus — хранене по твоя мярка">
     <meta property="og:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
@@ -23,7 +23,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://biocode.website/">
-    <meta name="twitter:title" content="NutriPlan — хранене по твоя мярка">
+    <meta name="twitter:title" content="NutriDeus — хранене по твоя мярка">
     <meta name="twitter:description" content="Седемдневен хранителен план от над 30 твои показателя, прегледан от специалист и коригиран всяка седмица. Консултант 24/7, клинични протоколи, програми за дълголетие и емоционално хранене.">
     <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
 
@@ -33,7 +33,7 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
-    <title>NutriPlan — хранене по твоя мярка</title>
+    <title>NutriDeus — хранене по твоя мярка</title>
     <!-- Prefetch adjacent tabs so the browser caches them before they are needed -->
     <link rel="prefetch" href="./plan.html">
     <link rel="prefetch" href="./guidelines.html">
@@ -42,7 +42,7 @@
     <link rel="prefetch" href="./quick-answer.html">
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
-    <link rel="stylesheet" href="./site-footer.css?v=20261031a">
+    <link rel="stylesheet" href="./site-footer.css?v=20261107a">
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -64,7 +64,7 @@
             animation: appBootPulse 1.6s ease-in-out infinite;
         }
         html.app-booting body::after {
-            content: 'NutriPlan';
+            content: 'NutriDeus';
             position: fixed; z-index: 20001; left: 0; right: 0; top: calc(50% + 78px);
             text-align: center;
             font: 800 1.3rem/1 'Inter', -apple-system, sans-serif;
@@ -2101,7 +2101,7 @@
     <script src="./ui-images-cache.js"></script>
 </head>
 <body>
-    <div id="spaShell" class="spa-shell" hidden aria-label="NutriPlan приложение">
+    <div id="spaShell" class="spa-shell" hidden aria-label="NutriDeus приложение">
         <div class="spa-tab-stack">
             <iframe class="spa-tab-view" data-tab-view="plan" title="Моят план" data-src="plan.html?embedded=1"></iframe>
             <iframe class="spa-tab-view" data-tab-view="guidelines" title="Насоки" data-src="guidelines.html?embedded=1"></iframe>
@@ -2144,7 +2144,7 @@
 
     <!-- Navigation -->
     <nav class="top-nav" role="navigation" aria-label="Главна навигация">
-        <a href="#" class="logo" aria-label="NutriPlan начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan</a>
+        <a href="#" class="logo" aria-label="NutriDeus начална страница"><i class="fas fa-apple-alt" aria-hidden="true"></i> <span class="wm">Nutri<span class="wm-deus">Deus</span></span></a>
         <div class="top-nav-actions">
         <button type="button" class="theme-toggle-btn" id="navLoginBtn" onclick="window.indexOpenLoginModal()" aria-label="Вход"><i class="far fa-user" aria-hidden="true"></i></button>
         <button class="hamburger-btn" id="hamburgerBtn" aria-label="Меню" aria-expanded="false" aria-controls="navMenu" onclick="toggleNavMenu()">
@@ -2267,13 +2267,13 @@
         </button>
         <div class="notification-status" id="notificationStatus"></div>
         <p class="notification-compat-note">
-            На Android: разреши известията и изключи ограничението за батерия за NutriPlan.
+            На Android: разреши известията и изключи ограничението за батерия за NutriDeus.
             На iPhone: добави сайта към началния екран от Safari.
         </p>
     </section>
 
     <!-- Numbers -->
-    <section class="lp-numbers" id="numbers" aria-label="NutriPlan в числа">
+    <section class="lp-numbers" id="numbers" aria-label="NutriDeus в числа">
         <div class="lp-wrap lp-numbers-grid lp-reveal">
             <div class="lp-num"><b data-count="30" data-suffix="+">30+</b><span>показателя в анализа</span></div>
             <div class="lp-num"><b data-count="11">11</b><span>клинични протокола</span></div>
@@ -2455,7 +2455,7 @@
         <div class="lp-wrap">
             <header class="lp-head lp-reveal">
                 <p class="lp-kicker">Приложение</p>
-                <h2 class="lp-h2">NutriPlan <em>на телефона</em>.</h2>
+                <h2 class="lp-h2">NutriDeus <em>на телефона</em>.</h2>
                 <p class="lp-sub">С известия за храненията и старт с едно докосване. Android и iPhone.</p>
             </header>
 
@@ -2520,7 +2520,7 @@
                     <ol class="android-steps">
                         <li>Отвори <strong>biocode.website</strong> в Safari</li>
                         <li>Бутон <strong>„Сподели“</strong> → <strong>„Добави към началния екран“</strong></li>
-                        <li>Отвори NutriPlan от иконата</li>
+                        <li>Отвори NutriDeus от иконата</li>
                     </ol>
                 </div>
             </div>
@@ -2548,7 +2548,7 @@
         <div class="sf-wrap">
             <div class="sf-top">
                 <div class="sf-brand">
-                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span>NutriPlan</a>
+                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span><span class="wm">Nutri<span class="wm-deus">Deus</span></span></a>
                     <p class="sf-tag">Хранене по твоя мярка.</p>
                     <p class="sf-about">Седмично меню с точни грамажи — по тялото, здравето и вкусовете ти. Коригира се всяка седмица според резултата.</p>
                     <div class="sf-stores sf-web" aria-label="Мобилни магазини">
@@ -2593,7 +2593,7 @@
                 </nav>
             </div>
             <div class="sf-bottom">
-                <p>© 2026 NutriPlan · biocode.website</p>
+                <p>© 2026 NutriDeus · biocode.website</p>
                 <p>Хранителни насоки, не медицинска услуга. При заболяване — с лекар.</p>
             </div>
         </div>
@@ -2632,7 +2632,7 @@
             <i class="fas fa-mobile-alt"></i>
         </div>
         <div class="install-banner-content">
-            <div class="install-banner-title" id="installBannerTitle">Инсталирай NutriPlan</div>
+            <div class="install-banner-title" id="installBannerTitle">Инсталирай NutriDeus</div>
             <div class="install-banner-text" id="installBannerText">Добави приложението към началния екран</div>
             <div class="install-banner-browser" id="installBannerBrowser" style="display: none;">
                 <i class="fas fa-info-circle"></i>
@@ -2655,9 +2655,9 @@
     <div id="ios-banner" class="ios-prompt" style="display:none;">
         <button onclick="dismissIosBanner()" class="ios-close">✕</button>
         <div class="ios-header">
-            <img src="./icon-192x192.png" class="ios-icon" alt="NutriPlan Icon">
+            <img src="./icon-192x192.png" class="ios-icon" alt="NutriDeus Icon">
             <div class="ios-title-group">
-                <h4>Инсталирай NutriPlan</h4>
+                <h4>Инсталирай NutriDeus</h4>
                 <p>Добави на екрана за бърз достъп и известия</p>
             </div>
         </div>
@@ -3421,7 +3421,7 @@
 
         // Installation instruction texts
         const INSTALL_INSTRUCTIONS = {
-            DESKTOP: 'За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай NutriPlan..."',
+            DESKTOP: 'За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай NutriDeus..."',
             ANDROID: '📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отвори менюто на браузъра (⋮) в горния десен ъгъл\n2. Избери "Инсталирай приложение" или "Добави към начален екран"\n3. Натисни "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърси иконата (⊕) в адресната лента\n• Кликни и избери "Инсталирай"\n\n💡 ВАЖНО: Ако не виждаш опцията веднага:\n• Презареди страницата (F5)\n• Изчакай 2-3 секунди\n• Кликни на някой бутон на страницата',
             IOS: 'За да добавиш приложението към началния екран:\n\n1. Натисни бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превърти надолу и избери "Add to Home Screen" (Добави към начален екран)\n3. Потвърди, като натиснеш "Add" (Добави)',
             MOBILE_GENERIC: 'За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието'
@@ -3552,7 +3552,7 @@
                 const titleEl = document.getElementById('installBannerTitle');
                 const textEl = document.getElementById('installBannerText');
 
-                if (titleEl) titleEl.textContent = '📱 Инсталирай NutriPlan';
+                if (titleEl) titleEl.textContent = '📱 Инсталирай NutriDeus';
                 if (textEl) textEl.textContent = 'Натисни "Инсталирай" за инструкции';
 
                 updateBannerIcon();
@@ -3898,7 +3898,7 @@
                                 console.log('%cTo install this app:', 'font-weight: bold');
                                 console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
                                 console.log('  2. Click the icon to install the app');
-                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan..."');
+                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriDeus..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
                                 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR);
@@ -4057,7 +4057,7 @@
             const contextMessages = {
                 'questionnaire': 'Искаш ли да получаваш известия за твоя хранителен план?',
                 'plan': 'Искаш ли да получаваш напомняния за твоите хранения?',
-                'action': 'Искаш ли да получаваш известия от NutriPlan?'
+                'action': 'Искаш ли да получаваш известия от NutriDeus?'
             };
 
             const message = contextMessages[context] || contextMessages['action'];
@@ -4284,7 +4284,7 @@
     <script src="./local-scheduler.js"></script>
     <script src="./app.js"></script>
     <!-- Login Modal — email/password with forgot password -->
-    <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriPlan">
+    <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в NutriDeus">
         <div class="login-modal-box">
             <button class="login-modal-close" onclick="window.indexCloseLoginModal()" aria-label="Затвори">✕</button>
             <h2 class="login-modal-title" id="loginModalTitle">Вход</h2>

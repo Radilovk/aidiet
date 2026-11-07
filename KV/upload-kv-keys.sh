@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Upload all NutriPlan KV keys from KV/*.txt and KV/prompts/*.txt
+# Upload all NutriDeus KV keys from KV/*.txt and KV/prompts/*.txt
 set -euo pipefail
 
 NAMESPACE_ID="${KV_NAMESPACE_ID:-81fc0991b2764918b682f9ca170abd4b}"
@@ -10,7 +10,7 @@ if [[ "${KV_UPLOAD_REMOTE:-1}" == "1" ]]; then
 fi
 
 echo "=========================================="
-echo "  NutriPlan KV Upload"
+echo "  NutriDeus KV Upload"
 echo "=========================================="
 echo "Namespace: $NAMESPACE_ID"
 echo ""

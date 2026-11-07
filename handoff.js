@@ -1,10 +1,10 @@
 /**
- * Предаване на данни от модулите към NutriPlan (handoff).
+ * Предаване на данни от модулите към NutriDeus (handoff).
  *
- * NutriPlan е главният профил. Модулите (EmoEat, AIRIS — ирисов анализ)
+ * NutriDeus е главният профил. Модулите (EmoEat, AIRIS — ирисов анализ)
  * водят към него и му предават обобщение на своя резултат; обратно към тях
  * не тръгват никакви данни. Пратката се пази на сървъра под еднократен,
- * неотгатваем ключ и до 30 дни; NutriPlan я прибира в профила само със
+ * неотгатваем ключ и до 30 дни; NutriDeus я прибира в профила само със
  * съгласие на клиента и я изтрива.
  *
  * Тук са правилата: какво се приема от всеки модул (бял списък с граници),
@@ -41,7 +41,7 @@ function normalizeEmoeat(p) {
 }
 
 const AIRIS_GENDER = { male: 'Мъж', female: 'Жена' };
-// Състоянията от въпросника на AIRIS → еднозначните отговори в NutriPlan (останалите — в бележките).
+// Състоянията от въпросника на AIRIS → еднозначните отговори в NutriDeus (останалите — в бележките).
 const AIRIS_HEALTH = {
   'Диабет 2 тип': 'Диабет / Инсулинова резистентност', 'Инсулинова резистентност': 'Диабет / Инсулинова резистентност',
   'Хипертония': 'Сърдечно-съдови заболявания', 'Автоимунен тиреоидит': 'Щитовидна жлеза (Хашимото и др.)', 'Менопауза': 'Менопауза',
@@ -171,7 +171,7 @@ export function handoffToFacts(h) {
       value: {
         analysis: h.analysis,
         complaints: q.complaints || '',
-        // За сверката с NutriPlan: само полетата, при които разминаване има значение.
+        // За сверката с NutriDeus: само полетата, при които разминаване има значение.
         questionnaire: { weight: q.weight, foodIntolerances: q.foodIntolerances, allergies: q.allergies, medications: q.medications, dietaryProfile: q.dietaryProfile || [] },
       },
       at: h.at, source: 'airis', status: 'confirmed',
@@ -209,7 +209,7 @@ const HABIT_TO = {
 
 /**
  * Отговорите от въпросника на AIRIS → предварително попълнени отговори във
- * въпросника на NutriPlan. Само полета с еднозначно съответствие; клиентът
+ * въпросника на NutriDeus. Само полета с еднозначно съответствие; клиентът
  * ги вижда и може да ги смени.
  * @returns {Record<string, any>}
  */
@@ -262,7 +262,7 @@ const SITE_LABELS = {
     cramps: 'мускулни крампи', hair_nails: 'косопад / чупливи нокти',
   },
 };
-// Само еднозначните съответствия с въпросника на NutriPlan.
+// Само еднозначните съответствия с въпросника на NutriDeus.
 const SITE_HEALTH = {
   diabetes: 'Диабет / Инсулинова резистентност', thyroid: 'Щитовидна жлеза (Хашимото и др.)', autoimmune: 'Автоимунни заболявания',
   hypertension: 'Сърдечно-съдови заболявания', cardiovascular: 'Сърдечно-съдови заболявания',
@@ -284,7 +284,7 @@ const usesLongevityProtocol = (h) => h?.answers?.priority === 'longevity'
   || (h?.source === 'lifeprotocols' && h?.answers?.priority !== 'otshalvane');
 
 /**
- * Отговорите от теста на сайта → предварително попълнен въпросник на NutriPlan.
+ * Отговорите от теста на сайта → предварително попълнен въпросник на NutriDeus.
  * Възрастта е в диапазон — не се попълва (въпросникът я пита точно).
  * @returns {Record<string, any>}
  */
@@ -408,7 +408,7 @@ export function handoffPreview(h) {
       a.constitution ? `Конституция: ${a.constitution}` : '',
       a.systems.filter(s => s.priority).length ? `Фокус: ${a.systems.filter(s => s.priority).map(s => s.label || s.key).join(', ')}` : '',
       a.drivers.length ? `Хранителни насоки: ${a.drivers.length}` : '',
-      'Отговорите от въпросника попълват въпросника на NutriPlan — можеш да ги промениш.',
+      'Отговорите от въпросника попълват въпросника на NutriDeus — можеш да ги промениш.',
     ].filter(Boolean),
     at: h.at,
   };

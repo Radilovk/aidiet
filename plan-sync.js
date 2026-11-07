@@ -1,5 +1,5 @@
 /**
- * NutriPlan — login plan restore, plan replacement auth, pending activation.
+ * NutriDeus — login plan restore, plan replacement auth, pending activation.
  */
 (function (global) {
     'use strict';

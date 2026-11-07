@@ -4,7 +4,7 @@
 затова **не местим страници** — адресите и връзките между проектите се чупят.
 Правила за работа: `.cursorrules` и `PROJECT_NOTES.md` (промптове само в `KV/prompts/`).
 
-## NutriPlan (PWA + Android APK, `com.biocode.nutriplan`)
+## NutriDeus (PWA + Android APK, `com.biocode.nutriplan`)
 - Страници: `index.html` (вход), `questionnaire2.html`, `plan.html`, `profile.html`, `analysis.html`,
   `plan-pending.html`, `plan-book.html`, `game-analytics.html`, `guidelines.html`, `quick-answer.html`,
   `food-picker.html`, `features.html`, `warning.html`, `privacy-policy.html`, `terms.html`, `help.html` (въпроси и отговори),
@@ -19,18 +19,18 @@
   `.github/workflows/build-apk.yml` (копира корена в shell с изключения), `publish-apk-release.yml`.
   Нов root файл влиза в APK автоматично, освен ако не е в изключенията на `build-apk.yml`.
 
-## Бекенд (Cloudflare Worker, общ за NutriPlan, fitness, studio)
+## Бекенд (Cloudflare Worker, общ за NutriDeus, fitness, studio)
 - Източник: `worker.entry.js` + импортираните модули в корена, `nutrition-engine/`, `fitness/worker.js`, `studio-platform/`.
 - **`worker.js` е генериран (4MB) — не го редактирай и не го чети.** Сглобява се с `npm run build:worker`.
 - Данни: `data/`, `data/engine/`, `nutrition-library/`, `*-data.js`. Промптове/KV: `KV/`.
 - Проверка: `npm run test:worker` (bundle + health); тематични тестове: `npm run test:*` (виж `package.json`, `scripts/`).
 
-## Други проекти (отделни, не пипай при работа по NutriPlan)
+## Други проекти (отделни, не пипай при работа по NutriDeus)
 - `fitness/` — KA-TRAINER (собствен `package.json`, бекендът е в общия worker).
 - `xbody.html` (+ `xbody-*`, `acuity/`), `studio.html` + `studio-platform/`, `emoeat.html`, `kids.html`,
   `longevity.html`, `protocols.html`, `protocol-landing.html`, `pep*.html`, `reta.html`, `aix.html`,
   `lqto2026.html`, `vaprosnikhomeo.html`, `dopamine-test.html`, `health.html`.
-- `admin.html` (+ `admin-*`) — админ панел на NutriPlan, не влиза в приложението.
+- `admin.html` (+ `admin-*`) — админ панел на NutriDeus, не влиза в приложението.
 - `viber-sender/`, `workflows/`, `migrations/`, `samples/`, `clients/` — помощни.
 
 ## Големи файлове (чети на части, търси с Grep)

@@ -19,7 +19,7 @@ import { PROTOCOL_STATES, STATE_ICONS, statePageUrl } from '../protocol-states.j
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = 'https://biocode.website';
-const CSS_V = '20261031a';
+const CSS_V = '20261107a';
 
 /** Статични страници с общия футър (вмъква се между маркерите). */
 const SITE_FOOTER_PAGES = ['index.html', 'features.html', 'help.html', 'delete-account.html', 'privacy-policy.html', 'terms.html'];
@@ -63,7 +63,7 @@ function siteFooter() {
         <div class="sf-wrap">
             <div class="sf-top">
                 <div class="sf-brand">
-                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark">${svg(I.leafMark, 18, 2.2)}</span>NutriPlan</a>
+                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark">${svg(I.leafMark, 18, 2.2)}</span><span class="wm">Nutri<span class="wm-deus">Deus</span></span></a>
                     <p class="sf-tag">Хранене по твоя мярка.</p>
                     <p class="sf-about">Седмично меню с точни грамажи — по тялото, здравето и вкусовете ти. Коригира се всяка седмица според резултата.</p>
                     <div class="sf-stores sf-web" aria-label="Мобилни магазини">
@@ -108,7 +108,7 @@ function siteFooter() {
                 </nav>
             </div>
             <div class="sf-bottom">
-                <p>© 2026 NutriPlan · biocode.website</p>
+                <p>© 2026 NutriDeus · biocode.website</p>
                 <p>Хранителни насоки, не медицинска услуга. При заболяване — с лекар.</p>
             </div>
         </div>
@@ -118,8 +118,8 @@ function siteFooter() {
 
 const topbar = () => `<header class="topbar">
         <div class="wrap">
-            <a class="brand" href="index.html?stay=1" aria-label="NutriPlan — начало">
-                <span class="brand-mark">${svg(I.leafMark, 18, 2.2)}</span>NutriPlan
+            <a class="brand" href="index.html?stay=1" aria-label="NutriDeus — начало">
+                <span class="brand-mark">${svg(I.leafMark, 18, 2.2)}</span><span class="wm">Nutri<span class="wm-deus">Deus</span></span>
             </a>
             <button class="icon-btn" id="theme-toggle" type="button" aria-label="Смени светла / тъмна тема">
                 <span class="i-moon">${svg(I.moon, 18)}</span><span class="i-sun">${svg(I.sun, 18)}</span>
@@ -138,7 +138,7 @@ const fonts = `<link rel="preconnect" href="https://fonts.googleapis.com">
 function page(s) {
     const url = `${SITE}/${statePageUrl(s)}`;
     const cta = `questionnaire2.html?protocol=${encodeURIComponent(s.id)}`;
-    const title = `${s.shortName} — хранителен протокол | NutriPlan`;
+    const title = `${s.shortName} — хранителен протокол | NutriDeus`;
     const ctaLabel = 'Създай моя план по протокола';
     const others = PROTOCOL_STATES.filter((o) => o.id !== s.id);
     const ld = {
@@ -148,7 +148,7 @@ function page(s) {
         description: s.shortDescription,
         url,
         inLanguage: 'bg-BG',
-        isPartOf: { '@type': 'WebSite', name: 'NutriPlan', url: `${SITE}/` },
+        isPartOf: { '@type': 'WebSite', name: 'NutriDeus', url: `${SITE}/` },
         about: { '@type': 'MedicalCondition', name: s.name },
     };
     return `<!DOCTYPE html>
@@ -158,12 +158,12 @@ function page(s) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>${esc(title)}</title>
-    <meta name="description" content="${esc(s.shortDescription)} Персонален хранителен план в NutriPlan.">
+    <meta name="description" content="${esc(s.shortDescription)} Персонален хранителен план в NutriDeus.">
     <link rel="canonical" href="${url}">
     <meta name="theme-color" content="#F4FBFA">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="bg_BG">
-    <meta property="og:site_name" content="NutriPlan">
+    <meta property="og:site_name" content="NutriDeus">
     <meta property="og:title" content="${esc(title)}">
     <meta property="og:description" content="${esc(s.shortDescription)}">
     <meta property="og:url" content="${url}">
@@ -228,7 +228,7 @@ function page(s) {
             <h2 id="h-steps"><span class="kicker">Три стъпки</span>Как стигаш до плана</h2>
             <ol class="steps">
                 <li><div><strong>Кратък въпросник</strong><span>Протоколът вече е избран — питаме само за теб: тяло, режим, вкус и здраве.</span></div></li>
-                <li><div><strong>Анализ</strong><span>NutriPlan съчетава протокола с твоите данни и смята калориите и състава на всяко хранене. Специалист преглежда резултата.</span></div></li>
+                <li><div><strong>Анализ</strong><span>NutriDeus съчетава протокола с твоите данни и смята калориите и състава на всяко хранене. Специалист преглежда резултата.</span></div></li>
                 <li><div><strong>Твоят план</strong><span>Седмично меню, замени за всяко ястие и асистент, който отговаря на въпроси за храната.</span></div></li>
             </ol>
         </section>
@@ -266,7 +266,7 @@ function page(s) {
 function hubPage() {
     const url = `${SITE}/protocol-landing.html`;
     const n = PROTOCOL_STATES.length;
-    const title = 'Клинични протоколи — хранене по състоянието ти | NutriPlan';
+    const title = 'Клинични протоколи — хранене по състоянието ти | NutriDeus';
     const description = `${n} хранителни протокола — кръвна захар, автоимунни състояния, храносмилане, менопауза, кърмене и още. Седмично меню по протокола и по твоите данни.`;
     const ld = {
         '@context': 'https://schema.org',
@@ -275,7 +275,7 @@ function hubPage() {
         description,
         url,
         inLanguage: 'bg-BG',
-        isPartOf: { '@type': 'WebSite', name: 'NutriPlan', url: `${SITE}/` },
+        isPartOf: { '@type': 'WebSite', name: 'NutriDeus', url: `${SITE}/` },
         hasPart: PROTOCOL_STATES.map((s) => ({ '@type': 'WebPage', name: s.shortName, url: `${SITE}/${statePageUrl(s)}` })),
     };
     const cards = PROTOCOL_STATES.map((s) => `
@@ -305,7 +305,7 @@ function hubPage() {
     <meta name="theme-color" content="#F4FBFA">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="bg_BG">
-    <meta property="og:site_name" content="NutriPlan">
+    <meta property="og:site_name" content="NutriDeus">
     <meta property="og:title" content="${esc(title)}">
     <meta property="og:description" content="${esc(description)}">
     <meta property="og:url" content="${url}">

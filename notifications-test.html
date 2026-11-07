@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест на Известия - NutriPlan</title>
+    <title>Тест на Известия - NutriDeus</title>
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="./design-system.css">
@@ -1190,7 +1190,7 @@ async function buildApkDiagnosticReport() {
                         : 'Готово за APK тест с отложен старт';
 
     const report = [
-        'NutriPlan APK / *notifyme диагностика',
+        'NutriDeus APK / *notifyme диагностика',
         'Време: ' + new Date().toISOString(),
         'URL: ' + location.href,
         'Контекст: ' + (capInfo.inIframe ? 'iframe / embedded tab' : 'top-level'),
@@ -1440,7 +1440,7 @@ async function scheduleDelayed(delayOverride) {
 async function runAutomatedNotificationTest() {
     const delaySeconds = Math.max(1, Number(document.getElementById('delaySecondsInput').value) || 10);
     const reportLines = [
-        'NutriPlan автоматизиран тест на нотификации',
+        'NutriDeus автоматизиран тест на нотификации',
         'Време: ' + new Date().toISOString(),
         'Delay: ' + delaySeconds + ' sec'
     ];

@@ -1,6 +1,6 @@
 {
   "appId": "com.biocode.nutriplan",
-  "appName": "NutriPlan",
+  "appName": "NutriDeus",
   "webDir": "capacitor-shell",
   "server": {
     "androidScheme": "https",

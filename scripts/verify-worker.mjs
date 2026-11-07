@@ -104,12 +104,12 @@ check('устройства: импорт от файл', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
-check('модули → NutriPlan (пратки)', () => {
+check('модули → NutriDeus (пратки)', () => {
   const r = run('node', ['scripts/test-handoff.mjs']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
-check('сверка AIRIS / EmoEat / NutriPlan', () => {
+check('сверка AIRIS / EmoEat / NutriDeus', () => {
   const r = run('node', ['scripts/test-crosscheck.mjs']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });

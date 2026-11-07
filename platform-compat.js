@@ -1,5 +1,5 @@
 /**
- * NutriPlan — cross-device notification & PWA compatibility (APK + PWA + Web).
+ * NutriDeus — cross-device notification & PWA compatibility (APK + PWA + Web).
  * Loaded after platform.js; exposes NutriPlanCompat.
  */
 (function (global) {
@@ -117,7 +117,7 @@
 
     function getBatteryOptimizationHints(oem) {
         oem = oem || getAndroidOem();
-        var app = 'NutriPlan';
+        var app = 'NutriDeus';
         var common = [
             'Изключи ограничения за батерията за ' + app + ' (Unrestricted / Без ограничения).',
             'Разреши автостарт и фонова работа, ако системата пита.'

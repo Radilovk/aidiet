@@ -1,8 +1,8 @@
 {
   "id": "/admin.html",
-  "name": "NutriPlan Админ Панел",
+  "name": "NutriDeus Админ Панел",
   "short_name": "НП Админ",
-  "description": "Административен панел за управление на NutriPlan платформата.",
+  "description": "Административен панел за управление на NutriDeus платформата.",
   "start_url": "/admin.html",
   "scope": "/",
   "display": "standalone",

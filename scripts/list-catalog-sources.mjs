@@ -39,7 +39,7 @@ const liquid = MEAL_DISHES.filter(d => inferDishTags(d).includes('liquid_breakfa
 const lowCarb = MEAL_DISHES.filter(d => inferDishTags(d).includes('low_carb')).length;
 const sweet = MEAL_DISHES.filter(d => inferDishTags(d).includes('sweet_slot')).length;
 
-console.log('=== NutriPlan catalog sources ===\n');
+console.log('=== NutriDeus catalog sources ===\n');
 console.log(`Plan engine: ${PLAN_ENGINE_VERSION}\n`);
 
 console.log('Counts:');

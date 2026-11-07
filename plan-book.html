@@ -9,7 +9,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <meta name="apple-mobile-web-app-title" content="NutriDeus">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
@@ -1870,7 +1870,7 @@
                 <!-- Populated by JS -->
             </ol>
             <div class="page-footer">
-                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
+                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div>
             </div>
         </div>
 
@@ -1891,7 +1891,7 @@
             <div id="bookProblemsContainer"></div>
             <div class="forecast-grid-book" id="bookForecastGrid" style="display:none;"></div>
             <div class="page-footer">
-                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
+                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div>
                 <div>Здравословен Анализ</div>
             </div>
         </div>
@@ -1909,7 +1909,7 @@
                 <!-- Populated by JS -->
             </div>
             <div class="page-footer">
-                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
+                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div>
                 <div>Стратегия и Цел</div>
             </div>
         </div>
@@ -1931,7 +1931,7 @@
             <ul class="food-list good" id="bookRecommendedList"></ul>
             <div id="bookFoodGuideCore"></div>
             <div class="page-footer">
-                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
+                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div>
                 <div>Препоръчителни Храни</div>
             </div>
         </div>
@@ -1948,7 +1948,7 @@
             <ul class="food-list bad" id="bookForbiddenList"></ul>
             <div id="bookFoodGuideLimit"></div>
             <div class="page-footer">
-                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
+                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div>
                 <div id="bookLimitFooter">Забранени Храни</div>
             </div>
         </div>
@@ -1964,7 +1964,7 @@
             </div>
             <ul class="tips-list" id="bookPsychologyList"></ul>
             <div class="page-footer">
-                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
+                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div>
                 <div>Психология и Съвети</div>
             </div>
         </div>
@@ -1980,7 +1980,7 @@
             </div>
             <div id="bookSupplementsList"></div>
             <div class="page-footer">
-                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
+                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div>
                 <div>Хранителни Добавки</div>
             </div>
         </div>
@@ -1996,7 +1996,7 @@
             </div>
             <div id="bookHacksList"></div>
             <div class="page-footer">
-                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
+                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div>
                 <div>Практически Хакове</div>
             </div>
         </div>
@@ -2012,7 +2012,7 @@
             </div>
             <div class="user-data-grid" id="bookUserDataGrid"></div>
             <div class="page-footer">
-                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div>
+                <div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div>
                 <div>Потребителски Данни</div>
             </div>
         </div>
@@ -2574,7 +2574,7 @@
                     html += '</div>'; // /meal-card-book
                 });
 
-                html += '<div class="page-footer"><div class="footer-brand"><i class="fas fa-leaf"></i> NutriPlan</div><div>' + esc(fullDayNames[d - 1]) + ' — Ден ' + d + '</div></div>';
+                html += '<div class="page-footer"><div class="footer-brand"><i class="fas fa-leaf"></i> NutriDeus</div><div>' + esc(fullDayNames[d - 1]) + ' — Ден ' + d + '</div></div>';
                 html += '</div>'; // /page
 
                 container.innerHTML += html;
@@ -2937,10 +2937,10 @@
             showBookNotice('Обнови приложението до последната версия, за да запазиш плана като PDF.');
             return;
         }
-        var name = 'NutriPlan - хранителен план';
+        var name = 'NutriDeus - хранителен план';
         try {
             var ud = JSON.parse(localStorage.getItem('userData') || '{}');
-            if (ud && ud.name) name = 'NutriPlan - ' + String(ud.name).slice(0, 40);
+            if (ud && ud.name) name = 'NutriDeus - ' + String(ud.name).slice(0, 40);
         } catch (_) {}
         printer.print({ name: name }).then(function () {
             showBookNotice('Избери „Запази като PDF“ или принтер от горното меню.');

@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Административна панел за управление на NutriPlan платформата.">
+    <meta name="description" content="Административна панел за управление на NutriDeus платформата.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <meta name="apple-mobile-web-app-title" content="NutriDeus">
     <link rel="canonical" href="https://biocode.website/admin.html">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
     <link rel="manifest" href="./admin-manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
-    <title>Админ Панел - NutriPlan</title>
+    <title>Админ Панел - NutriDeus</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1584,7 +1584,7 @@
     <div id="ios-banner" class="ios-prompt" style="display:none;">
         <button onclick="dismissIosBanner()" class="ios-close">✕</button>
         <div class="ios-header">
-            <img src="./icon-192x192.png" class="ios-icon" alt="NutriPlan Icon">
+            <img src="./icon-192x192.png" class="ios-icon" alt="NutriDeus Icon">
             <div class="ios-title-group">
                 <h4>Инсталирай Админ Панел</h4>
                 <p>Добави администраторското приложение на екрана за бърз достъп</p>
@@ -2757,7 +2757,7 @@
             <div class="card rf-root" id="referralsCard">
                 <h2><i class="fas fa-route"></i> Насочвания от модули</h2>
                 <div class="info-box">
-                    <strong>Фуния:</strong> линк (клик „към NutriPlan“ в модула) → отворен (страницата в NutriPlan) → първи план (нов клиент, планът ползва данните) → в профила (клиентът е потвърдил). Конверсията е „в профила“ ÷ „линкове“.
+                    <strong>Фуния:</strong> линк (клик „към NutriDeus“ в модула) → отворен (страницата в NutriDeus) → първи план (нов клиент, планът ползва данните) → в профила (клиентът е потвърдил). Конверсията е „в профила“ ÷ „линкове“.
                 </div>
                 <div class="rf-toolbar">
                     <div class="rf-range" role="group" aria-label="Период">
@@ -3221,7 +3221,7 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningActivityTitle" placeholder="NutriPlan"
+                            <input type="text" id="gnEveningActivityTitle" placeholder="NutriDeus"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
@@ -3250,7 +3250,7 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningBalanceTitle" placeholder="NutriPlan"
+                            <input type="text" id="gnEveningBalanceTitle" placeholder="NutriDeus"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
@@ -3279,7 +3279,7 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningWaterTitle" placeholder="NutriPlan"
+                            <input type="text" id="gnEveningWaterTitle" placeholder="NutriDeus"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
@@ -8240,16 +8240,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     : (data.config || {});
 
                 document.getElementById('gnMorningTime').value  = cfg.morningTime  || '07:00';
-                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'NutriPlan';
+                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'NutriDeus';
                 document.getElementById('gnMorningBody').value  = cfg.morningBody  || 'Спа ли добре тази нощ?';
                 document.getElementById('gnEveningActivityTime').value  = cfg.eveningActivityTime  || '20:00';
-                document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'NutriPlan';
+                document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'NutriDeus';
                 document.getElementById('gnEveningActivityBody').value  = cfg.eveningActivityBody  || 'Колко се движи днес?';
                 document.getElementById('gnEveningBalanceTime').value  = cfg.eveningBalanceTime  || '20:05';
-                document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'NutriPlan';
+                document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'NutriDeus';
                 document.getElementById('gnEveningBalanceBody').value  = cfg.eveningBalanceBody  || 'Как се чувстваше днес?';
                 document.getElementById('gnEveningWaterTime').value  = cfg.eveningWaterTime  || '20:10';
-                document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'NutriPlan';
+                document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'NutriDeus';
                 document.getElementById('gnEveningWaterBody').value  = cfg.eveningWaterBody  || 'Пи ли достатъчно вода днес?';
 
                 renderAllGnActionRows(cfg);
@@ -8335,16 +8335,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
             const cfg = {
                 morningTime:  document.getElementById('gnMorningTime').value  || '07:00',
-                morningTitle: document.getElementById('gnMorningTitle').value || 'NutriPlan',
+                morningTitle: document.getElementById('gnMorningTitle').value || 'NutriDeus',
                 morningBody:  document.getElementById('gnMorningBody').value  || 'Спа ли добре тази нощ?',
                 eveningActivityTime:  document.getElementById('gnEveningActivityTime').value  || '20:00',
-                eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'NutriPlan',
+                eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'NutriDeus',
                 eveningActivityBody:  document.getElementById('gnEveningActivityBody').value  || 'Колко се движи днес?',
                 eveningBalanceTime:   document.getElementById('gnEveningBalanceTime').value  || '20:05',
-                eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'NutriPlan',
+                eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'NutriDeus',
                 eveningBalanceBody:   document.getElementById('gnEveningBalanceBody').value  || 'Как се чувстваше днес?',
                 eveningWaterTime:     document.getElementById('gnEveningWaterTime').value  || '20:10',
-                eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'NutriPlan',
+                eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'NutriDeus',
                 eveningWaterBody:     document.getElementById('gnEveningWaterBody').value  || 'Пи ли достатъчно вода днес?',
                 morningActions: (window.GnActionsUI && GnActionsUI.collect('gnMorningActions')) || [],
                 eveningActivityActions: (window.GnActionsUI && GnActionsUI.collect('gnEveningActivityActions')) || [],
@@ -8420,13 +8420,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 }
 
                 const typeLabels = {
-                    morning_check: { title: 'NutriPlan', body: 'Спа ли добре тази нощ?', url: '/plan.html?action=morning_check' },
-                    evening_activity: { title: 'NutriPlan', body: 'Колко се движи днес?', url: '/plan.html?action=evening_activity' },
-                    evening_balance: { title: 'NutriPlan', body: 'Как се чувстваше днес?', url: '/plan.html?action=evening_balance' },
-                    evening_water: { title: 'NutriPlan', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' },
-                    evening_check: { title: 'NutriPlan', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' }
+                    morning_check: { title: 'NutriDeus', body: 'Спа ли добре тази нощ?', url: '/plan.html?action=morning_check' },
+                    evening_activity: { title: 'NutriDeus', body: 'Колко се движи днес?', url: '/plan.html?action=evening_activity' },
+                    evening_balance: { title: 'NutriDeus', body: 'Как се чувстваше днес?', url: '/plan.html?action=evening_balance' },
+                    evening_water: { title: 'NutriDeus', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' },
+                    evening_check: { title: 'NutriDeus', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' }
                 };
-                const tpl = typeLabels[type] || { title: 'Тестово известие от NutriPlan', body: 'Това е тестово известие.', url: '/plan.html' };
+                const tpl = typeLabels[type] || { title: 'Тестово известие от NutriDeus', body: 'Това е тестово известие.', url: '/plan.html' };
 
                 const response = await fetch(WORKER_URL + '/api/push/send', {
                     method: 'POST',
@@ -9641,7 +9641,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             {
                 id: 'questionnaire2_bg',
                 label: '📝 Въпросник – Фон на страницата',
-                description: 'Фонова снимка на цялата страница с въпросника (HealthScore / NutriPlan въпросник).',
+                description: 'Фонова снимка на цялата страница с въпросника (HealthScore / NutriDeus въпросник).',
                 example: 'Пример: светъл минималистичен фон (бял мрамор, пастелен градиент, нежен листен принт) — неутрален и успокояващ, за да не разсейва от въпросите на холистичния профилиращ въпросник.',
                 recommendedSize: '1920 × 1080 px (landscape)',
                 page: 'questionnaire2.html'
@@ -11580,7 +11580,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan Админ Панел..."');
+                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriDeus Админ Панел..."');
                     };
                 }
                 installBanner.classList.add('show');
@@ -11828,7 +11828,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 console.log('%cTo install this app:', 'font-weight: bold');
                                 console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
                                 console.log('  2. Click the icon to install the app');
-                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan Admin..."');
+                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriDeus Admin..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
                                 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #0D9488');

@@ -286,7 +286,7 @@ jobs:
                   strings_file.parent.mkdir(parents=True, exist_ok=True)
                   strings_file.write_text(
                       '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-                      '    <string name="app_name">NutriPlan</string>\n'
+                      '    <string name="app_name">NutriDeus</string>\n'
                       + entry + '\n</resources>\n'
                   )
               print("strings.xml: server_client_id injected for Google Sign-In.")
@@ -554,7 +554,7 @@ jobs:
               --repo "${{ github.repository }}" \
               --target "${{ github.sha }}" \
               --latest \
-              --title "NutriPlan v${V_NAME} (${TAG})" \
+              --title "NutriDeus v${V_NAME} (${TAG})" \
               --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."; then
               break
             fi

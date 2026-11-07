@@ -22,7 +22,7 @@ import {
 const SLOT_ORDER = ['Хранене 1', 'Хранене 2', 'Хранене 3', 'Хранене 4', 'Хранене 5'];
 
 /**
- * Map NutriPlan client signals → library diet profile id.
+ * Map NutriDeus client signals → library diet profile id.
  * Same rules as the client profile code: the ethical pattern wins, then the
  * explicit style, then clinical hints; keto and low-carb stay distinct.
  */

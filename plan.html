@@ -10,12 +10,12 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <meta name="apple-mobile-web-app-title" content="NutriDeus">
     
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/plan.html">
-    <meta property="og:title" content="Диетичен План - NutriPlan">
+    <meta property="og:title" content="Диетичен План - NutriDeus">
     <meta property="og:description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
@@ -23,7 +23,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary">
     <meta name="twitter:url" content="https://biocode.website/plan.html">
-    <meta name="twitter:title" content="Диетичен План - NutriPlan">
+    <meta name="twitter:title" content="Диетичен План - NutriDeus">
     <meta name="twitter:description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти.">
     <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
     
@@ -3072,7 +3072,7 @@
 
             /* Print title */
             body::before {
-                content: "NutriPlan — Моят хранителен план";
+                content: "NutriDeus — Моят хранителен план";
                 display: block;
                 font-size: 1.4rem;
                 font-weight: 700;
@@ -4163,7 +4163,7 @@
                 // No locally-cached email — show a full email + password form
                 authForm.innerHTML = `
                     <div style="font-size:2rem;margin-bottom:12px;">🌿</div>
-                    <h3>Добре дошли в NutriPlan</h3>
+                    <h3>Добре дошли в NutriDeus</h3>
                     <p>Влез, за да заредиш плана си</p>
                     <input id="paEmailInput" type="email" placeholder="Имейл адрес"
                            autocomplete="email" class="pa-pw-input" style="margin-bottom:8px;">
@@ -4341,7 +4341,7 @@
             <i class="fas fa-mobile-alt"></i>
         </div>
         <div class="install-banner-content">
-            <div class="install-banner-title" id="installBannerTitle">Инсталирай NutriPlan</div>
+            <div class="install-banner-title" id="installBannerTitle">Инсталирай NutriDeus</div>
             <div class="install-banner-text" id="installBannerText">Добави приложението към началния екран</div>
             <div class="install-banner-browser" id="installBannerBrowser" style="display: none;">
                 <i class="fas fa-info-circle"></i>
@@ -4364,9 +4364,9 @@
     <div id="ios-banner" class="ios-prompt" style="display:none;">
         <button onclick="dismissIosBanner()" class="ios-close">✕</button>
         <div class="ios-header">
-            <img src="./icon-192x192.png" class="ios-icon" alt="NutriPlan Icon">
+            <img src="./icon-192x192.png" class="ios-icon" alt="NutriDeus Icon">
             <div class="ios-title-group">
-                <h4>Инсталирай NutriPlan</h4>
+                <h4>Инсталирай NutriDeus</h4>
                 <p>Добави на екрана за бърз достъп и известия</p>
             </div>
         </div>
@@ -5428,7 +5428,7 @@
                     if (welcomeMessageElement) {
                         welcomeMessageElement.textContent = welcomeMessage;
                     }
-                    // Обръщението на NutriPlan е „ти“ — и в заглавието.
+                    // Обръщението на NutriDeus е „ти“ — и в заглавието.
                     const firstName = userData && userData.name ? String(userData.name).trim().split(/\s+/)[0] : '';
                     const titleEl = document.getElementById('welcomeModalTitle');
                     if (titleEl) {
@@ -7947,7 +7947,7 @@
             }, 100);
         }
 
-        /* ── Уточняващ въпрос в чата (разминаване между AIRIS, EmoEat и NutriPlan) ──
+        /* ── Уточняващ въпрос в чата (разминаване между AIRIS, EmoEat и NutriDeus) ──
          * Сървърът подава въпроса на асистента само ако е свързан с темата.
          * Ясен отговор в текста → записва се веднага (с „Промени“); иначе под
          * отговора излизат бутоните на въпроса. Записът е през /api/enrichment/resolve. */
@@ -9244,7 +9244,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай NutriPlan..."');
+                        alert('За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай NutriDeus..."');
                     };
                 }
                 installBanner.classList.add('show');
@@ -9501,7 +9501,7 @@
                                 console.log('%cTo install this app:', 'font-weight: bold');
                                 console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
                                 console.log('  2. Click the icon to install the app');
-                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan..."');
+                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriDeus..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
                                 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #0D9488');
@@ -9610,7 +9610,7 @@
                 : null;
             const hints = compat && compat.recommendations.length
                 ? compat.recommendations.slice(0, 2)
-                : ['Разреши известия и изключи ограничения за батерия за NutriPlan в системните настройки.'];
+                : ['Разреши известия и изключи ограничения за батерия за NutriDeus в системните настройки.'];
             const el = document.createElement('div');
             el.id = 'apk-battery-hint';
             el.style.cssText = 'position:fixed;bottom:72px;left:16px;right:16px;z-index:9998;background:rgba(15,23,42,0.94);color:#e2e8f0;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.45;border:1px solid rgba(45,212,191,0.25);max-width:480px;margin:0 auto;';

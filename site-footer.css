@@ -121,3 +121,10 @@ html.is-native .sf-web { display: none !important; }
     .sf-wrap { padding: 0 20px; }
     .sf-cols { grid-template-columns: 1fr 1fr; gap: 24px 16px; }
 }
+
+/* Словесната марка: „Nutri“ в основния шрифт, „Deus“ — в курсива на заглавията. Ползва се и в горната лента. */
+.wm { white-space: nowrap; }
+.wm-deus { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 600; letter-spacing: -0.01em; margin-left: 0.06em; color: #2DD4BF; }
+/* На светъл фон (горната лента) — по-тъмният тюркоаз, за контраст. */
+.brand .wm-deus, .logo .wm-deus { color: #0F766E; }
+[data-theme="dark"] .brand .wm-deus, [data-theme="dark"] .logo .wm-deus { color: #2DD4BF; }
