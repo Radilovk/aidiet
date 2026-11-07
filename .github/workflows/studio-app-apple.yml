@@ -12,10 +12,10 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'check | bundle-id | status | certs | metadata | testflight | screenshots | submit | availability | new-version | capability | delete-cert'
+        description: 'check | bundle-id | status | certs | metadata | testflight | screenshots | submit | cancel | availability | new-version | capability | delete-cert'
         required: true
         type: choice
-        options: [check, bundle-id, status, certs, metadata, testflight, screenshots, submit, availability, new-version, capability, delete-cert]
+        options: [check, bundle-id, status, certs, metadata, testflight, screenshots, submit, cancel, availability, new-version, capability, delete-cert]
       id:
         description: 'delete-cert: id на сертификата; availability: fix / BGR; new-version: номер, напр. 1.1'
         required: false
