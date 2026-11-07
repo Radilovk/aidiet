@@ -419,6 +419,84 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
 .upcoming .btn.quiet { color: #fff; opacity: .85; }
 @keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.45); } 80%, 100% { box-shadow: 0 0 0 26px rgba(255,255,255,0); } }
 
+/* ════ the material (iOS "Liquid Glass"): a calm, light ambient background tinted by the studio's colour; translucent,
+   blurred surfaces with a fine inner highlight; depth from soft shadows, not borders. Restrained colour: the brand marks
+   only what can be pressed or chosen. ════ */
+:root { --bg: #f4f3f7; --card: rgba(255,255,255,.72); --card-solid: #fff; --soft: rgba(118,118,128,.10); --line: rgba(60,60,67,.10);
+  --glass-edge: rgba(255,255,255,.75); --shadow: 0 1px 1px rgba(0,0,0,.03), 0 10px 30px rgba(17,12,34,.07); }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0b0b0f; --card: rgba(30,30,34,.62); --card-solid: #1c1c1f; --soft: rgba(120,120,128,.18); --line: rgba(255,255,255,.08);
+    --glass-edge: rgba(255,255,255,.10); --shadow: 0 10px 30px rgba(0,0,0,.45); }
+}
+body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(40vmax 34vmax at 12% 6%, color-mix(in srgb, var(--brand) 16%, transparent), transparent 70%),
+    radial-gradient(42vmax 36vmax at 92% 22%, rgba(120,140,255,.14), transparent 70%),
+    radial-gradient(46vmax 40vmax at 50% 108%, rgba(255,190,140,.16), transparent 70%), var(--bg); }
+.card, .sheet, .onb-card, .fab, .pills button, .pills a, .viewer-top {
+  -webkit-backdrop-filter: blur(24px) saturate(1.8); backdrop-filter: blur(24px) saturate(1.8); }
+.card { background: var(--card); box-shadow: var(--shadow), inset 0 0 0 1px var(--glass-edge); border-radius: 24px; }
+.sheet { background: color-mix(in srgb, var(--card-solid) 86%, transparent); box-shadow: 0 -8px 40px rgba(0,0,0,.14), inset 0 1px 0 var(--glass-edge); border-radius: 30px 30px 0 0; }
+.sheet::before { background: rgba(120,120,128,.35); width: 36px; height: 5px; }
+.acts { background: linear-gradient(to top, color-mix(in srgb, var(--card-solid) 96%, transparent) 70%, transparent); box-shadow: none; }
+.onb-card { background: var(--card); box-shadow: var(--shadow), inset 0 0 0 1px var(--glass-edge); border-radius: 30px; }
+.onb { background: transparent; }
+/* type: large titles, quiet secondary text */
+.top h1 { font-size: 28px; font-weight: 800; letter-spacing: -.025em; }
+.top p { font-size: 15px; }
+.info-h { font-size: 13px; letter-spacing: .14em; color: var(--muted); font-weight: 700; }
+#studio-card .hero { color: var(--text); font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+#studio-card::before { opacity: .7; }
+/* chips and pills: glass, colour only on the text */
+.pills button, .pills a { background: var(--card); border: 0; box-shadow: inset 0 0 0 1px var(--glass-edge), 0 4px 14px rgba(17,12,34,.06); color: var(--text); font-weight: 600; }
+.facts span, .facts a { background: var(--soft); }
+/* buttons: the primary one a soft brand gradient with a quiet glow; the rest glass */
+@supports (background: color-mix(in srgb, red, blue)) {
+  .btn:not(.sec):not(.danger):not(.quiet) { background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 82%, #fff), color-mix(in srgb, var(--brand) 92%, #000));
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--brand) 26%, transparent), inset 0 1px 0 rgba(255,255,255,.28); }
+}
+.btn { border-radius: 16px; min-height: 52px; font-size: 17px; letter-spacing: -.01em; }
+.btn.sec { background: var(--soft); }
+.btn.mini { min-height: 36px; font-size: 15px; border-radius: 12px; }
+/* calendar: calm, the chosen day a soft gradient disc */
+#cal-card { padding: 16px 10px 14px; }
+.day.sel::before { box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 30%, transparent); }
+.slot { background: var(--card-solid); border-color: var(--line); box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.slot.own { box-shadow: 0 8px 20px color-mix(in srgb, var(--brand) 26%, transparent); }
+.slots .slot.own { animation: rise .38s ease-out both; }
+/* the floating parts */
+.fab { background: color-mix(in srgb, var(--card-solid) 70%, transparent); border: 0; box-shadow: 0 10px 30px rgba(17,12,34,.16), inset 0 0 0 1px var(--glass-edge); }
+.bar { background: rgba(22,22,26,.78); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6); box-shadow: 0 16px 40px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08); border-radius: 24px; }
+.menu li { border-color: var(--line); }
+
+/* ════ "Твоята тренировка": calm and inviting — a light, airy screen with the training's rhythm, not an alarm ════ */
+.upcoming { color: var(--text); background: var(--bg); animation: fadein .35s ease; }
+.upcoming::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60vmax 50vmax at 50% -10%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 65%),
+    radial-gradient(50vmax 40vmax at 100% 100%, rgba(120,170,255,.16), transparent 70%),
+    radial-gradient(50vmax 40vmax at 0% 90%, rgba(255,200,150,.20), transparent 70%); }
+.up-inner { position: relative; }
+.up-ring { width: 132px; height: 132px; border-radius: 50%; background: none; box-shadow: none; animation: none; position: relative; margin-bottom: 22px; }
+.up-ring::before, .up-ring::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--brand) 30%, transparent); animation: breathe 3.6s ease-in-out infinite; }
+.up-ring::after { inset: -16px; border-color: color-mix(in srgb, var(--brand) 14%, transparent); animation-delay: .6s; }
+.up-ring .logo { width: 92px; height: 92px; border-radius: 50%; box-shadow: 0 14px 34px rgba(17,12,34,.16), 0 0 0 6px var(--card); }
+.up-kicker { color: var(--muted); letter-spacing: .16em; font-size: 12px; opacity: 1; }
+.up-when { font-size: 20px; font-weight: 600; color: var(--muted); }
+.up-time { font-size: 84px; font-weight: 700; letter-spacing: -.045em; color: var(--text); margin: 4px 0 10px; }
+.up-left { background: var(--card); color: var(--text); box-shadow: inset 0 0 0 1px var(--glass-edge), 0 6px 18px rgba(17,12,34,.06);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); font-size: 15px; padding: 8px 16px; }
+.up-where { font-size: 16px; font-weight: 600; } .up-where span { color: var(--muted); opacity: 1; }
+.up-prep { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 18px 0 0; }
+.up-prep span { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  background: var(--card); box-shadow: inset 0 0 0 1px var(--glass-edge); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: var(--text); }
+.up-prep .i { width: 15px; height: 15px; color: var(--brand); }
+.upcoming .btn.up-ok { background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 82%, #fff), color-mix(in srgb, var(--brand) 92%, #000)) !important; color: #fff !important;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--brand) 26%, transparent) !important; }
+.upcoming .btn.sec { background: var(--card); color: var(--text); box-shadow: inset 0 0 0 1px var(--glass-edge); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+.upcoming .btn.quiet { color: var(--muted); opacity: 1; }
+@keyframes breathe { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.06); opacity: .45; } }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -1341,11 +1419,12 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     const late = h.start - Date.now() < free * 3600e3;
     el.innerHTML = `<div class="up-inner">
       <div class="up-ring"><div class="logo" id="up-logo"></div></div>
-      <p class="up-kicker">Предстоящ час</p>
+      <p class="up-kicker">Твоята тренировка</p>
       <h2 class="up-when">${esc(dayLabel(h.time.slice(0, 10)))}</h2>
       <div class="up-time">${esc(h.time.slice(11))}</div>
-      <p class="up-left" id="up-left">${esc(untilText(h.start - Date.now()))}</p>
+      <p class="up-left" id="up-left">Очакваме те ${esc(untilText(h.start - Date.now()))}</p>
       <p class="up-where">${esc(cfg.brand.name)}${cfg.address ? `<br><span>${esc(cfg.address)}</span>` : ''}</p>
+      <div class="up-prep"><span>${ic('drop')}Вода</span><span>${ic('user')}Удобни дрехи</span><span>${ic('clock')}Ела 5 мин по-рано</span></div>
       <div class="up-acts">
         <button class="btn up-ok" data-up="ok">${ic('check')}Ще дойда</button>
         ${mapLink() ? `<a class="btn sec" href="${esc(mapLink())}">${ic('nav')}Навигация</a>` : ''}
@@ -1362,7 +1441,7 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
     });
     const close = () => { clearInterval(upTimer); el.classList.add('out'); setTimeout(() => el.remove(), 240); };
     clearInterval(upTimer);
-    upTimer = setInterval(() => { const t = el.querySelector('#up-left'); if (t) t.textContent = untilText(h.start - Date.now()); }, 30e3);
+    upTimer = setInterval(() => { const t = el.querySelector('#up-left'); if (t) t.textContent = 'Очакваме те ' + untilText(h.start - Date.now()); }, 30e3);
     document.body.appendChild(el);
     haptic();
   }
