@@ -380,6 +380,18 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
 .xtip .i { color: var(--brand); margin-top: 1px; }
 .xtip small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 
+/* the progress page inside the app */
+.viewer { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: var(--bg); animation: rise .3s var(--ease); }
+.viewer.out { animation: none; opacity: 0; transform: translateY(24px); transition: opacity .2s, transform .2s; }
+.viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: calc(env(safe-area-inset-top) + 8px) 14px 8px;
+  background: color-mix(in srgb, var(--card) 85%, transparent); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-bottom: 1px solid var(--line); }
+.viewer-top b { font-size: 17px; }
+.viewer iframe { flex: 1; width: 100%; border: 0; background: var(--bg); opacity: 0; transition: opacity .25s; }
+.viewer.ready iframe { opacity: 1; }
+.viewer-load { position: absolute; top: 45%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--muted); pointer-events: none; }
+.viewer-load .i { width: 30px; height: 30px; color: var(--brand); animation: pop 1s ease-in-out infinite alternate; }
+.viewer.ready .viewer-load { display: none; }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -2047,13 +2059,25 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
       const target = news() && card.n !== 0 ? card.url.replace('/c/', '/r/') : card.url;
       save('seen', card.upd || Date.now());
       const dark = matchMedia('(prefers-color-scheme: dark)').matches;
-      window.open(target + (target.includes('?') ? '&' : '?') + 'theme=' + (dark ? 'dark' : 'light'), '_blank', 'noopener');
+      viewer(target + (target.includes('?') ? '&' : '?') + 'theme=' + (dark ? 'dark' : 'light'), 'Моят прогрес');
       return;
     }
     if (k === 'xems-food') { openFood(); loadFood().then((ch) => { if (ch) openFood(); }); return; }
     if (k === 'xems-data') openData(!sent());
   }
 
+  /* the progress page inside the app (a full-screen layer over the studio), not a separate browser screen */
+  function viewer(url, title) {
+    A.closeSheet();
+    const el = document.createElement('div');
+    el.className = 'viewer';
+    el.innerHTML = `<div class="viewer-top"><button class="round" data-vx aria-label="Затвори">${ic('x')}</button><b>${esc(title)}</b><span class="round" style="visibility:hidden"></span></div>
+      <div class="viewer-load">${ic('chart')}<span>Зареждане…</span></div><iframe src="${esc(url)}" title="${esc(title)}" referrerpolicy="no-referrer"></iframe>`;
+    const frame = el.querySelector('iframe');
+    frame.addEventListener('load', () => el.classList.add('ready'));
+    el.querySelector('[data-vx]').onclick = () => { el.classList.add('out'); setTimeout(() => el.remove(), 220); };
+    document.body.appendChild(el);
+  }
   function tip(i, text, sub) { return `<div class="xtip">${ic(i)}<span>${text}${sub ? `<small>${sub}</small>` : ''}</span></div>`; }
   const GOAL_TIP = { fat: 'Отслабването идва от по-малко захар и тестени, не от пропуснати хранения.', tone: 'Разделете протеина в 3–4 хранения — така мускулите го използват най-добре.',
     cellulite: 'По-малко сол и готови храни, повече вода и зеленчуци.', drain: 'По-малко сол, повече вода, зеленчуци и плодове.', massage: 'Вода и протеин и на следващия ден помагат на мускулите да се възстановят.' };

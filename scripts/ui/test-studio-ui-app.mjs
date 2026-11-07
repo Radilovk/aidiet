@@ -232,6 +232,7 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
     if (u.endsWith('/v1/card/find')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, url: 'https://license.biocode-bg.com/c/abc123', at: Math.floor(Date.now() / 1000), n: 3 }) });
     if (u.includes('/v1/history/abc123')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true,
       body: [{ t: Date.now() - 20 * 864e5, w: 72 }, { t: Date.now() - 2 * 864e5, w: 71, fat: 24, water: 52 }], sessions: [{ start: Date.now() - 5 * 864e5, scores: { kcal: 420 } }] }) });
+    if (/\/(c|r)\/abc123/.test(u)) return route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Моят прогрес</h1>' });
     if (u.endsWith('/v1/profile')) { sent.push(JSON.parse(route.request().postData())); return route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); }
     return route.fulfill({ status: 404, body: '{}' });
   });
@@ -241,6 +242,11 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
   await page.click('#fab');
   await page.waitForSelector('[data-p=xems-card]:not([disabled])');
   await page.screenshot({ path: `${OUT}/app-x1-menu.png` });
+  await page.click('[data-p=xems-card]');   // the progress page opens inside the app, not in another screen
+  await page.waitForSelector('.viewer iframe[src*="license.biocode-bg.com/"]');
+  await page.click('.viewer [data-vx]');
+  await page.waitForSelector('.viewer', { state: 'detached' });
+  await page.click('#fab');
   await page.click('[data-p=xems-food]');
   await page.waitForSelector('.xtiles');
   await page.screenshot({ path: `${OUT}/app-x2-food.png` });
