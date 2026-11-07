@@ -442,17 +442,13 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(--ds-fill-grad);
-            color: var(--ds-on-fill);
+            color: var(--primary-red);
             transition: all 0.3s ease;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
 
-        .questionnaire-header:hover,
-        .questionnaire-header:active {
-            background: linear-gradient(135deg, #0F766E, var(--primary-red));
-        }
+        .questionnaire-header:active { background: rgba(13, 148, 136, 0.06); }
 
         .questionnaire-title {
             display: flex;
@@ -528,8 +524,7 @@
         .analysis-header {
             padding: 16px 20px;
             min-height: 56px;
-            background: var(--ds-fill-grad);
-            color: var(--ds-on-fill);
+            color: var(--primary-red);
         }
 
         .analysis-header-toggle {
@@ -572,7 +567,7 @@
         }
 
         [data-theme="dark"] .analysis-container {
-            border-color: rgba(99, 102, 241, 0.2);
+            border-color: rgba(45, 212, 191, 0.15);
         }
 
         [data-theme="dark"] .analysis-body {
@@ -1012,7 +1007,7 @@
 
         [data-theme="dark"] .analysis-container {
             background: linear-gradient(145deg, var(--card-bg) 0%, rgba(13, 38, 38, 0.95) 100%);
-            border-color: rgba(99, 102, 241, 0.18);
+            border-color: rgba(45, 212, 191, 0.15);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
 
@@ -1320,6 +1315,13 @@
         @media (max-width: 359px) { .labs-row { grid-template-columns: 40px 1fr 1fr; } .labs-row-unit { grid-column: 2 / -1; } }
 
         /* --- CONTACT TOGGLE --- */
+        /* Изследвания, устройства, документи: отварят се от реда в „Пълнота на профила“ — без втори списък отдолу. */
+        .card-section:not(:has(.profile-contact-wrapper.open)) { display: none; }
+        /* „Твоите данни“: извън редакция празните полета не се показват. */
+        .form-group.is-empty:has([data-field]:disabled) { display: none; }
+        .questionnaire-body .form-section:has([data-field]:disabled):not(:has(.form-group:not(.is-empty))) { display: none; }
+        .card-meter-go { color: var(--ds-text-soft, var(--text-light)); }
+
         .profile-contact-header {
             cursor: pointer;
             display: flex;
@@ -1347,14 +1349,14 @@
         }
 
         .btn-secondary {
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            color: white;
-            box-shadow: 0 4px 14px rgba(107, 114, 128, 0.25);
+            background: transparent;
+            color: var(--primary-red);
+            border: 1.5px solid currentColor;
+            box-shadow: none;
         }
 
         .btn-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(107, 114, 128, 0.35);
+            background: rgba(13, 148, 136, 0.06);
         }
 
         .btn:disabled {
@@ -2168,7 +2170,7 @@
         </div>
 
         <div id="cardSections">
-        <div class="form-section" id="labsSection">
+        <div class="form-section card-section" id="labsSection">
             <div class="profile-contact-header" onclick="toggleLabs()" role="button" tabindex="0" aria-expanded="false" aria-controls="labsWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleLabs()">
                 <div class="section-title">
                     <i class="fas fa-vial"></i>
@@ -2201,7 +2203,7 @@
             </div>
         </div>
 
-        <div class="form-section" id="devicesSection" hidden>
+        <div class="form-section card-section" id="devicesSection" hidden>
             <div class="profile-contact-header" onclick="toggleDevices()" role="button" tabindex="0" aria-expanded="false" aria-controls="devicesWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDevices()">
                 <div class="section-title">
                     <i class="fas fa-heart-pulse"></i>
@@ -2249,7 +2251,7 @@
             </div>
         </div>
 
-        <div class="form-section" id="docsSection" hidden>
+        <div class="form-section card-section" id="docsSection" hidden>
             <div class="profile-contact-header" onclick="toggleDocs()" role="button" tabindex="0" aria-expanded="false" aria-controls="docsWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')toggleDocs()">
                 <div class="section-title">
                     <i class="fas fa-file-medical"></i>
@@ -2469,7 +2471,7 @@
         <div class="form-section">
             <div class="section-title">
                 <i class="fas fa-heartbeat"></i>
-                Медицинска информация
+                Здраве и лекарства
             </div>
             <div class="form-group">
                 <label class="form-label">Медицински състояния</label>
@@ -2485,7 +2487,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Допълнителни бележки</label>
-                <textarea class="form-textarea" id="additionalNotes" data-field="additionalNotes" data-diet-related="true" disabled placeholder="Добави допълнителни бележки..."></textarea>
+                <textarea class="form-textarea" id="additionalNotes" data-field="additionalNotes" data-diet-related="true" disabled placeholder="Например: работя на смени, не ям след 20 ч."></textarea>
             </div>
         </div>
 
@@ -2962,7 +2964,7 @@
             const docs = (d && d.documents) || [];
             const emo = d && d.emoeat;
             return [
-                { id: 'q', weight: 40, icon: 'fa-clipboard-list', name: 'Първоначален въпросник', fill: qFill,
+                { id: 'q', weight: 40, icon: 'fa-clipboard-list', name: 'Въпросник', fill: qFill,
                   status: qFill >= 1 ? 'Попълнен изцяло' : `Попълнен ${Math.round(qFill * 100)}%`,
                   action: 'questionnaire' },
                 { id: 'labs', weight: 20, icon: 'fa-vial', name: 'Стойности от изследвания', fill: labs.length ? Math.min(1, labs.length / 6) : 0,
@@ -3010,7 +3012,7 @@
                         <span class="module-name">${escProfileHtml(m.name)}</span>
                         <span class="module-status"${done ? ' data-on="1"' : ''}>${escProfileHtml(m.status)}</span>
                     </span>
-                    <span class="card-meter-w">${done ? '<i class="fas fa-check"></i>' : `+${Math.round(m.weight * (1 - m.fill))}%`}</span>
+                    <span class="card-meter-w">${done ? '<i class="fas fa-check"></i>' : '<i class="fas fa-chevron-right card-meter-go" aria-hidden="true"></i>'}</span>
                 </${close}></li>`;
             }).join('');
         }
@@ -4193,6 +4195,8 @@
                     }
                     input.value = value;
                 }
+                const group = input.closest('.form-group');
+                if (group) group.classList.toggle('is-empty', !String(input.value || '').trim());
             });
         }
 

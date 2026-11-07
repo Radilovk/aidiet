@@ -241,8 +241,4 @@ html.ui-fabs-away .fab-food {
   box-shadow: none !important;
   border: 1px solid var(--ui-line) !important;
 }
-.analysis-header {
-  /* Цветът по подразбиране; оценката на здравето го заменя със своя (inline). */
-  background: var(--ds-fill-grad);
-}
 .ios-prompt { font-family: var(--ui-font) !important; }
