@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>XB-Studio — XBODY студиата в приложение</title>
-<meta name="description" content="Отслабване, стегнато тяло и здрав гръб — 20 минути EMS тренировка с личен треньор. Свободните часове в реално време, записване с два допира, напомняния и твоят прогрес. XBODY Бургас и София — за iPhone и Android.">
+<meta name="description" content="Стягане, отслабване, антицелулитен ефект и моделиране на тялото — 20 минути EMS тренировка с личен треньор. Свободните часове в реално време, записване с два допира, напомняния и твоят прогрес. XBODY Бургас и София — за iPhone и Android.">
 <meta name="theme-color" content="#f6f6f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0e" media="(prefers-color-scheme: dark)">
 <meta name="apple-itunes-app" content="app-id=6828255289">
@@ -48,7 +48,7 @@ p { margin: 0; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--red); background: var(--soft);
   padding: 6px 12px; border-radius: 999px; margin-bottom: 20px; }
 .eyebrow i { width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
-.hero h1 { font-size: clamp(40px, 6.4vw, 68px); font-weight: 750; }
+.hero h1 { font-size: clamp(40px, 5.6vw, 64px); font-weight: 750; }
 .nw { white-space: nowrap; }
 .hero h1 em { font-style: normal; background: linear-gradient(120deg, var(--red), #ef5350); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .lead { font-size: clamp(18px, 2.1vw, 21px); color: var(--muted); margin: 20px 0 32px; max-width: 30ch; }
@@ -130,6 +130,9 @@ section { padding: 72px 0; }
 .ben h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
 .ben p { color: var(--muted); font-size: 16px; }
 .fine { color: var(--muted); font-size: 13px; margin-top: 18px; }
+.also { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.also span { font-size: 15px; font-weight: 600; padding: 10px 16px; border-radius: 999px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.also span::before { content: "✓"; color: var(--red); margin-right: 8px; }
 .results + .why { padding-top: 24px; }
 
 /* rules */
@@ -231,8 +234,8 @@ footer .sp { margin-left: auto; }
     <div class="wrap">
       <div>
         <div class="eyebrow"><i></i>XBODY · Бургас · София</div>
-        <h1><span class="nw">По-стегнат.</span><br><span class="nw">По-лек.</span><br><em class="nw">По-силен.</em></h1>
-        <p class="lead">Отслабване, стегнато тяло и здрав гръб с 20 минути EMS тренировка и личен треньор. Записваш се с два допира.</p>
+        <h1><span class="nw">Стегни се.</span><br><span class="nw">Отслабни.</span><br><em>Моделирай тялото.</em></h1>
+        <p class="lead">20 минути EMS тренировка се равняват на 90 минути стандартна. Стягане, отслабване и антицелулитен ефект — с личен треньор.</p>
         <div class="dl" id="get"></div>
         <p class="other" id="other"></p>
         <details class="how-android" id="howto" hidden>
@@ -256,18 +259,22 @@ footer .sp { margin-left: auto; }
   <section class="results">
     <div class="wrap">
       <div class="kicker rise">Резултатът</div>
-      <h2 class="h2 rise">Тялото, което искаш. С тренировка, която обичаш.</h2>
+      <h2 class="h2 rise">Тялото, което искаш. За 20 минути.</h2>
       <div class="benefits">
-        <div class="ben rise b1"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-8.5z"/></svg></div>
-          <h3>Отслабване</h3><p>Изгаряш мазнини и ускоряваш метаболизма — мускулите продължават да работят и след тренировката.</p></div>
-        <div class="ben rise b2"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11M4 9l5-5M15 20l5-5M2.5 11.5l3 3M18.5 2.5l3 3"/></svg></div>
-          <h3>Стегнато тяло</h3><p>Корем, ханш, бедра и ръце — всяка мускулна група работи едновременно. Оформя фигурата видимо.</p></div>
-        <div class="ben rise b3"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M8 5h8M7 9h10M8 13h8M7 17h10"/></svg></div>
-          <h3>Здрав гръб</h3><p>Дълбоките мускули поддържат гръбнака. По-малко болки, по-добра стойка.</p></div>
-        <div class="ben rise b4"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
-          <h3>Сила и енергия</h3><p>Повече сила, по-добра издръжливост и лекота в ежедневието — още от първите седмици.</p></div>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c-1.5 3-1.5 6 0 9s1.5 6 0 9M16 3c1.5 3 1.5 6 0 9s-1.5 6 0 9"/></svg></div>
+          <h3>Оформяне и стягане</h3><p>Активира дълбоките мускули и ги тонизира, без да увеличава обема им.</p></div>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-8.5z"/></svg></div>
+          <h3>Отслабване</h3><p>3 пъти по-интензивно изгаряне на калории. Мазнините горят до 48 часа след тренировката.</p></div>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5"/></svg></div>
+          <h3>Антицелулитен ефект</h3><p>По-добро кръвообращение, по-малко задържани течности и лимфен дренаж.</p></div>
+        <div class="ben rise"><div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg></div>
+          <h3>Гладка и стегната кожа</h3><p>Стимулира колагена, заглажда кожата и подобрява еластичността ѝ.</p></div>
       </div>
-      <p class="fine rise">Резултатите са индивидуални. Преди първата тренировка треньорът проверява за противопоказания.</p>
+      <div class="also rise">
+        <span>Щадящо за ставите — и при болки в гърба, коленете или раменете</span>
+        <span>След бременност — стяга корема и таза</span>
+        <span>Рехабилитация на отслабени мускули</span>
+      </div>
     </div>
   </section>
 
@@ -276,10 +283,11 @@ footer .sp { margin-left: auto; }
       <div class="kicker rise">Защо XBODY</div>
       <h2 class="h2 rise">Максимален ефект. Минимум време.</h2>
       <div class="stats">
-        <div class="stat rise"><div class="v">20<small>мин</small></div><p>Толкова трае активната част. Ефектът е като от около 90 минути стандартна тренировка.</p></div>
-        <div class="stat rise"><div class="v">1<small>:</small>1</div><p>Личен треньор на всяка тренировка. Интензитетът се настройва точно за теб.</p></div>
-        <div class="stat rise"><div class="v">0<small>кг</small></div><p>Без тежести и удари. Щадящо за ставите — подходящо на всяка възраст.</p></div>
+        <div class="stat rise"><div class="v">20<small>мин</small></div><p>се равняват на 90 минути стандартна тренировка.</p></div>
+        <div class="stat rise"><div class="v">3<small>×</small></div><p>по-интензивно изгаряне на калории.</p></div>
+        <div class="stat rise"><div class="v">2<small>× седмично</small></div><p>са достатъчни за видими резултати.</p></div>
       </div>
+      <p class="fine rise">С личен треньор на всяка тренировка. Резултатите са индивидуални; преди първата тренировка треньорът проверява за противопоказания.</p>
     </div>
   </section>
 
