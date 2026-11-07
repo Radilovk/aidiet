@@ -5,7 +5,7 @@
     <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Текущ анализ и здравен индекс за твоя хранителен план в NutriPlan.">
+    <meta name="description" content="Твоята седмица с хранителния план в NutriPlan.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -234,6 +234,24 @@
         .game-week-title { font-size: 0.78rem; opacity: 0.85; font-weight: 500; }
         .game-week-score { font-size: 1.15rem; font-weight: 800; }
         .game-week-sub   { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
+
+        /* Тази седмица: звезди, дните по имена, една следваща стъпка */
+        .gw-verdict { display: flex; align-items: center; gap: 10px; font-size: 1.05rem; font-weight: 700; margin-top: 4px; }
+        .gw-stars { display: inline-flex; gap: 2px; color: #fbbf24; font-size: 0.9rem; }
+        .gw-stars .far { color: rgba(255,255,255,0.45); }
+        .gw-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; }
+        .gw-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .gw-day span { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.18); }
+        .gw-day[data-tone="good"] span { background: rgba(255,255,255,0.95); }
+        .gw-day[data-tone="mid"] span { background: #fbbf24; }
+        .gw-day[data-tone="low"] span { background: #f87171; }
+        .gw-day small { font-size: 0.6875rem; opacity: 0.8; }
+        .gw-next { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.18); font-size: 0.9rem; line-height: 1.45; font-weight: 600; }
+        .gw-next i { margin-top: 3px; }
+        .gw-trend { font-size: 0.8125rem; font-weight: 600; margin: 0 0 10px; color: #0F766E; }
+        .gw-trend[data-dir="down"] { color: #b45309; }
+        [data-theme="dark"] .gw-trend { color: #5eead4; }
+        [data-theme="dark"] .gw-trend[data-dir="down"] { color: #fbbf24; }
         /* 7-day dot strip */
         .game-week-dots { display:flex; gap:4px; margin-top: 7px; }
         .game-week-dot  {
@@ -335,24 +353,6 @@
         }
         .game-insight-card strong { color: #0D9488; }
         /* Scenario/prediction card */
-        .game-scenario-card {
-            background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.07));
-            border-radius: 12px;
-            padding: 11px 13px;
-            margin-bottom: 10px;
-            border: 1.5px solid rgba(99,102,241,0.2);
-            font-size: 0.8rem;
-            color: var(--text-dark);
-            line-height: 1.5;
-        }
-        .game-scenario-card .game-scenario-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #6366f1;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 4px;
-        }
         /* Alert card */
         .game-alert-card {
             background: rgba(245,158,11,0.08);
@@ -462,7 +462,6 @@
         [data-theme="dark"] .game-index-bar-wrap    { background: rgba(45,212,191,0.1); }
         [data-theme="dark"] .game-encourage-note    { background: rgba(45,212,191,0.07); border-color: rgba(45,212,191,0.4); }
         [data-theme="dark"] .game-insight-card      { background: rgba(45,212,191,0.07); border-color: rgba(45,212,191,0.4); }
-        [data-theme="dark"] .game-scenario-card     { background: rgba(99,102,241,0.1); border-color: rgba(139,92,246,0.25); }
         [data-theme="dark"] .game-alert-card        { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.5); }
         [data-theme="dark"] .game-ring-bg           { stroke: rgba(45,212,191,0.15); }
 
@@ -513,14 +512,7 @@
         .game-index-row:hover { transform: translateX(4px); }
         .game-insight-card,
         .game-alert-card,
-        .game-scenario-card {
-            transition: transform 0.18s ease, box-shadow 0.18s ease;
-        }
         .game-insight-card:hover,
-        .game-scenario-card:hover {
-            transform: translateX(4px);
-            box-shadow: 0 3px 14px rgba(13, 148, 136, 0.12);
-        }
         .game-alert-card:hover {
             transform: translateX(4px);
             box-shadow: 0 3px 14px rgba(245, 158, 11, 0.14);
@@ -648,26 +640,7 @@
         .gf-empty { font-size: 0.85rem; color: var(--text-light); display: flex; gap: 10px; align-items: center; justify-content: space-between; }
         .gf-empty button { min-height: 40px; padding: 8px 14px; border-radius: 10px; border: none; background: var(--ds-fill-grad); color: var(--ds-on-fill); font-weight: 700; cursor: pointer; white-space: nowrap; }
         .gf-sub { font-size: 0.72rem; color: var(--text-light); margin: -4px 0 10px; }
-        .gf-indices { display: grid; gap: 8px; margin-bottom: 12px; }
-        .gf-index { border-radius: 14px; padding: 12px 14px; background: rgba(13,148,136,0.06); border: 1px solid rgba(13,148,136,0.14); cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        .gf-index-head { display: flex; align-items: center; gap: 10px; }
-        .gf-index-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--ds-fill-grad); color: var(--ds-on-fill); flex-shrink: 0; }
-        .gf-index-name { flex: 1; font-weight: 700; color: var(--text-dark); font-size: 0.95rem; }
-        .gf-index-value { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gf-tone, #0D9488); }
-        .gf-index[data-tone="good"] { --gf-tone: #10b981; }
-        .gf-index[data-tone="warn"] { --gf-tone: #f59e0b; }
-        .gf-index[data-tone="bad"]  { --gf-tone: #ef4444; }
-        .gf-index-bar { height: 6px; border-radius: 3px; background: rgba(13,148,136,0.12); margin: 8px 0 6px; overflow: hidden; }
-        .gf-index-bar span { display: block; height: 100%; border-radius: 3px; background: var(--gf-tone, #0D9488); }
-        .gf-index-note { font-size: 0.8rem; color: var(--text-light); line-height: 1.4; }
-        .gf-index-info { font-size: 0.75em; opacity: 0.45; margin-left: 4px; }
-        .gf-index-more { display: none; margin-top: 8px; font-size: 0.8rem; line-height: 1.4; color: var(--text-light); }
-        .gf-index-more p { margin: 0 0 6px; }
-        .gf-index.open .gf-index-more { display: block; }
-        .gf-index-parts { display: grid; margin: 8px 0 0; padding: 0; list-style: none; gap: 4px; }
-        .gf-index-parts li { display: flex; justify-content: space-between; gap: 10px; font-size: 0.8rem; color: var(--text-dark); }
-        .gf-index-parts li span:last-child { color: var(--text-light); font-variant-numeric: tabular-nums; }
-        html[data-persona-noscores] .game-week-score { display: none !important; }
+        html[data-persona-noscores] .game-week-score, html[data-persona-noscores] .gw-stars { display: none !important; }
     </style>
     <script>
         // Apply color scheme from admin settings
@@ -735,8 +708,8 @@
         <div class="game-analytics-section open" id="gameAnalyticsSection">
             <div class="game-analytics-header">
                 <div class="game-analytics-title">
-                    <i class="fas fa-brain"></i>
-                    <span>Текущ анализ</span>
+                    <i class="fas fa-calendar-week"></i>
+                    <span>Твоята седмица</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span id="gameAnalyticsBadge" class="game-analytics-badge"></span>
@@ -793,44 +766,6 @@
             updateThemeIcon(t);
         })();
 
-        function toggleDetailedMetrics() {
-            var details = document.getElementById('gameMetricsDetails');
-            var chevron = document.getElementById('gameMetricsChevron');
-            var toggle  = document.getElementById('gameMetricsToggle');
-            if (!details) return;
-            var isOpen = details.style.display !== 'block';
-            details.style.display = isOpen ? 'block' : 'none';
-            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-            if (toggle)  toggle.setAttribute('aria-expanded', String(isOpen));
-
-            if (isOpen) {
-                details.querySelectorAll('.ga-card-enter').forEach(function(el, i) {
-                    el.style.animation = 'none';
-                    void el.offsetWidth;
-                    el.style.animation = '';
-                    el.style.animationDelay = (i * 0.07) + 's';
-                });
-                requestAnimationFrame(function() {
-                    requestAnimationFrame(function() {
-                        details.querySelectorAll('[data-ga-bar]').forEach(function(el, i) {
-                            el.style.width = '0%';
-                            setTimeout(function() {
-                                el.style.width = el.getAttribute('data-ga-bar') + '%';
-                            }, 60 + i * 60);
-                        });
-                        function animateBarHeight(selector, baseDelay) {
-                            details.querySelectorAll(selector).forEach(function(el, i) {
-                                el.style.height = '0px';
-                                setTimeout(function() {
-                                    el.style.height = el.getAttribute(selector.slice(1, -1));
-                                }, baseDelay + i * 25);
-                            });
-                        }
-                        animateBarHeight('[data-ga-bar-h]', 100);
-                    });
-                });
-            }
-        }
     </script>
 
     <script src="./game-scoring.js"></script>
@@ -884,21 +819,6 @@
             var softTone = function (t) { return soft && t === 'bad' ? 'warn' : t; };
             document.getElementById('goalFocusBadge').textContent = GF.GROUP_LABEL[p.group];
             var metrics = (src && src.metrics) || {};
-            var idx = GF.indices(metrics, window._gaChecks || {}, ud, { planKcal: planKcal, persona: persona })
-                .slice(0, persona.density === 'minimal' ? 2 : 3);
-            var indicesHtml = idx.length ? '<div class="gf-indices">' + idx.map(function (x) {
-                // На екрана: име, число, лента — и кратка бележка само ако нещо иска внимание.
-                // Какво показва индексът и от какво е съставен — при натискане (иконата „i“).
-                return '<div class="gf-index" data-tone="' + softTone(x.tone) + '" role="button" tabindex="0" aria-expanded="false" ' +
-                    'onclick="gfToggleIndex(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();gfToggleIndex(this);}">' +
-                    '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas ' + x.icon + '"></i></span><span class="gf-index-name">' + gfEsc(x.name) +
-                    ' <i class="fas fa-circle-info gf-index-info" aria-hidden="true"></i></span>' +
-                    '<span class="gf-index-value">' + x.value + '</span></div>' +
-                    '<div class="gf-index-bar"><span style="width:' + x.value + '%"></span></div>' +
-                    (x.note ? '<div class="gf-index-note">' + gfEsc(x.note) + '</div>' : '') +
-                    '<div class="gf-index-more"><p>' + gfEsc(x.about) + '</p><p>' + gfEsc(x.detail) + '</p>' +
-                    '<ul class="gf-index-parts">' + x.parts.map(function (pt) { return '<li><span>' + gfEsc(pt.label) + '</span><span>' + gfEsc(pt.text) + '</span></li>'; }).join('') + '</ul></div></div>';
-            }).join('') + '</div>' : '';
             section.hidden = false;
             if (!Object.keys(metrics).length) {
                 // Свързано, но още малко дни — казваме какво е дошло, не „Свържи“.
@@ -906,9 +826,11 @@
                 try { hs = JSON.parse(localStorage.getItem('np_health_state') || '{}') || {}; linked = JSON.parse(localStorage.getItem('np_links_linked') || '[]') || []; } catch (_) {}
                 var connected = !!hs.connected || linked.length > 0;
                 var got = (window.NutriPlanHealth && window.NutriPlanHealth.describeLast) ? window.NutriPlanHealth.describeLast() : '';
-                body.innerHTML = indicesHtml + (connected
+                // Без измервания секцията не се показва: индексите повтарят редовете на „Твоята седмица“.
+                section.hidden = !connected;
+                body.innerHTML = connected
                     ? '<div class="gf-empty"><span>Устройството е свързано' + (got ? ' · получено: ' + gfEsc(got) : '') + '. Изводите от измерванията се появяват при поне 4 дни данни.</span></div>'
-                    : ''); // Поканата за устройство е само в Профил → Клиентски картон.
+                    : '';
             } else {
                 var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], coachNote: src.coachNote || '' });
                 v.cards.forEach(function (c) { c.tone = softTone(c.tone); });
@@ -921,7 +843,7 @@
                     ? '<details class="gf-more"><summary>Показатели (' + cards.length + ')</summary><div class="gf-grid">' + cards.map(gfCard).join('') + '</div></details>'
                     : '<div class="gf-grid">' + v.cards.map(gfCard).join('') + '</div>' +
                       (v.more.length ? '<details class="gf-more"><summary>Още показатели (' + v.more.length + ')</summary><div class="gf-grid">' + v.more.map(gfCard).join('') + '</div></details>' : '');
-                body.innerHTML = '<div class="gf-sub">Измерено от устройствата · последните 7–14 дни</div>' + indicesHtml + conclusions + cardsHtml;
+                body.innerHTML = '<div class="gf-sub">Измерено от устройствата · последните 7–14 дни</div>' + conclusions + cardsHtml;
             }
             // Веднъж на отваряне — свежите данни от сървъра (есенция, сигнали, обобщение).
             var E = window.NutriPlanEnrichment;
@@ -938,10 +860,6 @@
                     renderGoalFocus();
                 }).catch(function () {});
             }
-        }
-        function gfToggleIndex(el) {
-            var open = el.classList.toggle('open');
-            el.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
         function loadGameAnalytics() {
             document.body.style.opacity = '1';
@@ -973,7 +891,7 @@
             // Дните преди първия запис не са „пропуснати“ — клиентът още не е започнал.
             var firstKey = Object.keys(allData).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k) && allData[k]; }).sort()[0] || null;
             if (!firstKey) {
-                body.innerHTML = '<div class="game-encourage-note ga-card-enter"><i class="fas fa-seedling" style="color:#0D9488"></i> Анализът започва с първия отбелязан ден. Отбелязвай храненията и отговаряй на сутрешния и вечерния въпрос — тук ще видиш навиците, калорийния баланс и тенденцията.</div>';
+                body.innerHTML = '<div class="game-encourage-note ga-card-enter"><i class="fas fa-seedling" style="color:#0D9488"></i> Седмицата ти се появява тук от първия отбелязан ден. Отбелязвай храненията и отговаряй на сутрешния и вечерния въпрос.</div>';
                 if (badge) badge.textContent = 'Начало';
                 window._gaChecks = {};
                 renderGoalFocus();
@@ -1092,7 +1010,6 @@
                 (firstHalf.reduce(function(a,s){return a+s.score;},0)/firstHalf.length) >
                 (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length + 0.3);
 
-            var healthScore = summary.healthIndex;
             var mealAdherencePct = summary.mealAdherence;
 
             // ── Correlation insights ──────────────────────────────────────────
@@ -1107,7 +1024,7 @@
             if(sleepGoodEng.length>0&&sleepBadEng.length>0){
                 var sgAvg=Math.round(sleepGoodEng.reduce(function(a,b){return a+b;},0)/sleepGoodEng.length);
                 var sbAvg=Math.round(sleepBadEng.reduce(function(a,b){return a+b;},0)/sleepBadEng.length);
-                if(sgAvg-sbAvg>15) insights.push('<i class="fas fa-bed" style="color:#6366f1"></i> В дните с добър сън ангажираността ти е <strong>'+sgAvg+'%</strong> (vs '+sbAvg+'% без добър сън)');
+                if(sgAvg-sbAvg>15) insights.push('<i class="fas fa-bed" style="color:#6366f1"></i> След добър сън следваш плана по-добре: <strong>'+sgAvg+'%</strong> срещу '+sbAvg+'% след лоша нощ');
             }
             var lowBalanceDays  = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]<=40; });
             var highBalanceDays = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]>=60; });
@@ -1136,23 +1053,8 @@
                 return calBalanceByDay[i]!==null && calBalanceByDay[i]<-100 && d.rec && (d.rec.morningCheck||d.rec.eveningCheck);
             });
             if(deficitDays.length>=2){
-                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> '+deficitDays.length+' дни с калориен дефицит — следи дали приемаш достатъчно хранителни вещества за постигане на целите си');
-            } else if(deficitDays.length===1){
-                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> 1 ден с калориен дефицит — следи дали приемаш достатъчно хранителни вещества');
-            }
-            if(deficitDays.length>=2){
                 var deficitLowAct=deficitDays.filter(function(d){ return d.rec&&GameScoring.isLowActivity(d.rec.eveningCheck); }).length;
                 if(deficitLowAct>=Math.ceil(deficitDays.length/2)) insights.push('<i class="fas fa-bolt" style="color:#3b82f6"></i> В дните с калориен дефицит активността е по-ниска — ниският калориен прием влияе на енергийните нива');
-            }
-
-            // ── Scenario / Prediction ─────────────────────────────────────────
-            var scenario = null;
-            if(validScores.length>=3){
-                var projected = Math.min(5, Math.round((avgScore + (trendUp?0.5:trendDown?-0.3:0))*10)/10);
-                if(trendUp && projected>=4) scenario = '<i class="fas fa-chart-line" style="color:#10b981"></i> Ако запазиш текущата тенденция, ще достигнеш средна оценка <strong>'+projected+'/5</strong> за седмицата — отлично!';
-                else if(trendDown) scenario = '<i class="fas fa-chart-line" style="color:#ef4444;transform:rotate(90deg);display:inline-block"></i> Наблюдаваме спад в последните дни. Малко повече внимание към плана ще обърне тенденцията.';
-                else if(avgScore>=4) scenario = '<i class="fas fa-star" style="color:#fbbf24"></i> Стабилна и силна седмица! Ако запазите ритъма, ще затвърдите навиците дългосрочно.';
-                else if(engagementPct<50) scenario = '<i class="fas fa-lightbulb" style="color:#0D9488"></i> Увеличи ангажираността с 20% (отбелязвай хранения редовно) и оценката ти ще скочи значително.';
             }
 
             // ── Alerts ────────────────────────────────────────────────────────
@@ -1163,48 +1065,35 @@
                 var s = calcDayScore(d.rec);
                 return s.score !== null && s.score < 2;
             });
-            if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни имаш ниска ангажираност — провери дали имаш нужда от промяна в плана.');
-            if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> Открихме '+junkCount7+' вредни хранения за седмицата. Опитай да намалиш до 1-2 максимум.');
-            if(waterPct!=null&&waterPct<40) alerts.push('<i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратацията ти е ниска тази седмица — достатъчният прием на вода подпомага метаболизма и енергията.');
-            if(sleepPct!=null&&sleepPct<30) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Качеството на съня е ниско тази седмица — това пряко влияе на метаболизма и избора на храна.');
+            if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни почти няма отбелязани хранения. Ако менюто не ти пасва, кажи в чата — ще го сменим.');
+            if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> '+junkCount7+' извънпланови вредни хапвания тази седмица. Целта е до 1–2.');
 
-            // ── Encouragement ─────────────────────────────────────────────────
-            var leadingCriterion='', encourageText='<i class="fas fa-dumbbell" style="color:#0D9488"></i> Последователността е ключът към успеха!';
-            if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='<i class="fas fa-leaf" style="color:#10b981"></i> Намали вредните храни — планът работи когато го следваш!'; }
-            else if (waterPct!=null&&waterPct<50)      { leadingCriterion='Хидратация'; encourageText='<i class="fas fa-droplet" style="color:#06B6D4"></i> Пий повече вода през деня — целта ти по плана е ' + waterGoalText + '.'; }
-            else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягай по-рано — тялото ти ще ти благодари!'; }
-            else if (engagementPct<60)                 { leadingCriterion='';             encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвай храненията по план — резултатите идват!'; }
-            else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-heart-pulse" style="color:#10b981"></i> Седмицата е напрегната. Няколко минути спокойно дишане или разходка вечер помагат — и не се наказвай за пропуснато хранене.'; }
-            else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотно! Продължавай в същия дух — резултатите идват!'; }
-            if (badge) badge.textContent = leadingCriterion || (validScores.length + (validScores.length === 1 ? ' ден' : ' дни'));
+            if (badge) badge.textContent = validScores.length + ' от 7 дни';
 
             // ── Explanation modal ─────────────────────────────────────────────
             // Обясненията са без измислени проценти и „изследвания“: само това, което
             // насоките (СЗО, EFSA, ESC) и обзорите наистина казват.
             var EXPLANATIONS = {
-                engagement: { title:'Ангажираност към плана',
-                    text:'Показва колко редовно следваш плана си тази седмица:\n• спазени хранения от плана — половината от оценката (свободното хранене и сутрешната напитка не се броят);\n• сутрешна и вечерна проверка — по 15%;\n• без вредни хранения — 20%.\n\nСпазените хранения решават и седмичната корекция: над 75% — калориите се настройват по теглото ти; под 60% — следващото меню става по-просто.\n\nЦел: минимум 80%.',
+                engagement: { title:'Хранения по плана',
+                    text:'Колко от храненията в плана са отбелязани с ✓ през изминалите дни. Свободното хранене и сутрешната напитка не се броят, а днешният ден — едва когато е изцяло отбелязан.\n\nПо това се решава седмичната корекция: над 75% — калориите се настройват по теглото ти; под 60% — следващото меню става по-просто.',
                     why:'Постоянството е най-силният предиктор за резултат при всяка диета — по-важно от вида на диетата. Затова планът се настройва по това, което реално спазваш.' },
-                calories: { title:'Калориен баланс',
-                    text:'Сумата на разликата между изядено и планирано за завършените дни, в които са отметнати поне половината хранения. Неотметнатото хранене не се брои като неизядено, а днешният ден — едва когато свърши.\n\nЛентата показва колко близо си до плана (100% = точно; 10% над или под = 90%).',
+                calories: { title:'Калории спрямо плана',
+                    text:'Разликата между изяденото и плана за завършените дни, в които са отметнати поне половината хранения. Неотметнато хранене не се брои като неизядено.\n\nЧертата на графиката е планът за деня.',
                     why:'Теглото следва енергийния баланс за седмици, не за един ден — затова гледаме седмицата, а корекциите се правят по реалното тегло.' },
-                stress: { title:'Емоционален баланс',
-                    text:'Показва емоционалното ти състояние от вечерните проверки. Висок баланс = по-малко напрежение.\n\nЦел: минимум 70%.',
+                stress: { title:'Настроение',
+                    text:'От вечерния въпрос за напрежението. Спокоен е денят със среден или нисък стрес.',
                     why:'Напрежението и умората често водят до хранене „по емоция“ и избор на по-калорични храни. Да го забелязваш е първата стъпка да го управляваш.' },
-                sleep: { title:'Качество на съня',
-                    text:'Отразява качеството на съня ти на база сутрешните проверки.\n\nЦел: минимум 70%.',
+                sleep: { title:'Сън',
+                    text:'От сутрешния въпрос „Спа ли добре?“.',
                     why:'Недоспиването повишава апетита и прави дефицита по-труден за спазване. Препоръката за възрастни е 7–9 часа сън.' },
-                activity: { title:'Активност',
+                activity: { title:'Движение',
                     text: actMeasured.length
                         ? 'Изчислява се от крачките (крачкомер на телефона или гривна/часовник): крачките за деня плюс тренировката, превърната в крачки, спрямо твоята цел — ' + fmtSteps(actTarget) + ' крачки на ден. Целта е по целта ти и профила (възраст, тегло, кръвна захар).\n\n' + actMeasured.length + ' ' + (actMeasured.length===1?'ден е измерен':'дни са измерени') + (actAnswered>0 ? ', ' + actAnswered + ' — по отговорите ти вечер (Ниско 0%, Средно 50%, Високо 100%)' : '') + '.\n\nЦел: минимум 70%. Над 100% — повече движение от целта (чертата на лентата); оценката и индексът броят до 100%.'
                         : 'Показва колко активен си бил всеки ден — по отговорите ти вечер (Ниско 0%, Средно 50%, Високо 100%). С включен крачкомер или свързана гривна се смята от реалните крачки спрямо твоята цел.\n\nЦел: минимум 70%.',
                     why:'СЗО препоръчва поне 150 минути умерена активност седмично. Всяко раздвижване се брои — включително разходката.\n\nПланът вече носи обичайните ти крачки. В ден с крачки над целта и над обичайното разходът е по-голям, а дефицитът — по-дълбок. Калориите на деня не се променят със задна дата: това става ясно вечерта. Седмичният преглед смята разхода по средните ти крачки, така че постоянно по-високата активност се отразява в следващия план. Дните с тренировка не се броят тук — тренировките вече са в плана.' },
-                water: { title:'Хидратация',
-                    text:'Дали си изпил препоръчаната вода за деня (от вечерните проверки). Твоята цел по плана: ' + waterGoalText + ' дневно.\n\nЦел: минимум 70% от дните.',
-                    why:'Водата помага за ситостта и храносмилането; нуждите растат при жега и тренировки.' },
-                health: { title:'Индекс на навиците',
-                    text:'Обобщена оценка на навиците ти тази седмица — ангажираност, сън, хидратация, активност, емоционален баланс и извънпланови калории. Не е медицинска оценка.\n\nЦел: минимум 70.',
-                    why:'Добрите навици се подсилват взаимно: по-добрият сън и по-малкото напрежение улесняват спазването на плана.' }
+                water: { title:'Вода',
+                    text:'От вечерния въпрос за водата. Целта ти по плана: ' + waterGoalText + ' на ден.',
+                    why:'Водата помага за ситостта и храносмилането; нуждите растат при жега и тренировки.' }
             };
             // „Назад“ на Android и Escape затварят най-горното обяснение.
             window.NutriPlanHandleBack = function () {
@@ -1312,138 +1201,122 @@
                     cols.join('') +
                 '</div>';
             }
-            function ringChart(pct, color, r, shown) {
-                r = r||26; var circ=2*Math.PI*r;
-                var offset = circ - (pct||0)/100*circ;
-                return '<svg class="game-ring-svg" width="'+(r*2+8)+'" height="'+(r*2+8)+'" viewBox="0 0 '+(r*2+8)+' '+(r*2+8)+'">' +
-                    '<circle class="game-ring-bg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5"/>' +
-                    '<circle class="game-ring-fg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5" stroke="'+color+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+circ+'" data-ga-ring-offset="'+offset.toFixed(2)+'"/>' +
-                    '<text x="'+(r+4)+'" y="'+(r+4)+'" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:'+(r>24?'0.9':'0.78')+'rem;font-weight:700;transform:rotate(90deg);transform-origin:'+(r+4)+'px '+(r+4)+'px" data-ga-ring-count="'+(pct!=null?pct:'')+'" data-ga-ring-target="'+(shown!=null?shown:pct!=null?pct:'')+'" >'+(pct!=null?'0%':'?')+'</text>' +
-                    '</svg>';
-            }
 
             // ── Build HTML ────────────────────────────────────────────────────
-            var html = '';
-            var weekIconClass = avgScore>=4.5?'fas fa-trophy':avgScore>=3.5?'fas fa-bullseye':avgScore>=2.5?'fas fa-chart-line':'fas fa-seedling';
-            var weekIconColor = avgScore>=4.5?'#fde68a':avgScore>=3.5?'rgba(255,255,255,0.95)':avgScore>=2.5?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.75)';
-            var weekStarsHtml = (function() {
-                var s = '';
-                var full = Math.floor(avgScore);
-                var half = (avgScore - full) >= 0.5;
-                for (var si = 0; si < full; si++) s += '<i class="fas fa-star" style="color:#fbbf24;font-size:0.9em"></i>';
-                if (half) s += '<i class="fas fa-star-half-alt" style="color:#fbbf24;font-size:0.9em"></i>';
-                var empty = 5 - full - (half ? 1 : 0);
-                for (var si = 0; si < empty; si++) s += '<i class="far fa-star" style="color:rgba(255,255,255,0.45);font-size:0.9em"></i>';
+            // Подредба: една карта „Тази седмица“ (звезди, дните, следваща стъпка) и редове
+            // с реални стойности — към клиента, на „ти“, без проценти без мерна единица.
+            var plural = function (n, one, many) { return n + ' ' + (n === 1 ? one : many); };
+            var countOf = function (arr, test) { return arr.filter(function (v) { return v != null && test(v); }).length; };
+            var answeredOf = function (arr) { return arr.filter(function (v) { return v != null; }).length; };
+
+            // Хранения по плана: отметнати / планирани (без свободното и напитката), както в седмичния преглед.
+            var mealsDone = 0, mealsPlanned = 0;
+            var mealPctByDay = days.map(function (d) {
+                var v = GS.dayMealAdherence(d.rec);
+                if (v == null || (d.key >= todayKey && v !== 100)) return null;
+                var slots = GS.planMealSlots(d.rec);
+                mealsPlanned += slots.length;
+                mealsDone += slots.filter(function (m) { return d.rec.meals && d.rec.meals[m] === true; }).length;
+                return v;
+            });
+            var mealPct = mealsPlanned ? Math.round(mealsDone / mealsPlanned * 100) : null;
+
+            var sleepGood = countOf(sleepByDay, function (v) { return v === 100; }), sleepN = answeredOf(sleepByDay);
+            var calmDays = countOf(balanceByDay, function (v) { return v >= 60; }), calmN = answeredOf(balanceByDay);
+            var waterOk = countOf(waterByDay, function (v) { return v === 100; }), waterN = answeredOf(waterByDay);
+            var hasCalData = calBalanceByDay.some(function (v) { return v !== null; });
+
+            // Една следваща стъпка — най-важното, което клиентът може да направи сега.
+            var nextStep;
+            if (mealPct != null && mealPct < 60) nextStep = 'Отбелязвай всяко хранене с ✓ — по тях се коригира следващото ти меню.';
+            else if (junkCount7 > 2) nextStep = 'Извънплановите закуски са ' + junkCount7 + ' тази седмица. Когато ти се хапне, смени ястие от плана вместо това.';
+            else if (waterPct != null && waterPct < 50) nextStep = 'Пий вода по-често през деня — целта ти е ' + waterGoalText + '.';
+            else if (sleepPct != null && sleepPct < 50) nextStep = 'Опитай да си лягаш по-рано — лошият сън засилва глада на следващия ден.';
+            else if (balancePct != null && balancePct < 40) nextStep = 'Седмицата е напрегната. Кратка разходка вечер помага, а пропуснато хранене не е провал.';
+            else if (mealPct != null && mealPct >= 80) nextStep = 'Продължавай така — следващата корекция ще е по реалните ти данни.';
+            else nextStep = 'Отбелязвай и пропуснатите хранения — така корекцията е точна.';
+
+            var verdict = !validScores.length ? 'Тепърва започваш.'
+                : avgScore >= 4 ? 'Силна седмица.' : avgScore >= 3 ? 'Добра седмица.' : avgScore >= 2 ? 'Седмица с пропуски.' : 'Тепърва набираш ритъм.';
+            var stars = (function () {
+                var s = '', full = Math.floor(avgScore), half = (avgScore - full) >= 0.5;
+                for (var i = 0; i < 5; i++) {
+                    s += i < full ? '<i class="fas fa-star"></i>' : (i === full && half ? '<i class="fas fa-star-half-alt"></i>' : '<i class="far fa-star"></i>');
+                }
                 return s;
             })();
+            var DAY_SHORT = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
+            var dayDots = weekScores.map(function (s, i) {
+                var tone = (s && s.score != null) ? (s.score >= 4 ? 'good' : s.score >= 3 ? 'mid' : 'low') : 'none';
+                var name = DAY_SHORT[new Date(days[i].key).getDay()];
+                return '<div class="gw-day" data-tone="' + tone + '" title="' + (s && s.score != null ? s.label : 'Няма отбелязано') + '"><span></span><small>' + name + '</small></div>';
+            }).join('');
 
+            var html = '';
             html += '<div class="game-week-card ga-card-enter" style="animation-delay:0s">' +
-                '<div class="game-week-icon"><i class="'+weekIconClass+'" style="color:'+weekIconColor+'"></i></div>' +
                 '<div class="game-week-info">' +
-                    '<div class="game-week-title">Текуща седмица</div>' +
-                    '<div class="game-week-score">'+weekStarsHtml+'</div>' +
-                    '<div class="game-week-sub">Ангажираност: '+engagementPct+'% · '+validScores.length+' '+(validScores.length===1?'ден':'дни')+' данни'+(noDataDaysCount>0?' · '+noDataDaysCount+' без данни':'')+' </div>' +
-                    '<div class="game-week-dots">' +
-                    weekScores.map(function(s){
-                        var bg = (s&&s.score!=null)?(s.score>=4?'rgba(255,255,255,0.9)':s.score>=3?'rgba(251,191,36,0.85)':'rgba(248,113,113,0.8)'):'rgba(255,255,255,0.18)';
-                        return '<div class="game-week-dot" style="background:'+bg+'" title="'+(s&&s.score!=null?s.label:'Няма данни')+'"></div>';
-                    }).join('') +
-                    '</div>' +
+                    '<div class="gw-verdict"><span class="gw-stars" aria-label="' + avgScore + ' от 5">' + stars + '</span>' + verdict + '</div>' +
+                    '<div class="gw-days">' + dayDots + '</div>' +
+                    '<div class="gw-next"><i class="fas fa-arrow-right"></i><span>' + nextStep + '</span></div>' +
                 '</div>' +
             '</div>';
 
-            html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
-                '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488',22) + '<div class="game-ring-label">Навици</div></div>' +
-                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22,actRawPct) + '<div class="game-ring-label">Активност</div></div>' : '') +
-                (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
-                (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
-            '</div>';
+            if (trendUp) html += '<div class="gw-trend ga-card-enter" data-dir="up"><i class="fas fa-arrow-trend-up"></i> Последните дни са по-добри от първите.</div>';
+            if (trendDown) html += '<div class="gw-trend ga-card-enter" data-dir="down"><i class="fas fa-arrow-trend-down"></i> Последните дни са по-слаби — малко повече внимание обръща посоката.</div>';
 
-            if(trendUp)   html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#10b981;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line"></i> Тенденцията е нагоре — ти се подобряваш!</div>';
-            if(trendDown) html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#ef4444;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line" style="transform:rotate(90deg)"></i> Леко затихване — малко повече фокус ще промени всичко</div>';
+            alerts.forEach(function (a, ai) { html += '<div class="game-alert-card ga-card-enter" style="animation-delay:' + (0.12 + ai * 0.06) + 's">' + a + '</div>'; });
 
-            if(alerts.length>0){
-                alerts.forEach(function(a, ai){ html += '<div class="game-alert-card ga-card-enter" style="animation-delay:'+(0.22+ai*0.06)+'s">'+a+'</div>'; });
+            function row(key, icon, color, name, value, hint, chart) {
+                return '<div class="game-index-row" data-explain="' + key + '">' +
+                    '<div class="game-index-label"><span><i class="fas ' + icon + '" style="color:' + color + '"></i> ' + name + '</span><span>' + value + '</span></div>' +
+                    '<div class="game-index-hint">' + hint + ' <i class="fas fa-circle-info" aria-hidden="true"></i></div>' + chart +
+                '</div>';
             }
 
-            html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="true" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
-                '<div class="game-section-title" style="margin:0">Подробни данни</div>' +
-                '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron" style="transform:rotate(180deg)"></i>' +
-            '</div>';
-            html += '<div id="gameMetricsDetails" style="display:block;">';
+            html += '<div class="game-section-title">По дни</div>';
+            html += '<div id="gameMetricsDetails">';
 
-            html += '<div class="game-index-row" data-explain="engagement">' +
-                '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+(mealAdherencePct!=null?' · спазени хранения '+mealAdherencePct+'%':'')+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
-            '</div>';
+            if (mealPct != null) html += row('engagement', 'fa-utensils', '#0D9488', 'Хранения по плана', mealsDone + ' от ' + mealsPlanned,
+                mealPct >= 80 ? 'Следваш плана — така корекциите са точни.' : mealPct >= 60 ? 'Почти — отбелязвай и пропуснатите.' : 'Отбелязвай всяко хранене — по тях се коригира менюто.',
+                miniBarChart(mealPctByDay, 100, '#0D9488'));
 
+            if (hasCalData) html += row('calories', 'fa-scale-balanced', '#f59e0b', 'Калории спрямо плана', (netCalBalance > 0 ? '+' : netCalBalance < 0 ? '−' : '') + Math.abs(netCalBalance) + ' kcal',
+                netCalBalance > 700 ? 'Доста над плана за седмицата.' : netCalBalance > 0 ? 'Малко над плана за седмицата.' : netCalBalance < -700 ? 'Доста под плана — яж всички хранения.' : netCalBalance < 0 ? 'Малко под плана за седмицата.' : 'Точно по плана.',
+                calTargetBarChart(calConsumedByDay, calPlannedByDay, netCalBalance > 700 ? '#ef4444' : '#f59e0b', '#3b82f6'));
 
-            var hasDeficit = calBalanceByDay.some(function(v){ return v!==null && v<-50; });
-            var calBalanceLabel;
-            if (!calBalanceByDay.some(function(v){ return v !== null; })) {
-                calBalanceLabel = '<i class="fas fa-circle-info" style="color:#94a3b8"></i> Няма данни';
-            } else if (netCalBalance === 0 && !hasDeficit) {
-                calBalanceLabel = '<i class="fas fa-check-circle" style="color:#10b981"></i> Балансиран';
-            } else if (netCalBalance > 0) {
-                calBalanceLabel = netCalBalance < 700
-                    ? '<i class="fas fa-circle" style="color:#f59e0b"></i> Нетен излишък'
-                    : '<i class="fas fa-circle" style="color:#ef4444"></i> Голям излишък';
-            } else {
-                calBalanceLabel = '<i class="fas fa-arrow-down" style="color:#3b82f6"></i> Нетен дефицит';
-            }
-            html += '<div class="game-index-row" data-explain="calories">' +
-                '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span>'+(netCalBalance>0?'+':'')+netCalBalance+' kcal</span></div>' +
-                '<div class="game-index-hint">'+calBalanceLabel+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(calAdherencePct, netCalBalance>700?'linear-gradient(90deg,#ef4444,#f97316)':netCalBalance>0?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#3b82f6,#06B6D4)') +
-                calTargetBarChart(calConsumedByDay, calPlannedByDay, netCalBalance>700?'#ef4444':'#f59e0b', '#3b82f6') +
-            '</div>';
+            if (actPct != null) html += row('activity', 'fa-person-walking', '#f59e0b', 'Движение',
+                actStepsAvg != null ? '~' + fmtSteps(actStepsAvg) + ' крачки' : (actPct >= 70 ? 'Високо' : actPct >= 40 ? 'Средно' : 'Ниско'),
+                actStepsAvg != null
+                    ? 'Средно на ден. Целта ти е ' + fmtSteps(actTarget) + (actStepsAvg >= actTarget ? ' — над нея си.' : '.')
+                    : 'По вечерните ти отговори.',
+                miniBarChart(actRawByDay, ACT_SCALE, '#f59e0b', '#ea580c') +
+                (actExtraBurn > 0 ? '<div class="game-index-hint" style="margin-top:4px"><i class="fas fa-fire-flame-curved" style="color:#ea580c"></i> ~' + actExtraBurn + ' kcal по-голям разход — влиза в следващата корекция.</div>' : ''));
 
-            if(balancePct!=null) html += '<div class="game-index-row" data-explain="stress">' +
-                '<div class="game-index-label"><span><i class="fas fa-heart-pulse" style="color:#10b981"></i> Емоционален баланс</span><span>'+balancePct+'%</span></div>' +
-                '<div class="game-index-hint">'+(balancePct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висок баланс':balancePct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък баланс')+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(balancePct,'linear-gradient(90deg,#10b981,#06B6D4)') + miniBarChart(balanceByDay,100,'#10b981') +
-            '</div>';
+            if (sleepPct != null) html += row('sleep', 'fa-bed', '#6366f1', 'Сън', sleepGood + ' от ' + plural(sleepN, 'нощ', 'нощи'),
+                sleepPct >= 70 ? 'Нощи с добър сън. Това пази от глад на следващия ден.' : sleepPct >= 40 ? 'Нощи с добър сън. Сънят ти е променлив.' : 'Нощи с добър сън. Опитай да си лягаш по-рано.',
+                miniBarChart(sleepByDay, 100, '#6366f1'));
 
-            if(sleepPct!=null) html += '<div class="game-index-row" data-explain="sleep">' +
-                '<div class="game-index-label"><span><i class="fas fa-bed" style="color:#6366f1"></i> Сън</span><span>'+sleepPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добър сън':sleepPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1') +
-            '</div>';
+            if (balancePct != null) html += row('stress', 'fa-heart-pulse', '#10b981', 'Настроение', calmDays + ' от ' + plural(calmN, 'ден', 'дни'),
+                balancePct >= 70 ? 'Спокойни дни. В тях е по-лесно да следваш плана.' : balancePct >= 40 ? 'Спокойни дни. Имаш и напрегнати.' : 'Спокойни дни. Седмицата е напрегната — не се наказвай за пропуснато.',
+                miniBarChart(balanceByDay, 100, '#10b981'));
 
-            if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
-                '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actRawPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(actRawPct>100?'<i class="fas fa-arrow-up" style="color:#ea580c"></i> Над целта':actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+
-                    (actStepsAvg!=null ? ' · ~'+fmtSteps(actStepsAvg)+' крачки/ден, цел '+fmtSteps(actTarget) : '')+' <i class="fas fa-circle-info"></i></div>' +
-                actBar(actRawPct) + miniBarChart(actRawByDay,ACT_SCALE,'#f59e0b','#ea580c') +
-                (actExtraBurn>0 ? '<div class="game-index-hint" style="margin-top:4px"><i class="fas fa-fire-flame-curved" style="color:#ea580c"></i> ~'+actExtraBurn+' kcal допълнителен разход в '+actOverDays+' '+(actOverDays===1?'ден':'дни')+' — реалният дефицит е по-голям; влиза в седмичния преглед на плана</div>' : '') +
-            '</div>';
+            if (waterPct != null) html += row('water', 'fa-droplet', '#06B6D4', 'Вода', waterOk + ' от ' + plural(waterN, 'ден', 'дни'),
+                'Дни с достатъчно вода. Целта ти е ' + waterGoalText + ' на ден.',
+                miniBarChart(waterByDay, 100, '#06B6D4'));
 
-            if(waterPct!=null) html += '<div class="game-index-row" data-explain="water">' +
-                '<div class="game-index-label"><span><i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратация</span><span>'+waterPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(waterPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добра':waterPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(waterPct,'linear-gradient(90deg,#06B6D4,#0284C7)') + miniBarChart(waterByDay,100,'#06B6D4') +
-            '</div>';
+            html += '</div>';
 
-            if(noDataDaysCount>0) html += '<div class="game-no-data-note"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (не влизат в средните стойности)</div>';
-
-            if(insights.length>0){
-                html += '<div class="game-section-title">Корелации и открития</div>';
-                insights.forEach(function(ins, ii){ html += '<div class="game-insight-card ga-card-enter" style="animation-delay:'+(0.05+ii*0.08)+'s">'+ins+'</div>'; });
+            if (insights.length) {
+                html += '<div class="game-section-title">Какво забелязахме</div>';
+                insights.forEach(function (ins, ii) { html += '<div class="game-insight-card ga-card-enter" style="animation-delay:' + (0.05 + ii * 0.08) + 's">' + ins + '</div>'; });
             }
 
-            if(scenario){
-                html += '<div class="game-section-title">Прогноза</div>';
-                html += '<div class="game-scenario-card ga-card-enter" style="animation-delay:0.1s"><div class="game-scenario-label">Прогноза по тенденция</div>'+scenario+'</div>';
+            var weeklyInfo = {};
+            try { weeklyInfo = JSON.parse(localStorage.getItem('gameWeeklyAI') || '{}'); } catch (e) {}
+            if (weeklyInfo.nextDue) {
+                var nd = new Date(weeklyInfo.nextDue);
+                html += '<div class="game-weekly-info"><i class="fas fa-calendar-check"></i> Следващата корекция на плана: ' + nd.toLocaleDateString('bg-BG', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>';
             }
-
-            html += '<div class="game-encourage-note ga-card-enter" style="animation-delay:0.15s">'+encourageText+'</div>';
-
-            var weeklyInfo={};
-            try { weeklyInfo=JSON.parse(localStorage.getItem('gameWeeklyAI')||'{}'); } catch(e) {}
-            if(weeklyInfo.nextDue){ var nd=new Date(weeklyInfo.nextDue); html += '<div class="game-weekly-info"><i class="fas fa-calendar-check"></i> Следващ седмичен преглед: '+nd.toLocaleDateString('bg-BG')+'</div>'; }
-
-            html += '</div>'; // close gameMetricsDetails
 
             body.innerHTML = html;
 
