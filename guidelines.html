@@ -370,7 +370,8 @@
         .fg-row--occ .fg-row-val { color: var(--ds-warning-text); white-space: normal; font-size: 0.875rem; }
         .fg-row--no { --fg-row-bg: var(--ds-error-bg); border-color: transparent; }
         .fg-row--no .fg-row-name::before { content: '✕'; margin-right: 8px; color: var(--ds-error-text); }
-        .fg-reason { display: inline-block; margin-top: 4px; font-size: 0.8125rem; font-weight: 600; color: var(--ds-error-text); }
+        .tip-meta { display: block; margin-top: 2px; font-size: 0.8125rem; color: var(--ds-text-soft, var(--text-light)); }
+        .fg-reason { display: inline-block; margin-top: 4px; font-size: 0.8125rem; color: var(--ds-text-soft, var(--text-light)); }
         .fg-swap { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
         .fg-swap-from { color: var(--ds-text-soft); text-decoration: line-through; text-decoration-color: currentColor; text-decoration-thickness: 1px; }
         .fg-swap-arrow { color: var(--primary-red); font-size: 0.875rem; }
@@ -562,10 +563,6 @@
                 font-size: 1.5rem;
                 margin-bottom: 6px;
             }
-            .macro-percentage {
-                font-size: 0.8125rem;
-                padding: 4px 8px;
-            }
         }
 
         .macro-card {
@@ -647,30 +644,9 @@
             font-weight: 600;
         }
 
-        .macro-percentage {
-            font-size: 0.8125rem;
-            color: var(--macro-color);
-            font-weight: 700;
-            margin-top: 8px;
-            padding: 4px 10px;
-            border-radius: 8px;
-            display: inline-block;
-        }
 
-        .macro-card.protein .macro-percentage {
-            background: var(--ds-macro-protein-bg);
-            color: var(--ds-macro-protein-text);
-        }
 
-        .macro-card.carbs .macro-percentage {
-            background: var(--ds-macro-carbs-bg);
-            color: var(--ds-macro-carbs-text);
-        }
 
-        .macro-card.fats .macro-percentage {
-            background: var(--ds-macro-fats-bg);
-            color: var(--ds-macro-fats-text);
-        }
 
         /* === STRATEGY PANEL === */
         .plan-justification-container {
@@ -1219,12 +1195,12 @@
             <div class="macros-viz-header">
                 <div class="macros-viz-title">
                     <i class="fas fa-chart-pie"></i>
-                    <span>Твоята Хранителна Цел</span>
+                    <span>Дневна цел</span>
                 </div>
             </div>
 
             <div class="calories-display">
-                <div class="calories-label">Дневни Калории</div>
+                <div class="calories-label">Калории на ден</div>
                 <div class="calories-value" id="targetCalories">2000</div>
                 <div class="calories-unit">kcal</div>
             </div>
@@ -1234,24 +1210,21 @@
                     <div class="macro-icon">🥩</div>
                     <div class="macro-label">Протеини</div>
                     <div class="macro-value" id="targetProtein">120</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="proteinPercentage">25%</div>
+                    <div class="macro-unit">г</div>
                 </div>
 
                 <div class="macro-card carbs">
                     <div class="macro-icon">🍞</div>
                     <div class="macro-label">Въгле&shy;хидрати</div>
                     <div class="macro-value" id="targetCarbs">250</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="carbsPercentage">50%</div>
+                    <div class="macro-unit">г</div>
                 </div>
 
                 <div class="macro-card fats">
                     <div class="macro-icon">🥑</div>
                     <div class="macro-label">Мазнини</div>
                     <div class="macro-value" id="targetFats">55</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="fatsPercentage">25%</div>
+                    <div class="macro-unit">г</div>
                 </div>
             </div>
         </div>
@@ -1262,11 +1235,26 @@
             <p id="specialistCardText"></p>
         </div>
 
+        <!-- Защо този план — веднага след целта за деня -->
+        <div class="plan-justification-container" id="strategyPanelContainer" style="display: none;">
+            <div class="plan-justification-header" onclick="openStrategyModal()">
+                <div class="plan-justification-title">
+                    <i class="fas fa-award"></i>
+                    <span>Защо този план</span>
+                </div>
+                <i class="fas fa-chevron-right plan-justification-toggle"></i>
+            </div>
+            <div class="strategy-preview-body">
+                <p id="strategyPreviewText" class="strategy-preview-text"></p>
+                <button class="strategy-see-more-btn" onclick="openStrategyModal()">Виж повече</button>
+            </div>
+        </div>
+
         <!-- GUIDELINES ACCORDION (moved from plan tab) -->
         <div class="accordion">
             <div data-guide="foods" class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-check-circle"></i> Препоръчителни храни</span>
+                    <span><i class="fas fa-check-circle"></i> Какво да ям</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
@@ -1281,7 +1269,7 @@
 
             <div data-guide="limit" class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-ban"></i> <span id="limitTitle">За ограничаване</span></span>
+                    <span><i class="fas fa-ban"></i> <span id="limitTitle">Какво да ограничавам</span></span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
@@ -1306,19 +1294,20 @@
 
             <div data-guide="psychology" class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-brain"></i> Психология и съвети</span>
+                    <span><i class="fas fa-lightbulb"></i> Съвети за всеки ден</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
-                    <div class="acc-content-inner" id="psychologyContent">
-                        <p><strong>Не се обвинявай:</strong> Ако "съгрешиш" с едно хранене, просто продължи по план следващия път.</p>
+                    <div class="acc-content-inner">
+                        <div id="hacksContent"></div>
+                        <div id="psychologyContent"></div>
                     </div>
                 </div>
             </div>
 
             <div data-guide="supplements" class="acc-item">
                 <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-pills"></i> Хранителни добавки</span>
+                    <span><i class="fas fa-pills"></i> Добавки</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="acc-content">
@@ -1326,30 +1315,6 @@
                 </div>
             </div>
 
-            <div data-guide="hacks" class="acc-item">
-                <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-bolt"></i> <span id="hacksTitle">Практически хакове</span></span>
-                    <i class="fas fa-chevron-down chevron"></i>
-                </div>
-                <div class="acc-content">
-                    <div class="acc-content-inner" id="hacksContent"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- STRATEGY PANEL (below macros) -->
-        <div class="plan-justification-container" id="strategyPanelContainer" style="display: none;">
-            <div class="plan-justification-header" onclick="openStrategyModal()">
-                <div class="plan-justification-title">
-                    <i class="fas fa-award"></i>
-                    <span>Твоята хранителна стратегия</span>
-                </div>
-                <i class="fas fa-chevron-right plan-justification-toggle"></i>
-            </div>
-            <div class="strategy-preview-body">
-                <p id="strategyPreviewText" class="strategy-preview-text"></p>
-                <button class="strategy-see-more-btn" onclick="openStrategyModal()">... виж повече</button>
-            </div>
         </div>
 
         <!-- Strategy Detail Modal -->
@@ -1358,46 +1323,40 @@
                 <div class="strategy-modal-header">
                     <div class="strategy-modal-title">
                         <i class="fas fa-award"></i>
-                        <span>Твоята хранителна стратегия</span>
+                        <span>Защо този план</span>
                     </div>
-                    <button class="strategy-modal-close" onclick="closeStrategyModal()">
+                    <button class="strategy-modal-close" onclick="closeStrategyModal()" aria-label="Затвори">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="strategy-modal-body" id="strategyModalBody">
                     <div class="strategy-section" id="strategySection_welcome" style="display:none">
                         <div class="strategy-section-title">
-                            <i class="fas fa-award"></i> Защо този план е създаден специално за вас
+                            <i class="fas fa-award"></i> Накратко
                         </div>
                         <p id="strategyText_welcome" class="strategy-section-text"></p>
                     </div>
                     <div class="strategy-section" id="strategySection_longTerm" style="display:none">
                         <div class="strategy-section-title">
-                            <i class="fas fa-chart-line"></i> Дългосрочна стратегия на плана
+                            <i class="fas fa-chart-line"></i> Как се коригира
                         </div>
                         <p id="strategyText_longTerm" class="strategy-section-text"></p>
                     </div>
                     <div class="strategy-section" id="strategySection_mealCount" style="display:none">
                         <div class="strategy-section-title">
-                            <i class="fas fa-utensils"></i> Брой хранения
+                            <i class="fas fa-utensils"></i> Хранения през деня
                         </div>
                         <p id="strategyText_mealCount" class="strategy-section-text"></p>
                     </div>
                     <div class="strategy-section" id="strategySection_afterDinner" style="display:none">
                         <div class="strategy-section-title">
-                            <i class="fas fa-moon"></i> Хранения след вечеря
+                            <i class="fas fa-moon"></i> След вечеря
                         </div>
                         <p id="strategyText_afterDinner" class="strategy-section-text"></p>
                     </div>
-                    <div class="strategy-section" id="strategySection_modifier" style="display:none">
-                        <div class="strategy-section-title">
-                            <i class="fas fa-leaf"></i> Диетичен подход
-                        </div>
-                        <p id="strategyText_modifier" class="strategy-section-text"></p>
-                    </div>
                     <div class="strategy-section" id="strategySection_hydration" style="display:none">
                         <div class="strategy-section-title">
-                            <i class="fas fa-tint"></i> Хидратация
+                            <i class="fas fa-tint"></i> Вода
                         </div>
                         <p id="strategyText_hydration" class="strategy-section-text"></p>
                     </div>
@@ -1550,8 +1509,10 @@
 
         /** Секция без съдържание от плана не се показва — без шаблонен текст на мястото ѝ. */
         function hideGuide(el) {
+            el.hidden = true;
             const item = el.closest('.acc-item');
-            if (item) item.hidden = true;
+            // Секцията изчезва, когато всички нейни части са празни (съветите имат две).
+            if (item && !item.querySelector('#hacksContent:not([hidden]), #psychologyContent:not([hidden]), #supplementsContent:not([hidden])')) item.hidden = true;
         }
 
         const DEFAULT_MESSAGES = {
@@ -1618,7 +1579,7 @@
             }
             if (Array.isArray(g.moderate) && g.moderate.length) {
                 html += '<div class="fg-sub">Умерено — с мярка</div>' +
-                    '<p class="fg-note">Количествата вече са в менюто. Мярката помага при замени, готвене и хранене навън.</p>' +
+                    '<p class="fg-note">Количествата вече са в менюто — мярката е за замени и хранене навън.</p>' +
                     '<ul class="fg-rows">' + g.moderate.map(m =>
                         '<li class="fg-row"><div class="fg-row-head"><span class="fg-row-name">' + e(m.food) + '</span>' +
                         '<span class="fg-row-val">' + e(m.amount) + '</span></div>' +
@@ -1628,24 +1589,24 @@
 
             html = '';
             if (Array.isArray(g.occasional) && g.occasional.length) {
-                html += '<div class="fg-sub">По избор, рядко</div>' +
-                    '<p class="fg-note">Позволено е — с тази порция и честота. Така любимото остава в живота, без да тежи на плана.</p>' +
+                html += '<div class="fg-sub">Рядко</div>' +
+                    '<p class="fg-note">Може — в тази порция и честота.</p>' +
                     '<ul class="fg-rows">' + g.occasional.map(o =>
                         '<li class="fg-row fg-row--occ"><div class="fg-row-head"><span class="fg-row-name">' + e(o.food) + '</span>' +
                         '<span class="fg-row-val">' + e(o.frequency) + '</span></div>' +
                         '<div class="fg-row-meta">' + e(cap(o.portion)) + ' · ' + e(o.when) + '</div></li>').join('') + '</ul>';
             }
             if (Array.isArray(g.strict) && g.strict.length) {
-                html += '<div class="fg-sub">Не</div><ul class="fg-rows">' + g.strict.map(x =>
+                html += '<div class="fg-sub">Без</div><ul class="fg-rows">' + g.strict.map(x =>
                     '<li class="fg-row fg-row--no"><div class="fg-row-name">' + e(cap(x.food)) + '</div>' +
-                    '<span class="fg-reason">' + e(cap(x.reason)) + '</span></li>').join('') + '</ul>';
+                    (x.reason ? '<span class="fg-reason">Заради: ' + e(String(x.reason).toLowerCase()) + '</span>' : '') + '</li>').join('') + '</ul>';
             }
             if (html) {
                 limit.innerHTML = html;
                 const oldList = document.getElementById('forbiddenFoodsList');
                 if (oldList) oldList.hidden = true;
                 const title = document.getElementById('limitTitle');
-                if (title) title.textContent = 'Позволено рядко и забранено';
+                if (title) title.textContent = 'Какво да ограничавам';
             }
 
             html = '';
@@ -1694,16 +1655,18 @@
                     ? DEFAULT_MESSAGES.psychologyFallbackLabel
                     : DEFAULT_MESSAGES.supplementsFallbackLabel;
                 const title = content.title || content.name || `${fallbackPrefix} ${index + 1}`;
-                let details = '';
-                if (content.description) details += ` - ${content.description}`;
-                if (content.dosage) details += ` - Дозировка: ${content.dosage}`;
-                if (content.intake || content.timing) details += ` - Прием: ${content.intake || content.timing}`;
-                if (content.reason) details += ` - Защо: ${content.reason}`;
-                // Името на добавката води към BIOCODE: там се подбират наличните продукти в момента.
-                const head = contentType === 'supplements' && content.name && window.NutriPlanSupplementShop
-                    ? `<a href="${escapeHtml(window.NutriPlanSupplementShop.url(content.name))}" target="_blank" rel="noopener" class="supplement-shop-link">${escapeHtml(title)}</a>`
-                    : escapeHtml(title);
-                return `<span>${head}${escapeHtml(details)}</span>`;
+                if (contentType === 'supplements') {
+                    // Името води към BIOCODE: там се подбират наличните продукти в момента.
+                    const head = content.name && window.NutriPlanSupplementShop
+                        ? `<a href="${escapeHtml(window.NutriPlanSupplementShop.url(content.name))}" target="_blank" rel="noopener" class="supplement-shop-link">${escapeHtml(title)}</a>`
+                        : escapeHtml(title);
+                    const how = [content.dosage, content.intake || content.timing].filter(Boolean).join(' · ');
+                    return `<span><strong>${head}</strong>` +
+                        (how ? `<span class="tip-meta">${escapeHtml(how)}</span>` : '') +
+                        (content.reason ? `<span class="tip-meta">${escapeHtml(content.reason)}</span>` : '') + '</span>';
+                }
+                const text = content.description || content.reason || '';
+                return `<span><strong>${escapeHtml(title)}</strong>${text ? ' — ' + escapeHtml(text) : ''}</span>`;
             }
             return '';
         }
@@ -1787,12 +1750,6 @@
                     if (noteEl) noteEl.textContent = specialistNote || '';
                     specialistCard.hidden = !specialistNote;
                 }
-                // Личните навици (от гласа на плана) носят по-точно заглавие от общите „хакове“.
-                const hacksTitle = document.getElementById('hacksTitle');
-                if (hacksTitle && Array.isArray(dietPlan.personalHabits) && dietPlan.personalHabits.length) {
-                    hacksTitle.textContent = 'За твоето ежедневие';
-                }
-
                 const hacksContent = document.getElementById('hacksContent');
                 if (hacksContent) {
                     if (Array.isArray(dietPlan.hacks) && dietPlan.hacks.length > 0) {
@@ -1867,26 +1824,15 @@
                     return false;
                 }
 
-                const totalMacroCalories = (protein * 4) + (carbs * 4) + (fats * 9);
-                const proteinPercent = totalMacroCalories > 0 ? Math.round((protein * 4 / totalMacroCalories) * 100) : 0;
-                const carbsPercent = totalMacroCalories > 0 ? Math.round((carbs * 4 / totalMacroCalories) * 100) : 0;
-                const fatsPercent = totalMacroCalories > 0 ? Math.round((fats * 9 / totalMacroCalories) * 100) : 0;
-
                 const elCalories = document.getElementById('targetCalories');
                 const elProtein = document.getElementById('targetProtein');
                 const elCarbs = document.getElementById('targetCarbs');
                 const elFats = document.getElementById('targetFats');
-                const elProteinPct = document.getElementById('proteinPercentage');
-                const elCarbsPct = document.getElementById('carbsPercentage');
-                const elFatsPct = document.getElementById('fatsPercentage');
 
                 if (elCalories) elCalories.textContent = dailyCalories;
                 if (elProtein) elProtein.textContent = protein;
                 if (elCarbs) elCarbs.textContent = carbs;
                 if (elFats) elFats.textContent = fats;
-                if (elProteinPct) elProteinPct.textContent = proteinPercent + '%';
-                if (elCarbsPct) elCarbsPct.textContent = carbsPercent + '%';
-                if (elFatsPct) elFatsPct.textContent = fatsPercent + '%';
 
                 if (container) {
                     container.style.display = 'block';
@@ -1906,7 +1852,6 @@
                     { key: 'longTermStrategy', sectionId: 'strategySection_longTerm', textId: 'strategyText_longTerm' },
                     { key: 'mealCountJustification', sectionId: 'strategySection_mealCount', textId: 'strategyText_mealCount' },
                     { key: 'afterDinnerMealJustification', sectionId: 'strategySection_afterDinner', textId: 'strategyText_afterDinner' },
-                    { key: 'modifierReasoning', sectionId: 'strategySection_modifier', textId: 'strategyText_modifier' },
                     { key: 'hydrationStrategy', sectionId: 'strategySection_hydration', textId: 'strategyText_hydration' }
                 ];
 
@@ -1930,6 +1875,9 @@
                         value = readField(field.fallback);
                     }
                     if (field.key === 'afterDinnerMealJustification' && /^Не са необходими/.test(value)) value = '';
+                    if (field.key === 'hydrationStrategy') value = value.replace(/(\d)\.(\d)/g, '$1,$2');
+                    // „5 хранения: Закуска, …“ — заглавието вече казва „Хранения през деня“.
+                    if (field.key === 'mealCountJustification') value = value.replace(/^\d+ хранения:\s*/, '');
                     const section = document.getElementById(field.sectionId);
                     const textEl = document.getElementById(field.textId);
                     if (value && section && textEl) {
