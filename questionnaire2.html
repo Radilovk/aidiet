@@ -1276,8 +1276,8 @@
             { "id": "waterIntake", "text": "Колко вода пиеш дневно?", "type": "radio", "options": ["под 1 л", "1–1.5 л", "1.5–2 л", "над 2 л"] },
             { "id": "drinksSweet", "text": "Сокове, газирани напитки, фрешове:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
             { "id": "drinksAlcohol", "text": "Напитки с алкохолно съдържание:", "type": "radio", "options": ["Не консумирам", "Рядко", "Често", "Много често"] },
-            { "id": "weightChange", "text": "Имало ли е рязко покачване или сваляне на теглото ти през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време и как се справи с промяната?", "type": "textarea", "options": [] }] } },
-            { "id": "dietHistory", "text": "Имало ли е период с диета през последната година?", "type": "radio", "options": ["Не", "Да"], "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
+            { "id": "weightChange", "text": "Имало ли е рязко покачване или сваляне на теглото ти през последната година?", "type": "radio", "options": ["Не", "Да"], "inline": true, "children": { "Да": [{ "id": "weightChangeDetails", "text": "Колко килограма, за колко време и как се справи с промяната?", "type": "textarea", "options": [] }] } },
+            { "id": "dietHistory", "text": "Имало ли е период с диета през последната година?", "type": "radio", "options": ["Не", "Да"], "inline": true, "children": { "Да": [{ "id": "dietType", "text": "Какъв тип диета?", "type": "text", "options": [] }, { "id": "dietResult", "text": "Какъв беше резултатът?", "type": "textarea", "options": [] }] } },
             { "id": "overeatingFrequency", "text": "Колко често ядеш повече от планираното количество?", "type": "radio", "options": ["Постоянно", "Често", "Понякога", "Рядко", "Никога"] },
             { "id": "foodCravings", "text": "Често изпитваш нужда от:", "type": "checkbox", "options": ["Сладко", "Тестени храни", "Бургери / дюнери", "Чипс / Солети", "Друго", "Не изпитвам такава"], "hasOtherInput": true, "negativeOption": "Не изпитвам такава" },
             { "id": "foodTriggers", "text": "Кои ситуации предизвикват желание за храна?", "type": "checkbox", "options": ["Напрежение", "Скука", "Тъга", "Социални събития", "Друго", "Нито едно"], "hasOtherInput": true, "negativeOption": "Нито едно" },
@@ -1287,9 +1287,8 @@
             { "id": "dietPreference", "text": "Предпочитани храни и тип диета:", "type": "checkbox", "options": ["Нямам предпочитания", "Балансирана", "Вегетарианска", "Средиземноморска", "Кето", "Веган", "Сезонна", "Фастинг", "Високопротеинова", "Друго" ], "hasOtherInput": true, "negativeOption": "Нямам предпочитания" },
             { "id": "dietDislike", "text": "Не обичам, имам непоносимост или алергия към:", "type": "textarea", "options": [], "optional": true },
             { "id": "dietLove", "text": "Не мога без, обичам:", "type": "textarea", "options": [], "optional": true },
-            { "id": "medications", "text": "Приемаш ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
-            { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [], "optional": true },
-            { "id": "medicalFiles", "text": "Прикачи файлове с изследвания или анализи (по желание):", "type": "file", "options": [], "optional": true }
+            { "id": "medications", "text": "Приемаш ли лекарства или хранителни добавки?", "type": "radio", "options": ["Да", "Не"], "inline": true, "children": { "Да": [{ "id": "medicationsDetails", "text": "Кои и в каква дозировка?", "type": "textarea", "options": [] }] } },
+            { "id": "additionalNotes", "text": "Допълнителни бележки (ако има):", "type": "textarea", "options": [], "optional": true }
         ];
 
         // --- CONDITION GROUPS (dropdown sub-options for grouped conditions) ---
@@ -2566,7 +2565,7 @@
                 // questions injected as children (e.g. medicationsDetails) are also processed.
                 for (let i = 0; i < currentQueue.length - 1; i++) {
                     const q = currentQueue[i];
-                    if (q.children && answers[q.id]) {
+                    if (q.children && !q.inline && answers[q.id]) {
                         const answerVal = answers[q.id];
                         if (q.children[answerVal]) {
                             const childrenToAdd = q.children[answerVal];
@@ -2626,75 +2625,6 @@
         }
 
         // --- MEDICAL FILES ---
-        // Файловете отиват в клиентския запис (KV) като base64 — затова снимките се
-        // смаляват, а общият размер е ограничен. Държат се в паметта, не в localStorage
-        // (там лимитът е ~5 MB и би спрял запазването на всички отговори).
-        const MEDICAL_FILES_MAX_COUNT = 5;
-        const MEDICAL_FILES_MAX_TOTAL_MB = 8;
-        const MEDICAL_FILE_MAX_DOC_MB = 4;
-        let medicalFilesData = [];
-        let medicalFilesErrors = [];
-
-        function readFileAsDataUrl(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = () => reject(new Error('read'));
-                reader.readAsDataURL(file);
-            });
-        }
-
-        async function shrinkImage(file) {
-            const url = await readFileAsDataUrl(file);
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('image'));
-                el.src = url;
-            });
-            const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.round(img.width * scale);
-            canvas.height = Math.round(img.height * scale);
-            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-            const data = canvas.toDataURL('image/jpeg', 0.82);
-            const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
-            return { name, type: 'image/jpeg', size: Math.round(data.length * 0.75), data };
-        }
-
-        async function prepareMedicalFiles(files) {
-            const out = [];
-            const errors = [];
-            let total = 0;
-            for (const file of files) {
-                if (out.length >= MEDICAL_FILES_MAX_COUNT) {
-                    errors.push(`${file.name}: най-много ${MEDICAL_FILES_MAX_COUNT} файла`);
-                    continue;
-                }
-                try {
-                    let item;
-                    if (/^image\//.test(file.type) && !/gif|svg/.test(file.type)) {
-                        item = await shrinkImage(file);
-                    } else {
-                        if (file.size > MEDICAL_FILE_MAX_DOC_MB * 1024 * 1024) {
-                            errors.push(`${file.name}: над ${MEDICAL_FILE_MAX_DOC_MB} MB — снимай страниците или изпрати по-малък файл`);
-                            continue;
-                        }
-                        item = { name: file.name, type: file.type || 'application/octet-stream', size: file.size, data: await readFileAsDataUrl(file) };
-                    }
-                    if (total + item.size > MEDICAL_FILES_MAX_TOTAL_MB * 1024 * 1024) {
-                        errors.push(`${file.name}: общият размер надхвърля ${MEDICAL_FILES_MAX_TOTAL_MB} MB`);
-                        continue;
-                    }
-                    total += item.size;
-                    out.push(item);
-                } catch (_) {
-                    errors.push(`${file.name}: файлът не може да бъде прочетен`);
-                }
-            }
-            return { files: out, errors };
-        }
-
         // --- CORE RENDER FUNCTION ---
         function renderStep() {
             const step = currentQueue[currentIndex];
@@ -2832,83 +2762,6 @@
                 
                 input.oninput = (e) => saveAnswer(step.id, e.target.value);
                 card.appendChild(input);
-            }
-            else if (step.type === 'file') {
-                const fileContainer = document.createElement('div');
-                fileContainer.className = 'file-upload-container';
-                fileContainer.style.cssText = 'margin-top: 15px; padding: 20px; border: 2px dashed var(--primary-red); border-radius: 12px; text-align: center; cursor: pointer; transition: var(--transition);';
-                
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.id = `file_${step.id}`;
-                fileInput.accept = 'image/*,application/pdf,.doc,.docx';
-                fileInput.multiple = true;
-                fileInput.style.display = 'none';
-                
-                const fileLabel = document.createElement('label');
-                fileLabel.htmlFor = `file_${step.id}`;
-                fileLabel.style.cursor = 'pointer';
-                fileLabel.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                        <i class="fas fa-cloud-upload-alt" style="font-size: 2.5rem; color: var(--primary-red);"></i>
-                        <div id="fileUploadText_${step.id}" style="color: var(--text-dark); font-weight: 500;">Избери файлове</div>
-                        <div style="color: var(--text-gray); font-size: 0.85rem;">Снимки, PDF, Word документи</div>
-                    </div>
-                `;
-                
-                const fileList = document.createElement('div');
-                fileList.className = 'file-list';
-                fileList.style.cssText = 'margin-top: 15px; text-align: left;';
-                
-                const renderFileList = () => {
-                    const ready = medicalFilesData.map(f => ({ name: f.name, size: f.size, ok: true }));
-                    // След презареждане файловете не са в паметта — показваме кои да се прикачат отново.
-                    const names = Array.isArray(answers[step.id]) ? answers[step.id].filter(n => typeof n === 'string') : [];
-                    const lost = names.filter(n => !medicalFilesData.some(f => f.name === n)).map(n => ({ name: n, lost: true }));
-                    const rows = ready.concat(lost, medicalFilesErrors.map(err => ({ name: err, error: true })));
-                    fileList.innerHTML = '';
-                    rows.forEach(row => {
-                        const fileItem = document.createElement('div');
-                        fileItem.style.cssText = 'padding: 8px 12px; background: var(--soft-red); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;';
-                        const icon = document.createElement('i');
-                        icon.className = row.error ? 'fas fa-exclamation-circle' : (row.lost ? 'fas fa-redo' : 'fas fa-file');
-                        icon.style.color = 'var(--primary-red)';
-                        const label = document.createElement('span');
-                        label.style.cssText = 'color: var(--text-dark); font-size: 0.9rem; word-break: break-word;';
-                        label.textContent = row.error ? row.name
-                            : row.lost ? `${row.name} — прикачи отново`
-                            : `${row.name} (${(row.size / 1024).toFixed(0)} KB)`;
-                        fileItem.appendChild(icon);
-                        fileItem.appendChild(label);
-                        fileList.appendChild(fileItem);
-                    });
-                    const text = fileLabel.querySelector(`#fileUploadText_${step.id}`);
-                    text.textContent = medicalFilesData.length ? `${medicalFilesData.length} файл(а) готови` : 'Избери файлове';
-                };
-
-                fileInput.onchange = async (e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (!files.length) return;
-                    const text = fileLabel.querySelector(`#fileUploadText_${step.id}`);
-                    text.textContent = 'Обработка…';
-                    const result = await prepareMedicalFiles(files);
-                    medicalFilesData = result.files;
-                    medicalFilesErrors = result.errors;
-                    answers[step.id] = medicalFilesData.map(f => f.name);
-                    saveAnswer(step.id, answers[step.id]);
-                    renderFileList();
-                    fileInput.value = '';
-                };
-
-                fileContainer.appendChild(fileInput);
-                fileContainer.appendChild(fileLabel);
-                card.appendChild(fileContainer);
-                const limitsNote = document.createElement('div');
-                limitsNote.style.cssText = 'margin-top: 8px; color: var(--text-gray); font-size: 0.8rem; text-align: center;';
-                limitsNote.textContent = `До ${MEDICAL_FILES_MAX_COUNT} файла, общо до ${MEDICAL_FILES_MAX_TOTAL_MB} MB. Снимките се смаляват автоматично.`;
-                card.appendChild(limitsNote);
-                card.appendChild(fileList);
-                renderFileList();
             }
             else if (['radio', 'checkbox'].includes(step.type)) {
                 const grid = document.createElement('div');
@@ -3048,6 +2901,31 @@
                         if(answers[`${step.id}_other`]) otherInput.value = answers[`${step.id}_other`];
                     }
                 }
+
+                // Подробностите („Да“ → кои/колко) са на същия екран, не отделна стъпка.
+                if (step.inline && step.children) {
+                    for (const [when, kids] of Object.entries(step.children)) {
+                        const box = document.createElement('div');
+                        box.className = 'other-input-container';
+                        box.id = `inline_${step.id}`;
+                        box.dataset.when = when;
+                        kids.forEach(child => {
+                            const field = document.createElement(child.type === 'textarea' ? 'textarea' : 'input');
+                            if (child.type !== 'textarea') field.type = 'text';
+                            field.className = 'modern-input';
+                            field.placeholder = child.text;
+                            field.setAttribute('aria-label', child.text);
+                            field.setAttribute('maxlength', '1000');
+                            field.style.marginTop = '10px';
+                            field.dataset.childId = child.id;
+                            field.value = answers[child.id] || '';
+                            field.oninput = (e) => saveAnswer(child.id, e.target.value);
+                            box.appendChild(field);
+                        });
+                        if (answers[step.id] === when) box.classList.add('active');
+                        card.appendChild(box);
+                    }
+                }
             }
         }
 
@@ -3076,6 +2954,17 @@
                     } else {
                         otherContainer.classList.remove('active');
                     }
+                }
+
+                const inlineBox = document.getElementById(`inline_${qId}`);
+                if (inlineBox) {
+                    const open = inlineBox.dataset.when === val;
+                    inlineBox.classList.toggle('active', open);
+                    inlineBox.querySelectorAll('[data-child-id]').forEach(field => {
+                        if (!open) { field.value = ''; delete answers[field.dataset.childId]; }
+                    });
+                    if (!open) localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
+                    else inlineBox.querySelector('[data-child-id]')?.focus();
                 }
 
                 // Auto-advance: only when this answer does NOT open a child question/text field
@@ -3315,7 +3204,7 @@
             }
             
             // BRANCHING LOGIC: Check if current answer triggers children
-            if (currentQ.children && answers[currentQ.id]) {
+            if (currentQ.children && !currentQ.inline && answers[currentQ.id]) {
                 const answerVal = answers[currentQ.id];
                 // Check if the specific answer has children in the JSON
                 if(currentQ.children[answerVal]) {
@@ -4156,9 +4045,6 @@
                     cleanAnswers[key] = val;
                 }
                 const clientData = { id: clientId, timestamp: new Date().toISOString(), answers: cleanAnswers };
-                if (medicalFilesData.length > 0) {
-                    clientData.files = medicalFilesData.map(f => ({ name: f.name, type: f.type, size: f.size, data: f.data }));
-                }
                 const postClient = () => fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

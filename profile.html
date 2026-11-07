@@ -2162,7 +2162,7 @@
                 <div class="card-meter-pct" id="cardMeterPct">0%</div>
             </div>
             <div class="card-meter-bar" role="progressbar" aria-label="Пълнота на профила" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cardMeterBar"><span id="cardMeterFill"></span></div>
-            <p class="card-meter-hint" id="cardMeterHint">Колкото повече данни, толкова по-точен е планът.</p>
+            <p class="card-meter-hint" id="cardMeterHint" hidden></p>
             <ul class="card-meter-list" id="cardMeterList"></ul>
             <div class="card-quick" id="cardQuick" hidden></div>
         </div>
@@ -2177,16 +2177,14 @@
                 <i class="fas fa-chevron-down profile-contact-chevron" id="labsChevron"></i>
             </div>
             <div class="profile-contact-wrapper" id="labsWrapper">
-                <p class="labs-intro">Качи снимка на резултатите от кръвни изследвания. Разчитаме ги, ти проверяваш стойностите, и чак тогава те влизат в плана: правилата на храненето, добавките и бележките за специалиста. Изследванията не са диагноза — диагноза поставя лекар.</p>
-                <label class="labs-consent">
-                    <input type="checkbox" id="labsConsent" onchange="onLabsConsent(this.checked)">
-                    <span>Съгласен/на съм резултатите да се съхраняват и използват за хранителния ми план. Мога да ги изтрия по всяко време.</span>
-                </label>
+                <p class="labs-intro">Снимка или PDF на кръвните изследвания. Проверяваш разчетените стойности, преди да влязат в плана.</p>
+                <!-- Съгласието е самото действие (качване); полето пази състоянието за кода. -->
+                <input type="checkbox" id="labsConsent" hidden>
                 <div class="labs-actions">
-                    <button type="button" class="btn btn-primary" id="labsUploadBtn" onclick="document.getElementById('labsFile').click()" disabled>
+                    <button type="button" class="btn btn-primary" id="labsUploadBtn" onclick="onLabsConsent(true);document.getElementById('labsFile').click()">
                         <i class="fas fa-camera"></i> Снимка или PDF
                     </button>
-                    <button type="button" class="btn btn-secondary" id="labsManualBtn" onclick="addManualLabRow()" disabled>
+                    <button type="button" class="btn btn-secondary" id="labsManualBtn" onclick="onLabsConsent(true);addManualLabRow()">
                         <i class="fas fa-keyboard"></i> Ръчно
                     </button>
                     <input type="file" id="labsFile" accept="image/*,application/pdf" hidden onchange="onLabsFile(this)">
@@ -2194,7 +2192,7 @@
                 <div class="labs-status" id="labsStatus" role="status"></div>
                 <div id="labsReview" hidden>
                     <div class="labs-sub">Провери стойностите</div>
-                    <p class="labs-note">Сравни всяко число с бланката. Отметнатите влизат в плана; несигурно разчетените са отбелязани.</p>
+                    <p class="labs-note">Отметнатите влизат в плана.</p>
                     <label class="labs-date">Дата на изследването <input type="date" id="labsDate" class="form-input"></label>
                     <div id="labsRows"></div>
                     <button type="button" class="btn btn-primary labs-confirm" onclick="confirmLabs()"><i class="fas fa-check"></i> Потвърди и добави</button>
@@ -2212,7 +2210,7 @@
                 <i class="fas fa-chevron-down profile-contact-chevron" id="devicesChevron"></i>
             </div>
             <div class="profile-contact-wrapper" id="devicesWrapper">
-                <p class="labs-intro">Активност, сън, пулс, тегло, кръвно и захар от гривна, часовник, пръстен или везна — планът следи реалните стойности. Само четене; спираш и изтриваш по всяко време.</p>
+                <p class="labs-intro">Активност, сън, пулс, тегло, кръвно и захар — само четене.</p>
                 <!-- Съгласието е самото действие (разрешение, вход, качване); полето пази състоянието за кода. -->
                 <input type="checkbox" id="devicesConsent" hidden>
                 <div class="devices-source" id="devicesHcBox" hidden>
@@ -2222,17 +2220,17 @@
                 </div>
                 <div class="devices-source" id="devicesStepsBox" hidden>
                     <div class="labs-sub">Крачкомер в телефона</div>
-                    <p class="labs-note">Без гривна и часовник: вграденият брояч на телефона, пресметнат по ръста и теглото ти. Вечер не се пита за движението — то се смята само.</p>
+                    <p class="labs-note">Вграденият брояч — без гривна и часовник.</p>
                     <div class="labs-actions devices-actions" id="devicesStepsActions"></div>
                 </div>
                 <div class="devices-source" id="devicesLinksBox" hidden>
                     <div class="labs-sub">Профил в приложението на устройството</div>
-                    <p class="labs-note">Влез с профила си веднъж — данните се теглят сами на всеки няколко часа, на телефон с Android, iPhone или в браузъра.</p>
+                    <p class="labs-note">Влизаш веднъж — данните се теглят сами.</p>
                     <div class="devices-links" id="devicesLinks"></div>
                 </div>
                 <details class="devices-source devices-other">
                     <summary class="labs-sub">Друг начин: снимка или файл</summary>
-                    <p class="labs-note">Екранна снимка от приложението или снимка на дисплея на уреда — разчитаме стойностите и ги проверяваш. Или файл с експорт (CSV/JSON).</p>
+                    <p class="labs-note">Екранна снимка или файл с експорт (CSV/JSON).</p>
                     <div class="labs-actions devices-manual">
                         <button type="button" class="btn btn-primary devices-needs-consent" onclick="allowDevices();document.getElementById('devicesPhoto').click()"><i class="fas fa-camera"></i> Снимка на екран</button>
                         <button type="button" class="btn btn-secondary devices-needs-consent" onclick="allowDevices();document.getElementById('devicesFile').click()"><i class="fas fa-file-arrow-up"></i> Файл</button>
@@ -2260,17 +2258,14 @@
                 <i class="fas fa-chevron-down profile-contact-chevron" id="docsChevron"></i>
             </div>
             <div class="profile-contact-wrapper" id="docsWrapper">
-                <p class="labs-intro">Епикриза, писмо от лекар, рецепта, образно изследване, алергологичен тест или важна информация, която не е във въпросника. AI преценява дали и доколко документът засяга плана и предлага какво да се промени. Ти проверяваш предложението и чак тогава то влиза в профила.</p>
-                <label class="labs-consent">
-                    <input type="checkbox" id="docsConsent" onchange="onDocsConsent(this.checked)">
-                    <span>Съгласен/на съм документите да се съхраняват и използват за хранителния ми план. Мога да ги изтрия по всяко време.</span>
-                </label>
+                <p class="labs-intro">Епикриза, писмо от лекар, рецепта, изследване. Проверяваш предложената промяна, преди да влезе в профила.</p>
+                <input type="checkbox" id="docsConsent" hidden>
                 <input type="text" id="docsNote" class="form-input docs-note" maxlength="500" placeholder="Кратко пояснение (по желание): напр. „епикриза след операция на жлъчка“">
                 <div class="labs-actions">
-                    <button type="button" class="btn btn-primary docs-needs-consent" onclick="document.getElementById('docsFile').click()" disabled>
+                    <button type="button" class="btn btn-primary" onclick="onDocsConsent(true);document.getElementById('docsFile').click()">
                         <i class="fas fa-camera"></i> Снимка или PDF
                     </button>
-                    <button type="button" class="btn btn-secondary docs-needs-consent" onclick="toggleDocsText()" disabled>
+                    <button type="button" class="btn btn-secondary" onclick="onDocsConsent(true);toggleDocsText()">
                         <i class="fas fa-keyboard"></i> Текст
                     </button>
                     <input type="file" id="docsFile" accept="image/*,application/pdf" hidden onchange="onDocsFile(this)">
@@ -2554,78 +2549,15 @@
         </div>
     </div>
 
-    <!-- Contact Form Section -->
     <div style="max-width: 720px; margin: 24px auto; padding: 0 16px;">
         <div class="form-section">
-            <div class="profile-contact-header" onclick="toggleProfileContact()" role="button" tabindex="0" aria-expanded="false" aria-controls="profileContactWrapper" onkeydown="handleProfileContactKeydown(event)">
+            <a class="profile-contact-header" href="help.html" onclick="navigateTopLevel('help.html'); return false;" style="text-decoration: none; color: inherit;">
                 <div class="section-title">
-                    <i class="fas fa-envelope"></i>
-                    Свържи се с нас
+                    <i class="fas fa-circle-question"></i>
+                    Помощ и контакт
                 </div>
-                <i class="fas fa-chevron-down profile-contact-chevron" id="profileContactChevron"></i>
-            </div>
-            <div class="profile-contact-wrapper" id="profileContactWrapper">
-            <p style="color: var(--text-light); margin: 16px 0 20px; font-size: 0.95rem;">
-                Имаш въпрос, предложение или нужда от помощ? Пиши ни и ще се свържем с теб.
-            </p>
-            <form id="profileContactForm" onsubmit="submitProfileContactForm(event)" novalidate>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                    <div class="form-group">
-                        <label class="form-label">Име *</label>
-                        <input type="text" id="profileContactName" class="form-input" required placeholder="Иван Иванов">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Имейл</label>
-                        <input type="email" id="profileContactEmail" class="form-input" placeholder="email@example.com">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Тема</label>
-                    <input type="text" id="profileContactSubject" class="form-input" placeholder="За какво се отнася съобщението?">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Съобщение *</label>
-                    <textarea id="profileContactMessage" class="form-textarea" required rows="5" placeholder="Напиши твоето съобщение тук..."></textarea>
-                </div>
-                <div id="profileContactStatus" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; font-weight: 600; text-align: center;"></div>
-                <button type="submit" id="profileContactBtn" class="btn btn-primary" style="width: 100%;">
-                    <i class="fas fa-paper-plane"></i> Изпрати съобщение
-                </button>
-            </form>
-            </div><!-- /.profile-contact-wrapper -->
-        </div>
-
-        <div class="form-section">
-            <div class="profile-contact-header" onclick="togglePlanBackup()" role="button" tabindex="0" aria-expanded="false" aria-controls="planBackupWrapper" onkeydown="if(event.key==='Enter'||event.key===' ')togglePlanBackup()">
-                <div class="section-title">
-                    <i class="fas fa-shield-alt"></i>
-                    Резервно копие на плана
-                </div>
-                <i class="fas fa-chevron-down profile-contact-chevron" id="planBackupChevron"></i>
-            </div>
-            <div class="profile-contact-wrapper" id="planBackupWrapper">
-                <p style="color: var(--text-light); margin: 16px 0 12px; font-size: 0.95rem;">
-                    Запази плана си чрез Google Drive. Данните се съхраняват в скрита папка,
-                    видима само за това приложение, и се възстановяват автоматично след преинсталиране.
-                </p>
-
-                <!-- Google Drive backup (APK only) -->
-                <div style="margin-bottom: 8px;">
-                    <p style="margin: 0 0 12px; font-size: 0.88rem; color: var(--text-light);">
-                        <i class="fab fa-google-drive" style="color: #4285F4;"></i>
-                        <strong>Google Drive</strong> – автоматично запазване, без ръчни кодове
-                    </p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                        <button class="btn btn-primary" onclick="driveSyncPlan()" id="driveSyncBtn">
-                            <i class="fas fa-cloud-upload-alt"></i> Запази в Drive
-                        </button>
-                        <button class="btn btn-primary" onclick="driveRestorePlan()" id="driveRestoreBtn">
-                            <i class="fas fa-cloud-download-alt"></i> Зареди от Drive
-                        </button>
-                    </div>
-                    <div id="driveBackupStatus" style="display: none; padding: 10px 14px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; text-align: center;"></div>
-                </div>
-            </div>
+                <i class="fas fa-chevron-right profile-contact-chevron"></i>
+            </a>
         </div>
     </div>
 
@@ -2654,21 +2586,7 @@
             return updatedData;
         }
 
-        // --- Contact Form ---
         const WORKER_PROFILE = 'https://aidiet.radilov-k.workers.dev';
-
-        function toggleProfileContact() {
-            const wrapper = document.getElementById('profileContactWrapper');
-            const chevron = document.getElementById('profileContactChevron');
-            const header = wrapper.previousElementSibling;
-            const isOpen = wrapper.classList.toggle('open');
-            chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-            if (header) header.setAttribute('aria-expanded', String(isOpen));
-            if (isOpen) {
-                // Small delay to let the CSS max-height transition begin before scrolling
-                setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-            }
-        }
 
         // ── Изследвания (обогатяване на профила) ─────────────────────────────
         let _labsCatalog = null;
@@ -2693,17 +2611,14 @@
         function onLabsConsent(checked) {
             const E = window.NutriPlanEnrichment;
             if (E) E.setConsent('labs', checked);
-            document.getElementById('labsUploadBtn').disabled = !checked;
-            document.getElementById('labsManualBtn').disabled = !checked;
+            document.getElementById('labsConsent').checked = checked;
         }
 
         function initLabsSection() {
             const E = window.NutriPlanEnrichment;
             const section = document.getElementById('labsSection');
             if (!E || !E.hasPlanProfile()) { if (section) section.hidden = true; return; }
-            const consent = E.hasConsent('labs');
-            document.getElementById('labsConsent').checked = consent;
-            onLabsConsent(consent);
+            document.getElementById('labsConsent').checked = E.hasConsent('labs');
         }
 
         /** Снимките се смаляват до 2000 px (JPEG) — стига за четене, бързо се изпраща. */
@@ -3052,23 +2967,23 @@
             const iris = d && d.iris;
             return [
                 { id: 'q', weight: 30, icon: 'fa-clipboard-list', name: 'Първоначален въпросник', fill: qFill,
-                  status: qFill >= 1 ? 'Попълнен изцяло' : `Попълнен ${Math.round(qFill * 100)}% · докосни за липсващите въпроси`,
-                  gives: 'основата на плана', action: 'questionnaire' },
+                  status: qFill >= 1 ? 'Попълнен изцяло' : `Попълнен ${Math.round(qFill * 100)}%`,
+                  action: 'questionnaire' },
                 { id: 'labs', weight: 20, icon: 'fa-vial', name: 'Кръвна картина и изследвания', fill: labs.length ? Math.min(1, labs.length / 6) : 0,
                   status: labs.length ? `${labs.length} ${labs.length === 1 ? 'показател' : 'показателя'} · ${day(labsAt)}` : 'Не са добавени',
-                  gives: 'точни граници за захар, мазнини, желязо, витамин D, бъбреци', action: 'labsSection' },
+                  action: 'labsSection' },
                 { id: 'devices', weight: 15, icon: 'fa-heart-pulse', name: 'Гривна, часовник, пръстен, везна', fill: deviceSources.length ? 1 : 0,
                   status: deviceSources.length ? `Свързани данни: ${deviceSources.length} вида` : 'Не са свързани',
-                  gives: 'реална активност, сън, пулс и тегло вместо приблизителни отговори', action: 'devicesSection' },
+                  action: 'devicesSection' },
                 { id: 'emoeat', weight: 15, icon: 'fa-heart', name: 'Тест за емоционално хранене (EmoEat)', fill: emo ? 1 : 0,
                   status: emo ? `${day(src.emoeat || emo.at)}${emo.archetype ? ` · ${emo.archetype}` : ''}` : 'Не е направен',
-                  gives: 'кога и защо идва гладът — съветите и тонът на плана', href: './emoeat.html?from=nutriplan' },
+                  href: './emoeat.html?from=nutriplan' },
                 { id: 'iris', weight: 10, icon: 'fa-eye', name: 'Ирисова диагностика (AIRIS)', fill: iris ? 1 : 0,
                   status: iris ? `${day(src.airis || iris.at)}${iris.focus && iris.focus.length ? ` · фокус: ${iris.focus.join(', ')}` : ''}` : 'Не е направена',
-                  gives: 'фокус на системите и насоки за специалиста', href: 'https://radilovk.github.io/airis1.0/?from=nutriplan', external: true },
+                  href: 'https://radilovk.github.io/airis1.0/?from=nutriplan', external: true },
                 { id: 'docs', weight: 10, icon: 'fa-file-medical', name: 'Други документи', fill: docs.length ? 1 : 0,
                   status: docs.length ? `${docs.length} ${docs.length === 1 ? 'документ' : 'документа'}` : 'Няма добавени',
-                  gives: 'епикризи, писма от лекар, алергии, лекарства', action: 'docsSection' },
+                  action: 'docsSection' },
             ];
         }
 
@@ -3081,16 +2996,16 @@
             document.getElementById('cardMeterPct').textContent = `${pct}%`;
             document.getElementById('cardMeterFill').style.width = `${pct}%`;
             document.getElementById('cardMeterBar').setAttribute('aria-valuenow', String(pct));
-            const next = mods.filter(m => m.fill < 1).sort((a, b) => b.weight * (1 - b.fill) - a.weight * (1 - a.fill))[0];
             // Без отговор от сървъра картонът показва само въпросника — казваме го, вместо да изглежда непопълнен.
             const authFailed = /token|401|403/i.test(_cardLoadError);
-            document.getElementById('cardMeterHint').textContent = _cardLoadError && !_cardData
+            // Подсказката е само за грешка при зареждане — процентът и редовете казват останалото.
+            const hint = document.getElementById('cardMeterHint');
+            hint.textContent = _cardLoadError && !_cardData
                 ? (authFailed
                     ? 'Изследванията, устройствата и тестовете не се заредиха — излез и влез отново в профила си.'
                     : 'Изследванията, устройствата и тестовете не се заредиха — провери връзката.')
-                : pct >= 100
-                ? 'Профилът е пълен — планът използва всички данни.'
-                : next ? `Следващо: ${next.name.toLowerCase()} (+${Math.round(next.weight * (1 - next.fill))}%) — ${next.gives}.` : '';
+                : '';
+            hint.hidden = !hint.textContent;
             list.innerHTML = mods.map(m => {
                 const done = m.fill >= 1;
                 const tag = m.href ? `a href="${m.href}"${m.external ? ' target="_blank" rel="noopener"' : ''}` : `button type="button" onclick="openCardModule('${m.action}')"`;
@@ -3101,7 +3016,6 @@
                     <span class="module-body">
                         <span class="module-name">${escProfileHtml(m.name)}</span>
                         <span class="module-status"${done ? ' data-on="1"' : ''}>${escProfileHtml(m.status)}</span>
-                        ${done ? '' : `<span class="module-desc">${escProfileHtml(m.gives)}</span>`}
                     </span>
                     <span class="card-meter-w">${done ? '<i class="fas fa-check"></i>' : `+${Math.round(m.weight * (1 - m.fill))}%`}</span>
                 </${close}></li>`;
@@ -3190,8 +3104,7 @@
         function onDocsConsent(checked) {
             const E = window.NutriPlanEnrichment;
             if (E) E.setConsent('document', checked);
-            document.querySelectorAll('.docs-needs-consent').forEach(b => { b.disabled = !checked; });
-            if (!checked) document.getElementById('docsTextBox').hidden = true;
+            document.getElementById('docsConsent').checked = checked;
         }
 
         function initDocsSection() {
@@ -3199,9 +3112,7 @@
             const section = document.getElementById('docsSection');
             if (!section || !E || !E.hasPlanProfile()) return;
             section.hidden = false;
-            const consent = E.hasConsent('document');
-            document.getElementById('docsConsent').checked = consent;
-            onDocsConsent(consent);
+            document.getElementById('docsConsent').checked = E.hasConsent('document');
         }
 
         function toggleDocsText() {
@@ -3874,75 +3785,6 @@
             renderDevices();
         }
 
-        function togglePlanBackup() {
-            const wrapper = document.getElementById('planBackupWrapper');
-            const chevron = document.getElementById('planBackupChevron');
-            const header = wrapper.previousElementSibling;
-            const isOpen = wrapper.classList.toggle('open');
-            chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-            if (header) header.setAttribute('aria-expanded', String(isOpen));
-            if (isOpen) {
-                setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-            }
-        }
-
-        const _DRIVE_ERROR_MSGS = {
-            no_data:       'Няма данни за запазване.',
-            auth_failed:   'Google Sign-In неуспешен. Провери акаунта в настройките.',
-            upload_failed: 'Качването неуспешно. Опитай отново.',
-            no_backup:     'Не е намерено резервно копие в Google Drive.',
-            invalid_data:  'Резервното копие е повредено или непълно.',
-            not_native:    'Функцията работи само в инсталираното APK приложение.',
-        };
-
-        function _setDriveStatus(msg, isSuccess) {
-            const el = document.getElementById('driveBackupStatus');
-            el.style.display = 'block';
-            el.style.background = isSuccess ? 'rgba(0,200,140,0.15)' : 'rgba(239,68,68,0.15)';
-            el.style.color = isSuccess ? '#00c88c' : '#ef4444';
-            el.textContent = (isSuccess ? '✓ ' : '✗ ') + msg;
-        }
-
-        function _setDriveWorking(msg) {
-            const el = document.getElementById('driveBackupStatus');
-            el.style.display = 'block';
-            el.style.background = 'rgba(59,130,246,0.12)';
-            el.style.color = '#3b82f6';
-            el.textContent = '⏳ ' + msg;
-        }
-
-        async function driveSyncPlan() {
-            if (typeof DriveBackup === 'undefined') {
-                _setDriveStatus('Грешка при зареждане на услугата. Презареди приложението.', false);
-                return;
-            }
-            document.getElementById('driveSyncBtn').disabled = true;
-            _setDriveWorking('Качване в Google Drive...');
-            const result = await DriveBackup.syncPlan();
-            document.getElementById('driveSyncBtn').disabled = false;
-            if (result.success) {
-                _setDriveStatus('Планът е запазен в Google Drive.', true);
-            } else {
-                _setDriveStatus(_DRIVE_ERROR_MSGS[result.error] || ('Грешка: ' + result.error), false);
-            }
-        }
-
-        async function driveRestorePlan() {
-            if (typeof DriveBackup === 'undefined') {
-                _setDriveStatus('Грешка при зареждане на услугата. Презареди приложението.', false);
-                return;
-            }
-            document.getElementById('driveRestoreBtn').disabled = true;
-            _setDriveWorking('Търсене на резервно копие в Google Drive...');
-            const result = await DriveBackup.restorePlan();
-            document.getElementById('driveRestoreBtn').disabled = false;
-            if (result.success) {
-                _setDriveStatus('Планът е възстановен от Google Drive! Отиди на Моят план.', true);
-            } else {
-                _setDriveStatus(_DRIVE_ERROR_MSGS[result.error] || ('Грешка: ' + result.error), false);
-            }
-        }
-
         function toggleAnalysisSection() {
             var container = document.getElementById('analysisSection');
             var wrap      = document.getElementById('analysisBodyWrap');
@@ -4001,77 +3843,6 @@
                     });
                 });
             }
-        }
-
-        function handleProfileContactKeydown(event) {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                toggleProfileContact();
-            }
-        }
-
-        async function submitProfileContactForm(event) {
-            event.preventDefault();
-            const name = document.getElementById('profileContactName').value.trim();
-            const email = document.getElementById('profileContactEmail').value.trim();
-            const subject = document.getElementById('profileContactSubject').value.trim();
-            const message = document.getElementById('profileContactMessage').value.trim();
-            const status = document.getElementById('profileContactStatus');
-            const btn = document.getElementById('profileContactBtn');
-
-            if (!name || !message) {
-                status.style.display = 'block';
-                status.style.background = '#fee2e2';
-                status.style.color = '#dc2626';
-                status.textContent = 'Моля, попълни Име и Съобщение.';
-                return;
-            }
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Изпращане...';
-            status.style.display = 'none';
-
-            try {
-                const response = await fetch(`${WORKER_PROFILE}/api/contact`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        email,
-                        subject,
-                        message,
-                        userId: userData.userId || 'anonymous',
-                        timestamp: new Date().toISOString(),
-                        userAgent: navigator.userAgent
-                    })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    status.style.display = 'block';
-                    status.style.background = '#d1fae5';
-                    status.style.color = '#065f46';
-                    status.textContent = '✅ Съобщението е изпратено успешно! Ще се свържем с теб скоро.';
-                    document.getElementById('profileContactForm').reset();
-                } else {
-                    throw new Error(result.error || 'Грешка при изпращане');
-                }
-            } catch (error) {
-                status.style.display = 'block';
-                status.style.background = '#fee2e2';
-                status.style.color = '#dc2626';
-                status.textContent = '❌ Грешка: ' + error.message;
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Изпрати съобщение';
-            }
-        }
-
-        // Pre-fill contact name/email from user data
-        function prefillContactForm() {
-            const nameField = document.getElementById('profileContactName');
-            const emailField = document.getElementById('profileContactEmail');
-            if (nameField && userData.name) nameField.value = userData.name;
-            if (emailField && userData.email) emailField.value = userData.email;
         }
 
         // --- Theme Management ---
@@ -4400,8 +4171,6 @@
                 // Populate all form fields
                 populateFormFields();
 
-                // Pre-fill contact form with user data
-                prefillContactForm();
                 if (window.NutriPlanDiagnostics) {
                     window.NutriPlanDiagnostics.ok('profile', 'load-user-data', userData.name || userData.email || 'profile ready');
                 }
@@ -5948,14 +5717,13 @@
         </a>
         <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
             <i class="fas fa-chart-bar"></i>
-            <span>Анализ</span>
+            <span>Напредък</span>
         </a>
         <a href="index.html?app=1&tab=profile" class="bottom-nav-item active" aria-current="page">
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
     </nav>
-    <script src="./drive-backup.js"></script>
 
     <script type="module">
         import { initializeApp, getApps, getApp }

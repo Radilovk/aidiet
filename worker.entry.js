@@ -10135,6 +10135,7 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
 - Пиши на „ти“
 - Оценявай грамажа визуално спрямо размера на чинията/контейнера
 - Ако не можеш да разпознаеш храната, постави confidence: "low" и обясни
+- Ако на снимката е меню на ресторант (списък с ястия), а не храна, върни само {"kind": "menu"}
 - Всички числа да са числа (не текст)
 - Отговори САМО с JSON, без допълнителен текст`;
     }
@@ -10166,6 +10167,18 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
         parseError: true,
         message: 'Снимката не беше разпозната. Опитай отново с по-ясна снимка.'
       });
+    }
+
+    // Снимка на меню вместо храна — същото изображение отива към анализа на меню;
+    // клиентът не избира режим.
+    if (analysisResult && analysisResult.kind === 'menu') {
+      const menuResponse = await handleAnalyzeMenuImage(new Request(request.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }), env);
+      const menuBody = await menuResponse.json();
+      return jsonResponse({ ...menuBody, kind: 'menu' }, menuResponse.status);
     }
 
     // Оценката е от 5 — интерфейсът и „вредна храна“ (≤ 2) я четат така; промпт с 1–10 се свежда.

@@ -141,6 +141,7 @@
             align-items: center;
             justify-content: center;
         }
+        .analysis-header .header-spacer { width: 44px; height: 44px; flex: none; }
         [data-theme="dark"] .analysis-header .back-btn {
             background: rgba(45, 212, 191, 0.1);
             border-color: rgba(45, 212, 191, 0.2);
@@ -1862,13 +1863,6 @@
         .problem-change { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--ds-warning-bg); color: var(--ds-warning-text); }
         .problem-change[data-c="better"] { background: var(--ds-success-bg); color: var(--ds-success-text); }
         .problem-iris { margin-top: 10px; font-size: 0.8125rem; line-height: 1.45; color: var(--ds-text-soft); }
-        .more-data-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-        .more-data-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--ds-touch-primary, 48px); padding: 10px 14px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(15, 118, 110, 0.05); color: var(--text-dark); font: inherit; font-size: 0.9rem; font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; transition: transform var(--ds-motion-press, 120ms) var(--ds-ease-standard); }
-        .more-data-btn:active { transform: scale(var(--ds-press-scale, 0.97)); }
-        .more-data-btn i:first-child { color: var(--ds-fill); width: 20px; text-align: center; }
-        [data-theme="dark"] .more-data-btn i:first-child { color: var(--primary-red); }
-        .more-data-btn small { display: block; font-weight: 500; color: var(--ds-text-soft); font-size: 0.8125rem; }
-        .more-data-btn .fa-chevron-right { margin-left: auto; color: var(--ds-text-soft); }
         /* ── По-малко шум: един фокус горе, детайли при докосване ── */
         .container { padding-top: 12px; }
         .overall-score-section, [data-theme="dark"] .overall-score-section { margin-top: 4px; padding: 20px 16px; }
@@ -1933,7 +1927,7 @@
     <header class="analysis-header">
         <button class="back-btn" type="button" onclick="goBack()" aria-label="Назад"><i class="fas fa-arrow-left"></i></button>
         <h1>Здравен Анализ</h1>
-        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Смени тема" aria-label="Смени тема"><i class="fas fa-moon" id="themeIcon"></i></button>
+        <span class="header-spacer" aria-hidden="true"></span>
     </header>
 
     <!-- Loading Screen -->
@@ -2066,11 +2060,6 @@
             </div>
         </section>
 
-        <section class="insight-section" id="moreDataSection" hidden aria-labelledby="moreTitle">
-            <div class="insight-head"><i class="fas fa-plus" aria-hidden="true"></i><h2 id="moreTitle">Направи анализа по-точен</h2></div>
-            <ul class="more-data-list" id="moreDataList"></ul>
-        </section>
-
         <div class="cta-section section-anim" id="ctaSection">
             <h2 id="ctaTitle">Да започнем ли?</h2>
             <p id="ctaSubtitle">Планът е изграден около тези находки.</p>
@@ -2133,18 +2122,6 @@
                     }
                 }
             }
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-            setThemeColor(newTheme);
-            if (document.documentElement.getAttribute('data-embedded-tab') === '1' && window.parent && window.parent !== window) {
-                window.parent.postMessage({ type: 'NUTRIPLAN_THEME_CHANGE', theme: newTheme }, window.location.origin);
-            }
-        }
-
         function updateThemeIcon(theme) {
             const icon = document.getElementById('themeIcon');
             if (icon) {
@@ -2400,7 +2377,6 @@
             const strip = document.getElementById('sourceStrip');
             ['dimensionsSection', 'changesSection', 'dataSection'].forEach(id => { document.getElementById(id).hidden = true; });
             delta.hidden = strip.hidden = !extra;
-            renderMoreData(re);
             if (!extra) return;
 
             const diff = re.analysis.currentHealthStatus.score - re.baseline.score;
@@ -2609,36 +2585,6 @@
                     return `<li class="hyp-item"><div class="hyp-top"><span>${escA(h.label)}</span><span class="hyp-state" data-s="${escA(h.status)}"><i class="fas ${st[0]}" aria-hidden="true"></i>${st[1]}</span></div><p>${escA(note)}</p></li>`;
                 }).join('')}</ul>` : ''}`;
             return true;
-        }
-
-        // Всеки бутон води точно там, където се добавят тези данни (същото като картона в профила).
-        const MORE_DATA = [
-            { key: 'labs', icon: 'fa-vial', label: 'Кръвни изследвания', note: 'точни граници за захар, мазнини, желязо, витамин D', section: 'labsSection' },
-            { key: 'device', icon: 'fa-heart-pulse', label: 'Гривна, часовник, пръстен или везна', note: 'реален сън, активност и пулс', section: 'devicesSection' },
-            { key: 'emoeat', icon: 'fa-heart', label: 'Тест за емоционално хранене', note: 'кога и защо идва гладът', href: './emoeat.html?from=nutriplan' },
-            { key: 'iris', icon: 'fa-eye', label: 'Ирисов анализ', note: 'приоритетни системи за сверка', href: 'https://radilovk.github.io/airis1.0/?from=nutriplan', external: true },
-            { key: 'documents', icon: 'fa-file-medical', label: 'Епикриза или писмо от лекар', note: 'диагнози, лекарства, ограничения', section: 'docsSection' }
-        ];
-
-        function renderMoreData(re) {
-            const section = document.getElementById('moreDataSection');
-            const E = window.NutriPlanEnrichment;
-            if (!E || !E.hasPlanProfile()) { section.hidden = true; return; }
-            const have = new Set(re ? presentSources(re) : ['questionnaire']);
-            const missing = MORE_DATA.filter(m => !have.has(m.key));
-            section.hidden = !missing.length;
-            document.getElementById('moreDataList').innerHTML = missing.map(m => {
-                const inner = `<i class="fas ${m.icon}" aria-hidden="true"></i><span>${m.label}<small>${m.note}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i>`;
-                return m.href
-                    ? `<li><a class="more-data-btn" href="${m.href}"${m.external ? ' target="_blank" rel="noopener"' : ''}>${inner}</a></li>`
-                    : `<li><button type="button" class="more-data-btn" onclick="openProfileCard('${m.section}')">${inner}</button></li>`;
-            }).join('');
-        }
-
-        /** Профилът — направо на секцията за качване (изследвания, устройства, документи), не в началото му. */
-        function openProfileCard(section) {
-            if (requestShellAction('NUTRIPLAN_SWITCH_TAB', { tab: 'profile', open: section })) return;
-            navigateTopLevel('index.html?app=1&tab=profile&open=' + encodeURIComponent(section));
         }
 
         async function answerQuestion(btn) {
@@ -3209,10 +3155,6 @@
     </script>
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" aria-label="Основна навигация">
-        <a href="index.html?stay=1" class="bottom-nav-item">
-            <i class="fas fa-home"></i>
-            <span>Начало</span>
-        </a>
         <a href="index.html?app=1&tab=plan" class="bottom-nav-item">
             <i class="fas fa-utensils"></i>
             <span>Моят План</span>
@@ -3221,7 +3163,11 @@
             <i class="fas fa-compass"></i>
             <span>Насоки</span>
         </a>
-        <a href="index.html?app=1&tab=profile" class="bottom-nav-item">
+        <a href="index.html?app=1&tab=analytics" class="bottom-nav-item">
+            <i class="fas fa-chart-bar"></i>
+            <span>Напредък</span>
+        </a>
+        <a href="index.html?app=1&tab=profile" class="bottom-nav-item active" aria-current="page">
             <i class="fas fa-user"></i>
             <span>Профил</span>
         </a>
