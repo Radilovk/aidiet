@@ -1263,7 +1263,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
           id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : { id: x.bid },
-          sound: 'default', relevanceScore: 1, interruptionLevel: 'timeSensitive',   // time-sensitive once the app has Apple's entitlement (1.2); until then a normal alert with sound
+          sound: 'default', relevanceScore: 1, interruptionLevel: 'active',   // a normal alert with sound — respects Focus / Do Not Disturb
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
       }

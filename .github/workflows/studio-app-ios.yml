@@ -81,7 +81,6 @@ jobs:
             --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#ffffff'
           python3 scripts/patch-ios.py
           ruby scripts/add-privacy-manifest.rb
-          ruby scripts/add-entitlements.rb
           npx cap sync ios
 
       - name: Ключ за App Store Connect (за качването)
@@ -123,8 +122,6 @@ jobs:
           if /usr/libexec/PlistBuddy -c 'Print :NSAppTransportSecurity' "$APP/Info.plist" >/dev/null 2>&1; then
             echo "::error::Има изключения от ATS (NSAppTransportSecurity) — Apple иска обосновка"; exit 1
           fi
-          codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q 'usernotifications.time-sensitive' \
-            || { echo "::error::Подписаното приложение няма разрешението за Time Sensitive известия"; exit 1; }
           echo "Пакетът е наред: $(basename "$APP")"
 
       - name: Качване в App Store Connect (TestFlight)
