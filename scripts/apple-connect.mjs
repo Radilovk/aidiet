@@ -11,6 +11,7 @@
  *   node scripts/apple-connect.mjs submit      checks everything and sends version 1.0 for App Review (only on the owner's explicit go)
  *   node scripts/apple-connect.mjs availability [fix]   in which countries the app is on sale; fix = all countries (and new ones)
  *   node scripts/apple-connect.mjs new-version <x.y>   a new App Store version (after the previous one is on sale)
+ *   node scripts/apple-connect.mjs capability  the Bundle ID gets Time Sensitive Notifications (the reminders of booked hours)
  *   node scripts/apple-connect.mjs delete-cert <id>   deletes one certificate (e.g. a leftover of a failed run)
  *
  * Env: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (the text of AuthKey_XXXX.p8). Nothing secret is printed.
@@ -123,7 +124,10 @@ try {
         '   ("Приемам правилата и условията"), tap "Продължи".',
         '3. Tap a day in bold, then one or more free hours. A dark bar appears at the bottom: tap "Запази", then "Запази N часа".',
         '4. In the confirmation, tap "Напомняне ... преди часа": only then the app asks to allow notifications (fully usable if',
-        '   declined). It schedules ONE local reminder on the device before the appointment (not a push notification).',
+        '   declined). It schedules local reminders on the device for that appointment (the evening before, a few hours before and',
+        '   one hour before) — not push notifications. They are marked Time Sensitive (Apple\'s own example: an appointment reminder),',
+        '   so they reach the user even in a Focus mode; they are never used for anything else (no marketing, no news).',
+        '   Tapping a reminder opens the full-screen "Твоята тренировка" (the appointment, a countdown, directions, change/cancel).',
         '5. "Моят профил" (button at the bottom right) -> "Моите часове" -> "Промени" to move or cancel an appointment.',
         '6. "Моят профил" -> "Моите данни" -> "Изтрий данните ми" deletes the user\'s data (Guideline 5.1.1(v)).',
         '',
@@ -192,7 +196,7 @@ try {
       const loc = locs.find((l) => l.attributes.locale === locale) || locs[0];
       await api('PATCH', `/v1/appStoreVersionLocalizations/${loc.id}`, { data: { type: 'appStoreVersionLocalizations', id: loc.id, attributes: {
         description: T.description, keywords: T.keywords, promotionalText: T.promo, supportUrl: T.support, marketingUrl: 'https://biocode.website/studio-support.html',
-        ...(vers.length > 1 ? { whatsNew: process.env.WHATS_NEW || 'New design. Past appointments in the calendar, studio address, hours and directions, clearer rules. Studios with the XEMS training system: training profile, progress and daily nutrition guidance.' } : {}) } } });
+        ...(vers.length > 1 ? { whatsNew: process.env.WHATS_NEW || 'Reminders you will not miss: the evening before, a few hours before and an hour before your appointment, with a full-screen view of your training. A refreshed, lighter design.' } : {}) } } });
     });
     await step('най-новият готов build към версията', async () => {
       const builds = (await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`)).data;
@@ -345,13 +349,24 @@ try {
     const made = await api('POST', '/v1/appStoreVersions', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: vs, releaseType: 'AFTER_APPROVAL' },
       relationships: { app: { data: { type: 'apps', id: app.id } } } } });
     console.log(`✓ нова версия ${made.data.attributes.versionString} (${made.data.attributes.appStoreState})`);
+  } else if (action === 'capability') {
+    const found = await api('GET', `/v1/bundleIds?filter[identifier]=${encodeURIComponent(BUNDLE)}&limit=5&include=bundleIdCapabilities`);
+    const bid = found.data.find((b) => b.attributes.identifier === BUNDLE);
+    if (!bid) fail(`Няма Bundle ID ${BUNDLE}.`);
+    const have = (found.included || []).filter((c) => c.type === 'bundleIdCapabilities').map((c) => c.attributes.capabilityType);
+    console.log(`Възможности: ${have.join(', ') || 'няма'}`);
+    if (have.includes('USERNOTIFICATIONS_TIMESENSITIVE')) { console.log('✓ Time Sensitive вече е включено'); process.exit(0); }
+    // Apple's API cannot switch this one on (it is not among its capability types): one tick in the developer portal
+    console.log('✗ Time Sensitive още не е включено. Apple го включва само ръчно: developer.apple.com → Certificates, IDs & Profiles →');
+    console.log(`  Identifiers → ${BUNDLE} → отметка „Time Sensitive Notifications“ → Save. После пусни това действие отново за проверка.`);
+    process.exit(1);
   } else if (action === 'delete-cert') {
     const id = String(process.argv[3] || '').trim();
     if (!/^[A-Z0-9]{6,20}$/.test(id)) fail('Дай id на сертификат (от действието certs).');
     await api('DELETE', `/v1/certificates/${id}`);
     console.log(`✓ Изтрит сертификат ${id}`);
   } else {
-    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | availability | new-version | delete-cert');
+    fail('действие: check | bundle-id | status | certs | metadata | testflight | screenshots | submit | availability | new-version | capability | delete-cert');
   }
 } catch (e) {
   fail(String(e.message).slice(0, 600));
