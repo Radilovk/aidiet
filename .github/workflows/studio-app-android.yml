@@ -1,8 +1,10 @@
 name: Студио приложение — Android
 
 # Прави Android приложението на студиата. Пуска се ръчно: Actions → „Студио приложение — Android“ → Run workflow.
-#  * Винаги: debug APK (за пробно инсталиране на телефон: свали „studio-app-apk“ от Artifacts и го отвори на Android).
-#  * Ако има секрети за ключ (по-долу): и подписан AAB за Google Play (Play Console → Production / Internal testing).
+#  * Подписан APK за инсталиране — качва се като GitHub Release „studio-android-v<версия>“ (XB-Studio.apk; постоянна
+#    връзка: …/releases/download/studio-android-latest/XB-Studio.apk). Ключът: STUDIO_KEYSTORE_* ако ги има, иначе
+#    ключът на NutriPlan APK (KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_PASSWORD, alias nutriplan). Без ключ — debug APK.
+#  * Ако има секрети STUDIO_KEYSTORE_*: и подписан AAB за Google Play (Play Console → Production / Internal testing).
 #
 # Секрети за Google Play (по желание; ключът се прави веднъж — виж studio-app/README.md):
 #   STUDIO_KEYSTORE_BASE64   — файлът .keystore, кодиран с base64
@@ -16,10 +18,10 @@ on:
       version:
         description: 'Версия за магазина, напр. 1.0.0'
         type: string
-        default: '1.0.0'
+        default: '1.2.0'
 
 permissions:
-  contents: read
+  contents: write   # the GitHub Release with the APK
 
 concurrency: studio-app-android
 
@@ -62,15 +64,63 @@ jobs:
           python3 scripts/patch-android.py
           npx cap sync android
 
-      - name: Debug APK (за пробване)
-        working-directory: studio-app/android
-        run: ./gradlew --no-daemon assembleDebug
+      - name: Подписан APK (ключът на студиото или на NutriPlan; без ключ — debug)
+        env:
+          S_KS: ${{ secrets.STUDIO_KEYSTORE_BASE64 }}
+          S_PASS: ${{ secrets.STUDIO_KEYSTORE_PASSWORD }}
+          S_ALIAS: ${{ secrets.STUDIO_KEY_ALIAS }}
+          S_KEYPASS: ${{ secrets.STUDIO_KEY_PASSWORD }}
+          N_KS: ${{ secrets.KEYSTORE_BASE64 }}
+          N_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          N_KEYPASS: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          if [ -n "$S_KS" ] && [ -n "$S_PASS" ] && [ -n "$S_ALIAS" ]; then
+            KS="$S_KS"; PASS="$S_PASS"; ALIAS="$S_ALIAS"; KPASS="${S_KEYPASS:-$S_PASS}"; echo "ключ: на студиото"
+          elif [ -n "$N_KS" ] && [ -n "$N_PASS" ]; then
+            KS="$N_KS"; PASS="$N_PASS"; ALIAS="nutriplan"; KPASS="${N_KEYPASS:-$N_PASS}"; echo "ключ: на NutriPlan"
+          else
+            echo "::warning::Няма ключ за подписване — правя debug APK."
+            (cd android && ./gradlew --no-daemon assembleDebug)
+            cp android/app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/out/XB-Studio.apk"
+            exit 0
+          fi
+          export PASS KPASS
+          (cd android && ./gradlew --no-daemon assembleRelease)
+          printf '%s' "$KS" | base64 --decode > "$RUNNER_TEMP/studio.keystore"
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/zipalign" -f -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/studio.keystore" --ks-pass env:PASS --ks-key-alias "$ALIAS" \
+            --key-pass env:KPASS --out "$RUNNER_TEMP/out/XB-Studio.apk" "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" verify --print-certs "$RUNNER_TEMP/out/XB-Studio.apk" | grep -i 'SHA-256' | head -1
+          rm -f "$RUNNER_TEMP/studio.keystore"
+
+      - name: Проверка на пакета
+        run: |
+          APK="$RUNNER_TEMP/out/XB-Studio.apk"
+          [ -f "$APK" ] || { echo "::error::Няма APK"; exit 1; }
+          unzip -l "$APK" | grep -q 'res/raw/studio.wav' || { echo "::error::Няма звука в пакета"; exit 1; }
+          echo "APK: $(du -h "$APK" | cut -f1)"
 
       - uses: actions/upload-artifact@v4
         with:
           name: studio-app-apk
-          path: studio-app/android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ runner.temp }}/out/XB-Studio.apk
           retention-days: 30
+
+      - name: GitHub Release (връзка за сваляне)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ inputs.version }}
+        run: |
+          cp "$RUNNER_TEMP/out/XB-Studio.apk" "$RUNNER_TEMP/out/XB-Studio-v$V.apk"
+          for TAG in "studio-android-v$V" "studio-android-latest"; do
+            gh release delete "$TAG" -y --cleanup-tag --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest=false \
+              --title "XB-Studio за Android $V" --notes "Приложението за записване на часове в студиата (XBODY Бургас и др.). Инсталиране: свали XB-Studio.apk на телефона и го отвори." \
+              "$RUNNER_TEMP/out/XB-Studio.apk" "$RUNNER_TEMP/out/XB-Studio-v$V.apk"
+          done
+          echo "https://github.com/$GITHUB_REPOSITORY/releases/download/studio-android-latest/XB-Studio.apk" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Подписан AAB за Google Play (само ако има ключ)
         env:

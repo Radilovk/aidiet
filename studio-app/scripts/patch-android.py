@@ -5,9 +5,11 @@
   - no SCHEDULE_EXACT_ALARM: the local-notifications plugin brings it, but Google Play treats it as a restricted
     permission; without it the reminder is "about on time" (a minute or two), which is fine for a 4-hour reminder
   - version from the CI run: STUDIO_V_CODE / STUDIO_V_NAME
+  - the soft studio chime (res/raw/studio.wav) for the reminders' notification channel (the same sound as on iOS)
 """
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -26,6 +28,9 @@ if not manifest.exists():
 </vector>
 """, encoding="utf-8")
 
+(res / "raw").mkdir(parents=True, exist_ok=True)
+shutil.copyfile("ios-extra/studio.wav", res / "raw" / "studio.wav")
+
 text = manifest.read_text(encoding="utf-8")
 if 'xmlns:tools=' not in text:
     text = text.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android"',
@@ -43,4 +48,4 @@ if code:
 if name:
     g = re.sub(r'versionName\s+"[^"]*"', f'versionName "{name}"', g, count=1)
 gradle.write_text(g, encoding="utf-8")
-print("android: notification icon, no exact-alarm permission, version", code or "-", name or "-")
+print("android: notification icon, studio sound, no exact-alarm permission, version", code or "-", name or "-")
