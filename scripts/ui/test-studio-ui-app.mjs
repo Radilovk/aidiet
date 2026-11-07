@@ -128,7 +128,8 @@ await step('book 08:00 and 15:00 (3 days ahead): the notification permission is 
   eq((await ln()).asked, 0, 'the phone is not asked before the tap on "Включи"');
   await page.screenshot({ path: `${OUT}/app-2-done.png` });
   await page.click('#rem-on');
-  await page.waitForSelector('text=Напомнянето е включено');
+  await page.waitForSelector('text=Напомнянията са включени');
+  await page.waitForSelector('#rem-week');
   eq((await ln()).asked, 1, 'asked');
   const ck = [...store.keys()].find((k) => k.startsWith('studio:consent:burgas:'));
   if (!ck) throw new Error('the acceptance of the rules was not recorded');
@@ -137,14 +138,14 @@ await step('book 08:00 and 15:00 (3 days ahead): the notification permission is 
   if (!rec.at || !/Промяна, отказ и неявяване/.test(txt || '')) throw new Error('the consent record lacks the time or the exact rules text');
   await page.click('.sheet [data-close]');
 });
-await step('reminders: the evening before (morning hours), 4 h before (08:00 → 07:00), an hour before; with sound, time-sensitive', async () => {
+await step('reminders: one the evening before (both hours), 4 h before each (08:00 → 07:00); with sound, time-sensitive', async () => {
   const s = await ln();
   const at = (hm) => zonedMs(day, hm, 'Europe/Sofia');
   const prev = zonedParts(at('12:00') - 864e5, 'Europe/Sofia').ymd;
   const times = s.pending.map((n) => n.at).sort((a, b) => a - b);
-  eq(JSON.stringify(times), JSON.stringify([zonedMs(prev, '19:00', 'Europe/Sofia'), at('07:00'), at('11:00'), at('14:00')]), 'the four reminders');
+  eq(JSON.stringify(times), JSON.stringify([zonedMs(prev, '19:00', 'Europe/Sofia'), at('07:00'), at('11:00')]), 'the three reminders');
   if (!s.pending.every((n) => n.sound === 'default' && n.level === 'timeSensitive')) throw new Error('no sound / level');
-  if (!/Утре в 08:00/.test(s.pending.find((n) => n.at === zonedMs(prev, '19:00', 'Europe/Sofia')).body)) throw new Error('evening text');
+  if (!/Утре в 08:00 и 15:00/.test(s.pending.find((n) => n.at === zonedMs(prev, '19:00', 'Europe/Sofia')).body)) throw new Error('evening text');
   if (!/Днес в 08:00/.test(s.pending.find((n) => n.at === at('07:00')).body)) throw new Error('text: ' + JSON.stringify(s.pending.map((n) => n.body)));
   if (await page.locator('a[download]').count()) throw new Error('.ics button shown in the app');
 });
@@ -156,11 +157,28 @@ await step('move one hour → the reminder follows; cancel → it goes', async (
   await page.waitForSelector('text=Часът е преместен');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => /16:00/.test(n.body)));
   let s = await ln();
-  eq(s.pending.length, 4, 'still 4');
+  eq(s.pending.length, 3, 'still 3');
+  if (!/08:00 и 16:00/.test(s.pending.map((n) => n.body).join('|'))) throw new Error('the evening text did not follow the move');
   await page.click('#fab'); await page.click('[data-p=mine]'); await page.locator('.sheet [data-own]').last().click();
   await page.click('[data-go=cancel]'); await page.click('[data-go=cancel]');
   await page.waitForSelector('text=Часът е отказан');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.length === 2);
+});
+await step('the Sunday overview: off by default, on from Профил → Напомняния (the week\'s hours or a nudge), off again', async () => {
+  await page.click('#fab'); await page.click('[data-p=rem]');
+  await page.waitForSelector('#rp-week');
+  if (await page.locator('#rp-week').isChecked()) throw new Error('weekly on by default');
+  await page.screenshot({ path: `${OUT}/app-10-reminders.png` });
+  await page.check('#rp-week');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id >= 1950000000));
+  const wk = (await ln()).pending.filter((n) => n.id >= 1950000000);
+  if (wk.length < 5 || wk.some((n) => new Date(n.at).getUTCDay() !== 0 || !n.body)) throw new Error('weekly: ' + JSON.stringify(wk));
+  const sum = wk.find((n) => /08:00/.test(n.body));
+  if (!sum || !/^(Пн|Вт|Ср|Чт|Пт|Сб|Нд) 08:00/.test(sum.body)) throw new Error('the week of the hour lacks it: ' + JSON.stringify(wk.map((n) => n.body)));
+  if (!wk.some((n) => !/\d\d:\d\d/.test(n.body))) throw new Error('no nudge for an empty week');
+  await page.uncheck('#rp-week');
+  await page.waitForFunction(() => !JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id >= 1950000000));
+  await page.click('.sheet [data-back]'); await page.click('.sheet [data-close]');
 });
 await step('held hours (as in XBody): a grey dot, a dashed "проведен" hour; pull down refreshes', async () => {
   const phone = db.prepare("SELECT phone FROM clients WHERE studio_id='burgas'").get().phone;
