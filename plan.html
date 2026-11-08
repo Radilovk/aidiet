@@ -3905,6 +3905,15 @@
     <script src="./platform-compat.js"></script>
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
+    <script src="./pricing-config.js"></script>
+    <script src="./access.js"></script>
+    <script>
+        // Нивото на акаунта: при включена стена текущият ден се рисува наново със заключването.
+        NutriPlanAccess.load().then(function (st) {
+            if (!st.paywall) return;
+            try { if (dietPlan && dietPlan.weekPlan) renderDay(currentDay, currentViewDateKey); } catch (_) {}
+        });
+    </script>
     <script src="./handoff-client.js"></script>
     <script src="./enrichment-client.js"></script>
     <script src="./goal-model.js"></script>
@@ -5741,6 +5750,13 @@
             const mealContainer = document.getElementById('mealContainer');
             mealContainer.innerHTML = '';
 
+            // Start: виждаш само първия ден от менюто.
+            if (dayNum !== 1 && !NutriPlanAccess.can('full_week')) {
+                mealContainer.innerHTML = NutriPlanAccess.lockCard('full_week',
+                    '<button type="button" class="np-lock-link" onclick="selectDay(1, \'prev\')">Към първия ден</button>');
+                return;
+            }
+
             // Какъв е денят (metabolic.js): тренировъчен / почивен / по-лек, горивото и прозорецът.
             const energy = dayData.energy;
             if (energy && energy.kind) {
@@ -6927,6 +6943,10 @@
         }
 
         function openChat() {
+            if (!chatVisible && !NutriPlanAccess.can('chat')) {
+                NutriPlanAccess.showLock('chat');
+                return;
+            }
             // In regular embedded tab (not shellChat overlay) delegate to the shell's shared chat
             if (document.documentElement.getAttribute('data-embedded-tab') === '1' &&
                 document.documentElement.getAttribute('data-shell-chat') !== '1') {
@@ -7542,11 +7562,17 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(requestBody),
+                    body: JSON.stringify(Object.assign({}, requestBody, await NutriPlanAccess.authFields())),
                     signal: controller.signal
                 });
 
                 clearTimeout(timeoutId);
+
+                if (response.status === 402) {
+                    removeTypingIndicator(typingId);
+                    NutriPlanAccess.handleLocked(response, await response.json().catch(() => ({})));
+                    return;
+                }
 
                 if (!response.ok) {
                     const errorText = await response.text().catch(() => 'Unable to read error');
@@ -8321,6 +8347,10 @@
         }
 
         function openFoodAnalysis() {
+            if (!NutriPlanAccess.can('photo')) {
+                NutriPlanAccess.showLock('photo');
+                return;
+            }
             const overlay = document.getElementById('foodAnalysisOverlay');
             if (overlay) {
                 overlay.classList.add('active');
@@ -8592,17 +8622,21 @@
                 const response = await fetch(WORKER_URL + '/api/analyze-food-image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                    body: JSON.stringify(Object.assign({
                         imageData: foodAnalysisImageData,
                         mimeType: foodAnalysisImageMime,
                         userData: compactUserData,
                         dietPlan: compactPlan,
                         mealContext: mealContext
-                    })
+                    }, await NutriPlanAccess.authFields()))
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
+                    if (NutriPlanAccess.handleLocked(response, errorData)) {
+                        closeFoodAnalysis();
+                        return;
+                    }
                     throw new Error(errorData.error || `HTTP ${response.status}`);
                 }
 
@@ -11725,6 +11759,7 @@
                     lastErr = new Error(data.error || ('HTTP ' + resp.status));
                     lastErr.status = resp.status;
                     lastErr.data = data;
+                    if (resp.status === 402) NutriPlanAccess.handleLocked(resp, data);
                     if (resp.status < 500) throw lastErr;
                 } catch (e) {
                     if (e === lastErr && e.status < 500) throw e;

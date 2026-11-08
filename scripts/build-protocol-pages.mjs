@@ -22,7 +22,7 @@ const SITE = 'https://biocode.website';
 const CSS_V = '20261031a';
 
 /** Статични страници с общия футър (вмъква се между маркерите). */
-const SITE_FOOTER_PAGES = ['index.html', 'features.html', 'help.html', 'delete-account.html', 'privacy-policy.html', 'terms.html'];
+const SITE_FOOTER_PAGES = ['index.html', 'features.html', 'pricing.html', 'help.html', 'delete-account.html', 'privacy-policy.html', 'terms.html'];
 
 const esc = (v) => String(v ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -77,6 +77,7 @@ function siteFooter() {
                         <ul>
                             <li><a href="index.html?stay=1#how-it-works">Как работи</a></li>
                             <li><a href="features.html">Какво включва</a></li>
+                            <li class="sf-web"><a href="pricing.html">Цени</a></li>
                             <li><a href="questionnaire2.html">Създай план</a></li>
                             <li class="sf-web"><a href="index.html?stay=1#android-install">Приложението</a></li>
                         </ul>
@@ -356,6 +357,7 @@ function sitemap() {
         ['', '1.0'],
         ['questionnaire2.html', '0.9'],
         ['features.html', '0.8'],
+        ['pricing.html', '0.8'],
         ['protocol-landing.html', '0.8'],
         ...PROTOCOL_STATES.map((s) => [statePageUrl(s), '0.7']),
         ['emoeat.html', '0.6'],

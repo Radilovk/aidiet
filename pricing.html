@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="bg" class="no-js">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Цени | NutriPlan</title>
+    <meta name="description" content="Нивата на NutriPlan: Start безплатно, Core — целият седмичен план, Personal — с личен специалист, Signature — с екип.">
+    <link rel="canonical" href="https://biocode.website/pricing.html">
+    <meta name="theme-color" content="#F4FBFA">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="bg_BG">
+    <meta property="og:site_name" content="NutriPlan">
+    <meta property="og:title" content="Цени | NutriPlan">
+    <meta property="og:url" content="https://biocode.website/pricing.html">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+    <link rel="manifest" href="manifest.json">
+    <script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.querySelector('meta[name="theme-color"]').setAttribute('content','#071312');})();</script>
+    <script>
+        // Плащането е само в сайта: в приложението (APK / iOS) страницата не се показва.
+        try { if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) location.replace('index.html'); } catch (e) {}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:ital,wght@1,600&display=swap">
+    <link rel="stylesheet" href="protocol-page.css?v=20261031a">
+    <link rel="stylesheet" href="site-footer.css?v=20261031a">
+    <style>
+        .price-hero { text-align: center; padding: 36px 0 8px; }
+        .price-hero h1 em { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 600; color: var(--acc-text); }
+        .price-note { margin: 14px auto 0; max-width: 30em; padding: 10px 14px; border-radius: 14px; background: var(--tint); color: var(--text); font-size: .92rem; }
+        .period { display: inline-flex; margin: 22px auto 0; padding: 4px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
+        .period button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: none; color: var(--text-2); font: inherit; font-weight: 600; cursor: pointer; }
+        .period button[aria-pressed="true"] { background: var(--acc); color: #fff; }
+        .period small { font-weight: 700; opacity: .85; }
+        .plans { display: grid; gap: 14px; margin: 24px 0 8px; }
+        @media (min-width: 760px) { .plans { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1100px) { .plans { grid-template-columns: repeat(4, 1fr); } }
+        .plan { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 22px 20px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+        .plan.is-top { border-color: color-mix(in srgb, var(--acc) 55%, transparent); box-shadow: var(--shadow); }
+        .plan-badge { position: absolute; top: -11px; left: 20px; padding: 3px 10px; border-radius: 999px; background: var(--acc); color: #fff; font-size: .74rem; font-weight: 700; letter-spacing: .04em; }
+        .plan-name { margin: 0; font-size: 1.25rem; font-weight: 800; }
+        .plan-tag { margin: 2px 0 0; color: var(--text-3); font-size: .92rem; }
+        .plan-price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+        .plan-price b { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
+        .plan-price span { color: var(--text-3); font-size: .92rem; }
+        .plan-sub { margin: -8px 0 0; color: var(--text-2); font-size: .88rem; min-height: 1.3em; }
+        .plan ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: .93rem; color: var(--text-2); }
+        .plan li { display: flex; gap: 8px; line-height: 1.4; }
+        .plan li::before { content: ""; flex: 0 0 16px; height: 16px; margin-top: 2px; border-radius: 50%; background: var(--tint-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230F766E' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/10px no-repeat; }
+        .plan-cta { margin-top: auto; display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--acc); color: var(--acc-text); font-weight: 700; text-decoration: none; background: none; font: inherit; cursor: pointer; }
+        .plan.is-top .plan-cta, .plan-cta.is-primary { background: var(--acc); color: #fff; }
+        .plan-cta[aria-disabled="true"] { opacity: .55; cursor: default; }
+        .price-foot { margin: 6px 0 0; text-align: center; color: var(--text-3); font-size: .85rem; }
+        .price-faq { max-width: 680px; margin: 36px auto 0; }
+        .price-faq h2 { font-size: 1.35rem; margin: 0 0 14px; }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="wrap">
+            <a class="brand" href="index.html?stay=1" aria-label="NutriPlan — начало">
+                <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span>NutriPlan
+            </a>
+            <button class="icon-btn" id="theme-toggle" type="button" aria-label="Смени светла / тъмна тема">
+                <span class="i-moon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><span class="i-sun"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+            </button>
+        </div>
+    </header>
+
+    <main class="wrap wrap--wide">
+        <section class="price-hero" aria-labelledby="price-title">
+            <span class="chip">Цени</span>
+            <h1 id="price-title">Избери колко <em>близо</em> да сме</h1>
+            <p class="lead">Започни безплатно с въпросника и един ден от менюто. Целият план, корекцията всяка седмица и специалистът са в платените нива.</p>
+            <p class="price-note" id="featureNote" hidden></p>
+            <div class="period" role="group" aria-label="Плащане за Core">
+                <button type="button" data-period="year" aria-pressed="true">Годишно <small id="saveBadge"></small></button>
+                <button type="button" data-period="month" aria-pressed="false">Месечно</button>
+            </div>
+        </section>
+
+        <div class="plans" id="plans"></div>
+        <p class="price-foot">Цените са в евро. Плащането е в сайта, а планът е и в приложението — влизаш със същия акаунт.</p>
+
+        <section class="price-faq" aria-labelledby="faq-title">
+            <h2 id="faq-title">Въпроси</h2>
+            <div class="faq">
+                <details>
+                    <summary>Как работи безплатният период?</summary>
+                    <div class="faq-a"><p>Годишният Core започва със 7 дни без плащане и с пълния план. Ако се откажеш преди края им, не плащаш нищо.</p></div>
+                </details>
+                <details>
+                    <summary>Мога ли да се откажа по всяко време?</summary>
+                    <div class="faq-a"><p>Да. Абонаментът не се подновява след периода, за който си платил. Достъпът остава до края му.</p></div>
+                </details>
+                <details>
+                    <summary>Какво прави специалистът?</summary>
+                    <div class="faq-a"><p>В Core проверява менюто ти при старта. В Personal е твоят специалист: разговаря с теб, преглежда плана на всеки 2 седмици и отговаря писмено. В Signature до теб има екип — специалист и треньор.</p></div>
+                </details>
+                <details>
+                    <summary>Защо плащането е в сайта, а не в приложението?</summary>
+                    <div class="faq-a"><p>Така цената остава по-ниска. Плащаш веднъж в сайта и влизаш със същия акаунт в приложението на телефона.</p></div>
+                </details>
+                <details>
+                    <summary>Това медицинска услуга ли е?</summary>
+                    <div class="faq-a"><p>Не. NutriPlan дава хранителни насоки и навици. Не поставя диагноза и не лекува. При заболяване, бременност или прием на лекарства обсъди промените с лекаря си.</p></div>
+                </details>
+            </div>
+        </section>
+    </main>
+
+    <!-- site-footer:start — генерира се от scripts/build-protocol-pages.mjs, не редактирай тук -->
+    <footer class="sf" role="contentinfo">
+        <script>try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())document.documentElement.classList.add('is-native')}catch(e){}</script>
+        <div class="sf-wrap">
+            <div class="sf-top">
+                <div class="sf-brand">
+                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span>NutriPlan</a>
+                    <p class="sf-tag">Хранене по твоя мярка.</p>
+                    <p class="sf-about">Седмично меню с точни грамажи — според тялото, здравето и вкусовете ти. Донастройва се всяка седмица.</p>
+                    <div class="sf-stores sf-web" aria-label="Мобилни магазини">
+                        <span class="sf-store"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg><span><small>Скоро в</small><b>Google Play</b></span></span>
+                        <span class="sf-store"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg><span><small>Скоро в</small><b>App Store</b></span></span>
+                    </div>
+                </div>
+                <nav class="sf-cols" aria-label="Карта на сайта">
+                    <div>
+                        <h2 class="sf-h">Продукт</h2>
+                        <ul>
+                            <li><a href="index.html?stay=1#how-it-works">Как работи</a></li>
+                            <li><a href="features.html">Какво включва</a></li>
+                            <li class="sf-web"><a href="pricing.html">Цени</a></li>
+                            <li><a href="questionnaire2.html">Създай план</a></li>
+                            <li class="sf-web"><a href="index.html?stay=1#android-install">Приложението</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="sf-h">Програми</h2>
+                        <ul>
+                            <li><a href="protocol-landing.html">Програми</a></li>
+                            <li><a href="emoeat.html">Емоционално хранене</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="sf-h">Помощ</h2>
+                        <ul>
+                            <li><a href="help.html">Въпроси и отговори</a></li>
+                            <li><a href="index.html?stay=1#contact">Контакт</a></li>
+                            <li><a href="delete-account.html">Изтриване на профил</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="sf-h">Правни</h2>
+                        <ul>
+                            <li><a href="privacy-policy.html">Поверителност</a></li>
+                            <li><a href="terms.html">Условия за ползване</a></li>
+                            <li><a href="help.html#health">Здраве и безопасност</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+            <div class="sf-bottom">
+                <p>© 2026 NutriPlan · biocode.website</p>
+                <p>Хранителни насоки и навици. Не е медицинско изделие, не поставя диагноза и не лекува.</p>
+            </div>
+        </div>
+    </footer>
+    <!-- site-footer:end -->
+
+    <script src="pricing-config.js"></script>
+    <script src="partner-ref.js"></script>
+    <script>
+    (function () {
+        'use strict';
+        var P = window.NutriPlanPricing;
+        var params = new URLSearchParams(location.search);
+        var period = 'year';
+        var grid = document.getElementById('plans');
+        var esc = function (t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+        var fmt = P.formatPrice;
+
+        var feature = params.get('feature');
+        if (feature && P.FEATURE_LABEL[feature]) {
+            var need = P.plan(P.FEATURE_MIN_TIER[feature]);
+            var note = document.getElementById('featureNote');
+            note.textContent = P.FEATURE_LABEL[feature] + ' е част от ' + (need ? need.name : 'платените нива') + '.';
+            note.hidden = false;
+        }
+
+        var core = P.plan('core');
+        var save = Math.round((1 - core.prices.year / (core.prices.month * 12)) * 100);
+        document.getElementById('saveBadge').textContent = '−' + save + '%';
+
+        function checkoutHref(id, per) {
+            if (!P.checkoutUrl) return '';
+            var u = new URL(P.checkoutUrl, location.href);
+            u.searchParams.set('tier', id);
+            u.searchParams.set('period', per);
+            var ref = window.NutriPlanPartnerRef && NutriPlanPartnerRef.get();
+            if (ref) u.searchParams.set('ref', ref);
+            return u.toString();
+        }
+
+        function priceBlock(plan) {
+            var p = plan.prices;
+            if (plan.id === 'start') return { main: '0 €', unit: '', sub: 'Без карта' };
+            if (plan.id === 'core') {
+                return period === 'year'
+                    ? { main: fmt(p.year), unit: 'на година', sub: fmt(Math.round(p.year / 12 * 100) / 100) + ' на месец · ' + plan.trialDays + ' дни безплатно' }
+                    : { main: fmt(p.month), unit: 'на месец', sub: 'Без безплатен период' };
+            }
+            if (p.program) return { main: fmt(p.month), unit: 'на месец', sub: 'или ' + fmt(p.program) + ' за ' + plan.programWeeks + ' седмици' };
+            return { main: fmt(p.month), unit: 'на месец', sub: plan.limited ? 'Ограничени места' : '' };
+        }
+
+        function cta(plan) {
+            if (plan.id === 'start') return '<a class="plan-cta" href="questionnaire2.html">Започни безплатно</a>';
+            if (plan.limited) return '<a class="plan-cta" href="index.html?stay=1#contact">Запиши се</a>';
+            var per = plan.id === 'core' ? period : 'month';
+            var href = checkoutHref(plan.id, per);
+            return href
+                ? '<a class="plan-cta" href="' + esc(href) + '">Избери ' + esc(plan.name) + '</a>'
+                : '<span class="plan-cta" aria-disabled="true">Скоро</span>';
+        }
+
+        function render() {
+            grid.innerHTML = P.PLANS.map(function (plan) {
+                var pr = priceBlock(plan);
+                return '<article class="plan' + (plan.highlight ? ' is-top' : '') + '" aria-labelledby="plan-' + plan.id + '">' +
+                    (plan.highlight ? '<span class="plan-badge">Препоръчваме</span>' : '') +
+                    '<div><h2 class="plan-name" id="plan-' + plan.id + '">' + esc(plan.name) + '</h2><p class="plan-tag">' + esc(plan.tagline) + '</p></div>' +
+                    '<div class="plan-price"><b>' + esc(pr.main) + '</b><span>' + esc(pr.unit) + '</span></div>' +
+                    '<p class="plan-sub">' + esc(pr.sub) + '</p>' +
+                    '<ul>' + plan.features.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' +
+                    cta(plan) + '</article>';
+            }).join('');
+        }
+
+        document.querySelectorAll('.period button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                period = btn.getAttribute('data-period');
+                document.querySelectorAll('.period button').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+                render();
+            });
+        });
+        render();
+    })();
+    </script>
+    <script src="protocol-page.js?v=20261031a" defer></script>
+</body>
+</html>

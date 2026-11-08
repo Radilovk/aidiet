@@ -128,6 +128,7 @@ import { essenceText, digestDue, normalizeDigest, DIGEST_APPROACH } from './heal
 import { irisText } from './enrichment-iris.js';
 import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
+import { gateFeature, resolveAccess, writeAccess, readAccess, normalizeAccess, paywallEnabled, PAYWALL_KEY } from './access-control.js';
 import { siteQuizText } from './enrichment-site.js';
 import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
@@ -5139,6 +5140,7 @@ async function purgeClientData(env, { clientIds = [], userIds = [], tolerateAuth
   const firebaseUidsToDelete = new Set();
   for (const userId of userIdsToDelete) {
     keysToDelete.add(`user_profile:${userId}`);
+    keysToDelete.add(`access:${userId}`);
     keysToDelete.add(`push_subscription_${userId}`);
     keysToDelete.add(`notification_preferences_${userId}`);
     keysToDelete.add(`game_state:${userId}`);
@@ -17792,14 +17794,20 @@ export default {
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'CHAT');
         if (rlErr) return rlErr;
+        const gateErr = await gateFeature(request, env, 'chat', { checkOwner: checkFirebaseOwner, respond: jsonResponse });
+        if (gateErr) return gateErr;
         return await handleChat(request, env);
       } else if (url.pathname === '/api/analyze-food-image' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
         if (rlErr) return rlErr;
+        const gateErr = await gateFeature(request, env, 'photo', { checkOwner: checkFirebaseOwner, respond: jsonResponse });
+        if (gateErr) return gateErr;
         return await handleAnalyzeFoodImage(request, env);
       } else if (url.pathname === '/api/analyze-menu-image' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
         if (rlErr) return rlErr;
+        const gateErr = await gateFeature(request, env, 'photo', { checkOwner: checkFirebaseOwner, respond: jsonResponse });
+        if (gateErr) return gateErr;
         return await handleAnalyzeMenuImage(request, env);
       } else if (url.pathname === '/api/analyze-kids-food' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
@@ -17957,6 +17965,27 @@ export default {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === '/api/user/access' && request.method === 'GET') {
+        return jsonResponse(await resolveAccess(env, url.searchParams.get('userId') || ''));
+      } else if (url.pathname === '/api/admin/paywall' && request.method === 'GET') {
+        return jsonResponse({ enabled: await paywallEnabled(env) });
+      } else if (url.pathname === '/api/admin/paywall' && request.method === 'POST') {
+        if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+        const { enabled } = await request.json().catch(() => ({}));
+        await env.page_content.put(PAYWALL_KEY, enabled === true ? 'true' : 'false');
+        return jsonResponse({ success: true, enabled: enabled === true });
+      } else if (url.pathname === '/api/admin/access' && request.method === 'GET') {
+        const userId = url.searchParams.get('userId') || '';
+        const record = await readAccess(env, userId);
+        return jsonResponse({ userId, record, ...normalizeAccess(record) });
+      } else if (url.pathname === '/api/admin/access' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        try {
+          const record = await writeAccess(env, body.userId, { tier: body.tier, until: body.until || null, source: 'admin', note: body.note || '' });
+          return jsonResponse({ success: true, record });
+        } catch (e) {
+          return jsonResponse({ error: e.message }, 400);
+        }
       } else if (url.pathname === '/api/user/delete-account' && request.method === 'POST') {
         return await handleDeleteOwnAccount(request, env);
       } else if (url.pathname === '/api/enrichment' && request.method === 'POST') {
@@ -18010,6 +18039,8 @@ export default {
       } else if (url.pathname === '/api/weekly/adapt-plan' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'WEEKLY_ADAPT');
         if (rlErr) return rlErr;
+        const gateErr = await gateFeature(request, env, 'weekly', { checkOwner: checkFirebaseOwner, respond: jsonResponse });
+        if (gateErr) return gateErr;
         return await handleWeeklyAdaptPlan(request, env, ctx);
       } else if (url.pathname === '/api/weekly/ack-notice' && request.method === 'POST') {
         return await handleWeeklyAckNotice(request, env);

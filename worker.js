@@ -540,6 +540,130 @@ var require_goal_model = __commonJS({
   }
 });
 
+// pricing-config.js
+var require_pricing_config = __commonJS({
+  "pricing-config.js"(exports, module) {
+    (function(global) {
+      "use strict";
+      var TIERS = ["start", "core", "personal", "signature"];
+      var FEATURE_MIN_TIER = {
+        full_week: "core",
+        // цялото седмично меню (в Start — само първият ден)
+        chat: "core",
+        // асистентът
+        photo: "core",
+        // снимка на чинията и на менюто в ресторант
+        weekly: "core",
+        // седмичният преглед и корекцията
+        plan_book: "core",
+        // книгата на плана (PDF)
+        specialist: "personal"
+      };
+      var FEATURE_LABEL = {
+        full_week: "\u0426\u044F\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E",
+        chat: "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u044A\u0442",
+        photo: "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u0438 \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E",
+        weekly: "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u0438\u044F\u0442 \u043F\u0440\u0435\u0433\u043B\u0435\u0434",
+        plan_book: "\u041A\u043D\u0438\u0433\u0430\u0442\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430",
+        specialist: "\u041B\u0438\u0447\u043D\u0438\u044F\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442"
+      };
+      var PLANS = [
+        {
+          id: "start",
+          name: "Start",
+          tagline: "\u0412\u0438\u0436 \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u0448",
+          prices: { month: 0 },
+          features: [
+            "\u0412\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A \u0438 \u0434\u043D\u0435\u0432\u043D\u0438 \u0446\u0435\u043B\u0438: \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u0431\u0435\u043B\u0442\u044A\u043A, \u0432\u043E\u0434\u0430",
+            "\u0415\u0434\u0438\u043D \u043F\u0440\u0438\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u043D \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E",
+            "\u0422\u0435\u0441\u0442 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"
+          ]
+        },
+        {
+          id: "core",
+          name: "Core",
+          tagline: "\u0426\u0435\u043B\u0438\u044F\u0442 \u043F\u043B\u0430\u043D, \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
+          prices: { month: 8.99, year: 39.99 },
+          trialDays: 7,
+          // само за годишния
+          highlight: true,
+          features: [
+            "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435",
+            "\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
+            "\u0421\u043C\u044F\u043D\u0430 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435 \u0441 \u0435\u0434\u043D\u043E \u0434\u043E\u043A\u043E\u0441\u0432\u0430\u043D\u0435",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u0438 \u0438\u0437\u0431\u043E\u0440 \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E \u0432 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442",
+            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442, \u043A\u043E\u0439\u0442\u043E \u043F\u043E\u0437\u043D\u0430\u0432\u0430 \u043F\u043B\u0430\u043D\u0430 \u0442\u0438",
+            "\u041A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440 \u0438 Health Connect",
+            "\u041A\u043D\u0438\u0433\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 (PDF)",
+            "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442 \u043F\u0440\u0438 \u0441\u0442\u0430\u0440\u0442\u0430"
+          ]
+        },
+        {
+          id: "personal",
+          name: "Personal",
+          tagline: "\u0422\u0432\u043E\u044F\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442",
+          prices: { month: 45, program: 125 },
+          programWeeks: 12,
+          features: [
+            "\u0412\u0441\u0438\u0447\u043A\u043E \u043E\u0442 Core",
+            "\u041D\u0430\u0447\u0430\u043B\u0435\u043D \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440 \u0441\u044A\u0441 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442 \u2014 30 \u043C\u0438\u043D.",
+            "\u041F\u0440\u0435\u0433\u043B\u0435\u0434 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 \u043D\u0430 \u0432\u0441\u0435\u043A\u0438 2 \u0441\u0435\u0434\u043C\u0438\u0446\u0438",
+            "\u041F\u0438\u0441\u043C\u0435\u043D\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0434\u043E 48 \u0447\u0430\u0441\u0430",
+            "\u0421\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u044A\u0442 \u0440\u0430\u0437\u0433\u043B\u0435\u0436\u0434\u0430 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438\u0442\u0435 \u043E\u0442 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F\u0442\u0430 \u0442\u0438",
+            "\u0414\u043E\u0431\u0430\u0432\u043A\u0438, \u043F\u043E\u0434\u0431\u0440\u0430\u043D\u0438 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430",
+            "\u041E\u0442\u0447\u0435\u0442 \u043D\u0430 \u0432\u0441\u0435\u043A\u0438 4 \u0441\u0435\u0434\u043C\u0438\u0446\u0438"
+          ]
+        },
+        {
+          id: "signature",
+          name: "Signature",
+          tagline: "\u0415\u043A\u0438\u043F \u0434\u043E \u0442\u0435\u0431, \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438 \u043C\u0435\u0441\u0442\u0430",
+          prices: { month: 199 },
+          limited: true,
+          features: [
+            "\u0412\u0441\u0438\u0447\u043A\u043E \u043E\u0442 Personal",
+            "\u0415\u043A\u0438\u043F: \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442 \u0438 \u0442\u0440\u0435\u043D\u044C\u043E\u0440",
+            "\u041F\u0440\u0435\u0433\u043B\u0435\u0434 \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
+            "\u0412\u0438\u0434\u0435\u043E\u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440 30 \u043C\u0438\u043D. \u0432\u0441\u0435\u043A\u0438 \u043C\u0435\u0441\u0435\u0446",
+            "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438 \u0434\u043E 24 \u0447\u0430\u0441\u0430"
+          ]
+        }
+      ];
+      var api = {
+        currency: "EUR",
+        checkoutUrl: "",
+        TIERS,
+        FEATURE_MIN_TIER,
+        FEATURE_LABEL,
+        PLANS,
+        tierRank: function(tier) {
+          return TIERS.indexOf(tier);
+        },
+        isTier: function(tier) {
+          return TIERS.indexOf(tier) !== -1;
+        },
+        /** Дали нивото отключва функцията. Непозната функция е отворена. */
+        allows: function(tier, feature) {
+          var need = FEATURE_MIN_TIER[feature];
+          if (!need) return true;
+          return TIERS.indexOf(tier) >= TIERS.indexOf(need);
+        },
+        plan: function(id) {
+          for (var i = 0; i < PLANS.length; i++) if (PLANS[i].id === id) return PLANS[i];
+          return null;
+        },
+        formatPrice: function(value) {
+          if (!value) return "0 \u20AC";
+          var fixed = Math.round(value) === value ? String(value) : value.toFixed(2).replace(".", ",");
+          return fixed + " \u20AC";
+        }
+      };
+      global.NutriPlanPricing = api;
+      if (typeof module !== "undefined" && module.exports) module.exports = api;
+    })(typeof globalThis !== "undefined" ? globalThis : exports);
+  }
+});
+
 // step3-chunk.js
 var DAYS_PER_CHUNK = 7;
 
@@ -8916,9 +9040,9 @@ async function ensureConsultToken(env) {
   await env.FITNESS_KV.put(CONSULT_CONFIG_KV_KEY, JSON.stringify(next));
   return next;
 }
-async function validateConsultAccess(env, accessKey) {
+async function validateConsultAccess(env, accessKey2) {
   const config = await ensureConsultToken(env);
-  if (!accessKey || String(accessKey) !== config.token) {
+  if (!accessKey2 || String(accessKey2) !== config.token) {
     return { ok: false, message: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0438\u043B\u0438 \u0438\u0437\u0442\u0435\u043A\u044A\u043B \u043B\u0438\u043D\u043A \u0437\u0430 \u043A\u043E\u043D\u0441\u0443\u043B\u0442\u0430\u0446\u0438\u044F" };
   }
   return { ok: true };
@@ -48726,6 +48850,79 @@ function extractClarify(text2, q) {
   return { text: out, resolved, asked };
 }
 
+// access-control.js
+var import_pricing_config = __toESM(require_pricing_config());
+var PAYWALL_KEY = "admin_paywall_enabled";
+var accessKey = (userId) => `access:${userId}`;
+async function paywallEnabled(env) {
+  try {
+    return await env.page_content?.get(PAYWALL_KEY) === "true";
+  } catch (_) {
+    return false;
+  }
+}
+function normalizeAccess(record, now = Date.now()) {
+  const tier = import_pricing_config.default.isTier(record?.tier) ? record.tier : "start";
+  const until = Number(record?.until) || null;
+  if (tier !== "start" && until && until < now) {
+    return { tier: "start", until, expired: true, source: record?.source || "" };
+  }
+  return { tier, until, expired: false, source: record?.source || "" };
+}
+async function readAccess(env, userId) {
+  if (!userId || !env.page_content) return null;
+  try {
+    const raw = await env.page_content.get(accessKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+function featureMap(tier, paywall) {
+  const out = {};
+  for (const feature of Object.keys(import_pricing_config.default.FEATURE_MIN_TIER)) {
+    out[feature] = !paywall || import_pricing_config.default.allows(tier, feature);
+  }
+  return out;
+}
+async function resolveAccess(env, userId, now = Date.now()) {
+  const paywall = await paywallEnabled(env);
+  const access = normalizeAccess(await readAccess(env, userId), now);
+  return { paywall, tier: access.tier, until: access.until, expired: access.expired, features: featureMap(access.tier, paywall) };
+}
+async function writeAccess(env, userId, { tier, until = null, source = "admin", note = "" } = {}, now = Date.now()) {
+  if (!env.page_content) throw new Error("KV not configured");
+  if (!/^fb_[A-Za-z0-9_-]{6,128}$/.test(String(userId || ""))) throw new Error("\u041D\u0438\u0432\u043E\u0442\u043E \u0441\u0435 \u0434\u0430\u0432\u0430 \u0441\u0430\u043C\u043E \u043D\u0430 \u0430\u043A\u0430\u0443\u043D\u0442 (fb_\u2026)");
+  if (!import_pricing_config.default.isTier(tier)) throw new Error("\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442\u043E \u043D\u0438\u0432\u043E");
+  const untilMs = until ? Number(new Date(until)) : null;
+  if (until && !Number.isFinite(untilMs)) throw new Error("\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430 \u0434\u0430\u0442\u0430");
+  if (tier === "start" && !untilMs) {
+    await env.page_content.delete(accessKey(userId));
+    return null;
+  }
+  const record = { tier, until: untilMs, source: String(source).slice(0, 40), note: String(note || "").slice(0, 200), updatedAt: now };
+  await env.page_content.put(accessKey(userId), JSON.stringify(record));
+  return record;
+}
+async function gateFeature(request, env, feature, { checkOwner, respond }) {
+  if (!await paywallEnabled(env)) return null;
+  const body = await request.clone().json().catch(() => ({}));
+  const userId = String(body?.userId || "");
+  const locked = (reason, tier = "start") => respond({
+    error: "locked",
+    reason,
+    feature,
+    tier,
+    need: import_pricing_config.default.FEATURE_MIN_TIER[feature] || "core",
+    message: `${import_pricing_config.default.FEATURE_LABEL[feature] || "\u0422\u0430\u0437\u0438 \u0444\u0443\u043D\u043A\u0446\u0438\u044F"} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430.`
+  }, 402);
+  if (!userId.startsWith("fb_")) return locked("account");
+  const ownerErr = await checkOwner(userId, body?.idToken, env, request);
+  if (ownerErr) return ownerErr;
+  const access = normalizeAccess(await readAccess(env, userId));
+  return import_pricing_config.default.allows(access.tier, feature) ? null : locked("tier", access.tier);
+}
+
 // handoff.js
 var HANDOFF_TTL_SEC = 30 * 24 * 60 * 60;
 var HANDOFF_MAX_BYTES = 48 * 1024;
@@ -53650,6 +53847,7 @@ async function purgeClientData(env, { clientIds = [], userIds = [], tolerateAuth
   const firebaseUidsToDelete = /* @__PURE__ */ new Set();
   for (const userId of userIdsToDelete) {
     keysToDelete.add(`user_profile:${userId}`);
+    keysToDelete.add(`access:${userId}`);
     keysToDelete.add(`push_subscription_${userId}`);
     keysToDelete.add(`notification_preferences_${userId}`);
     keysToDelete.add(`game_state:${userId}`);
@@ -63410,14 +63608,20 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/chat" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "CHAT");
         if (rlErr) return rlErr;
+        const gateErr = await gateFeature(request, env, "chat", { checkOwner: checkFirebaseOwner, respond: jsonResponse2 });
+        if (gateErr) return gateErr;
         return await handleChat(request, env);
       } else if (url.pathname === "/api/analyze-food-image" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
+        const gateErr = await gateFeature(request, env, "photo", { checkOwner: checkFirebaseOwner, respond: jsonResponse2 });
+        if (gateErr) return gateErr;
         return await handleAnalyzeFoodImage(request, env);
       } else if (url.pathname === "/api/analyze-menu-image" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
+        const gateErr = await gateFeature(request, env, "photo", { checkOwner: checkFirebaseOwner, respond: jsonResponse2 });
+        if (gateErr) return gateErr;
         return await handleAnalyzeMenuImage(request, env);
       } else if (url.pathname === "/api/analyze-kids-food" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
@@ -63573,6 +63777,27 @@ var worker_entry_default = {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === "/api/user/save-profile" && request.method === "POST") {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === "/api/user/access" && request.method === "GET") {
+        return jsonResponse2(await resolveAccess(env, url.searchParams.get("userId") || ""));
+      } else if (url.pathname === "/api/admin/paywall" && request.method === "GET") {
+        return jsonResponse2({ enabled: await paywallEnabled(env) });
+      } else if (url.pathname === "/api/admin/paywall" && request.method === "POST") {
+        if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+        const { enabled } = await request.json().catch(() => ({}));
+        await env.page_content.put(PAYWALL_KEY, enabled === true ? "true" : "false");
+        return jsonResponse2({ success: true, enabled: enabled === true });
+      } else if (url.pathname === "/api/admin/access" && request.method === "GET") {
+        const userId = url.searchParams.get("userId") || "";
+        const record = await readAccess(env, userId);
+        return jsonResponse2({ userId, record, ...normalizeAccess(record) });
+      } else if (url.pathname === "/api/admin/access" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        try {
+          const record = await writeAccess(env, body.userId, { tier: body.tier, until: body.until || null, source: "admin", note: body.note || "" });
+          return jsonResponse2({ success: true, record });
+        } catch (e) {
+          return jsonResponse2({ error: e.message }, 400);
+        }
       } else if (url.pathname === "/api/user/delete-account" && request.method === "POST") {
         return await handleDeleteOwnAccount(request, env);
       } else if (url.pathname === "/api/enrichment" && request.method === "POST") {
@@ -63626,6 +63851,8 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/weekly/adapt-plan" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "WEEKLY_ADAPT");
         if (rlErr) return rlErr;
+        const gateErr = await gateFeature(request, env, "weekly", { checkOwner: checkFirebaseOwner, respond: jsonResponse2 });
+        if (gateErr) return gateErr;
         return await handleWeeklyAdaptPlan(request, env, ctx);
       } else if (url.pathname === "/api/weekly/ack-notice" && request.method === "POST") {
         return await handleWeeklyAckNotice(request, env);

@@ -26,6 +26,8 @@ on:
       - '!studio.html'
       - '!studio-privacy.html'
       - '!longevity.html'
+      - '!access-control.js'
+      - '!pricing.html'
       - '!studio-app/**'
       - '!studio-platform/**'
       - '**.json'
@@ -137,6 +139,8 @@ jobs:
             --exclude 'studio.html' \
             --exclude 'studio-privacy.html' \
             --exclude 'longevity.html' \
+            --exclude 'access-control.js' \
+            --exclude 'pricing.html' \
             --exclude 'studio-app/' \
             --exclude 'studio-platform/' \
             --exclude 'viber-sender/' \

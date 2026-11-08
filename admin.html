@@ -2818,6 +2818,34 @@
                 </div>
             </div>
 
+            <!-- Access / paywall -->
+            <div class="card" id="accessCard">
+                <h2><i class="fas fa-lock"></i> Достъп и стена</h2>
+                <div class="info-box">
+                    Изключена стена — всичко е отворено за всички, както досега. Включена — платените функции (цялото меню, асистентът,
+                    снимките, седмичният преглед, книгата на плана) искат акаунт с ниво Core или по-високо. Цените са в <code>pricing-config.js</code>.
+                    Нивото се дава на акаунт (<code>fb_…</code>) — ръчно тук, а по-късно и от плащането.
+                </div>
+                <label style="display:flex;align-items:center;gap:10px;margin:14px 0;font-weight:600;">
+                    <input type="checkbox" id="paywallToggle" onchange="savePaywall(this.checked)"> Стената е включена
+                    <span id="paywallStatus" style="font-weight:400;color:var(--text-gray);"></span>
+                </label>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;">
+                    <label>Акаунт (userId)<input type="text" id="accessUserId" placeholder="fb_…" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;"></label>
+                    <label>Ниво<select id="accessTier" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;">
+                        <option value="start">Start</option><option value="core">Core</option>
+                        <option value="personal">Personal</option><option value="signature">Signature</option>
+                    </select></label>
+                    <label>Валидно до (по избор)<input type="date" id="accessUntil" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;"></label>
+                    <label>Бележка<input type="text" id="accessNote" maxlength="200" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;"></label>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+                    <button class="btn" type="button" onclick="loadAccess()"><i class="fas fa-search"></i> Провери</button>
+                    <button class="btn" type="button" onclick="saveAccess()"><i class="fas fa-save"></i> Запази нивото</button>
+                </div>
+                <p id="accessResult" style="margin-top:10px;color:var(--text-gray);"></p>
+            </div>
+
             <!-- Client Questionnaires Section -->
             <div class="card">
                 <h2><i class="fas fa-users"></i> Клиентски Въпросници</h2>
@@ -6999,6 +7027,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             loadMainlistPresets();
             // Auto-load pending plans on login
             loadPendingPlans();
+            loadPaywall();
             // Note: Blacklist, whitelist, and logging status are now loaded on-demand
             // when the user clicks the respective "Refresh" buttons to reduce backend load
         }
@@ -10081,6 +10110,70 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 container.innerHTML = '<p style="text-align:center;color:#e74c3c;padding:20px;"><i class="fas fa-exclamation-circle"></i> Грешка при зареждане</p>';
                 statusEl.textContent = 'Грешка: ' + error.message;
             }
+        }
+
+
+        // ── Достъп и стена ─────────────────────────────────────────────
+        async function loadPaywall() {
+            try {
+                const r = await fetch(WORKER_URL + '/api/admin/paywall');
+                const d = await r.json();
+                document.getElementById('paywallToggle').checked = d.enabled === true;
+                document.getElementById('paywallStatus').textContent = d.enabled ? '' : '(всичко е отворено)';
+            } catch (e) {
+                document.getElementById('paywallStatus').textContent = 'Не може да се прочете.';
+            }
+        }
+
+        async function savePaywall(enabled) {
+            if (enabled && !confirm('Да се включи ли стената? Клиентите без ниво ще виждат само първия ден от менюто, без асистента и снимките.')) {
+                document.getElementById('paywallToggle').checked = false;
+                return;
+            }
+            const r = await fetch(WORKER_URL + '/api/admin/paywall', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled })
+            });
+            const d = await r.json().catch(() => ({}));
+            document.getElementById('paywallStatus').textContent = r.ok ? (d.enabled ? 'Включена.' : '(всичко е отворено)') : (d.error || 'Грешка');
+        }
+
+        function accessText(d) {
+            const names = { start: 'Start', core: 'Core', personal: 'Personal', signature: 'Signature' };
+            let t = 'Ниво: ' + (names[d.tier] || d.tier);
+            if (d.until) t += ' · до ' + new Date(d.until).toLocaleDateString('bg-BG');
+            if (d.expired) t += ' (изтекло)';
+            if (d.record && d.record.note) t += ' · ' + d.record.note;
+            return t;
+        }
+
+        async function loadAccess() {
+            const userId = document.getElementById('accessUserId').value.trim();
+            const out = document.getElementById('accessResult');
+            if (!userId) { out.textContent = 'Въведи userId.'; return; }
+            const r = await fetch(WORKER_URL + '/api/admin/access?userId=' + encodeURIComponent(userId));
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) { out.textContent = d.error || 'Грешка'; return; }
+            document.getElementById('accessTier').value = d.record ? d.record.tier : 'start';
+            document.getElementById('accessUntil').value = d.until ? new Date(d.until).toISOString().slice(0, 10) : '';
+            document.getElementById('accessNote').value = (d.record && d.record.note) || '';
+            out.textContent = accessText(d);
+        }
+
+        async function saveAccess() {
+            const userId = document.getElementById('accessUserId').value.trim();
+            const out = document.getElementById('accessResult');
+            const untilDay = document.getElementById('accessUntil').value;
+            const body = {
+                userId,
+                tier: document.getElementById('accessTier').value,
+                until: untilDay ? untilDay + 'T23:59:59' : null,
+                note: document.getElementById('accessNote').value.trim()
+            };
+            const r = await fetch(WORKER_URL + '/api/admin/access', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+            const d = await r.json().catch(() => ({}));
+            out.textContent = r.ok ? 'Запазено. ' + (d.record ? accessText({ tier: d.record.tier, until: d.record.until, record: d.record }) : 'Ниво: Start') : (d.error || 'Грешка');
         }
 
         async function loadClientsList(forceRefresh = false) {
