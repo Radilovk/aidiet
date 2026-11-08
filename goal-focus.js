@@ -269,7 +269,9 @@
      * Изгледът за „Анализ“: подредените карти и до 3 извода.
      * @param {object} metrics essence.metrics
      * @param {object} userData
-     * @param {{ planKcal?: number, signals?: object[], coachNote?: string, top?: number }} [opts]
+     * @param {{ planKcal?: number, signals?: object[], insight?: string, top?: number }} [opts]
+     * insight — изречение от AI обобщението, писано към клиента („ти“). Бележката за диетолога
+     * (digest.coachNote, в трето лице: „Клиентът…“) не се показва на клиента.
      */
     function deviceView(metrics, userData, opts) {
         var o = opts || {};
@@ -288,7 +290,7 @@
         });
         var lead = cards[0];
         if (conclusions.length < 3 && lead && lead.tone === 'good') { lead.inConclusions = true; conclusions.push({ tone: 'good', text: lead.note }); }
-        if (o.coachNote && conclusions.length < 3) conclusions.push({ tone: 'neutral', text: o.coachNote });
+        if (o.insight && conclusions.length < 3) conclusions.push({ tone: 'neutral', text: o.insight });
         var top = o.top || 4;
         return {
             group: p.group,

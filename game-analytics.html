@@ -910,7 +910,7 @@
                     ? '<div class="gf-empty"><span>Устройството е свързано' + (got ? ' · получено: ' + gfEsc(got) : '') + '. Изводите от измерванията се появяват при поне 4 дни данни.</span></div>'
                     : ''); // Поканата за устройство е само в Профил → Клиентски картон.
             } else {
-                var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], coachNote: src.coachNote || '' });
+                var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], insight: src.insight || '' });
                 v.cards.forEach(function (c) { c.tone = softTone(c.tone); });
                 v.more.forEach(function (c) { c.tone = softTone(c.tone); });
                 var icon = { bad: 'fa-circle-exclamation" style="color:#ef4444', warn: 'fa-triangle-exclamation" style="color:#f59e0b', good: 'fa-circle-check" style="color:#10b981', neutral: 'fa-lightbulb" style="color:#0D9488' };
@@ -933,7 +933,7 @@
                     if (!ess || !ess.metrics) return;
                     localStorage.setItem('np_goal_focus_src', JSON.stringify({
                         metrics: ess.metrics, signals: ess.signals || [], at: ess.at || new Date().toISOString(),
-                        coachNote: (d.digest && d.digest.coachNote) || ''
+                        insight: (d.digest && d.digest.insights && d.digest.insights[0]) || ''
                     }));
                     renderGoalFocus();
                 }).catch(function () {});
