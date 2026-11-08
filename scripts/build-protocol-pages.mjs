@@ -178,7 +178,6 @@ function page(s) {
     <main class="wrap">
         <section class="hero" aria-labelledby="state-title">
             <div class="orb" aria-hidden="true"><div class="orb-core">${svg(STATE_ICONS[s.icon], 40, 1.8)}</div></div>
-            <span class="chip">${esc(s.category)}</span>
             <h1 id="state-title">${esc(s.name)}</h1>
             <p class="lead">${esc(s.shortDescription)}</p>
             <a class="cta" href="${cta}" data-cta data-cta-anchor>${ctaLabel}${svg(I.arrow)}</a>
@@ -200,7 +199,6 @@ function page(s) {
         <section class="section reveal" aria-labelledby="h-what">
             <h2 id="h-what"><span class="kicker">Програмата</span>Какво получаваш</h2>
             <div class="card">
-                <p>${esc(s.description)}</p>
                 <p>${esc(s.benefits)}</p>
             </div>
         </section>
@@ -281,14 +279,12 @@ function hubPage() {
     const cards = PROTOCOL_STATES.map((s) => `
                 <a class="pcard reveal" href="${statePageUrl(s)}" style="--acc:${s.accent}">
                     <span class="pcard-ic">${svg(STATE_ICONS[s.icon], 22, 1.9)}</span>
-                    <span class="pcard-cat">${esc(s.category)}</span>
                     <h3>${esc(s.shortName)}</h3>
                     <p>${esc(s.shortDescription)}</p>
                     <span class="pcard-go">Виж програмата${svg(I.arrow, 16)}</span>
                 </a>`).join('') + `
                 <a class="pcard pcard--standard reveal" href="questionnaire2.html" data-standard-plan>
                     <span class="pcard-ic">${svg(I.sliders, 22, 1.9)}</span>
-                    <span class="pcard-cat">Без програма</span>
                     <h3>Нямаш конкретна цел?</h3>
                     <p>Стандартният план — изцяло по твоите цели и данни.</p>
                     <span class="pcard-go">Към стандартния план${svg(I.arrow, 16)}</span>
@@ -324,7 +320,6 @@ function hubPage() {
             <h1 id="hub-title">Хранене, съобразено с <em>целта ти</em></h1>
             <p class="lead">Програмата определя какво влиза в чинията и какво се ограничава. Менюто и грамажите се смятат по твоите данни — и се коригират всяка седмица.</p>
             <ul class="meta">
-                <li>${svg(I.list, 16)}${n} програми</li>
                 <li>${svg(I.clock, 16)}Около 5 минути</li>
                 <li>${svg(I.calendar, 16)}Седмично меню</li>
             </ul>
