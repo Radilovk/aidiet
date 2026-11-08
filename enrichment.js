@@ -17,7 +17,7 @@
 import { compileProfile } from './profile-code.js';
 import { deriveEmoEat } from './enrichment-emoeat.js';
 import { deriveLabs } from './enrichment-labs.js';
-import { computeEssence, dailySeries } from './health-essence.js';
+import { computeEssence, dailySeries, withoutStepOutliers } from './health-essence.js';
 import { deriveIris } from './enrichment-iris.js';
 import { deriveSiteQuiz } from './enrichment-site.js';
 import { crossCheck, resolutionsOf } from './cross-check.js';
@@ -235,8 +235,11 @@ export function stepsActivity(facts, now = new Date(), resolutions = {}) {
     .filter(f => (f.kind === 'train_check' && Number(f.value) > 0) || f.kind === 'workout')
     .map(f => dayOf(f.at)));
   const all = series[source];
-  const rest = all.filter(p => !trained.has(p.day));
-  const use = rest.length >= 4 ? rest : all;
+  // В ден без тренировка крачки над 2,5 пъти медианата са грешка на източника (седмична
+  // сума, внесена като ден; дублиран внос) — не вдигат обичайните крачки и калориите.
+  // Дните с тренировка вече са извън обичайните, затова там филтър няма.
+  const rest = withoutStepOutliers(all.filter(p => !trained.has(p.day)));
+  const use = rest.length >= 4 ? rest : withoutStepOutliers(all);
   return {
     steps: Math.round(use.reduce((s, p) => s + p.value, 0) / use.length),
     days: all.length,

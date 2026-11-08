@@ -79,6 +79,19 @@ const before = JSON.stringify(st.days);
 st = A.ingest(st, [{ t: base + 1 * H, c: 99999, boot: boot1 }], 7000);
 ok(JSON.stringify(st.days) === before, 'старо показание (вече обработено) не променя нищо');
 
+// Приложението не е отваряно 6 дни: крачките се разпределят по всичките 6 дни
+// (не натъпкани в последните 3), а дните са приблизителни — не отиват към сървъра.
+{
+  const n = new Date(); const b0 = new Date(n.getFullYear(), n.getMonth(), n.getDate() - 9, 9, 0).getTime();
+  const dk = (t) => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  let g = A.ingest({}, [{ t: b0, c: 0, boot: b0 - H }, { t: b0 + H, c: 500, boot: b0 - H }], 7000);
+  g = A.ingest(g, [{ t: b0 + H + 6 * 24 * H, c: 500 + 6 * 7000, boot: b0 - H }], 7000);
+  const gapDays = [1, 2, 3, 4, 5].map(i => dk(b0 + i * 24 * H));
+  ok(gapDays.every(k => g.days[k] && g.days[k].s > 3000 && g.days[k].s < 12000), 'пауза 6 дни: крачките са по всички дни, не в последните 3 (' + gapDays.map(k => Math.round((g.days[k] || {}).s || 0)).join(', ') + ')');
+  ok(gapDays.every(k => g.days[k].part === true), 'пауза над 30 ч: дните са приблизителни (непълни)');
+  ok(near(Object.values(g.days).reduce((x, d) => x + d.s, 0), 500 + 6 * 7000, 1), 'сборът на крачките е запазен');
+}
+
 // Прогноза за днес: до 13:00 е минала около половината от деня.
 const share = A.dayShareUntil(new Date(2026, 9, 21, 13, 0).getTime(), w);
 ok(share > 0.35 && share < 0.6, 'до обяд — около половината от обичайния ден');

@@ -37,7 +37,12 @@
     var KEEP_DAYS = 21;
     // Ден с под 300 крачки е брояч, който не е броил (приложението е било спряно), не реален ден.
     var MIN_REAL_DAY = 300;
-    var MAX_SPREAD_MS = 3 * DAY_MS;
+    // Предпазна граница за разпределянето — колкото пазим (по-старото не се показва).
+    var MAX_SPREAD_MS = 21 * DAY_MS;
+    // Над толкова без показание (приложението не е било отваряно) разделянето по дни е
+    // приблизително: сборът е верен, но кой ден колко е ходил — не. Тези дни са „непълни“:
+    // показват се, но не отиват към сървъра и не влизат в обичайните крачки.
+    var ESTIMATE_GAP_MS = 30 * HOUR_MS;
     // Псевдо-наблюдения на типичната крива за час: личните данни я изместват постепенно.
     var PRIOR_WEIGHT = 5;
 
@@ -292,10 +297,10 @@
                 // изключването са загубени — дните в празнината са непълни.
                 var from = Math.max(r.boot || r.t, last.t);
                 for (var t = startOfDay(last.t); t <= from; t += DAY_MS) mark(days, dayKey(t), 0, true);
-                addAll(days, spread(from, r.t, r.c, weights));
+                addAll(days, spread(from, r.t, r.c, weights), r.t - from > ESTIMATE_GAP_MS);
             } else {
                 var delta = r.c - last.c;
-                addAll(days, spread(last.t, r.t, delta, weights));
+                addAll(days, spread(last.t, r.t, delta, weights), r.t - last.t > ESTIMATE_GAP_MS);
                 hours = learnHours(hours, last.t, r.t, delta);
             }
             last = { t: r.t, c: r.c, boot: r.boot || 0 };
@@ -313,8 +318,8 @@
         days[key] = d;
     }
 
-    function addAll(days, byDay) {
-        Object.keys(byDay).forEach(function (k) { mark(days, k, byDay[k], false); });
+    function addAll(days, byDay, estimated) {
+        Object.keys(byDay).forEach(function (k) { mark(days, k, byDay[k], !!estimated); });
     }
 
     /** Колко от обичайния ден е минал до този час (по личната крива) — за прогноза на днешния ден. */

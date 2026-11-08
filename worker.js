@@ -47731,6 +47731,13 @@ function dailySeries(facts2, kind, key = null) {
   }
   return [...byDay.values()].sort((a, b) => a.t - b.t);
 }
+function withoutStepOutliers(points, factor = 2.5) {
+  if (!Array.isArray(points) || points.length < 5) return points || [];
+  const sorted = points.map((p) => p.value).sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const med = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return med > 0 ? points.filter((p) => p.value <= med * factor) : points;
+}
 function between(series, now, fromDays, toDays) {
   const hi = now.getTime() - fromDays * DAY_MS2;
   const lo = now.getTime() - toDays * DAY_MS2;
@@ -47884,7 +47891,7 @@ function computeEssence(facts2, now = /* @__PURE__ */ new Date(), ctx = {}) {
   }
   const visceral = dailySeries(facts2, "visceral_fat");
   if (visceral.length) metrics.visceralFat = visceral[visceral.length - 1].value;
-  const steps = dailySeries(facts2, "steps");
+  const steps = withoutStepOutliers(dailySeries(facts2, "steps"), 3.5);
   const s7 = between(steps, now, 0, 7);
   if (s7.length >= 4) {
     metrics.steps = { avg7: Math.round(mean(s7.map((p) => p.value)) / 100) * 100, days: s7.length };
@@ -48492,8 +48499,8 @@ function stepsActivity(facts2, now = /* @__PURE__ */ new Date(), resolutions = {
   if (!source) return null;
   const trained = new Set((facts2 || []).filter((f) => f.kind === "train_check" && Number(f.value) > 0 || f.kind === "workout").map((f) => dayOf2(f.at)));
   const all = series[source];
-  const rest = all.filter((p) => !trained.has(p.day));
-  const use = rest.length >= 4 ? rest : all;
+  const rest = withoutStepOutliers(all.filter((p) => !trained.has(p.day)));
+  const use = rest.length >= 4 ? rest : withoutStepOutliers(all);
   return {
     steps: Math.round(use.reduce((s, p) => s + p.value, 0) / use.length),
     days: all.length,
@@ -61398,7 +61405,7 @@ weight \u2014 \u0442\u0435\u0433\u043B\u043E; body_fat \u2014 \u0442\u0435\u043B
 - value \u0435 \u0447\u0438\u0441\u043B\u043E\u0442\u043E \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u043F\u043E\u043A\u0430\u0437\u0430\u043D\u043E (\u0434\u0435\u0441\u0435\u0442\u0438\u0447\u043D\u0430\u0442\u0430 \u0437\u0430\u043F\u0435\u0442\u0430\u044F \u0441\u0442\u0430\u0432\u0430 \u0442\u043E\u0447\u043A\u0430); unit \u2014 \u043A\u0430\u043A\u0442\u043E \u0435 \u043F\u043E\u043A\u0430\u0437\u0430\u043D\u0430 (kg, lb, %, mmol/L, mg/dL, \u0447, \u043C\u0438\u043D, ml, l).
 - \u0410\u043A\u043E \u0435\u043A\u0440\u0430\u043D\u044A\u0442 \u043F\u043E\u043A\u0430\u0437\u0432\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u043D\u0438 (\u0441\u043F\u0438\u0441\u044A\u043A \u0438\u043B\u0438 \u0438\u0441\u0442\u043E\u0440\u0438\u044F), \u0432\u044A\u0440\u043D\u0438 \u043F\u043E \u0435\u0434\u0438\u043D \u0437\u0430\u043F\u0438\u0441 \u043D\u0430 \u0434\u0435\u043D \u0441 \u043D\u0435\u0433\u043E\u0432\u0430\u0442\u0430 \u0434\u0430\u0442\u0430 \u0432 "date".
 - \u0421\u044A\u043D, \u043F\u043E\u043A\u0430\u0437\u0430\u043D \u043A\u0430\u0442\u043E \u201E7 \u0447 30 \u043C\u0438\u043D\u201C, \u0441\u0442\u0430\u0432\u0430 value 7.5 \u0441 unit "\u0447".
-- \u0421\u0440\u0435\u0434\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430/\u043C\u0435\u0441\u0435\u0446 \u041D\u0415 \u0441\u0430 \u0434\u043D\u0435\u0432\u043D\u0438 \u0438\u0437\u043C\u0435\u0440\u0432\u0430\u043D\u0438\u044F \u2014 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0438 \u0433\u0438.
+- \u0421\u0440\u0435\u0434\u043D\u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438 \u0438 \u0441\u0443\u043C\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430/\u043C\u0435\u0441\u0435\u0446 (\u043D\u0430\u043F\u0440. \u201E\u043A\u0440\u0430\u0447\u043A\u0438 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u201C) \u041D\u0415 \u0441\u0430 \u0434\u043D\u0435\u0432\u043D\u0438 \u0438\u0437\u043C\u0435\u0440\u0432\u0430\u043D\u0438\u044F \u2014 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0438 \u0433\u0438. \u0410\u043A\u043E \u043D\u0430 \u0435\u043A\u0440\u0430\u043D\u0430 \u0435 \u0433\u0440\u0430\u0444\u0438\u043A\u0430 \u043F\u043E \u0434\u043D\u0438 \u0431\u0435\u0437 \u0447\u0438\u0441\u043B\u0430 \u0437\u0430 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D, \u043D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438.
 - confidence \u043F\u043E\u0434 0.7, \u0430\u043A\u043E \u0446\u0438\u0444\u0440\u0430\u0442\u0430 \u043D\u0435 \u0441\u0435 \u0447\u0435\u0442\u0435 \u044F\u0441\u043D\u043E.
 - \u041D\u0435 \u0442\u044A\u043B\u043A\u0443\u0432\u0430\u0439 \u0438 \u043D\u0435 \u0434\u0430\u0432\u0430\u0439 \u0441\u044A\u0432\u0435\u0442\u0438.`;
 async function handleDeviceExtract(request, env) {

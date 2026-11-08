@@ -84,6 +84,18 @@ export function dailySeries(facts, kind, key = null) {
   return [...byDay.values()].sort((a, b) => a.t - b.t);
 }
 
+/**
+ * Без дните с крачки над factor пъти медианата (при поне 5 дни): седмична сума, внесена
+ * като ден, или дублиран внос са грешка на източника, не реален ден.
+ */
+export function withoutStepOutliers(points, factor = 2.5) {
+  if (!Array.isArray(points) || points.length < 5) return points || [];
+  const sorted = points.map(p => p.value).sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const med = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return med > 0 ? points.filter(p => p.value <= med * factor) : points;
+}
+
 function between(series, now, fromDays, toDays) {
   const hi = now.getTime() - fromDays * DAY_MS;
   const lo = now.getTime() - toDays * DAY_MS;
@@ -279,7 +291,8 @@ export function computeEssence(facts, now = new Date(), ctx = {}) {
   if (visceral.length) metrics.visceralFat = visceral[visceral.length - 1].value;
 
   // ── Активност ─────────────────────────────────────────────────────────
-  const steps = dailySeries(facts, 'steps');
+  // 3,5 пъти: седмична сума (~7 пъти дневната) отпада, а ден с тренировка остава.
+  const steps = withoutStepOutliers(dailySeries(facts, 'steps'), 3.5);
   const s7 = between(steps, now, 0, 7);
   if (s7.length >= 4) {
     metrics.steps = { avg7: Math.round(mean(s7.map(p => p.value)) / 100) * 100, days: s7.length };
