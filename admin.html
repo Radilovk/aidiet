@@ -2834,7 +2834,6 @@
                     <label>Акаунт (userId)<input type="text" id="accessUserId" placeholder="fb_…" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;"></label>
                     <label>Ниво<select id="accessTier" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;">
                         <option value="start">Start</option><option value="core">Core</option>
-                        <option value="personal">Personal</option><option value="signature">Signature</option>
                     </select></label>
                     <label>Валидно до (по избор)<input type="date" id="accessUntil" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;"></label>
                     <label>Бележка<input type="text" id="accessNote" maxlength="200" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;"></label>
@@ -3522,7 +3521,7 @@
                     <label style="font-weight: 600;">Основен текст (абзац 2)</label>
                     <textarea id="emailTplParagraph2" rows="3"
                               style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 5px; resize: vertical;"
-                              placeholder="Нашият специалист внимателно е разгледал вашите данни и е изготвил индивидуален план, съобразен с вашите цели и нужди."></textarea>
+                              placeholder="Планът е изчислен по твоите данни и проверен от екипа ни — специалисти по медицина, диететика и спорт."></textarea>
                 </div>
 
                 <div class="form-group" style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
@@ -10138,7 +10137,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         function accessText(d) {
-            const names = { start: 'Start', core: 'Core', personal: 'Personal', signature: 'Signature' };
+            const names = { start: 'Start', core: 'Core' };
             let t = 'Ниво: ' + (names[d.tier] || d.tier);
             if (d.until) t += ' · до ' + new Date(d.until).toLocaleDateString('bg-BG');
             if (d.expired) t += ' (изтекло)';

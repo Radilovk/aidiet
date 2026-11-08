@@ -1,5 +1,5 @@
 /**
- * Достъп по ниво (Start / Core / Personal / Signature) — сървърна част.
+ * Достъп по ниво (Start / Core) — сървърна част.
  *
  * - Нивото е на акаунта (fb_…), записано в KV `access:<userId>` като
  *   { tier, until, source, note, updatedAt }. Пише го админът сега, а по-късно

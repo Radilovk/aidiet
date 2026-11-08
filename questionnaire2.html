@@ -2765,7 +2765,7 @@
             { at: 34400,  progress: 87, phase: 'success',  tag: 'Проверка',   text: 'Сверка на калориите и белтъка за всеки ден', haptic: true },
             { at: 36800,  progress: 90, phase: 'success',  tag: 'Насоки',     text: 'Персонални насоки и стратегия' },
             { at: 39200,  progress: 92, phase: 'success',  tag: 'Запис',      text: 'Запазване на плана' },
-            { at: 41600,  progress: 94, phase: 'success',  tag: 'Специалист', text: 'Планът отива за преглед от специалист' },
+            { at: 41600,  progress: 94, phase: 'success',  tag: 'Екип', text: 'Планът отива за проверка от екипа' },
             { at: 44000,  progress: 96, phase: 'success',  tag: 'Изчакване',  text: 'Изчакваме потвърждение от сървъра' }
         ];
 
@@ -3401,7 +3401,7 @@
                 overlay.innerHTML =
                     '<div style="background:#fff;color:#0F2F2E;border-radius:18px;padding:20px 18px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);font-size:.92rem;line-height:1.5">' +
                     '<h2 id="consentTitle" style="margin:0 0 10px;font-size:1.08rem">Преди да изпратиш</h2>' +
-                    '<p style="margin:0 0 12px">Отговорите ти съдържат здравна информация. Използваме я само за изготвяне и наблюдение на хранителния ти план; планът се преглежда от специалист.</p>' +
+                    '<p style="margin:0 0 12px">Отговорите ти съдържат здравна информация. Използваме я само за изготвяне и наблюдение на хранителния ти план; планът се проверява от екипа ни.</p>' +
                     '<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;cursor:pointer">' +
                     '<input type="checkbox" id="consentCheck" style="width:22px;height:22px;flex-shrink:0;margin-top:2px">' +
                     '<span>Съгласен/на съм здравните ми данни да бъдат обработвани за тази цел. Прочетох <a href="privacy-policy.html" target="_blank" rel="noopener">политиката за поверителност</a> и <a href="terms.html" target="_blank" rel="noopener">условията</a>.</span></label>' +
@@ -3523,7 +3523,7 @@
                     if (window.NutriPlanPlanSync && typeof window.NutriPlanPlanSync.ensureReplacementAuth === 'function') {
                         replacementAuth = await window.NutriPlanPlanSync.ensureReplacementAuth(
                             planPayload.email,
-                            'Вече имаш план с този имейл. Новият план ще замени стария след одобрение от специалист. Въведи паролата си за потвърждение.'
+                            'Вече имаш план с този имейл. Новият план ще замени стария след проверка от екипа. Въведи паролата си за потвърждение.'
                         );
                     }
                 } catch (authErr) {
@@ -3811,7 +3811,7 @@
             const loadingTitleEl = document.getElementById('loadingTitle');
             const loadingSubtitleEl = document.getElementById('loadingSubtitle');
             if (loadingTitleEl) loadingTitleEl.textContent = 'Планът е готов!';
-            if (loadingSubtitleEl) loadingSubtitleEl.textContent = 'Изчакване на одобрение от специалист...';
+            if (loadingSubtitleEl) loadingSubtitleEl.textContent = 'Планът чака проверка от екипа…';
             triggerDiagnosticHaptic();
 
             await new Promise(resolve => {

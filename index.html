@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Седмично меню с точни грамажи според тялото, здравето и вкусовете ти — проверено от специалист и донастройвано всяка седмица. Асистент 24/7 и програми за конкретни цели.">
+    <meta name="description" content="Седмично меню с точни грамажи според тялото, здравето и вкусовете ти — проверено от екип специалисти и донастройвано всяка седмица. Асистент 24/7 и програми за конкретни цели.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -16,7 +16,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/">
     <meta property="og:title" content="NutriPlan — хранене по твоя мярка">
-    <meta property="og:description" content="Седмично меню с точни грамажи според тялото, здравето и вкусовете ти — проверено от специалист и донастройвано всяка седмица. Асистент 24/7 и програми за конкретни цели.">
+    <meta property="og:description" content="Седмично меню с точни грамажи според тялото, здравето и вкусовете ти — проверено от екип специалисти и донастройвано всяка седмица. Асистент 24/7 и програми за конкретни цели.">
     <meta property="og:image" content="https://biocode.website/icon-512x512.png">
     <meta property="og:locale" content="bg_BG">
 
@@ -24,7 +24,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://biocode.website/">
     <meta name="twitter:title" content="NutriPlan — хранене по твоя мярка">
-    <meta name="twitter:description" content="Седмично меню с точни грамажи според тялото, здравето и вкусовете ти — проверено от специалист и донастройвано всяка седмица. Асистент 24/7 и програми за конкретни цели.">
+    <meta name="twitter:description" content="Седмично меню с точни грамажи според тялото, здравето и вкусовете ти — проверено от екип специалисти и донастройвано всяка седмица. Асистент 24/7 и програми за конкретни цели.">
     <meta name="twitter:image" content="https://biocode.website/icon-512x512.png">
 
     <link rel="canonical" href="https://biocode.website/">
@@ -1022,6 +1022,10 @@
         }
         .lp-num span { font-size: 0.9rem; color: var(--lp-muted); line-height: 1.4; display: block; max-width: 180px; }
 
+        .lp-team-does { list-style: none; display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 28px 0 0; padding: 0; }
+        .lp-team-does li { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--lp-ink); font-size: 0.98rem; }
+        .lp-team-does i { color: var(--lp-accent); }
+        .lp-team-note { margin: 18px 0 0; max-width: 680px; font-size: 0.88rem; line-height: 1.6; color: var(--lp-muted); }
         /* --- bento --- */
         .lp-bento {
             display: grid;
@@ -2196,7 +2200,7 @@
                     <button type="button" class="btn-outline lp-btn-ghost" id="heroLoginBtn" onclick="window.indexOpenLoginModal()">Вход</button>
                 </div>
                 <ul class="lp-hero-meta lp-enter" style="--d:5">
-                    <li><i class="fas fa-check" aria-hidden="true"></i> Прегледан от специалист</li>
+                    <li><i class="fas fa-check" aria-hidden="true"></i> Проверен от екип специалисти</li>
                     <li><i class="fas fa-check" aria-hidden="true"></i> Седмична корекция</li>
                     <li><i class="fas fa-check" aria-hidden="true"></i> На телефона и в браузъра</li>
                 </ul>
@@ -2334,8 +2338,8 @@
 
                 <article class="lp-tile lp-reveal">
                     <span class="lp-tile-ico"><i class="fas fa-user-doctor"></i></span>
-                    <h3>Зад плана стои специалист</h3>
-                    <p>Хранене, медицина, спорт и психология. Програмата предлага, човек проверява.</p>
+                    <h3>Зад плана стои екип</h3>
+                    <p>Медицина, диететика и спорт. Алгоритъмът смята, екипът проверява.</p>
                 </article>
             </div>
         </div>
@@ -2381,7 +2385,7 @@
                 <li class="lp-step">
                     <span class="lp-step-n">02</span>
                     <h3>Изчисляваме</h3>
-                    <p>Калории, белтък и ограничения — изчислени по твоите данни, не на око. Специалист проверява менюто.</p>
+                    <p>Калории, белтък и ограничения — изчислени по твоите данни, не на око. Екипът ни проверява менюто.</p>
                 </li>
                 <li class="lp-step">
                     <span class="lp-step-n">03</span>
@@ -2394,6 +2398,40 @@
                     <p>Всяка седмица отговаряш на няколко въпроса — тегло, глад, енергия. Менюто се обновява, а калориите се коригират, когато е нужно.</p>
                 </li>
             </ol>
+        </div>
+    </section>
+
+    <!-- Team -->
+    <section class="lp-section lp-section--tint" id="team">
+        <div class="lp-wrap">
+            <header class="lp-head lp-reveal">
+                <p class="lp-kicker">Екипът</p>
+                <h2 class="lp-h2">Зад всеки план <em>стои екип</em>.</h2>
+                <p class="lp-sub">Програмите и правилата, по които се смята менюто, са разработени от специалисти в няколко области. Те проверяват плановете и преразглеждат програмите.</p>
+            </header>
+            <div class="lp-bento lp-team">
+                <article class="lp-tile lp-reveal">
+                    <span class="lp-tile-ico"><i class="fas fa-stethoscope"></i></span>
+                    <h3>Медицина и ендокринология</h3>
+                    <p>Обмяна на веществата, кръвна захар, хормони. Границите на менюто при здравословни състояния и лекарства.</p>
+                </article>
+                <article class="lp-tile lp-reveal">
+                    <span class="lp-tile-ico"><i class="fas fa-apple-whole"></i></span>
+                    <h3>Диететика и хранене</h3>
+                    <p>Енергия, белтък, порции и хранителен състав. Как от числата става балансирано меню.</p>
+                </article>
+                <article class="lp-tile lp-reveal">
+                    <span class="lp-tile-ico"><i class="fas fa-person-running"></i></span>
+                    <h3>Спортна медицина и физиология</h3>
+                    <p>Хранене за тренировка и възстановяване, мускулна маса, движение през деня.</p>
+                </article>
+            </div>
+            <ul class="lp-team-does lp-reveal">
+                <li><i class="fas fa-check" aria-hidden="true"></i> Разработва програмите и правилата на менюто</li>
+                <li><i class="fas fa-check" aria-hidden="true"></i> Проверява плана, преди да го получиш</li>
+                <li><i class="fas fa-check" aria-hidden="true"></i> Преразглежда програмите редовно</li>
+            </ul>
+            <p class="lp-team-note lp-reveal">Екипът стои зад правилата и проверката и не води лични консултации. При здравословен въпрос се обърни към лекуващия си лекар.</p>
         </div>
     </section>
 

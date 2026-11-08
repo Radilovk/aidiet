@@ -4006,7 +4006,7 @@ const DEFAULT_EMAIL_TEMPLATE = {
   headerSubtitle: 'Персонален хранителен план',
   greeting: 'Здравей, {name}! 👋',
   paragraph1: 'Радваме се да ти съобщим, че твоят <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!',
-  paragraph2: 'Нашият специалист внимателно е разгледал твоите данни и е изготвил индивидуален план, съобразен с твоите цели и нужди.',
+  paragraph2: 'Планът е изчислен по твоите данни и проверен от екипа ни — специалисти по медицина, диететика и спорт.',
   buttonText: 'Виж моя план →',
   contactEmail: 'info@biocode.online'
 };
@@ -4019,7 +4019,7 @@ const DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
   headerTitle: '🍽️ Nutri Plan',
   headerSubtitle: 'Актуализация на план',
   greeting: 'Здравей, {name}! 👋',
-  paragraph1: 'Специалистът направи промени във твоя <strong>персонален хранителен план</strong>.',
+  paragraph1: 'Екипът ни провери и обнови твоя <strong>персонален хранителен план</strong>.',
   paragraph2: 'Натисни бутона по-долу, за да заредиш новата версия. Линкът е еднократен и валиден 72 часа.',
   buttonText: 'Зареди обновения план →',
   contactEmail: 'info@biocode.online'

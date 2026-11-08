@@ -2776,8 +2776,8 @@
                         <span class="labs-item-name">${escProfileHtml(l.label)}</span>
                         <span class="labs-item-val">${fmt(l.value)} ${escProfileHtml(l.unit)}</span>
                     </li>`).join('')}</ul>
-                ${(d.supplements || []).length ? `<div class="labs-sub">Добавки — за разговор със специалиста</div><ul class="labs-list">${d.supplements.map(s => `<li class="labs-item"><span class="labs-item-name">${window.NutriPlanSupplementShop ? `<a href="${escProfileHtml(window.NutriPlanSupplementShop.url(s.name))}" target="_blank" rel="noopener">${escProfileHtml(s.name)}</a>` : escProfileHtml(s.name)} — ${escProfileHtml(s.dosage)}</span><span class="labs-item-status">${escProfileHtml(s.reason || '')}</span></li>`).join('')}</ul>` : ''}
-                ${(d.cautions || []).length ? `<div class="labs-sub">За специалиста и лекаря</div><ul class="labs-cautions">${d.cautions.map(c => `<li>${escProfileHtml(c)}</li>`).join('')}</ul>` : ''}
+                ${(d.supplements || []).length ? `<div class="labs-sub">Добавки — обсъди ги с лекаря си</div><ul class="labs-list">${d.supplements.map(s => `<li class="labs-item"><span class="labs-item-name">${window.NutriPlanSupplementShop ? `<a href="${escProfileHtml(window.NutriPlanSupplementShop.url(s.name))}" target="_blank" rel="noopener">${escProfileHtml(s.name)}</a>` : escProfileHtml(s.name)} — ${escProfileHtml(s.dosage)}</span><span class="labs-item-status">${escProfileHtml(s.reason || '')}</span></li>`).join('')}</ul>` : ''}
+                ${(d.cautions || []).length ? `<div class="labs-sub">За екипа и лекаря ти</div><ul class="labs-cautions">${d.cautions.map(c => `<li>${escProfileHtml(c)}</li>`).join('')}</ul>` : ''}
                 <button type="button" class="labs-delete" onclick="deleteLabs()"><i class="fas fa-trash-can"></i> Изтрий данните от изследвания</button>`;
         }
 
@@ -3087,7 +3087,7 @@
         let _docsLabels = {};
         const DOCS_IMPACT_TEXT = {
             none: 'Не засяга плана',
-            context: 'Само за специалиста и съветите',
+            context: 'Само за екипа и съветите',
             menu: 'Променя менюто',
             strategy: 'Променя калориите, белтъка или режима',
         };
@@ -3166,7 +3166,7 @@
                 if (!res.assessment) { docsSetStatus('Не открихме информация, свързана със здравето или храненето.', 'warn'); return; }
                 _docsPending = { assessment: res.assessment, date: res.date, planChanges: res.planChanges || [], relevant: res.relevant };
                 renderDocsReview();
-                docsSetStatus(res.relevant ? 'Провери предложението.' : 'Документът почти не засяга плана — може да го запазиш само за специалиста.', res.relevant ? '' : 'warn');
+                docsSetStatus(res.relevant ? 'Провери предложението.' : 'Документът почти не засяга плана — може да го запазиш само за екипа.', res.relevant ? '' : 'warn');
             } catch (e) {
                 docsSetStatus(e.message || 'Не успяхме да прочетем документа.', 'error');
             }
@@ -3190,8 +3190,8 @@
                 ${list('Факти от документа', a.findings)}
                 ${a.clinical.length ? `<div class="labs-sub">Нови състояния за профила</div><p class="labs-note">Отметнатите включват хранителните правила на състоянието.</p>${checks('clinical', a.clinical)}` : ''}
                 ${a.exclusions.length ? `<div class="labs-sub">Храни за изключване</div>${checks('exclusions', a.exclusions)}` : ''}
-                ${a.medications.length ? `<div class="labs-sub">Лекарства</div><p class="labs-note">Специалистът ги взима предвид.</p>${checks('medications', a.medications)}` : ''}
-                ${list('За специалиста', a.cautions)}
+                ${a.medications.length ? `<div class="labs-sub">Лекарства</div><p class="labs-note">Екипът ги взима предвид при проверката.</p>${checks('medications', a.medications)}` : ''}
+                ${list('За екипа', a.cautions)}
                 <label class="labs-date">Дата на документа <input type="date" id="docsDate" class="form-input" value="${escProfileHtml(p.date || new Date().toISOString().slice(0, 10))}"></label>
                 <button type="button" class="btn btn-primary labs-confirm" onclick="confirmDocument()"><i class="fas fa-check"></i> Потвърди и добави</button>
                 <button type="button" class="labs-delete" onclick="cancelDocument()"><i class="fas fa-xmark"></i> Откажи</button>`;
@@ -4100,7 +4100,7 @@
                     localStorage.removeItem('npPlanRegenFailed');
                     showAlert('Новият план по промените ти не можа да се изготви. Сегашният ти план остава — опитай отново с „Запази и обнови плана“.', 'warning');
                 } else if (localStorage.getItem('planReplacePending') === '1') {
-                    showAlert('Новият план по промените ти очаква одобрение от специалист. Дотогава ползваш сегашния си план.', 'info');
+                    showAlert('Новият план по промените ти очаква проверка от екипа. Дотогава ползваш сегашния си план.', 'info');
                 }
             } catch (_) {}
         }
@@ -4425,7 +4425,7 @@
 
             // Винаги потвърждение: замяната на плана не е действие с едно докосване.
             const fullRegenMessage = replacingExistingPlan
-                ? 'Ще се изготви нов хранителен план по новите данни. Той ще замени сегашния, след като специалист го прегледа и одобри — дотогава ползваш сегашния план.'
+                ? 'Ще се изготви нов хранителен план по новите данни. Той ще замени сегашния, след като екипът го провери и одобри — дотогава ползваш сегашния план.'
                 : 'Ще се изготви нов хранителен план по новите данни. Отнема около минута.';
             if (!confirm(fullRegenMessage + '\n\nПродължаване?')) {
                 return;
@@ -4689,7 +4689,7 @@
         }
 
         // --- Alert Functions ---
-        const PLAN_REVIEW_SYSTEM_MSG = 'Планът предстои да бъде преразгледан и активиран от специалист. Ще получиш известие на имейл, когато новият план е готов.';
+        const PLAN_REVIEW_SYSTEM_MSG = 'Планът предстои да бъде проверен и активиран от екипа. Ще получиш известие на имейл, когато новият план е готов.';
 
         let _alertDismissTimer = null;
         /** Текст от сървъра/анализа — като текст, не като HTML. */

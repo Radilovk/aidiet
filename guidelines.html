@@ -1231,7 +1231,7 @@
 
         <!-- Бележката от специалиста (от гласа на плана) — само когато я има -->
         <div class="specialist-card" id="specialistCard" hidden>
-            <div class="specialist-card-label"><i class="fas fa-user-doctor" aria-hidden="true"></i> Бележка от специалиста</div>
+            <div class="specialist-card-label"><i class="fas fa-user-doctor" aria-hidden="true"></i> Бележка от екипа</div>
             <p id="specialistCardText"></p>
         </div>
 
@@ -2013,7 +2013,7 @@
                     note.id = 'npPendingReplaceNote';
                     note.setAttribute('role', 'status');
                     note.style.cssText = 'margin:12px 16px;padding:12px 14px;border-radius:12px;background:#FEF3C7;color:#78350F;font-size:.9rem;line-height:1.45';
-                    note.textContent = 'Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.';
+                    note.textContent = 'Новият план по промените ти очаква проверка от екипа. Насоките по-долу са за сегашния ти план.';
                     var main = document.querySelector('main, .container, body');
                     if (main) main.insertBefore(note, main.firstChild);
                 });

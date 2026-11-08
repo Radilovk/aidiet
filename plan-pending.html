@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Твоят персонален план се подготвя от специалист — NutriPlan">
+    <meta name="description" content="Твоят план минава проверка от екипа — NutriPlan">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -407,14 +407,14 @@
 
         <div class="pp-title">
             <h1>Получихме отговорите ти</h1>
-            <p>Специалист преглежда плана. Ще получиш имейл, когато е готов.</p>
+            <p>Екипът ни проверява плана. Ще получиш имейл, когато е готов.</p>
         </div>
 
         <div class="system-notice" id="systemNotice" hidden>
             <i class="fas fa-info-circle"></i>
             <div>
                 <h4>Системно съобщение</h4>
-                <p id="systemNoticeText">Планът предстои да бъде преразгледан и активиран от специалист. Ще получиш известие на имейл, когато новият план е готов.</p>
+                <p id="systemNoticeText">Планът предстои да бъде проверен и активиран от екипа. Ще получиш известие на имейл, когато новият план е готов.</p>
             </div>
         </div>
 
@@ -444,7 +444,7 @@
                 <div class="step-item">
                     <div class="step-dot active"><i class="fas fa-spinner fa-spin" style="font-size:12px;"></i></div>
                     <div class="step-content">
-                        <h4>Преглед от специалист</h4>
+                        <h4>Проверка от екипа</h4>
                     </div>
                 </div>
                 <div class="step-item">
@@ -492,7 +492,7 @@
             if (icon) icon.className = t === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         })();
 
-        const PLAN_REVIEW_SYSTEM_MSG = 'Новият план по промените ти се преглежда от специалист. Ще получиш имейл, когато е готов.';
+        const PLAN_REVIEW_SYSTEM_MSG = 'Новият план по промените ти се проверява от екипа. Ще получиш имейл, когато е готов.';
 
         (function adaptProfileRegenCopy() {
             const source = localStorage.getItem('npPlanReviewSource')
@@ -635,7 +635,7 @@
                     }
 
                     document.querySelector('.pp-title h1').textContent = 'Твоят план е готов!';
-                    document.querySelector('.pp-title p').textContent = 'Специалистът прегледа твоите данни и одобри персонализирания ти хранителен пакет.';
+                    document.querySelector('.pp-title p').textContent = 'Екипът провери данните ти и одобри плана.';
                     document.querySelector('.hero-badge i').className = 'fas fa-check-double';
                     document.querySelector('.hero-badge').style.background = 'linear-gradient(135deg, #0D9488, #0F766E)';
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Цени | NutriPlan</title>
-    <meta name="description" content="Нивата на NutriPlan: Start безплатно, Core — целият седмичен план, Personal — с личен специалист, Signature — с екип.">
+    <meta name="description" content="Цени на NutriPlan: Start безплатно, Core — целият седмичен план в грамове, проверен от екип специалисти.">
     <link rel="canonical" href="https://biocode.website/pricing.html">
     <meta name="theme-color" content="#F4FBFA">
     <meta property="og:type" content="website">
@@ -33,8 +33,8 @@
         .period button[aria-pressed="true"] { background: var(--acc); color: #fff; }
         .period small { font-weight: 700; opacity: .85; }
         .plans { display: grid; gap: 14px; margin: 24px 0 8px; }
-        @media (min-width: 760px) { .plans { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1100px) { .plans { grid-template-columns: repeat(4, 1fr); } }
+        .plans { max-width: 760px; margin-left: auto; margin-right: auto; }
+        @media (min-width: 700px) { .plans { grid-template-columns: repeat(2, 1fr); } }
         .plan { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 22px 20px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
         .plan.is-top { border-color: color-mix(in srgb, var(--acc) 55%, transparent); box-shadow: var(--shadow); }
         .plan-badge { position: absolute; top: -11px; left: 20px; padding: 3px 10px; border-radius: 999px; background: var(--acc); color: #fff; font-size: .74rem; font-weight: 700; letter-spacing: .04em; }
@@ -70,10 +70,10 @@
     <main class="wrap wrap--wide">
         <section class="price-hero" aria-labelledby="price-title">
             <span class="chip">Цени</span>
-            <h1 id="price-title">Избери колко <em>близо</em> да сме</h1>
-            <p class="lead">Започни безплатно с въпросника и един ден от менюто. Целият план, корекцията всяка седмица и специалистът са в платените нива.</p>
+            <h1 id="price-title">Започни безплатно. <em>Отключи</em> целия план.</h1>
+            <p class="lead">С въпросника виждаш дневните си цели и един ден от менюто. В Core е цялата седмица, корекцията всяка седмица и асистентът.</p>
             <p class="price-note" id="featureNote" hidden></p>
-            <div class="period" role="group" aria-label="Плащане за Core">
+            <div class="period" role="group" aria-label="Плащане">
                 <button type="button" data-period="year" aria-pressed="true">Годишно <small id="saveBadge"></small></button>
                 <button type="button" data-period="month" aria-pressed="false">Месечно</button>
             </div>
@@ -94,8 +94,8 @@
                     <div class="faq-a"><p>Да. Абонаментът не се подновява след периода, за който си платил. Достъпът остава до края му.</p></div>
                 </details>
                 <details>
-                    <summary>Какво прави специалистът?</summary>
-                    <div class="faq-a"><p>В Core проверява менюто ти при старта. В Personal е твоят специалист: разговаря с теб, преглежда плана на всеки 2 седмици и отговаря писмено. В Signature до теб има екип — специалист и треньор.</p></div>
+                    <summary>Кой стои зад плана?</summary>
+                    <div class="faq-a"><p>Екип от специалисти в медицината и ендокринологията, диететиката и храненето, спортната медицина и физиологията. Екипът разработва програмите и правилата, по които се смята менюто, и проверява всеки нов план, преди да го получиш.</p><p>Екипът не води лични консултации. За въпроси по плана е асистентът в приложението.</p></div>
                 </details>
                 <details>
                     <summary>Защо плащането е в сайта, а не в приложението?</summary>
@@ -209,13 +209,11 @@
                     ? { main: fmt(p.year), unit: 'на година', sub: fmt(Math.round(p.year / 12 * 100) / 100) + ' на месец · ' + plan.trialDays + ' дни безплатно' }
                     : { main: fmt(p.month), unit: 'на месец', sub: 'Без безплатен период' };
             }
-            if (p.program) return { main: fmt(p.month), unit: 'на месец', sub: 'или ' + fmt(p.program) + ' за ' + plan.programWeeks + ' седмици' };
-            return { main: fmt(p.month), unit: 'на месец', sub: plan.limited ? 'Ограничени места' : '' };
+            return { main: fmt(p.month), unit: 'на месец', sub: '' };
         }
 
         function cta(plan) {
             if (plan.id === 'start') return '<a class="plan-cta" href="questionnaire2.html">Започни безплатно</a>';
-            if (plan.limited) return '<a class="plan-cta" href="index.html?stay=1#contact">Запиши се</a>';
             var per = plan.id === 'core' ? period : 'month';
             var href = checkoutHref(plan.id, per);
             return href

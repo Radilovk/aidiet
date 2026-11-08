@@ -18,8 +18,8 @@ const ok = (name) => { n++; console.log('✅', name); };
 // Цени и правила
 assert.equal(Pricing.allows('start', 'chat'), false);
 assert.equal(Pricing.allows('core', 'chat'), true);
-assert.equal(Pricing.allows('core', 'specialist'), false);
-assert.equal(Pricing.allows('signature', 'specialist'), true);
+assert.equal(Pricing.allows('core', 'full_week'), true);
+assert.deepEqual(Pricing.PLANS.map(p => p.id), ['start', 'core']);
 assert.equal(Pricing.allows('start', 'unknown_feature'), true);
 assert.equal(Pricing.formatPrice(8.99), '8,99 €');
 assert.equal(Pricing.formatPrice(45), '45 €');
@@ -49,15 +49,13 @@ ok('чужд токен → отказът на checkOwner');
 
 await writeAccess(env, 'fb_user000001', { tier: 'core' });
 assert.equal(await gateFeature(req({ userId: 'fb_user000001' }), env, 'chat', { checkOwner: ownerOk, respond }), null);
-r = await gateFeature(req({ userId: 'fb_user000001' }), env, 'specialist', { checkOwner: ownerOk, respond });
-assert.equal(r.status, 402);
 const core = await resolveAccess(env, 'fb_user000001');
-assert.equal(core.tier, 'core'); assert.equal(core.features.chat, true); assert.equal(core.features.specialist, false);
-ok('Core отключва чата, не и специалиста');
+assert.equal(core.tier, 'core'); assert.ok(Object.values(core.features).every(Boolean));
+ok('Core отключва всички платени функции');
 
 // Изтичане
 const now = Date.now();
-await writeAccess(env, 'fb_user000002', { tier: 'personal', until: new Date(now - 1000).toISOString() }, now - 5000);
+await writeAccess(env, 'fb_user000002', { tier: 'core', until: new Date(now - 1000).toISOString() }, now - 5000);
 const expired = await resolveAccess(env, 'fb_user000002', now);
 assert.equal(expired.tier, 'start'); assert.equal(expired.expired, true);
 assert.equal(normalizeAccess({ tier: 'core', until: now + 1000 }, now).tier, 'core');
