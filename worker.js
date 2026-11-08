@@ -545,25 +545,51 @@ var require_pricing_config = __commonJS({
   "pricing-config.js"(exports, module) {
     (function(global) {
       "use strict";
-      var TIERS = ["start", "core"];
+      var TIERS = ["start", "core", "plus"];
       var FEATURE_MIN_TIER = {
         full_week: "core",
-        // цялото седмично меню (в Start — само първият ден)
+        // цялото седмично меню (в Start — първият ден, без AI)
+        ai_plan: "core",
+        // AI текстовете и прегледът на менюто в нов план
+        replan: "core",
+        // нов план след промяна в профила
         chat: "core",
         // асистентът
         photo: "core",
-        // снимка на чинията и на менюто в ресторант
+        // снимка на чинията
+        menu_photo: "core",
+        // снимка на меню в ресторант
+        docs: "core",
+        // изследвания, документи, екранни снимки от устройства
         weekly: "core",
-        // седмичният преглед и корекцията
-        plan_book: "core"
+        // седмичното обновяване на менюто
+        plan_book: "core",
         // книгата на плана (PDF)
+        emoeat_ai: "core"
+        // личният текст в теста за емоционално хранене
+      };
+      var QUOTAS = {
+        core: { chat: 50, photo: 20, menu_photo: 5, docs: 2, replan: 1 },
+        plus: { chat: 200, photo: 90, menu_photo: 30, docs: 10, replan: 3 }
       };
       var FEATURE_LABEL = {
         full_week: "\u0426\u044F\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E",
+        ai_plan: "\u041F\u044A\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D",
+        replan: "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u043E\u043C\u044F\u043D\u0430",
         chat: "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u044A\u0442",
-        photo: "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u0438 \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E",
-        weekly: "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u0438\u044F\u0442 \u043F\u0440\u0435\u0433\u043B\u0435\u0434",
-        plan_book: "\u041A\u043D\u0438\u0433\u0430\u0442\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430"
+        photo: "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430",
+        menu_photo: "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E",
+        docs: "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438",
+        weekly: "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u043E\u0442\u043E \u043E\u0431\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435",
+        plan_book: "\u041A\u043D\u0438\u0433\u0430\u0442\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430",
+        emoeat_ai: "\u041B\u0438\u0447\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437"
+      };
+      var QUOTA_UNIT = {
+        chat: ["\u0432\u044A\u043F\u0440\u043E\u0441", "\u0432\u044A\u043F\u0440\u043E\u0441\u0430"],
+        photo: ["\u0441\u043D\u0438\u043C\u043A\u0430", "\u0441\u043D\u0438\u043C\u043A\u0438"],
+        menu_photo: ["\u0441\u043D\u0438\u043C\u043A\u0430", "\u0441\u043D\u0438\u043C\u043A\u0438"],
+        docs: ["\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442", "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430"],
+        replan: ["\u043D\u043E\u0432 \u043F\u043B\u0430\u043D", "\u043D\u043E\u0432\u0438 \u043F\u043B\u0430\u043D\u0430"]
       };
       var PLANS = [
         {
@@ -574,7 +600,8 @@ var require_pricing_config = __commonJS({
           features: [
             "\u0412\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A \u0438 \u0434\u043D\u0435\u0432\u043D\u0438 \u0446\u0435\u043B\u0438: \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u0431\u0435\u043B\u0442\u044A\u043A, \u0432\u043E\u0434\u0430",
             "\u0415\u0434\u0438\u043D \u043F\u0440\u0438\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u043D \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E",
-            "\u0422\u0435\u0441\u0442 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"
+            "\u0422\u0435\u0441\u0442 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442",
+            "\u041A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E"
           ]
         },
         {
@@ -586,23 +613,43 @@ var require_pricing_config = __commonJS({
           // само за годишния
           highlight: true,
           features: [
-            "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435",
-            "\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u044F \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
+            "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043E \u043E\u0442 \u0435\u043A\u0438\u043F\u0430",
+            "\u041E\u0431\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
             "\u0421\u043C\u044F\u043D\u0430 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435 \u0441 \u0435\u0434\u043D\u043E \u0434\u043E\u043A\u043E\u0441\u0432\u0430\u043D\u0435",
-            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u0438 \u0438\u0437\u0431\u043E\u0440 \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E \u0432 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442",
-            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442, \u043A\u043E\u0439\u0442\u043E \u043F\u043E\u0437\u043D\u0430\u0432\u0430 \u043F\u043B\u0430\u043D\u0430 \u0442\u0438",
-            "\u041A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440 \u0438 Health Connect",
-            "\u041A\u043D\u0438\u0433\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 (PDF)",
-            "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u043E\u0442 \u0435\u043A\u0438\u043F\u0430 \u043F\u0440\u0438 \u0441\u0442\u0430\u0440\u0442\u0430 \u0438 \u043F\u0440\u0438 \u0432\u0441\u0435\u043A\u0438 \u043D\u043E\u0432 \u043F\u043B\u0430\u043D"
+            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u2014 50 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 20 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u0432 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442 \u2014 5 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446",
+            "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 2 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446",
+            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 1 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446",
+            "Health Connect \u0438 \u043A\u043D\u0438\u0433\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 (PDF)",
+            "\u041B\u0438\u0447\u0435\u043D \u0430\u043D\u0430\u043B\u0438\u0437 \u0432 \u0442\u0435\u0441\u0442\u0430 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"
+          ]
+        },
+        {
+          id: "plus",
+          name: "Plus",
+          tagline: "\u0417\u0430 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u0438 \u0432\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+          prices: { month: 14.99, year: 79.99 },
+          features: [
+            "\u0412\u0441\u0438\u0447\u043A\u043E \u043E\u0442 Core",
+            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u2014 200 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 90 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u0432 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442 \u2014 30 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446",
+            "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 10 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446",
+            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u2014 3 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446"
           ]
         }
       ];
+      function plural(n, unit) {
+        return n === 1 ? unit[0] : unit[1];
+      }
       var api = {
         currency: "EUR",
         checkoutUrl: "",
         TIERS,
         FEATURE_MIN_TIER,
         FEATURE_LABEL,
+        QUOTAS,
         PLANS,
         tierRank: function(tier) {
           return TIERS.indexOf(tier);
@@ -615,6 +662,25 @@ var require_pricing_config = __commonJS({
           var need = FEATURE_MIN_TIER[feature];
           if (!need) return true;
           return TIERS.indexOf(tier) >= TIERS.indexOf(need);
+        },
+        /** Месечният таван на функцията в нивото или null (без таван). */
+        quota: function(tier, feature) {
+          var q = QUOTAS[tier];
+          return q && typeof q[feature] === "number" ? q[feature] : null;
+        },
+        /** „50 въпроса“ */
+        quotaText: function(n, feature) {
+          var unit = QUOTA_UNIT[feature];
+          return unit ? n + " " + plural(n, unit) : String(n);
+        },
+        /** Следващото ниво с по-висок таван за функцията (или null). */
+        upgradeFor: function(tier, feature) {
+          var cur = api.quota(tier, feature);
+          for (var i = TIERS.indexOf(tier) + 1; i < TIERS.length; i++) {
+            var q = api.quota(TIERS[i], feature);
+            if (q === null || cur === null || q > cur) return TIERS[i];
+          }
+          return null;
         },
         plan: function(id) {
           for (var i = 0; i < PLANS.length; i++) if (PLANS[i].id === id) return PLANS[i];
@@ -48818,6 +48884,9 @@ function extractClarify(text2, q) {
   return { text: out, resolved, asked };
 }
 
+// worker.entry.js
+var import_pricing_config2 = __toESM(require_pricing_config());
+
 // access-control.js
 var import_pricing_config = __toESM(require_pricing_config());
 var PAYWALL_KEY = "admin_paywall_enabled";
@@ -48853,10 +48922,37 @@ function featureMap(tier, paywall) {
   }
   return out;
 }
+var monthOf = (now = Date.now()) => new Date(now).toISOString().slice(0, 7);
+var usageKey = (userId, month) => `usage:${userId}:${month}`;
+var USAGE_TTL_SEC = 40 * 24 * 60 * 60;
+async function readUsage(env, userId, now = Date.now()) {
+  if (!userId || !env.page_content) return {};
+  try {
+    const raw = await env.page_content.get(usageKey(userId, monthOf(now)));
+    return raw ? JSON.parse(raw) : {};
+  } catch (_) {
+    return {};
+  }
+}
+async function addUsage(env, userId, feature, now = Date.now()) {
+  if (!userId || !env.page_content) return;
+  const usage = await readUsage(env, userId, now);
+  usage[feature] = (Number(usage[feature]) || 0) + 1;
+  await env.page_content.put(usageKey(userId, monthOf(now)), JSON.stringify(usage), { expirationTtl: USAGE_TTL_SEC });
+}
+function quotaMap(tier, usage) {
+  const out = {};
+  for (const feature of Object.keys(import_pricing_config.default.FEATURE_MIN_TIER)) {
+    const limit = import_pricing_config.default.quota(tier, feature);
+    if (limit !== null) out[feature] = { used: Number(usage?.[feature]) || 0, limit };
+  }
+  return out;
+}
 async function resolveAccess(env, userId, now = Date.now()) {
   const paywall = await paywallEnabled(env);
   const access = normalizeAccess(await readAccess(env, userId), now);
-  return { paywall, tier: access.tier, until: access.until, expired: access.expired, features: featureMap(access.tier, paywall) };
+  const quotas = paywall && userId ? quotaMap(access.tier, await readUsage(env, userId, now)) : {};
+  return { paywall, tier: access.tier, until: access.until, expired: access.expired, features: featureMap(access.tier, paywall), quotas };
 }
 async function writeAccess(env, userId, { tier, until = null, source = "admin", note = "" } = {}, now = Date.now()) {
   if (!env.page_content) throw new Error("KV not configured");
@@ -48872,23 +48968,46 @@ async function writeAccess(env, userId, { tier, until = null, source = "admin", 
   await env.page_content.put(accessKey(userId), JSON.stringify(record));
   return record;
 }
-async function gateFeature(request, env, feature, { checkOwner, respond }) {
-  if (!await paywallEnabled(env)) return null;
-  const body = await request.clone().json().catch(() => ({}));
-  const userId = String(body?.userId || "");
-  const locked = (reason, tier = "start") => respond({
-    error: "locked",
-    reason,
-    feature,
-    tier,
-    need: import_pricing_config.default.FEATURE_MIN_TIER[feature] || "core",
-    message: `${import_pricing_config.default.FEATURE_LABEL[feature] || "\u0422\u0430\u0437\u0438 \u0444\u0443\u043D\u043A\u0446\u0438\u044F"} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430.`
-  }, 402);
-  if (!userId.startsWith("fb_")) return locked("account");
-  const ownerErr = await checkOwner(userId, body?.idToken, env, request);
-  if (ownerErr) return ownerErr;
-  const access = normalizeAccess(await readAccess(env, userId));
-  return import_pricing_config.default.allows(access.tier, feature) ? null : locked("tier", access.tier);
+async function gateFeature(request, env, feature, opts) {
+  const { checkOwner, respond, fields = {}, now = Date.now() } = opts;
+  const pass = { deny: null, commit: async () => {
+  } };
+  if (!await paywallEnabled(env)) return pass;
+  const body = opts.body || await request.clone().json().catch(() => ({}));
+  const userId = String(body?.[fields.userId || "userId"] || "");
+  const label = import_pricing_config.default.FEATURE_LABEL[feature] || "\u0422\u0430\u0437\u0438 \u0444\u0443\u043D\u043A\u0446\u0438\u044F";
+  const deny = (data) => ({ deny: respond({ error: "locked", feature, need: import_pricing_config.default.FEATURE_MIN_TIER[feature] || "core", ...data }, 402), commit: pass.commit });
+  if (!userId.startsWith("fb_")) return deny({ reason: "account", tier: "start", message: `${label} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430.` });
+  const ownerErr = await checkOwner(userId, body?.[fields.idToken || "idToken"], env, request);
+  if (ownerErr) return { deny: ownerErr, commit: pass.commit };
+  const { tier } = normalizeAccess(await readAccess(env, userId), now);
+  if (!import_pricing_config.default.allows(tier, feature)) return deny({ reason: "tier", tier, message: `${label} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430.` });
+  const limit = import_pricing_config.default.quota(tier, feature);
+  if (limit === null) return pass;
+  const used = Number((await readUsage(env, userId, now))[feature]) || 0;
+  if (used >= limit) {
+    return deny({
+      reason: "quota",
+      tier,
+      used,
+      limit,
+      upgrade: import_pricing_config.default.upgradeFor(tier, feature),
+      message: `\u041B\u0438\u043C\u0438\u0442\u044A\u0442 \u043E\u0442 ${import_pricing_config.default.quotaText(limit, feature)} \u0437\u0430 \u043C\u0435\u0441\u0435\u0446\u0430 \u0435 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D. \u041D\u043E\u0432\u0438 \u2014 \u043E\u0442 1-\u0432\u043E \u0447\u0438\u0441\u043B\u043E.`
+    });
+  }
+  return { deny: null, commit: () => addUsage(env, userId, feature, now) };
+}
+async function planUsesAI(env, userId, idToken, verifyToken, now = Date.now()) {
+  if (!await paywallEnabled(env)) return true;
+  if (!String(userId || "").startsWith("fb_") || !idToken) return false;
+  try {
+    const user = await verifyToken(idToken, env);
+    if (`fb_${user.uid}` !== userId) return false;
+  } catch (_) {
+    return false;
+  }
+  const { tier } = normalizeAccess(await readAccess(env, userId), now);
+  return import_pricing_config.default.allows(tier, "ai_plan");
 }
 
 // handoff.js
@@ -52523,6 +52642,9 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
   console.log(`generatePlanAndSave: starting job ${jobId}${clientId ? ` (clientId: ${clientId})` : ""}`);
   try {
     const userId = preferredUserId || data.email || generateUserId(data);
+    if (options.aiLite) {
+      Object.defineProperty(data, "_aiLite", { value: true, enumerable: false });
+    }
     if (options.handoffToken) {
       Object.defineProperty(data, "_handoffFacts", { value: await handoffFactsForGeneration(env, options.handoffToken), enumerable: false });
     }
@@ -52690,6 +52812,16 @@ async function handleGeneratePlanAsync(request, env, ctx) {
         }
       }
     }
+    let replanGate = null;
+    if (requireApproval) {
+      replanGate = await gateFeature(request, env, "replan", {
+        checkOwner: checkFirebaseOwner,
+        respond: jsonResponse2,
+        body: { userId: explicitUserId, idToken }
+      });
+      if (replanGate.deny) return replanGate.deny;
+    }
+    const useAI = await planUsesAI(env, explicitUserId, idToken, verifyFirebaseIdToken);
     let resolvedClientId = clientId;
     if (!resolvedClientId && data.email) {
       const existingClient = await findClientByEmail(env, data.email);
@@ -52697,6 +52829,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     }
     const generationOptions = {
       requireApproval,
+      ...useAI ? {} : { aiLite: true },
       userId: explicitUserId || "",
       ...handoffToken ? { handoffToken } : {}
     };
@@ -52716,6 +52849,8 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       console.warn('handleGeneratePlanAsync: PLAN_QUEUE not bound \u2013 falling back to ctx.waitUntil(). Run "wrangler queues create plan-generation" to fix this.');
       ctx.waitUntil(generatePlanAndSave(env, data, jobId, resolvedClientId, generationOptions));
     }
+    if (replanGate) await replanGate.commit().catch(() => {
+    });
     return jsonResponse2({ success: true, jobId });
   } catch (error) {
     console.error("handleGeneratePlanAsync error:", error);
@@ -54569,6 +54704,20 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
   if (`fb_${firebaseUser.uid}` !== userId) {
     throw new Error("Token does not match userId");
   }
+}
+async function gatedRun(request, env, feature, run, fields) {
+  const gate = await gateFeature(request, env, feature, { checkOwner: checkFirebaseOwner, respond: jsonResponse2, fields });
+  if (gate.deny) return gate.deny;
+  const response = await run();
+  if (response && response.ok) {
+    let success = true;
+    try {
+      success = (await response.clone().json())?.success !== false;
+    } catch (_) {
+    }
+    if (success) await gate.commit().catch((e) => console.warn("usage count failed:", e?.message));
+  }
+  return response;
 }
 async function checkFirebaseOwner(userId, idToken, env, request) {
   try {
@@ -56656,6 +56805,10 @@ async function runAutoWeekly(env, userId, now = Date.now(), dueMs = now - WEEKLY
     return action;
   }
   if (action !== "run") return action;
+  if (await paywallEnabled(env) && !import_pricing_config2.default.allows(normalizeAccess(await readAccess(env, userId), now).tier, "weekly")) {
+    await scheduleWeeklyDue(env, userId, now + WEEKLY_CYCLE_MS);
+    return "unpaid";
+  }
   const cycleNumber = nextWeeklyCycle(history, state.gameWeeklyAI);
   const jobId = crypto.randomUUID();
   const fromKey = new Date(now - 21 * 864e5).toISOString().slice(0, 10);
@@ -56800,9 +56953,10 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   enrichUserDataEngineContext(data);
   const sessionId = generateUniqueId("session");
   const tokens = { input: 0, output: 0, total: 0 };
+  const aiLite = data._aiLite === true;
   try {
-    await applyIntakeHints(env, data);
-    await conveneGoalCouncil(env, data);
+    if (!aiLite) await applyIntakeHints(env, data);
+    if (!aiLite) await conveneGoalCouncil(env, data);
     const analysis = await runStep1Analysis(env, data, sessionId, "step1_analysis", null, tokens);
     if (typeof onAnalysisReady === "function") {
       try {
@@ -56812,9 +56966,12 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       }
     }
     let plan = await assembleEngineValidated(env, data, analysis);
-    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { slotAvoid: swaps }));
-    plan = await writePlanVoice(env, data, plan);
+    if (!aiLite) {
+      plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { slotAvoid: swaps }));
+      plan = await writePlanVoice(env, data, plan);
+    }
     plan._meta.tokenUsage = tokens;
+    if (aiLite) plan._meta.aiLite = true;
     await finalizeAISessionLogs(env, sessionId);
     return plan;
   } catch (error) {
@@ -63576,21 +63733,15 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/chat" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "CHAT");
         if (rlErr) return rlErr;
-        const gateErr = await gateFeature(request, env, "chat", { checkOwner: checkFirebaseOwner, respond: jsonResponse2 });
-        if (gateErr) return gateErr;
-        return await handleChat(request, env);
+        return await gatedRun(request, env, "chat", () => handleChat(request, env));
       } else if (url.pathname === "/api/analyze-food-image" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
-        const gateErr = await gateFeature(request, env, "photo", { checkOwner: checkFirebaseOwner, respond: jsonResponse2 });
-        if (gateErr) return gateErr;
-        return await handleAnalyzeFoodImage(request, env);
+        return await gatedRun(request, env, "photo", () => handleAnalyzeFoodImage(request, env));
       } else if (url.pathname === "/api/analyze-menu-image" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
-        const gateErr = await gateFeature(request, env, "photo", { checkOwner: checkFirebaseOwner, respond: jsonResponse2 });
-        if (gateErr) return gateErr;
-        return await handleAnalyzeMenuImage(request, env);
+        return await gatedRun(request, env, "menu_photo", () => handleAnalyzeMenuImage(request, env));
       } else if (url.pathname === "/api/analyze-kids-food" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
@@ -63628,7 +63779,7 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/generate-protocol" && request.method === "POST") {
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === "/api/generate-emoeat-analysis" && request.method === "POST") {
-        return await handleGenerateEmoeatAnalysis(request, env);
+        return await gatedRun(request, env, "emoeat_ai", () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === "/api/generate-longevity-protocol" && request.method === "POST") {
         return await handleGenerateLongevityProtocol(request, env);
       } else if (url.pathname === "/api/admin/get-config" && request.method === "GET") {
@@ -63757,7 +63908,8 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/admin/access" && request.method === "GET") {
         const userId = url.searchParams.get("userId") || "";
         const record = await readAccess(env, userId);
-        return jsonResponse2({ userId, record, ...normalizeAccess(record) });
+        const access = normalizeAccess(record);
+        return jsonResponse2({ userId, record, ...access, quotas: quotaMap(access.tier, await readUsage(env, userId)) });
       } else if (url.pathname === "/api/admin/access" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
         try {
@@ -63773,7 +63925,7 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/enrichment/get" && request.method === "POST") {
         return await handleEnrichmentGet(request, env);
       } else if (url.pathname === "/api/enrichment/extract-labs" && request.method === "POST") {
-        return await handleLabExtract(request, env);
+        return await gatedRun(request, env, "docs", () => handleLabExtract(request, env));
       } else if (url.pathname === "/api/admin/handoff-stats" && request.method === "GET") {
         return await handleAdminHandoffStats(request, env);
       } else if (url.pathname === "/api/handoff" && request.method === "POST") {
@@ -63791,9 +63943,9 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/enrichment/resolve" && request.method === "POST") {
         return await handleEnrichmentResolve(request, env);
       } else if (url.pathname === "/api/enrichment/extract-device" && request.method === "POST") {
-        return await handleDeviceExtract(request, env);
+        return await gatedRun(request, env, "docs", () => handleDeviceExtract(request, env));
       } else if (url.pathname === "/api/enrichment/assess-document" && request.method === "POST") {
-        return await handleDocumentAssess(request, env);
+        return await gatedRun(request, env, "docs", () => handleDocumentAssess(request, env));
       } else if (url.pathname === "/api/enrichment/delete" && request.method === "POST") {
         return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === "/api/admin/links-status" && request.method === "GET") {
@@ -63819,9 +63971,7 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/weekly/adapt-plan" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "WEEKLY_ADAPT");
         if (rlErr) return rlErr;
-        const gateErr = await gateFeature(request, env, "weekly", { checkOwner: checkFirebaseOwner, respond: jsonResponse2 });
-        if (gateErr) return gateErr;
-        return await handleWeeklyAdaptPlan(request, env, ctx);
+        return await gatedRun(request, env, "weekly", () => handleWeeklyAdaptPlan(request, env, ctx));
       } else if (url.pathname === "/api/weekly/ack-notice" && request.method === "POST") {
         return await handleWeeklyAckNotice(request, env);
       } else if (url.pathname === "/api/user/check-account" && request.method === "GET") {

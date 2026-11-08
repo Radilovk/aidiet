@@ -2833,7 +2833,7 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;">
                     <label>Акаунт (userId)<input type="text" id="accessUserId" placeholder="fb_…" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;"></label>
                     <label>Ниво<select id="accessTier" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;">
-                        <option value="start">Start</option><option value="core">Core</option>
+                        <option value="start">Start</option><option value="core">Core</option><option value="plus">Plus</option>
                     </select></label>
                     <label>Валидно до (по избор)<input type="date" id="accessUntil" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;"></label>
                     <label>Бележка<input type="text" id="accessNote" maxlength="200" style="width:100%;padding:10px;border:2px solid #d1d5db;border-radius:8px;"></label>
@@ -10137,11 +10137,14 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         }
 
         function accessText(d) {
-            const names = { start: 'Start', core: 'Core' };
+            const names = { start: 'Start', core: 'Core', plus: 'Plus' };
             let t = 'Ниво: ' + (names[d.tier] || d.tier);
             if (d.until) t += ' · до ' + new Date(d.until).toLocaleDateString('bg-BG');
             if (d.expired) t += ' (изтекло)';
             if (d.record && d.record.note) t += ' · ' + d.record.note;
+            const labels = { chat: 'асистент', photo: 'снимки', menu_photo: 'менюта', docs: 'документи', replan: 'нови планове' };
+            const used = Object.entries(d.quotas || {}).map(([k, q]) => (labels[k] || k) + ' ' + q.used + '/' + q.limit);
+            if (used.length) t += ' · Този месец: ' + used.join(', ');
             return t;
         }
 

@@ -4506,6 +4506,10 @@
                     localStorage.removeItem('planJobSource');
                     localStorage.removeItem('pendingPlanPayload');
                     const errData = await asyncResponse.json().catch(() => ({}));
+                    if (NutriPlanAccess.handleLocked(asyncResponse, errData)) {
+                        resetRegenerateButton();
+                        return;
+                    }
                     throw new Error(errData.error || ('Server returned ' + asyncResponse.status));
                 }
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Цени | NutriPlan</title>
-    <meta name="description" content="Цени на NutriPlan: Start безплатно, Core — целият седмичен план в грамове, проверен от екип специалисти.">
+    <meta name="description" content="Цени на NutriPlan: Start безплатно, Core — целият седмичен план в грамове, Plus — повече снимки и асистент.">
     <link rel="canonical" href="https://biocode.website/pricing.html">
     <meta name="theme-color" content="#F4FBFA">
     <meta property="og:type" content="website">
@@ -33,8 +33,9 @@
         .period button[aria-pressed="true"] { background: var(--acc); color: #fff; }
         .period small { font-weight: 700; opacity: .85; }
         .plans { display: grid; gap: 14px; margin: 24px 0 8px; }
-        .plans { max-width: 760px; margin-left: auto; margin-right: auto; }
+        .plans { max-width: 1080px; margin-left: auto; margin-right: auto; }
         @media (min-width: 700px) { .plans { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 980px) { .plans { grid-template-columns: repeat(3, 1fr); } }
         .plan { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 22px 20px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
         .plan.is-top { border-color: color-mix(in srgb, var(--acc) 55%, transparent); box-shadow: var(--shadow); }
         .plan-badge { position: absolute; top: -11px; left: 20px; padding: 3px 10px; border-radius: 999px; background: var(--acc); color: #fff; font-size: .74rem; font-weight: 700; letter-spacing: .04em; }
@@ -71,7 +72,7 @@
         <section class="price-hero" aria-labelledby="price-title">
             <span class="chip">Цени</span>
             <h1 id="price-title">Започни безплатно. <em>Отключи</em> целия план.</h1>
-            <p class="lead">С въпросника виждаш дневните си цели и един ден от менюто. В Core е цялата седмица, корекцията всяка седмица и асистентът.</p>
+            <p class="lead">С въпросника виждаш дневните си цели и един ден от менюто. Core е целият план. Plus е за всеки ден — повече снимки и въпроси към асистента.</p>
             <p class="price-note" id="featureNote" hidden></p>
             <div class="period" role="group" aria-label="Плащане">
                 <button type="button" data-period="year" aria-pressed="true">Годишно <small id="saveBadge"></small></button>
@@ -88,6 +89,10 @@
                 <details>
                     <summary>Как работи безплатният период?</summary>
                     <div class="faq-a"><p>Годишният Core започва със 7 дни без плащане и с пълния план. Ако се откажеш преди края им, не плащаш нищо.</p></div>
+                </details>
+                <details>
+                    <summary>Какво става, когато свърши месечният лимит?</summary>
+                    <div class="faq-a"><p>Функцията спира до 1-во число на следващия месец. Планът, менюто и седмичното обновяване продължават. Ако ти трябва повече, можеш да минеш на Plus.</p></div>
                 </details>
                 <details>
                     <summary>Мога ли да се откажа по всяко време?</summary>
@@ -188,8 +193,10 @@
         }
 
         var core = P.plan('core');
-        var save = Math.round((1 - core.prices.year / (core.prices.month * 12)) * 100);
-        document.getElementById('saveBadge').textContent = '−' + save + '%';
+        var save = Math.max.apply(null, P.PLANS.filter(function (p) { return p.prices.year; }).map(function (p) {
+            return Math.round((1 - p.prices.year / (p.prices.month * 12)) * 100);
+        }));
+        document.getElementById('saveBadge').textContent = 'до −' + save + '%';
 
         function checkoutHref(id, per) {
             if (!P.checkoutUrl) return '';
@@ -204,17 +211,15 @@
         function priceBlock(plan) {
             var p = plan.prices;
             if (plan.id === 'start') return { main: '0 €', unit: '', sub: 'Без карта' };
-            if (plan.id === 'core') {
-                return period === 'year'
-                    ? { main: fmt(p.year), unit: 'на година', sub: fmt(Math.round(p.year / 12 * 100) / 100) + ' на месец · ' + plan.trialDays + ' дни безплатно' }
-                    : { main: fmt(p.month), unit: 'на месец', sub: 'Без безплатен период' };
+            if (p.year && period === 'year') {
+                return { main: fmt(p.year), unit: 'на година', sub: fmt(Math.round(p.year / 12 * 100) / 100) + ' на месец' + (plan.trialDays ? ' · ' + plan.trialDays + ' дни безплатно' : '') };
             }
-            return { main: fmt(p.month), unit: 'на месец', sub: '' };
+            return { main: fmt(p.month), unit: 'на месец', sub: p.year ? 'Или ' + fmt(p.year) + ' на година' : '' };
         }
 
         function cta(plan) {
             if (plan.id === 'start') return '<a class="plan-cta" href="questionnaire2.html">Започни безплатно</a>';
-            var per = plan.id === 'core' ? period : 'month';
+            var per = plan.prices.year ? period : 'month';
             var href = checkoutHref(plan.id, per);
             return href
                 ? '<a class="plan-cta" href="' + esc(href) + '">Избери ' + esc(plan.name) + '</a>'

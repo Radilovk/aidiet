@@ -7573,6 +7573,7 @@
                     NutriPlanAccess.handleLocked(response, await response.json().catch(() => ({})));
                     return;
                 }
+                if (response.ok) NutriPlanAccess.noteUse('chat');
 
                 if (!response.ok) {
                     const errorText = await response.text().catch(() => 'Unable to read error');
@@ -8644,6 +8645,7 @@
 
                 if (result.success && result.analysis) {
                     incrementDailyImageCount();
+                    NutriPlanAccess.noteUse('photo');
                     // Сървърът сам познава менюто на ресторант и връща препоръка от него.
                     if (result.kind === 'menu') renderMenuAnalysisResults(result.analysis);
                     else renderFoodAnalysisResults(result.analysis);

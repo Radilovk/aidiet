@@ -18,7 +18,7 @@
     var CACHE_KEY = 'np_access';
     var CACHE_MS = 10 * 60 * 1000;
     var Pricing = global.NutriPlanPricing;
-    var state = { paywall: false, tier: 'start', features: {} };
+    var state = { paywall: false, tier: 'start', features: {}, quotas: {} };
     var loading = null;
 
     function userId() {
@@ -50,7 +50,7 @@
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (data) {
                 if (data && typeof data.paywall === 'boolean') {
-                    state = { paywall: data.paywall, tier: data.tier || 'start', until: data.until || null, features: data.features || {} };
+                    state = { paywall: data.paywall, tier: data.tier || 'start', until: data.until || null, features: data.features || {}, quotas: data.quotas || {} };
                     try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ userId: id, at: Date.now(), state: state })); } catch (_) {}
                 }
                 return state;
@@ -60,10 +60,33 @@
         return loading;
     }
 
+    function quotaOf(feature) {
+        var q = state.quotas && state.quotas[feature];
+        return q && typeof q.limit === 'number' ? q : null;
+    }
+
+    function exhausted(feature) {
+        var q = quotaOf(feature);
+        return !!(q && q.used >= q.limit);
+    }
+
     function can(feature) {
         if (!state.paywall) return true;
+        if (exhausted(feature)) return false;
         if (Object.prototype.hasOwnProperty.call(state.features, feature)) return state.features[feature] !== false;
         return Pricing ? Pricing.allows(state.tier, feature) : true;
+    }
+
+    /** Колко остават до края на месеца (или null — без таван). */
+    function remaining(feature) {
+        var q = quotaOf(feature);
+        return q ? Math.max(0, q.limit - q.used) : null;
+    }
+
+    /** Отбелязва успешно използване (сървърът брои сам; това е за показването). */
+    function noteUse(feature) {
+        var q = quotaOf(feature);
+        if (q) q.used += 1;
     }
 
     function label(feature) {
@@ -86,7 +109,15 @@
         var plan = needPlan(feature);
         var hasAccount = userId().indexOf('fb_') === 0;
         var body;
-        if (isNativeApp()) {
+        var q = quotaOf(feature);
+        if (q && q.used >= q.limit) {
+            var upgrade = Pricing && Pricing.upgradeFor(state.tier, feature);
+            var upPlan = upgrade && Pricing.plan(upgrade);
+            body = '<p class="np-lock-text">Лимитът от ' + escapeHtml(Pricing ? Pricing.quotaText(q.limit, feature) : q.limit) + ' за месеца е изчерпан. Нови — от 1-во число.</p>' +
+                (!isNativeApp() && upPlan
+                    ? '<a class="np-lock-btn" href="pricing.html?feature=' + encodeURIComponent(feature) + '" target="_top">Повече в ' + escapeHtml(upPlan.name) + '</a>'
+                    : '');
+        } else if (isNativeApp()) {
             body = '<p class="np-lock-text">Част от абонамента' + (plan ? ' ' + escapeHtml(plan.name) : '') + '.' +
                 (hasAccount ? ' Ако вече имаш абонамент, излез и влез отново със същия акаунт.' : ' Ако вече имаш абонамент, влез със същия акаунт.') + '</p>';
         } else {
@@ -136,7 +167,12 @@
         if (!response || response.status !== 402) return false;
         var feature = (data && data.feature) || 'chat';
         state.paywall = true;
-        state.features[feature] = false;
+        if (data && data.reason === 'quota' && typeof data.limit === 'number') {
+            state.quotas[feature] = { used: data.used, limit: data.limit };
+        } else {
+            state.features[feature] = false;
+        }
+        if (data && data.tier) state.tier = data.tier;
         showLock(feature);
         return true;
     }
@@ -168,6 +204,8 @@
     global.NutriPlanAccess = {
         load: load,
         can: can,
+        remaining: remaining,
+        noteUse: noteUse,
         state: function () { return state; },
         isNativeApp: isNativeApp,
         lockCard: lockCard,
