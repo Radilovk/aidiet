@@ -162,7 +162,7 @@
         .new-badge{display:inline-flex;align-items:center;gap:4px;background:var(--ds-fill-grad);color: var(--ds-on-fill);font-size:.7rem;font-weight:700;padding:2px 9px;border-radius:50px;text-transform:uppercase;letter-spacing:.05em;vertical-align:middle;margin-left:8px;}
 
         /* MODULES */
-        .modules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;}
+        .modules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
         .module-card{border-radius:var(--radius);overflow:hidden;position:relative;min-height:180px;display:flex;align-items:flex-end;text-decoration:none;transition:transform .3s,box-shadow .3s;box-shadow:0 8px 24px rgba(0,0,0,.12);}
         .module-card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.18);}
         .module-card-bg{position:absolute;inset:0;background-size:cover;background-position:center;}
@@ -173,8 +173,6 @@
         .module-icon{font-size:2rem;margin-bottom:10px;}
         .card-emoeat .module-card-bg{background:linear-gradient(135deg,#6b21a8 0%,#9333ea 100%);}
         .card-emoeat .module-card-overlay{background:linear-gradient(to top,rgba(107,33,168,.85) 0%,rgba(147,51,234,.4) 100%);}
-        .card-longevity .module-card-bg{background:linear-gradient(135deg,#0e7490 0%,#06b6d4 100%);}
-        .card-longevity .module-card-overlay{background:linear-gradient(to top,rgba(14,116,144,.85) 0%,rgba(6,182,212,.4) 100%);}
         .card-protocols .module-card-bg{background:linear-gradient(135deg,#047857 0%,#10b981 100%);}
         .card-protocols .module-card-overlay{background:linear-gradient(to top,rgba(4,120,87,.85) 0%,rgba(16,185,129,.4) 100%);}
         .card-kids .module-card-bg{background:linear-gradient(135deg,#be185d 0%,#f43f5e 100%);}
@@ -254,7 +252,6 @@
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Програми</div>
         <a href="emoeat.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално хранене</a>
-        <a href="longevity.html" onclick="closeNavMenu()"><i class="fas fa-dna"></i> Дълголетие</a>
         <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-layer-group"></i> Всички програми</a>
     </nav>
 
@@ -416,15 +413,6 @@
                         <p>Разбери откъде идва гладът, който не е истински глад, и как да го овладееш.</p>
                     </div>
                 </a>
-                <a href="longevity.html" class="module-card card-longevity">
-                    <div class="module-card-bg"></div>
-                    <div class="module-card-overlay"></div>
-                    <div class="module-card-content">
-                        <div class="module-icon"><i class="fas fa-dna"></i></div>
-                        <h3>Дълголетие</h3>
-                        <p>Хранене и навици за по-бавно остаряване и повече енергия.</p>
-                    </div>
-                </a>
             </div>
             <div class="protocols-list" style="margin-top:28px;">
                 <a class="protocol-pill" href="protocol-insulin-resistance.html"><div class="protocol-dot" style="background:#0e7490;"></div><span>Баланс на кръвната захар</span></a>
@@ -522,7 +510,6 @@
                         <ul>
                             <li><a href="protocol-landing.html">Програми</a></li>
                             <li><a href="emoeat.html">Емоционално хранене</a></li>
-                            <li><a href="longevity.html">Дълголетие <small>с профил</small></a></li>
                         </ul>
                     </div>
                     <div>

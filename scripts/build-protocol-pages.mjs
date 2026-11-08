@@ -86,7 +86,6 @@ function siteFooter() {
                         <ul>
                             <li><a href="protocol-landing.html">Програми</a></li>
                             <li><a href="emoeat.html">Емоционално хранене</a></li>
-                            <li><a href="longevity.html">Дълголетие <small>с профил</small></a></li>
                         </ul>
                     </div>
                     <div>

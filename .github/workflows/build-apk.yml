@@ -25,6 +25,7 @@ on:
       - '!scripts/**'
       - '!studio.html'
       - '!studio-privacy.html'
+      - '!longevity.html'
       - '!studio-app/**'
       - '!studio-platform/**'
       - '**.json'
@@ -135,6 +136,7 @@ jobs:
             --exclude 'scripts/' \
             --exclude 'studio.html' \
             --exclude 'studio-privacy.html' \
+            --exclude 'longevity.html' \
             --exclude 'studio-app/' \
             --exclude 'studio-platform/' \
             --exclude 'viber-sender/' \
