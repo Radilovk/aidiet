@@ -600,7 +600,10 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   /* ── where: the studio (its subdomain, or ?s= for a test) and the API ── */
   const host = location.hostname.toLowerCase();
   const ROOT = ['biocode-bg.com', 'xbody.online'].find((r) => host.endsWith('.' + r)) || '';
-  const SUB = ROOT ? host.slice(0, -(ROOT.length + 1)) : '';
+  // a city name on the app's own domain points to the studio's id (burgas.xbody.online → xbody)
+  const ALIAS = ROOT === 'xbody.online' ? { burgas: 'xbody' } : {};
+  const SUB0 = ROOT ? host.slice(0, -(ROOT.length + 1)) : '';
+  const SUB = ALIAS[SUB0] || SUB0;
   /* in the phone app (Capacitor) there is no studio in the address: the one chosen last is kept */
   const APP = Boolean(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
   const CUR_KEY = 'studio:current';
