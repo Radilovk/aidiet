@@ -499,7 +499,16 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     radial-gradient(60vmax 50vmax at 50% -10%, rgba(var(--brand-rgb), 0.14), transparent 65%),
     radial-gradient(50vmax 40vmax at 100% 100%, rgba(120,170,255,.16), transparent 70%),
     radial-gradient(50vmax 40vmax at 0% 90%, rgba(255,200,150,.20), transparent 70%); }
-.up-inner { position: relative; }
+.up-inner { position: relative; margin: auto 0; }
+/* fits any phone: centred when it fits, scrolls (from the top, nothing cut) when it does not — a small screen,
+   a large system font, or the phone held sideways */
+.upcoming { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; align-items: flex-start; }
+@media (max-height: 740px) {
+  .up-ring { width: 104px; height: 104px; margin-bottom: 14px; } .up-ring::after { inset: -10px; }
+  .up-ring .logo { width: 74px; height: 74px; }
+  .up-time { font-size: 64px; margin: 2px 0 8px; }
+  .up-when { font-size: 18px; } .up-where { margin-top: 12px; } .up-acts { margin-top: 18px; }
+}
 .up-ring { width: 132px; height: 132px; border-radius: 50%; background: none; box-shadow: none; animation: none; position: relative; margin-bottom: 22px; }
 .up-ring::before, .up-ring::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid rgba(var(--brand-rgb), 0.3); animation: breathe 3.6s ease-in-out infinite; }
 .up-ring::after { inset: -16px; border-color: rgba(var(--brand-rgb), 0.14); animation-delay: .6s; }
@@ -1214,21 +1223,44 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
           await syncReminders(false);
           // the Sunday overview is a separate, explicit choice (Apple 4.5.4) — offered once, right here, and changeable in the profile
           slot.innerHTML = `<p class="small" style="color:var(--ok);margin:10px 2px 6px">Напомнянията са включени</p>
-            <label class="tick"><input type="checkbox" id="rem-week"><span>И всяка неделя вечер — твоята седмица</span></label>`;
+            <label class="tick"><input type="checkbox" id="rem-week"><span>И всяка неделя вечер — твоята седмица</span></label><div id="rp-fs"></div>`;
           document.getElementById('rem-week').onchange = (e) => setRemPref('weekly', e.target.checked);
+          renderFullScreenRow();
         }
         else slot.innerHTML = '<p class="small muted">Известията са изключени в настройките на телефона.</p>';
       } catch (_) { slot.innerHTML = ''; }
     };
   }
   function setRemPref(k, v) { save('remPrefs', { ...remPrefs(), [k]: v }); syncReminders(false); }
+  /* Android (APK 1.2.3+): reminders open full screen over the lock screen — Android 14+ asks the user to allow it once */
+  const fsPlugin = () => (isAndroid() && window.Capacitor.Plugins.XbFullScreen) || null;
+  async function renderFullScreenRow() {
+    const box = document.getElementById('rp-fs');
+    const fs = fsPlugin();
+    if (!box || !fs) return;
+    let ok = true;
+    try { ok = (await fs.check()).granted; } catch (_) {}
+    box.innerHTML = ok
+      ? '<p class="small" style="color:var(--ok);margin:4px 0 10px">Напомнянията се показват на цял екран</p>'
+      : `<div class="card" style="margin:6px 0 12px;padding:14px"><b style="display:block;margin-bottom:4px">Напомняне на цял екран</b>
+          <span class="small muted">Като будилник — и на заключен екран. Разреши веднъж в настройките на телефона.</span>
+          <button class="btn mini" id="rp-fs-go" style="width:100%;margin-top:10px">Разреши</button></div>`;
+    if (!ok) $('rp-fs-go').onclick = async () => {
+      try { await fs.openSettings(); } catch (_) {}
+      // back from the settings: the row shows the new state
+      const again = () => { if (document.visibilityState === 'visible') { document.removeEventListener('visibilitychange', again); renderFullScreenRow(); } };
+      document.addEventListener('visibilitychange', again);
+    };
+  }
   function openReminders() {
     const p = remPrefs(), h = cfg.rules.reminderHours;
     sheet(`<h3>Напомняния</h3>
       <label class="tick"><input type="checkbox" id="rp-hours" ${p.hours ? 'checked' : ''}><span>Преди всеки час<small class="muted" style="display:block">Вечерта преди в 19:00${h ? ` и ${h} ч. преди` : ''}</small></span></label>
       <label class="tick"><input type="checkbox" id="rp-week" ${p.weekly ? 'checked' : ''}><span>Моята седмица<small class="muted" style="display:block">В неделя в 18:00 — часовете за седмицата или покана за нов</small></span></label>
       <p class="small muted">Звук и вибрация — според настройките на телефона.</p>
+      <div id="rp-fs"></div>
       <button class="btn sec" data-back>Назад</button>`, (e) => { if (e.target.closest('[data-back]')) openProfile(); });
+    renderFullScreenRow();
     $('rp-hours').onchange = (e) => setRemPref('hours', e.target.checked);
     $('rp-week').onchange = async (e) => {
       const ln = nativeLN();
@@ -1302,7 +1334,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       if (items.length) {
         setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
-          id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : { id: x.bid },
+          id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : { id: x.bid, ...(isAndroid() ? { fullScreen: true } : {}) },   // Android: over the lock screen
           sound: remSound(), relevanceScore: 1, interruptionLevel: 'active', ...(isAndroid() ? { channelId: CHANNEL } : {}),   // a normal alert with sound — respects Focus / Do Not Disturb
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
