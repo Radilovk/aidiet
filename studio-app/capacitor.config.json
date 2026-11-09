@@ -25,7 +25,8 @@
       "launchShowDuration": 700,
       "launchAutoHide": true,
       "backgroundColor": "#ffffff",
-      "showSpinner": false
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
     },
     "LocalNotifications": {
       "smallIcon": "ic_stat_studio",

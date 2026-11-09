@@ -40,14 +40,30 @@ styles = res / "values" / "styles.xml"
 st = styles.read_text(encoding="utf-8")
 st = re.sub(r'<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">.*?</style>',
     """<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:windowBackground">@drawable/launch_splash</item>
         <item name="android:background">@null</item>
+        <item name="windowSplashScreenBackground">@color/xb_splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>""", st, count=1, flags=re.S)
+# the launch background: a plain colour (light / dark) with the round logo at its own size in the middle —
+# a bitmap as windowBackground is stretched to the screen (the oval the user saw on tall phones)
+(res / "drawable" / "launch_splash.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/xb_splash_bg" />
+    <item><bitmap android:gravity="center" android:src="@drawable/splash_logo" /></item>
+</layer-list>
+""", encoding="utf-8")
+(res / "drawable-xxhdpi").mkdir(parents=True, exist_ok=True)
+shutil.copyfile("android-extra/splash_logo.png", res / "drawable-xxhdpi" / "splash_logo.png")   # 432 px = 144 dp
+for folder, colour in (("values", "#FFFFFF"), ("values-night", "#121014")):
+    (res / folder).mkdir(parents=True, exist_ok=True)
+    (res / folder / "xb_colors.xml").write_text(
+        f'<?xml version="1.0" encoding="utf-8"?>\n<resources><color name="xb_splash_bg">{colour}</color></resources>\n', encoding="utf-8")
 styles.write_text(st, encoding="utf-8")
 
 # full-screen reminders: our MainActivity (over the lock screen only for a full-screen reminder) and the plugin
