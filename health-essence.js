@@ -11,7 +11,7 @@
  * хранителни правила (като изследванията) и бележка за специалиста.
  */
 
-import { isCleanClientText } from './nutrition-engine/text-guard.js';
+import { isCleanClientText, isCleanStaffText } from './nutrition-engine/text-guard.js';
 
 const DAY_MS = 86400000;
 
@@ -42,12 +42,13 @@ export function digestDue(essence, digest, now = new Date()) {
  */
 export function normalizeDigest(raw, now = new Date()) {
   if (!raw || typeof raw !== 'object') return null;
-  const clean = (s, max) => {
+  const clean = (s, max, ok) => {
     const t = String(s || '').trim().replace(/\s+/g, ' ').slice(0, max);
-    return t && isCleanClientText(t) ? t : '';
+    return t && ok(t) ? t : '';
   };
-  const insights = (Array.isArray(raw.insights) ? raw.insights : []).map(s => clean(s, 220)).filter(Boolean).slice(0, 4);
-  const coachNote = clean(raw.coachNote, 500);
+  // insights са за клиента (на „ти“); coachNote — за специалиста и чата, в трето лице.
+  const insights = (Array.isArray(raw.insights) ? raw.insights : []).map(s => clean(s, 220, isCleanClientText)).filter(Boolean).slice(0, 4);
+  const coachNote = clean(raw.coachNote, 500, isCleanStaffText);
   const approach = [...new Set((Array.isArray(raw.approach) ? raw.approach : []).map(String).filter(c => DIGEST_APPROACH[c]))].slice(0, 2);
   if (!insights.length && !coachNote) return null;
   return { insights, coachNote, approach, at: now.toISOString() };

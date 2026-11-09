@@ -33,7 +33,7 @@ fats_g ≥ {MIN_FAT_GRAMS}. macroGrams — само числа (грамове).
 currentHealthStatus:
 • Честна оценка 0–100 по BMI, медицина, сън, стрес, навици, keyProblems.
 • score = round(оценка × (1 - {HEALTH_STATUS_UNDERESTIMATE_PERCENT}/100)).
-• description: към клиента, съответства на score — конкретни слабости/силни страни, не общи фрази.
+• description: към клиента на „ти“, съответства на score — конкретни слабости/силни страни, не общи фрази.
 • keyIssues: 2–4 конкретни проблема.
 keyProblems 3–6 — САМО Borderline/Risky/Critical, БЕЗ Normal; фактори активно пречещи на целта:
-severityValue съответства на severity: Borderline 45–59, Risky 60–79, Critical 80–95. description и impact — към клиента.
+severityValue съответства на severity: Borderline 45–59, Risky 60–79, Critical 80–95. description и impact — към клиента, на „ти“ (не „клиентът“).

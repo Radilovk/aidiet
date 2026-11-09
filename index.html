@@ -4262,7 +4262,7 @@
                     E.getCached().then(function (res) {
                         var d = res && res.derived;
                         if (d && d.essence && d.essence.metrics) {
-                            localStorage.setItem('np_goal_focus_src', JSON.stringify({ metrics: d.essence.metrics, signals: d.essence.signals || [], at: d.essence.at || new Date().toISOString(), coachNote: (d.digest && d.digest.coachNote) || '' }));
+                            localStorage.setItem('np_goal_focus_src', JSON.stringify({ metrics: d.essence.metrics, signals: d.essence.signals || [], at: d.essence.at || new Date().toISOString(), insight: (d.digest && d.digest.insights && d.digest.insights[0]) || '' }));
                         }
                         window.NutriPlanPersona.refresh();
                     }).catch(function () {});

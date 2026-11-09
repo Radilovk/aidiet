@@ -103,6 +103,11 @@ const dg = normalizeDigest({
 }, NOW);
 ok(dg.insights.length === 2 && dg.insights[1].length <= 220, `текст на латиница отпада, дългият се реже (${dg.insights.length})`);
 ok(dg.approach.join() === 'increase_protein', 'кодове само от речника — без калории и брой хранения');
+{
+  const g = normalizeDigest({ insights: ['Клиентът има висока активност. Да се следи пулсът.', 'Крачките ти са 14 000 — добави белтък на обяд.'], coachNote: 'Клиентът има висока активност; да се следи пулсът.' }, NOW);
+  ok(g.insights.length === 1 && /ти/.test(g.insights[0]), 'обобщение: изречение за клиента в трето лице отпада');
+  ok(/Клиентът/.test(g.coachNote), 'обобщение: бележката за специалиста остава в трето лице');
+}
 ok(normalizeDigest({ insights: [], coachNote: '' }) === null && normalizeDigest('x') === null, 'празен отговор — без обобщение');
 ok(digestDue({ metrics: { sleep: {} } }, null, NOW) && !digestDue({ metrics: { sleep: {} } }, { at: ago(2) }, NOW) && !digestDue({ metrics: {} }, null, NOW), 'обобщение веднъж седмично и само с данни');
 const withDigest = applyEnrichment(base(), { facts: [1, 2, 3, 4].map(n => f('bp', 145, n, { value2: 92 })), digest: dg }, NOW);

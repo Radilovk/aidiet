@@ -52,6 +52,12 @@ const fast = GF.evaluate('weight', { weight: { last: 80, trendKgWeek: -0.7, days
 ok(fast.tone === 'warn', 'след бременност: −0,7 кг/седм. е твърде бързо');
 ok(GF.evaluate('weight', { weight: { last: 80, trendKgWeek: -0.5, days: 2 } }, GF.profileOf(lose)).tone === 'neutral', 'малко измервания — без оценка');
 ok(GF.deviceView({}, lose).cards.length === 0, 'без данни — без карти');
+{
+  const few = { steps: M.steps };
+  const v = GF.deviceView(few, lose, { insight: 'Крачките ти са високи — яж повече белтък.', coachNote: 'Клиентът има висока активност; да се следи.' });
+  ok(v.conclusions.some(c => /Крачките ти/.test(c.text)), 'изречението към клиента влиза в изводите');
+  ok(!v.conclusions.some(c => /Клиентът/.test(c.text)), 'бележката за диетолога (трето лице) не стига до клиента');
+}
 ok(GF.evaluate('restingHr', M, GF.profileOf(lose)).tone === 'warn', 'пулс +6 над обичайния = внимание');
 
 // ── Цел за крачки по профила и целта ─────────────────────────────────────
