@@ -156,14 +156,16 @@ body.has-bar .fab { bottom: calc(92px + env(safe-area-inset-bottom)); }
 .pay { min-height: 56px; margin: 14px 0 4px; }
 
 /* admin */
-.adm { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto; padding-top: env(safe-area-inset-top); padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+.adm { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto; padding-top: env(safe-area-inset-top); padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 .adm-top { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); }
 .adm-top .wrap { display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
 .adm-top h2 { margin: 0; font-size: 17px; flex: 1; }
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; display: flex; background: var(--card); border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom); }
 .tabs button { flex: 1; border: 0; background: none; padding: 10px 0 12px; font-size: 12px; color: var(--muted); cursor: pointer; }
-.tabs button b { display: block; font-size: 20px; line-height: 1.2; }
+.tabs button b { display: grid; place-items: center; height: 26px; margin-bottom: 2px; }
+.tabs button b .i { width: 23px; height: 23px; }
+.tabs { -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); background: var(--card-solid, #fff) !important; }
 .tabs button.on { color: var(--brand); font-weight: 700; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; }
@@ -640,6 +642,8 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     egg: '<path d="M12 3c3.3 0 6 5.2 6 9.5S15.3 21 12 21s-6-4.2-6-8.5S8.7 3 12 3z"/>',
     drop: '<path d="M12 3.5s6 6.4 6 10.6A6 6 0 0 1 6 14.1C6 9.9 12 3.5 12 3.5z"/>',
     scale: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9.5a4 4 0 0 1 6 0M12 9.5l1.2-1.5"/>',
+    users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.3-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
     idcard: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.5 1.7-2.2 3-2.2s2.4.7 3 2.2M14 10h4M14 13.5h3"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>',
   };
@@ -1427,7 +1431,8 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
 
   /* ── first open: the data once, as in XBody. Shown while there is no booking history on this phone and no data yet. ── */
   function maybeOnboard() {
-    if (!cfg || me.token || (me.name && me.phone && me.termsV === termsVer())) { $('onb').classList.add('hidden'); return; }
+    const adminDoor = !APP && (location.pathname.replace(/\/+$/, '') === '/admin' || new URLSearchParams(location.search).has('admin'));
+    if (!cfg || adminDoor || adm || me.token || (me.name && me.phone && me.termsV === termsVer())) { $('onb').classList.add('hidden'); return; }
     $('onb-h').textContent = `Запази час в ${cfg.brand.name}`;
     brandLogo($('onb-logo'));
     $('onb-name').value = me.name || ''; $('onb-phone').value = me.phone || ''; $('onb-email').value = me.email || '';
@@ -1873,8 +1878,8 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     root.innerHTML = `<div class="adm-top"><div class="wrap"><div class="logo" style="width:36px;height:36px;border-radius:10px;font-size:16px" id="a-logo"></div>
       <h2>${esc(cfg.brand.name)} · admin</h2><button class="btn mini sec" id="a-out">Изход</button></div></div>
       <div class="wrap" id="a-body"><p class="muted">Зареждане…</p></div>
-      <nav class="tabs"><button data-tab="today"><b>📅</b>График</button><button data-tab="clients"><b>👥</b>Клиенти</button>
-      <button data-tab="codes"><b>🎟</b>Кодове</button><button data-tab="settings"><b>⚙️</b>Настройки</button></nav>`;
+      <nav class="tabs"><button data-tab="today"><b>${ic('cal')}</b>График</button><button data-tab="clients"><b>${ic('users')}</b>Клиенти</button>
+      <button data-tab="codes"><b>${ic('ticket')}</b>Кодове</button><button data-tab="settings"><b>${ic('gear')}</b>Настройки</button></nav>`;
     brandLogo($('a-logo'));
     root.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -1938,7 +1943,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     const phone = esc(b.phone);
     const chargeable = b.card_pm && (b.status === 'noshow' || (b.status === 'canceled' && b.late_cancel));
     return `<div class="bk${b.status === 'canceled' ? ' off' : ''}"><div class="t">${p.hm}</div><div class="who"><b>${esc(b.name || '—')}</b> ${st}<br>
-      <a href="tel:${phone}">${phone}</a> · <a href="viber://chat?number=${encodeURIComponent(b.phone)}">Viber</a><div class="small">${tags}</div>
+      <a href="tel:${phone}">${phone}</a>${adm.state.settings.viber ? ` · <a href="viber://chat?number=${encodeURIComponent(b.phone)}">Viber</a>` : ''}<div class="small">${tags}</div>
       <div class="acts">${b.status === 'booked' && past ? `<button class="btn mini sec" data-b="noshow" data-id="${b.id}">Не дойде</button>` : ''}
       ${b.status === 'booked' && !past ? `<button class="btn mini sec" data-b="cancel" data-id="${b.id}">Откажи</button>` : ''}
       ${b.status === 'noshow' ? `<button class="btn mini sec" data-b="restore" data-id="${b.id}">Дойде</button>` : ''}
@@ -2011,7 +2016,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       const q = $('c-q').value.trim().toLowerCase();
       const list = adm.clients.filter((c) => !q || c.name.toLowerCase().includes(q) || c.phone.includes(q.replace(/\D/g, '') || '~'));
       $('c-list').innerHTML = list.slice(0, 200).map((c) => `<div class="bk"><div class="who"><b>${esc(c.name || '—')}</b>
-        ${c.missed ? `<span class="chip bad">${c.missed} неявяв.</span>` : ''}<br><a href="tel:${esc(c.phone)}">${esc(c.phone)}</a> · <a href="viber://chat?number=${encodeURIComponent(c.phone)}">Viber</a>
+        ${c.missed ? `<span class="chip bad">${c.missed} неявяв.</span>` : ''}<br><a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>${adm.state.settings.viber ? ` · <a href="viber://chat?number=${encodeURIComponent(c.phone)}">Viber</a>` : ''}
         <div class="small muted">${c.done} проведени · ${c.ahead} предстоящи${c.card_last4 ? ' · 💳 ' + esc(c.card_last4) : ''}${c.code ? ' · 🎟 ' + esc(c.code) : ''}</div></div></div>`).join('') || '<p class="empty">Няма клиенти.</p>';
     };
     $('c-q').oninput = draw;
@@ -2071,12 +2076,12 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         <div class="dayrow ${b[0] ? '' : 'hidden'}" data-second="${k}"><span class="small muted">след</span><input type="time" data-h="${k}2" value="${b[0]}"><input type="time" data-h="${k}3" value="${b[1]}"></div>`;
     }).join('');
     $('a-body').innerHTML = `
-      <details class="sec" open><summary>🕑 Часове и график</summary><div>
+      <details class="sec" open><summary>Часове и график</summary><div>
         <div class="row">${f('s-min', 'Продължителност (мин)', s.slot.minutes, 'number', 'min=10 max=240')}${f('s-buf', 'Буфер след часа (мин)', s.slot.buffer, 'number', 'min=0 max=120')}</div>
         <p class="small muted">Нов час на всеки ${s.slot.step || s.slot.minutes + s.slot.buffer} мин. Отметни ден, за да е работен; „+ почивка“ дава втори интервал.</p>
         ${dayRows}<p class="small"><button class="link" id="s-break">+ почивка в средата на деня</button> · <button class="link" id="s-copy">часовете на Пн за всички отметнати дни</button></p>
       </div></details>
-      <details class="sec"><summary>📋 Правила за записване</summary><div>
+      <details class="sec"><summary>Правила за записване</summary><div>
         <div class="row">${f('r-notice', 'Най-късно преди часа (ч)', Math.round(s.rules.minNoticeMin / 60 * 10) / 10, 'number', 'min=0 step=0.5')}${f('r-ahead', 'До колко дни напред', s.rules.daysAhead, 'number', 'min=1 max=365')}</div>
         <div class="row">${f('r-day', 'Часове на ден (клиент)', s.rules.maxPerDay, 'number', 'min=1 max=20')}${f('r-up', 'Предстоящи общо (клиент)', s.rules.maxUpcoming, 'number', 'min=1 max=100')}</div>
         <div class="row">${f('r-free', 'Безплатен отказ до (ч преди часа)', s.rules.freeCancelHours, 'number', 'min=0 max=168')}${f('r-rem', 'Напомняне на телефона преди часа (ч, 0 = без)', s.rules.reminderHours, 'number', 'min=0 max=48')}</div>
@@ -2089,7 +2094,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         <label class="tick"><input type="checkbox" id="r-viber" ${s.viber ? 'checked' : ''}><span>Viber съобщения (само ако имаш компютър с viber-sender)</span></label>
         <label class="tick"><input type="checkbox" id="s-listed" ${s.listed ? 'checked' : ''}><span>Показвай студиото в списъка на приложението (изключено: клиентите го намират само с код или връзка)</span></label>
       </div></details>
-      <details class="sec"><summary>👋 Покана на клиенти</summary><div>
+      <details class="sec"><summary>Покана на клиенти</summary><div>
         <p class="small muted">Приложението е едно за всички студиа. Клиентът го сваля, въвежда <b>кода на вашето студио</b> и после вижда <b>само вашето</b> студио (помни се). Кодът не е парола — това е адресът на студиото.</p>
         <div class="copy"><span style="flex:1"><b>Код:</b> ${esc(STUDIO)}</span></div>
         <div class="copy" style="margin-top:8px"><span style="flex:1" id="inv-link">https://biocode.website/studio.html?s=${esc(STUDIO)}</span><button class="btn mini sec" id="inv-copy-link">Копирай</button></div>
@@ -2098,7 +2103,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         <button class="btn sec" id="inv-qr-btn">Покажи QR код</button>
         <div id="inv-qr" style="display:flex;justify-content:center;margin-top:10px;background:#fff;border-radius:12px;padding:10px"></div>
       </div></details>
-      <details class="sec"><summary>📣 Известие към клиентите ${s.notice && s.notice.text && (!s.notice.until || s.notice.until > Date.now()) ? '●' : ''}</summary><div>
+      <details class="sec"><summary>Известие към клиентите ${s.notice && s.notice.text && (!s.notice.until || s.notice.until > Date.now()) ? '●' : ''}</summary><div>
         <p class="small muted">Показва се най-горе в приложението и на страницата. Не го ползвай за реклама на отстъпки.</p>
         <label class="f">Текст (до 300 знака)<textarea id="nt-text" maxlength="300">${esc(s.notice ? s.notice.text : '')}</textarea></label>
         <label class="f">Показвай<select id="nt-days"><option value="1">1 ден</option><option value="3">3 дни</option><option value="7" selected>7 дни</option><option value="30">30 дни</option><option value="0">докато го махна</option></select></label>
@@ -2106,7 +2111,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         <button class="btn" id="nt-send">Изпрати известието</button>
         <button class="btn sec" id="nt-clear">Махни известието</button>
       </div></details>
-      <details class="sec"><summary>🏷 Студио и външен вид</summary><div>
+      <details class="sec"><summary>Студио и външен вид</summary><div>
         ${f('b-name2', 'Име на студиото', s.brand.name)}${f('b-tag', 'Подзаглавие', s.brand.tagline)}
         <div class="row">${f('b-color', 'Цвят', s.brand.color, 'color')}${f('b-price', 'Цена на час', s.price, 'number', 'min=0 step=0.01')}${f('b-cur', 'Валута', s.currency, 'text', 'maxlength=3')}</div>
         <label class="f">Лого (PNG/JPG, квадратно)<input id="b-logo" type="file" accept="image/png,image/jpeg,image/webp"></label>
@@ -2117,11 +2122,11 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         <label class="f">XEMS код на студиото (Моят прогрес, Хранене, Профил за тренировките) — празно = изключено<input id="t-xems" value="${esc(s.xems || '')}" autocapitalize="none" placeholder="напр. xbody"></label>
         <label class="f">Бутони горе (до 3, по един на ред: заглавие | https://адрес), напр. „Чести въпроси | https://…“<textarea id="t-links" style="min-height:70px">${esc((s.links || []).map((l) => `${l.title} | ${l.url}`).join('\n'))}</textarea></label>
       </div></details>
-      <details class="sec"><summary>📆 Почивни дни</summary><div>
+      <details class="sec"><summary>Почивни дни</summary><div>
         <div class="row">${f('c-day', 'Дата', '', 'date')}<button class="btn mini" id="c-add" style="flex:none;margin-top:28px">Добави</button></div>
         <div id="c-days" class="small" style="margin-top:8px">${(s.closed || []).filter((d) => d >= todayYmd()).map((d) => `<span class="chip">${esc(d.split('-').reverse().join('.'))} <button class="link" data-rmday="${d}">×</button></span>`).join(' ') || '<span class="muted">Няма.</span>'}</div>
       </div></details>
-      <details class="sec"><summary>📅 Google Calendar ${g.calendarError ? (g.calendarError === 'none' ? '' : '⚠️') : '✓'}</summary><div>
+      <details class="sec"><summary>Google Calendar ${g.calendarError ? (g.calendarError === 'none' ? '' : '!') : '✓'}</summary><div>
         <ol class="small"><li>Google Calendar (компютър) → настройки на календара → <b>Споделяне с конкретни хора</b>.</li>
         <li>Добави този имейл с право <b>„Промяна на събития“</b>:</li></ol>
         <div class="copy"><span style="flex:1" id="g-sa">${esc(g.serviceAccount || '— (не е настроен в сървъра)')}</span><button class="btn mini sec" id="g-copy">Копирай</button></div>
@@ -2129,12 +2134,12 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         ${f('g-id', 'ID на календара', s.google.calendarId, 'text', 'placeholder="...@group.calendar.google.com или имейл"')}
         <p class="small ${g.calendarError && g.calendarError !== 'none' ? 'err' : 'muted'}">${g.calendarError === 'none' ? 'Не е свързан: часовете се смятат само от графика.' : g.calendarError ? 'Няма достъп: ' + esc(g.calendarError) : '✓ Свързан: заетото в календара не се предлага, записванията влизат в него.'}</p>
       </div></details>
-      <details class="sec"><summary>💳 Stripe (карта като гаранция) ${adm.state.stripe.set ? '✓' : ''}</summary><div>
+      <details class="sec"><summary>Stripe (карта като гаранция) ${adm.state.stripe.set ? '✓' : ''}</summary><div>
         <p class="small muted">Stripe Dashboard → Developers → API keys. Ключовете се пазят криптирани. Празни полета + Запази = изключване.</p>
         ${f('p-pk', 'Publishable key', adm.state.stripe.pk, 'text', 'placeholder="pk_live_…" autocomplete="off"')}${f('p-sk', 'Secret key', '', 'password', 'placeholder="' + (adm.state.stripe.set ? '•••• запазен' : 'sk_live_… или rk_live_…') + '" autocomplete="off"')}
         <button class="btn sec" id="p-save">Запази Stripe ключовете</button>
       </div></details>
-      <details class="sec"><summary>🔒 Сигурност</summary><div>
+      <details class="sec"><summary>Сигурност</summary><div>
         <div class="row">${f('x-old', 'Сегашен код', '', 'password', 'inputmode=numeric maxlength=5')}${f('x-new', 'Нов код (5 цифри)', '', 'password', 'inputmode=numeric maxlength=5')}</div>
         <button class="btn sec" id="x-save">Смени кода</button>
       </div></details>
@@ -2256,6 +2261,11 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     if (APP) setupNotificationTaps(nativeLN());   // a tap on a reminder that opened the app is handled too
     upcomingOnOpen();
     checkApkUpdate();
+    // the studio's own entrance (web only, never in the store app): <studio>.xbody.online/admin or …/studio.html?s=…&admin
+    if (!APP && (location.pathname.replace(/\/+$/, '') === '/admin' || new URLSearchParams(location.search).has('admin'))) {
+      try { history.replaceState(null, '', location.pathname === '/admin' ? '/' : location.pathname + location.search.replace(/[?&]admin(=[^&]*)?/, '').replace(/^&/, '?')); } catch (_) {}
+      openAdmin();
+    }
   })();
   /* back from another app (e.g. Viber): the hours fresh, at most every 2 minutes */
   document.addEventListener('visibilitychange', () => {
