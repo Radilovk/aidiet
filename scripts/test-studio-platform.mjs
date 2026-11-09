@@ -368,6 +368,20 @@ await t('xbody.online: / is the landing, the studio page and its files come from
   } finally { globalThis.fetch = before; }
 });
 
+await t('google calendar connected later: the hours already booked ahead go into it once (calendar-sync / on save)', async () => {
+  const cur = JSON.parse(db.prepare("SELECT settings FROM studios WHERE id = 'burgas'").get().settings);
+  const cal = cur.google.calendarId;
+  db.prepare("UPDATE bookings SET gcal_event = '' WHERE studio_id = 'burgas' AND status = 'booked' AND start_ms > ?").run(Date.now());
+  const ahead = db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE studio_id = 'burgas' AND status = 'booked' AND start_ms > ?").get(Date.now()).n;
+  assert.ok(ahead > 0);
+  const n0 = events.size;
+  const r = await api('POST', 'admin/calendar-sync', { studio: 'burgas' }, H(admin));
+  assert.equal(r.d.added, ahead);
+  assert.equal(events.size, n0 + ahead);
+  assert.equal((await api('POST', 'admin/calendar-sync', { studio: 'burgas' }, H(admin))).d.added, 0);   // once each
+  assert.ok(cal);
+});
+
 await t('a code made by scripts/studio-admin.mjs (Node PBKDF2) opens the admin (WebCrypto)', async () => {
   const { pbkdf2Sync } = await import('node:crypto');
   const salt = 'a1b2c3d4e5f60718';
