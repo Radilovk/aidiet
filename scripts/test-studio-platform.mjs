@@ -379,6 +379,11 @@ await t('google calendar connected later: the hours already booked ahead go into
   assert.equal(r.d.added, ahead);
   assert.equal(events.size, n0 + ahead);
   assert.equal((await api('POST', 'admin/calendar-sync', { studio: 'burgas' }, H(admin))).d.added, 0);   // once each
+  const ev = [...events.values()].pop();   // the title is only the client; the studio and the rest are in the description
+  assert.ok(ev.summary && !ev.summary.includes(':') && !ev.summary.includes('·'), ev.summary);
+  assert.match(ev.description, /Тел\.: \+359/);
+  assert.match(ev.description, /записан/);
+  assert.match(ev.description, /Първа тренировка|Проведени тренировки/);
   assert.ok(cal);
 });
 

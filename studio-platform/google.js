@@ -93,11 +93,28 @@ export async function busyTimes(env, calendarId, fromMs, toMs, tz) {
   return out;
 }
 
+/** the event: the client's name as the title (the calendar is the studio's own); the rest in the description */
+export const eventTitle = (b) => String(b.name || b.phone || 'Клиент');
+export function eventDescription(b, studioName, notes = []) {
+  return [
+    `Тел.: ${b.phone}`,
+    ...notes,
+    b.code ? `Код: ${b.code}` : '',
+    b.card_last4 ? `Карта (гаранция): •••• ${b.card_last4}` : '',
+    `${studioName} · ${b.source === 'admin' ? 'записан от студиото' : 'записан в приложението'}`,
+  ].filter(Boolean).join('\n');
+}
+
+/** an existing event gets the current title and description */
+export async function updateEventInfo(env, calendarId, eventId, b, studioName, notes = []) {
+  await gcal(env, 'PATCH', `${cal(calendarId)}/${encodeURIComponent(eventId)}`, { summary: eventTitle(b), description: eventDescription(b, studioName, notes) });
+}
+
 /** a booking as an event in the studio's calendar → the event id */
-export async function addEvent(env, calendarId, b, studioName) {
+export async function addEvent(env, calendarId, b, studioName, notes = []) {
   const ev = await gcal(env, 'POST', cal(calendarId), {
-    summary: `${studioName}: ${b.name || b.phone}`,
-    description: `Тел.: ${b.phone}${b.code ? `\nКод: ${b.code}` : ''}${b.card_last4 ? `\nКарта (гаранция): •••• ${b.card_last4}` : ''}\nЗаписано в приложението.`,
+    summary: eventTitle(b),
+    description: eventDescription(b, studioName, notes),
     start: { dateTime: new Date(b.start_ms).toISOString() },
     end: { dateTime: new Date(b.end_ms).toISOString() },
     extendedProperties: { private: { studioBooking: b.id } },
