@@ -39,8 +39,10 @@ name = "aidiet"
 # Сървърът го ползва за проверка на входа при записване на профил и аналитика.
 [env.production.vars]
 FIREBASE_PROJECT_ID = "nutriplan-c460a"
-# the studio platform: <studio>.biocode-bg.com (each studio's page and API)
-STUDIO_ROOT_DOMAIN = "biocode-bg.com"
+# the studio platform: <studio>.biocode-bg.com / <studio>.xbody.online (each studio's page and API)
+STUDIO_ROOT_DOMAIN = "biocode-bg.com,xbody.online"
+# the app's public page (xb-studio.html) on its own domain; www → the bare domain
+STUDIO_LANDING_HOSTS = "xbody.online"
 # workers.dev URL is assigned automatically (aidiet.radilov-k.workers.dev).
 # Do NOT use `route` here — that syntax is for custom domains in a Cloudflare zone.
 
