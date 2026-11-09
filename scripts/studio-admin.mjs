@@ -22,7 +22,7 @@ import { readFileSync } from 'node:fs';
 const DB = 'studios';
 const KV_ID = '81fc0991b2764918b682f9ca170abd4b';   // page_content (production): the Viber outbox
 const WORKER = 'aidiet';
-const ROOT = (readFileSync('wrangler.toml', 'utf8').match(/STUDIO_ROOT_DOMAIN\s*=\s*"([^"]+)"/) || [])[1] || 'biocode-bg.com';
+const ROOT = ((readFileSync('wrangler.toml', 'utf8').match(/STUDIO_ROOT_DOMAIN\s*=\s*"([^"]+)"/) || [])[1] || 'biocode-bg.com').split(',')[0].trim();
 
 function wrangler(args, input) {
   return execFileSync('npx', ['--yes', 'wrangler', ...args], { encoding: 'utf8', input, stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 1 << 24 });

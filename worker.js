@@ -162,7 +162,7 @@ var require_goal_model = __commonJS({
       function norm2(s) {
         return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
       }
-      function list2(v) {
+      function list3(v) {
         if (Array.isArray(v)) return v;
         if (v == null || v === "") return [];
         return String(v).split(/[+,;]/);
@@ -183,7 +183,7 @@ var require_goal_model = __commonJS({
         var add = function(c) {
           if (c && codes.indexOf(c) === -1) codes.push(c);
         };
-        list2(goal).forEach(function(raw) {
+        list3(goal).forEach(function(raw) {
           var label = norm2(raw);
           if (!label || label === "\u0434\u0440\u0443\u0433\u043E") return;
           if (label === ALL_OF_ABOVE) {
@@ -4920,21 +4920,21 @@ function fitSessionTime(exercises, minutes) {
 function pickByPattern(pool, patterns, client, count, { dayUsed, weekUsed = null, filter = () => true, sortKey = null }) {
   const out = [];
   const seenTargets = /* @__PURE__ */ new Set();
-  const list2 = pool.map((e) => ({ e, s: exerciseShape(e) })).filter(({ e, s }) => patterns.includes(s.pattern) && !dayUsed.has(e.id) && !violatesRestrictions(e, s, client) && filter(e, s)).sort((a, b) => (weekUsed ? Number(weekUsed.has(a.e.id)) - Number(weekUsed.has(b.e.id)) : 0) || (sortKey ? sortKey(a.e) - sortKey(b.e) : 0) || oddity(a.e) - oddity(b.e) || a.e.name.localeCompare(b.e.name));
+  const list3 = pool.map((e) => ({ e, s: exerciseShape(e) })).filter(({ e, s }) => patterns.includes(s.pattern) && !dayUsed.has(e.id) && !violatesRestrictions(e, s, client) && filter(e, s)).sort((a, b) => (weekUsed ? Number(weekUsed.has(a.e.id)) - Number(weekUsed.has(b.e.id)) : 0) || (sortKey ? sortKey(a.e) - sortKey(b.e) : 0) || oddity(a.e) - oddity(b.e) || a.e.name.localeCompare(b.e.name));
   const baseName = (e) => normalizeText(e.name.replace(/\(.*?\)|\bv\.?\s*\d+\b/g, ""));
   const seenNames = /* @__PURE__ */ new Set();
   const take = (e) => {
     out.push(e);
     seenNames.add(baseName(e));
   };
-  for (const { e } of list2) {
+  for (const { e } of list3) {
     if (out.length >= count) break;
     const t = e.targetNorm || e.target;
     if (seenTargets.has(t) || seenNames.has(baseName(e))) continue;
     seenTargets.add(t);
     take(e);
   }
-  for (const { e } of list2) {
+  for (const { e } of list3) {
     if (out.length >= count) break;
     if (!out.includes(e) && !seenNames.has(baseName(e))) take(e);
   }
@@ -5423,8 +5423,8 @@ function buildTranslateUserPayload(batch) {
 ${JSON.stringify({ exercises: items })}`;
 }
 function normalizeBatchResult(parsed, batch) {
-  const list2 = parsed?.translations || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
-  const byId = new Map(list2.map((row) => [String(row.id), row]));
+  const list3 = parsed?.translations || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
+  const byId = new Map(list3.map((row) => [String(row.id), row]));
   const out = {};
   for (const ex of batch) {
     const id = String(ex.id);
@@ -5443,14 +5443,14 @@ function normalizeBatchResult(parsed, batch) {
 async function fetchExerciseDataset(url = null) {
   if (!url) {
     const mod = await Promise.resolve().then(() => (init_exercise_dataset(), exercise_dataset_exports));
-    const list2 = mod.default || mod;
+    const list3 = mod.default || mod;
     let ins = {};
     try {
       const m = await Promise.resolve().then(() => (init_exercise_instructions(), exercise_instructions_exports));
       ins = m.default || m;
     } catch {
     }
-    return list2.map((x) => ins[x.id] ? { ...x, instructions: { ...x.instructions || {}, en: ins[x.id].en, bg: ins[x.id].bg } } : x);
+    return list3.map((x) => ins[x.id] ? { ...x, instructions: { ...x.instructions || {}, en: ins[x.id].en, bg: ins[x.id].bg } } : x);
   }
   const res = await fetch(url, { headers: { "User-Agent": "aidiet-fitness-translate" } });
   if (!res.ok) throw new Error(`Dataset HTTP ${res.status}`);
@@ -5577,8 +5577,8 @@ ${CLASSIFY_RESPONSE_SCHEMA}
 ${JSON.stringify({ exercises })}`;
 }
 function normalizeClassifyResult(parsed, batch) {
-  const list2 = parsed?.classifications || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
-  const byId = new Map(list2.map((row) => [String(row.id), row]));
+  const list3 = parsed?.classifications || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
+  const byId = new Map(list3.map((row) => [String(row.id), row]));
   const out = {};
   for (const ex of batch) {
     const id = String(ex.id);
@@ -7238,10 +7238,10 @@ function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
   const adminArchitecture = [];
   const hardcodedIndividual = [];
   const seen = /* @__PURE__ */ new Set();
-  const push = (list2, text2) => {
+  const push = (list3, text2) => {
     if (!text2 || seen.has(text2)) return;
     seen.add(text2);
-    list2.push(text2);
+    list3.push(text2);
   };
   for (const chunk of adminChunks) {
     if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
@@ -7869,10 +7869,10 @@ async function loadExerciseIndex(env, ctx) {
     }
   }
   try {
-    const list2 = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
+    const list3 = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
     const translations = await loadExerciseTranslations(env);
     const metadata = await loadExerciseMetadata(env);
-    const index = buildCompactIndex(list2, translations, metadata);
+    const index = buildCompactIndex(list3, translations, metadata);
     if (index.length > 50) {
       memoryIndex = index;
       if (env.FITNESS_KV) {
@@ -8945,10 +8945,10 @@ async function handleSubmitConsultation(request, env) {
   };
   await env.FITNESS_KV.put(`fitplan_consultation:${id}`, JSON.stringify(record));
   const listRaw = await env.FITNESS_KV.get(CONSULTATIONS_LIST_KV_KEY);
-  const list2 = listRaw ? JSON.parse(listRaw) : [];
-  list2.unshift(id);
-  if (list2.length > MAX_CONSULTATIONS) list2.length = MAX_CONSULTATIONS;
-  await env.FITNESS_KV.put(CONSULTATIONS_LIST_KV_KEY, JSON.stringify(list2));
+  const list3 = listRaw ? JSON.parse(listRaw) : [];
+  list3.unshift(id);
+  if (list3.length > MAX_CONSULTATIONS) list3.length = MAX_CONSULTATIONS;
+  await env.FITNESS_KV.put(CONSULTATIONS_LIST_KV_KEY, JSON.stringify(list3));
   return jsonResponse({ success: true, id });
 }
 async function handleGetConsultations(request, env) {
@@ -9023,11 +9023,11 @@ async function loadClientProgram(env, id) {
 async function saveClientProgram(env, record) {
   await env.FITNESS_KV.put(clientProgramKvKey(record.id), JSON.stringify(record));
   const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
-  const list2 = listRaw ? JSON.parse(listRaw) : [];
-  if (!list2.includes(record.id)) {
-    list2.unshift(record.id);
-    if (list2.length > MAX_CLIENT_PROGRAMS) list2.length = MAX_CLIENT_PROGRAMS;
-    await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list2));
+  const list3 = listRaw ? JSON.parse(listRaw) : [];
+  if (!list3.includes(record.id)) {
+    list3.unshift(record.id);
+    if (list3.length > MAX_CLIENT_PROGRAMS) list3.length = MAX_CLIENT_PROGRAMS;
+    await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list3));
   }
 }
 function clientProgramPublicView(record) {
@@ -9373,8 +9373,8 @@ async function deleteClientProgramRecord(env, id) {
   if (record.planId) await env.FITNESS_KV.delete(`plan:${record.planId}`);
   await env.FITNESS_KV.delete(clientProgramKvKey(id));
   const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
-  const list2 = listRaw ? JSON.parse(listRaw) : [];
-  await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list2.filter((x) => x !== id)));
+  const list3 = listRaw ? JSON.parse(listRaw) : [];
+  await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list3.filter((x) => x !== id)));
   return jsonResponse({ success: true });
 }
 async function handleDeleteClientProgram(request, env, id) {
@@ -9770,8 +9770,8 @@ function normalizeSettings(raw) {
   const r = s.rules || {};
   const hours = {};
   for (const day of DAYS) {
-    const list2 = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
-    hours[day] = list2.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
+    const list3 = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
+    hours[day] = list3.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
   }
   let tz = str(s.timezone, 64) || d.timezone;
   try {
@@ -9960,10 +9960,10 @@ async function sendOne(env, token, payload) {
 async function pushTo(env, studio, phones, msg) {
   const { title = "", body, extra = {} } = msg;
   if (!pushReady(env) || !phones.length) return 0;
-  const list2 = [...new Set(phones)].slice(0, 500);
+  const list3 = [...new Set(phones)].slice(0, 500);
   const rows = [];
-  for (let i = 0; i < list2.length; i += 50) {
-    const part = list2.slice(i, i + 50);
+  for (let i = 0; i < list3.length; i += 50) {
+    const part = list3.slice(i, i + 50);
     rows.push(...(await env.STUDIO_DB.prepare(`SELECT token FROM push_tokens WHERE studio_id = ? AND phone IN (${part.map(() => "?").join(",")})`).bind(studio.id, ...part).all()).results || []);
   }
   const payload = { aps: { alert: { title: title || studio.settings.brand.name, body }, sound: PUSH_SOUND, "thread-id": studio.id }, studio: studio.id, ...extra };
@@ -10246,14 +10246,14 @@ async function getClient(env, studioId, phone) {
 }
 async function tokenOk(client, token) {
   if (!client || !token) return false;
-  const list2 = JSON.parse(client.token_hash || "[]");
-  return Array.isArray(list2) && list2.includes(await sha256(String(token)));
+  const list3 = JSON.parse(client.token_hash || "[]");
+  return Array.isArray(list3) && list3.includes(await sha256(String(token)));
 }
 async function issueToken(env, studioId, phone) {
   const token = randomToken();
   const c = await getClient(env, studioId, phone);
-  const list2 = JSON.parse(c && c.token_hash || "[]");
-  const next = [...Array.isArray(list2) ? list2 : [], await sha256(token)].slice(-5);
+  const list3 = JSON.parse(c && c.token_hash || "[]");
+  const next = [...Array.isArray(list3) ? list3 : [], await sha256(token)].slice(-5);
   await env.STUDIO_DB.prepare("UPDATE clients SET token_hash = ? WHERE studio_id = ? AND phone = ?").bind(JSON.stringify(next), studioId, phone).run();
   return token;
 }
@@ -10342,8 +10342,8 @@ async function acuityBusy(studio, ym) {
   const st = studio.settings;
   const have = new Set(Object.values(free).flat().map((t) => `${String(t).slice(0, 10)} ${String(t).slice(11, 16)}`));
   const out = [];
-  for (const [day, list2] of Object.entries(slotsForMonth({ ...st, rules: { ...st.rules, minNoticeMin: 0 } }, ym, []))) {
-    for (const hm2 of list2) {
+  for (const [day, list3] of Object.entries(slotsForMonth({ ...st, rules: { ...st.rules, minNoticeMin: 0 } }, ym, []))) {
+    for (const hm2 of list3) {
       if (have.has(`${day} ${hm2}`)) continue;
       const start = zonedMs(day, hm2, st.timezone);
       out.push({ start, end: start + st.slot.minutes * 6e4 });
@@ -11003,12 +11003,30 @@ async function handleMaster(env, request, b) {
   studioMemo.delete(id);
   return json({ ok: true, id, created: !exists });
 }
+var ORIGIN = "https://biocode.website";
+var LANDING_PATHS = /^\/(studio\.html|studio-privacy\.html|studio-support\.html|studio-app\/landing\/[\w.-]+|\.well-known\/apple-app-site-association)$/;
+var list = (v) => String(v || "").toLowerCase().split(",").map((x) => x.trim()).filter(Boolean);
+async function handleLanding(request, env, url, host) {
+  const bare = host.replace(/^www\./, "");
+  if (!list(env.STUDIO_LANDING_HOSTS).includes(bare)) return null;
+  if (host !== bare) return Response.redirect(`https://${bare}${url.pathname}${url.search}`, 301);
+  if (url.pathname.startsWith("/api/")) return null;
+  const path = url.pathname === "/" || url.pathname === "/index.html" ? "/xb-studio.html" : url.pathname;
+  if (path !== "/xb-studio.html" && !LANDING_PATHS.test(path)) return Response.redirect(`https://${bare}/`, 302);
+  const resp = await fetch(ORIGIN + path + url.search, { cf: { cacheTtl: 300, cacheEverything: true } });
+  const headers = new Headers({ "Cache-Control": "public, max-age=300", "X-Content-Type-Options": "nosniff" });
+  const type = resp.headers.get("Content-Type");
+  if (type) headers.set("Content-Type", type);
+  return new Response(resp.body, { status: resp.status, headers });
+}
 async function handleStudioSite(request, env) {
-  const root = String(env.STUDIO_ROOT_DOMAIN || "").toLowerCase();
   const url = new URL(request.url);
   const host = url.hostname.toLowerCase();
-  if (!root || !host.endsWith("." + root) || url.pathname.startsWith("/api/")) return null;
-  if (!/^[a-z0-9-]{2,40}$/.test(host.slice(0, -(root.length + 1)))) return null;
+  const landing = await handleLanding(request, env, url, host);
+  if (landing) return landing;
+  const root = list(env.STUDIO_ROOT_DOMAIN).find((r) => host.endsWith("." + r));
+  if (!root || url.pathname.startsWith("/api/")) return null;
+  if (!/^[a-z0-9-]{2,40}$/.test(host.slice(0, -(root.length + 1))) || host.startsWith("www.")) return null;
   const page = env.STUDIO_PAGE_URL || "https://biocode.website/studio.html";
   const resp = await fetch(page, { cf: { cacheTtl: 300, cacheEverything: true } });
   return new Response(resp.body, {
@@ -16627,7 +16645,7 @@ function optionsOf(choice, sets) {
 }
 function cartesian(lists) {
   return lists.reduce(
-    (acc, list2) => acc.flatMap((prefix) => list2.map((item2) => [...prefix, item2])),
+    (acc, list3) => acc.flatMap((prefix) => list3.map((item2) => [...prefix, item2])),
     [[]]
   );
 }
@@ -16645,9 +16663,9 @@ function dishName(base, labels) {
   }
   return `${base} ${withPreposition(labels[0])} ${joinList(labels)}`;
 }
-function mergeProducts(list2) {
+function mergeProducts(list3) {
   const out = [];
-  for (const [name, grams] of list2) {
+  for (const [name, grams] of list3) {
     const existing = out.find((p) => p.name === name);
     if (existing) existing.grams += grams;
     else out.push({ name, grams });
@@ -39834,8 +39852,8 @@ for (
   AVOID_PAIRS.get(b).add(a);
 }
 function hasAvoidedPair(ids) {
-  const list2 = [...new Set(ids)];
-  return list2.some((a, i) => list2.slice(i + 1).some((b) => AVOID_PAIRS.get(a)?.has(b)));
+  const list3 = [...new Set(ids)];
+  return list3.some((a, i) => list3.slice(i + 1).some((b) => AVOID_PAIRS.get(a)?.has(b)));
 }
 
 // nutrition-engine/plan-shape.js
@@ -40499,7 +40517,7 @@ function waterNeedLiters(profile) {
   const base = w * 0.033 + ((profile.activity?.sportBand || 0) >= 2 ? 0.5 : 0);
   return Math.round(Math.min(4, Math.max(1.5, base)) * 10) / 10;
 }
-var has2 = (list2, code) => Array.isArray(list2) && list2.includes(code);
+var has2 = (list3, code) => Array.isArray(list3) && list3.includes(code);
 function detectProblems(profile) {
   const out = [];
   const b = profile.behaviors || [];
@@ -42945,21 +42963,21 @@ function makePart(group, foods, range, extra = {}, fatScale = 1, appetite = 1) {
 function initialSizing(parts, fixed, quota, target) {
   const byGroup = (g) => parts.filter((p) => p.group === g);
   for (const g of ["VEG", "FRU", "MLK", "SWT"]) {
-    const list2 = byGroup(g);
-    if (!list2.length) continue;
-    let need = g === "VEG" ? Math.max(0, (quota.VEG || 0) * 100 - fixed.filter(([id]) => food(id).group === "VEG").reduce((a, [, gr]) => a + gr, 0)) : (quota[g] || 0) * servingOf(list2[0].foods);
-    for (const p of list2) {
+    const list3 = byGroup(g);
+    if (!list3.length) continue;
+    let need = g === "VEG" ? Math.max(0, (quota.VEG || 0) * 100 - fixed.filter(([id]) => food(id).group === "VEG").reduce((a, [, gr]) => a + gr, 0)) : (quota[g] || 0) * servingOf(list3[0].foods);
+    for (const p of list3) {
       setPartGrams(p, Math.min(p.hi, Math.max(p.lo, need)));
       need -= partTotal(p);
     }
   }
   const residual = (key) => target[key] - totalsOf(parts, fixed)[key];
   const sizeBy = (group, key) => {
-    const list2 = byGroup(group);
-    if (!list2.length) return;
-    list2.forEach((p) => setPartGrams(p, 0));
+    const list3 = byGroup(group);
+    if (!list3.length) return;
+    list3.forEach((p) => setPartGrams(p, 0));
     let need = Math.max(0, residual(key));
-    for (const p of list2) {
+    for (const p of list3) {
       const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
       setPartGrams(p, perGram > 0 ? need / perGram : p.lo);
       need = Math.max(0, residual(key));
@@ -43851,12 +43869,12 @@ function trainingWeek(profile, userData = {}) {
   const pattern = userData?._enrichment?.essence?.metrics?.training || null;
   const perWeek = pattern ? pattern.perWeek : profile.activity?.sportDays || 0;
   if (!(perWeek >= 0.5)) return { days: [], source: "none", confidence: 0, slot: null, fuel: "low", types: [], minutes: 0, sessionKcal: 0 };
-  const list2 = types.length ? types : [OTHER_SESSION];
-  const met = list2.reduce((s, t) => s + t.met, 0) / list2.length;
+  const list3 = types.length ? types : [OTHER_SESSION];
+  const met = list3.reduce((s, t) => s + t.met, 0) / list3.length;
   const kg = Number(profile.weightKg) || 70;
   const sessionKcal = pattern?.kcal > 0 ? pattern.kcal : r0((met - 1) * kg * minutes / 60);
   const order = ["glycolytic", "endurance", "mixed", "aerobic", "low"];
-  const fuel = order.find((f) => list2.some((t) => t.fuel === f)) || "mixed";
+  const fuel = order.find((f) => list3.some((t) => t.fuel === f)) || "mixed";
   let days;
   let source;
   let confidence;
@@ -43869,7 +43887,7 @@ function trainingWeek(profile, userData = {}) {
     source = "assumed";
     confidence = 0.5;
   }
-  return { days, source, confidence, slot: pattern?.slot === "am" || pattern?.slot === "pm" ? pattern.slot : null, fuel, types: list2.map((t) => t.label), minutes, sessionKcal };
+  return { days, source, confidence, slot: pattern?.slot === "am" || pattern?.slot === "pm" ? pattern.slot : null, fuel, types: list3.map((t) => t.label), minutes, sessionKcal };
 }
 function fastingPlan(profile, userData = {}, week = { days: [], slot: null }) {
   const blocked = [];
@@ -44055,7 +44073,7 @@ function describeMetabolicWeek(mw, profile) {
   const { week, fasting, days } = mw;
   const train = days.filter((d) => d.kind === "train");
   const rest = days.filter((d) => d.kind !== "train");
-  const avg = (list2, f) => list2.length ? Math.round(list2.reduce((s, d) => s + f(d), 0) / list2.length) : 0;
+  const avg = (list3, f) => list3.length ? Math.round(list3.reduce((s, d) => s + f(d), 0) / list3.length) : 0;
   const lines = [];
   if (train.length && rest.length) {
     const tC = avg(train, (d) => d.macros.carbs);
@@ -45627,7 +45645,7 @@ function sourcesFor(code, profile) {
   const carbs = !["keto", "low_carb"].includes(profile.diet?.style);
   const grains = carbs && !ex.has("GLU") && profile.diet?.style !== "paleo";
   const legumes = carbs && profile.diet?.style !== "paleo";
-  const list2 = {
+  const list3 = {
     fe: [meat && "\u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E 2 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E", legumes && "\u043B\u0435\u0449\u0430, \u043D\u0430\u0445\u0443\u0442, \u0431\u043E\u0431", "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A", "\u0447\u0443\u0448\u043A\u0430 \u0438\u043B\u0438 \u0446\u0438\u0442\u0440\u0443\u0441 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E (\u0432\u0438\u0442\u0430\u043C\u0438\u043D C \u0443\u0441\u0438\u043B\u0432\u0430 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E)"],
     ca: [dairy && "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435", !ex.has("SOY") && profile.diet?.style !== "paleo" && "\u0442\u043E\u0444\u0443", "\u0442\u0430\u0445\u0430\u043D", "\u043B\u0438\u0441\u0442\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", fish && "\u0441\u0430\u0440\u0434\u0438\u043D\u0438 \u0441 \u043A\u043E\u0441\u0442\u0438\u0442\u0435"],
     mg: ["\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0438 \u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438", !ex.has("NUT") && "\u0431\u0430\u0434\u0435\u043C\u0438, \u043A\u0430\u0448\u0443", legumes && "\u0431\u043E\u0431\u043E\u0432\u0438", grains && "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A"],
@@ -45635,7 +45653,7 @@ function sourcesFor(code, profile) {
     b12: [meat && "\u043C\u0435\u0441\u043E", fish && "\u0440\u0438\u0431\u0430", dairy && "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435", pattern !== "vegan" && !ex.has("EGG") && "\u044F\u0439\u0446\u0430"],
     o3: [fish && "\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u0441\u0430\u0440\u0434\u0438\u043D\u0438"]
   }[code].filter(Boolean);
-  return list2;
+  return list3;
 }
 function advice(code, profile) {
   const pattern = profile.diet?.pattern;
@@ -45698,8 +45716,8 @@ function microReport(days, microPer1002, profile, ctx = {}) {
 
 // nutrition-engine/index.js
 function hasSweetsCraving(userData) {
-  const list2 = Array.isArray(userData?.foodCravings) ? userData.foodCravings : [userData?.foodCravings];
-  return list2.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c || "")));
+  const list3 = Array.isArray(userData?.foodCravings) ? userData.foodCravings : [userData?.foodCravings];
+  return list3.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c || "")));
 }
 function adherenceMap(raw) {
   if (raw instanceof Map) return raw;
@@ -46258,16 +46276,16 @@ function portionsText(n, group, policy, exclusions) {
 function recommendationsOf(prescription, stats, policy, exclusions) {
   const d = prescription.daily;
   const mains = stats.mains || {};
-  const list2 = [];
-  list2.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
-  if (d.FRU > 0) list2.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${portionsText(d.FRU, "FRU", policy, exclusions)}, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
-  if (d.MLK > 0) list2.push(`${policy.pattern === "vegan" || (exclusions || []).includes("LAC") ? "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u0439\u043E\u0433\u0443\u0440\u0442" : "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440"}: ${portionsText(d.MLK, "MLK", policy, exclusions)}`);
-  if (mains.fish) list2.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
-  if (mains.legume) list2.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
-  if (d.STA > 0 && policy.style !== "keto") list2.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
-  if (policy.style === "mediterranean" || policy.style === "anti_inflammatory") list2.push("\u0417\u0435\u0445\u0442\u0438\u043D \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430 \u0438 \u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E");
-  if (policy.style === "keto" || policy.style === "low_carb") list2.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
-  return list2.slice(0, 7);
+  const list3 = [];
+  list3.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  if (d.FRU > 0) list3.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${portionsText(d.FRU, "FRU", policy, exclusions)}, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
+  if (d.MLK > 0) list3.push(`${policy.pattern === "vegan" || (exclusions || []).includes("LAC") ? "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u0439\u043E\u0433\u0443\u0440\u0442" : "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440"}: ${portionsText(d.MLK, "MLK", policy, exclusions)}`);
+  if (mains.fish) list3.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
+  if (mains.legume) list3.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+  if (d.STA > 0 && policy.style !== "keto") list3.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
+  if (policy.style === "mediterranean" || policy.style === "anti_inflammatory") list3.push("\u0417\u0435\u0445\u0442\u0438\u043D \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430 \u0438 \u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E");
+  if (policy.style === "keto" || policy.style === "low_carb") list3.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
+  return list3.slice(0, 7);
 }
 var FLAG_AVOID = {
   high_gi: ["\u0431\u044F\u043B \u043E\u0440\u0438\u0437", "\u0431\u044F\u043B \u0445\u043B\u044F\u0431", "\u043A\u0430\u0440\u0442\u043E\u0444\u0438"]
@@ -46282,15 +46300,15 @@ function clinicalAvoid(profile) {
   return [...flags].flatMap((f) => FLAG_AVOID[f] || []);
 }
 function avoidOf(profile, policy, blockedTerms) {
-  const list2 = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
-  if (policy.style !== "keto") list2.push(...clinicalAvoid(profile));
-  for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list2.push(EXCLUSION_AVOID[code]);
-  if (policy.noSweets && !list2.some((x) => /захар/.test(x))) list2.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
+  const list3 = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
+  if (policy.style !== "keto") list3.push(...clinicalAvoid(profile));
+  for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list3.push(EXCLUSION_AVOID[code]);
+  if (policy.noSweets && !list3.some((x) => /захар/.test(x))) list3.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
   for (const term of blockedTerms || []) {
     const t = String(term || "").trim();
-    if (t && t.length <= 40) list2.push(t.toLowerCase());
+    if (t && t.length <= 40) list3.push(t.toLowerCase());
   }
-  return [...new Set(list2)].slice(0, 10);
+  return [...new Set(list3)].slice(0, 10);
 }
 var BEHAVIOR_TIPS = {
   EMO: "\u041F\u0440\u0435\u0434\u0438 \u0434\u0430 \u043F\u043E\u0441\u0435\u0433\u043D\u0435\u0448 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430 \u0438\u0437\u0432\u044A\u043D \u043F\u043B\u0430\u043D\u0430, \u0441\u043F\u0440\u0438 \u0437\u0430 2 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0441\u0438 \u0437\u0430\u0434\u0430\u0439 \u0432\u044A\u043F\u0440\u043E\u0441\u0430: \u0442\u043E\u0432\u0430 \u0433\u043B\u0430\u0434 \u043B\u0438 \u0435, \u0438\u043B\u0438 \u0443\u043C\u043E\u0440\u0430, \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0441\u043A\u0443\u043A\u0430? \u0410\u043A\u043E \u043D\u0435 \u0435 \u0433\u043B\u0430\u0434 \u2014 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430, \u043A\u0440\u0430\u0442\u043A\u0430 \u0440\u0430\u0437\u0445\u043E\u0434\u043A\u0430 \u0438\u043B\u0438 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440 \u043F\u043E\u043C\u0430\u0433\u0430\u0442 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0445\u0440\u0430\u043D\u0430\u0442\u0430.",
@@ -46356,7 +46374,7 @@ function buildEngineStrategy(engine, userData, options) {
   const dayEnergy = Object.values(weekPlan || {}).map((d) => d?.energy).filter(Boolean);
   const trainDays = dayEnergy.filter((e) => e.kind === "train");
   const restDays = dayEnergy.filter((e) => e.kind !== "train");
-  const avgOf = (list2, k) => Math.round(list2.reduce((a, e) => a + e[k], 0) / (list2.length || 1));
+  const avgOf = (list3, k) => Math.round(list3.reduce((a, e) => a + e[k], 0) / (list3.length || 1));
   const label = dietLabelOf(profile);
   const slots = prescription.slots;
   const name = String(userData?.name || "").trim();
@@ -46573,8 +46591,8 @@ function textHash(items) {
   for (let i = 0; i < s.length; i++) h = (h << 5) + h + s.charCodeAt(i) >>> 0;
   return h.toString(36);
 }
-var pickKnown = (list2, allowed) => [...new Set((Array.isArray(list2) ? list2 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))];
-var cleanTerms = (list2, max = 8) => [...new Set((Array.isArray(list2) ? list2 : []).map((x) => String(x).trim().toLowerCase()).filter((x) => x.length >= 3 && x.length <= 40 && !/[{}<>]/.test(x)))].slice(0, max);
+var pickKnown = (list3, allowed) => [...new Set((Array.isArray(list3) ? list3 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))];
+var cleanTerms = (list3, max = 8) => [...new Set((Array.isArray(list3) ? list3 : []).map((x) => String(x).trim().toLowerCase()).filter((x) => x.length >= 3 && x.length <= 40 && !/[{}<>]/.test(x)))].slice(0, max);
 function normalizeIntakeHints(raw) {
   if (!raw || typeof raw !== "object") return null;
   const style = DIET_STYLES[raw.style] ? raw.style : null;
@@ -46609,9 +46627,9 @@ function weekDigest(weekPlan) {
   return lines.join("\n");
 }
 function normalizeSwaps(raw, weekPlan, max = 6) {
-  const list2 = Array.isArray(raw?.swaps) ? raw.swaps : [];
+  const list3 = Array.isArray(raw?.swaps) ? raw.swaps : [];
   const out = [];
-  for (const s of list2) {
+  for (const s of list3) {
     const day = Number(s?.day);
     const type = /^H?(\d)$/i.test(String(s?.slot || s?.type || "")) ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ${String(s.slot || s.type).replace(/\D/g, "")}` : String(s?.type || "");
     const meal = weekPlan?.[`day${day}`]?.meals?.find((m) => m.type === type);
@@ -46642,7 +46660,7 @@ var intOr2 = (v, d = null) => {
   const n = Math.round(Number(v));
   return Number.isFinite(n) ? n : d;
 };
-var pick = (list2, allowed, max = 6) => [...new Set((Array.isArray(list2) ? list2 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))].slice(0, max);
+var pick = (list3, allowed, max = 6) => [...new Set((Array.isArray(list3) ? list3 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))].slice(0, max);
 function normalizeGoalOpinion(raw) {
   if (!raw || typeof raw !== "object") return null;
   const stance = STANCES.includes(raw.stance) ? raw.stance : "adjust";
@@ -47018,8 +47036,8 @@ function rejectReason(raw, max, reason) {
   if (/[{}<>]/.test(s)) return "\u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u0441\u0438\u043C\u0432\u043E\u043B\u0438 \u043E\u0442 \u043A\u043E\u0434 \u0438\u043B\u0438 \u0448\u0430\u0431\u043B\u043E\u043D";
   return reason(s);
 }
-function cleanList(list2, ok, { min = 0, max = 6, len = 320 } = {}) {
-  const out = [...new Set((Array.isArray(list2) ? list2 : []).map((x) => cleanLine(x, len)).filter(ok))].slice(0, max);
+function cleanList(list3, ok, { min = 0, max = 6, len = 320 } = {}) {
+  const out = [...new Set((Array.isArray(list3) ? list3 : []).map((x) => cleanLine(x, len)).filter(ok))].slice(0, max);
   return out.length >= min ? out : [];
 }
 function normalizePlanVoice(raw, ctx, rejected = []) {
@@ -48400,13 +48418,13 @@ function deriveDocuments(facts2) {
   const docs = (facts2 || []).filter((f) => f.kind === "document" && f.status !== "pending" && f.value).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 20);
   if (!docs.length) return null;
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
-  const list2 = [];
+  const list3 = [];
   for (const f of docs) {
     const v = f.value;
     hints.clinical.push(...v.clinical || []);
     hints.exclusions.push(...v.exclusions || []);
     hints.cautions.push(...(v.cautions || []).map((c) => `\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442 (${DOC_TYPE_LABELS[v.docType] || "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442"}): ${c}`));
-    list2.push({
+    list3.push({
       id: f.key,
       at: f.at,
       title: v.title || DOC_TYPE_LABELS[v.docType] || "\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442",
@@ -48420,11 +48438,11 @@ function deriveDocuments(facts2) {
     });
   }
   for (const k of Object.keys(hints)) hints[k] = [...new Set(hints[k])];
-  return { list: list2, hints, reasons: [`\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: ${docs.length}`] };
+  return { list: list3, hints, reasons: [`\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: ${docs.length}`] };
 }
-function documentsText(list2) {
-  if (!list2?.length) return "";
-  return "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: " + list2.slice(0, 6).map((d) => {
+function documentsText(list3) {
+  if (!list3?.length) return "";
+  return "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: " + list3.slice(0, 6).map((d) => {
     const parts = [d.title, String(d.at || "").slice(0, 10), d.summary, d.medications.length ? `\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430: ${d.medications.join(", ")}` : ""].filter(Boolean);
     return parts.join(" \u2014 ");
   }).join("; ").slice(0, 1200);
@@ -48821,7 +48839,7 @@ function extractClarify(text2, q) {
 var HANDOFF_TTL_SEC = 30 * 24 * 60 * 60;
 var HANDOFF_MAX_BYTES = 48 * 1024;
 var str2 = (v, max = 200) => typeof v === "string" || typeof v === "number" ? String(v).trim().replace(/\s+/g, " ").slice(0, max) : "";
-var list = (v, max = 12, len = 160) => Array.isArray(v) ? v.map((x) => str2(x, len)).filter(Boolean).slice(0, max) : [];
+var list2 = (v, max = 12, len = 160) => Array.isArray(v) ? v.map((x) => str2(x, len)).filter(Boolean).slice(0, max) : [];
 var numIn = (v, lo, hi) => {
   const n = Number(String(v ?? "").replace(",", "."));
   return Number.isFinite(n) && n >= lo && n <= hi ? n : null;
@@ -48834,9 +48852,9 @@ function normalizeEmoeat(p) {
     intensity: level(p.intensity),
     archetype: p.archetype && typeof p.archetype === "object" ? { name: str2(p.archetype.name, 60), description: str2(p.archetype.description, 300) } : null,
     secondArchetype: str2(p.secondArchetype, 60) || null,
-    drivers: list(p.drivers, 3, 60),
+    drivers: list2(p.drivers, 3, 60),
     behaviors: (Array.isArray(p.behaviors) ? p.behaviors : []).slice(0, 8).map((b) => ({ name: str2(b?.name, 60), level: level(b?.level) || "\u0421\u043B\u0430\u0431\u043E" })).filter((b) => b.name),
-    patterns: list(p.patterns, 4, 80),
+    patterns: list2(p.patterns, 4, 80),
     bodySignals: str2(p.bodySignals, 300),
     realNeed: str2(p.realNeed, 200),
     reliability: p.reliability && typeof p.reliability === "object" ? { level: str2(p.reliability.level, 20) } : null
@@ -48862,20 +48880,20 @@ function normalizeAiris(p) {
     gender: AIRIS_GENDER[q.gender] ? q.gender : null,
     weight: numIn(q.weight, 30, 300),
     height: numIn(q.height, 120, 230),
-    goals: list(q.goals, 8, 60),
+    goals: list2(q.goals, 8, 60),
     activityLevel: ["sedentary", "light", "moderate", "active", "very-active"].includes(q.activityLevel) ? q.activityLevel : null,
     stressLevel: ["low", "moderate", "high", "very-high"].includes(q.stressLevel) ? q.stressLevel : null,
     sleepHours: numIn(q.sleepHours, 2, 14),
     sleepQuality: ["poor", "fair", "good", "excellent"].includes(q.sleepQuality) ? q.sleepQuality : null,
     hydration: numIn(q.hydration, 0, 20),
-    dietaryProfile: list(q.dietaryProfile, 8, 60),
-    dietaryHabits: list(q.dietaryHabits, 8, 60),
+    dietaryProfile: list2(q.dietaryProfile, 8, 60),
+    dietaryHabits: list2(q.dietaryHabits, 8, 60),
     foodIntolerances: str2(q.foodIntolerances, 300),
     allergies: str2(q.allergies, 300),
     medications: str2(q.medications, 400),
     medicalConditions: str2(q.medicalConditions, 400),
     complaints: str2(q.complaints, 600),
-    healthStatus: list(q.healthStatus, 10, 60)
+    healthStatus: list2(q.healthStatus, 10, 60)
   };
   const analysis = {
     constitution: str2(a.constitution, 200),
@@ -48893,10 +48911,10 @@ function normalizeAiris(p) {
       action: str2(d?.action, 240),
       source: ["questionnaire", "iris", "both"].includes(d?.source) ? d.source : "iris"
     })).filter((d) => d.action || d.observation),
-    eatMore: list(a.eatMore, 15, 80),
-    eatLess: list(a.eatLess, 15, 80),
+    eatMore: list2(a.eatMore, 15, 80),
+    eatLess: list2(a.eatLess, 15, 80),
     supplements: (Array.isArray(a.supplements) ? a.supplements : []).slice(0, 8).map((s) => ({ name: str2(s?.name, 80), dosage: str2(s?.dosage, 60) })).filter((s) => s.name),
-    recommendedTests: list(a.recommendedTests, 10, 120),
+    recommendedTests: list2(a.recommendedTests, 10, 120),
     notices: (Array.isArray(a.notices) ? a.notices : []).slice(0, 6).map((n) => ({ level: n?.level === "critical" ? "critical" : "caution", title: str2(n?.title, 100), body: str2(n?.body, 300) })).filter((n) => n.title),
     eyeReferral: ["none", "routine", "soon", "urgent"].includes(a.eyeReferral) ? a.eyeReferral : "none"
   };
@@ -49440,17 +49458,17 @@ async function getJson(fetchFn, url, token, init = {}) {
   if (!res.ok) throw new Error(`${url.split("?")[0]}: ${res.status}`);
   return res.json();
 }
-function sumByDay(list2) {
+function sumByDay(list3) {
   const out = /* @__PURE__ */ new Map();
-  for (const x of list2) if (x.day && Number.isFinite(x.value)) out.set(x.day, (out.get(x.day) || 0) + x.value);
+  for (const x of list3) if (x.day && Number.isFinite(x.value)) out.set(x.day, (out.get(x.day) || 0) + x.value);
   return [...out].map(([day, value]) => ({ day, value }));
 }
-function facts(kind, list2, source, map = (v) => v) {
-  return list2.filter((x) => x.day && Number.isFinite(x.value) && x.value > 0).map((x) => ({ kind, value: map(x.value), at: atOf(x.day), source, ...x.extra || {} }));
+function facts(kind, list3, source, map = (v) => v) {
+  return list3.filter((x) => x.day && Number.isFinite(x.value) && x.value > 0).map((x) => ({ kind, value: map(x.value), at: atOf(x.day), source, ...x.extra || {} }));
 }
-function workoutsByDay(list2, source) {
+function workoutsByDay(list3, source) {
   const byDay = /* @__PURE__ */ new Map();
-  for (const w of list2) {
+  for (const w of list3) {
     if (!w.day || !(w.minutes > 0)) continue;
     const d = byDay.get(w.day) || { minutes: 0, count: 0 };
     d.minutes += w.minutes;
@@ -49467,9 +49485,9 @@ function huaweiMs(t) {
   if (n > 1e11) return n;
   return n * 1e3;
 }
-function huaweiFields(list2) {
+function huaweiFields(list3) {
   const out = {};
-  for (const f of Array.isArray(list2) ? list2 : []) {
+  for (const f of Array.isArray(list3) ? list3 : []) {
     const v = f.floatValue ?? f.integerValue ?? f.longValue ?? f.value;
     if (f.fieldName != null && v != null && Number.isFinite(Number(v))) out[f.fieldName] = Number(v);
   }
@@ -49733,8 +49751,8 @@ var PROVIDERS = {
     scope: "activity:read_all",
     authorizeExtra: { approval_prompt: "auto" },
     async fetchFacts(fetchFn, token, from) {
-      const list2 = await getJson(fetchFn, `https://www.strava.com/api/v3/athlete/activities?after=${Math.floor(from.getTime() / 1e3)}&per_page=100`, token);
-      return workoutsByDay((Array.isArray(list2) ? list2 : []).map((a) => ({ day: String(a.start_date_local || "").slice(0, 10), minutes: Number(a.moving_time) / 60 })), "strava");
+      const list3 = await getJson(fetchFn, `https://www.strava.com/api/v3/athlete/activities?after=${Math.floor(from.getTime() / 1e3)}&per_page=100`, token);
+      return workoutsByDay((Array.isArray(list3) ? list3 : []).map((a) => ({ day: String(a.start_date_local || "").slice(0, 10), minutes: Number(a.moving_time) / 60 })), "strava");
     }
   }
 };
@@ -49805,15 +49823,15 @@ async function pullFacts(fetchFn, env, provider, link, now = /* @__PURE__ */ new
   }
   const to = new Date(now.getTime() - DAY_MS4);
   const from = new Date(now.getTime() - LINK_DAYS * DAY_MS4);
-  let list2;
+  let list3;
   try {
-    list2 = await p.fetchFacts(fetchFn, current.access, from, to);
+    list3 = await p.fetchFacts(fetchFn, current.access, from, to);
   } catch (e) {
     if (e.status !== 401) throw e;
     current = await refreshToken(fetchFn, env, provider, current);
-    list2 = await p.fetchFacts(fetchFn, current.access, from, to);
+    list3 = await p.fetchFacts(fetchFn, current.access, from, to);
   }
-  return { facts: list2, link: current };
+  return { facts: list3, link: current };
 }
 
 // admin-food-catalog.js
@@ -56646,8 +56664,8 @@ async function runSafetyRebuild(env, payload, jobId) {
 var COUNCIL_OUTCOME_PREFIX = "council_outcome:";
 var COUNCIL_OUTCOME_TTL = 400 * 24 * 60 * 60;
 async function recordCouncilOutcome(env, history, decision, jobId) {
-  const list2 = Array.isArray(history) ? history : [];
-  const prev = list2[list2.length - 1];
+  const list3 = Array.isArray(history) ? history : [];
+  const prev = list3[list3.length - 1];
   if (!env?.page_content || !prev?.direction) return;
   try {
     const outcome = councilOutcome(prev, decision.context?.checkin || {});
@@ -58885,7 +58903,7 @@ function serializeEmoeatProfile(profile) {
     const num2 = Number(value);
     return Number.isFinite(num2) ? Math.max(0, Math.min(100, Math.round(num2))) : 0;
   };
-  const list2 = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
+  const list3 = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
   const lines = [];
   const intensity = label(profile.intensity, 12);
   if (intensity) lines.push(`\u041A\u043E\u043B\u043A\u043E \u0447\u0435\u0441\u0442\u043E \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430: ${intensity}`);
@@ -58897,11 +58915,11 @@ function serializeEmoeatProfile(profile) {
   } else {
     lines.push("\u041F\u0440\u043E\u0444\u0438\u043B: \u043D\u044F\u043C\u0430 \u0438\u0437\u0440\u0430\u0437\u0435\u043D \u043C\u043E\u0434\u0435\u043B \u2014 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0440\u044F\u0434\u043A\u043E \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430\u0442\u0430 (\u043D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439 \u043F\u0440\u043E\u0431\u043B\u0435\u043C).");
   }
-  const drivers = list2(profile.drivers).map((d) => label(d, 40)).filter(Boolean);
+  const drivers = list3(profile.drivers).map((d) => label(d, 40)).filter(Boolean);
   if (drivers.length) lines.push("\u041A\u0430\u043A\u0432\u043E \u0433\u043E \u0437\u0430\u0445\u0440\u0430\u043D\u0432\u0430: " + drivers.join(", "));
-  const behaviors = list2(profile.behaviors).filter((b) => b && b.name).map((b) => `${label(b.name, 40)} (${label(b.level, 12)})`);
+  const behaviors = list3(profile.behaviors).filter((b) => b && b.name).map((b) => `${label(b.name, 40)} (${label(b.level, 12)})`);
   if (behaviors.length) lines.push("\u041A\u0430\u043A \u0441\u0435 \u043F\u0440\u043E\u044F\u0432\u044F\u0432\u0430: " + behaviors.join(", "));
-  const patterns = list2(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || "" : p, 60)).filter(Boolean);
+  const patterns = list3(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || "" : p, 60)).filter(Boolean);
   if (patterns.length) lines.push("\u041E\u0442\u043A\u0440\u0438\u0442\u0438 \u043A\u0440\u044A\u0433\u043E\u0432\u0435: " + patterns.join("; "));
   const body = label(profile.bodySignals, 120);
   if (body) lines.push("\u0422\u0435\u043B\u0435\u0441\u043D\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438: " + body);
@@ -61295,8 +61313,8 @@ async function touchHandoff(env, token, rec) {
 var HANDOFF_RECENT_KEY = "handoff_recent";
 async function rememberHandoffClaim(env, entry) {
   try {
-    const list2 = await kvGetJSON(env, HANDOFF_RECENT_KEY) || [];
-    await kvPutJSON(env, HANDOFF_RECENT_KEY, [entry, ...list2].slice(0, 30), null);
+    const list3 = await kvGetJSON(env, HANDOFF_RECENT_KEY) || [];
+    await kvPutJSON(env, HANDOFF_RECENT_KEY, [entry, ...list3].slice(0, 30), null);
   } catch (e) {
     console.warn("[handoff] recent list skipped:", e.message);
   }
@@ -62625,9 +62643,9 @@ async function handleXbodyViberOutbox(request, env) {
   if (!await xbodyViberAuth(request, env)) return jsonResponse2({ error: "unauthorized" }, 401);
   if (!env.page_content) return jsonResponse2({ messages: [] });
   const now = Date.now();
-  const list2 = await env.page_content.list({ prefix: "xbody:out:", limit: 50 });
+  const list3 = await env.page_content.list({ prefix: "xbody:out:", limit: 50 });
   const messages = [];
-  for (const k of list2.keys) {
+  for (const k of list3.keys) {
     const at = Number(k.name.split(":")[2]);
     if (!(at <= now)) break;
     const v = JSON.parse(await env.page_content.get(k.name) || "null");
@@ -62996,9 +63014,9 @@ async function xbodyFindCard(env, email, phone) {
     const found = await xbodyStripe(env, "GET", "customers", { email, limit: 5 });
     for (const cust of found && Array.isArray(found.data) ? found.data : []) {
       if (xbodyPhoneKey(cust.phone) !== key) continue;
-      const list2 = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
+      const list3 = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
       const now = /* @__PURE__ */ new Date();
-      for (const m of list2 && Array.isArray(list2.data) ? list2.data : []) {
+      for (const m of list3 && Array.isArray(list3.data) ? list3.data : []) {
         const c = m.card;
         if (!c || c.exp_year < now.getUTCFullYear() || c.exp_year === now.getUTCFullYear() && c.exp_month < now.getUTCMonth() + 1) continue;
         return { pm: m.id, customer: cust.id, brand: c.brand || "", last4: c.last4 || "" };
@@ -63016,8 +63034,8 @@ async function xbodyPrice(env) {
     const resp = await fetch("https://acuityscheduling.com/api/v1/appointment-types", {
       headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` }
     });
-    const list2 = resp.ok ? await resp.json() : [];
-    const type = (Array.isArray(list2) ? list2 : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
+    const list3 = resp.ok ? await resp.json() : [];
+    const type = (Array.isArray(list3) ? list3 : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
     const n = type ? Number(type.price) : NaN;
     if (Number.isFinite(n)) price = n;
   } catch (err2) {
@@ -63138,9 +63156,9 @@ async function handleXbodyBook(request, env) {
     u.searchParams.set("direction", "DESC");
     const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
     if (!resp.ok) throw new Error("appointments " + resp.status);
-    const list2 = await resp.json();
+    const list3 = await resp.json();
     const complete = (a) => /Гаранция с карта/.test(String(a.notes || "")) || (Array.isArray(a.forms) ? a.forms : []).some((f) => (Array.isArray(f && f.values) ? f.values : []).some((v) => v && v.fieldID && Number(v.fieldID) !== 3583430 && v.value !== void 0 && v.value !== null && v.value !== ""));
-    previous = (Array.isArray(list2) ? list2 : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
+    previous = (Array.isArray(list3) ? list3 : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
   } catch (err2) {
     console.error("[xbody-book] lookup failed:", err2.message);
     return jsonResponse2({ error: "\u0417\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
@@ -63175,8 +63193,8 @@ async function handleXbodyBook(request, env) {
             calendarID: Number(XBODY_ACUITY_BOOKING.calendarID)
           }])
         });
-        const list2 = await chk.json().catch(() => null);
-        if (!chk.ok || !Array.isArray(list2) || !list2[0] || list2[0].valid !== true) {
+        const list3 = await chk.json().catch(() => null);
+        if (!chk.ok || !Array.isArray(list3) || !list3[0] || list3[0].valid !== true) {
           failed.push({ time, error: "taken" });
           continue;
         }

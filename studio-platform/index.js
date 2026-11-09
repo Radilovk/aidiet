@@ -914,12 +914,34 @@ async function handleMaster(env, request, b) {
 }
 
 /* ── a studio's own address (burgas.<STUDIO_ROOT_DOMAIN>): its page, from the site (cached at the edge) ── */
+const ORIGIN = 'https://biocode.website';
+// what the app's own domain shows from the site: the landing, the studio page and their files — nothing else of the site
+const LANDING_PATHS = /^\/(studio\.html|studio-privacy\.html|studio-support\.html|studio-app\/landing\/[\w.-]+|\.well-known\/apple-app-site-association)$/;
+const list = (v) => String(v || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
+
+/** xbody.online: the landing (/) and the studio page, served from the site; www.xbody.online → xbody.online */
+async function handleLanding(request, env, url, host) {
+  const bare = host.replace(/^www\./, '');
+  if (!list(env.STUDIO_LANDING_HOSTS).includes(bare)) return null;
+  if (host !== bare) return Response.redirect(`https://${bare}${url.pathname}${url.search}`, 301);
+  if (url.pathname.startsWith('/api/')) return null;
+  const path = url.pathname === '/' || url.pathname === '/index.html' ? '/xb-studio.html' : url.pathname;
+  if (path !== '/xb-studio.html' && !LANDING_PATHS.test(path)) return Response.redirect(`https://${bare}/`, 302);
+  const resp = await fetch(ORIGIN + path + url.search, { cf: { cacheTtl: 300, cacheEverything: true } });
+  const headers = new Headers({ 'Cache-Control': 'public, max-age=300', 'X-Content-Type-Options': 'nosniff' });
+  const type = resp.headers.get('Content-Type');
+  if (type) headers.set('Content-Type', type);
+  return new Response(resp.body, { status: resp.status, headers });
+}
+
 export async function handleStudioSite(request, env) {
-  const root = String(env.STUDIO_ROOT_DOMAIN || '').toLowerCase();
   const url = new URL(request.url);
   const host = url.hostname.toLowerCase();
-  if (!root || !host.endsWith('.' + root) || url.pathname.startsWith('/api/')) return null;
-  if (!/^[a-z0-9-]{2,40}$/.test(host.slice(0, -(root.length + 1)))) return null;
+  const landing = await handleLanding(request, env, url, host);
+  if (landing) return landing;
+  const root = list(env.STUDIO_ROOT_DOMAIN).find((r) => host.endsWith('.' + r));
+  if (!root || url.pathname.startsWith('/api/')) return null;
+  if (!/^[a-z0-9-]{2,40}$/.test(host.slice(0, -(root.length + 1))) || host.startsWith('www.')) return null;
   const page = env.STUDIO_PAGE_URL || 'https://biocode.website/studio.html';
   const resp = await fetch(page, { cf: { cacheTtl: 300, cacheEverything: true } });
   return new Response(resp.body, {

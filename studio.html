@@ -598,9 +598,9 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
 (function () {
   'use strict';
   /* ── where: the studio (its subdomain, or ?s= for a test) and the API ── */
-  const ROOT = 'biocode-bg.com';
   const host = location.hostname.toLowerCase();
-  const SUB = host.endsWith('.' + ROOT) ? host.slice(0, -(ROOT.length + 1)) : '';
+  const ROOT = ['biocode-bg.com', 'xbody.online'].find((r) => host.endsWith('.' + r)) || '';
+  const SUB = ROOT ? host.slice(0, -(ROOT.length + 1)) : '';
   /* in the phone app (Capacitor) there is no studio in the address: the one chosen last is kept */
   const APP = Boolean(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
   const CUR_KEY = 'studio:current';

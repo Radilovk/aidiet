@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { strict as assert } from 'node:assert';
-import { handleStudioApi } from '../studio-platform/index.js';
+import { handleStudioApi, handleStudioSite } from '../studio-platform/index.js';
 import { slotsForMonth, zonedMs, zonedParts, tzOffset } from '../studio-platform/slots.js';
 import { normalizeSettings } from '../studio-platform/settings.js';
 
@@ -346,6 +346,26 @@ await t('push (app 1.2): the device registers with its token; the studio cancels
   } finally {
     globalThis.fetch = before; delete env.APNS_KEY_P8; delete env.APNS_KEY_ID; delete env.APNS_TEAM_ID;
   }
+});
+
+await t('xbody.online: / is the landing, the studio page and its files come from the site, nothing else; www → bare; burgas.xbody.online → the studio', async () => {
+  const before = globalThis.fetch; const asked = [];
+  globalThis.fetch = async (u) => { asked.push(String(u)); return new Response('<html>', { status: 200, headers: { 'Content-Type': 'text/html' } }); };
+  try {
+    const e = { STUDIO_ROOT_DOMAIN: 'biocode-bg.com,xbody.online', STUDIO_LANDING_HOSTS: 'xbody.online' };
+    const go = (u) => handleStudioSite(new Request(u), e);
+    let r = await go('https://xbody.online/');
+    assert.equal(r.status, 200); assert.equal(asked.pop(), 'https://biocode.website/xb-studio.html');
+    r = await go('https://xbody.online/studio.html?s=xbody'); assert.equal(asked.pop(), 'https://biocode.website/studio.html?s=xbody');
+    r = await go('https://xbody.online/studio-app/landing/mark.png'); assert.equal(asked.pop(), 'https://biocode.website/studio-app/landing/mark.png');
+    r = await go('https://xbody.online/admin.html'); assert.equal(r.status, 302); assert.equal(r.headers.get('Location'), 'https://xbody.online/');
+    r = await go('https://xbody.online/../plan.html'); assert.ok([301, 302].includes(r.status) || r.status === 200 && asked.pop() !== 'https://biocode.website/plan.html');
+    r = await go('https://www.xbody.online/studio.html?s=x'); assert.equal(r.status, 301); assert.equal(r.headers.get('Location'), 'https://xbody.online/studio.html?s=x');
+    assert.equal(await go('https://xbody.online/api/s/list'), null);   // the API on the domain is the API
+    r = await go('https://burgas.xbody.online/'); assert.equal(r.status, 200); assert.equal(asked.pop(), 'https://biocode.website/studio.html');
+    assert.equal(await go('https://www.biocode-bg.com/'), null);
+    assert.equal(await go('https://aidiet.radilov-k.workers.dev/'), null);
+  } finally { globalThis.fetch = before; }
 });
 
 await t('a code made by scripts/studio-admin.mjs (Node PBKDF2) opens the admin (WebCrypto)', async () => {
