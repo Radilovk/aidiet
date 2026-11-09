@@ -10183,9 +10183,9 @@ var studioMemo = /* @__PURE__ */ new Map();
 function slugFrom(env, url, body) {
   const given = String(body && body.studio || url.searchParams.get("studio") || "").toLowerCase();
   if (/^[a-z0-9-]{2,40}$/.test(given)) return given;
-  const root = String(env.STUDIO_ROOT_DOMAIN || "").toLowerCase();
   const host = url.hostname.toLowerCase();
-  if (root && host.endsWith("." + root)) {
+  const root = String(env.STUDIO_ROOT_DOMAIN || "").toLowerCase().split(",").map((x) => x.trim()).find((r) => r && host.endsWith("." + r));
+  if (root) {
     const sub = host.slice(0, -(root.length + 1));
     if (/^[a-z0-9-]{2,40}$/.test(sub)) return sub;
   }
