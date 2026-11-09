@@ -10063,13 +10063,23 @@ async function busyTimes(env, calendarId, fromMs, toMs, tz) {
   }
   return out;
 }
-async function addEvent(env, calendarId, b, studioName) {
+var eventTitle = (b) => String(b.name || b.phone || "\u041A\u043B\u0438\u0435\u043D\u0442");
+function eventDescription(b, studioName, notes = []) {
+  return [
+    `\u0422\u0435\u043B.: ${b.phone}`,
+    ...notes,
+    b.code ? `\u041A\u043E\u0434: ${b.code}` : "",
+    b.card_last4 ? `\u041A\u0430\u0440\u0442\u0430 (\u0433\u0430\u0440\u0430\u043D\u0446\u0438\u044F): \u2022\u2022\u2022\u2022 ${b.card_last4}` : "",
+    `${studioName} \xB7 ${b.source === "admin" ? "\u0437\u0430\u043F\u0438\u0441\u0430\u043D \u043E\u0442 \u0441\u0442\u0443\u0434\u0438\u043E\u0442\u043E" : "\u0437\u0430\u043F\u0438\u0441\u0430\u043D \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E"}`
+  ].filter(Boolean).join("\n");
+}
+async function updateEventInfo(env, calendarId, eventId, b, studioName, notes = []) {
+  await gcal(env, "PATCH", `${cal(calendarId)}/${encodeURIComponent(eventId)}`, { summary: eventTitle(b), description: eventDescription(b, studioName, notes) });
+}
+async function addEvent(env, calendarId, b, studioName, notes = []) {
   const ev = await gcal(env, "POST", cal(calendarId), {
-    summary: `${studioName}: ${b.name || b.phone}`,
-    description: `\u0422\u0435\u043B.: ${b.phone}${b.code ? `
-\u041A\u043E\u0434: ${b.code}` : ""}${b.card_last4 ? `
-\u041A\u0430\u0440\u0442\u0430 (\u0433\u0430\u0440\u0430\u043D\u0446\u0438\u044F): \u2022\u2022\u2022\u2022 ${b.card_last4}` : ""}
-\u0417\u0430\u043F\u0438\u0441\u0430\u043D\u043E \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E.`,
+    summary: eventTitle(b),
+    description: eventDescription(b, studioName, notes),
     start: { dateTime: new Date(b.start_ms).toISOString() },
     end: { dateTime: new Date(b.end_ms).toISOString() },
     extendedProperties: { private: { studioBooking: b.id } }
@@ -10600,7 +10610,7 @@ async function handleBook(env, ctx, studio, b) {
         await viberBooking(env, studio, "booked", bk);
         if (st.google.calendarId) {
           try {
-            const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name);
+            const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name, await calNotes(env, studio, bk));
             await env.STUDIO_DB.prepare("UPDATE bookings SET gcal_event = ? WHERE id = ?").bind(ev, bk.id).run();
           } catch (e) {
             console.warn("[studio] google event failed:", e.message);
@@ -10839,6 +10849,21 @@ async function saveSettings(env, studio, next) {
   await bumpRev(env, studio.id);
   return st;
 }
+async function calNotes(env, studio, bk) {
+  const db = env.STUDIO_DB;
+  const c = await db.prepare("SELECT email FROM clients WHERE studio_id = ? AND phone = ?").bind(studio.id, bk.phone).first().catch(() => null);
+  const n = await db.prepare(
+    `SELECT SUM(CASE WHEN status = 'booked' AND start_ms < ? THEN 1 ELSE 0 END) AS done,
+            SUM(CASE WHEN status = 'noshow' OR late_cancel = 1 THEN 1 ELSE 0 END) AS missed
+     FROM bookings WHERE studio_id = ? AND phone = ?`
+  ).bind(Date.now(), studio.id, bk.phone).first().catch(() => null);
+  const done = n && n.done || 0, missed = n && n.missed || 0;
+  return [
+    c && c.email ? `\u0418\u043C\u0435\u0439\u043B: ${c.email}` : "",
+    done ? `\u041F\u0440\u043E\u0432\u0435\u0434\u0435\u043D\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438: ${done}` : "\u041F\u044A\u0440\u0432\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430",
+    missed ? `\u041D\u0435\u044F\u0432\u044F\u0432\u0430\u043D\u0438\u044F / \u043A\u044A\u0441\u043D\u0438 \u043E\u0442\u043A\u0430\u0437\u0438: ${missed}` : ""
+  ].filter(Boolean);
+}
 async function backfillCalendar(env, studio, st) {
   const cal2 = st.google.calendarId;
   if (!cal2) return 0;
@@ -10848,7 +10873,7 @@ async function backfillCalendar(env, studio, st) {
   let added = 0;
   for (const bk of rows) {
     try {
-      const ev = await addEvent(env, cal2, bk, st.brand.name);
+      const ev = await addEvent(env, cal2, bk, st.brand.name, await calNotes(env, studio, bk));
       await env.STUDIO_DB.prepare("UPDATE bookings SET gcal_event = ? WHERE id = ?").bind(ev, bk.id).run();
       added++;
     } catch (e) {
@@ -10868,7 +10893,20 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
   }
   if (path === "calendar-sync") {
     if (!studio.settings.google.calendarId) return err("calendar");
-    return json({ added: await backfillCalendar(env, studio, studio.settings) });
+    const added = await backfillCalendar(env, studio, studio.settings);
+    const have = (await env.STUDIO_DB.prepare(
+      "SELECT * FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ? AND gcal_event <> '' ORDER BY start_ms LIMIT 300"
+    ).bind(studio.id, Date.now()).all()).results || [];
+    let renamed = 0;
+    for (const bk of have) {
+      try {
+        await updateEventInfo(env, studio.settings.google.calendarId, bk.gcal_event, bk, studio.settings.brand.name, await calNotes(env, studio, bk));
+        renamed++;
+      } catch (e) {
+        console.warn("[studio] google update failed:", e.message);
+      }
+    }
+    return json({ added, renamed });
   }
   if (path === "logo") {
     const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(b.dataUrl || ""));
@@ -10969,13 +11007,13 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     if (!r.meta || !r.meta.changes) return err("taken", 409);
     await upsertClient(env, studio.id, phone, { name });
     await bumpRev(env, studio.id);
-    const bk = { id, start_ms: ms, end_ms: ms + len, phone, name };
+    const bk = { id, start_ms: ms, end_ms: ms + len, phone, name, source: "admin" };
     ctx.waitUntil((async () => {
       if (b.viber !== false) await viberBooking(env, studio, "booked", bk);
       if (b.push !== false) await pushTo(env, studio, [phone], { body: `\u0417\u0430\u043F\u0438\u0441\u0430\u0445\u043C\u0435 \u0442\u0435: ${hourLabel(st, ms)}. \u0414\u043E \u0441\u043A\u043E\u0440\u043E!`, extra: { kind: "booked", id } });
       if (st.google.calendarId) {
         try {
-          const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name);
+          const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name, await calNotes(env, studio, bk));
           await env.STUDIO_DB.prepare("UPDATE bookings SET gcal_event = ? WHERE id = ?").bind(ev, id).run();
         } catch (e) {
           console.warn("[studio] google event failed:", e.message);

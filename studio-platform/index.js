@@ -12,7 +12,7 @@
 import { normalizeSettings, publicSettings } from './settings.js';
 import { slotsForMonth, zonedMs, zonedParts, isOfferedStart, inWindow, isFree } from './slots.js';
 import { pushTo, pushReady, savePushToken, forgetPushTokens } from './push.js';
-import { busyTimes, addEvent, moveEvent, deleteEvent, checkCalendar, serviceAccountEmail } from './google.js';
+import { busyTimes, addEvent, moveEvent, deleteEvent, updateEventInfo, checkCalendar, serviceAccountEmail } from './google.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -512,7 +512,7 @@ async function handleBook(env, ctx, studio, b) {
         await viberBooking(env, studio, 'booked', bk);
         if (st.google.calendarId) {
           try {
-            const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name);
+            const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name, await calNotes(env, studio, bk));
             await env.STUDIO_DB.prepare('UPDATE bookings SET gcal_event = ? WHERE id = ?').bind(ev, bk.id).run();
           } catch (e) { console.warn('[studio] google event failed:', e.message); }
         }
@@ -758,6 +758,23 @@ async function saveSettings(env, studio, next) {
   return st;
 }
 
+/** what the studio wants to know about the client, for the calendar event (no health data) */
+async function calNotes(env, studio, bk) {
+  const db = env.STUDIO_DB;
+  const c = await db.prepare('SELECT email FROM clients WHERE studio_id = ? AND phone = ?').bind(studio.id, bk.phone).first().catch(() => null);
+  const n = await db.prepare(
+    `SELECT SUM(CASE WHEN status = 'booked' AND start_ms < ? THEN 1 ELSE 0 END) AS done,
+            SUM(CASE WHEN status = 'noshow' OR late_cancel = 1 THEN 1 ELSE 0 END) AS missed
+     FROM bookings WHERE studio_id = ? AND phone = ?`,
+  ).bind(Date.now(), studio.id, bk.phone).first().catch(() => null);
+  const done = (n && n.done) || 0, missed = (n && n.missed) || 0;
+  return [
+    c && c.email ? `Имейл: ${c.email}` : '',
+    done ? `Проведени тренировки: ${done}` : 'Първа тренировка',
+    missed ? `Неявявания / късни откази: ${missed}` : '',
+  ].filter(Boolean);
+}
+
 /** every booked hour ahead without a Google event gets one (up to 200 at a time) */
 async function backfillCalendar(env, studio, st) {
   const cal = st.google.calendarId;
@@ -768,7 +785,7 @@ async function backfillCalendar(env, studio, st) {
   let added = 0;
   for (const bk of rows) {
     try {
-      const ev = await addEvent(env, cal, bk, st.brand.name);
+      const ev = await addEvent(env, cal, bk, st.brand.name, await calNotes(env, studio, bk));
       await env.STUDIO_DB.prepare('UPDATE bookings SET gcal_event = ? WHERE id = ?').bind(ev, bk.id).run();
       added++;
     } catch (e) { console.warn('[studio] google backfill failed:', e.message); break; }
@@ -787,7 +804,16 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
   }
   if (path === 'calendar-sync') {   // the same, on demand: every booked hour ahead that is not in Google yet
     if (!studio.settings.google.calendarId) return err('calendar');
-    return json({ added: await backfillCalendar(env, studio, studio.settings) });
+    const added = await backfillCalendar(env, studio, studio.settings);
+    // the events already there get the current title (the client first)
+    const have = (await env.STUDIO_DB.prepare(
+      "SELECT * FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ? AND gcal_event <> '' ORDER BY start_ms LIMIT 300",
+    ).bind(studio.id, Date.now()).all()).results || [];
+    let renamed = 0;
+    for (const bk of have) {
+      try { await updateEventInfo(env, studio.settings.google.calendarId, bk.gcal_event, bk, studio.settings.brand.name, await calNotes(env, studio, bk)); renamed++; } catch (e) { console.warn('[studio] google update failed:', e.message); }
+    }
+    return json({ added, renamed });
   }
   if (path === 'logo') {
     const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(b.dataUrl || ''));
@@ -875,13 +901,13 @@ async function handleAdmin(env, ctx, studio, request, path, b, url) {
     if (!r.meta || !r.meta.changes) return err('taken', 409);
     await upsertClient(env, studio.id, phone, { name });
     await bumpRev(env, studio.id);
-    const bk = { id, start_ms: ms, end_ms: ms + len, phone, name };
+    const bk = { id, start_ms: ms, end_ms: ms + len, phone, name, source: 'admin' };
     ctx.waitUntil((async () => {
       if (b.viber !== false) await viberBooking(env, studio, 'booked', bk);
       if (b.push !== false) await pushTo(env, studio, [phone], { body: `Записахме те: ${hourLabel(st, ms)}. До скоро!`, extra: { kind: 'booked', id } });
       if (st.google.calendarId) {
         try {
-          const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name);
+          const ev = await addEvent(env, st.google.calendarId, bk, st.brand.name, await calNotes(env, studio, bk));
           await env.STUDIO_DB.prepare('UPDATE bookings SET gcal_event = ? WHERE id = ?').bind(ev, id).run();
         } catch (e) { console.warn('[studio] google event failed:', e.message); }
       }
