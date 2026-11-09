@@ -326,7 +326,7 @@ await t('push (app 1.2): the device registers with its token; the studio cancels
     assert.equal(sent.length, 2);
     const a = sent.find((x) => x.token === dev);
     assert.match(a.body.aps.alert.body, /^Часът ти .+ 10:00 е отменен/);
-    assert.equal(a.body.aps.sound, 'studio.wav');
+    assert.equal(a.body.aps.sound, 'default');
     assert.equal(a.headers['apns-topic'], 'com.biocode.studios');
     const [h, p, sig] = a.headers.authorization.slice(7).split('.');
     assert.equal(JSON.parse(Buffer.from(h, 'base64url')).kid, 'KEY1234567');

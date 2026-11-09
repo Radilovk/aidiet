@@ -9905,7 +9905,7 @@ function isOfferedStart(st, start) {
 // studio-platform/push.js
 var TOPIC = "com.biocode.studios";
 var HOST = "https://api.push.apple.com";
-var PUSH_SOUND = "studio.wav";
+var PUSH_SOUND = "default";
 var pushReady = (env) => Boolean(env && env.APNS_KEY_P8 && env.APNS_KEY_ID && env.APNS_TEAM_ID);
 var b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 var b64urlText = (s) => b64url(new TextEncoder().encode(s));

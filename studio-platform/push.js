@@ -13,7 +13,7 @@
  */
 const TOPIC = 'com.biocode.studios';
 const HOST = 'https://api.push.apple.com';
-export const PUSH_SOUND = 'studio.wav';   // in the app since 1.2; a phone without the file plays the default sound
+export const PUSH_SOUND = 'default';   // the phone's own notification sound — clearly audible (the studio chime was too quiet)
 
 export const pushReady = (env) => Boolean(env && env.APNS_KEY_P8 && env.APNS_KEY_ID && env.APNS_TEAM_ID);
 
