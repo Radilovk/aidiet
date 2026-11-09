@@ -1228,27 +1228,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       <label class="tick"><input type="checkbox" id="rp-hours" ${p.hours ? 'checked' : ''}><span>Преди всеки час<small class="muted" style="display:block">Вечерта преди в 19:00${h ? ` и ${h} ч. преди` : ''}</small></span></label>
       <label class="tick"><input type="checkbox" id="rp-week" ${p.weekly ? 'checked' : ''}><span>Моята седмица<small class="muted" style="display:block">В неделя в 18:00 — часовете за седмицата или покана за нов</small></span></label>
       <p class="small muted">Звук и вибрация — според настройките на телефона.</p>
-      ${nativeLN() ? '<button class="btn sec" id="rp-test">Пробно напомняне след 10 секунди</button>' : ''}
       <button class="btn sec" data-back>Назад</button>`, (e) => { if (e.target.closest('[data-back]')) openProfile(); });
-    // a try-out: the same look, sound and channel as a real reminder — lock the phone and see it arrive
-    if ($('rp-test')) $('rp-test').onclick = async () => {
-      const ln = nativeLN();
-      try {
-        let perm = (await ln.checkPermissions()).display;
-        if (perm === 'prompt') perm = (await ln.requestPermissions()).display;
-        if (perm !== 'granted') { toast('Известията са изключени — включете ги от настройките на телефона.', 4000); return; }
-        if (isAndroid() && ln.createChannel && !androidChannel) {
-          androidChannel = true;
-          await ln.createChannel({ id: CHANNEL, name: 'Напомняния', description: 'Напомняния за записаните часове', importance: 4, visibility: 1, vibration: true }).catch(() => {});
-        if (ln.deleteChannel) ln.deleteChannel({ id: 'studio' }).catch(() => {});   // the old channel (its quiet chime)
-        }
-        setupNotificationTaps(ln);
-        await ln.schedule({ notifications: [{ id: WEEK_BASE - 1, title: cfg.brand.name, body: 'Утре в 18:00 — очакваме те.', group: STUDIO, threadIdentifier: STUDIO,
-          sound: remSound(), interruptionLevel: 'active', extra: { test: true }, ...(isAndroid() ? { channelId: CHANNEL } : {}),
-          schedule: { at: new Date(Date.now() + 10e3), allowWhileIdle: true } }] });
-        toast('Заключете телефона — напомнянето идва след 10 секунди.', 4000);
-      } catch (_) { toast('Не успя.'); }
-    };
     $('rp-hours').onchange = (e) => setRemPref('hours', e.target.checked);
     $('rp-week').onchange = async (e) => {
       const ln = nativeLN();
