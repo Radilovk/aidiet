@@ -182,8 +182,12 @@ await step('the Sunday overview: off by default, on from Профил → Нап
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id >= 1950000000));
   const wk = (await ln()).pending.filter((n) => n.id >= 1950000000);
   if (wk.length < 5 || wk.some((n) => new Date(n.at).getUTCDay() !== 0 || !n.body)) throw new Error('weekly: ' + JSON.stringify(wk));
+  // a Sunday covers the week after it: the hour is listed only when it falls in one of those weeks (not in the current one)
+  const hourAt = zonedMs(day, '08:00', 'Europe/Sofia');
+  const covered = wk.some((n) => hourAt > n.at && hourAt <= n.at + 7 * 864e5);
   const sum = wk.find((n) => /08:00/.test(n.body));
-  if (!sum || !/^(Пн|Вт|Ср|Чт|Пт|Сб|Нд) 08:00/.test(sum.body)) throw new Error('the week of the hour lacks it: ' + JSON.stringify(wk.map((n) => n.body)));
+  if (covered && (!sum || !/^(Пн|Вт|Ср|Чт|Пт|Сб|Нд) 08:00/.test(sum.body))) throw new Error('the week of the hour lacks it: ' + JSON.stringify(wk.map((n) => n.body)));
+  if (!covered && sum) throw new Error('an hour of this week in a Sunday overview: ' + JSON.stringify(wk.map((n) => n.body)));
   if (!wk.some((n) => !/\d\d:\d\d/.test(n.body))) throw new Error('no nudge for an empty week');
   await page.uncheck('#rp-week');
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id >= 1950000000));
