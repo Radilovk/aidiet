@@ -2623,6 +2623,20 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   return { bmr, tdee, activityData, previousIntake, intake, intakeDrift };
 }
 
+/**
+ * Свободните текстове от AI към клиента минават през пазача (text-guard):
+ * изреченията с проблем отпадат — вкл. трето лице („клиентът“, „да се следи“).
+ */
+function guardFields(obj, keys) {
+  if (!obj || typeof obj !== 'object') return;
+  for (const k of keys) {
+    if (typeof obj[k] !== 'string' || !obj[k].trim()) continue;
+    const g = guardClientText(obj[k], { fallback: '' });
+    if (g.removed.length) console.warn(`[guard] ${k}: махнати изречения:`, g.removed.join(', '));
+    obj[k] = g.text;
+  }
+}
+
 /** Default off — set ANALYSIS_AI_NARRATIVE=1 to let AI re-tell the analysis texts. */
 function analysisNarrativeEnabled(env = {}) {
   const v = env?.ANALYSIS_AI_NARRATIVE;
@@ -10181,6 +10195,9 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
       return jsonResponse({ ...menuBody, kind: 'menu' }, menuResponse.status);
     }
 
+    guardFields(analysisResult?.dietSuitability, ['explanation']);
+    guardFields(analysisResult, ['suggestions']);
+
     // Оценката е от 5 — интерфейсът и „вредна храна“ (≤ 2) я четат така; промпт с 1–10 се свежда.
     const suitScore = Number(analysisResult?.dietSuitability?.score);
     if (suitScore > 5) analysisResult.dietSuitability.score = Math.round(suitScore / 2);
@@ -10301,7 +10318,7 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
   "recommendedDish": "Пълно название на препоръчаното ястие точно от менюто",
   "suitabilityScore": число от 0 до 5,
   "description": "Кратко описание на ястието (1-2 изречения)",
-  "reasoning": "Защо е подходящо за целта и профила на клиента (2-3 изречения)",
+  "reasoning": "Защо е подходящо за целта и профила ти — директно към клиента, на „ти“ (2-3 изречения)",
   "adaptationTip": "Конкретна препоръка за адаптация при поръчката (напр. 'Поръчай салатата без дресинг, добави само лимон и зехтин')",
   "alternatives": [
     {
@@ -10339,6 +10356,9 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
         message: 'Снимката не беше разпозната. Опитай отново с по-ясна снимка.'
       });
     }
+
+    guardFields(menuResult, ['description', 'reasoning', 'adaptationTip']);
+    (Array.isArray(menuResult?.alternatives) ? menuResult.alternatives : []).forEach(a => guardFields(a, ['reason']));
 
     return jsonResponse({
       success: true,
@@ -15653,8 +15673,8 @@ const DEFAULT_HEALTH_DIGEST_PROMPT = `Ти си диетолог. Данни о�
 Върни САМО валиден JSON (без markdown):
 {"insights":["..."],"coachNote":"...","approach":[]}
 
-- insights: до 4 кратки изречения на български към клиента (на „ти“), всяко свързва конкретно число с конкретно действие в храненето или режима. Без повторение на числата без извод.
-- coachNote: 1–3 изречения за диетолога и чат асистента — най-важното от данните и какво да се следи.
+- insights: до 4 кратки изречения на български, които клиентът чете в приложението. Говори му директно на „ти“ („крачките ти“, „яж“), никога за него („клиентът“, „да се следи“). Всяко свързва конкретно число с конкретно действие в храненето или режима. Без повторение на числата без извод.
+- coachNote: 1–3 изречения само за диетолога и чат асистента (клиентът не ги вижда) — най-важното от данните и какво да се следи.
 - approach: 0–2 кода само от списъка, и само ако данните ясно го оправдават: {approachList}
 - Не променяй калориите, не поставяй диагнози, не коментирай лекарства. Ако данните са нормални — кажи го кратко.`;
 

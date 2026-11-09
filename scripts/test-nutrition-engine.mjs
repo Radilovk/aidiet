@@ -29,7 +29,7 @@ import { validateWeekPlanCombinations } from './plan-adequacy/validators/combina
 import { validateWeekPlanDayCoherence, validateWeeklyDishVariety } from '../meal-combinations.js';
 import { profileBrief, normalizeIntakeHints, normalizeFeedbackHints, normalizeSwaps, collectFreeText, collectQuestionAnswers, describeCodes } from '../nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from '../profile-code.js';
-import { textIssues, isCleanClientText, guardClientText } from '../nutrition-engine/text-guard.js';
+import { textIssues, isCleanClientText, isCleanStaffText, guardClientText } from '../nutrition-engine/text-guard.js';
 import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment, weeklyQuestionsFor, weeklyMessage } from '../nutrition-engine/monitoring.js';
 
 let validatorIssues = 0;
@@ -382,6 +382,7 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
     markup: '```json {"a":1}```',
     imitation: 'Планът е съставен така, както го съставя диетолог.',
     jargon: 'Калоражът е разпределен равномерно през деня.',
+    third_person: 'Клиентът има висока физическа активност (14k стъпки).',
   };
   ok(!textIssues('Вашият диетолог ще прегледа седмицата с Вас.').length, 'пазач: „диетолог“ без сравнение е позволено');
   for (const [code, text] of Object.entries(bad)) ok(textIssues(text).includes(code), `пазач: разпознава ${code}`);
@@ -392,6 +393,15 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   const mixed = guardClientText('Добър въпрос! Като AI нямам тяло. Опитайте печена риба с броколи.');
   ok(mixed.text === 'Добър въпрос! Опитайте печена риба с броколи.' && mixed.removed.includes('ai_self'), 'пазач: маха само лошото изречение');
   ok(guardClientText('Като езиков модел не мога.').text.length > 10, 'пазач: празен отговор → резервен текст');
+  ok(guardClientText('Като езиков модел не мога.', { fallback: '' }).text === '', 'пазач: празен резерв, когато полето може да остане празно');
+  // Трето лице: текстът за клиента говори НА него, не ЗА него.
+  for (const t of ['Да се следи последователността в носенето.', 'Специалистът да изчисли целевия прием.', 'Препоръчваме на клиента повече белтък.', 'Пациентът приема метформин.'])
+    ok(textIssues(t).includes('third_person'), `пазач: трето лице — „${t.slice(0, 24)}…“`);
+  for (const t of ['Крачките ти са над целта — яж повече белтък.', 'При пациенти с диабет въглехидратите вървят с белтък.', 'Отвори клиентския картон.', 'Да се консултираш с лекар е добра идея.'])
+    ok(!textIssues(t).includes('third_person'), `пазач: не е трето лице — „${t.slice(0, 24)}…“`);
+  ok(isCleanStaffText('Клиентът има висока активност; да се следи пулсът.') && !isCleanStaffText('Като AI не мога. Клиентът спи малко.'), 'бележка за екипа: третото лице е позволено, останалото — не');
+  const tp = guardClientText('Крачките ти са високи. Клиентът има висока активност, но данните са само за 4 дни. Пий повече вода.');
+  ok(tp.text === 'Крачките ти са високи. Пий повече вода.' && tp.removed.includes('third_person'), 'пазач: маха изречението в трето лице');
 }
 
 // Соевото мляко е само за вегани (решение на собственика).
