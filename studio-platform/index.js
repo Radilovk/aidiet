@@ -758,9 +758,37 @@ async function saveSettings(env, studio, next) {
   return st;
 }
 
+/** every booked hour ahead without a Google event gets one (up to 200 at a time) */
+async function backfillCalendar(env, studio, st) {
+  const cal = st.google.calendarId;
+  if (!cal) return 0;
+  const rows = (await env.STUDIO_DB.prepare(
+    "SELECT * FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ? AND (gcal_event IS NULL OR gcal_event = '') ORDER BY start_ms LIMIT 200",
+  ).bind(studio.id, Date.now()).all()).results || [];
+  let added = 0;
+  for (const bk of rows) {
+    try {
+      const ev = await addEvent(env, cal, bk, st.brand.name);
+      await env.STUDIO_DB.prepare('UPDATE bookings SET gcal_event = ? WHERE id = ?').bind(ev, bk.id).run();
+      added++;
+    } catch (e) { console.warn('[studio] google backfill failed:', e.message); break; }
+  }
+  return added;
+}
+
 async function handleAdmin(env, ctx, studio, request, path, b, url) {
   if (path === 'state') return adminState(env, studio);
-  if (path === 'settings') return json({ settings: await saveSettings(env, studio, b.settings) });
+  if (path === 'settings') {
+    const before = studio.settings.google.calendarId;
+    const settings = await saveSettings(env, studio, b.settings);
+    // a calendar just connected: the hours already booked ahead go into it too (once each — gcal_event is kept)
+    if (settings.google.calendarId && settings.google.calendarId !== before) ctx.waitUntil(backfillCalendar(env, studio, settings));
+    return json({ settings });
+  }
+  if (path === 'calendar-sync') {   // the same, on demand: every booked hour ahead that is not in Google yet
+    if (!studio.settings.google.calendarId) return err('calendar');
+    return json({ added: await backfillCalendar(env, studio, studio.settings) });
+  }
   if (path === 'logo') {
     const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(b.dataUrl || ''));
     if (!m || m[2].length > 560000) return err('logo');   // ≈ 400 KB; no SVG (it could carry a script)

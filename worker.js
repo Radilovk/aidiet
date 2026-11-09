@@ -10839,9 +10839,37 @@ async function saveSettings(env, studio, next) {
   await bumpRev(env, studio.id);
   return st;
 }
+async function backfillCalendar(env, studio, st) {
+  const cal2 = st.google.calendarId;
+  if (!cal2) return 0;
+  const rows = (await env.STUDIO_DB.prepare(
+    "SELECT * FROM bookings WHERE studio_id = ? AND status = 'booked' AND start_ms > ? AND (gcal_event IS NULL OR gcal_event = '') ORDER BY start_ms LIMIT 200"
+  ).bind(studio.id, Date.now()).all()).results || [];
+  let added = 0;
+  for (const bk of rows) {
+    try {
+      const ev = await addEvent(env, cal2, bk, st.brand.name);
+      await env.STUDIO_DB.prepare("UPDATE bookings SET gcal_event = ? WHERE id = ?").bind(ev, bk.id).run();
+      added++;
+    } catch (e) {
+      console.warn("[studio] google backfill failed:", e.message);
+      break;
+    }
+  }
+  return added;
+}
 async function handleAdmin(env, ctx, studio, request, path, b, url) {
   if (path === "state") return adminState(env, studio);
-  if (path === "settings") return json({ settings: await saveSettings(env, studio, b.settings) });
+  if (path === "settings") {
+    const before = studio.settings.google.calendarId;
+    const settings = await saveSettings(env, studio, b.settings);
+    if (settings.google.calendarId && settings.google.calendarId !== before) ctx.waitUntil(backfillCalendar(env, studio, settings));
+    return json({ settings });
+  }
+  if (path === "calendar-sync") {
+    if (!studio.settings.google.calendarId) return err("calendar");
+    return json({ added: await backfillCalendar(env, studio, studio.settings) });
+  }
   if (path === "logo") {
     const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(b.dataUrl || ""));
     if (!m || m[2].length > 56e4) return err("logo");
