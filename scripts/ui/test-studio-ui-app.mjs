@@ -189,8 +189,13 @@ await step('the Sunday overview: off by default, on from Профил → Нап
   if (covered && (!sum || !/^(Пн|Вт|Ср|Чт|Пт|Сб|Нд) 08:00/.test(sum.body))) throw new Error('the week of the hour lacks it: ' + JSON.stringify(wk.map((n) => n.body)));
   if (!covered && sum) throw new Error('an hour of this week in a Sunday overview: ' + JSON.stringify(wk.map((n) => n.body)));
   if (!wk.some((n) => !/\d\d:\d\d/.test(n.body))) throw new Error('no nudge for an empty week');
+  await page.click('#rp-test');   // the try-out: a real reminder in 10 s, with the studio's sound
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id === 1949999999));
+  const tr = (await ln()).pending.find((n) => n.id === 1949999999);
+  if (tr.sound !== 'studio.wav' || tr.at - Date.now() > 12e3) throw new Error('try-out: ' + JSON.stringify(tr));
   await page.uncheck('#rp-week');
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id >= 1950000000));
+  if (!(await ln()).pending.some((n) => n.id === 1949999999)) throw new Error('the try-out was cancelled by the re-sync');
   await page.click('.sheet [data-back]'); await page.click('.sheet [data-close]');
 });
 await step('held hours (as in XBody): a grey dot, a dashed "проведен" hour; pull down refreshes', async () => {
