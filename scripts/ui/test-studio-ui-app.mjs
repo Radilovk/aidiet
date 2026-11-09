@@ -326,6 +326,15 @@ await step('upcoming hour: a full screen on opening the app before the training;
   await page.reload();
   await page.waitForSelector('.upcoming .up-time');
   await page.screenshot({ path: `${OUT}/app-upcoming.png` });
+  // a small phone: nothing cut — it scrolls, and the buttons can be reached
+  await page.setViewportSize({ width: 360, height: 600 });
+  await page.waitForTimeout(150);
+  const fit = await page.evaluate(() => { const u = document.querySelector('.upcoming'); const r = u.querySelector('.up-ring').getBoundingClientRect();
+    return { top: r.top, scroll: u.scrollHeight > u.clientHeight }; });
+  if (fit.top < 0) throw new Error('the top is cut on a small phone: ' + JSON.stringify(fit));
+  await page.locator('.upcoming [data-up=ok]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${OUT}/app-upcoming-small.png` });
+  await page.setViewportSize({ width: 390, height: 844 });
   if (!/след/.test(await page.locator('#up-left').textContent())) throw new Error('no countdown');
   await page.click('.upcoming [data-up=ok]');
   await page.waitForSelector('.upcoming', { state: 'detached' });

@@ -6,6 +6,9 @@
     permission; without it the reminder is "about on time" (a minute or two), which is fine for a 4-hour reminder
   - version from the CI run: STUDIO_V_CODE / STUDIO_V_NAME
   - the soft studio chime (res/raw/studio.wav) for the reminders' notification channel (the same sound as on iOS)
+  - reminders full screen (like an alarm): MainActivity + FullScreenPlugin from android-extra/, the
+    USE_FULL_SCREEN_INTENT permission, and a full-screen intent in the local-notifications plugin for a reminder
+    marked extra.fullScreen (the app opens over the lock screen showing only "Твоята тренировка")
   - the launch screen: the template puts the splash as android:background of every view, so Android stretched it
     into a title bar on top ("XB-Studio" + a flattened logo); now it is the window background only, with no title bar
 """
@@ -47,11 +50,37 @@ st = re.sub(r'<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScree
     </style>""", st, count=1, flags=re.S)
 styles.write_text(st, encoding="utf-8")
 
+# full-screen reminders: our MainActivity (over the lock screen only for a full-screen reminder) and the plugin
+java_dir = Path("android/app/src/main/java/com/biocode/studios")
+java_dir.mkdir(parents=True, exist_ok=True)
+for f in ("MainActivity.java", "FullScreenPlugin.java"):
+    shutil.copyfile(Path("android-extra") / f, java_dir / f)
+lnm = Path("node_modules/@capacitor/local-notifications/android/src/main/kotlin/com/capacitorjs/plugins/localnotifications/LocalNotificationManager.kt")
+code = lnm.read_text(encoding="utf-8")
+if "xbFullScreen" not in code:
+    anchor = "        mBuilder.setContentIntent(pendingIntent)\n"
+    if anchor not in code:
+        sys.exit("local-notifications: setContentIntent not found — the plugin changed, review the full-screen patch")
+    code = code.replace(anchor, anchor + """
+        // XB-Studio: a reminder marked extra.fullScreen opens the app over the lock screen (like an alarm)
+        val xbExtra = localNotification.extra
+        if (xbExtra is org.json.JSONObject && xbExtra.optBoolean("fullScreen", false)) {
+            val fsIntent = buildIntent(localNotification, DEFAULT_PRESS_ACTION)
+            fsIntent.putExtra("xbFullScreen", true)
+            mBuilder.setFullScreenIntent(PendingIntent.getActivity(context, id + 7777, fsIntent, flags), true)
+            mBuilder.setCategory(NotificationCompat.CATEGORY_REMINDER)
+        }
+""", 1)
+    lnm.write_text(code, encoding="utf-8")
+
 text = manifest.read_text(encoding="utf-8")
 if 'xmlns:tools=' not in text:
     text = text.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android"',
                         '<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n    xmlns:tools="http://schemas.android.com/tools"', 1)
 remove = '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />'
+fsi = '<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />'
+if 'USE_FULL_SCREEN_INTENT' not in text:
+    text = text.replace('</manifest>', f'    {fsi}\n</manifest>', 1)
 if 'SCHEDULE_EXACT_ALARM' not in text:
     text = text.replace('</manifest>', f'    {remove}\n</manifest>', 1)
 manifest.write_text(text, encoding="utf-8")
@@ -64,4 +93,4 @@ if code:
 if name:
     g = re.sub(r'versionName\s+"[^"]*"', f'versionName "{name}"', g, count=1)
 gradle.write_text(g, encoding="utf-8")
-print("android: launch screen without a title bar, notification icon, studio sound, no exact-alarm permission, version", code or "-", name or "-")
+print("android: full-screen reminders, launch screen without a title bar, notification icon, studio sound, no exact-alarm permission, version", code or "-", name or "-")
