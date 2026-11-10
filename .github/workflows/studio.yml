@@ -1,7 +1,7 @@
 name: Студиа
 
 # Платформата за студиа без команди: Actions → „Студиа“ → Run workflow.
-#  * create     — ново студио (id = поддомейнът, напр. burgas → https://burgas.biocode-bg.com) + 5-цифрен admin
+#  * create     — ново студио (id = поддомейнът, напр. sofia → https://sofia.xbody.online) + 5-цифрен admin
 #                 код, който отива по Viber на телефона (не се печата: репото е публично).
 #  * reset-pin  — нов admin код по Viber (старите входове се затварят).
 #  * domain     — поддомейнът на студио наново (ако при create не е станал).
