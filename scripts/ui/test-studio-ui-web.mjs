@@ -54,7 +54,7 @@ await step('studio shown', async () => { await page.waitForSelector('text=XBODY 
 await step('first open: onboarding (name, phone, rules)', async () => {
   await page.waitForSelector('#onb:not(.hidden)');
   await page.screenshot({ path: `${OUT}/0-onboarding.png` });
-  await page.fill('#onb-name', 'Иван Петров'); await page.fill('#onb-phone', '0888 111 222'); await page.check('#onb-terms'); await page.click('#onb-go');
+  await page.fill('#onb-name', 'Иван Петров'); await page.fill('#onb-phone', '0888 111 222'); await page.fill('#onb-email', 'ivan@example.com'); await page.check('#onb-terms'); await page.click('#onb-go');
   await page.waitForSelector('#onb', { state: 'hidden' });
 });
 await page.screenshot({ path: `${OUT}/1-client.png`, fullPage: true });

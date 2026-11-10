@@ -1473,7 +1473,8 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     const err = (m) => { $('onb-err').textContent = m; };
     if (name.length < 2) return err('Въведете име и фамилия.');
     if (phone.replace(/\D/g, '').length < 9) return err('Въведете телефон.');
-    if (!email && cfg && cfg.acuity) return err('Въведете имейла, с който сте записвали часове досега — по него виждаме и тях.');
+    // the e-mail is the only way back in on another phone (the login code goes there)
+    if (!email) return err(cfg && cfg.acuity ? 'Въведете имейла, с който сте записвали часове досега — по него виждаме и тях.' : 'Въведете имейл — на него идва кодът за вход от друг телефон.');
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err('Проверете имейла.');
     if (!$('onb-terms').checked) return err('Моля, приемете правилата и условията.');
     err('');
@@ -1887,7 +1888,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         unbusy(go);
         if (r.status !== 200) {
           $('v-err').textContent = r.status === 429 ? 'Изчакайте минута и опитайте пак.'
-            : r.d && r.d.error === 'no_channel' ? 'Към този профил няма имейл, а студиото не праща кодове по Viber. Обадете се на студиото.'
+            : r.d && r.d.error === 'no_channel' ? 'Към този профил няма имейл. Обадете се на студиото.'
             : r.d && r.d.error === 'email' ? 'Имейлът не тръгна. Опитайте след малко.' : mail ? 'Проверете имейла.' : 'Проверете телефона.';
           return;
         }
