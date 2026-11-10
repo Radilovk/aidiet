@@ -250,10 +250,13 @@ async function viberBooking(env, studio, event, b, now = Date.now()) {
 /* ── availability ── */
 /* the hours taken elsewhere: the studio's Google Calendar and, for XBODY Burgas while Acuity still takes bookings,
    every hour of our schedule that Acuity no longer offers (booked there) — so the two never give the same hour */
-let acuityFree = null;   // set per request by the worker: (ym) → { 'YYYY-MM-DD': ['…T08:00:00+0200', …] } | null
+let acuityFree = null;   // set per request by the worker: (ym, acu) → { 'YYYY-MM-DD': ['…T08:00:00+0200', …] } | null
+/** which Acuity calendar a studio mirrors: { calendar, type } ('' = the worker's default, XBODY Burgas) */
+const acuOf = (studio) => ({ calendar: studio.settings.acuityCalendar || '', type: studio.settings.acuityType || '' });
 /* XBODY Burgas: the client's own hours booked in Acuity (xbody.html, Acuity's page, the studio) — shown in "my hours"
    with the app's ones, cancelled / moved through Acuity. Set per request by the worker:
-   { list(email, phone) → [{ id, datetime, canceled, canCancel, canMove }] | null, cancel(email, phone, id), move(email, phone, id, iso) } */
+   { list(email, phone, acu) → [{ id, datetime, canceled, canCancel, canMove }] | null, cancel(email, phone, id, acu),
+     move(email, phone, id, iso, acu) } — acu: acuOf(studio) */
 let acuityClient = null;
 async function busyForMonth(env, studio, ym) {
   const google = await googleBusy(env, studio, ym);
@@ -261,7 +264,7 @@ async function busyForMonth(env, studio, ym) {
 }
 async function acuityBusy(studio, ym) {
   if (!acuityFree) throw new Error('acuity: not wired');
-  const free = await acuityFree(ym);
+  const free = await acuityFree(ym, acuOf(studio));
   if (!free) throw new Error('acuity: no answer');
   const st = studio.settings;
   const have = new Set(Object.values(free).flat().map((t) => `${String(t).slice(0, 10)} ${String(t).slice(11, 16)}`));
@@ -597,7 +600,7 @@ async function acuityHours(studio, client) {
   const st = studio.settings;
   if (!st.acuity || !acuityClient || !client.email) return [];
   let list = null;
-  try { list = await acuityClient.list(client.email, client.phone); } catch (e) { console.warn('[studio] acuity hours failed:', e.message); }
+  try { list = await acuityClient.list(client.email, client.phone, acuOf(studio)); } catch (e) { console.warn('[studio] acuity hours failed:', e.message); }
   const now = Date.now();
   const out = [];
   for (const a of Array.isArray(list) ? list : []) {
@@ -619,8 +622,8 @@ async function acuityChange(env, studio, b, client, ms) {
     const off = tzOffset(studio.settings.timezone, ms);
     const p = zonedParts(ms, studio.settings.timezone);
     const iso = `${p.ymd}T${p.hm}:00${off < 0 ? '-' : '+'}${String(Math.floor(Math.abs(off) / 60)).padStart(2, '0')}:${String(Math.abs(off) % 60).padStart(2, '0')}`;
-    r = await acuityClient.move(client.email, client.phone, id, iso);
-  } else r = await acuityClient.cancel(client.email, client.phone, id);
+    r = await acuityClient.move(client.email, client.phone, id, iso, acuOf(studio));
+  } else r = await acuityClient.cancel(client.email, client.phone, id, acuOf(studio));
   if (!r || r.error) return err((r && r.error) || 'calendar', (r && r.status) || 503);
   await bumpRev(env, studio.id);
   return json(ms ? { ok: true, time: String(b.time) } : { ok: true, late: false });

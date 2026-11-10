@@ -76,8 +76,8 @@ Apple, отговори за App Store Connect, демо студио, текс�
   `scripts/add-privacy-manifest.rb` + `ios-extra/PrivacyInfo.xcprivacy` — манифестът за поверителност на Apple.
 - `assets/icon-only.png` (iOS), `assets/icon-foreground.png` + `icon-background.png` (Android, адаптивна), `assets/splash.png` — логото като точен кръг върху бял
   фон без прозрачност (изискване на Apple); на Android кръгът е в безопасната зона, за да не се реже.
-  Всички се правят от **един вектор** `brand/xbody-logo.svg` с `node studio-app/scripts/render-brand.cjs` (никога не се
-  увеличава малка картинка — затова са остри). На Android стартовият екран (системният на Android 12+, фонът на прозореца
+  На Android иконата се прави от **вектора** `brand/xbody-logo.svg` с `node studio-app/scripts/render-brand.cjs` (iOS не
+  се пипа — иконата и splash-ът на iPhone остават както са). На Android стартовият екран (системният на Android 12+, фонът на прозореца
   и splash-ът на Capacitor) рисува логото **като вектор** (`android-extra/xb_logo_paths.xml`, от същото SVG с
   `cd studio-app && python3 scripts/svg-to-android.py`). Смяна на логото = смяна на SVG-то + двата скрипта.
 - Проектите `ios/` и `android/` не се пазят в репото — правят се наново при всяко пускане.

@@ -92,6 +92,8 @@ await step('app, no studio: the picker lists the studios; a click opens one', as
   eq(await page.locator('[data-pick]').count(), 2, 'studios');
   await page.screenshot({ path: `${OUT}/app-1-picker.png` });
   await page.click('[data-pick=burgas]');
+  await page.waitForURL(/[?&]s=burgas/);   // the choice reloads the page; the next step must not race that load
+  await page.waitForLoadState('load');
   await page.waitForSelector('.slot');
   eq(await page.evaluate(() => localStorage.getItem('studio:current')), 'burgas', 'remembered');
 });
@@ -117,7 +119,7 @@ await step('first open: the data once (name, phone, rules), then the calendar', 
   await page.screenshot({ path: `${OUT}/app-onb.png` });
   await page.click('#onb-go');
   if (!(await page.locator('#onb-err').textContent())) throw new Error('empty form accepted');
-  await page.fill('#onb-name', 'Иван Петров'); await page.fill('#onb-phone', '0888 111 222'); await page.click('#onb-go');
+  await page.fill('#onb-name', 'Иван Петров'); await page.fill('#onb-phone', '0888 111 222'); await page.fill('#onb-email', 'ivan@example.com'); await page.click('#onb-go');
   if (!/правилата/.test(await page.locator('#onb-err').textContent())) throw new Error('the rules were not required');
   await page.check('#onb-terms'); await page.click('#onb-go');
   await page.waitForSelector('#onb', { state: 'hidden' });

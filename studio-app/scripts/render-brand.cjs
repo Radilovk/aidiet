@@ -2,9 +2,8 @@
 /**
  * Every icon and splash of the app from one vector (brand/xbody-logo.svg), so nothing is ever upscaled from a small raster.
  *   node studio-app/scripts/render-brand.cjs        (needs Playwright + Chromium; run from anywhere)
- * Writes: assets/splash.png, assets/splash-dark.png (2732², the logo in the middle at the same size as before),
- *         assets/icon-only.png (1024², white, no transparency — Apple), assets/icon-foreground.png (1024², transparent,
- *         the logo in Android's safe zone). Android's launch screens use vector paths instead (android-extra/xb_logo_paths.xml,
+ * Writes (Android only — the iPhone app's icon and splash are not touched): assets/icon-foreground.png (1024²,
+ *         transparent, the logo in Android's safe zone). Android's launch screens use vector paths instead (android-extra/xb_logo_paths.xml,
  *         rebuilt from the same SVG by scripts/svg-to-android.py) — sharp on every screen.
  */
 const path = require('path');
@@ -15,9 +14,6 @@ const root = path.join(__dirname, '..');
 const svg = fs.readFileSync(path.join(root, 'brand/xbody-logo.svg'), 'utf8').replace(/<!--[\s\S]*?-->\s*/, '');
 const jobs = [
   // file, canvas, logo size, background (null = transparent)
-  ['assets/splash.png', 2732, 518, '#ffffff'],
-  ['assets/splash-dark.png', 2732, 518, '#121014'],
-  ['assets/icon-only.png', 1024, 876, '#ffffff'],
   ['assets/icon-foreground.png', 1024, 653, null],
 ];
 

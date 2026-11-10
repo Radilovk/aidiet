@@ -7,6 +7,7 @@ name: Студиа
 #  * domain     — поддомейнът на студио наново (ако при create не е станал).
 #  * list       — студиата.
 #  * ensure-db  — базата и таблиците (прави се и при всеки деплой).
+#  * preset     — настройките от studio-platform/presets/<id>.json върху студиото (create ги прилага само).
 # Кодът за вход в admin (5 цифри) е ТАЕН: първо създай GitHub секрет STUDIO_PIN_<ID> (напр. STUDIO_PIN_BURGAS; без тире —
 # за id с тире или за „все едно кое студио“ има общ STUDIO_DEFAULT_PIN) → Settings → Secrets and variables → Actions.
 # Без такъв секрет кодът е случаен и отива по Viber на телефона (полето phone или секрет STUDIO_ADMIN_PHONE).
@@ -16,10 +17,10 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'create | reset-pin | domain | list | ensure-db | stripe-env'
+        description: 'create | reset-pin | domain | list | ensure-db | preset | stripe-env'
         required: true
         type: choice
-        options: [create, reset-pin, domain, list, ensure-db, stripe-env]
+        options: [create, reset-pin, domain, list, ensure-db, preset, stripe-env]
       id:
         description: 'id на студиото = поддомейн (малки латински букви, цифри, тире), напр. burgas'
         required: false

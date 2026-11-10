@@ -505,4 +505,31 @@ await t('acuity: the client\'s Acuity hours show in "my hours" (by e-mail + phon
   } finally { acuityFreeMock = null; acuityClientMock = null; }
 });
 
+await t('XBODY Sofia (presets/sofia.json): its own Acuity calendar for the hours and "my hours"; Burgas keeps the default', async () => {
+  const { zonedParts: zp } = await import('../studio-platform/slots.js');
+  const { _note, ...preset } = JSON.parse(readFileSync(new URL('../studio-platform/presets/sofia.json', import.meta.url), 'utf8'));
+  db.prepare("INSERT INTO studios (id, settings, secrets, pin_hash, version, created_at) VALUES ('sofia-x', ?, '{}', '', 1, 0)").run(JSON.stringify(preset));
+  const seen = [];
+  let day = zp(Date.now() + 5 * 864e5, 'Europe/Sofia').ymd;
+  while (![1, 2, 3, 4].includes(new Date(day + 'T12:00:00Z').getUTCDay())) day = zp(Date.parse(day + 'T12:00:00Z') + 864e5, 'Europe/Sofia').ymd;
+  const ym = day.slice(0, 7);
+  acuityFreeMock = async (m, acu) => { seen.push(acu); return m === ym ? { [day]: [`${day}T10:00:00+0200`, `${day}T16:45:00+0200`] } : {}; };
+  acuityClientMock = { list: async (e, p, acu) => { seen.push(acu); return []; }, cancel: async () => ({ ok: true }), move: async () => ({ ok: true }) };
+  try {
+    const cfg = (await api('GET', 'config?studio=sofia-x')).d;
+    assert.equal(cfg.brand.name, 'XBODY София');
+    assert.equal(cfg.slot.minutes, 45);
+    const av = (await api('GET', `availability?studio=sofia-x&month=${ym}`)).d;
+    assert.deepEqual(av.days[day], ['10:00', '16:45']);   // only what Ivo's Acuity calendar offers, on our 45-min grid
+    assert.deepEqual(seen[0], { calendar: '1336749', type: '3605529' });
+    const c = { studio: 'sofia-x', name: 'Клиент София', phone: '0888 000 333', email: 'sof@example.com', terms: true };
+    const token = (await api('POST', 'hello', c)).d.token;
+    await api('POST', 'mine', { ...c, token });
+    assert.deepEqual(seen.at(-1), { calendar: '1336749', type: '3605529' });
+    seen.length = 0;
+    await api('GET', `availability?studio=acu&month=${ym}&x=1`);   // the Burgas-like studio: acuity true, no calendar → the default
+    assert.deepEqual(seen[0], { calendar: '', type: '' });
+  } finally { acuityFreeMock = null; acuityClientMock = null; }
+});
+
 console.log(`\n${passed} проверки минаха`);
