@@ -265,7 +265,7 @@ function serializeProgress(userData, plan) {
     .filter(w => Number(w?.kg) >= 30 && Number(w?.kg) <= 300 && w?.date).slice(-6);
   if (log.length) {
     parts.push(`записани тегла: ${log.map(w => `${w.date} ${fmt(Number(w.kg))} кг`).join(', ')}${start ? ` (начално ${fmt(start)} кг)` : ''}`);
-  } else {
+  } else if (Math.abs(perWeek) >= 0.05) {
     parts.push('няма записано тегло — без него темпото не може да се прецени; помоли за едно претегляне сутрин (полето „Тегло“ над храненията)');
   }
   return `#PG v1 ${esc(parts.join(' | ')).slice(0, 900)}`;

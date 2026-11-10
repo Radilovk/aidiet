@@ -6210,7 +6210,7 @@ function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history
   const message = weeklyMessage(decision, checkin);
   // Трети пореден преглед без тегло: това е съобщението на седмицата, не „същите калории“.
   const gap = checkin.weightKg || decision.weight ? 0 : weightGapWeeks(history) + 1;
-  if (gap >= 3 && !decision.calorieAdjust) {
+  if (gap >= 3 && !decision.calorieAdjust && (profile.direction === 'lose' || profile.direction === 'gain')) {
     message.headline = 'Липсва само едно число';
     message.message = `${gap} седмици планът върви без тегло и затова стои на същите калории. Претегли се една сутрин тази седмица и го въведи — от него зависи дали приемът да се промени.`;
   }

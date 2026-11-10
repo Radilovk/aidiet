@@ -131,7 +131,7 @@ export function weeklyQuestionsFor(ctx = {}) {
         out.text = 'Обиколка на талията на нивото на пъпа (см). За твоята цел тя показва напредъка по-точно от кантара.';
       }
       // Втори пореден преглед без тегло: казваме цената и сваляме прага (всяко скорошно претегляне върши работа).
-      if (q.id === 'weightKg' && (ctx.weightGapWeeks || 0) >= 2 && !(Number(ctx.deviceWeightKg) >= 30)) {
+      if (q.id === 'weightKg' && (direction === 'lose' || direction === 'gain') && (ctx.weightGapWeeks || 0) >= 2 && !(Number(ctx.deviceWeightKg) >= 30)) {
         out.text = `${ctx.weightGapWeeks} прегледа подред са без тегло — без него планът не може да се настройва към резултата ти. Въведи последното си тегло (кг), дори да не е от тази сутрин.`;
         out.skipLabel = 'Нямам кантар';
       }

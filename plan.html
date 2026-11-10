@@ -8094,6 +8094,11 @@
             function render(editing) {
                 var el = document.getElementById('weightChip');
                 if (!el) return;
+                // Само когато целта е в килограмите (сваляне или покачване) — при стягане,
+                // здраве и поддържане теглото не е мярката и редът би бил излишен.
+                var dir = '';
+                try { dir = ((JSON.parse(localStorage.getItem('dietPlan') || '{}') || {}).analysis || {})._goalDirection || ''; } catch (_) {}
+                if (dir !== 'lose' && dir !== 'gain') { el.hidden = true; return; }
                 var log = load();
                 var last = log[log.length - 1];
                 var days = last ? Math.floor((Date.now() - last.at) / DAY) : null;
