@@ -120,7 +120,7 @@ try {
     }
     if (!fromSecret && !phone) {
       fail(`Няма код за вход. Създай GitHub секрет STUDIO_PIN_${id.toUpperCase().replace(/-/g, '_')} (5 цифри; или общ STUDIO_DEFAULT_PIN) ` +
-        '(Settings → Secrets and variables → Actions) и пусни отново — или въведи телефон за Viber.');
+        '(Settings → Secrets and variables → Actions) и пусни отново.');
     }
     const exists = sql(`SELECT id, settings FROM studios WHERE id = ${q(id)}`)[0];
     const pin = fromSecret ? String(process.env.STUDIO_PIN).trim() : String(randomInt(0, 100000)).padStart(5, '0');
