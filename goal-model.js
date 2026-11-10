@@ -331,6 +331,9 @@
         if (f.pregnant) { minPct = 0; allowed = ['maintain', 'gain']; reasons.push('бременност — без дефицит'); }
         if (b.under) { minPct = Math.max(minPct, 0); allowed = allowed.filter(function (d) { return d !== 'lose'; }); reasons.push('ИТМ под 18,5 — без дефицит'); }
         if (f.lactating) { minPct = Math.max(minPct, -10); reasons.push('кърмене — най-много мек дефицит'); }
+        // Емоционално хранене с чести преяждания: по-голям дефицит храни цикъла
+        // „ограничение → преяждане“ — резултатът идва от по-малко епизоди, не от по-малко калории.
+        if (has(f.behaviors, 'EMO') && has(f.behaviors, 'OVR')) { minPct = Math.max(minPct, -15); reasons.push('емоционално хранене с преяждане — умерен дефицит, за да не се засилват епизодите'); }
         if (has(f.behaviors, 'CMP')) { minPct = Math.max(minPct, -10); reasons.push('компенсаторно поведение (гладуване/хапчета) — без голям дефицит'); }
         if (b.older) { minPct = Math.max(minPct, OLDER_MAX_DEFICIT); reasons.push('над 65 г. — умерен дефицит, за да се пазят мускулите'); }
         if (b.excess >= 3) { maxPct = Math.min(maxPct, 0); allowed = allowed.filter(function (d) { return d !== 'gain'; }); reasons.push('затлъстяване — без калориен излишък'); }

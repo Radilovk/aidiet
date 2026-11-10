@@ -1244,6 +1244,15 @@
         }
 
         .modal-prep-title { margin-top: 18px; }
+        /* Теглото — един ред над храненията: по него се настройва планът. */
+        .weight-chip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 14px; border-radius: 16px; background: var(--card-bg); border: 1px solid rgba(13, 148, 136, 0.14); font-size: 0.86rem; color: var(--text-dark); }
+        .weight-chip.is-due { border-color: rgba(13, 148, 136, 0.45); background: rgba(13, 148, 136, 0.07); }
+        .weight-chip > i { color: var(--primary-red); }
+        .weight-chip .wc-text { flex: 1; min-width: 140px; }
+        .weight-chip .wc-text small { display: block; color: var(--text-light); font-size: 0.76rem; margin-top: 1px; }
+        .weight-chip input { width: 92px; min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(13, 148, 136, 0.35); background: var(--bg-color); color: var(--text-dark); font: inherit; font-size: 1rem; }
+        .weight-chip .meal-swap-btn { margin-top: 0; min-height: 40px; padding: 7px 14px; }
+
         .chat-starters { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px; }
         .chat-starters .meal-swap-btn { margin-top: 0; min-height: 36px; padding: 7px 13px; font-size: 0.82rem; }
 
@@ -4436,6 +4445,7 @@
     <main class="container" id="main-content" role="main">
         
         <!-- MEAL PLAN SECTION -->
+        <div id="weightChip" class="weight-chip" hidden></div>
         <div id="mealContainer" aria-live="polite"></div>
 
         <!-- Моите храни и продукти banner -->
@@ -7338,6 +7348,7 @@
                     date: key, weekday: now.toLocaleDateString('bg-BG', { weekday: 'long' }),
                     time: _zp(now.getHours()) + ':' + _zp(now.getMinutes()), planDay: dayNum, meals: meals, extra: extra,
                     planKcal: meals.reduce((s, m) => s + m.kcal, 0),
+                    weights: (window.NPWeight && window.NPWeight.log) ? window.NPWeight.log() : [],
                     eatenKcal: meals.filter(m => m.done).reduce((s, m) => s + m.kcal, 0) + extra.reduce((s, e) => s + e.kcal, 0),
                 };
             } catch (_) { return null; }
@@ -8071,6 +8082,63 @@
                 }
             }, delay);
         }
+
+        /* Запис на теглото в екрана на плана. Пази се локално и попълва седмичния преглед —
+           без тегло нито едно правило за калориите не може да работи. */
+        (function() {
+            var KEY = 'np_weight_log';
+            var DAY = 86400000;
+            function load() { try { var l = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(l) ? l : []; } catch (_) { return []; } }
+            function fmt(n) { return String(Math.round(n * 10) / 10).replace('.', ','); }
+            function startKg() { try { return parseFloat(String(JSON.parse(localStorage.getItem('userData') || '{}').weight || '').replace(',', '.')) || null; } catch (_) { return null; } }
+            function render(editing) {
+                var el = document.getElementById('weightChip');
+                if (!el) return;
+                var log = load();
+                var last = log[log.length - 1];
+                var days = last ? Math.floor((Date.now() - last.at) / DAY) : null;
+                var due = !last || days >= 7;
+                el.hidden = false;
+                el.classList.toggle('is-due', due);
+                if (editing) {
+                    el.innerHTML = '<i class="fas fa-weight-scale" aria-hidden="true"></i><label class="wc-text" for="wcInput">Тегло сутрин, на гладно (кг)</label>' +
+                        '<input id="wcInput" type="text" inputmode="decimal" autocomplete="off" placeholder="' + (last ? fmt(last.kg) : 'напр. 82,4') + '">' +
+                        '<button type="button" class="meal-swap-btn" id="wcSave">Запиши</button>';
+                    var inp = document.getElementById('wcInput');
+                    var save = function() {
+                        var v = parseFloat(String(inp.value).replace(',', '.'));
+                        if (!(v >= 30 && v <= 300)) { inp.setAttribute('aria-invalid', 'true'); inp.focus(); return; }
+                        var l = load().filter(function(x) { return Date.now() - x.at > 12 * 3600000; }); // едно число на ден
+                        l.push({ at: Date.now(), kg: Math.round(v * 10) / 10 });
+                        localStorage.setItem(KEY, JSON.stringify(l.slice(-60)));
+                        render(false);
+                    };
+                    document.getElementById('wcSave').addEventListener('click', save);
+                    inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') save(); });
+                    inp.focus();
+                    return;
+                }
+                var start = startKg();
+                var delta = last && start ? Math.round((last.kg - start) * 10) / 10 : null;
+                var main = last
+                    ? 'Тегло: <b>' + fmt(last.kg) + ' кг</b>' + (delta ? ' · ' + (delta > 0 ? '+' : '−') + fmt(Math.abs(delta)) + ' кг от началото' : '')
+                    : '<b>Запиши теглото си</b>';
+                var sub = !last ? 'По него планът се настройва към резултата ти.'
+                    : due ? 'Последно преди ' + days + ' дни — време е за ново претегляне.'
+                    : days === 0 ? 'Записано днес.' : 'Записано преди ' + days + (days === 1 ? ' ден.' : ' дни.');
+                el.innerHTML = '<i class="fas fa-weight-scale" aria-hidden="true"></i><span class="wc-text">' + main + '<small>' + sub + '</small></span>' +
+                    '<button type="button" class="meal-swap-btn" id="wcEdit">' + (last ? 'Ново' : 'Запиши') + '</button>';
+                document.getElementById('wcEdit').addEventListener('click', function() { render(true); });
+            }
+            window.NPWeight = {
+                /** Последното тегло, ако е от последните 3 дни (за седмичния преглед). */
+                recent: function() { var l = load(); var x = l[l.length - 1]; return x && Date.now() - x.at <= 3 * DAY ? x.kg : null; },
+                /** Последните записи за чата: [{ date, kg }]. */
+                log: function() { return load().slice(-6).map(function(x) { return { date: new Date(x.at).toISOString().slice(0, 10), kg: x.kg }; }); }
+            };
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function() { render(false); });
+            else render(false);
+        })();
 
         /** Поздравът и готови въпроси за начало — празният чат не оставя човека сам пред полето. */
         function showChatWelcome() {
@@ -12005,6 +12073,7 @@
                     inp.className = 'game-qa-input';
                     inp.setAttribute('aria-labelledby', 'gameQaQ');
                     if (q.prefill) inp.value = q.prefill;
+                    else if (q.id === 'weightKg' && window.NPWeight && window.NPWeight.recent()) inp.value = String(window.NPWeight.recent()).replace('.', ',');
                     optsWrap.appendChild(inp);
                     var ok = document.createElement('button');
                     ok.type = 'button';

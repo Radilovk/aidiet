@@ -100,6 +100,13 @@ const GAIN_WEIGHT_OPTIONS = ['Качих повече от 0,5 кг', 'Качи�
 
 const fmtKg = v => String(Math.round(v * 10) / 10).replace('.', ',');
 
+/** Колко поредни последни прегледа са без тегло — без него никое правило за калориите не работи. */
+export function weightGapWeeks(history) {
+  let n = 0;
+  for (let i = (history || []).length - 1; i >= 0 && !(Number(history[i]?.weightKg) > 0); i--) n++;
+  return n;
+}
+
 /**
  * Въпросите за конкретния клиент: посоката на въпроса за теглото следва целта,
  * а това, което приложението вече знае, се показва като подсказка (теглото от
@@ -122,6 +129,11 @@ export function weeklyQuestionsFor(ctx = {}) {
       // Талията е водещ показател (коремни мазнини, стягане, смяна на състава) — не „по желание“.
       if (q.id === 'waistCm' && lead.slice(0, 3).includes('waist')) {
         out.text = 'Обиколка на талията на нивото на пъпа (см). За твоята цел тя показва напредъка по-точно от кантара.';
+      }
+      // Втори пореден преглед без тегло: казваме цената и сваляме прага (всяко скорошно претегляне върши работа).
+      if (q.id === 'weightKg' && (ctx.weightGapWeeks || 0) >= 2 && !(Number(ctx.deviceWeightKg) >= 30)) {
+        out.text = `${ctx.weightGapWeeks} прегледа подред са без тегло — без него планът не може да се настройва към резултата ти. Въведи последното си тегло (кг), дори да не е от тази сутрин.`;
+        out.skipLabel = 'Нямам кантар';
       }
       if (q.id === 'weightKg' && Number(ctx.deviceWeightKg) >= 30) {
         out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);

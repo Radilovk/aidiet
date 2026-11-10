@@ -117,6 +117,7 @@ ok(GF.profileOf({ ...woman, goal: ['Подобряване на здравето
   ok(pct({ ...woman, goal: ['Отслабване'], weight: 100 }) === -25, 'затлъстяване II: дефицит 25%');
   ok(pct({ ...woman, age: 70, goal: ['Отслабване'], weight: 100 }) === -15, 'над 65 г.: най-много 15%');
   ok(compileProfile({ ...obese, weight: '80', lossKg: '3' }).targetWeightKg === 77, 'лек излишък: желаното от клиента остава');
+  ok(compileProfile({ ...obese, overeatingFrequency: 'Често', foodTriggers: ['Стрес'] }).goalModel.intakePct === -15, 'емоционално хранене с чести преяждания: дефицит до 15%');
   const bmr = calculateBMR(obese);
   const capped = calculateActivityTDEE(bmr, obese);
   ok(capped.tdee === Math.round(bmr * 1.6) && capped.activityData.discounted, `непотвърдена висока активност при затлъстяване: множител до 1,6 (${capped.tdee})`);
