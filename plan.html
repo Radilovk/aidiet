@@ -544,6 +544,11 @@
             margin-bottom: 6px;
         }
 
+        /* Макросите на деня — три четими стойности вместо един ред главни букви. */
+        .day-energy-macros { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .day-energy-macros span { font-size: 0.78rem; color: var(--text-light); background: rgba(13, 148, 136, 0.08); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+        .day-energy-macros b { color: var(--text-dark); font-weight: 700; }
+
         .meal-name {
             font-size: 1.1rem;
             font-weight: 700;
@@ -1239,6 +1244,9 @@
         }
 
         .modal-prep-title { margin-top: 18px; }
+        .chat-starters { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px; }
+        .chat-starters .meal-swap-btn { margin-top: 0; min-height: 36px; padding: 7px 13px; font-size: 0.82rem; }
+
         .meal-swap-btn {
             margin-top: 8px;
             display: inline-flex;
@@ -1488,6 +1496,11 @@
 
         .welcome-modal-body {
             font-size: 0.95rem;
+        }
+        /* Има още текст надолу — краят избледнява, докато не се стигне дъното. */
+        .welcome-modal-content.has-more {
+            -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
         }
 
         @media (min-width: 481px) {
@@ -5441,6 +5454,12 @@
                         noteBox.hidden = !strategy.specialistNote;
                     }
                     welcomeModal.classList.add('active');
+                    const scroller = welcomeModal.querySelector('.welcome-modal-content');
+                    if (scroller) {
+                        const mark = function() { scroller.classList.toggle('has-more', scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > 8); };
+                        scroller.addEventListener('scroll', mark, { passive: true });
+                        requestAnimationFrame(mark);
+                    }
                     // Note: hasSeenPlanJustification is set when user closes the modal
                 }
 
@@ -5856,7 +5875,10 @@
                 card.className = 'meal-card breakfast-note-card meal-card--clickable day-energy-card';
                 card.innerHTML =
                     '<div class="meal-info">' +
-                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + Math.round(shown.kcal) + ' kcal · белтък ' + Math.round(shown.protein) + ' г · въглехидрати ' + Math.round(shown.carbs) + ' г · мазнини ' + Math.round(shown.fats) + ' г</div>' +
+                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + Math.round(shown.kcal) + ' kcal</div>' +
+                    '<div class="day-energy-macros">' +
+                    [['Белтък', shown.protein], ['Въглехидрати', shown.carbs], ['Мазнини', shown.fats]].map(function(x) { return '<span><b>' + Math.round(x[1]) + ' г</b> ' + x[0] + '</span>'; }).join('') +
+                    '</div>' +
                     '<div class="meal-name" style="font-size:0.92em;font-weight:600">' + escapeHtml(detail) + '</div>' +
                     '</div>';
                 card.setAttribute('role', 'button');
@@ -7115,7 +7137,7 @@
                 });
             } else {
                 // Show welcome message
-                addMessageToChat(`Здравей, ${(userData && userData.name) || 'приятелю'}! 👋\n\nАз съм твоят асистент по хранителния план. Как мога да ти помогна днес?`, 'assistant', false);
+                showChatWelcome();
             }
 
             // Show Demo mode warning
@@ -7382,6 +7404,8 @@
             const message = input.value.trim();
             
             if (!message) return;
+            const starters = document.getElementById('chatStarters');
+            if (starters) starters.remove();
 
             if (message.toLowerCase() === '*log') {
                 input.value = '';
@@ -8046,6 +8070,31 @@
             }, delay);
         }
 
+        /** Поздравът и готови въпроси за начало — празният чат не оставя човека сам пред полето. */
+        function showChatWelcome() {
+            const first = String((userData && userData.name) || '').trim().split(/\s+/)[0] || 'приятелю';
+            addMessageToChat(`Здравей, ${first}! 👋\n\nАз съм твоят асистент по хранителния план. Как мога да ти помогна днес?`, 'assistant', false);
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) return;
+            const box = document.createElement('div');
+            box.id = 'chatStarters';
+            box.className = 'chat-starters';
+            ['Какво да хапна, ако съм навън?', 'Какво да правя при глад между храненията?', 'Защо планът ми е такъв?', 'Пропуснах хранене — какво сега?'].forEach(function(q) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'meal-swap-btn';
+                btn.textContent = q;
+                btn.addEventListener('click', function() {
+                    const input = document.getElementById('chatInput');
+                    if (!input) return;
+                    input.value = q;
+                    sendMessage();
+                });
+                box.appendChild(btn);
+            });
+            chatMessages.appendChild(box);
+        }
+
         function addMessageToChat(message, role, saveToHistory = true) {
             const chatMessages = document.getElementById('chatMessages');
             if (!chatMessages) return;
@@ -8322,7 +8371,7 @@
                 cancelActiveTyping({ complete: true });
                 chatMessages.innerHTML = '';
                 // Show welcome message
-                addMessageToChat(`Здравей, ${(userData && userData.name) || 'приятелю'}! 👋\n\nАз съм твоят асистент по хранителния план. Как мога да ти помогна днес?`, 'assistant', false);
+                showChatWelcome();
             }
             
             // Reset mode UI

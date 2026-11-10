@@ -316,7 +316,7 @@ export function weekTargets(profile, base, week, fasting, slots) {
     if (kind === 'low') carbs = Math.min(carbs, C * 0.6);
     // Граници по стила: кето — таванът; нисковъглехидратна — таванът и в тренировъчния ден.
     if (style === 'keto') carbs = Math.min(KETO_MAX_CARB_G, C);
-    else if (style === 'low_carb') carbs = Math.min(LOW_CARB_MAX_G, carbs);
+    else if (style === 'low_carb') carbs = Math.min(Math.max(LOW_CARB_MAX_G, C), carbs);
     // При метаболитен риск почивният ден се стреми към ≤25% от енергията от въглехидрати.
     // Само при тренировъчни дни — те поемат разликата; без тях макросите остават клиничните (macro-targets.js).
     const riskCap = metabolicRisk && trainDays && kind !== 'train' && style !== 'keto';

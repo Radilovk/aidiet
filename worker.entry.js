@@ -60,7 +60,7 @@ import {
   calculateMacronutrientRatios,
   calculateSafeDeficit,
 } from './energy.js';
-import { buildDeterministicAnalysis, mergeAnalysisNarrative } from './analysis-deterministic.js';
+import { buildDeterministicAnalysis, mergeAnalysisNarrative, syncForecastToEnergy } from './analysis-deterministic.js';
 import { buildPlanSummary } from './plan-summary.js';
 import {
   buildNutritionPlan,
@@ -2616,6 +2616,7 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   if (gc?.verdict) analysis._goalCouncil = { verdict: gc.verdict, algorithm: gc.algorithm, concerns: gc.concerns || [], at: gc.at };
 
   enforceCalorieGuardrails(analysis, data, tdee);
+  syncForecastToEnergy(analysis, data);
   const intake = parseFinalCalories(analysis.Final_Calories);
   const intakeDrift = previousIntake > 0 && intake > 0
     ? Math.abs(intake - previousIntake) / previousIntake

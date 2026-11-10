@@ -14,11 +14,20 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err2) => function __init() {
+  if (err2) throw err2[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err2 = [e], e;
+  }
 };
 var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  try {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  } catch (e) {
+    throw mod = 0, e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -40097,6 +40106,7 @@ var FAT_SHARE_BY_STYLE = {
 };
 var LOW_CARB_SHARE = 0.25;
 var LOW_CARB_MAX_G = 130;
+var LOW_CARB_MAX_FAT_SHARE = 0.45;
 var KETO_MAX_CARB_G = 50;
 var KETO_CARB_SHARE = 0.1;
 var MIN_FAT_G_PER_KG = 0.7;
@@ -40171,6 +40181,14 @@ function macroTargetsFor(profile, kcal) {
   if (style === "keto" || style === "low_carb") {
     carbs = style === "keto" ? Math.min(KETO_MAX_CARB_G, Math.floor(energy * KETO_CARB_SHARE / 4)) : Math.min(LOW_CARB_MAX_G, Math.round(energy * LOW_CARB_SHARE / 4));
     fats = Math.max(minFat, Math.round((energy - protein * 4 - carbs * 4) / 9));
+    const maxFat = Math.round(energy * LOW_CARB_MAX_FAT_SHARE / 9);
+    if (style === "low_carb" && fats > maxFat) {
+      const room = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * maxProteinShare / 4)) - protein);
+      protein += Math.min(room, Math.round((fats - maxFat) * 9 / 4));
+      const maxCarbs2 = Math.round(energy * LOW_CARB_SHARE / 4);
+      carbs = Math.max(carbs, Math.min(maxCarbs2, Math.round((energy - protein * 4 - maxFat * 9) / 4)));
+      fats = Math.max(minFat, Math.round((energy - protein * 4 - carbs * 4) / 9));
+    }
   } else {
     fats = Math.max(minFat, Math.round(energy * (FAT_SHARE_BY_STYLE[style] ?? 0.3) / 9));
     carbs = Math.max(0, Math.round((energy - protein * 4 - fats * 9) / 4));
@@ -40864,10 +40882,25 @@ function healthDescription(score, problems, profile) {
   if (strengths.length) parts.push(`\u0421\u0438\u043B\u043D\u0438 \u0441\u0442\u0440\u0430\u043D\u0438: ${strengths.join(", ")}.`);
   return parts.join(" ");
 }
-function weeklyLossKg(profile) {
+function weeklyLossKg(profile, energy) {
+  const deficit = Number(energy?.tdee) - Number(energy?.Final_Calories);
+  if (deficit > 0) return Math.max(0.1, deficit * 7 / 7700);
   return [0, 0.4, 0.55, 0.7][profile.pace || 0] || 0.5;
 }
-function forecasts(profile, problems) {
+function lossForecastText(profile, energy) {
+  const w = Number(profile.weightKg) || 0;
+  const target = Number(profile.targetWeightKg) || w;
+  if (profile.direction !== "lose" || !(target < w)) return null;
+  const weeks = Math.ceil((w - target) / weeklyLossKg(profile, energy));
+  const span = weeks > 16 ? `${Math.round(weeks / 4.345)} \u043C\u0435\u0441\u0435\u0446\u0430` : `${weeks} \u0441\u0435\u0434\u043C\u0438\u0446\u0438`;
+  return `\u2212${String(Math.round((w - target) * 10) / 10).replace(".", ",")} \u043A\u0433 (\u0434\u043E ~${String(target).replace(".", ",")} \u043A\u0433) \u0437\u0430 \u043E\u043A\u043E\u043B\u043E ${span}`;
+}
+function syncForecastToEnergy(analysis, userData) {
+  if (!analysis?.forecastOptimistic || !analysis._deterministicAnalysis) return;
+  const text2 = lossForecastText(compileProfile(userData || {}), analysis);
+  if (text2) analysis.forecastOptimistic.weight = text2;
+}
+function forecasts(profile, problems, energy) {
   const w = Number(profile.weightKg) || 0;
   const target = Number(profile.targetWeightKg) || w;
   const losing = profile.direction === "lose" && target < w;
@@ -40878,8 +40911,7 @@ function forecasts(profile, problems) {
   while (improvements.length < 3) improvements.push(["\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F", "\u041F\u043E-\u0434\u043E\u0431\u0440\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435", "\u0423\u0441\u0442\u043E\u0439\u0447\u0438\u0432\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043D\u0430\u0432\u0438\u0446\u0438"][improvements.length]);
   let weight = "\u0421\u0442\u0430\u0431\u0438\u043B\u043D\u043E \u0442\u0435\u0433\u043B\u043E \u0441 \u043F\u043E-\u0434\u043E\u0431\u044A\u0440 \u0441\u044A\u0441\u0442\u0430\u0432 \u043D\u0430 \u0442\u044F\u043B\u043E\u0442\u043E";
   if (losing) {
-    const weeks = Math.ceil((w - target) / weeklyLossKg(profile));
-    weight = `\u2212${String(Math.round((w - target) * 10) / 10).replace(".", ",")} \u043A\u0433 (\u0434\u043E ~${String(target).replace(".", ",")} \u043A\u0433) \u0437\u0430 \u043E\u043A\u043E\u043B\u043E ${weeks} \u0441\u0435\u0434\u043C\u0438\u0446\u0438`;
+    weight = lossForecastText(profile, energy);
   } else if (gaining) {
     weight = "+2\u20134 \u043A\u0433 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u0437\u0430 12 \u043C\u0435\u0441\u0435\u0446\u0430";
   }
@@ -40973,7 +41005,7 @@ function analyzeProfile(profile, energy = {}, extra = []) {
       dailyNeed: `${need} \u043B`,
       currentIntake: current != null ? `${current} \u043B` : "\u043D\u0435 \u0435 \u043F\u043E\u0441\u043E\u0447\u0435\u043D",
       deficit: current != null ? `${Math.max(0, Math.round((need - current) * 10) / 10)} \u043B` : "\u2014",
-      impactOnLipolysis: current != null && current < need - 0.4 ? "\u041D\u0435\u0434\u043E\u0441\u0442\u0438\u0433\u044A\u0442 \u043D\u0430 \u0432\u043E\u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0438 \u0437\u0430\u0441\u0438\u043B\u0432\u0430 \u0444\u0430\u043B\u0448\u0438\u0432\u0438\u044F \u0433\u043B\u0430\u0434." : "\u0425\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F\u0442\u0430 \u0435 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0430 \u0437\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430."
+      impactOnLipolysis: current != null && current < need - 0.4 ? "\u041D\u0435\u0434\u043E\u0441\u0442\u0438\u0433\u044A\u0442 \u043D\u0430 \u0432\u043E\u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0438 \u0437\u0430\u0441\u0438\u043B\u0432\u0430 \u0444\u0430\u043B\u0448\u0438\u0432\u0438\u044F \u0433\u043B\u0430\u0434." : current != null ? "\u0425\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F\u0442\u0430 \u0435 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0430 \u0437\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430." : `\u0426\u0435\u043B: \u043E\u043A\u043E\u043B\u043E ${need} \u043B \u0442\u0435\u0447\u043D\u043E\u0441\u0442\u0438 \u0434\u043D\u0435\u0432\u043D\u043E.`
     },
     keyProblems,
     currentHealthStatus: {
@@ -40981,7 +41013,7 @@ function analyzeProfile(profile, energy = {}, extra = []) {
       description: healthDescription(score, real, profile),
       keyIssues: keyProblems.slice(0, 4).map((p) => p.title)
     },
-    ...forecasts(profile, all),
+    ...forecasts(profile, all, energy),
     nutritionalNeeds: nutritionalNeeds(profile, energy.macroGrams),
     healthRisks: healthRisks(real),
     psychologicalProfile: psychologicalProfile(profile),
@@ -42782,6 +42814,9 @@ var RULES = [
   // „Калораж“ е жаргон; към клиента — „калории“ или „дневен прием“.
   ["imitation", /(като|както)\s+(би\s+)?(го|я|ги|то)?\s*(съставя|състави|съставил|прави|направи|направил|препоръчва)[а-я]*\s+(един\s+|всеки\s+)?(истински\s+|професионален\s+)?диетолог|(като|подобно на)\s+(истински|професионален|опитен)\s+диетолог|подража|имитира/i],
   ["jargon", /(?<![а-я])калораж[а-я]*/i],
+  // Текст за клиента говори НА него („ти“), не ЗА него. „Клиентът има…“, „Да се следи…“ са
+  // бележки за екипа — ако стигнат до клиента, звучат като чужда преписка за него.
+  ["third_person", /(?<![а-я])(клиент(ът|а|ката|ки)?|пациент(ът|а|ката|ки)?|потребител(ят|я))(?![а-я])|(?<![а-я])(диетолог|специалист)(ът|а)\s+(да|трябва|следва)(?![а-я])|(?<![а-я])да\s+се\s+(следи|проследи|наблюдава|изчисли|преизчисли|обсъди|провери|насочи|коригира|препоръча)(?![а-я])/i],
   // Остатъци от код, разметка или JSON.
   ["markup", /```|<\/?(div|span|script|br|p|b|i|html)\b[^>]*>|^\s*[{[]\s*"/i]
 ];
@@ -42799,8 +42834,11 @@ function textIssues(text2) {
 function isCleanClientText(text2) {
   return textIssues(text2).length === 0;
 }
+function isCleanStaffText(text2) {
+  return textIssues(text2).every((code) => code === "third_person");
+}
 function guardClientText(text2, options = {}) {
-  const fallback = options.fallback || "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0448 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
+  const fallback = "fallback" in options ? options.fallback : "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0448 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
   const src = String(text2 ?? "");
   if (!src.trim()) return { text: fallback, removed: [] };
   const removed = [];
@@ -44066,7 +44104,7 @@ function weekTargets(profile, base, week, fasting, slots) {
     if (swingG) carbs += kind === "train" ? swingG * restDays / 7 : -swingG * trainDays / 7;
     if (kind === "low") carbs = Math.min(carbs, C * 0.6);
     if (style === "keto") carbs = Math.min(KETO_MAX_CARB_G, C);
-    else if (style === "low_carb") carbs = Math.min(LOW_CARB_MAX_G, carbs);
+    else if (style === "low_carb") carbs = Math.min(Math.max(LOW_CARB_MAX_G, C), carbs);
     const riskCap = metabolicRisk && trainDays && kind !== "train" && style !== "keto";
     if (riskCap) carbs = Math.min(carbs, kcal[i] * 0.25 / 4);
     if (style !== "keto") carbs = Math.min(C * 1.35, Math.max(C * 0.7, carbs));
@@ -47077,6 +47115,7 @@ var ISSUE_REASONS = {
   markup: "\u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u043A\u043E\u0434 \u0438\u043B\u0438 \u0440\u0430\u0437\u043C\u0435\u0442\u043A\u0430",
   english: "\u0435 \u043D\u0430 \u0430\u043D\u0433\u043B\u0438\u0439\u0441\u043A\u0438",
   imitation: "\u0441\u0440\u0430\u0432\u043D\u044F\u0432\u0430 \u043F\u043B\u0430\u043D\u0430 \u0441 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438\u043B\u0438 \u043A\u0430\u0437\u0432\u0430, \u0447\u0435 \u043F\u043E\u0434\u0440\u0430\u0436\u0430\u0432\u0430 \u2014 \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430, \u043A\u043E\u0439\u0442\u043E \u0432\u043E\u0434\u0438 \u043A\u043B\u0438\u0435\u043D\u0442\u0430",
+  third_person: "\u0433\u043E\u0432\u043E\u0440\u0438 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u0432 \u0442\u0440\u0435\u0442\u043E \u043B\u0438\u0446\u0435 (\u201E\u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442\u201C, \u201E\u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438\u201C) \u2014 \u043E\u0431\u044A\u0440\u043D\u0438 \u0441\u0435 \u0434\u0438\u0440\u0435\u043A\u0442\u043D\u043E \u043A\u044A\u043C \u043D\u0435\u0433\u043E \u043D\u0430 \u201E\u0442\u0438\u201C",
   jargon: "\u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430 \u0436\u0430\u0440\u0433\u043E\u043D (\u201E\u043A\u0430\u043B\u043E\u0440\u0430\u0436\u201C) \u2014 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u201C \u0438\u043B\u0438 \u201E\u0434\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C\u201C"
 };
 function makeReason(blockedTerms) {
@@ -47620,9 +47659,21 @@ function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, floorKca
   }
   delta = Math.max(-MAX_WEEKLY_STEP, Math.min(MAX_WEEKLY_STEP, delta));
   let next = kcal + delta;
-  next = Math.max(baseKcal - MAX_TOTAL_SHIFT, Math.min(baseKcal + MAX_TOTAL_SHIFT, next));
-  if (losing) next = Math.min(next, tdee);
-  next = Math.max(next, floorKcal);
+  if (delta > 0) {
+    next = Math.min(next, Math.max(kcal, baseKcal + MAX_TOTAL_SHIFT));
+    if (losing) next = Math.min(next, Math.max(kcal, tdee));
+  } else if (delta < 0) {
+    next = Math.max(next, Math.min(kcal, baseKcal - MAX_TOTAL_SHIFT), Math.min(kcal, floorKcal));
+  }
+  if (delta && Math.round(next) === Math.round(kcal)) {
+    cancelDelta(delta < 0 && kcal <= floorKcal ? "\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0432\u0435\u0447\u0435 \u0435 \u043D\u0430 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438\u044F \u043C\u0438\u043D\u0438\u043C\u0443\u043C \u0438 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u043F\u043E\u0432\u0435\u0447\u0435 \u2014 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430 \u0441\u0442\u044A\u043F\u043A\u0430 \u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435, \u043D\u0435 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0445\u0440\u0430\u043D\u0430." : delta > 0 && losing && kcal >= tdee ? "\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0432\u0435\u0447\u0435 \u0435 \u043A\u043E\u043B\u043A\u043E\u0442\u043E \u0440\u0430\u0437\u0445\u043E\u0434\u0430 \u2014 \u043D\u0435 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u043F\u043E\u0432\u0435\u0447\u0435." : `\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u0438\u0442\u0435 \u0432\u0435\u0447\u0435 \u0441\u0430 ${MAX_TOTAL_SHIFT} kcal \u043E\u0442 \u043F\u044A\u0440\u0432\u043E\u043D\u0430\u0447\u0430\u043B\u043D\u0438\u044F \u043F\u043B\u0430\u043D \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430; \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430 \u0441\u0442\u044A\u043F\u043A\u0430 \u0435 \u043D\u043E\u0432\u0430 \u043F\u0440\u0435\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0440\u0430\u0437\u0445\u043E\u0434\u0430.`);
+    onTrack = false;
+  }
+  if (next < floorKcal) {
+    next = floorKcal;
+    onTrack = false;
+    reasons.push("\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u043E\u0434 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438\u044F \u043C\u0438\u043D\u0438\u043C\u0443\u043C \u0437\u0430 \u0441\u0435\u0433\u0430\u0448\u043D\u0438\u044F \u0440\u0430\u0437\u0445\u043E\u0434 \u2014 \u0432\u0434\u0438\u0433\u0430 \u0441\u0435 \u043A\u044A\u043C \u043D\u0435\u0433\u043E.");
+  }
   delta = Math.round(next - kcal);
   if (delta) changes.unshift(`\u041A\u0430\u043B\u043E\u0440\u0438\u0438: ${delta > 0 ? "+" : ""}${delta} kcal \u043D\u0430 \u0434\u0435\u043D`);
   return {
@@ -47667,7 +47718,7 @@ function weeklyMessage(decision, checkin) {
   if (decision.onTrack) {
     return {
       headline: "\u041E\u0442\u043B\u0438\u0447\u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u2014 \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u043C\u0435",
-      message: "\u0412\u044A\u0440\u0432\u0438\u0442\u0435 \u043F\u043E \u043F\u043B\u0430\u043D\u0430. \u041D\u043E\u0432\u043E\u0442\u043E \u043C\u0435\u043D\u044E \u0435 \u0441\u044A\u0441 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043D\u043E\u0432\u0438 \u044F\u0441\u0442\u0438\u044F \u0437\u0430 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435."
+      message: "\u0412\u044A\u0440\u0432\u0438\u0448 \u043F\u043E \u043F\u043B\u0430\u043D\u0430. \u041D\u043E\u0432\u043E\u0442\u043E \u043C\u0435\u043D\u044E \u0435 \u0441\u044A\u0441 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043D\u043E\u0432\u0438 \u044F\u0441\u0442\u0438\u044F \u0437\u0430 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435."
     };
   }
   const noWeight = !decision.weight && !decision.weightKg;
@@ -47884,12 +47935,12 @@ function digestDue(essence, digest, now = /* @__PURE__ */ new Date()) {
 }
 function normalizeDigest(raw, now = /* @__PURE__ */ new Date()) {
   if (!raw || typeof raw !== "object") return null;
-  const clean = (s, max) => {
+  const clean = (s, max, ok) => {
     const t = String(s || "").trim().replace(/\s+/g, " ").slice(0, max);
-    return t && isCleanClientText(t) ? t : "";
+    return t && ok(t) ? t : "";
   };
-  const insights = (Array.isArray(raw.insights) ? raw.insights : []).map((s) => clean(s, 220)).filter(Boolean).slice(0, 4);
-  const coachNote = clean(raw.coachNote, 500);
+  const insights = (Array.isArray(raw.insights) ? raw.insights : []).map((s) => clean(s, 220, isCleanClientText)).filter(Boolean).slice(0, 4);
+  const coachNote = clean(raw.coachNote, 500, isCleanStaffText);
   const approach = [...new Set((Array.isArray(raw.approach) ? raw.approach : []).map(String).filter((c) => DIGEST_APPROACH[c]))].slice(0, 2);
   if (!insights.length && !coachNote) return null;
   return { insights, coachNote, approach, at: now.toISOString() };
@@ -51946,9 +51997,19 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   const gc = data?._goalCouncil;
   if (gc?.verdict) analysis._goalCouncil = { verdict: gc.verdict, algorithm: gc.algorithm, concerns: gc.concerns || [], at: gc.at };
   enforceCalorieGuardrails(analysis, data, tdee);
+  syncForecastToEnergy(analysis, data);
   const intake = parseFinalCalories(analysis.Final_Calories);
   const intakeDrift = previousIntake > 0 && intake > 0 ? Math.abs(intake - previousIntake) / previousIntake : previousIntake !== intake ? 1 : 0;
   return { bmr, tdee, activityData, previousIntake, intake, intakeDrift };
+}
+function guardFields(obj, keys) {
+  if (!obj || typeof obj !== "object") return;
+  for (const k of keys) {
+    if (typeof obj[k] !== "string" || !obj[k].trim()) continue;
+    const g = guardClientText(obj[k], { fallback: "" });
+    if (g.removed.length) console.warn(`[guard] ${k}: \u043C\u0430\u0445\u043D\u0430\u0442\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F:`, g.removed.join(", "));
+    obj[k] = g.text;
+  }
 }
 function analysisNarrativeEnabled(env = {}) {
   const v = env?.ANALYSIS_AI_NARRATIVE;
@@ -57824,6 +57885,8 @@ ${planContext ? `\u0422\u0415\u041A\u0423\u0429 \u0414\u0418\u0415\u0422\u0418\u
       const menuBody = await menuResponse.json();
       return jsonResponse2({ ...menuBody, kind: "menu" }, menuResponse.status);
     }
+    guardFields(analysisResult?.dietSuitability, ["explanation"]);
+    guardFields(analysisResult, ["suggestions"]);
     const suitScore = Number(analysisResult?.dietSuitability?.score);
     if (suitScore > 5) analysisResult.dietSuitability.score = Math.round(suitScore / 2);
     if (analysisResult && Array.isArray(analysisResult.foods)) {
@@ -57917,7 +57980,7 @@ ${planContext ? `\u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u
   "recommendedDish": "\u041F\u044A\u043B\u043D\u043E \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043D\u0430 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u043D\u043E\u0442\u043E \u044F\u0441\u0442\u0438\u0435 \u0442\u043E\u0447\u043D\u043E \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E",
   "suitabilityScore": \u0447\u0438\u0441\u043B\u043E \u043E\u0442 0 \u0434\u043E 5,
   "description": "\u041A\u0440\u0430\u0442\u043A\u043E \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435\u0442\u043E (1-2 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F)",
-  "reasoning": "\u0417\u0430\u0449\u043E \u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0437\u0430 \u0446\u0435\u043B\u0442\u0430 \u0438 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (2-3 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F)",
+  "reasoning": "\u0417\u0430\u0449\u043E \u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0437\u0430 \u0446\u0435\u043B\u0442\u0430 \u0438 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0442\u0438 \u2014 \u0434\u0438\u0440\u0435\u043A\u0442\u043D\u043E \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442\u0430, \u043D\u0430 \u201E\u0442\u0438\u201C (2-3 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F)",
   "adaptationTip": "\u041A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0430 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0430 \u0437\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u043F\u0440\u0438 \u043F\u043E\u0440\u044A\u0447\u043A\u0430\u0442\u0430 (\u043D\u0430\u043F\u0440. '\u041F\u043E\u0440\u044A\u0447\u0430\u0439 \u0441\u0430\u043B\u0430\u0442\u0430\u0442\u0430 \u0431\u0435\u0437 \u0434\u0440\u0435\u0441\u0438\u043D\u0433, \u0434\u043E\u0431\u0430\u0432\u0438 \u0441\u0430\u043C\u043E \u043B\u0438\u043C\u043E\u043D \u0438 \u0437\u0435\u0445\u0442\u0438\u043D')",
   "alternatives": [
     {
@@ -57953,6 +58016,8 @@ ${planContext ? `\u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u
         message: "\u0421\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0435 \u0431\u0435\u0448\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0442\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430."
       });
     }
+    guardFields(menuResult, ["description", "reasoning", "adaptationTip"]);
+    (Array.isArray(menuResult?.alternatives) ? menuResult.alternatives : []).forEach((a) => guardFields(a, ["reason"]));
     return jsonResponse2({
       success: true,
       analysis: menuResult
@@ -61997,8 +62062,8 @@ var DEFAULT_HEALTH_DIGEST_PROMPT = `\u0422\u0438 \u0441\u0438 \u0434\u0438\u0435
 \u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown):
 {"insights":["..."],"coachNote":"...","approach":[]}
 
-- insights: \u0434\u043E 4 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u043D\u0430 \u201E\u0442\u0438\u201C), \u0432\u0441\u044F\u043A\u043E \u0441\u0432\u044A\u0440\u0437\u0432\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0447\u0438\u0441\u043B\u043E \u0441 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0438\u043B\u0438 \u0440\u0435\u0436\u0438\u043C\u0430. \u0411\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u0435 \u043D\u0430 \u0447\u0438\u0441\u043B\u0430\u0442\u0430 \u0431\u0435\u0437 \u0438\u0437\u0432\u043E\u0434.
-- coachNote: 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u0437\u0430 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u0430 \u0438 \u0447\u0430\u0442 \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430 \u2014 \u043D\u0430\u0439-\u0432\u0430\u0436\u043D\u043E\u0442\u043E \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438.
+- insights: \u0434\u043E 4 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438, \u043A\u043E\u0438\u0442\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0447\u0435\u0442\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E. \u0413\u043E\u0432\u043E\u0440\u0438 \u043C\u0443 \u0434\u0438\u0440\u0435\u043A\u0442\u043D\u043E \u043D\u0430 \u201E\u0442\u0438\u201C (\u201E\u043A\u0440\u0430\u0447\u043A\u0438\u0442\u0435 \u0442\u0438\u201C, \u201E\u044F\u0436\u201C), \u043D\u0438\u043A\u043E\u0433\u0430 \u0437\u0430 \u043D\u0435\u0433\u043E (\u201E\u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442\u201C, \u201E\u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438\u201C). \u0412\u0441\u044F\u043A\u043E \u0441\u0432\u044A\u0440\u0437\u0432\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0447\u0438\u0441\u043B\u043E \u0441 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0438\u043B\u0438 \u0440\u0435\u0436\u0438\u043C\u0430. \u0411\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u0435 \u043D\u0430 \u0447\u0438\u0441\u043B\u0430\u0442\u0430 \u0431\u0435\u0437 \u0438\u0437\u0432\u043E\u0434.
+- coachNote: 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u0441\u0430\u043C\u043E \u0437\u0430 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u0430 \u0438 \u0447\u0430\u0442 \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430 (\u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0433\u0438 \u0432\u0438\u0436\u0434\u0430) \u2014 \u043D\u0430\u0439-\u0432\u0430\u0436\u043D\u043E\u0442\u043E \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438.
 - approach: 0\u20132 \u043A\u043E\u0434\u0430 \u0441\u0430\u043C\u043E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430, \u0438 \u0441\u0430\u043C\u043E \u0430\u043A\u043E \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u044F\u0441\u043D\u043E \u0433\u043E \u043E\u043F\u0440\u0430\u0432\u0434\u0430\u0432\u0430\u0442: {approachList}
 - \u041D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u043D\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u044F\u0439 \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043D\u0435 \u043A\u043E\u043C\u0435\u043D\u0442\u0438\u0440\u0430\u0439 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u0410\u043A\u043E \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0441\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438 \u2014 \u043A\u0430\u0436\u0438 \u0433\u043E \u043A\u0440\u0430\u0442\u043A\u043E.`;
 async function buildHealthDigest(env, data) {

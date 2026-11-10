@@ -37,6 +37,8 @@ const FAT_SHARE_BY_STYLE = {
 /** Нисковъглехидратна: ≤25% от калориите и ≤130 г/ден (клиничната граница). */
 export const LOW_CARB_SHARE = 0.25;
 export const LOW_CARB_MAX_G = 130;
+/** Над този дял мазнини нисковъглехидратната става кето по състав, без да е кето по въглехидрати. */
+export const LOW_CARB_MAX_FAT_SHARE = 0.45;
 /**
  * Кето: ≤50 г/ден и ≤10% от калориите — общи въглехидрати, както ги брои
  * целият план. Кетогенният праг е 20–50 г нетни (без фибрите) на ден (ADA
@@ -166,6 +168,17 @@ export function macroTargetsFor(profile, kcal) {
       ? Math.min(KETO_MAX_CARB_G, Math.floor(energy * KETO_CARB_SHARE / 4))
       : Math.min(LOW_CARB_MAX_G, Math.round(energy * LOW_CARB_SHARE / 4));
     fats = Math.max(minFat, Math.round((energy - protein * 4 - carbs * 4) / 9));
+    // Нисковъглехидратна при много калории (активен човек с диабет/ИР): с таван
+    // 130 г остатъкът отиваше изцяло в мазнините — над 60% от енергията. Първо
+    // расте белтъкът (до 2,2 г/кг), после въглехидратите — до дела на стила.
+    const maxFat = Math.round(energy * LOW_CARB_MAX_FAT_SHARE / 9);
+    if (style === 'low_carb' && fats > maxFat) {
+      const room = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * maxProteinShare / 4)) - protein);
+      protein += Math.min(room, Math.round((fats - maxFat) * 9 / 4));
+      const maxCarbs = Math.round(energy * LOW_CARB_SHARE / 4);
+      carbs = Math.max(carbs, Math.min(maxCarbs, Math.round((energy - protein * 4 - maxFat * 9) / 4)));
+      fats = Math.max(minFat, Math.round((energy - protein * 4 - carbs * 4) / 9));
+    }
   } else {
     fats = Math.max(minFat, Math.round(energy * (FAT_SHARE_BY_STYLE[style] ?? 0.30) / 9));
     carbs = Math.max(0, Math.round((energy - protein * 4 - fats * 9) / 4));
