@@ -10,7 +10,7 @@
  * change, Google's busy times 5 min in KV), and only "Запази" checks Google and the database live.
  */
 import { normalizeSettings, publicSettings } from './settings.js';
-import { slotsForMonth, zonedMs, zonedParts, isOfferedStart, inWindow, isFree } from './slots.js';
+import { slotsForMonth, zonedMs, zonedParts, isOfferedStart, inWindow, isFree, tzOffset } from './slots.js';
 import { pushTo, pushReady, savePushToken, forgetPushTokens } from './push.js';
 import { busyTimes, addEvent, moveEvent, deleteEvent, updateEventInfo, checkCalendar, serviceAccountEmail } from './google.js';
 
@@ -161,12 +161,12 @@ async function tokenOk(client, token) {
   const list = JSON.parse(client.token_hash || '[]');
   return Array.isArray(list) && list.includes(await sha256(String(token)));
 }
-/** a new device token for this client (the last 5 devices keep theirs) */
+/** a new device token for this client (the last 10 devices keep theirs) */
 async function issueToken(env, studioId, phone) {
   const token = randomToken();
   const c = await getClient(env, studioId, phone);
   const list = JSON.parse((c && c.token_hash) || '[]');
-  const next = [...(Array.isArray(list) ? list : []), await sha256(token)].slice(-5);
+  const next = [...(Array.isArray(list) ? list : []), await sha256(token)].slice(-10);
   await env.STUDIO_DB.prepare('UPDATE clients SET token_hash = ? WHERE studio_id = ? AND phone = ?').bind(JSON.stringify(next), studioId, phone).run();
   return token;
 }
@@ -251,6 +251,10 @@ async function viberBooking(env, studio, event, b, now = Date.now()) {
 /* the hours taken elsewhere: the studio's Google Calendar and, for XBODY Burgas while Acuity still takes bookings,
    every hour of our schedule that Acuity no longer offers (booked there) — so the two never give the same hour */
 let acuityFree = null;   // set per request by the worker: (ym) → { 'YYYY-MM-DD': ['…T08:00:00+0200', …] } | null
+/* XBODY Burgas: the client's own hours booked in Acuity (xbody.html, Acuity's page, the studio) — shown in "my hours"
+   with the app's ones, cancelled / moved through Acuity. Set per request by the worker:
+   { list(email, phone) → [{ id, datetime, canceled, canCancel, canMove }] | null, cancel(email, phone, id), move(email, phone, id, iso) } */
+let acuityClient = null;
 async function busyForMonth(env, studio, ym) {
   const google = await googleBusy(env, studio, ym);
   return studio.settings.acuity ? google.concat(await acuityBusy(studio, ym)) : google;
@@ -491,8 +495,9 @@ async function handleBook(env, ctx, studio, b) {
     }
   }
 
-  // the client: kept (name, card, code); a device token on the first booking
-  await upsertClient(env, studio.id, who.phone, who);
+  // the client: kept (name, card, code); a device token on the first booking. Only the client's own device (or a new
+  // client) changes the name and e-mail: the e-mail receives login codes, so an unproven device must not redirect it.
+  if (!client || (await tokenOk(client, who.token))) await upsertClient(env, studio.id, who.phone, who);
   if (card && booked.length) {
     await env.STUDIO_DB.prepare('UPDATE clients SET stripe_customer = ?, card_pm = ?, card_brand = ?, card_last4 = ? WHERE studio_id = ? AND phone = ?')
       .bind(card.customer, card.pm, card.brand, card.last4, studio.id, who.phone).run();
@@ -519,10 +524,12 @@ async function handleBook(env, ctx, studio, b) {
       }
     })());
   }
+  const login = booked.length && !token && !(await tokenOk(client, who.token)) ? loginChannels(env, studio, client) : undefined;
   return json({
     booked: booked.map((x) => ({ id: x.id, time: x.time })),
     failed,
     token,
+    login,   // the hours are the client's, but this device is not yet: the app offers the code
     card: card && booked.length ? { brand: card.brand, last4: card.last4 } : undefined,
     code: code && booked.length ? codeOut({ ...code, uses_left: code.uses_left === null ? null : code.uses_left - booked.length }) : undefined,
   }, booked.length || !failed.length ? 200 : 409);
@@ -544,6 +551,17 @@ async function ownClient(env, studio, b) {
   return (await tokenOk(client, who.token)) ? client : null;
 }
 
+/** POST /api/s/profile { phone, token, name, email } — the client's own device corrects the name / e-mail */
+async function handleProfile(env, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return err('token', 401);
+  const who = readWho(b);
+  if (who.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(who.email)) return err('email');
+  await env.STUDIO_DB.prepare('UPDATE clients SET name = ?, email = ? WHERE studio_id = ? AND phone = ?')
+    .bind(who.name || client.name, who.email, studio.id, client.phone).run();
+  return json({ ok: true });
+}
+
 async function handleMine(env, studio, b) {
   const client = await ownClient(env, studio, b);
   if (!client) return err('token', 401);
@@ -557,16 +575,55 @@ async function handleMine(env, studio, b) {
     const c = await env.STUDIO_DB.prepare('SELECT * FROM codes WHERE studio_id = ? AND code = ? AND active = 1').bind(studio.id, client.code).first();
     if (c && !(c.valid_to && c.valid_to < now) && c.uses_left !== 0) code = codeOut(c);
   }
+  const hours = rows.filter((r) => r.status !== 'canceled' || r.start_ms > now).map((r) => {
+    const p = zonedParts(r.start_ms, st.timezone);
+    return { id: r.id, time: `${p.ymd} ${p.hm}`, status: r.start_ms < now && r.status === 'booked' ? 'done' : r.status,
+      late: r.start_ms - now < st.rules.freeCancelHours * 3600e3 };
+  });
+  for (const a of await acuityHours(studio, client)) if (!hours.some((h) => h.time === a.time)) hours.push(a);
+  hours.sort((a, b) => (a.time < b.time ? -1 : 1));
   return json({
     name: client.name,
+    email: client.email,
+    phone: client.phone,
     card: client.card_pm ? { brand: client.card_brand, last4: client.card_last4 } : null,
     code,
-    hours: rows.filter((r) => r.status !== 'canceled' || r.start_ms > now).map((r) => {
-      const p = zonedParts(r.start_ms, st.timezone);
-      return { id: r.id, time: `${p.ymd} ${p.hm}`, status: r.start_ms < now && r.status === 'booked' ? 'done' : r.status,
-        late: r.start_ms - now < st.rules.freeCancelHours * 3600e3 };
-    }),
+    hours,
   });
+}
+
+/** the client's Acuity hours (XBODY Burgas), in the shape of the app's own; [] when Acuity is off or does not answer */
+async function acuityHours(studio, client) {
+  const st = studio.settings;
+  if (!st.acuity || !acuityClient || !client.email) return [];
+  let list = null;
+  try { list = await acuityClient.list(client.email, client.phone); } catch (e) { console.warn('[studio] acuity hours failed:', e.message); }
+  const now = Date.now();
+  const out = [];
+  for (const a of Array.isArray(list) ? list : []) {
+    const ms = Date.parse(String(a.datetime || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2'));
+    if (!Number.isFinite(ms) || ms < now - 60 * 864e5 || (a.canceled && ms < now)) continue;
+    const p = zonedParts(ms, st.timezone);
+    out.push({ id: `a${a.id}`, time: `${p.ymd} ${p.hm}`, status: a.canceled ? 'canceled' : ms < now ? 'done' : 'booked',
+      late: !a.canCancel || ms - now < st.rules.freeCancelHours * 3600e3, acuity: true });
+  }
+  return out;
+}
+
+/** cancel / move of an Acuity hour (id "a<acuity id>"): the client proved by this device's token, the change in Acuity */
+async function acuityChange(env, studio, b, client, ms) {
+  if (!studio.settings.acuity || !acuityClient || !client.email) return err('not_found', 404);
+  const id = String(b.id).slice(1);
+  let r;
+  if (ms) {
+    const off = tzOffset(studio.settings.timezone, ms);
+    const p = zonedParts(ms, studio.settings.timezone);
+    const iso = `${p.ymd}T${p.hm}:00${off < 0 ? '-' : '+'}${String(Math.floor(Math.abs(off) / 60)).padStart(2, '0')}:${String(Math.abs(off) % 60).padStart(2, '0')}`;
+    r = await acuityClient.move(client.email, client.phone, id, iso);
+  } else r = await acuityClient.cancel(client.email, client.phone, id);
+  if (!r || r.error) return err((r && r.error) || 'calendar', (r && r.status) || 503);
+  await bumpRev(env, studio.id);
+  return json(ms ? { ok: true, time: String(b.time) } : { ok: true, late: false });
 }
 
 async function ownBooking(env, studio, b) {
@@ -591,6 +648,11 @@ async function afterCancel(env, ctx, studio, bk, late) {
 }
 
 async function handleCancel(env, ctx, studio, b) {
+  if (/^a\d{1,15}$/.test(String(b.id || ''))) {
+    const client = await ownClient(env, studio, b);
+    if (!client) return err('token', 401);
+    return acuityChange(env, studio, b, client, 0);
+  }
   const o = await ownBooking(env, studio, b);
   if (o.error) return o.error;
   const late = o.bk.start_ms - Date.now() < studio.settings.rules.freeCancelHours * 3600e3;
@@ -603,6 +665,18 @@ async function handleCancel(env, ctx, studio, b) {
 
 async function handleMove(env, ctx, studio, b) {
   const st = studio.settings;
+  if (/^a\d{1,15}$/.test(String(b.id || ''))) {   // an Acuity hour: only to a time this studio offers and nobody holds
+    const client = await ownClient(env, studio, b);
+    if (!client) return err('token', 401);
+    const ms = startOf(st, b.time, Date.now());
+    if (!ms) return err('not_offered', 409);
+    try {
+      let busy = await acuityBusy(studio, zonedParts(ms, st.timezone).ymd.slice(0, 7));
+      if (st.google.calendarId) busy = busy.concat(await busyTimes(env, st.google.calendarId, ms - 864e5, ms + 864e5, st.timezone));
+      if (!isFree(st, ms, busy)) return err('taken', 409);
+    } catch (e) { return err('calendar', 503); }
+    return acuityChange(env, studio, b, client, ms);
+  }
   const o = await ownBooking(env, studio, b);
   if (o.error) return o.error;
   if (o.bk.start_ms - Date.now() < st.rules.freeCancelHours * 3600e3) return err('too_late', 409);
@@ -673,26 +747,97 @@ async function handleList(env) {
   return json({ studios }, 200, { 'Cache-Control': 'public, max-age=300' });
 }
 
-/* ── a new device: a 4-digit code by Viber gives it the client's token ── */
+/* ── the client's profile across devices ──
+ * A client is (studio, phone). The first device that gives a phone gets its token at once (the profile is kept on the
+ * server from the first screen, before any booking). Any other device proves it is the same person with a 4-digit
+ * code — by Viber (the phone) and/or by e-mail (the address the client gave) — and then sees the same hours, card
+ * and code. A matching name and e-mail alone are never enough: they are not a secret. */
+function emailOn(env) { return Boolean(env.RESEND_API_KEY); }
+function loginChannels(env, studio, client) {
+  return [viberOn(env, studio) ? 'viber' : '', client && client.email && emailOn(env) ? 'email' : ''].filter(Boolean);
+}
+async function sendCodeEmail(env, studio, to, pin) {
+  const name = studio.settings.brand.name;
+  const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: env.STUDIO_MAIL_FROM || 'XB-Studio <info@biocode.online>',
+      to: [to],
+      subject: `Код за вход в ${name}: ${pin}`,
+      html: `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5"><p>Код за вход в <b>${esc(name)}</b>:</p>
+        <p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:12px 0">${pin}</p>
+        <p style="color:#666">Важи 15 минути. Ако не сте го поискали, не правете нищо.</p></div>`,
+    }),
+  });
+  if (!r.ok) throw new Error(`resend ${r.status}`);
+}
+
+/** the client by phone, else by e-mail (the one with the latest booking) */
+async function findClient(env, studioId, phone, email) {
+  if (phone) return getClient(env, studioId, phone);
+  if (!email) return null;
+  return env.STUDIO_DB.prepare(
+    `SELECT c.* FROM clients c WHERE c.studio_id = ? AND c.email = ?
+     ORDER BY (SELECT MAX(start_ms) FROM bookings x WHERE x.studio_id = c.studio_id AND x.phone = c.phone) DESC, c.created_at DESC LIMIT 1`,
+  ).bind(studioId, email).first();
+}
+
+/** POST /api/s/hello { phone, name, email?, terms, termsText?, termsVer? } — the first screen, kept on the server.
+ *  A new phone: the client is saved and this device gets its token. A known phone: { known, via } — the device logs in
+ *  with a code (nothing of the client's is shown or changed before that). */
+async function handleHello(env, studio, b) {
+  const who = readWho(b);
+  if (!who.phone || !who.name) return err('who');
+  const client = await getClient(env, studio.id, who.phone);
+  if (client && (await tokenOk(client, who.token))) return json({ ok: true });
+  if (client && JSON.parse(client.token_hash || '[]').length) return json({ known: true, via: loginChannels(env, studio, client) });
+  if (!client && !b.terms) return err('terms', 403);
+  await upsertClient(env, studio.id, who.phone, who);
+  if (b.terms && typeof b.termsText === 'string' && b.termsText.length > 20 && env.page_content) {
+    const text = b.termsText.slice(0, 12000);
+    const hash = String(await sha256(text)).slice(0, 16);
+    await env.page_content.put(`studio:terms:${studio.id}:${hash}`, text);
+    await env.page_content.put(`studio:consent:${studio.id}:${who.phone}`, JSON.stringify({ at: Date.now(), hash, name: who.name, ver: String(b.termsVer || '').slice(0, 20) }));
+  }
+  return json({ ok: true, token: await issueToken(env, studio.id, who.phone) });
+}
+
+/** POST /api/s/verify/start { phone } or { email } — a 4-digit code by Viber and/or e-mail */
 async function handleVerifyStart(env, studio, b) {
   const phone = normPhone(b.phone);
-  if (!phone || !env.page_content) return err('who');
-  const client = await getClient(env, studio.id, phone);
-  if (!client) return json({ ok: true });   // nothing said about who is a client
-  const key = `studio:verify:${studio.id}:${phone}`;
+  const email = String(b.email || '').trim().toLowerCase().slice(0, 120);
+  if ((!phone && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) || !env.page_content) return err('who');
+  const client = await findClient(env, studio.id, phone, email);
+  if (!client) return json({ ok: true, via: [] });   // nothing said about who is a client
+  const via = loginChannels(env, studio, client).filter((c) => !email || c === 'email');   // asked by e-mail: the code goes there
+  if (!via.length) return err('no_channel', 409);
+  const key = `studio:verify:${studio.id}:${client.phone}`;
   const prev = JSON.parse((await env.page_content.get(key)) || 'null');
   if (prev && Date.now() - prev.at < 60e3) return err('wait', 429);
   const pin = String(crypto.getRandomValues(new Uint32Array(1))[0] % 10000).padStart(4, '0');
-  await env.page_content.put(key, JSON.stringify({ h: await sha256(`${phone}:${pin}`), tries: 0, at: Date.now() }), { expirationTtl: 900 });
-  await env.page_content.put(outKey(Date.now(), `v${randomToken(6)}`, 'pin'),
-    JSON.stringify({ to: phone, text: `Код за вход в ${studio.settings.brand.name}: ${pin}\nВажи 15 минути.`, tries: 0 }), { expirationTtl: 3600 });
-  return json({ ok: true });
+  await env.page_content.put(key, JSON.stringify({ h: await sha256(`${client.phone}:${pin}`), tries: 0, at: Date.now() }), { expirationTtl: 900 });
+  if (via.includes('viber')) {
+    await env.page_content.put(outKey(Date.now(), `v${randomToken(6)}`, 'pin'),
+      JSON.stringify({ to: client.phone, text: `Код за вход в ${studio.settings.brand.name}: ${pin}\nВажи 15 минути.`, tries: 0 }), { expirationTtl: 3600 });
+  }
+  if (via.includes('email')) {
+    try { await sendCodeEmail(env, studio, client.email, pin); } catch (e) {
+      console.warn('[studio] login e-mail failed:', e.message);
+      if (via.length === 1) return err('email', 502);
+    }
+  }
+  return json({ ok: true, via });
 }
 
+/** POST /api/s/verify/finish { phone | email, pin } → { token, phone, name, email } */
 async function handleVerifyFinish(env, studio, b) {
-  const phone = normPhone(b.phone);
+  const email = String(b.email || '').trim().toLowerCase().slice(0, 120);
+  const client = await findClient(env, studio.id, normPhone(b.phone), email);
   const pin = String(b.pin || '');
-  if (!phone || !/^\d{4}$/.test(pin) || !env.page_content) return err('pin');
+  if (!client || !/^\d{4}$/.test(pin) || !env.page_content) return err('pin');
+  const phone = client.phone;
   const key = `studio:verify:${studio.id}:${phone}`;
   const v = JSON.parse((await env.page_content.get(key)) || 'null');
   if (!v || v.tries >= 5) return err('pin');
@@ -701,7 +846,7 @@ async function handleVerifyFinish(env, studio, b) {
     return err('pin');
   }
   await env.page_content.delete(key);
-  return json({ ok: true, token: await issueToken(env, studio.id, phone) });
+  return json({ ok: true, token: await issueToken(env, studio.id, phone), phone, name: client.name, email: client.email });
 }
 
 /* ── admin (7 taps on the logo → the 5-digit code) ── */
@@ -1011,6 +1156,7 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (!env.STUDIO_DB) return err('not_configured', 503);
   acuityFree = opts.acuityFree || null;
+  acuityClient = opts.acuityClient || null;
   const path = url.pathname.slice('/api/s/'.length);
   const limit = (name) => (opts.rateLimit ? opts.rateLimit(name) : null);
   try {
@@ -1025,7 +1171,7 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
     if (!studio) return err('studio', 404);
 
     if (request.method === 'GET' && path === 'config') {
-      return json(publicSettings(studio.settings, studio.version, hasStripe(studio)), 200, { 'Cache-Control': 'public, max-age=60' });
+      return json({ ...publicSettings(studio.settings, studio.version, hasStripe(studio)), emailLogin: emailOn(env) }, 200, { 'Cache-Control': 'public, max-age=60' });
     }
     if (request.method === 'GET' && path === 'logo') {
       const v = env.page_content ? JSON.parse((await env.page_content.get(`studio:logo:${studio.id}`)) || 'null') : null;
@@ -1053,6 +1199,8 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
       case 'move': return await handleMove(env, ctx, studio, body);
       case 'forget': return await handleForget(env, ctx, studio, body);
       case 'push': return await handlePush(env, studio, body);
+      case 'hello': return await handleHello(env, studio, body);
+      case 'profile': return await handleProfile(env, studio, body);
       case 'verify/start': return await handleVerifyStart(env, studio, body);
       case 'verify/finish': return await handleVerifyFinish(env, studio, body);
       default: return err('not_found', 404);

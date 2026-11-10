@@ -564,6 +564,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   <section class="card hidden" id="mine-card" hidden>
     <div class="row" style="justify-content:space-between"><p class="sec-title" style="margin:0">Моите часове</p><span class="small muted" id="mine-extra" style="text-align:right"></span></div>
     <ul class="mine" id="mine"></ul>
+    <p class="small hidden" id="mine-mail">Липсват часове отпреди? <button class="link" id="mine-mail-go">Добавете имейла си</button></p>
     <p class="hidden"><button class="link" id="forget">Изтрий данните ми</button></p>
   </section>
 
@@ -582,7 +583,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   </section>
 
   <p class="small muted hidden" style="text-align:center">
-    <button class="link" id="old-client">Вече съм клиент — влез с телефона си</button>
+    <button class="link" id="old-client">Вече съм клиент — влез с код</button>
   </p>
   <p class="small muted" style="text-align:center;margin-bottom:24px">
     <a href="https://biocode.website/studio-support.html">Помощ и контакт</a> ·
@@ -600,6 +601,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   <label class="tick" id="onb-tick-row"><input type="checkbox" id="onb-terms"><span>Приемам <button class="link" id="onb-rules" type="button">правилата и условията</button></span></label>
   <p class="err" id="onb-err"></p>
   <button class="btn" id="onb-go" type="button">Продължи</button>
+  <p class="small" style="text-align:center;margin-top:10px"><button class="link" id="onb-login" type="button">Вече имам профил — влез с код</button></p>
 </div></section>
 <div class="ptr" id="ptr" aria-hidden="true"></div>
 <button class="fab hidden" id="fab" type="button" aria-label="Моят профил"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Моят профил</button>
@@ -1155,6 +1157,13 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     renderCal();
     renderBar();
     showDone(booked, failed);
+    if (booked.length && d.login && d.login.length && !me.token) {
+      const slot = document.getElementById('rem-slot');
+      if (slot) {
+        slot.insertAdjacentHTML('beforebegin', `<p class="small muted">Този телефон вече има профил. Влезте с код, за да виждате часовете си и на това устройство.</p><button class="btn sec" id="done-login">Влез с код</button>`);
+        $('done-login').onclick = () => openLogin({ phone: me.phone, via: d.login });
+      }
+    }
   }
 
   /* a light tap on picking an hour, a "done" tap after a booking (the phone app only) */
@@ -1454,6 +1463,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     brandLogo($('onb-logo'));
     $('onb-name').value = me.name || ''; $('onb-phone').value = me.phone || ''; $('onb-email').value = me.email || '';
     $('onb-terms').checked = false;
+    $('onb-login').parentNode.classList.toggle('hidden', !loginOn());
     $('onb').classList.remove('hidden');
   }
   $('onb-logo').onclick = () => $('logo').click();   // the studio's admin is entered from here too (7 taps)
@@ -1463,6 +1473,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     const err = (m) => { $('onb-err').textContent = m; };
     if (name.length < 2) return err('Въведете име и фамилия.');
     if (phone.replace(/\D/g, '').length < 9) return err('Въведете телефон.');
+    if (!email && cfg && cfg.acuity) return err('Въведете имейла, с който сте записвали часове досега — по него виждаме и тях.');
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err('Проверете имейла.');
     if (!$('onb-terms').checked) return err('Моля, приемете правилата и условията.');
     err('');
@@ -1470,7 +1481,9 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     tickedNow = true;
     save('me', me);
     $('onb').classList.add('hidden');
+    hello(true);
   };
+  $('onb-login').onclick = () => openLogin({});
 
   /* ── the rules (Правила и условия): built from the studio's own settings, so what the client accepts is exactly what applies.
         The same text is what the booking sends with the tick (the server keeps it with the time of acceptance). ── */
@@ -1553,16 +1566,34 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   }
   function openMyData() {
     sheet(`<h3>Моите данни</h3>
-      <ul class="list"><li><span class="muted">Име</span><span>${esc(me.name || '—')}</span></li><li><span class="muted">Телефон</span><span>${esc(me.phone || '—')}</span></li>
+      ${me.token ? `<label class="f">Име и фамилия<input id="md-name" value="${esc(me.name || '')}" autocomplete="name"></label>
+      <label class="f">Имейл<input id="md-email" type="email" value="${esc(me.email || '')}" autocomplete="email"></label>
+      ${cfg.acuity ? '<p class="small muted">С имейла, с който сте записвали часове досега, ги виждате и тук.</p>' : ''}
+      <p class="err" id="md-err"></p><button class="btn sec" data-go="md-save">Запази</button>` : ''}
+      <ul class="list">${me.token ? '' : `<li><span class="muted">Име</span><span>${esc(me.name || '—')}</span></li>`}<li><span class="muted">Телефон</span><span>${esc(me.phone || '—')}</span></li>
       ${me.card ? `<li><span class="muted">Карта</span><span>${esc(cardName(me.card))}</span></li>` : ''}${codeOk(me.code) ? `<li><span class="muted">Код</span><span>${esc(me.code.code)}</span></li>` : ''}</ul>
       <p class="small muted">Данните се пазят на устройството и в студиото ${esc(cfg.brand.name)} — само за записванията Ви. Можете да ги изтриете по всяко време.</p>
       ${me.token ? `<button class="btn danger" data-go="forget">${ic('trash')}Изтрий данните ми</button>` : ''}
       <button class="btn sec" data-back>Назад</button>`, (e) => {
       if (e.target.closest('[data-back]')) { openProfile(); return; }
-      if (e.target.closest('[data-go=forget]')) { closeSheet(); $('forget').click(); }
+      if (e.target.closest('[data-go=forget]')) { closeSheet(); $('forget').click(); return; }
+      const sv = e.target.closest('[data-go=md-save]');
+      if (sv) (async () => {
+        const name = $('md-name').value.trim(), email = $('md-email').value.trim();
+        if (name.length < 2) { $('md-err').textContent = 'Въведете име и фамилия.'; return; }
+        if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { $('md-err').textContent = 'Проверете имейла.'; return; }
+        busy(sv, '…');
+        const r = await api('POST', 'profile', { phone: me.phone, token: me.token, name, email }).catch(() => ({ status: 0 }));
+        unbusy(sv);
+        if (r.status !== 200) { $('md-err').textContent = 'Не се запази. Опитайте отново.'; return; }
+        me.name = name; me.email = email; save('me', me);
+        closeSheet(); toast('Запазено');
+        await refreshMine();
+      })();
     });
   }
   $('fab').onclick = openProfile;
+  $('mine-mail-go').onclick = openMyData;
 
 
   /* every page a link leads to (rules, questions, effects, help, privacy, progress) opens INSIDE the app: a full-screen
@@ -1658,6 +1689,8 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       me.card = r.d.card || null;
       me.code = r.d.code || null;
       if (r.d.name) me.name = r.d.name;
+      if (r.d.email) me.email = r.d.email;
+      if (r.d.phone) me.phone = r.d.phone;
       save('me', me);
     } else if (r && r.status === 401) { me.token = ''; save('me', me); mine = []; }
     renderMine();
@@ -1668,8 +1701,9 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     const now = Date.now();
     const ahead = mine.filter((h) => h.status === 'booked' && zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) > now);
     $('mine-card').classList.toggle('hidden', !ahead.length && !me.token);
-    $('old-client').parentNode.classList.toggle('hidden', Boolean(me.token) || !(cfg && cfg.viber));   // the login code comes by Viber
+    $('old-client').parentNode.classList.toggle('hidden', Boolean(me.token) || !loginOn());   // the login code comes by Viber or e-mail
     $('mine-extra').textContent = [me.card ? cardName(me.card) : '', codeOk(me.code) ? me.code.code : ''].filter(Boolean).join(' · ');
+    $('mine-mail').classList.toggle('hidden', !(cfg && cfg.acuity && me.token && !me.email));
     const sorted = ahead.slice().sort((a, b) => (a.time < b.time ? -1 : 1));
     const n = sorted[0];
     $('next-btn').classList.toggle('hidden', !n);
@@ -1803,39 +1837,82 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     });
   };
 
-  /* ── a new phone: the Viber code ── */
-  $('old-client').onclick = () => {
-    sheet(`<h3>Вход с телефон</h3><p class="small muted">Ще получите 4-цифрен код по Viber (до 2–3 минути).</p>
-      <label class="f">Телефон<input id="v-phone" type="tel" value="${esc(me.phone || '')}" placeholder="0888 123 456"></label>
-      <div id="v-step2" class="hidden"><label class="f">Кодът от Viber<input id="v-pin" inputmode="numeric" maxlength="4" autocomplete="one-time-code"></label></div>
+  /* ── the profile on the server: the first screen is kept there, so every device of the client sees the same ── */
+  const loginOn = () => Boolean(cfg && (cfg.viber || cfg.emailLogin));
+  async function hello(fromOnboarding) {
+    if (me.token || !me.phone || !me.name || me.termsV !== termsVer()) return;
+    const sendTerms = !me.termsSent;
+    const r = await api('POST', 'hello', { phone: me.phone, name: me.name, email: me.email, token: me.token, terms: sendTerms || undefined,
+      termsText: sendTerms ? termsText() : undefined, termsVer: sendTerms ? me.termsV : undefined }).catch(() => null);
+    if (!r || r.status !== 200) return;
+    if (r.d.token) {
+      me.token = r.d.token;
+      if (sendTerms) { me.termsSent = true; tickedNow = false; }
+      save('me', me);
+      await refreshMine();
+      return;
+    }
+    if (r.d.known) {
+      renderMine();
+      // a profile with this phone already exists (another device): the code, offered once per open
+      if ((fromOnboarding || !me.loginAsked) && r.d.via && r.d.via.length) { me.loginAsked = true; save('me', me); openLogin({ phone: me.phone, via: r.d.via, known: true }); }
+    }
+  }
+
+  /* ── another device: a 4-digit code by Viber and/or e-mail ── */
+  $('old-client').onclick = () => openLogin({ phone: me.phone });
+  function openLogin(o) {
+    const byMail = !(cfg && cfg.viber) && cfg && cfg.emailLogin;
+    const label = { viber: 'по Viber', email: 'на имейла' };
+    const viaText = (via) => (via && via.length ? via.map((v) => label[v]).join(' и ') : (cfg && cfg.viber ? 'по Viber' : 'на имейла'));
+    sheet(`<h3>Вход с код</h3>
+      <p class="small muted">${o.known ? 'Този телефон вече има профил в студиото. ' : ''}Ще получите 4-цифрен код ${esc(viaText(o.via))}${cfg && cfg.viber ? ' (до 2–3 минути)' : ''}. След входа часовете, картата и кодът ви се виждат и тук.</p>
+      <div id="v-by-phone" class="${byMail ? 'hidden' : ''}"><label class="f">Телефон<input id="v-phone" type="tel" value="${esc(o.phone || me.phone || '')}" placeholder="0888 123 456"></label></div>
+      <div id="v-by-mail" class="${byMail ? '' : 'hidden'}"><label class="f">Имейл<input id="v-email" type="email" value="${esc(me.email || '')}" autocomplete="email"></label></div>
+      ${cfg && cfg.viber && cfg.emailLogin ? '<p class="small"><button class="link" data-go="swap">С имейл вместо телефон</button></p>' : ''}
+      <div id="v-step2" class="hidden"><label class="f">Кодът<input id="v-pin" inputmode="numeric" maxlength="4" autocomplete="one-time-code"></label></div>
       <p class="err" id="v-err"></p><button class="btn" data-go="send">Изпрати код</button><button class="btn sec" data-close>Затвори</button>`, async (e) => {
       const go = e.target.closest('[data-go]');
       if (!go) return;
-      const phone = $('v-phone').value.trim();
+      const mail = !$('v-by-mail').classList.contains('hidden');
+      const who = mail ? { email: $('v-email').value.trim() } : { phone: $('v-phone').value.trim() };
+      if (go.dataset.go === 'swap') {
+        $('v-by-phone').classList.toggle('hidden'); $('v-by-mail').classList.toggle('hidden');
+        go.textContent = mail ? 'С имейл вместо телефон' : 'С телефон вместо имейл';
+        return;
+      }
       if (go.dataset.go === 'send') {
         busy(go, '…');
-        const r = await api('POST', 'verify/start', { phone }).catch(() => ({ status: 0 }));
+        const r = await api('POST', 'verify/start', who).catch(() => ({ status: 0 }));
         unbusy(go);
-        if (r.status !== 200) { $('v-err').textContent = r.status === 429 ? 'Изчакайте минута и опитайте пак.' : 'Проверете телефона.'; return; }
+        if (r.status !== 200) {
+          $('v-err').textContent = r.status === 429 ? 'Изчакайте минута и опитайте пак.'
+            : r.d && r.d.error === 'no_channel' ? 'Към този профил няма имейл, а студиото не праща кодове по Viber. Обадете се на студиото.'
+            : r.d && r.d.error === 'email' ? 'Имейлът не тръгна. Опитайте след малко.' : mail ? 'Проверете имейла.' : 'Проверете телефона.';
+          return;
+        }
         $('v-step2').classList.remove('hidden');
         go.dataset.go = 'check';
         go.textContent = 'Влез';
-        $('v-err').textContent = 'Ако сте записвали час с този телефон, кодът идва по Viber.';
+        $('v-err').textContent = r.d.via && r.d.via.length ? `Кодът е изпратен ${viaText(r.d.via)}.` : `Ако имате профил с ${mail ? 'този имейл' : 'този телефон'}, кодът идва до минута-две.`;
         $('v-pin').focus();
         return;
       }
       busy(go, '…');
-      const r = await api('POST', 'verify/finish', { phone, pin: $('v-pin').value.trim() }).catch(() => ({ status: 0 }));
+      const r = await api('POST', 'verify/finish', { ...who, pin: $('v-pin').value.trim() }).catch(() => ({ status: 0 }));
       unbusy(go);
       if (r.status !== 200) { $('v-err').textContent = 'Грешен или изтекъл код.'; return; }
-      me = { ...me, phone, token: r.d.token };
+      me = { ...me, phone: r.d.phone || who.phone || me.phone, name: r.d.name || me.name, email: r.d.email || me.email, token: r.d.token,
+        termsV: termsVer(), termsSent: true };
       save('me', me);
+      tickedNow = false;
+      $('onb').classList.add('hidden');
       closeSheet();
       await refreshMine();
       renderCal();
       toast('Влязохте');
     });
-  };
+  }
 
   /* ══════════ ADMIN (7 taps on the logo → the 5-digit code) ══════════ */
   let taps = [];
@@ -2273,6 +2350,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     if (!(await loadConfig())) { if (STUDIO) $('cal-card').classList.add('hidden'); return; }
     const t = todayYmd();
     await Promise.all([refreshMine(), showMonth(+t.slice(0, 4), +t.slice(5, 7) - 1)]);
+    if (!me.token) hello(false);
     tidyPicked();
     renderBar();
     if (APP) setupNotificationTaps(nativeLN());   // a tap on a reminder that opened the app is handled too

@@ -11,6 +11,7 @@
     marked extra.fullScreen (the app opens over the lock screen showing only "Твоята тренировка")
   - the launch screen: the template puts the splash as android:background of every view, so Android stretched it
     into a title bar on top ("XB-Studio" + a flattened logo); now it is the window background only, with no title bar
+  - every launch logo is a vector (sharp on any screen): the Android 12+ splash icon, the window background, Capacitor's splash
 """
 import os
 import re
@@ -43,23 +44,45 @@ st = re.sub(r'<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScree
         <item name="android:windowBackground">@drawable/launch_splash</item>
         <item name="android:background">@null</item>
         <item name="windowSplashScreenBackground">@color/xb_splash_bg</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>""", st, count=1, flags=re.S)
-# the launch background: a plain colour (light / dark) with the round logo at its own size in the middle —
-# a bitmap as windowBackground is stretched to the screen (the oval the user saw on tall phones)
-(res / "drawable" / "launch_splash.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
+# The launch screens draw the logo from VECTOR paths (android-extra/xb_logo_paths.xml, made from brand/xbody-logo.svg):
+# sharp on every screen. Before, Android 12+ took the launcher foreground (432 px) and stretched it ~2.2x for its
+# 288 dp splash icon, and the older launch logo / Capacitor's splash bitmaps were upscaled too — the blurred splash.
+paths = Path("android-extra/xb_logo_paths.xml").read_text(encoding="utf-8").split("\n", 1)[1]
+def vector(dp, logo_dp):
+    vp = 432 * dp / logo_dp          # the logo is logo_dp wide in the middle of a dp-wide canvas
+    off = (vp - 432) / 2
+    return f"""<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="{dp}dp" android:height="{dp}dp" android:viewportWidth="{vp:.1f}" android:viewportHeight="{vp:.1f}">
+  <group android:translateX="{off:.1f}" android:translateY="{off:.1f}">
+{paths}  </group>
+</vector>
+"""
+# Android 12+ system splash (no icon background): a 288 dp canvas, only the middle 192 dp circle shows -> logo 180 dp
+(res / "drawable" / "splash_icon.xml").write_text(vector(288, 180), encoding="utf-8")
+(res / "drawable" / "splash_logo.xml").write_text(vector(144, 144), encoding="utf-8")
+for f in res.glob("drawable*/splash_logo.png"):
+    f.unlink()
+# the window background (before Android 12, and behind the web view while it loads): colour + the logo at 144 dp
+launch = """<?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/xb_splash_bg" />
-    <item><bitmap android:gravity="center" android:src="@drawable/splash_logo" /></item>
+    <item android:drawable="@drawable/splash_logo" android:gravity="center" android:width="144dp" android:height="144dp" />
 </layer-list>
-""", encoding="utf-8")
-(res / "drawable-xxhdpi").mkdir(parents=True, exist_ok=True)
-shutil.copyfile("android-extra/splash_logo.png", res / "drawable-xxhdpi" / "splash_logo.png")   # 432 px = 144 dp
+"""
+(res / "drawable" / "launch_splash.xml").write_text(launch, encoding="utf-8")
+# Capacitor's own splash (older Android): its full-screen bitmaps from @capacitor/assets are scaled up by CENTER_CROP;
+# the same sharp layer-list instead (androidScaleType CENTER in capacitor.config.json keeps it at its size)
+for f in res.glob("drawable*/splash.png"):
+    f.unlink()
+(res / "drawable" / "splash.xml").write_text(launch, encoding="utf-8")
 for folder, colour in (("values", "#FFFFFF"), ("values-night", "#121014")):
     (res / folder).mkdir(parents=True, exist_ok=True)
     (res / folder / "xb_colors.xml").write_text(

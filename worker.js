@@ -14,11 +14,20 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err2) => function __init() {
+  if (err2) throw err2[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err2 = [e], e;
+  }
 };
 var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  try {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  } catch (e) {
+    throw mod = 0, e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -10302,7 +10311,7 @@ async function issueToken(env, studioId, phone) {
   const token = randomToken();
   const c = await getClient(env, studioId, phone);
   const list3 = JSON.parse(c && c.token_hash || "[]");
-  const next = [...Array.isArray(list3) ? list3 : [], await sha256(token)].slice(-5);
+  const next = [...Array.isArray(list3) ? list3 : [], await sha256(token)].slice(-10);
   await env.STUDIO_DB.prepare("UPDATE clients SET token_hash = ? WHERE studio_id = ? AND phone = ?").bind(JSON.stringify(next), studioId, phone).run();
   return token;
 }
@@ -10380,6 +10389,7 @@ async function viberBooking(env, studio, event, b, now = Date.now()) {
   }
 }
 var acuityFree = null;
+var acuityClient = null;
 async function busyForMonth(env, studio, ym) {
   const google = await googleBusy(env, studio, ym);
   return studio.settings.acuity ? google.concat(await acuityBusy(studio, ym)) : google;
@@ -10630,7 +10640,7 @@ async function handleBook(env, ctx, studio, b) {
       if (code && code.uses_left !== null) await env.STUDIO_DB.prepare("UPDATE codes SET uses_left = uses_left + 1 WHERE studio_id = ? AND code = ?").bind(studio.id, code.code).run();
     }
   }
-  await upsertClient(env, studio.id, who.phone, who);
+  if (!client || await tokenOk(client, who.token)) await upsertClient(env, studio.id, who.phone, who);
   if (card && booked.length) {
     await env.STUDIO_DB.prepare("UPDATE clients SET stripe_customer = ?, card_pm = ?, card_brand = ?, card_last4 = ? WHERE studio_id = ? AND phone = ?").bind(card.customer, card.pm, card.brand, card.last4, studio.id, who.phone).run();
     if (card.si) await stripe(env, studio, "POST", `setup_intents/${card.si}`, { "metadata[used]": "1" }).catch(() => {
@@ -10658,10 +10668,13 @@ async function handleBook(env, ctx, studio, b) {
       }
     })());
   }
+  const login = booked.length && !token && !await tokenOk(client, who.token) ? loginChannels(env, studio, client) : void 0;
   return json({
     booked: booked.map((x) => ({ id: x.id, time: x.time })),
     failed,
     token,
+    login,
+    // the hours are the client's, but this device is not yet: the app offers the code
     card: card && booked.length ? { brand: card.brand, last4: card.last4 } : void 0,
     code: code && booked.length ? codeOut({ ...code, uses_left: code.uses_left === null ? null : code.uses_left - booked.length }) : void 0
   }, booked.length || !failed.length ? 200 : 409);
@@ -10678,6 +10691,14 @@ async function ownClient(env, studio, b) {
   const client = who.phone ? await getClient(env, studio.id, who.phone) : null;
   return await tokenOk(client, who.token) ? client : null;
 }
+async function handleProfile(env, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return err("token", 401);
+  const who = readWho(b);
+  if (who.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(who.email)) return err("email");
+  await env.STUDIO_DB.prepare("UPDATE clients SET name = ?, email = ? WHERE studio_id = ? AND phone = ?").bind(who.name || client.name, who.email, studio.id, client.phone).run();
+  return json({ ok: true });
+}
 async function handleMine(env, studio, b) {
   const client = await ownClient(env, studio, b);
   if (!client) return err("token", 401);
@@ -10691,20 +10712,64 @@ async function handleMine(env, studio, b) {
     const c = await env.STUDIO_DB.prepare("SELECT * FROM codes WHERE studio_id = ? AND code = ? AND active = 1").bind(studio.id, client.code).first();
     if (c && !(c.valid_to && c.valid_to < now) && c.uses_left !== 0) code = codeOut(c);
   }
+  const hours = rows.filter((r) => r.status !== "canceled" || r.start_ms > now).map((r) => {
+    const p = zonedParts(r.start_ms, st.timezone);
+    return {
+      id: r.id,
+      time: `${p.ymd} ${p.hm}`,
+      status: r.start_ms < now && r.status === "booked" ? "done" : r.status,
+      late: r.start_ms - now < st.rules.freeCancelHours * 36e5
+    };
+  });
+  for (const a of await acuityHours(studio, client)) if (!hours.some((h) => h.time === a.time)) hours.push(a);
+  hours.sort((a, b2) => a.time < b2.time ? -1 : 1);
   return json({
     name: client.name,
+    email: client.email,
+    phone: client.phone,
     card: client.card_pm ? { brand: client.card_brand, last4: client.card_last4 } : null,
     code,
-    hours: rows.filter((r) => r.status !== "canceled" || r.start_ms > now).map((r) => {
-      const p = zonedParts(r.start_ms, st.timezone);
-      return {
-        id: r.id,
-        time: `${p.ymd} ${p.hm}`,
-        status: r.start_ms < now && r.status === "booked" ? "done" : r.status,
-        late: r.start_ms - now < st.rules.freeCancelHours * 36e5
-      };
-    })
+    hours
   });
+}
+async function acuityHours(studio, client) {
+  const st = studio.settings;
+  if (!st.acuity || !acuityClient || !client.email) return [];
+  let list3 = null;
+  try {
+    list3 = await acuityClient.list(client.email, client.phone);
+  } catch (e) {
+    console.warn("[studio] acuity hours failed:", e.message);
+  }
+  const now = Date.now();
+  const out = [];
+  for (const a of Array.isArray(list3) ? list3 : []) {
+    const ms = Date.parse(String(a.datetime || "").replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
+    if (!Number.isFinite(ms) || ms < now - 60 * 864e5 || a.canceled && ms < now) continue;
+    const p = zonedParts(ms, st.timezone);
+    out.push({
+      id: `a${a.id}`,
+      time: `${p.ymd} ${p.hm}`,
+      status: a.canceled ? "canceled" : ms < now ? "done" : "booked",
+      late: !a.canCancel || ms - now < st.rules.freeCancelHours * 36e5,
+      acuity: true
+    });
+  }
+  return out;
+}
+async function acuityChange(env, studio, b, client, ms) {
+  if (!studio.settings.acuity || !acuityClient || !client.email) return err("not_found", 404);
+  const id = String(b.id).slice(1);
+  let r;
+  if (ms) {
+    const off = tzOffset(studio.settings.timezone, ms);
+    const p = zonedParts(ms, studio.settings.timezone);
+    const iso = `${p.ymd}T${p.hm}:00${off < 0 ? "-" : "+"}${String(Math.floor(Math.abs(off) / 60)).padStart(2, "0")}:${String(Math.abs(off) % 60).padStart(2, "0")}`;
+    r = await acuityClient.move(client.email, client.phone, id, iso);
+  } else r = await acuityClient.cancel(client.email, client.phone, id);
+  if (!r || r.error) return err(r && r.error || "calendar", r && r.status || 503);
+  await bumpRev(env, studio.id);
+  return json(ms ? { ok: true, time: String(b.time) } : { ok: true, late: false });
 }
 async function ownBooking(env, studio, b) {
   const client = await ownClient(env, studio, b);
@@ -10724,6 +10789,11 @@ async function afterCancel(env, ctx, studio, bk, late) {
   })());
 }
 async function handleCancel(env, ctx, studio, b) {
+  if (/^a\d{1,15}$/.test(String(b.id || ""))) {
+    const client = await ownClient(env, studio, b);
+    if (!client) return err("token", 401);
+    return acuityChange(env, studio, b, client, 0);
+  }
   const o = await ownBooking(env, studio, b);
   if (o.error) return o.error;
   const late = o.bk.start_ms - Date.now() < studio.settings.rules.freeCancelHours * 36e5;
@@ -10734,6 +10804,20 @@ async function handleCancel(env, ctx, studio, b) {
 }
 async function handleMove(env, ctx, studio, b) {
   const st = studio.settings;
+  if (/^a\d{1,15}$/.test(String(b.id || ""))) {
+    const client = await ownClient(env, studio, b);
+    if (!client) return err("token", 401);
+    const ms2 = startOf(st, b.time, Date.now());
+    if (!ms2) return err("not_offered", 409);
+    try {
+      let busy = await acuityBusy(studio, zonedParts(ms2, st.timezone).ymd.slice(0, 7));
+      if (st.google.calendarId) busy = busy.concat(await busyTimes(env, st.google.calendarId, ms2 - 864e5, ms2 + 864e5, st.timezone));
+      if (!isFree(st, ms2, busy)) return err("taken", 409);
+    } catch (e) {
+      return err("calendar", 503);
+    }
+    return acuityChange(env, studio, b, client, ms2);
+  }
   const o = await ownBooking(env, studio, b);
   if (o.error) return o.error;
   if (o.bk.start_ms - Date.now() < st.rules.freeCancelHours * 36e5) return err("too_late", 409);
@@ -10806,28 +10890,90 @@ async function handleList(env) {
   }
   return json({ studios }, 200, { "Cache-Control": "public, max-age=300" });
 }
+function emailOn(env) {
+  return Boolean(env.RESEND_API_KEY);
+}
+function loginChannels(env, studio, client) {
+  return [viberOn(env, studio) ? "viber" : "", client && client.email && emailOn(env) ? "email" : ""].filter(Boolean);
+}
+async function sendCodeEmail(env, studio, to, pin) {
+  const name = studio.settings.brand.name;
+  const esc3 = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: env.STUDIO_MAIL_FROM || "XB-Studio <info@biocode.online>",
+      to: [to],
+      subject: `\u041A\u043E\u0434 \u0437\u0430 \u0432\u0445\u043E\u0434 \u0432 ${name}: ${pin}`,
+      html: `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5"><p>\u041A\u043E\u0434 \u0437\u0430 \u0432\u0445\u043E\u0434 \u0432 <b>${esc3(name)}</b>:</p>
+        <p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:12px 0">${pin}</p>
+        <p style="color:#666">\u0412\u0430\u0436\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438. \u0410\u043A\u043E \u043D\u0435 \u0441\u0442\u0435 \u0433\u043E \u043F\u043E\u0438\u0441\u043A\u0430\u043B\u0438, \u043D\u0435 \u043F\u0440\u0430\u0432\u0435\u0442\u0435 \u043D\u0438\u0449\u043E.</p></div>`
+    })
+  });
+  if (!r.ok) throw new Error(`resend ${r.status}`);
+}
+async function findClient(env, studioId, phone, email) {
+  if (phone) return getClient(env, studioId, phone);
+  if (!email) return null;
+  return env.STUDIO_DB.prepare(
+    `SELECT c.* FROM clients c WHERE c.studio_id = ? AND c.email = ?
+     ORDER BY (SELECT MAX(start_ms) FROM bookings x WHERE x.studio_id = c.studio_id AND x.phone = c.phone) DESC, c.created_at DESC LIMIT 1`
+  ).bind(studioId, email).first();
+}
+async function handleHello(env, studio, b) {
+  const who = readWho(b);
+  if (!who.phone || !who.name) return err("who");
+  const client = await getClient(env, studio.id, who.phone);
+  if (client && await tokenOk(client, who.token)) return json({ ok: true });
+  if (client && JSON.parse(client.token_hash || "[]").length) return json({ known: true, via: loginChannels(env, studio, client) });
+  if (!client && !b.terms) return err("terms", 403);
+  await upsertClient(env, studio.id, who.phone, who);
+  if (b.terms && typeof b.termsText === "string" && b.termsText.length > 20 && env.page_content) {
+    const text2 = b.termsText.slice(0, 12e3);
+    const hash = String(await sha256(text2)).slice(0, 16);
+    await env.page_content.put(`studio:terms:${studio.id}:${hash}`, text2);
+    await env.page_content.put(`studio:consent:${studio.id}:${who.phone}`, JSON.stringify({ at: Date.now(), hash, name: who.name, ver: String(b.termsVer || "").slice(0, 20) }));
+  }
+  return json({ ok: true, token: await issueToken(env, studio.id, who.phone) });
+}
 async function handleVerifyStart(env, studio, b) {
   const phone = normPhone(b.phone);
-  if (!phone || !env.page_content) return err("who");
-  const client = await getClient(env, studio.id, phone);
-  if (!client) return json({ ok: true });
-  const key = `studio:verify:${studio.id}:${phone}`;
+  const email = String(b.email || "").trim().toLowerCase().slice(0, 120);
+  if (!phone && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !env.page_content) return err("who");
+  const client = await findClient(env, studio.id, phone, email);
+  if (!client) return json({ ok: true, via: [] });
+  const via = loginChannels(env, studio, client).filter((c) => !email || c === "email");
+  if (!via.length) return err("no_channel", 409);
+  const key = `studio:verify:${studio.id}:${client.phone}`;
   const prev = JSON.parse(await env.page_content.get(key) || "null");
   if (prev && Date.now() - prev.at < 6e4) return err("wait", 429);
   const pin = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1e4).padStart(4, "0");
-  await env.page_content.put(key, JSON.stringify({ h: await sha256(`${phone}:${pin}`), tries: 0, at: Date.now() }), { expirationTtl: 900 });
-  await env.page_content.put(
-    outKey(Date.now(), `v${randomToken(6)}`, "pin"),
-    JSON.stringify({ to: phone, text: `\u041A\u043E\u0434 \u0437\u0430 \u0432\u0445\u043E\u0434 \u0432 ${studio.settings.brand.name}: ${pin}
+  await env.page_content.put(key, JSON.stringify({ h: await sha256(`${client.phone}:${pin}`), tries: 0, at: Date.now() }), { expirationTtl: 900 });
+  if (via.includes("viber")) {
+    await env.page_content.put(
+      outKey(Date.now(), `v${randomToken(6)}`, "pin"),
+      JSON.stringify({ to: client.phone, text: `\u041A\u043E\u0434 \u0437\u0430 \u0432\u0445\u043E\u0434 \u0432 ${studio.settings.brand.name}: ${pin}
 \u0412\u0430\u0436\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438.`, tries: 0 }),
-    { expirationTtl: 3600 }
-  );
-  return json({ ok: true });
+      { expirationTtl: 3600 }
+    );
+  }
+  if (via.includes("email")) {
+    try {
+      await sendCodeEmail(env, studio, client.email, pin);
+    } catch (e) {
+      console.warn("[studio] login e-mail failed:", e.message);
+      if (via.length === 1) return err("email", 502);
+    }
+  }
+  return json({ ok: true, via });
 }
 async function handleVerifyFinish(env, studio, b) {
-  const phone = normPhone(b.phone);
+  const email = String(b.email || "").trim().toLowerCase().slice(0, 120);
+  const client = await findClient(env, studio.id, normPhone(b.phone), email);
   const pin = String(b.pin || "");
-  if (!phone || !/^\d{4}$/.test(pin) || !env.page_content) return err("pin");
+  if (!client || !/^\d{4}$/.test(pin) || !env.page_content) return err("pin");
+  const phone = client.phone;
   const key = `studio:verify:${studio.id}:${phone}`;
   const v = JSON.parse(await env.page_content.get(key) || "null");
   if (!v || v.tries >= 5) return err("pin");
@@ -10836,7 +10982,7 @@ async function handleVerifyFinish(env, studio, b) {
     return err("pin");
   }
   await env.page_content.delete(key);
-  return json({ ok: true, token: await issueToken(env, studio.id, phone) });
+  return json({ ok: true, token: await issueToken(env, studio.id, phone), phone, name: client.name, email: client.email });
 }
 async function adminStudio(env, request, studio) {
   const token = String(request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
@@ -11145,6 +11291,7 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (!env.STUDIO_DB) return err("not_configured", 503);
   acuityFree = opts.acuityFree || null;
+  acuityClient = opts.acuityClient || null;
   const path = url.pathname.slice("/api/s/".length);
   const limit = (name) => opts.rateLimit ? opts.rateLimit(name) : null;
   try {
@@ -11156,7 +11303,7 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
     const studio = id ? await loadStudio(env, id) : null;
     if (!studio) return err("studio", 404);
     if (request.method === "GET" && path === "config") {
-      return json(publicSettings(studio.settings, studio.version, hasStripe(studio)), 200, { "Cache-Control": "public, max-age=60" });
+      return json({ ...publicSettings(studio.settings, studio.version, hasStripe(studio)), emailLogin: emailOn(env) }, 200, { "Cache-Control": "public, max-age=60" });
     }
     if (request.method === "GET" && path === "logo") {
       const v = env.page_content ? JSON.parse(await env.page_content.get(`studio:logo:${studio.id}`) || "null") : null;
@@ -11191,6 +11338,10 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
         return await handleForget(env, ctx, studio, body);
       case "push":
         return await handlePush(env, studio, body);
+      case "hello":
+        return await handleHello(env, studio, body);
+      case "profile":
+        return await handleProfile(env, studio, body);
       case "verify/start":
         return await handleVerifyStart(env, studio, body);
       case "verify/finish":
@@ -63540,6 +63691,52 @@ async function handleXbodyReschedule(request, env) {
   await xbodyAfterChange(env, b.email, [own.appt.datetime, b.time]);
   return jsonResponse2({ ok: true, id: Number(b.id), time: r.data && r.data.datetime || b.time });
 }
+function xbodyStudioClient(env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return null;
+  const auth = btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`);
+  const keyOf = (email, phone) => `xbody:sappt:${String(email).toLowerCase()}:${xbodyPhoneKey(phone)}`;
+  const call = async (handler, body) => {
+    const r = await handler(new Request("https://studio.local/api/xbody/manage", { method: "POST", body: JSON.stringify(body) }), env);
+    const d = await r.json().catch(() => ({}));
+    if (env.page_content) await env.page_content.delete(keyOf(body.email, body.phone)).catch(() => {
+    });
+    return r.status === 200 ? { ok: true } : { error: d.error === "too_late" || d.error === "already_canceled" ? "too_late" : d.error === "not_found" ? "not_found" : "taken", status: r.status === 404 ? 404 : 409 };
+  };
+  return {
+    async list(email, phone) {
+      email = String(email || "").trim().toLowerCase();
+      const pk = xbodyPhoneKey(phone);
+      if (!email.includes("@") || pk.length < 6) return [];
+      const key = keyOf(email, phone);
+      if (env.page_content) {
+        const c = await env.page_content.get(key).catch(() => null);
+        if (c) return JSON.parse(c);
+      }
+      const u = new URL("https://acuityscheduling.com/api/v1/appointments");
+      u.searchParams.set("email", email);
+      u.searchParams.set("calendarID", XBODY_ACUITY_BOOKING.calendarID);
+      u.searchParams.set("minDate", new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10));
+      u.searchParams.set("showall", "true");
+      u.searchParams.set("max", "60");
+      u.searchParams.set("excludeForms", "true");
+      const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
+      if (!resp.ok) throw new Error("acuity appointments " + resp.status);
+      const all = await resp.json();
+      const out = (Array.isArray(all) ? all : []).filter((a) => a && String(a.calendarID || "") === XBODY_ACUITY_BOOKING.calendarID && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === pk).map((a) => ({
+        id: a.id,
+        datetime: a.datetime,
+        canceled: Boolean(a.canceled),
+        canCancel: a.canClientCancel !== false,
+        canMove: a.canClientReschedule !== false
+      }));
+      if (env.page_content) await env.page_content.put(key, JSON.stringify(out), { expirationTtl: 60 }).catch(() => {
+      });
+      return out;
+    },
+    cancel: (email, phone, id) => call(handleXbodyCancel, { email, phone, id }),
+    move: (email, phone, id, time) => call(handleXbodyReschedule, { email, phone, id, time })
+  };
+}
 function xbodyApptItem(appt) {
   return {
     id: appt.id,
@@ -63682,7 +63879,9 @@ var worker_entry_default = {
       acuityFree: async (ym) => {
         const r = await handleXbodyAvailability(new Request(`https://studio.local/api/xbody/availability?month=${ym}`), env, ctx);
         return r.status === 200 ? (await r.json()).days || {} : null;
-      }
+      },
+      // …and the client's own Acuity hours in "my hours" of the studio app (cancel / move through Acuity)
+      acuityClient: xbodyStudioClient(env)
     });
     if (studioResp) return studioResp;
     if (request.method === "OPTIONS") {

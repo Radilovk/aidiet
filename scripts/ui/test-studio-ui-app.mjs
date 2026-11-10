@@ -80,6 +80,8 @@ await step('invite-only studios: no list, only the code field; the right code op
   if (await page.locator('[data-pick]').count()) throw new Error('a private studio is listed');
   await page.screenshot({ path: `${OUT}/app-0-code-only.png` });
   await page.fill('#pick-code', 'burgas'); await page.click('#pick-go');
+  await page.waitForURL(/[?&]s=burgas/);
+  await page.waitForLoadState('load');
   await page.waitForSelector('#s-name:has-text("XBODY Бургас")');
   await page.evaluate(() => localStorage.removeItem('studio:current'));
   db.exec("UPDATE studios SET settings = json_set(settings, '$.listed', json('true'))");   // now both studios show themselves
@@ -100,6 +102,8 @@ await step('a wrong studio code is refused', async () => {
   await page.fill('#pick-code', 'nope'); await page.click('#pick-go');
   await page.waitForSelector('text=Няма такова студио.');
   await page.fill('#pick-code', 'plovdiv'); await page.click('#pick-go');
+  await page.waitForURL(/[?&]s=plovdiv/);   // the choice reloads the page (?s=…), which remembers it: wait, or it overwrites ours below
+  await page.waitForLoadState('load');
   await page.waitForSelector('#s-name:has-text("EMS Пловдив")');
   await page.evaluate(() => localStorage.setItem('studio:current', 'burgas'));
   await page.goto(PAGE);   // opens the last one without any address

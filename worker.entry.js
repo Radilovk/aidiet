@@ -17593,6 +17593,50 @@ async function handleXbodyReschedule(request, env) {
   return jsonResponse({ ok: true, id: Number(b.id), time: (r.data && r.data.datetime) || b.time });
 }
 
+/** XBODY Burgas in the studio app (studio-platform): one client's Acuity hours, matched by e-mail AND phone (the same
+ *  rule as cancel / reschedule here), cached 60 s per client; cancel / move go through the handlers above. */
+function xbodyStudioClient(env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return null;
+  const auth = btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`);
+  const keyOf = (email, phone) => `xbody:sappt:${String(email).toLowerCase()}:${xbodyPhoneKey(phone)}`;
+  const call = async (handler, body) => {
+    const r = await handler(new Request('https://studio.local/api/xbody/manage', { method: 'POST', body: JSON.stringify(body) }), env);
+    const d = await r.json().catch(() => ({}));
+    if (env.page_content) await env.page_content.delete(keyOf(body.email, body.phone)).catch(() => {});
+    return r.status === 200 ? { ok: true } : { error: d.error === 'too_late' || d.error === 'already_canceled' ? 'too_late' : d.error === 'not_found' ? 'not_found' : 'taken', status: r.status === 404 ? 404 : 409 };
+  };
+  return {
+    async list(email, phone) {
+      email = String(email || '').trim().toLowerCase();
+      const pk = xbodyPhoneKey(phone);
+      if (!email.includes('@') || pk.length < 6) return [];
+      const key = keyOf(email, phone);
+      if (env.page_content) {
+        const c = await env.page_content.get(key).catch(() => null);
+        if (c) return JSON.parse(c);
+      }
+      const u = new URL('https://acuityscheduling.com/api/v1/appointments');
+      u.searchParams.set('email', email);
+      u.searchParams.set('calendarID', XBODY_ACUITY_BOOKING.calendarID);
+      u.searchParams.set('minDate', new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10));
+      u.searchParams.set('showall', 'true');
+      u.searchParams.set('max', '60');
+      u.searchParams.set('excludeForms', 'true');
+      const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
+      if (!resp.ok) throw new Error('acuity appointments ' + resp.status);
+      const all = await resp.json();
+      const out = (Array.isArray(all) ? all : []).filter((a) => a && String(a.calendarID || '') === XBODY_ACUITY_BOOKING.calendarID &&
+        String(a.email || '').trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === pk)
+        .map((a) => ({ id: a.id, datetime: a.datetime, canceled: Boolean(a.canceled),
+          canCancel: a.canClientCancel !== false, canMove: a.canClientReschedule !== false }));
+      if (env.page_content) await env.page_content.put(key, JSON.stringify(out), { expirationTtl: 60 }).catch(() => {});
+      return out;
+    },
+    cancel: (email, phone, id) => call(handleXbodyCancel, { email, phone, id }),
+    move: (email, phone, id, time) => call(handleXbodyReschedule, { email, phone, id, time }),
+  };
+}
+
 /** an Acuity appointment as the app's list keeps it (the list and a just-made booking use the same shape) */
 function xbodyApptItem(appt) {
   return {
@@ -17773,7 +17817,9 @@ export default {
         acuityFree: async (ym) => {
           const r = await handleXbodyAvailability(new Request(`https://studio.local/api/xbody/availability?month=${ym}`), env, ctx);
           return r.status === 200 ? ((await r.json()).days || {}) : null;
-        } }));
+        },
+        // …and the client's own Acuity hours in "my hours" of the studio app (cancel / move through Acuity)
+        acuityClient: xbodyStudioClient(env) }));
     if (studioResp) return studioResp;
 
     // Handle CORS preflight
