@@ -60,7 +60,7 @@ import {
   calculateMacronutrientRatios,
   calculateSafeDeficit,
 } from './energy.js';
-import { buildDeterministicAnalysis, mergeAnalysisNarrative } from './analysis-deterministic.js';
+import { buildDeterministicAnalysis, mergeAnalysisNarrative, syncForecastToEnergy } from './analysis-deterministic.js';
 import { buildPlanSummary } from './plan-summary.js';
 import {
   buildNutritionPlan,
@@ -108,6 +108,7 @@ import { planVoiceVars, normalizePlanVoice, applyPlanVoice, planDishIds, voiceSu
 import { DEFAULT_PLAN_VOICE_PROMPT } from './nutrition-engine/plan-voice-prompt.js';
 import {
   weeklyQuestionsFor,
+  weightGapWeeks,
   readCheckin,
   decideWeeklyAdjustment,
   weeklyMessage,
@@ -2611,11 +2612,15 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
   // Посоката, с която е сметнат приемът — седмичният преглед разпознава по нея смяната на фазата.
   if (deficitData?.direction) analysis._goalDirection = deficitData.direction;
+  // Разходът е сметнат предпазливо (непотвърдена активност) — клиентът вижда защо и как да го промени.
+  if (activityData?.note) analysis._activityNote = activityData.note;
+  else delete analysis._activityNote;
   // Обсъждането на целта (алгоритъм + AI) — за специалиста и админ панела.
   const gc = data?._goalCouncil;
   if (gc?.verdict) analysis._goalCouncil = { verdict: gc.verdict, algorithm: gc.algorithm, concerns: gc.concerns || [], at: gc.at };
 
   enforceCalorieGuardrails(analysis, data, tdee);
+  syncForecastToEnergy(analysis, data);
   const intake = parseFinalCalories(analysis.Final_Calories);
   const intakeDrift = previousIntake > 0 && intake > 0
     ? Math.abs(intake - previousIntake) / previousIntake
@@ -6125,6 +6130,7 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     workoutsWeek: data?._enrichment?.checkin?.workoutsWeek ?? null,
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0,
+    weightGapWeeks: weightGapWeeks(history),
   });
   return { questions, contextNote: '' };
 }
@@ -6202,6 +6208,12 @@ function getWeeklyAdaptationDecision(userData, plan, analytics, answers, history
     history,
   });
   const message = weeklyMessage(decision, checkin);
+  // Трети пореден преглед без тегло: това е съобщението на седмицата, не „същите калории“.
+  const gap = checkin.weightKg || decision.weight ? 0 : weightGapWeeks(history) + 1;
+  if (gap >= 3 && !decision.calorieAdjust && (profile.direction === 'lose' || profile.direction === 'gain')) {
+    message.headline = 'Липсва само едно число';
+    message.message = `${gap} седмици планът върви без тегло и затова стои на същите калории. Претегли се една сутрин тази седмица и го въведи — от него зависи дали приемът да се промени.`;
+  }
   return {
     ...decision,
     // Всяка седмица — ново меню; калориите и схемата се пипат само по правилата.
@@ -6342,9 +6354,13 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   // се смени и приемът се смята наново, а не със 100–150 kcal на седмица.
   const { direction, goalModel } = compileProfile(data);
   const phaseChanged = direction !== plan.analysis._goalDirection;
-  if ((Number(enrichment?.pendingLevel) || 0) < 2 && !phaseChanged) return null;
   const probe = JSON.parse(JSON.stringify(plan.analysis));
-  const { intake, tdee } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  const { intake, tdee, activityData } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  // Планът е смятан с разход по непотвърдена самооценка, а сега тя е ограничена
+  // (energy.js): основата се поправя веднъж, не със 100–150 kcal на седмица.
+  const tdeeBefore = parseFinalCalories(plan.analysis.tdee);
+  const overstated = !!activityData?.discounted && tdeeBefore > 0 && tdee < tdeeBefore * 0.95;
+  if ((Number(enrichment?.pendingLevel) || 0) < 2 && !phaseChanged && !overstated) return null;
   if (!intake) return null;
   // Корекциите от прегледите се пренасят върху новата основа — освен при нова фаза:
   // темпото на предишната посока не казва нищо за следващата.
@@ -6359,7 +6375,8 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   probe._goalDirection = direction;
   const why = phaseChanged && plan.analysis._goalDirection
     ? `нова фаза — ${goalModel.directionLabel}`
-    : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(', ');
+    : overstated ? 'разходът е сметнат предпазливо, докато тренировките не са потвърдени'
+      : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(', ');
   return { analysis: probe, before, after, reason: `Приемът е преизчислен с новите данни${why ? ` (${why})` : ''}: ${before} → ${after} kcal.` };
 }
 

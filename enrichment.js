@@ -348,6 +348,15 @@ export function applyEnrichment(userData, store, now = new Date()) {
   const derived = deriveEnrichment(store, now, sex, kg > 30 ? { waterNeedL: Math.round(kg * 0.033 * 10) / 10 } : {});
   // Сверка с отговорите на клиента: потвърдените находки влизат в менюто,
   // разминаванията стават въпроси, а отговорите им — замени.
+  // Бележка за теглото от друг инструмент не може да противоречи на измереното:
+  // „тегло под нормата — цел достатъчност, не ограничение“ при ИТМ 34 обръща плана.
+  const hM = Number(String(userData.height || '').replace(',', '.')) / 100;
+  const bmi = kg > 30 && hM > 1 ? kg / (hM * hM) : null;
+  if (bmi != null) {
+    const contradicts = (t) => (bmi >= 18.5 && /под нормата|поднормено|не (към )?ограничени/i.test(t)) || (bmi < 25 && /над нормата|наднормено|затлъстяване/i.test(t));
+    derived.hints.cautions = derived.hints.cautions.filter(t => !contradicts(t));
+    if (derived.iris?.drivers) derived.iris.drivers = derived.iris.drivers.filter(t => !contradicts(t));
+  }
   const cc = crossCheck(userData, derived, derived.resolutions);
   Object.assign(derived.overrides, cc.overrides);
   derived.hints.approach = [...new Set([...derived.hints.approach, ...cc.approach])];

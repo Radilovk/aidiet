@@ -909,6 +909,8 @@
                 body.innerHTML = indicesHtml + (connected
                     ? '<div class="gf-empty"><span>Устройството е свързано' + (got ? ' · получено: ' + gfEsc(got) : '') + '. Изводите от измерванията се появяват при поне 4 дни данни.</span></div>'
                     : ''); // Поканата за устройство е само в Профил → Клиентски картон.
+                // Без индекси и без устройство няма какво да се покаже — без празна карта.
+                section.hidden = !body.innerHTML;
             } else {
                 var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], insight: src.insight || '' });
                 v.cards.forEach(function (c) { c.tone = softTone(c.tone); });
@@ -1085,10 +1087,10 @@
             var pastScores = weekScores.slice(0, weekScores.length - 1);
             var firstHalf = pastScores.slice(0,Math.floor(pastScores.length/2)).filter(function(s){ return s&&s.score!=null; });
             var lastHalf  = pastScores.slice(Math.ceil(pastScores.length/2)).filter(function(s){ return s&&s.score!=null; });
-            var trendUp   = lastHalf.length>0&&firstHalf.length>0 &&
+            var trendUp   = lastHalf.length>1&&firstHalf.length>1 &&
                 (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length) >
                 (firstHalf.reduce(function(a,s){return a+s.score;},0)/firstHalf.length + 0.3);
-            var trendDown = lastHalf.length>0&&firstHalf.length>0 &&
+            var trendDown = lastHalf.length>1&&firstHalf.length>1 &&
                 (firstHalf.reduce(function(a,s){return a+s.score;},0)/firstHalf.length) >
                 (lastHalf.reduce(function(a,s){return a+s.score;},0)/lastHalf.length + 0.3);
 
@@ -1104,10 +1106,10 @@
                     else sleepBadEng.push(engPcts[i]);
                 }
             });
-            if(sleepGoodEng.length>0&&sleepBadEng.length>0){
+            if(sleepGoodEng.length>1&&sleepBadEng.length>1){
                 var sgAvg=Math.round(sleepGoodEng.reduce(function(a,b){return a+b;},0)/sleepGoodEng.length);
                 var sbAvg=Math.round(sleepBadEng.reduce(function(a,b){return a+b;},0)/sleepBadEng.length);
-                if(sgAvg-sbAvg>15) insights.push('<i class="fas fa-bed" style="color:#6366f1"></i> В дните с добър сън ангажираността ти е <strong>'+sgAvg+'%</strong> (vs '+sbAvg+'% без добър сън)');
+                if(sgAvg-sbAvg>15) insights.push('<i class="fas fa-bed" style="color:#6366f1"></i> В дните с добър сън ангажираността ти е <strong>'+sgAvg+'%</strong> (срещу '+sbAvg+'% след лош сън)');
             }
             var lowBalanceDays  = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]<=40; });
             var highBalanceDays = days.filter(function(d,i){ return balanceByDay[i]!=null&&balanceByDay[i]>=60; });
@@ -1119,8 +1121,8 @@
                 var isConsumed = !e.isAddedToPlan || e.countCalories !== false;
                 return e.isJunk && isConsumed;
             }).length);},0);
-            if(lowBalanceDays.length>0&&hbJunk===0&&lbJunk>0) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с нисък емоционален баланс се появяват повече вредни хранения — стресът влияе на избора ти');
-            else if(lowBalanceDays.length>0&&hbJunk<lbJunk) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> Забелязваме повече вредни хранения в дни с по-нисък емоционален баланс');
+            // Връзка се твърди само при поне 2 случая и по-висока честота на ден — един случай е съвпадение.
+            if(lbJunk>=2&&highBalanceDays.length>0&&lbJunk/lowBalanceDays.length>hbJunk/highBalanceDays.length) insights.push('<i class="fas fa-heart-pulse" style="color:#f59e0b"></i> В дните с по-нисък емоционален баланс вредните хранения са по-чести ('+lbJunk+' срещу '+hbJunk+')');
             var streak=0, currentStreak=0;
             var streakStart = days.length - 1;
             if (streakStart >= 0 && days[streakStart].key === todayKey &&
@@ -1136,13 +1138,16 @@
                 return calBalanceByDay[i]!==null && calBalanceByDay[i]<-100 && d.rec && (d.rec.morningCheck||d.rec.eveningCheck);
             });
             if(deficitDays.length>=2){
-                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> '+deficitDays.length+' дни с калориен дефицит — следи дали приемаш достатъчно хранителни вещества за постигане на целите си');
+                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> '+deficitDays.length+' дни с прием под плана — планът вече включва нужния дефицит; по-малко от него забавя, не ускорява');
             } else if(deficitDays.length===1){
-                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> 1 ден с калориен дефицит — следи дали приемаш достатъчно хранителни вещества');
+                insights.push('<i class="fas fa-arrow-down" style="color:#3b82f6"></i> 1 ден с прием под плана — планът вече включва нужния дефицит');
             }
             if(deficitDays.length>=2){
-                var deficitLowAct=deficitDays.filter(function(d){ return d.rec&&GameScoring.isLowActivity(d.rec.eveningCheck); }).length;
-                if(deficitLowAct>=Math.ceil(deficitDays.length/2)) insights.push('<i class="fas fa-bolt" style="color:#3b82f6"></i> В дните с калориен дефицит активността е по-ниска — ниският калориен прием влияе на енергийните нива');
+                // Сравнение с останалите дни: без него „по-ниска“ няма спрямо какво.
+                var lowActOf=function(list){ return list.filter(function(d){ return d.rec&&GameScoring.isLowActivity(d.rec.eveningCheck); }).length; };
+                var otherDays=days.filter(function(d){ return d.rec&&d.rec.eveningCheck&&deficitDays.indexOf(d)<0; });
+                var deficitLowAct=lowActOf(deficitDays);
+                if(deficitLowAct>=2&&otherDays.length>=2&&deficitLowAct/deficitDays.length>lowActOf(otherDays)/otherDays.length) insights.push('<i class="fas fa-bolt" style="color:#3b82f6"></i> В дните с прием под плана активността ти е по-ниска — по-малкото храна личи в енергията');
             }
 
             // ── Scenario / Prediction ─────────────────────────────────────────
@@ -1151,7 +1156,7 @@
                 var projected = Math.min(5, Math.round((avgScore + (trendUp?0.5:trendDown?-0.3:0))*10)/10);
                 if(trendUp && projected>=4) scenario = '<i class="fas fa-chart-line" style="color:#10b981"></i> Ако запазиш текущата тенденция, ще достигнеш средна оценка <strong>'+projected+'/5</strong> за седмицата — отлично!';
                 else if(trendDown) scenario = '<i class="fas fa-chart-line" style="color:#ef4444;transform:rotate(90deg);display:inline-block"></i> Наблюдаваме спад в последните дни. Малко повече внимание към плана ще обърне тенденцията.';
-                else if(avgScore>=4) scenario = '<i class="fas fa-star" style="color:#fbbf24"></i> Стабилна и силна седмица! Ако запазите ритъма, ще затвърдите навиците дългосрочно.';
+                else if(avgScore>=4) scenario = '<i class="fas fa-star" style="color:#fbbf24"></i> Стабилна и силна седмица! Запази ритъма — така навиците остават.';
                 else if(engagementPct<50) scenario = '<i class="fas fa-lightbulb" style="color:#0D9488"></i> Увеличи ангажираността с 20% (отбелязвай хранения редовно) и оценката ти ще скочи значително.';
             }
 

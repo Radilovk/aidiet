@@ -100,6 +100,13 @@ const GAIN_WEIGHT_OPTIONS = ['Качих повече от 0,5 кг', 'Качи�
 
 const fmtKg = v => String(Math.round(v * 10) / 10).replace('.', ',');
 
+/** Колко поредни последни прегледа са без тегло — без него никое правило за калориите не работи. */
+export function weightGapWeeks(history) {
+  let n = 0;
+  for (let i = (history || []).length - 1; i >= 0 && !(Number(history[i]?.weightKg) > 0); i--) n++;
+  return n;
+}
+
 /**
  * Въпросите за конкретния клиент: посоката на въпроса за теглото следва целта,
  * а това, което приложението вече знае, се показва като подсказка (теглото от
@@ -122,6 +129,11 @@ export function weeklyQuestionsFor(ctx = {}) {
       // Талията е водещ показател (коремни мазнини, стягане, смяна на състава) — не „по желание“.
       if (q.id === 'waistCm' && lead.slice(0, 3).includes('waist')) {
         out.text = 'Обиколка на талията на нивото на пъпа (см). За твоята цел тя показва напредъка по-точно от кантара.';
+      }
+      // Втори пореден преглед без тегло: казваме цената и сваляме прага (всяко скорошно претегляне върши работа).
+      if (q.id === 'weightKg' && (direction === 'lose' || direction === 'gain') && (ctx.weightGapWeeks || 0) >= 2 && !(Number(ctx.deviceWeightKg) >= 30)) {
+        out.text = `${ctx.weightGapWeeks} прегледа подред са без тегло — без него планът не може да се настройва към резултата ти. Въведи последното си тегло (кг), дори да не е от тази сутрин.`;
+        out.skipLabel = 'Нямам кантар';
       }
       if (q.id === 'weightKg' && Number(ctx.deviceWeightKg) >= 30) {
         out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
@@ -520,11 +532,30 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
   }
 
   // Граници: стъпка, общ таван спрямо първоначалното и безопасен минимум.
+  // Границите само спират обявената корекция — не правят своя: приемът не се
+  // мести без причина в текста и никога с повече от стъпката.
   delta = Math.max(-MAX_WEEKLY_STEP, Math.min(MAX_WEEKLY_STEP, delta));
   let next = kcal + delta;
-  next = Math.max(baseKcal - MAX_TOTAL_SHIFT, Math.min(baseKcal + MAX_TOTAL_SHIFT, next));
-  if (losing) next = Math.min(next, tdee);
-  next = Math.max(next, floorKcal);
+  if (delta > 0) {
+    next = Math.min(next, Math.max(kcal, baseKcal + MAX_TOTAL_SHIFT));
+    if (losing) next = Math.min(next, Math.max(kcal, tdee));
+  } else if (delta < 0) {
+    next = Math.max(next, Math.min(kcal, baseKcal - MAX_TOTAL_SHIFT), Math.min(kcal, floorKcal));
+  }
+  if (delta && Math.round(next) === Math.round(kcal)) {
+    cancelDelta(delta < 0 && kcal <= floorKcal
+      ? 'Приемът вече е на безопасния минимум и не се намалява повече — следващата стъпка е повече движение, не по-малко храна.'
+      : delta > 0 && losing && kcal >= tdee
+        ? 'Приемът вече е колкото разхода — не се увеличава повече.'
+        : `Корекциите вече са ${MAX_TOTAL_SHIFT} kcal от първоначалния план — приемът остава; следващата стъпка е нова преценка на разхода.`);
+    onTrack = false;
+  }
+  // Единственото изключение е безопасният минимум: под него приемът се вдига (с причината).
+  if (next < floorKcal) {
+    next = floorKcal;
+    onTrack = false;
+    reasons.push('Приемът е под безопасния минимум за сегашния разход — вдига се към него.');
+  }
   delta = Math.round(next - kcal);
   if (delta) changes.unshift(`Калории: ${delta > 0 ? '+' : ''}${delta} kcal на ден`);
 
@@ -572,7 +603,7 @@ export function weeklyMessage(decision, checkin) {
   if (decision.onTrack) {
     return {
       headline: 'Отлична седмица — продължаваме',
-      message: 'Вървите по плана. Новото меню е със същите калории и нови ястия за разнообразие.',
+      message: 'Вървиш по плана. Новото меню е със същите калории и нови ястия за разнообразие.',
     };
   }
   // Без похвала, когато резултатът е неясен: няма тегло, няма данни за спазването или седмицата е в застой.

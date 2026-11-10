@@ -165,10 +165,10 @@ export function buildClientCard(clientData, options = {}) {
   };
 }
 
-/** @typedef {'today'|'voice'|'profile'|'profile_full'|'health'|'summary'|'meals'|'meals_week'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'} ChatSectionId */
+/** @typedef {'today'|'voice'|'profile'|'profile_full'|'health'|'summary'|'meals'|'meals_week'|'analysis'|'strategy'|'recommendations'|'forbidden'|'psychology'|'supplements'|'water'|'progress'} ChatSectionId */
 
 const CHAT_SECTION_ORDER = /** @type {const} */ ([
-  'today', 'voice', 'profile', 'profile_full', 'health', 'summary', 'meals', 'meals_week', 'analysis', 'strategy',
+  'today', 'voice', 'profile', 'profile_full', 'health', 'progress', 'summary', 'meals', 'meals_week', 'analysis', 'strategy',
   'recommendations', 'forbidden', 'psychology', 'supplements', 'water',
 ]);
 
@@ -180,6 +180,7 @@ const CHAT_MODIFICATION = CHAT_SECTION_ORDER.filter(id => id !== 'meals');
 const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} */ ([
   [/(?<![\p{L}\p{N}])(калори|kcal|ккал|bmr|tdee|енерги|макро|протеин|белтък|въглехидрат|мазнин|bmi|метабол)/iu, ['summary', 'analysis']],
   [/(?<![\p{L}\p{N}])(стратег|принцип|подход|режим|разпредел|свободн|десерт|сладк|шоколад|схем|порци|защо)/iu, 'strategy'],
+  [/(?<![\p{L}\p{N}])(тегл|кантар|килограм|кг(?![\p{L}])|свал|отслаб|напред|резултат|засто|плато|не\s+става|бавно|кога\s+ще|колко\s+време)/iu, 'progress'],
   [/(?<![\p{L}\p{N}])(препоръч|съвет|насок)/iu, 'recommendations'],
   [/(?<![\p{L}\p{N}])(забран|избягв|не\s+ям|алерг|непоносим)/iu, 'forbidden'],
   [/(?<![\p{L}\p{N}])(психол|мотивац|стрес|навик|емоци|тригер)/iu, 'psychology'],
@@ -240,6 +241,36 @@ function serializeToday(t) {
   return `#TD v1 ${esc([head.trim(), ...meals, extra.length ? `извън плана: ${extra.join(', ')}` : ''].filter(Boolean).join(' | ')).slice(0, 900)}`;
 }
 
+/**
+ * Напредъкът с числа: етапът, очакваното темпо от реалния дефицит на плана и
+ * записаните тегла — за да отговаря асистентът на „защо не свалям“ и „кога“ с
+ * данните на човека. Без записано тегло го казва: без него темпото не се вижда.
+ */
+function serializeProgress(userData, plan) {
+  const a = plan?.analysis || {};
+  const tdee = Number(a.tdee) || 0;
+  const kcal = Number(a.Final_Calories || a.recommendedCalories) || 0;
+  if (!tdee || !kcal) return '';
+  const fmt = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
+  const parts = [];
+  const perWeek = (tdee - kcal) * 7 / 7700;
+  if (perWeek >= 0.1) parts.push(`очаквано темпо ~${fmt(perWeek)} кг/седмица при спазен план (прием ${kcal} kcal, разход ~${tdee} kcal)`);
+  else if (perWeek <= -0.05) parts.push(`планът е с излишък ${kcal - tdee} kcal — за покачване`);
+  else parts.push('планът е без дефицит — теглото се очаква да стои');
+  const forecast = a.forecastOptimistic?.weight;
+  if (forecast && perWeek >= 0.1) parts.push(`етап: ${forecast}`);
+  if (a._activityNote) parts.push(a._activityNote);
+  const start = Number(String(userData?.weight || '').replace(',', '.')) || 0;
+  const log = (Array.isArray(userData?._today?.weights) ? userData._today.weights : [])
+    .filter(w => Number(w?.kg) >= 30 && Number(w?.kg) <= 300 && w?.date).slice(-6);
+  if (log.length) {
+    parts.push(`записани тегла: ${log.map(w => `${w.date} ${fmt(Number(w.kg))} кг`).join(', ')}${start ? ` (начално ${fmt(start)} кг)` : ''}`);
+  } else if (Math.abs(perWeek) >= 0.05) {
+    parts.push('няма записано тегло — без него темпото не може да се прецени; помоли за едно претегляне сутрин (полето „Тегло“ над храненията)');
+  }
+  return `#PG v1 ${esc(parts.join(' | ')).slice(0, 900)}`;
+}
+
 /** Днешният и утрешният ден на плана — без „днес“ (сървърът без устройството): цялата седмица. */
 function todayAndTomorrow(today) {
   const d = Number(today?.planDay);
@@ -257,6 +288,7 @@ export function buildChatContextSections(userData, plan) {
       hasNotesSection: hasNotes,
       hasClinicalSection: Boolean(userData?.clinicalProtocol),
     }),
+    progress: serializeProgress(userData, p),
     health: userData?._healthEssence ? `#HD v1 ${esc(String(userData._healthEssence).slice(0, 2400))}` : '',
     summary: serializePlanSummary(p.summary) || '',
     // Днес и утре; цялата седмица — отделна секция, само ако въпросът е за друг ден.

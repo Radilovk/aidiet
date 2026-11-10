@@ -14,11 +14,20 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err2) => function __init() {
+  if (err2) throw err2[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err2 = [e], e;
+  }
 };
 var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  try {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  } catch (e) {
+    throw mod = 0, e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -236,7 +245,9 @@ var require_goal_model = __commonJS({
           older
         };
       }
-      var DEFICIT_BY_EXCESS = [0, -10, -15, -18, -20];
+      var DEFICIT_BY_EXCESS = [0, -10, -15, -20, -25];
+      var OLDER_MAX_DEFICIT = -15;
+      var MEANINGFUL_LOSS_SHARE = [0, 0, 0.05, 0.1, 0.1];
       function forGoal(code, b, f) {
         var metabolic = (f.clinical || []).some(function(c) {
           return METABOLIC.indexOf(c) !== -1;
@@ -281,7 +292,7 @@ var require_goal_model = __commonJS({
         switch (code) {
           case "LOSS":
             if (b.under) return recomp(0, "\u0418\u0422\u041C \u043F\u043E\u0434 18,5 \u2014 \u0441\u0432\u0430\u043B\u044F\u043D\u0435 \u043D\u0430 \u0442\u0435\u0433\u043B\u043E \u043D\u0435 \u0435 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E; \u0446\u0435\u043B\u0442\u0430 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432 \u0438 \u0441\u0438\u043B\u0430", ["composition", "workouts", "weight"]);
-            if (ex >= 1) return lose(DEFICIT_BY_EXCESS[ex], "\u0438\u0437\u043B\u0438\u0448\u044A\u043A \u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u2014 \u0443\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442", ["weight", "waist", "composition"]);
+            if (ex >= 1) return lose(DEFICIT_BY_EXCESS[ex], ex >= 3 ? "\u0437\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 \u2014 \u043E\u0442\u0447\u0435\u0442\u043B\u0438\u0432 \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u0441 \u0432\u0438\u0441\u043E\u043A \u0431\u0435\u043B\u0442\u044A\u043A, \u0437\u0430 \u0432\u0438\u0434\u0438\u043C \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442 \u0431\u0435\u0437 \u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438" : "\u0438\u0437\u043B\u0438\u0448\u044A\u043A \u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u2014 \u0443\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442", ["weight", "waist", "composition"]);
             if (f.lossKg > 0 && f.weightKg && f.heightCm && (f.weightKg - f.lossKg) / Math.pow(f.heightCm / 100, 2) >= 20) {
               return lose(-10, "\u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0435 \u0432 \u043D\u043E\u0440\u043C\u0430, \u0430 \u0436\u0435\u043B\u0430\u043D\u043E\u0442\u043E \u0435 \u043C\u0430\u043B\u043A\u043E \u043F\u043E-\u043D\u0438\u0441\u043A\u043E \u2014 \u043B\u0435\u043A \u0434\u0435\u0444\u0438\u0446\u0438\u0442", ["weight", "waist", "composition"]);
             }
@@ -340,7 +351,10 @@ var require_goal_model = __commonJS({
         if (!f.weightKg || !f.heightCm) return null;
         var m2 = Math.pow(f.heightCm / 100, 2);
         var floor = r12(20 * m2);
-        if (f.lossKg > 0) return Math.max(floor, r12(f.weightKg - f.lossKg));
+        if (f.lossKg > 0) {
+          var meaningful = r12(f.weightKg * (1 - (MEANINGFUL_LOSS_SHARE[b.excess] || 0)));
+          return Math.max(floor, Math.min(r12(f.weightKg - f.lossKg), meaningful));
+        }
         var upper = r12((b.older ? 27 : 24.9) * m2);
         return upper < f.weightKg ? upper : null;
       }
@@ -386,9 +400,17 @@ var require_goal_model = __commonJS({
           minPct = Math.max(minPct, -10);
           reasons.push("\u043A\u044A\u0440\u043C\u0435\u043D\u0435 \u2014 \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E \u043C\u0435\u043A \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
         }
+        if (has3(f.behaviors, "EMO") && has3(f.behaviors, "OVR")) {
+          minPct = Math.max(minPct, -15);
+          reasons.push("\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u043F\u0440\u0435\u044F\u0436\u0434\u0430\u043D\u0435 \u2014 \u0443\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442, \u0437\u0430 \u0434\u0430 \u043D\u0435 \u0441\u0435 \u0437\u0430\u0441\u0438\u043B\u0432\u0430\u0442 \u0435\u043F\u0438\u0437\u043E\u0434\u0438\u0442\u0435");
+        }
         if (has3(f.behaviors, "CMP")) {
           minPct = Math.max(minPct, -10);
           reasons.push("\u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0430\u0442\u043E\u0440\u043D\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435 (\u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435/\u0445\u0430\u043F\u0447\u0435\u0442\u0430) \u2014 \u0431\u0435\u0437 \u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
+        }
+        if (b.older) {
+          minPct = Math.max(minPct, OLDER_MAX_DEFICIT);
+          reasons.push("\u043D\u0430\u0434 65 \u0433. \u2014 \u0443\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u044F\u0442 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435");
         }
         if (b.excess >= 3) {
           maxPct = Math.min(maxPct, 0);
@@ -2007,6 +2029,7 @@ var CHAT_SECTION_ORDER = (
     "profile",
     "profile_full",
     "health",
+    "progress",
     "summary",
     "meals",
     "meals_week",
@@ -2026,6 +2049,7 @@ var CHAT_INTENTS = (
   [
     [/(?<![\p{L}\p{N}])(калори|kcal|ккал|bmr|tdee|енерги|макро|протеин|белтък|въглехидрат|мазнин|bmi|метабол)/iu, ["summary", "analysis"]],
     [/(?<![\p{L}\p{N}])(стратег|принцип|подход|режим|разпредел|свободн|десерт|сладк|шоколад|схем|порци|защо)/iu, "strategy"],
+    [/(?<![\p{L}\p{N}])(тегл|кантар|килограм|кг(?![\p{L}])|свал|отслаб|напред|резултат|засто|плато|не\s+става|бавно|кога\s+ще|колко\s+време)/iu, "progress"],
     [/(?<![\p{L}\p{N}])(препоръч|съвет|насок)/iu, "recommendations"],
     [/(?<![\p{L}\p{N}])(забран|избягв|не\s+ям|алерг|непоносим)/iu, "forbidden"],
     [/(?<![\p{L}\p{N}])(психол|мотивац|стрес|навик|емоци|тригер)/iu, "psychology"],
@@ -2068,6 +2092,29 @@ function serializeToday(t) {
   const head = `${t.weekday || ""} ${t.date} ${t.time || ""} \xB7 \u0434\u0435\u043D ${t.planDay} \u043E\u0442 \u043F\u043B\u0430\u043D\u0430${t.planKcal ? ` \xB7 \u0438\u0437\u044F\u0434\u0435\u043D\u043E ${t.eatenKcal || 0} \u043E\u0442 ${t.planKcal} kcal \u043F\u043E \u043F\u043B\u0430\u043D\u0430` : ""}`;
   return `#TD v1 ${esc2([head.trim(), ...meals, extra.length ? `\u0438\u0437\u0432\u044A\u043D \u043F\u043B\u0430\u043D\u0430: ${extra.join(", ")}` : ""].filter(Boolean).join(" | ")).slice(0, 900)}`;
 }
+function serializeProgress(userData, plan) {
+  const a = plan?.analysis || {};
+  const tdee = Number(a.tdee) || 0;
+  const kcal = Number(a.Final_Calories || a.recommendedCalories) || 0;
+  if (!tdee || !kcal) return "";
+  const fmt7 = (n) => String(Math.round(n * 10) / 10).replace(".", ",");
+  const parts = [];
+  const perWeek = (tdee - kcal) * 7 / 7700;
+  if (perWeek >= 0.1) parts.push(`\u043E\u0447\u0430\u043A\u0432\u0430\u043D\u043E \u0442\u0435\u043C\u043F\u043E ~${fmt7(perWeek)} \u043A\u0433/\u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043F\u0440\u0438 \u0441\u043F\u0430\u0437\u0435\u043D \u043F\u043B\u0430\u043D (\u043F\u0440\u0438\u0435\u043C ${kcal} kcal, \u0440\u0430\u0437\u0445\u043E\u0434 ~${tdee} kcal)`);
+  else if (perWeek <= -0.05) parts.push(`\u043F\u043B\u0430\u043D\u044A\u0442 \u0435 \u0441 \u0438\u0437\u043B\u0438\u0448\u044A\u043A ${kcal - tdee} kcal \u2014 \u0437\u0430 \u043F\u043E\u043A\u0430\u0447\u0432\u0430\u043D\u0435`);
+  else parts.push("\u043F\u043B\u0430\u043D\u044A\u0442 \u0435 \u0431\u0435\u0437 \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u2014 \u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0441\u0435 \u043E\u0447\u0430\u043A\u0432\u0430 \u0434\u0430 \u0441\u0442\u043E\u0438");
+  const forecast = a.forecastOptimistic?.weight;
+  if (forecast && perWeek >= 0.1) parts.push(`\u0435\u0442\u0430\u043F: ${forecast}`);
+  if (a._activityNote) parts.push(a._activityNote);
+  const start = Number(String(userData?.weight || "").replace(",", ".")) || 0;
+  const log = (Array.isArray(userData?._today?.weights) ? userData._today.weights : []).filter((w) => Number(w?.kg) >= 30 && Number(w?.kg) <= 300 && w?.date).slice(-6);
+  if (log.length) {
+    parts.push(`\u0437\u0430\u043F\u0438\u0441\u0430\u043D\u0438 \u0442\u0435\u0433\u043B\u0430: ${log.map((w) => `${w.date} ${fmt7(Number(w.kg))} \u043A\u0433`).join(", ")}${start ? ` (\u043D\u0430\u0447\u0430\u043B\u043D\u043E ${fmt7(start)} \u043A\u0433)` : ""}`);
+  } else if (Math.abs(perWeek) >= 0.05) {
+    parts.push("\u043D\u044F\u043C\u0430 \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u043E \u0442\u0435\u0433\u043B\u043E \u2014 \u0431\u0435\u0437 \u043D\u0435\u0433\u043E \u0442\u0435\u043C\u043F\u043E\u0442\u043E \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u043F\u0440\u0435\u0446\u0435\u043D\u0438; \u043F\u043E\u043C\u043E\u043B\u0438 \u0437\u0430 \u0435\u0434\u043D\u043E \u043F\u0440\u0435\u0442\u0435\u0433\u043B\u044F\u043D\u0435 \u0441\u0443\u0442\u0440\u0438\u043D (\u043F\u043E\u043B\u0435\u0442\u043E \u201E\u0422\u0435\u0433\u043B\u043E\u201C \u043D\u0430\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430)");
+  }
+  return `#PG v1 ${esc2(parts.join(" | ")).slice(0, 900)}`;
+}
 function todayAndTomorrow(today) {
   const d = Number(today?.planDay);
   return d >= 1 && d <= 7 ? { days: [`day${d}`, `day${d % 7 + 1}`] } : {};
@@ -2083,6 +2130,7 @@ function buildChatContextSections(userData, plan) {
       hasNotesSection: hasNotes,
       hasClinicalSection: Boolean(userData?.clinicalProtocol)
     }),
+    progress: serializeProgress(userData, p),
     health: userData?._healthEssence ? `#HD v1 ${esc2(String(userData._healthEssence).slice(0, 2400))}` : "",
     summary: serializePlanSummary(p.summary) || "",
     // Днес и утре; цялата седмица — отделна секция, само ако въпросът е за друг ден.
@@ -40097,6 +40145,7 @@ var FAT_SHARE_BY_STYLE = {
 };
 var LOW_CARB_SHARE = 0.25;
 var LOW_CARB_MAX_G = 130;
+var LOW_CARB_MAX_FAT_SHARE = 0.45;
 var KETO_MAX_CARB_G = 50;
 var KETO_CARB_SHARE = 0.1;
 var MIN_FAT_G_PER_KG = 0.7;
@@ -40171,6 +40220,14 @@ function macroTargetsFor(profile, kcal) {
   if (style === "keto" || style === "low_carb") {
     carbs = style === "keto" ? Math.min(KETO_MAX_CARB_G, Math.floor(energy * KETO_CARB_SHARE / 4)) : Math.min(LOW_CARB_MAX_G, Math.round(energy * LOW_CARB_SHARE / 4));
     fats = Math.max(minFat, Math.round((energy - protein * 4 - carbs * 4) / 9));
+    const maxFat = Math.round(energy * LOW_CARB_MAX_FAT_SHARE / 9);
+    if (style === "low_carb" && fats > maxFat) {
+      const room = Math.max(0, Math.round(Math.min(refKg * CARB_CEILING_PROTEIN_PER_KG, energy * maxProteinShare / 4)) - protein);
+      protein += Math.min(room, Math.round((fats - maxFat) * 9 / 4));
+      const maxCarbs2 = Math.round(energy * LOW_CARB_SHARE / 4);
+      carbs = Math.max(carbs, Math.min(maxCarbs2, Math.round((energy - protein * 4 - maxFat * 9) / 4)));
+      fats = Math.max(minFat, Math.round((energy - protein * 4 - carbs * 4) / 9));
+    }
   } else {
     fats = Math.max(minFat, Math.round(energy * (FAT_SHARE_BY_STYLE[style] ?? 0.3) / 9));
     carbs = Math.max(0, Math.round((energy - protein * 4 - fats * 9) / 4));
@@ -40494,12 +40551,29 @@ function calculateActivityTDEE(bmr, data) {
   const activityData = calculateUnifiedActivityScore(data);
   const measured = Number(data?._enrichment?.activity?.steps);
   const perStep = kcalPerStep(data);
-  if (!(measured > 0) || !(perStep > 0)) return { tdee: calculateTDEE(bmr, activityData.combinedScore), activityData };
+  const cap = unverifiedActivityCap(data);
+  const tdeeAt = (score) => {
+    const full = calculateTDEE(bmr, score);
+    return cap && full > bmr * cap ? Math.round(bmr * cap) : full;
+  };
+  if (!(measured > 0) || !(perStep > 0)) {
+    const tdee = tdeeAt(activityData.combinedScore);
+    const discounted = tdee < calculateTDEE(bmr, activityData.combinedScore);
+    return { tdee, activityData: discounted ? { ...activityData, discounted: true, note: UNVERIFIED_ACTIVITY_NOTE } : activityData };
+  }
   const walkKcal = Math.round(Math.max(0, measured - SEDENTARY_STEPS) * perStep);
   return {
-    tdee: calculateTDEE(bmr, 1 + activityData.sportDays) + walkKcal,
+    tdee: tdeeAt(1 + activityData.sportDays) + walkKcal,
     activityData: { ...activityData, measuredSteps: measured, walkKcal }
   };
+}
+var UNVERIFIED_ACTIVITY_CAP = { 3: 1.6, 4: 1.6, 2: 1.725 };
+var UNVERIFIED_ACTIVITY_NOTE = "\u0420\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u0435 \u0441\u043C\u0435\u0442\u043D\u0430\u0442 \u043F\u0440\u0435\u0434\u043F\u0430\u0437\u043B\u0438\u0432\u043E: \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u043E\u0449\u0435 \u043D\u0435 \u0441\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u0438 \u043E\u0442 \u043A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440\u0430 \u0438\u043B\u0438 \u0432\u0435\u0447\u0435\u0440\u043D\u0438\u0442\u0435 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438. \u041E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430\u0439 \u0433\u0438 \u2014 \u043F\u043B\u0430\u043D\u044A\u0442 \u0449\u0435 \u0433\u0438 \u043E\u0442\u0447\u0435\u0442\u0435.";
+function unverifiedActivityCap(data) {
+  if (data?._enrichment?.essence?.metrics?.training) return null;
+  const body = compileProfile(data || {}).goalModel?.body;
+  if (!body || body.fatRisk === 0) return null;
+  return UNVERIFIED_ACTIVITY_CAP[body.excess] || null;
 }
 function calculateMacronutrientRatios(data, _activityScore, tdee = null) {
   const profile = compileProfile(data);
@@ -40864,10 +40938,27 @@ function healthDescription(score, problems, profile) {
   if (strengths.length) parts.push(`\u0421\u0438\u043B\u043D\u0438 \u0441\u0442\u0440\u0430\u043D\u0438: ${strengths.join(", ")}.`);
   return parts.join(" ");
 }
-function weeklyLossKg(profile) {
+function weeklyLossKg(profile, energy) {
+  const deficit = Number(energy?.tdee) - Number(energy?.Final_Calories);
+  if (deficit > 0) return Math.max(0.1, deficit * 7 / 7700);
   return [0, 0.4, 0.55, 0.7][profile.pace || 0] || 0.5;
 }
-function forecasts(profile, problems) {
+function lossForecastText(profile, energy) {
+  const w = Number(profile.weightKg) || 0;
+  const target = Number(profile.targetWeightKg) || w;
+  if (profile.direction !== "lose" || !(target < w)) return null;
+  const weeks = Math.ceil((w - target) / weeklyLossKg(profile, energy));
+  const span = weeks > 16 ? `${Math.round(weeks / 4.345)} \u043C\u0435\u0441\u0435\u0446\u0430` : `${weeks} \u0441\u0435\u0434\u043C\u0438\u0446\u0438`;
+  const deficitShare = Number(energy?.tdee) > 0 ? 1 - Number(energy.Final_Calories) / Number(energy.tdee) : 0;
+  const start = deficitShare >= 0.15 && w - target >= 5 ? "; \u043F\u044A\u0440\u0432\u0438\u0442\u0435 2 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E \u22121,5 \u0434\u043E \u22122,5 \u043A\u0433 (\u0441 \u0432\u043E\u0434\u0430\u0442\u0430)" : "";
+  return `\u2212${String(Math.round((w - target) * 10) / 10).replace(".", ",")} \u043A\u0433 (\u0434\u043E ~${String(target).replace(".", ",")} \u043A\u0433) \u0437\u0430 \u043E\u043A\u043E\u043B\u043E ${span}${start}`;
+}
+function syncForecastToEnergy(analysis, userData) {
+  if (!analysis?.forecastOptimistic || !analysis._deterministicAnalysis) return;
+  const text2 = lossForecastText(compileProfile(userData || {}), analysis);
+  if (text2) analysis.forecastOptimistic.weight = text2;
+}
+function forecasts(profile, problems, energy) {
   const w = Number(profile.weightKg) || 0;
   const target = Number(profile.targetWeightKg) || w;
   const losing = profile.direction === "lose" && target < w;
@@ -40878,8 +40969,7 @@ function forecasts(profile, problems) {
   while (improvements.length < 3) improvements.push(["\u041F\u043E\u0432\u0435\u0447\u0435 \u0435\u043D\u0435\u0440\u0433\u0438\u044F \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F", "\u041F\u043E-\u0434\u043E\u0431\u0440\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435", "\u0423\u0441\u0442\u043E\u0439\u0447\u0438\u0432\u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043D\u0430\u0432\u0438\u0446\u0438"][improvements.length]);
   let weight = "\u0421\u0442\u0430\u0431\u0438\u043B\u043D\u043E \u0442\u0435\u0433\u043B\u043E \u0441 \u043F\u043E-\u0434\u043E\u0431\u044A\u0440 \u0441\u044A\u0441\u0442\u0430\u0432 \u043D\u0430 \u0442\u044F\u043B\u043E\u0442\u043E";
   if (losing) {
-    const weeks = Math.ceil((w - target) / weeklyLossKg(profile));
-    weight = `\u2212${String(Math.round((w - target) * 10) / 10).replace(".", ",")} \u043A\u0433 (\u0434\u043E ~${String(target).replace(".", ",")} \u043A\u0433) \u0437\u0430 \u043E\u043A\u043E\u043B\u043E ${weeks} \u0441\u0435\u0434\u043C\u0438\u0446\u0438`;
+    weight = lossForecastText(profile, energy);
   } else if (gaining) {
     weight = "+2\u20134 \u043A\u0433 \u043C\u0443\u0441\u043A\u0443\u043B\u043D\u0430 \u043C\u0430\u0441\u0430 \u0437\u0430 12 \u043C\u0435\u0441\u0435\u0446\u0430";
   }
@@ -40973,7 +41063,7 @@ function analyzeProfile(profile, energy = {}, extra = []) {
       dailyNeed: `${need} \u043B`,
       currentIntake: current != null ? `${current} \u043B` : "\u043D\u0435 \u0435 \u043F\u043E\u0441\u043E\u0447\u0435\u043D",
       deficit: current != null ? `${Math.max(0, Math.round((need - current) * 10) / 10)} \u043B` : "\u2014",
-      impactOnLipolysis: current != null && current < need - 0.4 ? "\u041D\u0435\u0434\u043E\u0441\u0442\u0438\u0433\u044A\u0442 \u043D\u0430 \u0432\u043E\u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0438 \u0437\u0430\u0441\u0438\u043B\u0432\u0430 \u0444\u0430\u043B\u0448\u0438\u0432\u0438\u044F \u0433\u043B\u0430\u0434." : "\u0425\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F\u0442\u0430 \u0435 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0430 \u0437\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430."
+      impactOnLipolysis: current != null && current < need - 0.4 ? "\u041D\u0435\u0434\u043E\u0441\u0442\u0438\u0433\u044A\u0442 \u043D\u0430 \u0432\u043E\u0434\u0430 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F\u0442\u0430 \u0438 \u0437\u0430\u0441\u0438\u043B\u0432\u0430 \u0444\u0430\u043B\u0448\u0438\u0432\u0438\u044F \u0433\u043B\u0430\u0434." : current != null ? "\u0425\u0438\u0434\u0440\u0430\u0442\u0430\u0446\u0438\u044F\u0442\u0430 \u0435 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u0430 \u0437\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0430 \u043E\u0431\u043C\u044F\u043D\u0430." : `\u0426\u0435\u043B: \u043E\u043A\u043E\u043B\u043E ${need} \u043B \u0442\u0435\u0447\u043D\u043E\u0441\u0442\u0438 \u0434\u043D\u0435\u0432\u043D\u043E.`
     },
     keyProblems,
     currentHealthStatus: {
@@ -40981,7 +41071,7 @@ function analyzeProfile(profile, energy = {}, extra = []) {
       description: healthDescription(score, real, profile),
       keyIssues: keyProblems.slice(0, 4).map((p) => p.title)
     },
-    ...forecasts(profile, all),
+    ...forecasts(profile, all, energy),
     nutritionalNeeds: nutritionalNeeds(profile, energy.macroGrams),
     healthRisks: healthRisks(real),
     psychologicalProfile: psychologicalProfile(profile),
@@ -42782,6 +42872,9 @@ var RULES = [
   // „Калораж“ е жаргон; към клиента — „калории“ или „дневен прием“.
   ["imitation", /(като|както)\s+(би\s+)?(го|я|ги|то)?\s*(съставя|състави|съставил|прави|направи|направил|препоръчва)[а-я]*\s+(един\s+|всеки\s+)?(истински\s+|професионален\s+)?диетолог|(като|подобно на)\s+(истински|професионален|опитен)\s+диетолог|подража|имитира/i],
   ["jargon", /(?<![а-я])калораж[а-я]*/i],
+  // Текст за клиента говори НА него („ти“), не ЗА него. „Клиентът има…“, „Да се следи…“ са
+  // бележки за екипа — ако стигнат до клиента, звучат като чужда преписка за него.
+  ["third_person", /(?<![а-я])(клиент(ът|а|ката|ки)?|пациент(ът|а|ката|ки)?|потребител(ят|я))(?![а-я])|(?<![а-я])(диетолог|специалист)(ът|а)\s+(да|трябва|следва)(?![а-я])|(?<![а-я])да\s+се\s+(следи|проследи|наблюдава|изчисли|преизчисли|обсъди|провери|насочи|коригира|препоръча)(?![а-я])/i],
   // Остатъци от код, разметка или JSON.
   ["markup", /```|<\/?(div|span|script|br|p|b|i|html)\b[^>]*>|^\s*[{[]\s*"/i]
 ];
@@ -42799,8 +42892,11 @@ function textIssues(text2) {
 function isCleanClientText(text2) {
   return textIssues(text2).length === 0;
 }
+function isCleanStaffText(text2) {
+  return textIssues(text2).every((code) => code === "third_person");
+}
 function guardClientText(text2, options = {}) {
-  const fallback = options.fallback || "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0448 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
+  const fallback = "fallback" in options ? options.fallback : "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0448 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
   const src = String(text2 ?? "");
   if (!src.trim()) return { text: fallback, removed: [] };
   const removed = [];
@@ -44066,7 +44162,7 @@ function weekTargets(profile, base, week, fasting, slots) {
     if (swingG) carbs += kind === "train" ? swingG * restDays / 7 : -swingG * trainDays / 7;
     if (kind === "low") carbs = Math.min(carbs, C * 0.6);
     if (style === "keto") carbs = Math.min(KETO_MAX_CARB_G, C);
-    else if (style === "low_carb") carbs = Math.min(LOW_CARB_MAX_G, carbs);
+    else if (style === "low_carb") carbs = Math.min(Math.max(LOW_CARB_MAX_G, C), carbs);
     const riskCap = metabolicRisk && trainDays && kind !== "train" && style !== "keto";
     if (riskCap) carbs = Math.min(carbs, kcal[i] * 0.25 / 4);
     if (style !== "keto") carbs = Math.min(C * 1.35, Math.max(C * 0.7, carbs));
@@ -47077,6 +47173,7 @@ var ISSUE_REASONS = {
   markup: "\u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u043A\u043E\u0434 \u0438\u043B\u0438 \u0440\u0430\u0437\u043C\u0435\u0442\u043A\u0430",
   english: "\u0435 \u043D\u0430 \u0430\u043D\u0433\u043B\u0438\u0439\u0441\u043A\u0438",
   imitation: "\u0441\u0440\u0430\u0432\u043D\u044F\u0432\u0430 \u043F\u043B\u0430\u043D\u0430 \u0441 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0438\u043B\u0438 \u043A\u0430\u0437\u0432\u0430, \u0447\u0435 \u043F\u043E\u0434\u0440\u0430\u0436\u0430\u0432\u0430 \u2014 \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430, \u043A\u043E\u0439\u0442\u043E \u0432\u043E\u0434\u0438 \u043A\u043B\u0438\u0435\u043D\u0442\u0430",
+  third_person: "\u0433\u043E\u0432\u043E\u0440\u0438 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u0432 \u0442\u0440\u0435\u0442\u043E \u043B\u0438\u0446\u0435 (\u201E\u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442\u201C, \u201E\u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438\u201C) \u2014 \u043E\u0431\u044A\u0440\u043D\u0438 \u0441\u0435 \u0434\u0438\u0440\u0435\u043A\u0442\u043D\u043E \u043A\u044A\u043C \u043D\u0435\u0433\u043E \u043D\u0430 \u201E\u0442\u0438\u201C",
   jargon: "\u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430 \u0436\u0430\u0440\u0433\u043E\u043D (\u201E\u043A\u0430\u043B\u043E\u0440\u0430\u0436\u201C) \u2014 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u201C \u0438\u043B\u0438 \u201E\u0434\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C\u201C"
 };
 function makeReason(blockedTerms) {
@@ -47323,6 +47420,11 @@ var WEIGHT_ANSWERS = {
 };
 var GAIN_WEIGHT_OPTIONS = ["\u041A\u0430\u0447\u0438\u0445 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 0,5 \u043A\u0433", "\u041A\u0430\u0447\u0438\u0445 \u0434\u043E 0,5 \u043A\u0433", "\u0411\u0435\u0437 \u043F\u0440\u043E\u043C\u044F\u043D\u0430", "\u041E\u0442\u0441\u043B\u0430\u0431\u043D\u0430\u0445", "\u041D\u0435 \u0441\u044A\u043C \u0441\u0435 \u0442\u0435\u0433\u043B\u0438\u043B/\u0430"];
 var fmtKg = (v) => String(Math.round(v * 10) / 10).replace(".", ",");
+function weightGapWeeks(history) {
+  let n = 0;
+  for (let i = (history || []).length - 1; i >= 0 && !(Number(history[i]?.weightKg) > 0); i--) n++;
+  return n;
+}
 function weeklyQuestionsFor(ctx = {}) {
   const lead = Array.isArray(ctx.lead) ? ctx.lead : [];
   const direction = ctx.direction || (ctx.goal === "GAIN" ? "gain" : null);
@@ -47333,6 +47435,10 @@ function weeklyQuestionsFor(ctx = {}) {
     if (q.id === "weight" && direction === "gain") out.options = [...GAIN_WEIGHT_OPTIONS];
     if (q.id === "waistCm" && lead.slice(0, 3).includes("waist")) {
       out.text = "\u041E\u0431\u0438\u043A\u043E\u043B\u043A\u0430 \u043D\u0430 \u0442\u0430\u043B\u0438\u044F\u0442\u0430 \u043D\u0430 \u043D\u0438\u0432\u043E\u0442\u043E \u043D\u0430 \u043F\u044A\u043F\u0430 (\u0441\u043C). \u0417\u0430 \u0442\u0432\u043E\u044F\u0442\u0430 \u0446\u0435\u043B \u0442\u044F \u043F\u043E\u043A\u0430\u0437\u0432\u0430 \u043D\u0430\u043F\u0440\u0435\u0434\u044A\u043A\u0430 \u043F\u043E-\u0442\u043E\u0447\u043D\u043E \u043E\u0442 \u043A\u0430\u043D\u0442\u0430\u0440\u0430.";
+    }
+    if (q.id === "weightKg" && (direction === "lose" || direction === "gain") && (ctx.weightGapWeeks || 0) >= 2 && !(Number(ctx.deviceWeightKg) >= 30)) {
+      out.text = `${ctx.weightGapWeeks} \u043F\u0440\u0435\u0433\u043B\u0435\u0434\u0430 \u043F\u043E\u0434\u0440\u0435\u0434 \u0441\u0430 \u0431\u0435\u0437 \u0442\u0435\u0433\u043B\u043E \u2014 \u0431\u0435\u0437 \u043D\u0435\u0433\u043E \u043F\u043B\u0430\u043D\u044A\u0442 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u0432\u0430 \u043A\u044A\u043C \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0430 \u0442\u0438. \u0412\u044A\u0432\u0435\u0434\u0438 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u043E\u0442\u043E \u0441\u0438 \u0442\u0435\u0433\u043B\u043E (\u043A\u0433), \u0434\u043E\u0440\u0438 \u0434\u0430 \u043D\u0435 \u0435 \u043E\u0442 \u0442\u0430\u0437\u0438 \u0441\u0443\u0442\u0440\u0438\u043D.`;
+      out.skipLabel = "\u041D\u044F\u043C\u0430\u043C \u043A\u0430\u043D\u0442\u0430\u0440";
     }
     if (q.id === "weightKg" && Number(ctx.deviceWeightKg) >= 30) {
       out.prefill = String(Math.round(ctx.deviceWeightKg * 10) / 10);
@@ -47620,9 +47726,21 @@ function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, floorKca
   }
   delta = Math.max(-MAX_WEEKLY_STEP, Math.min(MAX_WEEKLY_STEP, delta));
   let next = kcal + delta;
-  next = Math.max(baseKcal - MAX_TOTAL_SHIFT, Math.min(baseKcal + MAX_TOTAL_SHIFT, next));
-  if (losing) next = Math.min(next, tdee);
-  next = Math.max(next, floorKcal);
+  if (delta > 0) {
+    next = Math.min(next, Math.max(kcal, baseKcal + MAX_TOTAL_SHIFT));
+    if (losing) next = Math.min(next, Math.max(kcal, tdee));
+  } else if (delta < 0) {
+    next = Math.max(next, Math.min(kcal, baseKcal - MAX_TOTAL_SHIFT), Math.min(kcal, floorKcal));
+  }
+  if (delta && Math.round(next) === Math.round(kcal)) {
+    cancelDelta(delta < 0 && kcal <= floorKcal ? "\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0432\u0435\u0447\u0435 \u0435 \u043D\u0430 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438\u044F \u043C\u0438\u043D\u0438\u043C\u0443\u043C \u0438 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u043F\u043E\u0432\u0435\u0447\u0435 \u2014 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430 \u0441\u0442\u044A\u043F\u043A\u0430 \u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435, \u043D\u0435 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0445\u0440\u0430\u043D\u0430." : delta > 0 && losing && kcal >= tdee ? "\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0432\u0435\u0447\u0435 \u0435 \u043A\u043E\u043B\u043A\u043E\u0442\u043E \u0440\u0430\u0437\u0445\u043E\u0434\u0430 \u2014 \u043D\u0435 \u0441\u0435 \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430 \u043F\u043E\u0432\u0435\u0447\u0435." : `\u041A\u043E\u0440\u0435\u043A\u0446\u0438\u0438\u0442\u0435 \u0432\u0435\u0447\u0435 \u0441\u0430 ${MAX_TOTAL_SHIFT} kcal \u043E\u0442 \u043F\u044A\u0440\u0432\u043E\u043D\u0430\u0447\u0430\u043B\u043D\u0438\u044F \u043F\u043B\u0430\u043D \u2014 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430; \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0430\u0442\u0430 \u0441\u0442\u044A\u043F\u043A\u0430 \u0435 \u043D\u043E\u0432\u0430 \u043F\u0440\u0435\u0446\u0435\u043D\u043A\u0430 \u043D\u0430 \u0440\u0430\u0437\u0445\u043E\u0434\u0430.`);
+    onTrack = false;
+  }
+  if (next < floorKcal) {
+    next = floorKcal;
+    onTrack = false;
+    reasons.push("\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u043E\u0434 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0438\u044F \u043C\u0438\u043D\u0438\u043C\u0443\u043C \u0437\u0430 \u0441\u0435\u0433\u0430\u0448\u043D\u0438\u044F \u0440\u0430\u0437\u0445\u043E\u0434 \u2014 \u0432\u0434\u0438\u0433\u0430 \u0441\u0435 \u043A\u044A\u043C \u043D\u0435\u0433\u043E.");
+  }
   delta = Math.round(next - kcal);
   if (delta) changes.unshift(`\u041A\u0430\u043B\u043E\u0440\u0438\u0438: ${delta > 0 ? "+" : ""}${delta} kcal \u043D\u0430 \u0434\u0435\u043D`);
   return {
@@ -47667,7 +47785,7 @@ function weeklyMessage(decision, checkin) {
   if (decision.onTrack) {
     return {
       headline: "\u041E\u0442\u043B\u0438\u0447\u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u2014 \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u043C\u0435",
-      message: "\u0412\u044A\u0440\u0432\u0438\u0442\u0435 \u043F\u043E \u043F\u043B\u0430\u043D\u0430. \u041D\u043E\u0432\u043E\u0442\u043E \u043C\u0435\u043D\u044E \u0435 \u0441\u044A\u0441 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043D\u043E\u0432\u0438 \u044F\u0441\u0442\u0438\u044F \u0437\u0430 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435."
+      message: "\u0412\u044A\u0440\u0432\u0438\u0448 \u043F\u043E \u043F\u043B\u0430\u043D\u0430. \u041D\u043E\u0432\u043E\u0442\u043E \u043C\u0435\u043D\u044E \u0435 \u0441\u044A\u0441 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043D\u043E\u0432\u0438 \u044F\u0441\u0442\u0438\u044F \u0437\u0430 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435."
     };
   }
   const noWeight = !decision.weight && !decision.weightKg;
@@ -47884,12 +48002,12 @@ function digestDue(essence, digest, now = /* @__PURE__ */ new Date()) {
 }
 function normalizeDigest(raw, now = /* @__PURE__ */ new Date()) {
   if (!raw || typeof raw !== "object") return null;
-  const clean = (s, max) => {
+  const clean = (s, max, ok) => {
     const t = String(s || "").trim().replace(/\s+/g, " ").slice(0, max);
-    return t && isCleanClientText(t) ? t : "";
+    return t && ok(t) ? t : "";
   };
-  const insights = (Array.isArray(raw.insights) ? raw.insights : []).map((s) => clean(s, 220)).filter(Boolean).slice(0, 4);
-  const coachNote = clean(raw.coachNote, 500);
+  const insights = (Array.isArray(raw.insights) ? raw.insights : []).map((s) => clean(s, 220, isCleanClientText)).filter(Boolean).slice(0, 4);
+  const coachNote = clean(raw.coachNote, 500, isCleanStaffText);
   const approach = [...new Set((Array.isArray(raw.approach) ? raw.approach : []).map(String).filter((c) => DIGEST_APPROACH[c]))].slice(0, 2);
   if (!insights.length && !coachNote) return null;
   return { insights, coachNote, approach, at: now.toISOString() };
@@ -48761,6 +48879,13 @@ function applyEnrichment(userData, store, now = /* @__PURE__ */ new Date()) {
   const sex = userData.gender === "\u041C\u044A\u0436" ? "M" : userData.gender === "\u0416\u0435\u043D\u0430" ? "F" : "X";
   const kg = Number(String(userData.weight || "").replace(",", "."));
   const derived = deriveEnrichment(store, now, sex, kg > 30 ? { waterNeedL: Math.round(kg * 0.033 * 10) / 10 } : {});
+  const hM = Number(String(userData.height || "").replace(",", ".")) / 100;
+  const bmi = kg > 30 && hM > 1 ? kg / (hM * hM) : null;
+  if (bmi != null) {
+    const contradicts = (t) => bmi >= 18.5 && /под нормата|поднормено|не (към )?ограничени/i.test(t) || bmi < 25 && /над нормата|наднормено|затлъстяване/i.test(t);
+    derived.hints.cautions = derived.hints.cautions.filter((t) => !contradicts(t));
+    if (derived.iris?.drivers) derived.iris.drivers = derived.iris.drivers.filter((t) => !contradicts(t));
+  }
   const cc = crossCheck(userData, derived, derived.resolutions);
   Object.assign(derived.overrides, cc.overrides);
   derived.hints.approach = [.../* @__PURE__ */ new Set([...derived.hints.approach, ...cc.approach])];
@@ -51943,12 +52068,24 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   applyDeterministicEnergyContract(analysis, contract);
   applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
   if (deficitData?.direction) analysis._goalDirection = deficitData.direction;
+  if (activityData?.note) analysis._activityNote = activityData.note;
+  else delete analysis._activityNote;
   const gc = data?._goalCouncil;
   if (gc?.verdict) analysis._goalCouncil = { verdict: gc.verdict, algorithm: gc.algorithm, concerns: gc.concerns || [], at: gc.at };
   enforceCalorieGuardrails(analysis, data, tdee);
+  syncForecastToEnergy(analysis, data);
   const intake = parseFinalCalories(analysis.Final_Calories);
   const intakeDrift = previousIntake > 0 && intake > 0 ? Math.abs(intake - previousIntake) / previousIntake : previousIntake !== intake ? 1 : 0;
   return { bmr, tdee, activityData, previousIntake, intake, intakeDrift };
+}
+function guardFields(obj, keys) {
+  if (!obj || typeof obj !== "object") return;
+  for (const k of keys) {
+    if (typeof obj[k] !== "string" || !obj[k].trim()) continue;
+    const g = guardClientText(obj[k], { fallback: "" });
+    if (g.removed.length) console.warn(`[guard] ${k}: \u043C\u0430\u0445\u043D\u0430\u0442\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F:`, g.removed.join(", "));
+    obj[k] = g.text;
+  }
 }
 function analysisNarrativeEnabled(env = {}) {
   const v = env?.ANALYSIS_AI_NARRATIVE;
@@ -54596,7 +54733,8 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     deviceWeightDays: data?._enrichment?.checkin?.weightDays || 0,
     workoutsWeek: data?._enrichment?.checkin?.workoutsWeek ?? null,
     mealAdherence: analytics?.mealAdherence ?? null,
-    mealDays: analytics?.mealDays || 0
+    mealDays: analytics?.mealDays || 0,
+    weightGapWeeks: weightGapWeeks(history)
   });
   return { questions, contextNote: "" };
 }
@@ -54646,6 +54784,11 @@ function getWeeklyAdaptationDecision(userData, plan, analytics, answers2, histor
     history
   });
   const message = weeklyMessage(decision, checkin);
+  const gap = checkin.weightKg || decision.weight ? 0 : weightGapWeeks(history) + 1;
+  if (gap >= 3 && !decision.calorieAdjust && (profile.direction === "lose" || profile.direction === "gain")) {
+    message.headline = "\u041B\u0438\u043F\u0441\u0432\u0430 \u0441\u0430\u043C\u043E \u0435\u0434\u043D\u043E \u0447\u0438\u0441\u043B\u043E";
+    message.message = `${gap} \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u043F\u043B\u0430\u043D\u044A\u0442 \u0432\u044A\u0440\u0432\u0438 \u0431\u0435\u0437 \u0442\u0435\u0433\u043B\u043E \u0438 \u0437\u0430\u0442\u043E\u0432\u0430 \u0441\u0442\u043E\u0438 \u043D\u0430 \u0441\u044A\u0449\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438. \u041F\u0440\u0435\u0442\u0435\u0433\u043B\u0438 \u0441\u0435 \u0435\u0434\u043D\u0430 \u0441\u0443\u0442\u0440\u0438\u043D \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0438 \u0433\u043E \u0432\u044A\u0432\u0435\u0434\u0438 \u2014 \u043E\u0442 \u043D\u0435\u0433\u043E \u0437\u0430\u0432\u0438\u0441\u0438 \u0434\u0430\u043B\u0438 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0434\u0430 \u0441\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u0438.`;
+  }
   return {
     ...decision,
     // Всяка седмица — ново меню; калориите и схемата се пипат само по правилата.
@@ -54767,9 +54910,11 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   if (waist >= 40 && waist <= 200) data._lastWaistCm = waist;
   const { direction, goalModel } = compileProfile(data);
   const phaseChanged = direction !== plan.analysis._goalDirection;
-  if ((Number(enrichment?.pendingLevel) || 0) < 2 && !phaseChanged) return null;
   const probe = JSON.parse(JSON.stringify(plan.analysis));
-  const { intake, tdee } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  const { intake, tdee, activityData } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  const tdeeBefore = parseFinalCalories(plan.analysis.tdee);
+  const overstated = !!activityData?.discounted && tdeeBefore > 0 && tdee < tdeeBefore * 0.95;
+  if ((Number(enrichment?.pendingLevel) || 0) < 2 && !phaseChanged && !overstated) return null;
   if (!intake) return null;
   const shift = phaseChanged && plan.analysis._goalDirection ? 0 : before - (Number(plan.analysis._baseCalories) || before);
   probe.Final_Calories = intake + shift;
@@ -54779,7 +54924,7 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   if (!after || Math.abs(after - before) / before < 0.03) return null;
   probe._baseCalories = intake;
   probe._goalDirection = direction;
-  const why = phaseChanged && plan.analysis._goalDirection ? `\u043D\u043E\u0432\u0430 \u0444\u0430\u0437\u0430 \u2014 ${goalModel.directionLabel}` : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(", ");
+  const why = phaseChanged && plan.analysis._goalDirection ? `\u043D\u043E\u0432\u0430 \u0444\u0430\u0437\u0430 \u2014 ${goalModel.directionLabel}` : overstated ? "\u0440\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u0435 \u0441\u043C\u0435\u0442\u043D\u0430\u0442 \u043F\u0440\u0435\u0434\u043F\u0430\u0437\u043B\u0438\u0432\u043E, \u0434\u043E\u043A\u0430\u0442\u043E \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u0438" : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(", ");
   return { analysis: probe, before, after, reason: `\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438${why ? ` (${why})` : ""}: ${before} \u2192 ${after} kcal.` };
 }
 async function runWeeklyAdaptation(env, payload, jobId) {
@@ -57824,6 +57969,8 @@ ${planContext ? `\u0422\u0415\u041A\u0423\u0429 \u0414\u0418\u0415\u0422\u0418\u
       const menuBody = await menuResponse.json();
       return jsonResponse2({ ...menuBody, kind: "menu" }, menuResponse.status);
     }
+    guardFields(analysisResult?.dietSuitability, ["explanation"]);
+    guardFields(analysisResult, ["suggestions"]);
     const suitScore = Number(analysisResult?.dietSuitability?.score);
     if (suitScore > 5) analysisResult.dietSuitability.score = Math.round(suitScore / 2);
     if (analysisResult && Array.isArray(analysisResult.foods)) {
@@ -57917,7 +58064,7 @@ ${planContext ? `\u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u
   "recommendedDish": "\u041F\u044A\u043B\u043D\u043E \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u043D\u0430 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u0447\u0430\u043D\u043E\u0442\u043E \u044F\u0441\u0442\u0438\u0435 \u0442\u043E\u0447\u043D\u043E \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E",
   "suitabilityScore": \u0447\u0438\u0441\u043B\u043E \u043E\u0442 0 \u0434\u043E 5,
   "description": "\u041A\u0440\u0430\u0442\u043A\u043E \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435\u0442\u043E (1-2 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F)",
-  "reasoning": "\u0417\u0430\u0449\u043E \u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0437\u0430 \u0446\u0435\u043B\u0442\u0430 \u0438 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (2-3 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F)",
+  "reasoning": "\u0417\u0430\u0449\u043E \u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0437\u0430 \u0446\u0435\u043B\u0442\u0430 \u0438 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0442\u0438 \u2014 \u0434\u0438\u0440\u0435\u043A\u0442\u043D\u043E \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442\u0430, \u043D\u0430 \u201E\u0442\u0438\u201C (2-3 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F)",
   "adaptationTip": "\u041A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0430 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0430 \u0437\u0430 \u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u043F\u0440\u0438 \u043F\u043E\u0440\u044A\u0447\u043A\u0430\u0442\u0430 (\u043D\u0430\u043F\u0440. '\u041F\u043E\u0440\u044A\u0447\u0430\u0439 \u0441\u0430\u043B\u0430\u0442\u0430\u0442\u0430 \u0431\u0435\u0437 \u0434\u0440\u0435\u0441\u0438\u043D\u0433, \u0434\u043E\u0431\u0430\u0432\u0438 \u0441\u0430\u043C\u043E \u043B\u0438\u043C\u043E\u043D \u0438 \u0437\u0435\u0445\u0442\u0438\u043D')",
   "alternatives": [
     {
@@ -57953,6 +58100,8 @@ ${planContext ? `\u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u
         message: "\u0421\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0435 \u0431\u0435\u0448\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0442\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430."
       });
     }
+    guardFields(menuResult, ["description", "reasoning", "adaptationTip"]);
+    (Array.isArray(menuResult?.alternatives) ? menuResult.alternatives : []).forEach((a) => guardFields(a, ["reason"]));
     return jsonResponse2({
       success: true,
       analysis: menuResult
@@ -61997,8 +62146,8 @@ var DEFAULT_HEALTH_DIGEST_PROMPT = `\u0422\u0438 \u0441\u0438 \u0434\u0438\u0435
 \u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E \u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON (\u0431\u0435\u0437 markdown):
 {"insights":["..."],"coachNote":"...","approach":[]}
 
-- insights: \u0434\u043E 4 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u043D\u0430 \u201E\u0442\u0438\u201C), \u0432\u0441\u044F\u043A\u043E \u0441\u0432\u044A\u0440\u0437\u0432\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0447\u0438\u0441\u043B\u043E \u0441 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0438\u043B\u0438 \u0440\u0435\u0436\u0438\u043C\u0430. \u0411\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u0435 \u043D\u0430 \u0447\u0438\u0441\u043B\u0430\u0442\u0430 \u0431\u0435\u0437 \u0438\u0437\u0432\u043E\u0434.
-- coachNote: 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u0437\u0430 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u0430 \u0438 \u0447\u0430\u0442 \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430 \u2014 \u043D\u0430\u0439-\u0432\u0430\u0436\u043D\u043E\u0442\u043E \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438.
+- insights: \u0434\u043E 4 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438, \u043A\u043E\u0438\u0442\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0447\u0435\u0442\u0435 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E. \u0413\u043E\u0432\u043E\u0440\u0438 \u043C\u0443 \u0434\u0438\u0440\u0435\u043A\u0442\u043D\u043E \u043D\u0430 \u201E\u0442\u0438\u201C (\u201E\u043A\u0440\u0430\u0447\u043A\u0438\u0442\u0435 \u0442\u0438\u201C, \u201E\u044F\u0436\u201C), \u043D\u0438\u043A\u043E\u0433\u0430 \u0437\u0430 \u043D\u0435\u0433\u043E (\u201E\u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442\u201C, \u201E\u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438\u201C). \u0412\u0441\u044F\u043A\u043E \u0441\u0432\u044A\u0440\u0437\u0432\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0447\u0438\u0441\u043B\u043E \u0441 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0432 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0438\u043B\u0438 \u0440\u0435\u0436\u0438\u043C\u0430. \u0411\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u0435\u043D\u0438\u0435 \u043D\u0430 \u0447\u0438\u0441\u043B\u0430\u0442\u0430 \u0431\u0435\u0437 \u0438\u0437\u0432\u043E\u0434.
+- coachNote: 1\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u0441\u0430\u043C\u043E \u0437\u0430 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u0430 \u0438 \u0447\u0430\u0442 \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u0430 (\u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0433\u0438 \u0432\u0438\u0436\u0434\u0430) \u2014 \u043D\u0430\u0439-\u0432\u0430\u0436\u043D\u043E\u0442\u043E \u043E\u0442 \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u0441\u0435 \u0441\u043B\u0435\u0434\u0438.
 - approach: 0\u20132 \u043A\u043E\u0434\u0430 \u0441\u0430\u043C\u043E \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430, \u0438 \u0441\u0430\u043C\u043E \u0430\u043A\u043E \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u044F\u0441\u043D\u043E \u0433\u043E \u043E\u043F\u0440\u0430\u0432\u0434\u0430\u0432\u0430\u0442: {approachList}
 - \u041D\u0435 \u043F\u0440\u043E\u043C\u0435\u043D\u044F\u0439 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u043D\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u044F\u0439 \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043D\u0435 \u043A\u043E\u043C\u0435\u043D\u0442\u0438\u0440\u0430\u0439 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u0410\u043A\u043E \u0434\u0430\u043D\u043D\u0438\u0442\u0435 \u0441\u0430 \u043D\u043E\u0440\u043C\u0430\u043B\u043D\u0438 \u2014 \u043A\u0430\u0436\u0438 \u0433\u043E \u043A\u0440\u0430\u0442\u043A\u043E.`;
 async function buildHealthDigest(env, data) {

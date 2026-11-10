@@ -7,7 +7,7 @@
 import { HARD_PROFILES } from './plan-adequacy/fixtures/hard-profiles.mjs';
 import { EXTENDED_PROFILES } from './plan-adequacy/fixtures/extended-profiles.mjs';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
-import { calculateBMR, calculateUnifiedActivityScore, calculateTDEE, calculateSafeDeficit } from '../energy.js';
+import { calculateBMR, calculateUnifiedActivityScore, calculateTDEE, calculateSafeDeficit, calculateActivityTDEE } from '../energy.js';
 import { computeIntakeTarget } from '../step1-deterministic.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { buildNutritionPlan, reconcileEnginePlan, mergePlanModifications } from '../nutrition-engine/index.js';
@@ -44,7 +44,8 @@ const LINE = /^• (.+?) (\d+)g(?: — .+)?$/;
 
 function intakeOf(data) {
   const bmr = calculateBMR(data);
-  const tdee = calculateTDEE(bmr, calculateUnifiedActivityScore(data).combinedScore);
+  // Разходът — както в продукция (с тавана за непотвърдена активност при затлъстяване).
+  const { tdee } = calculateActivityTDEE(bmr, data);
   const min = data.gender === 'Мъж' ? 1500 : 1200;
   return Math.max(min, computeIntakeTarget(tdee, data.goal, calculateSafeDeficit(tdee, data)) || tdee);
 }
@@ -232,6 +233,11 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(fastFirst.calorieAdjust === 0 && /вода и гликоген/.test(fastFirst.reasoning), 'първата седмица бързото сваляне е вода — калориите остават');
   const low = decideWeeklyAdjustment({ ...base, checkin: readCheckin(ans('Без промяна', 'Малко'), null), history: [{ weight: 'flat' }] });
   ok(low.calorieAdjust === 0 && low.modifications.includes('simplify_meals'), 'ниско придържане — по-прост план, не по-малко калории');
+  // Границите спират корекция, не правят своя: приемът не се мести без причина в текста.
+  const aboveTdee = decideWeeklyAdjustment({ ...base, kcal: base.tdee + 300, baseKcal: base.tdee + 300, checkin: readCheckin(ans('Без промяна', 'Малко'), null), history: [] });
+  ok(aboveTdee.calorieAdjust === 0, `прием над разхода при неспазен план — без скрито намаление (${aboveTdee.calorieAdjust})`);
+  const atFloor = decideWeeklyAdjustment({ ...base, kcal: base.floorKcal, baseKcal: base.floorKcal, checkin: readCheckin(ans('Без промяна'), null), history: [{ weight: 'flat' }] });
+  ok(atFloor.calorieAdjust === 0 && !/приемът се намалява/.test(atFloor.reasoning) && /минимум/.test(atFloor.reasoning), 'застой на безопасния минимум — текстът не обявява намаление');
 
   // Измерено тегло: темпото спрямо очакваното и теглото, не субективен отговор.
   const kgAns = (kg, adh = 'Почти всички', extra = []) => [{ questionId: 'weightKg', value: String(kg) }, { questionId: 'adherence', value: adh }, ...extra];

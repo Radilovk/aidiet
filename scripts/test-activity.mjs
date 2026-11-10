@@ -60,20 +60,25 @@ ok(split['2026-10-21'] > split['2026-10-20'], 'нощен интервал: по
 
 // Показания: начало, нормален ход, рестарт.
 const H = 3600000;
-const boot1 = new Date(2026, 9, 18, 6, 0).getTime();
-const base = new Date(2026, 9, 19, 8, 0).getTime();
+// Дните са спрямо днес: крачкомерът пази само последните 21 дни (твърда дата спираше теста след 3 седмици).
+const _d = new Date(); _d.setDate(_d.getDate() - 5); _d.setHours(8, 0, 0, 0);
+const base = _d.getTime();
+const boot1 = base - 26 * 3600000;
+const _key = (t) => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const D1 = _key(base);
+const D2 = _key(base + 25 * 3600000);
 let st = A.ingest({}, [{ t: base, c: 10000, boot: boot1 }], 7000);
-ok(st.days['2026-10-19'].part === true, 'първото показание: денят е непълен');
+ok(st.days[D1].part === true, 'първото показание: денят е непълен');
 st = A.ingest(st, [
   { t: base + 1 * H, c: 10800, boot: boot1 },
   { t: base + 13 * H, c: 18800, boot: boot1 }, // 21:00
   { t: base + 25 * H, c: 21000, boot: boot1 }, // 09:00 на следващия ден
 ], 7000);
-ok(near(st.days['2026-10-19'].s, 8800 + (2200 - st.days['2026-10-20'].s), 1), 'дните сумират разликите на брояча');
+ok(near(st.days[D1].s, 8800 + (2200 - st.days[D2].s), 1), 'дните сумират разликите на брояча');
 ok(st.hours[8] && st.hours[8].n === 1 && near(st.hours[8].s, 800, 1), 'кратък интервал учи личната крива (8 ч → 800/ч)');
 const boot2 = base + 30 * H;
 st = A.ingest(st, [{ t: base + 32 * H, c: 1500, boot: boot2 }], 7000);
-ok(st.days['2026-10-20'].part === true, 'рестарт: денят с празнина е непълен');
+ok(st.days[D2].part === true, 'рестарт: денят с празнина е непълен');
 ok(st.last.c === 1500 && st.last.boot === boot2, 'след рестарт броячът тръгва от новото включване');
 const before = JSON.stringify(st.days);
 st = A.ingest(st, [{ t: base + 1 * H, c: 99999, boot: boot1 }], 7000);

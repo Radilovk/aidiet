@@ -179,12 +179,41 @@ export function calculateActivityTDEE(bmr, data) {
   const activityData = calculateUnifiedActivityScore(data);
   const measured = Number(data?._enrichment?.activity?.steps);
   const perStep = kcalPerStep(data);
-  if (!(measured > 0) || !(perStep > 0)) return { tdee: calculateTDEE(bmr, activityData.combinedScore), activityData };
+  const cap = unverifiedActivityCap(data);
+  const tdeeAt = (score) => {
+    const full = calculateTDEE(bmr, score);
+    return cap && full > bmr * cap ? Math.round(bmr * cap) : full;
+  };
+  if (!(measured > 0) || !(perStep > 0)) {
+    const tdee = tdeeAt(activityData.combinedScore);
+    const discounted = tdee < calculateTDEE(bmr, activityData.combinedScore);
+    return { tdee, activityData: discounted ? { ...activityData, discounted: true, note: UNVERIFIED_ACTIVITY_NOTE } : activityData };
+  }
   const walkKcal = Math.round(Math.max(0, measured - SEDENTARY_STEPS) * perStep);
   return {
-    tdee: calculateTDEE(bmr, 1 + activityData.sportDays) + walkKcal,
+    tdee: tdeeAt(1 + activityData.sportDays) + walkKcal,
     activityData: { ...activityData, measuredSteps: measured, walkKcal },
   };
+}
+
+/**
+ * Таван на множителя на активността, когато тя е само самооценка, а тялото
+ * говори друго. При затлъстяване самооценката надценява движението с ~50% и
+ * подценява приема с ~47% (двойно белязана вода — Lichtman, NEJM 1992); множител
+ * 1,85 значи ~1650 kcal движение дневно — това е профил на състезател, не на
+ * човек с ИТМ 34. С такъв разход „дефицитът“ е на хартия и теглото не мърда.
+ * Таванът отпада, когато тренировките са потвърдени (вечерните отговори или
+ * устройство → essence.metrics.training) или измерените мазнини са в норма
+ * (мускулест човек). Ако човекът наистина гори повече, седмичният преглед го
+ * вижда по бързото сваляне и вдига приема (monitoring.js).
+ */
+const UNVERIFIED_ACTIVITY_CAP = { 3: 1.6, 4: 1.6, 2: 1.725 };
+const UNVERIFIED_ACTIVITY_NOTE = 'Разходът е сметнат предпазливо: тренировките още не са потвърдени от крачкомера или вечерните отговори. Отбелязвай ги — планът ще ги отчете.';
+function unverifiedActivityCap(data) {
+  if (data?._enrichment?.essence?.metrics?.training) return null;
+  const body = compileProfile(data || {}).goalModel?.body;
+  if (!body || body.fatRisk === 0) return null;
+  return UNVERIFIED_ACTIVITY_CAP[body.excess] || null;
 }
 
 /**

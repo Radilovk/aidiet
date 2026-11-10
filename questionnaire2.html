@@ -185,6 +185,8 @@
         }
 
         /* --- TYPOGRAPHY & INPUTS --- */
+        .q-hint { margin: -12px 0 22px; font-size: 0.92rem; line-height: 1.5; color: var(--text-light, #6b7280); }
+
         h2.q-text {
             font-size: clamp(1.3rem, 3vw, 1.5rem);
             font-weight: 700;
@@ -2693,6 +2695,26 @@
             h2.className = 'q-text';
             h2.textContent = step.text;
             card.appendChild(h2);
+
+            // Ориентир към въпроса за желаното сваляне: без него хората с голям излишък
+            // често пишат 2–3 кг и програмата се строи около тях.
+            if (step.id === 'lossKg') {
+                const w = parseFloat(String(answers.weight || '').replace(',', '.'));
+                const hM = parseFloat(String(answers.height || '').replace(',', '.')) / 100;
+                if (w > 0 && hM > 1) {
+                    const bmi = w / (hM * hM);
+                    const fmt = n => String(Math.round(n)).replace('.', ',');
+                    const healthy = 24.9 * hM * hM;
+                    const hint = document.createElement('p');
+                    hint.className = 'q-hint';
+                    hint.textContent = bmi >= 30
+                        ? `За твоя ръст здравословното тегло е до ${fmt(healthy)} кг. Първият етап с видим ефект върху здравето е около ${fmt(w * 0.1)} кг (10% от теглото).`
+                        : bmi >= 25
+                            ? `За твоя ръст здравословното тегло е до ${fmt(healthy)} кг — това са около ${fmt(w - healthy)} кг по-малко.`
+                            : 'Теглото ти е в здравословните граници — тук по-добрият резултат е стягане, не по-малко килограми.';
+                    card.appendChild(hint);
+                }
+            }
 
             // Determine input type
             if (['text', 'number', 'email'].includes(step.type)) {

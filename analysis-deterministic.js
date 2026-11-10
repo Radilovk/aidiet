@@ -269,12 +269,42 @@ function healthDescription(score, problems, profile) {
   return parts.join(' ');
 }
 
-/** Реалистично темпо (кг/седмица) според темпото в кода. */
-function weeklyLossKg(profile) {
+/**
+ * Темпото (кг/седмица) от реалния дефицит на плана (7700 kcal ≈ 1 кг): срокът
+ * в прогнозата трябва да е този, който калориите на плана могат да дадат.
+ * Без енергия — по темпото в кода.
+ */
+function weeklyLossKg(profile, energy) {
+  const deficit = Number(energy?.tdee) - Number(energy?.Final_Calories);
+  if (deficit > 0) return Math.max(0.1, deficit * 7 / 7700);
   return [0, 0.4, 0.55, 0.7][profile.pace || 0] || 0.5;
 }
 
-function forecasts(profile, problems) {
+/** „−10 кг (до ~84 кг) за около 6 месеца“ — или null, когато целта не е сваляне. */
+function lossForecastText(profile, energy) {
+  const w = Number(profile.weightKg) || 0;
+  const target = Number(profile.targetWeightKg) || w;
+  if (profile.direction !== 'lose' || !(target < w)) return null;
+  const weeks = Math.ceil((w - target) / weeklyLossKg(profile, energy));
+  const span = weeks > 16 ? `${Math.round(weeks / 4.345)} месеца` : `${weeks} седмици`;
+  // Първите две седмици на отчетлив дефицит свалят и гликоген с водата му (1,5–2,5 кг) —
+  // това е реалното начало и го казваме, за да не се чете после като „спиране“.
+  const deficitShare = Number(energy?.tdee) > 0 ? 1 - Number(energy.Final_Calories) / Number(energy.tdee) : 0;
+  const start = deficitShare >= 0.15 && w - target >= 5 ? '; първите 2 седмици обикновено −1,5 до −2,5 кг (с водата)' : '';
+  return `−${String(Math.round((w - target) * 10) / 10).replace('.', ',')} кг (до ~${String(target).replace('.', ',')} кг) за около ${span}${start}`;
+}
+
+/**
+ * Срокът в прогнозата следва окончателните калории: анализът се строи преди
+ * енергията на бекенда и преди седмичните корекции.
+ */
+export function syncForecastToEnergy(analysis, userData) {
+  if (!analysis?.forecastOptimistic || !analysis._deterministicAnalysis) return;
+  const text = lossForecastText(compileProfile(userData || {}), analysis);
+  if (text) analysis.forecastOptimistic.weight = text;
+}
+
+function forecasts(profile, problems, energy) {
   const w = Number(profile.weightKg) || 0;
   const target = Number(profile.targetWeightKg) || w;
   const losing = profile.direction === 'lose' && target < w;
@@ -286,8 +316,7 @@ function forecasts(profile, problems) {
 
   let weight = 'Стабилно тегло с по-добър състав на тялото';
   if (losing) {
-    const weeks = Math.ceil((w - target) / weeklyLossKg(profile));
-    weight = `−${String(Math.round((w - target) * 10) / 10).replace('.', ',')} кг (до ~${String(target).replace('.', ',')} кг) за около ${weeks} седмици`;
+    weight = lossForecastText(profile, energy);
   } else if (gaining) {
     weight = '+2–4 кг мускулна маса за 12 месеца';
   }
@@ -402,7 +431,7 @@ export function analyzeProfile(profile, energy = {}, extra = []) {
       deficit: current != null ? `${Math.max(0, Math.round((need - current) * 10) / 10)} л` : '—',
       impactOnLipolysis: current != null && current < need - 0.4
         ? 'Недостигът на вода намалява енергията и засилва фалшивия глад.'
-        : 'Хидратацията е достатъчна за нормална обмяна.',
+        : current != null ? 'Хидратацията е достатъчна за нормална обмяна.' : `Цел: около ${need} л течности дневно.`,
     },
     keyProblems,
     currentHealthStatus: {
@@ -410,7 +439,7 @@ export function analyzeProfile(profile, energy = {}, extra = []) {
       description: healthDescription(score, real, profile),
       keyIssues: keyProblems.slice(0, 4).map(p => p.title),
     },
-    ...forecasts(profile, all),
+    ...forecasts(profile, all, energy),
     nutritionalNeeds: nutritionalNeeds(profile, energy.macroGrams),
     healthRisks: healthRisks(real),
     psychologicalProfile: psychologicalProfile(profile),

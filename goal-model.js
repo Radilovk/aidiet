@@ -165,8 +165,23 @@
         };
     }
 
-    /** Дефицит (%) по излишъка: леко 10, умерено 15, затлъстяване 18, II+ 20. */
-    var DEFICIT_BY_EXCESS = [0, -10, -15, -18, -20];
+    /**
+     * Дефицит (%) по излишъка: леко 10, умерено 15, затлъстяване 20, II+ 25.
+     * При затлъстяване насоките (AHA/ACC/TOS 2013, NICE CG189) дават 500–750 kcal
+     * дневно или до 30% под разхода: запасът от мазнини покрива дефицита, а
+     * белтъкът (1,6+ г/кг) и силовата работа пазят мускулите. По-малък дефицит
+     * дава 0,3 кг седмично — под прага, който кантарът различава от вода, и човекът
+     * се отказва преди да види резултат (ранното сваляне предсказва крайното —
+     * Unick 2015). След 65 г. — най-много 15% (саркопения).
+     */
+    var DEFICIT_BY_EXCESS = [0, -10, -15, -20, -25];
+    var OLDER_MAX_DEFICIT = -15;
+    /**
+     * Най-малкият смислен първи етап: 10% от теглото при затлъстяване, 5% при умерен
+     * излишък. Под това няма клиничен ефект (кръвна захар, кръвно, черен дроб) и не
+     * се вижда. По-малко желание на клиента е неговата първа стъпка, не краят на фазата.
+     */
+    var MEANINGFUL_LOSS_SHARE = [0, 0, 0.05, 0.10, 0.10];
 
     /**
      * Посоката за една цел в контекста на тялото.
@@ -204,7 +219,7 @@
         switch (code) {
             case 'LOSS':
                 if (b.under) return recomp(0, 'ИТМ под 18,5 — сваляне на тегло не е безопасно; целта е състав и сила', ['composition', 'workouts', 'weight']);
-                if (ex >= 1) return lose(DEFICIT_BY_EXCESS[ex], 'излишък на мазнини — умерен дефицит', ['weight', 'waist', 'composition']);
+                if (ex >= 1) return lose(DEFICIT_BY_EXCESS[ex], ex >= 3 ? 'затлъстяване — отчетлив дефицит с висок белтък, за видим резултат без загуба на мускули' : 'излишък на мазнини — умерен дефицит', ['weight', 'waist', 'composition']);
                 if (f.lossKg > 0 && f.weightKg && f.heightCm && (f.weightKg - f.lossKg) / Math.pow(f.heightCm / 100, 2) >= 20) {
                     return lose(-10, 'теглото е в норма, а желаното е малко по-ниско — лек дефицит', ['weight', 'waist', 'composition']);
                 }
@@ -272,7 +287,10 @@
         if (!f.weightKg || !f.heightCm) return null;
         var m2 = Math.pow(f.heightCm / 100, 2);
         var floor = r1(20 * m2);
-        if (f.lossKg > 0) return Math.max(floor, r1(f.weightKg - f.lossKg));
+        if (f.lossKg > 0) {
+            var meaningful = r1(f.weightKg * (1 - (MEANINGFUL_LOSS_SHARE[b.excess] || 0)));
+            return Math.max(floor, Math.min(r1(f.weightKg - f.lossKg), meaningful));
+        }
         var upper = r1((b.older ? 27 : 24.9) * m2);
         return upper < f.weightKg ? upper : null;
     }
@@ -313,7 +331,11 @@
         if (f.pregnant) { minPct = 0; allowed = ['maintain', 'gain']; reasons.push('бременност — без дефицит'); }
         if (b.under) { minPct = Math.max(minPct, 0); allowed = allowed.filter(function (d) { return d !== 'lose'; }); reasons.push('ИТМ под 18,5 — без дефицит'); }
         if (f.lactating) { minPct = Math.max(minPct, -10); reasons.push('кърмене — най-много мек дефицит'); }
+        // Емоционално хранене с чести преяждания: по-голям дефицит храни цикъла
+        // „ограничение → преяждане“ — резултатът идва от по-малко епизоди, не от по-малко калории.
+        if (has(f.behaviors, 'EMO') && has(f.behaviors, 'OVR')) { minPct = Math.max(minPct, -15); reasons.push('емоционално хранене с преяждане — умерен дефицит, за да не се засилват епизодите'); }
         if (has(f.behaviors, 'CMP')) { minPct = Math.max(minPct, -10); reasons.push('компенсаторно поведение (гладуване/хапчета) — без голям дефицит'); }
+        if (b.older) { minPct = Math.max(minPct, OLDER_MAX_DEFICIT); reasons.push('над 65 г. — умерен дефицит, за да се пазят мускулите'); }
         if (b.excess >= 3) { maxPct = Math.min(maxPct, 0); allowed = allowed.filter(function (d) { return d !== 'gain'; }); reasons.push('затлъстяване — без калориен излишък'); }
         return { minPct: minPct, maxPct: maxPct, allowed: allowed, reasons: reasons };
     }
