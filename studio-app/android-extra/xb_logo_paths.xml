@@ -1,0 +1,14 @@
+<!-- the XBODY logo as Android vector paths (432 x 432 viewport), made from brand/xbody-logo.svg by scripts/svg-to-android.py -->
+    <path android:fillColor="#FFF20019" android:pathData="M3.0,216.0a213.0,213.0 0 1,0 426.0,0a213.0,213.0 0 1,0 -426.0,0Z"/>
+    <group android:rotation="45" android:pivotX="216.5" android:pivotY="211.5">
+      <path android:fillColor="#FFFFFFFF" android:pathData="M88.5,172.0H344.5Q368.5,172.0 368.5,196.0V227.0Q368.5,251.0 344.5,251.0H88.5Q64.5,251.0 64.5,227.0V196.0Q64.5,172.0 88.5,172.0Z"/>
+    </group>
+    <group android:rotation="-45" android:pivotX="216.5" android:pivotY="211.5">
+      <path android:fillColor="#FFFFFFFF" android:pathData="M88.5,172.0H344.5Q368.5,172.0 368.5,196.0V227.0Q368.5,251.0 344.5,251.0H88.5Q64.5,251.0 64.5,227.0V196.0Q64.5,172.0 88.5,172.0Z"/>
+    </group>
+      <path android:fillColor="#FF26222B" android:pathData="M23,181h25L99,238h-25Z"/>
+      <path android:fillColor="#FF26222B" android:pathData="M99,181h-25L23,238h25Z"/>
+      <path android:fillColor="#FF26222B" android:fillType="evenOdd" android:pathData="M103,181H159Q169,181 169,192V203.5L165,209.5Q171,211.5 171,219.5V226Q171,238 159,238H103ZM120,191.5H151Q155,191.5 155,195.5V200.25Q155,204.25 151,204.25H120Q120,204.25 120,204.25V191.5Q120,191.5 120,191.5ZM120,214.75H149Q154,214.75 154,219.75V222.5Q154,227.5 149,227.5H120Q120,227.5 120,227.5V214.75Q120,214.75 120,214.75Z"/>
+      <path android:fillColor="#FF26222B" android:fillType="evenOdd" android:pathData="M194,181H240Q255,181 255,196V223Q255,238 240,238H194Q179,238 179,223V196Q179,181 194,181ZM201,191.5H233Q238,191.5 238,196.5V222.5Q238,227.5 233,227.5H201Q196,227.5 196,222.5V196.5Q196,191.5 201,191.5Z"/>
+      <path android:fillColor="#FF26222B" android:fillType="evenOdd" android:pathData="M265,181H321Q336,181 336,196V223Q336,238 321,238H265Q265,238 265,238V181Q265,181 265,181ZM282,191.5H314Q319,191.5 319,196.5V222.5Q319,227.5 314,227.5H282Q282,227.5 282,227.5V191.5Q282,191.5 282,191.5Z"/>
+      <path android:fillColor="#FF26222B" android:pathData="M341,181h26L378.5,199L390,181h26L387.0,211V238h-17V211Z"/>

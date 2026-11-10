@@ -10311,7 +10311,7 @@ async function issueToken(env, studioId, phone) {
   const token = randomToken();
   const c = await getClient(env, studioId, phone);
   const list3 = JSON.parse(c && c.token_hash || "[]");
-  const next = [...Array.isArray(list3) ? list3 : [], await sha256(token)].slice(-5);
+  const next = [...Array.isArray(list3) ? list3 : [], await sha256(token)].slice(-10);
   await env.STUDIO_DB.prepare("UPDATE clients SET token_hash = ? WHERE studio_id = ? AND phone = ?").bind(JSON.stringify(next), studioId, phone).run();
   return token;
 }
@@ -10389,6 +10389,7 @@ async function viberBooking(env, studio, event, b, now = Date.now()) {
   }
 }
 var acuityFree = null;
+var acuityClient = null;
 async function busyForMonth(env, studio, ym) {
   const google = await googleBusy(env, studio, ym);
   return studio.settings.acuity ? google.concat(await acuityBusy(studio, ym)) : google;
@@ -10690,6 +10691,14 @@ async function ownClient(env, studio, b) {
   const client = who.phone ? await getClient(env, studio.id, who.phone) : null;
   return await tokenOk(client, who.token) ? client : null;
 }
+async function handleProfile(env, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return err("token", 401);
+  const who = readWho(b);
+  if (who.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(who.email)) return err("email");
+  await env.STUDIO_DB.prepare("UPDATE clients SET name = ?, email = ? WHERE studio_id = ? AND phone = ?").bind(who.name || client.name, who.email, studio.id, client.phone).run();
+  return json({ ok: true });
+}
 async function handleMine(env, studio, b) {
   const client = await ownClient(env, studio, b);
   if (!client) return err("token", 401);
@@ -10703,22 +10712,64 @@ async function handleMine(env, studio, b) {
     const c = await env.STUDIO_DB.prepare("SELECT * FROM codes WHERE studio_id = ? AND code = ? AND active = 1").bind(studio.id, client.code).first();
     if (c && !(c.valid_to && c.valid_to < now) && c.uses_left !== 0) code = codeOut(c);
   }
+  const hours = rows.filter((r) => r.status !== "canceled" || r.start_ms > now).map((r) => {
+    const p = zonedParts(r.start_ms, st.timezone);
+    return {
+      id: r.id,
+      time: `${p.ymd} ${p.hm}`,
+      status: r.start_ms < now && r.status === "booked" ? "done" : r.status,
+      late: r.start_ms - now < st.rules.freeCancelHours * 36e5
+    };
+  });
+  for (const a of await acuityHours(studio, client)) if (!hours.some((h) => h.time === a.time)) hours.push(a);
+  hours.sort((a, b2) => a.time < b2.time ? -1 : 1);
   return json({
     name: client.name,
     email: client.email,
     phone: client.phone,
     card: client.card_pm ? { brand: client.card_brand, last4: client.card_last4 } : null,
     code,
-    hours: rows.filter((r) => r.status !== "canceled" || r.start_ms > now).map((r) => {
-      const p = zonedParts(r.start_ms, st.timezone);
-      return {
-        id: r.id,
-        time: `${p.ymd} ${p.hm}`,
-        status: r.start_ms < now && r.status === "booked" ? "done" : r.status,
-        late: r.start_ms - now < st.rules.freeCancelHours * 36e5
-      };
-    })
+    hours
   });
+}
+async function acuityHours(studio, client) {
+  const st = studio.settings;
+  if (!st.acuity || !acuityClient || !client.email) return [];
+  let list3 = null;
+  try {
+    list3 = await acuityClient.list(client.email, client.phone);
+  } catch (e) {
+    console.warn("[studio] acuity hours failed:", e.message);
+  }
+  const now = Date.now();
+  const out = [];
+  for (const a of Array.isArray(list3) ? list3 : []) {
+    const ms = Date.parse(String(a.datetime || "").replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
+    if (!Number.isFinite(ms) || ms < now - 60 * 864e5 || a.canceled && ms < now) continue;
+    const p = zonedParts(ms, st.timezone);
+    out.push({
+      id: `a${a.id}`,
+      time: `${p.ymd} ${p.hm}`,
+      status: a.canceled ? "canceled" : ms < now ? "done" : "booked",
+      late: !a.canCancel || ms - now < st.rules.freeCancelHours * 36e5,
+      acuity: true
+    });
+  }
+  return out;
+}
+async function acuityChange(env, studio, b, client, ms) {
+  if (!studio.settings.acuity || !acuityClient || !client.email) return err("not_found", 404);
+  const id = String(b.id).slice(1);
+  let r;
+  if (ms) {
+    const off = tzOffset(studio.settings.timezone, ms);
+    const p = zonedParts(ms, studio.settings.timezone);
+    const iso = `${p.ymd}T${p.hm}:00${off < 0 ? "-" : "+"}${String(Math.floor(Math.abs(off) / 60)).padStart(2, "0")}:${String(Math.abs(off) % 60).padStart(2, "0")}`;
+    r = await acuityClient.move(client.email, client.phone, id, iso);
+  } else r = await acuityClient.cancel(client.email, client.phone, id);
+  if (!r || r.error) return err(r && r.error || "calendar", r && r.status || 503);
+  await bumpRev(env, studio.id);
+  return json(ms ? { ok: true, time: String(b.time) } : { ok: true, late: false });
 }
 async function ownBooking(env, studio, b) {
   const client = await ownClient(env, studio, b);
@@ -10738,6 +10789,11 @@ async function afterCancel(env, ctx, studio, bk, late) {
   })());
 }
 async function handleCancel(env, ctx, studio, b) {
+  if (/^a\d{1,15}$/.test(String(b.id || ""))) {
+    const client = await ownClient(env, studio, b);
+    if (!client) return err("token", 401);
+    return acuityChange(env, studio, b, client, 0);
+  }
   const o = await ownBooking(env, studio, b);
   if (o.error) return o.error;
   const late = o.bk.start_ms - Date.now() < studio.settings.rules.freeCancelHours * 36e5;
@@ -10748,6 +10804,20 @@ async function handleCancel(env, ctx, studio, b) {
 }
 async function handleMove(env, ctx, studio, b) {
   const st = studio.settings;
+  if (/^a\d{1,15}$/.test(String(b.id || ""))) {
+    const client = await ownClient(env, studio, b);
+    if (!client) return err("token", 401);
+    const ms2 = startOf(st, b.time, Date.now());
+    if (!ms2) return err("not_offered", 409);
+    try {
+      let busy = await acuityBusy(studio, zonedParts(ms2, st.timezone).ymd.slice(0, 7));
+      if (st.google.calendarId) busy = busy.concat(await busyTimes(env, st.google.calendarId, ms2 - 864e5, ms2 + 864e5, st.timezone));
+      if (!isFree(st, ms2, busy)) return err("taken", 409);
+    } catch (e) {
+      return err("calendar", 503);
+    }
+    return acuityChange(env, studio, b, client, ms2);
+  }
   const o = await ownBooking(env, studio, b);
   if (o.error) return o.error;
   if (o.bk.start_ms - Date.now() < st.rules.freeCancelHours * 36e5) return err("too_late", 409);
@@ -11221,6 +11291,7 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (!env.STUDIO_DB) return err("not_configured", 503);
   acuityFree = opts.acuityFree || null;
+  acuityClient = opts.acuityClient || null;
   const path = url.pathname.slice("/api/s/".length);
   const limit = (name) => opts.rateLimit ? opts.rateLimit(name) : null;
   try {
@@ -11269,6 +11340,8 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
         return await handlePush(env, studio, body);
       case "hello":
         return await handleHello(env, studio, body);
+      case "profile":
+        return await handleProfile(env, studio, body);
       case "verify/start":
         return await handleVerifyStart(env, studio, body);
       case "verify/finish":
@@ -63618,6 +63691,52 @@ async function handleXbodyReschedule(request, env) {
   await xbodyAfterChange(env, b.email, [own.appt.datetime, b.time]);
   return jsonResponse2({ ok: true, id: Number(b.id), time: r.data && r.data.datetime || b.time });
 }
+function xbodyStudioClient(env) {
+  if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return null;
+  const auth = btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`);
+  const keyOf = (email, phone) => `xbody:sappt:${String(email).toLowerCase()}:${xbodyPhoneKey(phone)}`;
+  const call = async (handler, body) => {
+    const r = await handler(new Request("https://studio.local/api/xbody/manage", { method: "POST", body: JSON.stringify(body) }), env);
+    const d = await r.json().catch(() => ({}));
+    if (env.page_content) await env.page_content.delete(keyOf(body.email, body.phone)).catch(() => {
+    });
+    return r.status === 200 ? { ok: true } : { error: d.error === "too_late" || d.error === "already_canceled" ? "too_late" : d.error === "not_found" ? "not_found" : "taken", status: r.status === 404 ? 404 : 409 };
+  };
+  return {
+    async list(email, phone) {
+      email = String(email || "").trim().toLowerCase();
+      const pk = xbodyPhoneKey(phone);
+      if (!email.includes("@") || pk.length < 6) return [];
+      const key = keyOf(email, phone);
+      if (env.page_content) {
+        const c = await env.page_content.get(key).catch(() => null);
+        if (c) return JSON.parse(c);
+      }
+      const u = new URL("https://acuityscheduling.com/api/v1/appointments");
+      u.searchParams.set("email", email);
+      u.searchParams.set("calendarID", XBODY_ACUITY_BOOKING.calendarID);
+      u.searchParams.set("minDate", new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10));
+      u.searchParams.set("showall", "true");
+      u.searchParams.set("max", "60");
+      u.searchParams.set("excludeForms", "true");
+      const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
+      if (!resp.ok) throw new Error("acuity appointments " + resp.status);
+      const all = await resp.json();
+      const out = (Array.isArray(all) ? all : []).filter((a) => a && String(a.calendarID || "") === XBODY_ACUITY_BOOKING.calendarID && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === pk).map((a) => ({
+        id: a.id,
+        datetime: a.datetime,
+        canceled: Boolean(a.canceled),
+        canCancel: a.canClientCancel !== false,
+        canMove: a.canClientReschedule !== false
+      }));
+      if (env.page_content) await env.page_content.put(key, JSON.stringify(out), { expirationTtl: 60 }).catch(() => {
+      });
+      return out;
+    },
+    cancel: (email, phone, id) => call(handleXbodyCancel, { email, phone, id }),
+    move: (email, phone, id, time) => call(handleXbodyReschedule, { email, phone, id, time })
+  };
+}
 function xbodyApptItem(appt) {
   return {
     id: appt.id,
@@ -63760,7 +63879,9 @@ var worker_entry_default = {
       acuityFree: async (ym) => {
         const r = await handleXbodyAvailability(new Request(`https://studio.local/api/xbody/availability?month=${ym}`), env, ctx);
         return r.status === 200 ? (await r.json()).days || {} : null;
-      }
+      },
+      // …and the client's own Acuity hours in "my hours" of the studio app (cancel / move through Acuity)
+      acuityClient: xbodyStudioClient(env)
     });
     if (studioResp) return studioResp;
     if (request.method === "OPTIONS") {

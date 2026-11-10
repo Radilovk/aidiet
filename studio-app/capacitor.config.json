@@ -26,7 +26,7 @@
       "launchAutoHide": true,
       "backgroundColor": "#ffffff",
       "showSpinner": false,
-      "androidScaleType": "CENTER_CROP"
+      "androidScaleType": "CENTER"
     },
     "LocalNotifications": {
       "smallIcon": "ic_stat_studio",

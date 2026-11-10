@@ -83,11 +83,12 @@ globalThis.fetch = async (input, init = {}) => {
   return new Response('{}', { status: 404 });
 };
 
-let acuityFreeMock = null;   // the worker's Acuity hook (XBODY Burgas while Acuity still runs)
+let acuityFreeMock = null;
+let acuityClientMock = null;   // the client's own Acuity hours (XBODY Burgas)   // the worker's Acuity hook (XBODY Burgas while Acuity still runs)
 async function api(method, path, body, headers = {}) {
   const r = await handleStudioApi(new Request(`https://w.test/api/s/${path}`, {
     method, headers: { 'Content-Type': 'application/json', ...headers }, body: method === 'GET' ? undefined : JSON.stringify(body || {}),
-  }), env, ctx, acuityFreeMock ? { acuityFree: acuityFreeMock } : {});
+  }), env, ctx, { ...(acuityFreeMock ? { acuityFree: acuityFreeMock } : {}), ...(acuityClientMock ? { acuityClient: acuityClientMock } : {}) });
   await Promise.all(waits.splice(0));
   return { status: r.status, d: await r.json().catch(() => null) };
 }
@@ -468,6 +469,40 @@ await t('acuity: an hour booked in Acuity is not shown and cannot be booked here
   acuityFreeMock = async () => null;   // Acuity does not answer
   assert.equal((await api('POST', 'book', { studio: 'acu', name: 'А', phone: '0888000111', terms: true, times: [`${day} 08:00`] })).d.error, 'calendar');
   acuityFreeMock = null;
+});
+
+await t('acuity: the client\'s Acuity hours show in "my hours" (by e-mail + phone); cancel / move go to Acuity', async () => {
+  const { zonedParts: zp } = await import('../studio-platform/slots.js');
+  const day = zp(Date.now() + 4 * 864e5, 'Europe/Sofia').ymd, ym = day.slice(0, 7);
+  const appts = [{ id: 901, datetime: `${day}T08:45:00+0200`, canceled: false, canCancel: true, canMove: true }];
+  const calls = [];
+  acuityFreeMock = async (m) => (m === ym ? { [day]: [`${day}T08:00:00+0200`, `${day}T09:30:00+0200`] } : {});
+  acuityClientMock = {
+    list: async (email, phone) => (email === 'acu@example.com' && phone === '+359888000222' ? appts : []),
+    cancel: async (email, phone, id) => { calls.push(['cancel', id]); return { ok: true }; },
+    move: async (email, phone, id, time) => { calls.push(['move', id, time]); return { ok: true }; },
+  };
+  try {
+    const c = { studio: 'acu', name: 'Акуити Клиент', phone: '0888 000 222', email: 'acu@example.com', terms: true };
+    const token = (await api('POST', 'hello', c)).d.token;   // registered in the app, never booked here
+    const mine = (await api('POST', 'mine', { ...c, token })).d.hours;
+    assert.equal(mine.length, 1);
+    assert.equal(mine[0].id, 'a901');
+    assert.equal(mine[0].time.slice(11), '08:45');
+    assert.equal((await api('POST', 'mine', { ...c, email: 'x@y.z', token })).d.hours.length, 1);   // the server's e-mail counts, not the device's
+    assert.equal((await api('POST', 'cancel', { ...c, id: 'a901' })).status, 401);   // a device without the token
+    assert.equal((await api('POST', 'cancel', { ...c, token, id: 'a901' })).d.ok, true);
+    const mv = await api('POST', 'move', { ...c, token, id: 'a901', time: `${day} 09:30` });
+    assert.equal(mv.d.ok, true, JSON.stringify(mv.d));
+    assert.deepEqual(calls, [['cancel', '901'], ['move', '901', `${day}T09:30:00+02:00`]]);
+    assert.equal((await api('POST', 'move', { ...c, token, id: 'a901', time: `${day} 08:45` })).d.error, 'taken');   // taken in Acuity
+    // no e-mail on the profile: nothing from Acuity; the device adds it in "Моите данни"
+    const c2 = { studio: 'acu', name: 'Без Имейл', phone: '0888 000 223', terms: true };
+    const t2 = (await api('POST', 'hello', c2)).d.token;
+    assert.equal((await api('POST', 'mine', { ...c2, token: t2 })).d.hours.length, 0);
+    assert.equal((await api('POST', 'profile', { ...c2, token: t2, email: 'other@example.com' })).d.ok, true);
+    assert.equal((await api('POST', 'mine', { ...c2, token: t2 })).d.email, 'other@example.com');
+  } finally { acuityFreeMock = null; acuityClientMock = null; }
 });
 
 console.log(`\n${passed} проверки минаха`);

@@ -564,6 +564,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   <section class="card hidden" id="mine-card" hidden>
     <div class="row" style="justify-content:space-between"><p class="sec-title" style="margin:0">Моите часове</p><span class="small muted" id="mine-extra" style="text-align:right"></span></div>
     <ul class="mine" id="mine"></ul>
+    <p class="small hidden" id="mine-mail">Липсват часове отпреди? <button class="link" id="mine-mail-go">Добавете имейла си</button></p>
     <p class="hidden"><button class="link" id="forget">Изтрий данните ми</button></p>
   </section>
 
@@ -1472,6 +1473,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     const err = (m) => { $('onb-err').textContent = m; };
     if (name.length < 2) return err('Въведете име и фамилия.');
     if (phone.replace(/\D/g, '').length < 9) return err('Въведете телефон.');
+    if (!email && cfg && cfg.acuity) return err('Въведете имейла, с който сте записвали часове досега — по него виждаме и тях.');
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err('Проверете имейла.');
     if (!$('onb-terms').checked) return err('Моля, приемете правилата и условията.');
     err('');
@@ -1564,16 +1566,34 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   }
   function openMyData() {
     sheet(`<h3>Моите данни</h3>
-      <ul class="list"><li><span class="muted">Име</span><span>${esc(me.name || '—')}</span></li><li><span class="muted">Телефон</span><span>${esc(me.phone || '—')}</span></li>
+      ${me.token ? `<label class="f">Име и фамилия<input id="md-name" value="${esc(me.name || '')}" autocomplete="name"></label>
+      <label class="f">Имейл<input id="md-email" type="email" value="${esc(me.email || '')}" autocomplete="email"></label>
+      ${cfg.acuity ? '<p class="small muted">С имейла, с който сте записвали часове досега, ги виждате и тук.</p>' : ''}
+      <p class="err" id="md-err"></p><button class="btn sec" data-go="md-save">Запази</button>` : ''}
+      <ul class="list">${me.token ? '' : `<li><span class="muted">Име</span><span>${esc(me.name || '—')}</span></li>`}<li><span class="muted">Телефон</span><span>${esc(me.phone || '—')}</span></li>
       ${me.card ? `<li><span class="muted">Карта</span><span>${esc(cardName(me.card))}</span></li>` : ''}${codeOk(me.code) ? `<li><span class="muted">Код</span><span>${esc(me.code.code)}</span></li>` : ''}</ul>
       <p class="small muted">Данните се пазят на устройството и в студиото ${esc(cfg.brand.name)} — само за записванията Ви. Можете да ги изтриете по всяко време.</p>
       ${me.token ? `<button class="btn danger" data-go="forget">${ic('trash')}Изтрий данните ми</button>` : ''}
       <button class="btn sec" data-back>Назад</button>`, (e) => {
       if (e.target.closest('[data-back]')) { openProfile(); return; }
-      if (e.target.closest('[data-go=forget]')) { closeSheet(); $('forget').click(); }
+      if (e.target.closest('[data-go=forget]')) { closeSheet(); $('forget').click(); return; }
+      const sv = e.target.closest('[data-go=md-save]');
+      if (sv) (async () => {
+        const name = $('md-name').value.trim(), email = $('md-email').value.trim();
+        if (name.length < 2) { $('md-err').textContent = 'Въведете име и фамилия.'; return; }
+        if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { $('md-err').textContent = 'Проверете имейла.'; return; }
+        busy(sv, '…');
+        const r = await api('POST', 'profile', { phone: me.phone, token: me.token, name, email }).catch(() => ({ status: 0 }));
+        unbusy(sv);
+        if (r.status !== 200) { $('md-err').textContent = 'Не се запази. Опитайте отново.'; return; }
+        me.name = name; me.email = email; save('me', me);
+        closeSheet(); toast('Запазено');
+        await refreshMine();
+      })();
     });
   }
   $('fab').onclick = openProfile;
+  $('mine-mail-go').onclick = openMyData;
 
 
   /* every page a link leads to (rules, questions, effects, help, privacy, progress) opens INSIDE the app: a full-screen
@@ -1683,6 +1703,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     $('mine-card').classList.toggle('hidden', !ahead.length && !me.token);
     $('old-client').parentNode.classList.toggle('hidden', Boolean(me.token) || !loginOn());   // the login code comes by Viber or e-mail
     $('mine-extra').textContent = [me.card ? cardName(me.card) : '', codeOk(me.code) ? me.code.code : ''].filter(Boolean).join(' · ');
+    $('mine-mail').classList.toggle('hidden', !(cfg && cfg.acuity && me.token && !me.email));
     const sorted = ahead.slice().sort((a, b) => (a.time < b.time ? -1 : 1));
     const n = sorted[0];
     $('next-btn').classList.toggle('hidden', !n);

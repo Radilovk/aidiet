@@ -77,7 +77,9 @@ Apple, отговори за App Store Connect, демо студио, текс�
 - `assets/icon-only.png` (iOS), `assets/icon-foreground.png` + `icon-background.png` (Android, адаптивна), `assets/splash.png` — логото като точен кръг върху бял
   фон без прозрачност (изискване на Apple); на Android кръгът е в безопасната зона, за да не се реже.
   Всички се правят от **един вектор** `brand/xbody-logo.svg` с `node studio-app/scripts/render-brand.cjs` (никога не се
-  увеличава малка картинка — затова са остри). Смяна на логото = смяна на SVG-то + пускане на скрипта.
+  увеличава малка картинка — затова са остри). На Android стартовият екран (системният на Android 12+, фонът на прозореца
+  и splash-ът на Capacitor) рисува логото **като вектор** (`android-extra/xb_logo_paths.xml`, от същото SVG с
+  `cd studio-app && python3 scripts/svg-to-android.py`). Смяна на логото = смяна на SVG-то + двата скрипта.
 - Проектите `ios/` и `android/` не се пазят в репото — правят се наново при всяко пускане.
 - Локално (на Mac): `cd studio-app && npm ci && npx cap add ios && python3 scripts/patch-ios.py && npx cap open ios`.
 

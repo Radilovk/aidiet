@@ -10,7 +10,7 @@
  * change, Google's busy times 5 min in KV), and only "Запази" checks Google and the database live.
  */
 import { normalizeSettings, publicSettings } from './settings.js';
-import { slotsForMonth, zonedMs, zonedParts, isOfferedStart, inWindow, isFree } from './slots.js';
+import { slotsForMonth, zonedMs, zonedParts, isOfferedStart, inWindow, isFree, tzOffset } from './slots.js';
 import { pushTo, pushReady, savePushToken, forgetPushTokens } from './push.js';
 import { busyTimes, addEvent, moveEvent, deleteEvent, updateEventInfo, checkCalendar, serviceAccountEmail } from './google.js';
 
@@ -161,12 +161,12 @@ async function tokenOk(client, token) {
   const list = JSON.parse(client.token_hash || '[]');
   return Array.isArray(list) && list.includes(await sha256(String(token)));
 }
-/** a new device token for this client (the last 5 devices keep theirs) */
+/** a new device token for this client (the last 10 devices keep theirs) */
 async function issueToken(env, studioId, phone) {
   const token = randomToken();
   const c = await getClient(env, studioId, phone);
   const list = JSON.parse((c && c.token_hash) || '[]');
-  const next = [...(Array.isArray(list) ? list : []), await sha256(token)].slice(-5);
+  const next = [...(Array.isArray(list) ? list : []), await sha256(token)].slice(-10);
   await env.STUDIO_DB.prepare('UPDATE clients SET token_hash = ? WHERE studio_id = ? AND phone = ?').bind(JSON.stringify(next), studioId, phone).run();
   return token;
 }
@@ -251,6 +251,10 @@ async function viberBooking(env, studio, event, b, now = Date.now()) {
 /* the hours taken elsewhere: the studio's Google Calendar and, for XBODY Burgas while Acuity still takes bookings,
    every hour of our schedule that Acuity no longer offers (booked there) — so the two never give the same hour */
 let acuityFree = null;   // set per request by the worker: (ym) → { 'YYYY-MM-DD': ['…T08:00:00+0200', …] } | null
+/* XBODY Burgas: the client's own hours booked in Acuity (xbody.html, Acuity's page, the studio) — shown in "my hours"
+   with the app's ones, cancelled / moved through Acuity. Set per request by the worker:
+   { list(email, phone) → [{ id, datetime, canceled, canCancel, canMove }] | null, cancel(email, phone, id), move(email, phone, id, iso) } */
+let acuityClient = null;
 async function busyForMonth(env, studio, ym) {
   const google = await googleBusy(env, studio, ym);
   return studio.settings.acuity ? google.concat(await acuityBusy(studio, ym)) : google;
@@ -547,6 +551,17 @@ async function ownClient(env, studio, b) {
   return (await tokenOk(client, who.token)) ? client : null;
 }
 
+/** POST /api/s/profile { phone, token, name, email } — the client's own device corrects the name / e-mail */
+async function handleProfile(env, studio, b) {
+  const client = await ownClient(env, studio, b);
+  if (!client) return err('token', 401);
+  const who = readWho(b);
+  if (who.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(who.email)) return err('email');
+  await env.STUDIO_DB.prepare('UPDATE clients SET name = ?, email = ? WHERE studio_id = ? AND phone = ?')
+    .bind(who.name || client.name, who.email, studio.id, client.phone).run();
+  return json({ ok: true });
+}
+
 async function handleMine(env, studio, b) {
   const client = await ownClient(env, studio, b);
   if (!client) return err('token', 401);
@@ -560,18 +575,55 @@ async function handleMine(env, studio, b) {
     const c = await env.STUDIO_DB.prepare('SELECT * FROM codes WHERE studio_id = ? AND code = ? AND active = 1').bind(studio.id, client.code).first();
     if (c && !(c.valid_to && c.valid_to < now) && c.uses_left !== 0) code = codeOut(c);
   }
+  const hours = rows.filter((r) => r.status !== 'canceled' || r.start_ms > now).map((r) => {
+    const p = zonedParts(r.start_ms, st.timezone);
+    return { id: r.id, time: `${p.ymd} ${p.hm}`, status: r.start_ms < now && r.status === 'booked' ? 'done' : r.status,
+      late: r.start_ms - now < st.rules.freeCancelHours * 3600e3 };
+  });
+  for (const a of await acuityHours(studio, client)) if (!hours.some((h) => h.time === a.time)) hours.push(a);
+  hours.sort((a, b) => (a.time < b.time ? -1 : 1));
   return json({
     name: client.name,
     email: client.email,
     phone: client.phone,
     card: client.card_pm ? { brand: client.card_brand, last4: client.card_last4 } : null,
     code,
-    hours: rows.filter((r) => r.status !== 'canceled' || r.start_ms > now).map((r) => {
-      const p = zonedParts(r.start_ms, st.timezone);
-      return { id: r.id, time: `${p.ymd} ${p.hm}`, status: r.start_ms < now && r.status === 'booked' ? 'done' : r.status,
-        late: r.start_ms - now < st.rules.freeCancelHours * 3600e3 };
-    }),
+    hours,
   });
+}
+
+/** the client's Acuity hours (XBODY Burgas), in the shape of the app's own; [] when Acuity is off or does not answer */
+async function acuityHours(studio, client) {
+  const st = studio.settings;
+  if (!st.acuity || !acuityClient || !client.email) return [];
+  let list = null;
+  try { list = await acuityClient.list(client.email, client.phone); } catch (e) { console.warn('[studio] acuity hours failed:', e.message); }
+  const now = Date.now();
+  const out = [];
+  for (const a of Array.isArray(list) ? list : []) {
+    const ms = Date.parse(String(a.datetime || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2'));
+    if (!Number.isFinite(ms) || ms < now - 60 * 864e5 || (a.canceled && ms < now)) continue;
+    const p = zonedParts(ms, st.timezone);
+    out.push({ id: `a${a.id}`, time: `${p.ymd} ${p.hm}`, status: a.canceled ? 'canceled' : ms < now ? 'done' : 'booked',
+      late: !a.canCancel || ms - now < st.rules.freeCancelHours * 3600e3, acuity: true });
+  }
+  return out;
+}
+
+/** cancel / move of an Acuity hour (id "a<acuity id>"): the client proved by this device's token, the change in Acuity */
+async function acuityChange(env, studio, b, client, ms) {
+  if (!studio.settings.acuity || !acuityClient || !client.email) return err('not_found', 404);
+  const id = String(b.id).slice(1);
+  let r;
+  if (ms) {
+    const off = tzOffset(studio.settings.timezone, ms);
+    const p = zonedParts(ms, studio.settings.timezone);
+    const iso = `${p.ymd}T${p.hm}:00${off < 0 ? '-' : '+'}${String(Math.floor(Math.abs(off) / 60)).padStart(2, '0')}:${String(Math.abs(off) % 60).padStart(2, '0')}`;
+    r = await acuityClient.move(client.email, client.phone, id, iso);
+  } else r = await acuityClient.cancel(client.email, client.phone, id);
+  if (!r || r.error) return err((r && r.error) || 'calendar', (r && r.status) || 503);
+  await bumpRev(env, studio.id);
+  return json(ms ? { ok: true, time: String(b.time) } : { ok: true, late: false });
 }
 
 async function ownBooking(env, studio, b) {
@@ -596,6 +648,11 @@ async function afterCancel(env, ctx, studio, bk, late) {
 }
 
 async function handleCancel(env, ctx, studio, b) {
+  if (/^a\d{1,15}$/.test(String(b.id || ''))) {
+    const client = await ownClient(env, studio, b);
+    if (!client) return err('token', 401);
+    return acuityChange(env, studio, b, client, 0);
+  }
   const o = await ownBooking(env, studio, b);
   if (o.error) return o.error;
   const late = o.bk.start_ms - Date.now() < studio.settings.rules.freeCancelHours * 3600e3;
@@ -608,6 +665,18 @@ async function handleCancel(env, ctx, studio, b) {
 
 async function handleMove(env, ctx, studio, b) {
   const st = studio.settings;
+  if (/^a\d{1,15}$/.test(String(b.id || ''))) {   // an Acuity hour: only to a time this studio offers and nobody holds
+    const client = await ownClient(env, studio, b);
+    if (!client) return err('token', 401);
+    const ms = startOf(st, b.time, Date.now());
+    if (!ms) return err('not_offered', 409);
+    try {
+      let busy = await acuityBusy(studio, zonedParts(ms, st.timezone).ymd.slice(0, 7));
+      if (st.google.calendarId) busy = busy.concat(await busyTimes(env, st.google.calendarId, ms - 864e5, ms + 864e5, st.timezone));
+      if (!isFree(st, ms, busy)) return err('taken', 409);
+    } catch (e) { return err('calendar', 503); }
+    return acuityChange(env, studio, b, client, ms);
+  }
   const o = await ownBooking(env, studio, b);
   if (o.error) return o.error;
   if (o.bk.start_ms - Date.now() < st.rules.freeCancelHours * 3600e3) return err('too_late', 409);
@@ -1087,6 +1156,7 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (!env.STUDIO_DB) return err('not_configured', 503);
   acuityFree = opts.acuityFree || null;
+  acuityClient = opts.acuityClient || null;
   const path = url.pathname.slice('/api/s/'.length);
   const limit = (name) => (opts.rateLimit ? opts.rateLimit(name) : null);
   try {
@@ -1130,6 +1200,7 @@ export async function handleStudioApi(request, env, ctx, opts = {}) {
       case 'forget': return await handleForget(env, ctx, studio, body);
       case 'push': return await handlePush(env, studio, body);
       case 'hello': return await handleHello(env, studio, body);
+      case 'profile': return await handleProfile(env, studio, body);
       case 'verify/start': return await handleVerifyStart(env, studio, body);
       case 'verify/finish': return await handleVerifyFinish(env, studio, body);
       default: return err('not_found', 404);
