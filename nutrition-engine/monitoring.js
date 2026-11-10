@@ -111,7 +111,7 @@ export function weightGapWeeks(history) {
  * Въпросите за конкретния клиент: посоката на въпроса за теглото следва целта,
  * а това, което приложението вече знае, се показва като подсказка (теглото от
  * везната е попълнено; спазването по отметките е до въпроса), за да не се гадае.
- * @param {{ goal?: string, direction?: string|null, lead?: string[], deviceWeightKg?: number|null, deviceWeightDays?: number, workoutsWeek?: number|null, mealAdherence?: number|null, mealDays?: number }} [ctx]
+ * @param {{ goal?: string, direction?: string|null, lead?: string[], deviceWeightKg?: number|null, deviceWeightDays?: number, weightGapWeeks?: number|null, workoutsWeek?: number|null, mealAdherence?: number|null, mealDays?: number }} [ctx]
  */
 export function weeklyQuestionsFor(ctx = {}) {
   const lead = Array.isArray(ctx.lead) ? ctx.lead : [];
