@@ -8,14 +8,15 @@ Google Calendar и Stripe (по желание). Общи са сървърът 
 - **База и ключ**: при всеки деплой на worker-а (`deploy-worker.yml`) базата D1 `studios` се създава, ако я няма,
   таблиците се допълват, тя се свързва като `STUDIO_DB`, а `STUDIO_SECRET_KEY` (пази Stripe ключовете на
   студиата) се създава веднъж — никой не го вижда.
-- **Ново студио**: Actions → „Студиа“ → Run workflow → `create`, `id` (поддомейн, напр. `burgas`), име, телефон.
-  Става `https://burgas.biocode-bg.com`, а 5-цифреният admin код идва по Viber (не се печата — репото е публично).
-  Телефонът може да е GitHub секрет `STUDIO_ADMIN_PHONE`, за да не се вижда в лога.
+- **Ново студио**: първо GitHub секрет `STUDIO_PIN_<ID>` (5 цифри — admin кодът; Viber няма), после Actions →
+  „Студиа“ → Run workflow → `create`, `id` (поддомейн, напр. `sofia`). Става `https://sofia.xbody.online` (домейнът на
+  приложението; Бургас е `burgas.xbody.online` → студио `xbody`). Ако има `studio-platform/presets/<id>.json`, настройките
+  идват от него.
 - **Нов код**: `reset-pin`. **Списък**: `list`. **Поддомейн наново**: `domain`.
 - **Google**: ползва се `FIREBASE_SERVICE_ACCOUNT` (или `GOOGLE_SERVICE_ACCOUNT`). Веднъж: включи Google Calendar
   API за проекта `nutriplan-c460a`.
 - **Токенът** трябва да има D1:Edit, Workers KV Storage:Edit, Workers Scripts:Edit, а за поддомейните и
-  Zone:Read + Workers Routes:Edit за `biocode-bg.com`.
+  Zone:Read + Workers Routes:Edit за `xbody.online`.
 
 ## Кодът за вход в admin — от таен GitHub секрет
 Репото е публично, затова кодът не се пише във формата. Преди „create“ (или „reset-pin“) направи GitHub секрет

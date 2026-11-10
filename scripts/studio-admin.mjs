@@ -24,7 +24,9 @@ import { existsSync, readFileSync } from 'node:fs';
 const DB = 'studios';
 const KV_ID = '81fc0991b2764918b682f9ca170abd4b';   // page_content (production): the Viber outbox
 const WORKER = 'aidiet';
-const ROOT = ((readFileSync('wrangler.toml', 'utf8').match(/STUDIO_ROOT_DOMAIN\s*=\s*"([^"]+)"/) || [])[1] || 'biocode-bg.com').split(',')[0].trim();
+// the studios' own addresses: <id>.xbody.online (the app's domain) when it is listed in wrangler.toml, else the first one
+const ROOTS = ((readFileSync('wrangler.toml', 'utf8').match(/STUDIO_ROOT_DOMAIN\s*=\s*"([^"]+)"/) || [])[1] || 'biocode-bg.com').split(',').map((x) => x.trim()).filter(Boolean);
+const ROOT = ROOTS.includes('xbody.online') ? 'xbody.online' : ROOTS[0];
 
 function wrangler(args, input) {
   return execFileSync('npx', ['--yes', 'wrangler', ...args], { encoding: 'utf8', input, stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 1 << 24 });
