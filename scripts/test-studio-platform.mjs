@@ -49,6 +49,7 @@ let googleBusy = [];   // [{ start, end }] ISO
 const events = new Map();
 const setupIntents = new Map();
 let piCount = 0;
+const mails = [];   // e-mails sent through Resend
 globalThis.fetch = async (input, init = {}) => {
   const url = String(input);
   const method = init.method || 'GET';
@@ -78,6 +79,7 @@ globalThis.fetch = async (input, init = {}) => {
     if (path.startsWith('payment_methods/')) return ok({ id: 'pm_1', customer: 'cus_1', card: { brand: 'visa', last4: '4242', exp_year: 2031, exp_month: 1 } });
     if (path === 'payment_intents') { piCount++; return ok({ status: 'succeeded' }); }
   }
+  if (url === 'https://api.resend.com/emails') { mails.push(JSON.parse(init.body)); return ok({ id: 'm1' }); }
   return new Response('{}', { status: 404 });
 };
 
@@ -220,6 +222,46 @@ await t('my hours need this device; a new device gets in with the Viber code', a
   const v = await api('POST', 'verify/finish', { ...who, pin });
   assert.ok(v.d.token);
   assert.equal((await api('POST', 'mine', { ...who, token: v.d.token })).d.card.last4, '4242');
+});
+
+await t('the first screen is kept on the server: a new phone gets its token, a known one logs in with a code', async () => {
+  const fresh = { studio: 'burgas', phone: '0899 555 001', name: 'Нов Клиент', email: 'nov@example.com' };
+  assert.equal((await api('POST', 'hello', fresh)).status, 403);   // the rules first
+  const h = await api('POST', 'hello', { ...fresh, terms: true });
+  assert.ok(h.d.token);
+  assert.equal((await api('POST', 'mine', { ...fresh, token: h.d.token })).d.email, 'nov@example.com');   // no booking needed
+  const again = await api('POST', 'hello', { ...fresh, terms: true });   // the same name, phone and e-mail on another device
+  assert.equal(again.d.token, undefined);
+  assert.equal(again.d.known, true);
+});
+
+await t('another device: a code by e-mail gives the same profile; a stranger cannot redirect the e-mail', async () => {
+  env.RESEND_API_KEY = 're_test';
+  try {
+    const owner = { studio: 'burgas', phone: '0899 555 002', name: 'Мария', email: 'maria@example.com', terms: true };
+    const first = (await api('POST', 'hello', owner)).d.token;
+    // a booking from a device without the token: booked, the e-mail is NOT changed, the device is told to log in
+    const b = await api('POST', 'book', { ...owner, email: 'evil@example.com', code: 'FREE', times: [`${day} 09:30`] });
+    assert.equal(b.d.booked.length, 1, JSON.stringify(b.d));
+    assert.ok(b.d.login.includes('email'));
+    assert.equal(db.prepare("SELECT email FROM clients WHERE phone = '+359899555002'").get().email, 'maria@example.com');
+    // login by e-mail only (the phone typed differently on the new device is not needed)
+    mails.length = 0;
+    const st = await api('POST', 'verify/start', { studio: 'burgas', email: 'Maria@Example.com' });
+    assert.deepEqual(st.d.via, ['email']);
+    assert.equal(mails[0].to[0], 'maria@example.com');
+    const pin = mails[0].subject.match(/\d{4}/)[0];
+    const v = await api('POST', 'verify/finish', { studio: 'burgas', email: 'maria@example.com', pin });
+    assert.equal(v.d.phone, '+359899555002');
+    assert.equal(v.d.name, 'Мария');
+    const both = await Promise.all([first, v.d.token].map((tk) => api('POST', 'mine', { studio: 'burgas', phone: v.d.phone, token: tk })));
+    assert.deepEqual(both[0].d.hours, both[1].d.hours);   // both devices see the same hours
+    assert.equal(both[1].d.hours.length, 1);
+    // an unknown e-mail: nothing said, nothing sent
+    mails.length = 0;
+    assert.deepEqual((await api('POST', 'verify/start', { studio: 'burgas', email: 'nobody@example.com' })).d.via, []);
+    assert.equal(mails.length, 0);
+  } finally { delete env.RESEND_API_KEY; }
 });
 
 await t('move, then the saved card books without asking (another day)', async () => {

@@ -58,8 +58,12 @@ st = re.sub(r'<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScree
     <item><bitmap android:gravity="center" android:src="@drawable/splash_logo" /></item>
 </layer-list>
 """, encoding="utf-8")
-(res / "drawable-xxhdpi").mkdir(parents=True, exist_ok=True)
-shutil.copyfile("android-extra/splash_logo.png", res / "drawable-xxhdpi" / "splash_logo.png")   # 432 px = 144 dp
+# 576 px = 144 dp at xxxhdpi (4x): the densest phones show it 1:1, the rest scale it DOWN (never up = never soft);
+# made from the vector by scripts/render-brand.cjs
+for old in ("drawable-xxhdpi",):
+    (res / old / "splash_logo.png").unlink(missing_ok=True)
+(res / "drawable-xxxhdpi").mkdir(parents=True, exist_ok=True)
+shutil.copyfile("android-extra/splash_logo.png", res / "drawable-xxxhdpi" / "splash_logo.png")
 for folder, colour in (("values", "#FFFFFF"), ("values-night", "#121014")):
     (res / folder).mkdir(parents=True, exist_ok=True)
     (res / folder / "xb_colors.xml").write_text(

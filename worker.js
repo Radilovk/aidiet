@@ -14,11 +14,20 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __esm = (fn, res, err2) => function __init() {
+  if (err2) throw err2[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err2 = [e], e;
+  }
 };
 var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  try {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  } catch (e) {
+    throw mod = 0, e;
+  }
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -10630,7 +10639,7 @@ async function handleBook(env, ctx, studio, b) {
       if (code && code.uses_left !== null) await env.STUDIO_DB.prepare("UPDATE codes SET uses_left = uses_left + 1 WHERE studio_id = ? AND code = ?").bind(studio.id, code.code).run();
     }
   }
-  await upsertClient(env, studio.id, who.phone, who);
+  if (!client || await tokenOk(client, who.token)) await upsertClient(env, studio.id, who.phone, who);
   if (card && booked.length) {
     await env.STUDIO_DB.prepare("UPDATE clients SET stripe_customer = ?, card_pm = ?, card_brand = ?, card_last4 = ? WHERE studio_id = ? AND phone = ?").bind(card.customer, card.pm, card.brand, card.last4, studio.id, who.phone).run();
     if (card.si) await stripe(env, studio, "POST", `setup_intents/${card.si}`, { "metadata[used]": "1" }).catch(() => {
@@ -10658,10 +10667,13 @@ async function handleBook(env, ctx, studio, b) {
       }
     })());
   }
+  const login = booked.length && !token && !await tokenOk(client, who.token) ? loginChannels(env, studio, client) : void 0;
   return json({
     booked: booked.map((x) => ({ id: x.id, time: x.time })),
     failed,
     token,
+    login,
+    // the hours are the client's, but this device is not yet: the app offers the code
     card: card && booked.length ? { brand: card.brand, last4: card.last4 } : void 0,
     code: code && booked.length ? codeOut({ ...code, uses_left: code.uses_left === null ? null : code.uses_left - booked.length }) : void 0
   }, booked.length || !failed.length ? 200 : 409);
@@ -10693,6 +10705,8 @@ async function handleMine(env, studio, b) {
   }
   return json({
     name: client.name,
+    email: client.email,
+    phone: client.phone,
     card: client.card_pm ? { brand: client.card_brand, last4: client.card_last4 } : null,
     code,
     hours: rows.filter((r) => r.status !== "canceled" || r.start_ms > now).map((r) => {
@@ -10806,28 +10820,90 @@ async function handleList(env) {
   }
   return json({ studios }, 200, { "Cache-Control": "public, max-age=300" });
 }
+function emailOn(env) {
+  return Boolean(env.RESEND_API_KEY);
+}
+function loginChannels(env, studio, client) {
+  return [viberOn(env, studio) ? "viber" : "", client && client.email && emailOn(env) ? "email" : ""].filter(Boolean);
+}
+async function sendCodeEmail(env, studio, to, pin) {
+  const name = studio.settings.brand.name;
+  const esc3 = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: env.STUDIO_MAIL_FROM || "XB-Studio <info@biocode.online>",
+      to: [to],
+      subject: `\u041A\u043E\u0434 \u0437\u0430 \u0432\u0445\u043E\u0434 \u0432 ${name}: ${pin}`,
+      html: `<div style="font-family:system-ui,sans-serif;font-size:16px;line-height:1.5"><p>\u041A\u043E\u0434 \u0437\u0430 \u0432\u0445\u043E\u0434 \u0432 <b>${esc3(name)}</b>:</p>
+        <p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:12px 0">${pin}</p>
+        <p style="color:#666">\u0412\u0430\u0436\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438. \u0410\u043A\u043E \u043D\u0435 \u0441\u0442\u0435 \u0433\u043E \u043F\u043E\u0438\u0441\u043A\u0430\u043B\u0438, \u043D\u0435 \u043F\u0440\u0430\u0432\u0435\u0442\u0435 \u043D\u0438\u0449\u043E.</p></div>`
+    })
+  });
+  if (!r.ok) throw new Error(`resend ${r.status}`);
+}
+async function findClient(env, studioId, phone, email) {
+  if (phone) return getClient(env, studioId, phone);
+  if (!email) return null;
+  return env.STUDIO_DB.prepare(
+    `SELECT c.* FROM clients c WHERE c.studio_id = ? AND c.email = ?
+     ORDER BY (SELECT MAX(start_ms) FROM bookings x WHERE x.studio_id = c.studio_id AND x.phone = c.phone) DESC, c.created_at DESC LIMIT 1`
+  ).bind(studioId, email).first();
+}
+async function handleHello(env, studio, b) {
+  const who = readWho(b);
+  if (!who.phone || !who.name) return err("who");
+  const client = await getClient(env, studio.id, who.phone);
+  if (client && await tokenOk(client, who.token)) return json({ ok: true });
+  if (client && JSON.parse(client.token_hash || "[]").length) return json({ known: true, via: loginChannels(env, studio, client) });
+  if (!client && !b.terms) return err("terms", 403);
+  await upsertClient(env, studio.id, who.phone, who);
+  if (b.terms && typeof b.termsText === "string" && b.termsText.length > 20 && env.page_content) {
+    const text2 = b.termsText.slice(0, 12e3);
+    const hash = String(await sha256(text2)).slice(0, 16);
+    await env.page_content.put(`studio:terms:${studio.id}:${hash}`, text2);
+    await env.page_content.put(`studio:consent:${studio.id}:${who.phone}`, JSON.stringify({ at: Date.now(), hash, name: who.name, ver: String(b.termsVer || "").slice(0, 20) }));
+  }
+  return json({ ok: true, token: await issueToken(env, studio.id, who.phone) });
+}
 async function handleVerifyStart(env, studio, b) {
   const phone = normPhone(b.phone);
-  if (!phone || !env.page_content) return err("who");
-  const client = await getClient(env, studio.id, phone);
-  if (!client) return json({ ok: true });
-  const key = `studio:verify:${studio.id}:${phone}`;
+  const email = String(b.email || "").trim().toLowerCase().slice(0, 120);
+  if (!phone && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !env.page_content) return err("who");
+  const client = await findClient(env, studio.id, phone, email);
+  if (!client) return json({ ok: true, via: [] });
+  const via = loginChannels(env, studio, client).filter((c) => !email || c === "email");
+  if (!via.length) return err("no_channel", 409);
+  const key = `studio:verify:${studio.id}:${client.phone}`;
   const prev = JSON.parse(await env.page_content.get(key) || "null");
   if (prev && Date.now() - prev.at < 6e4) return err("wait", 429);
   const pin = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1e4).padStart(4, "0");
-  await env.page_content.put(key, JSON.stringify({ h: await sha256(`${phone}:${pin}`), tries: 0, at: Date.now() }), { expirationTtl: 900 });
-  await env.page_content.put(
-    outKey(Date.now(), `v${randomToken(6)}`, "pin"),
-    JSON.stringify({ to: phone, text: `\u041A\u043E\u0434 \u0437\u0430 \u0432\u0445\u043E\u0434 \u0432 ${studio.settings.brand.name}: ${pin}
+  await env.page_content.put(key, JSON.stringify({ h: await sha256(`${client.phone}:${pin}`), tries: 0, at: Date.now() }), { expirationTtl: 900 });
+  if (via.includes("viber")) {
+    await env.page_content.put(
+      outKey(Date.now(), `v${randomToken(6)}`, "pin"),
+      JSON.stringify({ to: client.phone, text: `\u041A\u043E\u0434 \u0437\u0430 \u0432\u0445\u043E\u0434 \u0432 ${studio.settings.brand.name}: ${pin}
 \u0412\u0430\u0436\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438.`, tries: 0 }),
-    { expirationTtl: 3600 }
-  );
-  return json({ ok: true });
+      { expirationTtl: 3600 }
+    );
+  }
+  if (via.includes("email")) {
+    try {
+      await sendCodeEmail(env, studio, client.email, pin);
+    } catch (e) {
+      console.warn("[studio] login e-mail failed:", e.message);
+      if (via.length === 1) return err("email", 502);
+    }
+  }
+  return json({ ok: true, via });
 }
 async function handleVerifyFinish(env, studio, b) {
-  const phone = normPhone(b.phone);
+  const email = String(b.email || "").trim().toLowerCase().slice(0, 120);
+  const client = await findClient(env, studio.id, normPhone(b.phone), email);
   const pin = String(b.pin || "");
-  if (!phone || !/^\d{4}$/.test(pin) || !env.page_content) return err("pin");
+  if (!client || !/^\d{4}$/.test(pin) || !env.page_content) return err("pin");
+  const phone = client.phone;
   const key = `studio:verify:${studio.id}:${phone}`;
   const v = JSON.parse(await env.page_content.get(key) || "null");
   if (!v || v.tries >= 5) return err("pin");
@@ -10836,7 +10912,7 @@ async function handleVerifyFinish(env, studio, b) {
     return err("pin");
   }
   await env.page_content.delete(key);
-  return json({ ok: true, token: await issueToken(env, studio.id, phone) });
+  return json({ ok: true, token: await issueToken(env, studio.id, phone), phone, name: client.name, email: client.email });
 }
 async function adminStudio(env, request, studio) {
   const token = String(request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
@@ -11156,7 +11232,7 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
     const studio = id ? await loadStudio(env, id) : null;
     if (!studio) return err("studio", 404);
     if (request.method === "GET" && path === "config") {
-      return json(publicSettings(studio.settings, studio.version, hasStripe(studio)), 200, { "Cache-Control": "public, max-age=60" });
+      return json({ ...publicSettings(studio.settings, studio.version, hasStripe(studio)), emailLogin: emailOn(env) }, 200, { "Cache-Control": "public, max-age=60" });
     }
     if (request.method === "GET" && path === "logo") {
       const v = env.page_content ? JSON.parse(await env.page_content.get(`studio:logo:${studio.id}`) || "null") : null;
@@ -11191,6 +11267,8 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
         return await handleForget(env, ctx, studio, body);
       case "push":
         return await handlePush(env, studio, body);
+      case "hello":
+        return await handleHello(env, studio, body);
       case "verify/start":
         return await handleVerifyStart(env, studio, body);
       case "verify/finish":
