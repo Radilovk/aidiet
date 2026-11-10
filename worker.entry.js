@@ -2611,6 +2611,9 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
   // Посоката, с която е сметнат приемът — седмичният преглед разпознава по нея смяната на фазата.
   if (deficitData?.direction) analysis._goalDirection = deficitData.direction;
+  // Разходът е сметнат предпазливо (непотвърдена активност) — клиентът вижда защо и как да го промени.
+  if (activityData?.note) analysis._activityNote = activityData.note;
+  else delete analysis._activityNote;
   // Обсъждането на целта (алгоритъм + AI) — за специалиста и админ панела.
   const gc = data?._goalCouncil;
   if (gc?.verdict) analysis._goalCouncil = { verdict: gc.verdict, algorithm: gc.algorithm, concerns: gc.concerns || [], at: gc.at };
@@ -6343,9 +6346,13 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   // се смени и приемът се смята наново, а не със 100–150 kcal на седмица.
   const { direction, goalModel } = compileProfile(data);
   const phaseChanged = direction !== plan.analysis._goalDirection;
-  if ((Number(enrichment?.pendingLevel) || 0) < 2 && !phaseChanged) return null;
   const probe = JSON.parse(JSON.stringify(plan.analysis));
-  const { intake, tdee } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  const { intake, tdee, activityData } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  // Планът е смятан с разход по непотвърдена самооценка, а сега тя е ограничена
+  // (energy.js): основата се поправя веднъж, не със 100–150 kcal на седмица.
+  const tdeeBefore = parseFinalCalories(plan.analysis.tdee);
+  const overstated = !!activityData?.discounted && tdeeBefore > 0 && tdee < tdeeBefore * 0.95;
+  if ((Number(enrichment?.pendingLevel) || 0) < 2 && !phaseChanged && !overstated) return null;
   if (!intake) return null;
   // Корекциите от прегледите се пренасят върху новата основа — освен при нова фаза:
   // темпото на предишната посока не казва нищо за следващата.
@@ -6360,7 +6367,8 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   probe._goalDirection = direction;
   const why = phaseChanged && plan.analysis._goalDirection
     ? `нова фаза — ${goalModel.directionLabel}`
-    : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(', ');
+    : overstated ? 'разходът е сметнат предпазливо, докато тренировките не са потвърдени'
+      : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(', ');
   return { analysis: probe, before, after, reason: `Приемът е преизчислен с новите данни${why ? ` (${why})` : ''}: ${before} → ${after} kcal.` };
 }
 

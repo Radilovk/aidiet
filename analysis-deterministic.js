@@ -287,7 +287,11 @@ function lossForecastText(profile, energy) {
   if (profile.direction !== 'lose' || !(target < w)) return null;
   const weeks = Math.ceil((w - target) / weeklyLossKg(profile, energy));
   const span = weeks > 16 ? `${Math.round(weeks / 4.345)} месеца` : `${weeks} седмици`;
-  return `−${String(Math.round((w - target) * 10) / 10).replace('.', ',')} кг (до ~${String(target).replace('.', ',')} кг) за около ${span}`;
+  // Първите две седмици на отчетлив дефицит свалят и гликоген с водата му (1,5–2,5 кг) —
+  // това е реалното начало и го казваме, за да не се чете после като „спиране“.
+  const deficitShare = Number(energy?.tdee) > 0 ? 1 - Number(energy.Final_Calories) / Number(energy.tdee) : 0;
+  const start = deficitShare >= 0.15 && w - target >= 5 ? '; първите 2 седмици обикновено −1,5 до −2,5 кг (с водата)' : '';
+  return `−${String(Math.round((w - target) * 10) / 10).replace('.', ',')} кг (до ~${String(target).replace('.', ',')} кг) за около ${span}${start}`;
 }
 
 /**

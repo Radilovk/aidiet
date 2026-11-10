@@ -8,7 +8,7 @@
  *
  *   node scripts/test-profile-matrix.mjs [брой=220] [--verbose]
  */
-import { calculateBMR, calculateUnifiedActivityScore, calculateTDEE, calculateSafeDeficit } from '../energy.js';
+import { calculateBMR, calculateUnifiedActivityScore, calculateTDEE, calculateSafeDeficit, calculateActivityTDEE } from '../energy.js';
 import { computeIntakeTarget } from '../step1-deterministic.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { buildNutritionPlan } from '../nutrition-engine/index.js';
@@ -81,7 +81,8 @@ const bump = (k) => { cover[k] = (cover[k] || 0) + 1; };
 
 function intakeOf(data) {
   const bmr = calculateBMR(data);
-  const tdee = calculateTDEE(bmr, calculateUnifiedActivityScore(data).combinedScore);
+  // Разходът — както в продукция (с тавана за непотвърдена активност при затлъстяване).
+  const { tdee } = calculateActivityTDEE(bmr, data);
   const min = data.gender === 'Мъж' ? 1500 : 1200;
   return Math.max(min, computeIntakeTarget(tdee, data.goal, calculateSafeDeficit(tdee, data)) || tdee);
 }

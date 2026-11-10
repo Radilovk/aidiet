@@ -245,7 +245,9 @@ var require_goal_model = __commonJS({
           older
         };
       }
-      var DEFICIT_BY_EXCESS = [0, -10, -15, -18, -20];
+      var DEFICIT_BY_EXCESS = [0, -10, -15, -20, -25];
+      var OLDER_MAX_DEFICIT = -15;
+      var MEANINGFUL_LOSS_SHARE = [0, 0, 0.05, 0.1, 0.1];
       function forGoal(code, b, f) {
         var metabolic = (f.clinical || []).some(function(c) {
           return METABOLIC.indexOf(c) !== -1;
@@ -290,7 +292,7 @@ var require_goal_model = __commonJS({
         switch (code) {
           case "LOSS":
             if (b.under) return recomp(0, "\u0418\u0422\u041C \u043F\u043E\u0434 18,5 \u2014 \u0441\u0432\u0430\u043B\u044F\u043D\u0435 \u043D\u0430 \u0442\u0435\u0433\u043B\u043E \u043D\u0435 \u0435 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E; \u0446\u0435\u043B\u0442\u0430 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432 \u0438 \u0441\u0438\u043B\u0430", ["composition", "workouts", "weight"]);
-            if (ex >= 1) return lose(DEFICIT_BY_EXCESS[ex], "\u0438\u0437\u043B\u0438\u0448\u044A\u043A \u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u2014 \u0443\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442", ["weight", "waist", "composition"]);
+            if (ex >= 1) return lose(DEFICIT_BY_EXCESS[ex], ex >= 3 ? "\u0437\u0430\u0442\u043B\u044A\u0441\u0442\u044F\u0432\u0430\u043D\u0435 \u2014 \u043E\u0442\u0447\u0435\u0442\u043B\u0438\u0432 \u0434\u0435\u0444\u0438\u0446\u0438\u0442 \u0441 \u0432\u0438\u0441\u043E\u043A \u0431\u0435\u043B\u0442\u044A\u043A, \u0437\u0430 \u0432\u0438\u0434\u0438\u043C \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442 \u0431\u0435\u0437 \u0437\u0430\u0433\u0443\u0431\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438" : "\u0438\u0437\u043B\u0438\u0448\u044A\u043A \u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u2014 \u0443\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442", ["weight", "waist", "composition"]);
             if (f.lossKg > 0 && f.weightKg && f.heightCm && (f.weightKg - f.lossKg) / Math.pow(f.heightCm / 100, 2) >= 20) {
               return lose(-10, "\u0442\u0435\u0433\u043B\u043E\u0442\u043E \u0435 \u0432 \u043D\u043E\u0440\u043C\u0430, \u0430 \u0436\u0435\u043B\u0430\u043D\u043E\u0442\u043E \u0435 \u043C\u0430\u043B\u043A\u043E \u043F\u043E-\u043D\u0438\u0441\u043A\u043E \u2014 \u043B\u0435\u043A \u0434\u0435\u0444\u0438\u0446\u0438\u0442", ["weight", "waist", "composition"]);
             }
@@ -349,7 +351,10 @@ var require_goal_model = __commonJS({
         if (!f.weightKg || !f.heightCm) return null;
         var m2 = Math.pow(f.heightCm / 100, 2);
         var floor = r12(20 * m2);
-        if (f.lossKg > 0) return Math.max(floor, r12(f.weightKg - f.lossKg));
+        if (f.lossKg > 0) {
+          var meaningful = r12(f.weightKg * (1 - (MEANINGFUL_LOSS_SHARE[b.excess] || 0)));
+          return Math.max(floor, Math.min(r12(f.weightKg - f.lossKg), meaningful));
+        }
         var upper = r12((b.older ? 27 : 24.9) * m2);
         return upper < f.weightKg ? upper : null;
       }
@@ -398,6 +403,10 @@ var require_goal_model = __commonJS({
         if (has3(f.behaviors, "CMP")) {
           minPct = Math.max(minPct, -10);
           reasons.push("\u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0430\u0442\u043E\u0440\u043D\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435 (\u0433\u043B\u0430\u0434\u0443\u0432\u0430\u043D\u0435/\u0445\u0430\u043F\u0447\u0435\u0442\u0430) \u2014 \u0431\u0435\u0437 \u0433\u043E\u043B\u044F\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442");
+        }
+        if (b.older) {
+          minPct = Math.max(minPct, OLDER_MAX_DEFICIT);
+          reasons.push("\u043D\u0430\u0434 65 \u0433. \u2014 \u0443\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u0444\u0438\u0446\u0438\u0442, \u0437\u0430 \u0434\u0430 \u0441\u0435 \u043F\u0430\u0437\u044F\u0442 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435");
         }
         if (b.excess >= 3) {
           maxPct = Math.min(maxPct, 0);
@@ -40512,12 +40521,29 @@ function calculateActivityTDEE(bmr, data) {
   const activityData = calculateUnifiedActivityScore(data);
   const measured = Number(data?._enrichment?.activity?.steps);
   const perStep = kcalPerStep(data);
-  if (!(measured > 0) || !(perStep > 0)) return { tdee: calculateTDEE(bmr, activityData.combinedScore), activityData };
+  const cap = unverifiedActivityCap(data);
+  const tdeeAt = (score) => {
+    const full = calculateTDEE(bmr, score);
+    return cap && full > bmr * cap ? Math.round(bmr * cap) : full;
+  };
+  if (!(measured > 0) || !(perStep > 0)) {
+    const tdee = tdeeAt(activityData.combinedScore);
+    const discounted = tdee < calculateTDEE(bmr, activityData.combinedScore);
+    return { tdee, activityData: discounted ? { ...activityData, discounted: true, note: UNVERIFIED_ACTIVITY_NOTE } : activityData };
+  }
   const walkKcal = Math.round(Math.max(0, measured - SEDENTARY_STEPS) * perStep);
   return {
-    tdee: calculateTDEE(bmr, 1 + activityData.sportDays) + walkKcal,
+    tdee: tdeeAt(1 + activityData.sportDays) + walkKcal,
     activityData: { ...activityData, measuredSteps: measured, walkKcal }
   };
+}
+var UNVERIFIED_ACTIVITY_CAP = { 3: 1.6, 4: 1.6, 2: 1.725 };
+var UNVERIFIED_ACTIVITY_NOTE = "\u0420\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u0435 \u0441\u043C\u0435\u0442\u043D\u0430\u0442 \u043F\u0440\u0435\u0434\u043F\u0430\u0437\u043B\u0438\u0432\u043E: \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u043E\u0449\u0435 \u043D\u0435 \u0441\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u0438 \u043E\u0442 \u043A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440\u0430 \u0438\u043B\u0438 \u0432\u0435\u0447\u0435\u0440\u043D\u0438\u0442\u0435 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438. \u041E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430\u0439 \u0433\u0438 \u2014 \u043F\u043B\u0430\u043D\u044A\u0442 \u0449\u0435 \u0433\u0438 \u043E\u0442\u0447\u0435\u0442\u0435.";
+function unverifiedActivityCap(data) {
+  if (data?._enrichment?.essence?.metrics?.training) return null;
+  const body = compileProfile(data || {}).goalModel?.body;
+  if (!body || body.fatRisk === 0) return null;
+  return UNVERIFIED_ACTIVITY_CAP[body.excess] || null;
 }
 function calculateMacronutrientRatios(data, _activityScore, tdee = null) {
   const profile = compileProfile(data);
@@ -40893,7 +40919,9 @@ function lossForecastText(profile, energy) {
   if (profile.direction !== "lose" || !(target < w)) return null;
   const weeks = Math.ceil((w - target) / weeklyLossKg(profile, energy));
   const span = weeks > 16 ? `${Math.round(weeks / 4.345)} \u043C\u0435\u0441\u0435\u0446\u0430` : `${weeks} \u0441\u0435\u0434\u043C\u0438\u0446\u0438`;
-  return `\u2212${String(Math.round((w - target) * 10) / 10).replace(".", ",")} \u043A\u0433 (\u0434\u043E ~${String(target).replace(".", ",")} \u043A\u0433) \u0437\u0430 \u043E\u043A\u043E\u043B\u043E ${span}`;
+  const deficitShare = Number(energy?.tdee) > 0 ? 1 - Number(energy.Final_Calories) / Number(energy.tdee) : 0;
+  const start = deficitShare >= 0.15 && w - target >= 5 ? "; \u043F\u044A\u0440\u0432\u0438\u0442\u0435 2 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u043E\u0431\u0438\u043A\u043D\u043E\u0432\u0435\u043D\u043E \u22121,5 \u0434\u043E \u22122,5 \u043A\u0433 (\u0441 \u0432\u043E\u0434\u0430\u0442\u0430)" : "";
+  return `\u2212${String(Math.round((w - target) * 10) / 10).replace(".", ",")} \u043A\u0433 (\u0434\u043E ~${String(target).replace(".", ",")} \u043A\u0433) \u0437\u0430 \u043E\u043A\u043E\u043B\u043E ${span}${start}`;
 }
 function syncForecastToEnergy(analysis, userData) {
   if (!analysis?.forecastOptimistic || !analysis._deterministicAnalysis) return;
@@ -48812,6 +48840,13 @@ function applyEnrichment(userData, store, now = /* @__PURE__ */ new Date()) {
   const sex = userData.gender === "\u041C\u044A\u0436" ? "M" : userData.gender === "\u0416\u0435\u043D\u0430" ? "F" : "X";
   const kg = Number(String(userData.weight || "").replace(",", "."));
   const derived = deriveEnrichment(store, now, sex, kg > 30 ? { waterNeedL: Math.round(kg * 0.033 * 10) / 10 } : {});
+  const hM = Number(String(userData.height || "").replace(",", ".")) / 100;
+  const bmi = kg > 30 && hM > 1 ? kg / (hM * hM) : null;
+  if (bmi != null) {
+    const contradicts = (t) => bmi >= 18.5 && /под нормата|поднормено|не (към )?ограничени/i.test(t) || bmi < 25 && /над нормата|наднормено|затлъстяване/i.test(t);
+    derived.hints.cautions = derived.hints.cautions.filter((t) => !contradicts(t));
+    if (derived.iris?.drivers) derived.iris.drivers = derived.iris.drivers.filter((t) => !contradicts(t));
+  }
   const cc = crossCheck(userData, derived, derived.resolutions);
   Object.assign(derived.overrides, cc.overrides);
   derived.hints.approach = [.../* @__PURE__ */ new Set([...derived.hints.approach, ...cc.approach])];
@@ -51994,6 +52029,8 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   applyDeterministicEnergyContract(analysis, contract);
   applyBoundedMetabolicReview(analysis, { userData: data, minFatG });
   if (deficitData?.direction) analysis._goalDirection = deficitData.direction;
+  if (activityData?.note) analysis._activityNote = activityData.note;
+  else delete analysis._activityNote;
   const gc = data?._goalCouncil;
   if (gc?.verdict) analysis._goalCouncil = { verdict: gc.verdict, algorithm: gc.algorithm, concerns: gc.concerns || [], at: gc.at };
   enforceCalorieGuardrails(analysis, data, tdee);
@@ -54828,9 +54865,11 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   if (waist >= 40 && waist <= 200) data._lastWaistCm = waist;
   const { direction, goalModel } = compileProfile(data);
   const phaseChanged = direction !== plan.analysis._goalDirection;
-  if ((Number(enrichment?.pendingLevel) || 0) < 2 && !phaseChanged) return null;
   const probe = JSON.parse(JSON.stringify(plan.analysis));
-  const { intake, tdee } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  const { intake, tdee, activityData } = refreshAnalysisEnergyFromProfile(env, data, probe);
+  const tdeeBefore = parseFinalCalories(plan.analysis.tdee);
+  const overstated = !!activityData?.discounted && tdeeBefore > 0 && tdee < tdeeBefore * 0.95;
+  if ((Number(enrichment?.pendingLevel) || 0) < 2 && !phaseChanged && !overstated) return null;
   if (!intake) return null;
   const shift = phaseChanged && plan.analysis._goalDirection ? 0 : before - (Number(plan.analysis._baseCalories) || before);
   probe.Final_Calories = intake + shift;
@@ -54840,7 +54879,7 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   if (!after || Math.abs(after - before) / before < 0.03) return null;
   probe._baseCalories = intake;
   probe._goalDirection = direction;
-  const why = phaseChanged && plan.analysis._goalDirection ? `\u043D\u043E\u0432\u0430 \u0444\u0430\u0437\u0430 \u2014 ${goalModel.directionLabel}` : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(", ");
+  const why = phaseChanged && plan.analysis._goalDirection ? `\u043D\u043E\u0432\u0430 \u0444\u0430\u0437\u0430 \u2014 ${goalModel.directionLabel}` : overstated ? "\u0440\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u0435 \u0441\u043C\u0435\u0442\u043D\u0430\u0442 \u043F\u0440\u0435\u0434\u043F\u0430\u0437\u043B\u0438\u0432\u043E, \u0434\u043E\u043A\u0430\u0442\u043E \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u0438" : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(", ");
   return { analysis: probe, before, after, reason: `\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438${why ? ` (${why})` : ""}: ${before} \u2192 ${after} kcal.` };
 }
 async function runWeeklyAdaptation(env, payload, jobId) {

@@ -5890,7 +5890,9 @@
                     // Клиентът вижда решението и какво да направи сам. Качеството на менюто е работа
                     // на двигателя (за специалиста), а измерванията, които са наред, не са действие.
                     const microTodo = micro.filter(function(q) { return q.status !== 'ok' && q.advice; });
+                    const activityNote = dietPlan.analysis && dietPlan.analysis._activityNote;
                     openModal(head, lines
+                        .concat(activityNote ? [activityNote] : [])
                         .concat(microTodo.length ? ['Какво да добавиш:'].concat(microTodo.map(function(q) { return '• ' + q.label + ' — ' + q.advice; })) : [])
                         .join('\n\n'), '', null, null, null, null);
                 };

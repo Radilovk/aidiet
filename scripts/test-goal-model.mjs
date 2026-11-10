@@ -4,7 +4,8 @@
  */
 import { createRequire } from 'module';
 import { compileProfile } from '../profile-code.js';
-import { calculateSafeDeficit } from '../energy.js';
+import { calculateSafeDeficit, calculateBMR, calculateActivityTDEE, calculateTDEE } from '../energy.js';
+import { applyEnrichment } from '../enrichment.js';
 import { decideWeeklyAdjustment, weeklyQuestionsFor, pickWeighIn } from '../nutrition-engine/monitoring.js';
 
 const require = createRequire(import.meta.url);
@@ -105,6 +106,29 @@ ok(/3 тренировки/.test(weeklyQuestionsFor({ direction: 'recomp', lead:
 ok(GF.profileOf({ ...woman, goal: ['Отслабване', 'Антиейджинг'], weight: 79 }).group === 'lose', 'две отметки — вече не „здраве“');
 ok(GF.profileOf({ ...man, goal: ['Мускулна маса'], weight: 100, sportActivity: 'Средна (2–4 дни седмично)' }).group === 'tone', 'мускулна маса при излишък — екран „стягане“');
 ok(GF.profileOf({ ...woman, goal: ['Подобряване на здравето'], weight: 90 }).group === 'lose', 'здраве при затлъстяване — екран „отслабване“');
+
+// Резултат при затлъстяване: смислен етап, отчетлив дефицит, разход без надценена самооценка.
+{
+  const obese = { gender: 'Мъж', age: '40', height: '175', weight: '105', goal: 'отслабване', lossKg: '3',
+    dailyActivityLevel: 'Високо', sportActivity: 'Висока (5–7 дни седмично)' };
+  const p = compileProfile(obese);
+  ok(p.targetWeightKg === 94.5, `ИТМ 34 и желани −3 кг: етапът е 10% от теглото (${p.targetWeightKg})`);
+  ok(p.goalModel.intakePct === -20, `затлъстяване I: дефицит 20% (${p.goalModel.intakePct})`);
+  ok(pct({ ...woman, goal: ['Отслабване'], weight: 100 }) === -25, 'затлъстяване II: дефицит 25%');
+  ok(pct({ ...woman, age: 70, goal: ['Отслабване'], weight: 100 }) === -15, 'над 65 г.: най-много 15%');
+  ok(compileProfile({ ...obese, weight: '80', lossKg: '3' }).targetWeightKg === 77, 'лек излишък: желаното от клиента остава');
+  const bmr = calculateBMR(obese);
+  const capped = calculateActivityTDEE(bmr, obese);
+  ok(capped.tdee === Math.round(bmr * 1.6) && capped.activityData.discounted, `непотвърдена висока активност при затлъстяване: множител до 1,6 (${capped.tdee})`);
+  const verified = calculateActivityTDEE(bmr, { ...obese, _enrichment: { essence: { metrics: { training: { perWeek: 5, usual: [1, 2, 3, 4, 5], regularity: 0.9 } } } } });
+  ok(verified.tdee === calculateTDEE(bmr, 9) && !verified.activityData.discounted, 'потвърдени тренировки: пълният разход');
+  const lean = { ...obese, weight: '75' };
+  ok(calculateActivityTDEE(calculateBMR(lean), lean).tdee === calculateTDEE(calculateBMR(lean), 9), 'нормално тегло: самооценката не се пипа');
+  const withIris = applyEnrichment({ ...obese }, { facts: [{ kind: 'iris', at: new Date().toISOString(), value: { analysis: { systems: [],
+    notices: [{ title: 'Тегло под нормата', body: 'Планът е насочен към набавяне на достатъчно храна, не към ограничаване.' }, { title: 'Бъбреци', body: 'следи водата' }] } } }] });
+  const cautions = withIris._enrichment?.hints?.cautions || [];
+  ok(!cautions.some(t => /под нормата/.test(t)) && cautions.some(t => /Бъбреци/.test(t)), 'бележка „тегло под нормата“ при ИТМ 34 отпада, останалите остават');
+}
 
 console.log(`\n=== goal model: ${pass} pass, ${fail} fail ===`);
 if (fail) process.exit(1);
