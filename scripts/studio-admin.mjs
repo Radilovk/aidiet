@@ -9,6 +9,8 @@
  *   node scripts/studio-admin.mjs reset-pin <id> <phone>     a new admin code, by Viber
  *   node scripts/studio-admin.mjs domain <id>                <id>.<STUDIO_ROOT_DOMAIN> → this worker (custom domain)
  *   node scripts/studio-admin.mjs list                       the studios
+ *   node scripts/studio-admin.mjs preset <id>                studio-platform/presets/<id>.json → the studio's settings (create
+ *                                                           applies it too): hours, address, texts, Acuity calendar…
  *   node scripts/studio-admin.mjs stripe-env <id>            the studio takes cards with the Stripe keys already in the worker
  *                                                           (STRIPE_PUBLISHABLE_KEY / STRIPE_SECRET_KEY — the owner's own account)
  *
@@ -17,7 +19,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { pbkdf2Sync, randomBytes, randomInt } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const DB = 'studios';
 const KV_ID = '81fc0991b2764918b682f9ca170abd4b';   // page_content (production): the Viber outbox
@@ -34,6 +36,13 @@ function sql(command) {
 }
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 const fail = (msg) => { console.error(`::error::${msg}`); process.exit(1); };
+/** studio-platform/presets/<id>.json (the studio's settings, kept in the repo), or null */
+function presetOf(id) {
+  const f = `studio-platform/presets/${id}.json`;
+  if (!existsSync(f)) return null;
+  const { _note, ...st } = JSON.parse(readFileSync(f, 'utf8'));
+  return st;
+}
 
 function phoneOf(p) {
   const d = String(p || '').replace(/[^\d+]/g, '');
@@ -119,7 +128,10 @@ try {
     if (action === 'create') {
       if (exists) fail(`Студио ${id} вече има. За нов код: reset-pin.`);
       name = String(a2 || id).slice(0, 80);
-      const settings = JSON.stringify({ brand: { name }, ...(phone ? { phone } : {}) });
+      const preset = presetOf(id);
+      if (preset && !a2) name = preset.brand.name;
+      const settings = JSON.stringify(preset ? { ...preset, brand: { ...preset.brand, name } } : { brand: { name }, ...(phone ? { phone } : {}) });
+      if (preset) summary.push(`✓ настройки от studio-platform/presets/${id}.json`);
       sql(`INSERT INTO studios (id, settings, secrets, pin_hash, version, created_at) VALUES (${q(id)}, ${q(settings)}, '{}', ${q(pinHash(pin))}, 1, ${Date.now()})`);
       summary.push(`✓ студио ${id} („${name}“)`);
       try { await domain(id); summary.push(`✓ адрес https://${id}.${ROOT}`); } catch (e) {
@@ -145,13 +157,23 @@ try {
       summary.push(`${s.id} — ${(JSON.parse(s.settings || '{}').brand || {}).name || ''} · v${s.version} · https://${s.id}.${ROOT}`);
     }
     if (!summary.length) summary.push('(няма студиа)');
+  } else if (action === 'preset') {   // the repo's settings over the studio's (its logo, Google calendar, notice and the rest stay)
+    const id = String(a1 || '').toLowerCase();
+    const preset = presetOf(id);
+    if (!preset) fail(`Няма studio-platform/presets/${id}.json.`);
+    const row = sql(`SELECT settings FROM studios WHERE id = ${q(id)}`)[0];
+    if (!row) fail(`Няма студио ${id}. Първо create.`);
+    const cur = JSON.parse(row.settings || '{}');
+    const next = { ...cur, ...preset, brand: { ...(cur.brand || {}), ...preset.brand } };
+    sql(`UPDATE studios SET settings = ${q(JSON.stringify(next))}, version = version + 1 WHERE id = ${q(id)}`);
+    summary.push(`✓ ${id}: настройките от studio-platform/presets/${id}.json (до минута се виждат в приложението)`);
   } else if (action === 'stripe-env') {
     const id = String(a1 || '').toLowerCase();
     if (!sql(`SELECT id FROM studios WHERE id = ${q(id)}`).length) fail(`Няма студио ${id}.`);
     sql(`UPDATE studios SET secrets = '{"envStripe":true}', version = version + 1 WHERE id = ${q(id)}`);
     summary.push(`✓ ${id}: картите минават през твоя Stripe (ключовете в Worker-а); в admin → Stripe се вижда „свързан“`);
   } else {
-    fail('действие: ensure-db | create | reset-pin | domain | list | stripe-env');
+    fail('действие: ensure-db | create | reset-pin | domain | list | preset | stripe-env');
   }
 } catch (e) {
   fail(String(e.stderr || e.message).split('\n').filter(Boolean).slice(-4).join(' | '));

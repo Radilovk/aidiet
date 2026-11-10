@@ -92,6 +92,8 @@ await step('app, no studio: the picker lists the studios; a click opens one', as
   eq(await page.locator('[data-pick]').count(), 2, 'studios');
   await page.screenshot({ path: `${OUT}/app-1-picker.png` });
   await page.click('[data-pick=burgas]');
+  await page.waitForURL(/[?&]s=burgas/);   // the choice reloads the page; the next step must not race that load
+  await page.waitForLoadState('load');
   await page.waitForSelector('.slot');
   eq(await page.evaluate(() => localStorage.getItem('studio:current')), 'burgas', 'remembered');
 });

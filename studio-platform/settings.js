@@ -24,12 +24,15 @@ export const DEFAULT_SETTINGS = {
   viber: false,                                 // Viber messages (only with a PC running viber-sender/); the app's own reminders need nothing
   listed: false,                                // shown in the app's list of studios (off: clients find the studio only with its code / link)
   notice: { id: 0, text: '', until: 0 },        // a message from the studio to its clients (shown in the app; id changes = a new one)
-  acuity: false,                                // XBODY Burgas while Acuity still runs: the hours taken there are taken here too
+  acuity: false,                                // an XBODY studio while Acuity still runs: the hours taken there are taken here too
+  acuityCalendar: '',                           // its Acuity calendar id ('' = XBODY Burgas, 4715375); stored also as acuity: { calendar, type }
+  acuityType: '',                               // its Acuity appointment type id ('' = the calendar's own, see the worker)
   xems: '',                                     // the studio's XEMS code (Моят прогрес, Хранене, Профил за тренировките); '' = off
   links: [],                                    // up to 3 buttons at the top of the page (e.g. Чести въпроси, Ефекти): { title, url }
 };
 
 const str = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
+const digits = (v) => (/^\d{3,12}$/.test(String(v == null ? '' : v)) ? String(v) : '');
 const int = (v, min, max, dflt) => {
   const n = Math.round(Number(v));
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt;
@@ -84,7 +87,10 @@ export function normalizeSettings(raw) {
     google: { calendarId: str(s.google && s.google.calendarId, 200) },
     viber: s.viber === true,
     listed: s.listed === true,
-    acuity: s.acuity === true,
+    // acuity: true (XBODY Burgas) or { calendar, type } (another XBODY studio of the same Acuity account)
+    acuity: s.acuity === true || Boolean(s.acuity && typeof s.acuity === 'object' && /^\d{3,12}$/.test(String(s.acuity.calendar || ''))),
+    acuityCalendar: digits(s.acuity && typeof s.acuity === 'object' ? s.acuity.calendar : s.acuityCalendar),
+    acuityType: digits(s.acuity && typeof s.acuity === 'object' ? s.acuity.type : s.acuityType),
     xems: /^[a-z0-9][a-z0-9-]{3,23}$/.test(String(s.xems || '')) ? String(s.xems) : '',
     links: (Array.isArray(s.links) ? s.links : []).map((l) => ({ title: str(l && l.title, 30), url: str(l && l.url, 500) }))
       .filter((l) => l.title && /^https:\/\//.test(l.url)).slice(0, 3),
