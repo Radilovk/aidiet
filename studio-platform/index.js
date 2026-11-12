@@ -1118,7 +1118,7 @@ async function handleMaster(env, request, b) {
 /* ── a studio's own address (burgas.<STUDIO_ROOT_DOMAIN>): its page, from the site (cached at the edge) ── */
 const ORIGIN = 'https://biocode.website';
 // what the app's own domain shows from the site: the landing, the studio page and their files — nothing else of the site
-const LANDING_PATHS = /^\/(studio\.html|studio-privacy\.html|studio-support\.html|studio-app\/landing\/[\w.-]+|\.well-known\/apple-app-site-association)$/;
+const LANDING_PATHS = /^\/(studio\.html|studio-privacy\.html|studio-support\.html|xems-advice\.js|studio-app\/landing\/[\w.-]+|\.well-known\/apple-app-site-association)$/;
 const list = (v) => String(v || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
 
 /** xbody.online: the landing (/) and the studio page, served from the site; www.xbody.online → xbody.online */
@@ -1144,6 +1144,11 @@ export async function handleStudioSite(request, env) {
   const root = list(env.STUDIO_ROOT_DOMAIN).find((r) => host.endsWith('.' + r));
   if (!root || url.pathname.startsWith('/api/')) return null;
   if (!/^[a-z0-9-]{2,40}$/.test(host.slice(0, -(root.length + 1))) || host.startsWith('www.')) return null;
+  if (url.pathname === '/xems-advice.js') {   // the advice the studio page loads next to itself (one file for the app, the PWA, the tablet)
+    const js = await fetch(ORIGIN + '/xems-advice.js', { cf: { cacheTtl: 300, cacheEverything: true } });
+    return new Response(js.body, { status: js.status, headers: { 'Content-Type': 'text/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=300', 'X-Content-Type-Options': 'nosniff' } });
+  }
   const page = env.STUDIO_PAGE_URL || 'https://biocode.website/studio.html';
   const resp = await fetch(page, { cf: { cacheTtl: 300, cacheEverything: true } });
   return new Response(resp.body, {

@@ -1,6 +1,6 @@
 // Service Worker for XBody Ability PWA
 // Minimal, isolated from the NutriPlan service worker
-const CACHE_NAME = 'xbody-v18';
+const CACHE_NAME = 'xbody-v19';
 // Core files that MUST be cached for the PWA shell to work offline.
 const STATIC_CACHE = [
   'xbody.html',
@@ -9,7 +9,8 @@ const STATIC_CACHE = [
 // Icons are optional – missing icons should not fail the SW install.
 const OPTIONAL_CACHE = [
   'xbody-icon-192.png',
-  'xbody-icon-512.png'
+  'xbody-icon-512.png',
+  'xems-advice.js'   // the advice in Моят прогрес (shared with studio.html)
 ];
 
 self.addEventListener('install', (event) => {

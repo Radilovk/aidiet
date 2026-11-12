@@ -31,10 +31,10 @@
 | **4.2** Минимална функционалност | Не „само сайт в рамка“ | ⚠️ Има нативни локални известия (Safari не може да ги слага), haptics и избор на студио. Най-вероятната причина за отхвърляне при подобни приложения — вж. стъпка 5 (как се защитава) и раздел „Резервен план“. |
 | **4.2.6** Шаблонни приложения | Приложение от шаблон/генератор се подава от самия доставчик на съдържанието | ✅ Едно общо приложение за много студиа (като агрегатор), не по приложение на студио. Платформата е твоя. |
 | **4.3** Спам | Без дублирани приложения | ✅ Едно приложение. |
-| **4.5.4** Известия | Не са задължителни и не са за реклама без съгласие | ✅ Само напомняне за **собствен записан час**; приложението работи и без разрешение. Съобщението от студиото е **само банер**, не известие (премахнах го). |
+| **4.5.4** Известия | Не са задължителни и не са за реклама без съгласие | ✅ Напомняне за **собствен записан час**; по избор (изключено по подразбиране, отделна отметка „Седмицата и съвети“) — неделен преглед на **собствените** тренировки спрямо целта и един съвет след **собствен** записан час. Без реклама, оферти и промоции; само локални известия; приложението работи и без разрешение. Съобщението от студиото е **само банер**, не известие (премахнах го). |
 | **4.8** Вход със социална мрежа | Само ако има вход с Google/Facebook… | ✅ Няма вход изобщо. |
 | **5.1.1** Поверителност | Публична политика, точни декларации, съгласие, минимални данни | ✅ `studio-privacy.html` (поправена: казва точно какво отива в Google Calendar на студиото). ⚠️ Декларациите в App Store Connect — стъпка 3. |
-| **5.1.1(v)** Изтриване на данни | Лесно изтриване от приложението | ✅ „Моите часове → Изтрий данните ми“. |
+| **5.1.1(v)** Изтриване на данни | Лесно изтриване от приложението | ✅ „Моят профил → Профил → Изтрий данните ми“. |
 | **5.1.2** Споделяне на данни | Ясно кой ги получава | ✅ Cloudflare, Stripe, Google Calendar на студиото — изброени. Без реклами и проследяване. |
 | **Privacy manifest** | `PrivacyInfo.xcprivacy` в пакета | ✅ Добавя се автоматично; процесът проверява, че е в пакета, преди качване. |
 | **Export compliance** | Декларация за криптиране | ✅ `ITSAppUsesNonExemptEncryption=false` (само HTTPS). |
@@ -97,9 +97,11 @@ How to test (all labels are in Bulgarian):
    before the appointment (not a push notification; no data leaves the device for this). This is a native capability
    a website cannot provide.
 5. "Моите часове" -> "Промени" -> "Премести в друг час" / "Откажи часа" to move or cancel.
-6. "Моите часове" -> "Изтрий данните ми" deletes the user's data (Guideline 5.1.1(v)).
-Privacy policy and support: links at the bottom of the main screen ("Помощ и контакт", "Поверителност").
-No tracking, no ads, no analytics. The only notifications are reminders for the user's own booked appointments.
+6. "Моят профил" -> "Профил" -> "Изтрий данните ми" deletes the user's data (Guideline 5.1.1(v)).
+Privacy policy and support: links at the bottom of the main screen and under "Моят профил" -> "Студиото".
+No tracking, no ads, no analytics. Notifications are local only: reminders for the user's own booked appointments and,
+only if the user ticks "Седмицата и съвети" (off by default), a Sunday summary of the user's own trainings against their
+goal and one practical tip after a booked appointment (e.g. "drink water"). Never promotional (Guideline 4.5.4).
 The studios' own admin tools are web-only and are not part of this app.
 Contact: radilov.k@gmail.com
 ```

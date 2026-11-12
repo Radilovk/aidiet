@@ -117,6 +117,9 @@ body.has-bar .fab { bottom: calc(92px + env(safe-area-inset-bottom)); }
 .menu small { display: block; color: var(--muted); font-size: 13px; }
 .menu .go { margin-left: auto; color: var(--muted); }
 .menu .i { color: var(--brand); width: 20px; height: 20px; }
+.menu-quiet { margin-top: 14px; }
+.menu-quiet button, .menu-quiet a { padding: 11px 2px; font-size: 15px; color: var(--muted); }
+.menu-quiet .i { color: var(--muted); width: 18px; height: 18px; }
 .hrs { width: 100%; border-collapse: collapse; font-size: 14px; margin: 6px 0 4px; }
 .hrs td { padding: 5px 0; border-top: 1px solid var(--line); } .hrs td:last-child { text-align: right; }
 
@@ -382,6 +385,45 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
 .xtip { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; background: var(--soft); font-size: 14px; }
 .xtip .i { color: var(--brand); margin-top: 1px; }
 .xtip small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+/* Моят прогрес: the week first (ring), then after the training, food, the report */
+.xweek { display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 18px; background: var(--soft); margin-top: 6px; }
+.xweek b { display: block; font-size: 17px; }
+.xweek small { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+.xring { width: 64px; height: 64px; flex: none; }
+.xring circle { fill: none; stroke-width: 7; }
+.xring .bg { stroke: color-mix(in srgb, var(--muted) 22%, transparent); }
+.xring .fg { stroke: var(--brand); stroke-linecap: round; animation: xringIn .9s cubic-bezier(.16, 1, .3, 1) .12s both; }
+@keyframes xringIn { from { stroke-dasharray: 0 var(--c); } to { stroke-dasharray: var(--d) var(--c); } }
+.xadv summary { transition: background .15s, transform .12s; } .xadv summary:active { transform: scale(.985); }
+.xadv[open] p { animation: xadvIn .22s ease both; } @keyframes xadvIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.xweek, .xadvs .xadv, .xnext { animation: xadvIn .3s ease both; } .xadvs .xadv:nth-child(2) { animation-delay: .04s; } .xadvs .xadv:nth-child(3) { animation-delay: .08s; }
+@media (prefers-reduced-motion: reduce) { .xring .fg, .xadv[open] p, .xweek, .xadvs .xadv, .xnext { animation: none; } }
+.btn.quiet.xdel { color: var(--bad); opacity: 1; min-height: 42px; font-size: 15px; }
+.xring text { font: 700 15px/1 system-ui, sans-serif; fill: var(--text); text-anchor: middle; }
+.xbadges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.xbadges:empty { display: none; }
+.xbadge { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--brand) 12%, var(--card)); color: var(--brand); }
+.xadvs { display: grid; gap: 6px; }
+.xadv { border-radius: 14px; background: var(--soft); }
+.xadv summary { display: flex; gap: 10px; align-items: center; padding: 11px 12px; cursor: pointer; list-style: none; font-size: 15px; }
+.xadv summary::-webkit-details-marker { display: none; }
+.xadv summary .i { color: var(--brand); flex: none; }
+.xadv summary span { flex: 1; }
+.xadv summary .i:last-child { color: var(--muted); width: 16px; height: 16px; transform: rotate(90deg); transition: transform .2s; }
+.xadv[open] summary .i:last-child { transform: rotate(-90deg); }
+.xadv p { margin: 0; padding: 0 12px 12px 42px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.xadv.xday { margin-top: 8px; }
+.xadv.xday .xtips { padding: 0 8px 8px; }
+.xnext { display: flex; gap: 10px; align-items: center; width: 100%; margin-top: 8px; padding: 12px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--card); color: var(--text); text-align: left; font-size: 14px; }
+.xnext b { display: block; font-size: 16px; margin-top: 2px; }
+.xnext span:not(.ok) { flex: 1; color: var(--muted); }
+.xnext span b { color: var(--text); }
+.xnext .i { color: var(--brand); }
+.xnext .ok .i { color: var(--ok); }
+.xnext.go { cursor: pointer; }
+.xnext.go:active { transform: scale(.98); }
+.xwarn { margin: 8px 2px 0; }
 
 /* the progress page inside the app */
 .viewer { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: var(--bg); animation: rise .3s var(--ease); }
@@ -1193,17 +1235,42 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   }
   function remId(bookingId, k = 0) { return REM_BASE + (parseInt(String(bookingId).slice(0, 7), 16) % 300000000) * 3 + k; }   // k: 0 the main one, 1 the evening before, 2 an hour before
   const WEEK_BASE = 1950000000;   // the Sunday reminders (next to the hours' ids, which stay under 1.9e9)
+  const TIP_BASE = 1920000000;    // the advice (XEMS studios): after a training, when the rest is over — between the two
   const remPrefs = () => ({ hours: true, weekly: false, ...load('remPrefs', {}) });
   const WD_SHORT = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-  const NUDGES = ['Нова седмица, нова енергия. Запази своя час.', 'Време е за тренировка. Избери удобен час.', 'Една тренировка тази седмица прави разлика.'];
-  const remTitle = (x) => (x.kind === 'week' && x.week.length ? `Твоята седмица · ${cfg.brand.name}` : cfg.brand.name);
+  const remTitle = (x) => (x.kind === 'tip' ? x.title || cfg.brand.name : x.kind === 'week' && x.week.length ? `Твоята седмица · ${cfg.brand.name}` : cfg.brand.name);
+  /* the week in facts (owner, 2026-11): how many last week against the goal, what is booked, the rhythm — never a stock phrase.
+     XEMS studios give the goal's own weekly target and rhythm (Xems.facts); every other studio: 2 a week, the held hours. */
+  const plural = (n) => (n === 1 ? 'тренировка' : 'тренировки');
+  function weekFacts() {
+    const f = window.Xems && Xems.on() && Xems.facts ? Xems.facts() : null;
+    if (f) return f;
+    const now = Date.now(), mon = mondayMs(now);
+    const done = mine.filter((h) => h.status === 'done').map((h) => zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()));
+    return { last: done.filter((t) => t >= mon - 7 * 864e5 && t < mon).length, target: 2, rhythm: 0, slim: false };
+  }
+  function mondayMs(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); }
+  function weekBody(x, list) {
+    const f = x.n === 0 ? weekFacts() : null;   // only the coming Sunday knows last week; the later ones are re-set on every opening
+    const t = f ? f.target : (window.Xems && Xems.on() && Xems.facts ? (Xems.facts() || { target: 2 }).target : 2);
+    const b = x.week.length;
+    if (b >= t) return list;
+    if (!f) return b ? `${list} — още ${t - b} за целта.` : `Целта за седмицата: ${t} ${plural(t)}. Свободните часове са в приложението.`;
+    let out;
+    if (b) out = `${list} — още ${t - b} за целта.`;
+    else if (f.last >= t) out = `Миналата седмица: ${f.last} ${plural(f.last)}, точно за целта.${f.rhythm >= 2 ? ` Ритъм: ${f.rhythm} седмици.` : ''} Тази още не е записана.`;
+    else if (f.last > 0) out = `Миналата седмица: ${f.last} от ${t}. ${t === 2 ? 'Две тренировки' : t + ' тренировки'} тази седмица връщат ритъма.`;
+    else out = `Миналата седмица мина без тренировка. Целта е ${t} на седмица — един час е добро начало.`;
+    if (f.slim && !b && out.length < 90) out += ' И по 8 000 крачки на ден.';
+    return out;
+  }
   function remBody(x) {
     const hm = zonedParts(x.start || 0, tz()).hm;
-    if (x.kind === 'eve') return `Утре в ${x.hms.join(' и ')} — очакваме те.`;
+    if (x.kind === 'tip') return x.body;
+    if (x.kind === 'eve') return `Утре в ${x.hms.join(' и ')}. Леко хранене 1–2 часа преди и чаша вода.`;
     if (x.kind === 'week') {
-      if (!x.week.length) return NUDGES[x.n % NUDGES.length];
       const list = x.week.map(({ h }) => `${WD_SHORT[new Date(h.time.slice(0, 10) + 'T12:00:00Z').getUTCDay()]} ${h.time.slice(11)}`);
-      return list.slice(0, 4).join(' · ') + (list.length > 4 ? ` · +${list.length - 4}` : '');
+      return weekBody(x, list.slice(0, 4).join(' · ') + (list.length > 4 ? ` · +${list.length - 4}` : ''));
     }
     return `Днес в ${hm} — до скоро.`;
   }
@@ -1232,7 +1299,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
           await syncReminders(false);
           // the Sunday overview is a separate, explicit choice (Apple 4.5.4) — offered once, right here, and changeable in the profile
           slot.innerHTML = `<p class="small" style="color:var(--ok);margin:10px 2px 6px">Напомнянията са включени</p>
-            <label class="tick"><input type="checkbox" id="rem-week"><span>И всяка неделя вечер — твоята седмица</span></label><div id="rp-fs"></div>`;
+            <label class="tick"><input type="checkbox" id="rem-week"><span>И седмицата и съвети — в неделя вечер и след тренировка</span></label><div id="rp-fs"></div>`;
           document.getElementById('rem-week').onchange = (e) => setRemPref('weekly', e.target.checked);
           renderFullScreenRow();
         }
@@ -1261,22 +1328,6 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       document.addEventListener('visibilitychange', again);
     };
   }
-  function openReminders() {
-    const p = remPrefs(), h = cfg.rules.reminderHours;
-    sheet(`<h3>Напомняния</h3>
-      <label class="tick"><input type="checkbox" id="rp-hours" ${p.hours ? 'checked' : ''}><span>Преди всеки час<small class="muted" style="display:block">Вечерта преди в 19:00${h ? ` и ${h} ч. преди` : ''}</small></span></label>
-      <label class="tick"><input type="checkbox" id="rp-week" ${p.weekly ? 'checked' : ''}><span>Моята седмица<small class="muted" style="display:block">В неделя в 18:00 — часовете за седмицата или покана за нов</small></span></label>
-      <p class="small muted">Звук и вибрация — според настройките на телефона.</p>
-      <div id="rp-fs"></div>
-      <button class="btn sec" data-back>Назад</button>`, (e) => { if (e.target.closest('[data-back]')) openProfile(); });
-    renderFullScreenRow();
-    $('rp-hours').onchange = (e) => setRemPref('hours', e.target.checked);
-    $('rp-week').onchange = async (e) => {
-      const ln = nativeLN();
-      if (e.target.checked && ln) { try { if ((await ln.checkPermissions()).display === 'prompt') await ln.requestPermissions(); } catch (_) {} }
-      setRemPref('weekly', e.target.checked);
-    };
-  }
   let lnReady = false;
   function setupNotificationTaps(ln) {   // a tap on the reminder (or its buttons) opens the right place in the app
     if (lnReady || !ln || !ln.addListener) return;
@@ -1285,11 +1336,12 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       if (ln.registerActionTypes) ln.registerActionTypes({ types: [{ id: 'HOUR', actions: [{ id: 'open', title: 'Моите часове' }, { id: 'map', title: 'Навигация' }] }] });
       ln.addListener('localNotificationActionPerformed', (ev) => {
         if (ev && ev.actionId === 'map' && mapLink()) { location.href = mapLink(); return; }
+        if (ev && ev.notification && ev.notification.extra && ev.notification.extra.tip && window.Xems) { Xems.open('xems-card'); return; }
         if (ev && ev.notification && ev.notification.extra && (ev.notification.extra.weekly || ev.notification.extra.test)) { $('cal-card').scrollIntoView({ behavior: 'smooth' }); return; }
         showUpcoming(ev && ev.notification && ev.notification.extra && ev.notification.extra.id, true);
       });
       // the reminder arrives while the app is open: the same full screen at once (not only the small banner)
-      ln.addListener('localNotificationReceived', (n) => { if (!(n && n.extra && (n.extra.weekly || n.extra.test))) showUpcoming(n && n.extra && n.extra.id, true); });
+      ln.addListener('localNotificationReceived', (n) => { if (!(n && n.extra && (n.extra.weekly || n.extra.test || n.extra.tip))) showUpcoming(n && n.extra && n.extra.id, true); });
     } catch (_) {}
   }
   async function syncReminders(ask) {
@@ -1324,6 +1376,9 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
           if (at > now + 30e3) items.push({ id: WEEK_BASE + i, at, kind: 'week', n: i, week: booked.filter((x) => x.start > from && x.start <= to) });
           sun = zonedParts(zonedMs(sun, '12:00', tz()) + 7 * 864e5, tz()).ymd;
         }
+        if (window.Xems && Xems.on() && Xems.notes) {
+          Xems.notes(booked, now, cfg.slot.minutes).slice(0, 30).forEach((n, k) => items.push({ id: TIP_BASE + k, at: n.at, kind: 'tip', title: n.title, body: n.body }));
+        }
       }
       items.sort((a, b) => a.at - b.at).splice(60);   // iOS keeps at most 64 pending notifications
       const pend = ((await ln.getPending()).notifications || []).filter((n) => n.id >= REM_BASE && n.id < 2 * REM_BASE && n.id !== WEEK_BASE - 1);
@@ -1343,7 +1398,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       if (items.length) {
         setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
-          id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : { id: x.bid, ...(isAndroid() ? { fullScreen: true } : {}) },   // Android: over the lock screen
+          id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : x.kind === 'tip' ? { tip: true } : { id: x.bid, ...(isAndroid() ? { fullScreen: true } : {}) },   // Android: over the lock screen
           sound: remSound(), relevanceScore: 1, interruptionLevel: 'active', ...(isAndroid() ? { channelId: CHANNEL } : {}),   // a normal alert with sound — respects Focus / Do Not Disturb
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
@@ -1526,28 +1581,22 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   function openProfile() {
     if (!cfg) return;
     const ahead = mine.filter((h) => h.status === 'booked' && zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) > Date.now()).length;
+    // four rows (owner, 2026-11): what is booked · how it goes · who I am (data, training profile, notifications) · the studio
+    // (address, hours, rules, help, privacy, another studio) — every rare thing lives one level down, never as its own row
     const el = sheet(`<h3>Моят профил</h3>
       <ul class="menu">
         <li><button data-p="mine">${ic('cal')}<span>Моите часове<small>${ahead ? ahead + ' предстоящи' : 'Няма предстоящи'}</small></span><span class="go">${ic('chev')}</span></button></li>
         ${window.Xems && Xems.on() ? Xems.menuItems() : ''}
-        <li><button data-p="me">${ic('user')}<span>Моите данни<small>${me.name ? esc(me.name) : 'Още не сте записвали час'}</small></span><span class="go">${ic('chev')}</span></button></li>
-        ${APP && nativeLN() ? `<li><button data-p="rem">${ic('bell')}<span>Напомняния<small>${[remPrefs().hours && 'Преди часа', remPrefs().weekly && 'Всяка неделя'].filter(Boolean).join(' · ') || 'Изключени'}</small></span><span class="go">${ic('chev')}</span></button></li>` : ''}
-        <li><button data-p="studio">${ic('pin')}<span>Студиото<small>${cfg.address ? esc(cfg.address) : 'Адрес, телефон, работно време'}</small></span><span class="go">${ic('chev')}</span></button></li>
-        <li><button data-p="terms">${ic('doc')}<span>Правила и условия</span><span class="go">${ic('chev')}</span></button></li>
-        <li><a href="https://biocode.website/studio-support.html">${ic('help')}<span>Помощ и контакт</span><span class="go">${ic('chev')}</span></a></li>
-        <li><a href="https://biocode.website/studio-privacy.html">${ic('shield')}<span>Поверителност</span><span class="go">${ic('chev')}</span></a></li>
-        ${APP ? `<li><button data-p="switch">${ic('swap')}<span>Смени студио</span><span class="go">${ic('chev')}</span></button></li>` : ''}
+        <li><button data-p="me">${ic('user')}<span>Профил<small>${esc([me.name || 'Още не сте записвали час', APP && nativeLN() ? (remPrefs().hours ? 'напомняния вкл.' : 'без напомняния') : ''].filter(Boolean).join(' · '))}</small></span><span class="go">${ic('chev')}</span></button></li>
+        <li><button data-p="studio">${ic('pin')}<span>Студиото<small>${cfg.address ? esc(cfg.address) : 'Адрес, работно време, правила'}</small></span><span class="go">${ic('chev')}</span></button></li>
       </ul><button class="btn sec" data-close>Затвори</button>`, (e) => {
       const b = e.target.closest('[data-p]');
       if (!b) return;
       const k = b.dataset.p;
       if (k.startsWith('xems-') && window.Xems) { Xems.open(k); return; }
       if (k === 'mine') openMine();
-      else if (k === 'terms') { closeSheet(); showTerms(); }
-      else if (k === 'switch') { $('switch').click(); }
       else if (k === 'studio') openStudioInfo();
-      else if (k === 'me') openMyData();
-      else if (k === 'rem') openReminders();
+      else if (k === 'me') openMe();
     });
     if (window.Xems && Xems.on()) {   // the card may have news: the menu updates itself once it is known
       const before = Xems.menuItems();
@@ -1563,21 +1612,41 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       ${cfg.phone ? `<a class="btn sec" href="tel:${esc(cfg.phone.replace(/[^\d+]/g, ''))}">${ic('phone')}Обади се</a>` : ''}
       <b style="display:flex;align-items:center;gap:6px;margin-top:16px">${ic('clock')}Работно време</b>${hoursTable()}
       <p class="small muted">Час: ${cfg.slot.minutes} мин${cfg.price ? ' · ' + esc(money(cfg.price)) : ''}. Записване до ${cfg.rules.daysAhead} дни напред.</p>
-      <button class="btn sec" ${alone ? 'data-close>Затвори' : 'data-back>Назад'}</button>`, (e) => { if (e.target.closest('[data-back]')) openProfile(); });
+      ${alone ? '' : `<ul class="menu menu-quiet">
+        <li><button data-p="terms">${ic('doc')}<span>Правила и условия</span><span class="go">${ic('chev')}</span></button></li>
+        <li><a href="https://biocode.website/studio-support.html">${ic('help')}<span>Помощ и контакт</span><span class="go">${ic('chev')}</span></a></li>
+        <li><a href="https://biocode.website/studio-privacy.html">${ic('shield')}<span>Поверителност</span><span class="go">${ic('chev')}</span></a></li>
+        ${APP ? `<li><button data-p="switch">${ic('swap')}<span>Смени студио</span><span class="go">${ic('chev')}</span></button></li>` : ''}
+      </ul>`}
+      <button class="btn sec" ${alone ? 'data-close>Затвори' : 'data-back>Назад'}</button>`, (e) => {
+      if (e.target.closest('[data-back]')) { openProfile(); return; }
+      const p = e.target.closest('[data-p]');
+      if (p && p.dataset.p === 'terms') { closeSheet(); showTerms(); }
+      else if (p && p.dataset.p === 'switch') $('switch').click();
+    });
   }
-  function openMyData() {
-    sheet(`<h3>Моите данни</h3>
+  /* Профил: who I am for the studio (name, e-mail, phone), the training profile (XEMS studios), the notifications, delete */
+  function openMe() {
+    const p = remPrefs(), h = cfg.rules.reminderHours, ln = APP && nativeLN();
+    sheet(`<h3>Профил</h3>
       ${me.token ? `<label class="f">Име и фамилия<input id="md-name" value="${esc(me.name || '')}" autocomplete="name"></label>
       <label class="f">Имейл<input id="md-email" type="email" value="${esc(me.email || '')}" autocomplete="email"></label>
       ${cfg.acuity ? '<p class="small muted">С имейла, с който сте записвали часове досега, ги виждате и тук.</p>' : ''}
       <p class="err" id="md-err"></p><button class="btn sec" data-go="md-save">Запази</button>` : ''}
       <ul class="list">${me.token ? '' : `<li><span class="muted">Име</span><span>${esc(me.name || '—')}</span></li>`}<li><span class="muted">Телефон</span><span>${esc(me.phone || '—')}</span></li>
       ${me.card ? `<li><span class="muted">Карта</span><span>${esc(cardName(me.card))}</span></li>` : ''}${codeOk(me.code) ? `<li><span class="muted">Код</span><span>${esc(me.code.code)}</span></li>` : ''}</ul>
+      ${window.Xems && Xems.on() ? `<ul class="menu">${Xems.dataItem()}</ul>` : ''}
+      ${ln ? `<p class="sec-title" style="margin:18px 0 0">Известия</p>
+      <label class="tick"><input type="checkbox" id="rp-hours" ${p.hours ? 'checked' : ''}><span>Преди всеки час<small class="muted" style="display:block">Вечерта преди в 19:00${h ? ` и ${h} ч. преди` : ''}</small></span></label>
+      <label class="tick"><input type="checkbox" id="rp-week" ${p.weekly ? 'checked' : ''}><span>Седмицата и съвети<small class="muted" style="display:block">В неделя в 18:00 — седмицата спрямо целта; след тренировка — едно кратко напомняне</small></span></label>
+      <div id="rp-fs"></div>` : ''}
       <p class="small muted">Данните се пазят на устройството и в студиото ${esc(cfg.brand.name)} — само за записванията Ви. Можете да ги изтриете по всяко време.</p>
-      ${me.token ? `<button class="btn danger" data-go="forget">${ic('trash')}Изтрий данните ми</button>` : ''}
-      <button class="btn sec" data-back>Назад</button>`, (e) => {
+      <button class="btn sec" data-back>Назад</button>
+      ${me.token ? `<button class="btn quiet xdel" data-go="forget">${ic('trash')}Изтрий данните ми</button>` : ''}`, (e) => {
       if (e.target.closest('[data-back]')) { openProfile(); return; }
       if (e.target.closest('[data-go=forget]')) { closeSheet(); $('forget').click(); return; }
+      const x = e.target.closest('[data-p]');
+      if (x && x.dataset.p.startsWith('xems-') && window.Xems) { Xems.open(x.dataset.p); return; }
       const sv = e.target.closest('[data-go=md-save]');
       if (sv) (async () => {
         const name = $('md-name').value.trim(), email = $('md-email').value.trim();
@@ -1588,13 +1657,20 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         unbusy(sv);
         if (r.status !== 200) { $('md-err').textContent = 'Не се запази. Опитайте отново.'; return; }
         me.name = name; me.email = email; save('me', me);
-        closeSheet(); toast('Запазено');
+        toast('Запазено');
         await refreshMine();
       })();
     });
+    if (!ln) return;
+    renderFullScreenRow();
+    $('rp-hours').onchange = (e) => setRemPref('hours', e.target.checked);
+    $('rp-week').onchange = async (e) => {
+      if (e.target.checked) { try { if ((await ln.checkPermissions()).display === 'prompt') await ln.requestPermissions(); } catch (_) {} }
+      setRemPref('weekly', e.target.checked);
+    };
   }
   $('fab').onclick = openProfile;
-  $('mine-mail-go').onclick = openMyData;
+  $('mine-mail-go').onclick = openMe;
 
 
   /* every page a link leads to (rules, questions, effects, help, privacy, progress) opens INSIDE the app: a full-screen
@@ -1696,6 +1772,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     } else if (r && r.status === 401) { me.token = ''; save('me', me); mine = []; }
     renderMine();
     if (r && r.status === 200) await syncReminders(askNotify === true);   // the phone's reminders follow the list
+    if (window.Xems && Xems.warm) Xems.warm();   // the trainings from the studio's tablet: the progress and the advice follow them
   }
   function renderMine() { renderMineList(); if (view) renderCal(); }   // the calendar's dots follow my hours
   function renderMineList() {
@@ -2380,7 +2457,8 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   } catch (_) {}
   window.StudioApp = {
     cfg: () => cfg, me: () => me, mine: () => mine, studio: () => STUDIO, sheet, closeSheet, ic, esc, toast, busy, unbusy, openPage,
-    openProfile, showTerms, timeLabel, todayYmd, tz: () => tz(), zonedMs, perWeek: () => {
+    openProfile, openMe, showTerms, timeLabel, todayYmd, tz: () => tz(), zonedMs, zonedParts, mondayMs, syncReminders: () => syncReminders(false), remOn: () => remPrefs().weekly,
+    book: () => { closeSheet(); setTimeout(() => $('cal-card').scrollIntoView({ behavior: 'smooth' }), 260); }, perWeek: () => {
       const since = Date.now() - 28 * 864e5;
       return mine.filter((h) => (h.status === 'done' || h.status === 'booked') && zonedMs(h.time.slice(0, 10), h.time.slice(11), tz()) > since).length / 4;
     },
@@ -2388,6 +2466,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   };
 })();
 </script>
+<script src="xems-advice.js"></script>
 <script>
 /* ════ XEMS module (Моят прогрес · Хранене · Моят профил за тренировките), the same as in XBody (xbody.html).
    ON only for a studio with an XEMS code (admin → Настройки → XEMS код); every other studio does not see it.
@@ -2482,7 +2561,10 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
           trend = sxx > 0 ? Math.round(sxy / sxx * 7 * 864e5 * 100) / 100 : 0;
         }
       }
-      const recent = (Array.isArray(d.sessions) ? d.sessions : []).filter((x) => x && (x.start || x.id) > Date.now() - 28 * 864e5);
+      const all = (Array.isArray(d.sessions) ? d.sessions : []).filter((x) => x && (x.start || x.id) > 0);
+      save('hist', all.filter((x) => (x.start || x.id) > Date.now() - 200 * 864e5).slice(-120).map((x) => ({ t: x.start || x.id, pid: x.programId || '',
+        p: x.program || '', md: x.modes | 0 })));
+      const recent = all.filter((x) => (x.start || x.id) > Date.now() - 28 * 864e5);
       const kc = recent.map((x) => (x.scores && x.scores.kcal > 0 ? x.scores.kcal : 0)).filter(Boolean);
       save('food', { id, at: Date.now(), t: last ? last.t : 0, w: last ? last.w : 0, fat: last && last.fat > 0 ? last.fat : 0,
         water: last && last.water > 0 ? last.water : 0, visc: last && last.visc > 0 ? last.visc : 0, trend: span >= 14 ? trend : null, span: Math.round(span),
@@ -2527,61 +2609,171 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     return { kcal, protein, water: Math.min(3.5, Math.max(1.5, Math.round((w * 0.033 + (lowWater ? 0.3 : 0)) * 10) / 10)), cut, wk,
       meal: Math.min(40, Math.max(20, round(protein / 4, 5))), scaleAt: fresh ? own.t : 0, fat, goal: p.goal, trend, adj, lowWater, highVisc: fresh && own.visc >= 10 };
   }
-  function foodSub() { const f = foodPlan(); return f.stop ? 'Насоки за Вас' : f.kcal ? `≈ ${thousands(f.kcal)} kcal · ${f.protein} г протеин на ден` : 'Калории, протеин и вода за Вас'; }
 
   /* ── the menu lines (inside Моят профил) ── */
   function menuItems() {
+    const w = facts();
+    const prog = news() ? (card.n === 0 ? 'Ново измерване' : 'Нов анализ от тренировката') : w && w.known
+      ? `Тази седмица ${w.now} от ${w.target}${w.rhythm >= 2 ? ` · ритъм ${w.rhythm} седм.` : ''}` : 'Седмицата, съветите и храненето';
+    return `<li><button data-p="xems-card">${ic('chart')}<span>Моят прогрес${news() ? ' <b style="color:var(--brand)">•</b>' : ''}<small>${esc(prog)}</small></span><span class="go">${ic('chev')}</span></button></li>`;
+  }
+  /* the training profile, as one row inside Профил */
+  function dataItem() {
     const done = sent();
     const miss = done ? missing(prof()) : null;
-    const prog = !card || !card.url ? 'Ще се появи след първата тренировка или измерване' : card.n === 0 ? (news() ? 'Ново измерване' : 'Измерванията на кантара') : news() ? 'Нов анализ от тренировката' : 'Тренировки и измервания';
-    return `<li><button data-p="xems-card"${card && card.url ? '' : ' disabled style="opacity:.55"'}>${ic('chart')}<span>Моят прогрес${news() ? ' <b style="color:var(--brand)">•</b>' : ''}<small>${esc(prog)}</small></span><span class="go">${ic('chev')}</span></button></li>
-      <li><button data-p="xems-food">${ic('fire')}<span>Хранене<small>${esc(foodSub())}</small></span><span class="go">${ic('chev')}</span></button></li>
-      <li><button data-p="xems-data">${ic('idcard')}<span>Профил за тренировките<small>${esc(!done ? 'Попълнете — отнема около минута' : miss.length ? 'Остава: ' + miss.join(', ') : 'Попълнен')}</small></span><span class="go">${ic('chev')}</span></button></li>`;
+    return `<li><button data-p="xems-data">${ic('idcard')}<span>За тренировките<small>${esc(!done ? 'Цел, ръст, тегло — отнема около минута' : miss.length ? 'Остава: ' + miss.join(', ') : 'Попълнен')}</small></span><span class="go">${ic('chev')}</span></button></li>`;
   }
   const back = '<button class="btn sec" data-xb>Назад</button>';
+  function openReport() {
+    if (!card || !card.url) return;
+    const target = news() && card.n !== 0 ? card.url.replace('/c/', '/r/') : card.url;
+    save('seen', card.upd || Date.now());
+    const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+    A.openPage(target + (target.includes('?') ? '&' : '?') + 'theme=' + (dark ? 'dark' : 'light'), 'Моят прогрес');
+  }
   function open(k) {
-    if (k === 'xems-card') {
-      if (!card || !card.url) return;
-      const target = news() && card.n !== 0 ? card.url.replace('/c/', '/r/') : card.url;
-      save('seen', card.upd || Date.now());
-      const dark = matchMedia('(prefers-color-scheme: dark)').matches;
-      A.openPage(target + (target.includes('?') ? '&' : '?') + 'theme=' + (dark ? 'dark' : 'light'), 'Моят прогрес');
-      return;
-    }
-    if (k === 'xems-food') { openFood(); loadFood().then((ch) => { if (ch) openFood(); }); return; }
+    if (k === 'xems-card') { openHub(); Promise.all([lookup(false), loadFood()]).then(([, ch]) => { if (ch && document.querySelector('.sheet .xweek')) openHub(); }); return; }
     if (k === 'xems-data') openData(!sent());
+  }
+
+  /* ── after the training: the advice lives in xems-advice.js (one file for this page, xbody.html and the tablet's report) ── */
+  const XA = window.XemsAdvice || null;
+  const pidOf = (x) => (XA ? XA.pidOf(x) : '');
+  const goal = () => prof().goal || 'tone';
+  function adviceFor(x) {
+    if (!XA) return { id: '', P: null, active: true, today: [], between: [], gap: [3, 4], wk: 2, note: '' };
+    return XA.forSession(x ? pidOf(x) : '', x ? x.md | 0 : 0, goal());
+  }
+  /* the trainings: from the studio's tablet (XEMS), else the held hours of the booking list */
+  function trainings() {
+    const h = load('hist', []);
+    if (h.length) return h.slice().sort((a, b) => a.t - b.t);
+    return A.mine().filter((x) => x.status === 'done').map((x) => ({ t: A.zonedMs(x.time.slice(0, 10), x.time.slice(11), A.tz()), pid: '', p: '', md: 0 }))
+      .sort((a, b) => a.t - b.t);
+  }
+  /* the week and the rhythm (weeks in a row with the goal met): what the menu, the hub and the Sunday message say */
+  function facts() {
+    const list = trainings();
+    const last = list[list.length - 1] || null;
+    const adv = adviceFor(last);
+    const mon = A.mondayMs(Date.now());
+    const inWeek = (k) => list.filter((x) => x.t >= mon - k * 7 * 864e5 && x.t < mon - (k - 1) * 7 * 864e5).length;
+    const now = inWeek(0), lastWk = inWeek(1);
+    let rhythm = now >= adv.wk ? 1 : 0;
+    for (let k = 1; k < 52 && inWeek(k) >= adv.wk; k++) rhythm++;
+    let course = null;
+    if (last && adv.P && adv.P.course) {
+      let n = 1;
+      for (let i = list.length - 2; i >= 0 && pidOf(list[i]) === adv.id && list[i + 1].t - list[i].t <= 21 * 864e5; i--) n++;
+      course = { n, of: adv.P.course, name: adv.P.name || '' };
+    }
+    return { known: list.length > 0, now, last: lastWk, target: adv.wk, rhythm, slim: goal() === 'fat', course, adv, lastT: last ? last.t : 0 };
+  }
+  /* the phone's advice notifications (only with "Седмицата и съвети" on): after each booked hour one practical line, and once the
+     rest is over with nothing booked, one calm word — never at night, at most one a day */
+  function notes(booked, now, slotMin) {
+    const f = facts();
+    const adv = f.adv;
+    const hm = (t) => A.zonedParts(t, A.tz()).hm;   // the studio's clock, as every other reminder
+    const quiet = (t) => hm(t) < '08:00' || hm(t) > '21:30';
+    const at10 = (t) => A.zonedMs(A.zonedParts(t, A.tz()).ymd, '10:00', A.tz());
+    const out = [];
+    const days = {};
+    const line = adv.note;
+    for (const { start } of (line ? booked : [])) {
+      const at = start + (slotMin || 30) * 60e3 + 45 * 60e3;
+      const day = A.zonedParts(at, A.tz()).ymd;
+      if (at > now + 60e3 && at < now + 21 * 864e5 && !quiet(at) && !days[day]) { days[day] = true; out.push({ at, title: A.cfg().brand.name, body: line }); }
+    }
+    if (!booked.length && f.lastT && now - f.lastT < 21 * 864e5) {
+      let at = at10(f.lastT + adv.gap[1] * 864e5);
+      if (at < now + 60e3) at = at10(now + 864e5);
+      const n = Math.round((at - f.lastT) / 864e5);
+      if (!days[A.zonedParts(at, A.tz()).ymd]) out.push({ at, title: A.cfg().brand.name, body: `${n} дни от последната тренировка — подходящ момент за следващата.` });
+    }
+    return out.sort((a, b) => a.at - b.at);
+  }
+  let warmAt = 0;
+  async function warm() {   // after the hours refresh (app open): the card and the trainings, at most every 10 min; the reminders follow
+    if (!on() || Date.now() - warmAt < 600e3) return;
+    warmAt = Date.now();
+    await lookup(false);
+    if (await loadFood() && A.remOn()) A.syncReminders();
+  }
+
+  /* ── Моят прогрес: the week (ring, rhythm, course) · after the training · food · the whole report ── */
+  const WDL = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  const MONL = ['яну', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек'];
+  const dayName = (t) => { const d = new Date(t); return `${WDL[d.getDay()]}, ${d.getDate()} ${MONL[d.getMonth()]}`; };
+  function ring(n, of) {
+    const r = 26, c = 2 * Math.PI * r, k = Math.min(1, of ? n / of : 0);
+    return `<svg viewBox="0 0 64 64" class="xring" aria-hidden="true"><circle cx="32" cy="32" r="${r}" class="bg"/><circle cx="32" cy="32" r="${r}" class="fg"
+      style="--d:${(c * k).toFixed(1)}px;--c:${c.toFixed(1)}px" stroke-dasharray="${(c * k).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="37">${n}/${of}</text></svg>`;
+  }
+  function advRow(k) {
+    const t = XA.TIP[k];
+    return `<details class="xadv"><summary>${ic(t.i)}<span>${t.bg[0]}</span>${ic('chev')}</summary><p>${t.bg[1]}</p></details>`;
+  }
+  function openHub() {
+    const f = facts();
+    const adv = f.adv;
+    const booked = A.mine().filter((h) => h.status === 'booked').map((h) => ({ h, t: A.zonedMs(h.time.slice(0, 10), h.time.slice(11), A.tz()) }))
+      .filter((x) => x.t > Date.now()).sort((a, b) => a.t - b.t);
+    const mon = A.mondayMs(Date.now());
+    const inWeek = booked.filter((x) => x.t < mon + 7 * 864e5).length;
+    const status = f.now >= f.target ? 'Целта за седмицата е изпълнена.'
+      : inWeek ? `Записан${inWeek > 1 ? 'и' : ''}: ${booked.filter((x) => x.t < mon + 7 * 864e5).map((x) => dayName(x.t) + ' · ' + x.h.time.slice(11)).join(', ')}`
+      : `Още ${f.target - f.now} за целта.`;
+    let html = `<h3>Моят прогрес</h3>
+      <div class="xweek">${ring(f.now, f.target)}<div><b>Тази седмица</b><small>${esc(status)}</small>
+        <div class="xbadges">${f.rhythm >= 2 ? `<span class="xbadge">Ритъм · ${f.rhythm} седмици</span>` : ''}${f.course
+          ? `<span class="xbadge">${esc(f.course.name)} · ${f.course.n >= f.course.of ? 'курсът е завършен' : f.course.n + ' от ' + f.course.of}</span>` : ''}</div></div></div>`;
+    const since = f.lastT ? Date.now() - f.lastT : Infinity;
+    if (since < 10 * 864e5) {
+      const today = new Date(f.lastT).toDateString() === new Date().toDateString();
+      html += `<p class="sec-title">${adv.active ? 'След тренировката' : 'След процедурата'} · ${esc(dayName(f.lastT))}</p>
+        <div class="xadvs">${(today ? adv.today : adv.between).map(advRow).join('')}</div>`;
+      const nx = booked[0];
+      if (nx) html += `<div class="xnext">${ic('cal')}<span>Следващият час<b>${esc(A.timeLabel(nx.h.time))}</b></span><span class="ok">${ic('check')}</span></div>`;
+      else {
+        const d = new Date(f.lastT + adv.gap[0] * 864e5);
+        const due = d.getTime() <= Date.now();
+        html += `<button class="xnext go" data-go="book">${ic('cal')}<span>${due ? 'Време е за следващата' : `Следващата — след ${adv.gap[0]}–${adv.gap[1]} дни`}<b>${due ? 'Свободните часове' : 'около ' + esc(dayName(d.getTime()))}</b></span>${ic('chev')}</button>`;
+      }
+      if (adv.active && since < 4 * 864e5) html += '<p class="small muted xwarn">Силна болка в мускулите повече от 3 дни или тъмна урина — свържете се с лекар.</p>';
+    }
+    const fp = foodPlan();
+    html += '<p class="sec-title">Хранене</p>';
+    if (fp.stop) html += `<div class="policy">${ic('info')}<div>При ${fp.stop} храненето се определя заедно със специалист. Попитайте треньора си при следващата тренировка.</div></div>`;
+    else if (fp.kcal) {
+      html += `<div class="xtiles"><div class="xtile">${ic('fire')}<b>${thousands(fp.kcal)}</b><small>kcal ${fp.cut ? (fp.goal === 'fat' ? 'за отслабване' : 'за стягане') : 'на ден'}</small></div>
+        <div class="xtile">${ic('egg')}<b>${fp.protein}<em>г</em></b><small>протеин</small></div>
+        <div class="xtile">${ic('drop')}<b>${String(fp.water).replace('.', ',')}<em>л</em></b><small>вода на ден</small></div></div>`;
+      const src = [];
+      if (fp.scaleAt) src.push('по измерването от ' + new Date(fp.scaleAt).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' }));
+      if (fp.trend !== null && Math.abs(fp.trend) >= 0.1) src.push('теглото ' + (fp.trend < 0 ? '−' : '+') + Math.abs(fp.trend).toFixed(1).replace('.', ',') + ' кг седмично');
+      html += `<p class="small muted" style="text-align:center;margin:8px 0 0">${esc(src.length ? src.join(' · ') : 'по данните в профила Ви')}. Ориентир за деня, не диета.</p>`;
+    } else html += `<button class="next-btn" data-go="fill">${ic('fire')}<span><small>Нека сметнем калориите Ви</small><strong>Остава: ${esc((fp.miss || []).join(', '))}</strong></span><span class="go">${ic('chev')}</span></button>`;
+    html += `<details class="xadv xday"><summary>${ic('clock')}<span>В деня на тренировка</span>${ic('chev')}</summary><div class="xtips">` +
+      tip('clock', 'Хапнете леко 1–2 часа преди — не на гладно и не на пълен стомах.') +
+      tip('drop', 'Половин литър вода в повече — чаша преди и след.') +
+      tip('egg', 'До час след нея — протеин' + (fp.meal ? ', около ' + fp.meal + ' г' : '') + '.', 'Кисело мляко, яйца, извара, риба или пилешко.') +
+      tip('check', GOAL_TIP[fp.goal] || GOAL_TIP.tone) +
+      (fp.lowWater ? tip('drop', 'Кантарът показва малко вода в тялото — пийте по малко през целия ден.') : '') + '</div></details>';
+    html += card && card.url
+      ? `<button class="btn" data-go="report" style="margin-top:16px">${ic('chart')}${card.n === 0 ? 'Измерванията на кантара' : 'Отчетите от тренировките'}${news() ? ' · ново' : ''}</button>`
+      : '<p class="small muted" style="text-align:center;margin:14px 0 0">Отчетите се появяват тук след първата тренировка или измерване.</p>';
+    A.sheet(html + back, (e) => {
+      if (e.target.closest('[data-xb]')) A.openProfile();
+      else if (e.target.closest('[data-go=report]')) openReport();
+      else if (e.target.closest('[data-go=book]')) A.book();
+      else if (e.target.closest('[data-go=fill]')) openData(true);
+    });
   }
 
   function tip(i, text, sub) { return `<div class="xtip">${ic(i)}<span>${text}${sub ? `<small>${sub}</small>` : ''}</span></div>`; }
   const GOAL_TIP = { fat: 'Отслабването идва от по-малко захар и тестени, не от пропуснати хранения.', tone: 'Разделете протеина в 3–4 хранения — така мускулите го използват най-добре.',
     cellulite: 'По-малко сол и готови храни, повече вода и зеленчуци.', drain: 'По-малко сол, повече вода, зеленчуци и плодове.', massage: 'Вода и протеин и на следващия ден помагат на мускулите да се възстановят.' };
-  function openFood() {
-    const f = foodPlan();
-    const nx = A.next();
-    let html = '<h3>Хранене</h3>';
-    if (f.stop) {
-      html += `<div class="policy">${ic('info')}<div>При ${f.stop} храненето се определя заедно със специалист. Попитайте треньора си при следващата тренировка.</div></div>`;
-    } else if (f.kcal) {
-      html += `<div class="xtiles"><div class="xtile">${ic('fire')}<b>${thousands(f.kcal)}</b><small>kcal ${f.cut ? (f.goal === 'fat' ? 'за отслабване' : 'за стягане') : 'на ден'}</small></div>
-        <div class="xtile">${ic('egg')}<b>${f.protein}<em>г</em></b><small>протеин</small></div>
-        <div class="xtile">${ic('drop')}<b>${String(f.water).replace('.', ',')}<em>л</em></b><small>вода на ден</small></div></div>`;
-      const src = [];
-      if (f.scaleAt) src.push('по измерването от ' + new Date(f.scaleAt).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' }));
-      if (f.trend !== null && Math.abs(f.trend) >= 0.1) src.push('теглото ' + (f.trend < 0 ? '−' : '+') + Math.abs(f.trend).toFixed(1).replace('.', ',') + ' кг седмично');
-      if (f.wk >= 0.5) src.push(Math.round(f.wk) + (Math.round(f.wk) === 1 ? ' тренировка' : ' тренировки') + ' седмично');
-      html += `<p class="small muted" style="text-align:center;margin:8px 0 0">${esc(src.length ? src.join(' · ') : 'по данните в профила Ви')}. Ориентир за деня, не диета.</p>`;
-    } else {
-      html += `<button class="next-btn" data-go="fill">${ic('fire')}<span><small>Нека сметнем калориите Ви</small><strong>Остава: ${esc((f.miss || []).join(', '))}</strong></span><span class="go">${ic('chev')}</span></button>`;
-    }
-    html += `<p class="sec-title" style="margin:18px 0 6px">${nx ? 'Тренировка ' + esc(A.timeLabel(nx)) : 'В деня на тренировка'}</p><div class="xtips">` +
-      tip('clock', 'Хапнете леко 1–2 часа преди — не на гладно и не на пълен стомах.') +
-      tip('drop', 'Половин литър вода в повече — чаша преди и след.') +
-      tip('egg', 'До час след нея — протеин' + (f.meal ? ', около ' + f.meal + ' г' : '') + '.', 'Кисело мляко, яйца, извара, риба или пиле.') +
-      tip('check', GOAL_TIP[f.goal] || GOAL_TIP.tone) +
-      (f.lowWater ? tip('drop', 'Кантарът показва малко вода в тялото — пийте по малко през целия ден.') : '') + '</div>' + back;
-    A.sheet(html, (e) => { if (e.target.closest('[data-xb]')) A.openProfile(); else if (e.target.closest('[data-go=fill]')) openData(true); });
-  }
-
   /* Профил за тренировките: view or edit; the health answer needs its own consent */
   let st = null, health = null;
   function chips(k, list, multi) {
@@ -2625,7 +2817,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     A.sheet(html, onClick(edit));
   }
   const onClick = (edit) => async (e) => {
-    if (e.target.closest('[data-xb]')) { if (edit && sent()) openData(false); else A.openProfile(); return; }
+    if (e.target.closest('[data-xb]')) { if (edit && sent()) openData(false); else A.openMe(); return; }
     if (e.target.closest('[data-go=edit]')) { openData(true); return; }
     const chip = e.target.closest('.xchip');
     if (chip) {
@@ -2659,9 +2851,9 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     } catch (_) { A.unbusy(go); err.textContent = 'Няма връзка. Данните са запазени на телефона — опитайте отново.'; }
   };
   /* "Изтрий данните ми" also forgets this module's data on the phone */
-  function forget() { ['card', 'seen', 'profile', 'sent', 'food'].forEach((n) => { try { localStorage.removeItem(key(n)); } catch (_) {} }); card = null; }
+  function forget() { ['card', 'seen', 'profile', 'sent', 'food', 'hist'].forEach((n) => { try { localStorage.removeItem(key(n)); } catch (_) {} }); card = null; }
 
-  window.Xems = { on, menuItems, open, forget, refresh: () => (on() ? lookup(false) : Promise.resolve()) };
+  window.Xems = { on, menuItems, dataItem, open, forget, facts: () => (on() ? facts() : null), notes, warm, refresh: () => (on() ? lookup(false) : Promise.resolve()) };
 })();
 </script>
 
