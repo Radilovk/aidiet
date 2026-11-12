@@ -2863,8 +2863,12 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     save('profile', st);
     A.busy(go, 'Запазване…');
     try {
-      const k = await sha(c.email || c.phone);
-      const p = { consent: true, healthConsent: health === true, name: c.name, email: c.email, phone: c.phoneRaw, sex: st.sex || '', by: st.by, h: st.h, w: st.w,
+      // what the server accepts: an e-mail of the usual shape (else none — the phone finds the client) and a phone of digits
+      // and + ( ) - / . (Android's autofill brings invisible marks and no-break spaces that it would refuse)
+      const email = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(c.email) ? c.email : '';
+      const phone = String(c.phoneRaw || '').replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '');
+      const k = await sha(email || c.phone);
+      const p = { consent: true, healthConsent: health === true, name: c.name, email, phone, sex: st.sex || '', by: st.by, h: st.h, w: st.w,
         goal: st.goal || '', fit: st.fit || '', focus: st.focus || [], cond: st.cond || [], contra: st.contra || [], note: st.note || '' };
       const r = await fetch(API + '/v1/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studio: A.cfg().xems, key: k, profile: Object.assign({ t: Math.floor(Date.now() / 1000) }, p) }) });
