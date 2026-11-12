@@ -5098,6 +5098,10 @@
                 sendBtn.textContent = 'Запазване';
                 say(MSG_DEFAULT);
                 try {
+                    /* what the server accepts: an e-mail of the usual shape (else none — the phone finds the client) and a phone
+                       of digits and + (Android's autofill brings invisible marks and no-break spaces that it would refuse) */
+                    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(p.email || '')) p.email = '';
+                    p.phone = String(p.phone || '').replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '');
                     const key = await sha(p.email || digits(p.phone));
                     const res = await fetch(API + '/v1/profile', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
