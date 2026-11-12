@@ -2636,7 +2636,10 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   }
   function open(k) {
     if (k === 'xems-card') { openHub(); Promise.all([lookup(false), loadFood()]).then(([, ch]) => { if (ch && document.querySelector('.sheet .xweek')) openHub(); }); return; }
-    if (k === 'xems-data') openData(!sent());
+    if (k === 'xems-data') {
+      openData(!sent());
+      prefill(true).then((ch) => { if (ch && document.getElementById('x-by')) { st = null; openData(true); } });
+    }
   }
 
   /* ── after the training: the advice lives in xems-advice.js (one file for this page, xbody.html and the tablet's report) ── */
@@ -2716,11 +2719,37 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       : `Остава ${miss.slice(0, 2).join(', ')} — и профилът за тренировките е готов.`;
     return { at, title: A.cfg().brand.name, body };
   }
+  /* the profile filled in elsewhere (XBody PWA, the web page) → the empty fields here: sex, year, height, weight, goal,
+     how often, zones (POST /v1/profile/find — never the contact or the health answers). Once a day at most. */
+  const PREFILL_KEYS = ['sex', 'by', 'h', 'w', 'goal', 'fit', 'focus'];
+  async function prefill(force) {
+    const p = prof();
+    const empty = PREFILL_KEYS.filter((k) => (Array.isArray(p[k]) ? !p[k].length : !p[k]));
+    if (!on() || !empty.length || (!force && Date.now() - load('prefillAt', 0) < 864e5)) return false;
+    const c = contact();
+    if (!c.email && !c.phone) return false;
+    save('prefillAt', Date.now());
+    try {
+      const body = { studio: A.cfg().xems };
+      if (c.email) body.ek = await sha(c.email);
+      if (c.phone) body.pk = await sha(c.phone);
+      const r = await fetch(API + '/v1/profile/find', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const d = r.ok ? await r.json().catch(() => null) : null;
+      if (!d || !d.ok || !d.profile) return false;
+      let got = 0;
+      empty.forEach((k) => { const v = d.profile[k]; if (v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && !v.length)) { p[k] = v; got++; } });
+      if (!got) return false;
+      save('profile', p);
+      save('prefilled', Date.now());
+      return true;
+    } catch (_) { return false; }
+  }
   let warmAt = 0;
   async function warm() {   // after the hours refresh (app open): the card and the trainings, at most every 10 min; the reminders follow
     if (!on() || Date.now() - warmAt < 600e3) return;
     warmAt = Date.now();
     await lookup(false);
+    if (await prefill(false)) A.syncReminders();   // a fuller profile: the profile reminder follows
     if (await loadFood() && A.remOn()) A.syncReminders();
   }
 
@@ -2822,6 +2851,9 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         ${row('Да имаме предвид', labels(COND, st.cond).join(', '))}${row('Здраве', (st.contra || []).length ? labels(CONTRA, st.contra).join(', ') : st.healthNo ? 'Няма медицинска причина' : '')}${row('Бележка', st.note)}</ul>
         <button class="btn" data-go="edit">Промени</button>${back}`;
     } else {
+      if (!sent() && Date.now() - load('prefilled', 0) < 30 * 864e5) {
+        html += `<div class="xtip" style="margin:0 0 10px">${ic('check')}<span>Попълнихме от предишния Ви профил<small>Проверете, отговорете за здравето и запазете.</small></span></div>`;
+      }
       html += `<p class="small muted" style="margin-top:0">Помага на треньора да настрои интензитета, зоните и почивките спрямо Вас. Отива само в ${esc(A.cfg().brand.name)}.</p>
         <p class="sec-title">За Вас</p>${chips('sex', [['F', 'Жена'], ['M', 'Мъж']], false)}
         <div class="xnums">${num('x-by', 'Година на раждане', '', st.by, 1920, 2016)}${num('x-h', 'Ръст', 'см', st.h, 100, 230)}${num('x-w', 'Тегло', 'кг', st.w, 30, 250)}</div>
@@ -2887,7 +2919,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     } catch (_) { A.unbusy(go); err.textContent = 'Няма връзка. Данните са запазени на телефона — опитайте отново.'; }
   };
   /* "Изтрий данните ми" also forgets this module's data on the phone */
-  function forget() { ['card', 'seen', 'profile', 'sent', 'food', 'hist', 'pnudge'].forEach((n) => { try { localStorage.removeItem(key(n)); } catch (_) {} }); card = null; }
+  function forget() { ['card', 'seen', 'profile', 'sent', 'food', 'hist', 'pnudge', 'prefillAt', 'prefilled'].forEach((n) => { try { localStorage.removeItem(key(n)); } catch (_) {} }); card = null; }
 
   window.Xems = { on, menuItems, dataItem, open, forget, facts: () => (on() ? facts() : null), notes, profileNote, warm, refresh: () => (on() ? lookup(false) : Promise.resolve()) };
 })();

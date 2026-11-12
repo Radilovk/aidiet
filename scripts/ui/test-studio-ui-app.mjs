@@ -295,6 +295,8 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
       body: [{ t: Date.now() - 20 * 864e5, w: 72 }, { t: Date.now() - 2 * 864e5, w: 71, fat: 24, water: 52 }], sessions: [{ start: Date.now() - 12 * 864e5, programId: 'drain', program: 'Дренаж', modes: 8, scores: { kcal: 180 } },
         { start: Date.now() - 2 * 864e5, programId: 'drain', program: 'Дренаж', modes: 8, scores: { kcal: 190 } }] }) });
     if (/\/(c|r)\/abc123/.test(u)) return route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Моят прогрес</h1>' });
+    if (u.endsWith('/v1/profile/find')) return route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true, profile: { sex: 'F', by: 1988, h: 166, w: 63, goal: 'tone', fit: 'mid', focus: ['glutes'] } }) });
     if (u.endsWith('/v1/profile')) { sent.push(JSON.parse(route.request().postData())); return route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); }
     return route.fulfill({ status: 404, body: '{}' });
   });
@@ -324,8 +326,14 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
   await page.click('[data-xb]');
   await page.click('[data-p=me]');
   await page.click('[data-p=xems-data]');
-  await page.click('.xchip[data-k=sex][data-v=F]'); await page.fill('#x-by', '1990'); await page.fill('#x-h', '168'); await page.fill('#x-w', '71');
-  await page.click('.xchip[data-k=goal][data-v=tone]'); await page.click('.xchip[data-k=fit][data-v=mid]'); await page.click('.xchip[data-k=focus][data-v=abs]');
+  await page.waitForFunction(() => document.getElementById('x-by') && document.getElementById('x-by').value === '1988');   // from the web profile
+  await page.waitForSelector('.sheet .xtip:has-text("Попълнихме от предишния Ви профил")');
+  eq(await page.locator('.xchip[data-k=focus][data-v=glutes]').getAttribute('aria-pressed'), 'true', 'focus from the web profile');
+  await page.screenshot({ path: `${OUT}/app-x3-prefilled.png` });
+  await page.click('.xchip[data-k=focus][data-v=glutes]');   // the test's own answers below
+  await page.click('.xchip[data-k=sex][data-v=F]'); await page.click('.xchip[data-k=sex][data-v=F]'); await page.fill('#x-by', '1990'); await page.fill('#x-h', '168'); await page.fill('#x-w', '71');
+  // goal and how often came from the web profile (a tap would clear them)
+  await page.click('.xchip[data-k=focus][data-v=abs]');
   await page.click('.xchip[data-h="1"]'); await page.click('.xchip[data-k=contra][data-v=hernia]');
   await page.screenshot({ path: `${OUT}/app-x3-profile.png` });
   await page.click('[data-go=send]');

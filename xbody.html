@@ -4238,6 +4238,34 @@
                 }).join('');
             }
 
+            /* the profile filled in elsewhere (the XB-Studio app, another phone) → the empty fields here: sex, year, height,
+               weight, goal, how often, zones (POST /v1/profile/find — never the contact or the health answers) */
+            const PREFILL_KEYS = ['sex', 'by', 'h', 'w', 'goal', 'fit', 'focus'];
+            let prefillDone = false;
+            async function prefill() {
+                const p = saved();
+                const empty = PREFILL_KEYS.filter(function (k) { return Array.isArray(p[k]) ? !p[k].length : !p[k]; });
+                const c = contact();
+                if (prefillDone || !studio() || !empty.length || !c || (!c.email && !c.phone)) return false;
+                prefillDone = true;
+                try {
+                    const body = { studio: studio() };
+                    if (c.email) body.ek = await sha(c.email);
+                    if (c.phone) body.pk = await sha(c.phone);
+                    const r = await fetch(API + '/v1/profile/find', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    const d = r.ok ? await r.json().catch(function () { return null; }) : null;
+                    if (!d || !d.ok || !d.profile) return false;
+                    let got = 0;
+                    empty.forEach(function (k) {
+                        const v = d.profile[k];
+                        if (v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && !v.length)) { p[k] = v; got++; }
+                    });
+                    if (!got) return false;
+                    localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+                    return true;
+                } catch (e) { return false; }
+            }
+
             function update() {
                 btn.classList.toggle('visible', registered() || (Boolean(contact()) && apptBtn.classList.contains('visible')));
                 btn.classList.toggle('todo', (Boolean(studio()) && !registered()) || incomplete() || news());
@@ -4998,6 +5026,14 @@
                 if (!registered() || !editing) st = null;
                 say(MSG_DEFAULT);
                 render('fwd');
+                if (editing && !registered()) {
+                    prefill().then(function (ch) {
+                        if (!ch || view !== 'data' || !editing) return;
+                        st = null;
+                        render();
+                        say('Попълнихме от предишния Ви профил — проверете, отговорете за здравето и запазете.', 'ok');
+                    });
+                }
             }
 
             function back() {
