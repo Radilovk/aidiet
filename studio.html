@@ -1235,6 +1235,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   }
   function remId(bookingId, k = 0) { return REM_BASE + (parseInt(String(bookingId).slice(0, 7), 16) % 300000000) * 3 + k; }   // k: 0 the main one, 1 the evening before, 2 an hour before
   const WEEK_BASE = 1950000000;   // the Sunday reminders (next to the hours' ids, which stay under 1.9e9)
+  const PROFILE_ID = 1919999000;  // the training profile is not filled in yet (XEMS studios): one rare reminder
   const TIP_BASE = 1920000000;    // the advice (XEMS studios): after a training, when the rest is over — between the two
   const remPrefs = () => ({ hours: true, weekly: false, ...load('remPrefs', {}) });
   const WD_SHORT = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -1336,7 +1337,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       if (ln.registerActionTypes) ln.registerActionTypes({ types: [{ id: 'HOUR', actions: [{ id: 'open', title: 'Моите часове' }, { id: 'map', title: 'Навигация' }] }] });
       ln.addListener('localNotificationActionPerformed', (ev) => {
         if (ev && ev.actionId === 'map' && mapLink()) { location.href = mapLink(); return; }
-        if (ev && ev.notification && ev.notification.extra && ev.notification.extra.tip && window.Xems) { Xems.open('xems-card'); return; }
+        if (ev && ev.notification && ev.notification.extra && ev.notification.extra.tip && window.Xems) { Xems.open(ev.notification.extra.profile ? 'xems-data' : 'xems-card'); return; }
         if (ev && ev.notification && ev.notification.extra && (ev.notification.extra.weekly || ev.notification.extra.test)) { $('cal-card').scrollIntoView({ behavior: 'smooth' }); return; }
         showUpcoming(ev && ev.notification && ev.notification.extra && ev.notification.extra.id, true);
       });
@@ -1366,6 +1367,8 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
           const eve = zonedMs(zonedParts(zonedMs(day, '12:00', tz()) - 864e5, tz()).ymd, '19:00', tz());
           if (eve > now + 30e3) items.push({ id: remId(list[0].h.id, 1), bid: list[0].h.id, start: list[0].start, at: eve, kind: 'eve', hms: list.map((x) => x.h.time.slice(11)) });
         }
+        const pn = window.Xems && Xems.on() && Xems.profileNote ? Xems.profileNote(booked, now, cfg.slot.minutes) : null;
+        if (pn) items.push({ id: PROFILE_ID, at: pn.at, kind: 'tip', title: pn.title, body: pn.body, profile: true });
       }
       if (prefs.weekly) {
         let sun = zonedParts(now, tz()).ymd;
@@ -1398,7 +1401,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       if (items.length) {
         setupNotificationTaps(ln);
         await ln.schedule({ notifications: items.map((x) => ({
-          id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : x.kind === 'tip' ? { tip: true } : { id: x.bid, ...(isAndroid() ? { fullScreen: true } : {}) },   // Android: over the lock screen
+          id: x.id, title: remTitle(x), body: remBody(x), actionTypeId: 'HOUR', group: STUDIO, threadIdentifier: STUDIO, extra: x.kind === 'week' ? { weekly: true } : x.profile ? { tip: true, profile: true } : x.kind === 'tip' ? { tip: true } : { id: x.bid, ...(isAndroid() ? { fullScreen: true } : {}) },   // Android: over the lock screen
           sound: remSound(), relevanceScore: 1, interruptionLevel: 'active', ...(isAndroid() ? { channelId: CHANNEL } : {}),   // a normal alert with sound — respects Focus / Do Not Disturb
           schedule: { at: new Date(x.at), allowWhileIdle: true },
         })) });
@@ -2693,6 +2696,26 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     }
     return out.sort((a, b) => a.at - b.at);
   }
+  /* the training profile not filled in (or not complete): one calm reminder at a good moment — the evening after a booked
+     hour at 19:00, else in 2 days — at most once a week and three times in all, then never again; gone once it is sent */
+  function profileNote(booked, now, slotMin) {
+    const miss = sent() ? missing(prof()) : null;
+    if (miss && !miss.length) return null;
+    const st = load('pnudge', { n: 0, at: 0, last: 0 });
+    if (st.at && st.at <= now) { st.n++; st.last = st.at; st.at = 0; save('pnudge', st); }   // the last one was shown
+    if (st.n >= 3) return null;
+    const at19 = (t) => A.zonedMs(A.zonedParts(t, A.tz()).ymd, '19:00', A.tz());
+    const nx = booked[0];
+    let at = nx ? at19(nx.start) : at19(now + 2 * 864e5);
+    if (nx && nx.start + (slotMin || 30) * 60e3 > at - 30 * 60e3) at = at19(nx.start + 864e5);   // a late hour: the next evening
+    if (at < now + 60e3) at = at19(now + 864e5);
+    if (st.last && at < st.last + 7 * 864e5) at = at19(st.last + 7 * 864e5);
+    if (st.at !== at) { st.at = at; save('pnudge', st); }
+    const body = !miss
+      ? 'Профилът за тренировките отнема около минута — така треньорът настройва силата и зоните спрямо Вас.'
+      : `Остава ${miss.slice(0, 2).join(', ')} — и профилът за тренировките е готов.`;
+    return { at, title: A.cfg().brand.name, body };
+  }
   let warmAt = 0;
   async function warm() {   // after the hours refresh (app open): the card and the trainings, at most every 10 min; the reminders follow
     if (!on() || Date.now() - warmAt < 600e3) return;
@@ -2846,14 +2869,14 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       const r = await fetch(API + '/v1/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studio: A.cfg().xems, key: k, profile: Object.assign({ t: Math.floor(Date.now() / 1000) }, p) }) });
       const d = await r.json().catch(() => null);
-      if (d && d.ok) { save('sent', Date.now()); A.toast('Профилът е изпратен до студиото'); openData(false); return; }
+      if (d && d.ok) { save('sent', Date.now()); A.toast('Профилът е изпратен до студиото'); openData(false); A.syncReminders(); return; }
       A.unbusy(go); err.textContent = 'Не успяхме да запазим. Опитайте отново след малко.';
     } catch (_) { A.unbusy(go); err.textContent = 'Няма връзка. Данните са запазени на телефона — опитайте отново.'; }
   };
   /* "Изтрий данните ми" also forgets this module's data on the phone */
-  function forget() { ['card', 'seen', 'profile', 'sent', 'food', 'hist'].forEach((n) => { try { localStorage.removeItem(key(n)); } catch (_) {} }); card = null; }
+  function forget() { ['card', 'seen', 'profile', 'sent', 'food', 'hist', 'pnudge'].forEach((n) => { try { localStorage.removeItem(key(n)); } catch (_) {} }); card = null; }
 
-  window.Xems = { on, menuItems, dataItem, open, forget, facts: () => (on() ? facts() : null), notes, warm, refresh: () => (on() ? lookup(false) : Promise.resolve()) };
+  window.Xems = { on, menuItems, dataItem, open, forget, facts: () => (on() ? facts() : null), notes, profileNote, warm, refresh: () => (on() ? lookup(false) : Promise.resolve()) };
 })();
 </script>
 

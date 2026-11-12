@@ -305,6 +305,9 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
   await page.waitForSelector('[data-p=xems-card]:not([disabled])');
   await page.screenshot({ path: `${OUT}/app-x1-menu.png` });
   eq(await page.locator('.sheet .menu > li').count(), 4, 'menu rows with XEMS: часове · прогрес · профил · студиото');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id === 1919999000));   // the profile is empty
+  const pn = (await ln()).pending.find((n) => n.id === 1919999000);
+  if (zonedParts(pn.at, 'Europe/Sofia').hm !== '19:00' || !/профил.* за тренировките/i.test(pn.body)) throw new Error('profile reminder: ' + JSON.stringify(pn));
   await page.click('[data-p=xems-card]');   // the hub: the week, after the procedure, food, the report
   await page.waitForSelector('.sheet .xweek');
   await page.waitForSelector('.sheet .xbadge:has-text("Дренаж · 2 от 10")');
@@ -332,6 +335,7 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
   await page.waitForSelector('text=Профилът е изпратен до студиото');
   eq(sent.length, 1, 'sent'); eq(sent[0].profile.healthConsent, true, 'consent flag'); eq(sent[0].studio, 'xbody', 'studio code');
   if (sent[0].key.length !== 64) throw new Error('the key is not a hash');
+  await page.waitForFunction(() => !JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id === 1919999000));   // sent: no reminder
   await page.click('.sheet [data-xb]');   // back to Профил: "Седмицата и съвети" adds the advice to the phone's reminders
   await page.check('#rp-week');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id >= 1920000000 && n.id < 1950000000));
