@@ -70,7 +70,8 @@ await page.route('https://aidiet.radilov-k.workers.dev/**', async (route) => {
 });
 const ln = () => page.evaluate(() => JSON.parse(localStorage.getItem('__ln')));
 let fails = 0;
-const step = async (name, fn) => { try { await fn(); console.log('✓', name); } catch (e) { fails++; console.log('✗', name, '—', e.message.split('\n')[0]); await page.screenshot({ path: `${OUT}/app-fail-${name.replace(/\W+/g, '_')}.png` }); } };
+const step = async (name, fn) => { try { await fn(); console.log('✓', name); } catch (e) { fails++; console.log('✗', name, '—', e.message.split('\n')[0]); await page.screenshot({ path: `${OUT}/app-fail-${name.replace(/\W+/g, '_')}.png` });
+  await page.evaluate(() => { try { window.StudioApp.closeSheet(); } catch (_) {} document.querySelectorAll('.viewer, .upcoming').forEach((x) => x.remove()); }).catch(() => {}); await page.waitForTimeout(400); } };   // one failure does not take the next steps with it
 const eq = (a, b, m) => { if (a !== b) throw new Error(`${m}: ${a} ≠ ${b}`); };
 
 await page.goto(PAGE);
@@ -114,7 +115,10 @@ await step('a wrong studio code is refused', async () => {
 
 let day = '';
 await step('first open: the data once (name, phone, rules), then the calendar', async () => {
+  await page.waitForTimeout(500);   // a late load of ?s=plovdiv (the step before) may still remember Пловдив: Бургас again
+  await page.evaluate(() => localStorage.setItem('studio:current', 'burgas'));
   await page.goto(PAGE);
+  await page.waitForSelector('#s-name:has-text("XBODY Бургас")');
   await page.waitForSelector('#onb:not(.hidden)');
   await page.screenshot({ path: `${OUT}/app-onb.png` });
   await page.click('#onb-go');
@@ -179,8 +183,8 @@ await step('move one hour → the reminder follows; cancel → it goes', async (
   await page.waitForSelector('text=Часът е отказан');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.length === 2);
 });
-await step('the Sunday overview: off by default, on from Профил → Напомняния (the week\'s hours or a nudge), off again', async () => {
-  await page.click('#fab'); await page.click('[data-p=rem]');
+await step('the Sunday overview: off by default, on from Профил → Известия (the week\'s hours or the goal), off again', async () => {
+  await page.click('#fab'); await page.click('[data-p=me]');
   await page.waitForSelector('#rp-week');
   if (await page.locator('#rp-week').isChecked()) throw new Error('weekly on by default');
   await page.screenshot({ path: `${OUT}/app-10-reminders.png` });
@@ -195,6 +199,7 @@ await step('the Sunday overview: off by default, on from Профил → Нап
   if (covered && (!sum || !/^(Пн|Вт|Ср|Чт|Пт|Сб|Нд) 08:00/.test(sum.body))) throw new Error('the week of the hour lacks it: ' + JSON.stringify(wk.map((n) => n.body)));
   if (!covered && sum) throw new Error('an hour of this week in a Sunday overview: ' + JSON.stringify(wk.map((n) => n.body)));
   if (!wk.some((n) => !/\d\d:\d\d/.test(n.body))) throw new Error('no nudge for an empty week');
+  if (wk.some((n) => /Нова седмица|нова енергия|прави разлика/.test(n.body))) throw new Error('a stock phrase: ' + JSON.stringify(wk.map((n) => n.body)));
   await page.uncheck('#rp-week');
   await page.waitForFunction(() => !JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id >= 1950000000));
   await page.click('.sheet [data-back]'); await page.click('.sheet [data-close]');
@@ -240,15 +245,20 @@ await step('profile button bottom right: menu → studio (map link, hours) → b
   await page.click('#fab');
   await page.waitForSelector('.menu');
   await page.screenshot({ path: `${OUT}/app-5-menu.png` });
+  eq(await page.locator('.sheet .menu > li').count(), 3, 'menu rows (no XEMS): часове · профил · студиото');
   await page.click('[data-p=studio]');
   await page.waitForSelector('.hrs');
   if (!(await page.locator('.sheet a[href*="maps"]').count())) throw new Error('no navigation link');
   eq(await page.locator('.hrs tr').count(), 7, 'hours rows');
+  for (const sel of ['[data-p=terms]', 'a[href*="studio-support"]', 'a[href*="studio-privacy"]', '[data-p=switch]']) {
+    if (!(await page.locator('.sheet ' + sel).count())) throw new Error('the studio sheet lacks ' + sel);
+  }
   await page.screenshot({ path: `${OUT}/app-6-studio.png` });
   await page.click('[data-back]');
   await page.waitForSelector('.menu');
   await page.click('[data-p=me]');
-  await page.waitForSelector('text=Моите данни');
+  await page.waitForSelector('.sheet h3:has-text("Профил")');
+  await page.waitForSelector('#rp-hours');   // the notifications live in Профил now
   await page.screenshot({ path: `${OUT}/app-7-mydata.png` });
   await page.click('[data-back]');
   await page.waitForSelector('.menu');
@@ -260,16 +270,17 @@ await step('profile button bottom right: menu → studio (map link, hours) → b
   if (fab.y + fab.height > bar.y) throw new Error('the profile button hides behind the booking bar: fab ' + fab.y + '+' + fab.height + ' bar ' + bar.y + '+' + bar.height);
   await page.screenshot({ path: `${OUT}/app-8-fab-bar.png` });
 });
-await step('XEMS module: off by default; with the studio code — Моят прогрес, Хранене, Профил (health only with its own consent)', async () => {
+await step('XEMS module: off by default; with the studio code — Моят прогрес (week, advice, food, report) and За тренировките in Профил (health only with its own consent)', async () => {
   await page.click('#fab');
-  if (await page.locator('[data-p=xems-food]').count()) throw new Error('the module shows without an XEMS code');
+  if (await page.locator('[data-p=xems-card]').count()) throw new Error('the module shows without an XEMS code');
   await page.click('.sheet [data-close]');
   const sent = [];
   await page.route('https://license.biocode-bg.com/**', async (route) => {
     const u = route.request().url();
     if (u.endsWith('/v1/card/find')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, url: 'https://license.biocode-bg.com/c/abc123', at: Math.floor(Date.now() / 1000), n: 3 }) });
     if (u.includes('/v1/history/abc123')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true,
-      body: [{ t: Date.now() - 20 * 864e5, w: 72 }, { t: Date.now() - 2 * 864e5, w: 71, fat: 24, water: 52 }], sessions: [{ start: Date.now() - 5 * 864e5, scores: { kcal: 420 } }] }) });
+      body: [{ t: Date.now() - 20 * 864e5, w: 72 }, { t: Date.now() - 2 * 864e5, w: 71, fat: 24, water: 52 }], sessions: [{ start: Date.now() - 12 * 864e5, programId: 'drain', program: 'Дренаж', modes: 8, scores: { kcal: 180 } },
+        { start: Date.now() - 2 * 864e5, programId: 'drain', program: 'Дренаж', modes: 8, scores: { kcal: 190 } }] }) });
     if (/\/(c|r)\/abc123/.test(u)) return route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Моят прогрес</h1>' });
     if (u.endsWith('/v1/profile')) { sent.push(JSON.parse(route.request().postData())); return route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); }
     return route.fulfill({ status: 404, body: '{}' });
@@ -280,15 +291,22 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
   await page.click('#fab');
   await page.waitForSelector('[data-p=xems-card]:not([disabled])');
   await page.screenshot({ path: `${OUT}/app-x1-menu.png` });
-  await page.click('[data-p=xems-card]');   // the progress page opens inside the app, not in another screen
+  eq(await page.locator('.sheet .menu > li').count(), 4, 'menu rows with XEMS: часове · прогрес · профил · студиото');
+  await page.click('[data-p=xems-card]');   // the hub: the week, after the procedure, food, the report
+  await page.waitForSelector('.sheet .xweek');
+  await page.waitForSelector('.sheet .xbadge:has-text("Дренаж · 2 от 10")');
+  await page.waitForSelector('.sheet .xadv summary:has-text("1,5–2 л вода")');   // the drain's "until the next one"
+  await page.click('.sheet .xadvs .xadv summary');
+  await page.waitForSelector('.sheet .xadvs .xadv[open] p');
+  await page.waitForSelector('.xtiles');
+  await page.screenshot({ path: `${OUT}/app-x2-progress.png`, fullPage: true });
+  await page.click('[data-go=report]');   // the report opens inside the app, not in another screen
   await page.waitForSelector('.viewer iframe[src*="license.biocode-bg.com/"]');
   await page.click('.viewer [data-vx]');
   await page.waitForSelector('.viewer', { state: 'detached' });
-  await page.waitForSelector('.sheet .menu');   // the menu is still there under the page
-  await page.click('[data-p=xems-food]');
-  await page.waitForSelector('.xtiles');
-  await page.screenshot({ path: `${OUT}/app-x2-food.png` });
+  await page.waitForSelector('.sheet .xweek');   // the hub is still there under the page
   await page.click('[data-xb]');
+  await page.click('[data-p=me]');
   await page.click('[data-p=xems-data]');
   await page.click('.xchip[data-k=sex][data-v=F]'); await page.fill('#x-by', '1990'); await page.fill('#x-h', '168'); await page.fill('#x-w', '71');
   await page.click('.xchip[data-k=goal][data-v=tone]'); await page.click('.xchip[data-k=fit][data-v=mid]'); await page.click('.xchip[data-k=focus][data-v=abs]');
@@ -301,7 +319,19 @@ await step('XEMS module: off by default; with the studio code — Моят пр�
   await page.waitForSelector('text=Профилът е изпратен до студиото');
   eq(sent.length, 1, 'sent'); eq(sent[0].profile.healthConsent, true, 'consent flag'); eq(sent[0].studio, 'xbody', 'studio code');
   if (sent[0].key.length !== 64) throw new Error('the key is not a hash');
-  await page.click('.sheet [data-xb]');
+  await page.click('.sheet [data-xb]');   // back to Профил: "Седмицата и съвети" adds the advice to the phone's reminders
+  await page.check('#rp-week');
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id >= 1920000000 && n.id < 1950000000));
+  const all = (await ln()).pending;
+  const tips = all.filter((n) => n.id >= 1920000000 && n.id < 1950000000);
+  const hour = db.prepare("SELECT start_ms, end_ms FROM bookings WHERE status = 'booked' AND name = 'Иван Петров' AND start_ms > ? ORDER BY start_ms LIMIT 1").get(Date.now());
+  if (hour && !tips.some((n) => n.at === hour.end_ms + 45 * 60e3 && /1,5–2 л вода/.test(n.body))) throw new Error('no drain advice after the hour: ' + JSON.stringify(tips));
+  if (tips.some((n) => { const hm = zonedParts(n.at, 'Europe/Sofia').hm; return hm < '08:00' || hm > '21:30'; })) throw new Error('advice at night');
+  const first = all.filter((n) => n.id >= 1950000000).sort((x, y) => x.at - y.at)[0];
+  if (!first || /нова енергия|прави разлика/.test(first.body)) throw new Error('the Sunday line is not from the data: ' + (first && first.body));
+  await page.uncheck('#rp-week');
+  await page.waitForFunction(() => !JSON.parse(localStorage.getItem('__ln')).pending.some((n) => n.id >= 1920000000));
+  await page.click('.sheet [data-back]');
   await page.click('.sheet [data-close]');
 });
 await step('every link stays in the app: rules, studio buttons, help — a full-screen page with Close; a sheet under it stays', async () => {
@@ -318,11 +348,11 @@ await step('every link stays in the app: rules, studio buttons, help — a full-
   await page.waitForSelector('.viewer-body h4');
   await page.screenshot({ path: `${OUT}/app-rules.png` });
   await page.click('.viewer [data-vx]'); await page.waitForSelector('.viewer', { state: 'detached' });
-  await page.click('#fab'); await page.click('.menu a[href*="studio-support"]');
+  await page.click('#fab'); await page.click('[data-p=studio]'); await page.click('.sheet a[href*="studio-support"]');
   await page.waitForSelector('.viewer iframe');
   await page.click('.viewer [data-vx]'); await page.waitForSelector('.viewer', { state: 'detached' });
-  if (!(await page.locator('.sheet .menu').count())) throw new Error('the menu under the page closed');
-  await page.click('.sheet [data-close]');
+  if (!(await page.locator('.sheet .hrs').count())) throw new Error('the studio sheet under the page closed');
+  await page.click('.sheet [data-back]'); await page.click('.sheet [data-close]');
   eq(ctx.pages().length, pages, 'a new browser tab/screen was opened');
 });
 await step('upcoming hour: a full screen on opening the app before the training; "Ще дойда" — not again', async () => {
