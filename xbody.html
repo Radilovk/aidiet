@@ -444,7 +444,11 @@
         .xems-ring { width: 62px; height: 62px; flex-shrink: 0; }
         .xems-ring circle { fill: none; stroke-width: 7; }
         .xems-ring .bg { stroke: #e2e8f0; }
-        .xems-ring .fg { stroke: #b91c1c; stroke-linecap: round; transition: stroke-dasharray .6s ease; }
+        .xems-ring .fg { stroke: #b91c1c; stroke-linecap: round; animation: xemsRing .9s cubic-bezier(0.16, 1, 0.3, 1) .12s both; }
+        @keyframes xemsRing { from { stroke-dasharray: 0 var(--c); } to { stroke-dasharray: var(--d) var(--c); } }
+        .xems-adv summary { transition: transform .12s ease; } .xems-adv summary:active { transform: scale(0.985); }
+        .xems-adv[open] p { animation: xemsRise .22s ease both; }
+        @media (prefers-reduced-motion: reduce) { .xems-ring .fg, .xems-adv[open] p { animation: none; } }
         .xems-ring text { font: 700 15px/1 system-ui, sans-serif; fill: #0f172a; text-anchor: middle; }
         .xems-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
         .xems-badges:empty { display: none; }
@@ -4723,7 +4727,7 @@
             function ring(n, of) {
                 const r = 26, c = 2 * Math.PI * r, k = Math.min(1, of ? n / of : 0);
                 return '<svg viewBox="0 0 64 64" class="xems-ring" aria-hidden="true"><circle cx="32" cy="32" r="' + r + '" class="bg"/>' +
-                    '<circle cx="32" cy="32" r="' + r + '" class="fg" stroke-dasharray="' + (c * k).toFixed(1) + ' ' + c.toFixed(1) +
+                    '<circle cx="32" cy="32" r="' + r + '" class="fg" style="--d:' + (c * k).toFixed(1) + 'px;--c:' + c.toFixed(1) + 'px" stroke-dasharray="' + (c * k).toFixed(1) + ' ' + c.toFixed(1) +
                     '" transform="rotate(-90 32 32)"/><text x="32" y="37">' + n + '/' + of + '</text></svg>';
             }
             function advRow(k) {

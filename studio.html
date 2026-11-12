@@ -392,7 +392,13 @@ label.f input, label.f select, label.f textarea { background: var(--soft); borde
 .xring { width: 64px; height: 64px; flex: none; }
 .xring circle { fill: none; stroke-width: 7; }
 .xring .bg { stroke: color-mix(in srgb, var(--muted) 22%, transparent); }
-.xring .fg { stroke: var(--brand); stroke-linecap: round; transition: stroke-dasharray .6s var(--ease, ease); }
+.xring .fg { stroke: var(--brand); stroke-linecap: round; animation: xringIn .9s cubic-bezier(.16, 1, .3, 1) .12s both; }
+@keyframes xringIn { from { stroke-dasharray: 0 var(--c); } to { stroke-dasharray: var(--d) var(--c); } }
+.xadv summary { transition: background .15s, transform .12s; } .xadv summary:active { transform: scale(.985); }
+.xadv[open] p { animation: xadvIn .22s ease both; } @keyframes xadvIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.xweek, .xadvs .xadv, .xnext { animation: xadvIn .3s ease both; } .xadvs .xadv:nth-child(2) { animation-delay: .04s; } .xadvs .xadv:nth-child(3) { animation-delay: .08s; }
+@media (prefers-reduced-motion: reduce) { .xring .fg, .xadv[open] p, .xweek, .xadvs .xadv, .xnext { animation: none; } }
+.btn.quiet.xdel { color: var(--bad); opacity: 1; min-height: 42px; font-size: 15px; }
 .xring text { font: 700 15px/1 system-ui, sans-serif; fill: var(--text); text-anchor: middle; }
 .xbadges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .xbadges:empty { display: none; }
@@ -1635,8 +1641,8 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
       <label class="tick"><input type="checkbox" id="rp-week" ${p.weekly ? 'checked' : ''}><span>Седмицата и съвети<small class="muted" style="display:block">В неделя в 18:00 — седмицата спрямо целта; след тренировка — едно кратко напомняне</small></span></label>
       <div id="rp-fs"></div>` : ''}
       <p class="small muted">Данните се пазят на устройството и в студиото ${esc(cfg.brand.name)} — само за записванията Ви. Можете да ги изтриете по всяко време.</p>
-      ${me.token ? `<button class="btn danger" data-go="forget">${ic('trash')}Изтрий данните ми</button>` : ''}
-      <button class="btn sec" data-back>Назад</button>`, (e) => {
+      <button class="btn sec" data-back>Назад</button>
+      ${me.token ? `<button class="btn quiet xdel" data-go="forget">${ic('trash')}Изтрий данните ми</button>` : ''}`, (e) => {
       if (e.target.closest('[data-back]')) { openProfile(); return; }
       if (e.target.closest('[data-go=forget]')) { closeSheet(); $('forget').click(); return; }
       const x = e.target.closest('[data-p]');
@@ -2702,7 +2708,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
   function ring(n, of) {
     const r = 26, c = 2 * Math.PI * r, k = Math.min(1, of ? n / of : 0);
     return `<svg viewBox="0 0 64 64" class="xring" aria-hidden="true"><circle cx="32" cy="32" r="${r}" class="bg"/><circle cx="32" cy="32" r="${r}" class="fg"
-      stroke-dasharray="${(c * k).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="37">${n}/${of}</text></svg>`;
+      style="--d:${(c * k).toFixed(1)}px;--c:${c.toFixed(1)}px" stroke-dasharray="${(c * k).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="37">${n}/${of}</text></svg>`;
   }
   function advRow(k) {
     const t = XA.TIP[k];
@@ -2716,7 +2722,7 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
     const mon = A.mondayMs(Date.now());
     const inWeek = booked.filter((x) => x.t < mon + 7 * 864e5).length;
     const status = f.now >= f.target ? 'Целта за седмицата е изпълнена.'
-      : inWeek ? `Записан${inWeek > 1 ? 'и' : ''}: ${booked.filter((x) => x.t < mon + 7 * 864e5).map((x) => A.timeLabel(x.h.time)).join(', ')}`
+      : inWeek ? `Записан${inWeek > 1 ? 'и' : ''}: ${booked.filter((x) => x.t < mon + 7 * 864e5).map((x) => dayName(x.t) + ' · ' + x.h.time.slice(11)).join(', ')}`
       : `Още ${f.target - f.now} за целта.`;
     let html = `<h3>Моят прогрес</h3>
       <div class="xweek">${ring(f.now, f.target)}<div><b>Тази седмица</b><small>${esc(status)}</small>

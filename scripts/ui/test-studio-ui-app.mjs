@@ -2,10 +2,20 @@ import { readFileSync, mkdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const PAGE = pathToFileURL(join(ROOT, 'studio.html')).href;
+// over http, as the real page: Chromium may lose a file:// page's localStorage across a reload (the remembered studio
+// vanished at random), and the page loads xems-advice.js next to itself
+import { createServer } from 'node:http';
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+const server = createServer((rq, rs) => {
+  const p = decodeURIComponent(new URL(rq.url, 'http://x').pathname);
+  try { const b = readFileSync(join(ROOT, p.replace(/^\/+/, '').replace(/\.\.+/g, ''))); rs.writeHead(200, { 'Content-Type': TYPES[p.slice(p.lastIndexOf('.'))] || 'application/octet-stream' }); rs.end(b); }
+  catch (_) { rs.writeHead(404); rs.end(); }
+});
+await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
+const PAGE = `http://127.0.0.1:${server.address().port}/studio.html`;
 // Playwright: from node_modules (CI: npm i --no-save playwright) or from PLAYWRIGHT_MODULES (a folder with node_modules)
 const { chromium } = createRequire(process.env.PLAYWRIGHT_MODULES ? process.env.PLAYWRIGHT_MODULES + '/' : import.meta.url)('playwright');
 const launch = () => chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, timeout: 60000 });
@@ -37,14 +47,17 @@ await call('POST', 'admin/settings', { studio: 'burgas', settings: { brand: { na
 const A = { Authorization: 'Bearer ' + tok };
 
 const browser = await launch();
-const ctx = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 390, height: 844 } });
+// UI_PLATFORM=android|ios, UI_SCHEME=dark|light: the same run on the other phone / theme (screenshots for a design check)
+const PLATFORM = process.env.UI_PLATFORM === 'android' ? 'android' : 'ios';
+const ctx = await browser.newContext({ reducedMotion: 'reduce', colorScheme: process.env.UI_SCHEME === 'dark' ? 'dark' : 'light',
+  viewport: PLATFORM === 'android' ? { width: 412, height: 915 } : { width: 390, height: 844 } });
 // a fake phone: Capacitor + LocalNotifications that remember what was asked
-await ctx.addInitScript(() => {
+await ctx.addInitScript((plat) => {
   const st = JSON.parse(localStorage.getItem('__ln') || '{"perm":"prompt","pending":[],"asked":0,"log":[]}');
   const save = () => localStorage.setItem('__ln', JSON.stringify(st));
   if (!localStorage.getItem('__ln')) save();
   const on = {};
-  window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'ios', Plugins: {
+  window.Capacitor = { isNativePlatform: () => true, getPlatform: () => plat, Plugins: {
   PushNotifications: {   // app 1.2: the same permission as the reminders; register → the device token
     checkPermissions: async () => ({ receive: st.perm }),
     addListener: (ev, fn) => { on[ev] = fn; return { remove() {} }; },
@@ -57,7 +70,7 @@ await ctx.addInitScript(() => {
     cancel: async ({ notifications }) => { st.pending = st.pending.filter((p) => !notifications.some((n) => n.id === p.id)); st.log.push('cancel:' + notifications.length); save(); },
     schedule: async ({ notifications }) => { notifications.forEach((n) => { st.pending.push({ id: n.id, at: new Date(n.schedule.at).getTime(), body: n.body, title: n.title, sound: n.sound, level: n.interruptionLevel }); }); st.log.push('schedule:' + notifications.length); save(); },
   } } };
-});
+}, PLATFORM);
 const page = await ctx.newPage();
 page.setDefaultTimeout(8000);
 const errors = [];
@@ -389,4 +402,5 @@ await step('delete my data: server clean, reminders gone, the phone forgets', as
 });
 console.log('page errors:', errors.length ? errors : 'none');
 await browser.close();
+server.close();
 process.exit(fails ? 1 : 0);
