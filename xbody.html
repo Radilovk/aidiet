@@ -1630,6 +1630,7 @@
         </iframe>
     </div>
     
+    <script src="xems-advice.js"></script>
     <script src="https://embed.acuityscheduling.com/js/embed.js" type="text/javascript" defer></script>
 
     <script>
@@ -4679,68 +4680,12 @@
                 };
             }
 
-            /* ── after the training: the same advice as the tablet's report (ems: branding/report/session-report.html → G_TIPS,
-                  G_PROG, G_FAM) and the XB-Studio app (studio.html → TIP, PROG, FAM) — change the three together ── */
-            const ADV = {
-                water: ['fa-droplet', 'Половин литър вода в следващия час', 'Мускулите работиха много — водата им помага да се изчистят и възстановят.'],
-                waterP: ['fa-droplet', 'Половин литър вода в следващия час', 'Водата помага на тялото да отведе течността, която процедурата раздвижи.'],
-                protein: ['fa-egg', 'Белтък до 2 часа след тренировката', 'Яйца, извара, риба, месо или боб — от това мускулът се възстановява.'],
-                easy: ['fa-person-walking', 'Днес само разходка или разтягане', 'Мускулите вече са натоварени — днес им трябва раздвижване, не още товар.'],
-                walkP: ['fa-person-walking', '10–15 минути ходене след процедурата', 'Ходенето продължава работата на мускулите и кръвообращението.'],
-                salt: ['fa-check', 'По-малко сол днес', 'Солта задържа вода в тъканите — обратното на това, което правим.'],
-                water2: ['fa-droplet', '1,5–2 л вода през деня', 'Течността се оттича по-лесно, когато тялото не пести вода.'],
-                sleep: ['fa-moon', 'Сън 7–8 часа', 'Мускулът се възстановява и укрепва насън.'],
-                proteinAll: ['fa-egg', 'Белтък на всяко хранене', 'Без достатъчно белтък тренировката не може да изгради мускул.'],
-                sore: ['fa-check', 'Лека мускулна треска 1–2 дни е нормална', 'Знак е, че мускулите са работили; минава от само себе си.'],
-                deficit: ['fa-utensils', 'Малък дефицит в храната — без гладуване', 'Гладуването топи мускулите; малкият дефицит топи мазнините.'],
-                steps: ['fa-shoe-prints', '8 000–10 000 крачки на ден', 'Ежедневното движение изгаря повече от една тренировка седмично.'],
-                sugar: ['fa-check', 'По-малко захар, сладки напитки и алкохол', 'Те се трупат най-лесно като мазнина и пречат на възстановяването.'],
-                sitBreak: ['fa-clock', 'Раздвижване на всеки час седене', 'Дългото седене стяга гърба и забавя кръвообращението.'],
-                walkDay: ['fa-person-walking', '20–30 минути ходене всеки ден', 'Ежедневното движение пази ефекта на тренировката до следващата.'],
-                food: ['fa-carrot', 'Повече зеленчуци, риба и ядки — по-малко захар', 'Така храната не подклажда възпалението, което тренировката успокоява.'],
-                noLift: ['fa-check', 'Без вдигане на тежко днес', 'Мускулите около гръбнака са уморени и днес пазят по-слабо.'],
-                pelvic: ['fa-check', 'Тазово дъно: 10 стягания, 3 пъти на ден', 'Кратките упражнения у дома засилват ефекта от процедурата.'],
-                chair: ['fa-chair', 'Ставане от стола 10 пъти, няколко пъти на ден', 'Това е най-полезното упражнение за сила в ежедневието.'],
-                dinner: ['fa-utensils', 'Лека вечеря', 'Тренировката изгаря — голямото хранене след нея връща всичко.'],
-                rest: ['fa-bed', 'Днес без тежка тренировка', 'Процедурата е за възстановяване — тежкото натоварване ще я обезсмисли.'],
-                cream: ['fa-droplet', 'Хидратиращ крем и слънцезащита', 'Грижата за кожата пази ефекта по-дълго.'],
-                meal: ['fa-clock', 'Следващия път — 30–60 минути след хранене', 'Тогава захарта в кръвта е най-висока и процедурата я сваля най-много.']
-            };
-            const PROG = {
-                general: { f: 'tone' }, glutes: { f: 'tone' }, core: { f: 'tone' }, upper: { f: 'tone' },
-                mass: { f: 'tone', b: ['proteinAll', 'sleep', 'sore'] }, power: { f: 'tone', gap: [4, 7], wk: 1 },
-                cardio: { f: 'slim', t: ['water', 'protein', 'dinner'] },
-                back_active: { f: 'health', t: ['water', 'noLift', 'easy'], b: ['sitBreak', 'walkDay', 'sleep'] },
-                senior: { f: 'health', b: ['chair', 'walkDay', 'proteinAll'], wk: 1 },
-                antiage: { f: 'health', b: ['walkDay', 'sleep', 'food'], course: 16, name: 'Антиейджинг' },
-                cellulite: { f: 'passive', t: ['waterP', 'salt', 'walkP'], b: ['water2', 'steps', 'sugar'], gap: [2, 3], course: 12, name: 'Антицелулит' },
-                drain: { f: 'passive', t: ['waterP', 'salt', 'walkP'], b: ['water2', 'walkDay', 'sitBreak'], gap: [2, 3], course: 10, name: 'Дренаж' },
-                passive_metabolic: { f: 'passive', b: ['deficit', 'steps', 'sugar'], gap: [2, 3], course: 12, name: 'Пасивен метаболизъм' },
-                postpartum: { f: 'passive', t: ['waterP', 'walkP', 'noLift'], b: ['pelvic', 'sleep', 'walkDay'], gap: [3, 4], course: 12, name: 'След раждане' },
-                back_pain: { f: 'passive', t: ['waterP', 'noLift', 'walkP'], b: ['sitBreak', 'walkDay', 'sleep'], gap: [3, 4], course: 10, name: 'Гръб' },
-                recovery: { f: 'passive', t: ['waterP', 'rest', 'walkP'], b: ['sleep', 'proteinAll', 'walkDay'], gap: [1, 2], wk: 1 },
-                antiage_passive: { f: 'passive', t: ['waterP', 'walkP', 'food'], b: ['walkDay', 'sleep', 'meal'], gap: [2, 3], course: 12, name: 'Антиейджинг' },
-                face: { f: 'passive', t: ['waterP', 'cream', 'sleep'], b: ['water2', 'sleep', 'cream'], gap: [2, 3], course: 12, name: 'Лице' }
-            };
-            const FAM = {
-                tone: { t: ['water', 'protein', 'easy'], b: ['sleep', 'proteinAll', 'sore'], gap: [3, 4], active: true },
-                slim: { t: ['water', 'protein', 'easy'], b: ['deficit', 'steps', 'sugar'], gap: [3, 4], active: true },
-                health: { t: ['water', 'easy', 'protein'], b: ['sitBreak', 'walkDay', 'sleep'], gap: [3, 4], active: true },
-                passive: { t: ['waterP', 'walkP', 'rest'], b: ['sleep', 'water2', 'walkDay'], gap: [2, 3], active: false }
-            };
-            const GOALFAM = { tone: 'tone', fat: 'slim', cellulite: 'passive', drain: 'passive', massage: 'passive' };
-            const BYNAME = { 'Общо стягане и оформяне': 'general', 'Седалище и бедра': 'glutes', 'Мускулна маса': 'mass', 'Гърди, рамене и ръце': 'upper',
-                'Талия и корем': 'core', 'Сила и бързина': 'power', 'Кардио-метаболитна': 'cardio', 'Здрав гръб и стойка': 'back_active',
-                'Здрави мускули 50+': 'senior', 'Антиейджинг': 'antiage', 'Антицелулит': 'cellulite', 'Следродилно възстановяване': 'postpartum',
-                'Дренаж': 'drain', 'Пасивен метаболизъм': 'passive_metabolic', 'Болки в гърба и кръста': 'back_pain',
-                'Регенерация и релакс': 'recovery', 'Антиейджинг · процедура': 'antiage_passive' };
+            /* ── after the training: the advice lives in xems-advice.js (one file for this page, studio.html and the tablet's report) ── */
+            const XA = window.XemsAdvice || null;
             const WDL = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
             const MONL = ['яну', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек'];
             function dayName(t) { const d = new Date(t); return WDL[d.getDay()] + ', ' + d.getDate() + ' ' + MONL[d.getMonth()]; }
-            function pidOf(x) {
-                const id = x.pid || BYNAME[x.p] || (/^Лице/.test(x.p || '') ? 'face' : '');
-                return id.indexOf('face') === 0 ? 'face' : id;
-            }
+            function pidOf(x) { return XA ? XA.pidOf(x) : ''; }
             function trainings() {
                 let h = null;
                 try { h = JSON.parse(localStorage.getItem(HIST_KEY) || 'null'); } catch (e) { h = null; }
@@ -4752,11 +4697,9 @@
                 const list = trainings();
                 const last = list[list.length - 1] || null;
                 const id = last ? pidOf(last) : '';
-                const P = PROG[id] || null;
-                const goal = saved().goal || 'tone';
-                const massageOnly = last && (last.md & 8) && !(last.md & 7);
-                const fam = FAM[P ? P.f : massageOnly ? 'passive' : GOALFAM[goal] || 'tone'];
-                const target = (P && P.wk) || (goal === 'massage' ? 1 : 2);
+                const adv = XA ? XA.forSession(id, last ? last.md | 0 : 0, saved().goal || 'tone') : null;
+                const P = adv && adv.P;
+                const target = adv ? adv.wk : 2;
                 const mon = mondayMs(Date.now());
                 function inWeek(k) { return list.filter(function (x) { return x.t >= mon - k * 7 * 864e5 && x.t < mon - (k - 1) * 7 * 864e5; }).length; }
                 const now = inWeek(0);
@@ -4768,8 +4711,8 @@
                     for (let i = list.length - 2; i >= 0 && pidOf(list[i]) === id && list[i + 1].t - list[i].t <= 21 * 864e5; i--) n++;
                     course = { n: n, of: P.course, name: P.name || '' };
                 }
-                return { known: list.length > 0, now: now, target: target, rhythm: rhythm, course: course, lastT: last ? last.t : 0,
-                    active: fam.active, today: (P && P.t) || fam.t, between: (P && P.b) || fam.b, gap: (P && P.gap) || fam.gap };
+                return { known: list.length > 0 && !!adv, now: now, target: target, rhythm: rhythm, course: course, lastT: last ? last.t : 0,
+                    active: adv ? adv.active : true, today: adv ? adv.today : [], between: adv ? adv.between : [], gap: adv ? adv.gap : [3, 4] };
             }
             function progressSub() {
                 if (news()) return cardN === 0 ? 'Ново измерване' : 'Нов анализ от тренировката';
@@ -4784,8 +4727,8 @@
                     '" transform="rotate(-90 32 32)"/><text x="32" y="37">' + n + '/' + of + '</text></svg>';
             }
             function advRow(k) {
-                const t = ADV[k];
-                return '<details class="xems-adv"><summary><i class="fas ' + t[0] + '"></i><span>' + t[1] + '</span><i class="fas fa-chevron-down"></i></summary><p>' + t[2] + '</p></details>';
+                const t = XA.TIP[k];
+                return '<details class="xems-adv"><summary><i class="fas ' + t.fa + '"></i><span>' + t.bg[0] + '</span><i class="fas fa-chevron-down"></i></summary><p>' + t.bg[1] + '</p></details>';
             }
             /* Моят прогрес, the top: the week, then after the training (the advice by the program the tablet ran) */
             function progressTop() {
