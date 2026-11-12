@@ -2870,7 +2870,16 @@ body::before { content: ""; position: fixed; inset: -20vh -20vw; z-index: -1; po
         body: JSON.stringify({ studio: A.cfg().xems, key: k, profile: Object.assign({ t: Math.floor(Date.now() / 1000) }, p) }) });
       const d = await r.json().catch(() => null);
       if (d && d.ok) { save('sent', Date.now()); A.toast('Профилът е изпратен до студиото'); openData(false); A.syncReminders(); return; }
-      A.unbusy(go); err.textContent = 'Не успяхме да запазим. Опитайте отново след малко.';
+      A.unbusy(go); err.textContent = ((r, d) => {   // why the studio's server did not take the profile — a clear line and its code (it says what to fix)
+        const e = (d && d.error) || '', m = String((d && d.message) || '');
+        if (r.status === 404 || e === 'unknown_studio') return 'Студиото още не приема профила онлайн — кажете на треньора. Данните са запазени на телефона. (studio)';
+        if (r.status === 429) return 'Сървърът е зает — опитайте след минута. Данните са запазени на телефона. (' + (e || 429) + ')';
+        if (/name/.test(m)) return 'Името в Профил е твърде кратко — поправете го и опитайте пак. (name)';
+        if (/phone/.test(m)) return 'Телефонът в Профил не изглежда правилен — поправете го и опитайте пак. (phone)';
+        if (/email/.test(m)) return 'Имейлът в Профил не изглежда правилен — поправете го и опитайте пак. (email)';
+        if (/contact/.test(m)) return 'Нужен е телефон или имейл в Профил. (contact)';
+        return 'Не успяхме да запазим. Опитайте отново след малко. (' + (e || r.status) + ')';
+      })(r, d);
     } catch (_) { A.unbusy(go); err.textContent = 'Няма връзка. Данните са запазени на телефона — опитайте отново.'; }
   };
   /* "Изтрий данните ми" also forgets this module's data on the phone */
