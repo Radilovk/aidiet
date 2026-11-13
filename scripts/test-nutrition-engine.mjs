@@ -262,7 +262,9 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(readCheckin([{ questionId: 'weight', value: 'Качих повече от 0,5 кг' }], null).weight === 'fast_gain', 'отговорът „качих над 0,5 кг“ се разбира');
   const qDev = weeklyQuestionsFor({ deviceWeightKg: 71.84, mealAdherence: 86, mealDays: 5 });
   ok(qDev.find(q => q.id === 'weightKg').prefill === '71.8' && /везната/.test(qDev.find(q => q.id === 'weightKg').hint), 'теглото от везната е попълнено');
-  ok(/86%/.test(qDev.find(q => q.id === 'adherence').hint), 'спазването по отметките е подсказка');
+  ok(!qDev.find(q => q.id === 'adherence'), '5 дни отметки — спазването е известно, не се пита');
+  ok(/86%/.test(weeklyQuestionsFor({ mealAdherence: 86, mealDays: 3 }).find(q => q.id === 'adherence').hint), '3 дни отметки — въпросът остава с подсказка');
+  ok(readCheckin([], { status: 'active', mealDays: 5, mealAdherence: 86 }).adherence === 86, 'без въпроса спазването идва от отметките');
   ok(!weeklyQuestionsFor({ mealAdherence: 86, mealDays: 2 }).find(q => q.id === 'adherence').hint, 'под 3 дни отметки — без подсказка');
   const longGap = readCheckin(kgAns(85), null, { prevWeightKg: 88, daysSincePrev: 35 });
   ok(longGap.weeklyChangeKg === -0.6, `5 седмици без претегляне — темпо по реалните дни (${longGap.weeklyChangeKg})`);

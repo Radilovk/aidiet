@@ -2,7 +2,6 @@ package com.biocode.nutriplan;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -31,8 +30,10 @@ import org.json.JSONObject;
  * Хардуерният брояч (TYPE_STEP_COUNTER) брои крачките от последния рестарт.
  * Докато приложението е живо, слушателят е регистриран (с групиране на
  * събитията, без да буди процесора) и на всеки 15 минути записва показание
- * (момент, брояч, момент на включване) в дневник. JS (activity-tracker.js)
- * разпределя разликите по часове и дни и разпознава рестарта.
+ * (момент, брояч, момент на включване) в дневник. Докато е затворено, в същия
+ * дневник пише NutriStepsReceiver (будилник на ~30 мин + последно показание при
+ * изключване на телефона). JS (activity-tracker.js) разпределя разликите по
+ * часове и дни и разпознава рестарта.
  *
  * От Android 10 нататък е нужно разрешението „Физическа активност“
  * (ACTIVITY_RECOGNITION); в манифеста го добавя build-apk.yml.
@@ -45,11 +46,7 @@ import org.json.JSONObject;
 )
 public class NutriStepsPlugin extends Plugin implements SensorEventListener {
 
-    private static final String PREFS = "nutriplan_steps";
-    private static final String LOG_KEY = "log";
     private static final long LOG_EVERY_MS = 15 * 60 * 1000L;
-    private static final long KEEP_MS = 10L * 24 * 60 * 60 * 1000;
-    private static final int MAX_LOG = 1000;
     private static final int BATCH_LATENCY_US = 5 * 60 * 1000 * 1000;
 
     private SensorManager sensorManager;
@@ -63,7 +60,7 @@ public class NutriStepsPlugin extends Plugin implements SensorEventListener {
     public void load() {
         sensorManager = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
         counter = sensorManager != null ? sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) : null;
-        lastLoggedAt = lastLogTime();
+        lastLoggedAt = NutriStepsReceiver.lastLogTime(getContext());
         if (hasActivityPermission()) startListening();
     }
 
@@ -81,6 +78,8 @@ public class NutriStepsPlugin extends Plugin implements SensorEventListener {
     private void startListening() {
         if (listening || sensorManager == null || counter == null) return;
         listening = sensorManager.registerListener(this, counter, SensorManager.SENSOR_DELAY_NORMAL, BATCH_LATENCY_US);
+        // Показания и при затворено приложение (будилникът се подновява сам).
+        NutriStepsReceiver.schedule(getContext());
     }
 
     private void stopListening() {
@@ -98,7 +97,7 @@ public class NutriStepsPlugin extends Plugin implements SensorEventListener {
         lastValue = event.values[0];
         lastValueAt = at;
         if (at - lastLoggedAt >= LOG_EVERY_MS) {
-            appendLog(at, lastValue);
+            NutriStepsReceiver.appendLog(getContext(), at, lastValue);
             lastLoggedAt = at;
         }
     }
@@ -106,47 +105,6 @@ public class NutriStepsPlugin extends Plugin implements SensorEventListener {
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         // не се ползва
-    }
-
-    private long bootTime() {
-        return System.currentTimeMillis() - SystemClock.elapsedRealtime();
-    }
-
-    private JSONArray readLog() {
-        try {
-            SharedPreferences prefs = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-            return new JSONArray(prefs.getString(LOG_KEY, "[]"));
-        } catch (Exception e) {
-            return new JSONArray();
-        }
-    }
-
-    private long lastLogTime() {
-        JSONArray log = readLog();
-        if (log.length() == 0) return 0L;
-        JSONObject last = log.optJSONObject(log.length() - 1);
-        return last != null ? last.optLong("t", 0L) : 0L;
-    }
-
-    private void appendLog(long at, float value) {
-        try {
-            JSONArray log = readLog();
-            JSONObject item = new JSONObject();
-            item.put("t", at);
-            item.put("c", (double) value);
-            item.put("boot", bootTime());
-            log.put(item);
-            long cutoff = System.currentTimeMillis() - KEEP_MS;
-            JSONArray kept = new JSONArray();
-            int start = Math.max(0, log.length() - MAX_LOG);
-            for (int i = start; i < log.length(); i++) {
-                JSONObject x = log.optJSONObject(i);
-                if (x != null && x.optLong("t", 0L) >= cutoff) kept.put(x);
-            }
-            getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(LOG_KEY, kept.toString()).apply();
-        } catch (Exception ignored) {
-            // без запис — следващото показание ще покрие интервала
-        }
     }
 
     /** { available, granted } */
@@ -202,11 +160,11 @@ public class NutriStepsPlugin extends Plugin implements SensorEventListener {
                 JSObject out = new JSObject();
                 out.put("available", Boolean.TRUE);
                 out.put("granted", Boolean.TRUE);
-                out.put("bootTime", Long.valueOf(bootTime()));
+                out.put("bootTime", Long.valueOf(NutriStepsReceiver.bootTime()));
                 out.put("now", Long.valueOf(lastValueAt > 0 ? lastValueAt : System.currentTimeMillis()));
                 if (lastValue >= 0) out.put("counter", Double.valueOf(lastValue));
                 JSArray items = new JSArray();
-                JSONArray log = readLog();
+                JSONArray log = NutriStepsReceiver.readLog(getContext());
                 for (int i = 0; i < log.length(); i++) {
                     JSONObject x = log.optJSONObject(i);
                     if (x != null && x.optLong("t", 0L) > since) items.put(x);

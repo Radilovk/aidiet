@@ -18,10 +18,13 @@
  *   'ask'      — не тренира и няма измерване: старият въпрос „Колко се движихте?“.
  *
  * Крачкомерът (APK, NutriStepsPlugin.java) дава хардуерния брояч от рестарта
- * и дневник от показания. Разликата между две показания се разпределя по
+ * и дневник от показания (докато приложението е затворено — от будилник на
+ * ~30 мин в NutriStepsReceiver.java). Разликата между две показания се разпределя по
  * часовете между тях според личната дневна крива (наученa от кратките
  * интервали, свита към типичната крива с псевдо-наблюдения), а рестартът се
- * разпознава по смяната на момента на включване.
+ * разпознава по смяната на момента на включване. Ден, чиито активни часове са
+ * предимно в празнина без показания, е непълен: показва се като прогноза, но не
+ * отива към сървъра като измерен.
  *
  * Към сървъра отиват само дневни факти: крачки за завършени дни (източник
  * „phone“) и отговорите за тренировка (вид „train_check“) — оттам моделът на
@@ -37,7 +40,12 @@
     var KEEP_DAYS = 21;
     // Ден с под 300 крачки е брояч, който не е броил (приложението е било спряно), не реален ден.
     var MIN_REAL_DAY = 300;
-    var MAX_SPREAD_MS = 3 * DAY_MS;
+    var MAX_SPREAD_MS = KEEP_DAYS * DAY_MS;
+    // Празнина без показания, която покрива над половината от активните часове на
+    // деня (по кривата), при над 500 крачки разлика: крачките в този ден са
+    // разпределени по кривата, не измерени — денят е непълен (прогноза, не факт).
+    var GUESS_SHARE = 0.5;
+    var GUESS_MIN_DELTA = 500;
     // Псевдо-наблюдения на типичната крива за час: личните данни я изместват постепенно.
     var PRIOR_WEIGHT = 5;
 
@@ -250,6 +258,28 @@
     }
 
     /**
+     * Колко от обичайния ден (по теглата на часовете) покрива интервалът [t0, t1], по дни.
+     * @returns {Record<string, number>} дял 0–1
+     */
+    function coveredShare(t0, t1, weights) {
+        var out = {};
+        if (!(t1 > t0)) return out;
+        if (t1 - t0 > MAX_SPREAD_MS) t0 = t1 - MAX_SPREAD_MS;
+        var total = sum(weights);
+        if (!(total > 0)) return out;
+        var t = t0;
+        while (t < t1) {
+            var d = new Date(t);
+            var hourEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours() + 1).getTime();
+            var end = Math.min(hourEnd, t1);
+            var k = dayKey(t);
+            out[k] = (out[k] || 0) + weights[d.getHours()] * (end - t) / HOUR_MS / total;
+            t = end;
+        }
+        return out;
+    }
+
+    /**
      * Кратките интервали (до 2 ч, в един час или съседни) учат личната крива:
      * крачки/час за часовете, които покриват.
      */
@@ -296,6 +326,12 @@
             } else {
                 var delta = r.c - last.c;
                 addAll(days, spread(last.t, r.t, delta, weights));
+                // Дълга празнина (приложението и фоновото четене не са записвали): дните,
+                // чиито активни часове са предимно в нея, са прогноза, не измерване.
+                if (delta >= GUESS_MIN_DELTA) {
+                    var cov = coveredShare(last.t, r.t, weights);
+                    Object.keys(cov).forEach(function (k) { if (cov[k] > GUESS_SHARE) mark(days, k, 0, true); });
+                }
                 hours = learnHours(hours, last.t, r.t, delta);
             }
             last = { t: r.t, c: r.c, boot: r.boot || 0 };
@@ -719,6 +755,7 @@
         levelOf: levelOf,
         hourWeights: hourWeights,
         spread: spread,
+        coveredShare: coveredShare,
         ingest: ingest,
         dayShareUntil: dayShareUntil,
         mode: mode,

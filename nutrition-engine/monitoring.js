@@ -107,6 +107,9 @@ export function weightGapWeeks(history) {
   return n;
 }
 
+/** От толкова дни с отметки на храненията спазването се знае и не се пита. */
+export const ADHERENCE_KNOWN_DAYS = 4;
+
 /**
  * Въпросите за конкретния клиент: посоката на въпроса за теглото следва целта,
  * а това, което приложението вече знае, се показва като подсказка (теглото от
@@ -118,9 +121,13 @@ export function weeklyQuestionsFor(ctx = {}) {
   const direction = ctx.direction || (ctx.goal === 'GAIN' ? 'gain' : null);
   // Вечерните отговори „Тренирахте ли днес?“ показват 0 тренировки за седмицата — известно, не се пита.
   const knownNoTraining = ctx.workoutsWeek === 0;
+  // Отметките на храненията покриват повечето от седмицата — спазването е известно
+  // (readCheckin го взима от тях), не се пита. При 3 дни — въпросът остава с подсказка.
+  const knownAdherence = ctx.mealAdherence != null && (ctx.mealDays || 0) >= ADHERENCE_KNOWN_DAYS;
   return WEEKLY_CHECKIN_QUESTIONS
     .filter(q => !q.onlyForLead || lead.includes(q.onlyForLead))
     .filter(q => !(q.id === 'workouts' && knownNoTraining))
+    .filter(q => !(q.id === 'adherence' && knownAdherence))
     .map((q) => {
       /** @type {Record<string, any>} */
       const out = { ...q, options: [...q.options] };

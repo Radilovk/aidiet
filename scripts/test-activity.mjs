@@ -84,6 +84,18 @@ const before = JSON.stringify(st.days);
 st = A.ingest(st, [{ t: base + 1 * H, c: 99999, boot: boot1 }], 7000);
 ok(JSON.stringify(st.days) === before, 'старо показание (вече обработено) не променя нищо');
 
+// Затворено приложение без фоново четене: 2 дни без показания — дните са прогноза, не факт.
+const gb = base - 3 * H; // 05:00 преди D1
+let gs = A.ingest({}, [{ t: gb, c: 5000, boot: boot1 }], 7000);
+gs = A.ingest(gs, [{ t: gb + 50 * H, c: 21000, boot: boot1 }], 7000); // 07:00 на третия ден
+const gDays = Object.keys(gs.days).sort();
+ok(near(gDays.reduce((a, k) => a + gs.days[k].s, 0), 16000, 1), 'празнина: сборът се пази');
+ok(gs.days[_key(gb + 26 * H)].part === true, 'празнина: цял ден без показания е непълен (не се праща като факт)');
+const cov = A.coveredShare(t0, t1, w);
+ok(cov['2026-10-20'] < 0.5 && cov['2026-10-21'] < 0.5, 'нощна празнина 21:00–09:00 не прави дните непълни');
+const gap3 = A.coveredShare(gb, gb + 6 * 24 * H, w);
+ok(Object.keys(gap3).length >= 6, 'празнина над 3 дни: разпределя се по всичките дни, не се трупа в последните 3');
+
 // Прогноза за днес: до 13:00 е минала около половината от деня.
 const share = A.dayShareUntil(new Date(2026, 9, 21, 13, 0).getTime(), w);
 ok(share > 0.35 && share < 0.6, 'до обяд — около половината от обичайния ден');

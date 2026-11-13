@@ -11264,7 +11264,7 @@ async function handleMaster(env, request, b) {
   return json({ ok: true, id, created: !exists });
 }
 var ORIGIN = "https://biocode.website";
-var LANDING_PATHS = /^\/(studio\.html|studio-privacy\.html|studio-support\.html|studio-app\/landing\/[\w.-]+|\.well-known\/apple-app-site-association)$/;
+var LANDING_PATHS = /^\/(studio\.html|studio-privacy\.html|studio-support\.html|xems-advice\.js|studio-app\/landing\/[\w.-]+|\.well-known\/apple-app-site-association)$/;
 var list = (v) => String(v || "").toLowerCase().split(",").map((x) => x.trim()).filter(Boolean);
 async function handleLanding(request, env, url, host) {
   const bare = host.replace(/^www\./, "");
@@ -11287,6 +11287,14 @@ async function handleStudioSite(request, env) {
   const root = list(env.STUDIO_ROOT_DOMAIN).find((r) => host.endsWith("." + r));
   if (!root || url.pathname.startsWith("/api/")) return null;
   if (!/^[a-z0-9-]{2,40}$/.test(host.slice(0, -(root.length + 1))) || host.startsWith("www.")) return null;
+  if (url.pathname === "/xems-advice.js") {
+    const js = await fetch(ORIGIN + "/xems-advice.js", { cf: { cacheTtl: 300, cacheEverything: true } });
+    return new Response(js.body, { status: js.status, headers: {
+      "Content-Type": "text/javascript; charset=utf-8",
+      "Cache-Control": "public, max-age=300",
+      "X-Content-Type-Options": "nosniff"
+    } });
+  }
   const page = env.STUDIO_PAGE_URL || "https://biocode.website/studio.html";
   const resp = await fetch(page, { cf: { cacheTtl: 300, cacheEverything: true } });
   return new Response(resp.body, {
@@ -47576,11 +47584,13 @@ function weightGapWeeks(history) {
   for (let i = (history || []).length - 1; i >= 0 && !(Number(history[i]?.weightKg) > 0); i--) n++;
   return n;
 }
+var ADHERENCE_KNOWN_DAYS = 4;
 function weeklyQuestionsFor(ctx = {}) {
   const lead = Array.isArray(ctx.lead) ? ctx.lead : [];
   const direction = ctx.direction || (ctx.goal === "GAIN" ? "gain" : null);
   const knownNoTraining = ctx.workoutsWeek === 0;
-  return WEEKLY_CHECKIN_QUESTIONS.filter((q) => !q.onlyForLead || lead.includes(q.onlyForLead)).filter((q) => !(q.id === "workouts" && knownNoTraining)).map((q) => {
+  const knownAdherence = ctx.mealAdherence != null && (ctx.mealDays || 0) >= ADHERENCE_KNOWN_DAYS;
+  return WEEKLY_CHECKIN_QUESTIONS.filter((q) => !q.onlyForLead || lead.includes(q.onlyForLead)).filter((q) => !(q.id === "workouts" && knownNoTraining)).filter((q) => !(q.id === "adherence" && knownAdherence)).map((q) => {
     const out = { ...q, options: [...q.options] };
     delete out.onlyForLead;
     if (q.id === "weight" && direction === "gain") out.options = [...GAIN_WEIGHT_OPTIONS];

@@ -6,7 +6,9 @@ Patch the generated Capacitor Android project for NutriPrintPlugin.
   app sources (same package as MainActivity).
 - Registers the plugin in MainActivity before super.onCreate().
 - Copies and registers NutriStepsPlugin (the phone's hardware step counter for
-  clients without a wearable; activity-tracker.js).
+  clients without a wearable; activity-tracker.js) and declares
+  NutriStepsReceiver in AndroidManifest.xml (counter readings while the app is
+  closed: a ~30 min alarm, boot/update re-arm, last reading on shutdown).
 - Copies and registers NutriSystemUiPlugin (the window colour behind the system
   bars follows the app theme) and makes the activity edge-to-edge on every
   Android version, so the system-bar inset is applied once (by Capacitor's
@@ -32,8 +34,37 @@ PLUGIN_SOURCES = [
     PLUGIN_SOURCE,
     Path("android-res/java/com/biocode/nutriplan/NutriSystemUiPlugin.java"),
     Path("android-res/java/com/biocode/nutriplan/NutriStepsPlugin.java"),
+    Path("android-res/java/com/biocode/nutriplan/NutriStepsReceiver.java"),
 ]
 MAIN_ACTIVITY = PACKAGE_DIR / "MainActivity.java"
+MANIFEST = Path("android/app/src/main/AndroidManifest.xml")
+
+STEPS_RECEIVER = """        <receiver android:name="com.biocode.nutriplan.NutriStepsReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.biocode.nutriplan.STEPS_TICK" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
+                <action android:name="android.intent.action.QUICKBOOT_POWEROFF" />
+            </intent-filter>
+        </receiver>
+"""
+
+
+def patch_manifest() -> int:
+    if not MANIFEST.exists():
+        print(f"ERROR: {MANIFEST} not found", file=sys.stderr)
+        return 1
+    text = MANIFEST.read_text(encoding="utf-8")
+    if "NutriStepsReceiver" in text:
+        print("AndroidManifest.xml already declares NutriStepsReceiver")
+        return 0
+    if "</application>" not in text:
+        print("ERROR: </application> not found in AndroidManifest.xml", file=sys.stderr)
+        return 1
+    MANIFEST.write_text(text.replace("</application>", STEPS_RECEIVER + "    </application>", 1), encoding="utf-8")
+    print("AndroidManifest.xml: NutriStepsReceiver declared")
+    return 0
 
 PATCHED_ACTIVITY = """package com.biocode.nutriplan;
 
@@ -111,6 +142,9 @@ def main() -> int:
         dest = PACKAGE_DIR / source.name
         shutil.copy2(source, dest)
         print(f"Copied {source} -> {dest}")
+
+    if patch_manifest():
+        return 1
 
     text = MAIN_ACTIVITY.read_text(encoding="utf-8")
     if "registerPlugin(NutriPrintPlugin.class)" in text:
