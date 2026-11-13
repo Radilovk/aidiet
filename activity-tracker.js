@@ -29,8 +29,10 @@
  *      NutriStepsPlugin.java го чете при отваряне, а NutriStepsReceiver.java —
  *      веднъж малко след полунощ (границата на деня) и при изключване. Когато
  *      друг източник дава крачките, нощното показание се изключва.
- * Каквото и да дойде по-късно, отива в деня, в който е направено; измерване,
- * дошло след ръчния отговор за деня, го заменя (askedLevel пази отговора).
+ * Каквото и да дойде по-късно, отива в деня, в който е направено. Изключение:
+ * ден, за който въпросът „Колко се движи?“ е зададен (до часа му нямаше данни)
+ * и отговорен — за него важи само отговорът, и на телефона, и на сървъра
+ * (факт activity_check; крачките на този ден не влизат в сметките).
  * Разликата между две показания се разпределя по
  * часовете между тях според личната дневна крива (наученa от кратките
  * интервали, свита към типичната крива с псевдо-наблюдения), а рестартът се
@@ -541,6 +543,24 @@
         return { steps: Math.round(d.s * factor), partial: true, projected: true };
     }
 
+    /**
+     * Ден с ръчен отговор „Колко се движи?“ (зададен, защото до часа на въпроса
+     * нямаше измерване): за него важи само отговорът — крачки, дошли по-късно, не
+     * влизат нито в деня, нито в сметките (медиани, факти към сървъра).
+     */
+    function isAnswered(ec) {
+        return !!ec && ec.activityLevel != null && !ec.trained
+            && (ec.activitySource === 'answer' || !ec.activitySource);
+    }
+
+    /** Дните с ръчен отговор за движението (YYYY-MM-DD → true). */
+    function answeredDays() {
+        var gd = gameData();
+        var out = {};
+        Object.keys(gd).forEach(function (k) { if (gd[k] && isAnswered(gd[k].eveningCheck)) out[k] = true; });
+        return out;
+    }
+
     /** Обичайните крачки в ден без тренировка — медиана от последните дни. */
     function baselineSteps() {
         var st = readState();
@@ -548,6 +568,7 @@
         var vals = Object.keys(st.days || {}).filter(function (k) {
             var d = st.days[k];
             var ec = gd[k] && gd[k].eveningCheck;
+            if (isAnswered(ec)) return false;
             return !d.part && d.s >= MIN_REAL_DAY && !(ec && (ec.trained === 'am' || ec.trained === 'pm'));
         }).map(function (k) { return st.days[k].s; }).sort(function (a, b) { return a - b; });
         if (vals.length < 3) return null;
@@ -610,14 +631,15 @@
     function measuredDays() {
         var st = readState();
         var today = dayKey(Date.now());
+        var ans = answeredDays();
         var ext = {};
-        Object.keys(st.ext || {}).forEach(function (k) { if (k < today && st.ext[k] >= MIN_REAL_DAY) ext[k] = st.ext[k]; });
+        Object.keys(st.ext || {}).forEach(function (k) { if (k < today && !ans[k] && st.ext[k] >= MIN_REAL_DAY) ext[k] = st.ext[k]; });
         if (Object.keys(ext).length >= 7) return { done: ext, today: st.ext[today] != null ? st.ext[today] : null };
         var out = {};
         if (st.enabled) {
             Object.keys(st.days || {}).forEach(function (k) {
                 var d = st.days[k];
-                if (k < today && !d.part && d.s >= MIN_REAL_DAY) out[k] = d.s;
+                if (k < today && !ans[k] && !d.part && d.s >= MIN_REAL_DAY) out[k] = d.s;
             });
         }
         var t = st.enabled && st.days && st.days[today];
@@ -745,6 +767,7 @@
     function applyAnswer(ec, value, key) {
         if (value !== 'am' && value !== 'pm' && value !== 'no') {
             ec.activityLevel = value;
+            ec.activitySource = 'answer';
             return ec;
         }
         var measured = stepsFor(key, { project: true });
@@ -792,13 +815,13 @@
             var rec = gd[key];
             if (!rec || typeof rec !== 'object') return;
             var ec = rec.eveningCheck || {};
-            // Ръчният отговор „Колко се движи?“ (ден, в който данните още ги нямаше)
-            // отстъпва на измерването, щом то дойде — пази се като askedLevel.
-            var manual = ec.activityLevel != null && !ec.activitySource && !ec.trained;
+            // Ден с ръчен отговор (до часа на въпроса нямаше измерване): важи само
+            // отговорът — крачки, дошли след това, не го пипат.
+            if (isAnswered(ec)) return;
             // Ден, попълнен от крачки: по-късно, по-пълно измерване (гривната се е
             // синхронизирала) го обновява; същото число — без промяна.
             var fromSteps = ec.activitySource === 'steps';
-            if (ec.activityLevel != null && ec.activitySource !== 'steps_projected' && !manual && !fromSteps) return;
+            if (ec.activityLevel != null && ec.activitySource !== 'steps_projected' && !fromSteps) return;
             var s = stepsByDay && stepsByDay[key] != null ? { steps: stepsByDay[key], partial: false } : null;
             if (!s) {
                 if (key === today && new Date().getHours() < 20) return;
@@ -807,13 +830,11 @@
             if (!s || (s.partial && !s.projected) || s.steps < MIN_REAL_DAY) return;
             if (fromSteps && (s.projected || Math.abs(s.steps - (Number(ec.steps) || 0)) < Math.max(50, 0.01 * s.steps))) return;
             var est = estimateDay(p, { steps: s.steps });
-            if (manual && s.projected) return;
             rec.eveningCheck = Object.assign({ activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null }, ec, {
                 activityLevel: est.level,
                 activitySource: s.projected ? 'steps_projected' : 'steps',
                 activeKcal: est.activeKcal
             });
-            if (manual) rec.eveningCheck.askedLevel = ec.activityLevel;
             markMeasured(rec.eveningCheck, est, p);
             changed.push(key);
         });
@@ -865,10 +886,11 @@
         var today = dayKey(now);
         var cutoff = dayKey(now - KEEP_DAYS * DAY_MS);
         var at = function (k) { return k + 'T12:00:00.000Z'; };
+        var ans = answeredDays();
         if (st.enabled && (!E || E.hasConsent('device'))) {
             Object.keys(st.days || {}).sort().forEach(function (k) {
                 var d = st.days[k];
-                if (k >= today || k < cutoff || d.part || d.s < MIN_REAL_DAY) return;
+                if (k >= today || k < cutoff || d.part || d.s < MIN_REAL_DAY || ans[k]) return;
                 facts.push({ kind: 'steps', value: Math.round(d.s), at: at(k), source: 'phone' });
             });
         }
@@ -878,6 +900,12 @@
             Object.keys(gd).sort().forEach(function (k) {
                 var ec = gd[k] && gd[k].eveningCheck;
                 if (!ec || k < cutoff || k > today) return;
+                // Ръчният отговор за деня: сървърът маха крачките на този ден от сметките
+                // (и от гривна/облак, дошли по-късно) — важи само отговорът.
+                if (isAnswered(ec) && ec.activityLevel >= 1 && ec.activityLevel <= 3) {
+                    facts.push({ kind: 'activity_check', value: ec.activityLevel, at: at(k), source: 'checkin' });
+                    return;
+                }
                 if (ec.trained !== 'am' && ec.trained !== 'pm' && ec.trained !== 'no') return;
                 var yes = ec.trained !== 'no';
                 facts.push({
@@ -951,6 +979,8 @@
         applyCloudDaily: applyCloudDaily,
         applyHistory: applyHistory,
         refreshAll: refreshAll,
+        answeredDays: answeredDays,
+        isAnswered: isAnswered,
         notifyBackfill: notifyBackfill,
         setExternalToday: setExternalToday,
         externalStepsFlowing: externalStepsFlowing,

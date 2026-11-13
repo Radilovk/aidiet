@@ -5,7 +5,7 @@
  */
 import { createRequire } from 'node:module';
 import { computeEssence, trainingPattern, essenceText } from '../health-essence.js';
-import { normalizeFact, mergeFacts, applyEnrichment, recalcLevel } from '../enrichment.js';
+import { normalizeFact, mergeFacts, applyEnrichment, recalcLevel, withoutAnsweredSteps } from '../enrichment.js';
 
 const require = createRequire(import.meta.url);
 const A = require('../activity-tracker.js');
@@ -153,6 +153,16 @@ const stepsEss = computeEssence([phone, band,
   ...[2, 3, 4, 5].map(n => normalizeFact({ kind: 'steps', value: 6000, at: dayAt(n), source: 'phone' }))], NOW);
 ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 4 * 6000) / 5 / 100) * 100, 'гривната печели пред телефона за същия ден');
 
+// Сървър: ден с ръчен отговор — крачките му (телефон, гривна, облак) не влизат в сметките.
+{
+  const ac = normalizeFact({ kind: 'activity_check', value: 1, at: dayAt(2), source: 'checkin' });
+  ok(ac && ac.value === 1 && ac.key === 'day', 'activity_check се приема');
+  ok(normalizeFact({ kind: 'activity_check', value: 7, at: dayAt(2), source: 'checkin' }) === null, 'activity_check извън 1–3 — отхвърлен');
+  const fs = [ac, normalizeFact({ kind: 'steps', value: 15000, at: dayAt(2), source: 'huawei' }), normalizeFact({ kind: 'steps', value: 6000, at: dayAt(3), source: 'huawei' })];
+  const left = withoutAnsweredSteps(fs);
+  ok(left.length === 2 && !left.some(f => f.kind === 'steps' && f.at === dayAt(2)), 'крачките на деня с отговор се махат, другите остават');
+}
+
 // ── Въпрос в ден с много крачки (не тренира по въпросника) ─────────────────
 {
   const store = {};
@@ -231,19 +241,28 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   ok(cloudSleep && cloudSleep[today] === 7.4, 'сънят от облака отива към сутрешния въпрос');
   ok(A.externalStepsFlowing() === true, 'облакът дава крачките → нощното показание на брояча е излишно');
   delete globalThis.NutriPlanHealth;
-  // Данните идват по-късно: ръчният отговор за деня отстъпва на измерването.
+  // Въпросът е зададен (нямаше данни до часа му) и отговорен: важи само отговорът.
   store.np_activity_state = '{}';
-  store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 1, emotionalBalance: 2 } } });
-  A.fillFromSteps({ [key(2)]: 11000 });
-  const late = JSON.parse(store.gameData)[key(2)].eveningCheck;
-  ok(late.activitySource === 'steps' && late.steps === 11000 && late.askedLevel === 1 && late.activityLevel === 3, `закъснелите крачки влизат в своя ден и заместват отговора (${JSON.stringify(late)})`);
-  ok(late.emotionalBalance === 2, 'другите отговори за деня остават');
-  ok(JSON.parse(store.np_backfill_keys).includes(key(2)) && Number(store.np_gamedata_rev) >= 1, 'закъснелият ден чака плана (оценка + синхронизация), ревизията расте');
+  store.np_backfill_keys = '[]';
+  store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 1, emotionalBalance: 2 } }, [key(3)]: {} });
+  A.fillFromSteps({ [key(2)]: 11000, [key(3)]: 9000 });
+  const kept = JSON.parse(store.gameData)[key(2)].eveningCheck;
+  ok(kept.activityLevel === 1 && kept.steps == null && !kept.activitySource, `отговорът остава, закъснелите крачки не го пипат (${JSON.stringify(kept)})`);
+  ok(JSON.parse(store.gameData)[key(3)].eveningCheck.steps === 9000, 'ден без отговор взема закъснелите крачки в своя ден');
+  ok(JSON.parse(store.np_backfill_keys).includes(key(3)) && !JSON.parse(store.np_backfill_keys).includes(key(2)) && Number(store.np_gamedata_rev) >= 1, 'само промененият ден чака плана, ревизията расте');
   const rev0 = Number(store.np_gamedata_rev);
-  A.fillFromSteps({ [key(2)]: 13500 });
-  ok(JSON.parse(store.gameData)[key(2)].eveningCheck.steps === 13500, 'по-пълно измерване по-късно (гривната се синхронизира) обновява деня');
-  A.fillFromSteps({ [key(2)]: 13500 });
+  A.fillFromSteps({ [key(3)]: 12500 });
+  ok(JSON.parse(store.gameData)[key(3)].eveningCheck.steps === 12500, 'по-пълно измерване по-късно (гривната се синхронизира) обновява деня');
+  A.fillFromSteps({ [key(3)]: 12500 });
   ok(Number(store.np_gamedata_rev) === rev0 + 1, 'същото число — без нова промяна и без излишна синхронизация');
+  ok(A.answeredDays()[key(2)] && !A.answeredDays()[key(3)], 'дните с ръчен отговор се познават');
+  const ecA = A.applyAnswer({}, 2, key(4));
+  ok(ecA.activityLevel === 2 && ecA.activitySource === 'answer' && A.isAnswered(ecA), 'отговорът се отбелязва като отговор');
+  // Към сървъра: за деня с отговор — activity_check, без крачките на телефона.
+  store.np_activity_state = JSON.stringify({ enabled: true, days: { [key(2)]: { s: 11000 }, [key(3)]: { s: 12500 } } });
+  const fx = A.buildFacts();
+  ok(fx.some(f => f.kind === 'activity_check' && f.value === 1 && f.at.startsWith(key(2))), 'денят с отговор отива като activity_check');
+  ok(!fx.some(f => f.kind === 'steps' && f.at.startsWith(key(2))) && fx.some(f => f.kind === 'steps' && f.at.startsWith(key(3))), 'крачките на деня с отговор не се пращат, на другите — да');
   store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 2, trained: 'pm', activitySource: 'training' } } });
   A.fillFromSteps({ [key(2)]: 11000 });
   ok(JSON.parse(store.gameData)[key(2)].eveningCheck.activitySource === 'training', 'отговорът за тренировка не се пипа');

@@ -108,6 +108,12 @@ export function normalizeFact(raw) {
     if (v && kcal > 0) fact.kcal = Math.min(3000, kcal);
     return fact;
   }
+  if (kind === 'activity_check') {
+    // Ръчният отговор „Колко се движи?“ (1–3) за ден без измерване до часа на въпроса.
+    const v = Math.round(Number(raw.value));
+    if (!(v >= 1 && v <= 3)) return null;
+    return { kind, key: 'day', value: v, unit: '', at, source, confidence, status };
+  }
   if (kind === 'emoeat') {
     if (!raw.value || typeof raw.value !== 'object') return null;
     return { kind, key: 'profile', value: raw.value, unit: '', at, source: 'emoeat', confidence, status };
@@ -254,8 +260,19 @@ export function stepsActivity(facts, now = new Date(), resolutions = {}) {
  * @param {Date} [now]
  * @param {'M'|'F'|'X'} [sex]
  */
+/**
+ * Дни, за които клиентът е отговорил на „Колко се движи?“ (тогава нямаше
+ * измерване): за тях важи само отговорът — крачките от същия ден (телефон,
+ * гривна, облак), дошли по-късно, не влизат в нивото на активност и анализа.
+ */
+export function withoutAnsweredSteps(facts) {
+  const answered = new Set((facts || []).filter(f => f?.kind === 'activity_check').map(f => dayOf(f.at)));
+  if (!answered.size) return facts || [];
+  return facts.filter(f => f?.kind !== 'steps' || !answered.has(dayOf(f.at)));
+}
+
 export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
-  const facts = Array.isArray(store?.facts) ? store.facts : [];
+  const facts = withoutAnsweredSteps(Array.isArray(store?.facts) ? store.facts : []);
   const overrides = {};
   const reasons = [];
   /** @type {{ behaviors: string[], approach: string[], clinical: string[], cautions: string[], exclusions: string[] }} */

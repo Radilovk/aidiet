@@ -48874,6 +48874,11 @@ function normalizeFact(raw) {
     if (v && kcal > 0) fact.kcal = Math.min(3e3, kcal);
     return fact;
   }
+  if (kind === "activity_check") {
+    const v = Math.round(Number(raw.value));
+    if (!(v >= 1 && v <= 3)) return null;
+    return { kind, key: "day", value: v, unit: "", at, source, confidence, status };
+  }
   if (kind === "emoeat") {
     if (!raw.value || typeof raw.value !== "object") return null;
     return { kind, key: "profile", value: raw.value, unit: "", at, source: "emoeat", confidence, status };
@@ -48976,8 +48981,13 @@ function stepsActivity(facts2, now = /* @__PURE__ */ new Date(), resolutions = {
     disputed
   };
 }
+function withoutAnsweredSteps(facts2) {
+  const answered = new Set((facts2 || []).filter((f) => f?.kind === "activity_check").map((f) => dayOf2(f.at)));
+  if (!answered.size) return facts2 || [];
+  return facts2.filter((f) => f?.kind !== "steps" || !answered.has(dayOf2(f.at)));
+}
 function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ctx = {}) {
-  const facts2 = Array.isArray(store?.facts) ? store.facts : [];
+  const facts2 = withoutAnsweredSteps(Array.isArray(store?.facts) ? store.facts : []);
   const overrides = {};
   const reasons = [];
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };

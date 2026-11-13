@@ -170,7 +170,10 @@
                 own.forEach(function (x) { seen[x.day] = true; });
                 days = own.concat(total.filter(function (x) { return !seen[x.day]; }));
             }
-            push('steps', days.filter(function (x) { return x.value > 0; }).map(function (x) { return { day: x.day, value: Math.round(x.value) }; }));
+            // Дни с ръчен отговор за движението — важи само отговорът (activity-tracker.js).
+            var A = global.NutriPlanActivity;
+            var answered = A && typeof A.answeredDays === 'function' ? A.answeredDays() : {};
+            push('steps', days.filter(function (x) { return x.value > 0 && !answered[x.day]; }).map(function (x) { return { day: x.day, value: Math.round(x.value) }; }));
         });
         await run('dietaryEnergyConsumed', async function () {
             push('intake', (await daySums(H, 'dietaryEnergyConsumed', from, today)).filter(function (x) { return x.value >= MIN_INTAKE_DAY; }));
