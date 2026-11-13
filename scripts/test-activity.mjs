@@ -4,8 +4,9 @@
  * на тренировъчните дни на сървъра (health-essence.js). Без мрежа.
  */
 import { createRequire } from 'node:module';
-import { computeEssence, trainingPattern, essenceText } from '../health-essence.js';
-import { normalizeFact, mergeFacts, applyEnrichment, recalcLevel } from '../enrichment.js';
+import { computeEssence, trainingPattern, trainingLastWeek, essenceText } from '../health-essence.js';
+import { normalizeFact, mergeFacts, applyEnrichment, recalcLevel, withoutAnsweredSteps } from '../enrichment.js';
+import { workoutsByDay, slotOfLocal, isTrainingWorkout } from '../device-links.js';
 
 const require = createRequire(import.meta.url);
 const A = require('../activity-tracker.js');
@@ -84,6 +85,18 @@ const before = JSON.stringify(st.days);
 st = A.ingest(st, [{ t: base + 1 * H, c: 99999, boot: boot1 }], 7000);
 ok(JSON.stringify(st.days) === before, 'старо показание (вече обработено) не променя нищо');
 
+// Затворено приложение без фоново четене: 2 дни без показания — дните са прогноза, не факт.
+const gb = base - 3 * H; // 05:00 преди D1
+let gs = A.ingest({}, [{ t: gb, c: 5000, boot: boot1 }], 7000);
+gs = A.ingest(gs, [{ t: gb + 50 * H, c: 21000, boot: boot1 }], 7000); // 07:00 на третия ден
+const gDays = Object.keys(gs.days).sort();
+ok(near(gDays.reduce((a, k) => a + gs.days[k].s, 0), 16000, 1), 'празнина: сборът се пази');
+ok(gs.days[_key(gb + 26 * H)].part === true, 'празнина: цял ден без показания е непълен (не се праща като факт)');
+const cov = A.coveredShare(t0, t1, w);
+ok(cov['2026-10-20'] < 0.5 && cov['2026-10-21'] < 0.5, 'нощна празнина 21:00–09:00 не прави дните непълни');
+const gap3 = A.coveredShare(gb, gb + 6 * 24 * H, w);
+ok(Object.keys(gap3).length >= 6, 'празнина над 3 дни: разпределя се по всичките дни, не се трупа в последните 3');
+
 // Прогноза за днес: до 13:00 е минала около половината от деня.
 const share = A.dayShareUntil(new Date(2026, 9, 21, 13, 0).getTime(), w);
 ok(share > 0.35 && share < 0.6, 'до обяд — около половината от обичайния ден');
@@ -128,11 +141,17 @@ ok(enriched.sportActivity === 'Ниска (1–2 дни седмично)', 'о�
 ok(enriched._enrichment.original.sportActivity === 'Висока (5–7 дни седмично)', 'отговорът от въпросника се пази');
 ok(recalcLevel(user, enriched).level >= 2, 'промяната в тренировките преизчислява калориите');
 
-// Тренировка от часовник не се отменя от „не“ на въпроса за същия ден.
-const mixed = [...facts, normalizeFact({ kind: 'workout', value: 50, at: dayAt(2), source: 'health_connect' })];
-const mixedTp = trainingPattern(mixed.filter(f => !(f.kind === 'train_check' && f.at === dayAt(2))).concat(
-  normalizeFact({ kind: 'train_check', value: 0, at: dayAt(2), source: 'checkin' })), NOW);
-ok(mixedTp && mixedTp.perWeek > tp.perWeek - 0.01, 'тренировката от устройство печели пред „не“');
+// Тренировка от устройство (вече преценена: ръчно пусната или с интензитет) се
+// взима предвид и при отговор „не“ — в какъвто и ред да дойдат.
+const base2 = facts.filter(f => !(f.kind === 'train_check' && f.at === dayAt(2)));
+const wo2 = normalizeFact({ kind: 'workout', value: 50, at: dayAt(2), source: 'health_connect' });
+const no2 = normalizeFact({ kind: 'train_check', value: 0, at: dayAt(2), source: 'checkin' });
+const tpNoFirst = trainingPattern([...base2, no2, wo2], NOW);
+const tpWoFirst = trainingPattern([...base2, wo2, no2], NOW);
+const tpNo = trainingPattern([...base2, no2], NOW);
+ok(tpNoFirst && tpWoFirst && tpNoFirst.perWeek === tpWoFirst.perWeek && tpWoFirst.perWeek > tpNo.perWeek, 'измерената тренировка печели пред „не“ — и в двата реда');
+const yes2 = normalizeFact({ kind: 'train_check', value: 1, slot: 'pm', at: dayAt(2), source: 'checkin' });
+ok(trainingPattern([...base2, wo2, yes2], NOW).perWeek === trainingPattern([...base2, yes2, wo2], NOW).perWeek, '„да“ + запис на часовника — една тренировка, не две');
 
 // Крачки от телефона: по-нисък приоритет от гривната за същия ден.
 const phone = normalizeFact({ kind: 'steps', value: 4000, at: dayAt(1), source: 'phone' });
@@ -140,6 +159,74 @@ const band = normalizeFact({ kind: 'steps', value: 9000, at: dayAt(1), source: '
 const stepsEss = computeEssence([phone, band,
   ...[2, 3, 4, 5].map(n => normalizeFact({ kind: 'steps', value: 6000, at: dayAt(n), source: 'phone' }))], NOW);
 ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 4 * 6000) / 5 / 100) * 100, 'гривната печели пред телефона за същия ден');
+
+// Кое е тренировка: ръчно пусната — да; автоматична — по пулса / калориите / времето.
+{
+  const p = A.profileOf({ gender: 'Мъж', height: '180', weight: '80', age: '40' }); // макс. пулс ~180
+  const c = (w) => A.classifyWorkout(w, p);
+  ok(c({ type: 'walking', minutes: 25, method: 1 }).training, 'ходене, пуснато ръчно на часовника → тренировка');
+  ok(!c({ type: 'walking', minutes: 40, method: 2, avgHr: 100 }).training, 'автоматична разходка с лек пулс (56%) → не е тренировка');
+  ok(c({ type: 'walking', minutes: 30, method: 2, avgHr: 125 }).training, 'автоматично бързо ходене 30 мин, пулс 69% → тренировка (умерено)');
+  ok(!c({ type: 'walking', minutes: 15, method: 2, avgHr: 125 }).training, 'умерено ходене само 15 мин → не');
+  ok(c({ type: 'other', minutes: 12, method: 2, avgHr: 145 }).intensity === 'vigorous' && c({ type: 'other', minutes: 12, method: 2, avgHr: 145 }).training, 'кратко и интензивно (12 мин, 81%) → тренировка');
+  ok(c({ type: 'cycling', minutes: 40, method: 2, kcal: 400 }).intensity === 'vigorous', 'без пулс: калориите за минута (MET ~8,5) → високо');
+  ok(!c({ type: 'walking', minutes: 50, method: 0 }).training && c({ type: 'cycling', minutes: 25, method: 0 }).training, 'без пулс и калории: ходенето не, колелото от 20 мин да');
+  ok(!c({ type: 'meditation', minutes: 30, method: 1 }).training, 'медитация не е тренировка');
+  // Висок пулс без запис: 15 мин над 70% → интензивен период; спокойният пулс — не.
+  const t0 = new Date(); t0.setHours(17, 0, 0, 0);
+  const hr = [];
+  for (let m = 0; m <= 60; m += 2) hr.push({ t: t0.getTime() + m * 60000, bpm: m >= 20 && m <= 35 ? 150 : 85 });
+  const bouts = A.hrBouts(hr, p);
+  const bk = Object.keys(bouts)[0];
+  ok(bk && bouts[bk].min === 14 && bouts[bk].slot === 'pm' && bouts[bk].avgHr === 150, `задържан висок пулс (проби от 20-та до 34-та мин) → интензивна активност (${JSON.stringify(bouts)})`);
+  ok(Object.keys(A.hrBouts(hr, p, [{ from: t0.getTime(), to: t0.getTime() + 3600000 }])).length === 0, 'пулсът по време на записана тренировка не се брои втори път');
+  const short = hr.map(x => ({ t: x.t, bpm: x.t >= t0.getTime() + 20 * 60000 && x.t <= t0.getTime() + 26 * 60000 ? 150 : 85 }));
+  ok(Object.keys(A.hrBouts(short, p)).length === 0, '6 мин висок пулс (стълби) → не');
+  // Облак: Oura автоматично лека разходка — не; Strava — всичко е пуснато от човека.
+  ok(!isTrainingWorkout({ minutes: 40, intensity: 'light', walk: true }) && isTrainingWorkout({ minutes: 40, intensity: 'light', walk: true, manual: true }), 'лека автоматична разходка — не; пусната ръчно — да');
+  ok(isTrainingWorkout({ minutes: 12, intensity: 'vigorous' }), 'кратко високо → да');
+}
+
+// Облачни тренировки: разходките не са тренировка; частта от деня е от часа.
+{
+  const ws = workoutsByDay([
+    { day: '2026-10-20', minutes: 40, slot: 'am' },
+    { day: '2026-10-20', minutes: 30, slot: 'pm', walk: true },
+    { day: '2026-10-21', minutes: 35, walk: true },
+  ], 'strava');
+  ok(ws.length === 1 && ws[0].value === 40 && ws[0].slot === 'am', 'разходките се изключват, часът дава „до обяд“');
+  ok(slotOfLocal('2026-10-20T07:30:00Z') === 'am' && slotOfLocal('2026-10-20T18:10:00+02:00') === 'pm', 'местният час → част от деня');
+  ok(normalizeFact({ kind: 'workout', value: 40, slot: 'am', at: dayAt(2), source: 'strava' }).slot === 'am', 'частта от деня се пази във факта');
+}
+
+// Сървър: човек без отговори (не тренира по въпросника) с гривна — дните, в които
+// гривната мери без тренировка, са „без тренировка“, иначе излиза всекидневна.
+{
+  const fs = [];
+  for (let n = 1; n <= 14; n++) fs.push(normalizeFact({ kind: 'steps', value: 7000, at: dayAt(n), source: 'health_connect' }));
+  [2, 5, 9, 12].forEach(n => fs.push(normalizeFact({ kind: 'workout', value: 50, at: dayAt(n), source: 'health_connect' })));
+  // Отговорът „Кога?“ за тренировката от устройството — само частта от деня.
+  [2, 5, 9].forEach(n => fs.push(normalizeFact({ kind: 'train_check', value: 1, slot: 'am', at: dayAt(n), source: 'checkin' })));
+  const tp = trainingPattern(fs, NOW);
+  ok(tp && tp.perWeek === 2, `тренировки от гривна без отговори: ~2 седмично, не 7 (${tp && tp.perWeek})`);
+  ok(tp && tp.slot === 'am', 'отговорът „Кога?“ дава частта от деня на тренировката от устройството');
+  ok(tp && tp.minutes === 50, 'минутите — от устройството, отговорът не ги подменя');
+  const lw = trainingLastWeek(fs, NOW);
+  ok(lw && lw.count === 2, `последната седмица: 2 тренировки (${lw && lw.count})`);
+  const phoneOnly = [];
+  for (let n = 1; n <= 14; n++) phoneOnly.push(normalizeFact({ kind: 'steps', value: 7000, at: dayAt(n), source: 'phone' }));
+  ok(trainingPattern(phoneOnly, NOW) === null, 'само крачки от телефона (без записани тренировки) не правят модел „не тренира“');
+}
+
+// Сървър: ден с ръчен отговор — крачките му (телефон, гривна, облак) не влизат в сметките.
+{
+  const ac = normalizeFact({ kind: 'activity_check', value: 1, at: dayAt(2), source: 'checkin' });
+  ok(ac && ac.value === 1 && ac.key === 'day', 'activity_check се приема');
+  ok(normalizeFact({ kind: 'activity_check', value: 7, at: dayAt(2), source: 'checkin' }) === null, 'activity_check извън 1–3 — отхвърлен');
+  const fs = [ac, normalizeFact({ kind: 'steps', value: 15000, at: dayAt(2), source: 'huawei' }), normalizeFact({ kind: 'steps', value: 6000, at: dayAt(3), source: 'huawei' })];
+  const left = withoutAnsweredSteps(fs);
+  ok(left.length === 2 && !left.some(f => f.kind === 'steps' && f.at === dayAt(2)), 'крачките на деня с отговор се махат, другите остават');
+}
 
 // ── Въпрос в ден с много крачки (не тренира по въпросника) ─────────────────
 {
@@ -151,18 +238,27 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   store.userData = JSON.stringify({ gender: 'Жена', height: '165', weight: '62', sportActivity: 'Никаква (0 дни седмично)' });
   store.np_health_state = JSON.stringify({ connected: true });
   store.np_activity_state = JSON.stringify({ ext: ext(14500) });
-  ok(A.mode() === 'steps', 'графикът на известията остава без въпрос (без известие)');
-  ok(A.mode(today) === 'training', 'днес крачките са много над обичайните → въпрос в приложението');
-  ok(A.mode(key(1)) === 'steps', 'само днешният ден, не минали дни');
-  store.np_activity_state = JSON.stringify({ ext: ext(7000) });
-  ok(A.mode(today) === 'steps', 'обичаен ден → без въпрос');
+  // Тренировката по матрицата: не тренира по въпросника → не се пита (освен „Кога?“ при тренировка от устройство).
+  const TRAINER = JSON.stringify({ gender: 'Жена', height: '165', weight: '62', sportActivity: 'Средна (2–4 дни седмично)', sportTypes: ['Силови (фитнес, тежести)'] });
+  const NONTRAINER = store.userData;
+  ok(A.mode() === 'steps', 'не тренира, има крачки → без вечерно известие');
+  ok(A.mode(today) === 'steps' && A.mode(key(1)) === 'steps', 'не тренира, ден с крачки → нищо за питане');
+  store.np_activity_state = JSON.stringify({ ext: ext(14500), workouts: { [today]: { min: 45, slot: null } } });
+  ok(A.mode(today) === 'when' && A.needs(today).train === 'when', 'не тренира, но устройството записа тренировка без час → „Кога тренира днес?“');
+  store.np_activity_state = JSON.stringify({ ext: ext(14500), workouts: { [today]: { min: 45, slot: 'am' } } });
+  ok(A.mode(today) === 'steps', 'тренировка от устройство с час (Health Connect) → без въпрос');
+  store.userData = TRAINER;
   store.np_activity_state = JSON.stringify({ ext: ext(14500) });
-  store.gameData = JSON.stringify({ [key(3)]: { eveningCheck: { trained: 'no' } }, [key(9)]: { eveningCheck: { trained: 'no' } } });
-  ok(A.mode(today) === 'steps', '2 пъти „не“ без „да“ за 28 дни → въпросът спира');
-  store.gameData = JSON.stringify({ [key(3)]: { eveningCheck: { trained: 'no' } }, [key(9)]: { eveningCheck: { trained: 'no' } }, [key(20)]: { eveningCheck: { trained: 'pm' } } });
-  ok(A.mode(today) === 'training', 'има „да“ → въпросът остава за дните с много крачки');
+  ok(A.mode() === 'training', 'тренира → вечерното известие „Тренира ли днес?“');
+  ok(A.mode(today) === 'training' && A.needs(today).train === 'did', 'тренира, без тренировка от устройство → „Тренира ли днес?“ (до обяд / следобед / не)');
+  store.np_activity_state = JSON.stringify({ ext: ext(14500), workouts: { [today]: { min: 45, slot: null } } });
+  ok(A.needs(today).train === 'when', 'тренира и устройството записа тренировка без час → не „Тренира ли?“, а „Кога?“');
+  store.np_activity_state = JSON.stringify({ workouts: { [key(4)]: { min: 45, slot: 'am' } } });
+  ok(A.mode(key(4)) === 'ask', 'записана тренировка, но без крачки → въпросът за движението остава');
   store.gameData = JSON.stringify({ [key(3)]: { eveningCheck: { trained: 'no' } } });
-  ok(A.mode(today) === 'training', 'едно „не“ не спира въпроса');
+  store.np_activity_state = JSON.stringify({ ext: ext(14500) });
+  ok(A.mode(key(3)) === 'steps', 'отговорена тренировка + крачки → нищо за питане');
+  store.userData = NONTRAINER;
   const est = A.estimateDay(A.profileOf(JSON.parse(store.userData)), { steps: 14500, trained: 'pm' });
   ok(est.trainingKcal > 0, 'нетрениращ по въпросника, но тренирал → тренировката има разход');
   store.gameData = '{}';
@@ -186,7 +282,129 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   A.fillFromSteps();
   ok(JSON.parse(store.gameData)[key(4)].eveningCheck.extraKcal === 0, 'под целта — без разход над обичайното');
   delete globalThis.NutriPlanGoalFocus;
+  // Въпросът за движението по дни: ден без измерени крачки → въпрос.
+  store.userData = JSON.stringify({ gender: 'Жена', height: '165', weight: '62', sportActivity: 'Никаква (0 дни седмично)' });
+  store.gameData = '{}';
+  store.np_activity_state = JSON.stringify({ ext: { [key(1)]: 6500 } });
+  ok(A.mode(key(1)) === 'steps', 'ден с крачки от Health Connect → без въпрос (не тренира)');
+  ok(A.mode(key(2)) === 'ask', 'ден без крачки (гривната не е носена) → въпросът за движението');
+  ok(A.mode(today) === 'ask', 'днес без показание → въпросът довечера');
+  A.setExternalToday(4200);
+  ok(A.mode(today) === 'steps', 'днешните крачки от Health Connect → без въпрос');
+  ok(A.externalStepsFlowing() === false, '1 от последните 3 дни от Health Connect — нощното показание остава');
+  store.np_activity_state = JSON.stringify({ ext: { [key(1)]: 6500, [key(2)]: 6000 } });
+  ok(A.externalStepsFlowing() === true, 'Health Connect дава крачките → нощното показание се изключва');
+  // Само броячът на телефона.
+  const startToday = new Date(); startToday.setHours(0, 0, 0, 0);
+  store.np_health_state = '{}';
+  store.np_activity_state = JSON.stringify({ enabled: true, readAt: Date.now(), days: { [today]: { s: 3000 }, [key(1)]: { s: 5000, part: true }, [key(2)]: { s: 6000 } } });
+  ok(A.mode(today) === 'steps' && A.mode(key(2)) === 'steps', 'броячът е четен днес / пълен ден → без въпрос');
+  ok(A.mode(key(1)) === 'ask', 'ден, в който броячът не е броил (прогноза) → въпросът за движението');
+  store.np_activity_state = JSON.stringify({ enabled: true, readAt: startToday.getTime() - 3600000, days: { [today]: { s: 3000 } } });
+  ok(A.mode(today) === 'ask', 'броячът не е четен днес → въпрос');
+  // Облачна връзка (Huawei, Fitbit…): крачките и сънят идват от сървъра по дни.
+  store.np_activity_state = '{}';
+  store.gameData = JSON.stringify({ [key(1)]: {} });
+  let cloudSleep = null;
+  globalThis.NutriPlanHealth = { rememberCloudSleep: (x) => { cloudSleep = x; } };
+  A.applyCloudDaily({ steps: { [key(2)]: 8000, [key(1)]: 7600, [today]: 3100 }, sleep: { [today]: 7.4 } });
+  ok(A.mode(key(1)) === 'steps' && A.mode(today) === 'steps', 'Huawei през облака: дните с крачки — без въпрос');
+  ok(A.mode(key(3)) === 'ask', 'Huawei през облака: ден без данни — въпросът за движението');
+  ok(JSON.parse(store.gameData)[key(1)]?.eveningCheck?.steps === 7600, 'завършеният ден взема крачките от облака');
+  ok(!JSON.parse(store.gameData)[today], 'днешният ден не се приключва преди вечерта');
+  ok(cloudSleep && cloudSleep[today] === 7.4, 'сънят от облака отива към сутрешния въпрос');
+  ok(A.externalStepsFlowing() === true, 'облакът дава крачките → нощното показание на брояча е излишно');
+  delete globalThis.NutriPlanHealth;
+  // Въпросът е зададен (нямаше данни до часа му) и отговорен: важи само отговорът.
+  store.np_activity_state = '{}';
+  store.np_backfill_keys = '[]';
+  store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 1, emotionalBalance: 2 } }, [key(3)]: {} });
+  A.fillFromSteps({ [key(2)]: 11000, [key(3)]: 9000 });
+  const kept = JSON.parse(store.gameData)[key(2)].eveningCheck;
+  ok(kept.activityLevel === 1 && kept.steps == null && !kept.activitySource, `отговорът остава, закъснелите крачки не го пипат (${JSON.stringify(kept)})`);
+  ok(JSON.parse(store.gameData)[key(3)].eveningCheck.steps === 9000, 'ден без отговор взема закъснелите крачки в своя ден');
+  ok(JSON.parse(store.np_backfill_keys).includes(key(3)) && !JSON.parse(store.np_backfill_keys).includes(key(2)) && Number(store.np_gamedata_rev) >= 1, 'само промененият ден чака плана, ревизията расте');
+  const rev0 = Number(store.np_gamedata_rev);
+  A.fillFromSteps({ [key(3)]: 12500 });
+  ok(JSON.parse(store.gameData)[key(3)].eveningCheck.steps === 12500, 'по-пълно измерване по-късно (гривната се синхронизира) обновява деня');
+  A.fillFromSteps({ [key(3)]: 12500 });
+  ok(Number(store.np_gamedata_rev) === rev0 + 1, 'същото число — без нова промяна и без излишна синхронизация');
+  ok(A.answeredDays()[key(2)] && !A.answeredDays()[key(3)], 'дните с ръчен отговор се познават');
+  const ecA = A.applyAnswer({}, 2, key(4));
+  ok(ecA.activityLevel === 2 && ecA.activitySource === 'answer' && A.isAnswered(ecA), 'отговорът се отбелязва като отговор');
+  // Към сървъра: за деня с отговор — activity_check, без крачките на телефона.
+  store.np_activity_state = JSON.stringify({ enabled: true, days: { [key(2)]: { s: 11000 }, [key(3)]: { s: 12500 } } });
+  const fx = A.buildFacts();
+  ok(fx.some(f => f.kind === 'activity_check' && f.value === 1 && f.at.startsWith(key(2))), 'денят с отговор отива като activity_check');
+  ok(!fx.some(f => f.kind === 'steps' && f.at.startsWith(key(2))) && fx.some(f => f.kind === 'steps' && f.at.startsWith(key(3))), 'крачките на деня с отговор не се пращат, на другите — да');
+  // Неотворен ден (няма запис за деня): запис не се създава — иначе би излязъл
+  // като ден с 0% спазени хранения; крачките му отиват към сървъра като факт.
+  store.gameData = JSON.stringify({ [key(3)]: {} });
+  store.np_activity_state = JSON.stringify({ enabled: true, days: { [key(5)]: { s: 8800 } } });
+  A.fillFromSteps({ [key(5)]: 8800 });
+  ok(!JSON.parse(store.gameData)[key(5)], 'неотворен ден: без запис в дневника на храненията');
+  ok(A.buildFacts().some(f => f.kind === 'steps' && f.value === 8800 && f.at.startsWith(key(5))), 'неотворен ден: крачките отиват към сървъра в своя ден');
+  store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 2, trained: 'pm', activitySource: 'training' } } });
+  A.fillFromSteps({ [key(2)]: 11000 });
+  ok(JSON.parse(store.gameData)[key(2)].eveningCheck.activitySource === 'training', 'отговорът за тренировка не се пипа');
+  // Ден без крачки: и двата въпроса; отговорите се събират.
+  store.np_activity_state = '{}';
+  store.gameData = JSON.stringify({ [key(6)]: {} });
+  ok(A.needs(key(6)).move && !A.needs(key(6)).train, 'не тренира, без крачки → само „Колко се движи?“');
+  store.userData = TRAINER;
+  ok(A.needs(key(6)).move && A.needs(key(6)).train === 'did', 'тренира, без крачки → и двата въпроса');
+  const both = A.applyAnswer({}, 1, key(6));
+  ok(both.moveLevel === 1 && both.activityLevel === 1 && A.needs(key(6), both).train && !A.needs(key(6), both).move, 'след „Малко“ остава само тренировката');
+  A.applyAnswer(both, 'pm', key(6));
+  ok(both.trained === 'pm' && both.trainingKcal > 0 && both.activityLevel >= 1 && both.moveLevel === 1, `„Малко“ + тренировка → разходът на тренировката влиза (${both.activityLevel}, ${both.trainingKcal} kcal)`);
+  ok(!A.needs(key(6), both).move && !A.needs(key(6), both).train, 'двата отговора → нищо за питане');
+  store.gameData = JSON.stringify({ [key(6)]: { eveningCheck: both } });
+  const fx2 = A.buildFacts();
+  ok(fx2.some(f => f.kind === 'activity_check' && f.at.startsWith(key(6))) && fx2.some(f => f.kind === 'train_check' && f.value === 1 && f.at.startsWith(key(6))), 'към сървъра: и отговорът за движение, и за тренировка');
+  // Тренировка от устройство попълва деня без въпрос.
+  store.gameData = JSON.stringify({ [key(7)]: {} });
+  store.np_activity_state = JSON.stringify({ ext: { [key(7)]: 9000 } });
+  A.setWorkouts({ [key(7)]: { min: 50, slot: 'am' } });
+  const dev = JSON.parse(store.gameData)[key(7)].eveningCheck;
+  ok(dev.trained === 'am' && dev.trainSource === 'device' && dev.steps === 9000 && dev.trainingKcal > 0, `тренировка от устройство + крачки → денят е попълнен (${JSON.stringify(dev)})`);
+  ok(A.buildFacts().some(f => f.kind === 'train_check' && f.slot === 'am' && f.minutes === 50 && f.at.startsWith(key(7))), 'тренировката от устройство: частта от деня и минутите отиват към сървъра');
+  A.applyCloudDaily({ workouts: { [key(8)]: 40 } });
+  ok(A.needs(key(8)).train === 'when', 'тренировка от облачна връзка (без час) → „Кога тренира днес?“');
+  store.np_activity_state = JSON.stringify({ workouts: { [key(9)]: { min: 40, slot: 'pm', intensity: 'vigorous' } } });
+  const saidNo = A.recompute({ trained: 'no', trainSource: 'answer' }, key(9));
+  ok(saidNo.trained === 'pm' && saidNo.trainSource === 'device' && saidNo.trainingKcal > 0, 'отговор „не“, но устройството мери тренировка → тренировката се взима предвид');
+  store.np_activity_state = JSON.stringify({ workouts: { [key(8)]: { min: 40, slot: null } } });
+  const when = A.applyAnswer({}, 'am', key(8));
+  ok(when.trained === 'am' && when.trainSource === 'device' && !A.needs(key(8), when).train, 'отговорът „Кога?“ допълва тренировката от устройството');
+  store.userData = NONTRAINER;
+  // Нищо не дава крачки (няма брояч, Health Connect, облак) → въпрос всеки ден.
+  store.np_activity_state = '{}';
+  ok(A.mode() === 'ask' && A.mode(key(1)) === 'ask', 'без никакъв източник — въпросът всеки ден, и в графика');
   delete globalThis.localStorage;
+}
+
+// История по дни от Play services: приложението е отворено след 4 дни — всеки ден взема своите крачки.
+{
+  const D = 86400000;
+  const now = Date.now();
+  const k = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const old = { days: { [k(now - 4 * D)]: { s: 20000 } }, last: { t: now - 4 * D, c: 5, boot: 1 } };
+  const h = A.applyHistory(old, { since: now - 6 * D, days: { [k(now - 6 * D)]: 3000, [k(now - 4 * D)]: 7100, [k(now - 3 * D)]: 8200, [k(now - 2 * D)]: 0, [k(now - D)]: 6400, [k(now)]: 1500 } }, now);
+  ok(h.days[k(now - 4 * D)].s === 7100 && h.days[k(now - 3 * D)].s === 8200 && h.days[k(now - D)].s === 6400, 'всеки ден — точно своите крачки (не натрупани в деня на отварянето)');
+  ok(h.days[k(now - 6 * D)].part === true, 'денят на абонамента е непълен');
+  ok(h.days[k(now - 2 * D)].s === 0, 'ден без крачки е 0 (въпросът за движението ще излезе)');
+  ok(h.last === null, 'броячът не добавя върху историята');
+}
+
+// Едно показание на денонощие (малко след полунощ) — дните са точни, не прогноза.
+{
+  const m0 = new Date(); m0.setDate(m0.getDate() - 6); m0.setHours(0, 3, 0, 0);
+  const D = 86400000;
+  let ms = A.ingest({}, [{ t: m0.getTime(), c: 1000, boot: 1 }], 7000);
+  ms = A.ingest(ms, [1, 2, 3].map(i => ({ t: m0.getTime() + i * D, c: 1000 + i * 8000, boot: 1 })), 7000);
+  const k = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  ok([1, 2].every(i => !ms.days[k(m0.getTime() + i * D + 3600000)].part), 'показание в полунощ всеки ден → пълни дни');
+  ok(near(ms.days[k(m0.getTime() + D + 3600000)].s, 8000, 60), 'денят взема крачките си (без 3-те минути след полунощ)');
 }
 
 console.log(`activity: ${pass} ok, ${fail} грешки`);

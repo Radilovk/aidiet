@@ -113,6 +113,8 @@ import {
   decideWeeklyAdjustment,
   weeklyMessage,
   pickWeighIn,
+  strengthOnly,
+  workoutsAnswerOf,
   autoWeeklyAction,
   needsSafetyRebuild,
   WEEKLY_CYCLE_MS,
@@ -6128,6 +6130,7 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
     deviceWeightDays: data?._enrichment?.checkin?.weightDays || 0,
     workoutsWeek: data?._enrichment?.checkin?.workoutsWeek ?? null,
+    strengthOnly: strengthOnly(data),
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0,
     weightGapWeeks: weightGapWeeks(history),
@@ -6428,6 +6431,10 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     // Без тренировка по вечерните отговори за седмицата — въпросът не е задаван, отговорът е известен.
     if (dc.workoutsWeek === 0 && !checkinAnswers.some(a => a.questionId === 'workouts')) {
       checkinAnswers = [...checkinAnswers, { questionId: 'workouts', value: 'Нито една', source: 'device' }];
+    }
+    // Тренира само силово: всяка отбелязана вечер тренировка е силова — броят е известен.
+    if (dc.workoutsWeek > 0 && strengthOnly(enrichedData) && !checkinAnswers.some(a => a.questionId === 'workouts')) {
+      checkinAnswers = [...checkinAnswers, { questionId: 'workouts', value: workoutsAnswerOf(dc.workoutsWeek), source: 'device' }];
     }
     // Измереното от прегледа влиза в профила преди обсъждането на целта — посоката се
     // преценява с днешното тегло и талия.
@@ -15624,10 +15631,41 @@ async function handleEnrichmentGet(request, env) {
       markers: LAB_MARKERS,
       deviceKinds: publicDeviceKinds(),
       moduleSources: profile?.moduleSources || {},
+      daily: cloudDaily(store.facts),
     });
   } catch (error) {
     return jsonResponse({ error: 'Failed to load enrichment: ' + error.message }, 500);
   }
+}
+
+/**
+ * Крачките и сънят по дни от облачните връзки (Huawei, Fitbit, Oura, Withings) за
+ * последните 21 дни — телефонът ги ползва, за да не пита за движение и сън в
+ * дни, които гривната вече е измерила (activity-tracker.js, health-sync.js).
+ * Health Connect и броячът на телефона са локални и не се връщат.
+ * Тренировките (минути по ден) отговарят на „Тренира ли днес?“ за деня.
+ * @returns {{ steps: Record<string, number>, sleep: Record<string, number>, workouts: Record<string, { min: number, slot: string|null }> }}
+ */
+function cloudDaily(facts, now = Date.now()) {
+  const from = now - 21 * 86400000;
+  const out = { steps: {}, sleep: {}, workouts: {} };
+  const kinds = { steps: 'steps', sleep: 'sleep', workout: 'workouts' };
+  for (const f of facts || []) {
+    if (!LINK_SOURCES.includes(f?.source) || !kinds[f.kind]) continue;
+    const t = Date.parse(f.at);
+    if (!(t >= from) || !(Number(f.value) > 0)) continue;
+    const day = String(f.at).slice(0, 10);
+    const box = out[kinds[f.kind]];
+    // Две връзки за един ден — по-голямото (гривната е носена по-дълго от другото).
+    if (f.kind === 'workout') {
+      // Тренировките: минути и частта от деня (ако устройството я дава).
+      const prev = box[day];
+      box[day] = { min: Math.max(prev?.min || 0, Number(f.value)), slot: prev?.slot || f.slot || null };
+      continue;
+    }
+    box[day] = Math.max(box[day] || 0, Number(f.value));
+  }
+  return out;
 }
 
 /**

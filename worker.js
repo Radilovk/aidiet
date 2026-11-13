@@ -11264,7 +11264,7 @@ async function handleMaster(env, request, b) {
   return json({ ok: true, id, created: !exists });
 }
 var ORIGIN = "https://biocode.website";
-var LANDING_PATHS = /^\/(studio\.html|studio-privacy\.html|studio-support\.html|studio-app\/landing\/[\w.-]+|\.well-known\/apple-app-site-association)$/;
+var LANDING_PATHS = /^\/(studio\.html|studio-privacy\.html|studio-support\.html|xems-advice\.js|studio-app\/landing\/[\w.-]+|\.well-known\/apple-app-site-association)$/;
 var list = (v) => String(v || "").toLowerCase().split(",").map((x) => x.trim()).filter(Boolean);
 async function handleLanding(request, env, url, host) {
   const bare = host.replace(/^www\./, "");
@@ -11287,6 +11287,14 @@ async function handleStudioSite(request, env) {
   const root = list(env.STUDIO_ROOT_DOMAIN).find((r) => host.endsWith("." + r));
   if (!root || url.pathname.startsWith("/api/")) return null;
   if (!/^[a-z0-9-]{2,40}$/.test(host.slice(0, -(root.length + 1))) || host.startsWith("www.")) return null;
+  if (url.pathname === "/xems-advice.js") {
+    const js = await fetch(ORIGIN + "/xems-advice.js", { cf: { cacheTtl: 300, cacheEverything: true } });
+    return new Response(js.body, { status: js.status, headers: {
+      "Content-Type": "text/javascript; charset=utf-8",
+      "Cache-Control": "public, max-age=300",
+      "X-Content-Type-Options": "nosniff"
+    } });
+  }
   const page = env.STUDIO_PAGE_URL || "https://biocode.website/studio.html";
   const resp = await fetch(page, { cf: { cacheTtl: 300, cacheEverything: true } });
   return new Response(resp.body, {
@@ -47576,11 +47584,24 @@ function weightGapWeeks(history) {
   for (let i = (history || []).length - 1; i >= 0 && !(Number(history[i]?.weightKg) > 0); i--) n++;
   return n;
 }
+function strengthOnly(data = {}) {
+  const types = (Array.isArray(data.sportTypes) ? data.sportTypes : data.sportTypes ? [data.sportTypes] : []).map(String);
+  const other = Array.isArray(data.sportTypes_other) ? data.sportTypes_other.length : !!data.sportTypes_other;
+  return types.length > 0 && !other && types.every((t) => /^Силови/.test(t));
+}
+function workoutsAnswerOf(n) {
+  const k = Math.round(Number(n) || 0);
+  return k <= 0 ? "\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u0430" : k >= 3 ? "3 \u0438 \u043F\u043E\u0432\u0435\u0447\u0435" : String(k);
+}
+var ADHERENCE_KNOWN_DAYS = 4;
 function weeklyQuestionsFor(ctx = {}) {
   const lead = Array.isArray(ctx.lead) ? ctx.lead : [];
   const direction = ctx.direction || (ctx.goal === "GAIN" ? "gain" : null);
   const knownNoTraining = ctx.workoutsWeek === 0;
-  return WEEKLY_CHECKIN_QUESTIONS.filter((q) => !q.onlyForLead || lead.includes(q.onlyForLead)).filter((q) => !(q.id === "workouts" && knownNoTraining)).map((q) => {
+  const knownAdherence = ctx.mealAdherence != null && (ctx.mealDays || 0) >= ADHERENCE_KNOWN_DAYS;
+  const knownWeight = Number(ctx.deviceWeightKg) >= 30 && (ctx.deviceWeightDays || 0) >= DEVICE_RELIABLE_DAYS;
+  const knownStrength = !!ctx.strengthOnly && Number(ctx.workoutsWeek) > 0;
+  return WEEKLY_CHECKIN_QUESTIONS.filter((q) => !q.onlyForLead || lead.includes(q.onlyForLead)).filter((q) => !(q.id === "workouts" && (knownNoTraining || knownStrength))).filter((q) => !(q.id === "adherence" && knownAdherence)).filter((q) => !((q.id === "weightKg" || q.id === "weight") && knownWeight)).map((q) => {
     const out = { ...q, options: [...q.options] };
     delete out.onlyForLead;
     if (q.id === "weight" && direction === "gain") out.options = [...GAIN_WEIGHT_OPTIONS];
@@ -48222,22 +48243,38 @@ function sportLabelOf(perWeek) {
   return "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
 }
 var WEEKDAYS = ["\u043D\u0434", "\u043F\u043D", "\u0432\u0442", "\u0441\u0440", "\u0447\u0442", "\u043F\u0442", "\u0441\u0431"];
-function trainingPattern(facts2, now = /* @__PURE__ */ new Date()) {
-  const from = now.getTime() - 28 * DAY_MS2;
+function deviceRestDays(facts2, from, now) {
+  const inRange = (f) => {
+    const t = Date.parse(f.at);
+    return t >= from && t <= now && f.status !== "pending";
+  };
+  const devices = new Set((facts2 || []).filter((f) => f.kind === "workout" && TRACKED_SOURCES.has(f.source) && inRange(f)).map((f) => f.source));
+  if (!devices.size) return /* @__PURE__ */ new Set();
+  return new Set((facts2 || []).filter((f) => f.kind === "steps" && devices.has(f.source) && inRange(f) && Number(f.value) >= 300).map((f) => dayOf(f.at)));
+}
+function trainingDays(facts2, from, now) {
   const days = /* @__PURE__ */ new Map();
+  for (const day of deviceRestDays(facts2, from, now)) days.set(day, { yes: false, slot: null, minutes: null, kcal: null, rest: true });
   for (const f of facts2 || []) {
     const t = Date.parse(f.at);
-    if (!(t >= from) || t > now.getTime() || f.status === "pending") continue;
+    if (!(t >= from) || t > now || f.status === "pending") continue;
     const day = dayOf(f.at);
+    const prev = days.get(day);
     if (f.kind === "train_check") {
-      const prev = days.get(day);
-      if (prev?.device) continue;
+      if (prev?.device) {
+        if (!prev.slot && f.slot) prev.slot = f.slot;
+        continue;
+      }
       days.set(day, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
     } else if (f.kind === "workout" && TRACKED_SOURCES.has(f.source)) {
-      const prev = days.get(day);
-      days.set(day, { yes: true, slot: prev?.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
+      days.set(day, { yes: true, slot: prev?.slot || f.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
     }
   }
+  return days;
+}
+function trainingPattern(facts2, now = /* @__PURE__ */ new Date()) {
+  const from = now.getTime() - 28 * DAY_MS2;
+  const days = trainingDays(facts2, from, now.getTime());
   if (days.size < 10) return null;
   const all = [...days.entries()];
   const yes = all.filter(([, d]) => d.yes);
@@ -48273,18 +48310,7 @@ function trainingPattern(facts2, now = /* @__PURE__ */ new Date()) {
 }
 function trainingLastWeek(facts2, now = /* @__PURE__ */ new Date()) {
   const from = now.getTime() - 7 * DAY_MS2;
-  const days = /* @__PURE__ */ new Map();
-  for (const f of facts2 || []) {
-    const t = Date.parse(f.at);
-    if (!(t >= from) || t > now.getTime() || f.status === "pending") continue;
-    const day = dayOf(f.at);
-    if (f.kind === "train_check") {
-      if (days.get(day)?.device) continue;
-      days.set(day, { yes: Number(f.value) > 0 });
-    } else if (f.kind === "workout" && TRACKED_SOURCES.has(f.source)) {
-      days.set(day, { yes: true, device: true });
-    }
-  }
+  const days = trainingDays(facts2, from, now.getTime());
   if (days.size < 5) return null;
   return { count: [...days.values()].filter((d) => d.yes).length, answered: days.size };
 }
@@ -48840,6 +48866,8 @@ function normalizeFact(raw) {
       fact.value2 = Math.round(v2);
     }
     if (kind === "workout" && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
+    if (kind === "workout" && (raw.slot === "am" || raw.slot === "pm")) fact.slot = raw.slot;
+    if (kind === "workout" && ["light", "moderate", "vigorous"].includes(raw.intensity)) fact.intensity = raw.intensity;
     return fact;
   }
   if (kind === "train_check") {
@@ -48852,6 +48880,11 @@ function normalizeFact(raw) {
     const kcal = Math.round(Number(raw.kcal));
     if (v && kcal > 0) fact.kcal = Math.min(3e3, kcal);
     return fact;
+  }
+  if (kind === "activity_check") {
+    const v = Math.round(Number(raw.value));
+    if (!(v >= 1 && v <= 3)) return null;
+    return { kind, key: "day", value: v, unit: "", at, source, confidence, status };
   }
   if (kind === "emoeat") {
     if (!raw.value || typeof raw.value !== "object") return null;
@@ -48955,8 +48988,13 @@ function stepsActivity(facts2, now = /* @__PURE__ */ new Date(), resolutions = {
     disputed
   };
 }
+function withoutAnsweredSteps(facts2) {
+  const answered = new Set((facts2 || []).filter((f) => f?.kind === "activity_check").map((f) => dayOf2(f.at)));
+  if (!answered.size) return facts2 || [];
+  return facts2.filter((f) => f?.kind !== "steps" || !answered.has(dayOf2(f.at)));
+}
 function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ctx = {}) {
-  const facts2 = Array.isArray(store?.facts) ? store.facts : [];
+  const facts2 = withoutAnsweredSteps(Array.isArray(store?.facts) ? store.facts : []);
   const overrides = {};
   const reasons = [];
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
@@ -49808,16 +49846,39 @@ function sumByDay(list3) {
 function facts(kind, list3, source, map = (v) => v) {
   return list3.filter((x) => x.day && Number.isFinite(x.value) && x.value > 0).map((x) => ({ kind, value: map(x.value), at: atOf(x.day), source, ...x.extra || {} }));
 }
+function slotOfLocal(iso) {
+  const h = Number(String(iso || "").slice(11, 13));
+  return Number.isFinite(h) && String(iso || "").length >= 13 ? h < 12 ? "am" : "pm" : null;
+}
+var INTENSITY_RANK = { light: 0, moderate: 1, vigorous: 2 };
+function isTrainingWorkout(w) {
+  if (!(w?.minutes >= 10)) return false;
+  if (w.manual) return true;
+  if (w.intensity === "vigorous") return true;
+  if (w.intensity === "moderate") return w.minutes >= (w.walk ? 20 : 10);
+  if (w.intensity === "light") return false;
+  return !w.walk && w.minutes >= 20;
+}
 function workoutsByDay(list3, source) {
   const byDay = /* @__PURE__ */ new Map();
   for (const w of list3) {
-    if (!w.day || !(w.minutes > 0)) continue;
-    const d = byDay.get(w.day) || { minutes: 0, count: 0 };
+    if (!w.day || !(w.minutes > 0) || !isTrainingWorkout(w)) continue;
+    const d = byDay.get(w.day) || { minutes: 0, count: 0, slot: null, intensity: null };
     d.minutes += w.minutes;
     d.count += 1;
+    if (!d.slot && w.slot) d.slot = w.slot;
+    if (w.intensity && (d.intensity == null || INTENSITY_RANK[w.intensity] > INTENSITY_RANK[d.intensity])) d.intensity = w.intensity;
     byDay.set(w.day, d);
   }
-  return [...byDay].map(([day, d]) => ({ kind: "workout", value: Math.round(d.minutes), count: d.count, at: atOf(day), source }));
+  return [...byDay].map(([day, d]) => ({
+    kind: "workout",
+    value: Math.round(d.minutes),
+    count: d.count,
+    at: atOf(day),
+    source,
+    ...d.slot ? { slot: d.slot } : {},
+    ...d.intensity ? { intensity: d.intensity } : {}
+  }));
 }
 function huaweiMs(t) {
   const n = Number(t);
@@ -49938,7 +49999,15 @@ var PROVIDERS = {
       });
       await safe(async () => {
         const r = await getJson(fetchFn, `${A}/workout?${q}`, token);
-        out.push(...workoutsByDay((r.data || []).map((w) => ({ day: w.day, minutes: (Date.parse(w.end_datetime) - Date.parse(w.start_datetime)) / 6e4 })), "oura"));
+        out.push(...workoutsByDay((r.data || []).map((w) => ({
+          day: w.day,
+          minutes: (Date.parse(w.end_datetime) - Date.parse(w.start_datetime)) / 6e4,
+          slot: slotOfLocal(w.start_datetime),
+          walk: /^walking$/i.test(String(w.activity || "")),
+          // Oura: manual/confirmed — пусната или потвърдена от човека; autodetected — по интензитета.
+          manual: /^(manual|confirmed)$/i.test(String(w.source || "")),
+          intensity: { easy: "light", moderate: "moderate", hard: "vigorous" }[String(w.intensity || "").toLowerCase()] || null
+        })), "oura"));
       });
       return out;
     }
@@ -50094,7 +50163,14 @@ var PROVIDERS = {
     authorizeExtra: { approval_prompt: "auto" },
     async fetchFacts(fetchFn, token, from) {
       const list3 = await getJson(fetchFn, `https://www.strava.com/api/v3/athlete/activities?after=${Math.floor(from.getTime() / 1e3)}&per_page=100`, token);
-      return workoutsByDay((Array.isArray(list3) ? list3 : []).map((a) => ({ day: String(a.start_date_local || "").slice(0, 10), minutes: Number(a.moving_time) / 60 })), "strava");
+      return workoutsByDay((Array.isArray(list3) ? list3 : []).map((a) => ({
+        day: String(a.start_date_local || "").slice(0, 10),
+        minutes: Number(a.moving_time) / 60,
+        slot: slotOfLocal(a.start_date_local),
+        walk: /^walk$/i.test(String(a.sport_type || a.type || "")),
+        // Strava: всяка активност е записана от човека (пусната ръчно или качена).
+        manual: true
+      })), "strava");
     }
   }
 };
@@ -54883,6 +54959,7 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
     deviceWeightDays: data?._enrichment?.checkin?.weightDays || 0,
     workoutsWeek: data?._enrichment?.checkin?.workoutsWeek ?? null,
+    strengthOnly: strengthOnly(data),
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0,
     weightGapWeeks: weightGapWeeks(history)
@@ -55118,6 +55195,9 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: "leanLoss", value: "true", source: "device" }];
     if (dc.workoutsWeek === 0 && !checkinAnswers.some((a) => a.questionId === "workouts")) {
       checkinAnswers = [...checkinAnswers, { questionId: "workouts", value: "\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u0430", source: "device" }];
+    }
+    if (dc.workoutsWeek > 0 && strengthOnly(enrichedData) && !checkinAnswers.some((a) => a.questionId === "workouts")) {
+      checkinAnswers = [...checkinAnswers, { questionId: "workouts", value: workoutsAnswerOf(dc.workoutsWeek), source: "device" }];
     }
     const answeredKg = Number(String(checkinAnswers.find((a) => a.questionId === "weightKg")?.value || "").replace(",", "."));
     if (answeredKg >= 30 && answeredKg <= 300) enrichedData.weight = String(answeredKg);
@@ -62245,11 +62325,31 @@ async function handleEnrichmentGet(request, env) {
       reanalysis: profile?.userData ? reanalysisOf(profile.userData, store) : null,
       markers: LAB_MARKERS,
       deviceKinds: publicDeviceKinds(),
-      moduleSources: profile?.moduleSources || {}
+      moduleSources: profile?.moduleSources || {},
+      daily: cloudDaily(store.facts)
     });
   } catch (error) {
     return jsonResponse2({ error: "Failed to load enrichment: " + error.message }, 500);
   }
+}
+function cloudDaily(facts2, now = Date.now()) {
+  const from = now - 21 * 864e5;
+  const out = { steps: {}, sleep: {}, workouts: {} };
+  const kinds = { steps: "steps", sleep: "sleep", workout: "workouts" };
+  for (const f of facts2 || []) {
+    if (!LINK_SOURCES.includes(f?.source) || !kinds[f.kind]) continue;
+    const t = Date.parse(f.at);
+    if (!(t >= from) || !(Number(f.value) > 0)) continue;
+    const day = String(f.at).slice(0, 10);
+    const box = out[kinds[f.kind]];
+    if (f.kind === "workout") {
+      const prev = box[day];
+      box[day] = { min: Math.max(prev?.min || 0, Number(f.value)), slot: prev?.slot || f.slot || null };
+      continue;
+    }
+    box[day] = Math.max(box[day] || 0, Number(f.value));
+  }
+  return out;
 }
 function reanalysisOf(userData, store) {
   try {

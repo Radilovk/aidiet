@@ -215,7 +215,8 @@ const GameNotifier = {
             // Смяна на режима на въпроса за активност (попълнен въпросник, включен крачкомер)
             // сменя бутоните и маха/връща въпроса — графикът се пренарежда.
             // Режимът за графика (без деня): денят с неотбелязана тренировка не праща известие.
-            const activityMode = this._activityMode(null);
+            // Сънят от гривната/телефона маха сутрешното известие — смяната също пренарежда.
+            const activityMode = this._activityMode(null) + (this._sleepTracked() ? '|sleep' : '');
             const needsSchedule = configChanged ||
                 scheduledVersion !== String(currentVersion) ||
                 localStorage.getItem(this.LS_ACTIVITY_MODE_KEY) !== activityMode ||
@@ -1257,6 +1258,20 @@ const GameNotifier = {
         }
     },
 
+    /**
+     * Сънят се записва редовно от гривна/телефон (health-sync.js) — сутрешното
+     * известие „Спа ли добре?“ не се праща; отговорът идва от данните, а в нощ
+     * без запис въпросът излиза в приложението.
+     */
+    _sleepTracked() {
+        try {
+            const H = typeof window !== 'undefined' && (window.NutriPlanHealth || (window.top && window.top.NutriPlanHealth));
+            return !!(H && typeof H.sleepTracked === 'function' && H.sleepTracked());
+        } catch (_) {
+            return false;
+        }
+    },
+
     _hasRealMorningAnswer(rec) {
         return !!(rec && rec.morningCheck && typeof rec.morningCheck.sleptWell === 'boolean');
     },
@@ -1265,7 +1280,15 @@ const GameNotifier = {
         if (!rec || !rec.eveningCheck) return false;
         const val = rec.eveningCheck[field];
         if (field === 'waterIntake') return typeof val === 'boolean';
-        if (field === 'activityLevel' && this._activityMode(recordKey || rec.date) === 'training' && !rec.eveningCheck.trained) return false;
+        if (field === 'activityLevel') {
+            // Движението и тренировката: отговорено е, когато нито едното не остава за питане.
+            const A = typeof window !== 'undefined' && (window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity));
+            if (A && typeof A.needs === 'function') {
+                const n = A.needs(this._normalizeRecordKey(recordKey || rec.date), rec.eveningCheck);
+                return !n.move && !n.train;
+            }
+            if (this._activityMode(recordKey || rec.date) === 'training' && !rec.eveningCheck.trained) return false;
+        }
         return typeof val === 'number' && val >= 1 && val <= 3;
     },
 
@@ -1504,10 +1527,11 @@ const GameNotifier = {
         const cfgNorm = this.normalizeConfig(cfg);
         const [mH, mM] = cfgNorm.morningTime.split(':').map(Number);
         const notifications = [];
+        const sleepTracked = this._sleepTracked();
 
         for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morningTs = this._tsForDayOffset(day, mH, mM);
-            if (morningTs > Date.now()) {
+            if (morningTs > Date.now() && !sleepTracked) {
                 const recordKey = this._dateKeyForTimestamp(morningTs);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
                 const morningDisplay = this._notificationDisplayFields('morning_check');
@@ -1621,10 +1645,11 @@ const GameNotifier = {
         const [mH, mM] = cfgNorm.morningTime.split(':').map(Number);
         const now = Date.now();
         const schedule = [];
+        const sleepTracked = this._sleepTracked();
 
         for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morning = this._tsForDayOffset(day, mH, mM);
-            if (morning > now) {
+            if (morning > now && !sleepTracked) {
                 const recordKey = this._dateKeyForTimestamp(morning);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
                 const morningActions = this._actionsFromConfig(cfgNorm, this.MORNING_META);
@@ -2111,12 +2136,13 @@ const GameNotifier = {
 
     /** Отговорът за тренировка става ниво на деня + оценка на разхода; другите — както са. */
     _applyEveningValue(ec, field, value, recordKey) {
+        const A = field === 'activityLevel' && typeof window !== 'undefined' && (window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity));
+        // Движението (1–3) и тренировката (am/pm/no) — два отделни отговора за деня.
+        if (A && typeof A.applyAnswer === 'function') {
+            A.applyAnswer(ec, value, this._normalizeRecordKey(recordKey));
+            return;
+        }
         if (field === 'activityLevel' && (value === 'am' || value === 'pm' || value === 'no')) {
-            const A = typeof window !== 'undefined' && (window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity));
-            if (A && typeof A.applyAnswer === 'function') {
-                A.applyAnswer(ec, value, this._normalizeRecordKey(recordKey));
-                return;
-            }
             ec.trained = value;
             ec.activityLevel = value === 'no' ? 2 : 3;
             ec.activitySource = 'training';

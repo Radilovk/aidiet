@@ -297,15 +297,21 @@
         };
     }
 
-    /** Без гривна и здравно приложение: вграденият брояч на телефона (activity-tracker.js). */
+    /**
+     * Вграденият брояч на телефона (activity-tracker.js) — основата на всеки Android,
+     * вкл. Huawei/Honor без Google: щом нито Health Connect, нито облачна връзка дава
+     * крачките. С Health Connect на телефона включването пуска и вграденото броене
+     * на системата (Android 14+).
+     */
     async function pedometerView() {
         var A = global.NutriPlanActivity;
         if (!A || !A.pedometer.supported() || A.state().enabled) return null;
+        if (typeof A.externalStepsFlowing === 'function' && A.externalStepsFlowing()) return null;
         var st = await A.pedometer.status();
         if (!st.available) return null;
         return {
             icon: 'fa-shoe-prints', title: 'Крачкомер в телефона',
-            text: 'Няма гривна или часовник — телефонът може да брои крачките. Пресмятаме ги по ръста и теглото ти — вечер не питаме за движението.',
+            text: 'Телефонът брои крачките сам (вграден брояч, почти без батерия). Пресмятаме ги по ръста и теглото ти — вечер питаме за движението само в ден без измерване.',
             note: 'Само брояч на крачки · изключваш по всяко време от Профил → Устройства',
             primary: 'Включи', primaryIcon: 'fa-shoe-prints',
             onPrimary: async function (btn, status) {
@@ -323,8 +329,31 @@
         };
     }
 
+    // Крачкомерът има собствен ритъм: показва се и когато предложението за
+    // гривна/Health Connect е изчерпано или свързано, но крачки не идват.
+    var PEDO_MAX_SHOWN = 3;
+    var PEDO_SNOOZE_MS = 7 * 86400000;
+    function pedometerDue() {
+        if (!new URLSearchParams(global.location.search).has('app')) return false;
+        var E = global.NutriPlanEnrichment;
+        if (!E || !E.hasPlanProfile()) return false;
+        try { if (localStorage.getItem('planJobId')) return false; } catch (_) {}
+        var st = readState();
+        if ((st.pedoShown || 0) >= PEDO_MAX_SHOWN) return false;
+        return !st.pedoLastAt || Date.now() - Date.parse(st.pedoLastAt) > PEDO_SNOOZE_MS;
+    }
+
     async function offer() {
-        if (!due() || busy() || overlay) return;
+        if (busy() || overlay) return;
+        if (!due()) {
+            if (!pedometerDue()) return;
+            var pv = await pedometerView();
+            if (!pv || busy() || overlay) return;
+            var ps = readState();
+            writeState({ pedoShown: (ps.pedoShown || 0) + 1, pedoLastAt: new Date().toISOString() });
+            show(pv);
+            return;
+        }
         var d = await global.NutriPlanHealth.detect();
         // Гривна на Huawei/Honor без мост е основният тракер — първо мостът.
         var hcReady = d.hcAvailable || d.hcInstallable;
@@ -334,10 +363,14 @@
             if (d.viaHc.length === 1) global.NutriPlanHealth.setSource(d.viaHc[0].pkg);
             view = connectView(d);
         }
-        if (!view && !d.apps.length) view = await pedometerView();
+        if (!view) view = await pedometerView();
         if (!view || busy() || !due()) return;
         var st = readState();
         writeState({ shown: (st.shown || 0) + 1, lastAt: new Date().toISOString() });
+        show(view);
+    }
+
+    function show(view) {
         if (!doc.getElementById('hofStyle')) {
             var style = doc.createElement('style');
             style.id = 'hofStyle';

@@ -30,7 +30,7 @@ import { validateWeekPlanDayCoherence, validateWeeklyDishVariety } from '../meal
 import { profileBrief, normalizeIntakeHints, normalizeFeedbackHints, normalizeSwaps, collectFreeText, collectQuestionAnswers, describeCodes } from '../nutrition-engine/ai-assist.js';
 import { compileProfile, reproductiveStatus } from '../profile-code.js';
 import { textIssues, isCleanClientText, isCleanStaffText, guardClientText } from '../nutrition-engine/text-guard.js';
-import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment, weeklyQuestionsFor, weeklyMessage } from '../nutrition-engine/monitoring.js';
+import { WEEKLY_CHECKIN_QUESTIONS, readCheckin, decideWeeklyAdjustment, weeklyQuestionsFor, weeklyMessage, strengthOnly, workoutsAnswerOf } from '../nutrition-engine/monitoring.js';
 
 let validatorIssues = 0;
 let pass = 0;
@@ -262,7 +262,17 @@ ok(avg('k') < 0.06 && avg('p') < 0.05 && avg('c') < 0.12 && avg('f') < 0.06, 'с
   ok(readCheckin([{ questionId: 'weight', value: 'Качих повече от 0,5 кг' }], null).weight === 'fast_gain', 'отговорът „качих над 0,5 кг“ се разбира');
   const qDev = weeklyQuestionsFor({ deviceWeightKg: 71.84, mealAdherence: 86, mealDays: 5 });
   ok(qDev.find(q => q.id === 'weightKg').prefill === '71.8' && /везната/.test(qDev.find(q => q.id === 'weightKg').hint), 'теглото от везната е попълнено');
-  ok(/86%/.test(qDev.find(q => q.id === 'adherence').hint), 'спазването по отметките е подсказка');
+  ok(!qDev.find(q => q.id === 'adherence'), '5 дни отметки — спазването е известно, не се пита');
+  ok(/86%/.test(weeklyQuestionsFor({ mealAdherence: 86, mealDays: 3 }).find(q => q.id === 'adherence').hint), '3 дни отметки — въпросът остава с подсказка');
+  ok(readCheckin([], { status: 'active', mealDays: 5, mealAdherence: 86 }).adherence === 86, 'без въпроса спазването идва от отметките');
+  const qScale = weeklyQuestionsFor({ deviceWeightKg: 72, deviceWeightDays: 4 });
+  ok(!qScale.find(q => q.id === 'weightKg') && !qScale.find(q => q.id === 'weight'), 'везна с 4 сутрешни измервания — теглото не се пита');
+  ok(weeklyQuestionsFor({ deviceWeightKg: 72, deviceWeightDays: 1 }).find(q => q.id === 'weightKg'), '1 измерване — теглото се пита (с попълнено число)');
+  const leadW = { lead: ['workouts'] };
+  ok(!weeklyQuestionsFor({ ...leadW, strengthOnly: true, workoutsWeek: 3 }).find(q => q.id === 'workouts'), 'тренира само силово, броят е известен — не се пита');
+  ok(weeklyQuestionsFor({ ...leadW, strengthOnly: false, workoutsWeek: 3 }).find(q => q.id === 'workouts'), 'смесени тренировки — колко са силовите се пита');
+  ok(strengthOnly({ sportTypes: ['Силови (фитнес, тежести)'] }) && !strengthOnly({ sportTypes: ['Силови (фитнес, тежести)', 'Кардио (бягане, колело, плуване)'] }), 'само силови по въпросника');
+  ok(workoutsAnswerOf(2) === '2' && workoutsAnswerOf(5) === '3 и повече', 'броят става отговор');
   ok(!weeklyQuestionsFor({ mealAdherence: 86, mealDays: 2 }).find(q => q.id === 'adherence').hint, 'под 3 дни отметки — без подсказка');
   const longGap = readCheckin(kgAns(85), null, { prevWeightKg: 88, daysSincePrev: 35 });
   ok(longGap.weeklyChangeKg === -0.6, `5 седмици без претегляне — темпо по реалните дни (${longGap.weeklyChangeKg})`);

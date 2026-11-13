@@ -28,3 +28,9 @@ android {
         }
     }
 }
+
+// Крачките по дни от Google Play services (Recording API on mobile, NutriStepsRecording.java):
+// Play services ги записва сам до 10 дни — закъснелите данни отиват в деня си.
+dependencies {
+    implementation 'com.google.android.gms:play-services-fitness:21.2.0'
+}

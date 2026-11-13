@@ -19,10 +19,12 @@
 
     var STATE_KEY = 'np_health_state';
     var READ_TYPES = ['steps', 'weight', 'sleep', 'dietaryEnergyConsumed', 'bodyFat', 'restingHeartRate',
-        'heartRateVariability', 'calories', 'workouts', 'dietaryWater', 'bloodPressure', 'bloodGlucose'];
+        'heartRateVariability', 'calories', 'workouts', 'dietaryWater', 'bloodPressure', 'bloodGlucose', 'heartRate'];
     var DEVICE_KINDS = ['steps', 'weight', 'sleep', 'intake', 'body_fat', 'muscle_mass', 'visceral_fat', 'body_water',
         'resting_hr', 'hrv', 'active_kcal', 'workout', 'water', 'bp', 'glucose'];
     var MORNING_HOURS = [4, 10];
+    // Пулсът извън тренировките — за интензивни периоди без запис (последните дни).
+    var HR_BOUT_DAYS = 3;
     var DAYS = 14;
     var AUTO_EVERY_MS = 6 * 3600 * 1000;
     // Ден с под 500 kcal записан прием е непълно водене, не реален прием.
@@ -160,8 +162,20 @@
             // подрежда източниците по приоритета, зададен в Health Connect).
             var list = pkg ? (await H.readSamples({ dataType: 'steps', startDate: from.toISOString(), endDate: today.toISOString(), limit: 5000 }) || {}).samples || [] : [];
             var mine = list.filter(function (s) { return s.sourceId === pkg; });
-            var days = mine.length ? sumSamplesByDay(mine) : await daySums(H, 'steps', from, today);
-            push('steps', days.filter(function (x) { return x.value > 0; }).map(function (x) { return { day: x.day, value: Math.round(x.value) }; }));
+            var total = await daySums(H, 'steps', from, today);
+            var days = total;
+            if (mine.length) {
+                // Дните без гривната (не е носена) — от сбора на Health Connect (телефонът брои
+                // сам от Android 14), за да не остане денят без измерване и с излишен въпрос.
+                var own = sumSamplesByDay(mine);
+                var seen = {};
+                own.forEach(function (x) { seen[x.day] = true; });
+                days = own.concat(total.filter(function (x) { return !seen[x.day]; }));
+            }
+            // Дни с ръчен отговор за движението — важи само отговорът (activity-tracker.js).
+            var A = global.NutriPlanActivity;
+            var answered = A && typeof A.answeredDays === 'function' ? A.answeredDays() : {};
+            push('steps', days.filter(function (x) { return x.value > 0 && !answered[x.day]; }).map(function (x) { return { day: x.day, value: Math.round(x.value) }; }));
         });
         await run('dietaryEnergyConsumed', async function () {
             push('intake', (await daySums(H, 'dietaryEnergyConsumed', from, today)).filter(function (x) { return x.value >= MIN_INTAKE_DAY; }));
@@ -218,24 +232,132 @@
         await run('workouts', async function () {
             var res = await H.queryWorkouts({ startDate: from.toISOString(), endDate: now.toISOString(), limit: 200 });
             var days = {};
+            var A0 = global.NutriPlanActivity;
+            var windows = [];
+            var rank = { light: 0, moderate: 1, vigorous: 2 };
             fromSource((res && res.workouts) || [], pkg).forEach(function (w) {
                 var minutes = (Number(w.duration) || 0) / 60;
-                if (minutes < 10) return;
+                windows.push({ from: Date.parse(w.startDate), to: Date.parse(w.endDate) });
+                // Пусната ръчно на часовника — тренировка; разпозната автоматично — по
+                // интензитета (пулс, калории за минута, продължителност; activity-tracker.js).
+                var c = A0 && typeof A0.classifyWorkout === 'function'
+                    ? A0.classifyWorkout({ type: w.workoutType, minutes: minutes, kcal: Number(w.totalEnergyBurned) || 0,
+                        avgHr: Number(w.avgHeartRate) || 0, maxHr: Number(w.maxHeartRate) || 0, method: Number(w.recordingMethod) || 0 })
+                    : { training: minutes >= 10, intensity: null };
+                if (!c.training) return;
                 var d = localDay(w.startDate);
-                days[d] = days[d] || { minutes: 0, count: 0 };
+                days[d] = days[d] || { minutes: 0, count: 0, slot: null, intensity: null };
                 days[d].minutes += minutes;
                 days[d].count += 1;
+                // Частта от деня — по първата тренировка (до 12 ч — сутрин).
+                if (!days[d].slot) days[d].slot = new Date(w.startDate).getHours() < 12 ? 'am' : 'pm';
+                if (c.intensity && (!days[d].intensity || rank[c.intensity] > rank[days[d].intensity])) days[d].intensity = c.intensity;
             });
+            // Висока активност без запис на тренировка: задържан висок пулс (последните дни).
+            if (has('heartRate') && A0 && typeof A0.hrBouts === 'function') {
+                try {
+                    var hrFrom = new Date(today.getTime() - (HR_BOUT_DAYS - 1) * 86400000);
+                    var hrRes = await H.readSamples({ dataType: 'heartRate', startDate: hrFrom.toISOString(), endDate: now.toISOString(), limit: 20000 });
+                    var bouts = A0.hrBouts(((hrRes && hrRes.samples) || []).map(function (x) { return { t: Date.parse(x.startDate), bpm: Number(x.value) }; }), null, windows);
+                    Object.keys(bouts).forEach(function (d) {
+                        var b = bouts[d];
+                        days[d] = days[d] || { minutes: 0, count: 0, slot: b.slot, intensity: null };
+                        days[d].minutes += b.min;
+                        days[d].count += 1;
+                        if (!days[d].intensity) days[d].intensity = 'vigorous';
+                        days[d].hr = true;
+                    });
+                } catch (_) {}
+            }
+            // Записаната тренировка отговаря на „Тренира ли днес?“ за деня (activity-tracker.js).
+            var A = global.NutriPlanActivity;
+            if (A && typeof A.setWorkouts === 'function') {
+                var wk = {};
+                Object.keys(days).forEach(function (d) { wk[d] = { min: days[d].minutes, slot: days[d].slot, intensity: days[d].intensity, src: days[d].hr ? 'hr' : 'workout' }; });
+                try { A.setWorkouts(wk); } catch (_) {}
+            }
             Object.keys(days).forEach(function (d) {
-                facts.push({ kind: 'workout', value: Math.round(days[d].minutes), count: days[d].count, at: factAt(d), source: 'health_connect' });
+                facts.push({ kind: 'workout', value: Math.round(days[d].minutes), count: days[d].count, slot: days[d].slot,
+                    intensity: days[d].intensity, at: factAt(d), source: 'health_connect' });
             });
         });
         await run('sleep', async function () {
             // Нощта срещу първия ден започва предишната вечер.
             var res = await H.readSamples({ dataType: 'sleep', startDate: new Date(from.getTime() - 86400000).toISOString(), endDate: now.toISOString(), limit: 200 });
-            push('sleep', sleepByDay(fromSource(res && res.samples || [], pkg)).filter(function (x) { return x.day >= localDay(from.toISOString()); }));
+            var nights = sleepByDay(fromSource(res && res.samples || [], pkg)).filter(function (x) { return x.day >= localDay(from.toISOString()); });
+            push('sleep', nights);
+            rememberSleep(nights);
         });
         return { facts: facts, errors: errors };
+    }
+
+    /** Часовете сън по ден на събуждане — пазят се локално за сутрешния въпрос (sleepFor). */
+    function rememberSleep(nights) {
+        var st = readState();
+        var sleep = Object.assign({}, st.sleep || {});
+        (nights || []).forEach(function (x) { if (x.value > 0) sleep[x.day] = x.value; });
+        var cutoff = localDay(new Date(Date.now() - 21 * 86400000).toISOString());
+        Object.keys(sleep).forEach(function (k) { if (k < cutoff) delete sleep[k]; });
+        writeState({ sleep: sleep });
+    }
+
+    function grantedFor(type) {
+        var st = readState();
+        return !!(st.connected && (!st.granted || !st.granted.length || st.granted.indexOf(type) !== -1));
+    }
+
+    /** Днешните крачки досега (сборът на Health Connect, вкл. вграденото броене) или null. */
+    async function todaySteps() {
+        var H = plugin();
+        if (!H || !grantedFor('steps')) return null;
+        try {
+            var sums = await daySums(H, 'steps', startOfToday(), new Date());
+            var today = localDay(new Date().toISOString());
+            var hit = sums.filter(function (x) { return x.day === today; })[0];
+            return hit ? Math.round(hit.value) : null;
+        } catch (_) { return null; }
+    }
+
+    /** Сънят през последната нощ (с край днес) — една заявка, без сървъра; записва се в sleepFor. */
+    async function refreshLastNight() {
+        var H = plugin();
+        if (!H || !grantedFor('sleep')) return null;
+        var today = localDay(new Date().toISOString());
+        var st = readState();
+        if (st.sleep && st.sleep[today] > 0) return st.sleep[today];
+        try {
+            var res = await H.readSamples({ dataType: 'sleep', startDate: new Date(Date.now() - 20 * 3600000).toISOString(), endDate: new Date().toISOString(), limit: 50 });
+            var nights = sleepByDay(fromSource(res && res.samples || [], st.source || null)).filter(function (x) { return x.day === today; });
+            rememberSleep(nights);
+            return nights.length ? nights[0].value : null;
+        } catch (_) { return null; }
+    }
+
+    /** Сънят по дни от облачна връзка (Huawei, Fitbit, Oura, Withings) — от /api/enrichment/get. */
+    function rememberCloudSleep(byDay) {
+        var cut = localDay(new Date(Date.now() - 21 * 86400000).toISOString());
+        var keep = {};
+        Object.keys(byDay || {}).forEach(function (k) { if (k >= cut && byDay[k] > 0) keep[k] = Math.round(byDay[k] * 10) / 10; });
+        writeState({ cloudSleep: keep });
+    }
+
+    /** Часовете сън, записани от гривна/телефон за нощта преди деня `day` (YYYY-MM-DD), или null. */
+    function sleepFor(day) {
+        var st = readState();
+        var v = grantedFor('sleep') ? (st.sleep || {})[day] : null;
+        if (!(v > 0)) v = (st.cloudSleep || {})[day];
+        return v > 0 ? v : null;
+    }
+
+    /**
+     * Сънят се записва редовно (поне 5 от последните 7 нощи) — сутрешното известие
+     * „Спа ли добре?“ не е нужно; отговорът идва от данните, а в нощ без запис
+     * въпросът се задава в приложението.
+     */
+    function sleepTracked() {
+        var n = 0;
+        for (var i = 1; i <= 7; i++) if (sleepFor(localDay(new Date(Date.now() - i * 86400000).toISOString()))) n++;
+        return n >= 5;
     }
 
     /** Иска достъп само за четирите вида; съгласието се записва преди това. */
@@ -416,6 +538,11 @@
         openStore: openStore,
         dataSources: dataSources,
         setSource: setSource,
+        todaySteps: todaySteps,
+        refreshLastNight: refreshLastNight,
+        sleepFor: sleepFor,
+        sleepTracked: sleepTracked,
+        rememberCloudSleep: rememberCloudSleep,
         // За тестове: превръщането на пробите в дни.
         _sleepByDay: sleepByDay
     };

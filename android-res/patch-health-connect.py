@@ -13,6 +13,9 @@ Patch the generated Capacitor Android project for Health Connect
   privacy policy (string health_connect_privacy_policy_url).
 - <queries> for the health apps in health-apps.js (and Health Connect): on
   Android 11+ the app can only see whether they are installed when declared.
+- Each workout the plugin returns also carries its recording method (started on
+  the watch / detected automatically / entered by hand) and the average and
+  maximum heart rate over it (HealthManager.kt is patched in node_modules).
 
 Run after `npx cap sync android`. Idempotent.
 """
@@ -27,6 +30,52 @@ VARIABLES = Path("android/variables.gradle")
 STRINGS = Path("android/app/src/main/res/values/strings.xml")
 SETTINGS = Path("android/capacitor.settings.gradle")
 HEALTH_APPS = Path("health-apps.js")
+PLUGIN_KOTLIN = Path("node_modules/@capgo/capacitor-health/android/src/main/java/app/capgo/plugin/health/HealthManager.kt")
+
+# Всяка тренировка носи и как е записана (пусната ръчно на часовника / разпозната
+# автоматично / въведена) и средния и максималния пулс за времето ѝ — по тях
+# health-sync.js преценява дали автоматичният запис е тренировка.
+WORKOUT_ANCHOR = "                val payload = createWorkoutPayload(session, aggregatedData)\n"
+WORKOUT_PATCH = """                // nutriplan-workout-intensity
+                payload.put("recordingMethod", session.metadata.recordingMethod)
+                try {
+                    val hr = client.aggregate(
+                        AggregateRequest(
+                            metrics = setOf(HeartRateRecord.BPM_AVG, HeartRateRecord.BPM_MAX),
+                            timeRangeFilter = TimeRangeFilter.between(session.startTime, session.endTime)
+                        )
+                    )
+                    hr[HeartRateRecord.BPM_AVG]?.let { payload.put("avgHeartRate", it) }
+                    hr[HeartRateRecord.BPM_MAX]?.let { payload.put("maxHeartRate", it) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // без пулс (няма разрешение или данни) — преценка по калориите и времето
+                }
+"""
+
+
+def patch_workouts() -> int:
+    if not PLUGIN_KOTLIN.exists():
+        print(f"ERROR: {PLUGIN_KOTLIN} not found", file=sys.stderr)
+        return 1
+    src = PLUGIN_KOTLIN.read_text(encoding="utf-8")
+    if "nutriplan-workout-intensity" in src:
+        print("Health plugin: workouts already carry recording method and heart rate.")
+        return 0
+    if src.count(WORKOUT_ANCHOR) != 1:
+        print("ERROR: workout payload anchor not found in HealthManager.kt — check the plugin version", file=sys.stderr)
+        return 1
+    for need in ("import androidx.health.connect.client.request.AggregateRequest",
+                 "import androidx.health.connect.client.records.HeartRateRecord",
+                 "import androidx.health.connect.client.time.TimeRangeFilter",
+                 "import kotlinx.coroutines.CancellationException"):
+        if need not in src:
+            print(f"ERROR: HealthManager.kt lacks `{need}` — check the plugin version", file=sys.stderr)
+            return 1
+    PLUGIN_KOTLIN.write_text(src.replace(WORKOUT_ANCHOR, WORKOUT_ANCHOR + WORKOUT_PATCH, 1), encoding="utf-8")
+    print("Health plugin: workouts carry recording method and heart rate.")
+    return 0
 
 KEEP = {
     "android.permission.health.READ_STEPS",
@@ -41,6 +90,8 @@ KEEP = {
     "android.permission.health.READ_HYDRATION",
     "android.permission.health.READ_BLOOD_PRESSURE",
     "android.permission.health.READ_BLOOD_GLUCOSE",
+    # Пулсът по време на тренировка и извън нея — интензитетът (health-sync.js).
+    "android.permission.health.READ_HEART_RATE",
 }
 MIN_SDK = 26
 PRIVACY_URL = "https://biocode.website/privacy-policy.html"
@@ -91,6 +142,9 @@ def main() -> int:
         gradle = gradle[:m.start(1)] + str(MIN_SDK) + gradle[m.end(1):]
         VARIABLES.write_text(gradle)
         print(f"minSdkVersion {m.group(1)} → {MIN_SDK} (Health Connect).")
+
+    if patch_workouts():
+        return 1
 
     entry = f'    <string name="health_connect_privacy_policy_url">{PRIVACY_URL}</string>'
     if STRINGS.exists():

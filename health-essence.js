@@ -142,23 +142,47 @@ const WEEKDAYS = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
  * @returns {null | { perWeek: number, answered: number, usual: number[], rest: number[],
  *   byWeekday: number[], slot: 'am'|'pm'|'mixed'|null, regularity: number, minutes: number|null, kcal: number|null }}
  */
-export function trainingPattern(facts, now = new Date()) {
-  const from = now.getTime() - 28 * DAY_MS;
+/**
+ * Дни без тренировка по устройство: устройството записва тренировки (има поне
+ * една за периода) и за деня има крачки от него, но тренировка няма. Без това
+ * при човек, който не отговаря на въпроса (не тренира по въпросника), моделът
+ * вижда само дните с тренировка и я смята за всекидневна.
+ */
+function deviceRestDays(facts, from, now) {
+  const inRange = (f) => { const t = Date.parse(f.at); return t >= from && t <= now && f.status !== 'pending'; };
+  const devices = new Set((facts || []).filter(f => f.kind === 'workout' && TRACKED_SOURCES.has(f.source) && inRange(f)).map(f => f.source));
+  if (!devices.size) return new Set();
+  return new Set((facts || []).filter(f => f.kind === 'steps' && devices.has(f.source) && inRange(f) && Number(f.value) >= 300).map(f => dayOf(f.at)));
+}
+
+/** Дните с тренировка/без: отговорите, тренировките от устройство и дните, в които устройството мери без тренировка. */
+function trainingDays(facts, from, now) {
   const days = new Map();
+  for (const day of deviceRestDays(facts, from, now)) days.set(day, { yes: false, slot: null, minutes: null, kcal: null, rest: true });
   for (const f of facts || []) {
     const t = Date.parse(f.at);
-    if (!(t >= from) || t > now.getTime() || f.status === 'pending') continue;
+    if (!(t >= from) || t > now || f.status === 'pending') continue;
     const day = dayOf(f.at);
+    const prev = days.get(day);
     if (f.kind === 'train_check') {
-      const prev = days.get(day);
-      // Тренировка от устройство за деня не се отменя от „не“ на въпроса.
-      if (prev?.device) continue;
+      // Тренировката от устройство (пусната ръчно или с интензитет на тренировка —
+      // разходките и леките записи не стигат дотук) се взима предвид и при отговор
+      // „не“: измерването е по-сигурно. Отговорът „Кога?“ добавя само частта от деня.
+      if (prev?.device) {
+        if (!prev.slot && f.slot) prev.slot = f.slot;
+        continue;
+      }
       days.set(day, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
     } else if (f.kind === 'workout' && TRACKED_SOURCES.has(f.source)) {
-      const prev = days.get(day);
-      days.set(day, { yes: true, slot: prev?.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
+      days.set(day, { yes: true, slot: prev?.slot || f.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
     }
   }
+  return days;
+}
+
+export function trainingPattern(facts, now = new Date()) {
+  const from = now.getTime() - 28 * DAY_MS;
+  const days = trainingDays(facts, from, now.getTime());
   if (days.size < 10) return null;
   const all = [...days.entries()];
   const yes = all.filter(([, d]) => d.yes);
@@ -202,18 +226,7 @@ export function trainingPattern(facts, now = new Date()) {
  */
 export function trainingLastWeek(facts, now = new Date()) {
   const from = now.getTime() - 7 * DAY_MS;
-  const days = new Map();
-  for (const f of facts || []) {
-    const t = Date.parse(f.at);
-    if (!(t >= from) || t > now.getTime() || f.status === 'pending') continue;
-    const day = dayOf(f.at);
-    if (f.kind === 'train_check') {
-      if (days.get(day)?.device) continue;
-      days.set(day, { yes: Number(f.value) > 0 });
-    } else if (f.kind === 'workout' && TRACKED_SOURCES.has(f.source)) {
-      days.set(day, { yes: true, device: true });
-    }
-  }
+  const days = trainingDays(facts, from, now.getTime());
   if (days.size < 5) return null;
   return { count: [...days.values()].filter(d => d.yes).length, answered: days.size };
 }
