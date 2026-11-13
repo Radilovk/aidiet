@@ -231,10 +231,33 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   ok(cloudSleep && cloudSleep[today] === 7.4, 'сънят от облака отива към сутрешния въпрос');
   ok(A.externalStepsFlowing() === true, 'облакът дава крачките → нощното показание на брояча е излишно');
   delete globalThis.NutriPlanHealth;
+  // Данните идват по-късно: ръчният отговор за деня отстъпва на измерването.
+  store.np_activity_state = '{}';
+  store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 1, emotionalBalance: 2 } } });
+  A.fillFromSteps({ [key(2)]: 11000 });
+  const late = JSON.parse(store.gameData)[key(2)].eveningCheck;
+  ok(late.activitySource === 'steps' && late.steps === 11000 && late.askedLevel === 1 && late.activityLevel === 3, `закъснелите крачки влизат в своя ден и заместват отговора (${JSON.stringify(late)})`);
+  ok(late.emotionalBalance === 2, 'другите отговори за деня остават');
+  store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 2, trained: 'pm', activitySource: 'training' } } });
+  A.fillFromSteps({ [key(2)]: 11000 });
+  ok(JSON.parse(store.gameData)[key(2)].eveningCheck.activitySource === 'training', 'отговорът за тренировка не се пипа');
   // Нищо не дава крачки (няма брояч, Health Connect, облак) → въпрос всеки ден.
   store.np_activity_state = '{}';
   ok(A.mode() === 'ask' && A.mode(key(1)) === 'ask', 'без никакъв източник — въпросът всеки ден, и в графика');
   delete globalThis.localStorage;
+}
+
+// История по дни от Play services: приложението е отворено след 4 дни — всеки ден взема своите крачки.
+{
+  const D = 86400000;
+  const now = Date.now();
+  const k = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const old = { days: { [k(now - 4 * D)]: { s: 20000 } }, last: { t: now - 4 * D, c: 5, boot: 1 } };
+  const h = A.applyHistory(old, { since: now - 6 * D, days: { [k(now - 6 * D)]: 3000, [k(now - 4 * D)]: 7100, [k(now - 3 * D)]: 8200, [k(now - 2 * D)]: 0, [k(now - D)]: 6400, [k(now)]: 1500 } }, now);
+  ok(h.days[k(now - 4 * D)].s === 7100 && h.days[k(now - 3 * D)].s === 8200 && h.days[k(now - D)].s === 6400, 'всеки ден — точно своите крачки (не натрупани в деня на отварянето)');
+  ok(h.days[k(now - 6 * D)].part === true, 'денят на абонамента е непълен');
+  ok(h.days[k(now - 2 * D)].s === 0, 'ден без крачки е 0 (въпросът за движението ще излезе)');
+  ok(h.last === null, 'броячът не добавя върху историята');
 }
 
 // Едно показание на денонощие (малко след полунощ) — дните са точни, не прогноза.

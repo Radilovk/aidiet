@@ -35,6 +35,7 @@ PLUGIN_SOURCES = [
     Path("android-res/java/com/biocode/nutriplan/NutriSystemUiPlugin.java"),
     Path("android-res/java/com/biocode/nutriplan/NutriStepsPlugin.java"),
     Path("android-res/java/com/biocode/nutriplan/NutriStepsReceiver.java"),
+    Path("android-res/java/com/biocode/nutriplan/NutriStepsRecording.java"),
 ]
 MAIN_ACTIVITY = PACKAGE_DIR / "MainActivity.java"
 MANIFEST = Path("android/app/src/main/AndroidManifest.xml")

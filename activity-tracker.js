@@ -22,10 +22,15 @@
  * Източникът на крачки — най-евтиният наличен, без наша постоянна услуга:
  *   1. Health Connect: гривна/часовник или (Android 14+) вграденото броене на
  *      системата, което тръгва само щом приложение има право да чете крачки;
- *   2. хардуерният брояч на телефона (TYPE_STEP_COUNTER брои в сензорния чип):
+ *   2. облачна връзка (Huawei Health, Fitbit, Oura, Withings) — по дни от сървъра;
+ *   3. Google Play services (Recording API, Android 10+ с Google): записва сам
+ *      до 10 дни, четем часовете по местни дни (NutriStepsRecording.java);
+ *   4. хардуерният брояч на телефона (TYPE_STEP_COUNTER брои в сензорния чип):
  *      NutriStepsPlugin.java го чете при отваряне, а NutriStepsReceiver.java —
  *      веднъж малко след полунощ (границата на деня) и при изключване. Когато
- *      Health Connect дава крачките, нощното показание се изключва.
+ *      друг източник дава крачките, нощното показание се изключва.
+ * Каквото и да дойде по-късно, отива в деня, в който е направено; измерване,
+ * дошло след ръчния отговор за деня, го заменя (askedLevel пази отговора).
  * Разликата между две показания се разпределя по
  * часовете между тях според личната дневна крива (наученa от кратките
  * интервали, свита към типичната крива с псевдо-наблюдения), а рестартът се
@@ -448,11 +453,52 @@
         writeState({ enabled: false, last: null, days: {}, hours: [] });
     }
 
-    /** Чете брояча и дневника му и обновява дните. */
+    /**
+     * Историята по дни от Google Play services (Recording API) → дните. Точни по
+     * ден, независимо кога е отворено приложението: денят на абонамента е
+     * непълен, по-старите дни от историята не се пипат. Броячът спира да добавя
+     * (last = null): ако историята изчезне, първото му показание е „начало“.
+     * @param {object} st състоянието
+     * @param {{ since?: number, days?: Record<string, number> }} hist
+     * @param {number} [now]
+     */
+    function applyHistory(st, hist, now) {
+        now = now || Date.now();
+        var days = Object.assign({}, st.days || {});
+        var sinceDay = hist.since ? dayKey(hist.since) : null;
+        var today = dayKey(now);
+        Object.keys(hist.days || {}).forEach(function (k) {
+            if (k > today) return;
+            var n = Math.round(Number(hist.days[k]) || 0);
+            if (sinceDay && k < sinceDay) return;
+            days[k] = { s: n, src: 'rec' };
+            if (sinceDay && k === sinceDay) days[k].part = true;
+        });
+        var cutoff = dayKey(now - KEEP_DAYS * DAY_MS);
+        Object.keys(days).forEach(function (k) { if (k < cutoff) delete days[k]; });
+        return { days: days, last: null, rec: true };
+    }
+
+    /** Чете историята по дни (Play services), иначе брояча и дневника му, и обновява дните. */
     async function refresh() {
         var st = readState();
         var P = plugin();
         if (!st.enabled || !P || typeof P.read !== 'function') return st;
+        if (typeof P.history === 'function') {
+            var hist = null;
+            try { hist = await P.history({ days: 10 }); } catch (_) {}
+            if (hist && hist.available && hist.days) {
+                var h = applyHistory(st, hist);
+                st = writeState({ days: h.days, last: null, rec: true, readAt: Date.now() });
+                // Историята е в Play services — нощното показание на брояча не е нужно.
+                if (st.bg !== false && typeof P.setBackground === 'function') {
+                    try { await P.setBackground({ enabled: false }); st = writeState({ bg: false }); } catch (_) {}
+                }
+                fillFromSteps();
+                return st;
+            }
+            if (st.rec) st = writeState({ rec: false });
+        }
         var res;
         try { res = await P.read({ since: st.last ? st.last.t : 0 }); } catch (_) { return st; }
         if (!res || !res.available) return st;
@@ -461,7 +507,7 @@
         if (res.counter != null) readings.push({ t: Number(res.now) || Date.now(), c: Number(res.counter), boot: boot });
         var next = ingest(st, readings, profileOf(userData()).typicalSteps);
         st = writeState({ last: next.last, days: next.days, hours: next.hours, readAt: Date.now() });
-        // Нощното показание — само когато няма друг източник (Health Connect).
+        // Нощното показание — само когато няма друг източник (Health Connect, облак, Play services).
         var bg = !externalStepsFlowing();
         if (st.bg !== bg && typeof P.setBackground === 'function') {
             try { await P.setBackground({ enabled: bg }); st = writeState({ bg: bg }); } catch (_) {}
@@ -743,7 +789,10 @@
             var rec = gd[key];
             if (!rec || typeof rec !== 'object') return;
             var ec = rec.eveningCheck || {};
-            if (ec.activityLevel != null && ec.activitySource !== 'steps_projected') return;
+            // Ръчният отговор „Колко се движи?“ (ден, в който данните още ги нямаше)
+            // отстъпва на измерването, щом то дойде — пази се като askedLevel.
+            var manual = ec.activityLevel != null && !ec.activitySource && !ec.trained;
+            if (ec.activityLevel != null && ec.activitySource !== 'steps_projected' && !manual) return;
             var s = stepsByDay && stepsByDay[key] != null ? { steps: stepsByDay[key], partial: false } : null;
             if (!s) {
                 if (key === today && new Date().getHours() < 20) return;
@@ -751,11 +800,13 @@
             }
             if (!s || (s.partial && !s.projected) || s.steps < MIN_REAL_DAY) return;
             var est = estimateDay(p, { steps: s.steps });
+            if (manual && s.projected) return;
             rec.eveningCheck = Object.assign({ activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null }, ec, {
                 activityLevel: est.level,
                 activitySource: s.projected ? 'steps_projected' : 'steps',
                 activeKcal: est.activeKcal
             });
+            if (manual) rec.eveningCheck.askedLevel = ec.activityLevel;
             markMeasured(rec.eveningCheck, est, p);
             changed.push(key);
         });
@@ -845,6 +896,7 @@
         coveredShare: coveredShare,
         dayMeasured: dayMeasured,
         applyCloudDaily: applyCloudDaily,
+        applyHistory: applyHistory,
         setExternalToday: setExternalToday,
         externalStepsFlowing: externalStepsFlowing,
         ingest: ingest,

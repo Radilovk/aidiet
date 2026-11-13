@@ -30,6 +30,9 @@
 # ── NutriPlan step counter plugin (крачкомер) ────────────────────────────────
 -keep class com.biocode.nutriplan.NutriStepsPlugin { *; }
 -keep class com.biocode.nutriplan.NutriStepsReceiver { *; }
+-keep class com.biocode.nutriplan.NutriStepsRecording { *; }
+-keep class com.google.android.gms.fitness.** { *; }
+-dontwarn com.google.android.gms.fitness.**
 
 # ── General Android / Kotlin reflection safety ────────────────────────────────
 -keepattributes *Annotation*

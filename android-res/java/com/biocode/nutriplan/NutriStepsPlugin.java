@@ -107,6 +107,34 @@ public class NutriStepsPlugin extends Plugin implements SensorEventListener {
         // не се ползва
     }
 
+    /**
+     * Историята по дни от Google Play services (Recording API): { available, since,
+     * days: { "YYYY-MM-DD": steps } }. Без Google или без разрешение — available: false.
+     */
+    @PluginMethod
+    public void history(final PluginCall call) {
+        if (!hasActivityPermission()) {
+            JSObject out = new JSObject();
+            out.put("available", Boolean.FALSE);
+            out.put("granted", Boolean.FALSE);
+            call.resolve(out);
+            return;
+        }
+        Integer days = call.getInt("days", 10);
+        NutriStepsRecording.read(getContext(), days != null ? days.intValue() : 10, new NutriStepsRecording.Done() {
+            @Override
+            public void result(JSONObject res) {
+                try {
+                    call.resolve(new JSObject(res.toString()));
+                } catch (Exception e) {
+                    JSObject out = new JSObject();
+                    out.put("available", Boolean.FALSE);
+                    call.resolve(out);
+                }
+            }
+        });
+    }
+
     /** Нощното показание: { enabled } — изключва се, когато Health Connect дава крачките. */
     @PluginMethod
     public void setBackground(PluginCall call) {
