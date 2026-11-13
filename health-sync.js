@@ -234,10 +234,19 @@
                 var minutes = (Number(w.duration) || 0) / 60;
                 if (minutes < 10) return;
                 var d = localDay(w.startDate);
-                days[d] = days[d] || { minutes: 0, count: 0 };
+                days[d] = days[d] || { minutes: 0, count: 0, slot: null };
                 days[d].minutes += minutes;
                 days[d].count += 1;
+                // Частта от деня — по първата тренировка (до 12 ч — сутрин).
+                if (!days[d].slot) days[d].slot = new Date(w.startDate).getHours() < 12 ? 'am' : 'pm';
             });
+            // Записаната тренировка отговаря на „Тренира ли днес?“ за деня (activity-tracker.js).
+            var A = global.NutriPlanActivity;
+            if (A && typeof A.setWorkouts === 'function') {
+                var wk = {};
+                Object.keys(days).forEach(function (d) { wk[d] = { min: days[d].minutes, slot: days[d].slot }; });
+                try { A.setWorkouts(wk); } catch (_) {}
+            }
             Object.keys(days).forEach(function (d) {
                 facts.push({ kind: 'workout', value: Math.round(days[d].minutes), count: days[d].count, at: factAt(d), source: 'health_connect' });
             });

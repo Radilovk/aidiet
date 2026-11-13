@@ -11503,12 +11503,65 @@
             return gn && typeof gn._activityMode === 'function' ? gn._activityMode(recordKey || undefined) : 'ask';
         }
 
+        function activityApi() {
+            try { return window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity) || null; } catch (_) { return null; }
+        }
+
+        /**
+         * Какво остава за деня: движението (без измерени крачки) и тренировката (без
+         * записана от устройство) — два отделни въпроса (activity-tracker.js needs).
+         */
+        function activityNeeds(recordKey, ec) {
+            ec = ec || {};
+            var A = activityApi();
+            if (A && typeof A.needs === 'function') return A.needs(recordKey || getTodayKey(), ec);
+            var mode = activityMode(recordKey);
+            return { move: mode === 'ask' && ec.activityLevel == null, train: mode === 'training' && !ec.trained };
+        }
+
         function isActivityAnswered(ec, recordKey) {
             if (!ec) return false;
-            var mode = activityMode(recordKey);
-            if (mode === 'steps') return true;
-            if (mode === 'training') return !!ec.trained;
-            return ec.activityLevel != null;
+            var n = activityNeeds(recordKey, ec);
+            return !n.move && !n.train;
+        }
+
+        var TRAINING_ANSWERS = [
+            { label:'Да, до обяд', icon:'<i class="fas fa-sun" style="color:#fff;font-size:1em"></i>', value:'am', cls:'tier-high' },
+            { label:'Да, следобед', icon:'<i class="fas fa-dumbbell" style="color:#fff;font-size:1em"></i>', value:'pm', cls:'tier-high' },
+            { label:'Не', icon:'<i class="fas fa-couch" style="color:#fff;font-size:1em"></i>', value:'no', cls:'tier-low' }
+        ];
+
+        /**
+         * Въпросите за движението и тренировката, само каквото липсва: всеки отговор
+         * се записва веднага, после следващият въпрос (ако има), накрая done.
+         */
+        function askActivityParts(recordKey, prefix, hdrOpts, done) {
+            var r = getRecord(recordKey);
+            var n = activityNeeds(recordKey, r.eveningCheck || {});
+            var save = function(v) {
+                var rr = getRecord(recordKey);
+                if (!rr.eveningCheck) rr.eveningCheck = { activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null };
+                applyActivityAnswer(rr.eveningCheck, v, recordKey);
+                if (!rr.eveningCheck.ts) rr.eveningCheck.ts = new Date().toISOString();
+                saveRecord(recordKey, rr);
+                recalcAndShowScore(recordKey);
+            };
+            if (n.move) {
+                showBubble(prefix + 'Колко се движи днес?', ACTIVITY_1_3, function(v) {
+                    save(v);
+                    setTimeout(function() { askActivityParts(recordKey, prefix, hdrOpts, done); }, 400);
+                }, hdrOpts);
+                return;
+            }
+            if (n.train) {
+                showBubble(prefix + 'Тренира ли днес?', TRAINING_ANSWERS, function(v) {
+                    save(v);
+                    setTimeout(function() { askActivityParts(recordKey, prefix, hdrOpts, done); }, 400);
+                }, hdrOpts);
+                return;
+            }
+            gameNotifyCancel('evening_activity', recordKey);
+            done();
         }
 
         /** Отговорът за активност в деня: тренировката се превръща в ниво и разход. */
@@ -11550,9 +11603,10 @@
             }
             if (step === 'activity') {
                 if (isActivityAnswered(rec.eveningCheck, recordKey)) { if (doneCb) doneCb(); return; }
-                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движи днес?'),
-                    gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
-                    function(v){ saveField('activityLevel', v, doneCb); }, hdrOpts);
+                askActivityParts(recordKey, prefix, hdrOpts, function() {
+                    if (doneCb) setTimeout(doneCb, 350);
+                    else setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400);
+                });
                 return;
             }
             if (step === 'balance') {
@@ -11625,10 +11679,9 @@
                     function(v){ eveData.emotionalBalance=v; setTimeout(q3,400); }, hdrOpts);
             }
             function q1() {
-                if (activityDone || eveData.activityLevel != null) { q2(); return; }
-                showBubble(prefix + gameNotifyQuestion('evening_activity', 'Колко се движи днес?'),
-                    gameNotifyAnswers('evening_activity', ACTIVITY_1_3),
-                    function(v){ eveData.activityLevel=v; setTimeout(q2,400); }, hdrOpts);
+                if (activityDone) { q2(); return; }
+                // Движението и тренировката се записват веднага (finish не ги пипа).
+                askActivityParts(recordKey, prefix, hdrOpts, function() { setTimeout(q2, 300); });
             }
             q1();
         }

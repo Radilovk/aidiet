@@ -15643,17 +15643,19 @@ async function handleEnrichmentGet(request, env) {
  * последните 21 дни — телефонът ги ползва, за да не пита за движение и сън в
  * дни, които гривната вече е измерила (activity-tracker.js, health-sync.js).
  * Health Connect и броячът на телефона са локални и не се връщат.
- * @returns {{ steps: Record<string, number>, sleep: Record<string, number> }}
+ * Тренировките (минути по ден) отговарят на „Тренира ли днес?“ за деня.
+ * @returns {{ steps: Record<string, number>, sleep: Record<string, number>, workouts: Record<string, number> }}
  */
 function cloudDaily(facts, now = Date.now()) {
   const from = now - 21 * 86400000;
-  const out = { steps: {}, sleep: {} };
+  const out = { steps: {}, sleep: {}, workouts: {} };
+  const kinds = { steps: 'steps', sleep: 'sleep', workout: 'workouts' };
   for (const f of facts || []) {
-    if (!LINK_SOURCES.includes(f?.source) || (f.kind !== 'steps' && f.kind !== 'sleep')) continue;
+    if (!LINK_SOURCES.includes(f?.source) || !kinds[f.kind]) continue;
     const t = Date.parse(f.at);
     if (!(t >= from) || !(Number(f.value) > 0)) continue;
     const day = String(f.at).slice(0, 10);
-    const box = out[f.kind];
+    const box = out[kinds[f.kind]];
     // Две връзки за един ден — по-голямото (гривната е носена по-дълго от другото).
     box[day] = Math.max(box[day] || 0, Number(f.value));
   }

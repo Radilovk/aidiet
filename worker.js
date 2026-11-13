@@ -62289,13 +62289,14 @@ async function handleEnrichmentGet(request, env) {
 }
 function cloudDaily(facts2, now = Date.now()) {
   const from = now - 21 * 864e5;
-  const out = { steps: {}, sleep: {} };
+  const out = { steps: {}, sleep: {}, workouts: {} };
+  const kinds = { steps: "steps", sleep: "sleep", workout: "workouts" };
   for (const f of facts2 || []) {
-    if (!LINK_SOURCES.includes(f?.source) || f.kind !== "steps" && f.kind !== "sleep") continue;
+    if (!LINK_SOURCES.includes(f?.source) || !kinds[f.kind]) continue;
     const t = Date.parse(f.at);
     if (!(t >= from) || !(Number(f.value) > 0)) continue;
     const day = String(f.at).slice(0, 10);
-    const box = out[f.kind];
+    const box = out[kinds[f.kind]];
     box[day] = Math.max(box[day] || 0, Number(f.value));
   }
   return out;

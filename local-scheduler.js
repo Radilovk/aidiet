@@ -1280,7 +1280,15 @@ const GameNotifier = {
         if (!rec || !rec.eveningCheck) return false;
         const val = rec.eveningCheck[field];
         if (field === 'waterIntake') return typeof val === 'boolean';
-        if (field === 'activityLevel' && this._activityMode(recordKey || rec.date) === 'training' && !rec.eveningCheck.trained) return false;
+        if (field === 'activityLevel') {
+            // Движението и тренировката: отговорено е, когато нито едното не остава за питане.
+            const A = typeof window !== 'undefined' && (window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity));
+            if (A && typeof A.needs === 'function') {
+                const n = A.needs(this._normalizeRecordKey(recordKey || rec.date), rec.eveningCheck);
+                return !n.move && !n.train;
+            }
+            if (this._activityMode(recordKey || rec.date) === 'training' && !rec.eveningCheck.trained) return false;
+        }
         return typeof val === 'number' && val >= 1 && val <= 3;
     },
 
@@ -2128,12 +2136,13 @@ const GameNotifier = {
 
     /** Отговорът за тренировка става ниво на деня + оценка на разхода; другите — както са. */
     _applyEveningValue(ec, field, value, recordKey) {
+        const A = field === 'activityLevel' && typeof window !== 'undefined' && (window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity));
+        // Движението (1–3) и тренировката (am/pm/no) — два отделни отговора за деня.
+        if (A && typeof A.applyAnswer === 'function') {
+            A.applyAnswer(ec, value, this._normalizeRecordKey(recordKey));
+            return;
+        }
         if (field === 'activityLevel' && (value === 'am' || value === 'pm' || value === 'no')) {
-            const A = typeof window !== 'undefined' && (window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity));
-            if (A && typeof A.applyAnswer === 'function') {
-                A.applyAnswer(ec, value, this._normalizeRecordKey(recordKey));
-                return;
-            }
             ec.trained = value;
             ec.activityLevel = value === 'no' ? 2 : 3;
             ec.activitySource = 'training';

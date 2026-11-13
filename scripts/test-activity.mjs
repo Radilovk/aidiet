@@ -173,18 +173,17 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   store.userData = JSON.stringify({ gender: 'Жена', height: '165', weight: '62', sportActivity: 'Никаква (0 дни седмично)' });
   store.np_health_state = JSON.stringify({ connected: true });
   store.np_activity_state = JSON.stringify({ ext: ext(14500) });
-  ok(A.mode() === 'steps', 'графикът на известията остава без въпрос (без известие)');
-  ok(A.mode(today) === 'training', 'днес крачките са много над обичайните → въпрос в приложението');
-  ok(A.mode(key(1)) === 'steps', 'само днешният ден, не минали дни');
-  store.np_activity_state = JSON.stringify({ ext: ext(7000) });
-  ok(A.mode(today) === 'steps', 'обичаен ден → без въпрос');
-  store.np_activity_state = JSON.stringify({ ext: ext(14500) });
+  // Движението и тренировката — два отделни въпроса. Крачките не показват тренировка.
+  ok(A.mode() === 'training', 'графикът: има крачки → вечерното известие пита за тренировката');
+  ok(A.mode(today) === 'training' && A.mode(key(1)) === 'training', 'ден с крачки, без записана тренировка → „Тренира ли днес?“ (всеки ден, не само с много крачки)');
   store.gameData = JSON.stringify({ [key(3)]: { eveningCheck: { trained: 'no' } }, [key(9)]: { eveningCheck: { trained: 'no' } } });
-  ok(A.mode(today) === 'steps', '2 пъти „не“ без „да“ за 28 дни → въпросът спира');
-  store.gameData = JSON.stringify({ [key(3)]: { eveningCheck: { trained: 'no' } }, [key(9)]: { eveningCheck: { trained: 'no' } }, [key(20)]: { eveningCheck: { trained: 'pm' } } });
-  ok(A.mode(today) === 'training', 'има „да“ → въпросът остава за дните с много крачки');
-  store.gameData = JSON.stringify({ [key(3)]: { eveningCheck: { trained: 'no' } } });
-  ok(A.mode(today) === 'training', 'едно „не“ не спира въпроса');
+  ok(A.mode(today) === 'training', 'отговорите „не“ в други дни не спират въпроса');
+  ok(A.mode(key(3)) === 'steps', 'отговорена тренировка + крачки → нищо за питане');
+  store.np_activity_state = JSON.stringify({ ext: ext(14500), workouts: { [today]: { min: 45, slot: 'am' } } });
+  ok(A.mode(today) === 'steps', 'тренировка, записана от устройство → без въпрос');
+  store.np_activity_state = JSON.stringify({ workouts: { [key(4)]: { min: 45, slot: 'am' } } });
+  ok(A.mode(key(4)) === 'ask', 'записана тренировка, но без крачки → въпросът за движението остава');
+  store.np_activity_state = JSON.stringify({ ext: ext(14500) });
   const est = A.estimateDay(A.profileOf(JSON.parse(store.userData)), { steps: 14500, trained: 'pm' });
   ok(est.trainingKcal > 0, 'нетрениращ по въпросника, но тренирал → тренировката има разход');
   store.gameData = '{}';
@@ -212,11 +211,11 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   store.userData = JSON.stringify({ gender: 'Жена', height: '165', weight: '62', sportActivity: 'Никаква (0 дни седмично)' });
   store.gameData = '{}';
   store.np_activity_state = JSON.stringify({ ext: { [key(1)]: 6500 } });
-  ok(A.mode(key(1)) === 'steps', 'ден с крачки от Health Connect → без въпрос');
+  ok(A.mode(key(1)) === 'training', 'ден с крачки от Health Connect → само за тренировката');
   ok(A.mode(key(2)) === 'ask', 'ден без крачки (гривната не е носена) → въпросът за движението');
   ok(A.mode(today) === 'ask', 'днес без показание → въпросът довечера');
   A.setExternalToday(4200);
-  ok(A.mode(today) === 'steps', 'днешните крачки от Health Connect → без въпрос');
+  ok(A.mode(today) === 'training', 'днешните крачки от Health Connect → само за тренировката');
   ok(A.externalStepsFlowing() === false, '1 от последните 3 дни от Health Connect — нощното показание остава');
   store.np_activity_state = JSON.stringify({ ext: { [key(1)]: 6500, [key(2)]: 6000 } });
   ok(A.externalStepsFlowing() === true, 'Health Connect дава крачките → нощното показание се изключва');
@@ -224,7 +223,7 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   const startToday = new Date(); startToday.setHours(0, 0, 0, 0);
   store.np_health_state = '{}';
   store.np_activity_state = JSON.stringify({ enabled: true, readAt: Date.now(), days: { [today]: { s: 3000 }, [key(1)]: { s: 5000, part: true }, [key(2)]: { s: 6000 } } });
-  ok(A.mode(today) === 'steps' && A.mode(key(2)) === 'steps', 'броячът е четен днес / пълен ден → без въпрос');
+  ok(A.mode(today) === 'training' && A.mode(key(2)) === 'training', 'броячът е четен днес / пълен ден → без въпрос за движението');
   ok(A.mode(key(1)) === 'ask', 'ден, в който броячът не е броил (прогноза) → въпросът за движението');
   store.np_activity_state = JSON.stringify({ enabled: true, readAt: startToday.getTime() - 3600000, days: { [today]: { s: 3000 } } });
   ok(A.mode(today) === 'ask', 'броячът не е четен днес → въпрос');
@@ -234,7 +233,7 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   let cloudSleep = null;
   globalThis.NutriPlanHealth = { rememberCloudSleep: (x) => { cloudSleep = x; } };
   A.applyCloudDaily({ steps: { [key(2)]: 8000, [key(1)]: 7600, [today]: 3100 }, sleep: { [today]: 7.4 } });
-  ok(A.mode(key(1)) === 'steps' && A.mode(today) === 'steps', 'Huawei през облака: дните с крачки — без въпрос');
+  ok(A.mode(key(1)) === 'training' && A.mode(today) === 'training', 'Huawei през облака: дните с крачки — без въпрос за движението');
   ok(A.mode(key(3)) === 'ask', 'Huawei през облака: ден без данни — въпросът за движението');
   ok(JSON.parse(store.gameData)[key(1)]?.eveningCheck?.steps === 7600, 'завършеният ден взема крачките от облака');
   ok(!JSON.parse(store.gameData)[today], 'днешният ден не се приключва преди вечерта');
@@ -273,6 +272,27 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 2, trained: 'pm', activitySource: 'training' } } });
   A.fillFromSteps({ [key(2)]: 11000 });
   ok(JSON.parse(store.gameData)[key(2)].eveningCheck.activitySource === 'training', 'отговорът за тренировка не се пипа');
+  // Ден без крачки: и двата въпроса; отговорите се събират.
+  store.np_activity_state = '{}';
+  store.gameData = JSON.stringify({ [key(6)]: {} });
+  ok(A.needs(key(6)).move && A.needs(key(6)).train, 'без крачки и без тренировка → и двата въпроса');
+  const both = A.applyAnswer({}, 1, key(6));
+  ok(both.moveLevel === 1 && both.activityLevel === 1 && A.needs(key(6), both).train && !A.needs(key(6), both).move, 'след „Малко“ остава само тренировката');
+  A.applyAnswer(both, 'pm', key(6));
+  ok(both.trained === 'pm' && both.trainingKcal > 0 && both.activityLevel >= 1 && both.moveLevel === 1, `„Малко“ + тренировка → разходът на тренировката влиза (${both.activityLevel}, ${both.trainingKcal} kcal)`);
+  ok(!A.needs(key(6), both).move && !A.needs(key(6), both).train, 'двата отговора → нищо за питане');
+  store.gameData = JSON.stringify({ [key(6)]: { eveningCheck: both } });
+  const fx2 = A.buildFacts();
+  ok(fx2.some(f => f.kind === 'activity_check' && f.at.startsWith(key(6))) && fx2.some(f => f.kind === 'train_check' && f.value === 1 && f.at.startsWith(key(6))), 'към сървъра: и отговорът за движение, и за тренировка');
+  // Тренировка от устройство попълва деня без въпрос.
+  store.gameData = JSON.stringify({ [key(7)]: {} });
+  store.np_activity_state = JSON.stringify({ ext: { [key(7)]: 9000 } });
+  A.setWorkouts({ [key(7)]: { min: 50, slot: 'am' } });
+  const dev = JSON.parse(store.gameData)[key(7)].eveningCheck;
+  ok(dev.trained === 'am' && dev.trainSource === 'device' && dev.steps === 9000 && dev.trainingKcal > 0, `тренировка от устройство + крачки → денят е попълнен (${JSON.stringify(dev)})`);
+  ok(!A.buildFacts().some(f => f.kind === 'train_check' && f.at.startsWith(key(7))), 'тренировката от устройство не се праща втори път като отговор');
+  A.applyCloudDaily({ workouts: { [key(8)]: 40 } });
+  ok(A.needs(key(8)).train === false, 'тренировка от облачна връзка → без въпрос за тренировка');
   // Нищо не дава крачки (няма брояч, Health Connect, облак) → въпрос всеки ден.
   store.np_activity_state = '{}';
   ok(A.mode() === 'ask' && A.mode(key(1)) === 'ask', 'без никакъв източник — въпросът всеки ден, и в графика');
