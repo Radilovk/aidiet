@@ -165,17 +165,15 @@ function trainingDays(facts, from, now) {
     const day = dayOf(f.at);
     const prev = days.get(day);
     if (f.kind === 'train_check') {
-      const yes = Number(f.value) > 0;
-      // Отговорът „Кога?“ за тренировка от устройството — само частта от деня.
-      if (prev?.device && yes) {
+      // Тренировката от устройство (пусната ръчно или с интензитет на тренировка —
+      // разходките и леките записи не стигат дотук) се взима предвид и при отговор
+      // „не“: измерването е по-сигурно. Отговорът „Кога?“ добавя само частта от деня.
+      if (prev?.device) {
         if (!prev.slot && f.slot) prev.slot = f.slot;
         continue;
       }
-      // Отговорът е окончателен: „не“ отменя и тренировката от устройство (часовниците
-      // сами записват разходки и домакинска работа като тренировка).
-      days.set(day, { yes, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null, answered: true });
+      days.set(day, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
     } else if (f.kind === 'workout' && TRACKED_SOURCES.has(f.source)) {
-      if (prev?.answered && !prev.yes) continue;
       days.set(day, { yes: true, slot: prev?.slot || f.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
     }
   }

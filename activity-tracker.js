@@ -148,8 +148,11 @@
             if (SESSION_MINUTES[i][0].test(m)) { minutes = SESSION_MINUTES[i][1]; break; }
         }
         var perWeek = trainsPerWeek(data.sportActivity);
+        var age = num(data.age);
+        if (!(age >= 12 && age <= 100)) age = 40;
         return {
             sex: sex,
+            age: age,
             heightCm: heightCm,
             weightKg: weightKg,
             trainsPerWeek: perWeek,
@@ -565,6 +568,113 @@
     // Отговорът за движението → крачки за сметката на деня (границите на нивата: 5000 / 10 000).
     var MOVE_STEPS = { 1: 3500, 2: 7500, 3: 11500 };
 
+    // ── Интензитет: кое, записано от устройство, е тренировка ────────────
+
+    // Пулсови зони (ACSM): умерено 64–76% от максималния пулс, високо — от 77%.
+    var HR_MODERATE = 0.64;
+    var HR_VIGOROUS = 0.77;
+    // Метаболитни еквиваленти (Compendium): умерено от 4 (бързо ходене), високо от 6.
+    var MET_MODERATE = 4;
+    var MET_VIGOROUS = 6;
+    // Пулс, задържан над 70% от максималния поне 10 минути без запис на тренировка.
+    var BOUT_HR = 0.70;
+    var BOUT_MIN = 10;
+    var BOUT_GAP_MIN = 10;
+    var WALK_TYPES = { walking: 1, wheelchairWalkPace: 1, stairs: 0 };
+    var NOT_EXERCISE = { guidedBreathing: 1, meditation: 1, transition: 1, fishing: 1, hunting: 1, sailing: 1, mindAndBody: 0 };
+
+    /** Максимален пулс по възрастта (Tanaka: 208 − 0,7 × години). */
+    function hrMaxOf(p) {
+        return 208 - 0.7 * (p && p.age ? p.age : 40);
+    }
+
+    /**
+     * Запис на тренировка от устройство → тренировка ли е и с какъв интензитет.
+     *   пусната ръчно на часовника (или въведена) — тренировка (намерението е ясно);
+     *   разпозната автоматично (или неизвестно) — по интензитета: пулсът спрямо
+     *     максималния за възрастта, или калориите за минута спрямо теглото (MET);
+     *     високо — от 10 мин, умерено — от 20 мин (ходене) / 10 мин (друго); без
+     *     пулс и калории — ходенето не е тренировка, другото от 20 мин е.
+     * Леката разходка остава движение (крачките), не тренировка.
+     * @param {{ type?: string, minutes: number, kcal?: number, avgHr?: number, maxHr?: number, method?: number }} w
+     *   method: 1 — пусната ръчно, 2 — автоматично, 3 — въведена ръчно (Health Connect)
+     * @param {object} [p] профил
+     * @returns {{ training: boolean, intensity: 'vigorous'|'moderate'|'light'|null, manual: boolean }}
+     */
+    function classifyWorkout(w, p) {
+        p = p || profileOf(userData());
+        var minutes = Number(w && w.minutes) || 0;
+        var manual = w && (w.method === 1 || w.method === 3);
+        if (minutes < 10 || (w && NOT_EXERCISE[w.type])) return { training: false, intensity: null, manual: !!manual };
+        var hrMax = hrMaxOf(p);
+        var hrPct = w.avgHr > 0 ? w.avgHr / hrMax : null;
+        var met = w.kcal > 0 ? w.kcal / (p.weightKg * minutes / 60) + 1 : null;
+        var intensity = null;
+        if ((hrPct != null && hrPct >= HR_VIGOROUS) || (met != null && met >= MET_VIGOROUS)) intensity = 'vigorous';
+        else if ((hrPct != null && hrPct >= HR_MODERATE) || (met != null && met >= MET_MODERATE)) intensity = 'moderate';
+        else if (hrPct != null || met != null) intensity = 'light';
+        if (manual) return { training: true, intensity: intensity, manual: true };
+        var walk = !!(w && WALK_TYPES[w.type]);
+        var training;
+        if (intensity === 'vigorous') training = true;
+        else if (intensity === 'moderate') training = minutes >= (walk ? 20 : 10);
+        else if (intensity === 'light') training = false;
+        else training = !walk && minutes >= 20;
+        return { training: training, intensity: intensity, manual: false };
+    }
+
+    /**
+     * Интензивни периоди без запис на тренировка: пулс над 70% от максималния,
+     * задържан поне 10 минути (пробите на не повече от 10 мин една от друга).
+     * Така високата активност се взима предвид, дори да не е отбелязана.
+     * @param {{ t: number, bpm: number }[]} samples по време
+     * @param {object} [p] профил
+     * @param {{ from: number, to: number }[]} [skip] времето на записаните тренировки
+     * @returns {Record<string, { min: number, slot: 'am'|'pm', avgHr: number }>} по дни
+     */
+    function hrBouts(samples, p, skip) {
+        p = p || profileOf(userData());
+        var limit = hrMaxOf(p) * BOUT_HR;
+        var out = {};
+        var list = (samples || []).filter(function (x) {
+            return x && x.t > 0 && x.bpm > 0 && !(skip || []).some(function (r) { return x.t >= r.from && x.t <= r.to; });
+        }).sort(function (a, b) { return a.t - b.t; });
+        var start = null;
+        var prev = null;
+        var sumBpm = 0;
+        var n = 0;
+        var close = function () {
+            if (start == null) return;
+            var mins = (prev.t - start.t) / 60000;
+            if (mins >= BOUT_MIN) {
+                var k = dayKey(start.t);
+                var o = out[k] || { min: 0, slot: new Date(start.t).getHours() < 12 ? 'am' : 'pm', avgHr: 0, _n: 0 };
+                o.avgHr = Math.round((o.avgHr * o._n + sumBpm) / (o._n + n));
+                o._n += n;
+                o.min += Math.round(mins);
+                out[k] = o;
+            }
+            start = null;
+            sumBpm = 0;
+            n = 0;
+        };
+        list.forEach(function (x) {
+            var hot = x.bpm >= limit;
+            if (hot && start != null && (x.t - prev.t) / 60000 > BOUT_GAP_MIN) close();
+            if (hot) {
+                if (start == null) start = x;
+                sumBpm += x.bpm;
+                n++;
+                prev = x;
+            } else {
+                close();
+            }
+        });
+        close();
+        Object.keys(out).forEach(function (k) { delete out[k]._n; });
+        return out;
+    }
+
     /**
      * Тренировки, записани от устройство (Health Connect, облачна връзка), по дни:
      * { 'YYYY-MM-DD': { min, slot } } — за тези дни „Тренира ли днес?“ не се пита.
@@ -578,7 +688,12 @@
         Object.keys(byDay).forEach(function (k) {
             var x = byDay[k] || {};
             if (!(Number(x.min) >= 10)) return;
-            w[k] = { min: Math.round(Number(x.min)), slot: x.slot === 'am' || x.slot === 'pm' ? x.slot : (w[k] && w[k].slot) || null };
+            w[k] = {
+                min: Math.round(Number(x.min)),
+                slot: x.slot === 'am' || x.slot === 'pm' ? x.slot : (w[k] && w[k].slot) || null,
+                intensity: x.intensity || (w[k] && w[k].intensity) || null,
+                src: x.src || (w[k] && w[k].src) || null
+            };
         });
         Object.keys(w).forEach(function (k) { if (k < cutoff) delete w[k]; });
         writeState({ workouts: w });
@@ -636,8 +751,10 @@
         var wo = workoutFor(key);
         // Тренировка от устройство: с час — попълва деня; без час — влиза в разхода,
         // а часът се допитва („Кога тренира днес?“).
-        if (!ec.trained && wo && wo.slot) {
-            ec.trained = wo.slot;
+        // Тренировката от устройство (ръчно пусната или с интензитет на тренировка)
+        // се взима предвид и при отговор „не“ — измерването е по-сигурно от спомена.
+        if (wo && ec.trained !== 'am' && ec.trained !== 'pm' && (wo.slot || ec.trained === 'no')) {
+            ec.trained = wo.slot || 'pm';
             ec.trainSource = 'device';
         }
         var trained = ec.trained || (wo ? 'pm' : null);
@@ -876,7 +993,7 @@
             var ec = rec.eveningCheck || {};
             if (key === today && new Date().getHours() < 20) return;
             // Тренировка, записана от устройство, в ден без отговор за тренировка.
-            var wo = !ec.trained && workoutFor(key) && ec.woMin !== workoutFor(key).min;
+            var wo = ec.trained !== 'am' && ec.trained !== 'pm' && workoutFor(key) && ec.woMin !== workoutFor(key).min;
             // Ден с ръчен отговор за движението (до часа на въпроса нямаше измерване):
             // важи само отговорът — крачки, дошли след това, не го пипат.
             var stepsNew = false;
@@ -1038,6 +1155,8 @@
         applyCloudDaily: applyCloudDaily,
         applyHistory: applyHistory,
         needs: needs,
+        classifyWorkout: classifyWorkout,
+        hrBouts: hrBouts,
         setWorkouts: setWorkouts,
         recompute: recompute,
         refreshAll: refreshAll,

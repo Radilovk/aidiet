@@ -48261,14 +48261,12 @@ function trainingDays(facts2, from, now) {
     const day = dayOf(f.at);
     const prev = days.get(day);
     if (f.kind === "train_check") {
-      const yes = Number(f.value) > 0;
-      if (prev?.device && yes) {
+      if (prev?.device) {
         if (!prev.slot && f.slot) prev.slot = f.slot;
         continue;
       }
-      days.set(day, { yes, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null, answered: true });
+      days.set(day, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
     } else if (f.kind === "workout" && TRACKED_SOURCES.has(f.source)) {
-      if (prev?.answered && !prev.yes) continue;
       days.set(day, { yes: true, slot: prev?.slot || f.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
     }
   }
@@ -48869,6 +48867,7 @@ function normalizeFact(raw) {
     }
     if (kind === "workout" && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
     if (kind === "workout" && (raw.slot === "am" || raw.slot === "pm")) fact.slot = raw.slot;
+    if (kind === "workout" && ["light", "moderate", "vigorous"].includes(raw.intensity)) fact.intensity = raw.intensity;
     return fact;
   }
   if (kind === "train_check") {
@@ -49851,17 +49850,35 @@ function slotOfLocal(iso) {
   const h = Number(String(iso || "").slice(11, 13));
   return Number.isFinite(h) && String(iso || "").length >= 13 ? h < 12 ? "am" : "pm" : null;
 }
+var INTENSITY_RANK = { light: 0, moderate: 1, vigorous: 2 };
+function isTrainingWorkout(w) {
+  if (!(w?.minutes >= 10)) return false;
+  if (w.manual) return true;
+  if (w.intensity === "vigorous") return true;
+  if (w.intensity === "moderate") return w.minutes >= (w.walk ? 20 : 10);
+  if (w.intensity === "light") return false;
+  return !w.walk && w.minutes >= 20;
+}
 function workoutsByDay(list3, source) {
   const byDay = /* @__PURE__ */ new Map();
   for (const w of list3) {
-    if (!w.day || !(w.minutes > 0) || w.walk) continue;
-    const d = byDay.get(w.day) || { minutes: 0, count: 0, slot: null };
+    if (!w.day || !(w.minutes > 0) || !isTrainingWorkout(w)) continue;
+    const d = byDay.get(w.day) || { minutes: 0, count: 0, slot: null, intensity: null };
     d.minutes += w.minutes;
     d.count += 1;
     if (!d.slot && w.slot) d.slot = w.slot;
+    if (w.intensity && (d.intensity == null || INTENSITY_RANK[w.intensity] > INTENSITY_RANK[d.intensity])) d.intensity = w.intensity;
     byDay.set(w.day, d);
   }
-  return [...byDay].map(([day, d]) => ({ kind: "workout", value: Math.round(d.minutes), count: d.count, at: atOf(day), source, ...d.slot ? { slot: d.slot } : {} }));
+  return [...byDay].map(([day, d]) => ({
+    kind: "workout",
+    value: Math.round(d.minutes),
+    count: d.count,
+    at: atOf(day),
+    source,
+    ...d.slot ? { slot: d.slot } : {},
+    ...d.intensity ? { intensity: d.intensity } : {}
+  }));
 }
 function huaweiMs(t) {
   const n = Number(t);
@@ -49986,7 +50003,10 @@ var PROVIDERS = {
           day: w.day,
           minutes: (Date.parse(w.end_datetime) - Date.parse(w.start_datetime)) / 6e4,
           slot: slotOfLocal(w.start_datetime),
-          walk: /^walking$/i.test(String(w.activity || ""))
+          walk: /^walking$/i.test(String(w.activity || "")),
+          // Oura: manual/confirmed — пусната или потвърдена от човека; autodetected — по интензитета.
+          manual: /^(manual|confirmed)$/i.test(String(w.source || "")),
+          intensity: { easy: "light", moderate: "moderate", hard: "vigorous" }[String(w.intensity || "").toLowerCase()] || null
         })), "oura"));
       });
       return out;
@@ -50147,7 +50167,9 @@ var PROVIDERS = {
         day: String(a.start_date_local || "").slice(0, 10),
         minutes: Number(a.moving_time) / 60,
         slot: slotOfLocal(a.start_date_local),
-        walk: /^walk$/i.test(String(a.sport_type || a.type || ""))
+        walk: /^walk$/i.test(String(a.sport_type || a.type || "")),
+        // Strava: всяка активност е записана от човека (пусната ръчно или качена).
+        manual: true
       })), "strava");
     }
   }

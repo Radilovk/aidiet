@@ -6,7 +6,7 @@
 import { createRequire } from 'node:module';
 import { computeEssence, trainingPattern, trainingLastWeek, essenceText } from '../health-essence.js';
 import { normalizeFact, mergeFacts, applyEnrichment, recalcLevel, withoutAnsweredSteps } from '../enrichment.js';
-import { workoutsByDay, slotOfLocal } from '../device-links.js';
+import { workoutsByDay, slotOfLocal, isTrainingWorkout } from '../device-links.js';
 
 const require = createRequire(import.meta.url);
 const A = require('../activity-tracker.js');
@@ -141,15 +141,15 @@ ok(enriched.sportActivity === 'Ниска (1–2 дни седмично)', 'о�
 ok(enriched._enrichment.original.sportActivity === 'Висока (5–7 дни седмично)', 'отговорът от въпросника се пази');
 ok(recalcLevel(user, enriched).level >= 2, 'промяната в тренировките преизчислява калориите');
 
-// Отговорът е окончателен: „не“ отменя записа на часовника за деня (часовниците сами
-// записват разходки и работа като тренировка), в какъвто и ред да дойдат.
+// Тренировка от устройство (вече преценена: ръчно пусната или с интензитет) се
+// взима предвид и при отговор „не“ — в какъвто и ред да дойдат.
 const base2 = facts.filter(f => !(f.kind === 'train_check' && f.at === dayAt(2)));
 const wo2 = normalizeFact({ kind: 'workout', value: 50, at: dayAt(2), source: 'health_connect' });
 const no2 = normalizeFact({ kind: 'train_check', value: 0, at: dayAt(2), source: 'checkin' });
 const tpNoFirst = trainingPattern([...base2, no2, wo2], NOW);
 const tpWoFirst = trainingPattern([...base2, wo2, no2], NOW);
 const tpNo = trainingPattern([...base2, no2], NOW);
-ok(tpNoFirst && tpWoFirst && tpNoFirst.perWeek === tpNo.perWeek && tpWoFirst.perWeek === tpNo.perWeek, 'отговорът „не“ печели пред записа на часовника — и в двата реда');
+ok(tpNoFirst && tpWoFirst && tpNoFirst.perWeek === tpWoFirst.perWeek && tpWoFirst.perWeek > tpNo.perWeek, 'измерената тренировка печели пред „не“ — и в двата реда');
 const yes2 = normalizeFact({ kind: 'train_check', value: 1, slot: 'pm', at: dayAt(2), source: 'checkin' });
 ok(trainingPattern([...base2, wo2, yes2], NOW).perWeek === trainingPattern([...base2, yes2, wo2], NOW).perWeek, '„да“ + запис на часовника — една тренировка, не две');
 
@@ -159,6 +159,33 @@ const band = normalizeFact({ kind: 'steps', value: 9000, at: dayAt(1), source: '
 const stepsEss = computeEssence([phone, band,
   ...[2, 3, 4, 5].map(n => normalizeFact({ kind: 'steps', value: 6000, at: dayAt(n), source: 'phone' }))], NOW);
 ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 4 * 6000) / 5 / 100) * 100, 'гривната печели пред телефона за същия ден');
+
+// Кое е тренировка: ръчно пусната — да; автоматична — по пулса / калориите / времето.
+{
+  const p = A.profileOf({ gender: 'Мъж', height: '180', weight: '80', age: '40' }); // макс. пулс ~180
+  const c = (w) => A.classifyWorkout(w, p);
+  ok(c({ type: 'walking', minutes: 25, method: 1 }).training, 'ходене, пуснато ръчно на часовника → тренировка');
+  ok(!c({ type: 'walking', minutes: 40, method: 2, avgHr: 100 }).training, 'автоматична разходка с лек пулс (56%) → не е тренировка');
+  ok(c({ type: 'walking', minutes: 30, method: 2, avgHr: 125 }).training, 'автоматично бързо ходене 30 мин, пулс 69% → тренировка (умерено)');
+  ok(!c({ type: 'walking', minutes: 15, method: 2, avgHr: 125 }).training, 'умерено ходене само 15 мин → не');
+  ok(c({ type: 'other', minutes: 12, method: 2, avgHr: 145 }).intensity === 'vigorous' && c({ type: 'other', minutes: 12, method: 2, avgHr: 145 }).training, 'кратко и интензивно (12 мин, 81%) → тренировка');
+  ok(c({ type: 'cycling', minutes: 40, method: 2, kcal: 400 }).intensity === 'vigorous', 'без пулс: калориите за минута (MET ~8,5) → високо');
+  ok(!c({ type: 'walking', minutes: 50, method: 0 }).training && c({ type: 'cycling', minutes: 25, method: 0 }).training, 'без пулс и калории: ходенето не, колелото от 20 мин да');
+  ok(!c({ type: 'meditation', minutes: 30, method: 1 }).training, 'медитация не е тренировка');
+  // Висок пулс без запис: 15 мин над 70% → интензивен период; спокойният пулс — не.
+  const t0 = new Date(); t0.setHours(17, 0, 0, 0);
+  const hr = [];
+  for (let m = 0; m <= 60; m += 2) hr.push({ t: t0.getTime() + m * 60000, bpm: m >= 20 && m <= 35 ? 150 : 85 });
+  const bouts = A.hrBouts(hr, p);
+  const bk = Object.keys(bouts)[0];
+  ok(bk && bouts[bk].min === 14 && bouts[bk].slot === 'pm' && bouts[bk].avgHr === 150, `задържан висок пулс (проби от 20-та до 34-та мин) → интензивна активност (${JSON.stringify(bouts)})`);
+  ok(Object.keys(A.hrBouts(hr, p, [{ from: t0.getTime(), to: t0.getTime() + 3600000 }])).length === 0, 'пулсът по време на записана тренировка не се брои втори път');
+  const short = hr.map(x => ({ t: x.t, bpm: x.t >= t0.getTime() + 20 * 60000 && x.t <= t0.getTime() + 26 * 60000 ? 150 : 85 }));
+  ok(Object.keys(A.hrBouts(short, p)).length === 0, '6 мин висок пулс (стълби) → не');
+  // Облак: Oura автоматично лека разходка — не; Strava — всичко е пуснато от човека.
+  ok(!isTrainingWorkout({ minutes: 40, intensity: 'light', walk: true }) && isTrainingWorkout({ minutes: 40, intensity: 'light', walk: true, manual: true }), 'лека автоматична разходка — не; пусната ръчно — да');
+  ok(isTrainingWorkout({ minutes: 12, intensity: 'vigorous' }), 'кратко високо → да');
+}
 
 // Облачни тренировки: разходките не са тренировка; частта от деня е от часа.
 {
@@ -343,6 +370,10 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   ok(A.buildFacts().some(f => f.kind === 'train_check' && f.slot === 'am' && f.minutes === 50 && f.at.startsWith(key(7))), 'тренировката от устройство: частта от деня и минутите отиват към сървъра');
   A.applyCloudDaily({ workouts: { [key(8)]: 40 } });
   ok(A.needs(key(8)).train === 'when', 'тренировка от облачна връзка (без час) → „Кога тренира днес?“');
+  store.np_activity_state = JSON.stringify({ workouts: { [key(9)]: { min: 40, slot: 'pm', intensity: 'vigorous' } } });
+  const saidNo = A.recompute({ trained: 'no', trainSource: 'answer' }, key(9));
+  ok(saidNo.trained === 'pm' && saidNo.trainSource === 'device' && saidNo.trainingKcal > 0, 'отговор „не“, но устройството мери тренировка → тренировката се взима предвид');
+  store.np_activity_state = JSON.stringify({ workouts: { [key(8)]: { min: 40, slot: null } } });
   const when = A.applyAnswer({}, 'am', key(8));
   ok(when.trained === 'am' && when.trainSource === 'device' && !A.needs(key(8), when).train, 'отговорът „Кога?“ допълва тренировката от устройството');
   store.userData = NONTRAINER;

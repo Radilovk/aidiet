@@ -53,22 +53,41 @@ export function slotOfLocal(iso) {
   return Number.isFinite(h) && String(iso || '').length >= 13 ? (h < 12 ? 'am' : 'pm') : null;
 }
 
+const INTENSITY_RANK = { light: 0, moderate: 1, vigorous: 2 };
+
 /**
- * Тренировки: минути, брой и част от деня (по първата) по ден. Разходките
- * (часовниците ги записват сами) не са тренировка — иначе всяка разходка би
- * питала „Кога тренира?“ и би вдигала честотата на тренировките.
+ * Тренировка ли е записът на устройството: пусната ръчно — да; разпозната
+ * автоматично — по интензитета (умерено от 20 мин при ходене / 10 мин иначе,
+ * високо от 10 мин); лека — не (движението е в крачките). Без интензитет —
+ * ходенето не е, другото от 20 мин е. Същото правило като на телефона
+ * (activity-tracker.js classifyWorkout).
+ * @param {{ minutes: number, manual?: boolean, intensity?: 'light'|'moderate'|'vigorous'|null, walk?: boolean }} w
  */
+export function isTrainingWorkout(w) {
+  if (!(w?.minutes >= 10)) return false;
+  if (w.manual) return true;
+  if (w.intensity === 'vigorous') return true;
+  if (w.intensity === 'moderate') return w.minutes >= (w.walk ? 20 : 10);
+  if (w.intensity === 'light') return false;
+  return !w.walk && w.minutes >= 20;
+}
+
+/** Тренировки: минути, брой, част от деня (по първата) и най-високият интензитет по ден. */
 export function workoutsByDay(list, source) {
   const byDay = new Map();
   for (const w of list) {
-    if (!w.day || !(w.minutes > 0) || w.walk) continue;
-    const d = byDay.get(w.day) || { minutes: 0, count: 0, slot: null };
+    if (!w.day || !(w.minutes > 0) || !isTrainingWorkout(w)) continue;
+    const d = byDay.get(w.day) || { minutes: 0, count: 0, slot: null, intensity: null };
     d.minutes += w.minutes;
     d.count += 1;
     if (!d.slot && w.slot) d.slot = w.slot;
+    if (w.intensity && (d.intensity == null || INTENSITY_RANK[w.intensity] > INTENSITY_RANK[d.intensity])) d.intensity = w.intensity;
     byDay.set(w.day, d);
   }
-  return [...byDay].map(([day, d]) => ({ kind: 'workout', value: Math.round(d.minutes), count: d.count, at: atOf(day), source, ...(d.slot ? { slot: d.slot } : {}) }));
+  return [...byDay].map(([day, d]) => ({
+    kind: 'workout', value: Math.round(d.minutes), count: d.count, at: atOf(day), source,
+    ...(d.slot ? { slot: d.slot } : {}), ...(d.intensity ? { intensity: d.intensity } : {}),
+  }));
 }
 
 /* ─── Huawei: отговорите са в групи/набори/точки, времената в ns или ms ─── */
@@ -201,6 +220,9 @@ export const PROVIDERS = {
           minutes: (Date.parse(w.end_datetime) - Date.parse(w.start_datetime)) / 60000,
           slot: slotOfLocal(w.start_datetime),
           walk: /^walking$/i.test(String(w.activity || '')),
+          // Oura: manual/confirmed — пусната или потвърдена от човека; autodetected — по интензитета.
+          manual: /^(manual|confirmed)$/i.test(String(w.source || '')),
+          intensity: ({ easy: 'light', moderate: 'moderate', hard: 'vigorous' })[String(w.intensity || '').toLowerCase()] || null,
         })), 'oura'));
       });
       return out;
@@ -348,6 +370,8 @@ export const PROVIDERS = {
         minutes: Number(a.moving_time) / 60,
         slot: slotOfLocal(a.start_date_local),
         walk: /^walk$/i.test(String(a.sport_type || a.type || '')),
+        // Strava: всяка активност е записана от човека (пусната ръчно или качена).
+        manual: true,
       })), 'strava');
     },
   },
