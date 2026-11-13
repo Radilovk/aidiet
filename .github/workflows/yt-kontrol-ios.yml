@@ -118,7 +118,7 @@ jobs:
 
       - name: Качване в TestFlight
         id: upload
-        if: ${{ env.UPLOAD == 'true' }}
+        if: ${{ env.UPLOAD == 'true' && env.APP_EXISTS == '1' }}
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>

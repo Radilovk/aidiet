@@ -60,9 +60,12 @@ try {
     } else console.log(`✓ Bundle ID ${BUNDLE} вече съществува`);
     const apps = await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`);
     if (!apps.data.length) {
-      summary(`### Остава една стъпка (само веднъж)\nApp Store Connect → Приложения → **+** → **Ново приложение**: iOS, име „YT Контрол“ (или друго свободно), език Bulgarian, Bundle ID **${BUNDLE}**, SKU \`yt-kontrol-1\`. После пусни този работен процес отново.`);
-      fail(`Няма приложение с Bundle ID ${BUNDLE} в App Store Connect (не може да се създаде през API).`);
+      summary(`### Остава една стъпка (само веднъж)\nApp Store Connect → Приложения → **+** → **Ново приложение**: iOS, име „YT Контрол“ (или друго свободно), език Bulgarian, Bundle ID **${BUNDLE}**, SKU \`yt-kontrol-1\`. После пусни този работен процес отново.\n\nДотогава приложението само се сглобява и подписва (проверка), без качване.`);
+      if (process.env.GITHUB_ENV) appendFileSync(process.env.GITHUB_ENV, 'APP_EXISTS=0\n');
+      console.log(`::warning::Няма приложение с Bundle ID ${BUNDLE} в App Store Connect – само сглобяване, без качване.`);
+      process.exit(0);
     }
+    if (process.env.GITHUB_ENV) appendFileSync(process.env.GITHUB_ENV, 'APP_EXISTS=1\n');
     console.log(`✓ приложение в App Store Connect: ${apps.data[0].attributes.name}`);
   } else if (action === 'prepare') {
     if (!TEAM) fail('Липсва секрет APPLE_TEAM_ID.');
