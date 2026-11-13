@@ -1,0 +1,32 @@
+name: YT Контрол — състояние в App Store Connect (само четене)
+
+# Показва състоянието на YT Контрол в App Store Connect: версията в App Store, build-овете в TestFlight,
+# ревютата и групите с тестери. Нищо не променя. Секрети: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/yt-kontrol-status]
+    paths:
+      - '.github/workflows/yt-kontrol-status.yml'
+      - 'scripts/yt-kontrol-apple.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Състояние
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_P8: ${{ secrets.APPSTORE_KEY_P8 }}
+          BUNDLE_ID: com.biocode.ytkontrol
+        run: node scripts/yt-kontrol-apple.mjs status

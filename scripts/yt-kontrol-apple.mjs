@@ -116,8 +116,40 @@ try {
     for (const [what, path] of [['профил', st.profileId && `/v1/profiles/${st.profileId}`], ['сертификат', st.certId && `/v1/certificates/${st.certId}`]].filter((x) => x[1])) {
       try { await api('DELETE', path); console.log(`✓ изтрит ${what}`); } catch (e) { console.log(`! ${what} не се изтри: ${e.message}`); }
     }
+  } else if (action === 'status') {
+    // САМО ЧЕТЕНЕ: нищо не се променя в акаунта. Без имейли (логовете на репото са публични).
+    const app = (await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`)).data[0];
+    if (!app) fail(`Няма приложение с Bundle ID ${BUNDLE}.`);
+    summary(`## ${app.attributes.name} (${BUNDLE})`);
+    const vers = (await api('GET', `/v1/apps/${app.id}/appStoreVersions?limit=5`)).data;
+    summary('### App Store (публична версия)');
+    for (const v of vers) summary(`- версия ${v.attributes.versionString}: **${v.attributes.appStoreState}**`);
+    const builds = await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5&include=buildBetaDetail`);
+    const det = Object.fromEntries((builds.included || []).filter((x) => x.type === 'buildBetaDetails').map((x) => [x.id, x.attributes]));
+    summary('### TestFlight – build-ове');
+    for (const b of builds.data) {
+      const d = det[b.relationships?.buildBetaDetail?.data?.id] || {};
+      let review = '';
+      try {
+        const r = (await api('GET', `/v1/betaAppReviewSubmissions?filter[build]=${b.id}`)).data[0];
+        if (r) review = `, ревю за външно тестване: **${r.attributes.betaReviewState}**`;
+      } catch (_) { /* */ }
+      summary(`- build ${b.attributes.version} (качен ${b.attributes.uploadedDate}): обработка **${b.attributes.processingState}**, изтекъл: ${b.attributes.expired ? 'да' : 'не'}, ` +
+        `криптиране: ${b.attributes.usesNonExemptEncryption == null ? 'без отговор' : b.attributes.usesNonExemptEncryption}, ` +
+        `вътрешно: **${d.internalBuildState || '?'}**, външно: **${d.externalBuildState || '?'}**${review}`);
+    }
+    summary('### TestFlight – групи');
+    const groups = (await api('GET', `/v1/apps/${app.id}/betaGroups?limit=50`)).data;
+    if (!groups.length) summary('- няма нито една група с тестери');
+    for (const g of groups) {
+      const testers = (await api('GET', `/v1/betaGroups/${g.id}/betaTesters?limit=200`)).data.length;
+      const gb = (await api('GET', `/v1/betaGroups/${g.id}/builds?limit=50`)).data.map((x) => x.attributes.version);
+      summary(`- „${g.attributes.name}“: ${g.attributes.isInternalGroup ? 'ВЪТРЕШНА' : 'ВЪНШНА'}, тестери: ${testers}, ` +
+        `всички build-ове: ${g.attributes.hasAccessToAllBuilds ? 'да' : 'не'}, build-ове в групата: ${gb.join(', ') || 'няма'}` +
+        (g.attributes.publicLinkEnabled ? ', публичен линк: да' : ''));
+    }
   } else {
-    fail('действие: bundle | prepare | cleanup');
+    fail('действие: bundle | prepare | cleanup | status');
   }
 } catch (e) {
   fail(String(e.message).slice(0, 700));
