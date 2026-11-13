@@ -48243,22 +48243,40 @@ function sportLabelOf(perWeek) {
   return "\u0412\u0438\u0441\u043E\u043A\u0430 (5\u20137 \u0434\u043D\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E)";
 }
 var WEEKDAYS = ["\u043D\u0434", "\u043F\u043D", "\u0432\u0442", "\u0441\u0440", "\u0447\u0442", "\u043F\u0442", "\u0441\u0431"];
-function trainingPattern(facts2, now = /* @__PURE__ */ new Date()) {
-  const from = now.getTime() - 28 * DAY_MS2;
+function deviceRestDays(facts2, from, now) {
+  const inRange = (f) => {
+    const t = Date.parse(f.at);
+    return t >= from && t <= now && f.status !== "pending";
+  };
+  const devices = new Set((facts2 || []).filter((f) => f.kind === "workout" && TRACKED_SOURCES.has(f.source) && inRange(f)).map((f) => f.source));
+  if (!devices.size) return /* @__PURE__ */ new Set();
+  return new Set((facts2 || []).filter((f) => f.kind === "steps" && devices.has(f.source) && inRange(f) && Number(f.value) >= 300).map((f) => dayOf(f.at)));
+}
+function trainingDays(facts2, from, now) {
   const days = /* @__PURE__ */ new Map();
+  for (const day of deviceRestDays(facts2, from, now)) days.set(day, { yes: false, slot: null, minutes: null, kcal: null, rest: true });
   for (const f of facts2 || []) {
     const t = Date.parse(f.at);
-    if (!(t >= from) || t > now.getTime() || f.status === "pending") continue;
+    if (!(t >= from) || t > now || f.status === "pending") continue;
     const day = dayOf(f.at);
+    const prev = days.get(day);
     if (f.kind === "train_check") {
-      const prev = days.get(day);
-      if (prev?.device) continue;
-      days.set(day, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
+      const yes = Number(f.value) > 0;
+      if (prev?.device && yes) {
+        if (!prev.slot && f.slot) prev.slot = f.slot;
+        continue;
+      }
+      days.set(day, { yes, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null, answered: true });
     } else if (f.kind === "workout" && TRACKED_SOURCES.has(f.source)) {
-      const prev = days.get(day);
-      days.set(day, { yes: true, slot: prev?.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
+      if (prev?.answered && !prev.yes) continue;
+      days.set(day, { yes: true, slot: prev?.slot || f.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
     }
   }
+  return days;
+}
+function trainingPattern(facts2, now = /* @__PURE__ */ new Date()) {
+  const from = now.getTime() - 28 * DAY_MS2;
+  const days = trainingDays(facts2, from, now.getTime());
   if (days.size < 10) return null;
   const all = [...days.entries()];
   const yes = all.filter(([, d]) => d.yes);
@@ -48294,18 +48312,7 @@ function trainingPattern(facts2, now = /* @__PURE__ */ new Date()) {
 }
 function trainingLastWeek(facts2, now = /* @__PURE__ */ new Date()) {
   const from = now.getTime() - 7 * DAY_MS2;
-  const days = /* @__PURE__ */ new Map();
-  for (const f of facts2 || []) {
-    const t = Date.parse(f.at);
-    if (!(t >= from) || t > now.getTime() || f.status === "pending") continue;
-    const day = dayOf(f.at);
-    if (f.kind === "train_check") {
-      if (days.get(day)?.device) continue;
-      days.set(day, { yes: Number(f.value) > 0 });
-    } else if (f.kind === "workout" && TRACKED_SOURCES.has(f.source)) {
-      days.set(day, { yes: true, device: true });
-    }
-  }
+  const days = trainingDays(facts2, from, now.getTime());
   if (days.size < 5) return null;
   return { count: [...days.values()].filter((d) => d.yes).length, answered: days.size };
 }
@@ -48861,6 +48868,7 @@ function normalizeFact(raw) {
       fact.value2 = Math.round(v2);
     }
     if (kind === "workout" && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
+    if (kind === "workout" && (raw.slot === "am" || raw.slot === "pm")) fact.slot = raw.slot;
     return fact;
   }
   if (kind === "train_check") {
@@ -49839,16 +49847,21 @@ function sumByDay(list3) {
 function facts(kind, list3, source, map = (v) => v) {
   return list3.filter((x) => x.day && Number.isFinite(x.value) && x.value > 0).map((x) => ({ kind, value: map(x.value), at: atOf(x.day), source, ...x.extra || {} }));
 }
+function slotOfLocal(iso) {
+  const h = Number(String(iso || "").slice(11, 13));
+  return Number.isFinite(h) && String(iso || "").length >= 13 ? h < 12 ? "am" : "pm" : null;
+}
 function workoutsByDay(list3, source) {
   const byDay = /* @__PURE__ */ new Map();
   for (const w of list3) {
-    if (!w.day || !(w.minutes > 0)) continue;
-    const d = byDay.get(w.day) || { minutes: 0, count: 0 };
+    if (!w.day || !(w.minutes > 0) || w.walk) continue;
+    const d = byDay.get(w.day) || { minutes: 0, count: 0, slot: null };
     d.minutes += w.minutes;
     d.count += 1;
+    if (!d.slot && w.slot) d.slot = w.slot;
     byDay.set(w.day, d);
   }
-  return [...byDay].map(([day, d]) => ({ kind: "workout", value: Math.round(d.minutes), count: d.count, at: atOf(day), source }));
+  return [...byDay].map(([day, d]) => ({ kind: "workout", value: Math.round(d.minutes), count: d.count, at: atOf(day), source, ...d.slot ? { slot: d.slot } : {} }));
 }
 function huaweiMs(t) {
   const n = Number(t);
@@ -49969,7 +49982,12 @@ var PROVIDERS = {
       });
       await safe(async () => {
         const r = await getJson(fetchFn, `${A}/workout?${q}`, token);
-        out.push(...workoutsByDay((r.data || []).map((w) => ({ day: w.day, minutes: (Date.parse(w.end_datetime) - Date.parse(w.start_datetime)) / 6e4 })), "oura"));
+        out.push(...workoutsByDay((r.data || []).map((w) => ({
+          day: w.day,
+          minutes: (Date.parse(w.end_datetime) - Date.parse(w.start_datetime)) / 6e4,
+          slot: slotOfLocal(w.start_datetime),
+          walk: /^walking$/i.test(String(w.activity || ""))
+        })), "oura"));
       });
       return out;
     }
@@ -50125,7 +50143,12 @@ var PROVIDERS = {
     authorizeExtra: { approval_prompt: "auto" },
     async fetchFacts(fetchFn, token, from) {
       const list3 = await getJson(fetchFn, `https://www.strava.com/api/v3/athlete/activities?after=${Math.floor(from.getTime() / 1e3)}&per_page=100`, token);
-      return workoutsByDay((Array.isArray(list3) ? list3 : []).map((a) => ({ day: String(a.start_date_local || "").slice(0, 10), minutes: Number(a.moving_time) / 60 })), "strava");
+      return workoutsByDay((Array.isArray(list3) ? list3 : []).map((a) => ({
+        day: String(a.start_date_local || "").slice(0, 10),
+        minutes: Number(a.moving_time) / 60,
+        slot: slotOfLocal(a.start_date_local),
+        walk: /^walk$/i.test(String(a.sport_type || a.type || ""))
+      })), "strava");
     }
   }
 };
@@ -62297,6 +62320,11 @@ function cloudDaily(facts2, now = Date.now()) {
     if (!(t >= from) || !(Number(f.value) > 0)) continue;
     const day = String(f.at).slice(0, 10);
     const box = out[kinds[f.kind]];
+    if (f.kind === "workout") {
+      const prev = box[day];
+      box[day] = { min: Math.max(prev?.min || 0, Number(f.value)), slot: prev?.slot || f.slot || null };
+      continue;
+    }
     box[day] = Math.max(box[day] || 0, Number(f.value));
   }
   return out;

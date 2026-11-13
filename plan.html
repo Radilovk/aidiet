@@ -11516,7 +11516,7 @@
             var A = activityApi();
             if (A && typeof A.needs === 'function') return A.needs(recordKey || getTodayKey(), ec);
             var mode = activityMode(recordKey);
-            return { move: mode === 'ask' && ec.activityLevel == null, train: mode === 'training' && !ec.trained };
+            return { move: mode === 'ask' && ec.activityLevel == null, train: mode === 'training' && !ec.trained ? 'did' : false };
         }
 
         function isActivityAnswered(ec, recordKey) {
@@ -11548,6 +11548,16 @@
             };
             if (n.move) {
                 showBubble(prefix + 'Колко се движи днес?', ACTIVITY_1_3, function(v) {
+                    save(v);
+                    setTimeout(function() { askActivityParts(recordKey, prefix, hdrOpts, done); }, 400);
+                }, hdrOpts);
+                return;
+            }
+            if (n.train === 'when') {
+                // Устройството е записало тренировка без час — само кога (до обяд / следобед).
+                showBubble(prefix + 'Кога тренира днес?', TRAINING_ANSWERS.slice(0, 2).map(function(a) {
+                    return Object.assign({}, a, { label: a.value === 'am' ? 'До обяд' : 'Следобед' });
+                }), function(v) {
                     save(v);
                     setTimeout(function() { askActivityParts(recordKey, prefix, hdrOpts, done); }, 400);
                 }, hdrOpts);

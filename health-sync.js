@@ -23,6 +23,9 @@
     var DEVICE_KINDS = ['steps', 'weight', 'sleep', 'intake', 'body_fat', 'muscle_mass', 'visceral_fat', 'body_water',
         'resting_hr', 'hrv', 'active_kcal', 'workout', 'water', 'bp', 'glucose'];
     var MORNING_HOURS = [4, 10];
+    // Записи, които не са тренировка: часовниците сами записват разходките; дишане и медитация.
+    // (Бързото ходене като тренировка се отбелязва с „Тренира ли днес?“.)
+    var NOT_TRAINING = { walking: 1, wheelchairWalkPace: 1, guidedBreathing: 1, meditation: 1, transition: 1, fishing: 1, hunting: 1 };
     var DAYS = 14;
     var AUTO_EVERY_MS = 6 * 3600 * 1000;
     // Ден с под 500 kcal записан прием е непълно водене, не реален прием.
@@ -232,7 +235,7 @@
             var days = {};
             fromSource((res && res.workouts) || [], pkg).forEach(function (w) {
                 var minutes = (Number(w.duration) || 0) / 60;
-                if (minutes < 10) return;
+                if (minutes < 10 || NOT_TRAINING[w.workoutType]) return;
                 var d = localDay(w.startDate);
                 days[d] = days[d] || { minutes: 0, count: 0, slot: null };
                 days[d].minutes += minutes;
@@ -248,7 +251,7 @@
                 try { A.setWorkouts(wk); } catch (_) {}
             }
             Object.keys(days).forEach(function (d) {
-                facts.push({ kind: 'workout', value: Math.round(days[d].minutes), count: days[d].count, at: factAt(d), source: 'health_connect' });
+                facts.push({ kind: 'workout', value: Math.round(days[d].minutes), count: days[d].count, slot: days[d].slot, at: factAt(d), source: 'health_connect' });
             });
         });
         await run('sleep', async function () {

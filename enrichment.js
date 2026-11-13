@@ -94,6 +94,8 @@ export function normalizeFact(raw) {
       fact.value2 = Math.round(v2);
     }
     if (kind === 'workout' && Number(raw.count) > 0) fact.count = Math.min(10, Math.round(Number(raw.count)));
+    // Частта от деня на тренировката, когато устройството дава часа.
+    if (kind === 'workout' && (raw.slot === 'am' || raw.slot === 'pm')) fact.slot = raw.slot;
     return fact;
   }
   if (kind === 'train_check') {

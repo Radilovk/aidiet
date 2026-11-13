@@ -47,17 +47,28 @@ function facts(kind, list, source, map = v => v) {
     .map(x => ({ kind, value: map(x.value), at: atOf(x.day), source, ...(x.extra || {}) }));
 }
 
-/** Тренировки: минути и брой по ден. */
-function workoutsByDay(list, source) {
+/** Часът от местно време „YYYY-MM-DDTHH:…“ → част от деня (до 12 ч — сутрин). */
+export function slotOfLocal(iso) {
+  const h = Number(String(iso || '').slice(11, 13));
+  return Number.isFinite(h) && String(iso || '').length >= 13 ? (h < 12 ? 'am' : 'pm') : null;
+}
+
+/**
+ * Тренировки: минути, брой и част от деня (по първата) по ден. Разходките
+ * (часовниците ги записват сами) не са тренировка — иначе всяка разходка би
+ * питала „Кога тренира?“ и би вдигала честотата на тренировките.
+ */
+export function workoutsByDay(list, source) {
   const byDay = new Map();
   for (const w of list) {
-    if (!w.day || !(w.minutes > 0)) continue;
-    const d = byDay.get(w.day) || { minutes: 0, count: 0 };
+    if (!w.day || !(w.minutes > 0) || w.walk) continue;
+    const d = byDay.get(w.day) || { minutes: 0, count: 0, slot: null };
     d.minutes += w.minutes;
     d.count += 1;
+    if (!d.slot && w.slot) d.slot = w.slot;
     byDay.set(w.day, d);
   }
-  return [...byDay].map(([day, d]) => ({ kind: 'workout', value: Math.round(d.minutes), count: d.count, at: atOf(day), source }));
+  return [...byDay].map(([day, d]) => ({ kind: 'workout', value: Math.round(d.minutes), count: d.count, at: atOf(day), source, ...(d.slot ? { slot: d.slot } : {}) }));
 }
 
 /* ─── Huawei: отговорите са в групи/набори/точки, времената в ns или ms ─── */
@@ -185,7 +196,12 @@ export const PROVIDERS = {
       });
       await safe(async () => {
         const r = await getJson(fetchFn, `${A}/workout?${q}`, token);
-        out.push(...workoutsByDay((r.data || []).map(w => ({ day: w.day, minutes: (Date.parse(w.end_datetime) - Date.parse(w.start_datetime)) / 60000 })), 'oura'));
+        out.push(...workoutsByDay((r.data || []).map(w => ({
+          day: w.day,
+          minutes: (Date.parse(w.end_datetime) - Date.parse(w.start_datetime)) / 60000,
+          slot: slotOfLocal(w.start_datetime),
+          walk: /^walking$/i.test(String(w.activity || '')),
+        })), 'oura'));
       });
       return out;
     },
@@ -327,7 +343,12 @@ export const PROVIDERS = {
     authorizeExtra: { approval_prompt: 'auto' },
     async fetchFacts(fetchFn, token, from) {
       const list = await getJson(fetchFn, `https://www.strava.com/api/v3/athlete/activities?after=${Math.floor(from.getTime() / 1000)}&per_page=100`, token);
-      return workoutsByDay((Array.isArray(list) ? list : []).map(a => ({ day: String(a.start_date_local || '').slice(0, 10), minutes: Number(a.moving_time) / 60 })), 'strava');
+      return workoutsByDay((Array.isArray(list) ? list : []).map(a => ({
+        day: String(a.start_date_local || '').slice(0, 10),
+        minutes: Number(a.moving_time) / 60,
+        slot: slotOfLocal(a.start_date_local),
+        walk: /^walk$/i.test(String(a.sport_type || a.type || '')),
+      })), 'strava');
     },
   },
 };

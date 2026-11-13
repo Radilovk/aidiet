@@ -9,13 +9,14 @@
  * Вечерта (20:00) за всеки ден се знаят два отделни факта (needs):
  *   движението  — от крачките (крачкомер, Health Connect, облак, Play services);
  *                 ден без измерени крачки → „Колко се движи днес?“;
- *   тренировката — само от тренировка, записана от устройство (Health Connect,
- *                 облачна връзка); иначе → „Тренира ли днес?“ (до обяд /
- *                 следобед / не) — за всеки клиент, всеки ден: крачките не
- *                 показват силова, колело, плуване.
+ *   тренировката — от записана от устройство тренировка, иначе по въпросника:
+ *       тренира → „Тренира ли днес?“ (до обяд / следобед / не);
+ *       не тренира → не се пита, докато профилът не се промени;
+ *       устройството е записало тренировка без час → „Кога тренира днес?“
+ *       (и при човек, отбелязал, че не тренира); с час — без въпрос.
  * Активността на деня = крачките (или отговорът за движението) + тренировката.
- * Режимът (mode) е за съвместимост: 'ask' — липсва движението, 'training' —
- * липсва тренировката, 'steps' — нищо не липсва.
+ * Режимът (mode): 'ask' — липсва движението, 'training' — „Тренира ли днес?“,
+ * 'when' — „Кога?“, 'steps' — нищо не липсва.
  *
  * Източникът на крачки — най-евтиният наличен, без наша постоянна услуга:
  *   1. Health Connect: гривна/часовник или (Android 14+) вграденото броене на
@@ -592,18 +593,32 @@
     /**
      * Какво още трябва да се попита за деня. Движението и тренировката са два
      * отделни факта: движението идва от крачките (иначе — въпрос), тренировката —
-     * от записана от устройство тренировка (иначе — въпрос; крачките не я
-     * показват: силова, колело, плуване). Отговорът на въпрос е окончателен.
+     * от записана от устройство тренировка или от въпроса (trainNeed). Отговорът
+     * на въпрос е окончателен.
      * @param {string} key ден YYYY-MM-DD
      * @param {object} [ec] eveningCheck на деня
      * @returns {{ move: boolean, train: boolean }}
      */
     function needs(key, ec) {
         ec = ec || ((gameData()[key] || {}).eveningCheck) || {};
-        return {
-            move: !isAnswered(ec) && !dayMeasured(key),
-            train: !ec.trained && !workoutFor(key)
-        };
+        return { move: !isAnswered(ec) && !dayMeasured(key), train: trainNeed(key, ec) };
+    }
+
+    /**
+     * Въпросът за тренировка за деня:
+     *   тренира по въпросника, без тренировка от устройство → 'did' („Тренира ли
+     *     днес?“ — до обяд / следобед / не: и дали, и кога с едно докосване);
+     *   устройството е записало тренировка (трениращ или не) без час → 'when'
+     *     („Кога тренира днес?“); с час (Health Connect) → нищо;
+     *   не тренира по въпросника и няма записана тренировка → нищо, докато
+     *     профилът не се промени.
+     * @returns {false|'did'|'when'}
+     */
+    function trainNeed(key, ec) {
+        if (ec && ec.trained) return false;
+        var wo = workoutFor(key);
+        if (wo) return wo.slot ? false : 'when';
+        return profileOf(userData()).trainer ? 'did' : false;
     }
 
     /**
@@ -619,21 +634,25 @@
             if (m && !(m.partial && !m.projected) && m.steps >= MIN_REAL_DAY) steps = m.steps;
         }
         var wo = workoutFor(key);
-        if (!ec.trained && wo) {
-            ec.trained = wo.slot || 'pm';
+        // Тренировка от устройство: с час — попълва деня; без час — влиза в разхода,
+        // а часът се допитва („Кога тренира днес?“).
+        if (!ec.trained && wo && wo.slot) {
+            ec.trained = wo.slot;
             ec.trainSource = 'device';
         }
+        var trained = ec.trained || (wo ? 'pm' : null);
         var est = estimateDay(p, {
             steps: steps,
             assumedSteps: mv != null ? MOVE_STEPS[mv] : null,
-            trained: ec.trained || null,
-            minutes: ec.trainSource === 'device' && wo ? wo.min : null,
+            trained: trained,
+            // Минутите от устройството, щом е записало тренировката (и при отговорен час).
+            minutes: wo && trained !== 'no' ? wo.min : null,
             baselineSteps: baselineSteps()
         });
         if (mv != null) {
             ec.moveLevel = mv;
             // Отговорът е нивото; тренировката може само да го вдигне.
-            ec.activityLevel = Math.max(mv, ec.trained === 'am' || ec.trained === 'pm' ? est.level : 1);
+            ec.activityLevel = Math.max(mv, trained === 'am' || trained === 'pm' ? est.level : 1);
             ec.activitySource = 'answer';
         } else {
             ec.activityLevel = est.level;
@@ -709,65 +728,7 @@
         return false;
     }
 
-    // Неотбелязана тренировка: ден с крачки поне ×1,6 и +4000 над обичайното.
-    var UNMARKED_FACTOR = 1.6;
-    var UNMARKED_EXTRA = 4000;
-    // След толкова „не“ (без нито едно „да“) за 28 дни въпросът не се появява.
-    var UNMARKED_MUTE_NO = 2;
 
-    /**
-     * Дневните крачки от един източник (както на сървъра — не се смесват):
-     * Health Connect, ако има поне 7 завършени дни, иначе крачкомерът.
-     * @returns {{ done: Record<string, number>, today: number|null }}
-     */
-    function measuredDays() {
-        var st = readState();
-        var today = dayKey(Date.now());
-        var ans = answeredDays();
-        var ext = {};
-        Object.keys(st.ext || {}).forEach(function (k) { if (k < today && !ans[k] && st.ext[k] >= MIN_REAL_DAY) ext[k] = st.ext[k]; });
-        if (Object.keys(ext).length >= 7) return { done: ext, today: st.ext[today] != null ? st.ext[today] : null };
-        var out = {};
-        if (st.enabled) {
-            Object.keys(st.days || {}).forEach(function (k) {
-                var d = st.days[k];
-                if (k < today && !ans[k] && !d.part && d.s >= MIN_REAL_DAY) out[k] = d.s;
-            });
-        }
-        var t = st.enabled && st.days && st.days[today];
-        return { done: out, today: t ? t.s : null };
-    }
-
-    /**
-     * Да се появи ли „Тренирахте ли днес?“ при човек, който по въпросника не
-     * тренира. Само за днешния ден, само ако крачките досега са много над
-     * обичайните за последните 14 дни (поне 7 дни данни). Не се появява, ако
-     * за 28 дни е казал 2 пъти „не“ без нито едно „да“ — това са разходки.
-     */
-    function askTrainingOn(key) {
-        var now = Date.now();
-        if (key !== dayKey(now)) return false;
-        var from28 = dayKey(now - 28 * DAY_MS);
-        var gd = gameData();
-        var yes = 0;
-        var no = 0;
-        Object.keys(gd).forEach(function (k) {
-            var ec = gd[k] && gd[k].eveningCheck;
-            if (!ec || k < from28 || k === key) return;
-            if (ec.trained === 'am' || ec.trained === 'pm') yes++;
-            else if (ec.trained === 'no') no++;
-        });
-        if (!yes && no >= UNMARKED_MUTE_NO) return false;
-        var m = measuredDays();
-        if (m.today == null) return false;
-        var from14 = dayKey(now - 14 * DAY_MS);
-        var vals = Object.keys(m.done).filter(function (k) { return k >= from14; })
-            .map(function (k) { return m.done[k]; }).sort(function (a, b) { return a - b; });
-        if (vals.length < 7) return false;
-        var mid = Math.floor(vals.length / 2);
-        var med = vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
-        return m.today >= Math.max(med * UNMARKED_FACTOR, med + UNMARKED_EXTRA);
-    }
 
     /**
      * Има ли измерени крачки за деня. Минал ден — Health Connect или пълен ден от
@@ -797,10 +758,16 @@
      * @returns {'training'|'steps'|'ask'}
      */
     function mode(key) {
-        if (!key) return hasStepSource() ? 'training' : 'ask';
+        if (!key) {
+            // Графикът на известията: трениращият — „Тренира ли днес?“; иначе — за
+            // движението само без измерване. „Кога?“ е само в приложението.
+            if (profileOf(userData()).trainer) return 'training';
+            return hasStepSource() ? 'steps' : 'ask';
+        }
         var n = needs(key);
         if (n.move) return 'ask';
-        return n.train ? 'training' : 'steps';
+        if (n.train === 'did') return 'training';
+        return n.train === 'when' ? 'when' : 'steps';
     }
 
     /** Днешните крачки от Health Connect (за въпроса довечера); завършените дни идват от fillFromSteps. */
@@ -824,7 +791,10 @@
         var steps = daily.steps || {};
         if (daily.workouts) {
             var wk = {};
-            Object.keys(daily.workouts).forEach(function (k) { wk[k] = { min: daily.workouts[k], slot: null }; });
+            Object.keys(daily.workouts).forEach(function (k) {
+                var w = daily.workouts[k];
+                wk[k] = typeof w === 'object' && w ? { min: w.min, slot: w.slot || null } : { min: w, slot: null };
+            });
             setWorkouts(wk);
         }
         var done = {};
@@ -864,7 +834,8 @@
     function applyAnswer(ec, value, key) {
         if (value === 'am' || value === 'pm' || value === 'no') {
             ec.trained = value;
-            ec.trainSource = 'answer';
+            // Отговорът на „Кога?“ за тренировка от устройство — тренировката остава от устройството.
+            ec.trainSource = workoutFor(key) && value !== 'no' ? 'device' : 'answer';
         } else {
             var lv = Math.round(Number(value));
             if (!(lv >= 1 && lv <= 3)) return ec;
@@ -887,7 +858,7 @@
      */
     function fillFromSteps(stepsByDay) {
         if (stepsByDay) {
-            // Крачките от Health Connect се пазят за въпроса в ден с много крачки (askTrainingOn).
+            // Крачките от Health Connect (и облака) — по дни, за въпроса за движението и сметките.
             var st = readState();
             var cutoff = dayKey(Date.now() - KEEP_DAYS * DAY_MS);
             var ext = Object.assign({}, st.ext || {});
@@ -905,7 +876,7 @@
             var ec = rec.eveningCheck || {};
             if (key === today && new Date().getHours() < 20) return;
             // Тренировка, записана от устройство, в ден без отговор за тренировка.
-            var wo = !ec.trained && workoutFor(key);
+            var wo = !ec.trained && workoutFor(key) && ec.woMin !== workoutFor(key).min;
             // Ден с ръчен отговор за движението (до часа на въпроса нямаше измерване):
             // важи само отговорът — крачки, дошли след това, не го пипат.
             var stepsNew = false;
@@ -920,6 +891,7 @@
             if (!stepsNew && !wo) return;
             var next = Object.assign({ activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null }, ec);
             recompute(next, key);
+            if (wo) next.woMin = workoutFor(key).min;
             if (next.activitySource === 'steps' && key === today) next.activitySource = 'steps_projected';
             rec.eveningCheck = next;
             changed.push(key);
@@ -990,13 +962,14 @@
                 // (и от гривна/облак, дошли по-късно) — важи само отговорът.
                 var mv = moveLevelOf(ec);
                 if (mv >= 1 && mv <= 3) facts.push({ kind: 'activity_check', value: mv, at: at(k), source: 'checkin' });
-                // Тренировка от устройство вече е факт (workout) — тук само отговорите.
-                if (ec.trainSource === 'device') return;
+                // Тренировка от устройство: минутите вече са факт (workout); тук — частта
+                // от деня (сървърът я слага към тренировката на устройството, не я брои втори път).
                 if (ec.trained !== 'am' && ec.trained !== 'pm' && ec.trained !== 'no') return;
                 var yes = ec.trained !== 'no';
                 facts.push({
                     kind: 'train_check', slot: yes ? ec.trained : null, value: yes ? 1 : 0,
-                    minutes: yes ? p.sessionMinutes : 0, kcal: yes ? Math.round(ec.trainingKcal || 0) : 0,
+                    minutes: yes ? (ec.trainSource === 'device' && workoutFor(k) ? workoutFor(k).min : p.sessionMinutes) : 0,
+                    kcal: yes ? Math.round(ec.trainingKcal || 0) : 0,
                     at: at(k), source: 'checkin'
                 });
             });
@@ -1078,7 +1051,6 @@
         mode: mode,
         hasStepSource: hasStepSource,
         stepTarget: stepTarget,
-        askTrainingOn: askTrainingOn,
         applyAnswer: applyAnswer,
         fillFromSteps: fillFromSteps,
         stepsFor: stepsFor,
