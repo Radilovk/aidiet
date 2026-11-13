@@ -258,12 +258,6 @@ export function stepsActivity(facts, now = new Date(), resolutions = {}) {
 }
 
 /**
- * Извежда от фактите какво се променя в профила.
- * @param {{ facts?: any[], digest?: any }} store
- * @param {Date} [now]
- * @param {'M'|'F'|'X'} [sex]
- */
-/**
  * Дни, за които клиентът е отговорил на „Колко се движи?“ (тогава нямаше
  * измерване): за тях важи само отговорът — крачките от същия ден (телефон,
  * гривна, облак), дошли по-късно, не влизат в нивото на активност и анализа.
@@ -274,6 +268,12 @@ export function withoutAnsweredSteps(facts) {
   return facts.filter(f => f?.kind !== 'steps' || !answered.has(dayOf(f.at)));
 }
 
+/**
+ * Извежда от фактите какво се променя в профила.
+ * @param {{ facts?: any[], digest?: any }} store
+ * @param {Date} [now]
+ * @param {'M'|'F'|'X'} [sex]
+ */
 export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const facts = withoutAnsweredSteps(Array.isArray(store?.facts) ? store.facts : []);
   const overrides = {};
