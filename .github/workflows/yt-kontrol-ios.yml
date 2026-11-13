@@ -1,0 +1,152 @@
+name: YT Контрол — iOS (TestFlight)
+
+# Сглобява iOS приложението YT Контрол (от публичното репо Radilovk/Game, папка yt-control/ios) на macOS машина,
+# подписва го с API ключа от секретите на това репо и го качва в App Store Connect → TestFlight.
+# Отделно е от „Студио“: друг Bundle ID (com.biocode.ytkontrol), отделни сертификати/профили (YTK AppStore …).
+# Пуска се ръчно (Actions → Run workflow) или при качване на клона claude/yt-kontrol-ios.
+# Секрети: APPLE_TEAM_ID, APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (същите като за „Студио“).
+
+on:
+  workflow_dispatch:
+    inputs:
+      game_ref:
+        description: 'Клон/таг в Radilovk/Game'
+        type: string
+        default: 'main'
+      version:
+        description: 'Версия (маркетингова)'
+        type: string
+        default: '1.0.0'
+      upload:
+        description: 'Качи в TestFlight (иначе само проверка, че се събира)'
+        type: boolean
+        default: true
+  push:
+    branches: [claude/yt-kontrol-ios]
+    paths:
+      - '.github/workflows/yt-kontrol-ios.yml'
+      - 'scripts/yt-kontrol-apple.mjs'
+
+permissions:
+  contents: read
+
+concurrency: yt-kontrol-ios
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+      APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+      APPSTORE_KEY_P8: ${{ secrets.APPSTORE_KEY_P8 }}
+      BUNDLE_ID: com.biocode.ytkontrol
+      GAME_REF: ${{ inputs.game_ref || 'ccr-5a702a9a-pr94ax' }}
+      VERSION: ${{ inputs.version || '1.0.0' }}
+      UPLOAD: ${{ github.event_name == 'push' || inputs.upload }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Проектът YT Контрол (Radilovk/Game)
+        uses: actions/checkout@v4
+        with:
+          repository: Radilovk/Game
+          ref: ${{ env.GAME_REF }}
+          path: game
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Най-новият Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Проверка на секретите
+        run: |
+          missing=""
+          for v in APPLE_TEAM_ID APPSTORE_KEY_ID APPSTORE_ISSUER_ID APPSTORE_KEY_P8; do
+            if [ -z "${!v}" ]; then missing="$missing $v"; fi
+          done
+          if [ -n "$missing" ]; then echo "::error::Липсват GitHub секрети:$missing"; exit 1; fi
+
+      - name: Bundle ID и приложение в App Store Connect
+        run: node scripts/yt-kontrol-apple.mjs bundle
+
+      - name: Xcode проект (XcodeGen)
+        working-directory: game/yt-control/ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+          ls -la
+
+      - name: Ключ за App Store Connect
+        run: |
+          mkdir -p "$HOME/private_keys"
+          printf '%s' "$APPSTORE_KEY_P8" > "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
+          chmod 600 "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
+          echo "KEY_PATH=$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Сертификат и профил за App Store (през API)
+        run: node scripts/yt-kontrol-apple.mjs prepare
+
+      - name: Компилиране и подписване
+        working-directory: game/yt-control/ios
+        run: |
+          xcodebuild archive \
+            -project YTKontrol.xcodeproj -scheme YTKontrol -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/YTKontrol.xcarchive" \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $SIGN_KEYCHAIN"
+
+      - name: Проверка на пакета
+        run: |
+          APP=$(find "$RUNNER_TEMP/YTKontrol.xcarchive/Products/Applications" -maxdepth 1 -name '*.app' | head -1)
+          [ -n "$APP" ] || { echo "::error::Няма .app в архива"; exit 1; }
+          [ -f "$APP/yt-control.user.js" ] || { echo "::error::Модулът yt-control.user.js липсва в пакета"; exit 1; }
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$APP/Info.plist"
+          echo "Пакетът е наред: $(basename "$APP")"
+
+      - name: Качване в TestFlight
+        id: upload
+        if: ${{ env.UPLOAD == 'true' && env.APP_EXISTS == '1' }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key><dict><key>${BUNDLE_ID}</key><string>${PROFILE_NAME}</string></dict>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/YTKontrol.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
+          {
+            echo "### YT Контрол е качен в App Store Connect ✓"
+            echo "Версия $VERSION (build ${{ github.run_number }}). След 10–30 минути обработка се вижда в TestFlight."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Чистене на сертификата и профила
+        if: ${{ always() }}
+        env:
+          KEEP_CERT: ${{ steps.upload.outcome == 'success' && '1' || '' }}
+        run: node scripts/yt-kontrol-apple.mjs cleanup
