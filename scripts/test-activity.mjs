@@ -218,6 +218,22 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   ok(A.mode(key(1)) === 'ask', 'ден, в който броячът не е броил (прогноза) → въпросът за движението');
   store.np_activity_state = JSON.stringify({ enabled: true, readAt: startToday.getTime() - 3600000, days: { [today]: { s: 3000 } } });
   ok(A.mode(today) === 'ask', 'броячът не е четен днес → въпрос');
+  // Облачна връзка (Huawei, Fitbit…): крачките и сънят идват от сървъра по дни.
+  store.np_activity_state = '{}';
+  store.gameData = JSON.stringify({ [key(1)]: {} });
+  let cloudSleep = null;
+  globalThis.NutriPlanHealth = { rememberCloudSleep: (x) => { cloudSleep = x; } };
+  A.applyCloudDaily({ steps: { [key(2)]: 8000, [key(1)]: 7600, [today]: 3100 }, sleep: { [today]: 7.4 } });
+  ok(A.mode(key(1)) === 'steps' && A.mode(today) === 'steps', 'Huawei през облака: дните с крачки — без въпрос');
+  ok(A.mode(key(3)) === 'ask', 'Huawei през облака: ден без данни — въпросът за движението');
+  ok(JSON.parse(store.gameData)[key(1)]?.eveningCheck?.steps === 7600, 'завършеният ден взема крачките от облака');
+  ok(!JSON.parse(store.gameData)[today], 'днешният ден не се приключва преди вечерта');
+  ok(cloudSleep && cloudSleep[today] === 7.4, 'сънят от облака отива към сутрешния въпрос');
+  ok(A.externalStepsFlowing() === true, 'облакът дава крачките → нощното показание на брояча е излишно');
+  delete globalThis.NutriPlanHealth;
+  // Нищо не дава крачки (няма брояч, Health Connect, облак) → въпрос всеки ден.
+  store.np_activity_state = '{}';
+  ok(A.mode() === 'ask' && A.mode(key(1)) === 'ask', 'без никакъв източник — въпросът всеки ден, и в графика');
   delete globalThis.localStorage;
 }
 

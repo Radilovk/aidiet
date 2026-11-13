@@ -534,10 +534,12 @@
 
     // ── Режим на вечерния въпрос ─────────────────────────────────────────
 
-    /** Има ли измерване на крачките: крачкомерът или Health Connect с крачки. */
+    /** Има ли измерване на крачките: крачкомерът, Health Connect или облачна връзка с крачки. */
     function hasStepSource() {
         var st = readState();
         if (st.enabled && st.readAt && Date.now() - st.readAt < 3 * DAY_MS) return true;
+        // Крачки от който и да е източник през последните 3 дни (облак: Huawei, Fitbit…).
+        for (var i = 0; i <= 3; i++) if (st.ext && st.ext[dayKey(Date.now() - i * DAY_MS)] >= MIN_REAL_DAY) return true;
         try {
             var hc = JSON.parse(localStorage.getItem('np_health_state') || '{}') || {};
             if (hc.connected && (!hc.granted || hc.granted.indexOf('steps') !== -1)) return true;
@@ -649,8 +651,25 @@
     }
 
     /**
-     * Health Connect дава ли крачките (поне 2 от последните 3 завършени дни) —
-     * тогава нощното показание на брояча е излишно и се изключва.
+     * Крачките и сънят по дни от облачните връзки (/api/enrichment/get → daily):
+     * завършените дни — като от Health Connect, днешният — като днешно показание.
+     * @param {{ steps?: Record<string, number>, sleep?: Record<string, number> }} daily
+     */
+    function applyCloudDaily(daily) {
+        if (!daily) return;
+        var today = dayKey(Date.now());
+        var steps = daily.steps || {};
+        var done = {};
+        Object.keys(steps).forEach(function (k) { if (k < today) done[k] = steps[k]; });
+        if (steps[today] > 0) setExternalToday(steps[today]);
+        if (Object.keys(done).length) fillFromSteps(done);
+        var HS = global.NutriPlanHealth;
+        if (daily.sleep && HS && typeof HS.rememberCloudSleep === 'function') HS.rememberCloudSleep(daily.sleep);
+    }
+
+    /**
+     * Друг източник (Health Connect или облачна връзка) дава ли крачките (поне 2 от
+     * последните 3 завършени дни) — тогава нощното показание на брояча е излишно.
      */
     function externalStepsFlowing(now) {
         now = now || Date.now();
@@ -825,6 +844,7 @@
         spread: spread,
         coveredShare: coveredShare,
         dayMeasured: dayMeasured,
+        applyCloudDaily: applyCloudDaily,
         setExternalToday: setExternalToday,
         externalStepsFlowing: externalStepsFlowing,
         ingest: ingest,
@@ -860,6 +880,11 @@
                     var HS = global.NutriPlanHealth;
                     if (!HS || typeof HS.todaySteps !== 'function') return null;
                     return HS.todaySteps().then(function (n) { if (n != null) setExternalToday(n); }).catch(function () {});
+                }).then(function () {
+                    // Облачните връзки (Huawei, Fitbit, Oura, Withings): крачки и сън по дни.
+                    var E = global.NutriPlanEnrichment;
+                    if (!E || typeof E.getCached !== 'function' || !E.hasPlanProfile()) return null;
+                    return E.getCached().then(function (res) { applyCloudDaily(res && res.daily); }).catch(function () {});
                 }).then(function () { return sync(); }).catch(function () {});
             };
             setTimeout(tick, 5000);

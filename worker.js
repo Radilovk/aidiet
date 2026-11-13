@@ -62270,11 +62270,25 @@ async function handleEnrichmentGet(request, env) {
       reanalysis: profile?.userData ? reanalysisOf(profile.userData, store) : null,
       markers: LAB_MARKERS,
       deviceKinds: publicDeviceKinds(),
-      moduleSources: profile?.moduleSources || {}
+      moduleSources: profile?.moduleSources || {},
+      daily: cloudDaily(store.facts)
     });
   } catch (error) {
     return jsonResponse2({ error: "Failed to load enrichment: " + error.message }, 500);
   }
+}
+function cloudDaily(facts2, now = Date.now()) {
+  const from = now - 21 * 864e5;
+  const out = { steps: {}, sleep: {} };
+  for (const f of facts2 || []) {
+    if (!LINK_SOURCES.includes(f?.source) || f.kind !== "steps" && f.kind !== "sleep") continue;
+    const t = Date.parse(f.at);
+    if (!(t >= from) || !(Number(f.value) > 0)) continue;
+    const day = String(f.at).slice(0, 10);
+    const box = out[f.kind];
+    box[day] = Math.max(box[day] || 0, Number(f.value));
+  }
+  return out;
 }
 function reanalysisOf(userData, store) {
   try {

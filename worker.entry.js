@@ -15631,10 +15631,33 @@ async function handleEnrichmentGet(request, env) {
       markers: LAB_MARKERS,
       deviceKinds: publicDeviceKinds(),
       moduleSources: profile?.moduleSources || {},
+      daily: cloudDaily(store.facts),
     });
   } catch (error) {
     return jsonResponse({ error: 'Failed to load enrichment: ' + error.message }, 500);
   }
+}
+
+/**
+ * Крачките и сънят по дни от облачните връзки (Huawei, Fitbit, Oura, Withings) за
+ * последните 21 дни — телефонът ги ползва, за да не пита за движение и сън в
+ * дни, които гривната вече е измерила (activity-tracker.js, health-sync.js).
+ * Health Connect и броячът на телефона са локални и не се връщат.
+ * @returns {{ steps: Record<string, number>, sleep: Record<string, number> }}
+ */
+function cloudDaily(facts, now = Date.now()) {
+  const from = now - 21 * 86400000;
+  const out = { steps: {}, sleep: {} };
+  for (const f of facts || []) {
+    if (!LINK_SOURCES.includes(f?.source) || (f.kind !== 'steps' && f.kind !== 'sleep')) continue;
+    const t = Date.parse(f.at);
+    if (!(t >= from) || !(Number(f.value) > 0)) continue;
+    const day = String(f.at).slice(0, 10);
+    const box = out[f.kind];
+    // Две връзки за един ден — по-голямото (гривната е носена по-дълго от другото).
+    box[day] = Math.max(box[day] || 0, Number(f.value));
+  }
+  return out;
 }
 
 /**

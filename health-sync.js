@@ -291,9 +291,19 @@
         } catch (_) { return null; }
     }
 
+    /** Сънят по дни от облачна връзка (Huawei, Fitbit, Oura, Withings) — от /api/enrichment/get. */
+    function rememberCloudSleep(byDay) {
+        var cut = localDay(new Date(Date.now() - 21 * 86400000).toISOString());
+        var keep = {};
+        Object.keys(byDay || {}).forEach(function (k) { if (k >= cut && byDay[k] > 0) keep[k] = Math.round(byDay[k] * 10) / 10; });
+        writeState({ cloudSleep: keep });
+    }
+
     /** Часовете сън, записани от гривна/телефон за нощта преди деня `day` (YYYY-MM-DD), или null. */
     function sleepFor(day) {
-        var v = (readState().sleep || {})[day];
+        var st = readState();
+        var v = grantedFor('sleep') ? (st.sleep || {})[day] : null;
+        if (!(v > 0)) v = (st.cloudSleep || {})[day];
         return v > 0 ? v : null;
     }
 
@@ -303,10 +313,8 @@
      * въпросът се задава в приложението.
      */
     function sleepTracked() {
-        var st = readState();
-        if (!grantedFor('sleep')) return false;
         var n = 0;
-        for (var i = 1; i <= 7; i++) if ((st.sleep || {})[localDay(new Date(Date.now() - i * 86400000).toISOString())] > 0) n++;
+        for (var i = 1; i <= 7; i++) if (sleepFor(localDay(new Date(Date.now() - i * 86400000).toISOString()))) n++;
         return n >= 5;
     }
 
@@ -492,6 +500,7 @@
         refreshLastNight: refreshLastNight,
         sleepFor: sleepFor,
         sleepTracked: sleepTracked,
+        rememberCloudSleep: rememberCloudSleep,
         // За тестове: превръщането на пробите в дни.
         _sleepByDay: sleepByDay
     };
