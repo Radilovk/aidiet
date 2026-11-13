@@ -238,6 +238,12 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   const late = JSON.parse(store.gameData)[key(2)].eveningCheck;
   ok(late.activitySource === 'steps' && late.steps === 11000 && late.askedLevel === 1 && late.activityLevel === 3, `закъснелите крачки влизат в своя ден и заместват отговора (${JSON.stringify(late)})`);
   ok(late.emotionalBalance === 2, 'другите отговори за деня остават');
+  ok(JSON.parse(store.np_backfill_keys).includes(key(2)) && Number(store.np_gamedata_rev) >= 1, 'закъснелият ден чака плана (оценка + синхронизация), ревизията расте');
+  const rev0 = Number(store.np_gamedata_rev);
+  A.fillFromSteps({ [key(2)]: 13500 });
+  ok(JSON.parse(store.gameData)[key(2)].eveningCheck.steps === 13500, 'по-пълно измерване по-късно (гривната се синхронизира) обновява деня');
+  A.fillFromSteps({ [key(2)]: 13500 });
+  ok(Number(store.np_gamedata_rev) === rev0 + 1, 'същото число — без нова промяна и без излишна синхронизация');
   store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 2, trained: 'pm', activitySource: 'training' } } });
   A.fillFromSteps({ [key(2)]: 11000 });
   ok(JSON.parse(store.gameData)[key(2)].eveningCheck.activitySource === 'training', 'отговорът за тренировка не се пипа');

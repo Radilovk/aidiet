@@ -489,7 +489,10 @@
             try { hist = await P.history({ days: 10 }); } catch (_) {}
             if (hist && hist.available && hist.days) {
                 var h = applyHistory(st, hist);
+                var before = JSON.stringify(st.days || {});
                 st = writeState({ days: h.days, last: null, rec: true, readAt: Date.now() });
+                // Нови дни от историята — към сървъра скоро, не след 6 часа.
+                if (JSON.stringify(h.days) !== before) scheduleSync();
                 // Историята е в Play services — нощното показание на брояча не е нужно.
                 if (st.bg !== false && typeof P.setBackground === 'function') {
                     try { await P.setBackground({ enabled: false }); st = writeState({ bg: false }); } catch (_) {}
@@ -792,13 +795,17 @@
             // Ръчният отговор „Колко се движи?“ (ден, в който данните още ги нямаше)
             // отстъпва на измерването, щом то дойде — пази се като askedLevel.
             var manual = ec.activityLevel != null && !ec.activitySource && !ec.trained;
-            if (ec.activityLevel != null && ec.activitySource !== 'steps_projected' && !manual) return;
+            // Ден, попълнен от крачки: по-късно, по-пълно измерване (гривната се е
+            // синхронизирала) го обновява; същото число — без промяна.
+            var fromSteps = ec.activitySource === 'steps';
+            if (ec.activityLevel != null && ec.activitySource !== 'steps_projected' && !manual && !fromSteps) return;
             var s = stepsByDay && stepsByDay[key] != null ? { steps: stepsByDay[key], partial: false } : null;
             if (!s) {
                 if (key === today && new Date().getHours() < 20) return;
                 s = stepsFor(key, { project: key === today });
             }
             if (!s || (s.partial && !s.projected) || s.steps < MIN_REAL_DAY) return;
+            if (fromSteps && (s.projected || Math.abs(s.steps - (Number(ec.steps) || 0)) < Math.max(50, 0.01 * s.steps))) return;
             var est = estimateDay(p, { steps: s.steps });
             if (manual && s.projected) return;
             rec.eveningCheck = Object.assign({ activityLevel: null, emotionalBalance: null, waterIntake: null, ts: null }, ec, {
@@ -813,13 +820,38 @@
         if (!changed.length) return 0;
         try {
             localStorage.setItem('gameData', JSON.stringify(gd));
-            var GN = global.GameNotifier || (global.top && global.top.GameNotifier);
-            changed.forEach(function (k) {
-                if (GN && typeof GN.notifyAnswerSaved === 'function') GN.notifyAnswerSaved(k);
-                else localStorage.setItem('gameDataDirtyKey', k);
-            });
         } catch (_) {}
+        notifyBackfill(changed);
         return changed.length;
+    }
+
+    /**
+     * Дни, променени със закъснение (крачки, дошли след деня): планът ги поема
+     * наведнъж — изчиства кеша си (иначе следващият му запис би върнал старото),
+     * преизчислява оценката на всеки ден (и заключените минали) и праща дните на
+     * сървъра. Без отворен план — ключовете чакат в np_backfill_keys.
+     * @param {string[]} keys
+     */
+    function notifyBackfill(keys) {
+        if (!keys || !keys.length) return;
+        try {
+            // Ревизията влиза в подписа на синхронизацията: промяна в минал ден също се праща.
+            localStorage.setItem('np_gamedata_rev', String((Number(localStorage.getItem('np_gamedata_rev')) || 0) + 1));
+            var pending = JSON.parse(localStorage.getItem('np_backfill_keys') || '[]') || [];
+            keys.forEach(function (k) { if (pending.indexOf(k) === -1) pending.push(k); });
+            localStorage.setItem('np_backfill_keys', JSON.stringify(pending));
+        } catch (_) {}
+        var gm = null;
+        try {
+            gm = global.gameModule;
+            if (!gm && global.document) {
+                var frame = global.document.querySelector('[data-tab-view="plan"]');
+                gm = frame && frame.contentWindow && frame.contentWindow.gameModule;
+            }
+        } catch (_) { gm = null; }
+        if (gm && typeof gm.applyBackfill === 'function') {
+            try { gm.applyBackfill(); } catch (_) {}
+        }
     }
 
     // ── Факти към сървъра ────────────────────────────────────────────────
@@ -881,6 +913,27 @@
         return { sent: facts.length, level: res && res.level };
     }
 
+    /**
+     * Всички източници наново, преди седмичния преглед: броячът/историята,
+     * днешното от Health Connect, Health Connect към сървъра, облачните връзки
+     * (свалят се, ако са стари) и фактите на телефона — решението да не тръгне
+     * без закъснелите дни. Всеки източник се пропуска тихо при грешка.
+     */
+    async function refreshAll() {
+        try { await refresh(); } catch (_) {}
+        var HS = global.NutriPlanHealth;
+        if (HS) {
+            try { var n = await HS.todaySteps(); if (n != null) setExternalToday(n); } catch (_) {}
+            try { if (HS.state().connected) await HS.sync({ force: true }); } catch (_) {}
+        }
+        var E = global.NutriPlanEnrichment;
+        if (E && E.hasPlanProfile()) {
+            try { if (typeof E.syncLinks === 'function') await E.syncLinks(false); } catch (_) {}
+            try { var g = await E.get(); applyCloudDaily(g && g.daily); } catch (_) {}
+        }
+        try { await sync({ force: true }); } catch (_) {}
+    }
+
     var api = {
         TRAINING_TYPES: TRAINING_TYPES,
         TRAINING_QUESTION: TRAINING_QUESTION,
@@ -897,6 +950,8 @@
         dayMeasured: dayMeasured,
         applyCloudDaily: applyCloudDaily,
         applyHistory: applyHistory,
+        refreshAll: refreshAll,
+        notifyBackfill: notifyBackfill,
         setExternalToday: setExternalToday,
         externalStepsFlowing: externalStepsFlowing,
         ingest: ingest,

@@ -10116,7 +10116,9 @@
             saveWeeklyAIState(weeklyAI);
 
             var latestKey = keys.sort().pop();
+            // np_gamedata_rev: дни назад, попълнени от устройство — промяна не само в последния ден.
             var sig = uid + ':' + keys.length + ':' + latestKey + ':' + JSON.stringify(gameData[latestKey] || {}).length + ':' + JSON.stringify((gameData[latestKey] || {}).meals || {})
+                + ':' + (localStorage.getItem('np_gamedata_rev') || '0')
                 + ':' + (planSlice?.sourceMeta?.catalogVersion || '')
                 + ':' + (planSlice?.weekPlan ? Object.keys(planSlice.weekPlan).length : 0);
             if (!pull && localStorage.getItem('np_analytics_sig') === sig) return;
@@ -10183,6 +10185,48 @@
             } catch (_) {}
         }
         window.NutriPlanAnalyticsSync = { schedule: scheduleAnalyticsSync, syncNow: syncAnalyticsToServer };
+
+        /**
+         * Дни, попълнени със закъснение от устройство (activity-tracker.js записва
+         * в друг прозорец): кешът се изчиства, оценката на всеки такъв ден се смята
+         * наново — и на заключените минали дни, защото измерването е факт, не
+         * късна отметка (калориите остават заключени в lockedPlannedCalories) —
+         * и дните тръгват към сървъра.
+         */
+        function applyBackfill() {
+            var keys = [];
+            try { keys = JSON.parse(localStorage.getItem('np_backfill_keys') || '[]') || []; } catch (_) { keys = []; }
+            if (!keys.length) return 0;
+            invalidateGameDataCache();
+            var d = getGameData();
+            var done = 0;
+            keys.forEach(function(k) {
+                var rec = d[k];
+                if (!rec || typeof rec !== 'object') return;
+                if (isPastDayKey(k)) lockPastDaySchema(rec, k);
+                rec.dailyScore = calcDayScore(rec);
+                done++;
+            });
+            try { localStorage.removeItem('np_backfill_keys'); } catch (_) {}
+            if (done) {
+                saveGameData(d);
+                try { renderDay(currentDay, currentViewDateKey); } catch (_) {}
+            }
+            return done;
+        }
+        // Чакащи от времето, когато планът не е бил отворен.
+        setTimeout(function() { try { applyBackfill(); } catch (_) {} }, 1500);
+
+        /** Преди седмичния преглед: закъснелите данни от устройствата (до 8 с). */
+        function refreshDeviceData() {
+            var A = null;
+            try { A = window.NutriPlanActivity || (window.top && window.top.NutriPlanActivity) || null; } catch (_) { A = null; }
+            if (!A || typeof A.refreshAll !== 'function') return Promise.resolve();
+            return Promise.race([
+                A.refreshAll().catch(function() {}),
+                new Promise(function(r) { setTimeout(r, 8000); })
+            ]).then(function() { try { applyBackfill(); } catch (_) {} });
+        }
         // При отваряне: отметките от другите устройства (уеб ↔ приложение). Най-много
         // веднъж на 10 минути (нов вход или празно устройство — веднага).
         setTimeout(function() {
@@ -12014,6 +12058,7 @@
         }
 
         async function fetchWeeklyQuestions() {
+            await refreshDeviceData();
             var base = getWeeklyPayloadBase();
             var authExtras = await getWeeklyAuthExtras();
             if (!authExtras.userId) throw new Error('Липсва потребител');
@@ -12404,6 +12449,7 @@
         }
 
         async function submitWeeklyAdaptation(questions, answers, cycleNumber) {
+            await refreshDeviceData();
             var base = getWeeklyPayloadBase();
             var authExtras = await getWeeklyAuthExtras();
             try {
@@ -12679,6 +12725,7 @@
             calcDayScore:            calcDayScore,
             calcWeeklyScore:         calcWeeklyScore,
             recalcAndShowScore:      recalcAndShowScore,
+            applyBackfill:           applyBackfill,
             checkOpenAppPrompts:     checkOpenAppPrompts,
             showWeeklyAdaptNoticeModal: showWeeklyAdaptNoticeModal,
             triggerWeeklyTestFlow:   triggerWeeklyTestFlow
