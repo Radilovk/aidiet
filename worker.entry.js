@@ -113,6 +113,8 @@ import {
   decideWeeklyAdjustment,
   weeklyMessage,
   pickWeighIn,
+  strengthOnly,
+  workoutsAnswerOf,
   autoWeeklyAction,
   needsSafetyRebuild,
   WEEKLY_CYCLE_MS,
@@ -6128,6 +6130,7 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
     deviceWeightDays: data?._enrichment?.checkin?.weightDays || 0,
     workoutsWeek: data?._enrichment?.checkin?.workoutsWeek ?? null,
+    strengthOnly: strengthOnly(data),
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0,
     weightGapWeeks: weightGapWeeks(history),
@@ -6428,6 +6431,10 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     // Без тренировка по вечерните отговори за седмицата — въпросът не е задаван, отговорът е известен.
     if (dc.workoutsWeek === 0 && !checkinAnswers.some(a => a.questionId === 'workouts')) {
       checkinAnswers = [...checkinAnswers, { questionId: 'workouts', value: 'Нито една', source: 'device' }];
+    }
+    // Тренира само силово: всяка отбелязана вечер тренировка е силова — броят е известен.
+    if (dc.workoutsWeek > 0 && strengthOnly(enrichedData) && !checkinAnswers.some(a => a.questionId === 'workouts')) {
+      checkinAnswers = [...checkinAnswers, { questionId: 'workouts', value: workoutsAnswerOf(dc.workoutsWeek), source: 'device' }];
     }
     // Измереното от прегледа влиза в профила преди обсъждането на целта — посоката се
     // преценява с днешното тегло и талия.

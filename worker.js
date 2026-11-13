@@ -47584,13 +47584,24 @@ function weightGapWeeks(history) {
   for (let i = (history || []).length - 1; i >= 0 && !(Number(history[i]?.weightKg) > 0); i--) n++;
   return n;
 }
+function strengthOnly(data = {}) {
+  const types = (Array.isArray(data.sportTypes) ? data.sportTypes : data.sportTypes ? [data.sportTypes] : []).map(String);
+  const other = Array.isArray(data.sportTypes_other) ? data.sportTypes_other.length : !!data.sportTypes_other;
+  return types.length > 0 && !other && types.every((t) => /^Силови/.test(t));
+}
+function workoutsAnswerOf(n) {
+  const k = Math.round(Number(n) || 0);
+  return k <= 0 ? "\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u0430" : k >= 3 ? "3 \u0438 \u043F\u043E\u0432\u0435\u0447\u0435" : String(k);
+}
 var ADHERENCE_KNOWN_DAYS = 4;
 function weeklyQuestionsFor(ctx = {}) {
   const lead = Array.isArray(ctx.lead) ? ctx.lead : [];
   const direction = ctx.direction || (ctx.goal === "GAIN" ? "gain" : null);
   const knownNoTraining = ctx.workoutsWeek === 0;
   const knownAdherence = ctx.mealAdherence != null && (ctx.mealDays || 0) >= ADHERENCE_KNOWN_DAYS;
-  return WEEKLY_CHECKIN_QUESTIONS.filter((q) => !q.onlyForLead || lead.includes(q.onlyForLead)).filter((q) => !(q.id === "workouts" && knownNoTraining)).filter((q) => !(q.id === "adherence" && knownAdherence)).map((q) => {
+  const knownWeight = Number(ctx.deviceWeightKg) >= 30 && (ctx.deviceWeightDays || 0) >= DEVICE_RELIABLE_DAYS;
+  const knownStrength = !!ctx.strengthOnly && Number(ctx.workoutsWeek) > 0;
+  return WEEKLY_CHECKIN_QUESTIONS.filter((q) => !q.onlyForLead || lead.includes(q.onlyForLead)).filter((q) => !(q.id === "workouts" && (knownNoTraining || knownStrength))).filter((q) => !(q.id === "adherence" && knownAdherence)).filter((q) => !((q.id === "weightKg" || q.id === "weight") && knownWeight)).map((q) => {
     const out = { ...q, options: [...q.options] };
     delete out.onlyForLead;
     if (q.id === "weight" && direction === "gain") out.options = [...GAIN_WEIGHT_OPTIONS];
@@ -54893,6 +54904,7 @@ function generateWeeklyQuestions(userData, analytics, enrichment, history = []) 
     deviceWeightKg: data?._enrichment?.checkin?.weightKg ?? null,
     deviceWeightDays: data?._enrichment?.checkin?.weightDays || 0,
     workoutsWeek: data?._enrichment?.checkin?.workoutsWeek ?? null,
+    strengthOnly: strengthOnly(data),
     mealAdherence: analytics?.mealAdherence ?? null,
     mealDays: analytics?.mealDays || 0,
     weightGapWeeks: weightGapWeeks(history)
@@ -55128,6 +55140,9 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     if (dc.leanLoss) checkinAnswers = [...checkinAnswers, { questionId: "leanLoss", value: "true", source: "device" }];
     if (dc.workoutsWeek === 0 && !checkinAnswers.some((a) => a.questionId === "workouts")) {
       checkinAnswers = [...checkinAnswers, { questionId: "workouts", value: "\u041D\u0438\u0442\u043E \u0435\u0434\u043D\u0430", source: "device" }];
+    }
+    if (dc.workoutsWeek > 0 && strengthOnly(enrichedData) && !checkinAnswers.some((a) => a.questionId === "workouts")) {
+      checkinAnswers = [...checkinAnswers, { questionId: "workouts", value: workoutsAnswerOf(dc.workoutsWeek), source: "device" }];
     }
     const answeredKg = Number(String(checkinAnswers.find((a) => a.questionId === "weightKg")?.value || "").replace(",", "."));
     if (answeredKg >= 30 && answeredKg <= 300) enrichedData.weight = String(answeredKg);

@@ -215,7 +215,8 @@ const GameNotifier = {
             // Смяна на режима на въпроса за активност (попълнен въпросник, включен крачкомер)
             // сменя бутоните и маха/връща въпроса — графикът се пренарежда.
             // Режимът за графика (без деня): денят с неотбелязана тренировка не праща известие.
-            const activityMode = this._activityMode(null);
+            // Сънят от гривната/телефона маха сутрешното известие — смяната също пренарежда.
+            const activityMode = this._activityMode(null) + (this._sleepTracked() ? '|sleep' : '');
             const needsSchedule = configChanged ||
                 scheduledVersion !== String(currentVersion) ||
                 localStorage.getItem(this.LS_ACTIVITY_MODE_KEY) !== activityMode ||
@@ -1257,6 +1258,20 @@ const GameNotifier = {
         }
     },
 
+    /**
+     * Сънят се записва редовно от гривна/телефон (health-sync.js) — сутрешното
+     * известие „Спа ли добре?“ не се праща; отговорът идва от данните, а в нощ
+     * без запис въпросът излиза в приложението.
+     */
+    _sleepTracked() {
+        try {
+            const H = typeof window !== 'undefined' && (window.NutriPlanHealth || (window.top && window.top.NutriPlanHealth));
+            return !!(H && typeof H.sleepTracked === 'function' && H.sleepTracked());
+        } catch (_) {
+            return false;
+        }
+    },
+
     _hasRealMorningAnswer(rec) {
         return !!(rec && rec.morningCheck && typeof rec.morningCheck.sleptWell === 'boolean');
     },
@@ -1504,10 +1519,11 @@ const GameNotifier = {
         const cfgNorm = this.normalizeConfig(cfg);
         const [mH, mM] = cfgNorm.morningTime.split(':').map(Number);
         const notifications = [];
+        const sleepTracked = this._sleepTracked();
 
         for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morningTs = this._tsForDayOffset(day, mH, mM);
-            if (morningTs > Date.now()) {
+            if (morningTs > Date.now() && !sleepTracked) {
                 const recordKey = this._dateKeyForTimestamp(morningTs);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
                 const morningDisplay = this._notificationDisplayFields('morning_check');
@@ -1621,10 +1637,11 @@ const GameNotifier = {
         const [mH, mM] = cfgNorm.morningTime.split(':').map(Number);
         const now = Date.now();
         const schedule = [];
+        const sleepTracked = this._sleepTracked();
 
         for (let day = 0; day < this.SCHEDULE_WINDOW_DAYS; day++) {
             const morning = this._tsForDayOffset(day, mH, mM);
-            if (morning > now) {
+            if (morning > now && !sleepTracked) {
                 const recordKey = this._dateKeyForTimestamp(morning);
                 if (this._isQuestionAnswered(recordKey, 'morning_check')) continue;
                 const morningActions = this._actionsFromConfig(cfgNorm, this.MORNING_META);

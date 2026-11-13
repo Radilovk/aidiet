@@ -8,7 +8,7 @@ Patch the generated Capacitor Android project for NutriPrintPlugin.
 - Copies and registers NutriStepsPlugin (the phone's hardware step counter for
   clients without a wearable; activity-tracker.js) and declares
   NutriStepsReceiver in AndroidManifest.xml (counter readings while the app is
-  closed: a ~30 min alarm, boot/update re-arm, last reading on shutdown).
+ * closed: one alarm just after midnight, boot/update re-arm, last reading on shutdown).
 - Copies and registers NutriSystemUiPlugin (the window colour behind the system
   bars follows the app theme) and makes the activity edge-to-edge on every
   Android version, so the system-bar inset is applied once (by Capacitor's

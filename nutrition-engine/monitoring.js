@@ -107,6 +107,22 @@ export function weightGapWeeks(history) {
   return n;
 }
 
+/**
+ * Тренира ли само силово по въпросника (видът на всяка тренировка е известен).
+ * @param {Record<string, any>} data
+ */
+export function strengthOnly(data = {}) {
+  const types = (Array.isArray(data.sportTypes) ? data.sportTypes : data.sportTypes ? [data.sportTypes] : []).map(String);
+  const other = Array.isArray(data.sportTypes_other) ? data.sportTypes_other.length : !!data.sportTypes_other;
+  return types.length > 0 && !other && types.every(t => /^Силови/.test(t));
+}
+
+/** Брой тренировки → отговорът на въпроса за силовите. */
+export function workoutsAnswerOf(n) {
+  const k = Math.round(Number(n) || 0);
+  return k <= 0 ? 'Нито една' : k >= 3 ? '3 и повече' : String(k);
+}
+
 /** От толкова дни с отметки на храненията спазването се знае и не се пита. */
 export const ADHERENCE_KNOWN_DAYS = 4;
 
@@ -114,7 +130,7 @@ export const ADHERENCE_KNOWN_DAYS = 4;
  * Въпросите за конкретния клиент: посоката на въпроса за теглото следва целта,
  * а това, което приложението вече знае, се показва като подсказка (теглото от
  * везната е попълнено; спазването по отметките е до въпроса), за да не се гадае.
- * @param {{ goal?: string, direction?: string|null, lead?: string[], deviceWeightKg?: number|null, deviceWeightDays?: number, weightGapWeeks?: number|null, workoutsWeek?: number|null, mealAdherence?: number|null, mealDays?: number }} [ctx]
+ * @param {{ goal?: string, direction?: string|null, lead?: string[], deviceWeightKg?: number|null, deviceWeightDays?: number, weightGapWeeks?: number|null, workoutsWeek?: number|null, strengthOnly?: boolean, mealAdherence?: number|null, mealDays?: number }} [ctx]
  */
 export function weeklyQuestionsFor(ctx = {}) {
   const lead = Array.isArray(ctx.lead) ? ctx.lead : [];
@@ -124,10 +140,16 @@ export function weeklyQuestionsFor(ctx = {}) {
   // Отметките на храненията покриват повечето от седмицата — спазването е известно
   // (readCheckin го взима от тях), не се пита. При 3 дни — въпросът остава с подсказка.
   const knownAdherence = ctx.mealAdherence != null && (ctx.mealDays || 0) >= ADHERENCE_KNOWN_DAYS;
+  // Везната има поне 3 сутрешни измервания: средното им е по-точно от едно число
+  // (pickWeighIn го взима) — нито теглото, нито посоката му се питат.
+  const knownWeight = Number(ctx.deviceWeightKg) >= 30 && (ctx.deviceWeightDays || 0) >= DEVICE_RELIABLE_DAYS;
+  // Тренира само силово (по въпросника) и вечерните отговори дават броя — силовите са известни.
+  const knownStrength = !!ctx.strengthOnly && Number(ctx.workoutsWeek) > 0;
   return WEEKLY_CHECKIN_QUESTIONS
     .filter(q => !q.onlyForLead || lead.includes(q.onlyForLead))
-    .filter(q => !(q.id === 'workouts' && knownNoTraining))
+    .filter(q => !(q.id === 'workouts' && (knownNoTraining || knownStrength)))
     .filter(q => !(q.id === 'adherence' && knownAdherence))
+    .filter(q => !((q.id === 'weightKg' || q.id === 'weight') && knownWeight))
     .map((q) => {
       /** @type {Record<string, any>} */
       const out = { ...q, options: [...q.options] };

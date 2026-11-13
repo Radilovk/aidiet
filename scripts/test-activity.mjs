@@ -198,7 +198,38 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   A.fillFromSteps();
   ok(JSON.parse(store.gameData)[key(4)].eveningCheck.extraKcal === 0, 'под целта — без разход над обичайното');
   delete globalThis.NutriPlanGoalFocus;
+  // Въпросът за движението по дни: ден без измерени крачки → въпрос.
+  store.userData = JSON.stringify({ gender: 'Жена', height: '165', weight: '62', sportActivity: 'Никаква (0 дни седмично)' });
+  store.gameData = '{}';
+  store.np_activity_state = JSON.stringify({ ext: { [key(1)]: 6500 } });
+  ok(A.mode(key(1)) === 'steps', 'ден с крачки от Health Connect → без въпрос');
+  ok(A.mode(key(2)) === 'ask', 'ден без крачки (гривната не е носена) → въпросът за движението');
+  ok(A.mode(today) === 'ask', 'днес без показание → въпросът довечера');
+  A.setExternalToday(4200);
+  ok(A.mode(today) === 'steps', 'днешните крачки от Health Connect → без въпрос');
+  ok(A.externalStepsFlowing() === false, '1 от последните 3 дни от Health Connect — нощното показание остава');
+  store.np_activity_state = JSON.stringify({ ext: { [key(1)]: 6500, [key(2)]: 6000 } });
+  ok(A.externalStepsFlowing() === true, 'Health Connect дава крачките → нощното показание се изключва');
+  // Само броячът на телефона.
+  const startToday = new Date(); startToday.setHours(0, 0, 0, 0);
+  store.np_health_state = '{}';
+  store.np_activity_state = JSON.stringify({ enabled: true, readAt: Date.now(), days: { [today]: { s: 3000 }, [key(1)]: { s: 5000, part: true }, [key(2)]: { s: 6000 } } });
+  ok(A.mode(today) === 'steps' && A.mode(key(2)) === 'steps', 'броячът е четен днес / пълен ден → без въпрос');
+  ok(A.mode(key(1)) === 'ask', 'ден, в който броячът не е броил (прогноза) → въпросът за движението');
+  store.np_activity_state = JSON.stringify({ enabled: true, readAt: startToday.getTime() - 3600000, days: { [today]: { s: 3000 } } });
+  ok(A.mode(today) === 'ask', 'броячът не е четен днес → въпрос');
   delete globalThis.localStorage;
+}
+
+// Едно показание на денонощие (малко след полунощ) — дните са точни, не прогноза.
+{
+  const m0 = new Date(); m0.setDate(m0.getDate() - 6); m0.setHours(0, 3, 0, 0);
+  const D = 86400000;
+  let ms = A.ingest({}, [{ t: m0.getTime(), c: 1000, boot: 1 }], 7000);
+  ms = A.ingest(ms, [1, 2, 3].map(i => ({ t: m0.getTime() + i * D, c: 1000 + i * 8000, boot: 1 })), 7000);
+  const k = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  ok([1, 2].every(i => !ms.days[k(m0.getTime() + i * D + 3600000)].part), 'показание в полунощ всеки ден → пълни дни');
+  ok(near(ms.days[k(m0.getTime() + D + 3600000)].s, 8000, 60), 'денят взема крачките си (без 3-те минути след полунощ)');
 }
 
 console.log(`activity: ${pass} ok, ${fail} грешки`);

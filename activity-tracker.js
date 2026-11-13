@@ -16,15 +16,22 @@
  *                появява в приложението (без известие) — само днес, само в
  *                такъв ден, и спира след 2 отговора „не“ без нито едно „да“;
  *   'ask'      — не тренира и няма измерване: старият въпрос „Колко се движихте?“.
+ * Режимът е ПО ДНИ: ден без измерени крачки (телефонът изключен, гривната не е
+ * носена, броячът не е чел) е 'ask' — въпросът за движението се появява за него.
  *
- * Крачкомерът (APK, NutriStepsPlugin.java) дава хардуерния брояч от рестарта
- * и дневник от показания (докато приложението е затворено — от будилник на
- * ~30 мин в NutriStepsReceiver.java). Разликата между две показания се разпределя по
+ * Източникът на крачки — най-евтиният наличен, без наша постоянна услуга:
+ *   1. Health Connect: гривна/часовник или (Android 14+) вграденото броене на
+ *      системата, което тръгва само щом приложение има право да чете крачки;
+ *   2. хардуерният брояч на телефона (TYPE_STEP_COUNTER брои в сензорния чип):
+ *      NutriStepsPlugin.java го чете при отваряне, а NutriStepsReceiver.java —
+ *      веднъж малко след полунощ (границата на деня) и при изключване. Когато
+ *      Health Connect дава крачките, нощното показание се изключва.
+ * Разликата между две показания се разпределя по
  * часовете между тях според личната дневна крива (наученa от кратките
  * интервали, свита към типичната крива с псевдо-наблюдения), а рестартът се
- * разпознава по смяната на момента на включване. Ден, чиито активни часове са
- * предимно в празнина без показания, е непълен: показва се като прогноза, но не
- * отива към сървъра като измерен.
+ * разпознава по смяната на момента на включване. Празнина без показания през
+ * активните часове на два или повече дни прави тези дни непълни: показват се
+ * като прогноза, но не отиват към сървъра като измерени.
  *
  * Към сървъра отиват само дневни факти: крачки за завършени дни (източник
  * „phone“) и отговорите за тренировка (вид „train_check“) — оттам моделът на
@@ -41,10 +48,11 @@
     // Ден с под 300 крачки е брояч, който не е броил (приложението е било спряно), не реален ден.
     var MIN_REAL_DAY = 300;
     var MAX_SPREAD_MS = KEEP_DAYS * DAY_MS;
-    // Празнина без показания, която покрива над половината от активните часове на
-    // деня (по кривата), при над 500 крачки разлика: крачките в този ден са
-    // разпределени по кривата, не измерени — денят е непълен (прогноза, не факт).
-    var GUESS_SHARE = 0.5;
+    // Празнина без показания, която обхваща активни часове на два или повече дни
+    // (над 20% от обичайния ден от всяка страна), при над 500 крачки разлика: колко
+    // от крачките са в кой ден не се знае — тези дни са прогноза, не факт. Празнина
+    // в един ден (показание малко след полунощ до следващото) е точна.
+    var GUESS_SHARE = 0.2;
     var GUESS_MIN_DELTA = 500;
     // Псевдо-наблюдения на типичната крива за час: личните данни я изместват постепенно.
     var PRIOR_WEIGHT = 5;
@@ -330,7 +338,8 @@
                 // чиито активни часове са предимно в нея, са прогноза, не измерване.
                 if (delta >= GUESS_MIN_DELTA) {
                     var cov = coveredShare(last.t, r.t, weights);
-                    Object.keys(cov).forEach(function (k) { if (cov[k] > GUESS_SHARE) mark(days, k, 0, true); });
+                    var big = Object.keys(cov).filter(function (k) { return cov[k] > GUESS_SHARE; });
+                    if (big.length >= 2) big.forEach(function (k) { mark(days, k, 0, true); });
                 }
                 hours = learnHours(hours, last.t, r.t, delta);
             }
@@ -417,6 +426,17 @@
             var res = await P.requestPermission();
             if (!res || !res.granted) throw new Error('Без разрешение за физическа активност крачките не могат да се броят.');
         }
+        // Health Connect на телефона: правото да чете крачки пуска вграденото броене на
+        // системата (Android 14+) и крачките от здравните приложения — тогава нощното
+        // показание на брояча не е нужно. Без Health Connect (или при отказ) — само броячът.
+        var HS = global.NutriPlanHealth;
+        if (HS && typeof HS.connect === 'function') {
+            try {
+                var hc = HS.state ? HS.state() : {};
+                // Целият достъп наведнъж: сънят, теглото и тренировките също спестяват въпроси.
+                if (!hc.connected && (await HS.isAvailable()).available) await HS.connect();
+            } catch (_) {}
+        }
         var E = global.NutriPlanEnrichment;
         if (E) E.setConsent('device', true);
         writeState({ enabled: true, enabledAt: new Date().toISOString() });
@@ -441,6 +461,11 @@
         if (res.counter != null) readings.push({ t: Number(res.now) || Date.now(), c: Number(res.counter), boot: boot });
         var next = ingest(st, readings, profileOf(userData()).typicalSteps);
         st = writeState({ last: next.last, days: next.days, hours: next.hours, readAt: Date.now() });
+        // Нощното показание — само когато няма друг източник (Health Connect).
+        var bg = !externalStepsFlowing();
+        if (st.bg !== bg && typeof P.setBackground === 'function') {
+            try { await P.setBackground({ enabled: bg }); st = writeState({ bg: bg }); } catch (_) {}
+        }
         fillFromSteps();
         return st;
     }
@@ -580,16 +605,59 @@
     }
 
     /**
+     * Има ли измерени крачки за деня. Минал ден — Health Connect или пълен ден от
+     * брояча; днес — Health Connect (днешното показание) или брояч, прочетен
+     * днес, без празнина в деня.
+     * @param {string} key ден YYYY-MM-DD
+     */
+    function dayMeasured(key, now) {
+        now = now || Date.now();
+        var st = readState();
+        if (st.ext && st.ext[key] >= MIN_REAL_DAY) return true;
+        if (!st.enabled) return false;
+        var d = st.days && st.days[key];
+        if (!d || d.part) return false;
+        if (key < dayKey(now)) return d.s >= MIN_REAL_DAY;
+        // Днес: броячът е четен днес (брои непрекъснато; при отваряне се дочита).
+        return key === dayKey(now) && !!st.readAt && st.readAt >= startOfDay(now);
+    }
+
+    /**
      * Без ден — режимът за графика на известията: 'training' (тренира по
      * въпросника), 'steps' (измерване, без въпрос), 'ask'. С ден — за този ден:
-     * в 'steps' денят с неотбелязана тренировка става 'training' (само в приложението).
+     * ден без измерени крачки е 'ask' (въпросът за движението се появява в
+     * приложението); в 'steps' денят с неотбелязана тренировка става 'training'.
      * @param {string} [key] ден YYYY-MM-DD
      * @returns {'training'|'steps'|'ask'}
      */
     function mode(key) {
         if (profileOf(userData()).trainer) return 'training';
         if (!hasStepSource()) return 'ask';
-        return key && askTrainingOn(key) ? 'training' : 'steps';
+        if (!key) return 'steps';
+        if (!dayMeasured(key)) return 'ask';
+        return askTrainingOn(key) ? 'training' : 'steps';
+    }
+
+    /** Днешните крачки от Health Connect (за въпроса довечера); завършените дни идват от fillFromSteps. */
+    function setExternalToday(steps) {
+        var n = Math.round(Number(steps) || 0);
+        if (!(n > 0)) return readState();
+        var st = readState();
+        var ext = Object.assign({}, st.ext || {});
+        ext[dayKey(Date.now())] = n;
+        return writeState({ ext: ext, extTodayAt: Date.now() });
+    }
+
+    /**
+     * Health Connect дава ли крачките (поне 2 от последните 3 завършени дни) —
+     * тогава нощното показание на брояча е излишно и се изключва.
+     */
+    function externalStepsFlowing(now) {
+        now = now || Date.now();
+        var st = readState();
+        var n = 0;
+        for (var i = 1; i <= 3; i++) if (st.ext && st.ext[dayKey(now - i * DAY_MS)] >= MIN_REAL_DAY) n++;
+        return n >= 2;
     }
 
     var TRAINING_QUESTION = 'Тренира ли днес?';
@@ -756,6 +824,9 @@
         hourWeights: hourWeights,
         spread: spread,
         coveredShare: coveredShare,
+        dayMeasured: dayMeasured,
+        setExternalToday: setExternalToday,
+        externalStepsFlowing: externalStepsFlowing,
         ingest: ingest,
         dayShareUntil: dayShareUntil,
         mode: mode,
@@ -784,7 +855,12 @@
     try {
         if (global.document && global.top === global) {
             var tick = function () {
-                refresh().then(function () { return sync(); }).catch(function () {});
+                refresh().then(function () {
+                    // Днешните крачки от Health Connect — за въпроса довечера (една заявка).
+                    var HS = global.NutriPlanHealth;
+                    if (!HS || typeof HS.todaySteps !== 'function') return null;
+                    return HS.todaySteps().then(function (n) { if (n != null) setExternalToday(n); }).catch(function () {});
+                }).then(function () { return sync(); }).catch(function () {});
             };
             setTimeout(tick, 5000);
             global.document.addEventListener('visibilitychange', function () {

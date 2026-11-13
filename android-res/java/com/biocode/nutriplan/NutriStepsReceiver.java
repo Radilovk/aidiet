@@ -17,22 +17,26 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
 
+import java.util.Calendar;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
  * NutriPlan: показанията на крачкомера и докато приложението е затворено.
  *
- * Без това дневникът има показания само докато приложението е живо и разликата
- * за дните, в които не е отваряно, се дописва по кривата — тоест е прогноза.
- * Тук будилник (без точен час, setAndAllowWhileIdle — при Doze системата го
- * отлага, но го пуска, и дава на приложението кратко разрешение за работа)
- * на около 30 минути записва едно показание на брояча в същия дневник,
- * който чете NutriStepsPlugin. Отделно:
+ * Хардуерният брояч брои сам в сензорния чип (почти без батерия); на нас ни
+ * трябва само показание на границата между дните, за да не се смесват дните,
+ * в които приложението не е отваряно. Затова будилникът е ЕДИН на денонощие —
+ * малко след полунощ (setAndAllowWhileIdle: пуска се и в Doze, с кратко
+ * разрешение за работа) — и записва едно показание в дневника, който чете
+ * NutriStepsPlugin. Никаква постоянна услуга. Отделно:
  *  - при изключване на телефона — последно показание (иначе крачките от
  *    последното показание до изключването се губят: броячът се нулира);
  *  - при включване и след обновяване — будилникът се пуска отново.
- * Без разрешение „Физическа активност“ не прави нищо.
+ * Без разрешение „Физическа активност“ не прави нищо. Когато Health Connect
+ * брои крачките сам (Android 14+, вграденото броене на системата) или ги дава
+ * гривна, JS го изключва (setBackground) — тогава не се буди изобщо.
  * Ако производителят спира фоновата работа, просто няма показание —
  * празнината се разпределя както преди и дните се отбелязват като непълни.
  */
@@ -41,7 +45,9 @@ public class NutriStepsReceiver extends BroadcastReceiver {
     static final String ACTION_TICK = "com.biocode.nutriplan.STEPS_TICK";
     static final String PREFS = "nutriplan_steps";
     static final String LOG_KEY = "log";
-    private static final long TICK_MS = 30 * 60 * 1000L;
+    static final String BG_KEY = "background";
+    // Минути след полунощ: показанието е на границата на деня, Doze може да го забави малко.
+    private static final int AFTER_MIDNIGHT_MIN = 3;
     // Близко показание (от приложението или предишен будилник) — ново не е нужно.
     private static final long MIN_GAP_MS = 10 * 60 * 1000L;
     private static final long KEEP_MS = 10L * 24 * 60 * 60 * 1000;
@@ -52,7 +58,7 @@ public class NutriStepsReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         final Context app = context.getApplicationContext();
         String action = intent != null ? intent.getAction() : null;
-        if (!hasPermission(app)) return;
+        if (!hasPermission(app) || !backgroundOn(app)) return;
         boolean shutdown = Intent.ACTION_SHUTDOWN.equals(action) || "android.intent.action.QUICKBOOT_POWEROFF".equals(action);
         if (!shutdown) schedule(app);
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) || "android.intent.action.LOCKED_BOOT_COMPLETED".equals(action)) return;
@@ -65,20 +71,48 @@ public class NutriStepsReceiver extends BroadcastReceiver {
             || ctx.checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED;
     }
 
-    /** Пуска (или подновява) будилника. Безопасно за многократно извикване. */
+    static boolean backgroundOn(Context ctx) {
+        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(BG_KEY, true);
+    }
+
+    /** Включва/изключва нощното показание (JS: изключено, когато Health Connect дава крачките). */
+    static void setBackground(Context ctx, boolean on) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(BG_KEY, on).apply();
+        if (on) schedule(ctx);
+        else cancel(ctx);
+    }
+
+    private static PendingIntent tickIntent(Context ctx) {
+        Intent i = new Intent(ctx, NutriStepsReceiver.class).setAction(ACTION_TICK);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
+        return PendingIntent.getBroadcast(ctx, 7301, i, flags);
+    }
+
+    /** Пуска (или подновява) будилника за следващата полунощ. Безопасно за многократно извикване. */
     static void schedule(Context ctx) {
         try {
+            if (!backgroundOn(ctx)) return;
             AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
             if (am == null) return;
-            Intent i = new Intent(ctx, NutriStepsReceiver.class).setAction(ACTION_TICK);
-            int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
-            PendingIntent pi = PendingIntent.getBroadcast(ctx, 7301, i, flags);
-            long at = SystemClock.elapsedRealtime() + TICK_MS;
-            if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, pi);
-            else am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, pi);
+            Calendar c = Calendar.getInstance();
+            c.add(Calendar.DAY_OF_YEAR, 1);
+            c.set(Calendar.HOUR_OF_DAY, 0);
+            c.set(Calendar.MINUTE, AFTER_MIDNIGHT_MIN);
+            c.set(Calendar.SECOND, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            long at = c.getTimeInMillis();
+            if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, tickIntent(ctx));
+            else am.set(AlarmManager.RTC_WAKEUP, at, tickIntent(ctx));
         } catch (Exception ignored) {
             // без будилник — показания само докато приложението е отворено
         }
+    }
+
+    static void cancel(Context ctx) {
+        try {
+            AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+            if (am != null) am.cancel(tickIntent(ctx));
+        } catch (Exception ignored) { }
     }
 
     /** Едно показание на брояча → дневника; край при първото събитие или след `waitMs`. */

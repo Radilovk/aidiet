@@ -11395,10 +11395,45 @@
             };
         }
 
+        // Сънят от гривна/телефон (Health Connect): ясен отговор не се пита.
+        // 7+ ч — добре, под 6 ч — не; между тях (неясно) — въпросът остава.
+        var SLEEP_GOOD_H = 7, SLEEP_SHORT_H = 6;
+        function healthApi() {
+            try { return window.NutriPlanHealth || (window.top && window.top.NutriPlanHealth) || null; } catch (_) { return null; }
+        }
+        function sleepAnswerFromDevice(recordKey) {
+            var H = healthApi();
+            var h = H && typeof H.sleepFor === 'function' ? H.sleepFor(recordKey) : null;
+            if (!(h > 0)) return null;
+            if (h >= SLEEP_GOOD_H) return { sleptWell: true, hours: h };
+            if (h < SLEEP_SHORT_H) return { sleptWell: false, hours: h };
+            return null;
+        }
+
         function showMorningQuestion(force, recordKey, doneCb) {
             recordKey = recordKey || getTodayKey();
             var rec = getRecord(recordKey);
             if (!force && rec.morningCheck) { if (doneCb) doneCb(); return; }
+            if (!rec.morningCheck) {
+                var dev = sleepAnswerFromDevice(recordKey);
+                var H = healthApi();
+                // Днешната нощ още не е прочетена — една заявка към Health Connect (до 2 с).
+                if (!dev && recordKey === getTodayKey() && H && typeof H.refreshLastNight === 'function' && showMorningQuestion._tried !== recordKey) {
+                    showMorningQuestion._tried = recordKey;
+                    var go = function () { showMorningQuestion(force, recordKey, doneCb); };
+                    Promise.race([H.refreshLastNight(), new Promise(function (r) { setTimeout(r, 2000); })]).then(go, go);
+                    return;
+                }
+                if (dev) {
+                    var r0 = getRecord(recordKey);
+                    r0.morningCheck = { sleptWell: dev.sleptWell, hours: dev.hours, source: 'device', ts: new Date().toISOString() };
+                    saveRecord(recordKey, r0);
+                    recalcAndShowScore(recordKey);
+                    gameNotifyCancel('morning_check', recordKey);
+                    if (doneCb) doneCb();
+                    return;
+                }
+            }
             var meta = getPromptDayMeta(recordKey);
             showBubble(
                 meta.prefix + gameNotifyQuestion('morning_check', 'Спа ли добре тази нощ?'),

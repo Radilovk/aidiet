@@ -31,8 +31,8 @@ import org.json.JSONObject;
  * Докато приложението е живо, слушателят е регистриран (с групиране на
  * събитията, без да буди процесора) и на всеки 15 минути записва показание
  * (момент, брояч, момент на включване) в дневник. Докато е затворено, в същия
- * дневник пише NutriStepsReceiver (будилник на ~30 мин + последно показание при
- * изключване на телефона). JS (activity-tracker.js) разпределя разликите по
+ * дневник пише NutriStepsReceiver (едно показание малко след полунощ + последно
+ * показание при изключване на телефона). JS (activity-tracker.js) разпределя разликите по
  * часове и дни и разпознава рестарта.
  *
  * От Android 10 нататък е нужно разрешението „Физическа активност“
@@ -105,6 +105,16 @@ public class NutriStepsPlugin extends Plugin implements SensorEventListener {
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         // не се ползва
+    }
+
+    /** Нощното показание: { enabled } — изключва се, когато Health Connect дава крачките. */
+    @PluginMethod
+    public void setBackground(PluginCall call) {
+        Boolean on = call.getBoolean("enabled", Boolean.TRUE);
+        NutriStepsReceiver.setBackground(getContext(), on == null || on.booleanValue());
+        JSObject out = new JSObject();
+        out.put("enabled", Boolean.valueOf(NutriStepsReceiver.backgroundOn(getContext())));
+        call.resolve(out);
     }
 
     /** { available, granted } */

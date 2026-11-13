@@ -160,7 +160,16 @@
             // подрежда източниците по приоритета, зададен в Health Connect).
             var list = pkg ? (await H.readSamples({ dataType: 'steps', startDate: from.toISOString(), endDate: today.toISOString(), limit: 5000 }) || {}).samples || [] : [];
             var mine = list.filter(function (s) { return s.sourceId === pkg; });
-            var days = mine.length ? sumSamplesByDay(mine) : await daySums(H, 'steps', from, today);
+            var total = await daySums(H, 'steps', from, today);
+            var days = total;
+            if (mine.length) {
+                // Дните без гривната (не е носена) — от сбора на Health Connect (телефонът брои
+                // сам от Android 14), за да не остане денят без измерване и с излишен въпрос.
+                var own = sumSamplesByDay(mine);
+                var seen = {};
+                own.forEach(function (x) { seen[x.day] = true; });
+                days = own.concat(total.filter(function (x) { return !seen[x.day]; }));
+            }
             push('steps', days.filter(function (x) { return x.value > 0; }).map(function (x) { return { day: x.day, value: Math.round(x.value) }; }));
         });
         await run('dietaryEnergyConsumed', async function () {
@@ -233,9 +242,72 @@
         await run('sleep', async function () {
             // Нощта срещу първия ден започва предишната вечер.
             var res = await H.readSamples({ dataType: 'sleep', startDate: new Date(from.getTime() - 86400000).toISOString(), endDate: now.toISOString(), limit: 200 });
-            push('sleep', sleepByDay(fromSource(res && res.samples || [], pkg)).filter(function (x) { return x.day >= localDay(from.toISOString()); }));
+            var nights = sleepByDay(fromSource(res && res.samples || [], pkg)).filter(function (x) { return x.day >= localDay(from.toISOString()); });
+            push('sleep', nights);
+            rememberSleep(nights);
         });
         return { facts: facts, errors: errors };
+    }
+
+    /** Часовете сън по ден на събуждане — пазят се локално за сутрешния въпрос (sleepFor). */
+    function rememberSleep(nights) {
+        var st = readState();
+        var sleep = Object.assign({}, st.sleep || {});
+        (nights || []).forEach(function (x) { if (x.value > 0) sleep[x.day] = x.value; });
+        var cutoff = localDay(new Date(Date.now() - 21 * 86400000).toISOString());
+        Object.keys(sleep).forEach(function (k) { if (k < cutoff) delete sleep[k]; });
+        writeState({ sleep: sleep });
+    }
+
+    function grantedFor(type) {
+        var st = readState();
+        return !!(st.connected && (!st.granted || !st.granted.length || st.granted.indexOf(type) !== -1));
+    }
+
+    /** Днешните крачки досега (сборът на Health Connect, вкл. вграденото броене) или null. */
+    async function todaySteps() {
+        var H = plugin();
+        if (!H || !grantedFor('steps')) return null;
+        try {
+            var sums = await daySums(H, 'steps', startOfToday(), new Date());
+            var today = localDay(new Date().toISOString());
+            var hit = sums.filter(function (x) { return x.day === today; })[0];
+            return hit ? Math.round(hit.value) : null;
+        } catch (_) { return null; }
+    }
+
+    /** Сънят през последната нощ (с край днес) — една заявка, без сървъра; записва се в sleepFor. */
+    async function refreshLastNight() {
+        var H = plugin();
+        if (!H || !grantedFor('sleep')) return null;
+        var today = localDay(new Date().toISOString());
+        var st = readState();
+        if (st.sleep && st.sleep[today] > 0) return st.sleep[today];
+        try {
+            var res = await H.readSamples({ dataType: 'sleep', startDate: new Date(Date.now() - 20 * 3600000).toISOString(), endDate: new Date().toISOString(), limit: 50 });
+            var nights = sleepByDay(fromSource(res && res.samples || [], st.source || null)).filter(function (x) { return x.day === today; });
+            rememberSleep(nights);
+            return nights.length ? nights[0].value : null;
+        } catch (_) { return null; }
+    }
+
+    /** Часовете сън, записани от гривна/телефон за нощта преди деня `day` (YYYY-MM-DD), или null. */
+    function sleepFor(day) {
+        var v = (readState().sleep || {})[day];
+        return v > 0 ? v : null;
+    }
+
+    /**
+     * Сънят се записва редовно (поне 5 от последните 7 нощи) — сутрешното известие
+     * „Спа ли добре?“ не е нужно; отговорът идва от данните, а в нощ без запис
+     * въпросът се задава в приложението.
+     */
+    function sleepTracked() {
+        var st = readState();
+        if (!grantedFor('sleep')) return false;
+        var n = 0;
+        for (var i = 1; i <= 7; i++) if ((st.sleep || {})[localDay(new Date(Date.now() - i * 86400000).toISOString())] > 0) n++;
+        return n >= 5;
     }
 
     /** Иска достъп само за четирите вида; съгласието се записва преди това. */
@@ -416,6 +488,10 @@
         openStore: openStore,
         dataSources: dataSources,
         setSource: setSource,
+        todaySteps: todaySteps,
+        refreshLastNight: refreshLastNight,
+        sleepFor: sleepFor,
+        sleepTracked: sleepTracked,
         // За тестове: превръщането на пробите в дни.
         _sleepByDay: sleepByDay
     };

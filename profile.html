@@ -3593,7 +3593,7 @@
                 if (on) {
                     await A.pedometer.enable();
                     document.getElementById('devicesConsent').checked = true;
-                    devicesSetStatus('Крачкомерът е включен. Броячът на телефона се чете при всяко отваряне на приложението.', 'ok');
+                    devicesSetStatus('Крачкомерът е включен. Телефонът брои крачките сам (с Health Connect — вграденото броене на системата), без да харчи батерия.', 'ok');
                 } else {
                     A.pedometer.disable();
                     devicesSetStatus('Крачкомерът е изключен.', 'ok');
