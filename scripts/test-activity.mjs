@@ -263,6 +263,13 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   const fx = A.buildFacts();
   ok(fx.some(f => f.kind === 'activity_check' && f.value === 1 && f.at.startsWith(key(2))), 'денят с отговор отива като activity_check');
   ok(!fx.some(f => f.kind === 'steps' && f.at.startsWith(key(2))) && fx.some(f => f.kind === 'steps' && f.at.startsWith(key(3))), 'крачките на деня с отговор не се пращат, на другите — да');
+  // Неотворен ден (няма запис за деня): запис не се създава — иначе би излязъл
+  // като ден с 0% спазени хранения; крачките му отиват към сървъра като факт.
+  store.gameData = JSON.stringify({ [key(3)]: {} });
+  store.np_activity_state = JSON.stringify({ enabled: true, days: { [key(5)]: { s: 8800 } } });
+  A.fillFromSteps({ [key(5)]: 8800 });
+  ok(!JSON.parse(store.gameData)[key(5)], 'неотворен ден: без запис в дневника на храненията');
+  ok(A.buildFacts().some(f => f.kind === 'steps' && f.value === 8800 && f.at.startsWith(key(5))), 'неотворен ден: крачките отиват към сървъра в своя ден');
   store.gameData = JSON.stringify({ [key(2)]: { eveningCheck: { activityLevel: 2, trained: 'pm', activitySource: 'training' } } });
   A.fillFromSteps({ [key(2)]: 11000 });
   ok(JSON.parse(store.gameData)[key(2)].eveningCheck.activitySource === 'training', 'отговорът за тренировка не се пипа');
