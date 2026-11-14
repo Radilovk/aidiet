@@ -154,7 +154,7 @@ function page(s) {
     };
     return `<!DOCTYPE html>
 <!-- Генерирано от scripts/build-protocol-pages.mjs — редактирай protocol-states.js и пусни npm run build:protocol-pages -->
-<html lang="bg" class="no-js has-dock" style="--acc:${s.accent}">
+<html lang="bg" class="no-js has-dock ui-glass" style="--acc:${s.accent}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -297,7 +297,7 @@ function hubPage() {
                 </a>`;
     return `<!DOCTYPE html>
 <!-- Генерирано от scripts/build-protocol-pages.mjs — редактирай protocol-states.js и пусни npm run build:protocol-pages -->
-<html lang="bg" class="no-js page-hub">
+<html lang="bg" class="no-js page-hub ui-glass">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
