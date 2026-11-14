@@ -1,0 +1,54 @@
+name: i18n prewarm + live check
+
+# След деплой: проверява живия сайт и worker-а и превежда предварително статичния текст на
+# страниците (en, de, es) в KV кеша — първият клиент на чужд език не чака превод.
+# Безопасно е да се пуска многократно: преведеното вече не струва нищо.
+
+on:
+  workflow_dispatch:
+    inputs:
+      langs:
+        description: 'Езици'
+        required: false
+        default: 'en,de,es'
+  push:
+    branches: [claude/jolly-goodall-obbojn]
+    paths: ['.github/workflows/i18n-prewarm.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i18n-prewarm
+  cancel-in-progress: false
+
+jobs:
+  prewarm:
+    if: github.event_name == 'push' || github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Live check
+        run: |
+          say() { echo "$*" | tee -a "$GITHUB_STEP_SUMMARY"; }
+          say '## Живо'
+          html=$(curl -sS -m 30 https://biocode.website/index.html)
+          echo "$html" | grep -q 'ex-logo' && say '- ✓ biocode.website: новото лого' || say '- ✗ biocode.website: старата версия (Pages още не е обновен?)'
+          echo "$html" | grep -q 'i18n.js' && say '- ✓ biocode.website: i18n.js' || say '- ✗ biocode.website: без i18n.js'
+          for l in en de es; do
+            r=$(curl -sS -m 90 -X POST https://aidiet.radilov-k.workers.dev/api/i18n/translate -H 'Content-Type: application/json' \
+              -d "{\"lang\":\"$l\",\"strings\":[\"Пилешко филе със задушени зеленчуци\",\"Колко вода изпи днес?\",\"Твоят план за седмицата е готов\"]}")
+            say "- $l: \`$(echo "$r" | head -c 400)\`"
+          done
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -m 20 https://eatologix.com/ || echo '---')
+          say "- eatologix.com: HTTP $code (до смяната на DNS сървърите в Namecheap не отговаря)"
+      - name: Prewarm
+        run: |
+          node scripts/i18n-prewarm.mjs "${{ inputs.langs || 'en,de,es' }}" 2>&1 | tee prewarm.log
+          { echo '## Предварителен превод'; echo '```'; cat prewarm.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
