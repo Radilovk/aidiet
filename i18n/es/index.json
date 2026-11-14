@@ -168,6 +168,8 @@
   "личен": "plan",
   "план.": "personal.",
   "Логично е.": "Es lógico.",
+  "Лична цел —": "Objetivo personal —",
+  "Логичен избор.": "Elección lógica.",
   "Общите съвети за хранене са за всички — значи за никого. Ние изчисляваме твоя логичен избор: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Логиката е наша, резултатът — твой.": "Los consejos generales de alimentación son para todos, es decir, para nadie. Calculamos tu elección lógica: qué, cuánto y cuándo comer, según tu cuerpo, tu salud y tu objetivo. La lógica es nuestra; el resultado, tuyo.",
   "Свързани модули": "Módulos conectados",
   "Какво ядеш, защо го ядеш,": "Qué comes, por qué lo comes,",
@@ -180,6 +182,8 @@
   "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "Resistencia a la insulina, afecciones autoinmunes, menopausia, antienvejecimiento y más: 11 protocolos."
  },
  "keys": {
+  "lp.h1.pers": "plan",
+  "lp.h1.plan": "personal.",
   "day.mock.0": "L",
   "day.mock.1": "M",
   "day.mock.2": "X",
