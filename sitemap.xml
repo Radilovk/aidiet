@@ -62,8 +62,16 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://biocode.website/emoeat-landing.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://biocode.website/iris-landing.html</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://biocode.website/emoeat.html</loc>
-    <priority>0.6</priority>
+    <priority>0.5</priority>
   </url>
   <url>
     <loc>https://biocode.website/help.html</loc>
