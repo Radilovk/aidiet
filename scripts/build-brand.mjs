@@ -65,18 +65,17 @@ function markBody(id) {
 }
 
 const glyphs = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/wordmark-glyphs.json'), 'utf8'));
-// Надписът: EATO плътно, LOGIX с преливане циан → зелено → лайм.
+// Надписът: EATO (тъмен тюркоаз) | LOGIX — всяка буква със свой цвят, точно по логото.
+// Смисловото разделяне EATO / LOGIX е част от марката — не се заменя с преливане.
+export const LETTER_COLORS = { E: '#034953', A: '#034953', T: '#034953', O1: '#034953', L: '#08B5B9', O2: '#06C3AA', G: '#07CF61', I: '#14D428', X: '#44CA0A' };
+const ORDER = ['E', 'A', 'T', 'O1', 'L', 'O2', 'G', 'I', 'X'];
 function wordmark(id, { scale, x0, baseline, dark }) {
-  const eato = dark ? '#E4FBF8' : BRAND.ink;
-  const lStart = glyphs.glyphs[4].x, lEnd = glyphs.width;
-  const grad = `<linearGradient id="${id}W" gradientUnits="userSpaceOnUse" x1="${lStart}" y1="0" x2="${lEnd}" y2="0">
-      <stop offset="0" stop-color="#00B2C0"/><stop offset=".5" stop-color="${BRAND.green}"/><stop offset="1" stop-color="#4CC800"/></linearGradient>`;
-  const d1 = glyphs.glyphs.slice(0, 4).map(g => g.d).join('');
-  const d2 = glyphs.glyphs.slice(4).map(g => g.d).join('');
-  return {
-    defs: grad,
-    body: `<g transform="translate(${x0},${baseline}) scale(${scale})"><path d="${d1}" fill="${eato}"/><path d="${d2}" fill="url(#${id}W)"/></g>`
-  };
+  const body = glyphs.glyphs.map((g, i) => {
+    let c = LETTER_COLORS[ORDER[i]];
+    if (dark && i < 4) c = '#E4FBF8'; // на тъмен фон EATO е светъл, LOGIX остава в цветовете си
+    return `<path d="${g.d}" fill="${c}"/>`;
+  }).join('');
+  return { defs: '', body: `<g transform="translate(${x0},${baseline}) scale(${scale})">${body}</g>` };
 }
 
 const svg = (vb, defs, body, extra = '') =>
@@ -158,6 +157,14 @@ if (process.argv.includes('--png')) {
   await shot('brand/eatologix-mark.svg', 64, 'favicon-64.png');
   // Android: знакът без фон — предният слой на адаптивната икона, сплаш екранът, иконата за известия.
   await shot('brand/eatologix-mark.svg', 512, 'brand/mark-512.png');
+  // Имейлите: пощенските програми не показват SVG — хоризонталното лого като PNG (2× за 240 px ширина).
+  {
+    const h = fs.readFileSync(path.join(ROOT, 'brand/eatologix-horizontal.svg'), 'utf8');
+    const W = 480, H = Math.round(480 * 734 / 3507);
+    await page.setViewportSize({ width: W, height: H });
+    await page.setContent(`<html><body style="margin:0;background:transparent"><img style="display:block;width:${W}px;height:${H}px" src="data:image/svg+xml;base64,${Buffer.from(h).toString('base64')}"></body></html>`);
+    await page.locator('img').screenshot({ path: path.join(ROOT, 'brand/eatologix-email-logo.png'), omitBackground: true });
+  }
   // Картинка за споделяне (1200×630): пълното лого върху светъл фон.
   const logo = fs.readFileSync(path.join(ROOT, 'brand/eatologix-logo.svg'), 'utf8');
   await page.setViewportSize({ width: 1200, height: 630 });

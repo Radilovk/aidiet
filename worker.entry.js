@@ -4028,7 +4028,7 @@ function escapeHtml(str) {
  */
 const DEFAULT_EMAIL_TEMPLATE = {
   subject: 'Твоят персонален хранителен план е готов! 🥗',
-  headerTitle: '🍽️ Nutri Plan',
+  headerTitle: '🍽️ Eatologix',
   headerSubtitle: 'Персонален хранителен план',
   greeting: 'Здравей, {name}! 👋',
   paragraph1: 'Радваме се да ти съобщим, че твоят <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!',
@@ -4038,11 +4038,13 @@ const DEFAULT_EMAIL_TEMPLATE = {
 };
 
 const PLAN_APP_BASE_URL = 'https://biocode.website';
+// Логото в имейлите: PNG (пощенските програми не показват SVG), от scripts/build-brand.mjs.
+const EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/eatologix-email-logo.png" width="240" height="50" alt="EATOLOGIX" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
 const PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
 
 const DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
   subject: 'Твоят хранителен план е актуализиран 🥗',
-  headerTitle: '🍽️ Nutri Plan',
+  headerTitle: '🍽️ Eatologix',
   headerSubtitle: 'Актуализация на план',
   greeting: 'Здравей, {name}! 👋',
   paragraph1: 'Специалистът направи промени във твоя <strong>персонален хранителен план</strong>.',
@@ -4079,9 +4081,9 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
           <tr>
-            <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">${safeHeaderTitle}</h1>
-              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">${safeHeaderSubtitle}</p>
+            <td style="background:#ffffff;padding:32px 40px 18px;text-align:center;border-bottom:1px solid #E3F4F2;">
+              ${EMAIL_LOGO_HTML}
+              <p style="color:#05737D;margin:12px 0 0;font-size:15px;">${safeHeaderSubtitle}</p>
             </td>
           </tr>
           <tr>
@@ -4095,7 +4097,7 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
               </p>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
                 <tr>
-                  <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
+                  <td style="background:#05737D;background:linear-gradient(120deg,#03909C,#08C2B4 45%,#10CC50);border-radius:8px;">
                     <a href="${safeButtonUrl}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
                   </td>
                 </tr>
@@ -4114,14 +4116,14 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
                 </tr>
               </table>
               <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
-                Ако имате въпроси, пишете ни на <a href="mailto:${safeContactEmail}" style="color:#4CAF50;text-decoration:none;">${safeContactEmail}</a>
+                Ако имате въпроси, пишете ни на <a href="mailto:${safeContactEmail}" style="color:#05737D;text-decoration:none;">${safeContactEmail}</a>
               </p>
             </td>
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; Персонален хранителен план</p>
-              <p style="color:#999999;font-size:12px;margin:5px 0 0;">biocode.online</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Eatologix &mdash; Персонален хранителен план</p>
+              <p style="color:#999999;font-size:12px;margin:5px 0 0;">eatologix.com</p>
             </td>
           </tr>
         </table>
@@ -4154,9 +4156,9 @@ function buildPlanUpdatedEmailHtml(clientName, tpl, buttonUrl) {
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
           <tr>
-            <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">${safeHeaderTitle}</h1>
-              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">${safeHeaderSubtitle}</p>
+            <td style="background:#ffffff;padding:32px 40px 18px;text-align:center;border-bottom:1px solid #E3F4F2;">
+              ${EMAIL_LOGO_HTML}
+              <p style="color:#05737D;margin:12px 0 0;font-size:15px;">${safeHeaderSubtitle}</p>
             </td>
           </tr>
           <tr>
@@ -4166,19 +4168,19 @@ function buildPlanUpdatedEmailHtml(clientName, tpl, buttonUrl) {
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 30px;">${t.paragraph2}</p>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
                 <tr>
-                  <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
+                  <td style="background:#05737D;background:linear-gradient(120deg,#03909C,#08C2B4 45%,#10CC50);border-radius:8px;">
                     <a href="${safeButtonUrl}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
                   </td>
                 </tr>
               </table>
               <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
-                Ако имате въпроси, пишете ни на <a href="mailto:${safeContactEmail}" style="color:#4CAF50;text-decoration:none;">${safeContactEmail}</a>
+                Ако имате въпроси, пишете ни на <a href="mailto:${safeContactEmail}" style="color:#05737D;text-decoration:none;">${safeContactEmail}</a>
               </p>
             </td>
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; Персонален хранителен план</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Eatologix &mdash; Персонален хранителен план</p>
             </td>
           </tr>
         </table>
@@ -4211,23 +4213,23 @@ function buildPasswordResetEmailHtml(oobLink, contactEmail = 'info@biocode.onlin
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
           <tr>
-            <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">🍽️ Nutri Plan</h1>
-              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">Нулиране на парола</p>
+            <td style="background:#ffffff;padding:32px 40px 18px;text-align:center;border-bottom:1px solid #E3F4F2;">
+              ${EMAIL_LOGO_HTML}
+              <p style="color:#05737D;margin:12px 0 0;font-size:15px;">Нулиране на парола</p>
             </td>
           </tr>
           <tr>
             <td style="padding:40px;">
               <h2 style="color:#333333;margin:0 0 20px;font-size:22px;">Заявка за нулиране на парола 🔒</h2>
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 20px;">
-                Получихме заявка за нулиране на паролата за вашия акаунт в Nutri Plan.
+                Получихме заявка за нулиране на паролата за вашия акаунт в Eatologix.
               </p>
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 30px;">
                 Натиснете бутона по-долу, за да зададете нова парола. Линкът е валиден за <strong>1 час</strong>.
               </p>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
                 <tr>
-                  <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
+                  <td style="background:#05737D;background:linear-gradient(120deg,#03909C,#08C2B4 45%,#10CC50);border-radius:8px;">
                     <a href="${safeOobLink}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">Нулирай паролата →</a>
                   </td>
                 </tr>
@@ -4236,14 +4238,14 @@ function buildPasswordResetEmailHtml(oobLink, contactEmail = 'info@biocode.onlin
                 Ако не сте поискали нулиране на парола, можете да игнорирате този имейл. Акаунтът ви е в безопасност.
               </p>
               <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
-                Ако имате въпроси, пишете ни на <a href="mailto:${safeContactEmail}" style="color:#4CAF50;text-decoration:none;">${safeContactEmail}</a>
+                Ако имате въпроси, пишете ни на <a href="mailto:${safeContactEmail}" style="color:#05737D;text-decoration:none;">${safeContactEmail}</a>
               </p>
             </td>
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; Персонален хранителен план</p>
-              <p style="color:#999999;font-size:12px;margin:5px 0 0;">biocode.online</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Eatologix &mdash; Персонален хранителен план</p>
+              <p style="color:#999999;font-size:12px;margin:5px 0 0;">eatologix.com</p>
             </td>
           </tr>
         </table>
@@ -4433,7 +4435,7 @@ async function handleForgotPassword(request, env) {
       await sendEmailViaSMTP(
         env,
         email,
-        'Нулиране на парола — Nutri Plan 🔒',
+        'Нулиране на парола — Eatologix 🔒',
         buildPasswordResetEmailHtml(oobLink, contactEmail)
       );
       console.log(`[ForgotPassword] Resend email sent to ${email}`);
@@ -4492,7 +4494,7 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Nutri Plan <info@biocode.online>',
+      from: 'Eatologix <info@biocode.online>',
       to: [to],
       subject,
       html: htmlBody,

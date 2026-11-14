@@ -118,3 +118,4 @@ html.is-native .sf-web { display: none !important; }
     .sf-wrap { padding: 0 20px; }
     .sf-cols { grid-template-columns: 1fr 1fr; gap: 24px 16px; }
 }
+.sf-word { display: block; height: 17px; width: auto; }
