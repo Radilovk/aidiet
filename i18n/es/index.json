@@ -163,11 +163,8 @@
   "Логиката е наша. Резултатът — твой.": "La lógica es nuestra. El resultado, tuyo.",
   "Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.": "Un plan de alimentación con cantidades exactas, calculado según tu cuerpo, tu salud y tu objetivo, y recalculado cada semana.",
   "Логиката на твоето хранене": "La lógica de tu alimentación",
-  "Твоята лична цел": "Tu objetivo personal",
-  "иска": "necesita un",
   "личен": "plan",
   "план.": "personal.",
-  "Логично е.": "Es lógico.",
   "Общите съвети за хранене са за всички — значи за никого. Ние изчисляваме твоя логичен избор: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Логиката е наша, резултатът — твой.": "Los consejos generales de alimentación son para todos, es decir, para nadie. Calculamos tu elección lógica: qué, cuánto y cuándo comer, según tu cuerpo, tu salud y tu objetivo. La lógica es nuestra; el resultado, tuyo.",
   "Свързани модули": "Módulos conectados",
   "Какво ядеш, защо го ядеш,": "Qué comes, por qué lo comes,",
@@ -177,7 +174,9 @@
   "Ирисов анализ": "Análisis del iris",
   "Анализ по снимка на ириса. Находките влизат в плана като допълнителни данни.": "Análisis a partir de una foto de tu iris. Los hallazgos entran en tu plan como datos adicionales.",
   "Започни анализа": "Empieza el análisis",
-  "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "Resistencia a la insulina, afecciones autoinmunes, menopausia, antienvejecimiento y más: 11 protocolos."
+  "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "Resistencia a la insulina, afecciones autoinmunes, menopausia, antienvejecimiento y más: 11 protocolos.",
+  "Лична цел —": "Objetivo personal:",
+  "Логичен избор.": "La elección lógica."
  },
  "keys": {
   "day.mock.0": "L",

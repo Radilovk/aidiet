@@ -163,11 +163,8 @@
   "Логиката е наша. Резултатът — твой.": "The logic is ours. The results are yours.",
   "Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.": "A nutrition plan with exact portions, calculated for your body, health and goal, and recalculated every week.",
   "Логиката на твоето хранене": "The logic of your eating",
-  "Твоята лична цел": "Your personal goal",
-  "иска": "needs a",
   "личен": "personal",
   "план.": "plan.",
-  "Логично е.": "It's logical.",
   "Общите съвети за хранене са за всички — значи за никого. Ние изчисляваме твоя логичен избор: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Логиката е наша, резултатът — твой.": "General nutrition advice is for everyone — which means it's for no one. We calculate your logical choice: what, how much and when to eat, based on your body, health and goal. The logic is ours, the results are yours.",
   "Свързани модули": "Connected modules",
   "Какво ядеш, защо го ядеш,": "What you eat, why you eat it,",
@@ -177,7 +174,9 @@
   "Ирисов анализ": "Iris analysis",
   "Анализ по снимка на ириса. Находките влизат в плана като допълнителни данни.": "Analysis from a photo of your iris. The findings feed into your plan as additional data.",
   "Започни анализа": "Start the analysis",
-  "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "Insulin resistance, autoimmune conditions, menopause, anti-aging and more — 11 protocols."
+  "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "Insulin resistance, autoimmune conditions, menopause, anti-aging and more — 11 protocols.",
+  "Лична цел —": "Personal goal —",
+  "Логичен избор.": "The logical choice."
  },
  "keys": {
   "day.mock.0": "M",
