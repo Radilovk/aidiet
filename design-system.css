@@ -31,6 +31,7 @@
     --brand-green: #10CC50;
     --brand-lime: #A0F500;
     --brand-green-text: #0A8F3A;  /* зелено, четимо като текст на светъл фон */
+    --brand-accent: #07CF61;      /* акцент: светла тема — зеленото от G; тъмна — лаймът (свети) */
     --brand-gradient: linear-gradient(120deg, #03909C 0%, #08C2B4 38%, #10CC50 72%, #7FE21A 100%);
     --brand-gradient-soft: linear-gradient(120deg, rgba(0,224,220,.14) 0%, rgba(16,204,80,.12) 60%, rgba(160,245,0,.10) 100%);
     --brand-logo: url('brand/eatologix-horizontal.svg');
@@ -364,6 +365,7 @@
     --brand-logo: url('brand/eatologix-horizontal-dark.svg');
     --brand-logo-full: url('brand/eatologix-logo-dark.svg');
     --brand-green-text: #4ADE80;
+    --brand-accent: #A0F500;
     --ds-bg-primary: #0F2B2B;
     --ds-bg-secondary: #133838;
     --ds-bg-tertiary: #184040;
@@ -783,7 +785,7 @@ body {
 
 .ds-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--ds-primary-500) 0%, var(--brand-green) 100%);
+    background: linear-gradient(90deg, var(--ds-primary-500) 0%, var(--brand-accent) 100%);
     border-radius: var(--ds-radius-full);
     transition: width var(--ds-transition-slow) var(--ds-ease-out);
 }

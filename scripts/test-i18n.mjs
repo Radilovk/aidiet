@@ -19,7 +19,7 @@ for (const f of files) {
       if (a !== b) err(`i18n/${l}/${f}: ключовете в "${part}" се различават от ${ref}`);
       for (const [k, v] of Object.entries(d[part] || {})) {
         if (!String(v).trim()) err(`i18n/${l}/${f}: празен превод за „${k}“`);
-        else if (/[Ѐ-ӿ]/.test(v)) err(`i18n/${l}/${f}: кирилица в превода на „${k}“`);
+        else if (l !== 'ru' && /[Ѐ-ӿ]/.test(v)) err(`i18n/${l}/${f}: кирилица в превода на „${k}“`);
       }
     }
     for (const [re] of d.patterns || []) { try { new RegExp(re); } catch (e) { err(`i18n/${l}/${f}: невалиден pattern ${re}`); } }

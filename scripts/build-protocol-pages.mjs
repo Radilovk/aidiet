@@ -168,7 +168,8 @@ function page(s) {
     <meta property="og:title" content="${esc(title)}">
     <meta property="og:description" content="${esc(s.shortDescription)}">
     <meta property="og:url" content="${url}">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="48x48" href="brand/favicon-48.png">
     ${themeInit}
     ${fonts}
     <script type="application/ld+json">${JSON.stringify(ld)}</script>
@@ -310,7 +311,8 @@ function hubPage() {
     <meta property="og:title" content="${esc(title)}">
     <meta property="og:description" content="${esc(description)}">
     <meta property="og:url" content="${url}">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="48x48" href="brand/favicon-48.png">
     <link rel="manifest" href="manifest.json">
     ${themeInit}
     ${fonts}

@@ -2,7 +2,7 @@
 /**
  * Предварителен превод: праща статичния български текст на страниците към /api/i18n/translate,
  * за да е в KV, преди първият клиент на чужд език да отвори страницата. Пуска се след деплой:
- *   node scripts/i18n-prewarm.mjs [en,de,es] [--api https://aidiet.radilov-k.workers.dev]
+ *   node scripts/i18n-prewarm.mjs [en,de,es,ru] [--api https://aidiet.radilov-k.workers.dev]
  * Безопасно е да се пуска многократно — преведеното вече не струва нищо.
  */
 import { execFileSync } from 'node:child_process';
@@ -11,7 +11,7 @@ import fs from 'node:fs';
 const args = process.argv.slice(2);
 const apiIdx = args.indexOf('--api');
 const API = apiIdx >= 0 ? args[apiIdx + 1] : 'https://aidiet.radilov-k.workers.dev';
-const langs = (args.find(a => /^[a-z]{2}(,[a-z]{2})*$/.test(a)) || 'en,de,es').split(',');
+const langs = (args.find(a => /^[a-z]{2}(,[a-z]{2})*$/.test(a)) || 'en,de,es,ru').split(',');
 const PAGES = ['index', 'questionnaire2', 'plan', 'profile', 'analysis', 'analysis-loading', 'plan-pending', 'guidelines',
   'quick-answer', 'game-analytics', 'features', 'help', 'privacy-policy', 'terms', 'delete-account', 'warning',
   'food-picker', 'protocol-landing', 'longevity'];

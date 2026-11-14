@@ -25,9 +25,9 @@
     'use strict';
     if (window.EatologixI18n) return;
 
-    var SUPPORTED = ['bg', 'en', 'de', 'es'];
-    var NAMES = { bg: 'Български', en: 'English', de: 'Deutsch', es: 'Español' };
-    var INVITE = { en: 'Read in English?', de: 'Auf Deutsch lesen?', es: '¿Leer en español?' };
+    var SUPPORTED = ['bg', 'en', 'de', 'es', 'ru'];
+    var NAMES = { bg: 'Български', en: 'English', de: 'Deutsch', es: 'Español', ru: 'Русский' };
+    var INVITE = { en: 'Read in English?', de: 'Auf Deutsch lesen?', es: '¿Leer en español?', ru: 'Читать на русском?' };
     var STORE_KEY = 'ex_lang';
     var INVITE_KEY = 'ex_lang_invite_dismissed';
     var API = 'https://aidiet.radilov-k.workers.dev';
@@ -35,6 +35,8 @@
     var PAGE_DICTS = ['index', 'questionnaire2', 'plan', 'profile', 'analysis', 'plan-pending', 'guidelines',
         'quick-answer', 'game-analytics', 'features', 'help', 'privacy-policy', 'terms', 'delete-account', 'warning'];
     var CYR = /[Ѐ-ӿ]/;
+    // Руският също е на кирилица: текст с ы, э, ё (няма ги в българския) вече е на руски — не се превежда.
+    var RU_ONLY = /[ыэёЫЭЁ]/;
 
     function safeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
     function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
@@ -136,6 +138,7 @@
         if (!s) return s;
         var core = s.replace(/\s+/g, ' ').trim();
         if (!core || !CYR.test(core)) return s;
+        if (lang === 'ru' && RU_ONLY.test(core)) return s;
         var hit = lookup(core);
         if (hit == null) { if (queue) want(core); return s; }
         if (hit === core) return s;
