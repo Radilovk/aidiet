@@ -44,8 +44,13 @@ jobs:
               -d "{\"lang\":\"$l\",\"strings\":[\"Пилешко филе със задушени зеленчуци\",\"Колко вода изпи днес?\",\"Твоят план за седмицата е готов\"]}")
             say "- $l: \`$(echo "$r" | head -c 400)\`"
           done
-          code=$(curl -sS -o /dev/null -w '%{http_code}' -m 20 https://eatologix.com/ || echo '---')
-          say "- eatologix.com: HTTP $code (до смяната на DNS сървърите в Namecheap не отговаря)"
+          for u in https://eatologix.com/ https://www.eatologix.com/ https://eatologix.com/api/i18n/translate; do
+            out=$(curl -sS -m 20 -D - -o body.txt -w 'HTTP %{http_code}' "$u" 2>&1 | grep -i -E '^(server|location|cf-ray):|^HTTP [0-9]' | tr '\r\n' '  ')
+            title=$(grep -o -m1 '<title>[^<]*' body.txt 2>/dev/null | sed 's/<title>//')
+            logo=$(grep -q 'ex-logo' body.txt 2>/dev/null && echo 'новото лого ✓' || echo '')
+            say "- $u → $out ${title:+· „$title“} $logo"
+          done
+          say "- DNS: $(dig +short NS eatologix.com | tr '\n' ' ')"
       - name: Prewarm
         run: |
           set -o pipefail
