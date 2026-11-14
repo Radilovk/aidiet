@@ -29,8 +29,6 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -50,5 +48,6 @@ jobs:
           say "- eatologix.com: HTTP $code (до смяната на DNS сървърите в Namecheap не отговаря)"
       - name: Prewarm
         run: |
+          set -o pipefail
           node scripts/i18n-prewarm.mjs "${{ inputs.langs || 'en,de,es' }}" 2>&1 | tee prewarm.log
           { echo '## Предварителен превод'; echo '```'; cat prewarm.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
