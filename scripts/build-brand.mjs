@@ -27,41 +27,54 @@ export const BRAND = {
 
 // Знакът в координатите на оригинала (1536×1024); рамката му: x 405…1112, y 50…775.
 const MARK_BOX = { x: 398, y: 46, w: 722, h: 734 };
-const SW = 54; // дебелина на линията
+const SW = 62; // дебелина на линията (измерена от логото)
+// Знакът е ЕДНА непрекъсната линия (рамото на отметката → ябълката → острието) с ЕДНО цветно поле
+// отдолу (маска): няма шевове между половините, цветът прелива навсякъде плавно.
+// Цветовете по оригинала: горе вляво циан, долу вляво тъмен тюркоаз, горе вдясно лайм, долу вдясно зелено.
+// Формата е ТРАСИРАНА от логото (brand/concept-eatologix.png → scripts/trace-mark.py → brand/mark-trace.json):
+// ябълката с отметката е един контур (с отворите), листото — отделно. Цветът е общо поле отдолу (маска).
+const TRACE = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/mark-trace.json'), 'utf8'));
+const CROSS = [755, 671];
+// Без слоеве и сенки: една форма, едно цветно поле — кръстопътят е чист, без ръбове и тъмни линии.
+const LEAF_PATH = 'M750,276 C752,198 800,124 878,88 C928,66 972,58 1009,56 C996,124 962,192 902,228 C852,258 800,270 750,276 Z';
+const LEAF_SHADE = 'M744,282 L1012,52 L1030,120 C1000,200 940,250 860,272 C800,286 760,288 744,282 Z';
+
 function markDefs(id) {
   return `
-    <linearGradient id="${id}L" gradientUnits="userSpaceOnUse" x1="0" y1="270" x2="0" y2="770">
-      <stop offset="0" stop-color="${BRAND.cyan}"/><stop offset=".45" stop-color="${BRAND.teal}"/><stop offset="1" stop-color="${BRAND.ink}"/>
+    <linearGradient id="${id}H" gradientUnits="userSpaceOnUse" x1="440" y1="0" x2="1100" y2="0">
+      <stop offset="0" stop-color="#0398A2"/><stop offset=".12" stop-color="#03BCC2"/><stop offset=".28" stop-color="${BRAND.cyan}"/><stop offset=".5" stop-color="#14DC9A"/>
+      <stop offset=".66" stop-color="#4FE23A"/><stop offset=".82" stop-color="#86EE0E"/><stop offset="1" stop-color="${BRAND.lime}"/>
     </linearGradient>
-    <linearGradient id="${id}R" gradientUnits="userSpaceOnUse" x1="640" y1="700" x2="1000" y2="280">
-      <stop offset="0" stop-color="${BRAND.cyan}"/><stop offset=".32" stop-color="${BRAND.mint}"/><stop offset=".58" stop-color="${BRAND.green}"/><stop offset="1" stop-color="${BRAND.lime}"/>
+    <radialGradient id="${id}G" gradientUnits="userSpaceOnUse" cx="930" cy="740" r="300">
+      <stop offset="0" stop-color="#05C95E" stop-opacity=".95"/><stop offset=".55" stop-color="#08CF5A" stop-opacity=".55"/><stop offset="1" stop-color="#10CC50" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="${id}D" gradientUnits="userSpaceOnUse" x1="0" y1="560" x2="0" y2="770">
+      <stop offset="0" stop-color="${BRAND.ink}" stop-opacity="0"/><stop offset=".4" stop-color="${BRAND.teal}" stop-opacity=".7"/><stop offset=".75" stop-color="${BRAND.ink}" stop-opacity=".95"/><stop offset="1" stop-color="#033F4B" stop-opacity="1"/>
     </linearGradient>
-    <linearGradient id="${id}B" gradientUnits="userSpaceOnUse" x1="745" y1="700" x2="1010" y2="395">
-      <stop offset="0" stop-color="${BRAND.green}"/><stop offset="1" stop-color="${BRAND.lime}"/>
+    <linearGradient id="${id}Df" gradientUnits="userSpaceOnUse" x1="540" y1="0" x2="700" y2="0">
+      <stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/>
     </linearGradient>
-    <linearGradient id="${id}N" gradientUnits="userSpaceOnUse" x1="735" y1="0" x2="815" y2="0">
-      <stop offset="0" stop-color="#00DCD6"/><stop offset="1" stop-color="#45DA3A"/>
-    </linearGradient>
+    <mask id="${id}Dm" maskUnits="userSpaceOnUse" x="380" y="0" width="800" height="820"><rect x="380" y="0" width="800" height="820" fill="url(#${id}Df)"/></mask>
+    <mask id="${id}M" maskUnits="userSpaceOnUse" x="380" y="200" width="760" height="600">
+      <path d="${TRACE.apple}" fill="#fff" fill-rule="evenodd"/>
+    </mask>
+
+    <clipPath id="${id}L"><path d="${TRACE.leaf}" fill-rule="evenodd"/></clipPath>
     <linearGradient id="${id}F" gradientUnits="userSpaceOnUse" x1="760" y1="275" x2="1000" y2="70">
       <stop offset="0" stop-color="${BRAND.leafDark}"/><stop offset=".55" stop-color="#22B80C"/><stop offset="1" stop-color="#7EE80A"/>
     </linearGradient>`;
 }
 function markBody(id) {
-  // Дясна половина: начало (кръгла глава) → кръстопът → долу вдясно → дясна страна → горе → вдлъбнатината.
-  const right = 'M628,544 L752,670 C792,712 838,748 882,746 C968,742 1046,622 1070,524 C1092,436 1078,346 1022,302 C962,256 884,266 830,296 C806,309 790,318 775,320';
-  // Лява половина: вдлъбнатината → горе вляво → лява страна → долу вляво → кръстопът.
-  const left = 'M775,320 C752,321 728,307 700,294 C650,270 600,266 552,284 C474,314 438,386 444,462 C450,560 528,676 592,724 C628,752 668,760 708,734 L752,700';
-  // Острието на отметката: изтъняващо от кръстопътя до върха.
-  const blade = 'M733,684 C800,610 900,505 1009,398 C930,505 852,612 792,700 C780,716 762,722 752,716 Z';
-  const leaf = 'M750,276 C752,198 800,124 878,88 C928,66 972,58 1009,56 C996,124 962,192 902,228 C852,258 800,270 750,276 Z';
-  const leafShade = 'M750,276 L1009,56 C996,124 962,192 902,228 C852,258 800,270 750,276 Z';
   return `
-    <path d="${left}" fill="none" stroke="url(#${id}L)" stroke-width="${SW}" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="${blade}" fill="url(#${id}B)"/>
-    <path d="${right}" fill="none" stroke="url(#${id}R)" stroke-width="${SW}" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M735,302 C752,312 765,319 775,320 C790,318 803,311 815,305" fill="none" stroke="url(#${id}N)" stroke-width="${SW}" stroke-linecap="butt"/>
-    <path d="${leaf}" fill="${BRAND.lime}"/>
-    <path d="${leafShade}" fill="url(#${id}F)"/>`;
+    <g mask="url(#${id}M)">
+      <rect x="380" y="200" width="760" height="600" fill="url(#${id}H)"/>
+      <rect x="380" y="200" width="760" height="600" fill="url(#${id}G)"/>
+      <rect x="380" y="200" width="760" height="600" fill="url(#${id}D)" mask="url(#${id}Dm)"/>
+    </g>
+    <g clip-path="url(#${id}L)">
+      <path d="${TRACE.leaf}" fill="${BRAND.lime}" fill-rule="evenodd"/>
+      <path d="${LEAF_SHADE}" fill="url(#${id}F)"/>
+    </g>`;
 }
 
 const glyphs = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/wordmark-glyphs.json'), 'utf8'));
