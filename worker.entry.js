@@ -20,6 +20,7 @@ import fitnessWorker from './fitness/worker.js';
 import { handleStudioApi, handleStudioSite } from './studio-platform/index.js';
 import { handleAppDomain } from './app-domain.js';
 import { handleI18nTranslate, languageDirective } from './i18n-server.js';
+import { emailTemplateFor, localizeEmailHtml, RESET_SUBJECT } from './email-i18n.js';
 import { MEAL_CARRY_MAX_DISTORTION } from './meal-day-sync.js';
 import {
   parseMealDescription,
@@ -4432,11 +4433,12 @@ async function handleForgotPassword(request, env) {
       // ── Send branded Resend email with the reset link ─────────────────────
       const tpl = await getEmailTemplate(env);
       const contactEmail = tpl.contactEmail || DEFAULT_EMAIL_TEMPLATE.contactEmail;
+      const resetLang = String(body?.lang || '').toLowerCase();
       await sendEmailViaSMTP(
         env,
         email,
-        'Нулиране на парола — Eatologix 🔒',
-        buildPasswordResetEmailHtml(oobLink, contactEmail)
+        RESET_SUBJECT[resetLang] || 'Нулиране на парола — Eatologix 🔒',
+        localizeEmailHtml(buildPasswordResetEmailHtml(oobLink, contactEmail), resetLang)
       );
       console.log(`[ForgotPassword] Resend email sent to ${email}`);
     } else {
@@ -5657,23 +5659,27 @@ async function deliverPlanUpdateToClient(env, clientData, clientId, kind = 'upda
       const token = await createPlanClaimToken(env, clientData, clientId);
       const claimUrl = buildPlanClaimUrl(token);
       const clientName = clientData.answers?.name || 'Клиент';
+      // Езикът на клиента (от въпросника): чужд език — преведените шаблони вместо българските от KV.
+      const emailLang = clientData.answers?.lang || clientData.lang || '';
       if (kind === 'ready') {
-        const tpl = await getEmailTemplate(env);
+        const kvTpl = await getEmailTemplate(env);
+        const tpl = Object.assign({}, kvTpl, emailTemplateFor('ready', emailLang) || {});
         const subject = tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject;
         await sendEmailViaSMTP(
           env,
           clientEmail,
           subject,
-          buildPlanReadyEmailHtml(clientName, tpl, claimUrl)
+          localizeEmailHtml(buildPlanReadyEmailHtml(clientName, tpl, claimUrl), emailLang)
         );
       } else {
-        const tpl = await getPlanUpdatedEmailTemplate(env);
+        const kvTpl = await getPlanUpdatedEmailTemplate(env);
+        const tpl = Object.assign({}, kvTpl, emailTemplateFor('updated', emailLang) || {});
         const subject = tpl.subject || DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE.subject;
         await sendEmailViaSMTP(
           env,
           clientEmail,
           subject,
-          buildPlanUpdatedEmailHtml(clientName, tpl, claimUrl)
+          localizeEmailHtml(buildPlanUpdatedEmailHtml(clientName, tpl, claimUrl), emailLang)
         );
       }
       emailSent = true;
