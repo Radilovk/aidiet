@@ -1,4 +1,4 @@
-// Service Worker for NutriPlan Admin Panel PWA
+// Service Worker for Eatologix Admin Panel PWA
 const CACHE_NAME = 'nutriplan-admin-v1';
 
 const STATIC_CACHE = [

@@ -37,13 +37,10 @@
 .sf-mark {
     width: 32px;
     height: 32px;
-    border-radius: 10px;
     display: grid;
     place-items: center;
-    color: #fff;
-    background: linear-gradient(135deg, #0D9488, #0F766E);
-    box-shadow: 0 6px 16px -6px rgba(13, 148, 136, 0.7);
 }
+.sf-mark img { display: block; width: 30px; height: 30px; filter: drop-shadow(0 4px 10px rgba(0, 224, 220, 0.25)); }
 .sf-mark svg, .sf-store svg { display: block; }
 .sf p { margin: 0; }
 .sf-tag { margin-top: 6px !important; font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 1.02rem; color: #85A39E; }
@@ -90,7 +87,7 @@
     transition: color 0.2s;
 }
 .sf-cols a:hover { color: #fff; }
-.sf-cols a:focus-visible, .sf-logo:focus-visible { outline: 2px solid #2DD4BF; outline-offset: 3px; border-radius: 6px; }
+.sf-cols a:focus-visible, .sf-logo:focus-visible { outline: 2px solid #19D6D2; outline-offset: 3px; border-radius: 6px; }
 .sf-cols a small {
     padding: 1px 7px;
     border: 1px solid rgba(178, 236, 226, 0.16);

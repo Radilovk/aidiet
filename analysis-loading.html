@@ -3,33 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Standalone преглед на loading екрана за здравния анализ в NutriPlan.">
+    <meta name="description" content="Standalone преглед на loading екрана за здравния анализ в Eatologix.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <meta name="apple-mobile-web-app-title" content="Eatologix">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
     <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
     <title>Analysis Loading Preview</title>
     <link rel="stylesheet" href="./design-system.css">
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
-            --primary-red: #0F766E;
-            --primary-red-hover: #115E59;
+            --primary-red: #05737D;
+            --primary-red-hover: #075C66;
             --text-dark: #0F2F2E;
             --text-gray: #6b7280;
-            --bg-color: #F0FDFA;
+            --bg-color: #EEFDFC;
             --input-bg: #f3f4f6;
             --card-bg: rgba(255, 255, 255, 0.72);
-            --glass-border: rgba(13, 148, 136, 0.1);
-            --shadow: 0 10px 30px rgba(13,148,136,0.12);
+            --glass-border: rgba(3, 147, 156, 0.1);
+            --shadow: 0 10px 30px rgba(3,147,156,0.12);
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
             --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
             --safe-area-inset-left: env(safe-area-inset-left, 0px);
@@ -37,15 +37,15 @@
         }
 
         [data-theme="dark"] {
-            --primary-red: #2DD4BF;
-            --primary-red-hover: #0D9488;
+            --primary-red: #19D6D2;
+            --primary-red-hover: #03939C;
             --text-dark: #E0F5F0;
             --text-gray: #9ca3af;
             --bg-color: #0A1A1A;
             --input-bg: #1e4545;
             --card-bg: rgba(20, 55, 55, 0.78);
-            --glass-border: rgba(45, 212, 191, 0.15);
-            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(45,212,191,0.1);
+            --glass-border: rgba(25, 214, 210, 0.15);
+            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(25,214,210,0.1);
         }
 
         * {
@@ -58,7 +58,7 @@
 
         body {
             min-height: 100dvh;
-            background: radial-gradient(circle at top right, rgba(45, 212, 191, 0.12), transparent 32%), var(--bg-color);
+            background: radial-gradient(circle at top right, rgba(25, 214, 210, 0.12), transparent 32%), var(--bg-color);
             color: var(--text-dark);
             padding: calc(24px + var(--safe-area-inset-top)) calc(16px + var(--safe-area-inset-right)) calc(24px + var(--safe-area-inset-bottom)) calc(16px + var(--safe-area-inset-left));
         }
@@ -105,7 +105,7 @@
 
         .toolbar-btn {
             border: 1px solid var(--glass-border);
-            background: rgba(13, 148, 136, 0.08);
+            background: rgba(3, 147, 156, 0.08);
             color: var(--text-dark);
             border-radius: 999px;
             padding: 10px 14px;
@@ -115,7 +115,7 @@
         }
 
         .toolbar-btn:hover {
-            background: rgba(13, 148, 136, 0.14);
+            background: rgba(3, 147, 156, 0.14);
         }
 
         .preview-frame {
@@ -135,8 +135,8 @@
             inset: 0;
             padding: 20px;
             background:
-                radial-gradient(circle at 18% 14%, rgba(45, 212, 191, 0.22), transparent 34%),
-                radial-gradient(circle at 86% 18%, rgba(15, 118, 110, 0.14), transparent 30%),
+                radial-gradient(circle at 18% 14%, rgba(25, 214, 210, 0.22), transparent 34%),
+                radial-gradient(circle at 86% 18%, rgba(5, 115, 125, 0.14), transparent 30%),
                 linear-gradient(160deg, rgba(240, 253, 250, 0.98), rgba(204, 251, 241, 0.74));
             display: grid;
             place-items: center;
@@ -145,7 +145,7 @@
 
         [data-theme="dark"] .loading-screen {
             background:
-                radial-gradient(circle at 18% 14%, rgba(45, 212, 191, 0.18), transparent 34%),
+                radial-gradient(circle at 18% 14%, rgba(25, 214, 210, 0.18), transparent 34%),
                 radial-gradient(circle at 86% 18%, rgba(96, 165, 250, 0.12), transparent 30%),
                 linear-gradient(160deg, #0A1A1A, #102B2B 72%, #081112);
         }
@@ -157,8 +157,8 @@
             border-radius: 34px;
             text-align: center;
             background: rgba(255, 255, 255, 0.72);
-            border: 1px solid rgba(13, 148, 136, 0.14);
-            box-shadow: 0 28px 70px rgba(13, 148, 136, 0.16), inset 0 1px 0 rgba(255,255,255,.72);
+            border: 1px solid rgba(3, 147, 156, 0.14);
+            box-shadow: 0 28px 70px rgba(3, 147, 156, 0.16), inset 0 1px 0 rgba(255,255,255,.72);
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%);
             overflow: hidden;
@@ -166,7 +166,7 @@
 
         [data-theme="dark"] .loading-card {
             background: rgba(20, 55, 55, 0.72);
-            border-color: rgba(45, 212, 191, 0.18);
+            border-color: rgba(25, 214, 210, 0.18);
             box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,.06);
         }
 
@@ -178,7 +178,7 @@
             left: -74px;
             top: -88px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(45,212,191,.28), transparent 68%);
+            background: radial-gradient(circle, rgba(25,214,210,.28), transparent 68%);
         }
 
         .loading-orb {
@@ -194,7 +194,7 @@
             position: absolute;
             inset: 0;
             border-radius: 50%;
-            background: conic-gradient(from 90deg, rgba(13,148,136,.08), var(--primary-red), #99F6E4, rgba(13,148,136,.08));
+            background: conic-gradient(from 90deg, rgba(3,147,156,.08), var(--primary-red), #9BF2EE, rgba(3,147,156,.08));
             mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
             -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
             animation: spin 1.35s linear infinite;
@@ -208,19 +208,19 @@
             place-items: center;
             color: var(--primary-red);
             background: linear-gradient(160deg, rgba(255,255,255,.95), rgba(240,253,250,.72));
-            border: 1px solid rgba(13,148,136,.15);
-            box-shadow: 0 18px 38px rgba(13,148,136,.20), inset 0 1px 0 rgba(255,255,255,.9);
+            border: 1px solid rgba(3,147,156,.15);
+            box-shadow: 0 18px 38px rgba(3,147,156,.20), inset 0 1px 0 rgba(255,255,255,.9);
             animation: loadingPulse 1.85s ease-in-out infinite;
         }
 
         [data-theme="dark"] .loading-icon {
             background: linear-gradient(160deg, rgba(20,55,55,.95), rgba(8,28,30,.86));
-            box-shadow: 0 18px 42px rgba(0,0,0,.38), 0 0 26px rgba(45,212,191,.16), inset 0 1px 0 rgba(255,255,255,.08);
+            box-shadow: 0 18px 42px rgba(0,0,0,.38), 0 0 26px rgba(25,214,210,.16), inset 0 1px 0 rgba(255,255,255,.08);
         }
 
         .loading-icon i {
             font-size: clamp(1.9rem, 8vw, 2.45rem);
-            filter: drop-shadow(0 8px 14px rgba(13,148,136,.18));
+            filter: drop-shadow(0 8px 14px rgba(3,147,156,.18));
         }
 
         .loading-text {
@@ -321,7 +321,7 @@
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
-            var color = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            var color = theme === 'dark' ? '#0A1A1A' : '#EEFDFC';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(meta) {
                 meta.setAttribute('content', color);
             });

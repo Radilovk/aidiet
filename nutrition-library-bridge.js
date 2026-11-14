@@ -1,5 +1,5 @@
 /**
- * Nutrition library bridge — maps LIBRARY_* data to NutriPlan catalog/registry format.
+ * Nutrition library bridge — maps LIBRARY_* data to Eatologix catalog/registry format.
  * Used by food-registry overlay, meal-template-engine, and future Slot Assembler.
  */
 
@@ -33,7 +33,7 @@ export {
   LIBRARY_ORCHESTRATOR,
 };
 
-/** library group_id → NutriPlan catalog group */
+/** library group_id → Eatologix catalog group */
 const GROUP_TO_CATALOG = {
   vegetables: 'vegetable',
   fruits: 'fruit',
@@ -96,7 +96,7 @@ const GROUP_TO_TIMING = {
   condiments: ['main', 'snack'],
 };
 
-/** library meal_type → NutriPlan timing + slot label */
+/** library meal_type → Eatologix timing + slot label */
 export const LIBRARY_MEAL_TYPE_MAP = {
   breakfast: { timing: 'breakfast', slotLabel: 'Хранене 1' },
   lunch: { timing: 'main', slotLabel: 'Хранене 2' },
@@ -105,7 +105,7 @@ export const LIBRARY_MEAL_TYPE_MAP = {
   late_snack: { timing: 'late_snack', slotLabel: 'Хранене 5' },
 };
 
-/** NutriPlan slot → library meal template id */
+/** Eatologix slot → library meal template id */
 export const SLOT_TO_TEMPLATE_ID = {
   'Хранене 1': 'tpl_breakfast',
   'Хранене 2': 'tpl_lunch',

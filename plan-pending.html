@@ -3,40 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Твоят персонален план се подготвя от специалист — NutriPlan">
+    <meta name="description" content="Твоят персонален план се подготвя от специалист — Eatologix">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <meta name="apple-mobile-web-app-title" content="Eatologix">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
     <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
     <title>Твоят план се подготвя</title>
     <link rel="stylesheet" href="./design-system.css">
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-red: #0F766E;
-            --primary-accent: #2DD4BF;
+            --primary-red: #05737D;
+            --primary-accent: #19D6D2;
             --secondary-accent: #06B6D4;
             --tertiary-accent: #fbbf24;
-            --soft-red: #CCFBF1;
+            --soft-red: #CDF9F6;
             --text-dark: #0F2F2E;
             --text-light: #6b7280;
-            --bg-color: #F0FDFA;
+            --bg-color: #EEFDFC;
             --card-bg: rgba(255, 255, 255, 0.72);
-            --shadow: 0 10px 40px rgba(13, 148, 136, 0.1);
-            --shadow-hover: 0 20px 50px rgba(13, 148, 136, 0.15);
+            --shadow: 0 10px 40px rgba(3, 147, 156, 0.1);
+            --shadow-hover: 0 20px 50px rgba(3, 147, 156, 0.15);
             --shadow-accent: 0 8px 32px rgba(6, 182, 212, 0.2);
             --radius: 24px;
             --glass-blur: 20px;
-            --glass-border: rgba(13, 148, 136, 0.1);
+            --glass-border: rgba(3, 147, 156, 0.1);
             --border-light: #e5e7eb;
             --bg-subtle: #f3f4f6;
             --feature-bg: #f0fdf4;
@@ -46,11 +46,11 @@
         }
 
         [data-theme="dark"] {
-            --primary-red: #2DD4BF;
-            --primary-accent: #5EEAD4;
+            --primary-red: #19D6D2;
+            --primary-accent: #5FE6E3;
             --secondary-accent: #22D3EE;
             --tertiary-accent: #ff9580;
-            --soft-red: #134E4A;
+            --soft-red: #034E5C;
             --accent-yellow: #fcd34d;
             --accent-blue: #60a5fa;
             --accent-light-red: #fca5a5;
@@ -58,13 +58,13 @@
             --text-light: #9ca3af;
             --bg-color: #0A1A1A;
             --card-bg: rgba(20, 55, 55, 0.78);
-            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(45,212,191,0.1);
-            --shadow-hover: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 12px rgba(45, 212, 191, 0.12);
+            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(25,214,210,0.1);
+            --shadow-hover: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 12px rgba(25, 214, 210, 0.12);
             --shadow-accent: 0 8px 32px rgba(34, 211, 238, 0.25);
-            --glass-border: rgba(45, 212, 191, 0.15);
-            --border-light: rgba(45, 212, 191, 0.15);
+            --glass-border: rgba(25, 214, 210, 0.15);
+            --border-light: rgba(25, 214, 210, 0.15);
             --bg-subtle: rgba(255, 255, 255, 0.08);
-            --feature-bg: rgba(13, 148, 136, 0.1);
+            --feature-bg: rgba(3, 147, 156, 0.1);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -122,8 +122,8 @@
             height: 90px;
             margin: 0 auto 24px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-red), #0F766E);
-            box-shadow: 0 8px 32px rgba(13,148,136,0.3);
+            background: linear-gradient(135deg, var(--primary-red), #05737D);
+            box-shadow: 0 8px 32px rgba(3,147,156,0.3);
             animation: pulseGlow 2s ease-in-out infinite;
         }
         .hero-badge i {
@@ -132,8 +132,8 @@
         }
 
         @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 8px 32px rgba(13,148,136,0.3); transform: scale(1); }
-            50% { box-shadow: 0 12px 48px rgba(13,148,136,0.5); transform: scale(1.05); }
+            0%, 100% { box-shadow: 0 8px 32px rgba(3,147,156,0.3); transform: scale(1); }
+            50% { box-shadow: 0 12px 48px rgba(3,147,156,0.5); transform: scale(1.05); }
         }
 
         /* ─── Title section ─── */
@@ -188,7 +188,7 @@
             justify-content: center;
             font-size: 22px;
         }
-        .status-icon.received { background: var(--soft-red); color: #0F766E; }
+        .status-icon.received { background: var(--soft-red); color: #05737D; }
         .status-header h3 {
             font-size: 1.1rem;
             font-weight: 700;
@@ -230,7 +230,7 @@
             font-weight: 700;
             z-index: 1;
         }
-        .step-dot.done { background: var(--soft-red); color: #0F766E; }
+        .step-dot.done { background: var(--soft-red); color: #05737D; }
         .step-dot.active { background: var(--ds-fill); color: var(--ds-on-fill); animation: pulseGlow 2s ease-in-out infinite; }
         .step-dot.pending { background: var(--bg-subtle); color: var(--ds-text-soft); }
         .step-content h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 2px; }
@@ -275,14 +275,14 @@
         }
         [data-theme="dark"] .status-icon.received {
             background: var(--soft-red);
-            color: #5EEAD4;
+            color: #5FE6E3;
         }
         [data-theme="dark"] .step-dot.done {
             background: var(--soft-red);
-            color: #5EEAD4;
+            color: #5FE6E3;
         }
         [data-theme="dark"] .hero-badge {
-            box-shadow: 0 8px 32px rgba(45, 212, 191, 0.3);
+            box-shadow: 0 8px 32px rgba(25, 214, 210, 0.3);
         }
         .system-notice {
             display: flex;
@@ -291,11 +291,11 @@
             padding: 16px 18px;
             margin-bottom: 24px;
             border-radius: 16px;
-            background: linear-gradient(135deg, rgba(13, 148, 136, 0.12), rgba(13, 148, 136, 0.06));
-            border: 1px solid rgba(13, 148, 136, 0.25);
+            background: linear-gradient(135deg, rgba(3, 147, 156, 0.12), rgba(3, 147, 156, 0.06));
+            border: 1px solid rgba(3, 147, 156, 0.25);
         }
         .system-notice i {
-            color: #0D9488;
+            color: #03939C;
             font-size: 1.25rem;
             margin-top: 2px;
             flex-shrink: 0;
@@ -312,11 +312,11 @@
             color: var(--text-light);
         }
         [data-theme="dark"] .system-notice {
-            background: linear-gradient(135deg, rgba(45, 212, 191, 0.12), rgba(45, 212, 191, 0.05));
-            border-color: rgba(45, 212, 191, 0.2);
+            background: linear-gradient(135deg, rgba(25, 214, 210, 0.12), rgba(25, 214, 210, 0.05));
+            border-color: rgba(25, 214, 210, 0.2);
         }
         [data-theme="dark"] .system-notice i {
-            color: #2DD4BF;
+            color: #19D6D2;
         }
         .pp-theme-btn {
             position: fixed;
@@ -468,7 +468,7 @@
     <script>
 
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            var c = theme === 'dark' ? '#0A1A1A' : '#EEFDFC';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});
                 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                     var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
@@ -637,7 +637,7 @@
                     document.querySelector('.pp-title h1').textContent = 'Твоят план е готов!';
                     document.querySelector('.pp-title p').textContent = 'Специалистът прегледа твоите данни и одобри персонализирания ти хранителен пакет.';
                     document.querySelector('.hero-badge i').className = 'fas fa-check-double';
-                    document.querySelector('.hero-badge').style.background = 'linear-gradient(135deg, #0D9488, #0F766E)';
+                    document.querySelector('.hero-badge').style.background = 'linear-gradient(135deg, #03939C, #05737D)';
 
                     const dots = document.querySelectorAll('.step-dot');
                     if (dots[2]) { dots[2].classList.remove('active'); dots[2].classList.add('done'); dots[2].innerHTML = '<i class="fas fa-check" style="font-size:12px;"></i>'; }
@@ -657,7 +657,7 @@
                 document.getElementById('ctaSection').innerHTML = `
                     <div style="background:var(--card-bg);border-radius:16px;padding:24px;max-width:360px;margin:0 auto;box-shadow:var(--shadow);">
                         <h3 style="margin:0 0 8px;font-size:1.1rem;color:var(--text-dark);">
-                            <i class="fas fa-check-circle" style="color:#0D9488;margin-right:8px;"></i>
+                            <i class="fas fa-check-circle" style="color:#03939C;margin-right:8px;"></i>
                             Планът е активиран
                         </h3>
                         <p style="font-size:0.85rem;color:var(--text-light);margin:0 0 16px;">

@@ -17,7 +17,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 /**
- * NutriPlan: фонът зад системните ленти следва темата на приложението.
+ * Eatologix: фонът зад системните ленти следва темата на приложението.
  *
  * WebView-то е отместено с височината на лентите (SystemBars на Capacitor), а
  * под тях се вижда фонът на прозореца. Без това той е фонът по подразбиране на

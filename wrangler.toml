@@ -43,6 +43,9 @@ FIREBASE_PROJECT_ID = "nutriplan-c460a"
 STUDIO_ROOT_DOMAIN = "biocode-bg.com,xbody.online"
 # the app's public page (xb-studio.html) on its own domain; www → the bare domain
 STUDIO_LANDING_HOSTS = "xbody.online"
+# Eatologix на собствен домейн: страниците от сайта, /api/ — същият worker (app-domain.js).
+# Домейнът се добавя и в Cloudflare като Custom Domain на този worker (eatologix.com и www.eatologix.com).
+APP_HOSTS = "eatologix.com"
 # workers.dev URL is assigned automatically (aidiet.radilov-k.workers.dev).
 # Do NOT use `route` here — that syntax is for custom domains in a Cloudflare zone.
 

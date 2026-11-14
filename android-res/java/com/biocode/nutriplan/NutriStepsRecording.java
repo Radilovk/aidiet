@@ -26,7 +26,7 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
- * NutriPlan: историята на крачките по дни от Google Play services (Recording API
+ * Eatologix: историята на крачките по дни от Google Play services (Recording API
  * on mobile, Android 10–13 и нагоре, с Google).
  *
  * Play services записва крачките от хардуерния брояч сам, пести батерия и пази

@@ -6,9 +6,9 @@
 
 :root {
   --ui-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --ui-accent: #0F766E;
-  --ui-accent-strong: #115E59;
-  --ui-accent-soft: rgba(13, 148, 136, 0.10);
+  --ui-accent: #05737D;
+  --ui-accent-strong: #075C66;
+  --ui-accent-soft: rgba(3, 147, 156, 0.10);
   --ui-ink: #0B2B2A;
   --ui-ink-2: #3D5856;
   --ui-muted: #5B6E6B;
@@ -21,9 +21,9 @@
   --ui-fab-gap: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 [data-theme="dark"] {
-  --ui-accent: #2DD4BF;
-  --ui-accent-strong: #5EEAD4;
-  --ui-accent-soft: rgba(45, 212, 191, 0.12);
+  --ui-accent: #19D6D2;
+  --ui-accent-strong: #5FE6E3;
+  --ui-accent-soft: rgba(25, 214, 210, 0.12);
   --ui-ink: #E3F4F1;
   --ui-ink-2: #B4CFCA;
   --ui-muted: #85A39E;
@@ -57,7 +57,7 @@ body { padding-bottom: var(--ui-fab-gap); }
 }
 .fab-chat::before { display: none !important; }
 .fab-food {
-  box-shadow: 0 10px 28px -10px rgba(13, 148, 136, 0.65) !important;
+  box-shadow: 0 10px 28px -10px rgba(3, 147, 156, 0.65) !important;
 }
 html.ui-fabs-away .fab-chat,
 html.ui-fabs-away .fab-food {

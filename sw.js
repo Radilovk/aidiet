@@ -1,4 +1,4 @@
-// Service Worker for NutriPlan PWA
+// Service Worker for Eatologix PWA
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
@@ -17,8 +17,8 @@ if (IS_NATIVE_APP_ORIGIN) {
 }
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
-const DEFAULT_TITLE = 'NutriPlan';
-const DEFAULT_BODY = 'Ново напомняне от NutriPlan';
+const DEFAULT_TITLE = 'Eatologix';
+const DEFAULT_BODY = 'Ново напомняне от Eatologix';
 const STATIC_CACHE = [
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire2.html`,
@@ -184,7 +184,7 @@ self.addEventListener('activate', (event) => {
         }),
       );
 
-      // Премахни всички /fitness/ записи от NutriPlan кеша (остатък от стари SW версии)
+      // Премахни всички /fitness/ записи от Eatologix кеша (остатък от стари SW версии)
       const cache = await caches.open(CACHE_NAME);
       const keys = await cache.keys();
       await Promise.all(
@@ -204,7 +204,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // FitPlan AI (/fitness/) има собствен service worker и кеш — не прехващаме.
-  // Иначе stale-while-revalidate от NutriPlan SW връща остарели CSS/HTML при refresh.
+  // Иначе stale-while-revalidate от Eatologix SW връща остарели CSS/HTML при refresh.
   if (url.pathname.startsWith('/fitness/') || url.pathname === '/fitness') {
     return;
   }

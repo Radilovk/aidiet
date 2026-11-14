@@ -1,5 +1,5 @@
 /**
- * NutriPlan — login plan restore, plan replacement auth, pending activation.
+ * Eatologix — login plan restore, plan replacement auth, pending activation.
  */
 (function (global) {
     'use strict';
@@ -155,13 +155,13 @@
             overlay.setAttribute('aria-labelledby', 'npPlanEditingTitle');
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,26,26,.72);backdrop-filter:blur(8px);z-index:10010;display:flex;align-items:center;justify-content:center;padding:24px;';
             overlay.innerHTML = [
-                '<div style="background:var(--card-bg,rgba(255,255,255,.95));border:1px solid rgba(13,148,136,.18);border-radius:24px;padding:32px 28px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.28);">',
-                '<div style="width:56px;height:56px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(135deg,rgba(13,148,136,.15),rgba(6,182,212,.12));display:flex;align-items:center;justify-content:center;">',
-                '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+                '<div style="background:var(--card-bg,rgba(255,255,255,.95));border:1px solid rgba(3,147,156,.18);border-radius:24px;padding:32px 28px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.28);">',
+                '<div style="width:56px;height:56px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(135deg,rgba(3,147,156,.15),rgba(6,182,212,.12));display:flex;align-items:center;justify-content:center;">',
+                '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#03939C" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
                 '</div>',
                 '<h2 id="npPlanEditingTitle" style="margin:0 0 10px;font-size:1.15rem;font-weight:700;color:#0F2F2E;">План в процес на редакция</h2>',
                 '<p id="npPlanEditingMessage" style="margin:0 0 20px;font-size:.92rem;line-height:1.55;color:var(--text-light,#6b7280);"></p>',
-                '<a href="index.html?stay=1" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 20px;border-radius:14px;font-weight:700;text-decoration:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;">Към началото</a>',
+                '<a href="index.html?stay=1" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 20px;border-radius:14px;font-weight:700;text-decoration:none;background:linear-gradient(135deg,#03939C,#05737D);color:#fff;">Към началото</a>',
                 // Изтриването на профила остава достъпно и при заключване (App Store / Google Play).
                 '<a id="npPlanEditingDelete" href="delete-account.html" style="display:block;margin-top:14px;min-height:44px;line-height:44px;font-size:.82rem;font-weight:600;color:var(--text-light,#6b7280);text-decoration:underline;text-underline-offset:3px;">Изтрий профила</a>',
                 '</div>'
@@ -383,12 +383,12 @@
             '<div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);">',
             '<h3 id="npPlanReplaceTitle" style="margin:0 0 8px;font-size:1.05rem;color:var(--text-dark,#111);">Потвърди новия план</h3>',
             '<p id="npPlanReplaceMessage" style="margin:0 0 16px;font-size:.85rem;color:var(--text-light,#6b7280);line-height:1.5;"></p>',
-            '<input id="npPlanReplaceEmail" type="email" readonly aria-label="Имейл" style="width:100%;padding:12px 14px;border:1.5px solid rgba(13,148,136,.25);border-radius:12px;font-size:.9rem;margin-bottom:10px;box-sizing:border-box;background:rgba(13,148,136,.06);color:var(--text-light,#6b7280);">',
-            '<input id="npPlanReplacePassword" type="password" placeholder="Парола" autocomplete="current-password" aria-label="Парола" style="width:100%;padding:12px 14px;border:1.5px solid rgba(13,148,136,.25);border-radius:12px;font-size:.9rem;margin-bottom:10px;box-sizing:border-box;">',
+            '<input id="npPlanReplaceEmail" type="email" readonly aria-label="Имейл" style="width:100%;padding:12px 14px;border:1.5px solid rgba(3,147,156,.25);border-radius:12px;font-size:.9rem;margin-bottom:10px;box-sizing:border-box;background:rgba(3,147,156,.06);color:var(--text-light,#6b7280);">',
+            '<input id="npPlanReplacePassword" type="password" placeholder="Парола" autocomplete="current-password" aria-label="Парола" style="width:100%;padding:12px 14px;border:1.5px solid rgba(3,147,156,.25);border-radius:12px;font-size:.9rem;margin-bottom:10px;box-sizing:border-box;">',
             '<p id="npPlanReplaceError" style="color:#dc2626;font-size:.8rem;min-height:1.2em;margin:0 0 8px;"></p>',
             '<div style="display:flex;gap:10px;">',
-            '<button type="button" id="npPlanReplaceCancel" style="flex:1;padding:12px;border-radius:12px;font-weight:700;border:1.5px solid rgba(13,148,136,.3);background:transparent;cursor:pointer;">Отказ</button>',
-            '<button type="button" id="npPlanReplaceConfirm" style="flex:1;padding:12px;border-radius:12px;font-weight:700;border:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;cursor:pointer;">Потвърди</button>',
+            '<button type="button" id="npPlanReplaceCancel" style="flex:1;padding:12px;border-radius:12px;font-weight:700;border:1.5px solid rgba(3,147,156,.3);background:transparent;cursor:pointer;">Отказ</button>',
+            '<button type="button" id="npPlanReplaceConfirm" style="flex:1;padding:12px;border-radius:12px;font-weight:700;border:none;background:linear-gradient(135deg,#03939C,#05737D);color:#fff;cursor:pointer;">Потвърди</button>',
             '</div></div>'
         ].join('');
         document.body.appendChild(overlay);
@@ -890,8 +890,8 @@
             '<p id="npPlanUpdateTitle" style="margin:0 0 14px;font-size:.92rem;line-height:1.45;color:#0F2F2E;">Има обновение на плана от специалиста.</p>',
             '<p id="npPlanUpdateError" style="display:none;margin:0 0 10px;font-size:.78rem;color:#dc2626;"></p>',
             '<div style="display:flex;gap:10px;">',
-            '<button type="button" id="npPlanUpdateLater" style="flex:1;padding:11px 12px;border-radius:12px;font-weight:600;font-size:.86rem;border:1.5px solid rgba(13,148,136,.28);background:transparent;color:var(--text-light,#6b7280);cursor:pointer;">По-късно</button>',
-            '<button type="button" id="npPlanUpdateConfirm" style="flex:1;padding:11px 12px;border-radius:12px;font-weight:700;font-size:.86rem;border:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;cursor:pointer;">Обнови</button>',
+            '<button type="button" id="npPlanUpdateLater" style="flex:1;padding:11px 12px;border-radius:12px;font-weight:600;font-size:.86rem;border:1.5px solid rgba(3,147,156,.28);background:transparent;color:var(--text-light,#6b7280);cursor:pointer;">По-късно</button>',
+            '<button type="button" id="npPlanUpdateConfirm" style="flex:1;padding:11px 12px;border-radius:12px;font-weight:700;font-size:.86rem;border:none;background:linear-gradient(135deg,#03939C,#05737D);color:#fff;cursor:pointer;">Обнови</button>',
             '</div></div>'
         ].join('');
         document.body.appendChild(overlay);
@@ -1008,12 +1008,12 @@
         overlay.style.cssText = 'position:fixed;inset:0;z-index:10010;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,47,46,.32);backdrop-filter:blur(4px);';
         overlay.innerHTML = [
             '<div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.22);text-align:center;">',
-            '<div style="width:52px;height:52px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,rgba(13,148,136,.14),rgba(6,182,212,.1));display:flex;align-items:center;justify-content:center;">',
-            '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
+            '<div style="width:52px;height:52px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,rgba(3,147,156,.14),rgba(6,182,212,.1));display:flex;align-items:center;justify-content:center;">',
+            '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#03939C" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
             '</div>',
             '<h3 id="npProfileRegenTitle" style="margin:0 0 10px;font-size:1.05rem;font-weight:700;color:#0F2F2E;">Промените са приети</h3>',
             '<p id="npProfileRegenMessage" style="margin:0 0 18px;font-size:.88rem;line-height:1.55;color:var(--text-light,#6b7280);"></p>',
-            '<button type="button" id="npProfileRegenOk" style="width:100%;padding:12px;border-radius:12px;font-weight:700;font-size:.9rem;border:none;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;cursor:pointer;">Разбрах</button>',
+            '<button type="button" id="npProfileRegenOk" style="width:100%;padding:12px;border-radius:12px;font-weight:700;font-size:.9rem;border:none;background:linear-gradient(135deg,#03939C,#05737D);color:#fff;cursor:pointer;">Разбрах</button>',
             '</div>'
         ].join('');
         document.body.appendChild(overlay);

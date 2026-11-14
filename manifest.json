@@ -1,14 +1,17 @@
 {
   "id": "/",
-  "name": "NutriPlan - Интелигентна Хранителна Платформа",
-  "short_name": "NutriPlan",
+  "name": "Eatologix - Интелигентна Хранителна Платформа",
+  "short_name": "Eatologix",
   "description": "Комплексна здравна платформа с екип от специалисти. Персонализиран план за хранене, психология, добавки и активности чрез 7-степенен AI анализ с 30+ критерия. 24/7 AI консултант на разположение.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#042F2E",
-  "theme_color": "#F0FDFA",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#04181C",
+  "theme_color": "#EEFDFC",
   "orientation": "any",
   "prefer_related_applications": false,
   "related_applications": [
@@ -20,28 +23,34 @@
   ],
   "icons": [
     {
-      "src": "/icon-192x192.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512x512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/brand/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512x512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -50,21 +59,36 @@
       "short_name": "План",
       "description": "Виж своя персонализиран хранителен план",
       "url": "/plan.html",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Профил",
       "short_name": "Профил",
       "description": "Управлявай своя профил и настройки",
       "url": "/profile.html",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Въпросник",
       "short_name": "Въпросник",
       "description": "Попълни здравния въпросник",
       "url": "/questionnaire2.html",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "screenshots": [
@@ -73,17 +97,21 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "NutriPlan — Начален екран (мобилен)"
+      "label": "Eatologix — Начален екран (мобилен)"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "NutriPlan — Начален екран (таблет/десктоп)"
+      "label": "Eatologix — Начален екран (таблет/десктоп)"
     }
   ],
-  "categories": ["health", "lifestyle", "food"],
+  "categories": [
+    "health",
+    "lifestyle",
+    "food"
+  ],
   "lang": "bg-BG",
   "dir": "ltr",
   "gcm_sender_id": "103953800507"

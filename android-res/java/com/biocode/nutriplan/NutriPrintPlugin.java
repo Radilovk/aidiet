@@ -12,7 +12,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 /**
- * NutriPlan: системният диалог за печат на Android за текущата страница.
+ * Eatologix: системният диалог за печат на Android за текущата страница.
  * В него е и „Запази като PDF“. WebView-то рендира страницата със стиловете
  * @media print, така че книгата с плана излиза както в браузъра.
  */
@@ -21,7 +21,7 @@ public class NutriPrintPlugin extends Plugin {
 
     @PluginMethod
     public void print(final PluginCall call) {
-        final String jobName = call.getString("name", "NutriPlan");
+        final String jobName = call.getString("name", "Eatologix");
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {

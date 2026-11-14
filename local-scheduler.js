@@ -39,7 +39,7 @@ const GameNotifier = {
     LS_SILENT_APPLY_UNTIL_KEY: 'gameNotifierSilentApplyUntil',
     SILENT_APPLY_SUPPRESS_MS: 120000,
     BRAND_TEAL:     '#009A9E',
-    BRAND_TEAL_DARK: '#0F766E',
+    BRAND_TEAL_DARK: '#05737D',
     QUICK_ANSWER_PATH: '/quick-answer.html',
     MORNING_ACTION_TYPE_ID: 'nutriplan_morning_check',
     EVENING_ACTIVITY_ACTION_TYPE_ID: 'nutriplan_evening_activity',
@@ -72,7 +72,7 @@ const GameNotifier = {
     // Same wording as the in-app AI assistant bubbles (plan.html showBubble).
     COPY: {
         morning: {
-            title: 'NutriPlan',
+            title: 'Eatologix',
             body:  'Спа ли добре тази нощ?',
             actions: [
                 { id: 'sleep_yes', title: 'Да', value: true },
@@ -80,7 +80,7 @@ const GameNotifier = {
             ]
         },
         eveningActivity: {
-            title: 'NutriPlan',
+            title: 'Eatologix',
             body:  'Колко се движи днес?',
             actions: [
                 { id: 'activity_1', title: 'Малко', value: 1 },
@@ -89,7 +89,7 @@ const GameNotifier = {
             ]
         },
         eveningBalance: {
-            title: 'NutriPlan',
+            title: 'Eatologix',
             body:  'Как се чувстваше днес?',
             actions: [
                 { id: 'balance_1', title: 'Напрегнато', value: 1 },
@@ -98,7 +98,7 @@ const GameNotifier = {
             ]
         },
         eveningWater: {
-            title: 'NutriPlan',
+            title: 'Eatologix',
             body:  'Пи ли достатъчно вода днес?',
             actions: [
                 { id: 'water_no',  title: 'Не', value: false },
@@ -144,7 +144,7 @@ const GameNotifier = {
 
     /**
      * Returns the webcal:// URL that calendar apps use to subscribe to the
-     * NutriPlan notification feed (works on Huawei Calendar, iOS Calendar,
+     * Eatologix notification feed (works on Huawei Calendar, iOS Calendar,
      * Google Calendar, Outlook, etc.).  Once subscribed the calendar app
      * re-fetches the feed ~daily so admin config changes propagate automatically.
      */
@@ -581,12 +581,12 @@ const GameNotifier = {
     _notificationDisplayFields(type) {
         const display = this.getQuestionDisplay(type);
         if (!display) {
-            return { title: 'NutriPlan', body: 'NutriPlan', largeBody: 'NutriPlan' };
+            return { title: 'Eatologix', body: 'Eatologix', largeBody: 'Eatologix' };
         }
         const question = this._ensureText(display.body, 'Проверка');
         return {
             title: question,
-            body: 'NutriPlan',
+            body: 'Eatologix',
             largeBody: question
         };
     },
@@ -663,7 +663,7 @@ const GameNotifier = {
         const copy = this.COPY[meta.copyKey] || {};
         const training = type === 'evening_activity' && this._activityMode() === 'training';
         return {
-            title: cfg[titleKey] || copy.title || 'NutriPlan',
+            title: cfg[titleKey] || copy.title || 'Eatologix',
             body:  training ? this.TRAINING_COPY.body : (cfg[bodyKey] || copy.body || ''),
             actions: this._actionsFromConfig(cfg, meta)
         };
@@ -964,19 +964,19 @@ const GameNotifier = {
             };
             await LocalNotifications.createChannel(Object.assign({}, channelBase, {
                 id: this.CHANNEL_ID,
-                name: 'NutriPlan дневни проверки',
+                name: 'Eatologix дневни проверки',
                 description: 'Сутрешни и вечерни напомняния за проследяване на хранене, сън и настроение.',
                 lightColor: this.BRAND_TEAL
             }));
             await LocalNotifications.createChannel(Object.assign({}, channelBase, {
                 id: this.MORNING_CHANNEL_ID,
-                name: 'NutriPlan — Сутрешна проверка',
+                name: 'Eatologix — Сутрешна проверка',
                 description: 'Сутрешно напомняне за сън и начало на деня.',
                 lightColor: this.BRAND_TEAL
             }));
             await LocalNotifications.createChannel(Object.assign({}, channelBase, {
                 id: this.EVENING_CHANNEL_ID,
-                name: 'NutriPlan — Вечерна проверка',
+                name: 'Eatologix — Вечерна проверка',
                 description: 'Вечерно напомняне за хидратация и края на деня.',
                 lightColor: this.BRAND_TEAL_DARK
             }));
@@ -1367,7 +1367,7 @@ const GameNotifier = {
 
     /** Старите текстове от запазени настройки → новите (същите стойности, по-човешки думи). */
     LEGACY_COPY: {
-        'AI Асистент': 'NutriPlan',
+        'AI Асистент': 'Eatologix',
         'Ниво на активност?': 'Колко се движи днес?',
         'Емоционален баланс?': 'Как се чувстваше днес?',
         'Изпи ли поне 2 л вода?': 'Пи ли достатъчно вода днес?',
@@ -1413,6 +1413,10 @@ const GameNotifier = {
         merged.eveningActivityActions = this._normalizeActionList(merged.eveningActivityActions, this._defaultActionsFor('eveningActivityActions'));
         merged.eveningBalanceActions = this._normalizeActionList(merged.eveningBalanceActions, this._defaultActionsFor('eveningBalanceActions'));
         merged.eveningWaterActions = this._normalizeActionList(merged.eveningWaterActions, this._defaultActionsFor('eveningWaterActions'));
+        // Старото име, записано в настройките преди смяната на Eatologix.
+        ['morningTitle', 'eveningActivityTitle', 'eveningBalanceTitle', 'eveningWaterTitle'].forEach(function (k) {
+            if (typeof merged[k] === 'string' && /^\s*(NutriPlan|NutriDeus)\s*$/.test(merged[k])) merged[k] = '';
+        });
         merged.morningTitle = this._ensureText(merged.morningTitle, defaults.morningTitle);
         merged.morningBody = this._ensureText(merged.morningBody, defaults.morningBody);
         merged.eveningActivityTitle = this._ensureText(merged.eveningActivityTitle, defaults.eveningActivityTitle);
@@ -1461,7 +1465,7 @@ const GameNotifier = {
             return {
                 type: def.type,
                 time: normalized[timeKey] || this._offsetTimeString('20:00', def.defaultOffsetMin),
-                title: normalized[titleKey] || copy.title || 'NutriPlan',
+                title: normalized[titleKey] || copy.title || 'Eatologix',
                 body: def.type === 'evening_activity' && activityMode === 'training' ? this.TRAINING_COPY.body : (normalized[bodyKey] || copy.body || ''),
                 actions: this._actionsFromConfig(normalized, def),
                 actionTypeId: this[def.actionTypeKey],
@@ -1593,7 +1597,7 @@ const GameNotifier = {
                     notifications.push({
                         id: 5000 + idx * 100 + day,
                         channelId: this.CHANNEL_ID,
-                        title: extra.title || 'NutriPlan',
+                        title: extra.title || 'Eatologix',
                         body:  extra.body  || '',
                         schedule: { at: new Date(xTs), allowWhileIdle: true },
                         extra: { url: extra.url || '/plan.html', type: 'extra_' + idx },
@@ -1703,7 +1707,7 @@ const GameNotifier = {
                 if (xTs > now) {
                     schedule.push({
                         ts: xTs,
-                        title: extra.title || 'NutriPlan',
+                        title: extra.title || 'Eatologix',
                         body:  extra.body  || '',
                         tag:   `gn-extra-${idx}-${xTs}`,
                         type:  'extra_' + idx,
@@ -1767,7 +1771,7 @@ const GameNotifier = {
             actionTypeId = this.EVENING_WATER_ACTION_TYPE_ID;
             type = 'evening_water';
         } else {
-            title = 'NutriPlan тест';
+            title = 'Eatologix тест';
             body  = 'Тестово известие от GameNotifier.';
             url   = '/plan.html';
         }

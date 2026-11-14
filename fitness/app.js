@@ -47,7 +47,7 @@ function workerUrl() {
 }
 
 /**
- * API fetch с автоматичен fallback между основния NutriPlan worker и
+ * API fetch с автоматичен fallback между основния Eatologix worker и
  * отделния KA-TRAINER worker.
  *
  * ВАЖНО за икономичността: преминаваме към резервния worker САМО при

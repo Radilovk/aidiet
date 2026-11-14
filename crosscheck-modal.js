@@ -1,5 +1,5 @@
 /**
- * Въпроси за разминаване между източниците (AIRIS, EmoEat, NutriPlan).
+ * Въпроси за разминаване между източниците (AIRIS, EmoEat, Eatologix).
  *
  * Сървърът сверява данните и връща отворените въпроси (derived.questions).
  * Тук те се задават един по един в прозорец; отговорът се записва като факт
@@ -23,13 +23,13 @@
             '@media(min-width:600px){.npq-backdrop{align-items:center;}}' +
             '.npq-card{width:100%;max-width:440px;background:var(--ds-bg-tertiary,#fff);color:var(--ds-text-primary,#0F2F2E);border-radius:20px;padding:20px;box-shadow:var(--ds-shadow-lg);font-family:var(--ds-font-family,inherit);}' +
             '[data-theme="dark"] .npq-card{background:#112B2B;color:#E0F5F0;}' +
-            '.npq-badge{display:inline-flex;align-items:center;gap:6px;font-size:.8125rem;font-weight:700;color:var(--ds-accent-text,#0F766E);background:rgba(15,118,110,.08);border-radius:999px;padding:5px 10px;margin-bottom:10px;}' +
+            '.npq-badge{display:inline-flex;align-items:center;gap:6px;font-size:.8125rem;font-weight:700;color:var(--ds-accent-text,#05737D);background:rgba(5,115,125,.08);border-radius:999px;padding:5px 10px;margin-bottom:10px;}' +
             '.npq-title{font-size:1.125rem;font-weight:800;margin:0 0 6px;}' +
             '.npq-text{font-size:1rem;line-height:1.5;margin:0 0 16px;}' +
             '.npq-options{display:grid;gap:8px;}' +
-            '.npq-opt{min-height:48px;border-radius:14px;border:1px solid var(--ds-border-accent,rgba(13,148,136,.2));background:transparent;color:inherit;font-size:1rem;font-weight:600;cursor:pointer;padding:10px 14px;text-align:left;}' +
+            '.npq-opt{min-height:48px;border-radius:14px;border:1px solid var(--ds-border-accent,rgba(3,147,156,.2));background:transparent;color:inherit;font-size:1rem;font-weight:600;cursor:pointer;padding:10px 14px;text-align:left;}' +
             // Отговорите са равностойни — нито един не е подчертан, за да не подсказва.
-            '.npq-opt:hover,.npq-opt:focus-visible{border-color:var(--ds-fill,#0F766E);background:rgba(15,118,110,.06);}' +
+            '.npq-opt:hover,.npq-opt:focus-visible{border-color:var(--ds-fill,#05737D);background:rgba(5,115,125,.06);}' +
             '.npq-opt:disabled{opacity:.6;cursor:default;}' +
             '.npq-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;}' +
             '.npq-later{min-height:44px;background:none;border:0;color:var(--ds-text-soft,#52514e);font-weight:600;cursor:pointer;padding:0 4px;}' +
