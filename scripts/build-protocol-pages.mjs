@@ -19,7 +19,7 @@ import { PROTOCOL_STATES, STATE_ICONS, statePageUrl } from '../protocol-states.j
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = 'https://biocode.website';
-const CSS_V = '20261114a';
+const CSS_V = '20261114b';
 
 /** Статични страници с общия футър (вмъква се между маркерите). */
 const SITE_FOOTER_PAGES = ['index.html', 'features.html', 'help.html', 'delete-account.html', 'privacy-policy.html', 'terms.html'];
@@ -63,7 +63,7 @@ function siteFooter() {
         <div class="sf-wrap">
             <div class="sf-top">
                 <div class="sf-brand">
-                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><img src="brand/eatologix-mark.svg" alt="" width="30" height="30"></span>Eatologix</a>
+                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><img src="brand/eatologix-mark.svg" alt="" width="30" height="30"></span><img class="sf-word" src="brand/eatologix-wordmark-dark.svg" alt="Eatologix" height="17"></a>
                     <p class="sf-tag">Хранене по твоя мярка.</p>
                     <p class="sf-about">Седмично меню с точни грамажи — по тялото, здравето и вкусовете ти. Коригира се всяка седмица според резултата.</p>
                     <div class="sf-stores sf-web" aria-label="Мобилни магазини">
@@ -108,7 +108,7 @@ function siteFooter() {
                 </nav>
             </div>
             <div class="sf-bottom">
-                <p>© 2026 Eatologix · biocode.website</p>
+                <p>© 2026 Eatologix · eatologix.com</p>
                 <p>Хранителни насоки, не медицинска услуга. При заболяване — с лекар.</p>
             </div>
         </div>
@@ -119,7 +119,7 @@ function siteFooter() {
 const topbar = () => `<header class="topbar">
         <div class="wrap">
             <a class="brand" href="index.html?stay=1" aria-label="Eatologix — начало">
-                <span class="brand-mark"><img src="brand/eatologix-mark.svg" alt="" width="30" height="30"></span>Eatologix
+                <span class="brand-mark"><img src="brand/eatologix-mark.svg" alt="" width="30" height="30"></span><span class="brand-word" role="img" aria-label="Eatologix"></span>
             </a>
             <button class="icon-btn" id="theme-toggle" type="button" aria-label="Смени светла / тъмна тема">
                 <span class="i-moon">${svg(I.moon, 18)}</span><span class="i-sun">${svg(I.sun, 18)}</span>

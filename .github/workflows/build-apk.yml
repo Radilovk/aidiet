@@ -485,6 +485,27 @@ jobs:
           retention-days: 30
           path: release/*.apk
 
+      # Марката в готовия APK: името под иконата и иконите/сплашът от знака EATOLOGIX (scripts/build-brand.mjs).
+      - name: Brand check (име, икони, сплаш)
+        if: success()
+        run: |
+          APK=$(ls release/*.apk | head -1)
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1)
+          LABEL=$("$AAPT" dump badging "$APK" 2>/dev/null | grep -o "application-label:'[^']*'" | head -1)
+          mkdir -p brand-check && cd brand-check && unzip -o -q "../$APK" 'res/*' 2>/dev/null || true; cd ..
+          N_FG=$(find brand-check/res -name 'ic_launcher_foreground*.png' | wc -l)
+          N_SPLASH=$(find brand-check/res -name 'nutriplan_splash_logo*' | wc -l)
+          N_STAT=$(find brand-check/res -name 'ic_stat_nutriplan*' | wc -l)
+          MARK=$(convert brand/mark-512.png -resize 64x64 -alpha extract -format '%[fx:mean]' info: 2>/dev/null || echo '?')
+          SPL=$(f=$(find brand-check/res -name 'nutriplan_splash_logo*' | head -1); [ -n "$f" ] && convert "$f" -resize 64x64 -alpha extract -format '%[fx:mean]' info: 2>/dev/null || echo '?')
+          {
+            echo "### Марка в APK"
+            echo "- Име: \`${LABEL:-?}\`"
+            echo "- Икона (адаптивен преден слой): $N_FG файла; сплаш: $N_SPLASH; икона за известия: $N_STAT"
+            echo "- Сплашът е знакът EATOLOGIX: покритие $SPL (знакът: $MARK — трябва да са близки)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "$LABEL" | grep -q "Eatologix" || { echo "::error::Името в APK не е Eatologix: $LABEL"; exit 1; }
+
       - name: Build summary
         if: always()
         run: |

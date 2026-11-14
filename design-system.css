@@ -1902,3 +1902,7 @@ nav.bottom-nav .bottom-nav-item:focus-visible {
 .ex-logo { display: inline-block; height: 28px; aspect-ratio: 3507 / 734; background: var(--brand-logo) left center / contain no-repeat; vertical-align: middle; }
 .ex-mark { display: inline-block; width: 28px; height: 28px; background: url('brand/eatologix-mark.svg') center / contain no-repeat; vertical-align: middle; }
 .ex-gradient-text { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Тънка лента с логото най-горе (въпросник, чакане на плана). */
+.ex-topbar { display: flex; justify-content: center; align-items: center; padding: max(10px, env(safe-area-inset-top)) 16px 6px; text-decoration: none; }
+.ex-topbar .ex-logo { height: 26px; }
