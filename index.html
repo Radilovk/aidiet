@@ -699,6 +699,7 @@
             z-index: 1;
         }
         .lp-hero-copy { max-width: 600px; }
+        .lp-line--logic { color: var(--lp-leaf, #07CF61); }
         /* Логото на марката в началния екран (знак + EATO | LOGIX), следва темата. */
         .lp-brand { margin: 0 0 22px; }
         .lp-brand-logo { display: block; width: min(300px, 70vw); aspect-ratio: 1196 / 920; background: url('brand/eatologix-logo.svg') left center / contain no-repeat; filter: drop-shadow(0 18px 36px rgba(0, 224, 220, 0.16)); }
@@ -2193,7 +2194,7 @@
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Програми</div>
         <a href="emoeat.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално хранене</a>
-        <a href="longevity.html" onclick="closeNavMenu()"><i class="fas fa-dna"></i> Дълголетие</a>
+        <a href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener" onclick="closeNavMenu()"><i class="fas fa-eye"></i> Ирисов анализ</a>
         <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични протоколи</a>
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Език · Language</div>
@@ -2210,12 +2211,13 @@
         <div class="lp-hero-inner">
             <div class="hero-content lp-hero-copy">
                 <div class="lp-brand lp-enter" style="--d:0"><span class="lp-brand-logo" role="img" aria-label="Eatologix"></span></div>
-                <p class="lp-eyebrow lp-enter" style="--d:0"><span class="lp-pulse" aria-hidden="true"></span> Персонална логика на храненето</p>
+                <p class="lp-eyebrow lp-enter" style="--d:0"><span class="lp-pulse" aria-hidden="true"></span> Логиката на твоето хранене</p>
                 <h1 id="lpHeroTitle" class="lp-h1">
-                    <span class="lp-line lp-enter" style="--d:1">Логиката е наша.</span>
-                    <span class="lp-line lp-enter" style="--d:2">Резултатът — <em>твой</em>.</span>
+                    <span class="lp-line lp-enter" style="--d:1">Твоята лична цел</span>
+                    <span class="lp-line lp-enter" style="--d:2">иска <em>личен</em> план.</span>
+                    <span class="lp-line lp-line--logic lp-enter" style="--d:2">Логично е.</span>
                 </h1>
-                <p class="lp-lead lp-enter" style="--d:3">Съветите за хранене, които чуваш навсякъде, са за всички — значи за никого. Ние изчисляваме твоя логичен избор: какво, колко и кога да ядеш. Ти се храниш и гледаш резултата.</p>
+                <p class="lp-lead lp-enter" style="--d:3">Общите съвети за хранене са за всички — значи за никого. Ние изчисляваме твоя логичен избор: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Логиката е наша, резултатът — твой.</p>
                 <div class="cta-group lp-enter" style="--d:4">
                     <a href="questionnaire2.html" class="nav-btn lp-btn" id="heroCTABtn">Създай моя план</a>
                     <button type="button" class="btn-outline lp-btn-ghost" id="heroLoginBtn" onclick="window.indexOpenLoginModal()">Вход</button>
@@ -2366,31 +2368,30 @@
         </div>
     </section>
 
-    <!-- Programs -->
+    <!-- Programs: храненето, емоционалното хранене и ирисът — една свързана система -->
     <section class="lp-section lp-section--tint" id="programs">
         <div class="lp-wrap">
             <header class="lp-head lp-reveal">
-                <p class="lp-kicker">Програми</p>
-                <h2 class="lp-h2">Когато целта е <em>по-конкретна</em>.</h2>
+                <p class="lp-kicker">Свързани модули</p>
+                <h2 class="lp-h2">Какво ядеш, защо го ядеш, <em>какво показва тялото</em>.</h2>
             </header>
             <div class="lp-programs">
                 <a class="lp-program lp-reveal" href="emoeat.html" style="--tone:#a855f7">
                     <span class="lp-program-ico"><i class="fas fa-heart-pulse"></i></span>
                     <h3>Емоционално хранене</h3>
-                    <p>Откъде идва гладът, който не е глад. Тригери и стратегии от CBT, DBT, HALT и RAIN.</p>
-                    <span class="lp-program-go">Разгледай <i class="fas fa-arrow-right"></i></span>
+                    <p>Откъде идва гладът, който не е глад. Резултатът влиза направо в плана ти.</p>
+                    <span class="lp-program-go">Направи теста <i class="fas fa-arrow-right"></i></span>
                 </a>
-                <a class="lp-program lp-reveal" href="longevity.html" style="--tone:#d97706">
-                    <span class="lp-program-tag">С профил</span>
-                    <span class="lp-program-ico"><i class="fas fa-dna"></i></span>
-                    <h3>Дълголетие</h3>
-                    <p>Хранене и навици за по-бавно стареене — автофагия, митохондрии, възстановяване.</p>
-                    <span class="lp-program-go">Влез и разгледай <i class="fas fa-arrow-right"></i></span>
+                <a class="lp-program lp-reveal" href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener" style="--tone:#07a9b8">
+                    <span class="lp-program-ico"><i class="fas fa-eye"></i></span>
+                    <h3>Ирисов анализ</h3>
+                    <p>Анализ по снимка на ириса. Находките влизат в плана като допълнителни данни.</p>
+                    <span class="lp-program-go">Започни анализа <i class="fas fa-arrow-right"></i></span>
                 </a>
                 <a class="lp-program lp-reveal" href="protocol-landing.html" style="--tone:#03939c">
                     <span class="lp-program-ico"><i class="fas fa-stethoscope"></i></span>
                     <h3>Клинични протоколи</h3>
-                    <p>Инсулинова резистентност, автоимунни състояния, храносмилане, менопауза, кърмене и още — 11 протокола.</p>
+                    <p>Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.</p>
                     <span class="lp-program-go">Разгледай <i class="fas fa-arrow-right"></i></span>
                 </a>
             </div>
@@ -2595,7 +2596,7 @@
                         <ul>
                             <li><a href="protocol-landing.html">Клинични протоколи</a></li>
                             <li><a href="emoeat.html">Емоционално хранене</a></li>
-                            <li><a href="longevity.html">Дълголетие <small>с профил</small></a></li>
+                            <li><a href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener">Ирисов анализ</a></li>
                         </ul>
                     </div>
                     <div>
