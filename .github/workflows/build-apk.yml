@@ -126,6 +126,7 @@ jobs:
             --exclude 'worker.entry.js' \
             --exclude 'app-domain.js' \
             --exclude 'i18n-server.js' \
+            --exclude 'email-i18n.js' \
             --exclude 'brand/wordmark-glyphs.json' \
             --exclude 'brand/concept-eatologix.png' \
             --exclude 'plan-response-schemas.js' \
