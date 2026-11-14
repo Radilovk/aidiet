@@ -10,7 +10,7 @@ on:
       langs:
         description: 'Езици'
         required: false
-        default: 'en,de,es'
+        default: 'en,de,es,ru'
   push:
     branches: [claude/jolly-goodall-obbojn]
     paths: ['.github/workflows/i18n-prewarm.yml']
@@ -39,7 +39,7 @@ jobs:
           html=$(curl -sS -m 30 https://biocode.website/index.html)
           echo "$html" | grep -q 'ex-logo' && say '- ✓ biocode.website: новото лого' || say '- ✗ biocode.website: старата версия (Pages още не е обновен?)'
           echo "$html" | grep -q 'i18n.js' && say '- ✓ biocode.website: i18n.js' || say '- ✗ biocode.website: без i18n.js'
-          for l in en de es; do
+          for l in en de es ru; do
             r=$(curl -sS -m 90 -X POST https://aidiet.radilov-k.workers.dev/api/i18n/translate -H 'Content-Type: application/json' \
               -d "{\"lang\":\"$l\",\"strings\":[\"Пилешко филе със задушени зеленчуци\",\"Колко вода изпи днес?\",\"Твоят план за седмицата е готов\"]}")
             say "- $l: \`$(echo "$r" | head -c 400)\`"
@@ -54,5 +54,5 @@ jobs:
       - name: Prewarm
         run: |
           set -o pipefail
-          node scripts/i18n-prewarm.mjs "${{ inputs.langs || 'en,de,es' }}" 2>&1 | tee prewarm.log
+          node scripts/i18n-prewarm.mjs "${{ inputs.langs || 'en,de,es,ru' }}" 2>&1 | tee prewarm.log
           { echo '## Предварителен превод'; echo '```'; cat prewarm.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

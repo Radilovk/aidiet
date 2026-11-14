@@ -8,7 +8,7 @@
  *
  * Тяло: { lang: 'en'|'de'|'es', strings: ['…', …] } → { ok, translations: { '<bg>': '<превод>' } }
  */
-export const I18N_LANGS = { en: 'English', de: 'German', es: 'Spanish' };
+export const I18N_LANGS = { en: 'English', de: 'German', es: 'Spanish', ru: 'Russian' };
 const MAX_STRINGS = 60;
 const MAX_LEN = 700;
 const CYR = /[Ѐ-ӿ]/;
@@ -49,7 +49,8 @@ function cleanList(raw) {
 function buildPrompt(name, list) {
   return `You translate the interface and content of Eatologix, a nutrition app, from Bulgarian into ${name}.
 Rules:
-- Natural, short, friendly ${name}, addressing the reader informally (as the Bulgarian does with "ти").
+- Natural, short, friendly ${name}, addressing the reader informally (as the Bulgarian does with "ти"; in Russian — "ты").
+- The source is Bulgarian even where it looks like Russian; translate it fully into ${name}.
 - Keep numbers, units (g, kcal, ml, kg), emoji, punctuation at the edges, and anything inside {curly braces} unchanged.
 - Food and dish names: the usual ${name} name; a Bulgarian dish with no equivalent keeps its name in Latin letters with a short gloss only if needed.
 - "Eatologix" stays as is. Do not add quotes, notes or explanations.
@@ -91,7 +92,8 @@ export async function handleI18nTranslate(request, env, deps) {
         const puts = [];
         todo.forEach((src, j) => {
           const tr = typeof arr[j] === 'string' ? arr[j].trim() : '';
-          if (!tr || CYR.test(tr)) return; // непреведено — не се пази, ще се опита пак
+          // Непреведено (кирилица в превод на латиница) — не се пази, ще се опита пак. Руският е на кирилица.
+          if (!tr || (lang !== 'ru' && CYR.test(tr))) return;
           translations[src] = tr;
           if (kv) puts.push(kv.put(keys[missing[j]], tr).catch(() => {}));
         });
