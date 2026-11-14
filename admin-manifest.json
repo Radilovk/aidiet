@@ -1,14 +1,14 @@
 {
   "id": "/admin.html",
-  "name": "NutriPlan Админ Панел",
+  "name": "Eatologix Админ Панел",
   "short_name": "НП Админ",
-  "description": "Административен панел за управление на NutriPlan платформата.",
+  "description": "Административен панел за управление на Eatologix платформата.",
   "start_url": "/admin.html",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#0D9488",
-  "theme_color": "#0D9488",
+  "background_color": "#03939C",
+  "theme_color": "#03939C",
   "orientation": "portrait",
   "prefer_related_applications": false,
   "icons": [

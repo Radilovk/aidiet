@@ -1,6 +1,6 @@
 {
   "appId": "com.biocode.nutriplan",
-  "appName": "NutriPlan",
+  "appName": "Eatologix",
   "webDir": "capacitor-shell",
   "server": {
     "androidScheme": "https",
@@ -26,7 +26,7 @@
       "launchShowDuration": 900,
       "launchAutoHide": true,
       "launchFadeOutDuration": 220,
-      "backgroundColor": "#042F2E",
+      "backgroundColor": "#032E36",
       "showSpinner": false,
       "splashFullScreen": false,
       "splashImmersive": false
@@ -35,12 +35,12 @@
       "_note": "Начален цвят = splash; после app.js го сменя според темата и отворените листове.",
       "overlaysWebView": false,
       "style": "DARK",
-      "backgroundColor": "#042F2E"
+      "backgroundColor": "#032E36"
     }
   },
   "android": {
     "minWebViewVersion": 60,
     "allowMixedContent": false,
-    "backgroundColor": "#042F2E"
+    "backgroundColor": "#032E36"
   }
 }

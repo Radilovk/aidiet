@@ -2,43 +2,44 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
+    <script src="./i18n.js?v=20261114a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
-    <title>Избор на продукти — NutriPlan (тест)</title>
+    <title>Избор на продукти — Eatologix (тест)</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
-            --primary: #0F766E;
-            --primary-dark: #115E59;
-            --primary-light: #CCFBF1;
+            --primary: #05737D;
+            --primary-dark: #075C66;
+            --primary-light: #CDF9F6;
             --accent: #06B6D4;
-            --bg: #F0FDFA;
+            --bg: #EEFDFC;
             --card-bg: rgba(255,255,255,0.82);
             --text-dark: #0F2F2E;
             --text-gray: #4b5563;
-            --border: rgba(13,148,136,0.15);
-            --shadow: 0 10px 30px rgba(13,148,136,0.12);
+            --border: rgba(3,147,156,0.15);
+            --shadow: 0 10px 30px rgba(3,147,156,0.12);
             --radius: 18px;
             --transition: all 0.25s cubic-bezier(0.25,0.8,0.25,1);
         }
         [data-theme="dark"] {
-            --primary: #2DD4BF;
-            --primary-dark: #115E59;
-            --primary-light: rgba(45,212,191,0.15);
+            --primary: #19D6D2;
+            --primary-dark: #075C66;
+            --primary-light: rgba(25,214,210,0.15);
             --accent: #22d3ee;
             --bg: #0a1f1e;
             --card-bg: rgba(15,47,46,0.85);
             --text-dark: #e2f8f5;
             --text-gray: #94a3b8;
-            --border: rgba(45,212,191,0.15);
+            --border: rgba(25,214,210,0.15);
             --shadow: 0 10px 30px rgba(0,0,0,0.35);
         }
 
@@ -294,7 +295,7 @@
             border-radius: 12px;
             font-size: 0.9rem;
             font-weight: 600;
-            box-shadow: 0 8px 24px rgba(13,148,136,0.35);
+            box-shadow: 0 8px 24px rgba(3,147,156,0.35);
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s, transform 0.3s;
@@ -429,7 +430,7 @@
             font-family: inherit;
         }
         .cat-add-input::placeholder { color: var(--text-gray); opacity: 0.7; }
-        .cat-add-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(13,148,136,0.12); }
+        .cat-add-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(3,147,156,0.12); }
         .cat-add-btn {
             flex-shrink: 0;
             background: var(--ds-fill);

@@ -84,7 +84,7 @@ const assembly = foodsForSlotAssembly('Хранене 3', 'balanced');
 ok(assembly.foods.length >= 5, `snack assembly foods >= 5 (${assembly.foods.length})`);
 
 const slots = getAllSlotTemplates();
-ok(slots.length === 5, 'all 5 NutriPlan slots have templates');
+ok(slots.length === 5, 'all 5 Eatologix slots have templates');
 
 ok(!LIBRARY_FOODS.some(f => /експандирана храна/i.test(f.name_bg)), 'no placeholder foods');
 

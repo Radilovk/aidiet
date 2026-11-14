@@ -2,44 +2,45 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
+    <script src="./i18n.js?v=20261114a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <meta name="apple-mobile-web-app-title" content="Eatologix">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
     <link rel="manifest" href="./manifest.json">
     <title>Обективен Справочник: Молекули и Протоколи за Регенерация</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
-            --bg-color: #F0FDFA;
+            --bg-color: #EEFDFC;
             --card-bg: rgba(255, 255, 255, 0.72);
-            --primary-red: #0D9488;
+            --primary-red: #03939C;
             --accent-gold: #d4a843;
             --text-dark: #0F2F2E;
             --text-light: #6b7280;
-            --glass-border: rgba(13, 148, 136, 0.1);
+            --glass-border: rgba(3, 147, 156, 0.1);
             --radius: 24px;
-            --shadow: 0 10px 40px rgba(13, 148, 136, 0.1);
+            --shadow: 0 10px 40px rgba(3, 147, 156, 0.1);
             --glass-blur: 20px;
             --accent-red: #ef4444;
-            --accent-green: #0D9488;
+            --accent-green: #03939C;
             --accent-yellow: #f59e0b;
-            --accent-glow: rgba(13, 148, 136, 0.15);
-            --accent-glow-strong: rgba(13, 148, 136, 0.3);
-            --accent-border-hover: rgba(13, 148, 136, 0.5);
-            --accent-bg-subtle: rgba(13, 148, 136, 0.12);
-            --accent-bg-muted: rgba(13, 148, 136, 0.05);
+            --accent-glow: rgba(3, 147, 156, 0.15);
+            --accent-glow-strong: rgba(3, 147, 156, 0.3);
+            --accent-border-hover: rgba(3, 147, 156, 0.5);
+            --accent-bg-subtle: rgba(3, 147, 156, 0.12);
+            --accent-bg-muted: rgba(3, 147, 156, 0.05);
             /* Aliases for inline styles in HTML body */
             --border-glow: var(--glass-border);
             --text-secondary: var(--text-light);
@@ -51,16 +52,16 @@
             --accent-gold: #d4a843;
             --text-dark: #E0F5F0;
             --text-light: #9ca3af;
-            --glass-border: rgba(45, 212, 191, 0.15);
-            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(45,212,191,0.1);
+            --glass-border: rgba(25, 214, 210, 0.15);
+            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(25,214,210,0.1);
             --accent-red: #f87171;
-            --accent-green: #2DD4BF;
+            --accent-green: #19D6D2;
             --accent-yellow: #fbbf24;
-            --accent-glow: rgba(45, 212, 191, 0.15);
-            --accent-glow-strong: rgba(45, 212, 191, 0.3);
-            --accent-border-hover: rgba(45, 212, 191, 0.5);
-            --accent-bg-subtle: rgba(45, 212, 191, 0.12);
-            --accent-bg-muted: rgba(45, 212, 191, 0.05);
+            --accent-glow: rgba(25, 214, 210, 0.15);
+            --accent-glow-strong: rgba(25, 214, 210, 0.3);
+            --accent-border-hover: rgba(25, 214, 210, 0.5);
+            --accent-bg-subtle: rgba(25, 214, 210, 0.12);
+            --accent-bg-muted: rgba(25, 214, 210, 0.05);
             --border-glow: var(--glass-border);
             --text-secondary: var(--text-light);
         }
@@ -75,9 +76,9 @@
         .bg-mesh {
             position: fixed; inset: 0; z-index: 0; pointer-events: none;
             background:
-                radial-gradient(ellipse at 20% 20%, rgba(13,148,136,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 20% 20%, rgba(3,147,156,0.06) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 80%, rgba(212,168,67,0.04) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(13,148,136,0.04) 0%, transparent 60%);
+                radial-gradient(ellipse at 50% 50%, rgba(3,147,156,0.04) 0%, transparent 60%);
             animation: bgShift 25s ease-in-out infinite alternate;
         }
         @keyframes bgShift {
@@ -733,24 +734,24 @@
         .theme-toggle:hover { transform: scale(1.1); border-color: var(--primary-red); }
         /* Light theme specific overrides */
         :root .control-group select { background: var(--card-bg); }
-        :root .metrics-mini { background: rgba(13,148,136,0.04); }
+        :root .metrics-mini { background: rgba(3,147,156,0.04); }
         :root .metrics-mini div { background: rgba(255,255,255,0.8); }
-        :root .detail-section { background: rgba(13,148,136,0.04); }
-        :root .summary-item { background: rgba(13,148,136,0.04); }
-        :root .result-card { background: rgba(13,148,136,0.04); }
+        :root .detail-section { background: rgba(3,147,156,0.04); }
+        :root .summary-item { background: rgba(3,147,156,0.04); }
+        :root .result-card { background: rgba(3,147,156,0.04); }
         :root .tile-option { background: rgba(255,255,255,0.8); }
         :root .radio-option { background: rgba(255,255,255,0.8); }
         :root .form-field input,
         :root .form-field select,
         :root .form-field textarea { background: rgba(255,255,255,0.8); }
-        :root h1 { background: linear-gradient(90deg, #0D9488, #b8860b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        :root h1 { background: linear-gradient(90deg, #03939C, #b8860b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         :root .card h3 { background: linear-gradient(90deg, #b8860b, #d4a843); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         /* Dark theme specific overrides */
         [data-theme="dark"] .bg-mesh {
             background:
-                radial-gradient(ellipse at 20% 20%, rgba(45,212,191,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 20% 20%, rgba(25,214,210,0.05) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 80%, rgba(212,168,67,0.04) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(13,148,136,0.04) 0%, transparent 60%);
+                radial-gradient(ellipse at 50% 50%, rgba(3,147,156,0.04) 0%, transparent 60%);
         }
         [data-theme="dark"] .control-group select { background: rgba(255,255,255,0.04); }
         [data-theme="dark"] .metrics-mini { background: rgba(0,0,0,0.3); }

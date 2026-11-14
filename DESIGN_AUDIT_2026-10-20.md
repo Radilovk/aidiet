@@ -1,4 +1,4 @@
-# Дизайн одит на NutriPlan спрямо „Mobile Health App — Experience-First Handbook v4.0“
+# Дизайн одит на Eatologix спрямо „Mobile Health App — Experience-First Handbook v4.0“
 
 Дата: 2026-10-20
 

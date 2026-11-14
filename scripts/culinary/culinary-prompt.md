@@ -1,4 +1,4 @@
-# Кулинарен преглед и рецепти за ястията на NutriPlan
+# Кулинарен преглед и рецепти за ястията на Eatologix
 
 Промптът на scripts/culinary/ai-culinary.mjs (Gemini). Същите правила проверява scripts/culinary/validate.mjs.
 

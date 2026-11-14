@@ -2,26 +2,27 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
+    <script src="./i18n.js?v=20261114a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>NutriPlan • Бърз отговор</title>
+    <title>Eatologix • Бърз отговор</title>
     <meta name="theme-color" content="#0b1120">
     <style>
         :root {
             --bg-1: #04111b;
             --bg-2: #0b1f2a;
             --card: rgba(9, 24, 36, 0.86);
-            --card-border: rgba(94, 234, 212, 0.18);
+            --card-border: rgba(95, 230, 227, 0.18);
             --text: #ecfeff;
             --muted: #94a3b8;
-            --teal: #2dd4bf;
-            --teal-strong: #14b8a6;
+            --teal: #19d6d2;
+            --teal-strong: #04b7bd;
             --amber: #fbbf24;
             --rose: #fb7185;
             --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
             --radius: 28px;
         }
         * { box-sizing: border-box; }
-        html, body { margin: 0; min-height: 100%; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at top, rgba(45,212,191,0.22), transparent 28%), linear-gradient(180deg, var(--bg-1), var(--bg-2)); color: var(--text); }
+        html, body { margin: 0; min-height: 100%; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at top, rgba(25,214,210,0.22), transparent 28%), linear-gradient(180deg, var(--bg-1), var(--bg-2)); color: var(--text); }
         body { overflow-x: hidden; overflow-y: auto; }
         .stars, .glow, .confetti { position: fixed; inset: 0; pointer-events: none; }
         .stars {
@@ -36,9 +37,9 @@
         }
         .glow {
             background:
-                radial-gradient(circle at 15% 20%, rgba(45,212,191,0.18), transparent 30%),
+                radial-gradient(circle at 15% 20%, rgba(25,214,210,0.18), transparent 30%),
                 radial-gradient(circle at 85% 18%, rgba(251,191,36,0.18), transparent 28%),
-                radial-gradient(circle at 50% 85%, rgba(20,184,166,0.18), transparent 34%);
+                radial-gradient(circle at 50% 85%, rgba(4,183,189,0.18), transparent 34%);
             filter: blur(12px);
         }
         .shell {
@@ -74,9 +75,9 @@
             gap: 8px;
             padding: 7px 12px;
             border-radius: 999px;
-            background: rgba(45,212,191,0.12);
-            border: 1px solid rgba(45,212,191,0.25);
-            color: #ccfbf1;
+            background: rgba(25,214,210,0.12);
+            border: 1px solid rgba(25,214,210,0.25);
+            color: #cdf9f6;
             font-size: 13px;
             font-weight: 700;
             letter-spacing: 0.02em;
@@ -110,7 +111,7 @@
             content: "";
             position: absolute;
             inset: 0;
-            background: linear-gradient(90deg, var(--teal), #5eead4);
+            background: linear-gradient(90deg, var(--teal), #5fe6e3);
             transform: scaleX(0);
             transform-origin: left;
             transition: transform 0.26s ease;
@@ -140,8 +141,8 @@
         }
         .choice:active {
             transform: scale(0.97);
-            background: rgba(45,212,191,0.12);
-            border-color: rgba(45,212,191,0.38);
+            background: rgba(25,214,210,0.12);
+            border-color: rgba(25,214,210,0.38);
         }
         .choice-icons {
             display: inline-flex;
@@ -157,27 +158,27 @@
         .choice-label { flex: 1; line-height: 1.3; }
         .choice:hover, .choice:focus-visible {
             transform: translateY(-2px);
-            border-color: rgba(45,212,191,0.44);
-            box-shadow: 0 16px 34px rgba(13,148,136,0.18);
+            border-color: rgba(25,214,210,0.44);
+            box-shadow: 0 16px 34px rgba(3,147,156,0.18);
             outline: none;
         }
         .choice.primary {
-            background: linear-gradient(180deg, rgba(20,184,166,0.24), rgba(13,148,136,0.18));
-            border-color: rgba(45,212,191,0.34);
+            background: linear-gradient(180deg, rgba(4,183,189,0.24), rgba(3,147,156,0.18));
+            border-color: rgba(25,214,210,0.34);
         }
         .choice.warn {
             background: linear-gradient(180deg, rgba(251,113,133,0.18), rgba(127,29,29,0.12));
         }
         .choice.selected {
-            border-color: rgba(45,212,191,0.65);
-            box-shadow: 0 0 0 1px rgba(45,212,191,0.3), 0 18px 36px rgba(20,184,166,0.22);
+            border-color: rgba(25,214,210,0.65);
+            box-shadow: 0 0 0 1px rgba(25,214,210,0.3), 0 18px 36px rgba(4,183,189,0.22);
         }
         .inline-note {
             margin: 0 0 14px;
             padding: 12px 14px;
             border-radius: 18px;
-            background: rgba(45,212,191,0.12);
-            border: 1px solid rgba(45,212,191,0.2);
+            background: rgba(25,214,210,0.12);
+            border: 1px solid rgba(25,214,210,0.2);
             color: #d1fae5;
             font-size: 14px;
             line-height: 1.45;
@@ -206,8 +207,8 @@
             border-radius: 50%;
             display: grid;
             place-items: center;
-            background: radial-gradient(circle at top, rgba(94,234,212,0.32), rgba(20,184,166,0.16));
-            box-shadow: 0 0 0 10px rgba(45,212,191,0.08), 0 18px 36px rgba(45,212,191,0.16);
+            background: radial-gradient(circle at top, rgba(95,230,227,0.32), rgba(4,183,189,0.16));
+            box-shadow: 0 0 0 10px rgba(25,214,210,0.08), 0 18px 36px rgba(25,214,210,0.16);
             font-size: 38px;
         }
         .success h2 { margin: 0 0 10px; font-size: 28px; }
@@ -226,9 +227,9 @@
         .footer-actions .solid:active { opacity: 0.88; transform: scale(0.98); }
         .footer-actions .ghost:active { opacity: 0.78; }
         .footer-actions .solid {
-            color: #042f2e;
-            background: linear-gradient(180deg, #5eead4, #2dd4bf);
-            box-shadow: 0 18px 36px rgba(45,212,191,0.24);
+            color: #032e36;
+            background: linear-gradient(180deg, #5fe6e3, #19d6d2);
+            box-shadow: 0 18px 36px rgba(25,214,210,0.24);
         }
         .footer-actions .ghost {
             color: var(--text);
@@ -297,7 +298,7 @@
 
         var FALLBACK_COPY = {
             morning_check: {
-                title: 'NutriPlan',
+                title: 'Eatologix',
                 body: 'Спа ли добре тази нощ?',
                 actions: [
                     { id: 'sleep_yes', title: 'Да' },
@@ -305,7 +306,7 @@
                 ]
             },
             evening_activity: {
-                title: 'NutriPlan',
+                title: 'Eatologix',
                 body: 'Колко се движи днес?',
                 actions: [
                     { id: 'activity_1', title: 'Малко' },
@@ -314,7 +315,7 @@
                 ]
             },
             evening_balance: {
-                title: 'NutriPlan',
+                title: 'Eatologix',
                 body: 'Как се чувстваше днес?',
                 actions: [
                     { id: 'balance_1', title: 'Напрегнато' },
@@ -323,7 +324,7 @@
                 ]
             },
             evening_water: {
-                title: 'NutriPlan',
+                title: 'Eatologix',
                 body: 'Пи ли достатъчно вода днес?',
                 actions: [
                     { id: 'water_no', title: 'Не' },
@@ -382,7 +383,7 @@
         }
         function makeConfetti(count) {
             confettiLayer.innerHTML = '';
-            var colors = ['#2dd4bf', '#5eead4', '#fbbf24', '#fb7185', '#38bdf8', '#a78bfa'];
+            var colors = ['#19d6d2', '#5fe6e3', '#fbbf24', '#fb7185', '#38bdf8', '#a78bfa'];
             for (var i = 0; i < count; i++) {
                 var part = document.createElement('span');
                 var size = 6 + Math.random() * 8;

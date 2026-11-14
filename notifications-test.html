@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест на Известия - NutriPlan</title>
-    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <title>Тест на Известия - Eatologix</title>
+    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="./design-system.css">
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <script src="./platform.js"></script>
     <script src="./platform-compat.js"></script>
     <style>
@@ -16,7 +16,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             padding: 16px;
-            background: linear-gradient(135deg, #0D9488 0%, #134E4A 100%);
+            background: linear-gradient(135deg, #03939C 0%, #034E5C 100%);
             min-height: 100vh;
         }
 
@@ -68,7 +68,7 @@
         .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 
         button {
-            background: #0D9488;
+            background: #03939C;
             color: #fff;
             border: none;
             padding: 9px 16px;
@@ -77,7 +77,7 @@
             cursor: pointer;
             transition: background 0.2s, opacity 0.2s;
         }
-        button:hover:not(:disabled) { background: #0F766E; }
+        button:hover:not(:disabled) { background: #05737D; }
         button:disabled { opacity: 0.45; cursor: not-allowed; }
         button.btn-green  { background: #28a745; }
         button.btn-green:hover:not(:disabled)  { background: #218838; }
@@ -155,31 +155,31 @@
             gap: 10px;
             padding: 8px 10px;
             border-radius: 8px;
-            background: #f0fdfa;
-            border: 1px solid rgba(13,148,136,0.15);
+            background: #eefdfc;
+            border: 1px solid rgba(3,147,156,0.15);
             font-size: 13px;
         }
         [data-theme="dark"] .sched-day {
-            background: rgba(13,148,136,0.06);
-            border-color: rgba(45,212,191,0.12);
+            background: rgba(3,147,156,0.06);
+            border-color: rgba(25,214,210,0.12);
             color: #a0c8c4;
         }
         .sched-day.sched-today {
-            background: rgba(13,148,136,0.12);
-            border-color: rgba(13,148,136,0.4);
+            background: rgba(3,147,156,0.12);
+            border-color: rgba(3,147,156,0.4);
             font-weight: 600;
         }
         [data-theme="dark"] .sched-day.sched-today {
-            background: rgba(45,212,191,0.10);
-            border-color: rgba(45,212,191,0.3);
+            background: rgba(25,214,210,0.10);
+            border-color: rgba(25,214,210,0.3);
         }
         .sched-day-label {
             width: 80px;
             flex-shrink: 0;
             font-weight: 600;
-            color: #0D9488;
+            color: #03939C;
         }
-        [data-theme="dark"] .sched-day-label { color: #2DD4BF; }
+        [data-theme="dark"] .sched-day-label { color: #19D6D2; }
         .sched-notifs {
             display: flex;
             gap: 8px;
@@ -212,11 +212,11 @@
         }
         .sched-pill.extra {
             background: #dff7f4;
-            color: #0f766e;
+            color: #05737d;
         }
         [data-theme="dark"] .sched-pill.extra {
-            background: rgba(45,212,191,0.12);
-            color: #5eead4;
+            background: rgba(25,214,210,0.12);
+            color: #5fe6e3;
         }
         .sched-pill.past {
             opacity: 0.45;
@@ -231,11 +231,11 @@
         [data-theme="dark"] .sched-empty { color: #4a7070; }
         .sched-next-label {
             font-size: 12px;
-            color: #0D9488;
+            color: #03939C;
             font-weight: 600;
             margin-top: 8px;
         }
-        [data-theme="dark"] .sched-next-label { color: #2DD4BF; }
+        [data-theme="dark"] .sched-next-label { color: #19D6D2; }
         .diag-report {
             font-size: 12px;
             background: #f4f4f4;
@@ -1190,7 +1190,7 @@ async function buildApkDiagnosticReport() {
                         : 'Готово за APK тест с отложен старт';
 
     const report = [
-        'NutriPlan APK / *notifyme диагностика',
+        'Eatologix APK / *notifyme диагностика',
         'Време: ' + new Date().toISOString(),
         'URL: ' + location.href,
         'Контекст: ' + (capInfo.inIframe ? 'iframe / embedded tab' : 'top-level'),
@@ -1440,7 +1440,7 @@ async function scheduleDelayed(delayOverride) {
 async function runAutomatedNotificationTest() {
     const delaySeconds = Math.max(1, Number(document.getElementById('delaySecondsInput').value) || 10);
     const reportLines = [
-        'NutriPlan автоматизиран тест на нотификации',
+        'Eatologix автоматизиран тест на нотификации',
         'Време: ' + new Date().toISOString(),
         'Delay: ' + delaySeconds + ' sec'
     ];

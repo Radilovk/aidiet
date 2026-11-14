@@ -1,10 +1,10 @@
 /**
- * Входните карти за готови състояния (клиничните протоколи на NutriPlan).
+ * Входните карти за готови състояния (клиничните протоколи на Eatologix).
  *
  * Един източник за публичните лендинг страници protocol-<slug>.html
  * (генерират се със `npm run build:protocol-pages`) и за картите в
  * protocol-landing.html. id съвпада с CLINICAL_PROTOCOLS в worker.entry.js и с
- * ?protocol= във въпросника — оттам NutriPlan прилага протокола в плана.
+ * ?protocol= във въпросника — оттам Eatologix прилага протокола в плана.
  * Текстовете са за клиента: без обещания за лечение.
  */
 
@@ -142,7 +142,7 @@ export const PROTOCOL_STATES = [
   {
     id: "chronic_stress",
     slug: "chronic-stress",
-    accent: "#0f766e",
+    accent: "#05737d",
     icon: "brain",
     name: "Хроничен стрес",
     shortName: "Кортизолова регулация",

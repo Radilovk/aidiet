@@ -4576,7 +4576,7 @@
             /* ─── Хранене: calories, protein and water for the day + training-day tips. No AI, no request of its own
                beyond the card the client already has: the last weigh-in and the trainings come from the card
                (GET /v1/history/<id>, read at most every 6 h and only when Хранене is opened), the rest from the
-               profile on this device. The same rules as NutriPlan (energy.js: Mifflin–St Jeor; macro-targets.js:
+               profile on this device. The same rules as Eatologix (energy.js: Mifflin–St Jeor; macro-targets.js:
                protein in g/kg by goal on the BMI-adjusted weight, ≤ 2.2 g/kg; a loss deficit ≤ 25 %), with the
                lean mass from the scale when there is one (Katch–McArdle). Pregnancy or a kidney disease → no
                numbers, a specialist decides. */
@@ -4689,7 +4689,7 @@
                 if (pct !== null && pct < -1) adj = 150;
                 else if (pct !== null && cut && p.goal === 'fat' && pct > -0.1 && own.span >= 21) adj = -100;
                 const kcal = round(Math.max(tdee * (1 - cut) + adj, bmr * 1.1, tdee * 0.75), 50);
-                /* protein: g/kg by goal on the BMI-adjusted weight (NutriPlan's referenceWeightKg) */
+                /* protein: g/kg by goal on the BMI-adjusted weight (Eatologix's referenceWeightKg) */
                 let ref = w;
                 if (p.h) {
                     const m = p.h / 100;

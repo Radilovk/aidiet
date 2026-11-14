@@ -53,7 +53,7 @@ function _resolveGuardReady(user) {
     let ov = null;
     if (!likelyAuthed) {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const bg     = isDark ? '#0A1A1A' : '#F0FDFA';
+        const bg     = isDark ? '#0A1A1A' : '#EEFDFC';
 
         ov = document.createElement('div');
         ov.id    = 'auth-guard-overlay';
@@ -63,7 +63,7 @@ function _resolveGuardReady(user) {
             '#auth-guard-overlay{position:fixed;inset:0;background:' + bg + ';' +
             'display:flex;align-items:center;justify-content:center;z-index:99999;' +
             'transition:opacity .25s}' +
-            '#auth-guard-overlay .ag-sp{width:40px;height:40px;border:3px solid #0D9488;' +
+            '#auth-guard-overlay .ag-sp{width:40px;height:40px;border:3px solid #03939C;' +
             'border-top-color:transparent;border-radius:50%;animation:_ag_spin .8s linear infinite}' +
             '</style>' +
             '<div class="ag-sp"></div>';

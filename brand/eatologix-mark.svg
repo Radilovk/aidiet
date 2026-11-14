@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="398 46 722 734" role="img" aria-label="EATOLOGIX"><defs>
+    <linearGradient id="mL" gradientUnits="userSpaceOnUse" x1="0" y1="270" x2="0" y2="770">
+      <stop offset="0" stop-color="#00E0DC"/><stop offset=".45" stop-color="#03909C"/><stop offset="1" stop-color="#034E5C"/>
+    </linearGradient>
+    <linearGradient id="mR" gradientUnits="userSpaceOnUse" x1="640" y1="700" x2="1000" y2="280">
+      <stop offset="0" stop-color="#00E0DC"/><stop offset=".32" stop-color="#08D29A"/><stop offset=".58" stop-color="#10CC50"/><stop offset="1" stop-color="#A0F500"/>
+    </linearGradient>
+    <linearGradient id="mB" gradientUnits="userSpaceOnUse" x1="745" y1="700" x2="1010" y2="395">
+      <stop offset="0" stop-color="#10CC50"/><stop offset="1" stop-color="#A0F500"/>
+    </linearGradient>
+    <linearGradient id="mN" gradientUnits="userSpaceOnUse" x1="735" y1="0" x2="815" y2="0">
+      <stop offset="0" stop-color="#00DCD6"/><stop offset="1" stop-color="#45DA3A"/>
+    </linearGradient>
+    <linearGradient id="mF" gradientUnits="userSpaceOnUse" x1="760" y1="275" x2="1000" y2="70">
+      <stop offset="0" stop-color="#027A0A"/><stop offset=".55" stop-color="#22B80C"/><stop offset="1" stop-color="#7EE80A"/>
+    </linearGradient></defs>
+    <path d="M775,320 C752,321 728,307 700,294 C650,270 600,266 552,284 C474,314 438,386 444,462 C450,560 528,676 592,724 C628,752 668,760 708,734 L752,700" fill="none" stroke="url(#mL)" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M733,684 C800,610 900,505 1009,398 C930,505 852,612 792,700 C780,716 762,722 752,716 Z" fill="url(#mB)"/>
+    <path d="M628,544 L752,670 C792,712 838,748 882,746 C968,742 1046,622 1070,524 C1092,436 1078,346 1022,302 C962,256 884,266 830,296 C806,309 790,318 775,320" fill="none" stroke="url(#mR)" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M735,302 C752,312 765,319 775,320 C790,318 803,311 815,305" fill="none" stroke="url(#mN)" stroke-width="54" stroke-linecap="butt"/>
+    <path d="M750,276 C752,198 800,124 878,88 C928,66 972,58 1009,56 C996,124 962,192 902,228 C852,258 800,270 750,276 Z" fill="#A0F500"/>
+    <path d="M750,276 L1009,56 C996,124 962,192 902,228 C852,258 800,270 750,276 Z" fill="url(#mF)"/></svg>

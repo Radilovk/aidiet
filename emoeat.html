@@ -17,15 +17,15 @@
     <meta property="og:url" content="https://biocode.website/emoeat.html">
     <meta property="og:title" content="Емоционално хранене">
     <meta property="og:description" content="Кратък тест за емоционално хранене — кога храната поема чувствата и какво да правиш тази седмица.">
-    <meta property="og:image" content="https://biocode.website/icon-512x512.png">
+    <meta property="og:image" content="https://biocode.website/brand/og-image.png">
     <meta property="og:locale" content="bg_BG">
 
     <link rel="canonical" href="https://biocode.website/emoeat.html">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
     <link rel="manifest" href="./emoeat-manifest.json">
-    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
     <title>Емоционално хранене</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
@@ -1453,8 +1453,8 @@
         <a href="#" onclick="event.preventDefault(); closeSiteNav(); restartQuestionnaire();"><i class="fas fa-redo"></i> Нов анализ</a>
 
         <div class="site-nav-menu-divider"></div>
-        <div class="site-nav-section-label">NutriPlan</div>
-        <a href="index.html?stay=1"><i class="fas fa-apple-alt"></i> Към NutriPlan</a>
+        <div class="site-nav-section-label">Eatologix</div>
+        <a href="index.html?stay=1"><i class="fas fa-apple-alt"></i> Към Eatologix</a>
         <a href="features.html"><i class="fas fa-th-large"></i> Всички модули</a>
         <a href="longevity.html"><i class="fas fa-dna"></i> Дълголетие</a>
         <a href="protocol-landing.html"><i class="fas fa-stethoscope"></i> Клинични Протоколи</a>
@@ -3009,7 +3009,7 @@
         // обобщението (модел, двигатели, модели, телесни сигнали, нуждата),
         // не отделните отговори.
         const EMOEAT_LINK_KEY = 'emoeat_linked_at';
-        // Отворен от NutriPlan (профила или таба в приложението): тестът е част от профила —
+        // Отворен от Eatologix (профила или таба в приложението): тестът е част от профила —
         // резултатът влиза в плана сам, а пътят назад е към профила, не към лендинга.
         const FROM_PLAN = new URLSearchParams(location.search).get('from') === 'nutriplan' || window.top !== window;
 
@@ -3062,20 +3062,20 @@
             }
         }
 
-        // „Към NutriPlan“ в менюто — към профила, когато има план.
+        // „Към Eatologix“ в менюто — към профила, когато има план.
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('a[href="index.html?stay=1"]').forEach(a => { a.href = nutriPlanBackUrl(); });
         });
 
-        // ── Към NutriPlan за посетител без план ─────────────────────────
+        // ── Към Eatologix за посетител без план ─────────────────────────
         // EmoEat води към плана и му предава само обобщението на профила
         // (през пратка на сървъра, със съгласие на следващия екран). Обратно
-        // към EmoEat не идват данни от NutriPlan.
+        // към EmoEat не идват данни от Eatologix.
         function planInviteHtml() {
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
                     <div class="rx-plan-link-title"><i class="fas fa-utensils"></i> Хранителен план, съобразен с профила ти</div>
-                    <p class="rx-plan-link-text">NutriPlan ще отчете модела ти още от първия ден: кога и защо се появява гладът, какво помага вместо забрани, как да са подредени храненията. Обобщението на профила (без отделните отговори) отива с теб.</p>
+                    <p class="rx-plan-link-text">Eatologix ще отчете модела ти още от първия ден: кога и защо се появява гладът, какво помага вместо забрани, как да са подредени храненията. Обобщението на профила (без отделните отговори) отива с теб.</p>
                     <button type="button" class="rx-btn" id="rxPlanInviteBtn" onclick="continueToNutriPlan()"><i class="fas fa-arrow-right"></i> Създай моя план</button>
                     <div class="rx-plan-link-status" id="rxPlanLinkStatus" role="status"></div>
                 </section>`;

@@ -4,19 +4,20 @@
     <script>(function(){if(new URLSearchParams(window.location.search).get('embedded')==='1')document.documentElement.setAttribute('data-embedded-tab','1');})();</script>
     <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}</style>
     <meta charset="UTF-8">
+    <script src="./i18n.js?v=20261114a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Текущ анализ и здравен индекс за твоя хранителен план в NutriPlan.">
+    <meta name="description" content="Текущ анализ и здравен индекс за твоя хранителен план в Eatologix.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <meta name="apple-mobile-web-app-title" content="Eatologix">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
     <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
     <title>Напредък</title>
     <!-- Prefetch adjacent tabs so the browser caches them before they are needed -->
     <link rel="prefetch" href="./index.html">
@@ -28,24 +29,24 @@
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
     <style>body{opacity:0}</style>
     <style>
         :root {
-            --primary-red: #0F766E;
-            --soft-red: #CCFBF1;
+            --primary-red: #05737D;
+            --soft-red: #CDF9F6;
             --accent-yellow: #fbbf24;
             --accent-blue: #06B6D4;
             --accent-light-red: #f87171;
             --text-dark: #0F2F2E;
             --text-light: #6b7280;
-            --bg-color: #F0FDFA;
+            --bg-color: #EEFDFC;
             --card-bg: rgba(255, 255, 255, 0.72);
-            --shadow: 0 4px 12px rgba(13,148,136,0.08);
+            --shadow: 0 4px 12px rgba(3,147,156,0.08);
             --radius: 24px;
             --glass-blur: 20px;
-            --glass-border: rgba(13, 148, 136, 0.1);
+            --glass-border: rgba(3, 147, 156, 0.1);
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
             --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
             --safe-area-inset-left: env(safe-area-inset-left, 0px);
@@ -53,8 +54,8 @@
         }
 
         [data-theme="dark"] {
-            --primary-red: #2DD4BF;
-            --soft-red: #134E4A;
+            --primary-red: #19D6D2;
+            --soft-red: #034E5C;
             --accent-yellow: #fcd34d;
             --accent-blue: #60a5fa;
             --accent-light-red: #fca5a5;
@@ -62,10 +63,10 @@
             --text-light: #9ca3af;
             --bg-color: #0A1A1A;
             --card-bg: rgba(20, 55, 55, 0.78);
-            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(45,212,191,0.1);
+            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(25,214,210,0.1);
             --radius: 24px;
             --glass-blur: 20px;
-            --glass-border: rgba(45, 212, 191, 0.15);
+            --glass-border: rgba(25, 214, 210, 0.15);
         }
 
         * {
@@ -121,7 +122,7 @@
         }
 
         .back-btn:hover {
-            background: rgba(13, 148, 136, 0.08);
+            background: rgba(3, 147, 156, 0.08);
             transform: translateX(-3px);
         }
 
@@ -147,7 +148,7 @@
             font-size: 1.05rem;
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 14px rgba(5, 115, 125, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
             position: relative;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
@@ -164,7 +165,7 @@
 
         .theme-toggle-btn:hover {
             transform: scale(1.1) rotate(-8deg);
-            box-shadow: 0 8px 20px rgba(15, 118, 110, 0.5);
+            box-shadow: 0 8px 20px rgba(5, 115, 125, 0.5);
         }
 
         .theme-toggle-btn:active {
@@ -257,7 +258,7 @@
             gap: 4px;
         }
         .game-ring-svg { transform: rotate(-90deg); }
-        .game-ring-bg  { fill: none; stroke: rgba(13,148,136,0.12); }
+        .game-ring-bg  { fill: none; stroke: rgba(3,147,156,0.12); }
         .game-ring-fg  { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1); }
         .game-ring-label { font-size: 0.75rem; font-weight: 600; color: var(--text-light); text-align: center; }
         /* Index rows */
@@ -269,8 +270,8 @@
             transition: background 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
-        .game-index-row:hover { background: rgba(13,148,136,0.06); }
-        .game-index-row:active { background: rgba(13,148,136,0.1); }
+        .game-index-row:hover { background: rgba(3,147,156,0.06); }
+        .game-index-row:active { background: rgba(3,147,156,0.1); }
         .game-index-label {
             display: flex;
             justify-content: space-between;
@@ -320,11 +321,11 @@
         [data-theme="dark"] .game-cal-target-line { background:rgba(200,200,200,0.28); }
         /* Correlation insights */
         .game-insight-card {
-            background: rgba(13,148,136,0.06);
+            background: rgba(3,147,156,0.06);
             border-radius: 12px;
             padding: 10px 13px;
             margin-bottom: 10px;
-            border-left: 3px solid #0D9488;
+            border-left: 3px solid #03939C;
             font-size: 0.8rem;
             color: var(--text-dark);
             line-height: 1.5;
@@ -333,7 +334,7 @@
             font-size: 1rem;
             margin-right: 5px;
         }
-        .game-insight-card strong { color: #0D9488; }
+        .game-insight-card strong { color: #03939C; }
         /* Scenario/prediction card */
         .game-scenario-card {
             background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.07));
@@ -374,14 +375,14 @@
         }
         /* Encouragement note */
         .game-encourage-note {
-            background: rgba(13,148,136,0.07);
+            background: rgba(3,147,156,0.07);
             border-radius: 12px;
             padding: 10px 14px;
             font-size: 0.82rem;
             color: var(--text-dark);
             line-height: 1.5;
             margin-top: 12px;
-            border-left: 3px solid #0D9488;
+            border-left: 3px solid #03939C;
         }
         .game-weekly-info {
             font-size: 0.75rem;
@@ -406,20 +407,20 @@
             cursor: pointer;
             padding: 7px 4px 7px 0;
             margin: 10px 0 4px;
-            border-top: 1px solid rgba(13,148,136,0.15);
+            border-top: 1px solid rgba(3,147,156,0.15);
             user-select: none;
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
             border-radius: 6px;
         }
-        .game-metrics-toggle:hover { background: rgba(13,148,136,0.05); }
+        .game-metrics-toggle:hover { background: rgba(3,147,156,0.05); }
         .game-metrics-chevron {
             font-size: 0.75rem;
             color: var(--text-light);
             transition: transform 0.3s ease;
             flex-shrink: 0;
         }
-        [data-theme="dark"] .game-metrics-toggle { border-top-color: rgba(45,212,191,0.12); }
+        [data-theme="dark"] .game-metrics-toggle { border-top-color: rgba(25,214,210,0.12); }
         /* Explanation modal */
         .game-explain-overlay {
             position: fixed; inset: 0;
@@ -458,13 +459,13 @@
             font-weight:600; cursor:pointer; font-size:0.82rem;
         }
         /* Dark theme overrides */
-        [data-theme="dark"] .game-analytics-section { border-color: rgba(45,212,191,0.15); }
-        [data-theme="dark"] .game-index-bar-wrap    { background: rgba(45,212,191,0.1); }
-        [data-theme="dark"] .game-encourage-note    { background: rgba(45,212,191,0.07); border-color: rgba(45,212,191,0.4); }
-        [data-theme="dark"] .game-insight-card      { background: rgba(45,212,191,0.07); border-color: rgba(45,212,191,0.4); }
+        [data-theme="dark"] .game-analytics-section { border-color: rgba(25,214,210,0.15); }
+        [data-theme="dark"] .game-index-bar-wrap    { background: rgba(25,214,210,0.1); }
+        [data-theme="dark"] .game-encourage-note    { background: rgba(25,214,210,0.07); border-color: rgba(25,214,210,0.4); }
+        [data-theme="dark"] .game-insight-card      { background: rgba(25,214,210,0.07); border-color: rgba(25,214,210,0.4); }
         [data-theme="dark"] .game-scenario-card     { background: rgba(99,102,241,0.1); border-color: rgba(139,92,246,0.25); }
         [data-theme="dark"] .game-alert-card        { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.5); }
-        [data-theme="dark"] .game-ring-bg           { stroke: rgba(45,212,191,0.15); }
+        [data-theme="dark"] .game-ring-bg           { stroke: rgba(25,214,210,0.15); }
 
         /* Entrance & visual animations */
         @keyframes gaCardIn {
@@ -519,7 +520,7 @@
         .game-insight-card:hover,
         .game-scenario-card:hover {
             transform: translateX(4px);
-            box-shadow: 0 3px 14px rgba(13, 148, 136, 0.12);
+            box-shadow: 0 3px 14px rgba(3, 147, 156, 0.12);
         }
         .game-alert-card:hover {
             transform: translateX(4px);
@@ -556,14 +557,14 @@
             background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border-top: 1px solid rgba(13, 148, 136, 0.1);
-            box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(13, 148, 136, 0.06);
+            border-top: 1px solid rgba(3, 147, 156, 0.1);
+            box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(3, 147, 156, 0.06);
             transform: translateZ(0);
         }
         [data-theme="dark"] .bottom-nav {
             background: rgba(8, 22, 22, 0.96);
             border-top: none;
-            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(45, 212, 191, 0.08);
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(25, 214, 210, 0.08);
         }
         .bottom-nav-item {
             display: flex;
@@ -592,16 +593,16 @@
         }
         .bottom-nav-item.active {
             color: var(--primary-red);
-            background: rgba(13, 148, 136, 0.1);
+            background: rgba(3, 147, 156, 0.1);
         }
         [data-theme="dark"] .bottom-nav-item.active {
-            background: rgba(45, 212, 191, 0.15);
+            background: rgba(25, 214, 210, 0.15);
             color: var(--primary-red);
         }
         .bottom-nav-item.active i { transform: scale(1.1); }
         .bottom-nav-item:active { transform: scale(0.92); }
         .bottom-nav-item:hover:not(.active) {
-            background: rgba(13, 148, 136, 0.05);
+            background: rgba(3, 147, 156, 0.05);
         }
         .fab-chat {
             position: fixed;
@@ -609,9 +610,9 @@
             right: calc(16px + var(--safe-area-inset-right, 0px));
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--primary-red) 0%, #0F766E 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, #05737D 100%);
             border-radius: 20px;
-            box-shadow: 0 8px 28px rgba(13,148,136,0.45), 0 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+            box-shadow: 0 8px 28px rgba(3,147,156,0.45), 0 4px 12px rgba(3,147,156,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -625,17 +626,17 @@
         .fab-chat:active { transform: scale(0.95); }
         .chat-icon-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
         @keyframes fabPulse {
-            0%,100%{box-shadow:0 8px 28px rgba(13,148,136,.45),0 4px 12px rgba(13,148,136,.25),inset 0 1px 0 rgba(255,255,255,.2);transform:scale(1);}
-            50%{box-shadow:0 12px 36px rgba(13,148,136,.55),0 6px 16px rgba(13,148,136,.35),0 0 0 14px rgba(13,148,136,0),inset 0 1px 0 rgba(255,255,255,.25);transform:scale(1.05);}
+            0%,100%{box-shadow:0 8px 28px rgba(3,147,156,.45),0 4px 12px rgba(3,147,156,.25),inset 0 1px 0 rgba(255,255,255,.2);transform:scale(1);}
+            50%{box-shadow:0 12px 36px rgba(3,147,156,.55),0 6px 16px rgba(3,147,156,.35),0 0 0 14px rgba(3,147,156,0),inset 0 1px 0 rgba(255,255,255,.25);transform:scale(1.05);}
         }
         /* За целта ти: измереното от устройствата, подредено по целта (goal-focus.js) */
         .gf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-        .gf-card { border-radius: 12px; padding: 10px 12px; background: rgba(13,148,136,0.06); border: 1px solid rgba(13,148,136,0.14); border-left: 4px solid var(--gf-tone, #94a3b8); min-width: 0; }
+        .gf-card { border-radius: 12px; padding: 10px 12px; background: rgba(3,147,156,0.06); border: 1px solid rgba(3,147,156,0.14); border-left: 4px solid var(--gf-tone, #94a3b8); min-width: 0; }
         .gf-card[data-tone="good"] { --gf-tone: #10b981; }
         .gf-card[data-tone="warn"] { --gf-tone: #f59e0b; }
         .gf-card[data-tone="bad"]  { --gf-tone: #ef4444; }
         .gf-label { font-size: 0.75rem; font-weight: 600; color: var(--text-light); display: flex; gap: 6px; align-items: center; }
-        .gf-label i { color: var(--gf-tone, #0D9488); }
+        .gf-label i { color: var(--gf-tone, #03939C); }
         .gf-value { font-size: 1.02rem; font-weight: 800; color: var(--text-dark); margin-top: 2px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
         .gf-note { font-size: 0.75rem; line-height: 1.35; color: var(--text-light); margin-top: 3px; }
         .gf-conclusions { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 6px; }
@@ -649,16 +650,16 @@
         .gf-empty button { min-height: 40px; padding: 8px 14px; border-radius: 10px; border: none; background: var(--ds-fill-grad); color: var(--ds-on-fill); font-weight: 700; cursor: pointer; white-space: nowrap; }
         .gf-sub { font-size: 0.72rem; color: var(--text-light); margin: -4px 0 10px; }
         .gf-indices { display: grid; gap: 8px; margin-bottom: 12px; }
-        .gf-index { border-radius: 14px; padding: 12px 14px; background: rgba(13,148,136,0.06); border: 1px solid rgba(13,148,136,0.14); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .gf-index { border-radius: 14px; padding: 12px 14px; background: rgba(3,147,156,0.06); border: 1px solid rgba(3,147,156,0.14); cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .gf-index-head { display: flex; align-items: center; gap: 10px; }
         .gf-index-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--ds-fill-grad); color: var(--ds-on-fill); flex-shrink: 0; }
         .gf-index-name { flex: 1; font-weight: 700; color: var(--text-dark); font-size: 0.95rem; }
-        .gf-index-value { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gf-tone, #0D9488); }
+        .gf-index-value { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gf-tone, #03939C); }
         .gf-index[data-tone="good"] { --gf-tone: #10b981; }
         .gf-index[data-tone="warn"] { --gf-tone: #f59e0b; }
         .gf-index[data-tone="bad"]  { --gf-tone: #ef4444; }
-        .gf-index-bar { height: 6px; border-radius: 3px; background: rgba(13,148,136,0.12); margin: 8px 0 6px; overflow: hidden; }
-        .gf-index-bar span { display: block; height: 100%; border-radius: 3px; background: var(--gf-tone, #0D9488); }
+        .gf-index-bar { height: 6px; border-radius: 3px; background: rgba(3,147,156,0.12); margin: 8px 0 6px; overflow: hidden; }
+        .gf-index-bar span { display: block; height: 100%; border-radius: 3px; background: var(--gf-tone, #03939C); }
         .gf-index-note { font-size: 0.8rem; color: var(--text-light); line-height: 1.4; }
         .gf-index-info { font-size: 0.75em; opacity: 0.45; margin-left: 4px; }
         .gf-index-more { display: none; margin-top: 8px; font-size: 0.8rem; line-height: 1.4; color: var(--text-light); }
@@ -674,8 +675,8 @@
         (function() {
             const colorSchemes = {
                 'purple-pink': {
-                    light: { '--primary-red': '#0F766E', '--soft-red': '#CCFBF1' },
-                    dark:  { '--primary-red': '#2DD4BF', '--soft-red': '#134E4A' }
+                    light: { '--primary-red': '#05737D', '--soft-red': '#CDF9F6' },
+                    dark:  { '--primary-red': '#19D6D2', '--soft-red': '#034E5C' }
                 },
                 'green-blue': {
                     light: { '--primary-red': '#2E7D32', '--soft-red': '#E8F5E9' },
@@ -750,7 +751,7 @@
 
     <script>
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            var c = theme === 'dark' ? '#0A1A1A' : '#EEFDFC';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});
                 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                     var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
@@ -915,7 +916,7 @@
                 var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], insight: src.insight || '' });
                 v.cards.forEach(function (c) { c.tone = softTone(c.tone); });
                 v.more.forEach(function (c) { c.tone = softTone(c.tone); });
-                var icon = { bad: 'fa-circle-exclamation" style="color:#ef4444', warn: 'fa-triangle-exclamation" style="color:#f59e0b', good: 'fa-circle-check" style="color:#10b981', neutral: 'fa-lightbulb" style="color:#0D9488' };
+                var icon = { bad: 'fa-circle-exclamation" style="color:#ef4444', warn: 'fa-triangle-exclamation" style="color:#f59e0b', good: 'fa-circle-check" style="color:#10b981', neutral: 'fa-lightbulb" style="color:#03939C' };
                 var conclusions = v.conclusions.length ? '<ul class="gf-conclusions">' + v.conclusions.map(function (c) { return '<li><i class="fas ' + icon[softTone(c.tone)] + '"></i><span>' + gfEsc(c.text) + '</span></li>'; }).join('') + '</ul>' : '';
                 var cards = v.cards.concat(v.more);
                 // Кратък режим: индексите и изводите; показателите — под „Подробно“.
@@ -975,7 +976,7 @@
             // Дните преди първия запис не са „пропуснати“ — клиентът още не е започнал.
             var firstKey = Object.keys(allData).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k) && allData[k]; }).sort()[0] || null;
             if (!firstKey) {
-                body.innerHTML = '<div class="game-encourage-note ga-card-enter"><i class="fas fa-seedling" style="color:#0D9488"></i> Анализът започва с първия отбелязан ден. Отбелязвай храненията и отговаряй на сутрешния и вечерния въпрос — тук ще видиш навиците, калорийния баланс и тенденцията.</div>';
+                body.innerHTML = '<div class="game-encourage-note ga-card-enter"><i class="fas fa-seedling" style="color:#03939C"></i> Анализът започва с първия отбелязан ден. Отбелязвай храненията и отговаряй на сутрешния и вечерния въпрос — тук ще видиш навиците, калорийния баланс и тенденцията.</div>';
                 if (badge) badge.textContent = 'Начало';
                 window._gaChecks = {};
                 renderGoalFocus();
@@ -1133,7 +1134,7 @@
                 if(days[si].rec&&calcDayScore(days[si].rec).score>=4){ streak++; currentStreak=Math.max(currentStreak,streak); } else break;
             }
             if(currentStreak>=3) insights.push('<i class="fas fa-fire" style="color:#f59e0b"></i> Имаш текуща серия от <strong>'+currentStreak+' отлични дни</strong> подред! Продължавай!');
-            else if(currentStreak===2) insights.push('<i class="fas fa-bolt" style="color:#0D9488"></i> Два отлични дни подред — ти си в страхотен ритъм!');
+            else if(currentStreak===2) insights.push('<i class="fas fa-bolt" style="color:#03939C"></i> Два отлични дни подред — ти си в страхотен ритъм!');
             var deficitDays = days.filter(function(d,i){
                 return calBalanceByDay[i]!==null && calBalanceByDay[i]<-100 && d.rec && (d.rec.morningCheck||d.rec.eveningCheck);
             });
@@ -1157,7 +1158,7 @@
                 if(trendUp && projected>=4) scenario = '<i class="fas fa-chart-line" style="color:#10b981"></i> Ако запазиш текущата тенденция, ще достигнеш средна оценка <strong>'+projected+'/5</strong> за седмицата — отлично!';
                 else if(trendDown) scenario = '<i class="fas fa-chart-line" style="color:#ef4444;transform:rotate(90deg);display:inline-block"></i> Наблюдаваме спад в последните дни. Малко повече внимание към плана ще обърне тенденцията.';
                 else if(avgScore>=4) scenario = '<i class="fas fa-star" style="color:#fbbf24"></i> Стабилна и силна седмица! Запази ритъма — така навиците остават.';
-                else if(engagementPct<50) scenario = '<i class="fas fa-lightbulb" style="color:#0D9488"></i> Увеличи ангажираността с 20% (отбелязвай хранения редовно) и оценката ти ще скочи значително.';
+                else if(engagementPct<50) scenario = '<i class="fas fa-lightbulb" style="color:#03939C"></i> Увеличи ангажираността с 20% (отбелязвай хранения редовно) и оценката ти ще скочи значително.';
             }
 
             // ── Alerts ────────────────────────────────────────────────────────
@@ -1174,7 +1175,7 @@
             if(sleepPct!=null&&sleepPct<30) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Качеството на съня е ниско тази седмица — това пряко влияе на метаболизма и избора на храна.');
 
             // ── Encouragement ─────────────────────────────────────────────────
-            var leadingCriterion='', encourageText='<i class="fas fa-dumbbell" style="color:#0D9488"></i> Последователността е ключът към успеха!';
+            var leadingCriterion='', encourageText='<i class="fas fa-dumbbell" style="color:#03939C"></i> Последователността е ключът към успеха!';
             if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='<i class="fas fa-leaf" style="color:#10b981"></i> Намали вредните храни — планът работи когато го следваш!'; }
             else if (waterPct!=null&&waterPct<50)      { leadingCriterion='Хидратация'; encourageText='<i class="fas fa-droplet" style="color:#06B6D4"></i> Пий повече вода през деня — целта ти по плана е ' + waterGoalText + '.'; }
             else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягай по-рано — тялото ти ще ти благодари!'; }
@@ -1358,7 +1359,7 @@
             '</div>';
 
             html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
-                '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#0D9488',22) + '<div class="game-ring-label">Навици</div></div>' +
+                '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#03939C',22) + '<div class="game-ring-label">Навици</div></div>' +
                 (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22,actRawPct) + '<div class="game-ring-label">Активност</div></div>' : '') +
                 (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
                 (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
@@ -1378,9 +1379,9 @@
             html += '<div id="gameMetricsDetails" style="display:block;">';
 
             html += '<div class="game-index-row" data-explain="engagement">' +
-                '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#0D9488"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
+                '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#03939C"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
                 '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+(mealAdherencePct!=null?' · спазени хранения '+mealAdherencePct+'%':'')+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(engagementPct,'linear-gradient(90deg,#0D9488,#06B6D4)') + miniBarChart(engPcts,100,'#0D9488') +
+                pBar(engagementPct,'linear-gradient(90deg,#03939C,#06B6D4)') + miniBarChart(engPcts,100,'#03939C') +
             '</div>';
 
 

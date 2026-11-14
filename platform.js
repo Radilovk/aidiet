@@ -1,5 +1,5 @@
 /**
- * NutriPlan Cross-Platform Adapter
+ * Eatologix Cross-Platform Adapter
  * ---------------------------------
  * Централизирано разпознаване на платформата (APK / PWA / Web) и
  * еднотипен механизъм за адаптиране на функционалност между тях.
@@ -112,7 +112,7 @@
      * Задава цвят на системната навигационна лента.
      * На APK използва Capacitor NavigationBar плъгин; на PWA/Web — no-op.
      *
-     * @param {string} color   HEX цвят, напр. '#F0FDFA'
+     * @param {string} color   HEX цвят, напр. '#EEFDFC'
      * @param {boolean} [isDark=false]  true = тъмни бутони (светла лента)
      */
     function setNavBar(color, isDark) {

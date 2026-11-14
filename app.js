@@ -161,7 +161,7 @@
         var root = targetDocument.documentElement;
         if (root) root.setAttribute('data-theme', theme);
         if (typeof targetDocument.querySelectorAll === 'function') {
-            var color = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            var color = theme === 'dark' ? '#0A1A1A' : '#EEFDFC';
             targetDocument.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
                 meta.setAttribute('content', color);
             });
@@ -175,7 +175,7 @@
      */
     var pendingBars = null;
     function setSystemNavColor(color) {
-        var light = color === '#F0FDFA';
+        var light = color === '#EEFDFC';
         if (document.documentElement.classList.contains('app-booting')) {
             if (!pendingBars) {
                 // Стартовият екран може да изчезне и по резервния таймер в index.html.
@@ -194,7 +194,7 @@
     }
 
     function themeNavColor() {
-        return (state.raw.theme || getPreferredTheme()) === 'dark' ? '#0A1A1A' : '#F0FDFA';
+        return (state.raw.theme || getPreferredTheme()) === 'dark' ? '#0A1A1A' : '#EEFDFC';
     }
 
     /** Дърпане за обновяване в плана: принудителна проверка за нова версия. */
@@ -227,7 +227,7 @@
         state.parsed.theme = theme;
         setDocumentTheme(document, theme);
 
-        setSystemNavColor(theme === 'dark' ? '#0A1A1A' : '#F0FDFA');
+        setSystemNavColor(theme === 'dark' ? '#0A1A1A' : '#EEFDFC');
 
         document.querySelectorAll('[data-tab-view]').forEach(function (frame) {
             try {
@@ -852,7 +852,7 @@
         el.id = 'spaShellChatFrame';
         el.title = 'Чат асистент';
         el.setAttribute('aria-hidden', 'true');
-        el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;border:0;z-index:10003;display:none;overflow:hidden;background:var(--bg-color,#F0FDFA);';
+        el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;border:0;z-index:10003;display:none;overflow:hidden;background:var(--bg-color,#EEFDFC);';
         shell.appendChild(el);
         shellChatFrame = el;
 

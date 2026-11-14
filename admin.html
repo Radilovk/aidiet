@@ -3,39 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Административна панел за управление на NutriPlan платформата.">
+    <meta name="description" content="Административна панел за управление на Eatologix платформата.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriPlan">
+    <meta name="apple-mobile-web-app-title" content="Eatologix">
     <link rel="canonical" href="https://biocode.website/admin.html">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
     <link rel="manifest" href="./admin-manifest.json">
-    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
-    <title>Админ Панел - NutriPlan</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
+    <title>Админ Панел - Eatologix</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
-            --primary-red: #0D9488;
-            --primary-dark: #0F766E;
-            --soft-red: #CCFBF1;
+            --primary-red: #03939C;
+            --primary-dark: #05737D;
+            --soft-red: #CDF9F6;
             --accent-yellow: #fbbf24;
             --accent-blue: #3b82f6;
             --accent-light-red: #f87171;
-            --bg-color: #F0FDFA;
+            --bg-color: #EEFDFC;
             --text-dark: #0F2F2E;
             --text-gray: #4b5563;
             --white: #ffffff;
-            --shadow: 0 10px 30px rgba(13,148,136,0.15);
+            --shadow: 0 10px 30px rgba(3,147,156,0.15);
             --radius: 24px;
             /* Safe area insets for mobile devices with notches/dynamic island */
             --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -46,9 +46,9 @@
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary-red: #2DD4BF;
-            --primary-dark: #0D9488;
-            --soft-red: #134E4A;
+            --primary-red: #19D6D2;
+            --primary-dark: #03939C;
+            --soft-red: #034E5C;
             --accent-yellow: #fcd34d;
             --accent-blue: #60a5fa;
             --accent-light-red: #fca5a5;
@@ -58,8 +58,8 @@
             --text-gray: #9ca3af;
             --white: #112B2B;
             --card-bg: rgba(20, 55, 55, 0.78);
-            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(45,212,191,0.1);
-            --glass-border: rgba(45, 212, 191, 0.15);
+            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(25,214,210,0.1);
+            --glass-border: rgba(25, 214, 210, 0.15);
             --radius: 24px;
         }
 
@@ -70,7 +70,7 @@
             --rf-daotslabna: #1f9d63;
             --rf-life: #8455e0;
             --rf-grid: rgba(15, 47, 46, 0.10);
-            --rf-track: rgba(15, 118, 110, 0.08);
+            --rf-track: rgba(5, 115, 125, 0.08);
             --rf-ink: var(--text-dark);
             --rf-ink-soft: #52514e;
         }
@@ -80,7 +80,7 @@
             --rf-daotslabna: #34b37a;
             --rf-life: #9a74ec;
             --rf-grid: rgba(224, 245, 240, 0.12);
-            --rf-track: rgba(45, 212, 191, 0.10);
+            --rf-track: rgba(25, 214, 210, 0.10);
             --rf-ink-soft: #c3c2b7;
         }
         .rf-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 16px 0; }
@@ -94,8 +94,8 @@
         .dl-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
         .dl-name { font-weight: 700; color: var(--rf-ink); font-size: 1.05rem; }
         .dl-pill { padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; background: rgba(107,114,128,.15); color: var(--rf-ink-soft); }
-        .dl-pill[data-on="1"] { background: rgba(15,118,110,.15); color: #0F766E; }
-        [data-theme="dark"] .dl-pill[data-on="1"] { color: #5EEAD4; }
+        .dl-pill[data-on="1"] { background: rgba(5,115,125,.15); color: #05737D; }
+        [data-theme="dark"] .dl-pill[data-on="1"] { color: #5FE6E3; }
         .dl-stats { margin-left: auto; color: var(--rf-ink-soft); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
         .dl-steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--rf-ink-soft); font-size: 0.9rem; }
         .dl-copy { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
@@ -289,7 +289,7 @@
             padding: 0 18px;
             border-radius: 999px;
             background: var(--white);
-            border: 2px solid rgba(15, 118, 110, 0.16);
+            border: 2px solid rgba(5, 115, 125, 0.16);
             color: var(--text-dark);
             font-weight: 600;
             box-shadow: var(--shadow);
@@ -308,7 +308,7 @@
             padding: 14px;
             border-radius: 14px;
             background: var(--white);
-            border: 1px solid rgba(15, 118, 110, 0.12);
+            border: 1px solid rgba(5, 115, 125, 0.12);
             box-shadow: var(--shadow);
             display: grid;
             gap: 10px;
@@ -330,7 +330,7 @@
         }
 
         .clients-explorer-wrapper {
-            border: 1px solid rgba(15, 118, 110, 0.14);
+            border: 1px solid rgba(5, 115, 125, 0.14);
             border-radius: 16px;
             overflow: hidden;
             background: var(--white);
@@ -351,30 +351,30 @@
             position: sticky;
             top: 0;
             z-index: 5;
-            background: rgba(13, 148, 136, 0.08);
+            background: rgba(3, 147, 156, 0.08);
             color: var(--text-dark);
             text-align: left;
             font-size: 0.84rem;
             letter-spacing: 0.01em;
             padding: 12px 14px;
-            border-bottom: 1px solid rgba(15, 118, 110, 0.12);
+            border-bottom: 1px solid rgba(5, 115, 125, 0.12);
             white-space: nowrap;
         }
 
         .clients-explorer-table tbody td {
             padding: 12px 14px;
-            border-bottom: 1px solid rgba(15, 118, 110, 0.08);
+            border-bottom: 1px solid rgba(5, 115, 125, 0.08);
             color: var(--text-gray);
             vertical-align: middle;
             font-size: 0.92rem;
         }
 
         .clients-explorer-table tbody tr:hover {
-            background: rgba(13, 148, 136, 0.05);
+            background: rgba(3, 147, 156, 0.05);
         }
 
         .clients-explorer-table tbody tr.is-selected {
-            background: rgba(13, 148, 136, 0.1);
+            background: rgba(3, 147, 156, 0.1);
         }
 
         .clients-sortable {
@@ -658,7 +658,7 @@
            !important is required to override inline style="background:..." attributes
            that exist on many .info-box elements in the HTML. */
         [data-theme="dark"] .info-box {
-            background: rgba(13, 148, 136, 0.12) !important;
+            background: rgba(3, 147, 156, 0.12) !important;
             color: var(--text-dark);
         }
         [data-theme="dark"] .info-box-warning {
@@ -688,12 +688,12 @@
         }
         [data-theme="dark"] .collapsible-section-toggle {
             background: var(--white);
-            border-color: rgba(45, 212, 191, 0.25);
+            border-color: rgba(25, 214, 210, 0.25);
             color: var(--text-dark);
         }
         [data-theme="dark"] .collapsible-section-body {
             background: var(--white);
-            border-color: rgba(45, 212, 191, 0.25);
+            border-color: rgba(25, 214, 210, 0.25);
         }
         [data-theme="dark"] .success-message {
             background: rgba(40, 167, 69, 0.18);
@@ -710,7 +710,7 @@
         [data-theme="dark"] textarea {
             background: var(--white);
             color: var(--text-dark);
-            border-color: rgba(45, 212, 191, 0.3);
+            border-color: rgba(25, 214, 210, 0.3);
         }
         [data-theme="dark"] select:focus,
         [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
@@ -842,7 +842,7 @@
         }
         .search-suggestion-item:hover,
         .search-suggestion-item.active {
-            background: var(--primary-light, #f0fdfa);
+            background: var(--primary-light, #eefdfc);
         }
         .search-suggestion-item i {
             color: var(--primary-red);
@@ -853,7 +853,7 @@
             flex: 1;
         }
         .search-suggestion-item .sug-title mark {
-            background: rgba(13, 148, 136, 0.18);
+            background: rgba(3, 147, 156, 0.18);
             color: inherit;
             padding: 0 1px;
             border-radius: 2px;
@@ -1165,7 +1165,7 @@
             }
             100% {
                 background-color: transparent;
-                border-color: rgba(45, 212, 191, 0.3);
+                border-color: rgba(25, 214, 210, 0.3);
             }
         }
 
@@ -1283,7 +1283,7 @@
             background: var(--primary-red);
             color: white;
             border-color: var(--primary-dark);
-            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3); /* Matches primary green theme color */
+            box-shadow: 0 4px 12px rgba(3, 147, 156, 0.3); /* Matches primary green theme color */
         }
 
         .tab-btn i {
@@ -1584,7 +1584,7 @@
     <div id="ios-banner" class="ios-prompt" style="display:none;">
         <button onclick="dismissIosBanner()" class="ios-close">✕</button>
         <div class="ios-header">
-            <img src="./icon-192x192.png" class="ios-icon" alt="NutriPlan Icon">
+            <img src="./icon-192x192.png" class="ios-icon" alt="Eatologix Icon">
             <div class="ios-title-group">
                 <h4>Инсталирай Админ Панел</h4>
                 <p>Добави администраторското приложение на екрана за бърз достъп</p>
@@ -1958,7 +1958,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                         <div class="form-group">
                             <label for="customPrimary">Основен Цвят (Primary):</label>
-                            <input type="color" id="customPrimary" value="#0D9488" style="width: 100%; height: 50px; cursor: pointer;">
+                            <input type="color" id="customPrimary" value="#03939C" style="width: 100%; height: 50px; cursor: pointer;">
                             <small style="display: block; margin-top: 5px; color: var(--text-gray);">За бутони и акценти</small>
                         </div>
                         <div class="form-group">
@@ -1974,7 +1974,7 @@
                     </div>
                 </div>
                 <div id="colorPreview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; padding: 20px; background: var(--bg-light); border-radius: 12px;">
-                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: #0D9488;">
+                    <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: #03939C;">
                         Зелено
                     </div>
                     <div style="padding: 30px; border-radius: 12px; text-align: center; color: white; font-weight: bold; background: #3b82f6;">
@@ -2012,7 +2012,7 @@
                         <option value="analysis">Анализ (текст към анализа)</option>
                     </select>
                     <button class="btn" type="button" onclick="loadActivePrompt()"><i class="fas fa-download"></i> Зареди</button>
-                    <button class="btn" type="button" style="background:#0D9488;" onclick="saveActivePrompt()"><i class="fas fa-save"></i> Запази</button>
+                    <button class="btn" type="button" style="background:#03939C;" onclick="saveActivePrompt()"><i class="fas fa-save"></i> Запази</button>
                 </div>
                 <textarea id="activePromptText" rows="18" style="width:100%;font-family:ui-monospace,Menlo,monospace;font-size:0.82rem;line-height:1.45;padding:12px;border-radius:10px;border:1px solid var(--border-color,#ddd);" placeholder="Изберете промпт и натиснете „Зареди“."></textarea>
                 <div id="activePromptStatus" style="margin-top:6px;font-size:0.85rem;color:var(--text-gray);"></div>
@@ -2757,7 +2757,7 @@
             <div class="card rf-root" id="referralsCard">
                 <h2><i class="fas fa-route"></i> Насочвания от модули</h2>
                 <div class="info-box">
-                    <strong>Фуния:</strong> линк (клик „към NutriPlan“ в модула) → отворен (страницата в NutriPlan) → първи план (нов клиент, планът ползва данните) → в профила (клиентът е потвърдил). Конверсията е „в профила“ ÷ „линкове“.
+                    <strong>Фуния:</strong> линк (клик „към Eatologix“ в модула) → отворен (страницата в Eatologix) → първи план (нов клиент, планът ползва данните) → в профила (клиентът е потвърдил). Конверсията е „в профила“ ÷ „линкове“.
                 </div>
                 <div class="rf-toolbar">
                     <div class="rf-range" role="group" aria-label="Период">
@@ -3221,7 +3221,7 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningActivityTitle" placeholder="NutriPlan"
+                            <input type="text" id="gnEveningActivityTitle" placeholder="Eatologix"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
@@ -3250,7 +3250,7 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningBalanceTitle" placeholder="NutriPlan"
+                            <input type="text" id="gnEveningBalanceTitle" placeholder="Eatologix"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
@@ -3279,7 +3279,7 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningWaterTitle" placeholder="NutriPlan"
+                            <input type="text" id="gnEveningWaterTitle" placeholder="Eatologix"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
@@ -3799,7 +3799,7 @@
 
 
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            var c = theme === 'dark' ? '#0A1A1A' : '#EEFDFC';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});
                 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                     var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
@@ -5842,7 +5842,7 @@
         // Returns a plan-status badge HTML string
         function planStatusBadge(planStatus) {
             if (planStatus === 'activated') {
-                return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#CCFBF1;color:#0F766E;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>';
+                return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#CDF9F6;color:#05737D;margin-left:8px;"><i class="fas fa-check-circle"></i> Активиран</span>';
             }
             if (planStatus === 'pending') {
                 return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;background:#fef3c7;color:#d97706;margin-left:8px;"><i class="fas fa-clock"></i> Очаква преглед</span>';
@@ -5897,7 +5897,7 @@
                 defaultVisible: true,
                 getValue: client => client.hasPlan ? 1 : 0,
                 render: client => client.hasPlan
-                    ? '<span style="color:#0D9488;font-weight:700;"><i class="fas fa-check-circle"></i> Да</span>'
+                    ? '<span style="color:#03939C;font-weight:700;"><i class="fas fa-check-circle"></i> Да</span>'
                     : '<span style="opacity:0.7;">Не</span>'
             },
             {
@@ -7861,11 +7861,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
         // Color Scheme Functions
         const colorSchemes = {
             'purple-pink': {
-                primary: '#0D9488',
-                primaryAccent: '#2DD4BF',
+                primary: '#03939C',
+                primaryAccent: '#19D6D2',
                 secondary: '#3b82f6',
                 tertiary: '#ff7f6a',
-                soft: '#F0FDFA',
+                soft: '#EEFDFC',
                 name: 'Зелено-Синьо-Корал'
             },
             'green-blue': {
@@ -7893,11 +7893,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 name: 'Оранжево-Червено-Корал'
             },
             'custom': {
-                primary: '#0D9488',
-                primaryAccent: '#2DD4BF',
+                primary: '#03939C',
+                primaryAccent: '#19D6D2',
                 secondary: '#3b82f6',
                 tertiary: '#ff7f6a',
-                soft: '#F0FDFA',
+                soft: '#EEFDFC',
                 name: 'Персонализирана'
             }
         };
@@ -8240,16 +8240,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     : (data.config || {});
 
                 document.getElementById('gnMorningTime').value  = cfg.morningTime  || '07:00';
-                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'NutriPlan';
+                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'Eatologix';
                 document.getElementById('gnMorningBody').value  = cfg.morningBody  || 'Спа ли добре тази нощ?';
                 document.getElementById('gnEveningActivityTime').value  = cfg.eveningActivityTime  || '20:00';
-                document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'NutriPlan';
+                document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'Eatologix';
                 document.getElementById('gnEveningActivityBody').value  = cfg.eveningActivityBody  || 'Колко се движи днес?';
                 document.getElementById('gnEveningBalanceTime').value  = cfg.eveningBalanceTime  || '20:05';
-                document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'NutriPlan';
+                document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'Eatologix';
                 document.getElementById('gnEveningBalanceBody').value  = cfg.eveningBalanceBody  || 'Как се чувстваше днес?';
                 document.getElementById('gnEveningWaterTime').value  = cfg.eveningWaterTime  || '20:10';
-                document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'NutriPlan';
+                document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'Eatologix';
                 document.getElementById('gnEveningWaterBody').value  = cfg.eveningWaterBody  || 'Пи ли достатъчно вода днес?';
 
                 renderAllGnActionRows(cfg);
@@ -8335,16 +8335,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
             const cfg = {
                 morningTime:  document.getElementById('gnMorningTime').value  || '07:00',
-                morningTitle: document.getElementById('gnMorningTitle').value || 'NutriPlan',
+                morningTitle: document.getElementById('gnMorningTitle').value || 'Eatologix',
                 morningBody:  document.getElementById('gnMorningBody').value  || 'Спа ли добре тази нощ?',
                 eveningActivityTime:  document.getElementById('gnEveningActivityTime').value  || '20:00',
-                eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'NutriPlan',
+                eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'Eatologix',
                 eveningActivityBody:  document.getElementById('gnEveningActivityBody').value  || 'Колко се движи днес?',
                 eveningBalanceTime:   document.getElementById('gnEveningBalanceTime').value  || '20:05',
-                eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'NutriPlan',
+                eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'Eatologix',
                 eveningBalanceBody:   document.getElementById('gnEveningBalanceBody').value  || 'Как се чувстваше днес?',
                 eveningWaterTime:     document.getElementById('gnEveningWaterTime').value  || '20:10',
-                eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'NutriPlan',
+                eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'Eatologix',
                 eveningWaterBody:     document.getElementById('gnEveningWaterBody').value  || 'Пи ли достатъчно вода днес?',
                 morningActions: (window.GnActionsUI && GnActionsUI.collect('gnMorningActions')) || [],
                 eveningActivityActions: (window.GnActionsUI && GnActionsUI.collect('gnEveningActivityActions')) || [],
@@ -8420,13 +8420,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 }
 
                 const typeLabels = {
-                    morning_check: { title: 'NutriPlan', body: 'Спа ли добре тази нощ?', url: '/plan.html?action=morning_check' },
-                    evening_activity: { title: 'NutriPlan', body: 'Колко се движи днес?', url: '/plan.html?action=evening_activity' },
-                    evening_balance: { title: 'NutriPlan', body: 'Как се чувстваше днес?', url: '/plan.html?action=evening_balance' },
-                    evening_water: { title: 'NutriPlan', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' },
-                    evening_check: { title: 'NutriPlan', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' }
+                    morning_check: { title: 'Eatologix', body: 'Спа ли добре тази нощ?', url: '/plan.html?action=morning_check' },
+                    evening_activity: { title: 'Eatologix', body: 'Колко се движи днес?', url: '/plan.html?action=evening_activity' },
+                    evening_balance: { title: 'Eatologix', body: 'Как се чувстваше днес?', url: '/plan.html?action=evening_balance' },
+                    evening_water: { title: 'Eatologix', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' },
+                    evening_check: { title: 'Eatologix', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' }
                 };
-                const tpl = typeLabels[type] || { title: 'Тестово известие от NutriPlan', body: 'Това е тестово известие.', url: '/plan.html' };
+                const tpl = typeLabels[type] || { title: 'Тестово известие от Eatologix', body: 'Това е тестово известие.', url: '/plan.html' };
 
                 const response = await fetch(WORKER_URL + '/api/push/send', {
                     method: 'POST',
@@ -9641,7 +9641,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             {
                 id: 'questionnaire2_bg',
                 label: '📝 Въпросник – Фон на страницата',
-                description: 'Фонова снимка на цялата страница с въпросника (HealthScore / NutriPlan въпросник).',
+                description: 'Фонова снимка на цялата страница с въпросника (HealthScore / Eatologix въпросник).',
                 example: 'Пример: светъл минималистичен фон (бял мрамор, пастелен градиент, нежен листен принт) — неутрален и успокояващ, за да не разсейва от въпросите на холистичния профилиращ въпросник.',
                 recommendedSize: '1920 × 1080 px (landscape)',
                 page: 'questionnaire2.html'
@@ -9986,7 +9986,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             <button class="btn pending-view-btn" style="background:var(--accent-blue);font-size:0.85rem;padding:8px 14px;">
                                 <i class="fas fa-eye"></i> Преглед
                             </button>
-                            ${!isFailed ? `<button class="btn pending-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.85rem;padding:8px 14px;">
+                            ${!isFailed ? `<button class="btn pending-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#03939C;font-size:0.85rem;padding:8px 14px;">
                                 <i class="fas fa-rocket"></i> Активирай
                             </button>` : ''}
                         </div>
@@ -10590,11 +10590,11 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
                                         <h3 style="margin:0;color:var(--text-dark);font-size:1rem;"><i class="fas fa-utensils" style="color:var(--primary-red);margin-right:6px;"></i>Хранителен план ${statusBadgeHtml}</h3>
                                         ${client.planStatus !== 'activated' ? `
-                                            <button class="btn client-plan-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#0D9488;font-size:0.82rem;padding:6px 14px;margin-left:auto;">
+                                            <button class="btn client-plan-activate-btn" data-client-id="${escapeHtml(client.id)}" style="background:#03939C;font-size:0.82rem;padding:6px 14px;margin-left:auto;">
                                                 <i class="fas fa-rocket"></i> Активирай достъп
                                             </button>
                                         ` : `
-                                            <span style="margin-left:auto;color:#0F766E;font-size:0.82rem;font-weight:600;"><i class="fas fa-check-circle"></i> Активиран на ${client.planActivatedAt ? new Date(client.planActivatedAt).toLocaleString('bg-BG') : '—'}</span>
+                                            <span style="margin-left:auto;color:#05737D;font-size:0.82rem;font-weight:600;"><i class="fas fa-check-circle"></i> Активиран на ${client.planActivatedAt ? new Date(client.planActivatedAt).toLocaleString('bg-BG') : '—'}</span>
                                         `}
                                     </div>
 
@@ -10860,7 +10860,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             if (voice && voice.portrait) {
                 const pr = voice.portrait;
                 const row = (label, value) => value ? `<div style="margin-bottom:8px;"><strong style="color:var(--text-dark);font-size:0.85rem;">${label}</strong><div style="color:var(--text-gray);font-size:0.85rem;margin-top:2px;line-height:1.5;">${escapeHtml(Array.isArray(value) ? value.join(' · ') : value)}</div></div>` : '';
-                html += `<div style="margin-bottom:16px;padding:14px;border-radius:12px;background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.18);">
+                html += `<div style="margin-bottom:16px;padding:14px;border-radius:12px;background:rgba(3,147,156,0.06);border:1px solid rgba(3,147,156,0.18);">
                     <div style="font-weight:700;color:var(--text-dark);font-size:0.95rem;margin-bottom:10px;"><i class="fas fa-user-check"></i> Портрет на клиента <span style="font-weight:500;color:var(--text-gray);font-size:0.8rem;">(AI, вътрешно)</span></div>
                     ${row('Човекът', pr.summary)}${row('Емоционално', pr.emotional)}${row('Социален контекст', pr.social)}
                     ${row('Тригери', pr.triggers)}${row('Стил на личността (хипотеза)', pr.personality)}${row('Мотивация', pr.motivation)}${row('Внимание', pr.risks)}
@@ -10898,7 +10898,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             </div>
                             ${meal.weight ? `<div style="font-size:0.82rem;color:var(--text-gray);">⚖️ ${escapeHtml(meal.weight)}</div>` : ''}
                             ${meal.description ? `<div style="font-size:0.82rem;color:var(--text-gray);margin-top:3px;">${escapeHtml(meal.description)}</div>` : ''}
-                            ${meal.benefits ? `<div style="font-size:0.8rem;color:#0D9488;margin-top:3px;"><i class="fas fa-check"></i> ${escapeHtml(meal.benefits)}</div>` : ''}
+                            ${meal.benefits ? `<div style="font-size:0.8rem;color:#03939C;margin-top:3px;"><i class="fas fa-check"></i> ${escapeHtml(meal.benefits)}</div>` : ''}
                             ${(macros.protein || macros.carbs || macros.fats) ? `<div style="font-size:0.78rem;color:var(--text-gray);margin-top:4px;">
                                 ${macros.protein !== undefined ? `🥩 ${macros.protein}g П` : ''}
                                 ${macros.carbs !== undefined ? `&nbsp; 🌾 ${macros.carbs}g В` : ''}
@@ -11580,7 +11580,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай NutriPlan Админ Панел..."');
+                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай Eatologix Админ Панел..."');
                     };
                 }
                 installBanner.classList.add('show');
@@ -11819,19 +11819,19 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             
                             // Different explanations for desktop vs mobile
                             if (!isMobile && (isChrome || isEdge)) {
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #0D9488');
-                                console.log('%c✓ PWA IS INSTALLABLE!', 'color: #0D9488; font-weight: bold; font-size: 14px');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #0D9488');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #03939C');
+                                console.log('%c✓ PWA IS INSTALLABLE!', 'color: #03939C; font-weight: bold; font-size: 14px');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #03939C');
                                 console.log('%cINFO: On Desktop Chrome/Edge, the beforeinstallprompt event often does NOT fire.', 'color: #3b82f6; font-weight: bold');
                                 console.log('%cInstead, Chrome shows an INSTALL ICON in the address bar (omnibox).', 'color: #3b82f6; font-weight: bold');
                                 console.log('');
                                 console.log('%cTo install this app:', 'font-weight: bold');
                                 console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
                                 console.log('  2. Click the icon to install the app');
-                                console.log('  3. Or open Chrome menu (⋮) → "Install NutriPlan Admin..."');
+                                console.log('  3. Or open Chrome menu (⋮) → "Install Eatologix Admin..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
-                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #0D9488');
+                                console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #03939C');
                             } else if (isAndroid && (isChrome || isEdge)) {
                                 console.log('- Possible reasons why event has not fired:');
                                 console.log('  1. User engagement criteria not met (needs 30+ seconds + interaction)');
@@ -11845,7 +11845,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             }
                         }
                     } else {
-                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', 'color: #0D9488; font-weight: bold');
+                        console.log('%c✅ PWA Debug: beforeinstallprompt fired successfully!', 'color: #03939C; font-weight: bold');
                         console.log('PWA is ready for installation with custom install prompt.');
                     }
                 }, 3000);

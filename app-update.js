@@ -79,7 +79,7 @@
     var CSS = '' +
         '.aup-overlay{position:fixed;inset:0;z-index:var(--ds-z-modal,1000);background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s ease}' +
         '.aup-overlay.is-open{opacity:1}' +
-        '.aup-card{width:100%;max-width:520px;background:var(--bg-color,var(--ds-bg-primary,#fff));color:var(--ds-text-primary,#042F2E);border-radius:24px 24px 0 0;padding:12px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:var(--ds-shadow-xl);transform:translateY(24px);transition:transform .28s var(--ds-ease-standard,ease)}' +
+        '.aup-card{width:100%;max-width:520px;background:var(--bg-color,var(--ds-bg-primary,#fff));color:var(--ds-text-primary,#032E36);border-radius:24px 24px 0 0;padding:12px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:var(--ds-shadow-xl);transform:translateY(24px);transition:transform .28s var(--ds-ease-standard,ease)}' +
         '.aup-overlay.is-open .aup-card{transform:none}' +
         '.aup-handle{width:40px;height:4px;border-radius:2px;background:var(--ds-border-primary,rgba(0,0,0,.15));margin:0 auto 16px}' +
         '.aup-icon{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:var(--ds-fill-grad);color:var(--ds-on-fill,#fff);font-size:1.4rem;margin-bottom:12px}' +

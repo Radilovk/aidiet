@@ -124,6 +124,10 @@ jobs:
             --exclude 'wrangler.toml' \
             --exclude 'worker.js' \
             --exclude 'worker.entry.js' \
+            --exclude 'app-domain.js' \
+            --exclude 'i18n-server.js' \
+            --exclude 'brand/wordmark-glyphs.json' \
+            --exclude 'brand/concept-eatologix.png' \
             --exclude 'plan-response-schemas.js' \
             --exclude 'json-patch.js' \
             --exclude 'food-nutrition.js' \
@@ -169,10 +173,13 @@ jobs:
           echo "is_prod=${IS_PROD}" >> "$GITHUB_OUTPUT"
           ICON_SRC="icon-512x512.png"
           if [ ! -f "$ICON_SRC" ]; then ICON_SRC="icon-512.png"; fi
+          # EATOLOGIX: знакът без фон (scripts/build-brand.mjs) — за адаптивната икона, сплаша и известията.
+          MARK_SRC="brand/mark-512.png"
+          if [ ! -f "$MARK_SRC" ]; then MARK_SRC="$ICON_SRC"; fi
 
           npx cap add android
 
-          # Replace default Capacitor icons with NutriPlan icon
+          # Replace default Capacitor icons with the EATOLOGIX icon
           if ! command -v convert &>/dev/null; then
             echo "ImageMagick 'convert' not found – installing…" && { sudo apt-get update -q && sudo apt-get install -y imagemagick; }
           fi
@@ -192,7 +199,7 @@ jobs:
             # Safe zone = 72dp of 108dp = 66.7% — icon must not exceed this or it gets clipped by launcher shapes
             SAFE=$((SIZE * 2 / 3))
             convert -size "${SIZE}x${SIZE}" xc:none \
-              \( "$ICON_SRC" -resize "${SAFE}x${SAFE}" \) \
+              \( "$MARK_SRC" -resize "${SAFE}x${SAFE}" \) \
               -gravity center -composite "${ICON_DIR}/ic_launcher_foreground.png"
           done
           # Set adaptive icon background color to brand dark teal
@@ -200,7 +207,7 @@ jobs:
           from pathlib import Path
           import re
           colors_file = Path("android/app/src/main/res/values/colors.xml")
-          bg_color = '#042F2E'
+          bg_color = '#04181C'
           entry_line = f'    <color name="ic_launcher_background">{bg_color}</color>'
           if colors_file.exists():
               content = colors_file.read_text()
@@ -288,7 +295,7 @@ jobs:
                   strings_file.parent.mkdir(parents=True, exist_ok=True)
                   strings_file.write_text(
                       '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-                      '    <string name="app_name">NutriPlan</string>\n'
+                      '    <string name="app_name">Eatologix</string>\n'
                       + entry + '\n</resources>\n'
                   )
               print("strings.xml: server_client_id injected for Google Sign-In.")
@@ -307,20 +314,20 @@ jobs:
           rm -f android/app/src/main/res/drawable/splash.png
           mkdir -p android/app/src/main/res/values android/app/src/main/res/drawable android/app/src/main/res/drawable-night android/app/src/main/res/drawable-nodpi
           # Splash logo: plain icon resized (no white-circle overlay) — matches PWA appearance
-          convert "$ICON_SRC" -resize 256x256 \
+          convert "$MARK_SRC" -resize 256x256 \
             android/app/src/main/res/drawable-nodpi/nutriplan_splash_logo.png
-          convert "$ICON_SRC" -resize 96x96 -alpha extract -threshold 1% android/app/src/main/res/drawable/ic_stat_nutriplan.png
+          convert "$MARK_SRC" -resize 96x96 -alpha extract -threshold 1% android/app/src/main/res/drawable/ic_stat_nutriplan.png
           for entry in "24 mdpi" "36 hdpi" "48 xhdpi" "72 xxhdpi" "96 xxxhdpi"; do
             SIZE=${entry%% *}
             DPI=${entry##* }
             DRAWABLE_DIR="android/app/src/main/res/drawable-${DPI}"
             mkdir -p "$DRAWABLE_DIR"
-            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" -alpha extract -threshold 1% "$DRAWABLE_DIR/ic_stat_nutriplan.png"
+            convert "$MARK_SRC" -resize "${SIZE}x${SIZE}" -alpha extract -threshold 1% "$DRAWABLE_DIR/ic_stat_nutriplan.png"
           done
           cat > android/app/src/main/res/values/nutriplan_splash_colors.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <color name="backgroundColor">#042F2E</color>
+              <color name="backgroundColor">#04181C</color>
           </resources>
           EOF
           cat > android/app/src/main/res/drawable/splash.xml <<'EOF'
@@ -328,7 +335,7 @@ jobs:
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
               <item>
                   <shape android:shape="rectangle">
-                      <solid android:color="#042F2E" />
+                      <solid android:color="#04181C" />
                   </shape>
               </item>
               <item>
@@ -343,7 +350,7 @@ jobs:
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
               <item>
                   <shape android:shape="rectangle">
-                      <solid android:color="#042F2E" />
+                      <solid android:color="#04181C" />
                   </shape>
               </item>
               <item>
@@ -556,7 +563,7 @@ jobs:
               --repo "${{ github.repository }}" \
               --target "${{ github.sha }}" \
               --latest \
-              --title "NutriPlan v${V_NAME} (${TAG})" \
+              --title "Eatologix v${V_NAME} (${TAG})" \
               --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."; then
               break
             fi

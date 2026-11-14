@@ -18,6 +18,8 @@ import {
 import { buildClientCard, buildChatContext } from './client-card.js';
 import fitnessWorker from './fitness/worker.js';
 import { handleStudioApi, handleStudioSite } from './studio-platform/index.js';
+import { handleAppDomain } from './app-domain.js';
+import { handleI18nTranslate, languageDirective } from './i18n-server.js';
 import { MEAL_CARRY_MAX_DISTORTION } from './meal-day-sync.js';
 import {
   parseMealDescription,
@@ -169,7 +171,7 @@ import {
  * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
  * 
  * TOKEN OPTIMIZATION (Jun 2026 — NPCF v1):
- * - NutriPlan Context Format (context-compression.js) for plan generation steps
+ * - Eatologix Context Format (context-compression.js) for plan generation steps
  * - Step 1: lossless pipe-serialized profile + backend calcs (deduped vs notes sections)
  * - Steps 2–4: tiered profile + compact analysis/strategy/weekly-scheme blocks
  * - Step 3: one week-at-once call (7 days) — compact targets + catalog + variety rules
@@ -1317,6 +1319,7 @@ const RATE_LIMIT = {
   FOOD_ANALYSIS: { maxRequests: 10, windowSec: 60 },  // 10 food analyses/min per IP
   VALIDATE_QUESTIONNAIRE: { maxRequests: 8, windowSec: 60 },  // 8 validations/min per IP
   SOCIAL_AUTH:    { maxRequests: 10, windowSec: 60 },   // 10 auth attempts/min per IP
+  I18N_TRANSLATE: { maxRequests: 40, windowSec: 60 },   // резервен превод на интерфейса (само непреведените низове)
   FORGOT_PASSWORD:{ maxRequests: 5,  windowSec: 900 },  // 5 reset requests per 15 min per IP
   XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 }, // 15 lookups/min per IP
   XBODY_BOOK: { maxRequests: 8, windowSec: 600 }, // several hours at once (card guarantee + booking): 8 calls / 10 min per IP
@@ -1328,7 +1331,7 @@ const RATE_LIMIT = {
   STUDIO_MANAGE: { maxRequests: 30, windowSec: 600 },  // studio platform: my hours, cancel, move, a code
   STUDIO_VERIFY: { maxRequests: 5, windowSec: 3600 },  // studio platform: a Viber login code
   STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },   // studio platform: the admin's 5-digit code
-  HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → NutriPlan: нова пратка
+  HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → Eatologix: нова пратка
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },   // преглед и прибиране на пратка
 };
 
@@ -2634,11 +2637,11 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
  * Свободните текстове от AI към клиента минават през пазача (text-guard):
  * изреченията с проблем отпадат — вкл. трето лице („клиентът“, „да се следи“).
  */
-function guardFields(obj, keys) {
+function guardFields(obj, keys, lang) {
   if (!obj || typeof obj !== 'object') return;
   for (const k of keys) {
     if (typeof obj[k] !== 'string' || !obj[k].trim()) continue;
-    const g = guardClientText(obj[k], { fallback: '' });
+    const g = guardClientText(obj[k], { fallback: '', lang });
     if (g.removed.length) console.warn(`[guard] ${k}: махнати изречения:`, g.removed.join(', '));
     obj[k] = g.text;
   }
@@ -2750,7 +2753,8 @@ async function isAILoggingEnabled(env) {
 async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null, userData = null, calculatedData = null, skipJSONEnforcement = false) {
   // Apply strict JSON-only enforcement to reduce unnecessary output
   // Skip enforcement for chat requests where plain text responses are expected
-  const enforcedPrompt = skipJSONEnforcement ? prompt : enforceJSONOnlyPrompt(prompt);
+  // Езикът на клиента (userData.lang от i18n.js): всичко, което вижда, на неговия език. Български — без указание.
+  const enforcedPrompt = (skipJSONEnforcement ? prompt : enforceJSONOnlyPrompt(prompt)) + languageDirective(userData?.lang);
   
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(enforcedPrompt);
@@ -3781,6 +3785,8 @@ async function handleChat(request, env) {
     }
 
     const effectiveUserData = userData || {};
+    // Езикът на интерфейса (i18n.js го добавя към всяка заявка): чатът отговаря на него.
+    if (body.lang && !effectiveUserData.lang) effectiveUserData.lang = body.lang;
     const effectiveUserPlan = userPlan || {};
     const chatHistory = conversationHistory || [];
 
@@ -3917,7 +3923,7 @@ async function handleChat(request, env) {
     }
     
     // Нищо неадекватно към клиента: „като AI…“, шаблони, обещания за лечение, спиране на лекарства, обидни думи.
-    const guarded = guardClientText(finalResponse);
+    const guarded = guardClientText(finalResponse, { lang: effectiveUserData.lang });
     if (guarded.removed.length) console.warn('[chat] махнати изречения:', guarded.removed.join(', '));
     finalResponse = guarded.text;
 
@@ -5286,7 +5292,7 @@ const DEFAULT_GEMINI_PLAN_MODEL = 'gemini-3.6-flash';
 const DEFAULT_GEMINI_LITE_MODEL = 'gemini-3.5-flash-lite';
 const ADMIN_ASSISTANT_DEFAULT_MODEL = DEFAULT_GEMINI_PLAN_MODEL;
 
-const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си NutriPlan AI асистент за администратор-нутриционист.
+const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си Eatologix AI асистент за администратор-нутриционист.
 Четеш кеширан клиентски картон (CC/NPCF). Промените се правят чрез RFC 6902 JSON Patch върху каноничния JSON.
 
 Patch root: { answers, plan, adminNotes }
@@ -10219,8 +10225,8 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
       return jsonResponse({ ...menuBody, kind: 'menu' }, menuResponse.status);
     }
 
-    guardFields(analysisResult?.dietSuitability, ['explanation']);
-    guardFields(analysisResult, ['suggestions']);
+    guardFields(analysisResult?.dietSuitability, ['explanation'], body?.lang);
+    guardFields(analysisResult, ['suggestions'], body?.lang);
 
     // Оценката е от 5 — интерфейсът и „вредна храна“ (≤ 2) я четат така; промпт с 1–10 се свежда.
     const suitScore = Number(analysisResult?.dietSuitability?.score);
@@ -10381,8 +10387,8 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
       });
     }
 
-    guardFields(menuResult, ['description', 'reasoning', 'adaptationTip']);
-    (Array.isArray(menuResult?.alternatives) ? menuResult.alternatives : []).forEach(a => guardFields(a, ['reason']));
+    guardFields(menuResult, ['description', 'reasoning', 'adaptationTip'], body?.lang);
+    (Array.isArray(menuResult?.alternatives) ? menuResult.alternatives : []).forEach(a => guardFields(a, ['reason'], body?.lang));
 
     return jsonResponse({
       success: true,
@@ -13915,16 +13921,16 @@ async function handleGetCalendarIcs(request, env) {
   // Read global notification config from KV (same data store as /api/notification-config)
   const defaults = {
     morningTime:  '07:00',
-    morningTitle: 'NutriPlan',
+    morningTitle: 'Eatologix',
     morningBody:  'Спа ли добре тази нощ?',
     eveningActivityTime:  '20:00',
-    eveningActivityTitle: 'NutriPlan',
+    eveningActivityTitle: 'Eatologix',
     eveningActivityBody:  'Колко се движи днес?',
     eveningBalanceTime:   '20:05',
-    eveningBalanceTitle:  'NutriPlan',
+    eveningBalanceTitle:  'Eatologix',
     eveningBalanceBody:   'Как се чувстваше днес?',
     eveningWaterTime:     '20:10',
-    eveningWaterTitle:    'NutriPlan',
+    eveningWaterTitle:    'Eatologix',
     eveningWaterBody:     'Пи ли достатъчно вода днес?',
     eveningTime:  '20:00',
   };
@@ -13937,7 +13943,9 @@ async function handleGetCalendarIcs(request, env) {
   } catch (_) {}
   // Старите текстове от запазени настройки → новите (същото като local-scheduler.js).
   const LEGACY_COPY = {
-    'AI Асистент': 'NutriPlan',
+    'AI Асистент': 'Eatologix',
+    'NutriPlan': 'Eatologix', // старото име, записано в KV преди смяната
+    'NutriDeus': 'Eatologix',
     'Ниво на активност?': 'Колко се движи днес?',
     'Емоционален баланс?': 'Как се чувстваше днес?',
     'Изпи ли поне 2 л вода?': 'Пи ли достатъчно вода днес?',
@@ -14029,17 +14037,17 @@ async function handleGetCalendarIcs(request, env) {
       const parts = String(extra.time).split(':').map(Number);
       if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return;
       events.push(makeEvent('extra_' + idx, day, parts[0], parts[1],
-        extra.title || 'NutriPlan', extra.body || ''));
+        extra.title || 'Eatologix', extra.body || ''));
     });
   }
 
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//NutriPlan//AiDiet//BG',
+    'PRODID:-//Eatologix//AiDiet//BG',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:NutriPlan Напомняния',
+    'X-WR-CALNAME:Eatologix Напомняния',
     'X-WR-CALDESC:Сутрешни и вечерни напомняния за твоя диетичен план',
     'REFRESH-INTERVAL;VALUE=DURATION:PT24H',
     'X-PUBLISHED-TTL:PT24H',
@@ -14282,8 +14290,8 @@ async function handlePushSend(request, env) {
     
     // Prepare push message
     const pushMessage = {
-      title: title || 'NutriPlan',
-      body: body || 'Ново напомняне от NutriPlan',
+      title: title || 'Eatologix',
+      body: body || 'Ново напомняне от Eatologix',
       url: url || '/plan.html',
       icon: icon || '/icon-192x192.png',
       notificationType: notificationType || 'general',
@@ -14944,10 +14952,10 @@ async function handleEnrichmentResolve(request, env) {
   }
 }
 
-/* ── Пратки от модулите (EmoEat, AIRIS) → NutriPlan ─────────────────────
- * Еднопосочно: модулът оставя обобщение и получава линк; NutriPlan прибира
+/* ── Пратки от модулите (EmoEat, AIRIS) → Eatologix ─────────────────────
+ * Еднопосочно: модулът оставя обобщение и получава линк; Eatologix прибира
  * пратката в профила само със съгласие. Към модулите не се връща нищо от
- * NutriPlan — отговорите съдържат само това, което модулът е изпратил.
+ * Eatologix — отговорите съдържат само това, което модулът е изпратил.
  */
 
 const HANDOFF_PREFIX = 'handoff:';
@@ -14985,7 +14993,7 @@ async function rememberHandoffClaim(env, entry) {
 
 /**
  * Броячи по модул и месец — фунията на насочванията:
- * created (клик в модула) → opened (страницата в NutriPlan) → plan (първи план
+ * created (клик в модула) → opened (страницата в Eatologix) → plan (първи план
  * с данните) → claimed (данните са в профила).
  */
 async function countHandoff(env, source, event) {
@@ -14999,7 +15007,7 @@ async function countHandoff(env, source, event) {
   }
 }
 
-/** POST /api/handoff — Body: пратката на модула. Отговор: { token, url } — линкът към NutriPlan. */
+/** POST /api/handoff — Body: пратката на модула. Отговор: { token, url } — линкът към Eatologix. */
 async function handleHandoffCreate(request, env) {
   try {
     if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -15515,11 +15523,11 @@ const APP_INTENT_URL = 'intent:#Intent;action=android.intent.action.MAIN;categor
 
 function linkResultPage(ok, title, text, fromApp = false) {
   const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NutriPlan</title>
-<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#F0FDFA;color:#042F2E}
-main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? '#0F766E' : '#B45309'}}
-a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#0F766E;color:#fff;text-decoration:none}</style></head>
-<body><main><div class="i">${ok ? '✓' : '!'}</div><h1>${esc(title)}</h1><p>${esc(text)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : 'https://biocode.website/index.html?app=1&tab=profile'}">Обратно в NutriPlan</a></main>
+  const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Eatologix</title>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#EEFDFC;color:#032E36}
+main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? '#05737D' : '#B45309'}}
+a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#05737D;color:#fff;text-decoration:none}</style></head>
+<body><main><div class="i">${ok ? '✓' : '!'}</div><h1>${esc(title)}</h1><p>${esc(text)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : 'https://biocode.website/index.html?app=1&tab=profile'}">Обратно в Eatologix</a></main>
 ${fromApp ? `<script>setTimeout(function(){location.href=${JSON.stringify(APP_INTENT_URL)};},${ok ? 600 : 2500});</script>` : ''}</body></html>`;
   return new Response(html, { status: ok ? 200 : 400, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
@@ -15530,7 +15538,7 @@ async function handleLinksCallback(request, env, provider) {
   const state = url.searchParams.get('state') || '';
   const code = url.searchParams.get('code') || '';
   const pending = state ? await kvGetJSON(env, `link_state:${state}`) : null;
-  if (!pending || pending.provider !== provider) return linkResultPage(false, 'Връзката не е завършена', 'Заявката е изтекла. Опитай отново от профила в NutriPlan.');
+  if (!pending || pending.provider !== provider) return linkResultPage(false, 'Връзката не е завършена', 'Заявката е изтекла. Опитай отново от профила в Eatologix.');
   await env.page_content.delete(`link_state:${state}`).catch(() => {});
   const back = (status) => {
     if (!pending.returnTo) return null;
@@ -16070,7 +16078,7 @@ async function handleAdminSendMessage(request, env) {
     // Send notification to user by calling handlePushSend directly
     const pushPayload = {
       userId: userId,
-      title: 'Съобщение от NutriPlan',
+      title: 'Съобщение от Eatologix',
       body: message,
       url: '/plan.html',
       notificationType: 'chat'
@@ -16468,8 +16476,8 @@ async function sendPushNotificationToUser(userId, message, env) {
     
     // Prepare push message
     const pushMessage = {
-      title: message.title || 'NutriPlan',
-      body: message.body || 'Ново напомняне от NutriPlan',
+      title: message.title || 'Eatologix',
+      body: message.body || 'Ново напомняне от Eatologix',
       url: message.url || '/plan.html',
       icon: message.icon || '/icon-192x192.png',
       notificationType: message.notificationType || 'general',
@@ -17867,6 +17875,10 @@ export default {
     
     console.log(`${request.method} ${url.pathname}`);
 
+    // Eatologix на собствен домейн (eatologix.com): страниците от сайта, /api/ продължава надолу.
+    const appDomainResp = await handleAppDomain(request, env);
+    if (appDomainResp) return appDomainResp;
+
     // the studio platform (many studios: /api/s/…) answers its own preflight and routes
     const studioResp = (await handleStudioSite(request, env)) ||
       (await handleStudioApi(request, env, ctx, { rateLimit: (name) => checkRateLimit(env, request, name),
@@ -18093,6 +18105,14 @@ export default {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === '/api/user/delete-account' && request.method === 'POST') {
         return await handleDeleteOwnAccount(request, env);
+      } else if (url.pathname === '/api/i18n/translate' && request.method === 'POST') {
+        const lite = (await getAdminConfig(env)).liteModelName;
+        return await handleI18nTranslate(request, env, {
+          callGemini,
+          model: lite && lite !== 'off' ? lite : DEFAULT_GEMINI_PLAN_MODEL,
+          rateLimit: () => checkRateLimit(env, request, 'I18N_TRANSLATE'),
+          cors: CORS_HEADERS
+        });
       } else if (url.pathname === '/api/enrichment' && request.method === 'POST') {
         return await handleEnrichmentSubmit(request, env);
       } else if (url.pathname === '/api/enrichment/get' && request.method === 'POST') {

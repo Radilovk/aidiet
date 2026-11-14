@@ -1,5 +1,5 @@
 /**
- * NutriPlan Design System 2026
+ * Eatologix Design System 2026
  * ===========================
  * Unified design system for consistent, modern, accessible UI
  * 
@@ -23,18 +23,31 @@
    CSS CUSTOM PROPERTIES (TOKENS)
    =========================== */
 :root {
-    /* === COLORS - Primary Teal Palette (Medical Glassmorphism) === */
-    --ds-primary-50: #F0FDFA;
-    --ds-primary-100: #CCFBF1;
-    --ds-primary-200: #99F6E4;
-    --ds-primary-300: #5EEAD4;
-    --ds-primary-400: #2DD4BF;
-    --ds-primary-500: #14B8A6;
-    --ds-primary-600: #0D9488;
-    --ds-primary-700: #0F766E;
-    --ds-primary-800: #115E59;
-    --ds-primary-900: #134E4A;
-    --ds-primary-950: #042F2E;
+    /* === EATOLOGIX — марката (от логото): тъмен тюркоаз → циан | зелено → лайм === */
+    --brand-ink: #034E5C;
+    --brand-teal: #03909C;
+    --brand-cyan: #00E0DC;
+    --brand-mint: #08D29A;
+    --brand-green: #10CC50;
+    --brand-lime: #A0F500;
+    --brand-green-text: #0A8F3A;  /* зелено, четимо като текст на светъл фон */
+    --brand-gradient: linear-gradient(120deg, #03909C 0%, #08C2B4 38%, #10CC50 72%, #7FE21A 100%);
+    --brand-gradient-soft: linear-gradient(120deg, rgba(0,224,220,.14) 0%, rgba(16,204,80,.12) 60%, rgba(160,245,0,.10) 100%);
+    --brand-logo: url('brand/eatologix-horizontal.svg');
+    --brand-logo-full: url('brand/eatologix-logo.svg');
+
+    /* === COLORS - Primary Palette (по логото, циан-тюркоаз) === */
+    --ds-primary-50: #EEFDFC;
+    --ds-primary-100: #CDF9F6;
+    --ds-primary-200: #9BF2EE;
+    --ds-primary-300: #5FE6E3;
+    --ds-primary-400: #19D6D2;
+    --ds-primary-500: #04B7BD;
+    --ds-primary-600: #03939C;
+    --ds-primary-700: #05737D;
+    --ds-primary-800: #075C66;
+    --ds-primary-900: #034E5C;
+    --ds-primary-950: #032E36;
     
     /* === COLORS - Secondary Blue Palette === */
     --ds-secondary-50: #eff6ff;
@@ -116,7 +129,7 @@
     --ds-gray-950: #030712;
     
     /* === LIGHT THEME SEMANTIC COLORS (Glassmorphism) === */
-    --ds-bg-primary: #F0FDFA;
+    --ds-bg-primary: #EEFDFC;
     --ds-bg-secondary: #F5FFFE;
     --ds-bg-tertiary: #ffffff;
     --ds-bg-card: rgba(255, 255, 255, 0.72);
@@ -132,10 +145,10 @@
     --ds-text-muted: var(--ds-gray-400);
     --ds-text-inverse: #ffffff;
     
-    --ds-border-primary: rgba(13, 148, 136, 0.12);
-    --ds-border-secondary: rgba(13, 148, 136, 0.06);
+    --ds-border-primary: rgba(3, 147, 156, 0.12);
+    --ds-border-secondary: rgba(3, 147, 156, 0.06);
     --ds-border-focus: var(--ds-primary-500);
-    --ds-border-accent: rgba(13, 148, 136, 0.2);
+    --ds-border-accent: rgba(3, 147, 156, 0.2);
     
     /* === TYPOGRAPHY === */
     --ds-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -217,24 +230,24 @@
     --ds-radius-full: 9999px;
     
     /* === SHADOWS (Teal-tinted for Glassmorphism) === */
-    --ds-shadow-xs: 0 1px 2px rgba(13, 148, 136, 0.04);
-    --ds-shadow-sm: 0 2px 6px rgba(13, 148, 136, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --ds-shadow-md: 0 4px 12px rgba(13, 148, 136, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-    --ds-shadow-lg: 0 10px 24px rgba(13, 148, 136, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04);
-    --ds-shadow-xl: 0 20px 40px rgba(13, 148, 136, 0.12), 0 8px 16px rgba(0, 0, 0, 0.04);
-    --ds-shadow-2xl: 0 25px 50px rgba(13, 148, 136, 0.18);
-    --ds-shadow-inner: inset 0 2px 4px 0 rgba(13, 148, 136, 0.06);
+    --ds-shadow-xs: 0 1px 2px rgba(3, 147, 156, 0.04);
+    --ds-shadow-sm: 0 2px 6px rgba(3, 147, 156, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --ds-shadow-md: 0 4px 12px rgba(3, 147, 156, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --ds-shadow-lg: 0 10px 24px rgba(3, 147, 156, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04);
+    --ds-shadow-xl: 0 20px 40px rgba(3, 147, 156, 0.12), 0 8px 16px rgba(0, 0, 0, 0.04);
+    --ds-shadow-2xl: 0 25px 50px rgba(3, 147, 156, 0.18);
+    --ds-shadow-inner: inset 0 2px 4px 0 rgba(3, 147, 156, 0.06);
     
     /* Colored shadows */
-    --ds-shadow-primary: 0 10px 40px rgba(13, 148, 136, 0.15);
-    --ds-shadow-primary-lg: 0 20px 50px rgba(13, 148, 136, 0.2);
+    --ds-shadow-primary: 0 10px 40px rgba(3, 147, 156, 0.15);
+    --ds-shadow-primary-lg: 0 20px 50px rgba(3, 147, 156, 0.2);
     --ds-shadow-secondary: 0 10px 40px rgba(6, 182, 212, 0.15);
     --ds-shadow-purple: 0 10px 40px rgba(139, 92, 246, 0.15);
     --ds-shadow-cyan: 0 10px 40px rgba(6, 182, 212, 0.18);
     --ds-shadow-gold: 0 10px 40px rgba(245, 158, 11, 0.15);
     
     /* Glow effects (neon accents) */
-    --ds-glow-primary: 0 0 24px rgba(13, 148, 136, 0.4), 0 0 48px rgba(13, 148, 136, 0.15);
+    --ds-glow-primary: 0 0 24px rgba(3, 147, 156, 0.4), 0 0 48px rgba(3, 147, 156, 0.15);
     --ds-glow-secondary: 0 0 24px rgba(6, 182, 212, 0.4), 0 0 48px rgba(6, 182, 212, 0.15);
     --ds-glow-purple: 0 0 24px rgba(139, 92, 246, 0.4);
     --ds-glow-cyan: 0 0 24px rgba(34, 211, 238, 0.5), 0 0 60px rgba(34, 211, 238, 0.15);
@@ -284,23 +297,23 @@
     --ds-glass-blur: 20px;
     --ds-glass-saturation: 180%;
     --ds-glass-bg: rgba(255, 255, 255, 0.68);
-    --ds-glass-border: rgba(13, 148, 136, 0.12);
+    --ds-glass-border: rgba(3, 147, 156, 0.12);
     --ds-glass-border-light: rgba(255, 255, 255, 0.35);
     
     /* === MESH GRADIENT COLORS (Teal/Cyan) === */
-    --ds-mesh-1: rgba(13, 148, 136, 0.08);
+    --ds-mesh-1: rgba(3, 147, 156, 0.08);
     --ds-mesh-2: rgba(6, 182, 212, 0.06);
     --ds-mesh-3: rgba(34, 211, 238, 0.04);
 
     /* === ПЛЪТЕН АКЦЕНТ И ТЕКСТ ВЪРХУ НЕГО ===
        Фонове с бял текст ползват само тези стойности: и двата края на
-       градиента дават ≥ 4.5:1 с бяло. Светлият тюркоаз (#2DD4BF) е за текст,
+       градиента дават ≥ 4.5:1 с бяло. Светлият тюркоаз (#19D6D2) е за текст,
        икони и декорация върху тъмен фон — никога под бял текст. */
-    --ds-fill: #0F766E;
-    --ds-fill-strong: #115E59;
-    --ds-fill-grad: linear-gradient(135deg, #115E59 0%, #0F766E 55%, #0C8379 100%);
+    --ds-fill: #05737D;
+    --ds-fill-strong: #075C66;
+    --ds-fill-grad: linear-gradient(135deg, #075C66 0%, #05737D 55%, #0C8379 100%);
     --ds-on-fill: #ffffff;
-    --ds-accent-text: #0F766E;          /* акцентен текст: 5.5:1 върху бяло */
+    --ds-accent-text: #05737D;          /* акцентен текст: 5.5:1 върху бяло */
     --ds-text-soft: #5B6E6B;            /* помощен текст: 5.4:1 върху бяло */
 
     /* === СЕМАНТИЧНИ ЦВЕТОВЕ (текст ≥ 4.5:1 върху своя фон) === */
@@ -325,7 +338,7 @@
     --ds-macro-fats: #E11D48;
     --ds-macro-fats-text: #BE123C;
     --ds-macro-fats-bg: rgba(225, 29, 72, 0.10);
-    --ds-macro-fiber: #0D9488;
+    --ds-macro-fiber: #03939C;
 
     /* === ДВИЖЕНИЕ === */
     --ds-motion-press: 120ms;
@@ -348,6 +361,9 @@
    DARK THEME (Glassmorphism + Glow)
    =========================== */
 [data-theme="dark"] {
+    --brand-logo: url('brand/eatologix-horizontal-dark.svg');
+    --brand-logo-full: url('brand/eatologix-logo-dark.svg');
+    --brand-green-text: #4ADE80;
     --ds-bg-primary: #0F2B2B;
     --ds-bg-secondary: #133838;
     --ds-bg-tertiary: #184040;
@@ -364,43 +380,43 @@
     --ds-text-muted: var(--ds-gray-500);
     --ds-text-inverse: #0F2B2B;
     
-    --ds-border-primary: rgba(45, 212, 191, 0.18);
-    --ds-border-secondary: rgba(45, 212, 191, 0.10);
+    --ds-border-primary: rgba(25, 214, 210, 0.18);
+    --ds-border-secondary: rgba(25, 214, 210, 0.10);
     --ds-border-focus: var(--ds-primary-400);
-    --ds-border-accent: rgba(45, 212, 191, 0.28);
+    --ds-border-accent: rgba(25, 214, 210, 0.28);
     
     /* Dark shadows with glow effects */
     --ds-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
-    --ds-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 1px rgba(45, 212, 191, 0.12);
-    --ds-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 2px rgba(45, 212, 191, 0.14);
-    --ds-shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.35), 0 0 4px rgba(45, 212, 191, 0.16);
-    --ds-shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 8px rgba(45, 212, 191, 0.12);
-    --ds-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 12px rgba(45, 212, 191, 0.14);
+    --ds-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 1px rgba(25, 214, 210, 0.12);
+    --ds-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 2px rgba(25, 214, 210, 0.14);
+    --ds-shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.35), 0 0 4px rgba(25, 214, 210, 0.16);
+    --ds-shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 8px rgba(25, 214, 210, 0.12);
+    --ds-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 12px rgba(25, 214, 210, 0.14);
     
-    --ds-shadow-primary: 0 8px 32px rgba(45, 212, 191, 0.22), 0 0 8px rgba(45, 212, 191, 0.12);
-    --ds-shadow-primary-lg: 0 16px 48px rgba(45, 212, 191, 0.28), 0 0 16px rgba(45, 212, 191, 0.14);
+    --ds-shadow-primary: 0 8px 32px rgba(25, 214, 210, 0.22), 0 0 8px rgba(25, 214, 210, 0.12);
+    --ds-shadow-primary-lg: 0 16px 48px rgba(25, 214, 210, 0.28), 0 0 16px rgba(25, 214, 210, 0.14);
     --ds-shadow-secondary: 0 8px 32px rgba(34, 211, 238, 0.22);
     --ds-shadow-purple: 0 8px 32px rgba(167, 139, 250, 0.22);
     --ds-shadow-cyan: 0 8px 32px rgba(34, 211, 238, 0.28), 0 0 12px rgba(34, 211, 238, 0.12);
     
     /* Glassmorphism for dark */
     --ds-glass-bg: rgba(20, 55, 55, 0.75);
-    --ds-glass-border: rgba(45, 212, 191, 0.15);
+    --ds-glass-border: rgba(25, 214, 210, 0.15);
     --ds-glass-border-light: rgba(255, 255, 255, 0.08);
     
     /* Neon glow effects for dark mode */
-    --ds-glow-primary: 0 0 24px rgba(45, 212, 191, 0.35), 0 0 60px rgba(45, 212, 191, 0.12);
+    --ds-glow-primary: 0 0 24px rgba(25, 214, 210, 0.35), 0 0 60px rgba(25, 214, 210, 0.12);
     --ds-glow-secondary: 0 0 24px rgba(34, 211, 238, 0.35), 0 0 60px rgba(34, 211, 238, 0.12);
     --ds-glow-cyan: 0 0 24px rgba(34, 211, 238, 0.45), 0 0 60px rgba(34, 211, 238, 0.15);
     
     /* Mesh gradient for dark */
-    --ds-mesh-1: rgba(45, 212, 191, 0.06);
+    --ds-mesh-1: rgba(25, 214, 210, 0.06);
     --ds-mesh-2: rgba(34, 211, 238, 0.05);
     --ds-mesh-3: rgba(103, 232, 249, 0.04);
 
     /* Плътният акцент остава тъмен и в тъмна тема — отделя се от фона
        с тон и сянка, а белият текст върху него остава четим. */
-    --ds-accent-text: #2DD4BF;
+    --ds-accent-text: #19D6D2;
     --ds-text-soft: #9AB3AF;
     --ds-success-text: #4ADE80;
     --ds-macro-protein-text: #A5B4FC;
@@ -664,13 +680,13 @@ body {
 .ds-btn-primary {
     background: var(--ds-fill-grad);
     color: var(--ds-on-fill);
-    box-shadow: var(--ds-shadow-sm), 0 4px 12px rgba(13, 148, 136, 0.25);
+    box-shadow: var(--ds-shadow-sm), 0 4px 12px rgba(3, 147, 156, 0.25);
 }
 
 .ds-btn-primary:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--ds-primary-400) 0%, var(--ds-primary-500) 100%);
     transform: translateY(-2px);
-    box-shadow: var(--ds-shadow-md), 0 8px 20px rgba(13, 148, 136, 0.35);
+    box-shadow: var(--ds-shadow-md), 0 8px 20px rgba(3, 147, 156, 0.35);
 }
 
 .ds-btn-primary:active:not(:disabled) {
@@ -741,7 +757,7 @@ body {
 .ds-input:focus {
     outline: none;
     border-color: var(--ds-border-focus);
-    box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.15);
+    box-shadow: 0 0 0 4px rgba(3, 147, 156, 0.15);
 }
 
 .ds-input::placeholder {
@@ -767,7 +783,7 @@ body {
 
 .ds-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--ds-primary-500) 0%, var(--ds-primary-400) 100%);
+    background: linear-gradient(90deg, var(--ds-primary-500) 0%, var(--brand-green) 100%);
     border-radius: var(--ds-radius-full);
     transition: width var(--ds-transition-slow) var(--ds-ease-out);
 }
@@ -909,11 +925,11 @@ body {
 @keyframes ds-celebration-pulse {
     0%, 100% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4);
+        box-shadow: 0 0 0 0 rgba(3, 147, 156, 0.4);
     }
     50% {
         transform: scale(1.05);
-        box-shadow: 0 0 0 20px rgba(13, 148, 136, 0);
+        box-shadow: 0 0 0 20px rgba(3, 147, 156, 0);
     }
 }
 
@@ -942,7 +958,7 @@ body {
     z-index: var(--ds-z-fixed);
     box-shadow: 
         var(--ds-shadow-lg),
-        0 8px 24px rgba(13, 148, 136, 0.4);
+        0 8px 24px rgba(3, 147, 156, 0.4);
     transition: all var(--ds-transition-normal) var(--ds-ease-bounce);
     animation: ds-fab-pulse 3s ease-in-out infinite;
 }
@@ -951,12 +967,12 @@ body {
     0%, 100% {
         box-shadow: 
             var(--ds-shadow-lg),
-            0 8px 24px rgba(13, 148, 136, 0.4);
+            0 8px 24px rgba(3, 147, 156, 0.4);
     }
     50% {
         box-shadow: 
             var(--ds-shadow-xl),
-            0 12px 32px rgba(13, 148, 136, 0.5);
+            0 12px 32px rgba(3, 147, 156, 0.5);
     }
 }
 
@@ -965,7 +981,7 @@ body {
     animation: none;
     box-shadow: 
         var(--ds-shadow-2xl),
-        0 16px 40px rgba(13, 148, 136, 0.5);
+        0 16px 40px rgba(3, 147, 156, 0.5);
 }
 
 .ds-fab:active {
@@ -1665,14 +1681,14 @@ a.ds-btn:active:not(:disabled) {
 
 /* Modern gradient text utility */
 .ds-gradient-text {
-    background: linear-gradient(135deg, var(--ds-primary-500) 0%, var(--ds-accent-cyan-500) 100%);
+    background: var(--brand-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 [data-theme="dark"] .ds-gradient-text {
-    background: linear-gradient(135deg, var(--ds-primary-400) 0%, var(--ds-accent-cyan-400) 100%);
+    background: linear-gradient(120deg, #19D6D2 0%, #10CC50 60%, #A0F500 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -1708,15 +1724,15 @@ a.ds-btn:active:not(:disabled) {
 }
 
 .ds-badge-primary {
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
+    background: linear-gradient(135deg, rgba(3, 147, 156, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
     color: var(--ds-primary-700);
-    border: 1px solid rgba(13, 148, 136, 0.15);
+    border: 1px solid rgba(3, 147, 156, 0.15);
 }
 
 [data-theme="dark"] .ds-badge-primary {
-    background: linear-gradient(135deg, rgba(45, 212, 191, 0.15) 0%, rgba(34, 211, 238, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(25, 214, 210, 0.15) 0%, rgba(34, 211, 238, 0.1) 100%);
     color: var(--ds-primary-300);
-    border-color: rgba(45, 212, 191, 0.2);
+    border-color: rgba(25, 214, 210, 0.2);
 }
 
 /* Improved card with top accent line */
@@ -1732,7 +1748,7 @@ a.ds-btn:active:not(:disabled) {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--ds-primary-500) 0%, var(--ds-accent-cyan-400) 50%, var(--ds-accent-purple-400) 100%);
+    background: var(--brand-gradient);
     opacity: 0;
     transition: opacity var(--ds-transition-normal) var(--ds-ease-default);
 }
@@ -1788,7 +1804,7 @@ a.ds-btn:active:not(:disabled) {
     inset: -1px;
     border-radius: inherit;
     opacity: 0;
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(3, 147, 156, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%);
     transition: opacity var(--ds-transition-normal) var(--ds-ease-default);
     z-index: -1;
     filter: blur(12px);
@@ -1801,11 +1817,11 @@ a.ds-btn:active:not(:disabled) {
 /* Improved focus ring */
 .ds-focus-ring:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3), 0 0 0 6px rgba(13, 148, 136, 0.1);
+    box-shadow: 0 0 0 3px rgba(3, 147, 156, 0.3), 0 0 0 6px rgba(3, 147, 156, 0.1);
 }
 
 [data-theme="dark"] .ds-focus-ring:focus-visible {
-    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.3), 0 0 0 6px rgba(45, 212, 191, 0.1);
+    box-shadow: 0 0 0 3px rgba(25, 214, 210, 0.3), 0 0 0 6px rgba(25, 214, 210, 0.1);
 }
 
 /* ===========================
@@ -1846,11 +1862,11 @@ nav.bottom-nav .bottom-nav-item i {
 }
 nav.bottom-nav .bottom-nav-item.active {
     color: var(--ds-accent-text);
-    background: rgba(15, 118, 110, 0.10);
+    background: rgba(5, 115, 125, 0.10);
 }
 [data-theme="dark"] nav.bottom-nav .bottom-nav-item.active {
     color: var(--ds-accent-text);
-    background: rgba(45, 212, 191, 0.14);
+    background: rgba(25, 214, 210, 0.14);
 }
 nav.bottom-nav .bottom-nav-item:active {
     transform: scale(var(--ds-press-scale));
@@ -1876,3 +1892,13 @@ nav.bottom-nav .bottom-nav-item:focus-visible {
        .btn-nav, .toolbar-btn, .tab-btn, .form-input, .form-select, select.form-input) {
     min-height: var(--ds-touch-min);
 }
+
+
+/* ===========================
+   EATOLOGIX — логото като елемент
+   <span class="ex-logo" role="img" aria-label="Eatologix"></span>  (хоризонтално, следва темата)
+   <span class="ex-mark"></span>                                         (само знакът)
+   =========================== */
+.ex-logo { display: inline-block; height: 28px; aspect-ratio: 3507 / 734; background: var(--brand-logo) left center / contain no-repeat; vertical-align: middle; }
+.ex-mark { display: inline-block; width: 28px; height: 28px; background: url('brand/eatologix-mark.svg') center / contain no-repeat; vertical-align: middle; }
+.ex-gradient-text { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }

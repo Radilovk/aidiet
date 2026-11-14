@@ -9,7 +9,7 @@
 
 /** @type {Array<[string, RegExp]>} */
 const RULES = [
-  // AI говори за себе си вместо като асистента на NutriPlan.
+  // AI говори за себе си вместо като асистента на Eatologix.
   ['ai_self', /(като|аз съм)\s+(ai|ии|изкуствен[а-я]*\s+интелект|езиков[а-я]*\s+модел|чатбот|бот)|\b(as an ai|i am an ai|language model|chatgpt|openai|gemini|claude|anthropic)\b/i],
   // Незапълнен шаблон.
   ['placeholder', /\{\{?\s*[a-z_а-я]+\s*\}?\}|\[(име|name|клиент|client|храна|food)[^\]]{0,20}\]|<(име|name)>/i],
@@ -38,11 +38,15 @@ function mostlyLatin(sentence) {
   return latin >= 12 && latin > cyr * 1.5;
 }
 
-/** Проблемите в текст — за тестове и логове. */
-export function textIssues(text) {
+/**
+ * Проблемите в текст — за тестове и логове.
+ * options.lang: езикът на клиента; при чужд език (en, de, es) латиницата е правилна, не проблем.
+ */
+export function textIssues(text, options = {}) {
   const s = String(text ?? '');
   const out = RULES.filter(([, re]) => re.test(s)).map(([code]) => code);
-  if (s.split(/(?<=[.!?])\s+|\n+/).some(mostlyLatin)) out.push('english');
+  const foreign = options.lang && options.lang !== 'bg';
+  if (!foreign && s.split(/(?<=[.!?])\s+|\n+/).some(mostlyLatin)) out.push('english');
   return out;
 }
 
@@ -62,11 +66,13 @@ export function isCleanStaffText(text) {
 /**
  * Изчиства по-дълъг текст (отговор в чата): маха само изреченията с проблем.
  * @param {string} text
- * @param {{ fallback?: string }} [options]
+ * @param {{ fallback?: string, lang?: string }} [options]
  * @returns {{ text: string, removed: string[] }}
  */
 export function guardClientText(text, options = {}) {
-  const fallback = 'fallback' in options ? options.fallback : 'Не успях да отговоря добре на това. Опитай да зададеш въпроса по друг начин.';
+  const foreign = options.lang && options.lang !== 'bg';
+  const fallback = 'fallback' in options ? options.fallback
+    : (foreign ? 'I could not answer that well. Try asking it another way.' : 'Не успях да отговоря добре на това. Опитай да зададеш въпроса по друг начин.');
   const src = String(text ?? '');
   if (!src.trim()) return { text: fallback, removed: [] };
   const removed = [];
@@ -74,7 +80,7 @@ export function guardClientText(text, options = {}) {
     // Изреченията в реда — пазят се разделителите.
     const parts = line.split(/(?<=[.!?…])\s+/);
     const kept = parts.filter((p) => {
-      const bad = textIssues(p);
+      const bad = textIssues(p, options);
       if (bad.length) removed.push(...bad);
       return !bad.length;
     });

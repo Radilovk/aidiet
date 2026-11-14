@@ -1,0 +1,88 @@
+name: Domain setup (eatologix.com)
+
+# Свързва собствения домейн на Eatologix с worker-а „aidiet“ (app-domain.js):
+#  1. зоната в Cloudflare (създава се, ако я няма) → DNS сървърите за регистратора (Namecheap);
+#  2. Custom Domain на worker-а за домейна и www (Cloudflare сам прави DNS записите и сертификата).
+# Безопасно е да се пуска многократно. Резултатът е в „Summary“ на задачата.
+# Репото е публично: печатат се само имена и състояния, никога ключове.
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 'Домейнът'
+        required: false
+        default: 'eatologix.com'
+  push:
+    branches: [claude/jolly-goodall-obbojn]
+    paths: ['.github/workflows/domain-setup.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: domain-setup
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    if: github.event_name == 'push' || github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DOMAIN: ${{ inputs.domain || 'eatologix.com' }}
+      SERVICE: aidiet
+    steps:
+      - name: Zone + worker custom domains
+        run: |
+          set -u
+          api() { curl -sS -X "$1" "https://api.cloudflare.com/client/v4$2" -H "Authorization: Bearer $CF_TOKEN" -H 'Content-Type: application/json' ${3:+--data "$3"}; }
+          say() { echo "$*" | tee -a "$GITHUB_STEP_SUMMARY"; }
+          errs() { jq -r '[.errors[]? | "\(.code): \(.message)"] | join("; ")'; }
+          say "## $DOMAIN"
+          say ''
+
+          # 1) Зоната
+          zone=$(api GET "/zones?name=$DOMAIN&account.id=$CF_ACCOUNT")
+          zid=$(echo "$zone" | jq -r '.result[0].id // empty')
+          if [ -z "$zid" ]; then
+            created=$(api POST /zones "{\"name\":\"$DOMAIN\",\"account\":{\"id\":\"$CF_ACCOUNT\"},\"type\":\"full\"}")
+            zid=$(echo "$created" | jq -r '.result.id // empty')
+            if [ -z "$zid" ]; then say "✗ Зоната не е създадена: $(echo "$created" | errs)"; exit 1; fi
+            say "✓ Зоната е създадена в Cloudflare."
+            zone=$(api GET "/zones/$zid" | jq '{result:[.result]}')
+          else
+            say "✓ Зоната вече е в Cloudflare."
+          fi
+          status=$(echo "$zone" | jq -r '.result[0].status')
+          say "Състояние на зоната: **$status** (active = DNS сървърите вече сочат към Cloudflare)"
+          say ''
+          say '### DNS сървъри за Namecheap (Domain List → Manage → Nameservers → Custom DNS)'
+          echo "$zone" | jq -r '.result[0].name_servers[]' | while read -r ns; do say "- \`$ns\`"; done
+          say ''
+
+          # Записи, които биха пречели на Custom Domain (A/AAAA/CNAME на същото име) — само се показват.
+          recs=$(api GET "/zones/$zid/dns_records?per_page=100" | jq -r '.result[]? | "\(.type) \(.name) → \(.content)"')
+          [ -n "$recs" ] && { say '### Съществуващи DNS записи'; echo "$recs" | while read -r r; do say "- $r"; done; say ''; }
+
+          # 2) Custom Domain на worker-а
+          say '### Worker custom domains'
+          ok=1
+          for host in "$DOMAIN" "www.$DOMAIN"; do
+            res=$(api PUT "/accounts/$CF_ACCOUNT/workers/domains" "{\"hostname\":\"$host\",\"service\":\"$SERVICE\",\"environment\":\"production\",\"zone_id\":\"$zid\"}")
+            if [ "$(echo "$res" | jq -r '.success')" = "true" ]; then
+              say "- ✓ \`$host\` → worker \`$SERVICE\`"
+            else
+              # По-новите worker-и нямат „environment“ — втори опит без него.
+              res=$(api PUT "/accounts/$CF_ACCOUNT/workers/domains" "{\"hostname\":\"$host\",\"service\":\"$SERVICE\",\"zone_id\":\"$zid\"}")
+              if [ "$(echo "$res" | jq -r '.success')" = "true" ]; then say "- ✓ \`$host\` → worker \`$SERVICE\`"
+              else say "- ✗ \`$host\`: $(echo "$res" | errs)"; ok=0; fi
+            fi
+          done
+          say ''
+          # SSL: Full (strict) — worker-ът отговаря сам, произход няма.
+          api PATCH "/zones/$zid/settings/always_use_https" '{"value":"on"}' >/dev/null || true
+          say "Всички custom domains на акаунта:"
+          api GET "/accounts/$CF_ACCOUNT/workers/domains" | jq -r '.result[]? | "- \(.hostname) → \(.service)"' | while read -r l; do say "$l"; done
+          [ "$ok" = 1 ] || exit 1

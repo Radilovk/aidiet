@@ -2,10 +2,11 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
+    <script src="./i18n.js?v=20261114a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Интерактивна платформа за дълголетие и анти-ейджинг - научно-базирани протоколи за забавяне на стареенето и оптимизиране на здравето.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F0FDFA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,15 +18,15 @@
     <meta property="og:url" content="https://biocode.website/longevity.html">
     <meta property="og:title" content="Дълголетие и Анти-Ейджинг">
     <meta property="og:description" content="Научно-базирани протоколи за забавяне на стареенето, активиране на автофагия и оптимизиране на митохондриите.">
-    <meta property="og:image" content="https://biocode.website/icon-512x512.png">
+    <meta property="og:image" content="https://biocode.website/brand/og-image.png">
     <meta property="og:locale" content="bg_BG">
 
     <link rel="canonical" href="https://biocode.website/longevity.html">
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
     <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
     <title>Дълголетие и Анти-Ейджинг</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
@@ -33,14 +34,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F0FDFA';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
             /* Teal theme — unified with main project design system */
-            --primary: #0F766E;
-            --primary-hover: #115E59;
-            --primary-light: #CCFBF1;
-            --primary-dark: #115E59;
+            --primary: #05737D;
+            --primary-hover: #075C66;
+            --primary-light: #CDF9F6;
+            --primary-dark: #075C66;
             --accent-gold: #d4a843;
             --accent-gold-light: #fef3c7;
             --accent-purple: #7C3AED;
@@ -49,19 +50,19 @@
             --accent-blue: #2563EB;
             --accent-warm: #B45309;
             --accent-rose: #EC4899;
-            --accent-green: #0F766E;
+            --accent-green: #05737D;
             --accent-red: #DC2626;
             --text-dark: #1F2937;
             --text-gray: #4B5563;
             --text-light: #9CA3AF;
-            --bg-color: #F0FDFA;
+            --bg-color: #EEFDFC;
             --card-bg: rgba(255, 255, 255, 0.72);
             --input-bg: #F9FAFB;
-            --shadow: 0 10px 40px rgba(13, 148, 136, 0.15);
+            --shadow: 0 10px 40px rgba(3, 147, 156, 0.15);
             --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.05);
             --radius: 24px;
             --glass-blur: 20px;
-            --glass-border: rgba(13, 148, 136, 0.1);
+            --glass-border: rgba(3, 147, 156, 0.1);
             --radius-sm: 12px;
             --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 
@@ -72,10 +73,10 @@
 
         /* Dark theme */
         [data-theme="dark"] {
-            --primary: #2DD4BF;
-            --primary-hover: #14B8A6;
-            --primary-light: #134E4A;
-            --primary-dark: #5EEAD4;
+            --primary: #19D6D2;
+            --primary-hover: #04B7BD;
+            --primary-light: #034E5C;
+            --primary-dark: #5FE6E3;
             --accent-gold: #eab654;
             --accent-gold-light: #3d2f1a;
             --accent-purple: #a78bfa;
@@ -90,9 +91,9 @@
             --bg-color: #0A1A1A;
             --card-bg: rgba(20, 55, 55, 0.78);
             --input-bg: #1e4545;
-            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(45,212,191,0.1);
+            --shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 4px rgba(25,214,210,0.1);
             --glass-blur: 20px;
-            --glass-border: rgba(45, 212, 191, 0.15);
+            --glass-border: rgba(25, 214, 210, 0.15);
         }
 
         * {
@@ -119,7 +120,7 @@
             z-index: 0;
             pointer-events: none;
             background:
-                radial-gradient(ellipse at 20% 20%, rgba(13,148,136,0.07) 0%, transparent 50%),
+                radial-gradient(ellipse at 20% 20%, rgba(3,147,156,0.07) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 80%, rgba(212,168,67,0.05) 0%, transparent 50%),
                 radial-gradient(ellipse at 50% 50%, rgba(13,100,120,0.03) 0%, transparent 60%);
         }
@@ -140,7 +141,7 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--glass-border);
-            box-shadow: 0 4px 20px rgba(13,148,136,0.08);
+            box-shadow: 0 4px 20px rgba(3,147,156,0.08);
             transition: all 0.3s ease;
         }
         [data-theme="dark"] .site-nav {
@@ -216,7 +217,7 @@
             background: var(--card-bg);
             backdrop-filter: blur(24px) saturate(200%);
             -webkit-backdrop-filter: blur(24px) saturate(200%);
-            box-shadow: -4px 0 32px rgba(13,148,136,0.18);
+            box-shadow: -4px 0 32px rgba(3,147,156,0.18);
             z-index: 1050;
             display: flex;
             flex-direction: column;
@@ -285,7 +286,7 @@
             margin: 0 20px 8px;
             padding: 14px 20px !important;
             font-size: 1.05rem;
-            box-shadow: 0 4px 16px rgba(13,148,136,0.28);
+            box-shadow: 0 4px 16px rgba(3,147,156,0.28);
         }
         .site-nav-top-link:hover {
             background: linear-gradient(135deg, #05C0B3 0%, #0B8478 60%, #0D6560 100%) !important;
@@ -303,7 +304,7 @@
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(13, 148, 136, 0.15);
+            border-bottom: 1px solid rgba(3, 147, 156, 0.15);
             padding: 12px 20px;
             display: flex;
             justify-content: space-between;
@@ -386,7 +387,7 @@
             align-items: center;
             justify-content: center;
             margin: 0 auto 24px;
-            box-shadow: 0 15px 40px rgba(13, 148, 136, 0.3);
+            box-shadow: 0 15px 40px rgba(3, 147, 156, 0.3);
         }
 
         .hero-icon i {
@@ -444,7 +445,7 @@
         .tab-btn.active {
             background: var(--ds-fill);
             color: var(--ds-on-fill);
-            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
+            box-shadow: 0 4px 15px rgba(3, 147, 156, 0.3);
         }
 
         .tab-btn:not(.active):hover {
@@ -486,7 +487,7 @@
 
         .edu-card:hover {
             box-shadow: var(--shadow);
-            border-color: rgba(13, 148, 136, 0.2);
+            border-color: rgba(3, 147, 156, 0.2);
         }
 
         .edu-card-header {
@@ -518,7 +519,7 @@
         }
 
         .edu-icon.energy { background: linear-gradient(135deg, #B45309, #92400E); }
-        .edu-icon.cleanse { background: linear-gradient(135deg, #0F766E, #0F766E); }
+        .edu-icon.cleanse { background: linear-gradient(135deg, #05737D, #05737D); }
         .edu-icon.protect { background: linear-gradient(135deg, #7C3AED, #6d28d9); }
         .edu-icon.dna { background: linear-gradient(135deg, #ec4899, #be185d); }
         .edu-icon.structure { background: linear-gradient(135deg, #2563EB, #1d4ed8); }
@@ -653,7 +654,7 @@
         }
 
         .marker-icon.warning { background: linear-gradient(135deg, #DC2626, #dc2626); }
-        .marker-icon.success { background: linear-gradient(135deg, #0F766E, #0F766E); }
+        .marker-icon.success { background: linear-gradient(135deg, #05737D, #05737D); }
         .marker-icon.info { background: linear-gradient(135deg, #2563EB, #2563eb); }
 
         .marker-info h4 {
@@ -886,7 +887,7 @@
             border-radius: 50%;
             background: var(--primary);
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.4);
+            box-shadow: 0 4px 15px rgba(3, 147, 156, 0.4);
         }
 
         /* Wizard Navigation */
@@ -925,12 +926,12 @@
         .btn-primary {
             background: var(--ds-fill);
             color: var(--ds-on-fill);
-            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
+            box-shadow: 0 4px 15px rgba(3, 147, 156, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+            box-shadow: 0 6px 20px rgba(3, 147, 156, 0.4);
         }
 
         .btn-primary:disabled {
@@ -984,7 +985,7 @@
         }
 
         .result-icon.protocol { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); }
-        .result-icon.lifestyle { background: linear-gradient(135deg, #0F766E, #0F766E); }
+        .result-icon.lifestyle { background: linear-gradient(135deg, #05737D, #05737D); }
         .result-icon.supplements { background: linear-gradient(135deg, #7C3AED, #6d28d9); }
         .result-icon.markers { background: linear-gradient(135deg, #2563EB, #2563eb); }
 
@@ -1204,8 +1205,7 @@
 
     <!-- Site Navigation -->
     <nav class="site-nav" role="navigation" aria-label="Главна навигация">
-        <a href="index.html" class="site-nav-logo" aria-label="NutriPlan начална страница">
-            <i class="fas fa-apple-alt" aria-hidden="true"></i> NutriPlan
+        <a href="index.html" class="site-nav-logo" aria-label="Eatologix начална страница"><span class="ex-logo" role="img" aria-label="Eatologix" style="height:28px"></span>
         </a>
         <div class="site-nav-actions">
             <button class="theme-toggle" onclick="toggleTheme()" aria-label="Превключи тема">
@@ -1413,7 +1413,7 @@
                             <i class="fas fa-microscope"></i> Клетъчно
                         </div>
                         <i class="fas fa-arrow-right" style="color: var(--text-light);"></i>
-                        <div class="level-box" style="background: linear-gradient(135deg, #0F766E, #0F766E); color: white; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
+                        <div class="level-box" style="background: linear-gradient(135deg, #05737D, #05737D); color: white; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
                             <i class="fas fa-grip-horizontal"></i> Тъканно
                         </div>
                         <i class="fas fa-arrow-right" style="color: var(--text-light);"></i>
@@ -1522,7 +1522,7 @@
                 <!-- Level 3: Tissue -->
                 <div class="edu-card" id="card-tissue">
                     <div class="edu-card-header" onclick="toggleCard('tissue')">
-                        <div class="edu-icon" style="background: linear-gradient(135deg, #0F766E, #0F766E);">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #05737D, #05737D);">
                             <i class="fas fa-grip-horizontal"></i>
                         </div>
                         <div class="edu-card-title">
@@ -1557,10 +1557,10 @@
                             </div>
                         </div>
                         <div class="molecule-tags" style="margin-top: 12px;">
-                            <span class="molecule-tag" style="background: #0D9488;">Колаген</span>
-                            <span class="molecule-tag" style="background: #0D9488;">Фиброза</span>
-                            <span class="molecule-tag" style="background: #0D9488;">IL-6</span>
-                            <span class="molecule-tag" style="background: #0D9488;">TNF-α</span>
+                            <span class="molecule-tag" style="background: #03939C;">Колаген</span>
+                            <span class="molecule-tag" style="background: #03939C;">Фиброза</span>
+                            <span class="molecule-tag" style="background: #03939C;">IL-6</span>
+                            <span class="molecule-tag" style="background: #03939C;">TNF-α</span>
                         </div>
                     </div>
                 </div>
@@ -1732,17 +1732,17 @@
                         <h4 style="color: var(--accent-green); font-size: 0.9rem;"><i class="fas fa-puzzle-piece"></i> ИНТЕГРАТИВНИ (Системни последици)</h4>
                     </div>
                     
-                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #0D9488;">
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #03939C;">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="background: #0F766E; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">8</span>
+                            <span style="background: #05737D; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">8</span>
                             <strong style="color: var(--text-dark);">Изчерпване на Стволовите Клетки</strong>
                         </div>
                         <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Намален брой и функционалност на стволовите клетки. По-бавна регенерация на тъканите.</p>
                     </div>
                     
-                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #0D9488;">
+                    <div class="hallmark-card" style="background: var(--card-bg); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid #03939C;">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span style="background: #0F766E; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">9</span>
+                            <span style="background: #05737D; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">9</span>
                             <strong style="color: var(--text-dark);">Нарушена Междуклетъчна Комуникация</strong>
                         </div>
                         <p style="font-size: 0.85rem; color: var(--text-gray); line-height: 1.6;">Хронично възпаление (inflammaging), нарушена ендокринна сигнализация, промени в екстрацелуларния матрикс.</p>
@@ -2131,7 +2131,7 @@
                     <!-- Systemic Decline -->
                     <div style="background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);">
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #0F766E, #0F766E); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #05737D, #05737D); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                 <i class="fas fa-project-diagram" style="color: white; font-size: 1.2rem;"></i>
                             </div>
                             <h4 style="color: var(--text-dark); font-size: 1.05rem;">Интегративен Спад</h4>
@@ -2404,12 +2404,12 @@
 
                 <!-- Nutrient Markers -->
                 <h3 style="color: var(--text-dark); font-size: 1.1rem; margin: 30px 0 16px; display: flex; align-items: center; gap: 8px;">
-                    <span style="background: #0F766E; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">Нутриенти</span>
+                    <span style="background: #05737D; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">Нутриенти</span>
                     Ключови Витамини и Минерали
                 </h3>
                 <div class="markers-grid">
                     <div class="marker-card">
-                        <div class="marker-icon" style="background: linear-gradient(135deg, #0F766E, #0F766E);">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #05737D, #05737D);">
                             <i class="fas fa-sun"></i>
                         </div>
                         <div class="marker-info">
@@ -2423,7 +2423,7 @@
                     </div>
 
                     <div class="marker-card">
-                        <div class="marker-icon" style="background: linear-gradient(135deg, #0F766E, #0F766E);">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #05737D, #05737D);">
                             <i class="fas fa-magnet"></i>
                         </div>
                         <div class="marker-info">
@@ -2437,7 +2437,7 @@
                     </div>
 
                     <div class="marker-card">
-                        <div class="marker-icon" style="background: linear-gradient(135deg, #0F766E, #0F766E);">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #05737D, #05737D);">
                             <i class="fas fa-fish"></i>
                         </div>
                         <div class="marker-info">
@@ -2451,7 +2451,7 @@
                     </div>
 
                     <div class="marker-card">
-                        <div class="marker-icon" style="background: linear-gradient(135deg, #0F766E, #0F766E);">
+                        <div class="marker-icon" style="background: linear-gradient(135deg, #05737D, #05737D);">
                             <i class="fas fa-vial"></i>
                         </div>
                         <div class="marker-info">
@@ -2579,7 +2579,7 @@
                 <!-- Pillar 1: Nutrition -->
                 <div class="edu-card expanded" id="card-nutrition">
                     <div class="edu-card-header" onclick="toggleCard('nutrition')">
-                        <div class="edu-icon" style="background: linear-gradient(135deg, #0F766E, #0F766E);">
+                        <div class="edu-icon" style="background: linear-gradient(135deg, #05737D, #05737D);">
                             <i class="fas fa-utensils"></i>
                         </div>
                         <div class="edu-card-title">
@@ -3170,7 +3170,7 @@
         // Theme Toggle
 
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#F0FDFA';
+            var c = theme === 'dark' ? '#0A1A1A' : '#EEFDFC';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});
                 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                     var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
