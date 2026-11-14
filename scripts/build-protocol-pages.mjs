@@ -64,8 +64,8 @@ function siteFooter() {
             <div class="sf-top">
                 <div class="sf-brand">
                     <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><img src="brand/eatologix-mark.svg" alt="" width="30" height="30"></span><img class="sf-word" src="brand/eatologix-wordmark-dark.svg" alt="Eatologix" height="17"></a>
-                    <p class="sf-tag">Хранене по твоя мярка.</p>
-                    <p class="sf-about">Седмично меню с точни грамажи — по тялото, здравето и вкусовете ти. Коригира се всяка седмица според резултата.</p>
+                    <p class="sf-tag">Логиката е наша. Резултатът — твой.</p>
+                    <p class="sf-about">Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.</p>
                     <div class="sf-stores sf-web" aria-label="Мобилни магазини">
                         <span class="sf-store">${storeSvg(STORE.play)}<span><small>Скоро в</small><b>Google Play</b></span></span>
                         <span class="sf-store">${storeSvg(STORE.apple)}<span><small>Скоро в</small><b>App Store</b></span></span>

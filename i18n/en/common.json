@@ -17,7 +17,9 @@
   "Профил": "Profile",
   "Анализ": "Analysis",
   "Вход": "Sign in",
-  "Меню": "Menu"
+  "Меню": "Menu",
+  "Логиката е наша. Резултатът — твой.": "The logic is ours. The results are yours.",
+  "Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.": "A nutrition plan with exact portions, calculated for your body, health and goal, and recalculated every week."
  },
  "keys": {},
  "patterns": []
