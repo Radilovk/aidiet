@@ -116,11 +116,11 @@ out('brand/eatologix-wordmark.svg', wordOnly(false));
 out('brand/eatologix-wordmark-dark.svg', wordOnly(true));
 
 // 4) Иконата на приложението: знакът върху тъмен фон със сияние (от тъмната концепция).
-function appIcon({ maskable = false } = {}) {
-  const S = 1024; const pad = maskable ? 0.26 : 0.17; // maskable: безопасната зона е 80%
+function appIcon({ maskable = false, pad: padIn, square = false } = {}) {
+  const S = 1024; const pad = padIn != null ? padIn : (maskable ? 0.26 : 0.17); // maskable: безопасната зона е 80%
   const inner = S * (1 - 2 * pad); const k = inner / Math.max(mb.w, mb.h);
   const tx = (S - mb.w * k) / 2 - mb.x * k; const ty = (S - mb.h * k) / 2 - mb.y * k + S * 0.01;
-  const r = maskable ? 0 : 224;
+  const r = (maskable || square) ? 0 : 224;
   const defs = markDefs('i') + `
     <radialGradient id="iBg" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#0A2E33"/><stop offset=".6" stop-color="${BRAND.night}"/><stop offset="1" stop-color="#020C0E"/></radialGradient>
     <radialGradient id="iGlowL" cx=".36" cy=".46" r=".42"><stop offset="0" stop-color="${BRAND.cyan}" stop-opacity=".30"/><stop offset="1" stop-color="${BRAND.cyan}" stop-opacity="0"/></radialGradient>
@@ -131,13 +131,21 @@ function appIcon({ maskable = false } = {}) {
     <g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})"><g opacity=".55" filter="url(#iSoft)">${markBody('i')}</g>${markBody('i')}</g>`;
   return svg(`0 0 ${S} ${S}`, defs, body);
 }
-const iconSvg = appIcon();
-out('icon-512x512.svg', iconSvg);
-out('icon-192x192.svg', iconSvg);
-out('brand/eatologix-icon.svg', iconSvg);
+// Иконите на PWA (icon-192/512): знакът с прозрачност, ~78% от квадрата — както беше при NutriPlan.
+// Плътният тъмен фон е само там, където системата иска непрозрачна икона (iPhone, maskable).
+function alphaIcon(fill) {
+  const S = 1024; const k = (S * fill) / Math.max(mb.w, mb.h);
+  const tx = (S - mb.w * k) / 2 - mb.x * k; const ty = (S - mb.h * k) / 2 - mb.y * k;
+  return svg(`0 0 ${S} ${S}`, markDefs('a'), `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody('a')}</g>`, ' role="img" aria-label="EATOLOGIX"');
+}
+const pwaIcon = alphaIcon(0.78);
+out('icon-512x512.svg', pwaIcon);
+out('icon-192x192.svg', pwaIcon);
+out('brand/eatologix-icon.svg', appIcon());               // плътна (тъмен фон) — App Store/Play графики
 out('brand/eatologix-icon-maskable.svg', appIcon({ maskable: true }));
-// Фавикон: знакът без фон (чете се и на светъл, и на тъмен раздел).
-out('favicon.svg', markSvg);
+out('brand/eatologix-icon-ios.svg', appIcon({ pad: 0.15, square: true })); // iPhone: плътен квадрат, iOS сам заобля
+// Фавикон (раздела на браузъра): знакът почти до ръба, прозрачен.
+out('favicon.svg', alphaIcon(0.96));
 
 if (process.argv.includes('--png')) {
   const { chromium } = (await import('node:module')).createRequire(import.meta.url)('playwright');
@@ -149,12 +157,15 @@ if (process.argv.includes('--png')) {
     await page.setContent(`<html><body style="margin:0;background:${bg}"><img style="display:block;width:${size}px;height:${size}px" src="data:image/svg+xml;base64,${Buffer.from(src).toString('base64')}"></body></html>`);
     await page.locator('img').screenshot({ path: path.join(ROOT, dest), omitBackground: bg === 'transparent' });
   };
-  for (const [dest, size] of [['icon-192x192.png', 192], ['icon-192.png', 192], ['icon-512x512.png', 512], ['icon-512.png', 512], ['brand/apple-touch-icon.png', 180]]) {
-    await shot(dest === 'brand/apple-touch-icon.png' ? 'brand/eatologix-icon-maskable.svg' : 'brand/eatologix-icon.svg', size, dest);
+  for (const [dest, size] of [['icon-192x192.png', 192], ['icon-192.png', 192], ['icon-512x512.png', 512], ['icon-512.png', 512]]) {
+    await shot('icon-512x512.svg', size, dest);                      // прозрачни
   }
+  await shot('brand/eatologix-icon-ios.svg', 180, 'brand/apple-touch-icon.png'); // iPhone: непрозрачна
+  await shot('brand/eatologix-icon.svg', 512, 'brand/icon-solid-512.png');
+  for (const size of [32, 48, 192]) await shot('favicon.svg', size, `brand/favicon-${size}.png`);
   await shot('brand/eatologix-icon-maskable.svg', 512, 'brand/icon-maskable-512.png');
   await shot('brand/eatologix-icon-maskable.svg', 192, 'brand/icon-maskable-192.png');
-  await shot('brand/eatologix-mark.svg', 64, 'favicon-64.png');
+  await shot('favicon.svg', 64, 'favicon-64.png');
   // Android: знакът без фон — предният слой на адаптивната икона, сплаш екранът, иконата за известия.
   await shot('brand/eatologix-mark.svg', 512, 'brand/mark-512.png');
   // Имейлите: пощенските програми не показват SVG — хоризонталното лого като PNG (2× за 240 px ширина).

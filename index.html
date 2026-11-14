@@ -29,8 +29,8 @@
     <meta name="twitter:image" content="https://biocode.website/brand/og-image.png">
 
     <link rel="canonical" href="https://biocode.website/">
-    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="48x48" href="brand/favicon-48.png">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
@@ -637,6 +637,7 @@
             --lp-surface-2: #F4FAF8;
             --lp-accent: #05737D;
             --lp-accent-2: #04B7BD;
+            --lp-leaf: #07CF61;   /* зеленото от логото (буквата G) — акцент на светла тема */
             --lp-accent-soft: rgba(3, 147, 156, 0.09);
             --lp-ease: cubic-bezier(0.16, 1, 0.3, 1);
             --lp-radius: 22px;
@@ -651,6 +652,7 @@
             --lp-surface-2: #0C1D1C;
             --lp-accent: #19D6D2;
             --lp-accent-2: #5FE6E3;
+            --lp-leaf: #A0F500;   /* лаймът от логото — свети на тъмна тема */
             --lp-accent-soft: rgba(25, 214, 210, 0.1);
         }
         .lp em {
@@ -717,13 +719,14 @@
         }
         .lp-pulse {
             width: 8px; height: 8px; border-radius: 50%;
+            color: var(--lp-leaf, currentColor);
             background: currentColor;
             box-shadow: 0 0 0 0 currentColor;
             animation: lpPulse 2.4s ease-out infinite;
         }
         @keyframes lpPulse {
-            0% { box-shadow: 0 0 0 0 rgba(3, 147, 156, 0.45); }
-            70%, 100% { box-shadow: 0 0 0 9px rgba(3, 147, 156, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(7, 207, 97, 0.45); }
+            70%, 100% { box-shadow: 0 0 0 9px rgba(7, 207, 97, 0); }
         }
         .lp-h1 {
             font-size: clamp(2.7rem, 6.4vw, 5rem);
@@ -757,8 +760,9 @@
             transform: translateY(-2px);
             box-shadow: 0 16px 34px -12px rgba(3, 147, 156, 0.6);
         }
-        [data-theme="dark"] .nav-btn.lp-btn { background: var(--lp-accent); color: #04211F; box-shadow: 0 10px 30px -10px rgba(25, 214, 210, 0.5); }
-        [data-theme="dark"] .nav-btn.lp-btn:hover { background: var(--lp-accent-2); }
+        /* Тъмна тема: основният бутон свети в цветовете на знака — циан → зелено → лайм. */
+        [data-theme="dark"] .nav-btn.lp-btn { background: linear-gradient(120deg, #00E0DC 0%, #08D29A 45%, #10CC50 75%, #A0F500 100%); color: #04181C; box-shadow: 0 10px 30px -10px rgba(0, 224, 220, 0.45), 0 0 26px -12px rgba(160, 245, 0, 0.5); }
+        [data-theme="dark"] .nav-btn.lp-btn:hover { filter: brightness(1.06); }
         .btn-outline {
             border: 1px solid var(--lp-line, rgba(3,147,156,0.25));
             color: var(--lp-ink, var(--text-dark));
@@ -784,7 +788,7 @@
             font-size: 0.88rem;
             font-weight: 500;
         }
-        .lp-hero-meta i { color: var(--lp-accent); font-size: 0.75rem; margin-right: 6px; }
+        .lp-hero-meta i { color: var(--lp-leaf, var(--lp-accent)); font-size: 0.75rem; margin-right: 6px; }
 
         /* hero entrance (plays once the auth check reveals the hero) */
         .lp-enter { opacity: 0; transform: translateY(18px); }
