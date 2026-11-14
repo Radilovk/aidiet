@@ -655,3 +655,67 @@ main.wrap { padding-bottom: 56px; }
 /* Името EATO | LOGIX — цветният надпис от логото; на тъмна тема EATO е светъл. */
 .brand-word { display: inline-block; height: 18px; aspect-ratio: 6328 / 740; background: url('brand/eatologix-wordmark.svg') left center / contain no-repeat; }
 [data-theme="dark"] .brand-word { background-image: url('brand/eatologix-wordmark-dark.svg'); }
+
+/* ── Стъкло и слоеве (същият език като XB-Studio и лендингите на модулите) ──
+ * Само за протоколите: <html class="ui-glass"> (задава се от генератора). Помощ и правните страници не се пипат.
+ * Тъмното е на слоеве, не плоско черно; картите са матирано стъкло върху светещ фон. */
+:root.ui-glass {
+    --glass: rgba(255, 255, 255, .62);
+    --edge: rgba(255, 255, 255, .9);
+    --aurora-1: color-mix(in srgb, var(--acc) 22%, transparent);
+    --aurora-2: rgba(94, 234, 212, .14);
+}
+:root.ui-glass[data-theme="dark"] {
+    --bg: #0B1213;
+    --bg-2: #101A1B;
+    --card: #162123;
+    --glass: rgba(30, 40, 42, .52);
+    --edge: rgba(255, 255, 255, .09);
+    --line: rgba(238, 245, 244, .10);
+    --shadow: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 28px 60px -26px rgba(0, 0, 0, .75);
+    --aurora-1: color-mix(in srgb, var(--acc) 34%, transparent);
+    --aurora-2: rgba(94, 234, 212, .12);
+}
+.ui-glass body { background: var(--bg); }
+.ui-glass body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(60vmax 42vmax at 88% -6%, var(--aurora-1), transparent 65%),
+        radial-gradient(50vmax 40vmax at -12% 38%, var(--aurora-2), transparent 65%),
+        radial-gradient(60vmax 45vmax at 55% 112%, var(--aurora-1), transparent 65%),
+        linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, #fff) 0%, var(--bg) 55%, color-mix(in srgb, var(--bg) 94%, #000) 100%);
+}
+.ui-glass .topbar {
+    background: color-mix(in srgb, var(--bg) 62%, transparent);
+    backdrop-filter: saturate(180%) blur(22px);
+    -webkit-backdrop-filter: saturate(180%) blur(22px);
+}
+.ui-glass .icon-btn,
+.ui-glass .card,
+.ui-glass .steps li,
+.ui-glass .pcard,
+.ui-glass .faq details,
+.ui-glass .table-scroll,
+.ui-glass .toc a,
+.ui-glass .chips a,
+.ui-glass .others-all {
+    background: var(--glass);
+    border-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--edge), var(--shadow);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+.ui-glass .pcard--standard { background: transparent; box-shadow: inset 0 0 0 1px var(--line); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.ui-glass .chip { box-shadow: inset 0 0 0 1px var(--edge); }
+.ui-glass .cta {
+    background: linear-gradient(160deg, color-mix(in srgb, var(--acc) 82%, #fff), color-mix(in srgb, var(--acc) 82%, #000));
+    box-shadow: 0 16px 36px -14px color-mix(in srgb, var(--acc) 85%, transparent), inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+.ui-glass .cta--ghost { background: var(--glass); box-shadow: inset 0 0 0 1px var(--edge); }
+.ui-glass .hub-hero h1 em,
+.ui-glass .doc-hero h1 em { background: linear-gradient(120deg, var(--acc-text), #7CF3E3); -webkit-background-clip: text; background-clip: text; color: transparent; }
+:root.ui-glass[data-theme="dark"] .pcard:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--acc) 45%, transparent), 0 26px 50px -22px color-mix(in srgb, var(--acc) 55%, transparent); }
