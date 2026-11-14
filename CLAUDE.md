@@ -15,6 +15,17 @@
 - Общ фронтенд JS: `app.js`, `app-ui.js`/`app-ui.css`, `design-system.css`, `platform.js`, `platform-compat.js`,
   `session-utils.js`, `auth-guard.js`, `plan-sync.js`, `local-scheduler.js`, `notification-launch.js`,
   `health-sync.js`, `activity-tracker.js` (крачкомер + въпрос за тренировка; дневните цели — `nutrition-engine/metabolic.js`), `native-backup.js`, `drive-backup.js`, `meal-swaps.js`, `game-scoring.js`, `sw.js`, `manifest.json`.
+- Марка (бивш NutriPlan): лого/икони в `brand/` + `icon-*.png|svg`, `favicon.svg` — генерират се с `npm run build:brand`
+  (`scripts/build-brand.mjs`, един векторен източник; не рисувай на ръка). Цветове: токени `--brand-*` в `design-system.css`,
+  класове `.ex-logo` / `.ex-mark`. Идентификаторите остават старите: `window.NutriPlan*`, `com.biocode.nutriplan`,
+  `NutriPlan-v*.apk` (по тях старите версии намират обновления), ключове в localStorage.
+- Домейн eatologix.com: `app-domain.js` във worker-а (страниците от biocode.website, `/api/` същият), `APP_HOSTS` в `wrangler.toml`.
+- Преводи: `i18n.js` + `i18n/<език>/common.json` и `i18n/<език>/<страница>.json` (bg е изходният език; ръчен речник
+  „точен български текст → превод“, `data-i18n` за двусмислени текстове, `patterns` за текст с числа). Поддържани: bg, en, de, es.
+  Каквото липсва в речника → резервен AI превод `/api/i18n/translate` (`i18n-server.js`, кеш в KV, общ за всички).
+  Езикът стига до сървъра в тялото на заявките (`lang`, `userData.lang`) → AI пише на него (`languageDirective`), пазачът
+  `text-guard.js` не маха латиницата при чужд език. Проверка: `npm run test:i18n`; след деплой: `npm run i18n:prewarm`.
+  Нова страница на приложението → `<script src="./i18n.js?v=…">` веднага след `<meta charset>`.
 - APK: `capacitor.config.json` (webDir `capacitor-shell`, генерира се в CI), `android-res/` (Java/gradle/patch-ове),
   `.github/workflows/build-apk.yml` (копира корена в shell с изключения), `publish-apk-release.yml`.
   Нов root файл влиза в APK автоматично, освен ако не е в изключенията на `build-apk.yml`.

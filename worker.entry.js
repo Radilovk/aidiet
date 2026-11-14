@@ -19,6 +19,7 @@ import { buildClientCard, buildChatContext } from './client-card.js';
 import fitnessWorker from './fitness/worker.js';
 import { handleStudioApi, handleStudioSite } from './studio-platform/index.js';
 import { handleAppDomain } from './app-domain.js';
+import { handleI18nTranslate, languageDirective } from './i18n-server.js';
 import { MEAL_CARRY_MAX_DISTORTION } from './meal-day-sync.js';
 import {
   parseMealDescription,
@@ -1318,6 +1319,7 @@ const RATE_LIMIT = {
   FOOD_ANALYSIS: { maxRequests: 10, windowSec: 60 },  // 10 food analyses/min per IP
   VALIDATE_QUESTIONNAIRE: { maxRequests: 8, windowSec: 60 },  // 8 validations/min per IP
   SOCIAL_AUTH:    { maxRequests: 10, windowSec: 60 },   // 10 auth attempts/min per IP
+  I18N_TRANSLATE: { maxRequests: 40, windowSec: 60 },   // резервен превод на интерфейса (само непреведените низове)
   FORGOT_PASSWORD:{ maxRequests: 5,  windowSec: 900 },  // 5 reset requests per 15 min per IP
   XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 }, // 15 lookups/min per IP
   XBODY_BOOK: { maxRequests: 8, windowSec: 600 }, // several hours at once (card guarantee + booking): 8 calls / 10 min per IP
@@ -2635,11 +2637,11 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
  * Свободните текстове от AI към клиента минават през пазача (text-guard):
  * изреченията с проблем отпадат — вкл. трето лице („клиентът“, „да се следи“).
  */
-function guardFields(obj, keys) {
+function guardFields(obj, keys, lang) {
   if (!obj || typeof obj !== 'object') return;
   for (const k of keys) {
     if (typeof obj[k] !== 'string' || !obj[k].trim()) continue;
-    const g = guardClientText(obj[k], { fallback: '' });
+    const g = guardClientText(obj[k], { fallback: '', lang });
     if (g.removed.length) console.warn(`[guard] ${k}: махнати изречения:`, g.removed.join(', '));
     obj[k] = g.text;
   }
@@ -2751,7 +2753,8 @@ async function isAILoggingEnabled(env) {
 async function callAIModel(env, prompt, maxTokens = null, stepName = 'unknown', sessionId = null, userData = null, calculatedData = null, skipJSONEnforcement = false) {
   // Apply strict JSON-only enforcement to reduce unnecessary output
   // Skip enforcement for chat requests where plain text responses are expected
-  const enforcedPrompt = skipJSONEnforcement ? prompt : enforceJSONOnlyPrompt(prompt);
+  // Езикът на клиента (userData.lang от i18n.js): всичко, което вижда, на неговия език. Български — без указание.
+  const enforcedPrompt = (skipJSONEnforcement ? prompt : enforceJSONOnlyPrompt(prompt)) + languageDirective(userData?.lang);
   
   // Improved token estimation for Cyrillic text
   const estimatedInputTokens = estimateTokenCount(enforcedPrompt);
@@ -3782,6 +3785,8 @@ async function handleChat(request, env) {
     }
 
     const effectiveUserData = userData || {};
+    // Езикът на интерфейса (i18n.js го добавя към всяка заявка): чатът отговаря на него.
+    if (body.lang && !effectiveUserData.lang) effectiveUserData.lang = body.lang;
     const effectiveUserPlan = userPlan || {};
     const chatHistory = conversationHistory || [];
 
@@ -3918,7 +3923,7 @@ async function handleChat(request, env) {
     }
     
     // Нищо неадекватно към клиента: „като AI…“, шаблони, обещания за лечение, спиране на лекарства, обидни думи.
-    const guarded = guardClientText(finalResponse);
+    const guarded = guardClientText(finalResponse, { lang: effectiveUserData.lang });
     if (guarded.removed.length) console.warn('[chat] махнати изречения:', guarded.removed.join(', '));
     finalResponse = guarded.text;
 
@@ -10220,8 +10225,8 @@ ${planContext ? `ТЕКУЩ ДИЕТИЧЕН ПЛАН (резюме): ${planCont
       return jsonResponse({ ...menuBody, kind: 'menu' }, menuResponse.status);
     }
 
-    guardFields(analysisResult?.dietSuitability, ['explanation']);
-    guardFields(analysisResult, ['suggestions']);
+    guardFields(analysisResult?.dietSuitability, ['explanation'], body?.lang);
+    guardFields(analysisResult, ['suggestions'], body?.lang);
 
     // Оценката е от 5 — интерфейсът и „вредна храна“ (≤ 2) я четат така; промпт с 1–10 се свежда.
     const suitScore = Number(analysisResult?.dietSuitability?.score);
@@ -10382,8 +10387,8 @@ ${planContext ? `ДИЕТИЧЕН ПЛАН (резюме): ${planContext}` : ''}
       });
     }
 
-    guardFields(menuResult, ['description', 'reasoning', 'adaptationTip']);
-    (Array.isArray(menuResult?.alternatives) ? menuResult.alternatives : []).forEach(a => guardFields(a, ['reason']));
+    guardFields(menuResult, ['description', 'reasoning', 'adaptationTip'], body?.lang);
+    (Array.isArray(menuResult?.alternatives) ? menuResult.alternatives : []).forEach(a => guardFields(a, ['reason'], body?.lang));
 
     return jsonResponse({
       success: true,
@@ -18100,6 +18105,14 @@ export default {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === '/api/user/delete-account' && request.method === 'POST') {
         return await handleDeleteOwnAccount(request, env);
+      } else if (url.pathname === '/api/i18n/translate' && request.method === 'POST') {
+        const lite = (await getAdminConfig(env)).liteModelName;
+        return await handleI18nTranslate(request, env, {
+          callGemini,
+          model: lite && lite !== 'off' ? lite : DEFAULT_GEMINI_PLAN_MODEL,
+          rateLimit: () => checkRateLimit(env, request, 'I18N_TRANSLATE'),
+          cors: CORS_HEADERS
+        });
       } else if (url.pathname === '/api/enrichment' && request.method === 'POST') {
         return await handleEnrichmentSubmit(request, env);
       } else if (url.pathname === '/api/enrichment/get' && request.method === 'POST') {

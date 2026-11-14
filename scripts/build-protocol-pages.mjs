@@ -127,7 +127,8 @@ const topbar = () => `<header class="topbar">
         </div>
     </header>`;
 
-const themeInit = `<script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.querySelector('meta[name="theme-color"]').setAttribute('content','#071312');})();</script>`;
+const themeInit = `<script src="i18n.js?v=${CSS_V}"></script>
+    <script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.querySelector('meta[name="theme-color"]').setAttribute('content','#071312');})();</script>`;
 
 const fonts = `<link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

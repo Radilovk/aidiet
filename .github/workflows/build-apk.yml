@@ -124,6 +124,10 @@ jobs:
             --exclude 'wrangler.toml' \
             --exclude 'worker.js' \
             --exclude 'worker.entry.js' \
+            --exclude 'app-domain.js' \
+            --exclude 'i18n-server.js' \
+            --exclude 'brand/wordmark-glyphs.json' \
+            --exclude 'brand/concept-eatologix.png' \
             --exclude 'plan-response-schemas.js' \
             --exclude 'json-patch.js' \
             --exclude 'food-nutrition.js' \

@@ -1,0 +1,24 @@
+{
+ "_comment": "Общи низове за всички страници. Каквото липсва — резервният AI превод (i18n-server.js).",
+ "strings": {
+  "Език / Language": "Language",
+  "Език · Language": "Language",
+  "Изход от акаунта": "Sign out",
+  "Изтрий профила": "Delete account",
+  "Затвори": "Close",
+  "Назад": "Back",
+  "Запази": "Save",
+  "Отказ": "Cancel",
+  "Продължи": "Continue",
+  "Готово": "Done",
+  "Зареждане...": "Loading...",
+  "Моят план": "My plan",
+  "Насоки": "Guidelines",
+  "Профил": "Profile",
+  "Анализ": "Analysis",
+  "Вход": "Sign in",
+  "Меню": "Menu"
+ },
+ "keys": {},
+ "patterns": []
+}
