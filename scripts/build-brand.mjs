@@ -44,18 +44,26 @@ function markDefs(id) {
       <stop offset="0" stop-color="#03E2D0"/><stop offset=".5" stop-color="#12DC8C"/><stop offset="1" stop-color="#46DE46"/>
     </linearGradient>`;
 }
-// Знакът „с тирета“ (scripts/mark-tech.mjs): за големите размери — пълното лого, сплаш.
-const TECH = techMark(path.join(ROOT, 'brand/mark-center.json'));
-function markBody(id, tech = false) {
+// Знакът навсякъде е „с тирета“ (scripts/mark-tech.mjs) — в три оптични размера (една форма,
+// детайлът е пригоден към размера, иначе тънките тирета изчезват):
+//   big   — пълното лого, сплаш (тиретата изтъняват до най-лявата точка);
+//   mid   — иконите на приложението (PWA, Android, iOS);
+//   small — фавикон, хедър, хоризонтално лого, имейл, известия (по 2 плътни тирета).
+const TECH = {
+  big: techMark(path.join(ROOT, 'brand/mark-center.json')),
+  mid: techMark(path.join(ROOT, 'brand/mark-center.json'), { taper: 0.2, wT: 0.85, wEnd: 0.6, gap: 0.85, l0: 2.6, l1: 1.8 }),
+  small: techMark(path.join(ROOT, 'brand/mark-center.json'), { taper: 0.22, wT: 0.9, wEnd: 0.7, gap: 1.0, l0: 3.6, l1: 2.6 })
+};
+function markBody(id, size = 'small') {
   return `
-    ${tech ? TECH(`${id}g`) : `<path d="${TRACE.loop}" fill="url(#${id}g)" fill-rule="evenodd"/>`}
+    ${TECH[size](`${id}g`)}
     <path d="${TRACE.check}" fill="url(#${id}c)"/>`;
 }
 /** Знакът, вписан в правоъгълник (запазва пропорциите, центриран). */
-function placeMark(id, box, tech = false) {
+function placeMark(id, box, size = 'small') {
   const k = Math.min(box.w / MARK_BOX.w, box.h / MARK_BOX.h);
   const tx = box.x + (box.w - MARK_BOX.w * k) / 2 - MARK_BOX.x * k, ty = box.y + (box.h - MARK_BOX.h * k) / 2 - MARK_BOX.y * k;
-  return `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody(id, tech)}</g>`;
+  return `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody(id, size)}</g>`;
 }
 
 const glyphs = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/wordmark-glyphs.json'), 'utf8'));
@@ -79,14 +87,16 @@ const svg = (vb, defs, body, extra = '') =>
 const mb = MARK_BOX;
 const markSvg = svg(`${mb.x} ${mb.y} ${mb.w} ${mb.h}`, markDefs('m'), markBody('m'), ' role="img" aria-label="EATOLOGIX"');
 out('brand/eatologix-mark.svg', markSvg);
+// Знакът за Android (адаптивната икона, известията) — оптичният размер на иконите.
+out('brand/eatologix-mark-icon.svg', svg(`${mb.x} ${mb.y} ${mb.w} ${mb.h}`, markDefs('n'), markBody('n', 'mid'), ' role="img" aria-label="EATOLOGIX"'));
 // Знакът с тирета — само за големи размери (сплаш на приложението, зареждане).
-out('brand/eatologix-mark-tech.svg', svg(`${mb.x} ${mb.y} ${mb.w} ${mb.h}`, markDefs('t'), markBody('t', true), ' role="img" aria-label="EATOLOGIX"'));
+out('brand/eatologix-mark-tech.svg', svg(`${mb.x} ${mb.y} ${mb.w} ${mb.h}`, markDefs('t'), markBody('t', 'big'), ' role="img" aria-label="EATOLOGIX"'));
 
 // 2) Пълно лого (знак над надписа), светло и тъмно — голям размер, затова знакът е с тиретата.
 function fullLogo(dark) {
   const wmW = 1162; const scale = wmW / glyphs.width; const x0 = 188; const baseline = 938;
   const wm = wordmark('f', { scale, x0, baseline, dark });
-  return svg('170 40 1196 920', markDefs('f') + wm.defs, placeMark('f', { x: 300, y: 58, w: 936, h: 700 }, true) + wm.body, ' role="img" aria-label="EATOLOGIX"');
+  return svg('170 40 1196 920', markDefs('f') + wm.defs, placeMark('f', { x: 300, y: 58, w: 936, h: 700 }, 'big') + wm.body, ' role="img" aria-label="EATOLOGIX"');
 }
 out('brand/eatologix-logo.svg', fullLogo(false));
 out('brand/eatologix-logo-dark.svg', fullLogo(true));
@@ -124,15 +134,15 @@ function appIcon({ maskable = false, pad: padIn, square = false } = {}) {
     <filter id="iSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${18 / k}"/></filter>`;
   const body = `<rect width="${S}" height="${S}" rx="${r}" fill="url(#iBg)"/>
     <rect width="${S}" height="${S}" rx="${r}" fill="url(#iGlowL)"/><rect width="${S}" height="${S}" rx="${r}" fill="url(#iGlowR)"/>
-    <g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})"><g opacity=".55" filter="url(#iSoft)">${markBody('i')}</g>${markBody('i')}</g>`;
+    <g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})"><g opacity=".55" filter="url(#iSoft)">${markBody('i', 'mid')}</g>${markBody('i', 'mid')}</g>`;
   return svg(`0 0 ${S} ${S}`, defs, body);
 }
 // Иконите на PWA (icon-192/512): знакът с прозрачност, ~78% от квадрата — както беше при NutriPlan.
 // Плътният тъмен фон е само там, където системата иска непрозрачна икона (iPhone, maskable).
-function alphaIcon(fill) {
+function alphaIcon(fill, size = 'mid') {
   const S = 1024; const k = (S * fill) / Math.max(mb.w, mb.h);
   const tx = (S - mb.w * k) / 2 - mb.x * k; const ty = (S - mb.h * k) / 2 - mb.y * k;
-  return svg(`0 0 ${S} ${S}`, markDefs('a'), `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody('a')}</g>`, ' role="img" aria-label="EATOLOGIX"');
+  return svg(`0 0 ${S} ${S}`, markDefs('a'), `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody('a', size)}</g>`, ' role="img" aria-label="EATOLOGIX"');
 }
 const pwaIcon = alphaIcon(0.78);
 out('icon-512x512.svg', pwaIcon);
@@ -141,7 +151,7 @@ out('brand/eatologix-icon.svg', appIcon());               // плътна (тъ�
 out('brand/eatologix-icon-maskable.svg', appIcon({ maskable: true }));
 out('brand/eatologix-icon-ios.svg', appIcon({ pad: 0.15, square: true })); // iPhone: плътен квадрат, iOS сам заобля
 // Фавикон (раздела на браузъра): знакът почти до ръба, прозрачен.
-out('favicon.svg', alphaIcon(0.96));
+out('favicon.svg', alphaIcon(0.96, 'small'));
 
 if (process.argv.includes('--png')) {
   const { chromium } = (await import('node:module')).createRequire(import.meta.url)('playwright');
@@ -162,8 +172,19 @@ if (process.argv.includes('--png')) {
   await shot('brand/eatologix-icon-maskable.svg', 512, 'brand/icon-maskable-512.png');
   await shot('brand/eatologix-icon-maskable.svg', 192, 'brand/icon-maskable-192.png');
   await shot('favicon.svg', 64, 'favicon-64.png');
+  await shot('favicon.svg', 16, 'brand/favicon-16.png');
+  // favicon.ico (стари браузъри, /favicon.ico по подразбиране): PNG-та 16/32/48/64 в един ICO.
+  {
+    const imgs = [['brand/favicon-16.png', 16], ['brand/favicon-32.png', 32], ['brand/favicon-48.png', 48], ['favicon-64.png', 64]]
+      .map(([f, z]) => ({ z, data: fs.readFileSync(path.join(ROOT, f)) }));
+    const head = Buffer.alloc(6 + 16 * imgs.length); head.writeUInt16LE(0, 0); head.writeUInt16LE(1, 2); head.writeUInt16LE(imgs.length, 4);
+    let off = head.length;
+    imgs.forEach((im, i) => { const o = 6 + 16 * i; head[o] = im.z; head[o + 1] = im.z; head.writeUInt16LE(1, o + 4); head.writeUInt16LE(32, o + 6);
+      head.writeUInt32LE(im.data.length, o + 8); head.writeUInt32LE(off, o + 12); off += im.data.length; });
+    fs.writeFileSync(path.join(ROOT, 'favicon.ico'), Buffer.concat([head, ...imgs.map((im) => im.data)]));
+  }
   // Android: знакът без фон — предният слой на адаптивната икона, сплаш екранът, иконата за известия.
-  await shot('brand/eatologix-mark.svg', 512, 'brand/mark-512.png');
+  await shot('brand/eatologix-mark-icon.svg', 512, 'brand/mark-512.png');
   // Сплаш екранът на Android: знакът с тиретата (голям е — тиретата се четат).
   await shot('brand/eatologix-mark-tech.svg', 512, 'brand/splash-512.png');
   // Имейлите: пощенските програми не показват SVG — хоризонталното лого като PNG (2× за 240 px ширина).
