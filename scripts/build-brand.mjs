@@ -25,57 +25,28 @@ export const BRAND = {
   night: '#04181C'      // тъмен фон на иконата
 };
 
-// ── Знакът: ябълка-безкрайност с отметка-лист ───────────────────────────────────────
-// Една линия в две огледални нишки (безкрайност = постоянство; силуетът = ябълка), които се
-// кръстосват в средата: нишка А минава отгоре, с мека сянка само върху нишка Б. Отгоре —
-// отметка („логичен избор“), чийто връх е във вдлъбнатината като дръжка, а дългото рамо е лист.
-// Координати 1254×1254; рамката на знака — MARK_BOX.
-const MARK_BOX = { x: 100, y: 96, w: 1054, h: 944 };
-const SW = 92;                         // дебелина на линията
-const AXIS = 627;                      // ос на симетрия
-// Нишка А: дъно вляво → кръстопът → дясна половина → дъно вдясно (централна линия).
-const HALF = [[440, 985], [520, 930], [582, 780], [627, 615], [672, 450], [765, 322], [905, 268], [1045, 330],
-  [1100, 505], [1052, 705], [942, 905], [815, 985]];
-const RING = [...HALF, ...HALF.map(([x, y]) => [2 * AXIS - x, y]).slice(1, -1)]; // затворен контур
-function ringSeg(i) {
-  const n = RING.length, p0 = RING[(i - 1 + n) % n], p1 = RING[i % n], p2 = RING[(i + 1) % n], p3 = RING[(i + 2) % n];
-  const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
-  return ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0]},${p2[1]}`;
-}
-const iSplit = HALF.length - 1;
-let STRAND_A = `M${RING[0][0]},${RING[0][1]}`; for (let i = 0; i < iSplit; i++) STRAND_A += ringSeg(i);
-let STRAND_B = `M${RING[iSplit][0]},${RING[iSplit][1]}`; for (let i = iSplit; i < RING.length; i++) STRAND_B += ringSeg(i);
-const CROSS_SHADOW = 'M575,800 C598,720 612,670 627,615 C642,560 656,510 680,440';
-// Отметката: къса дъга (главичка) + лист (дългото рамо, изтънява към върха), с жилка.
-const CHECK_ARM = 'M578,250 L627,300';
-const CHECK_V = [627, 300];             // върхът на отметката — над вдлъбнатината, като дръжка
-// Листът тръгва от върха с основа, широка колкото рамото (точките лежат на кръга около върха).
-const LEAF = 'M609.3,278.3 C668,196 760,128 864,104 C848,186 770,262 644.7,321.7 Z';
-const LEAF_VEIN = 'M646,286 C712,218 780,160 846,118';
+// ── Знакът: ябълка-безкрайност с отметка ───────────────────────────────────────────
+// Формата е ТРАСИРАНА от концепцията на собственика (brand/concept-eatologix.png →
+// scripts/trace-mark.py → brand/mark-trace.json): примката е огледална (осреднена със своето
+// отражение и изгладена), отметката — такава, каквато е в рисунката. Без слоеве и сенки:
+// една чиста форма с едно преливане циан → зелено, като в концепцията.
+const TRACE = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/mark-trace.json'), 'utf8'));
+const MARK_BOX = { x: 101, y: 140, w: 1039, h: 896 };
 
 function markDefs(id) {
   return `
-    <linearGradient id="${id}g" gradientUnits="userSpaceOnUse" x1="108" y1="0" x2="1146" y2="0">
-      <stop offset="0" stop-color="#00D4E6"/><stop offset=".4" stop-color="#03E0C8"/><stop offset=".6" stop-color="#12DC8C"/>
-      <stop offset=".84" stop-color="#3CDC4A"/><stop offset="1" stop-color="#7AEF3E"/>
+    <linearGradient id="${id}g" gradientUnits="userSpaceOnUse" x1="107" y1="0" x2="1134" y2="0">
+      <stop offset="0" stop-color="#00D6EA"/><stop offset=".38" stop-color="#03E2D0"/><stop offset=".58" stop-color="#10DD98"/>
+      <stop offset=".82" stop-color="#3CDC4E"/><stop offset="1" stop-color="#78EE44"/>
     </linearGradient>
-    <linearGradient id="${id}l" gradientUnits="userSpaceOnUse" x1="612" y1="320" x2="864" y2="104">
-      <stop offset="0" stop-color="#0FD69C"/><stop offset=".5" stop-color="#34DA52"/><stop offset="1" stop-color="#8CF23C"/>
-    </linearGradient>
-    <filter id="${id}s" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9"/></filter>
-    <mask id="${id}m" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254">
-      <path d="${STRAND_B}" fill="none" stroke="#fff" stroke-width="${SW}" stroke-linecap="round"/>
-    </mask>`;
+    <linearGradient id="${id}c" gradientUnits="userSpaceOnUse" x1="530" y1="0" x2="840" y2="0">
+      <stop offset="0" stop-color="#03E2D0"/><stop offset=".5" stop-color="#12DC8C"/><stop offset="1" stop-color="#46DE46"/>
+    </linearGradient>`;
 }
 function markBody(id) {
   return `
-    <path d="${STRAND_B}" fill="none" stroke="url(#${id}g)" stroke-width="${SW}" stroke-linecap="round"/>
-    <g mask="url(#${id}m)"><path d="${CROSS_SHADOW}" fill="none" stroke="#00141A" stroke-opacity=".22" stroke-width="${SW + 26}" filter="url(#${id}s)"/></g>
-    <path d="${STRAND_A}" fill="none" stroke="url(#${id}g)" stroke-width="${SW}" stroke-linecap="round"/>
-    <path d="${CHECK_ARM}" fill="none" stroke="url(#${id}g)" stroke-width="56" stroke-linecap="round"/>
-    <circle cx="${CHECK_V[0]}" cy="${CHECK_V[1]}" r="28" fill="url(#${id}l)"/>
-    <path d="${LEAF}" fill="url(#${id}l)"/>
-    <path d="${LEAF_VEIN}" fill="none" stroke="#06703A" stroke-opacity=".32" stroke-width="5" stroke-linecap="round"/>`;
+    <path d="${TRACE.loop}" fill="url(#${id}g)" fill-rule="evenodd"/>
+    <path d="${TRACE.check}" fill="url(#${id}c)"/>`;
 }
 /** Знакът, вписан в правоъгълник (запазва пропорциите, центриран). */
 function placeMark(id, box) {
@@ -191,7 +162,7 @@ if (process.argv.includes('--png')) {
   // Имейлите: пощенските програми не показват SVG — хоризонталното лого като PNG (2× за 240 px ширина).
   {
     const h = fs.readFileSync(path.join(ROOT, 'brand/eatologix-horizontal.svg'), 'utf8');
-    const W = 480, H = Math.round(480 * 922 / 4477);
+    const W = 480, H = Math.round(480 * 896 / 4369);
     await page.setViewportSize({ width: W, height: H });
     await page.setContent(`<html><body style="margin:0;background:transparent"><img style="display:block;width:${W}px;height:${H}px" src="data:image/svg+xml;base64,${Buffer.from(h).toString('base64')}"></body></html>`);
     await page.locator('img').screenshot({ path: path.join(ROOT, 'brand/eatologix-email-logo.png'), omitBackground: true });
