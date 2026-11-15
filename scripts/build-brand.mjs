@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * EATOLOGIX — генерира логото и иконите от един източник (вектор).
- * Знакът е прерисуван по концепцията (ябълка + отметка, кръстосани в долната част);
+ * Знакът е трасиран от концепцията (ябълка-безкрайност + отметка); големите размери — с тирета (mark-tech.mjs);
  * надписът е Montserrat 600 в контури (brand/wordmark-glyphs.json), за да не зависи от шрифт.
  *   node scripts/build-brand.mjs           → SVG файловете
  *   node scripts/build-brand.mjs --png     → + PNG иконите (нужен е Playwright/Chromium)
@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { techMark } from './mark-tech.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = (rel, s) => { fs.mkdirSync(path.dirname(path.join(ROOT, rel)), { recursive: true }); fs.writeFileSync(path.join(ROOT, rel), s); };
@@ -43,16 +44,18 @@ function markDefs(id) {
       <stop offset="0" stop-color="#03E2D0"/><stop offset=".5" stop-color="#12DC8C"/><stop offset="1" stop-color="#46DE46"/>
     </linearGradient>`;
 }
-function markBody(id) {
+// Знакът „с тирета“ (scripts/mark-tech.mjs): за големите размери — пълното лого, сплаш.
+const TECH = techMark(path.join(ROOT, 'brand/mark-center.json'));
+function markBody(id, tech = false) {
   return `
-    <path d="${TRACE.loop}" fill="url(#${id}g)" fill-rule="evenodd"/>
+    ${tech ? TECH(`${id}g`) : `<path d="${TRACE.loop}" fill="url(#${id}g)" fill-rule="evenodd"/>`}
     <path d="${TRACE.check}" fill="url(#${id}c)"/>`;
 }
 /** Знакът, вписан в правоъгълник (запазва пропорциите, центриран). */
-function placeMark(id, box) {
+function placeMark(id, box, tech = false) {
   const k = Math.min(box.w / MARK_BOX.w, box.h / MARK_BOX.h);
   const tx = box.x + (box.w - MARK_BOX.w * k) / 2 - MARK_BOX.x * k, ty = box.y + (box.h - MARK_BOX.h * k) / 2 - MARK_BOX.y * k;
-  return `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody(id)}</g>`;
+  return `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody(id, tech)}</g>`;
 }
 
 const glyphs = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/wordmark-glyphs.json'), 'utf8'));
@@ -76,12 +79,14 @@ const svg = (vb, defs, body, extra = '') =>
 const mb = MARK_BOX;
 const markSvg = svg(`${mb.x} ${mb.y} ${mb.w} ${mb.h}`, markDefs('m'), markBody('m'), ' role="img" aria-label="EATOLOGIX"');
 out('brand/eatologix-mark.svg', markSvg);
+// Знакът с тирета — само за големи размери (сплаш на приложението, зареждане).
+out('brand/eatologix-mark-tech.svg', svg(`${mb.x} ${mb.y} ${mb.w} ${mb.h}`, markDefs('t'), markBody('t', true), ' role="img" aria-label="EATOLOGIX"'));
 
-// 2) Пълно лого (знак над надписа), светло и тъмно.
+// 2) Пълно лого (знак над надписа), светло и тъмно — голям размер, затова знакът е с тиретата.
 function fullLogo(dark) {
   const wmW = 1162; const scale = wmW / glyphs.width; const x0 = 188; const baseline = 938;
   const wm = wordmark('f', { scale, x0, baseline, dark });
-  return svg('170 40 1196 920', markDefs('f') + wm.defs, placeMark('f', { x: 300, y: 58, w: 936, h: 700 }) + wm.body, ' role="img" aria-label="EATOLOGIX"');
+  return svg('170 40 1196 920', markDefs('f') + wm.defs, placeMark('f', { x: 300, y: 58, w: 936, h: 700 }, true) + wm.body, ' role="img" aria-label="EATOLOGIX"');
 }
 out('brand/eatologix-logo.svg', fullLogo(false));
 out('brand/eatologix-logo-dark.svg', fullLogo(true));
@@ -159,6 +164,8 @@ if (process.argv.includes('--png')) {
   await shot('favicon.svg', 64, 'favicon-64.png');
   // Android: знакът без фон — предният слой на адаптивната икона, сплаш екранът, иконата за известия.
   await shot('brand/eatologix-mark.svg', 512, 'brand/mark-512.png');
+  // Сплаш екранът на Android: знакът с тиретата (голям е — тиретата се четат).
+  await shot('brand/eatologix-mark-tech.svg', 512, 'brand/splash-512.png');
   // Имейлите: пощенските програми не показват SVG — хоризонталното лого като PNG (2× за 240 px ширина).
   {
     const h = fs.readFileSync(path.join(ROOT, 'brand/eatologix-horizontal.svg'), 'utf8');

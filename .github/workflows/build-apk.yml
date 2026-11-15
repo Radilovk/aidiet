@@ -314,8 +314,10 @@ jobs:
           # Remove any PNG splash added by cap sync to avoid duplicate resource with splash.xml below
           rm -f android/app/src/main/res/drawable/splash.png
           mkdir -p android/app/src/main/res/values android/app/src/main/res/drawable android/app/src/main/res/drawable-night android/app/src/main/res/drawable-nodpi
-          # Splash logo: plain icon resized (no white-circle overlay) — matches PWA appearance
-          convert "$MARK_SRC" -resize 256x256 \
+          # Splash logo: знакът с тиретата (brand/splash-512.png), ако го има; иначе плътният.
+          SPLASH_SRC="brand/splash-512.png"
+          if [ ! -f "$SPLASH_SRC" ]; then SPLASH_SRC="$MARK_SRC"; fi
+          convert "$SPLASH_SRC" -resize 256x256 \
             android/app/src/main/res/drawable-nodpi/nutriplan_splash_logo.png
           convert "$MARK_SRC" -resize 96x96 -alpha extract -threshold 1% android/app/src/main/res/drawable/ic_stat_nutriplan.png
           for entry in "24 mdpi" "36 hdpi" "48 xhdpi" "72 xxhdpi" "96 xxxhdpi"; do
