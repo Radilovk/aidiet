@@ -90,7 +90,7 @@ ok(d.overrides.sleepHours === '5.8', 'сън от устройство');
 d = deriveEnrichment({ facts: [{ kind: 'weight', value: 81, at: daysAgo(1) }, { kind: 'weight', value: 80, at: daysAgo(2) }] }, NOW);
 ok(d.checkin.weightKg === 80.5 && !('weight' in d.overrides), 'теглото — в претеглянето, не в профила');
 
-// ── EmoEat ───────────────────────────────────────────────────────────────
+// ── EmoLogix ───────────────────────────────────────────────────────────────
 const emo = (extra = {}) => ({
   kind: 'emoeat', at: daysAgo(1), source: 'emoeat', status: 'confirmed',
   value: {
@@ -100,8 +100,8 @@ const emo = (extra = {}) => ({
   },
 });
 let e = deriveEmoEat([emo()]);
-ok(['EMO', 'EVE', 'OVR'].every(c => e.hints.behaviors.includes(c)), `EmoEat → кодове (${e.hints.behaviors})`);
-ok(e.voice.archetype === 'Утехата' && e.voice.realNeed === 'спокойствие', 'EmoEat → глас');
+ok(['EMO', 'EVE', 'OVR'].every(c => e.hints.behaviors.includes(c)), `EmoLogix → кодове (${e.hints.behaviors})`);
+ok(e.voice.archetype === 'Утехата' && e.voice.realNeed === 'спокойствие', 'EmoLogix → глас');
 e = deriveEmoEat([emo({ reliability: { level: 'ниска' } })]);
 ok(e.hints.behaviors.length === 0 && e.voice, 'ниска надеждност — само глас');
 e = deriveEmoEat([emo({ intensity: 'Слабо' })]);
@@ -136,7 +136,7 @@ ok(!L.hints.clinical.includes('ANEM'), 'хемоглобин 125 при жена
 const base = () => enrichUserDataEngineContext(JSON.parse(JSON.stringify(PROFILES.find(p => p.id === 'female_moderate'))));
 const userA = base();
 const lvl = (store) => recalcLevel(applyEnrichment(base(), { facts: [] }, NOW), applyEnrichment(base(), store, NOW));
-ok(lvl({ facts: [emo()] }).level === 0, 'EmoEat → ниво 0 (глас)');
+ok(lvl({ facts: [emo()] }).level === 0, 'EmoLogix → ниво 0 (глас)');
 const activityLevel = lvl({ facts: steps(8) });
 ok(compileProfile(userA).activity.daily === 1 ? activityLevel.level === 0 : activityLevel.level === 2, `крачки → ниво ${activityLevel.level}`);
 ok(lvl({ facts: [lab('hba1c', 6.0, '%')] }).level === 3, 'клиничен код от изследване → ниво 3');
@@ -211,10 +211,10 @@ ok(re.labs.find(l => l.key === 'vitd')?.range?.[0] === 50, 'реанализ: г
 const irisFact = { kind: 'iris', value: { analysis: { systems: [{ key: 'metabolic', label: 'Обмяна', priority: true }] } }, at: daysAgo(3), source: 'airis' };
 const withIris = reanalyze(base(), applyEnrichment(base(), { facts: [...reFacts, irisFact] }, NOW), {}, 'F');
 const irP = withIris.analysis.keyProblems.find(p => p.code === 'IR');
-ok(irP.sources.includes('iris') && irP.irisNote, 'AIRIS: потвърдената система засилва свързания проблем');
-ok(withIris.analysis.currentHealthStatus.score < re.analysis.currentHealthStatus.score, 'AIRIS: потвърдената находка влиза в оценката');
+ok(irP.sources.includes('iris') && irP.irisNote, 'EyeLogix: потвърдената система засилва свързания проблем');
+ok(withIris.analysis.currentHealthStatus.score < re.analysis.currentHealthStatus.score, 'EyeLogix: потвърдената находка влиза в оценката');
 const irisOnly = reanalyze(base(), applyEnrichment(base(), { facts: [irisFact] }, NOW), {}, 'F');
-ok(irisOnly.analysis.currentHealthStatus.score === irisOnly.baseline.score, 'AIRIS без потвърждение не мени оценката');
+ok(irisOnly.analysis.currentHealthStatus.score === irisOnly.baseline.score, 'EyeLogix без потвърждение не мени оценката');
 const plain = reanalyze(base(), base(), {}, 'F');
 ok(plain.analysis.currentHealthStatus.score === plain.baseline.score && !plain.replaced.length, 'без нови данни — анализът е същият');
 

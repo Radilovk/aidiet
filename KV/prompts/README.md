@@ -100,7 +100,7 @@
 Клиничен протокол: `{clinicalProtocolSection}`, `{clinicalProtocolSupplementSection}`, `{clinicalProtocolName}`
 Динамични списъци: `{dynamicWhitelistSection}`, `{dynamicBlacklistSection}`
 
-#### EmoEat – `admin_emoeat_prompt.txt`
+#### EmoLogix – `admin_emoeat_prompt.txt`
 Отговори: `{answers}` — редове „ситуация → избор“ (без фигурите; те влизат в профила като телесни сигнали)
 Изчислен профил: `{computedProfile}` — ниво на емоционалното хранене, профил, какво го захранва, как се проявява, кръгове, телесни сигнали, истинската нужда, надеждност. Само нива, без проценти.
 Изход: фиксирана JSON схема (`EMOEAT_RESPONSE_SCHEMA` в `plan-response-schemas.js`) — headline, insight, cycle, week (3 действия), sos (3), swaps (2). Промптът и схемата се качват заедно с worker-а.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Персона (persona.js) и обединените индекси (goal-focus.js): как профилът
- * от въпросника, EmoEat и поведението насочва тона, въпросите, рисковия час,
+ * от въпросника, EmoLogix и поведението насочва тона, въпросите, рисковия час,
  * плътността и кой индекс води.
  */
 import { createRequire } from 'node:module';
@@ -20,9 +20,9 @@ function ok(cond, msg) {
 const NOW = new Date('2026-10-21T12:00:00');
 const day = k => new Date(NOW.getTime() - k * 864e5).toISOString().slice(0, 10);
 
-// Без EmoEat: тон по въпросника, без рисков час.
+// Без EmoLogix: тон по въпросника, без рисков час.
 let p = P.build({ userData: { goal: 'Отслабване' }, now: NOW });
-ok(p.tone === 'direct' && !p.riskWindow && p.mealChecks === 'all' && p.density === 'detailed', 'без EmoEat — стандартно');
+ok(p.tone === 'direct' && !p.riskWindow && p.mealChecks === 'all' && p.density === 'detailed', 'без EmoLogix — стандартно');
 ok(P.build({ userData: { stressLevel: 'Високо' }, now: NOW }).tone === 'warm', 'висок стрес — топъл тон');
 ok(P.build({ userData: { stressLevel: 'Високо' }, now: NOW }).indexFocus === 'emotional', 'висок стрес — емоционалният индекс напред');
 

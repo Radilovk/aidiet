@@ -96,7 +96,7 @@ export function planVoiceVars(profile, userData, plan) {
   };
 }
 
-/** Профилът от EmoEat — за портрета, психологията и навиците. */
+/** Профилът от EmoLogix — за портрета, психологията и навиците. */
 export function emotionalProfileText(v) {
   if (!v || typeof v !== 'object') return '';
   return [

@@ -15731,7 +15731,7 @@ function profileContextText(d) {
   if (!d) return '';
   const v = d.voice;
   const emo = v && (v.archetype || v.intensity)
-    ? `емоционален профил (EmoEat): ${[v.archetype ? `архетип ${v.archetype}` : '', v.intensity ? `интензитет ${v.intensity}` : '', v.drivers?.length ? `двигатели ${v.drivers.join(', ')}` : '', v.realNeed ? `реална нужда ${v.realNeed}` : ''].filter(Boolean).join(', ')}`
+    ? `емоционален профил (EmoLogix): ${[v.archetype ? `архетип ${v.archetype}` : '', v.intensity ? `интензитет ${v.intensity}` : '', v.drivers?.length ? `двигатели ${v.drivers.join(', ')}` : '', v.realNeed ? `реална нужда ${v.realNeed}` : ''].filter(Boolean).join(', ')}`
     : '';
   return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), documentsText(d.documents), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 3600);
 }

@@ -200,14 +200,14 @@ const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} 
  * Как говорим на този човек — тонът и портретът от гласа на плана, за да
  * отговаря консултантът в същия стил (обръщение, подход към тригерите).
  */
-/** Персоната от EmoEat (persona.js): подходът и рисковият час на емоционалното хранене. */
+/** Персоната от EmoLogix (persona.js): подходът и рисковият час на емоционалното хранене. */
 const PERSONA_TONE = { warm: 'топло и подкрепящо', gentle: 'меко, без натиск', direct: 'кратко и по същество', playful: 'леко, с малки предизвикателства' };
 function personaRows(persona) {
   if (!persona || typeof persona !== 'object') return [];
   const hm = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
   return [
     persona.tone && PERSONA_TONE[persona.tone] ? `подход: ${PERSONA_TONE[persona.tone]}${persona.noScores ? '; без оценки, точки и сравнения' : ''}` : '',
-    persona.archetype ? `емоционален профил (EmoEat): ${persona.archetype}` : '',
+    persona.archetype ? `емоционален профил (EmoLogix): ${persona.archetype}` : '',
     persona.riskWindow && persona.emotional ? `рисков час за хранене от емоция: ${hm(persona.riskWindow.from)}–${hm(persona.riskWindow.to)}` : '',
   ].filter(Boolean);
 }

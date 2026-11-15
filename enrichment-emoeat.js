@@ -1,5 +1,5 @@
 /**
- * EmoEat → профил. Резултатът от теста (смятан на устройството) се превежда в
+ * EmoLogix → профил. Резултатът от теста (смятан на устройството) се превежда в
  * поведенческите кодове на двигателя и в портрет за гласа на плана.
  *
  * Правила:
@@ -52,7 +52,7 @@ export function deriveEmoEat(facts) {
     realNeed: String(p.realNeed || '').slice(0, 200),
     at: fact.at,
   };
-  const reasons = [`емоционален профил (EmoEat${voice.archetype ? `: ${voice.archetype}` : ''})`];
+  const reasons = [`емоционален профил (EmoLogix${voice.archetype ? `: ${voice.archetype}` : ''})`];
 
   const reliable = p.reliability?.level !== 'ниска';
   voice.reliable = reliable;
@@ -74,7 +74,7 @@ export function deriveEmoEat(facts) {
   const restrictive = (p.behaviors || []).some(b => RESTRICTIVE.test(b?.name || '') && b.level !== 'Слабо')
     || voice.patterns.some(t => RESTRICTIVE.test(t));
   if (restrictive) {
-    hints.cautions.push('EmoEat: ограничаващ модел — без строги забрани и без голям дефицит; свободното хранене да остане.');
+    hints.cautions.push('EmoLogix: ограничаващ модел — без строги забрани и без голям дефицит; свободното хранене да остане.');
   }
   hints.behaviors = [...new Set(hints.behaviors)];
   hints.approach = [...new Set(hints.approach)];
