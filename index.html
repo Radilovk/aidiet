@@ -2193,8 +2193,8 @@
 
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Програми</div>
-        <a href="emoeat-landing.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> Емоционално хранене</a>
-        <a href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener" onclick="closeNavMenu()"><i class="fas fa-eye"></i> Ирисов анализ</a>
+        <a href="emoeat-landing.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> EmoLogix — емоционално хранене</a>
+        <a href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener" onclick="closeNavMenu()"><i class="fas fa-eye"></i> EyeLogix — ирисов анализ</a>
         <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични протоколи</a>
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Език · Language</div>
@@ -2378,14 +2378,14 @@
             <div class="lp-programs">
                 <a class="lp-program lp-reveal" href="emoeat-landing.html" style="--tone:#a855f7">
                     <span class="lp-program-ico"><i class="fas fa-heart-pulse"></i></span>
-                    <h3>Емоционално хранене</h3>
-                    <p>Откъде идва гладът, който не е глад. Резултатът влиза направо в плана ти.</p>
+                    <h3>EmoLogix</h3>
+                    <p>Емоционално хранене: откъде идва гладът, който не е глад. Резултатът влиза направо в плана ти.</p>
                     <span class="lp-program-go">Направи теста <i class="fas fa-arrow-right"></i></span>
                 </a>
                 <a class="lp-program lp-reveal" href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener" style="--tone:#07a9b8">
                     <span class="lp-program-ico"><i class="fas fa-eye"></i></span>
-                    <h3>Ирисов анализ</h3>
-                    <p>Анализ по снимка на ириса. Находките влизат в плана като допълнителни данни.</p>
+                    <h3>EyeLogix</h3>
+                    <p>Ирисов анализ по снимка на окото. Находките влизат в плана като допълнителни данни.</p>
                     <span class="lp-program-go">Започни анализа <i class="fas fa-arrow-right"></i></span>
                 </a>
                 <a class="lp-program lp-reveal" href="protocol-landing.html" style="--tone:#03939c">
@@ -2595,8 +2595,8 @@
                         <h2 class="sf-h">Програми</h2>
                         <ul>
                             <li><a href="protocol-landing.html">Клинични протоколи</a></li>
-                            <li><a href="emoeat-landing.html">Емоционално хранене</a></li>
-                            <li><a href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener">Ирисов анализ</a></li>
+                            <li><a href="emoeat-landing.html" title="Емоционално хранене">EmoLogix</a></li>
+                            <li><a href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener" title="Ирисов анализ">EyeLogix</a></li>
                         </ul>
                     </div>
                     <div>
@@ -4275,10 +4275,10 @@
     <script src="./native-backup.js"></script>
     <script src="./persona.js"></script>
     <script>
-    // Персоната се смята при всяко отваряне; ако се е сменила (нов EmoEat, друго поведение) —
+    // Персоната се смята при всяко отваряне; ако се е сменила (нов EmoLogix, друго поведение) —
     // въпросите и напомнянията се пренасрочват веднага, не на следващия ден.
     (function () {
-        // Данните от сървъра (EmoEat, изследвания, устройства) — при отваряне, не едва в профила:
+        // Данните от сървъра (EmoLogix, изследвания, устройства) — при отваряне, не едва в профила:
         // анализът и персоната работят с тях и на ново устройство. От общия кеш — до една заявка на 3 часа.
         try {
             var E = window.NutriPlanEnrichment;

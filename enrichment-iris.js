@@ -1,19 +1,19 @@
 /**
- * AIRIS (ирисов анализ) → профил.
+ * EyeLogix (ирисов анализ) → профил.
  *
  * Ирисовият анализ не е валидиран диагностичен метод, затова находките му не
  * стават клинични кодове и не менят калориите или менюто сами. Влизат като
- * контекст: фокус на системите, хранителните насоки на AIRIS и препоръчаните
+ * контекст: фокус на системите, хранителните насоки на EyeLogix и препоръчаните
  * изследвания — за специалиста, чат асистента и гласа на плана.
  *
- * Изключение са бележките за безопасност, които AIRIS извежда от въпросника
+ * Изключение са бележките за безопасност, които EyeLogix извежда от въпросника
  * си (бременност, бъбреци, автоимунно) и насочването към очен лекар: те стават
  * бележки за специалиста, защото се отнасят до човека, не до ириса.
  */
 
 const REFERRAL_TEXT = {
-  urgent: 'AIRIS: по снимката на окото — към очен лекар без отлагане.',
-  soon: 'AIRIS: по снимката на окото — преглед при очен лекар в близките седмици.',
+  urgent: 'EyeLogix: по снимката на окото — към очен лекар без отлагане.',
+  soon: 'EyeLogix: по снимката на окото — преглед при очен лекар в близките седмици.',
 };
 
 /** @param {any[]} facts */
@@ -25,7 +25,7 @@ export function deriveIris(facts) {
   const a = fact.value.analysis;
   const focus = (a.systems || []).filter(s => s.priority).map(s => s.label || s.key).slice(0, 3);
   const cautions = [
-    ...(a.notices || []).map(n => `AIRIS: ${n.title}${n.body ? ` — ${n.body}` : ''}`),
+    ...(a.notices || []).map(n => `EyeLogix: ${n.title}${n.body ? ` — ${n.body}` : ''}`),
     REFERRAL_TEXT[a.eyeReferral] || '',
   ].filter(Boolean);
   return {
@@ -40,7 +40,7 @@ export function deriveIris(facts) {
       complaints: fact.value.complaints || '',
     },
     hints: { behaviors: [], approach: [], clinical: [], cautions },
-    reasons: ['ирисов анализ (AIRIS)'],
+    reasons: ['ирисов анализ (EyeLogix)'],
     // За сверката с Eatologix (cross-check.js) — не излиза към клиента.
     raw: { systems: a.systems || [], questionnaire: fact.value.questionnaire || null },
   };
