@@ -1,5 +1,7 @@
 // Речниците i18n/<език>/<страница>.json: валиден JSON, еднакви ключове във всички езици,
 // без празни преводи, без кирилица в превода; всеки език от i18n.js има папка.
+// Ръчните езици (en, de, es, ru) — пълни; автоматичните (scripts/i18n-translate-dicts.mjs) може да
+// пропуснат низ, който AI не е превел надеждно — него поема резервният превод.
 import fs from 'node:fs';
 const dir = new URL('../i18n/', import.meta.url);
 const js = fs.readFileSync(new URL('../i18n.js', import.meta.url), 'utf8');
@@ -16,7 +18,9 @@ for (const f of files) {
     let d; try { d = load(l, f); } catch (e) { err(`i18n/${l}/${f}: ${e.message}`); continue; }
     for (const part of ['strings', 'keys']) {
       const a = Object.keys(base[part] || {}).sort().join('\n'), b = Object.keys(d[part] || {}).sort().join('\n');
-      if (a !== b) err(`i18n/${l}/${f}: ключовете в "${part}" се различават от ${ref}`);
+      const MANUAL = ['en', 'de', 'es', 'ru'];
+      if (MANUAL.includes(l) ? a !== b : Object.keys(d[part] || {}).some(k => !(k in (base[part] || {}))))
+        err(`i18n/${l}/${f}: ключовете в "${part}" се различават от ${ref}`);
       for (const [k, v] of Object.entries(d[part] || {})) {
         if (!String(v).trim()) err(`i18n/${l}/${f}: празен превод за „${k}“`);
         else if (l !== 'ru' && /[Ѐ-ӿ]/.test(v)) err(`i18n/${l}/${f}: кирилица в превода на „${k}“`);

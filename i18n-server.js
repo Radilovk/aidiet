@@ -8,7 +8,8 @@
  *
  * Тяло: { lang: 'en'|'de'|'es', strings: ['…', …] } → { ok, translations: { '<bg>': '<превод>' } }
  */
-export const I18N_LANGS = { en: 'English', de: 'German', es: 'Spanish', ru: 'Russian' };
+export const I18N_LANGS = { en: 'English', de: 'German', es: 'Spanish', fr: 'French', it: 'Italian', pt: 'Portuguese', tr: 'Turkish',
+  pl: 'Polish', ro: 'Romanian', ru: 'Russian' };
 const MAX_STRINGS = 60;
 const MAX_LEN = 700;
 const CYR = /[Ѐ-ӿ]/;

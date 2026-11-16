@@ -1,0 +1,68 @@
+name: i18n — нови езици (автоматичен превод)
+
+# Превежда всички речници i18n/<език>/*.json на нови езици с Gemini (scripts/i18n-translate-dicts.mjs)
+# и ги записва обратно в клона. Преведеното не се пипа — може да се пуска многократно.
+on:
+  workflow_dispatch:
+    inputs:
+      langs:
+        description: 'Езици, със запетая'
+        default: 'fr,it,pt,tr,pl,ro'
+      model:
+        description: 'Модел'
+        default: 'gemini-3.6-flash'
+  push:
+    branches: [claude/jolly-goodall-obbojn]
+    paths: ['.github/workflows/i18n-translate.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  langs:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.l.outputs.list }}
+    steps:
+      - id: l
+        run: echo "list=$(echo '${{ inputs.langs || 'fr,it,pt,tr,pl,ro' }}' | jq -Rc 'split(",")')" >> "$GITHUB_OUTPUT"
+
+  translate:
+    needs: langs
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        lang: ${{ fromJson(needs.langs.outputs.list) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Превод
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node scripts/i18n-translate-dicts.mjs --lang ${{ matrix.lang }} --model ${{ inputs.model || 'gemini-3.6-flash' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: i18n-${{ matrix.lang }}
+          path: i18n/${{ matrix.lang }}/
+
+  commit:
+    needs: translate
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: _i18n }
+      - name: Запис в клона
+        run: |
+          for d in _i18n/i18n-*; do l=${d#_i18n/i18n-}; mkdir -p i18n/$l; cp -r $d/* i18n/$l/; done
+          node scripts/test-i18n.mjs || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add i18n
+          git diff --cached --quiet && { echo "Няма промени."; exit 0; }
+          git commit -m "i18n: автоматичен превод на нови езици (${{ inputs.langs || 'fr,it,pt,tr,pl,ro' }})"
+          git push origin HEAD:${{ github.ref_name }}
