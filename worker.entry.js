@@ -12676,7 +12676,23 @@ async function handleWordingSave(request, env) {
   const rec = { id, at: new Date().toISOString(), site: s(body?.site, 60), page: s(body?.page, 120), url: s(body?.url, 500),
     lang: s(body?.lang, 8), edits, slots, note, status: 'new' };
   await env.page_content.put(`wording:${id}`, JSON.stringify(rec));
-  return jsonResponse({ ok: true, id, count: edits.length, slots: slots.length, images: n });
+  // Автоматично прилагане веднага (workflow wording-apply.yml); без ключ/при грешка — резервата на 20 мин.
+  let auto = false;
+  const token = env.GITHUB_TOKEN || env.GITHUB_TOKEN1;
+  if (token) {
+    const repo = /irismap|airis/i.test(rec.site + rec.page) ? 'Radilovk/airis1.0' : 'Radilovk/aidiet';
+    try {
+      const r = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'eatologix-worker', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_type: 'wording-saved', client_payload: { id } }),
+        signal: AbortSignal.timeout(6000)
+      });
+      auto = r.status === 204;
+      if (!auto) console.warn('[wording] dispatch', repo, r.status);
+    } catch (e) { console.warn('[wording] dispatch:', e.message); }
+  }
+  return jsonResponse({ ok: true, id, count: edits.length, slots: slots.length, images: n, auto });
 }
 
 async function handleWordingList(request, env) {
