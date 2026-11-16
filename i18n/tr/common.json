@@ -1,0 +1,32 @@
+{
+ "_comment": "Общи низове за всички страници. Каквото липсва — резервният AI превод (i18n-server.js). [Turkish: автоматичен превод, gemini-3.6-flash]",
+ "strings": {
+  "Език / Language": "Dil / Language",
+  "Език · Language": "Dil · Language",
+  "Изход от акаунта": "Çıkış Yap",
+  "Изтрий профила": "Profili Sil",
+  "Затвори": "Kapat",
+  "Назад": "Geri",
+  "Запази": "Kaydet",
+  "Отказ": "İptal",
+  "Продължи": "Devam Et",
+  "Готово": "Bitti",
+  "Зареждане...": "Yükleniyor...",
+  "Моят план": "Planım",
+  "Насоки": "Rehber",
+  "Профил": "Profil",
+  "Анализ": "Analiz",
+  "Вход": "Giriş Yap",
+  "Меню": "Menü",
+  "Логиката е наша. Резултатът — твой.": "Mantık bizden. Sonuç — senden.",
+  "Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.": "Vücuduna, sağlığına ve hedefine göre net gramajlarla hesaplanan ve her hafta yeniden hesaplanan beslenme planı.",
+  "Ирисов анализ": "İris analizi",
+  "EmoEat — емоционално хранене": "EmoEat — duygusal beslenme",
+  "IrisMap — ирисов анализ": "IrisMap — iris analizi",
+  "EmoEat": "EmoEat",
+  "IrisMap": "IrisMap",
+  "Емоционално хранене": "Duygusal beslenme"
+ },
+ "keys": {},
+ "patterns": []
+}
