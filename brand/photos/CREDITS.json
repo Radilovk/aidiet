@@ -1,15 +1,9 @@
 {
  "hero": {
-  "creator": "Barn Images",
+  "creator": "Matt Moloney",
   "source": "stocksnap",
   "license": "cc0",
-  "page": "https://stocksnap.io/photo/bowl-apples-TUQ2UK6G75"
- },
- "snap": {
-  "creator": "Toronto Eaters",
-  "source": "stocksnap",
-  "license": "cc0",
-  "page": "https://stocksnap.io/photo/food-plate-YEBI1N2K7S"
+  "page": "https://stocksnap.io/photo/female-fitness-6NCLB1K7EQ"
  },
  "consult": {
   "creator": "Igor Miske",
@@ -28,5 +22,11 @@
   "source": "stocksnap",
   "license": "cc0",
   "page": "https://stocksnap.io/photo/woman-blue-ZT8PETWPYH"
+ },
+ "final": {
+  "creator": "Direct Media",
+  "source": "stocksnap",
+  "license": "cc0",
+  "page": "https://stocksnap.io/photo/men-fitness-Q9DNPMZNQT"
  }
 }
