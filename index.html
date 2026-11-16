@@ -669,6 +669,17 @@
         /* Нищо не разпъва страницата встрани (иначе мобилният браузър смалява цялата страница). */
         html { overflow-x: clip; }
         .lp-wrap { width: min(1160px, 100%); margin: 0 auto; padding: 0 24px; }
+        /* --- снимки (brand/photos, CC0 — CREDITS.json) --- */
+        .lp-hero-photo { margin: 0 0 26px; border-radius: 24px; overflow: hidden; aspect-ratio: 16 / 9; max-width: 520px;
+            box-shadow: 0 30px 60px -30px rgba(3, 60, 64, 0.55); border: 1px solid var(--lp-line); }
+        .lp-hero-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .lp-tile-photo { display: block; width: calc(100% + 60px); height: auto; max-width: none; margin: -30px -30px 22px; aspect-ratio: 16 / 9; object-fit: cover; }
+        .lp-program-photo { display: block; width: calc(100% + 52px); height: auto; max-width: none; margin: -28px -26px 22px; aspect-ratio: 16 / 9; object-fit: cover; }
+        .lp-program-photo + .lp-program-ico { margin-top: -44px; position: relative; margin-bottom: 18px; backdrop-filter: blur(8px);
+            background: color-mix(in srgb, var(--tone) 22%, var(--lp-surface)); }
+        .lp-final-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.22; mix-blend-mode: luminosity; pointer-events: none; }
+        .lp-final-inner > :not(.lp-final-photo) { position: relative; z-index: 1; }
+        @media (max-width: 899px) { .lp-hero-photo { aspect-ratio: 4 / 3; margin-bottom: 22px; } }
 
         /* --- HERO --- */
         .hero {
@@ -1358,6 +1369,7 @@
             .lp-tile--plan, .lp-tile--chat { grid-column: auto; }
             .lp-tile--plan { grid-template-columns: 1fr; gap: 22px; }
             .lp-tile { padding: 24px; }
+            .lp-tile-photo { width: calc(100% + 48px); margin: -24px -24px 20px; }
             .lp-program-ico { margin-bottom: 24px; }
             .lp-steps { grid-template-columns: 1fr; gap: 34px; padding: 0 0 0 30px; }
             .lp-steps::before, .lp-steps::after { top: 0; bottom: 0; left: 6px; right: auto; width: 2px; height: auto; }
@@ -2215,7 +2227,7 @@
     <section class="hero lp-hero" aria-labelledby="lpHeroTitle">
         <div class="lp-hero-inner">
             <div class="hero-content lp-hero-copy">
-                <div class="lp-brand lp-enter" style="--d:0"><span class="lp-brand-logo" role="img" aria-label="Eatologix"></span></div>
+                <figure class="lp-hero-photo lp-enter" style="--d:0"><img class="" src="brand/photos/hero-960.webp" srcset="brand/photos/hero-480.webp 480w, brand/photos/hero-960.webp 960w" sizes="(max-width: 899px) 92vw, 560px" alt="Ръце, които държат купа с ябълки в градина" width="960" height="643" fetchpriority="high" decoding="async"></figure>
                 <p class="lp-eyebrow lp-enter" style="--d:0"><span class="lp-pulse" aria-hidden="true"></span> Логиката на твоето хранене</p>
                 <h1 id="lpHeroTitle" class="lp-h1">
                     <span class="lp-line lp-enter" style="--d:1">Лична цел —</span>
@@ -2347,7 +2359,7 @@
                 </article>
 
                 <article class="lp-tile lp-reveal">
-                    <span class="lp-tile-ico"><i class="fas fa-camera"></i></span>
+                    <img class="lp-tile-photo" src="brand/photos/consult-960.webp" srcset="brand/photos/consult-480.webp 480w, brand/photos/consult-960.webp 960w" sizes="(max-width: 899px) 92vw, 560px" alt="Телефон снима купа с храна" width="960" height="579" loading="lazy" decoding="async">
                     <h3>Снимай чинията</h3>
                     <p>Снимка на ястие или на менюто в ресторанта — и знаеш кое пасва на целите ти.</p>
                 </article>
@@ -2382,12 +2394,14 @@
             </header>
             <div class="lp-programs">
                 <a class="lp-program lp-reveal" href="emoeat-landing.html" style="--tone:#a855f7">
+                    <img class="lp-program-photo" src="brand/photos/emoeat-960.webp" srcset="brand/photos/emoeat-480.webp 480w, brand/photos/emoeat-960.webp 960w" sizes="(max-width: 899px) 92vw, 560px" alt="Жена с чаша чай вечер у дома" width="960" height="640" loading="lazy" decoding="async">
                     <span class="lp-program-ico"><i class="fas fa-heart-pulse"></i></span>
                     <h3>EmoEat</h3>
                     <p>Емоционално хранене: откъде идва гладът за определени храни. Резултатът влиза направо в плана ти.</p>
                     <span class="lp-program-go">Направи теста <i class="fas fa-arrow-right"></i></span>
                 </a>
                 <a class="lp-program lp-reveal" href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener" style="--tone:#07a9b8">
+                    <img class="lp-program-photo" src="brand/photos/iris-960.webp" srcset="brand/photos/iris-480.webp 480w, brand/photos/iris-960.webp 960w" sizes="(max-width: 899px) 92vw, 560px" alt="Човешко око отблизо" width="960" height="640" loading="lazy" decoding="async">
                     <span class="lp-program-ico"><i class="fas fa-eye"></i></span>
                     <h3>IrisMap</h3>
                     <p>Ирисов анализ по снимка на окото. Резултатите от ирисовата карта влизат в плана като допълнителни данни.</p>
@@ -2438,6 +2452,7 @@
     <!-- Final CTA -->
     <section class="lp-final" aria-labelledby="lpFinalTitle">
         <div class="lp-wrap lp-final-inner lp-reveal">
+            <img class="lp-final-photo" src="brand/photos/snap-960.webp" srcset="brand/photos/snap-480.webp 480w, brand/photos/snap-960.webp 960w" sizes="(max-width: 899px) 92vw, 560px" alt="" aria-hidden="true" width="960" height="641" loading="lazy" decoding="async">
             <h2 id="lpFinalTitle" class="lp-h2">Ти казваш какво искаш. <em>Ние изчисляваме как.</em></h2>
             <p>Въпросникът отнема няколко минути.</p>
             <a href="questionnaire2.html" class="lp-btn-light">Създай моя план <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
