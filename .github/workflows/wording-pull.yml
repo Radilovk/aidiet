@@ -2,7 +2,7 @@ name: Wording — редакциите от лендингите
 
 # Чете редакциите, записани от wording-editor.js (KV wording:*), в wording/inbox.json в клона —
 # Claude ги прилага в кода и във всички езици. С clear=<id,id> (или файла wording/clear.txt)
-# изтрива приложените записи от KV.
+# изтрива приложените записи от KV. Качените снимки (KV wording-img:*) → wording/inbox-img/<id>-<n>.<ext>.
 on:
   workflow_dispatch:
     inputs:
@@ -32,7 +32,11 @@ jobs:
           ids="${{ inputs.clear }}"
           [ -f wording/clear.txt ] && ids="$ids,$(tr '\n' ',' < wording/clear.txt)"
           for id in $(echo "$ids" | tr ',' ' '); do
-            [ -n "$id" ] && npx -y wrangler@4 kv key delete --namespace-id="$NS" --remote "wording:$id" && echo "изтрит $id" || true
+            [ -n "$id" ] || continue
+            npx -y wrangler@4 kv key delete --namespace-id="$NS" --remote "wording:$id" && echo "изтрит $id" || true
+            for k in $(npx -y wrangler@4 kv key list --namespace-id="$NS" --remote --prefix "wording-img:$id:" | jq -r '.[].name'); do
+              npx -y wrangler@4 kv key delete --namespace-id="$NS" --remote "$k" && echo "изтрита снимка $k" || true
+            done
           done
       - name: Четене
         run: |
@@ -46,6 +50,21 @@ jobs:
           echo ']' >> wording/inbox.json
           jq . wording/inbox.json > /tmp/i.json && mv /tmp/i.json wording/inbox.json
           echo "Записи: $(jq length wording/inbox.json)" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Снимките (wording/inbox-img/)
+        run: |
+          rm -rf wording/inbox-img
+          npx -y wrangler@4 kv key list --namespace-id="$NS" --remote --prefix "wording-img:" > /tmp/ikeys.json
+          [ "$(jq length /tmp/ikeys.json)" = 0 ] && { echo "Няма снимки."; exit 0; }
+          mkdir -p wording/inbox-img
+          for k in $(jq -r '.[].name' /tmp/ikeys.json); do
+            npx -y wrangler@4 kv key get --namespace-id="$NS" --remote "$k" > /tmp/img.txt 2>/dev/null || continue
+            node -e '
+              const fs=require("fs"); const d=fs.readFileSync("/tmp/img.txt","utf8").trim();
+              const m=/^data:image\/(\w+);base64,(.*)$/s.exec(d); if(!m) process.exit(0);
+              const f="wording/inbox-img/"+process.argv[1].replace(/^wording-img:/,"").replace(/:/g,"-")+"."+(m[1]==="jpeg"?"jpg":m[1]);
+              fs.writeFileSync(f, Buffer.from(m[2],"base64")); console.log(f);' "$k"
+          done
+          echo "Снимки: $(ls wording/inbox-img | wc -l)" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Запис в клона
         run: |
           rm -f wording/clear.txt

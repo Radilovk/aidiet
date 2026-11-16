@@ -12647,12 +12647,28 @@ async function handleWordingSave(request, env) {
     .map((e) => ({ old: s(e?.old, 4000), new: s(e?.new, 4000), where: s(e?.where, 300) }))
     .filter((e) => e.old !== e.new);
   const note = s(body?.note, 8000);
-  if (!edits.length && !note.trim()) return jsonResponse({ error: 'Няма редакции' }, 400);
   const id = `${Date.now()}:${crypto.randomUUID().slice(0, 8)}`;
+  // Смяна на снимки: качената снимка (data URL, смалена на устройството) — в отделен ключ wording-img:<id>:<n>.
+  const images = [];
+  for (const [n, im] of (Array.isArray(body?.images) ? body.images : []).slice(0, 12).entries()) {
+    const data = typeof im?.data === 'string' && /^data:image\/(webp|jpeg|png);base64,/.test(im.data) && im.data.length < 12e6 ? im.data : '';
+    const url = /^https?:\/\//i.test(String(im?.url || '')) ? s(im.url, 1000) : '';
+    const remove = !!im?.remove;
+    if (!data && !url && !remove) continue;
+    const rec = { where: s(im?.where, 300), oldSrc: s(im?.oldSrc, 500), alt: s(im?.alt, 400), url, remove,
+      w: Number(im?.w) || 0, h: Number(im?.h) || 0, name: s(im?.name, 120) };
+    if (data) {
+      rec.key = `wording-img:${id}:${n}`;
+      rec.type = data.slice(5, data.indexOf(';'));
+      await env.page_content.put(rec.key, data);
+    }
+    images.push(rec);
+  }
+  if (!edits.length && !note.trim() && !images.length) return jsonResponse({ error: 'Няма редакции' }, 400);
   const rec = { id, at: new Date().toISOString(), site: s(body?.site, 60), page: s(body?.page, 120), url: s(body?.url, 500),
-    lang: s(body?.lang, 8), edits, note, status: 'new' };
+    lang: s(body?.lang, 8), edits, images, note, status: 'new' };
   await env.page_content.put(`wording:${id}`, JSON.stringify(rec));
-  return jsonResponse({ ok: true, id, count: edits.length });
+  return jsonResponse({ ok: true, id, count: edits.length, images: images.length });
 }
 
 async function handleWordingList(request, env) {
