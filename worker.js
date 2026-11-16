@@ -162,7 +162,7 @@ var require_goal_model = __commonJS({
       function norm2(s) {
         return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
       }
-      function list3(v) {
+      function list4(v) {
         if (Array.isArray(v)) return v;
         if (v == null || v === "") return [];
         return String(v).split(/[+,;]/);
@@ -183,7 +183,7 @@ var require_goal_model = __commonJS({
         var add = function(c) {
           if (c && codes.indexOf(c) === -1) codes.push(c);
         };
-        list3(goal).forEach(function(raw) {
+        list4(goal).forEach(function(raw) {
           var label = norm2(raw);
           if (!label || label === "\u0434\u0440\u0443\u0433\u043E") return;
           if (label === ALL_OF_ABOVE) {
@@ -4618,15 +4618,15 @@ function slotBudget(minutes, level) {
   return level === 1 ? Math.min(base, 5) : base;
 }
 function accessoryPriorities(client) {
-  const lower = client.zones.filter((p) => ["glute", "abductor", "knee_flex", "lunge", "knee_ext", "calf", "hinge"].includes(p));
+  const lower2 = client.zones.filter((p) => ["glute", "abductor", "knee_flex", "lunge", "knee_ext", "calf", "hinge"].includes(p));
   const upper = client.zones.filter((p) => ["lat_raise", "rear_delt", "fly", "pull_h", "pull_v", "push_h"].includes(p));
   const arms = client.zones.filter((p) => ["biceps", "triceps"].includes(p));
   if (client.isFemale) {
-    lower.push("glute", "abductor", "knee_flex");
+    lower2.push("glute", "abductor", "knee_flex");
     upper.push("rear_delt", "lat_raise");
     arms.push("triceps", "biceps");
   } else {
-    lower.push("knee_flex", "calf", "glute");
+    lower2.push("knee_flex", "calf", "glute");
     upper.push("lat_raise", "rear_delt", "fly");
     arms.push("biceps", "triceps");
   }
@@ -4640,7 +4640,7 @@ function accessoryPriorities(client) {
   front.push(...client.isFemale ? ["lunge", "abductor", "knee_ext"] : ["knee_ext", "lunge", "calf"]);
   back.push(...client.isFemale ? ["glute", "knee_flex", "abductor"] : ["knee_flex", "glute", "calf"]);
   return {
-    "@lower": [...new Set(lower)],
+    "@lower": [...new Set(lower2)],
     "@upper": [...new Set(upper)],
     "@arms": [...new Set(arms)],
     "@lowerA": [...new Set(front)],
@@ -4959,21 +4959,21 @@ function fitSessionTime(exercises, minutes) {
 function pickByPattern(pool, patterns, client, count, { dayUsed, weekUsed = null, filter = () => true, sortKey = null }) {
   const out = [];
   const seenTargets = /* @__PURE__ */ new Set();
-  const list3 = pool.map((e) => ({ e, s: exerciseShape(e) })).filter(({ e, s }) => patterns.includes(s.pattern) && !dayUsed.has(e.id) && !violatesRestrictions(e, s, client) && filter(e, s)).sort((a, b) => (weekUsed ? Number(weekUsed.has(a.e.id)) - Number(weekUsed.has(b.e.id)) : 0) || (sortKey ? sortKey(a.e) - sortKey(b.e) : 0) || oddity(a.e) - oddity(b.e) || a.e.name.localeCompare(b.e.name));
+  const list4 = pool.map((e) => ({ e, s: exerciseShape(e) })).filter(({ e, s }) => patterns.includes(s.pattern) && !dayUsed.has(e.id) && !violatesRestrictions(e, s, client) && filter(e, s)).sort((a, b) => (weekUsed ? Number(weekUsed.has(a.e.id)) - Number(weekUsed.has(b.e.id)) : 0) || (sortKey ? sortKey(a.e) - sortKey(b.e) : 0) || oddity(a.e) - oddity(b.e) || a.e.name.localeCompare(b.e.name));
   const baseName = (e) => normalizeText(e.name.replace(/\(.*?\)|\bv\.?\s*\d+\b/g, ""));
   const seenNames = /* @__PURE__ */ new Set();
   const take = (e) => {
     out.push(e);
     seenNames.add(baseName(e));
   };
-  for (const { e } of list3) {
+  for (const { e } of list4) {
     if (out.length >= count) break;
     const t = e.targetNorm || e.target;
     if (seenTargets.has(t) || seenNames.has(baseName(e))) continue;
     seenTargets.add(t);
     take(e);
   }
-  for (const { e } of list3) {
+  for (const { e } of list4) {
     if (out.length >= count) break;
     if (!out.includes(e) && !seenNames.has(baseName(e))) take(e);
   }
@@ -5056,8 +5056,8 @@ function warmupFor(kind, region) {
   if (kind === "M") return ["3 \u043C\u0438\u043D \u0441\u043F\u043E\u043A\u043E\u0439\u043D\u043E \u0445\u043E\u0434\u0435\u043D\u0435 \u0438\u043B\u0438 \u043C\u0430\u0440\u0448\u0438\u0440\u0443\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u044F\u0441\u0442\u043E", "\u041A\u0440\u044A\u0433\u043E\u0432\u0435 \u0441 \u0440\u0430\u043C\u0435\u043D\u0435, \u0442\u0430\u0437 \u0438 \u0433\u043B\u0435\u0437\u0435\u043D\u0438 \u2014 \u043F\u043E 10", "\u0414\u044A\u043B\u0431\u043E\u043A\u043E \u0434\u0438\u0430\u0444\u0440\u0430\u0433\u043C\u0435\u043D\u043E \u0434\u0438\u0448\u0430\u043D\u0435 \u2014 1 \u043C\u0438\u043D"];
   if (kind === "C") return ["5 \u043C\u0438\u043D \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E \u0443\u0432\u0435\u043B\u0438\u0447\u0430\u0432\u0430\u043D\u0435 \u043D\u0430 \u0442\u0435\u043C\u043F\u043E\u0442\u043E", "\u0414\u0438\u043D\u0430\u043C\u0438\u0447\u043D\u043E \u0440\u0430\u0437\u0442\u044F\u0433\u0430\u043D\u0435 \u043D\u0430 \u043F\u0440\u0430\u0441\u0446\u0438 \u0438 \u0431\u0435\u0434\u0440\u0430", "\u041A\u0440\u044A\u0433\u043E\u0432\u0435 \u0441 \u0440\u0430\u043C\u0435\u043D\u0435 \u0438 \u0440\u044A\u0446\u0435"];
   if (kind === "I") return ["5 \u043C\u0438\u043D \u043B\u0435\u043A\u043E \u043A\u0430\u0440\u0434\u0438\u043E", "\u0414\u0438\u043D\u0430\u043C\u0438\u0447\u043D\u0430 \u043C\u043E\u0431\u0438\u043B\u043D\u043E\u0441\u0442 \u043D\u0430 \u0446\u044F\u043B\u043E\u0442\u043E \u0442\u044F\u043B\u043E", "2 \u043A\u0440\u0430\u0442\u043A\u0438 \u0443\u0441\u043A\u043E\u0440\u0435\u043D\u0438\u044F \u043D\u0430 60\u201370% \u0443\u0441\u0438\u043B\u0438\u0435"];
-  const lower = region === "post" ? "\u041C\u043E\u0441\u0442 \u0437\u0430 \u0441\u0435\u0434\u0430\u043B\u0438\u0449\u0435 \u0438 \u043A\u043E\u0442\u043A\u0430-\u043A\u0440\u0430\u0432\u0430 \u2014 \u043F\u043E 10" : "\u041A\u043B\u0435\u043A \u0441\u044A\u0441 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043E \u0442\u0435\u0433\u043B\u043E \u0438 \u043D\u0430\u043F\u0430\u0434 \u0441 \u0440\u043E\u0442\u0430\u0446\u0438\u044F \u2014 \u043F\u043E 8";
-  return ["5 \u043C\u0438\u043D \u043B\u0435\u043A\u043E \u043A\u0430\u0440\u0434\u0438\u043E (\u0445\u043E\u0434\u0435\u043D\u0435, \u043A\u043E\u043B\u0435\u043B\u043E, \u0432\u044A\u0436\u0435)", lower, "\u041A\u0440\u044A\u0433\u043E\u0432\u0435 \u0441 \u0440\u0430\u043C\u0435\u043D\u0435 \u0438 \u0434\u044A\u0440\u043F\u0430\u043D\u0435 \u043D\u0430 \u043B\u0430\u0441\u0442\u0438\u043A \u2014 \u043F\u043E 10", "\u041F\u044A\u0440\u0432\u043E\u0442\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u0435: 1\u20132 \u0437\u0430\u0433\u0440\u044F\u0432\u0430\u0449\u0438 \u0441\u0435\u0440\u0438\u0438 \u0441 \u043B\u0435\u043A\u0430 \u0442\u0435\u0436\u0435\u0441\u0442"];
+  const lower2 = region === "post" ? "\u041C\u043E\u0441\u0442 \u0437\u0430 \u0441\u0435\u0434\u0430\u043B\u0438\u0449\u0435 \u0438 \u043A\u043E\u0442\u043A\u0430-\u043A\u0440\u0430\u0432\u0430 \u2014 \u043F\u043E 10" : "\u041A\u043B\u0435\u043A \u0441\u044A\u0441 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043E \u0442\u0435\u0433\u043B\u043E \u0438 \u043D\u0430\u043F\u0430\u0434 \u0441 \u0440\u043E\u0442\u0430\u0446\u0438\u044F \u2014 \u043F\u043E 8";
+  return ["5 \u043C\u0438\u043D \u043B\u0435\u043A\u043E \u043A\u0430\u0440\u0434\u0438\u043E (\u0445\u043E\u0434\u0435\u043D\u0435, \u043A\u043E\u043B\u0435\u043B\u043E, \u0432\u044A\u0436\u0435)", lower2, "\u041A\u0440\u044A\u0433\u043E\u0432\u0435 \u0441 \u0440\u0430\u043C\u0435\u043D\u0435 \u0438 \u0434\u044A\u0440\u043F\u0430\u043D\u0435 \u043D\u0430 \u043B\u0430\u0441\u0442\u0438\u043A \u2014 \u043F\u043E 10", "\u041F\u044A\u0440\u0432\u043E\u0442\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u0435: 1\u20132 \u0437\u0430\u0433\u0440\u044F\u0432\u0430\u0449\u0438 \u0441\u0435\u0440\u0438\u0438 \u0441 \u043B\u0435\u043A\u0430 \u0442\u0435\u0436\u0435\u0441\u0442"];
 }
 function cooldownFor(kind) {
   if (kind === "M") return ["\u041B\u0435\u0436\u0430\u0449\u043E \u043E\u0442\u043F\u0443\u0441\u043A\u0430\u043D\u0435 \u0441 \u0434\u044A\u043B\u0431\u043E\u043A\u043E \u0434\u0438\u0448\u0430\u043D\u0435 \u2014 2 \u043C\u0438\u043D", "\u0411\u0430\u0432\u043D\u043E \u0445\u043E\u0434\u0435\u043D\u0435 \u2014 2 \u043C\u0438\u043D", "\u041B\u0435\u043A\u0430 \u0433\u043B\u044A\u0442\u043A\u0430 \u0432\u043E\u0434\u0430 \u0438 \u043E\u0442\u043F\u0443\u0441\u043A\u0430\u043D\u0435"];
@@ -5462,8 +5462,8 @@ function buildTranslateUserPayload(batch) {
 ${JSON.stringify({ exercises: items })}`;
 }
 function normalizeBatchResult(parsed, batch) {
-  const list3 = parsed?.translations || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
-  const byId = new Map(list3.map((row) => [String(row.id), row]));
+  const list4 = parsed?.translations || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
+  const byId = new Map(list4.map((row) => [String(row.id), row]));
   const out = {};
   for (const ex of batch) {
     const id = String(ex.id);
@@ -5482,14 +5482,14 @@ function normalizeBatchResult(parsed, batch) {
 async function fetchExerciseDataset(url = null) {
   if (!url) {
     const mod = await Promise.resolve().then(() => (init_exercise_dataset(), exercise_dataset_exports));
-    const list3 = mod.default || mod;
+    const list4 = mod.default || mod;
     let ins = {};
     try {
       const m = await Promise.resolve().then(() => (init_exercise_instructions(), exercise_instructions_exports));
       ins = m.default || m;
     } catch {
     }
-    return list3.map((x) => ins[x.id] ? { ...x, instructions: { ...x.instructions || {}, en: ins[x.id].en, bg: ins[x.id].bg } } : x);
+    return list4.map((x) => ins[x.id] ? { ...x, instructions: { ...x.instructions || {}, en: ins[x.id].en, bg: ins[x.id].bg } } : x);
   }
   const res = await fetch(url, { headers: { "User-Agent": "aidiet-fitness-translate" } });
   if (!res.ok) throw new Error(`Dataset HTTP ${res.status}`);
@@ -5616,8 +5616,8 @@ ${CLASSIFY_RESPONSE_SCHEMA}
 ${JSON.stringify({ exercises })}`;
 }
 function normalizeClassifyResult(parsed, batch) {
-  const list3 = parsed?.classifications || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
-  const byId = new Map(list3.map((row) => [String(row.id), row]));
+  const list4 = parsed?.classifications || parsed?.exercises || (Array.isArray(parsed) ? parsed : []);
+  const byId = new Map(list4.map((row) => [String(row.id), row]));
   const out = {};
   for (const ex of batch) {
     const id = String(ex.id);
@@ -7277,10 +7277,10 @@ function resolveGuidelineLayers(tags, adminConfig = null, options = {}) {
   const adminArchitecture = [];
   const hardcodedIndividual = [];
   const seen = /* @__PURE__ */ new Set();
-  const push = (list3, text2) => {
+  const push = (list4, text2) => {
     if (!text2 || seen.has(text2)) return;
     seen.add(text2);
-    list3.push(text2);
+    list4.push(text2);
   };
   for (const chunk of adminChunks) {
     if (!chunk.text || !shouldIncludeAdminChunk(chunk, tagSet)) continue;
@@ -7908,10 +7908,10 @@ async function loadExerciseIndex(env, ctx) {
     }
   }
   try {
-    const list3 = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
+    const list4 = await fetchExerciseDataset(env.EXERCISE_DATASET_URL || null);
     const translations = await loadExerciseTranslations(env);
     const metadata = await loadExerciseMetadata(env);
-    const index = buildCompactIndex(list3, translations, metadata);
+    const index = buildCompactIndex(list4, translations, metadata);
     if (index.length > 50) {
       memoryIndex = index;
       if (env.FITNESS_KV) {
@@ -8984,10 +8984,10 @@ async function handleSubmitConsultation(request, env) {
   };
   await env.FITNESS_KV.put(`fitplan_consultation:${id}`, JSON.stringify(record));
   const listRaw = await env.FITNESS_KV.get(CONSULTATIONS_LIST_KV_KEY);
-  const list3 = listRaw ? JSON.parse(listRaw) : [];
-  list3.unshift(id);
-  if (list3.length > MAX_CONSULTATIONS) list3.length = MAX_CONSULTATIONS;
-  await env.FITNESS_KV.put(CONSULTATIONS_LIST_KV_KEY, JSON.stringify(list3));
+  const list4 = listRaw ? JSON.parse(listRaw) : [];
+  list4.unshift(id);
+  if (list4.length > MAX_CONSULTATIONS) list4.length = MAX_CONSULTATIONS;
+  await env.FITNESS_KV.put(CONSULTATIONS_LIST_KV_KEY, JSON.stringify(list4));
   return jsonResponse({ success: true, id });
 }
 async function handleGetConsultations(request, env) {
@@ -9062,11 +9062,11 @@ async function loadClientProgram(env, id) {
 async function saveClientProgram(env, record) {
   await env.FITNESS_KV.put(clientProgramKvKey(record.id), JSON.stringify(record));
   const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
-  const list3 = listRaw ? JSON.parse(listRaw) : [];
-  if (!list3.includes(record.id)) {
-    list3.unshift(record.id);
-    if (list3.length > MAX_CLIENT_PROGRAMS) list3.length = MAX_CLIENT_PROGRAMS;
-    await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list3));
+  const list4 = listRaw ? JSON.parse(listRaw) : [];
+  if (!list4.includes(record.id)) {
+    list4.unshift(record.id);
+    if (list4.length > MAX_CLIENT_PROGRAMS) list4.length = MAX_CLIENT_PROGRAMS;
+    await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list4));
   }
 }
 function clientProgramPublicView(record) {
@@ -9412,8 +9412,8 @@ async function deleteClientProgramRecord(env, id) {
   if (record.planId) await env.FITNESS_KV.delete(`plan:${record.planId}`);
   await env.FITNESS_KV.delete(clientProgramKvKey(id));
   const listRaw = await env.FITNESS_KV.get(CLIENT_PROGRAMS_LIST_KV_KEY);
-  const list3 = listRaw ? JSON.parse(listRaw) : [];
-  await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list3.filter((x) => x !== id)));
+  const list4 = listRaw ? JSON.parse(listRaw) : [];
+  await env.FITNESS_KV.put(CLIENT_PROGRAMS_LIST_KV_KEY, JSON.stringify(list4.filter((x) => x !== id)));
   return jsonResponse({ success: true });
 }
 async function handleDeleteClientProgram(request, env, id) {
@@ -9814,8 +9814,8 @@ function normalizeSettings(raw) {
   const r = s.rules || {};
   const hours = {};
   for (const day of DAYS) {
-    const list3 = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
-    hours[day] = list3.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
+    const list4 = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
+    hours[day] = list4.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
   }
   let tz = str(s.timezone, 64) || d.timezone;
   try {
@@ -10007,10 +10007,10 @@ async function sendOne(env, token, payload) {
 async function pushTo(env, studio, phones, msg) {
   const { title = "", body, extra = {} } = msg;
   if (!pushReady(env) || !phones.length) return 0;
-  const list3 = [...new Set(phones)].slice(0, 500);
+  const list4 = [...new Set(phones)].slice(0, 500);
   const rows = [];
-  for (let i = 0; i < list3.length; i += 50) {
-    const part = list3.slice(i, i + 50);
+  for (let i = 0; i < list4.length; i += 50) {
+    const part = list4.slice(i, i + 50);
     rows.push(...(await env.STUDIO_DB.prepare(`SELECT token FROM push_tokens WHERE studio_id = ? AND phone IN (${part.map(() => "?").join(",")})`).bind(studio.id, ...part).all()).results || []);
   }
   const payload = { aps: { alert: { title: title || studio.settings.brand.name, body }, sound: PUSH_SOUND, "thread-id": studio.id }, studio: studio.id, ...extra };
@@ -10303,14 +10303,14 @@ async function getClient(env, studioId, phone) {
 }
 async function tokenOk(client, token) {
   if (!client || !token) return false;
-  const list3 = JSON.parse(client.token_hash || "[]");
-  return Array.isArray(list3) && list3.includes(await sha256(String(token)));
+  const list4 = JSON.parse(client.token_hash || "[]");
+  return Array.isArray(list4) && list4.includes(await sha256(String(token)));
 }
 async function issueToken(env, studioId, phone) {
   const token = randomToken();
   const c = await getClient(env, studioId, phone);
-  const list3 = JSON.parse(c && c.token_hash || "[]");
-  const next = [...Array.isArray(list3) ? list3 : [], await sha256(token)].slice(-10);
+  const list4 = JSON.parse(c && c.token_hash || "[]");
+  const next = [...Array.isArray(list4) ? list4 : [], await sha256(token)].slice(-10);
   await env.STUDIO_DB.prepare("UPDATE clients SET token_hash = ? WHERE studio_id = ? AND phone = ?").bind(JSON.stringify(next), studioId, phone).run();
   return token;
 }
@@ -10401,8 +10401,8 @@ async function acuityBusy(studio, ym) {
   const st = studio.settings;
   const have = new Set(Object.values(free).flat().map((t) => `${String(t).slice(0, 10)} ${String(t).slice(11, 16)}`));
   const out = [];
-  for (const [day, list3] of Object.entries(slotsForMonth({ ...st, rules: { ...st.rules, minNoticeMin: 0 } }, ym, []))) {
-    for (const hm2 of list3) {
+  for (const [day, list4] of Object.entries(slotsForMonth({ ...st, rules: { ...st.rules, minNoticeMin: 0 } }, ym, []))) {
+    for (const hm2 of list4) {
       if (have.has(`${day} ${hm2}`)) continue;
       const start = zonedMs(day, hm2, st.timezone);
       out.push({ start, end: start + st.slot.minutes * 6e4 });
@@ -10735,15 +10735,15 @@ async function handleMine(env, studio, b) {
 async function acuityHours(studio, client) {
   const st = studio.settings;
   if (!st.acuity || !acuityClient || !client.email) return [];
-  let list3 = null;
+  let list4 = null;
   try {
-    list3 = await acuityClient.list(client.email, client.phone, acuOf(studio));
+    list4 = await acuityClient.list(client.email, client.phone, acuOf(studio));
   } catch (e) {
     console.warn("[studio] acuity hours failed:", e.message);
   }
   const now = Date.now();
   const out = [];
-  for (const a of Array.isArray(list3) ? list3 : []) {
+  for (const a of Array.isArray(list4) ? list4 : []) {
     const ms = Date.parse(String(a.datetime || "").replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
     if (!Number.isFinite(ms) || ms < now - 60 * 864e5 || a.canceled && ms < now) continue;
     const p = zonedParts(ms, st.timezone);
@@ -11361,6 +11361,215 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
     console.error("[studio] failed:", path, e && e.message);
     return err("server", 500);
   }
+}
+
+// app-domain.js
+var ORIGIN2 = "https://biocode.website";
+var OTHER_PROJECTS = /^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|admin|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/|KV\/|migrations\/|workflows\/|viber-sender\/|scripts\/|\.github\/|CNAME$)/i;
+var list2 = (v) => String(v || "").toLowerCase().split(",").map((x) => x.trim()).filter(Boolean);
+function isAppHost(env, host) {
+  const bare = String(host || "").toLowerCase().replace(/^www\./, "");
+  return list2(env.APP_HOSTS).includes(bare);
+}
+var MODULE_HOSTS = {
+  "emoeat.app": {
+    home: "/emoeat-landing.html",
+    pages: /^\/(emoeat[^/]*\.html|privacy-policy\.html|terms\.html|help\.html|delete-account\.html)$/i
+  }
+};
+var MAIN_HOST = "eatologix.com";
+async function handleAppDomain(request, env) {
+  const url = new URL(request.url);
+  const host = url.hostname.toLowerCase();
+  if (!isAppHost(env, host)) return null;
+  const bare = host.replace(/^www\./, "");
+  if (host !== bare) return Response.redirect(`https://${bare}${url.pathname}${url.search}`, 301);
+  if (url.pathname.startsWith("/api/")) return null;
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const mod = MODULE_HOSTS[bare];
+  if (OTHER_PROJECTS.test(url.pathname)) return Response.redirect(`https://${mod ? MAIN_HOST : bare}/`, 302);
+  if (mod && url.pathname !== "/" && /\.html$/i.test(url.pathname) && !mod.pages.test(url.pathname)) {
+    return Response.redirect(`https://${MAIN_HOST}${url.pathname}${url.search}`, 302);
+  }
+  const path = url.pathname === "/" ? mod ? mod.home : "/index.html" : url.pathname;
+  const resp = await fetch(ORIGIN2 + path + url.search, {
+    method: request.method,
+    cf: { cacheTtl: 300, cacheEverything: true },
+    redirect: "manual"
+  });
+  if (resp.status >= 300 && resp.status < 400) {
+    const loc = resp.headers.get("Location") || "/";
+    const to = new URL(loc, ORIGIN2 + path);
+    return Response.redirect(`https://${bare}${to.pathname}${to.search}`, resp.status === 301 ? 301 : 302);
+  }
+  const headers = new Headers({ "X-Content-Type-Options": "nosniff" });
+  for (const h of ["Content-Type", "Last-Modified", "ETag"]) {
+    const v = resp.headers.get(h);
+    if (v) headers.set(h, v);
+  }
+  headers.set("Cache-Control", /^\/(sw\.js|manifest\.json)$/.test(path) ? "no-cache" : "public, max-age=300");
+  if (path === "/sw.js") headers.set("Service-Worker-Allowed", "/");
+  return new Response(request.method === "HEAD" ? null : resp.body, { status: resp.status, headers });
+}
+
+// i18n-server.js
+var I18N_LANGS = {
+  en: "English",
+  de: "German",
+  es: "Spanish",
+  fr: "French",
+  it: "Italian",
+  pt: "Portuguese",
+  tr: "Turkish",
+  pl: "Polish",
+  ro: "Romanian",
+  ru: "Russian"
+};
+var MAX_STRINGS = 60;
+var MAX_LEN = 700;
+var CYR = /[Ѐ-ӿ]/;
+var KV_PREFIX = "i18n:v1:";
+function languageName(code) {
+  return I18N_LANGS[String(code || "").toLowerCase()] || null;
+}
+function languageDirective(lang) {
+  const name = languageName(lang);
+  if (!name) return "";
+  return `
+
+LANGUAGE: Write every text the client will read (names of meals and dishes, explanations, advice, chat replies) in ${name}. Keep JSON keys, field names, codes and numbers exactly as specified above. The product name is Eatologix.`;
+}
+async function keyOf(lang, text2) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text2));
+  const hex2 = [...new Uint8Array(buf)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${KV_PREFIX}${lang}:${hex2}`;
+}
+function cleanList(raw) {
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const s of Array.isArray(raw) ? raw : []) {
+    if (typeof s !== "string") continue;
+    const t = s.replace(/\s+/g, " ").trim();
+    if (!t || t.length > MAX_LEN || !CYR.test(t) || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+    if (out.length >= MAX_STRINGS) break;
+  }
+  return out;
+}
+function buildPrompt(name, list4) {
+  return `You translate the interface and content of Eatologix, a nutrition app, from Bulgarian into ${name}.
+Rules:
+- Natural, short, friendly ${name}, addressing the reader informally (as the Bulgarian does with "\u0442\u0438"; in Russian \u2014 "\u0442\u044B").
+- The source is Bulgarian even where it looks like Russian; translate it fully into ${name}.
+- Keep numbers, units (g, kcal, ml, kg), emoji, punctuation at the edges, and anything inside {curly braces} unchanged.
+- Food and dish names: the usual ${name} name; a Bulgarian dish with no equivalent keeps its name in Latin letters with a short gloss only if needed.
+- "Eatologix" stays as is. Do not add quotes, notes or explanations.
+Return ONLY a JSON array of strings with exactly ${list4.length} items, in the same order.
+
+${JSON.stringify(list4)}`;
+}
+async function handleI18nTranslate(request, env, deps) {
+  const headers = { ...deps.cors || {}, "Content-Type": "application/json" };
+  const reply = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers });
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return reply({ ok: false, error: "bad_json" }, 400);
+  }
+  const lang = String(body?.lang || "").toLowerCase();
+  const name = languageName(lang);
+  if (!name) return reply({ ok: false, error: "lang" }, 400);
+  const list4 = cleanList(body?.strings);
+  if (!list4.length) return reply({ ok: true, translations: {} });
+  const translations = {};
+  const keys = await Promise.all(list4.map((t) => keyOf(lang, t)));
+  const kv = env.page_content;
+  const cached = kv ? await Promise.all(keys.map((k) => kv.get(k).catch(() => null))) : list4.map(() => null);
+  const missing = [];
+  list4.forEach((t, i) => {
+    if (cached[i] != null) translations[t] = cached[i];
+    else missing.push(i);
+  });
+  if (missing.length) {
+    const limited = deps.rateLimit ? await deps.rateLimit() : null;
+    if (limited) return reply({ ok: true, partial: true, translations });
+    const todo = missing.map((i) => list4[i]);
+    try {
+      const raw = await deps.callGemini(env, buildPrompt(name, todo), deps.model, 8192, true);
+      const text2 = typeof raw === "string" ? raw : raw?.text || raw?.content || "";
+      const arr = JSON.parse(String(text2).replace(/^```(?:json)?\s*|\s*```$/g, ""));
+      if (Array.isArray(arr) && arr.length === todo.length) {
+        const puts = [];
+        todo.forEach((src, j) => {
+          const tr = typeof arr[j] === "string" ? arr[j].trim() : "";
+          if (!tr || lang !== "ru" && CYR.test(tr)) return;
+          translations[src] = tr;
+          if (kv) puts.push(kv.put(keys[missing[j]], tr).catch(() => {
+          }));
+        });
+        await Promise.all(puts);
+      }
+    } catch (e) {
+      console.warn("[i18n] translate failed:", e?.message || e);
+      return reply({ ok: true, partial: true, translations });
+    }
+  }
+  return reply({ ok: true, translations });
+}
+
+// email-i18n.js
+var L = ["en", "de", "es", "ru"];
+var isEmailLang = (lang) => L.includes(String(lang || "").toLowerCase());
+var EMAIL_TEMPLATES = {
+  ready: {
+    en: { subject: "Your personal nutrition plan is ready! \u{1F957}", headerSubtitle: "Personal nutrition plan", greeting: "Hi {name}! \u{1F44B}", paragraph1: "Great news: your <strong>personal 7-day nutrition plan</strong> is ready and waiting for you!", paragraph2: "Our specialist has carefully reviewed your data and built an individual plan around your goals and needs.", buttonText: "See my plan \u2192" },
+    de: { subject: "Dein pers\xF6nlicher Ern\xE4hrungsplan ist fertig! \u{1F957}", headerSubtitle: "Pers\xF6nlicher Ern\xE4hrungsplan", greeting: "Hallo {name}! \u{1F44B}", paragraph1: "Gute Nachrichten: Dein <strong>pers\xF6nlicher 7-Tage-Ern\xE4hrungsplan</strong> ist fertig und wartet auf dich!", paragraph2: "Unsere Fachkraft hat deine Angaben sorgf\xE4ltig gepr\xFCft und einen individuellen Plan f\xFCr deine Ziele und Bed\xFCrfnisse erstellt.", buttonText: "Zu meinem Plan \u2192" },
+    es: { subject: "\xA1Tu plan de alimentaci\xF3n personal est\xE1 listo! \u{1F957}", headerSubtitle: "Plan de alimentaci\xF3n personal", greeting: "\xA1Hola, {name}! \u{1F44B}", paragraph1: "Buenas noticias: tu <strong>plan de alimentaci\xF3n personal de 7 d\xEDas</strong> ya est\xE1 listo.", paragraph2: "Nuestro especialista ha revisado tus datos con atenci\xF3n y ha creado un plan individual seg\xFAn tus objetivos y necesidades.", buttonText: "Ver mi plan \u2192" },
+    ru: { subject: "\u0422\u0432\u043E\u0439 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F \u0433\u043E\u0442\u043E\u0432! \u{1F957}", headerSubtitle: "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F", greeting: "\u041F\u0440\u0438\u0432\u0435\u0442, {name}! \u{1F44B}", paragraph1: "\u041E\u0442\u043B\u0438\u0447\u043D\u044B\u0435 \u043D\u043E\u0432\u043E\u0441\u0442\u0438: \u0442\u0432\u043E\u0439 <strong>\u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 7-\u0434\u043D\u0435\u0432\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F</strong> \u0433\u043E\u0442\u043E\u0432 \u0438 \u0443\u0436\u0435 \u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D!", paragraph2: "\u041D\u0430\u0448 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442 \u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u044C\u043D\u043E \u0438\u0437\u0443\u0447\u0438\u043B \u0442\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435 \u0438 \u0441\u043E\u0441\u0442\u0430\u0432\u0438\u043B \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u043E\u0434 \u0442\u0432\u043E\u0438 \u0446\u0435\u043B\u0438 \u0438 \u043F\u043E\u0442\u0440\u0435\u0431\u043D\u043E\u0441\u0442\u0438.", buttonText: "\u0421\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043C\u043E\u0439 \u043F\u043B\u0430\u043D \u2192" }
+  },
+  updated: {
+    en: { subject: "Your nutrition plan has been updated \u{1F957}", headerSubtitle: "Plan update", greeting: "Hi {name}! \u{1F44B}", paragraph1: "Your specialist has made changes to your <strong>personal nutrition plan</strong>.", paragraph2: "Tap the button below to load the new version. The link works once and is valid for 72 hours.", buttonText: "Load the updated plan \u2192" },
+    de: { subject: "Dein Ern\xE4hrungsplan wurde aktualisiert \u{1F957}", headerSubtitle: "Plan-Update", greeting: "Hallo {name}! \u{1F44B}", paragraph1: "Deine Fachkraft hat \xC4nderungen an deinem <strong>pers\xF6nlichen Ern\xE4hrungsplan</strong> vorgenommen.", paragraph2: "Tippe unten auf den Button, um die neue Version zu laden. Der Link ist einmalig und 72 Stunden g\xFCltig.", buttonText: "Aktualisierten Plan laden \u2192" },
+    es: { subject: "Tu plan de alimentaci\xF3n se ha actualizado \u{1F957}", headerSubtitle: "Actualizaci\xF3n del plan", greeting: "\xA1Hola, {name}! \u{1F44B}", paragraph1: "Tu especialista ha hecho cambios en tu <strong>plan de alimentaci\xF3n personal</strong>.", paragraph2: "Pulsa el bot\xF3n de abajo para cargar la nueva versi\xF3n. El enlace es de un solo uso y v\xE1lido durante 72 horas.", buttonText: "Cargar el plan actualizado \u2192" },
+    ru: { subject: "\u0422\u0432\u043E\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D \u{1F957}", headerSubtitle: "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u043F\u043B\u0430\u043D\u0430", greeting: "\u041F\u0440\u0438\u0432\u0435\u0442, {name}! \u{1F44B}", paragraph1: "\u0421\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442 \u0432\u043D\u0451\u0441 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F \u0432 \u0442\u0432\u043E\u0439 <strong>\u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F</strong>.", paragraph2: "\u041D\u0430\u0436\u043C\u0438 \u043A\u043D\u043E\u043F\u043A\u0443 \u043D\u0438\u0436\u0435, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u043D\u043E\u0432\u0443\u044E \u0432\u0435\u0440\u0441\u0438\u044E. \u0421\u0441\u044B\u043B\u043A\u0430 \u043E\u0434\u043D\u043E\u0440\u0430\u0437\u043E\u0432\u0430\u044F \u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442 72 \u0447\u0430\u0441\u0430.", buttonText: "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u2192" }
+  }
+};
+var RESET_SUBJECT = {
+  en: "Password reset \u2014 Eatologix \u{1F512}",
+  de: "Passwort zur\xFCcksetzen \u2014 Eatologix \u{1F512}",
+  es: "Restablecer contrase\xF1a \u2014 Eatologix \u{1F512}",
+  ru: "\u0421\u0431\u0440\u043E\u0441 \u043F\u0430\u0440\u043E\u043B\u044F \u2014 Eatologix \u{1F512}"
+};
+var PHRASES = {
+  "\u0422\u0432\u043E\u044F\u0442 \u043F\u043B\u0430\u043D \u0435 \u0433\u043E\u0442\u043E\u0432": ["Your plan is ready", "Dein Plan ist fertig", "Tu plan est\xE1 listo", "\u0422\u0432\u043E\u0439 \u043F\u043B\u0430\u043D \u0433\u043E\u0442\u043E\u0432"],
+  "\u041F\u043B\u0430\u043D\u044A\u0442 \u0442\u0438 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D": ["Your plan has been updated", "Dein Plan wurde aktualisiert", "Tu plan se ha actualizado", "\u0422\u0432\u043E\u0439 \u043F\u043B\u0430\u043D \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D"],
+  "\u041A\u0430\u043A\u0432\u043E \u0432\u043A\u043B\u044E\u0447\u0432\u0430 \u0442\u0432\u043E\u044F\u0442 \u043F\u043B\u0430\u043D:": ["What your plan includes:", "Was dein Plan enth\xE4lt:", "Qu\xE9 incluye tu plan:", "\u0427\u0442\u043E \u0432\u0445\u043E\u0434\u0438\u0442 \u0432 \u0442\u0432\u043E\u0439 \u043F\u043B\u0430\u043D:"],
+  "7-\u0434\u043D\u0435\u0432\u043D\u0430 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u0430 \u0441 \u043F\u043E\u0434\u0440\u043E\u0431\u043D\u0438 \u0440\u0435\u0446\u0435\u043F\u0442\u0438": ["A 7-day programme with detailed recipes", "Ein 7-Tage-Programm mit ausf\xFChrlichen Rezepten", "Un programa de 7 d\xEDas con recetas detalladas", "7-\u0434\u043D\u0435\u0432\u043D\u0430\u044F \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430 \u0441 \u043F\u043E\u0434\u0440\u043E\u0431\u043D\u044B\u043C\u0438 \u0440\u0435\u0446\u0435\u043F\u0442\u0430\u043C\u0438"],
+  "\u0418\u0437\u0447\u0438\u0441\u043B\u0435\u043D\u0438 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043C\u0430\u043A\u0440\u043E\u043D\u0443\u0442\u0440\u0438\u0435\u043D\u0442\u0438": ["Calculated calories and macronutrients", "Berechnete Kalorien und Makron\xE4hrstoffe", "Calor\xEDas y macronutrientes calculados", "\u0420\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043D\u043D\u044B\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043C\u0430\u043A\u0440\u043E\u043D\u0443\u0442\u0440\u0438\u0435\u043D\u0442\u044B"],
+  "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D\u0438 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438 \u0438 \u0434\u043E\u0431\u0430\u0432\u043A\u0438": ["Personal recommendations and supplements", "Pers\xF6nliche Empfehlungen und Nahrungserg\xE4nzung", "Recomendaciones y suplementos personalizados", "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0435 \u0440\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u0430\u0446\u0438\u0438 \u0438 \u0434\u043E\u0431\u0430\u0432\u043A\u0438"],
+  "\u0427\u0430\u0442 \u043A\u043E\u043D\u0441\u0443\u043B\u0442\u0430\u0446\u0438\u044F \u0441 AI \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433": ["Chat with an AI nutrition assistant", "Chat-Beratung mit einem KI-Ern\xE4hrungsassistenten", "Consulta por chat con un asistente de nutrici\xF3n con IA", "\u0427\u0430\u0442-\u043A\u043E\u043D\u0441\u0443\u043B\u044C\u0442\u0430\u0446\u0438\u044F \u0441 \u0418\u0418-\u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u043E\u043C"],
+  "\u0410\u043A\u043E \u0438\u043C\u0430\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0438, \u043F\u0438\u0448\u0435\u0442\u0435 \u043D\u0438 \u043D\u0430": ["If you have any questions, write to us at", "Bei Fragen schreib uns an", "Si tienes preguntas, escr\xEDbenos a", "\u0415\u0441\u043B\u0438 \u0435\u0441\u0442\u044C \u0432\u043E\u043F\u0440\u043E\u0441\u044B, \u043F\u0438\u0448\u0438 \u043D\u0430\u043C \u043D\u0430"],
+  "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D": ["Personal nutrition plan", "Pers\xF6nlicher Ern\xE4hrungsplan", "Plan de alimentaci\xF3n personal", "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F"],
+  "\u041D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430": ["Password reset", "Passwort zur\xFCcksetzen", "Restablecer contrase\xF1a", "\u0421\u0431\u0440\u043E\u0441 \u043F\u0430\u0440\u043E\u043B\u044F"],
+  "\u0417\u0430\u044F\u0432\u043A\u0430 \u0437\u0430 \u043D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430 \u{1F512}": ["Password reset request \u{1F512}", "Anfrage zum Zur\xFCcksetzen des Passworts \u{1F512}", "Solicitud de restablecimiento de contrase\xF1a \u{1F512}", "\u0417\u0430\u043F\u0440\u043E\u0441 \u043D\u0430 \u0441\u0431\u0440\u043E\u0441 \u043F\u0430\u0440\u043E\u043B\u044F \u{1F512}"],
+  "\u041F\u043E\u043B\u0443\u0447\u0438\u0445\u043C\u0435 \u0437\u0430\u044F\u0432\u043A\u0430 \u0437\u0430 \u043D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430\u0442\u0430 \u0437\u0430 \u0432\u0430\u0448\u0438\u044F \u0430\u043A\u0430\u0443\u043D\u0442 \u0432 Eatologix.": ["We received a request to reset the password for your Eatologix account.", "Wir haben eine Anfrage zum Zur\xFCcksetzen des Passworts f\xFCr dein Eatologix-Konto erhalten.", "Hemos recibido una solicitud para restablecer la contrase\xF1a de tu cuenta de Eatologix.", "\u041C\u044B \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438 \u0437\u0430\u043F\u0440\u043E\u0441 \u043D\u0430 \u0441\u0431\u0440\u043E\u0441 \u043F\u0430\u0440\u043E\u043B\u044F \u0434\u043B\u044F \u0442\u0432\u043E\u0435\u0433\u043E \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430 Eatologix."],
+  "\u041D\u0430\u0442\u0438\u0441\u043D\u0435\u0442\u0435 \u0431\u0443\u0442\u043E\u043D\u0430 \u043F\u043E-\u0434\u043E\u043B\u0443, \u0437\u0430 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0442\u0435 \u043D\u043E\u0432\u0430 \u043F\u0430\u0440\u043E\u043B\u0430. \u041B\u0438\u043D\u043A\u044A\u0442 \u0435 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0437\u0430 <strong>1 \u0447\u0430\u0441</strong>.": ["Tap the button below to set a new password. The link is valid for <strong>1 hour</strong>.", "Tippe unten auf den Button, um ein neues Passwort festzulegen. Der Link ist <strong>1 Stunde</strong> g\xFCltig.", "Pulsa el bot\xF3n de abajo para crear una contrase\xF1a nueva. El enlace es v\xE1lido durante <strong>1 hora</strong>.", "\u041D\u0430\u0436\u043C\u0438 \u043A\u043D\u043E\u043F\u043A\u0443 \u043D\u0438\u0436\u0435, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0434\u0430\u0442\u044C \u043D\u043E\u0432\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C. \u0421\u0441\u044B\u043B\u043A\u0430 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442 <strong>1 \u0447\u0430\u0441</strong>."],
+  "\u041D\u0443\u043B\u0438\u0440\u0430\u0439 \u043F\u0430\u0440\u043E\u043B\u0430\u0442\u0430 \u2192": ["Reset password \u2192", "Passwort zur\xFCcksetzen \u2192", "Restablecer contrase\xF1a \u2192", "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043F\u0430\u0440\u043E\u043B\u044C \u2192"],
+  "\u0410\u043A\u043E \u043D\u0435 \u0441\u0442\u0435 \u043F\u043E\u0438\u0441\u043A\u0430\u043B\u0438 \u043D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430, \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0430\u0442\u0435 \u0442\u043E\u0437\u0438 \u0438\u043C\u0435\u0439\u043B. \u0410\u043A\u0430\u0443\u043D\u0442\u044A\u0442 \u0432\u0438 \u0435 \u0432 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442.": ["If you didn't ask to reset your password, you can ignore this email. Your account is safe.", "Wenn du kein Zur\xFCcksetzen angefordert hast, kannst du diese E-Mail ignorieren. Dein Konto ist sicher.", "Si no has pedido restablecer la contrase\xF1a, puedes ignorar este correo. Tu cuenta est\xE1 segura.", "\u0415\u0441\u043B\u0438 \u0442\u044B \u043D\u0435 \u0437\u0430\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u043B(\u0430) \u0441\u0431\u0440\u043E\u0441 \u043F\u0430\u0440\u043E\u043B\u044F, \u043F\u0440\u043E\u0441\u0442\u043E \u043F\u0440\u043E\u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0443\u0439 \u044D\u0442\u043E \u043F\u0438\u0441\u044C\u043C\u043E. \u0422\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 \u0432 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438."]
+};
+function emailTemplateFor(kind, lang) {
+  const l = String(lang || "").toLowerCase();
+  return isEmailLang(l) ? (EMAIL_TEMPLATES[kind] || {})[l] || null : null;
+}
+function localizeEmailHtml(html, lang) {
+  const l = String(lang || "").toLowerCase();
+  const i = L.indexOf(l);
+  if (i < 0 || typeof html !== "string") return html;
+  let out = html.replace('<html lang="bg">', `<html lang="${l}">`);
+  for (const bg of Object.keys(PHRASES).sort((a, b) => b.length - a.length)) out = out.split(bg).join(PHRASES[bg][i]);
+  return out;
 }
 
 // food-nutrition-data.js
@@ -12949,11 +13158,6 @@ function extractQuestionnaireBlockedTerms(userData = {}) {
       if (typeof mod === "string" && mod.startsWith("exclude_food:")) {
         pushTermsFromValue(terms, seen, mod.slice("exclude_food:".length));
       }
-    }
-  }
-  if (Array.isArray(userData.userFoodExclude)) {
-    for (const entry of userData.userFoodExclude) {
-      pushTermsFromValue(terms, seen, entry);
     }
   }
   if (Array.isArray(userData.forbidden)) {
@@ -16909,7 +17113,7 @@ function optionsOf(choice, sets) {
 }
 function cartesian(lists) {
   return lists.reduce(
-    (acc, list3) => acc.flatMap((prefix) => list3.map((item2) => [...prefix, item2])),
+    (acc, list4) => acc.flatMap((prefix) => list4.map((item2) => [...prefix, item2])),
     [[]]
   );
 }
@@ -16927,9 +17131,9 @@ function dishName(base, labels) {
   }
   return `${base} ${withPreposition(labels[0])} ${joinList(labels)}`;
 }
-function mergeProducts(list3) {
+function mergeProducts(list4) {
   const out = [];
-  for (const [name, grams] of list3) {
+  for (const [name, grams] of list4) {
     const existing = out.find((p) => p.name === name);
     if (existing) existing.grams += grams;
     else out.push({ name, grams });
@@ -29105,8 +29309,8 @@ var FLESH_STEMS = [
 ];
 var SWEETENER_STEMS = ["\u043C\u0435\u0434", "\u0437\u0430\u0445\u0430\u0440", "\u0441\u0438\u0440\u043E\u043F", "\u043A\u043E\u043D\u0444\u0438\u0442\u044E\u0440", "\u043D\u0435\u043A\u0442\u0430\u0440"];
 function matchesStem(name, stems) {
-  const lower = String(name || "").toLowerCase();
-  return stems.some((stem2) => lower.includes(stem2));
+  const lower2 = String(name || "").toLowerCase();
+  return stems.some((stem2) => lower2.includes(stem2));
 }
 function checkProductCompatibility(productNames, options = {}) {
   const names = (productNames || []).map((n) => String(n || "").trim()).filter(Boolean);
@@ -40116,8 +40320,8 @@ for (
   AVOID_PAIRS.get(b).add(a);
 }
 function hasAvoidedPair(ids) {
-  const list3 = [...new Set(ids)];
-  return list3.some((a, i) => list3.slice(i + 1).some((b) => AVOID_PAIRS.get(a)?.has(b)));
+  const list4 = [...new Set(ids)];
+  return list4.some((a, i) => list4.slice(i + 1).some((b) => AVOID_PAIRS.get(a)?.has(b)));
 }
 
 // nutrition-engine/plan-shape.js
@@ -40807,7 +41011,7 @@ function waterNeedLiters(profile) {
   const base = w * 0.033 + ((profile.activity?.sportBand || 0) >= 2 ? 0.5 : 0);
   return Math.round(Math.min(4, Math.max(1.5, base)) * 10) / 10;
 }
-var has2 = (list3, code) => Array.isArray(list3) && list3.includes(code);
+var has2 = (list4, code) => Array.isArray(list4) && list4.includes(code);
 function detectProblems(profile) {
   const out = [];
   const b = profile.behaviors || [];
@@ -41444,6 +41648,103 @@ function buildPlanSummary({
   };
 }
 
+// nutrition-engine/food-choice.js
+var lower = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+var qualifierOf = (s) => (String(s || "").match(/\(([^)]*)\)/)?.[1] || "").toLowerCase().trim();
+var stemOf = (key) => key.split(" ").map((w) => w.length > 3 ? w.replace(/[аъоуеиюя]+$/u, "") : w).join(" ");
+var PRIMARY_CATALOG_GROUP = (() => {
+  const counts = {};
+  for (const f of FOODS.values()) {
+    (counts[f.group] ||= {})[f.catalogGroup] = (counts[f.group][f.catalogGroup] || 0) + 1;
+  }
+  return Object.fromEntries(Object.entries(counts).map(([g, c]) => [g, Object.entries(c).sort((a, b) => b[1] - a[1])[0][0]]));
+})();
+var INDEX = [...FOODS.values()].map((f) => ({
+  f,
+  full: [lower(f.name), lower(f.label)],
+  base: normalizeFoodKey(f.name),
+  label: normalizeFoodKey(f.label),
+  qualifier: qualifierOf(f.name)
+}));
+function resolveChoiceName(name) {
+  const full = lower(name);
+  if (!full) return [];
+  const exact = INDEX.filter((e) => e.full.includes(full));
+  const base = normalizeFoodKey(name);
+  const qualifier = qualifierOf(name);
+  const sameBase = (key) => INDEX.filter((e) => (key(e.base) === key(base) || key(e.label) === key(base)) && (!e.qualifier || e.qualifier === qualifier));
+  let found = exact.length ? exact : [];
+  const sameKind = (e) => exact.every((x) => [...e.f.flags].every((fl) => x.f.flags.has(fl)));
+  const byBase = sameBase((k) => k);
+  found = [...found, ...byBase.filter((e) => !found.includes(e) && (!exact.length || !e.qualifier && sameKind(e)))];
+  if (!found.length) found = sameBase(stemOf);
+  return [...new Set(found.map((e) => e.f.id))];
+}
+function resolveFoodChoice(names = []) {
+  const ids = /* @__PURE__ */ new Set();
+  const byName = /* @__PURE__ */ new Map();
+  const unresolved = [];
+  for (const raw of names) {
+    const name = String(raw || "").trim();
+    if (!name || byName.has(name)) continue;
+    const found = resolveChoiceName(name);
+    byName.set(name, found);
+    if (!found.length) unresolved.push(name);
+    found.forEach((id) => ids.add(id));
+  }
+  return { ids, byName, unresolved };
+}
+function restrictedGroupsOf(ids) {
+  const groups = /* @__PURE__ */ new Set();
+  for (const id of ids) {
+    const f = FOODS.get(id);
+    if (f && f.group !== "FREE" && f.catalogGroup === PRIMARY_CATALOG_GROUP[f.group]) groups.add(f.group);
+  }
+  return groups;
+}
+function choiceVocabulary() {
+  return [...FOODS.values()].map((f) => f.name);
+}
+function unresolvedChoiceNames(userData = {}) {
+  const all = [userData.userFoodList, userData.userFoodExclude].flatMap((l) => Array.isArray(l) ? l.map(String) : []);
+  return resolveFoodChoice(all).unresolved;
+}
+function normalizeChoiceNames(raw, names) {
+  const map = raw && typeof raw === "object" ? raw.foods && typeof raw.foods === "object" ? raw.foods : raw : {};
+  const vocabulary = new Set(choiceVocabulary());
+  const out = {};
+  for (const name of names) {
+    const value = typeof map[name] === "string" ? map[name].trim() : "";
+    if (vocabulary.has(value)) out[name] = value;
+  }
+  return out;
+}
+function withChoiceNames(names, map) {
+  return (Array.isArray(names) ? names : []).map(String).map((n) => map && map[n] || n);
+}
+function choiceReport(policy, days, stats = {}) {
+  const c = policy.choice;
+  if (!c || !c.byName.size && !c.unresolved.length) return null;
+  const used = new Set(days.flatMap((d) => d.foods || []).flatMap((m) => m.foods.map((f) => f.id)));
+  const restricted = new Set(c.restrictedGroups);
+  const notAllowed = [];
+  const unused = [];
+  for (const [name, ids] of c.byName) {
+    if (!ids.length) continue;
+    if (!ids.some((id) => policy.allowed(id))) notAllowed.push(name);
+    else if (!ids.some((id) => used.has(id)) && ids.some((id) => FOODS.get(id).group !== "FREE")) unused.push(name);
+  }
+  const added = [...used].filter((id) => restricted.has(FOODS.get(id)?.group) && !c.picked.has(id)).map((id) => FOODS.get(id).name);
+  return {
+    picked: [...c.byName.values()].filter((ids) => ids.length).length,
+    notAllowed,
+    unused,
+    added,
+    unresolved: c.unresolved,
+    relaxedMeals: stats.choice?.relaxedMeals || 0
+  };
+}
+
 // nutrition-engine/policy.js
 var MIN_UNIVERSALITY = 3;
 var NICHE = /лаврак|патеш|заеш|агнеш|дивеч|амарант|темпе/i;
@@ -41467,9 +41768,22 @@ function seasonOf(date = /* @__PURE__ */ new Date()) {
 function words(text2) {
   return String(text2 || "").split(/[,;\n/]|\sи\s/).map((s) => normalizeFoodKey(s)).filter((s) => s && s.length >= 3);
 }
+var COMPOUND_WORDS = [
+  /(овесени) ядки/gu,
+  /(фъстъчено|бадемово|кокосово|слънчогледово|ленено|тиквено|сусамово|лешниково) масло/gu,
+  /(растително|соево|кокосово|бадемово|овесено|оризово) мляко/gu
+];
+function maskCompounds(key) {
+  return COMPOUND_WORDS.reduce((k, re) => k.replace(re, "$1 \xA7"), key);
+}
 function matchesTerm(f, term) {
   const keys = [normalizeFoodKey(f.name), normalizeFoodKey(f.label)];
-  return keys.some((k) => k && (k === term || k.includes(term) || term.includes(k) && k.length >= 4));
+  if (keys.includes(term)) return true;
+  const t = maskCompounds(term);
+  return keys.some((raw) => {
+    const k = maskCompounds(raw);
+    return k && (k === t || k.includes(t) || t.includes(k) && k.length >= 4);
+  });
 }
 function activeRules(profile) {
   const rules = [];
@@ -41508,20 +41822,18 @@ function buildFoodPolicy(profile, options = {}) {
   }
   const blocked = (options.blockedTerms || []).flatMap(words);
   const loves = words(options.loves);
-  const only = (options.onlyFoods || []).flatMap(words);
-  const onlyByGroup = /* @__PURE__ */ new Map();
-  if (only.length) {
-    for (const f of FOODS.values()) {
-      if (f.group === "FREE" || !only.some((term) => matchesTerm(f, term))) continue;
-      if (!onlyByGroup.has(f.group)) onlyByGroup.set(f.group, /* @__PURE__ */ new Set());
-      onlyByGroup.get(f.group).add(f.id);
-    }
-  }
+  const choice = resolveFoodChoice(options.onlyFoods || []);
+  const picked = choice.ids;
+  const relaxGroups = new Set(options.relaxGroups || []);
+  const restrictedGroups = [...restrictedGroupsOf(picked)].filter((g) => !relaxGroups.has(g));
+  const restricted = new Set(restrictedGroups);
+  const notChosen = resolveFoodChoice(options.excludeFoods || []);
+  for (const id of notChosen.ids) if (!picked.has(id)) excludeFoods.add(id);
   const allowedCache = /* @__PURE__ */ new Map();
   function allowed(id) {
     if (allowedCache.has(id)) return allowedCache.get(id);
     const f = food(id);
-    let ok = f.universality >= MIN_UNIVERSALITY && !NICHE.test(f.name);
+    let ok = picked.has(id) || f.universality >= MIN_UNIVERSALITY && !NICHE.test(f.name);
     if (ok && pattern === "vegan") ok = f.vegan;
     if (ok && pattern === "vegetarian") ok = f.vegetarian;
     if (ok && pattern === "pescatarian") ok = f.vegetarian || f.kind === "fish" || f.kind === "shellfish";
@@ -41537,7 +41849,7 @@ function buildFoodPolicy(profile, options = {}) {
     if (ok && f.flags.has("lactose_free") && !excludeFlags.has("high_fodmap")) ok = false;
     if (ok && f.flags.has("vegan_only") && pattern !== "vegan") ok = false;
     if (ok && blocked.some((term) => matchesTerm(f, term))) ok = false;
-    if (ok && onlyByGroup.has(f.group) && !onlyByGroup.get(f.group).has(id)) ok = false;
+    if (ok && restricted.has(f.group) && !picked.has(id)) ok = false;
     allowedCache.set(id, ok);
     return ok;
   }
@@ -41549,7 +41861,7 @@ function buildFoodPolicy(profile, options = {}) {
     let score = 0;
     for (const flag of f.flags) if (preferFlags.has(flag)) score += 1;
     if (preferFoods.has(id)) score += 1.5;
-    if (loves.some((term) => matchesTerm(f, term))) score += 2;
+    if (loves.some((term) => matchesTerm(f, term)) || picked.has(id)) score += 2;
     const seasons = SEASONS[id];
     if (seasons) score += seasons.includes(season) ? 0.5 : -0.5;
     if (adherence) {
@@ -41588,8 +41900,16 @@ function buildFoodPolicy(profile, options = {}) {
   const allowsFreeMeal = style !== "keto" && profile.protocol !== "autoimmune_aip" && !(profile.clinical || []).some((c) => noFree.has(c)) && !(profile.exclusions || []).some((c) => allergic.includes(c));
   return {
     allowsFreeMeal,
-    // Без списъка „Избери храни“ — когато с него храненето не може да се сглоби.
-    withoutOnly: only.length ? () => buildFoodPolicy(profile, { ...options, onlyFoods: [] }) : null,
+    // Изборът от „Избери храни“: кои храни, кои групи ограничава, какво не е разпознато.
+    // relaxGroup — същата политика с една свободна група: когато храненето не се
+    // сглобява от избраното, се допълва само липсващата група, не целият каталог.
+    choice: {
+      picked,
+      restrictedGroups,
+      unresolved: [...choice.unresolved, ...notChosen.unresolved],
+      byName: choice.byName
+    },
+    relaxGroup: restrictedGroups.length ? (...groups) => buildFoodPolicy(profile, { ...options, relaxGroups: [...relaxGroups, ...groups] }) : null,
     style,
     styleDef,
     pattern,
@@ -43007,7 +43327,7 @@ var recipes_default = {
 
 // nutrition-engine/text-guard.js
 var RULES = [
-  // AI говори за себе си вместо като асистента на NutriPlan.
+  // AI говори за себе си вместо като асистента на Eatologix.
   ["ai_self", /(като|аз съм)\s+(ai|ии|изкуствен[а-я]*\s+интелект|езиков[а-я]*\s+модел|чатбот|бот)|\b(as an ai|i am an ai|language model|chatgpt|openai|gemini|claude|anthropic)\b/i],
   // Незапълнен шаблон.
   ["placeholder", /\{\{?\s*[a-z_а-я]+\s*\}?\}|\[(име|name|клиент|client|храна|food)[^\]]{0,20}\]|<(име|name)>/i],
@@ -43033,10 +43353,11 @@ function mostlyLatin(sentence) {
   const cyr = (sentence.match(/[а-яё]/gi) || []).length;
   return latin >= 12 && latin > cyr * 1.5;
 }
-function textIssues(text2) {
+function textIssues(text2, options = {}) {
   const s = String(text2 ?? "");
   const out = RULES.filter(([, re]) => re.test(s)).map(([code]) => code);
-  if (s.split(/(?<=[.!?])\s+|\n+/).some(mostlyLatin)) out.push("english");
+  const foreign = options.lang && options.lang !== "bg";
+  if (!foreign && s.split(/(?<=[.!?])\s+|\n+/).some(mostlyLatin)) out.push("english");
   return out;
 }
 function isCleanClientText(text2) {
@@ -43046,14 +43367,15 @@ function isCleanStaffText(text2) {
   return textIssues(text2).every((code) => code === "third_person");
 }
 function guardClientText(text2, options = {}) {
-  const fallback = "fallback" in options ? options.fallback : "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0448 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
+  const foreign = options.lang && options.lang !== "bg";
+  const fallback = "fallback" in options ? options.fallback : foreign ? "I could not answer that well. Try asking it another way." : "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445 \u0434\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u044F \u0434\u043E\u0431\u0440\u0435 \u043D\u0430 \u0442\u043E\u0432\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0448 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043F\u043E \u0434\u0440\u0443\u0433 \u043D\u0430\u0447\u0438\u043D.";
   const src = String(text2 ?? "");
   if (!src.trim()) return { text: fallback, removed: [] };
   const removed = [];
   const lines = src.split("\n").map((line2) => {
     const parts = line2.split(/(?<=[.!?…])\s+/);
     const kept = parts.filter((p) => {
-      const bad = textIssues(p);
+      const bad = textIssues(p, options);
       if (bad.length) removed.push(...bad);
       return !bad.length;
     });
@@ -43275,21 +43597,21 @@ function makePart(group, foods, range, extra = {}, fatScale = 1, appetite = 1) {
 function initialSizing(parts, fixed, quota, target) {
   const byGroup = (g) => parts.filter((p) => p.group === g);
   for (const g of ["VEG", "FRU", "MLK", "SWT"]) {
-    const list3 = byGroup(g);
-    if (!list3.length) continue;
-    let need = g === "VEG" ? Math.max(0, (quota.VEG || 0) * 100 - fixed.filter(([id]) => food(id).group === "VEG").reduce((a, [, gr]) => a + gr, 0)) : (quota[g] || 0) * servingOf(list3[0].foods);
-    for (const p of list3) {
+    const list4 = byGroup(g);
+    if (!list4.length) continue;
+    let need = g === "VEG" ? Math.max(0, (quota.VEG || 0) * 100 - fixed.filter(([id]) => food(id).group === "VEG").reduce((a, [, gr]) => a + gr, 0)) : (quota[g] || 0) * servingOf(list4[0].foods);
+    for (const p of list4) {
       setPartGrams(p, Math.min(p.hi, Math.max(p.lo, need)));
       need -= partTotal(p);
     }
   }
   const residual = (key) => target[key] - totalsOf(parts, fixed)[key];
   const sizeBy = (group, key) => {
-    const list3 = byGroup(group);
-    if (!list3.length) return;
-    list3.forEach((p) => setPartGrams(p, 0));
+    const list4 = byGroup(group);
+    if (!list4.length) return;
+    list4.forEach((p) => setPartGrams(p, 0));
     let need = Math.max(0, residual(key));
-    for (const p of list3) {
+    for (const p of list4) {
       const perGram = p.foods.reduce((a, id) => a + food(id).per100[key], 0) / p.foods.length / 100;
       setPartGrams(p, perGram > 0 ? need / perGram : p.lo);
       need = Math.max(0, residual(key));
@@ -43519,9 +43841,33 @@ function dishBuildable(dish, policy) {
   if (dish.seasonsOnly && !dish.seasonsOnly.includes(policy.season)) return false;
   return dish.parts.every((p) => p.range[0] === 0 || p.options.some((o) => o.every((id) => policy.allowed(id))));
 }
+var GARNISH = (() => {
+  const out = {};
+  for (const d of DISHES) for (const p of d.parts) {
+    if (!p.with) continue;
+    for (const kind of d.meals) for (const o of p.options) for (const id of o) (out[`${kind}:${p.group}`] ||= /* @__PURE__ */ new Set()).add(id);
+  }
+  return out;
+})();
+var GARNISH_GROUPS = /* @__PURE__ */ new Set(["STA", "VEG", "FRU", "FAT"]);
+function adaptToChoice(dish, policy) {
+  const choice = policy.choice;
+  if (!choice?.restrictedGroups?.length) return dish;
+  let changed = false;
+  const parts = dish.parts.map((p) => {
+    if (!p.with || !GARNISH_GROUPS.has(p.group) || !choice.restrictedGroups.includes(p.group)) return p;
+    if (p.options.some((o) => o.every((id) => choice.picked.has(id) && policy.allowed(id)))) return p;
+    const subs = [...choice.picked].filter((id) => policy.allowed(id) && dish.meals.some((k) => GARNISH[`${k}:${p.group}`]?.has(id)));
+    if (!subs.length) return p;
+    changed = true;
+    return { ...p, options: [...p.options, ...subs.map((id) => [id])] };
+  });
+  return changed ? { ...dish, parts } : dish;
+}
 function eligibleDishes(policy) {
   const byKind = { main: [], breakfast: [], snack: [], late: [] };
-  for (const dish of DISHES) {
+  for (const base of DISHES) {
+    const dish = adaptToChoice(base, policy);
     if (!dishBuildable(dish, policy)) continue;
     for (const kind of dish.meals) byKind[kind]?.push(dish);
   }
@@ -43760,6 +44106,7 @@ var PREFERENCE_WEIGHT = 3;
 var MAX_ALTERNATIVES2 = 5;
 var kcalOf = (t) => t.protein * 4 + t.carbs * 4 + t.fats * 9;
 var PROTEIN_SHORT = 0.5;
+var CHOICE_KCAL_MISS = 0.2;
 var nearKcal = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
 function pickAlternatives(best, candidates, { kind, todayDishes, state, policy, target }) {
   const bestK = kcalOf(best.built.totals);
@@ -43917,21 +44264,30 @@ function addLeft(target, left) {
 function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = /* @__PURE__ */ new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {}, dayPrescriptions = null }) {
   const rng = rngFrom(seed);
   const altRng = rngFrom((seed ^ 1540483477) >>> 0);
-  const eligible = eligibleDishes(policy);
-  const snackPolicy = {
-    ...policy,
-    allowed: (id) => policy.allowed(id) && !SNACK_BAN.test(food(id).name.toLowerCase())
+  const contextsFor = (p) => {
+    const el = eligibleDishes(p);
+    const sp = { ...p, allowed: (id) => p.allowed(id) && !SNACK_BAN.test(food(id).name.toLowerCase()) };
+    el.snack = eligibleDishes(sp).snack;
+    const c = {
+      policy: p,
+      appetite: Math.max(1, (prescription.kcal || 0) / APPETITE_BASE_KCAL),
+      preferenceOf: (id) => p.preference(id),
+      usageOf: (key) => state.foodUses.get(key) || 0,
+      // Седмичният лимит на флаг (солено при хипертония) е изчерпан — незадължителна добавка с него отпада.
+      limitReached: (flag) => p.limitFlags[flag] != null && (state.flagUses[flag] || 0) >= p.limitFlags[flag]
+    };
+    return { eligible: el, ctx: c, snackCtx: { ...c, policy: sp } };
   };
-  eligible.snack = eligibleDishes(snackPolicy).snack;
-  const ctx = {
-    policy,
-    appetite: Math.max(1, (prescription.kcal || 0) / APPETITE_BASE_KCAL),
-    preferenceOf: (id) => policy.preference(id),
-    usageOf: (key) => state.foodUses.get(key) || 0,
-    // Седмичният лимит на флаг (солено при хипертония) е изчерпан — незадължителна добавка с него отпада.
-    limitReached: (flag) => policy.limitFlags[flag] != null && (state.flagUses[flag] || 0) >= policy.limitFlags[flag]
+  const { eligible, ctx, snackCtx } = contextsFor(policy);
+  const relaxedCache = /* @__PURE__ */ new Map();
+  const relaxedFor = (key) => {
+    if (!relaxedCache.has(key)) {
+      const p = key === "*" ? policy.relaxGroup(...policy.choice.restrictedGroups) : policy.relaxGroup(key);
+      relaxedCache.set(key, contextsFor(p));
+    }
+    return relaxedCache.get(key);
   };
-  const snackCtx = { ...ctx, policy: snackPolicy, preferenceOf: (id) => policy.preference(id) };
+  const choiceStats = { relaxedMeals: 0, relaxedGroups: {} };
   const slots = prescription.slots;
   const drink = morningDrinkFor({
     dairy: policy.allowed("dairy_kefir") || policy.allowed("dairy_yogurt"),
@@ -43975,7 +44331,6 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     previousWeek
   };
   const days = [];
-  let relaxed = null;
   for (let day = 1; day <= 7; day++) {
     const dayRx = dayPrescriptions?.[day - 1] || prescription;
     ctx.appetite = Math.max(1, (dayRx.kcal || 0) / APPETITE_BASE_KCAL) * (dayRx.mealScale || 1);
@@ -43997,16 +44352,19 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       }
       const kind = MEAL_KIND[type];
       const category = kind === "main" ? frameOf.get(`${day}:${type}`) : kind === "breakfast" ? bFrame[day - 1] : null;
-      let pool = eligible[kind] || [];
-      if (kind === "main") {
-        const inCategory = pool.filter((d) => d.category === category);
-        if (inCategory.length) pool = inCategory;
-        const withProtein = pool.filter((d) => proteinCapacity(d) >= 3);
-        if (withProtein.length) pool = withProtein;
-      }
       const maxUses = (MAX_USES_PER_WEEK[kind] ?? 3) + (simplify ? 1 : 0) - (variety && kind === "main" ? 1 : 0);
-      pool = pool.filter((d) => !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !(kind === "main" && state.yesterdayDishes.has(d.id)));
-      if (!pool.length) pool = (eligible[kind] || []).filter((d) => !todayDishes.has(d.id));
+      const poolOf = (all) => {
+        let list4 = all;
+        if (kind === "main") {
+          const inCategory = list4.filter((d) => d.category === category);
+          if (inCategory.length) list4 = inCategory;
+          const withProtein = list4.filter((d) => proteinCapacity(d) >= 3);
+          if (withProtein.length) list4 = withProtein;
+        }
+        list4 = list4.filter((d) => !todayDishes.has(d.id) && (state.dishUses.get(d.id) || 0) < maxUses && !(kind === "main" && state.yesterdayDishes.has(d.id)));
+        return list4.length ? list4 : all.filter((d) => !todayDishes.has(d.id));
+      };
+      const pool = poolOf(eligible[kind] || []);
       const dessertToday = policy.sweets && type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2";
       const base = dessertToday ? Object.fromEntries(["protein", "carbs", "fats"].map((k) => [k, Math.max(0, plan.target[k] - FIXED_DESSERT.macros[k])])) : plan.target;
       let target = carryTarget(base, carry);
@@ -44065,13 +44423,41 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         if (other && other.score > best.score) best = other;
         else candidatesBuilt = keep;
       }
-      if (!best && policy.withoutOnly) {
-        relaxed = relaxed || (() => {
-          const p = policy.withoutOnly();
-          return { ctx: { ...ctx, policy: p, preferenceOf: (id) => p.preference(id) }, eligible: eligibleDishes(p) };
-        })();
-        best = pick3((relaxed.eligible[kind] || []).filter((d) => !todayDishes.has(d.id)), relaxed.ctx);
-        usedCtx = relaxed.ctx;
+      const missKcal = (b) => Math.abs(kcalOf(b.built.totals) - kcalOf(target)) / Math.max(1, kcalOf(target));
+      if (policy.relaxGroup && (!best || missKcal(best) > CHOICE_KCAL_MISS)) {
+        const strict = best;
+        const strictCandidates = candidatesBuilt;
+        const kindCtx = (r) => {
+          const c = { ...kind === "snack" ? r.snackCtx : r.ctx, appetite: slotCtx.appetite };
+          if (!state.supplementToday) return c;
+          const bp = c.policy;
+          return { ...c, policy: { ...bp, allowed: (id) => bp.allowed(id) && !food(id).flags.has("supplement") } };
+        };
+        let used = null;
+        let usedCandidates = [];
+        const single = policy.choice.restrictedGroups.length > 1 ? policy.choice.restrictedGroups : [];
+        for (const key of [...single, "*"]) {
+          if (key === "*" && best && best !== strict) break;
+          const r = relaxedFor(key);
+          const list4 = poolOf(r.eligible[kind] || []).map((d) => ({ d, pre: -dishFit(d, plan.quota, r.ctx.policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 })).sort((a, b) => b.pre - a.pre).slice(0, CANDIDATES_PER_MEAL).map((x) => x.d);
+          const found = pick3(list4, kindCtx(r));
+          const better = found && (strict ? missKcal(found) < missKcal(strict) / 2 && (best === strict || found.score > best.score) : !best || found.score > best.score);
+          if (better) {
+            best = found;
+            usedCtx = kindCtx(r);
+            used = key;
+            usedCandidates = candidatesBuilt;
+          }
+        }
+        if (best === strict) candidatesBuilt = strictCandidates;
+        else if (best) {
+          candidatesBuilt = usedCandidates;
+          slotCtx = usedCtx;
+          choiceStats.relaxedMeals++;
+          for (const g of used === "*" ? policy.choice.restrictedGroups : [used]) {
+            choiceStats.relaxedGroups[g] = (choiceStats.relaxedGroups[g] || 0) + 1;
+          }
+        }
       }
       if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
       let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
@@ -44131,7 +44517,8 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
   const stats = {
     mains: frame.reduce((acc, k) => ({ ...acc, [k]: (acc[k] || 0) + 1 }), {}),
     eggsMeals: state.kindUses.egg || 0,
-    distinctDishes: state.dishUses.size
+    distinctDishes: state.dishUses.size,
+    ...policy.relaxGroup ? { choice: choiceStats } : {}
   };
   return { days, stats };
 }
@@ -44181,12 +44568,12 @@ function trainingWeek(profile, userData = {}) {
   const pattern = userData?._enrichment?.essence?.metrics?.training || null;
   const perWeek = pattern ? pattern.perWeek : profile.activity?.sportDays || 0;
   if (!(perWeek >= 0.5)) return { days: [], source: "none", confidence: 0, slot: null, fuel: "low", types: [], minutes: 0, sessionKcal: 0 };
-  const list3 = types.length ? types : [OTHER_SESSION];
-  const met = list3.reduce((s, t) => s + t.met, 0) / list3.length;
+  const list4 = types.length ? types : [OTHER_SESSION];
+  const met = list4.reduce((s, t) => s + t.met, 0) / list4.length;
   const kg = Number(profile.weightKg) || 70;
   const sessionKcal = pattern?.kcal > 0 ? pattern.kcal : r0((met - 1) * kg * minutes / 60);
   const order = ["glycolytic", "endurance", "mixed", "aerobic", "low"];
-  const fuel = order.find((f) => list3.some((t) => t.fuel === f)) || "mixed";
+  const fuel = order.find((f) => list4.some((t) => t.fuel === f)) || "mixed";
   let days;
   let source;
   let confidence;
@@ -44199,7 +44586,7 @@ function trainingWeek(profile, userData = {}) {
     source = "assumed";
     confidence = 0.5;
   }
-  return { days, source, confidence, slot: pattern?.slot === "am" || pattern?.slot === "pm" ? pattern.slot : null, fuel, types: list3.map((t) => t.label), minutes, sessionKcal };
+  return { days, source, confidence, slot: pattern?.slot === "am" || pattern?.slot === "pm" ? pattern.slot : null, fuel, types: list4.map((t) => t.label), minutes, sessionKcal };
 }
 function fastingPlan(profile, userData = {}, week = { days: [], slot: null }) {
   const blocked = [];
@@ -44385,7 +44772,7 @@ function describeMetabolicWeek(mw, profile) {
   const { week, fasting, days } = mw;
   const train = days.filter((d) => d.kind === "train");
   const rest = days.filter((d) => d.kind !== "train");
-  const avg = (list3, f) => list3.length ? Math.round(list3.reduce((s, d) => s + f(d), 0) / list3.length) : 0;
+  const avg = (list4, f) => list4.length ? Math.round(list4.reduce((s, d) => s + f(d), 0) / list4.length) : 0;
   const lines = [];
   if (train.length && rest.length) {
     const tC = avg(train, (d) => d.macros.carbs);
@@ -45957,7 +46344,7 @@ function sourcesFor(code, profile) {
   const carbs = !["keto", "low_carb"].includes(profile.diet?.style);
   const grains = carbs && !ex.has("GLU") && profile.diet?.style !== "paleo";
   const legumes = carbs && profile.diet?.style !== "paleo";
-  const list3 = {
+  const list4 = {
     fe: [meat && "\u0447\u0435\u0440\u0432\u0435\u043D\u043E \u043C\u0435\u0441\u043E 2 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E", legumes && "\u043B\u0435\u0449\u0430, \u043D\u0430\u0445\u0443\u0442, \u0431\u043E\u0431", "\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0441\u0435\u043C\u043A\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A", "\u0447\u0443\u0448\u043A\u0430 \u0438\u043B\u0438 \u0446\u0438\u0442\u0440\u0443\u0441 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E (\u0432\u0438\u0442\u0430\u043C\u0438\u043D C \u0443\u0441\u0438\u043B\u0432\u0430 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E)"],
     ca: [dairy && "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435", !ex.has("SOY") && profile.diet?.style !== "paleo" && "\u0442\u043E\u0444\u0443", "\u0442\u0430\u0445\u0430\u043D", "\u043B\u0438\u0441\u0442\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438", fish && "\u0441\u0430\u0440\u0434\u0438\u043D\u0438 \u0441 \u043A\u043E\u0441\u0442\u0438\u0442\u0435"],
     mg: ["\u0442\u0438\u043A\u0432\u0435\u043D\u0438 \u0438 \u0441\u043B\u044A\u043D\u0447\u043E\u0433\u043B\u0435\u0434\u043E\u0432\u0438 \u0441\u0435\u043C\u043A\u0438", !ex.has("NUT") && "\u0431\u0430\u0434\u0435\u043C\u0438, \u043A\u0430\u0448\u0443", legumes && "\u0431\u043E\u0431\u043E\u0432\u0438", grains && "\u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438", "\u0441\u043F\u0430\u043D\u0430\u043A"],
@@ -45965,7 +46352,7 @@ function sourcesFor(code, profile) {
     b12: [meat && "\u043C\u0435\u0441\u043E", fish && "\u0440\u0438\u0431\u0430", dairy && "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0438\u0440\u0435\u043D\u0435", pattern !== "vegan" && !ex.has("EGG") && "\u044F\u0439\u0446\u0430"],
     o3: [fish && "\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u0441\u0430\u0440\u0434\u0438\u043D\u0438"]
   }[code].filter(Boolean);
-  return list3;
+  return list4;
 }
 function advice(code, profile) {
   const pattern = profile.diet?.pattern;
@@ -46028,8 +46415,8 @@ function microReport(days, microPer1002, profile, ctx = {}) {
 
 // nutrition-engine/index.js
 function hasSweetsCraving(userData) {
-  const list3 = Array.isArray(userData?.foodCravings) ? userData.foodCravings : [userData?.foodCravings];
-  return list3.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c || "")));
+  const list4 = Array.isArray(userData?.foodCravings) ? userData.foodCravings : [userData?.foodCravings];
+  return list4.some((c) => /слад|шоколад|dessert|sweet/i.test(String(c || "")));
 }
 function adherenceMap(raw) {
   if (raw instanceof Map) return raw;
@@ -46133,7 +46520,9 @@ function buildNutritionPlan(userData, options) {
     date: options.date,
     sweetsCraving: hasSweetsCraving(userData),
     extraExcludeFlags: mods.includes("gentle_digestion") ? ["high_fodmap"] : [],
-    onlyFoods: Array.isArray(userData?.userFoodList) ? userData.userFoodList.map(String) : []
+    // „Избери храни“ — с превода на собствените продукти от AI (worker: applyFoodChoiceNames).
+    onlyFoods: withChoiceNames(userData?.userFoodList, userData?._foodChoiceNames?.names),
+    excludeFoods: withChoiceNames(userData?.userFoodExclude, userData?._foodChoiceNames?.names)
   });
   const slots = policy.noLateMeal && profile.slots.length > 3 ? profile.slots.filter((s) => s !== "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 5") : profile.slots;
   const rxOptions = {
@@ -46198,7 +46587,8 @@ function buildNutritionPlan(userData, options) {
     quality,
     micro
   } : { quality, micro };
-  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods, metabolicPlan };
+  const foodChoice = choiceReport(policy, week.days, week.stats);
+  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods, metabolicPlan, ...foodChoice ? { foodChoice } : {} };
 }
 
 // nutrition-engine/food-guide.js
@@ -46588,16 +46978,16 @@ function portionsText(n, group, policy, exclusions) {
 function recommendationsOf(prescription, stats, policy, exclusions) {
   const d = prescription.daily;
   const mains = stats.mains || {};
-  const list3 = [];
-  list3.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
-  if (d.FRU > 0) list3.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${portionsText(d.FRU, "FRU", policy, exclusions)}, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
-  if (d.MLK > 0) list3.push(`${policy.pattern === "vegan" || (exclusions || []).includes("LAC") ? "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u0439\u043E\u0433\u0443\u0440\u0442" : "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440"}: ${portionsText(d.MLK, "MLK", policy, exclusions)}`);
-  if (mains.fish) list3.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
-  if (mains.legume) list3.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
-  if (d.STA > 0 && policy.style !== "keto") list3.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
-  if (policy.style === "mediterranean" || policy.style === "anti_inflammatory") list3.push("\u0417\u0435\u0445\u0442\u0438\u043D \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430 \u0438 \u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E");
-  if (policy.style === "keto" || policy.style === "low_carb") list3.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
-  return list3.slice(0, 7);
+  const list4 = [];
+  list4.push(`\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u043D\u0430 \u0432\u0441\u044F\u043A\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043E\u043A\u043E\u043B\u043E ${round2(d.VEG * 100)} \u0433 \u0434\u043D\u0435\u0432\u043D\u043E`);
+  if (d.FRU > 0) list4.push(`\u041F\u043B\u043E\u0434\u043E\u0432\u0435: ${portionsText(d.FRU, "FRU", policy, exclusions)}, \u0446\u0435\u043B\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0432\u043C\u0435\u0441\u0442\u043E \u0441\u043E\u043A`);
+  if (d.MLK > 0) list4.push(`${policy.pattern === "vegan" || (exclusions || []).includes("LAC") ? "\u0420\u0430\u0441\u0442\u0438\u0442\u0435\u043B\u043D\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u0439\u043E\u0433\u0443\u0440\u0442" : "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043A\u0435\u0444\u0438\u0440"}: ${portionsText(d.MLK, "MLK", policy, exclusions)}`);
+  if (mains.fish) list4.push(`\u0420\u0438\u0431\u0430 ${mains.fish} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E${policy.styleDef.prefer?.includes("oily_fish") ? ", \u043F\u0440\u0435\u0434\u0438\u043C\u043D\u043E \u043C\u0430\u0437\u043D\u0430 (\u0441\u044C\u043E\u043C\u0433\u0430, \u0441\u043A\u0443\u043C\u0440\u0438\u044F, \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430)" : ""}`);
+  if (mains.legume) list4.push(`\u0411\u043E\u0431\u043E\u0432\u0438 (\u043B\u0435\u0449\u0430, \u0431\u043E\u0431, \u043D\u0430\u0445\u0443\u0442) ${mains.legume} \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E`);
+  if (d.STA > 0 && policy.style !== "keto") list4.push("\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431, \u0431\u0443\u043B\u0433\u0443\u0440, \u0435\u043B\u0434\u0430 \u0438 \u043A\u0430\u0444\u044F\u0432 \u043E\u0440\u0438\u0437 \u0432\u043C\u0435\u0441\u0442\u043E \u0431\u0435\u043B\u0438 \u0445\u0440\u0430\u043D\u0438");
+  if (policy.style === "mediterranean" || policy.style === "anti_inflammatory") list4.push("\u0417\u0435\u0445\u0442\u0438\u043D \u043A\u0430\u0442\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0430 \u043C\u0430\u0437\u043D\u0438\u043D\u0430 \u0438 \u0448\u0435\u043F\u0430 \u044F\u0434\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E");
+  if (policy.style === "keto" || policy.style === "low_carb") list4.push("\u041D\u0435\u043D\u0438\u0448\u0435\u0441\u0442\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u044F\u0434\u043A\u0438 \u0438 \u0440\u0438\u0431\u0430");
+  return list4.slice(0, 7);
 }
 var FLAG_AVOID = {
   high_gi: ["\u0431\u044F\u043B \u043E\u0440\u0438\u0437", "\u0431\u044F\u043B \u0445\u043B\u044F\u0431", "\u043A\u0430\u0440\u0442\u043E\u0444\u0438"]
@@ -46612,15 +47002,15 @@ function clinicalAvoid(profile) {
   return [...flags].flatMap((f) => FLAG_AVOID[f] || []);
 }
 function avoidOf(profile, policy, blockedTerms) {
-  const list3 = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
-  if (policy.style !== "keto") list3.push(...clinicalAvoid(profile));
-  for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list3.push(EXCLUSION_AVOID[code]);
-  if (policy.noSweets && !list3.some((x) => /захар/.test(x))) list3.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
+  const list4 = [...STYLE_AVOID[policy.style] || STYLE_AVOID.balanced];
+  if (policy.style !== "keto") list4.push(...clinicalAvoid(profile));
+  for (const code of profile.exclusions || []) if (EXCLUSION_AVOID[code]) list4.push(EXCLUSION_AVOID[code]);
+  if (policy.noSweets && !list4.some((x) => /захар/.test(x))) list4.push("\u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0435\u0434");
   for (const term of blockedTerms || []) {
     const t = String(term || "").trim();
-    if (t && t.length <= 40) list3.push(t.toLowerCase());
+    if (t && t.length <= 40) list4.push(t.toLowerCase());
   }
-  return [...new Set(list3)].slice(0, 10);
+  return [...new Set(list4)].slice(0, 10);
 }
 var BEHAVIOR_TIPS = {
   EMO: "\u041F\u0440\u0435\u0434\u0438 \u0434\u0430 \u043F\u043E\u0441\u0435\u0433\u043D\u0435\u0448 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430 \u0438\u0437\u0432\u044A\u043D \u043F\u043B\u0430\u043D\u0430, \u0441\u043F\u0440\u0438 \u0437\u0430 2 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0441\u0438 \u0437\u0430\u0434\u0430\u0439 \u0432\u044A\u043F\u0440\u043E\u0441\u0430: \u0442\u043E\u0432\u0430 \u0433\u043B\u0430\u0434 \u043B\u0438 \u0435, \u0438\u043B\u0438 \u0443\u043C\u043E\u0440\u0430, \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0441\u043A\u0443\u043A\u0430? \u0410\u043A\u043E \u043D\u0435 \u0435 \u0433\u043B\u0430\u0434 \u2014 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430, \u043A\u0440\u0430\u0442\u043A\u0430 \u0440\u0430\u0437\u0445\u043E\u0434\u043A\u0430 \u0438\u043B\u0438 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440 \u043F\u043E\u043C\u0430\u0433\u0430\u0442 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 \u0445\u0440\u0430\u043D\u0430\u0442\u0430.",
@@ -46686,7 +47076,7 @@ function buildEngineStrategy(engine, userData, options) {
   const dayEnergy = Object.values(weekPlan || {}).map((d) => d?.energy).filter(Boolean);
   const trainDays = dayEnergy.filter((e) => e.kind === "train");
   const restDays = dayEnergy.filter((e) => e.kind !== "train");
-  const avgOf = (list3, k) => Math.round(list3.reduce((a, e) => a + e[k], 0) / (list3.length || 1));
+  const avgOf = (list4, k) => Math.round(list4.reduce((a, e) => a + e[k], 0) / (list4.length || 1));
   const label = dietLabelOf(profile);
   const slots = prescription.slots;
   const name = String(userData?.name || "").trim();
@@ -46903,8 +47293,8 @@ function textHash(items) {
   for (let i = 0; i < s.length; i++) h = (h << 5) + h + s.charCodeAt(i) >>> 0;
   return h.toString(36);
 }
-var pickKnown = (list3, allowed) => [...new Set((Array.isArray(list3) ? list3 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))];
-var cleanTerms = (list3, max = 8) => [...new Set((Array.isArray(list3) ? list3 : []).map((x) => String(x).trim().toLowerCase()).filter((x) => x.length >= 3 && x.length <= 40 && !/[{}<>]/.test(x)))].slice(0, max);
+var pickKnown = (list4, allowed) => [...new Set((Array.isArray(list4) ? list4 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))];
+var cleanTerms = (list4, max = 8) => [...new Set((Array.isArray(list4) ? list4 : []).map((x) => String(x).trim().toLowerCase()).filter((x) => x.length >= 3 && x.length <= 40 && !/[{}<>]/.test(x)))].slice(0, max);
 function normalizeIntakeHints(raw) {
   if (!raw || typeof raw !== "object") return null;
   const style = DIET_STYLES[raw.style] ? raw.style : null;
@@ -46939,9 +47329,9 @@ function weekDigest(weekPlan) {
   return lines.join("\n");
 }
 function normalizeSwaps(raw, weekPlan, max = 6) {
-  const list3 = Array.isArray(raw?.swaps) ? raw.swaps : [];
+  const list4 = Array.isArray(raw?.swaps) ? raw.swaps : [];
   const out = [];
-  for (const s of list3) {
+  for (const s of list4) {
     const day = Number(s?.day);
     const type = /^H?(\d)$/i.test(String(s?.slot || s?.type || "")) ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ${String(s.slot || s.type).replace(/\D/g, "")}` : String(s?.type || "");
     const meal = weekPlan?.[`day${day}`]?.meals?.find((m) => m.type === type);
@@ -46972,7 +47362,7 @@ var intOr2 = (v, d = null) => {
   const n = Math.round(Number(v));
   return Number.isFinite(n) ? n : d;
 };
-var pick = (list3, allowed, max = 6) => [...new Set((Array.isArray(list3) ? list3 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))].slice(0, max);
+var pick = (list4, allowed, max = 6) => [...new Set((Array.isArray(list4) ? list4 : []).map((x) => String(x).trim()).filter((x) => allowed.includes(x)))].slice(0, max);
 function normalizeGoalOpinion(raw) {
   if (!raw || typeof raw !== "object") return null;
   const stance = STANCES.includes(raw.stance) ? raw.stance : "adjust";
@@ -47349,8 +47739,8 @@ function rejectReason(raw, max, reason) {
   if (/[{}<>]/.test(s)) return "\u0441\u044A\u0434\u044A\u0440\u0436\u0430 \u0441\u0438\u043C\u0432\u043E\u043B\u0438 \u043E\u0442 \u043A\u043E\u0434 \u0438\u043B\u0438 \u0448\u0430\u0431\u043B\u043E\u043D";
   return reason(s);
 }
-function cleanList(list3, ok, { min = 0, max = 6, len = 320 } = {}) {
-  const out = [...new Set((Array.isArray(list3) ? list3 : []).map((x) => cleanLine(x, len)).filter(ok))].slice(0, max);
+function cleanList2(list4, ok, { min = 0, max = 6, len = 320 } = {}) {
+  const out = [...new Set((Array.isArray(list4) ? list4 : []).map((x) => cleanLine(x, len)).filter(ok))].slice(0, max);
   return out.length >= min ? out : [];
 }
 function normalizePlanVoice(raw, ctx, rejected = []) {
@@ -47366,14 +47756,14 @@ function normalizePlanVoice(raw, ctx, rejected = []) {
     summary: portraitText(p.summary),
     emotional: portraitText(p.emotional),
     social: portraitText(p.social),
-    triggers: cleanList(p.triggers, (s) => !NUMBERS_RE.test(s), { max: 6, len: 200 }),
+    triggers: cleanList2(p.triggers, (s) => !NUMBERS_RE.test(s), { max: 6, len: 200 }),
     personality: portraitText(p.personality),
     motivation: portraitText(p.motivation),
-    risks: cleanList(p.risks, (s) => !NUMBERS_RE.test(s), { max: 4, len: 200 })
+    risks: cleanList2(p.risks, (s) => !NUMBERS_RE.test(s), { max: 4, len: 200 })
   };
   const t = raw.tone && typeof raw.tone === "object" ? raw.tone : {};
   const tone = {
-    // Обръщението на NutriPlan е „ти“ — едно за целия продукт (екраните, въпросника, известията).
+    // Обръщението на Eatologix е „ти“ — едно за целия продукт (екраните, въпросника, известията).
     address: "\u0442\u0438",
     style: cleanLine(t.style, 160)
   };
@@ -47396,8 +47786,8 @@ function normalizePlanVoice(raw, ctx, rejected = []) {
     tone,
     welcome: ok(welcome) ? welcome : "",
     specialistNote: ok(specialistNote) ? specialistNote : "",
-    psychology: cleanList(raw.psychology, ok, { min: 3, max: 6 }),
-    habits: cleanList(raw.habits, ok, { min: 3, max: 6 }),
+    psychology: cleanList2(raw.psychology, ok, { min: 3, max: 6 }),
+    habits: cleanList2(raw.habits, ok, { min: 3, max: 6 }),
     mealNotes: {}
   };
   for (const n of Array.isArray(raw.mealNotes) ? raw.mealNotes : []) {
@@ -47415,7 +47805,7 @@ function voiceRepairPrompt(rejected, ctx = {}) {
   const items = rejected.slice(0, REPAIR_LIMIT).map((r, i) => `${i + 1}. [${r.field}] \u041F\u0440\u0438\u0447\u0438\u043D\u0430: ${r.reason}
 \u0422\u0435\u043A\u0441\u0442: ${r.text}`).join("\n\n");
   return [
-    "\u0422\u0438 \u0441\u0438 \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440 \u0432 \u0435\u043A\u0438\u043F\u0430 \u043D\u0430 NutriPlan. \u0421\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0442\u0435\u043A\u0441\u0442\u043E\u0432\u0435 \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442 \u0431\u044F\u0445\u0430 \u043E\u0442\u0445\u0432\u044A\u0440\u043B\u0435\u043D\u0438 \u043E\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u0430\u0442\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430.",
+    "\u0422\u0438 \u0441\u0438 \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440 \u0432 \u0435\u043A\u0438\u043F\u0430 \u043D\u0430 Eatologix. \u0421\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0442\u0435\u043A\u0441\u0442\u043E\u0432\u0435 \u043A\u044A\u043C \u043A\u043B\u0438\u0435\u043D\u0442 \u0431\u044F\u0445\u0430 \u043E\u0442\u0445\u0432\u044A\u0440\u043B\u0435\u043D\u0438 \u043E\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u0430\u0442\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430.",
     `\u041F\u0440\u0435\u043D\u0430\u043F\u0438\u0448\u0438 \u0432\u0441\u0435\u043A\u0438 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0437\u0430\u043F\u0430\u0437\u0438 \u0441\u043C\u0438\u0441\u044A\u043B\u0430 \u0438 \u0442\u043E\u043F\u043B\u0438\u044F \u0442\u043E\u043D, \u043D\u043E \u0434\u0430 \u043D\u044F\u043C\u0430 \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438\u044F \u043F\u0440\u043E\u0431\u043B\u0435\u043C. \u041E\u0431\u0440\u044A\u0449\u0435\u043D\u0438\u0435: \u043D\u0430 \u201E\u0442\u0438\u201C.`,
     "\u041F\u0440\u0430\u0432\u0438\u043B\u0430: \u0431\u0435\u0437 \u0447\u0438\u0441\u043B\u0430 \u0437\u0430 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043F\u043E\u0440\u0446\u0438\u0438, \u0434\u043E\u0437\u0438 \u0438 \u043F\u0440\u043E\u0446\u0435\u043D\u0442\u0438; \u0431\u0435\u0437 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u043A\u043E\u0438\u0442\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0431\u0438\u0432\u0430 \u0434\u0430 \u044F\u0434\u0435; \u0431\u0435\u0437 \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u044F \u0437\u0430 \u043B\u0435\u0447\u0435\u043D\u0438\u0435; \u0431\u0435\u0437 \u0441\u044A\u0432\u0435\u0442\u0438 \u0437\u0430 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430; \u0431\u0435\u0437 \u043A\u043E\u0434, \u0448\u0430\u0431\u043B\u043E\u043D\u0438 \u0438 \u0430\u043D\u0433\u043B\u0438\u0439\u0441\u043A\u0438; \u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438.",
     "\u0410\u043A\u043E \u0442\u0435\u043A\u0441\u0442\u044A\u0442 \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u043F\u043E\u043F\u0440\u0430\u0432\u0438, \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0438 \u0433\u043E.",
@@ -47484,7 +47874,7 @@ function planDishIds(weekPlan) {
 }
 
 // nutrition-engine/plan-voice-prompt.js
-var DEFAULT_PLAN_VOICE_PROMPT = '\u0422\u0438 \u0441\u0438 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0435\u043A\u0438\u043F\u0430 \u043D\u0430 NutriPlan \u2014 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0441 \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0430 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F. \u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D \u0432\u0435\u0447\u0435 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432\u0435\u043D \u043F\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u0430: \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u0445\u0440\u0430\u043D\u0438\u0442\u0435, \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F\u0442\u0430 \u0441\u0430 \u043E\u043A\u043E\u043D\u0447\u0430\u0442\u0435\u043B\u043D\u0438 \u0438 \u043D\u0435 \u0441\u0435 \u043E\u0431\u0441\u044A\u0436\u0434\u0430\u0442. \u0422\u0432\u043E\u044F\u0442\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u0435 \u0434\u0440\u0443\u0433\u0430: \u0434\u0430 \u0440\u0430\u0437\u0431\u0435\u0440\u0435\u0448 \u0447\u043E\u0432\u0435\u043A\u0430 \u0438 \u0434\u0430 \u043D\u0430\u043F\u0438\u0448\u0435\u0448 \u043A\u0430\u043A \u043F\u043B\u0430\u043D\u044A\u0442 \u0434\u0430 \u043C\u0443 \u0433\u043E\u0432\u043E\u0440\u0438 \u2014 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0443\u0441\u0435\u0442\u0438, \u0447\u0435 \u0435 \u0432\u0438\u0434\u044F\u043D \u043A\u0430\u0442\u043E \u043B\u0438\u0447\u043D\u043E\u0441\u0442 \u0438 \u0435 \u0432 \u043F\u0440\u043E\u0444\u0435\u0441\u0438\u043E\u043D\u0430\u043B\u043D\u0438 \u0440\u044A\u0446\u0435.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 1 \u2014 \u041F\u041E\u0420\u0422\u0420\u0415\u0422 (\u0432\u044A\u0442\u0440\u0435\u0448\u043D\u043E, \u0437\u0430 \u0435\u043A\u0438\u043F\u0430; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0433\u043E \u0432\u0438\u0436\u0434\u0430)\n\u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0430\u0435\u0434\u043D\u043E, \u043D\u0435 \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E. \u0410\u043A\u043E \u0438\u043C\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B \u043E\u0442 EmoEat, \u0442\u043E\u0439 \u0435 \u043D\u0430\u0439-\u0442\u043E\u0447\u043D\u0438\u044F\u0442 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A \u0437\u0430 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435\u0442\u043E \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u2014 \u0441\u0432\u044A\u0440\u0436\u0438 \u0430\u0440\u0445\u0435\u0442\u0438\u043F\u0430, \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438\u0442\u0435, \u043C\u043E\u0434\u0435\u043B\u0438\u0442\u0435 \u0438 \u0440\u0435\u0430\u043B\u043D\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430 \u0441 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435; \u043D\u0435 \u0446\u0438\u0442\u0438\u0440\u0430\u0439 \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0438\u043C. \u0421\u0432\u044A\u0440\u0436\u0438 \u0433\u0438: \u0441\u0442\u0440\u0435\u0441 + \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432\u0435\u0447\u0435\u0440 + \u201E\u043D\u0430 \u043A\u0440\u0430\u043A\u201C \u043A\u0430\u0437\u0432\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u043E\u0442 \u0441\u044A\u0449\u043E\u0442\u043E \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E.\n- summary: \u043A\u043E\u0439 \u0435 \u0447\u043E\u0432\u0435\u043A\u044A\u0442, \u043A\u0430\u043A\u0432\u043E \u043C\u0443 \u0435 \u0432\u0430\u0436\u043D\u043E, \u0432 \u043A\u0430\u043A\u0432\u0430 \u0436\u0438\u0442\u0435\u0439\u0441\u043A\u0430 \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u0435 (2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F).\n- emotional: \u043F\u0441\u0438\u0445\u043E-\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0438 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0438 \u0442\u044F\u043B\u043E\u0442\u043E (\u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0432\u0438\u043D\u0430, \u043A\u043E\u043D\u0442\u0440\u043E\u043B, \u0443\u043C\u043E\u0440\u0430, \u0433\u043E\u0440\u0434\u043E\u0441\u0442, \u0441\u0442\u0440\u0430\u0445 \u043E\u0442 \u043D\u0435\u0443\u0441\u043F\u0435\u0445).\n- social: \u0441\u043E\u0446\u0438\u0430\u043B\u0435\u043D \u0438 \u0431\u0438\u0442\u043E\u0432 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442, \u0434\u043E\u043A\u043E\u043B\u043A\u043E\u0442\u043E \u043B\u0438\u0447\u0438 \u2014 \u0440\u0430\u0431\u043E\u0442\u0430, \u0440\u0438\u0442\u044A\u043C, \u0441\u0435\u043C\u0435\u0439\u0441\u0442\u0432\u043E, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u0435 \u0441 \u0434\u0440\u0443\u0433\u0438\u0442\u0435.\n- triggers: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438\u0442\u0435 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0442\u0440\u0438\u0433\u0435\u0440\u0438 (\u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u2192 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435), \u0434\u043E 4.\n- personality: \u0440\u0430\u0431\u043E\u0442\u043D\u0430 \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 \u0437\u0430 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043B\u0438\u0447\u043D\u043E\u0441\u0442\u0442\u0430 \u2014 \u043D\u0430\u043F\u0440. \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D/\u0441\u043F\u043E\u043D\u0442\u0430\u043D\u0435\u043D, \u0442\u044A\u0440\u0441\u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438/\u0442\u044A\u0440\u0441\u0438 \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u0430, \u043F\u0435\u0440\u0444\u0435\u043A\u0446\u0438\u043E\u043D\u0438\u0441\u0442 \u201E\u0432\u0441\u0438\u0447\u043A\u043E \u0438\u043B\u0438 \u043D\u0438\u0449\u043E\u201C, \u0441\u043A\u0435\u043F\u0442\u0438\u0447\u0435\u043D/\u0434\u043E\u0432\u0435\u0440\u0447\u0438\u0432. \u041F\u0438\u0448\u0438 \u043A\u0430\u0442\u043E \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 (\u201E\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E\u201C, \u201E\u0438\u0437\u0433\u043B\u0435\u0436\u0434\u0430\u201C), \u043D\u0435 \u043A\u0430\u0442\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0430.\n- motivation: \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u0433\u043E \u0434\u044A\u0440\u0436\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0438 \u043A\u0430\u043A\u0432\u043E \u043D\u0430\u0439-\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E \u0449\u0435 \u0433\u043E \u0438\u0437\u0432\u0430\u0434\u0438.\n- risks: \u0434\u043E 3 \u043C\u043E\u043C\u0435\u043D\u0442\u0430, \u0437\u0430 \u043A\u043E\u0438\u0442\u043E \u0435\u043A\u0438\u043F\u044A\u0442 \u0434\u0430 \u0432\u043D\u0438\u043C\u0430\u0432\u0430 \u043F\u0440\u0435\u0437 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 2 \u2014 \u0422\u041E\u041D\n- tone.address: \u0432\u0438\u043D\u0430\u0433\u0438 \u201E\u0442\u0438\u201C \u2014 \u0442\u043E\u043F\u043B\u043E \u0438 \u0441 \u0443\u0432\u0430\u0436\u0435\u043D\u0438\u0435, \u0431\u0435\u0437 \u0444\u0430\u043C\u0438\u043B\u0438\u0430\u0440\u043D\u043E\u0441\u0442. \u0421\u043F\u0430\u0437\u0432\u0430\u0439 \u0433\u043E \u043D\u0430\u0432\u0441\u044F\u043A\u044A\u0434\u0435.\n- tone.style: \u0435\u0434\u043D\u0430 \u0444\u0440\u0430\u0437\u0430 \u2014 \u043A\u0430\u043A \u0433\u043E\u0432\u043E\u0440\u0438\u0448 \u043D\u0430 \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A (\u043D\u0430\u043F\u0440. \u201E\u043A\u0440\u0430\u0442\u043A\u043E \u0438 \u043F\u043E \u0441\u044A\u0449\u0435\u0441\u0442\u0432\u043E, \u0441 \u044F\u0441\u043D\u0438 \u0441\u0442\u044A\u043F\u043A\u0438\u201C \u0437\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D \u0438 \u0437\u0430\u0435\u0442; \u201E\u0442\u043E\u043F\u043B\u043E, \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A, \u0441 \u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435\u201C \u0437\u0430 \u0447\u043E\u0432\u0435\u043A \u0441 \u0432\u0438\u043D\u0430 \u0438 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u201E\u0441 \u0430\u0440\u0433\u0443\u043C\u0435\u043D\u0442\u0438 \u0438 \u043B\u043E\u0433\u0438\u043A\u0430\u201C \u0437\u0430 \u0441\u043A\u0435\u043F\u0442\u0438\u043A).\n\u041F\u0438\u0448\u0438 \u0433\u0440\u0430\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0441\u043F\u043E\u0440\u0435\u0434 \u043F\u043E\u043B\u0430 (\u0441\u0438\u0433\u0443\u0440\u0435\u043D/\u0441\u0438\u0433\u0443\u0440\u043D\u0430, \u0433\u043E\u0442\u043E\u0432/\u0433\u043E\u0442\u043E\u0432\u0430).\n\n\u0421\u0422\u042A\u041F\u041A\u0410 3 \u2014 \u0422\u0415\u041A\u0421\u0422\u041E\u0412\u0415\u0422\u0415 \u0417\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410 (\u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u0438\u044F \u0442\u043E\u043D)\n\u041A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0447\u0435\u0442\u0435 \u043D\u0430 \u0442\u0435\u043B\u0435\u0444\u043E\u043D, \u043C\u0435\u0436\u0434\u0443 \u0434\u0440\u0443\u0433\u0438\u0442\u0435 \u043D\u0435\u0449\u0430. \u041F\u043E-\u043C\u0430\u043B\u043A\u043E \u0438 \u043F\u043E-\u044F\u0441\u043D\u043E \u0435 \u043F\u043E-\u0434\u043E\u0431\u0440\u0435: \u0432\u0441\u044F\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u043C\u0443 \u043A\u0430\u0436\u0435 \u043D\u0435\u0449\u043E \u043D\u043E\u0432\u043E \u0437\u0430 \u043D\u0435\u0433\u043E \u0441\u0430\u043C\u0438\u044F. \u0410\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435\u0442\u043E \u0432\u0430\u0436\u0438 \u0437\u0430 \u0432\u0441\u0435\u043A\u0438 \u0447\u043E\u0432\u0435\u043A, \u043C\u0430\u0445\u043D\u0438 \u0433\u043E.\n- welcome: \u043B\u0438\u0447\u043D\u043E \u043F\u0438\u0441\u043C\u043E, 3\u20134 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u041E\u0431\u044A\u0440\u043D\u0438 \u0441\u0435 \u043F\u043E \u0438\u043C\u0435. \u0421\u043F\u043E\u043C\u0435\u043D\u0438 1\u20132 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u043D\u0435\u0449\u0430 \u043E\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0441\u044A\u0441 \u0441\u0432\u043E\u0438 \u0434\u0443\u043C\u0438 (\u043D\u0435 \u0433\u0438 \u0446\u0438\u0442\u0438\u0440\u0430\u0439). \u041A\u0430\u0436\u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0447\u0430\u043A\u0432\u0430 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0434\u0432\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438. \u0411\u0435\u0437 \u0447\u0438\u0441\u043B\u0430.\n- specialistNote: \u201E\u0411\u0435\u043B\u0435\u0436\u043A\u0430 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430\u201C \u2014 1\u20132 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F: \u0435\u0434\u043D\u043E\u0442\u043E \u043D\u0435\u0449\u043E, \u043D\u0430 \u043A\u043E\u0435\u0442\u043E \u0434\u0430 \u043E\u0431\u044A\u0440\u043D\u0435 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043D\u0430\u0439-\u043D\u0430\u043F\u0440\u0435\u0434, \u0438 \u0437\u0430\u0449\u043E \u0437\u0430 \u043D\u0435\u0433\u043E.\n- psychology: 3\u20134 \u043D\u0430\u0441\u043E\u043A\u0438. \u0412\u0441\u044F\u043A\u0430: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u0435\u043D \u043D\u0435\u0433\u043E\u0432 \u0442\u0440\u0438\u0433\u0435\u0440 \u2192 \u0435\u0434\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435. \u0414\u043E 2 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F.\n- habits: 3\u20134 \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u043D\u0438 \u0442\u0430\u043A\u0442\u0438\u043A\u0438 \u0437\u0430 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u0438\u0435\u0442\u043E \u043C\u0443 (\u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0445\u0440\u0430\u043D\u0430 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0432\u0435\u0447\u0435\u0440\u0438\u0442\u0435, \u0443\u0438\u043A\u0435\u043D\u0434\u0438\u0442\u0435). \u041F\u043E \u0435\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435.\n- mealNotes: \u0437\u0430 \u0434\u043E 7 \u044F\u0441\u0442\u0438\u044F \u043E\u0442 \u041C\u0415\u041D\u042E\u0422\u041E \u2014 \u043F\u043E \u0435\u0434\u043D\u043E \u043A\u0440\u0430\u0442\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 (\u0441 dishId \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E): \u043A\u0430\u043A \u0442\u043E\u0432\u0430 \u044F\u0441\u0442\u0438\u0435 \u043F\u0430\u0441\u0432\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F \u043C\u0443 (\u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0432\u0437\u0435\u043C\u0438 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0441\u0433\u043E\u0442\u0432\u0438 \u0434\u0432\u043E\u0439\u043D\u043E, \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438/\u043B\u0438\u043C\u043E\u043D/\u0431\u0438\u043B\u043A\u0438). \u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0439 \u043D\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438 \u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D.\n\n\u041A\u0410\u041A \u041F\u0418\u0428\u0415\u0428\n- \u041A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F, \u0434\u043E 15 \u0434\u0443\u043C\u0438. \u0415\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u2014 \u0435\u0434\u043D\u0430 \u043C\u0438\u0441\u044A\u043B.\n- \u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0438 \u0434\u0443\u043C\u0438, \u0431\u0435\u0437 \u0442\u0435\u0440\u043C\u0438\u043D\u0438 (\u043A\u043E\u0440\u0442\u0438\u0437\u043E\u043B, \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D, \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432 \u043E\u0442\u0433\u043E\u0432\u043E\u0440, \u0442\u0440\u0438\u0433\u0435\u0440, \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u044A\u043C).\n- \u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043F\u0440\u0435\u0434 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u0435: \u043F\u044A\u0440\u0432\u043E \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043D\u0430\u043F\u0440\u0430\u0432\u0438, \u043F\u043E\u0441\u043B\u0435 \u2014 \u0441 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u0443\u043C\u0438 \u2014 \u0437\u0430\u0449\u043E.\n\n\u041B\u0418\u041C\u0418\u0422\u0418 (\u0434\u0443\u043C\u0438)\nwelcome \u2264 60 \xB7 specialistNote \u2264 35 \xB7 \u0432\u0441\u044F\u043A\u0430 \u043D\u0430\u0441\u043E\u043A\u0430 \u0432 psychology \u2264 30 \xB7 \u0432\u0441\u0435\u043A\u0438 \u043D\u0430\u0432\u0438\u043A \u0432 habits \u2264 20 \xB7 \u0432\u0441\u044F\u043A\u0430 \u0431\u0435\u043B\u0435\u0436\u043A\u0430 \u0432 mealNotes \u2264 15\n\n\u0417\u0410\u0411\u0420\u0410\u041D\u0415\u041D\u041E\n- \u0427\u0438\u0441\u043B\u0430 \u0437\u0430 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043C\u0430\u043A\u0440\u043E\u0441\u0438, \u043F\u043E\u0440\u0446\u0438\u0438, \u0434\u043E\u0437\u0438, \u043F\u0440\u043E\u0446\u0435\u043D\u0442\u0438 \u2014 \u0442\u0435 \u0441\u0430 \u0432 \u043F\u043B\u0430\u043D\u0430.\n- \u0425\u0440\u0430\u043D\u0438 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 \u201E\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u201C \u0438 \u0445\u0440\u0430\u043D\u0438 \u0438\u0437\u0432\u044A\u043D \u043C\u0435\u043D\u044E\u0442\u043E (\u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D).\n- \u0414\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u044F, \u201E\u0434\u0435\u0442\u043E\u043A\u0441\u201C, \u201E\u043F\u0440\u0435\u0447\u0438\u0441\u0442\u0432\u0430\u043D\u0435\u201C, \u201E\u0443\u0441\u043A\u043E\u0440\u044F\u0432\u0430 \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u043C\u0430\u201C.\n- \u041A\u043B\u0438\u0448\u0435\u0442\u0430: \u201E\u043F\u044A\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435\u201C, \u201E\u043D\u0430\u0439-\u0434\u043E\u0431\u0440\u0430\u0442\u0430 \u0432\u0435\u0440\u0441\u0438\u044F \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438\u201C, \u201E\u0442\u0440\u0430\u0439\u043D\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u201C, \u201E\u0443\u043D\u0438\u043A\u0430\u043B\u0435\u043D \u043F\u043B\u0430\u043D\u201C, \u201E\u0440\u0435\u0432\u043E\u043B\u044E\u0446\u0438\u043E\u043D\u0435\u043D\u201C, \u201E\u0437\u0430\u0435\u0434\u043D\u043E \u0449\u0435 \u0443\u0441\u043F\u0435\u0435\u043C\u201C, \u201E\u0432\u0441\u044F\u043A\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u044F \u0435 \u043F\u0440\u0435\u0446\u0438\u0437\u043D\u043E \u043F\u043E\u0434\u0431\u0440\u0430\u043D\u0430\u201C. \u0411\u0435\u0437 \u0443\u0434\u0438\u0432\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u0434\u0440\u0435\u0434 \u0438 \u0431\u0435\u0437 \u0435\u043C\u043E\u0434\u0436\u0438\u0442\u0430.\n- \u041D\u0435 \u043F\u0438\u0448\u0438, \u0447\u0435 \u0442\u0435\u043A\u0441\u0442\u044A\u0442 \u0435 \u043E\u0442 AI \u0438\u043B\u0438 \u043E\u0442 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C. \u041F\u0438\u0448\u0438 \u043E\u0442 \u0438\u043C\u0435\u0442\u043E \u043D\u0430 \u0435\u043A\u0438\u043F\u0430 (\u201E\u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u0445\u043C\u0435\u201C, \u201E\u0432\u0438\u0436\u0434\u0430\u043C\u0435\u201C).\n- \u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430, \u043A\u043E\u0439\u0442\u043E \u0432\u043E\u0434\u0438 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041D\u0435 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u0442\u043E \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043A\u0430\u043A\u0442\u043E \u0433\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u044F \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043F\u043E\u0434\u0440\u0430\u0436\u0430\u0432\u0430\u043C\u0435\u201C \u0438 \u043F\u043E\u0434\u043E\u0431\u043D\u0438 \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F.\n- \u0416\u0430\u0440\u0433\u043E\u043D: \u201E\u043A\u0430\u043B\u043E\u0440\u0430\u0436\u201C \u2014 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u201C \u0438\u043B\u0438 \u201E\u0434\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C\u201C. \u0425\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430\u0440\u0438\u0447\u0430\u0439 \u043A\u0430\u043A\u0442\u043E \u0441\u0430 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E.\n\n\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:\n{\n  "portrait": { "summary": "", "emotional": "", "social": "", "triggers": [], "personality": "", "motivation": "", "risks": [] },\n  "tone": { "address": "\u0442\u0438", "style": "" },\n  "welcome": "",\n  "specialistNote": "",\n  "psychology": [],\n  "habits": [],\n  "mealNotes": [ { "dishId": "", "note": "" } ]\n}\n\n\u0418\u041C\u0415: {name}\n\n\u041F\u0420\u041E\u0424\u0418\u041B (\u0440\u0430\u0437\u0431\u0440\u0430\u043D \u043E\u0442 \u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430):\n{profileSummary}\n\n\u041E\u0422\u0413\u041E\u0412\u041E\u0420\u0418 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410:\n{answers}\n\n\u0421\u0412\u041E\u0411\u041E\u0414\u0415\u041D \u0422\u0415\u041A\u0421\u0422:\n{freeText}\n\n\u0415\u041C\u041E\u0426\u0418\u041E\u041D\u0410\u041B\u0415\u041D \u041F\u0420\u041E\u0424\u0418\u041B (\u0442\u0435\u0441\u0442\u044A\u0442 EmoEat, \u0430\u043A\u043E \u0435 \u043F\u043E\u043F\u044A\u043B\u043D\u0435\u043D):\n{emotionalProfile}\n\n\u041F\u041B\u0410\u041D\u042A\u0422:\n{planFacts}\n\n\u0418\u0417\u0411\u042F\u0413\u0412\u0410:\n{avoid}\n\n\u041C\u0415\u041D\u042E (dishId | \u0445\u0440\u0430\u043D\u0435\u043D\u0435 | \u044F\u0441\u0442\u0438\u0435):\n{menu}\n';
+var DEFAULT_PLAN_VOICE_PROMPT = '\u0422\u0438 \u0441\u0438 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0435\u043A\u0438\u043F\u0430 \u043D\u0430 Eatologix \u2014 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433 \u0441 \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u043E \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0430 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F. \u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D \u0432\u0435\u0447\u0435 \u0435 \u0441\u044A\u0441\u0442\u0430\u0432\u0435\u043D \u043F\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u0430: \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u0445\u0440\u0430\u043D\u0438\u0442\u0435, \u0433\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u0438 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F\u0442\u0430 \u0441\u0430 \u043E\u043A\u043E\u043D\u0447\u0430\u0442\u0435\u043B\u043D\u0438 \u0438 \u043D\u0435 \u0441\u0435 \u043E\u0431\u0441\u044A\u0436\u0434\u0430\u0442. \u0422\u0432\u043E\u044F\u0442\u0430 \u0437\u0430\u0434\u0430\u0447\u0430 \u0435 \u0434\u0440\u0443\u0433\u0430: \u0434\u0430 \u0440\u0430\u0437\u0431\u0435\u0440\u0435\u0448 \u0447\u043E\u0432\u0435\u043A\u0430 \u0438 \u0434\u0430 \u043D\u0430\u043F\u0438\u0448\u0435\u0448 \u043A\u0430\u043A \u043F\u043B\u0430\u043D\u044A\u0442 \u0434\u0430 \u043C\u0443 \u0433\u043E\u0432\u043E\u0440\u0438 \u2014 \u0442\u0430\u043A\u0430, \u0447\u0435 \u0434\u0430 \u0443\u0441\u0435\u0442\u0438, \u0447\u0435 \u0435 \u0432\u0438\u0434\u044F\u043D \u043A\u0430\u0442\u043E \u043B\u0438\u0447\u043D\u043E\u0441\u0442 \u0438 \u0435 \u0432 \u043F\u0440\u043E\u0444\u0435\u0441\u0438\u043E\u043D\u0430\u043B\u043D\u0438 \u0440\u044A\u0446\u0435.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 1 \u2014 \u041F\u041E\u0420\u0422\u0420\u0415\u0422 (\u0432\u044A\u0442\u0440\u0435\u0448\u043D\u043E, \u0437\u0430 \u0435\u043A\u0438\u043F\u0430; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u043D\u0435 \u0433\u043E \u0432\u0438\u0436\u0434\u0430)\n\u041F\u0440\u043E\u0447\u0435\u0442\u0438 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0437\u0430\u0435\u0434\u043D\u043E, \u043D\u0435 \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E. \u0410\u043A\u043E \u0438\u043C\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B \u043E\u0442 EmoEat, \u0442\u043E\u0439 \u0435 \u043D\u0430\u0439-\u0442\u043E\u0447\u043D\u0438\u044F\u0442 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u043A \u0437\u0430 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435\u0442\u043E \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u2014 \u0441\u0432\u044A\u0440\u0436\u0438 \u0430\u0440\u0445\u0435\u0442\u0438\u043F\u0430, \u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438\u0442\u0435, \u043C\u043E\u0434\u0435\u043B\u0438\u0442\u0435 \u0438 \u0440\u0435\u0430\u043B\u043D\u0430\u0442\u0430 \u043D\u0443\u0436\u0434\u0430 \u0441 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435; \u043D\u0435 \u0446\u0438\u0442\u0438\u0440\u0430\u0439 \u0438\u043C\u0435\u043D\u0430\u0442\u0430 \u0438\u043C. \u0421\u0432\u044A\u0440\u0436\u0438 \u0433\u0438: \u0441\u0442\u0440\u0435\u0441 + \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0432\u0435\u0447\u0435\u0440 + \u201E\u043D\u0430 \u043A\u0440\u0430\u043A\u201C \u043A\u0430\u0437\u0432\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u043E \u043E\u0442 \u0441\u044A\u0449\u043E\u0442\u043E \u043F\u043E\u043E\u0442\u0434\u0435\u043B\u043D\u043E.\n- summary: \u043A\u043E\u0439 \u0435 \u0447\u043E\u0432\u0435\u043A\u044A\u0442, \u043A\u0430\u043A\u0432\u043E \u043C\u0443 \u0435 \u0432\u0430\u0436\u043D\u043E, \u0432 \u043A\u0430\u043A\u0432\u0430 \u0436\u0438\u0442\u0435\u0439\u0441\u043A\u0430 \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u0435 (2\u20133 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F).\n- emotional: \u043F\u0441\u0438\u0445\u043E-\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0438 \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u043A\u044A\u043C \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0438 \u0442\u044F\u043B\u043E\u0442\u043E (\u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435, \u0432\u0438\u043D\u0430, \u043A\u043E\u043D\u0442\u0440\u043E\u043B, \u0443\u043C\u043E\u0440\u0430, \u0433\u043E\u0440\u0434\u043E\u0441\u0442, \u0441\u0442\u0440\u0430\u0445 \u043E\u0442 \u043D\u0435\u0443\u0441\u043F\u0435\u0445).\n- social: \u0441\u043E\u0446\u0438\u0430\u043B\u0435\u043D \u0438 \u0431\u0438\u0442\u043E\u0432 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442, \u0434\u043E\u043A\u043E\u043B\u043A\u043E\u0442\u043E \u043B\u0438\u0447\u0438 \u2014 \u0440\u0430\u0431\u043E\u0442\u0430, \u0440\u0438\u0442\u044A\u043C, \u0441\u0435\u043C\u0435\u0439\u0441\u0442\u0432\u043E, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u0435 \u0441 \u0434\u0440\u0443\u0433\u0438\u0442\u0435.\n- triggers: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438\u0442\u0435 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0447\u0435\u0441\u043A\u0438 \u0442\u0440\u0438\u0433\u0435\u0440\u0438 (\u0441\u0438\u0442\u0443\u0430\u0446\u0438\u044F \u2192 \u043F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435), \u0434\u043E 4.\n- personality: \u0440\u0430\u0431\u043E\u0442\u043D\u0430 \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 \u0437\u0430 \u0441\u0442\u0438\u043B\u0430 \u043D\u0430 \u043B\u0438\u0447\u043D\u043E\u0441\u0442\u0442\u0430 \u2014 \u043D\u0430\u043F\u0440. \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D/\u0441\u043F\u043E\u043D\u0442\u0430\u043D\u0435\u043D, \u0442\u044A\u0440\u0441\u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438/\u0442\u044A\u0440\u0441\u0438 \u043F\u043E\u0434\u043A\u0440\u0435\u043F\u0430, \u043F\u0435\u0440\u0444\u0435\u043A\u0446\u0438\u043E\u043D\u0438\u0441\u0442 \u201E\u0432\u0441\u0438\u0447\u043A\u043E \u0438\u043B\u0438 \u043D\u0438\u0449\u043E\u201C, \u0441\u043A\u0435\u043F\u0442\u0438\u0447\u0435\u043D/\u0434\u043E\u0432\u0435\u0440\u0447\u0438\u0432. \u041F\u0438\u0448\u0438 \u043A\u0430\u0442\u043E \u0445\u0438\u043F\u043E\u0442\u0435\u0437\u0430 (\u201E\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E\u201C, \u201E\u0438\u0437\u0433\u043B\u0435\u0436\u0434\u0430\u201C), \u043D\u0435 \u043A\u0430\u0442\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0430.\n- motivation: \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u0433\u043E \u0434\u044A\u0440\u0436\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430 \u0438 \u043A\u0430\u043A\u0432\u043E \u043D\u0430\u0439-\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E \u0449\u0435 \u0433\u043E \u0438\u0437\u0432\u0430\u0434\u0438.\n- risks: \u0434\u043E 3 \u043C\u043E\u043C\u0435\u043D\u0442\u0430, \u0437\u0430 \u043A\u043E\u0438\u0442\u043E \u0435\u043A\u0438\u043F\u044A\u0442 \u0434\u0430 \u0432\u043D\u0438\u043C\u0430\u0432\u0430 \u043F\u0440\u0435\u0437 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438.\n\n\u0421\u0422\u042A\u041F\u041A\u0410 2 \u2014 \u0422\u041E\u041D\n- tone.address: \u0432\u0438\u043D\u0430\u0433\u0438 \u201E\u0442\u0438\u201C \u2014 \u0442\u043E\u043F\u043B\u043E \u0438 \u0441 \u0443\u0432\u0430\u0436\u0435\u043D\u0438\u0435, \u0431\u0435\u0437 \u0444\u0430\u043C\u0438\u043B\u0438\u0430\u0440\u043D\u043E\u0441\u0442. \u0421\u043F\u0430\u0437\u0432\u0430\u0439 \u0433\u043E \u043D\u0430\u0432\u0441\u044F\u043A\u044A\u0434\u0435.\n- tone.style: \u0435\u0434\u043D\u0430 \u0444\u0440\u0430\u0437\u0430 \u2014 \u043A\u0430\u043A \u0433\u043E\u0432\u043E\u0440\u0438\u0448 \u043D\u0430 \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A (\u043D\u0430\u043F\u0440. \u201E\u043A\u0440\u0430\u0442\u043A\u043E \u0438 \u043F\u043E \u0441\u044A\u0449\u0435\u0441\u0442\u0432\u043E, \u0441 \u044F\u0441\u043D\u0438 \u0441\u0442\u044A\u043F\u043A\u0438\u201C \u0437\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u0430\u043D \u0438 \u0437\u0430\u0435\u0442; \u201E\u0442\u043E\u043F\u043B\u043E, \u0431\u0435\u0437 \u043D\u0430\u0442\u0438\u0441\u043A, \u0441 \u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0431\u0438\u0440\u0430\u043D\u0435\u201C \u0437\u0430 \u0447\u043E\u0432\u0435\u043A \u0441 \u0432\u0438\u043D\u0430 \u0438 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u201E\u0441 \u0430\u0440\u0433\u0443\u043C\u0435\u043D\u0442\u0438 \u0438 \u043B\u043E\u0433\u0438\u043A\u0430\u201C \u0437\u0430 \u0441\u043A\u0435\u043F\u0442\u0438\u043A).\n\u041F\u0438\u0448\u0438 \u0433\u0440\u0430\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u043D\u043E \u0441\u043F\u043E\u0440\u0435\u0434 \u043F\u043E\u043B\u0430 (\u0441\u0438\u0433\u0443\u0440\u0435\u043D/\u0441\u0438\u0433\u0443\u0440\u043D\u0430, \u0433\u043E\u0442\u043E\u0432/\u0433\u043E\u0442\u043E\u0432\u0430).\n\n\u0421\u0422\u042A\u041F\u041A\u0410 3 \u2014 \u0422\u0415\u041A\u0421\u0422\u041E\u0412\u0415\u0422\u0415 \u0417\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410 (\u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u0438\u044F \u0442\u043E\u043D)\n\u041A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0447\u0435\u0442\u0435 \u043D\u0430 \u0442\u0435\u043B\u0435\u0444\u043E\u043D, \u043C\u0435\u0436\u0434\u0443 \u0434\u0440\u0443\u0433\u0438\u0442\u0435 \u043D\u0435\u0449\u0430. \u041F\u043E-\u043C\u0430\u043B\u043A\u043E \u0438 \u043F\u043E-\u044F\u0441\u043D\u043E \u0435 \u043F\u043E-\u0434\u043E\u0431\u0440\u0435: \u0432\u0441\u044F\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u043C\u0443 \u043A\u0430\u0436\u0435 \u043D\u0435\u0449\u043E \u043D\u043E\u0432\u043E \u0437\u0430 \u043D\u0435\u0433\u043E \u0441\u0430\u043C\u0438\u044F. \u0410\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435\u0442\u043E \u0432\u0430\u0436\u0438 \u0437\u0430 \u0432\u0441\u0435\u043A\u0438 \u0447\u043E\u0432\u0435\u043A, \u043C\u0430\u0445\u043D\u0438 \u0433\u043E.\n- welcome: \u043B\u0438\u0447\u043D\u043E \u043F\u0438\u0441\u043C\u043E, 3\u20134 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F. \u041E\u0431\u044A\u0440\u043D\u0438 \u0441\u0435 \u043F\u043E \u0438\u043C\u0435. \u0421\u043F\u043E\u043C\u0435\u043D\u0438 1\u20132 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u0438 \u043D\u0435\u0449\u0430 \u043E\u0442 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u0441\u044A\u0441 \u0441\u0432\u043E\u0438 \u0434\u0443\u043C\u0438 (\u043D\u0435 \u0433\u0438 \u0446\u0438\u0442\u0438\u0440\u0430\u0439). \u041A\u0430\u0436\u0438 \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043E\u0447\u0430\u043A\u0432\u0430 \u043F\u044A\u0440\u0432\u0438\u0442\u0435 \u0434\u0432\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438. \u0411\u0435\u0437 \u0447\u0438\u0441\u043B\u0430.\n- specialistNote: \u201E\u0411\u0435\u043B\u0435\u0436\u043A\u0430 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430\u201C \u2014 1\u20132 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F: \u0435\u0434\u043D\u043E\u0442\u043E \u043D\u0435\u0449\u043E, \u043D\u0430 \u043A\u043E\u0435\u0442\u043E \u0434\u0430 \u043E\u0431\u044A\u0440\u043D\u0435 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u043D\u0430\u0439-\u043D\u0430\u043F\u0440\u0435\u0434, \u0438 \u0437\u0430\u0449\u043E \u0437\u0430 \u043D\u0435\u0433\u043E.\n- psychology: 3\u20134 \u043D\u0430\u0441\u043E\u043A\u0438. \u0412\u0441\u044F\u043A\u0430: \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u0435\u043D \u043D\u0435\u0433\u043E\u0432 \u0442\u0440\u0438\u0433\u0435\u0440 \u2192 \u0435\u0434\u043D\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435. \u0414\u043E 2 \u043A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F.\n- habits: 3\u20134 \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u043D\u0438 \u0442\u0430\u043A\u0442\u0438\u043A\u0438 \u0437\u0430 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u0438\u0435\u0442\u043E \u043C\u0443 (\u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0445\u0440\u0430\u043D\u0430 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u043D\u0430\u0432\u044A\u043D, \u0432\u0435\u0447\u0435\u0440\u0438\u0442\u0435, \u0443\u0438\u043A\u0435\u043D\u0434\u0438\u0442\u0435). \u041F\u043E \u0435\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435.\n- mealNotes: \u0437\u0430 \u0434\u043E 7 \u044F\u0441\u0442\u0438\u044F \u043E\u0442 \u041C\u0415\u041D\u042E\u0422\u041E \u2014 \u043F\u043E \u0435\u0434\u043D\u043E \u043A\u0440\u0430\u0442\u043A\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 (\u0441 dishId \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0435 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E): \u043A\u0430\u043A \u0442\u043E\u0432\u0430 \u044F\u0441\u0442\u0438\u0435 \u043F\u0430\u0441\u0432\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F \u043C\u0443 (\u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E, \u0432\u0437\u0435\u043C\u0438 \u0437\u0430 \u0440\u0430\u0431\u043E\u0442\u0430, \u0441\u0433\u043E\u0442\u0432\u0438 \u0434\u0432\u043E\u0439\u043D\u043E, \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438/\u043B\u0438\u043C\u043E\u043D/\u0431\u0438\u043B\u043A\u0438). \u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0439 \u043D\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438 \u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D.\n\n\u041A\u0410\u041A \u041F\u0418\u0428\u0415\u0428\n- \u041A\u0440\u0430\u0442\u043A\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F, \u0434\u043E 15 \u0434\u0443\u043C\u0438. \u0415\u0434\u043D\u043E \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u0435 \u2014 \u0435\u0434\u043D\u0430 \u043C\u0438\u0441\u044A\u043B.\n- \u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0438 \u0434\u0443\u043C\u0438, \u0431\u0435\u0437 \u0442\u0435\u0440\u043C\u0438\u043D\u0438 (\u043A\u043E\u0440\u0442\u0438\u0437\u043E\u043B, \u0433\u043B\u0438\u043A\u0435\u043C\u0438\u0447\u0435\u043D, \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432 \u043E\u0442\u0433\u043E\u0432\u043E\u0440, \u0442\u0440\u0438\u0433\u0435\u0440, \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u044A\u043C).\n- \u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043F\u0440\u0435\u0434 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u0435: \u043F\u044A\u0440\u0432\u043E \u043A\u0430\u043A\u0432\u043E \u0434\u0430 \u043D\u0430\u043F\u0440\u0430\u0432\u0438, \u043F\u043E\u0441\u043B\u0435 \u2014 \u0441 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u0443\u043C\u0438 \u2014 \u0437\u0430\u0449\u043E.\n\n\u041B\u0418\u041C\u0418\u0422\u0418 (\u0434\u0443\u043C\u0438)\nwelcome \u2264 60 \xB7 specialistNote \u2264 35 \xB7 \u0432\u0441\u044F\u043A\u0430 \u043D\u0430\u0441\u043E\u043A\u0430 \u0432 psychology \u2264 30 \xB7 \u0432\u0441\u0435\u043A\u0438 \u043D\u0430\u0432\u0438\u043A \u0432 habits \u2264 20 \xB7 \u0432\u0441\u044F\u043A\u0430 \u0431\u0435\u043B\u0435\u0436\u043A\u0430 \u0432 mealNotes \u2264 15\n\n\u0417\u0410\u0411\u0420\u0410\u041D\u0415\u041D\u041E\n- \u0427\u0438\u0441\u043B\u0430 \u0437\u0430 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u043C\u0430\u043A\u0440\u043E\u0441\u0438, \u043F\u043E\u0440\u0446\u0438\u0438, \u0434\u043E\u0437\u0438, \u043F\u0440\u043E\u0446\u0435\u043D\u0442\u0438 \u2014 \u0442\u0435 \u0441\u0430 \u0432 \u043F\u043B\u0430\u043D\u0430.\n- \u0425\u0440\u0430\u043D\u0438 \u043E\u0442 \u0441\u043F\u0438\u0441\u044A\u043A\u0430 \u201E\u0418\u0437\u0431\u044F\u0433\u0432\u0430\u201C \u0438 \u0445\u0440\u0430\u043D\u0438 \u0438\u0437\u0432\u044A\u043D \u043C\u0435\u043D\u044E\u0442\u043E (\u043E\u0441\u0432\u0435\u043D \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0431\u0438\u043B\u043A\u0438, \u043B\u0438\u043C\u043E\u043D).\n- \u0414\u0438\u0430\u0433\u043D\u043E\u0437\u0438, \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u044F, \u201E\u0434\u0435\u0442\u043E\u043A\u0441\u201C, \u201E\u043F\u0440\u0435\u0447\u0438\u0441\u0442\u0432\u0430\u043D\u0435\u201C, \u201E\u0443\u0441\u043A\u043E\u0440\u044F\u0432\u0430 \u043C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0437\u043C\u0430\u201C.\n- \u041A\u043B\u0438\u0448\u0435\u0442\u0430: \u201E\u043F\u044A\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435\u201C, \u201E\u043D\u0430\u0439-\u0434\u043E\u0431\u0440\u0430\u0442\u0430 \u0432\u0435\u0440\u0441\u0438\u044F \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438\u201C, \u201E\u0442\u0440\u0430\u0439\u043D\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u201C, \u201E\u0443\u043D\u0438\u043A\u0430\u043B\u0435\u043D \u043F\u043B\u0430\u043D\u201C, \u201E\u0440\u0435\u0432\u043E\u043B\u044E\u0446\u0438\u043E\u043D\u0435\u043D\u201C, \u201E\u0437\u0430\u0435\u0434\u043D\u043E \u0449\u0435 \u0443\u0441\u043F\u0435\u0435\u043C\u201C, \u201E\u0432\u0441\u044F\u043A\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u044F \u0435 \u043F\u0440\u0435\u0446\u0438\u0437\u043D\u043E \u043F\u043E\u0434\u0431\u0440\u0430\u043D\u0430\u201C. \u0411\u0435\u0437 \u0443\u0434\u0438\u0432\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043E\u0434\u0440\u0435\u0434 \u0438 \u0431\u0435\u0437 \u0435\u043C\u043E\u0434\u0436\u0438\u0442\u0430.\n- \u041D\u0435 \u043F\u0438\u0448\u0438, \u0447\u0435 \u0442\u0435\u043A\u0441\u0442\u044A\u0442 \u0435 \u043E\u0442 AI \u0438\u043B\u0438 \u043E\u0442 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C. \u041F\u0438\u0448\u0438 \u043E\u0442 \u0438\u043C\u0435\u0442\u043E \u043D\u0430 \u0435\u043A\u0438\u043F\u0430 (\u201E\u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u0445\u043C\u0435\u201C, \u201E\u0432\u0438\u0436\u0434\u0430\u043C\u0435\u201C).\n- \u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u0430, \u043A\u043E\u0439\u0442\u043E \u0432\u043E\u0434\u0438 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041D\u0435 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u0442\u043E \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043A\u0430\u043A\u0442\u043E \u0433\u043E \u0441\u044A\u0441\u0442\u0430\u0432\u044F \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433\u201C, \u201E\u043F\u043E\u0434\u0440\u0430\u0436\u0430\u0432\u0430\u043C\u0435\u201C \u0438 \u043F\u043E\u0434\u043E\u0431\u043D\u0438 \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F.\n- \u0416\u0430\u0440\u0433\u043E\u043D: \u201E\u043A\u0430\u043B\u043E\u0440\u0430\u0436\u201C \u2014 \u043F\u0438\u0448\u0438 \u201E\u043A\u0430\u043B\u043E\u0440\u0438\u0438\u201C \u0438\u043B\u0438 \u201E\u0434\u043D\u0435\u0432\u0435\u043D \u043F\u0440\u0438\u0435\u043C\u201C. \u0425\u0440\u0430\u043D\u0438\u0442\u0435 \u043D\u0430\u0440\u0438\u0447\u0430\u0439 \u043A\u0430\u043A\u0442\u043E \u0441\u0430 \u0432 \u043C\u0435\u043D\u044E\u0442\u043E.\n\n\u0412\u044A\u0440\u043D\u0438 \u0421\u0410\u041C\u041E JSON:\n{\n  "portrait": { "summary": "", "emotional": "", "social": "", "triggers": [], "personality": "", "motivation": "", "risks": [] },\n  "tone": { "address": "\u0442\u0438", "style": "" },\n  "welcome": "",\n  "specialistNote": "",\n  "psychology": [],\n  "habits": [],\n  "mealNotes": [ { "dishId": "", "note": "" } ]\n}\n\n\u0418\u041C\u0415: {name}\n\n\u041F\u0420\u041E\u0424\u0418\u041B (\u0440\u0430\u0437\u0431\u0440\u0430\u043D \u043E\u0442 \u0441\u0438\u0441\u0442\u0435\u043C\u0430\u0442\u0430):\n{profileSummary}\n\n\u041E\u0422\u0413\u041E\u0412\u041E\u0420\u0418 \u041D\u0410 \u041A\u041B\u0418\u0415\u041D\u0422\u0410:\n{answers}\n\n\u0421\u0412\u041E\u0411\u041E\u0414\u0415\u041D \u0422\u0415\u041A\u0421\u0422:\n{freeText}\n\n\u0415\u041C\u041E\u0426\u0418\u041E\u041D\u0410\u041B\u0415\u041D \u041F\u0420\u041E\u0424\u0418\u041B (\u0442\u0435\u0441\u0442\u044A\u0442 EmoEat, \u0430\u043A\u043E \u0435 \u043F\u043E\u043F\u044A\u043B\u043D\u0435\u043D):\n{emotionalProfile}\n\n\u041F\u041B\u0410\u041D\u042A\u0422:\n{planFacts}\n\n\u0418\u0417\u0411\u042F\u0413\u0412\u0410:\n{avoid}\n\n\u041C\u0415\u041D\u042E (dishId | \u0445\u0440\u0430\u043D\u0435\u043D\u0435 | \u044F\u0441\u0442\u0438\u0435):\n{menu}\n';
 
 // nutrition-engine/monitoring.js
 var WEEKLY_CHECKIN_QUESTIONS = [
@@ -48498,8 +48888,8 @@ function essenceText(essence, digest = null) {
 
 // enrichment-iris.js
 var REFERRAL_TEXT = {
-  urgent: "AIRIS: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043A\u044A\u043C \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0431\u0435\u0437 \u043E\u0442\u043B\u0430\u0433\u0430\u043D\u0435.",
-  soon: "AIRIS: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043F\u0440\u0435\u0433\u043B\u0435\u0434 \u043F\u0440\u0438 \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0432 \u0431\u043B\u0438\u0437\u043A\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438."
+  urgent: "IrisMap: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043A\u044A\u043C \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0431\u0435\u0437 \u043E\u0442\u043B\u0430\u0433\u0430\u043D\u0435.",
+  soon: "IrisMap: \u043F\u043E \u0441\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0430 \u043E\u043A\u043E\u0442\u043E \u2014 \u043F\u0440\u0435\u0433\u043B\u0435\u0434 \u043F\u0440\u0438 \u043E\u0447\u0435\u043D \u043B\u0435\u043A\u0430\u0440 \u0432 \u0431\u043B\u0438\u0437\u043A\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438."
 };
 function deriveIris(facts2) {
   const fact = (facts2 || []).filter((f) => f.kind === "iris" && f.status !== "pending" && f.value?.analysis).sort((a2, b) => Date.parse(b.at) - Date.parse(a2.at))[0];
@@ -48507,7 +48897,7 @@ function deriveIris(facts2) {
   const a = fact.value.analysis;
   const focus = (a.systems || []).filter((s) => s.priority).map((s) => s.label || s.key).slice(0, 3);
   const cautions = [
-    ...(a.notices || []).map((n) => `AIRIS: ${n.title}${n.body ? ` \u2014 ${n.body}` : ""}`),
+    ...(a.notices || []).map((n) => `IrisMap: ${n.title}${n.body ? ` \u2014 ${n.body}` : ""}`),
     REFERRAL_TEXT[a.eyeReferral] || ""
   ].filter(Boolean);
   return {
@@ -48522,8 +48912,8 @@ function deriveIris(facts2) {
       complaints: fact.value.complaints || ""
     },
     hints: { behaviors: [], approach: [], clinical: [], cautions },
-    reasons: ["\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS)"],
-    // За сверката с NutriPlan (cross-check.js) — не излиза към клиента.
+    reasons: ["\u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (IrisMap)"],
+    // За сверката с Eatologix (cross-check.js) — не излиза към клиента.
     raw: { systems: a.systems || [], questionnaire: fact.value.questionnaire || null }
   };
 }
@@ -48566,7 +48956,7 @@ var IRIS_SYSTEMS = {
     text: /подув|газ(ове|ов)|тежест|киселин|запек|диари|рефлукс|колит|гастрит|храносмил/i,
     action: "gentle_digestion",
     actionLabel: "\u0449\u0430\u0434\u044F\u0449\u043E \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E \u043C\u0435\u043D\u044E",
-    ask: "AIRIS \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F. \u0418\u043C\u0430\u0448 \u043B\u0438 \u043F\u043E\u0434\u0443\u0432\u0430\u043D\u0435, \u0442\u0435\u0436\u0435\u0441\u0442, \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0438 \u0438\u043B\u0438 \u043D\u0435\u0440\u0435\u0434\u043E\u0432\u043D\u043E \u0438\u0437\u0445\u043E\u0436\u0434\u0430\u043D\u0435?"
+    ask: "IrisMap \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u0445\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u043D\u0435\u0442\u043E \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F. \u0418\u043C\u0430\u0448 \u043B\u0438 \u043F\u043E\u0434\u0443\u0432\u0430\u043D\u0435, \u0442\u0435\u0436\u0435\u0441\u0442, \u043A\u0438\u0441\u0435\u043B\u0438\u043D\u0438 \u0438\u043B\u0438 \u043D\u0435\u0440\u0435\u0434\u043E\u0432\u043D\u043E \u0438\u0437\u0445\u043E\u0436\u0434\u0430\u043D\u0435?"
   },
   metabolic: {
     label: "\u041E\u0431\u043C\u044F\u043D\u0430 (\u0437\u0430\u0445\u0430\u0440 \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438)",
@@ -48579,7 +48969,7 @@ var IRIS_SYSTEMS = {
     // (въпросникът събира „Рефлукс“ в общия код GI, затова и текстът).
     guard: ["GERD", "GAST"],
     guardText: /рефлукс|киселин|гастрит|херни/i,
-    ask: "AIRIS \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u043E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F. \u0418\u043C\u0430\u0448 \u043B\u0438 \u0440\u044F\u0437\u044A\u043A \u0433\u043B\u0430\u0434 \u0438\u043B\u0438 \u0441\u044A\u043D\u043B\u0438\u0432\u043E\u0441\u0442 \u0441\u043B\u0435\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0438\u043B\u0438 \u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438\u043B\u0438 \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B \u043F\u0440\u0438 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435?"
+    ask: "IrisMap \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u043E\u0431\u043C\u044F\u043D\u0430\u0442\u0430 \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u044F\u043C\u0430 \u043E\u043F\u043B\u0430\u043A\u0432\u0430\u043D\u0438\u044F. \u0418\u043C\u0430\u0448 \u043B\u0438 \u0440\u044F\u0437\u044A\u043A \u0433\u043B\u0430\u0434 \u0438\u043B\u0438 \u0441\u044A\u043D\u043B\u0438\u0432\u043E\u0441\u0442 \u0441\u043B\u0435\u0434 \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0438\u043B\u0438 \u043F\u043E\u0432\u0438\u0448\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440 \u0438\u043B\u0438 \u0445\u043E\u043B\u0435\u0441\u0442\u0435\u0440\u043E\u043B \u043F\u0440\u0438 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435?"
   },
   nervous: {
     label: "\u041D\u0435\u0440\u0432\u043D\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 (\u0441\u0442\u0440\u0435\u0441 \u0438 \u0441\u044A\u043D)",
@@ -48588,7 +48978,7 @@ var IRIS_SYSTEMS = {
     signals: ["recovery_low", "sleep_short"],
     behaviors: ["EMO"],
     action: null,
-    ask: "AIRIS \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u043D\u0435\u0440\u0432\u043D\u0430\u0442\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0441\u0442\u0440\u0435\u0441\u044A\u0442 \u0435 \u043D\u0438\u0441\u044A\u043A. \u0427\u0443\u0432\u0441\u0442\u0432\u0430\u0448 \u043B\u0438 \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435 \u0438\u043B\u0438 \u0438\u0437\u0442\u043E\u0449\u0435\u043D\u0438\u0435 \u043F\u0440\u0435\u0437 \u043F\u043E\u0432\u0435\u0447\u0435\u0442\u043E \u0434\u043D\u0438?"
+    ask: "IrisMap \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430 \u043D\u0435\u0440\u0432\u043D\u0430\u0442\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u043A\u0430\u0442\u043E \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u0430 \u0432\u044A\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0441\u0442\u0440\u0435\u0441\u044A\u0442 \u0435 \u043D\u0438\u0441\u044A\u043A. \u0427\u0443\u0432\u0441\u0442\u0432\u0430\u0448 \u043B\u0438 \u043D\u0430\u043F\u0440\u0435\u0436\u0435\u043D\u0438\u0435 \u0438\u043B\u0438 \u0438\u0437\u0442\u043E\u0449\u0435\u043D\u0438\u0435 \u043F\u0440\u0435\u0437 \u043F\u043E\u0432\u0435\u0447\u0435\u0442\u043E \u0434\u043D\u0438?"
   },
   circulatory: { label: "\u041A\u0440\u044A\u0432\u043E\u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0435", codes: ["HTN", "CVD", "DYSL"], signals: ["bp_high"], text: /кръвно|сърдеч/i, action: null },
   endocrine: { label: "\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430", codes: ["HYPO", "HYPER", "ENDO", "PCOS", "HORM", "ADR", "MENO"], text: /щитовид|хормон|цикъл/i, action: null },
@@ -48674,7 +49064,7 @@ function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[id];
       if (answer === "yes") overrides.dietDislike = [overrides.dietDislike || data?.dietDislike, t].filter(Boolean).join(", ");
       else if (!answer) {
-        questions.push({ id, source: "airis", topic: "\u041D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442", text: `\u0412 AIRIS \u0435 \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0430 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442 \u0438\u043B\u0438 \u0430\u043B\u0435\u0440\u0433\u0438\u044F \u043A\u044A\u043C \u201E${t}\u201C, \u0430 \u0432 NutriPlan \u044F \u043D\u044F\u043C\u0430. \u0414\u0430 \u044F \u0438\u0437\u043A\u043B\u044E\u0447\u0438\u043C \u043B\u0438 \u043E\u0442 \u043F\u043B\u0430\u043D\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u0438\u0437\u043A\u043B\u044E\u0447\u0438 \u044F" }, { value: "no", label: "\u041D\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E" }] });
+        questions.push({ id, source: "airis", topic: "\u041D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442", text: `\u0412 IrisMap \u0435 \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0430 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442 \u0438\u043B\u0438 \u0430\u043B\u0435\u0440\u0433\u0438\u044F \u043A\u044A\u043C \u201E${t}\u201C, \u0430 \u0432 Eatologix \u044F \u043D\u044F\u043C\u0430. \u0414\u0430 \u044F \u0438\u0437\u043A\u043B\u044E\u0447\u0438\u043C \u043B\u0438 \u043E\u0442 \u043F\u043B\u0430\u043D\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u0438\u0437\u043A\u043B\u044E\u0447\u0438 \u044F" }, { value: "no", label: "\u041D\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E" }] });
       }
     }
     if (q.medications && data?.medications !== "\u0414\u0430") {
@@ -48684,7 +49074,7 @@ function crossCheck(data, derived, resolutions = {}) {
         overrides.medications = "\u0414\u0430";
         overrides.medicationsDetails = [data?.medicationsDetails, q.medications].filter(Boolean).join("; ");
       } else if (!answer) {
-        questions.push({ id: medsId, source: "airis", topic: "\u041B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430", text: `\u0412 AIRIS \u0441\u0430 \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438 \u201E${q.medications.slice(0, 120)}\u201C, \u0430 \u0432 NutriPlan \u2014 \u0447\u0435 \u043D\u0435 \u043F\u0440\u0438\u0435\u043C\u0430\u0448 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u041F\u0440\u0438\u0435\u043C\u0430\u0448 \u043B\u0438 \u0433\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u043F\u0440\u0438\u0435\u043C\u0430\u043C \u0433\u0438" }, { value: "no", label: "\u041D\u0435, \u0432\u0435\u0447\u0435 \u043D\u0435" }] });
+        questions.push({ id: medsId, source: "airis", topic: "\u041B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430", text: `\u0412 IrisMap \u0441\u0430 \u043F\u043E\u0441\u043E\u0447\u0435\u043D\u0438 \u201E${q.medications.slice(0, 120)}\u201C, \u0430 \u0432 Eatologix \u2014 \u0447\u0435 \u043D\u0435 \u043F\u0440\u0438\u0435\u043C\u0430\u0448 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430. \u041F\u0440\u0438\u0435\u043C\u0430\u0448 \u043B\u0438 \u0433\u0438 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430?`, options: [{ value: "yes", label: "\u0414\u0430, \u043F\u0440\u0438\u0435\u043C\u0430\u043C \u0433\u0438" }, { value: "no", label: "\u041D\u0435, \u0432\u0435\u0447\u0435 \u043D\u0435" }] });
       }
     }
     const npDiet = asList3(data?.dietPreference);
@@ -48694,7 +49084,7 @@ function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[id];
       if (answer === "yes") overrides.dietPreference = [.../* @__PURE__ */ new Set([...npDiet, npLabel])];
       else if (!answer) {
-        questions.push({ id, source: "airis", topic: "\u0420\u0435\u0436\u0438\u043C \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435", text: `\u0412 AIRIS \u0435 \u043F\u043E\u0441\u043E\u0447\u0435\u043D ${npLabel.toLowerCase()} \u0440\u0435\u0436\u0438\u043C, \u0430 \u0432 NutriPlan \u2014 \u043D\u0435. \u0414\u0430 \u0433\u043E \u043F\u0440\u0438\u043B\u043E\u0436\u0438\u043C \u043B\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430?`, options: [{ value: "yes", label: "\u0414\u0430" }, { value: "no", label: "\u041D\u0435" }] });
+        questions.push({ id, source: "airis", topic: "\u0420\u0435\u0436\u0438\u043C \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435", text: `\u0412 IrisMap \u0435 \u043F\u043E\u0441\u043E\u0447\u0435\u043D ${npLabel.toLowerCase()} \u0440\u0435\u0436\u0438\u043C, \u0430 \u0432 Eatologix \u2014 \u043D\u0435. \u0414\u0430 \u0433\u043E \u043F\u0440\u0438\u043B\u043E\u0436\u0438\u043C \u043B\u0438 \u0432 \u043F\u043B\u0430\u043D\u0430?`, options: [{ value: "yes", label: "\u0414\u0430" }, { value: "no", label: "\u041D\u0435" }] });
       }
       break;
     }
@@ -48704,7 +49094,7 @@ function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[weightId];
       if (answer === "airis") overrides.weight = String(q.weight);
       else if (!answer) {
-        questions.push({ id: weightId, source: "airis", topic: "\u0422\u0435\u0433\u043B\u043E", text: `\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0432 AIRIS (${q.weight} \u043A\u0433) \u0438 \u0432 NutriPlan (${npKg} \u043A\u0433) \u0441\u0435 \u0440\u0430\u0437\u043B\u0438\u0447\u0430\u0432\u0430. \u041A\u043E\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E\u0442\u043E?`, options: [{ value: "airis", label: `${q.weight} \u043A\u0433` }, { value: "nutriplan", label: `${npKg} \u043A\u0433` }] });
+        questions.push({ id: weightId, source: "airis", topic: "\u0422\u0435\u0433\u043B\u043E", text: `\u0422\u0435\u0433\u043B\u043E\u0442\u043E \u0432 IrisMap (${q.weight} \u043A\u0433) \u0438 \u0432 Eatologix (${npKg} \u043A\u0433) \u0441\u0435 \u0440\u0430\u0437\u043B\u0438\u0447\u0430\u0432\u0430. \u041A\u043E\u0435 \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u043D\u043E\u0442\u043E?`, options: [{ value: "airis", label: `${q.weight} \u043A\u0433` }, { value: "nutriplan", label: `${npKg} \u043A\u0433` }] });
       }
     }
   }
@@ -48721,7 +49111,7 @@ function crossCheck(data, derived, resolutions = {}) {
   }
   const confirmed = hypotheses.filter((h) => h.status === "confirmed");
   if (confirmed.some((h) => h.blockedBy.length)) {
-    cautions.push(`\u041F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 AIRIS \u0438 NutriPlan, \u043D\u043E \u043D\u0435 \u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u043E \u0437\u0430\u0440\u0430\u0434\u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u043E: ${confirmed.filter((h) => h.blockedBy.length).map((h) => `${h.label} (${h.blockedBy.join(", ")})`).join("; ")}.`);
+    cautions.push(`\u041F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 IrisMap \u0438 Eatologix, \u043D\u043E \u043D\u0435 \u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u043E \u0437\u0430\u0440\u0430\u0434\u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u043E: ${confirmed.filter((h) => h.blockedBy.length).map((h) => `${h.label} (${h.blockedBy.join(", ")})`).join("; ")}.`);
   }
   return { hypotheses, questions: questions.slice(0, 6), overrides, approach: [...new Set(approach)], cautions };
 }
@@ -48729,7 +49119,7 @@ function crossCheckText(cc) {
   if (!cc) return "";
   const parts = [];
   const by = (st) => cc.hypotheses.filter((h) => h.status === st);
-  if (by("confirmed").length) parts.push(`\u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 AIRIS \u0438 NutriPlan: ${by("confirmed").map((h) => `${h.label} (${h.evidence.join(", ")})${h.applied ? ` \u2192 ${h.action}` : ""}`).join("; ")}`);
+  if (by("confirmed").length) parts.push(`\u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 IrisMap \u0438 Eatologix: ${by("confirmed").map((h) => `${h.label} (${h.evidence.join(", ")})${h.applied ? ` \u2192 ${h.action}` : ""}`).join("; ")}`);
   if (by("rejected").length) parts.push(`\u043E\u0442\u0445\u0432\u044A\u0440\u043B\u0435\u043D\u043E \u043E\u0442 \u043A\u043B\u0438\u0435\u043D\u0442\u0430: ${by("rejected").map((h) => h.label).join(", ")}`);
   if (by("unconfirmed").length) parts.push(`\u0441\u0430\u043C\u043E \u043F\u043E \u0438\u0440\u0438\u0441\u0430 (\u0431\u0435\u0437 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435): ${by("unconfirmed").map((h) => h.label).join(", ")}`);
   if (cc.questions.length) parts.push(`\u043D\u0435\u0443\u0442\u043E\u0447\u043D\u0435\u043D\u0438 \u0440\u0430\u0437\u043C\u0438\u043D\u0430\u0432\u0430\u043D\u0438\u044F (\u043C\u043E\u0436\u0435 \u0434\u0430 \u043F\u043E\u043F\u0438\u0442\u0430\u0448 \u043A\u043B\u0438\u0435\u043D\u0442\u0430): ${cc.questions.map((q) => q.topic).join(", ")}`);
@@ -48770,13 +49160,13 @@ function deriveDocuments(facts2) {
   const docs = (facts2 || []).filter((f) => f.kind === "document" && f.status !== "pending" && f.value).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 20);
   if (!docs.length) return null;
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [], exclusions: [] };
-  const list3 = [];
+  const list4 = [];
   for (const f of docs) {
     const v = f.value;
     hints.clinical.push(...v.clinical || []);
     hints.exclusions.push(...v.exclusions || []);
     hints.cautions.push(...(v.cautions || []).map((c) => `\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442 (${DOC_TYPE_LABELS[v.docType] || "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442"}): ${c}`));
-    list3.push({
+    list4.push({
       id: f.key,
       at: f.at,
       title: v.title || DOC_TYPE_LABELS[v.docType] || "\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442",
@@ -48790,11 +49180,11 @@ function deriveDocuments(facts2) {
     });
   }
   for (const k of Object.keys(hints)) hints[k] = [...new Set(hints[k])];
-  return { list: list3, hints, reasons: [`\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: ${docs.length}`] };
+  return { list: list4, hints, reasons: [`\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: ${docs.length}`] };
 }
-function documentsText(list3) {
-  if (!list3?.length) return "";
-  return "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: " + list3.slice(0, 6).map((d) => {
+function documentsText(list4) {
+  if (!list4?.length) return "";
+  return "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438: " + list4.slice(0, 6).map((d) => {
     const parts = [d.title, String(d.at || "").slice(0, 10), d.summary, d.medications.length ? `\u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430: ${d.medications.join(", ")}` : ""].filter(Boolean);
     return parts.join(" \u2014 ");
   }).join("; ").slice(0, 1200);
@@ -49210,7 +49600,7 @@ function extractClarify(text2, q) {
 var HANDOFF_TTL_SEC = 30 * 24 * 60 * 60;
 var HANDOFF_MAX_BYTES = 48 * 1024;
 var str2 = (v, max = 200) => typeof v === "string" || typeof v === "number" ? String(v).trim().replace(/\s+/g, " ").slice(0, max) : "";
-var list2 = (v, max = 12, len = 160) => Array.isArray(v) ? v.map((x) => str2(x, len)).filter(Boolean).slice(0, max) : [];
+var list3 = (v, max = 12, len = 160) => Array.isArray(v) ? v.map((x) => str2(x, len)).filter(Boolean).slice(0, max) : [];
 var numIn = (v, lo, hi) => {
   const n = Number(String(v ?? "").replace(",", "."));
   return Number.isFinite(n) && n >= lo && n <= hi ? n : null;
@@ -49223,9 +49613,9 @@ function normalizeEmoeat(p) {
     intensity: level(p.intensity),
     archetype: p.archetype && typeof p.archetype === "object" ? { name: str2(p.archetype.name, 60), description: str2(p.archetype.description, 300) } : null,
     secondArchetype: str2(p.secondArchetype, 60) || null,
-    drivers: list2(p.drivers, 3, 60),
+    drivers: list3(p.drivers, 3, 60),
     behaviors: (Array.isArray(p.behaviors) ? p.behaviors : []).slice(0, 8).map((b) => ({ name: str2(b?.name, 60), level: level(b?.level) || "\u0421\u043B\u0430\u0431\u043E" })).filter((b) => b.name),
-    patterns: list2(p.patterns, 4, 80),
+    patterns: list3(p.patterns, 4, 80),
     bodySignals: str2(p.bodySignals, 300),
     realNeed: str2(p.realNeed, 200),
     reliability: p.reliability && typeof p.reliability === "object" ? { level: str2(p.reliability.level, 20) } : null
@@ -49251,20 +49641,20 @@ function normalizeAiris(p) {
     gender: AIRIS_GENDER[q.gender] ? q.gender : null,
     weight: numIn(q.weight, 30, 300),
     height: numIn(q.height, 120, 230),
-    goals: list2(q.goals, 8, 60),
+    goals: list3(q.goals, 8, 60),
     activityLevel: ["sedentary", "light", "moderate", "active", "very-active"].includes(q.activityLevel) ? q.activityLevel : null,
     stressLevel: ["low", "moderate", "high", "very-high"].includes(q.stressLevel) ? q.stressLevel : null,
     sleepHours: numIn(q.sleepHours, 2, 14),
     sleepQuality: ["poor", "fair", "good", "excellent"].includes(q.sleepQuality) ? q.sleepQuality : null,
     hydration: numIn(q.hydration, 0, 20),
-    dietaryProfile: list2(q.dietaryProfile, 8, 60),
-    dietaryHabits: list2(q.dietaryHabits, 8, 60),
+    dietaryProfile: list3(q.dietaryProfile, 8, 60),
+    dietaryHabits: list3(q.dietaryHabits, 8, 60),
     foodIntolerances: str2(q.foodIntolerances, 300),
     allergies: str2(q.allergies, 300),
     medications: str2(q.medications, 400),
     medicalConditions: str2(q.medicalConditions, 400),
     complaints: str2(q.complaints, 600),
-    healthStatus: list2(q.healthStatus, 10, 60)
+    healthStatus: list3(q.healthStatus, 10, 60)
   };
   const analysis = {
     constitution: str2(a.constitution, 200),
@@ -49282,10 +49672,10 @@ function normalizeAiris(p) {
       action: str2(d?.action, 240),
       source: ["questionnaire", "iris", "both"].includes(d?.source) ? d.source : "iris"
     })).filter((d) => d.action || d.observation),
-    eatMore: list2(a.eatMore, 15, 80),
-    eatLess: list2(a.eatLess, 15, 80),
+    eatMore: list3(a.eatMore, 15, 80),
+    eatLess: list3(a.eatLess, 15, 80),
     supplements: (Array.isArray(a.supplements) ? a.supplements : []).slice(0, 8).map((s) => ({ name: str2(s?.name, 80), dosage: str2(s?.dosage, 60) })).filter((s) => s.name),
-    recommendedTests: list2(a.recommendedTests, 10, 120),
+    recommendedTests: list3(a.recommendedTests, 10, 120),
     notices: (Array.isArray(a.notices) ? a.notices : []).slice(0, 6).map((n) => ({ level: n?.level === "critical" ? "critical" : "caution", title: str2(n?.title, 100), body: str2(n?.body, 300) })).filter((n) => n.title),
     eyeReferral: ["none", "routine", "soon", "urgent"].includes(a.eyeReferral) ? a.eyeReferral : "none"
   };
@@ -49358,7 +49748,7 @@ function handoffToFacts(h) {
       value: {
         analysis: h.analysis,
         complaints: q.complaints || "",
-        // За сверката с NutriPlan: само полетата, при които разминаване има значение.
+        // За сверката с Eatologix: само полетата, при които разминаване има значение.
         questionnaire: { weight: q.weight, foodIntolerances: q.foodIntolerances, allergies: q.allergies, medications: q.medications, dietaryProfile: q.dietaryProfile || [] }
       },
       at: h.at,
@@ -49427,7 +49817,7 @@ function airisPrefill(q) {
   }
   const extraHealth = (q.healthStatus || []).filter((x) => !AIRIS_HEALTH[x]);
   const notes = [...new Set([q.complaints, q.medicalConditions].filter(Boolean)), extraHealth.length ? `\u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u044F: ${extraHealth.join(", ")}` : ""].filter(Boolean).join(". ");
-  if (notes) out.additionalNotes = `\u041E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS): ${notes}`.slice(0, 800);
+  if (notes) out.additionalNotes = `\u041E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437 (IrisMap): ${notes}`.slice(0, 800);
   return out;
 }
 var SITE_LABELS = {
@@ -49596,12 +49986,12 @@ function handoffPreview(h) {
   const a = h.analysis;
   return {
     source: "airis",
-    title: "\u0418\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (AIRIS)",
+    title: "\u0418\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 (IrisMap)",
     lines: [
       a.constitution ? `\u041A\u043E\u043D\u0441\u0442\u0438\u0442\u0443\u0446\u0438\u044F: ${a.constitution}` : "",
       a.systems.filter((s) => s.priority).length ? `\u0424\u043E\u043A\u0443\u0441: ${a.systems.filter((s) => s.priority).map((s) => s.label || s.key).join(", ")}` : "",
       a.drivers.length ? `\u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043D\u0430\u0441\u043E\u043A\u0438: ${a.drivers.length}` : "",
-      "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u0430 NutriPlan \u2014 \u043C\u043E\u0436\u0435\u0448 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0448."
+      "\u041E\u0442\u0433\u043E\u0432\u043E\u0440\u0438\u0442\u0435 \u043E\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043F\u043E\u043F\u044A\u043B\u0432\u0430\u0442 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043D\u0430 Eatologix \u2014 \u043C\u043E\u0436\u0435\u0448 \u0434\u0430 \u0433\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0448."
     ].filter(Boolean),
     at: h.at
   };
@@ -49758,7 +50148,7 @@ function reanalyze(baseData, enrichedData, energy = {}, sex = "X") {
       if (b.codes.includes(p.code)) {
         out.sources.push("iris");
         out.severityValue = Math.min(95, p.severityValue + 4);
-        out.irisNote = `AIRIS: ${b.label} \u2014 \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D \u043E\u0442 ${b.evidence.join(", ")}`;
+        out.irisNote = `IrisMap: ${b.label} \u2014 \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442, \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D \u043E\u0442 ${b.evidence.join(", ")}`;
         usedIris.add(system);
       }
     }
@@ -49829,13 +50219,13 @@ async function getJson(fetchFn, url, token, init = {}) {
   if (!res.ok) throw new Error(`${url.split("?")[0]}: ${res.status}`);
   return res.json();
 }
-function sumByDay(list3) {
+function sumByDay(list4) {
   const out = /* @__PURE__ */ new Map();
-  for (const x of list3) if (x.day && Number.isFinite(x.value)) out.set(x.day, (out.get(x.day) || 0) + x.value);
+  for (const x of list4) if (x.day && Number.isFinite(x.value)) out.set(x.day, (out.get(x.day) || 0) + x.value);
   return [...out].map(([day, value]) => ({ day, value }));
 }
-function facts(kind, list3, source, map = (v) => v) {
-  return list3.filter((x) => x.day && Number.isFinite(x.value) && x.value > 0).map((x) => ({ kind, value: map(x.value), at: atOf(x.day), source, ...x.extra || {} }));
+function facts(kind, list4, source, map = (v) => v) {
+  return list4.filter((x) => x.day && Number.isFinite(x.value) && x.value > 0).map((x) => ({ kind, value: map(x.value), at: atOf(x.day), source, ...x.extra || {} }));
 }
 function slotOfLocal(iso) {
   const h = Number(String(iso || "").slice(11, 13));
@@ -49850,9 +50240,9 @@ function isTrainingWorkout(w) {
   if (w.intensity === "light") return false;
   return !w.walk && w.minutes >= 20;
 }
-function workoutsByDay(list3, source) {
+function workoutsByDay(list4, source) {
   const byDay = /* @__PURE__ */ new Map();
-  for (const w of list3) {
+  for (const w of list4) {
     if (!w.day || !(w.minutes > 0) || !isTrainingWorkout(w)) continue;
     const d = byDay.get(w.day) || { minutes: 0, count: 0, slot: null, intensity: null };
     d.minutes += w.minutes;
@@ -49879,9 +50269,9 @@ function huaweiMs(t) {
   if (n > 1e11) return n;
   return n * 1e3;
 }
-function huaweiFields(list3) {
+function huaweiFields(list4) {
   const out = {};
-  for (const f of Array.isArray(list3) ? list3 : []) {
+  for (const f of Array.isArray(list4) ? list4 : []) {
     const v = f.floatValue ?? f.integerValue ?? f.longValue ?? f.value;
     if (f.fieldName != null && v != null && Number.isFinite(Number(v))) out[f.fieldName] = Number(v);
   }
@@ -50153,8 +50543,8 @@ var PROVIDERS = {
     scope: "activity:read_all",
     authorizeExtra: { approval_prompt: "auto" },
     async fetchFacts(fetchFn, token, from) {
-      const list3 = await getJson(fetchFn, `https://www.strava.com/api/v3/athlete/activities?after=${Math.floor(from.getTime() / 1e3)}&per_page=100`, token);
-      return workoutsByDay((Array.isArray(list3) ? list3 : []).map((a) => ({
+      const list4 = await getJson(fetchFn, `https://www.strava.com/api/v3/athlete/activities?after=${Math.floor(from.getTime() / 1e3)}&per_page=100`, token);
+      return workoutsByDay((Array.isArray(list4) ? list4 : []).map((a) => ({
         day: String(a.start_date_local || "").slice(0, 10),
         minutes: Number(a.moving_time) / 60,
         slot: slotOfLocal(a.start_date_local),
@@ -50232,15 +50622,15 @@ async function pullFacts(fetchFn, env, provider, link, now = /* @__PURE__ */ new
   }
   const to = new Date(now.getTime() - DAY_MS4);
   const from = new Date(now.getTime() - LINK_DAYS * DAY_MS4);
-  let list3;
+  let list4;
   try {
-    list3 = await p.fetchFacts(fetchFn, current.access, from, to);
+    list4 = await p.fetchFacts(fetchFn, current.access, from, to);
   } catch (e) {
     if (e.status !== 401) throw e;
     current = await refreshToken(fetchFn, env, provider, current);
-    list3 = await p.fetchFacts(fetchFn, current.access, from, to);
+    list4 = await p.fetchFacts(fetchFn, current.access, from, to);
   }
-  return { facts: list3, link: current };
+  return { facts: list4, link: current };
 }
 
 // admin-food-catalog.js
@@ -51281,6 +51671,8 @@ var RATE_LIMIT = {
   // 8 validations/min per IP
   SOCIAL_AUTH: { maxRequests: 10, windowSec: 60 },
   // 10 auth attempts/min per IP
+  I18N_TRANSLATE: { maxRequests: 40, windowSec: 60 },
+  // резервен превод на интерфейса (само непреведените низове)
   FORGOT_PASSWORD: { maxRequests: 5, windowSec: 900 },
   // 5 reset requests per 15 min per IP
   XBODY_APPOINTMENTS: { maxRequests: 15, windowSec: 60 },
@@ -51302,7 +51694,7 @@ var RATE_LIMIT = {
   STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },
   // studio platform: the admin's 5-digit code
   HANDOFF: { maxRequests: 10, windowSec: 600 },
-  // модул → NutriPlan: нова пратка
+  // модул → Eatologix: нова пратка
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 }
   // преглед и прибиране на пратка
 };
@@ -51491,12 +51883,12 @@ function normalizePepProductBaseName(baseName) {
   if (PEP_PRODUCT_NAME_ALIASES[trimmed]) {
     return PEP_PRODUCT_NAME_ALIASES[trimmed];
   }
-  const lower = trimmed.toLowerCase();
-  if (/retatrut/i.test(lower)) return "Retatrutide";
-  if (/^mots-?c$/i.test(lower) || lower === "mot-c") return "Mots-C";
-  if (/tirzepatid|тирзепатид/i.test(lower)) return "\u0422\u0438\u0440\u0437\u0435\u043F\u0430\u0442\u0438\u0434";
-  if (/melanotan/i.test(lower)) return "\u041C\u0435\u043B\u0430\u043D\u043E\u0442\u0430\u043D 2";
-  if (/glutathione|глутатион/i.test(lower)) return "\u0413\u043B\u0443\u0442\u0430\u0442\u0438\u043E\u043D";
+  const lower2 = trimmed.toLowerCase();
+  if (/retatrut/i.test(lower2)) return "Retatrutide";
+  if (/^mots-?c$/i.test(lower2) || lower2 === "mot-c") return "Mots-C";
+  if (/tirzepatid|тирзепатид/i.test(lower2)) return "\u0422\u0438\u0440\u0437\u0435\u043F\u0430\u0442\u0438\u0434";
+  if (/melanotan/i.test(lower2)) return "\u041C\u0435\u043B\u0430\u043D\u043E\u0442\u0430\u043D 2";
+  if (/glutathione|глутатион/i.test(lower2)) return "\u0413\u043B\u0443\u0442\u0430\u0442\u0438\u043E\u043D";
   return trimmed;
 }
 function normalizePepProductDosage(dosage) {
@@ -52296,11 +52688,11 @@ function refreshAnalysisEnergyFromProfile(env, data, analysis) {
   const intakeDrift = previousIntake > 0 && intake > 0 ? Math.abs(intake - previousIntake) / previousIntake : previousIntake !== intake ? 1 : 0;
   return { bmr, tdee, activityData, previousIntake, intake, intakeDrift };
 }
-function guardFields(obj, keys) {
+function guardFields(obj, keys, lang) {
   if (!obj || typeof obj !== "object") return;
   for (const k of keys) {
     if (typeof obj[k] !== "string" || !obj[k].trim()) continue;
-    const g = guardClientText(obj[k], { fallback: "" });
+    const g = guardClientText(obj[k], { fallback: "", lang });
     if (g.removed.length) console.warn(`[guard] ${k}: \u043C\u0430\u0445\u043D\u0430\u0442\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F:`, g.removed.join(", "));
     obj[k] = g.text;
   }
@@ -52380,7 +52772,7 @@ async function isAILoggingEnabled(env) {
   return enabled;
 }
 async function callAIModel(env, prompt, maxTokens = null, stepName = "unknown", sessionId = null, userData = null, calculatedData = null, skipJSONEnforcement = false) {
-  const enforcedPrompt = skipJSONEnforcement ? prompt : enforceJSONOnlyPrompt(prompt);
+  const enforcedPrompt = (skipJSONEnforcement ? prompt : enforceJSONOnlyPrompt(prompt)) + languageDirective(userData?.lang);
   const estimatedInputTokens = estimateTokenCount(enforcedPrompt);
   if (estimatedInputTokens > 12e3) {
     console.error(`\u{1F6A8} Very large input prompt: ~${estimatedInputTokens} tokens. Review the calling function to ensure this is intentional.`);
@@ -53135,6 +53527,7 @@ async function handleChat(request, env) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_CONTEXT }, 400);
     }
     const effectiveUserData = userData || {};
+    if (body.lang && !effectiveUserData.lang) effectiveUserData.lang = body.lang;
     const effectiveUserPlan = userPlan || {};
     const chatHistory = conversationHistory || [];
     const requestedMode = mode || "consultation";
@@ -53239,7 +53632,7 @@ async function handleChat(request, env) {
         finalResponse = cleanResponseFromRegenerate(aiResponse, regenerateIndex);
       }
     }
-    const guarded = guardClientText(finalResponse);
+    const guarded = guardClientText(finalResponse, { lang: effectiveUserData.lang });
     if (guarded.removed.length) console.warn("[chat] \u043C\u0430\u0445\u043D\u0430\u0442\u0438 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F:", guarded.removed.join(", "));
     finalResponse = guarded.text;
     const updatedHistory = [...chatHistory];
@@ -53302,7 +53695,7 @@ function escapeHtml(str3) {
 }
 var DEFAULT_EMAIL_TEMPLATE = {
   subject: "\u0422\u0432\u043E\u044F\u0442 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D \u0435 \u0433\u043E\u0442\u043E\u0432! \u{1F957}",
-  headerTitle: "\u{1F37D}\uFE0F Nutri Plan",
+  headerTitle: "\u{1F37D}\uFE0F Eatologix",
   headerSubtitle: "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D",
   greeting: "\u0417\u0434\u0440\u0430\u0432\u0435\u0439, {name}! \u{1F44B}",
   paragraph1: "\u0420\u0430\u0434\u0432\u0430\u043C\u0435 \u0441\u0435 \u0434\u0430 \u0442\u0438 \u0441\u044A\u043E\u0431\u0449\u0438\u043C, \u0447\u0435 \u0442\u0432\u043E\u044F\u0442 <strong>\u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D 7-\u0434\u043D\u0435\u0432\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</strong> \u0435 \u0433\u043E\u0442\u043E\u0432 \u0438 \u0432\u0435\u0447\u0435 \u0435 \u0434\u043E\u0441\u0442\u044A\u043F\u0435\u043D!",
@@ -53311,10 +53704,11 @@ var DEFAULT_EMAIL_TEMPLATE = {
   contactEmail: "info@biocode.online"
 };
 var PLAN_APP_BASE_URL = "https://biocode.website";
+var EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/eatologix-email-logo.png" width="240" height="50" alt="EATOLOGIX" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
 var PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
 var DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
   subject: "\u0422\u0432\u043E\u044F\u0442 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D \u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u0438\u0437\u0438\u0440\u0430\u043D \u{1F957}",
-  headerTitle: "\u{1F37D}\uFE0F Nutri Plan",
+  headerTitle: "\u{1F37D}\uFE0F Eatologix",
   headerSubtitle: "\u0410\u043A\u0442\u0443\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u044F \u043D\u0430 \u043F\u043B\u0430\u043D",
   greeting: "\u0417\u0434\u0440\u0430\u0432\u0435\u0439, {name}! \u{1F44B}",
   paragraph1: "\u0421\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u044A\u0442 \u043D\u0430\u043F\u0440\u0430\u0432\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0432\u044A\u0432 \u0442\u0432\u043E\u044F <strong>\u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</strong>.",
@@ -53345,9 +53739,9 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
           <tr>
-            <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">${safeHeaderTitle}</h1>
-              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">${safeHeaderSubtitle}</p>
+            <td style="background:#ffffff;padding:32px 40px 18px;text-align:center;border-bottom:1px solid #E3F4F2;">
+              ${EMAIL_LOGO_HTML}
+              <p style="color:#05737D;margin:12px 0 0;font-size:15px;">${safeHeaderSubtitle}</p>
             </td>
           </tr>
           <tr>
@@ -53361,7 +53755,7 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
               </p>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
                 <tr>
-                  <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
+                  <td style="background:#05737D;background:linear-gradient(120deg,#03909C,#08C2B4 45%,#10CC50);border-radius:8px;">
                     <a href="${safeButtonUrl}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
                   </td>
                 </tr>
@@ -53380,14 +53774,14 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
                 </tr>
               </table>
               <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
-                \u0410\u043A\u043E \u0438\u043C\u0430\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0438, \u043F\u0438\u0448\u0435\u0442\u0435 \u043D\u0438 \u043D\u0430 <a href="mailto:${safeContactEmail}" style="color:#4CAF50;text-decoration:none;">${safeContactEmail}</a>
+                \u0410\u043A\u043E \u0438\u043C\u0430\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0438, \u043F\u0438\u0448\u0435\u0442\u0435 \u043D\u0438 \u043D\u0430 <a href="mailto:${safeContactEmail}" style="color:#05737D;text-decoration:none;">${safeContactEmail}</a>
               </p>
             </td>
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; \u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</p>
-              <p style="color:#999999;font-size:12px;margin:5px 0 0;">biocode.online</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Eatologix &mdash; \u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</p>
+              <p style="color:#999999;font-size:12px;margin:5px 0 0;">eatologix.com</p>
             </td>
           </tr>
         </table>
@@ -53419,9 +53813,9 @@ function buildPlanUpdatedEmailHtml(clientName, tpl, buttonUrl) {
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
           <tr>
-            <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">${safeHeaderTitle}</h1>
-              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">${safeHeaderSubtitle}</p>
+            <td style="background:#ffffff;padding:32px 40px 18px;text-align:center;border-bottom:1px solid #E3F4F2;">
+              ${EMAIL_LOGO_HTML}
+              <p style="color:#05737D;margin:12px 0 0;font-size:15px;">${safeHeaderSubtitle}</p>
             </td>
           </tr>
           <tr>
@@ -53431,19 +53825,19 @@ function buildPlanUpdatedEmailHtml(clientName, tpl, buttonUrl) {
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 30px;">${t.paragraph2}</p>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
                 <tr>
-                  <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
+                  <td style="background:#05737D;background:linear-gradient(120deg,#03909C,#08C2B4 45%,#10CC50);border-radius:8px;">
                     <a href="${safeButtonUrl}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${safeButtonText}</a>
                   </td>
                 </tr>
               </table>
               <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
-                \u0410\u043A\u043E \u0438\u043C\u0430\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0438, \u043F\u0438\u0448\u0435\u0442\u0435 \u043D\u0438 \u043D\u0430 <a href="mailto:${safeContactEmail}" style="color:#4CAF50;text-decoration:none;">${safeContactEmail}</a>
+                \u0410\u043A\u043E \u0438\u043C\u0430\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0438, \u043F\u0438\u0448\u0435\u0442\u0435 \u043D\u0438 \u043D\u0430 <a href="mailto:${safeContactEmail}" style="color:#05737D;text-decoration:none;">${safeContactEmail}</a>
               </p>
             </td>
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; \u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Eatologix &mdash; \u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</p>
             </td>
           </tr>
         </table>
@@ -53470,23 +53864,23 @@ function buildPasswordResetEmailHtml(oobLink, contactEmail = "info@biocode.onlin
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:600px;">
           <tr>
-            <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);padding:40px 40px 30px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">\u{1F37D}\uFE0F Nutri Plan</h1>
-              <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:16px;">\u041D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430</p>
+            <td style="background:#ffffff;padding:32px 40px 18px;text-align:center;border-bottom:1px solid #E3F4F2;">
+              ${EMAIL_LOGO_HTML}
+              <p style="color:#05737D;margin:12px 0 0;font-size:15px;">\u041D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430</p>
             </td>
           </tr>
           <tr>
             <td style="padding:40px;">
               <h2 style="color:#333333;margin:0 0 20px;font-size:22px;">\u0417\u0430\u044F\u0432\u043A\u0430 \u0437\u0430 \u043D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430 \u{1F512}</h2>
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 20px;">
-                \u041F\u043E\u043B\u0443\u0447\u0438\u0445\u043C\u0435 \u0437\u0430\u044F\u0432\u043A\u0430 \u0437\u0430 \u043D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430\u0442\u0430 \u0437\u0430 \u0432\u0430\u0448\u0438\u044F \u0430\u043A\u0430\u0443\u043D\u0442 \u0432 Nutri Plan.
+                \u041F\u043E\u043B\u0443\u0447\u0438\u0445\u043C\u0435 \u0437\u0430\u044F\u0432\u043A\u0430 \u0437\u0430 \u043D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430\u0442\u0430 \u0437\u0430 \u0432\u0430\u0448\u0438\u044F \u0430\u043A\u0430\u0443\u043D\u0442 \u0432 Eatologix.
               </p>
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 30px;">
                 \u041D\u0430\u0442\u0438\u0441\u043D\u0435\u0442\u0435 \u0431\u0443\u0442\u043E\u043D\u0430 \u043F\u043E-\u0434\u043E\u043B\u0443, \u0437\u0430 \u0434\u0430 \u0437\u0430\u0434\u0430\u0434\u0435\u0442\u0435 \u043D\u043E\u0432\u0430 \u043F\u0430\u0440\u043E\u043B\u0430. \u041B\u0438\u043D\u043A\u044A\u0442 \u0435 \u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0437\u0430 <strong>1 \u0447\u0430\u0441</strong>.
               </p>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 30px;">
                 <tr>
-                  <td style="background:linear-gradient(135deg,#4CAF50,#2196F3);border-radius:8px;">
+                  <td style="background:#05737D;background:linear-gradient(120deg,#03909C,#08C2B4 45%,#10CC50);border-radius:8px;">
                     <a href="${safeOobLink}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">\u041D\u0443\u043B\u0438\u0440\u0430\u0439 \u043F\u0430\u0440\u043E\u043B\u0430\u0442\u0430 \u2192</a>
                   </td>
                 </tr>
@@ -53495,14 +53889,14 @@ function buildPasswordResetEmailHtml(oobLink, contactEmail = "info@biocode.onlin
                 \u0410\u043A\u043E \u043D\u0435 \u0441\u0442\u0435 \u043F\u043E\u0438\u0441\u043A\u0430\u043B\u0438 \u043D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430, \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u0430 \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0430\u0442\u0435 \u0442\u043E\u0437\u0438 \u0438\u043C\u0435\u0439\u043B. \u0410\u043A\u0430\u0443\u043D\u0442\u044A\u0442 \u0432\u0438 \u0435 \u0432 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442.
               </p>
               <p style="color:#777777;font-size:14px;line-height:1.6;margin:0;">
-                \u0410\u043A\u043E \u0438\u043C\u0430\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0438, \u043F\u0438\u0448\u0435\u0442\u0435 \u043D\u0438 \u043D\u0430 <a href="mailto:${safeContactEmail}" style="color:#4CAF50;text-decoration:none;">${safeContactEmail}</a>
+                \u0410\u043A\u043E \u0438\u043C\u0430\u0442\u0435 \u0432\u044A\u043F\u0440\u043E\u0441\u0438, \u043F\u0438\u0448\u0435\u0442\u0435 \u043D\u0438 \u043D\u0430 <a href="mailto:${safeContactEmail}" style="color:#05737D;text-decoration:none;">${safeContactEmail}</a>
               </p>
             </td>
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutri Plan &mdash; \u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</p>
-              <p style="color:#999999;font-size:12px;margin:5px 0 0;">biocode.online</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Eatologix &mdash; \u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</p>
+              <p style="color:#999999;font-size:12px;margin:5px 0 0;">eatologix.com</p>
             </td>
           </tr>
         </table>
@@ -53625,11 +54019,12 @@ async function handleForgotPassword(request, env) {
     if (oobLink) {
       const tpl = await getEmailTemplate(env);
       const contactEmail = tpl.contactEmail || DEFAULT_EMAIL_TEMPLATE.contactEmail;
+      const resetLang = String(body?.lang || "").toLowerCase();
       await sendEmailViaSMTP(
         env,
         email,
-        "\u041D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430 \u2014 Nutri Plan \u{1F512}",
-        buildPasswordResetEmailHtml(oobLink, contactEmail)
+        RESET_SUBJECT[resetLang] || "\u041D\u0443\u043B\u0438\u0440\u0430\u043D\u0435 \u043D\u0430 \u043F\u0430\u0440\u043E\u043B\u0430 \u2014 Eatologix \u{1F512}",
+        localizeEmailHtml(buildPasswordResetEmailHtml(oobLink, contactEmail), resetLang)
       );
       console.log(`[ForgotPassword] Resend email sent to ${email}`);
     } else {
@@ -53674,7 +54069,7 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      from: "Nutri Plan <info@biocode.online>",
+      from: "Eatologix <info@biocode.online>",
       to: [to],
       subject,
       html: htmlBody
@@ -54278,7 +54673,7 @@ var ADMIN_ASSISTANT_SESSION_PREFIX = "admin_assistant_session:";
 var DEFAULT_GEMINI_PLAN_MODEL = "gemini-3.6-flash";
 var DEFAULT_GEMINI_LITE_MODEL = "gemini-3.5-flash-lite";
 var ADMIN_ASSISTANT_DEFAULT_MODEL = DEFAULT_GEMINI_PLAN_MODEL;
-var ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `\u0422\u0438 \u0441\u0438 NutriPlan AI \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u0437\u0430 \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440-\u043D\u0443\u0442\u0440\u0438\u0446\u0438\u043E\u043D\u0438\u0441\u0442.
+var ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `\u0422\u0438 \u0441\u0438 Eatologix AI \u0430\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u0437\u0430 \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440-\u043D\u0443\u0442\u0440\u0438\u0446\u0438\u043E\u043D\u0438\u0441\u0442.
 \u0427\u0435\u0442\u0435\u0448 \u043A\u0435\u0448\u0438\u0440\u0430\u043D \u043A\u043B\u0438\u0435\u043D\u0442\u0441\u043A\u0438 \u043A\u0430\u0440\u0442\u043E\u043D (CC/NPCF). \u041F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0441\u0435 \u043F\u0440\u0430\u0432\u044F\u0442 \u0447\u0440\u0435\u0437 RFC 6902 JSON Patch \u0432\u044A\u0440\u0445\u0443 \u043A\u0430\u043D\u043E\u043D\u0438\u0447\u043D\u0438\u044F JSON.
 
 Patch root: { answers, plan, adminNotes }
@@ -54553,23 +54948,26 @@ async function deliverPlanUpdateToClient(env, clientData, clientId, kind = "upda
       const token = await createPlanClaimToken(env, clientData, clientId);
       const claimUrl = buildPlanClaimUrl(token);
       const clientName = clientData.answers?.name || "\u041A\u043B\u0438\u0435\u043D\u0442";
+      const emailLang = clientData.answers?.lang || clientData.lang || "";
       if (kind === "ready") {
-        const tpl = await getEmailTemplate(env);
+        const kvTpl = await getEmailTemplate(env);
+        const tpl = Object.assign({}, kvTpl, emailTemplateFor("ready", emailLang) || {});
         const subject = tpl.subject || DEFAULT_EMAIL_TEMPLATE.subject;
         await sendEmailViaSMTP(
           env,
           clientEmail,
           subject,
-          buildPlanReadyEmailHtml(clientName, tpl, claimUrl)
+          localizeEmailHtml(buildPlanReadyEmailHtml(clientName, tpl, claimUrl), emailLang)
         );
       } else {
-        const tpl = await getPlanUpdatedEmailTemplate(env);
+        const kvTpl = await getPlanUpdatedEmailTemplate(env);
+        const tpl = Object.assign({}, kvTpl, emailTemplateFor("updated", emailLang) || {});
         const subject = tpl.subject || DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE.subject;
         await sendEmailViaSMTP(
           env,
           clientEmail,
           subject,
-          buildPlanUpdatedEmailHtml(clientName, tpl, claimUrl)
+          localizeEmailHtml(buildPlanUpdatedEmailHtml(clientName, tpl, claimUrl), emailLang)
         );
       }
       emailSent = true;
@@ -54671,7 +55069,8 @@ var ENGINE_INPUT_ANSWER_KEYS = [
   "foodCravings",
   "eatingHabits",
   "mealsPerDay",
-  "userFoodList"
+  "userFoodList",
+  "userFoodExclude"
 ];
 var engineInputsOf = (answers2) => JSON.stringify(ENGINE_INPUT_ANSWER_KEYS.map((k) => answers2?.[k] ?? null));
 async function applyAssistantPatches(env, session, clientData, patches, ctx) {
@@ -56713,6 +57112,7 @@ function assembleEnginePlan(data, analysis, options = {}) {
   }, strategy);
   plan.analysis = analysis;
   plan.strategy = strategy;
+  if (engine.foodChoice) plan.foodChoice = engine.foodChoice;
   if (options.dishPreference && Object.keys(options.dishPreference).length) plan.dishPreference = options.dishPreference;
   plan._meta = {
     generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
@@ -56785,6 +57185,7 @@ function personalHacks(plan, baseHacks, protocolHacks = null) {
   return personal.length ? [...personal] : baseHacks;
 }
 async function applyIntakeHints(env, data) {
+  await applyFoodChoiceNames(env, data);
   const items = collectFreeText(data);
   const freeFields = new Set(items.map((i) => i.field));
   const answers2 = collectQuestionAnswers(data, protocolQuestionLabels(data.clinicalProtocol)).filter((a) => !freeFields.has(a.field));
@@ -56812,6 +57213,20 @@ async function applyIntakeHints(env, data) {
   const hints = normalizeIntakeHints(raw);
   if (hints) data._aiHints = { ...hints, hash };
   else delete data._aiHints;
+}
+async function applyFoodChoiceNames(env, data) {
+  const names = unresolvedChoiceNames(data);
+  if (!names.length) {
+    delete data._foodChoiceNames;
+    return;
+  }
+  const hash = textHash(names.map((text2) => ({ field: "food_choice", text: text2 })));
+  if (data._foodChoiceNames?.hash === hash) return;
+  const raw = await aiHelperJson(env, "admin_food_choice_prompt", {
+    names: names.map((n) => `- ${n}`).join("\n"),
+    foods: choiceVocabulary().join(", ")
+  }, { ...data, lang: "" }, "food_choice");
+  data._foodChoiceNames = { names: normalizeChoiceNames(raw, names), hash };
 }
 function councilEnabled(env = {}) {
   const v = env?.AI_COUNCIL;
@@ -57097,8 +57512,8 @@ async function runSafetyRebuild(env, payload, jobId) {
 var COUNCIL_OUTCOME_PREFIX = "council_outcome:";
 var COUNCIL_OUTCOME_TTL = 400 * 24 * 60 * 60;
 async function recordCouncilOutcome(env, history, decision, jobId) {
-  const list3 = Array.isArray(history) ? history : [];
-  const prev = list3[list3.length - 1];
+  const list4 = Array.isArray(history) ? history : [];
+  const prev = list4[list4.length - 1];
   if (!env?.page_content || !prev?.direction) return;
   try {
     const outcome = councilOutcome(prev, decision.context?.checkin || {});
@@ -57811,6 +58226,7 @@ var AI_TASKS = {
   intake_hints: { tier: "main", thinking: "low" },
   menu_review: { tier: "main", thinking: "low" },
   feedback_hints: { tier: "lite", thinking: "low" },
+  food_choice: { tier: "lite", thinking: "minimal", maxTokens: 600 },
   // Съветът (алгоритъм + AI): клинична преценка — мисли повече; отговорът на възражението — по-кратко.
   // Цената: ниско мислене; отговорът на възражението — по-евтиният модел.
   goal_council: { tier: "main", thinking: "low", maxTokens: 700 },
@@ -58191,8 +58607,8 @@ ${planContext ? `\u0422\u0415\u041A\u0423\u0429 \u0414\u0418\u0415\u0422\u0418\u
       const menuBody = await menuResponse.json();
       return jsonResponse2({ ...menuBody, kind: "menu" }, menuResponse.status);
     }
-    guardFields(analysisResult?.dietSuitability, ["explanation"]);
-    guardFields(analysisResult, ["suggestions"]);
+    guardFields(analysisResult?.dietSuitability, ["explanation"], body?.lang);
+    guardFields(analysisResult, ["suggestions"], body?.lang);
     const suitScore = Number(analysisResult?.dietSuitability?.score);
     if (suitScore > 5) analysisResult.dietSuitability.score = Math.round(suitScore / 2);
     if (analysisResult && Array.isArray(analysisResult.foods)) {
@@ -58322,8 +58738,8 @@ ${planContext ? `\u0414\u0418\u0415\u0422\u0418\u0427\u0415\u041D \u041F\u041B\u
         message: "\u0421\u043D\u0438\u043C\u043A\u0430\u0442\u0430 \u043D\u0435 \u0431\u0435\u0448\u0435 \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0442\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0441 \u043F\u043E-\u044F\u0441\u043D\u0430 \u0441\u043D\u0438\u043C\u043A\u0430."
       });
     }
-    guardFields(menuResult, ["description", "reasoning", "adaptationTip"]);
-    (Array.isArray(menuResult?.alternatives) ? menuResult.alternatives : []).forEach((a) => guardFields(a, ["reason"]));
+    guardFields(menuResult, ["description", "reasoning", "adaptationTip"], body?.lang);
+    (Array.isArray(menuResult?.alternatives) ? menuResult.alternatives : []).forEach((a) => guardFields(a, ["reason"], body?.lang));
     return jsonResponse2({
       success: true,
       analysis: menuResult
@@ -59002,6 +59418,7 @@ function getPromptKVKey(type) {
     "intake_hints": "admin_intake_hints_prompt",
     "menu_review": "admin_menu_review_prompt",
     "feedback_hints": "admin_feedback_hints_prompt",
+    "food_choice": "admin_food_choice_prompt",
     "document_assessment": "admin_document_assessment_prompt"
   };
   return keyMap[type] || null;
@@ -59055,6 +59472,7 @@ async function handleGetDefaultPrompt(request, env) {
       "intake_hints": "admin_intake_hints_prompt",
       "menu_review": "admin_menu_review_prompt",
       "feedback_hints": "admin_feedback_hints_prompt",
+      "food_choice": "admin_food_choice_prompt",
       "document_assessment": "admin_document_assessment_prompt"
     };
     const kvKey = promptKeyMap[type];
@@ -59340,7 +59758,7 @@ function serializeEmoeatProfile(profile) {
     const num2 = Number(value);
     return Number.isFinite(num2) ? Math.max(0, Math.min(100, Math.round(num2))) : 0;
   };
-  const list3 = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
+  const list4 = (value) => Array.isArray(value) ? value.slice(0, 8) : [];
   const lines = [];
   const intensity = label(profile.intensity, 12);
   if (intensity) lines.push(`\u041A\u043E\u043B\u043A\u043E \u0447\u0435\u0441\u0442\u043E \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430: ${intensity}`);
@@ -59352,11 +59770,11 @@ function serializeEmoeatProfile(profile) {
   } else {
     lines.push("\u041F\u0440\u043E\u0444\u0438\u043B: \u043D\u044F\u043C\u0430 \u0438\u0437\u0440\u0430\u0437\u0435\u043D \u043C\u043E\u0434\u0435\u043B \u2014 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0440\u044F\u0434\u043A\u043E \u043F\u043E\u0435\u043C\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0430\u0442\u0430 (\u043D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0439 \u043F\u0440\u043E\u0431\u043B\u0435\u043C).");
   }
-  const drivers = list3(profile.drivers).map((d) => label(d, 40)).filter(Boolean);
+  const drivers = list4(profile.drivers).map((d) => label(d, 40)).filter(Boolean);
   if (drivers.length) lines.push("\u041A\u0430\u043A\u0432\u043E \u0433\u043E \u0437\u0430\u0445\u0440\u0430\u043D\u0432\u0430: " + drivers.join(", "));
-  const behaviors = list3(profile.behaviors).filter((b) => b && b.name).map((b) => `${label(b.name, 40)} (${label(b.level, 12)})`);
+  const behaviors = list4(profile.behaviors).filter((b) => b && b.name).map((b) => `${label(b.name, 40)} (${label(b.level, 12)})`);
   if (behaviors.length) lines.push("\u041A\u0430\u043A \u0441\u0435 \u043F\u0440\u043E\u044F\u0432\u044F\u0432\u0430: " + behaviors.join(", "));
-  const patterns = list3(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || "" : p, 60)).filter(Boolean);
+  const patterns = list4(profile.patterns).map((p) => label(p && typeof p === "object" ? p.title || "" : p, 60)).filter(Boolean);
   if (patterns.length) lines.push("\u041E\u0442\u043A\u0440\u0438\u0442\u0438 \u043A\u0440\u044A\u0433\u043E\u0432\u0435: " + patterns.join("; "));
   const body = label(profile.bodySignals, 120);
   if (body) lines.push("\u0422\u0435\u043B\u0435\u0441\u043D\u0438 \u0441\u0438\u0433\u043D\u0430\u043B\u0438: " + body);
@@ -59400,7 +59818,8 @@ async function handleGenerateEmoeatAnalysis(request, env) {
       EMOEAT_TOKEN_LIMIT,
       "emoeat_analysis",
       null,
-      null,
+      { lang: data.lang },
+      // езикът на клиента (i18n.js го добавя в тялото) → текстът на неговия език
       null
     );
     const parsed = parseAIResponse(aiResponse);
@@ -61043,16 +61462,16 @@ async function handleGetCalendarIcs(request, env) {
   const DAYS2 = 60;
   const defaults = {
     morningTime: "07:00",
-    morningTitle: "NutriPlan",
+    morningTitle: "Eatologix",
     morningBody: "\u0421\u043F\u0430 \u043B\u0438 \u0434\u043E\u0431\u0440\u0435 \u0442\u0430\u0437\u0438 \u043D\u043E\u0449?",
     eveningActivityTime: "20:00",
-    eveningActivityTitle: "NutriPlan",
+    eveningActivityTitle: "Eatologix",
     eveningActivityBody: "\u041A\u043E\u043B\u043A\u043E \u0441\u0435 \u0434\u0432\u0438\u0436\u0438 \u0434\u043D\u0435\u0441?",
     eveningBalanceTime: "20:05",
-    eveningBalanceTitle: "NutriPlan",
+    eveningBalanceTitle: "Eatologix",
     eveningBalanceBody: "\u041A\u0430\u043A \u0441\u0435 \u0447\u0443\u0432\u0441\u0442\u0432\u0430\u0448\u0435 \u0434\u043D\u0435\u0441?",
     eveningWaterTime: "20:10",
-    eveningWaterTitle: "NutriPlan",
+    eveningWaterTitle: "Eatologix",
     eveningWaterBody: "\u041F\u0438 \u043B\u0438 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0441?",
     eveningTime: "20:00"
   };
@@ -61065,7 +61484,10 @@ async function handleGetCalendarIcs(request, env) {
   } catch (_) {
   }
   const LEGACY_COPY = {
-    "AI \u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442": "NutriPlan",
+    "AI \u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442": "Eatologix",
+    "NutriPlan": "Eatologix",
+    // старото име, записано в KV преди смяната
+    "NutriDeus": "Eatologix",
     "\u041D\u0438\u0432\u043E \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442?": "\u041A\u043E\u043B\u043A\u043E \u0441\u0435 \u0434\u0432\u0438\u0436\u0438 \u0434\u043D\u0435\u0441?",
     "\u0415\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u0431\u0430\u043B\u0430\u043D\u0441?": "\u041A\u0430\u043A \u0441\u0435 \u0447\u0443\u0432\u0441\u0442\u0432\u0430\u0448\u0435 \u0434\u043D\u0435\u0441?",
     "\u0418\u0437\u043F\u0438 \u043B\u0438 \u043F\u043E\u043D\u0435 2 \u043B \u0432\u043E\u0434\u0430?": "\u041F\u0438 \u043B\u0438 \u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0432\u043E\u0434\u0430 \u0434\u043D\u0435\u0441?"
@@ -61147,7 +61569,7 @@ async function handleGetCalendarIcs(request, env) {
         day,
         parts[0],
         parts[1],
-        extra.title || "NutriPlan",
+        extra.title || "Eatologix",
         extra.body || ""
       ));
     });
@@ -61155,10 +61577,10 @@ async function handleGetCalendarIcs(request, env) {
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//NutriPlan//AiDiet//BG",
+    "PRODID:-//Eatologix//AiDiet//BG",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:NutriPlan \u041D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0438\u044F",
+    "X-WR-CALNAME:Eatologix \u041D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0438\u044F",
     "X-WR-CALDESC:\u0421\u0443\u0442\u0440\u0435\u0448\u043D\u0438 \u0438 \u0432\u0435\u0447\u0435\u0440\u043D\u0438 \u043D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0438\u044F \u0437\u0430 \u0442\u0432\u043E\u044F \u0434\u0438\u0435\u0442\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D",
     "REFRESH-INTERVAL;VALUE=DURATION:PT24H",
     "X-PUBLISHED-TTL:PT24H",
@@ -61277,8 +61699,8 @@ async function handlePushSend(request, env) {
     }
     const subscription = JSON.parse(subscriptionData);
     const pushMessage = {
-      title: title || "NutriPlan",
-      body: body || "\u041D\u043E\u0432\u043E \u043D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0435 \u043E\u0442 NutriPlan",
+      title: title || "Eatologix",
+      body: body || "\u041D\u043E\u0432\u043E \u043D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0435 \u043E\u0442 Eatologix",
       url: url || "/plan.html",
       icon: icon || "/icon-192x192.png",
       notificationType: notificationType || "general",
@@ -61750,8 +62172,8 @@ async function touchHandoff(env, token, rec) {
 var HANDOFF_RECENT_KEY = "handoff_recent";
 async function rememberHandoffClaim(env, entry) {
   try {
-    const list3 = await kvGetJSON(env, HANDOFF_RECENT_KEY) || [];
-    await kvPutJSON(env, HANDOFF_RECENT_KEY, [entry, ...list3].slice(0, 30), null);
+    const list4 = await kvGetJSON(env, HANDOFF_RECENT_KEY) || [];
+    await kvPutJSON(env, HANDOFF_RECENT_KEY, [entry, ...list4].slice(0, 30), null);
   } catch (e) {
     console.warn("[handoff] recent list skipped:", e.message);
   }
@@ -62081,7 +62503,7 @@ async function handleEnrichmentDelete(request, env) {
 }
 var LINK_SYNC_MIN_MS = 3 * 60 * 60 * 1e3;
 var LINK_TTL = 365 * 24 * 60 * 60;
-var LINK_RETURN_HOSTS = ["biocode.website", "www.biocode.website", "radilovk.github.io", "localhost", "127.0.0.1"];
+var LINK_RETURN_HOSTS = ["biocode.website", "www.biocode.website", "eatologix.com", "www.eatologix.com", "emoeat.app", "www.emoeat.app", "irismap.app", "www.irismap.app", "radilovk.github.io", "localhost", "127.0.0.1"];
 function linkRedirectUri(request, provider) {
   return `${new URL(request.url).origin}/api/links/callback/${provider}`;
 }
@@ -62207,11 +62629,11 @@ async function handleLinksStart(request, env) {
 var APP_INTENT_URL = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.biocode.nutriplan;end";
 function linkResultPage(ok, title, text2, fromApp = false) {
   const esc3 = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NutriPlan</title>
-<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#F0FDFA;color:#042F2E}
-main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? "#0F766E" : "#B45309"}}
-a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#0F766E;color:#fff;text-decoration:none}</style></head>
-<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text2)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : "https://biocode.website/index.html?app=1&tab=profile"}">\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 NutriPlan</a></main>
+  const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Eatologix</title>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#EEFDFC;color:#032E36}
+main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? "#05737D" : "#B45309"}}
+a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#05737D;color:#fff;text-decoration:none}</style></head>
+<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text2)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : "https://biocode.website/index.html?app=1&tab=profile"}">\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 Eatologix</a></main>
 ${fromApp ? `<script>setTimeout(function(){location.href=${JSON.stringify(APP_INTENT_URL)};},${ok ? 600 : 2500});<\/script>` : ""}</body></html>`;
   return new Response(html, { status: ok ? 200 : 400, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }
@@ -62220,7 +62642,7 @@ async function handleLinksCallback(request, env, provider) {
   const state = url.searchParams.get("state") || "";
   const code = url.searchParams.get("code") || "";
   const pending = state ? await kvGetJSON(env, `link_state:${state}`) : null;
-  if (!pending || pending.provider !== provider) return linkResultPage(false, "\u0412\u0440\u044A\u0437\u043A\u0430\u0442\u0430 \u043D\u0435 \u0435 \u0437\u0430\u0432\u044A\u0440\u0448\u0435\u043D\u0430", "\u0417\u0430\u044F\u0432\u043A\u0430\u0442\u0430 \u0435 \u0438\u0437\u0442\u0435\u043A\u043B\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u043E\u0442 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0432 NutriPlan.");
+  if (!pending || pending.provider !== provider) return linkResultPage(false, "\u0412\u0440\u044A\u0437\u043A\u0430\u0442\u0430 \u043D\u0435 \u0435 \u0437\u0430\u0432\u044A\u0440\u0448\u0435\u043D\u0430", "\u0417\u0430\u044F\u0432\u043A\u0430\u0442\u0430 \u0435 \u0438\u0437\u0442\u0435\u043A\u043B\u0430. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u043E\u0442 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0432 Eatologix.");
   await env.page_content.delete(`link_state:${state}`).catch(() => {
   });
   const back = (status) => {
@@ -62377,7 +62799,7 @@ function publicEnrichmentView(d) {
 function profileContextText(d) {
   if (!d) return "";
   const v = d.voice;
-  const emo = v && (v.archetype || v.intensity) ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat): ${[v.archetype ? `\u0430\u0440\u0445\u0435\u0442\u0438\u043F ${v.archetype}` : "", v.intensity ? `\u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442 ${v.intensity}` : "", v.drivers?.length ? `\u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438 ${v.drivers.join(", ")}` : "", v.realNeed ? `\u0440\u0435\u0430\u043B\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 ${v.realNeed}` : ""].filter(Boolean).join(", ")}` : "";
+  const emo = v && (v.archetype || v.intensity) ? `\u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u043F\u0440\u043E\u0444\u0438\u043B (EmoEat):${[v.archetype ? `\u0430\u0440\u0445\u0435\u0442\u0438\u043F ${v.archetype}` : "", v.intensity ? `\u0438\u043D\u0442\u0435\u043D\u0437\u0438\u0442\u0435\u0442 ${v.intensity}` : "", v.drivers?.length ? `\u0434\u0432\u0438\u0433\u0430\u0442\u0435\u043B\u0438 ${v.drivers.join(", ")}` : "", v.realNeed ? `\u0440\u0435\u0430\u043B\u043D\u0430 \u043D\u0443\u0436\u0434\u0430 ${v.realNeed}` : ""].filter(Boolean).join(", ")}` : "";
   return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), documentsText(d.documents), crossCheckText(d.crossCheck)].filter(Boolean).join(" | ").slice(0, 3600);
 }
 var DEFAULT_HEALTH_DIGEST_PROMPT = `\u0422\u0438 \u0441\u0438 \u0434\u0438\u0435\u0442\u043E\u043B\u043E\u0433. \u0414\u0430\u043D\u043D\u0438 \u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0442\u0430 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A, \u0433\u0440\u0438\u0432\u043D\u0430, \u0432\u0435\u0437\u043D\u0430, \u0430\u043F\u0430\u0440\u0430\u0442 \u0437\u0430 \u043A\u0440\u044A\u0432\u043D\u043E, \u0433\u043B\u044E\u043A\u043E\u043C\u0435\u0440, \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F) \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 \u0441\u0435\u0434\u043C\u0438\u0446\u0438, \u0432\u0435\u0447\u0435 \u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438:
@@ -62655,7 +63077,7 @@ async function handleAdminSendMessage(request, env) {
     }
     const pushPayload = {
       userId,
-      title: "\u0421\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043E\u0442 NutriPlan",
+      title: "\u0421\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043E\u0442 Eatologix",
       body: message,
       url: "/plan.html",
       notificationType: "chat"
@@ -62821,8 +63243,8 @@ async function sendPushNotificationToUser(userId, message, env) {
     }
     const subscription = JSON.parse(subscriptionData);
     const pushMessage = {
-      title: message.title || "NutriPlan",
-      body: message.body || "\u041D\u043E\u0432\u043E \u043D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0435 \u043E\u0442 NutriPlan",
+      title: message.title || "Eatologix",
+      body: message.body || "\u041D\u043E\u0432\u043E \u043D\u0430\u043F\u043E\u043C\u043D\u044F\u043D\u0435 \u043E\u0442 Eatologix",
       url: message.url || "/plan.html",
       icon: message.icon || "/icon-192x192.png",
       notificationType: message.notificationType || "general",
@@ -63100,9 +63522,9 @@ async function handleXbodyViberOutbox(request, env) {
   if (!await xbodyViberAuth(request, env)) return jsonResponse2({ error: "unauthorized" }, 401);
   if (!env.page_content) return jsonResponse2({ messages: [] });
   const now = Date.now();
-  const list3 = await env.page_content.list({ prefix: "xbody:out:", limit: 50 });
+  const list4 = await env.page_content.list({ prefix: "xbody:out:", limit: 50 });
   const messages = [];
-  for (const k of list3.keys) {
+  for (const k of list4.keys) {
     const at = Number(k.name.split(":")[2]);
     if (!(at <= now)) break;
     const v = JSON.parse(await env.page_content.get(k.name) || "null");
@@ -63479,9 +63901,9 @@ async function xbodyFindCard(env, email, phone) {
     const found = await xbodyStripe(env, "GET", "customers", { email, limit: 5 });
     for (const cust of found && Array.isArray(found.data) ? found.data : []) {
       if (xbodyPhoneKey(cust.phone) !== key) continue;
-      const list3 = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
+      const list4 = await xbodyStripe(env, "GET", `customers/${cust.id}/payment_methods`, { type: "card", limit: 3 });
       const now = /* @__PURE__ */ new Date();
-      for (const m of list3 && Array.isArray(list3.data) ? list3.data : []) {
+      for (const m of list4 && Array.isArray(list4.data) ? list4.data : []) {
         const c = m.card;
         if (!c || c.exp_year < now.getUTCFullYear() || c.exp_year === now.getUTCFullYear() && c.exp_month < now.getUTCMonth() + 1) continue;
         return { pm: m.id, customer: cust.id, brand: c.brand || "", last4: c.last4 || "" };
@@ -63499,8 +63921,8 @@ async function xbodyPrice(env) {
     const resp = await fetch("https://acuityscheduling.com/api/v1/appointment-types", {
       headers: { Authorization: `Basic ${btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`)}` }
     });
-    const list3 = resp.ok ? await resp.json() : [];
-    const type = (Array.isArray(list3) ? list3 : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
+    const list4 = resp.ok ? await resp.json() : [];
+    const type = (Array.isArray(list4) ? list4 : []).find((t) => String(t && t.id) === XBODY_ACUITY_BOOKING.appointmentTypeID);
     const n = type ? Number(type.price) : NaN;
     if (Number.isFinite(n)) price = n;
   } catch (err2) {
@@ -63621,9 +64043,9 @@ async function handleXbodyBook(request, env) {
     u.searchParams.set("direction", "DESC");
     const resp = await fetch(u.toString(), { headers: { Authorization: `Basic ${auth}` } });
     if (!resp.ok) throw new Error("appointments " + resp.status);
-    const list3 = await resp.json();
+    const list4 = await resp.json();
     const complete = (a) => /Гаранция с карта/.test(String(a.notes || "")) || (Array.isArray(a.forms) ? a.forms : []).some((f) => (Array.isArray(f && f.values) ? f.values : []).some((v) => v && v.fieldID && Number(v.fieldID) !== 3583430 && v.value !== void 0 && v.value !== null && v.value !== ""));
-    previous = (Array.isArray(list3) ? list3 : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
+    previous = (Array.isArray(list4) ? list4 : []).find((a) => a && !a.canceled && String(a.email || "").trim().toLowerCase() === email && xbodyPhoneKey(a.phone) === phoneKey && complete(a)) || null;
   } catch (err2) {
     console.error("[xbody-book] lookup failed:", err2.message);
     return jsonResponse2({ error: "\u0417\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435\u0442\u043E \u043D\u0435 \u0435 \u0432\u044A\u0437\u043C\u043E\u0436\u043D\u043E \u0432 \u043C\u043E\u043C\u0435\u043D\u0442\u0430." }, 502);
@@ -63658,8 +64080,8 @@ async function handleXbodyBook(request, env) {
             calendarID: Number(XBODY_ACUITY_BOOKING.calendarID)
           }])
         });
-        const list3 = await chk.json().catch(() => null);
-        if (!chk.ok || !Array.isArray(list3) || !list3[0] || list3[0].valid !== true) {
+        const list4 = await chk.json().catch(() => null);
+        if (!chk.ok || !Array.isArray(list4) || !list4[0] || list4[0].valid !== true) {
           failed.push({ time, error: "taken" });
           continue;
         }
@@ -63809,12 +64231,12 @@ async function handleXbodyReschedule(request, env) {
 function xbodyStudioClient(env) {
   if (!env.ACUITY_USER_ID || !env.ACUITY_API_KEY) return null;
   const auth = btoa(`${env.ACUITY_USER_ID}:${env.ACUITY_API_KEY}`);
-  const keyOf = (email, phone, cal2) => `xbody:sappt:${cal2}:${String(email).toLowerCase()}:${xbodyPhoneKey(phone)}`;
+  const keyOf2 = (email, phone, cal2) => `xbody:sappt:${cal2}:${String(email).toLowerCase()}:${xbodyPhoneKey(phone)}`;
   const call = async (handler, body) => {
     if (!body.calendar) return { error: "not_found", status: 404 };
     const r = await handler(new Request("https://studio.local/api/xbody/manage", { method: "POST", body: JSON.stringify(body) }), env);
     const d = await r.json().catch(() => ({}));
-    if (env.page_content) await env.page_content.delete(keyOf(body.email, body.phone, body.calendar)).catch(() => {
+    if (env.page_content) await env.page_content.delete(keyOf2(body.email, body.phone, body.calendar)).catch(() => {
     });
     return r.status === 200 ? { ok: true } : { error: d.error === "too_late" || d.error === "already_canceled" ? "too_late" : d.error === "not_found" ? "not_found" : "taken", status: r.status === 404 ? 404 : 409 };
   };
@@ -63824,7 +64246,7 @@ function xbodyStudioClient(env) {
       const pk = xbodyPhoneKey(phone);
       const booking = xbodyAcuityOf(acu);
       if (!booking || !email.includes("@") || pk.length < 6) return [];
-      const key = keyOf(email, phone, booking.calendarID);
+      const key = keyOf2(email, phone, booking.calendarID);
       if (env.page_content) {
         const c = await env.page_content.get(key).catch(() => null);
         if (c) return JSON.parse(c);
@@ -63990,6 +64412,8 @@ var worker_entry_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     console.log(`${request.method} ${url.pathname}`);
+    const appDomainResp = await handleAppDomain(request, env);
+    if (appDomainResp) return appDomainResp;
     const studioResp = await handleStudioSite(request, env) || await handleStudioApi(request, env, ctx, {
       rateLimit: (name) => checkRateLimit(env, request, name),
       // XBODY Burgas in the studio app while Acuity still runs: its free hours (the same cached answer as xbody.html's)
@@ -64202,6 +64626,14 @@ var worker_entry_default = {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === "/api/user/delete-account" && request.method === "POST") {
         return await handleDeleteOwnAccount(request, env);
+      } else if (url.pathname === "/api/i18n/translate" && request.method === "POST") {
+        const lite = (await getAdminConfig(env)).liteModelName;
+        return await handleI18nTranslate(request, env, {
+          callGemini: callGemini2,
+          model: lite && lite !== "off" ? lite : DEFAULT_GEMINI_PLAN_MODEL,
+          rateLimit: () => checkRateLimit(env, request, "I18N_TRANSLATE"),
+          cors: CORS_HEADERS2
+        });
       } else if (url.pathname === "/api/enrichment" && request.method === "POST") {
         return await handleEnrichmentSubmit(request, env);
       } else if (url.pathname === "/api/enrichment/get" && request.method === "POST") {

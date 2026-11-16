@@ -77,11 +77,9 @@ export function extractQuestionnaireBlockedTerms(userData = {}) {
     }
   }
 
-  if (Array.isArray(userData.userFoodExclude)) {
-    for (const entry of userData.userFoodExclude) {
-      pushTermsFromValue(terms, seen, entry);
-    }
-  }
+  // userFoodExclude („Избери храни“, голям избор) не е тук: това са точни храни,
+  // не текст — двигателят ги маха поотделно (policy.js → excludeFoods), за да не
+  // отнесе „Мляко (2%)“ и киселото мляко, а „Ориз (кафяв)“ — и белия.
 
   if (Array.isArray(userData.forbidden)) {
     for (const entry of userData.forbidden) {

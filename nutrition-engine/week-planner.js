@@ -77,9 +77,45 @@ function dishBuildable(dish, policy) {
   return dish.parts.every(p => p.range[0] === 0 || p.options.some(o => o.every(id => policy.allowed(id))));
 }
 
+/**
+ * Гарнитурите по вид хранене и група: храните, които някое ястие от този вид
+ * вече ползва като гарнитура („with“). Само от тях се взима заместител за
+ * „Избери храни“ — белият ориз до пилето на скара, но не овесени ядки.
+ */
+const GARNISH = (() => {
+  const out = {};
+  for (const d of DISHES) for (const p of d.parts) {
+    if (!p.with) continue;
+    for (const kind of d.meals) for (const o of p.options) for (const id of o) ((out[`${kind}:${p.group}`] ||= new Set()).add(id));
+  }
+  return out;
+})();
+const GARNISH_GROUPS = new Set(['STA', 'VEG', 'FRU', 'FAT']);
+
+/**
+ * Ястието с избраните храни на клиента: гарнитура, от която той не е избрал
+ * нищо, получава избраните гарнитури от същата група (ориз вместо булгур).
+ * Ястието, рецептата и правилата за диетата остават същите.
+ */
+function adaptToChoice(dish, policy) {
+  const choice = policy.choice;
+  if (!choice?.restrictedGroups?.length) return dish;
+  let changed = false;
+  const parts = dish.parts.map(p => {
+    if (!p.with || !GARNISH_GROUPS.has(p.group) || !choice.restrictedGroups.includes(p.group)) return p;
+    if (p.options.some(o => o.every(id => choice.picked.has(id) && policy.allowed(id)))) return p;
+    const subs = [...choice.picked].filter(id => policy.allowed(id) && dish.meals.some(k => GARNISH[`${k}:${p.group}`]?.has(id)));
+    if (!subs.length) return p;
+    changed = true;
+    return { ...p, options: [...p.options, ...subs.map(id => [id])] };
+  });
+  return changed ? { ...dish, parts } : dish;
+}
+
 function eligibleDishes(policy) {
   const byKind = { main: [], breakfast: [], snack: [], late: [] };
-  for (const dish of DISHES) {
+  for (const base of DISHES) {
+    const dish = adaptToChoice(base, policy);
     if (!dishBuildable(dish, policy)) continue;
     for (const kind of dish.meals) byKind[kind]?.push(dish);
   }
@@ -363,6 +399,8 @@ export const MAX_ALTERNATIVES = 5;
 const kcalOf = t => t.protein * 4 + t.carbs * 4 + t.fats * 9;
 /** Под този дял от белтъка на основното хранене се търси и в другите свободни категории. 0,5 — само явните случаи: при 0,7 бобовите и вегетарианските ястия в седмицата падаха с 40–75%. */
 const PROTEIN_SHORT = 0.5;
+/** „Избери храни“: хранене от избраното, по-далеч от калориите си от това, се допълва. */
+const CHOICE_KCAL_MISS = 0.2;
 /** Алтернатива е равностойна по калории: до 12% (най-малко 40 kcal) от храненето или целта му. */
 const nearKcal = (v, ref) => Math.abs(v - ref) <= Math.max(ref * 0.12, 40);
 
@@ -580,22 +618,34 @@ function addLeft(target, left) {
 export function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWeek = new Set(), simplify = false, variety = false, morningDrink = false, slotAvoid = [], dishPreference = {}, dayPrescriptions = null }) {
   const rng = rngFrom(seed);
   const altRng = rngFrom((seed ^ 0x5bd1e995) >>> 0);
-  const eligible = eligibleDishes(policy);
-  // Следобедната закуска е лека: без месо, риба, ориз, паста, хляб и висок ГИ.
-  const snackPolicy = {
-    ...policy,
-    allowed: id => policy.allowed(id) && !SNACK_BAN.test(food(id).name.toLowerCase()),
+  /** Годните ястия и контекстите за една политика (основната или облекчена за „Избери храни“). */
+  const contextsFor = (p) => {
+    const el = eligibleDishes(p);
+    // Следобедната закуска е лека: без месо, риба, ориз, паста, хляб и висок ГИ.
+    const sp = { ...p, allowed: id => p.allowed(id) && !SNACK_BAN.test(food(id).name.toLowerCase()) };
+    el.snack = eligibleDishes(sp).snack;
+    const c = {
+      policy: p,
+      appetite: Math.max(1, (prescription.kcal || 0) / APPETITE_BASE_KCAL),
+      preferenceOf: id => p.preference(id),
+      usageOf: key => state.foodUses.get(key) || 0,
+      // Седмичният лимит на флаг (солено при хипертония) е изчерпан — незадължителна добавка с него отпада.
+      limitReached: flag => p.limitFlags[flag] != null && (state.flagUses[flag] || 0) >= p.limitFlags[flag],
+    };
+    return { eligible: el, ctx: c, snackCtx: { ...c, policy: sp } };
   };
-  eligible.snack = eligibleDishes(snackPolicy).snack;
-  const ctx = {
-    policy,
-    appetite: Math.max(1, (prescription.kcal || 0) / APPETITE_BASE_KCAL),
-    preferenceOf: id => policy.preference(id),
-    usageOf: key => state.foodUses.get(key) || 0,
-    // Седмичният лимит на флаг (солено при хипертония) е изчерпан — незадължителна добавка с него отпада.
-    limitReached: flag => policy.limitFlags[flag] != null && (state.flagUses[flag] || 0) >= policy.limitFlags[flag],
+  const { eligible, ctx, snackCtx } = contextsFor(policy);
+  // Облекчените политики: всяка с една свободна група, после изцяло без избора.
+  const relaxedCache = new Map();
+  const relaxedFor = (key) => {
+    if (!relaxedCache.has(key)) {
+      const p = key === '*' ? policy.relaxGroup(...policy.choice.restrictedGroups) : policy.relaxGroup(key);
+      relaxedCache.set(key, contextsFor(p));
+    }
+    return relaxedCache.get(key);
   };
-  const snackCtx = { ...ctx, policy: snackPolicy, preferenceOf: id => policy.preference(id) };
+  /** Колко хранения изборът не стигна и коя група е допълнена. */
+  const choiceStats = { relaxedMeals: 0, relaxedGroups: {} };
 
   const slots = prescription.slots;
   const drink = morningDrinkFor({
@@ -648,7 +698,6 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
   };
 
   const days = [];
-  let relaxed = null;
   for (let day = 1; day <= 7; day++) {
     const dayRx = dayPrescriptions?.[day - 1] || prescription;
     // Порциите на ястията растат с енергията на деня и с по-малкия брой хранения (часов прозорец).
@@ -674,21 +723,25 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
       }
       const kind = MEAL_KIND[type];
       const category = kind === 'main' ? frameOf.get(`${day}:${type}`) : kind === 'breakfast' ? bFrame[day - 1] : null;
-      let pool = eligible[kind] || [];
-      if (kind === 'main') {
-        const inCategory = pool.filter(d => d.category === category);
-        if (inCategory.length) pool = inCategory;
-        // Основното хранене има белтъчен източник — „спанак с ориз“ сам не е обяд.
-        const withProtein = pool.filter(d => proteinCapacity(d) >= 3);
-        if (withProtein.length) pool = withProtein;
-      }
       // Едно ястие — най-много два пъти седмично и не в два поредни дни.
       // По-просто меню: същите ястия по-често; повече разнообразие: всяко основно веднъж.
       const maxUses = (MAX_USES_PER_WEEK[kind] ?? 3) + (simplify ? 1 : 0) - (variety && kind === 'main' ? 1 : 0);
-      pool = pool.filter(d => !todayDishes.has(d.id)
-        && (state.dishUses.get(d.id) || 0) < maxUses
-        && !(kind === 'main' && state.yesterdayDishes.has(d.id)));
-      if (!pool.length) pool = (eligible[kind] || []).filter(d => !todayDishes.has(d.id));
+      /** Ястията за това хранене от годните: категорията на деня, белтък, без повторения. */
+      const poolOf = (all) => {
+        let list = all;
+        if (kind === 'main') {
+          const inCategory = list.filter(d => d.category === category);
+          if (inCategory.length) list = inCategory;
+          // Основното хранене има белтъчен източник — „спанак с ориз“ сам не е обяд.
+          const withProtein = list.filter(d => proteinCapacity(d) >= 3);
+          if (withProtein.length) list = withProtein;
+        }
+        list = list.filter(d => !todayDishes.has(d.id)
+          && (state.dishUses.get(d.id) || 0) < maxUses
+          && !(kind === 'main' && state.yesterdayDishes.has(d.id)));
+        return list.length ? list : all.filter(d => !todayDishes.has(d.id));
+      };
+      const pool = poolOf(eligible[kind] || []);
       // Десертът към обяда влиза в калориите на обяда.
       const dessertToday = policy.sweets && type === 'Хранене 2';
       const base = dessertToday
@@ -773,14 +826,49 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
         if (other && other.score > best.score) best = other;
         else candidatesBuilt = keep;
       }
-      if (!best && policy.withoutOnly) {
-        // Избраните храни не стигат за това хранене — то се сглобява от целия каталог.
-        relaxed = relaxed || (() => {
-          const p = policy.withoutOnly();
-          return { ctx: { ...ctx, policy: p, preferenceOf: id => p.preference(id) }, eligible: eligibleDishes(p) };
-        })();
-        best = pick((relaxed.eligible[kind] || []).filter(d => !todayDishes.has(d.id)), relaxed.ctx);
-        usedCtx = relaxed.ctx;
+      // Избраните храни не стигат за това хранене (няма ястие или то е далеч от
+      // калориите — пиле на скара без избрана гарнитура): първо се допълва само
+      // една група (най-добрият резултат), и чак после — целият каталог.
+      // Диетата, алергиите и клиничните правила важат и тук.
+      const missKcal = b => Math.abs(kcalOf(b.built.totals) - kcalOf(target)) / Math.max(1, kcalOf(target));
+      if (policy.relaxGroup && (!best || missKcal(best) > CHOICE_KCAL_MISS)) {
+        const strict = best;
+        const strictCandidates = candidatesBuilt;
+        const kindCtx = (r) => {
+          const c = { ...(kind === 'snack' ? r.snackCtx : r.ctx), appetite: slotCtx.appetite };
+          if (!state.supplementToday) return c;
+          const bp = c.policy;
+          return { ...c, policy: { ...bp, allowed: id => bp.allowed(id) && !food(id).flags.has('supplement') } };
+        };
+        let used = null;
+        let usedCandidates = [];
+        const single = policy.choice.restrictedGroups.length > 1 ? policy.choice.restrictedGroups : [];
+        for (const key of [...single, '*']) {
+          if (key === '*' && best && best !== strict) break;
+          const r = relaxedFor(key);
+          // Същият предварителен ред като отгоре, без случайността (тя е на основния подбор).
+          const list = poolOf(r.eligible[kind] || [])
+            .map(d => ({ d, pre: -dishFit(d, plan.quota, r.ctx.policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 }))
+            .sort((a, b) => b.pre - a.pre)
+            .slice(0, CANDIDATES_PER_MEAL)
+            .map(x => x.d);
+          const found = pick(list, kindCtx(r));
+          // Пред избраното ястие се минава само с явно по-точно (поне наполовина по-малко отклонение).
+          const better = found && (strict ? missKcal(found) < missKcal(strict) / 2 && (best === strict || found.score > best.score) : (!best || found.score > best.score));
+          if (better) {
+            best = found; usedCtx = kindCtx(r); used = key; usedCandidates = candidatesBuilt;
+          }
+        }
+        if (best === strict) candidatesBuilt = strictCandidates;
+        else if (best) {
+          // Алтернативите — от същия облекчен подбор (същите правила за диетата).
+          candidatesBuilt = usedCandidates;
+          slotCtx = usedCtx;
+          choiceStats.relaxedMeals++;
+          for (const g of used === '*' ? policy.choice.restrictedGroups : [used]) {
+            choiceStats.relaxedGroups[g] = (choiceStats.relaxedGroups[g] || 0) + 1;
+          }
+        }
       }
       if (!best) throw new Error(`Няма подходящо ястие за ${type} (ден ${day}) при тази диета`);
 
@@ -852,6 +940,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
     mains: frame.reduce((acc, k) => ({ ...acc, [k]: (acc[k] || 0) + 1 }), {}),
     eggsMeals: state.kindUses.egg || 0,
     distinctDishes: state.dishUses.size,
+    ...(policy.relaxGroup ? { choice: choiceStats } : {}),
   };
   return { days, stats };
 }

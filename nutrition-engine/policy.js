@@ -9,6 +9,7 @@ import {
   FOODS, STYLES, PATTERNS, CONDITIONS, PROTOCOLS, EXCLUSION_RULES, SEASONS, food,
 } from './knowledge.js';
 import { normalizeFoodKey } from '../food-utils.js';
+import { resolveFoodChoice, restrictedGroupsOf } from './food-choice.js';
 
 /** @typedef {ReturnType<typeof import('../profile-code.js').compileProfile>} Profile */
 
@@ -30,10 +31,29 @@ function words(text) {
     .filter(s => s && s.length >= 3);
 }
 
+/**
+ * Сложни имена, в които думата значи друго: овесените ядки не са ядки,
+ * фъстъченото/кокосовото масло не е краве масло, растителното мляко не е мляко.
+ * Думата се скрива, за да не съвпадне по подниз („ядки“ ↔ „овесени ядки“).
+ */
+const COMPOUND_WORDS = [
+  /(овесени) ядки/gu,
+  /(фъстъчено|бадемово|кокосово|слънчогледово|ленено|тиквено|сусамово|лешниково) масло/gu,
+  /(растително|соево|кокосово|бадемово|овесено|оризово) мляко/gu,
+];
+function maskCompounds(key) {
+  return COMPOUND_WORDS.reduce((k, re) => k.replace(re, '$1 §'), key);
+}
+
 /** Отказана храна: терминът съвпада с името, етикета или ключа на храната. */
-function matchesTerm(f, term) {
+export function matchesTerm(f, term) {
   const keys = [normalizeFoodKey(f.name), normalizeFoodKey(f.label)];
-  return keys.some(k => k && (k === term || k.includes(term) || (term.includes(k) && k.length >= 4)));
+  if (keys.includes(term)) return true;
+  const t = maskCompounds(term);
+  return keys.some(raw => {
+    const k = maskCompounds(raw);
+    return k && (k === t || k.includes(t) || (t.includes(k) && k.length >= 4));
+  });
 }
 
 /** Клиничните правила, които важат за профила — състояния и протокол. */
@@ -56,7 +76,7 @@ function activeRules(profile) {
 
 /**
  * @param {Profile} profile
- * @param {{ blockedTerms?: string[], loves?: string, adherence?: Map<string, number>|null, date?: Date, sweetsCraving?: boolean, extraExcludeFlags?: string[], onlyFoods?: string[] }} [options]
+ * @param {{ blockedTerms?: string[], loves?: string, adherence?: Map<string, number>|null, date?: Date, sweetsCraving?: boolean, extraExcludeFlags?: string[], onlyFoods?: string[], excludeFoods?: string[], relaxGroups?: string[] }} [options]
  */
 export function buildFoodPolicy(profile, options = {}) {
   const style = STYLES[profile.diet?.style] ? profile.diet.style : 'balanced';
@@ -82,24 +102,25 @@ export function buildFoodPolicy(profile, options = {}) {
   const blocked = (options.blockedTerms || []).flatMap(words);
   const loves = words(options.loves);
 
-  // Списъкът от „Избери храни“: в групите, от които клиентът е избрал нещо,
-  // остават само избраните; групите без избор остават свободни.
-  const only = (options.onlyFoods || []).flatMap(words);
-  const onlyByGroup = new Map();
-  if (only.length) {
-    for (const f of FOODS.values()) {
-      if (f.group === 'FREE' || !only.some(term => matchesTerm(f, term))) continue;
-      if (!onlyByGroup.has(f.group)) onlyByGroup.set(f.group, new Set());
-      onlyByGroup.get(f.group).add(f.id);
-    }
-  }
+  // Изборът от „Избери храни“ — по точните храни (food-choice.js), не по подниз.
+  // userFoodList: в групите, от чиято основна категория клиентът е избрал нещо,
+  // остават само избраните; останалите групи са свободни. Избраното се предпочита
+  // навсякъде и минава правилото за редки продукти (клиентът го е поискал).
+  // userFoodExclude: неизбраните при голям избор — махат се точно те.
+  const choice = resolveFoodChoice(options.onlyFoods || []);
+  const picked = choice.ids;
+  const relaxGroups = new Set(options.relaxGroups || []);
+  const restrictedGroups = [...restrictedGroupsOf(picked)].filter(g => !relaxGroups.has(g));
+  const restricted = new Set(restrictedGroups);
+  const notChosen = resolveFoodChoice(options.excludeFoods || []);
+  for (const id of notChosen.ids) if (!picked.has(id)) excludeFoods.add(id);
 
   const allowedCache = new Map();
   /** Позволена ли е храната за този клиент. */
   function allowed(id) {
     if (allowedCache.has(id)) return allowedCache.get(id);
     const f = food(id);
-    let ok = f.universality >= MIN_UNIVERSALITY && !NICHE.test(f.name);
+    let ok = picked.has(id) || (f.universality >= MIN_UNIVERSALITY && !NICHE.test(f.name));
     if (ok && pattern === 'vegan') ok = f.vegan;
     if (ok && pattern === 'vegetarian') ok = f.vegetarian;
     if (ok && pattern === 'pescatarian') ok = f.vegetarian || f.kind === 'fish' || f.kind === 'shellfish';
@@ -112,7 +133,7 @@ export function buildFoodPolicy(profile, options = {}) {
     // Соевото мляко е само за вегани (решение на собственика).
     if (ok && f.flags.has('vegan_only') && pattern !== 'vegan') ok = false;
     if (ok && blocked.some(term => matchesTerm(f, term))) ok = false;
-    if (ok && onlyByGroup.has(f.group) && !onlyByGroup.get(f.group).has(id)) ok = false;
+    if (ok && restricted.has(f.group) && !picked.has(id)) ok = false;
     allowedCache.set(id, ok);
     return ok;
   }
@@ -127,7 +148,7 @@ export function buildFoodPolicy(profile, options = {}) {
     let score = 0;
     for (const flag of f.flags) if (preferFlags.has(flag)) score += 1;
     if (preferFoods.has(id)) score += 1.5;
-    if (loves.some(term => matchesTerm(f, term))) score += 2;
+    if (loves.some(term => matchesTerm(f, term)) || picked.has(id)) score += 2;
     const seasons = SEASONS[id];
     if (seasons) score += seasons.includes(season) ? 0.5 : -0.5;
     if (adherence) {
@@ -177,8 +198,18 @@ export function buildFoodPolicy(profile, options = {}) {
 
   return {
     allowsFreeMeal,
-    // Без списъка „Избери храни“ — когато с него храненето не може да се сглоби.
-    withoutOnly: only.length ? () => buildFoodPolicy(profile, { ...options, onlyFoods: [] }) : null,
+    // Изборът от „Избери храни“: кои храни, кои групи ограничава, какво не е разпознато.
+    // relaxGroup — същата политика с една свободна група: когато храненето не се
+    // сглобява от избраното, се допълва само липсващата група, не целият каталог.
+    choice: {
+      picked,
+      restrictedGroups,
+      unresolved: [...choice.unresolved, ...notChosen.unresolved],
+      byName: choice.byName,
+    },
+    relaxGroup: restrictedGroups.length
+      ? (...groups) => buildFoodPolicy(profile, { ...options, relaxGroups: [...relaxGroups, ...groups] })
+      : null,
     style,
     styleDef,
     pattern,
