@@ -40,7 +40,7 @@ const airis = {
 
 // ── Бял списък ───────────────────────────────────────────────────────────
 const h = normalizeHandoff(airis, NOW);
-ok(h && h.source === 'airis' && h.at === '2026-10-19T18:00:00.000Z', 'EyeLogix пратка се приема');
+ok(h && h.source === 'airis' && h.at === '2026-10-19T18:00:00.000Z', 'IrisMap пратка се приема');
 ok(!('email' in h.questionnaire) && !('uploadedDocuments' in h.questionnaire), 'имейл и документи не влизат');
 ok(!('leftIrisImage' in h.analysis) && !('findings' in h.analysis) && !('hacker' in h), 'снимки, сурови находки и непознати полета отпадат');
 ok(normalizeHandoff({ source: 'airis', analysis: {} }) === null, 'празен анализ — отказ');
@@ -48,11 +48,11 @@ ok(normalizeHandoff({ source: 'nutriplan', profile: {} }) === null && normalizeH
 ok(normalizeHandoff({ ...airis, questionnaire: { ...airis.questionnaire, age: 400, weight: 'x' } }).questionnaire.age === null, 'невъзможни стойности отпадат');
 
 const emo = normalizeHandoff({ source: 'emoeat', profile: { intensity: 'Силно', archetype: { name: 'Утехата', description: 'топлина' }, drivers: ['Нужда от близост'], behaviors: [{ name: 'Трудно спиране', level: 'Осезаемо' }], patterns: [], reliability: { level: 'висока' }, answers: { q1: 'secret' } } }, NOW);
-ok(emo && emo.profile.archetype.name === 'Утехата' && !('answers' in emo.profile), 'EmoLogix: само обобщението, без отговорите');
+ok(emo && emo.profile.archetype.name === 'Утехата' && !('answers' in emo.profile), 'EmoEat: само обобщението, без отговорите');
 
 // ── Факти и профил ───────────────────────────────────────────────────────
 const facts = handoffToFacts(h).map(normalizeFact).filter(Boolean);
-ok(facts.length === 1 && facts[0].kind === 'iris' && facts[0].source === 'airis', 'EyeLogix → един факт „iris“');
+ok(facts.length === 1 && facts[0].kind === 'iris' && facts[0].source === 'airis', 'IrisMap → един факт „iris“');
 const base = () => enrichUserDataEngineContext(JSON.parse(JSON.stringify(PROFILES.find(p => p.id === 'female_moderate'))));
 const before = applyEnrichment(base(), { facts: [] }, NOW);
 const withIris = applyEnrichment(base(), { facts }, NOW);
@@ -64,7 +64,7 @@ ok(p1.aiNotes.some(n => /Щитовидна/.test(n)) && p1.aiNotes.some(n => /�
 const t = irisText(withIris._enrichment.iris);
 ok(/фокус: Храносмилане/.test(t) && /По-малки порции вечер/.test(t) && /TSH/.test(t), `текст за картона и чата (${t.slice(0, 80)}…)`);
 const emoFacts = handoffToFacts(emo).map(normalizeFact).filter(Boolean);
-ok(compileProfile(applyEnrichment(base(), { facts: emoFacts }, NOW)).behaviors.includes('EMO'), 'EmoLogix пратка → поведенчески кодове в плана');
+ok(compileProfile(applyEnrichment(base(), { facts: emoFacts }, NOW)).behaviors.includes('EMO'), 'EmoEat пратка → поведенчески кодове в плана');
 
 // ── Попълване на въпросника ──────────────────────────────────────────────
 const pre = airisPrefill(h.questionnaire);
@@ -115,7 +115,7 @@ ok(sp['healthConditions_Сърдечно-съдови заболявания'] =
 ok(/Желано отслабване: 10–20 кг/.test(sp.additionalNotes), 'сайт: желаните килограми в бележките');
 const ah = normalizeHandoff({ source: 'airis', questionnaire: { healthStatus: ['Хипертония', 'Бременност', 'Диабет 2 тип'], allergies: 'лактоза', foodIntolerances: 'лактоза', complaints: 'умора', medicalConditions: 'умора' }, analysis: { summary: 'x' } });
 const ap = airisPrefill(ah.questionnaire);
-ok(ap.healthConditions.includes('Сърдечно-съдови заболявания') && ap.healthConditions.includes('Диабет / Инсулинова резистентност') && /Бременност/.test(ap.additionalNotes), 'EyeLogix: състоянията стигат до въпросника и бележките');
-ok(ap.dietDislike === 'лактоза' && !/умора\. умора/.test(ap.additionalNotes), 'EyeLogix: без повторения');
+ok(ap.healthConditions.includes('Сърдечно-съдови заболявания') && ap.healthConditions.includes('Диабет / Инсулинова резистентност') && /Бременност/.test(ap.additionalNotes), 'IrisMap: състоянията стигат до въпросника и бележките');
+ok(ap.dietDislike === 'лактоза' && !/умора\. умора/.test(ap.additionalNotes), 'IrisMap: без повторения');
 console.log(`\n=== handoff: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

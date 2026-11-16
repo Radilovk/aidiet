@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Сверка EyeLogix / EmoLogix / Eatologix (cross-check.js): потвърдените находки
+ * Сверка IrisMap / EmoEat / Eatologix (cross-check.js): потвърдените находки
  * влизат в менюто, медицинските правила ги спират, разминаванията стават
  * въпроси, а отговорите — замени. Без мрежа.
  */
@@ -60,33 +60,33 @@ ok(hyp(d, 'digestive').status === 'rejected' && !question(d, 'iris:digestive') &
 d = run(base({ stressLevel: 'Средно' }), irisFacts(['nervous']));
 ok(hyp(d, 'nervous').status === 'unconfirmed' && !question(d, 'iris:nervous'), 'без противоречие и без доказателство → само контекст, без въпрос');
 
-// ── EyeLogix въпросник срещу Eatologix въпросник ────────────────────────────
+// ── IrisMap въпросник срещу Eatologix въпросник ────────────────────────────
 d = run(base({ dietDislike: '' }), irisFacts(['immune'], { foodIntolerances: 'лактоза' }));
-ok(question(d, 'allergy:лактоза'), 'непоносимост само в EyeLogix → въпрос');
+ok(question(d, 'allergy:лактоза'), 'непоносимост само в IrisMap → въпрос');
 d = run(base({ dietDislike: '' }), [...irisFacts(['immune'], { foodIntolerances: 'лактоза' }), answer('allergy:лактоза', 'yes')]);
 ok(/лактоза/.test(d.dietDislike) && compileProfile(d).exclusions.includes('LAC') && d._enrichment.original.dietDislike === '', 'потвърдена → изключена от плана, оригиналът е пазен');
 d = run(base({ medications: 'Не' }), [...irisFacts(['endocrine'], { medications: 'Еутирокс 50' }), answer('meds:no', 'yes')]);
-ok(d.medications === 'Да' && interactionsFor(d).ids.includes('levothyroxine'), 'лекарство от EyeLogix, потвърдено → таблицата за взаимодействия се прилага');
+ok(d.medications === 'Да' && interactionsFor(d).ids.includes('levothyroxine'), 'лекарство от IrisMap, потвърдено → таблицата за взаимодействия се прилага');
 d = run(base({ medications: '' }), [...irisFacts(['endocrine'], { medications: 'Еутирокс 50' }), answer('meds:no', 'yes')]);
 ok(d.medications !== 'Да' && question(d, 'meds:empty'), 'профилът е сменен след отговора → въпросът наново, старият отговор не надделява');
 d = run(base({ weight: '82' }), irisFacts(['immune'], { weight: 74 }));
 ok(question(d, 'weight:82')?.options.length === 2, 'тегло с разлика 8 кг → въпрос кое е актуалното');
 d = run(base({ weight: '82' }), [...irisFacts(['immune'], { weight: 74 }), answer('weight:82', 'airis')]);
-ok(d.weight === '74', 'избрано теглото от EyeLogix');
+ok(d.weight === '74', 'избрано теглото от IrisMap');
 d = run(base({ weight: '85' }), [...irisFacts(['immune'], { weight: 74 }), answer('weight:82', 'airis')]);
 ok(d.weight === '85' && question(d, 'weight:85'), 'ново тегло в Eatologix → отговорът за старото не важи, нов въпрос');
 d = run(base({ dietPreference: ['Балансирана'] }), [...irisFacts(['immune'], { dietaryProfile: ['Веган'] }), answer('pattern:Веган', 'yes')]);
-ok(compileProfile(d).diet.pattern === 'vegan', 'веган режим от EyeLogix, потвърден → прилага се');
+ok(compileProfile(d).diet.pattern === 'vegan', 'веган режим от IrisMap, потвърден → прилага се');
 
-// ── EmoLogix срещу въпросника ──────────────────────────────────────────────
+// ── EmoEat срещу въпросника ──────────────────────────────────────────────
 const emo = handoffToFacts(normalizeHandoff({ source: 'emoeat', profile: { intensity: 'Силно', archetype: { name: 'Утехата' }, drivers: ['Нужда от близост'], behaviors: [], reliability: { level: 'висока' } } })).map(normalizeFact);
 const calm = { overeatingFrequency: 'Рядко', foodTriggers: ['Нито едно'] };
 d = run(base(calm), emo);
-ok(question(d, 'emoeat_vs_q'), 'силен EmoLogix срещу „рядко преяждам“ → въпрос');
+ok(question(d, 'emoeat_vs_q'), 'силен EmoEat срещу „рядко преяждам“ → въпрос');
 d = run(base(calm), [...emo, answer('emoeat_vs_q', 'rare')]);
-ok(!compileProfile(d).behaviors.includes('EMO') && d._enrichment.voice, '„не се разпознавам“ → без кодове от EmoLogix, гласът остава');
+ok(!compileProfile(d).behaviors.includes('EMO') && d._enrichment.voice, '„не се разпознавам“ → без кодове от EmoEat, гласът остава');
 d = run(base(calm), [...emo, answer('emoeat_vs_q', 'often')]);
-ok(compileProfile(d).behaviors.includes('EMO') && !question(d, 'emoeat_vs_q'), '„често“ → кодовете от EmoLogix остават');
+ok(compileProfile(d).behaviors.includes('EMO') && !question(d, 'emoeat_vs_q'), '„често“ → кодовете от EmoEat остават');
 
 // ── Фактът „отговор“ ─────────────────────────────────────────────────────
 ok(normalizeFact({ kind: 'resolution', key: 'x; drop', value: 'yes', at: NOW.toISOString() }) === null, 'невалиден ключ на отговор отпада');

@@ -84,7 +84,7 @@ check('nutrition engine (схема, меню, преглед)', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
-check('обогатяване (EmoLogix, изследвания, устройства)', () => {
+check('обогатяване (EmoEat, изследвания, устройства)', () => {
   const r = run('node', ['scripts/test-enrichment.mjs']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
@@ -109,7 +109,7 @@ check('модули → Eatologix (пратки)', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
-check('сверка EyeLogix / EmoLogix / Eatologix', () => {
+check('сверка IrisMap / EmoEat / Eatologix', () => {
   const r = run('node', ['scripts/test-crosscheck.mjs']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });

@@ -10,12 +10,12 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="EmoLogix">
+    <meta name="apple-mobile-web-app-title" content="EmoEat">
 
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://biocode.website/emoeat.html">
-    <meta property="og:title" content="EmoLogix — емоционално хранене">
+    <meta property="og:title" content="EmoEat — емоционално хранене">
     <meta property="og:description" content="Кратък тест за емоционално хранене — кога храната поема чувствата и какво да правиш тази седмица.">
     <meta property="og:image" content="https://biocode.website/brand/og-image.png">
     <meta property="og:locale" content="bg_BG">
@@ -26,7 +26,7 @@
     <link rel="manifest" href="./emoeat-manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
-    <title>EmoLogix — емоционално хранене</title>
+    <title>EmoEat — емоционално хранене</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1426,9 +1426,9 @@
     <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
     
     <!-- Site Navigation -->
-    <nav class="site-nav" role="navigation" aria-label="EmoLogix навигация">
-        <a href="emoeat.html" class="site-nav-logo" aria-label="EmoLogix начало">
-            <i class="fas fa-heart-pulse" aria-hidden="true"></i> EmoLogix
+    <nav class="site-nav" role="navigation" aria-label="EmoEat навигация">
+        <a href="emoeat.html" class="site-nav-logo" aria-label="EmoEat начало">
+            <i class="fas fa-heart-pulse" aria-hidden="true"></i> EmoEat
         </a>
         <div class="site-nav-actions">
             <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Смени темата" aria-label="Смени темата">
@@ -1446,8 +1446,8 @@
     <div class="site-nav-overlay" id="siteNavOverlay" onclick="closeSiteNav()"></div>
 
     <!-- Slide-in navigation menu -->
-    <nav class="site-nav-menu" id="siteNavMenu" role="dialog" aria-modal="true" aria-label="EmoLogix меню">
-        <div class="site-nav-section-label">EmoLogix</div>
+    <nav class="site-nav-menu" id="siteNavMenu" role="dialog" aria-modal="true" aria-label="EmoEat меню">
+        <div class="site-nav-section-label">EmoEat</div>
         <a href="#" onclick="event.preventDefault(); closeSiteNav(); goToWelcome();"><i class="fas fa-home"></i> Начало</a>
         <a href="#" id="siteNavResultsLink" style="display:none;" onclick="event.preventDefault(); closeSiteNav(); showSavedResults();"><i class="fas fa-chart-pie"></i> Моите резултати</a>
         <a href="#" onclick="event.preventDefault(); closeSiteNav(); restartQuestionnaire();"><i class="fas fa-redo"></i> Нов анализ</a>
@@ -3068,9 +3068,9 @@
         });
 
         // ── Към Eatologix за посетител без план ─────────────────────────
-        // EmoLogix води към плана и му предава само обобщението на профила
+        // EmoEat води към плана и му предава само обобщението на профила
         // (през пратка на сървъра, със съгласие на следващия екран). Обратно
-        // към EmoLogix не идват данни от Eatologix.
+        // към EmoEat не идват данни от Eatologix.
         function planInviteHtml() {
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
@@ -3145,7 +3145,7 @@
                 analysis = await requestAnalysis();
                 localStorage.setItem('emoeat_analysis', JSON.stringify(analysis));
             } catch (err) {
-                console.error('EmoLogix AI error:', err);
+                console.error('EmoEat AI error:', err);
             }
             clearInterval(msgInterval);
 
@@ -3199,7 +3199,7 @@
             };
             try {
                 if (navigator.share) {
-                    await navigator.share({ title: 'Моят план — EmoLogix', text });
+                    await navigator.share({ title: 'Моят план — EmoEat', text });
                     mark('Готово');
                     return;
                 }

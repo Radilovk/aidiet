@@ -1,5 +1,5 @@
 /**
- * Въпроси за разминаване между източниците (EyeLogix, EmoLogix, Eatologix).
+ * Въпроси за разминаване между източниците (IrisMap, EmoEat, Eatologix).
  *
  * Сървърът сверява данните и връща отворените въпроси (derived.questions).
  * Тук те се задават един по един в прозорец; отговорът се записва като факт
@@ -11,7 +11,7 @@
     if (global.NutriPlanQuestions) return;
 
     var SNOOZE_KEY = 'np_questions_snooze_until';
-    var SOURCE_LABEL = { airis: 'EyeLogix · ирисов анализ', emoeat: 'EmoLogix · емоционално хранене' };
+    var SOURCE_LABEL = { airis: 'IrisMap · ирисов анализ', emoeat: 'EmoEat · емоционално хранене' };
     var root = null;
     var queue = [];
     var lastFocus = null;

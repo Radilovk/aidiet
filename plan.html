@@ -7365,7 +7365,7 @@
                 questions = JSON.parse(localStorage.getItem('np_open_questions') || '[]') || [];
             } catch (_) {}
             const today = chatToday();
-            // Персоната от EmoLogix (persona.js): подходът, „без оценки“ и рисковият час — за тона на асистента.
+            // Персоната от EmoEat (persona.js): подходът, „без оценки“ и рисковият час — за тона на асистента.
             let persona = null;
             try {
                 const p = JSON.parse(localStorage.getItem('np_persona') || 'null');
@@ -7985,7 +7985,7 @@
             }, 100);
         }
 
-        /* ── Уточняващ въпрос в чата (разминаване между EyeLogix, EmoLogix и Eatologix) ──
+        /* ── Уточняващ въпрос в чата (разминаване между IrisMap, EmoEat и Eatologix) ──
          * Сървърът подава въпроса на асистента само ако е свързан с темата.
          * Ясен отговор в текста → записва се веднага (с „Промени“); иначе под
          * отговора излизат бутоните на въпроса. Записът е през /api/enrichment/resolve. */
@@ -10797,7 +10797,7 @@
         }
         window._gameFoldDoneMeals = foldDoneMeals;
 
-        /** SOS картата: в рисковия час (персона от EmoLogix), днес, докато не е затворена. */
+        /** SOS картата: в рисковия час (персона от EmoEat), днес, докато не е затворена. */
         function renderPersonaSos(dayKey) {
             var container = document.getElementById('mealContainer');
             if (!container) return;

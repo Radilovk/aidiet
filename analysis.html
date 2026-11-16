@@ -1843,7 +1843,7 @@
         .metric-tile .m-unit { font-size: 0.875rem; font-weight: 600; color: var(--ds-text-soft); margin-left: 2px; }
         .metric-tile .m-note { font-size: 0.8125rem; color: var(--ds-text-soft); margin-top: 2px; }
         .metric-tile[data-tone="warn"] { background: var(--ds-warning-bg); border-color: var(--ds-warning-border); }
-        /* EmoLogix и EyeLogix */
+        /* EmoEat и IrisMap */
         .persona { display: grid; gap: 8px; }
         .persona-name { font-size: 1.25rem; font-weight: 800; color: var(--text-dark); }
         .persona-text { font-size: 0.9rem; line-height: 1.5; color: var(--text-dark); margin: 0; }
@@ -2336,8 +2336,8 @@
             questionnaire: { label: 'Въпросник', icon: 'fa-clipboard-list' },
             labs: { label: 'Изследвания', icon: 'fa-vial' },
             device: { label: 'Устройство', icon: 'fa-heart-pulse' },
-            emoeat: { label: 'EmoLogix', icon: 'fa-heart' },
-            iris: { label: 'EyeLogix', icon: 'fa-eye' },
+            emoeat: { label: 'EmoEat', icon: 'fa-heart' },
+            iris: { label: 'IrisMap', icon: 'fa-eye' },
             documents: { label: 'Документ', icon: 'fa-file-medical' }
         };
         let _baseAnalysis = null;
@@ -2397,8 +2397,8 @@
             const tabs = [
                 { id: 'labsInsight', label: 'Изследвания', on: renderLabs(re.labs || []) },
                 { id: 'devicesInsight', label: 'Устройства', on: renderDevices(re.devices) },
-                { id: 'emoInsight', label: 'EmoLogix', on: renderEmo(re.emoeat) },
-                { id: 'irisInsight', label: 'EyeLogix', on: renderIris(re.iris) },
+                { id: 'emoInsight', label: 'EmoEat', on: renderEmo(re.emoeat) },
+                { id: 'irisInsight', label: 'IrisMap', on: renderIris(re.iris) },
             ].filter(t => t.on);
             const section = document.getElementById('dataSection');
             if (!tabs.length) { section.hidden = true; return; }

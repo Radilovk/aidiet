@@ -62,7 +62,7 @@
     --ds-secondary-800: #1e40af;
     --ds-secondary-900: #1e3a8a;
     
-    /* === COLORS - Accent Purple (EmoLogix) === */
+    /* === COLORS - Accent Purple (EmoEat) === */
     --ds-accent-purple-50: #faf5ff;
     --ds-accent-purple-100: #f3e8ff;
     --ds-accent-purple-200: #e9d5ff;
@@ -1392,7 +1392,7 @@ body {
    THEME-SPECIFIC ACCENT COLORS
    =========================== */
 
-/* EmoLogix purple theme override */
+/* EmoEat purple theme override */
 [data-page-theme="emoeat"] {
     --ds-primary-500: var(--ds-accent-purple-500);
     --ds-primary-400: var(--ds-accent-purple-400);
