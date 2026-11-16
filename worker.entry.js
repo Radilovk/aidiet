@@ -12648,27 +12648,35 @@ async function handleWordingSave(request, env) {
     .filter((e) => e.old !== e.new);
   const note = s(body?.note, 8000);
   const id = `${Date.now()}:${crypto.randomUUID().slice(0, 8)}`;
-  // Смяна на снимки: качената снимка (data URL, смалена на устройството) — в отделен ключ wording-img:<id>:<n>.
-  const images = [];
-  for (const [n, im] of (Array.isArray(body?.images) ? body.images : []).slice(0, 12).entries()) {
-    const data = typeof im?.data === 'string' && /^data:image\/(webp|jpeg|png);base64,/.test(im.data) && im.data.length < 12e6 ? im.data : '';
-    const url = /^https?:\/\//i.test(String(im?.url || '')) ? s(im.url, 1000) : '';
-    const remove = !!im?.remove;
-    if (!data && !url && !remove) continue;
-    const rec = { where: s(im?.where, 300), oldSrc: s(im?.oldSrc, 500), alt: s(im?.alt, 400), url, remove,
-      w: Number(im?.w) || 0, h: Number(im?.h) || 0, name: s(im?.name, 120) };
-    if (data) {
-      rec.key = `wording-img:${id}:${n}`;
-      rec.type = data.slice(5, data.indexOf(';'));
-      await env.page_content.put(rec.key, data);
+  // Снимките по места (data-slot): ред, кадър (x, y, z), ефект, интервал, рамка, ширина.
+  // Качената снимка (data URL, смалена на устройството) — в отделен ключ wording-img:<id>:<n>.
+  const num = (v, lo, hi) => { const x = Number(v); return Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : null; };
+  const slots = [];
+  let n = 0;
+  for (const sl of (Array.isArray(body?.slots) ? body.slots : []).slice(0, 12)) {
+    const items = [];
+    for (const it of (Array.isArray(sl?.items) ? sl.items : []).slice(0, 12)) {
+      const item = { x: num(it?.x, 0, 100) ?? 50, y: num(it?.y, 0, 100) ?? 50, z: num(it?.z, 1, 4) ?? 1,
+        alt: s(it?.alt, 400), name: s(it?.name, 120) };
+      const data = typeof it?.data === 'string' && /^data:image\/(webp|jpeg|png);base64,/.test(it.data) && it.data.length < 12e6 ? it.data : '';
+      if (data) {
+        item.key = `wording-img:${id}:${n++}`;
+        item.type = data.slice(5, data.indexOf(';'));
+        await env.page_content.put(item.key, data);
+      } else {
+        item.src = s(it?.src, 1000);
+        if (!item.src) continue;
+      }
+      items.push(item);
     }
-    images.push(rec);
+    slots.push({ slot: s(sl?.slot, 60), where: s(sl?.where, 300), fx: s(sl?.fx, 20), every: s(sl?.every, 4),
+      ratio: s(sl?.ratio, 10), width: s(sl?.width, 4), items });
   }
-  if (!edits.length && !note.trim() && !images.length) return jsonResponse({ error: 'Няма редакции' }, 400);
+  if (!edits.length && !note.trim() && !slots.length) return jsonResponse({ error: 'Няма редакции' }, 400);
   const rec = { id, at: new Date().toISOString(), site: s(body?.site, 60), page: s(body?.page, 120), url: s(body?.url, 500),
-    lang: s(body?.lang, 8), edits, images, note, status: 'new' };
+    lang: s(body?.lang, 8), edits, slots, note, status: 'new' };
   await env.page_content.put(`wording:${id}`, JSON.stringify(rec));
-  return jsonResponse({ ok: true, id, count: edits.length, images: images.length });
+  return jsonResponse({ ok: true, id, count: edits.length, slots: slots.length, images: n });
 }
 
 async function handleWordingList(request, env) {
