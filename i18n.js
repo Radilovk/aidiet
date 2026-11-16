@@ -25,9 +25,10 @@
     'use strict';
     if (window.EatologixI18n) return;
 
-    var SUPPORTED = ['bg', 'en', 'de', 'es', 'ru'];
-    var NAMES = { bg: 'Български', en: 'English', de: 'Deutsch', es: 'Español', ru: 'Русский' };
-    var INVITE = { en: 'Read in English?', de: 'Auf Deutsch lesen?', es: '¿Leer en español?', ru: 'Читать на русском?' };
+    var SUPPORTED = ['bg', 'en', 'de', 'es', 'fr', 'it', 'pt', 'tr', 'pl', 'ro', 'ru'];
+    var NAMES = { bg: 'Български', en: 'English', de: 'Deutsch', es: 'Español', fr: 'Français', it: 'Italiano', pt: 'Português', tr: 'Türkçe', pl: 'Polski', ro: 'Română', ru: 'Русский' };
+    var INVITE = { en: 'Read in English?', de: 'Auf Deutsch lesen?', es: '¿Leer en español?', fr: 'Lire en français ?', it: 'Leggere in italiano?',
+        pt: 'Ler em português?', tr: 'Türkçe okumak ister misiniz?', pl: 'Czytać po polsku?', ro: 'Citiți în română?', ru: 'Читать на русском?' };
     var STORE_KEY = 'ex_lang';
     var INVITE_KEY = 'ex_lang_invite_dismissed';
     var API = 'https://aidiet.radilov-k.workers.dev';
@@ -300,10 +301,15 @@
         return s ? s.replace(/[^/]*$/, '') : './';
     })();
     // <meta name="i18n-page"> — когато адресът не казва коя е страницата (напр. emoeat.app/ → emoeat-landing).
+    //   Може и няколко, със запетая (напр. „irismap,irismap-auto“) — всички се зареждат.
     var pageMeta = document.querySelector('meta[name="i18n-page"]');
-    var page = (pageMeta && pageMeta.content) || (location.pathname.split('/').pop() || 'index.html').replace(/\.html?$/, '') || 'index';
     var files = ['common'];
-    if (PAGE_DICTS.indexOf(page) >= 0) files.push(page);
+    if (pageMeta && pageMeta.content) {
+        pageMeta.content.split(',').forEach(function (f) { f = f.trim(); if (/^[a-z0-9-]+$/.test(f)) files.push(f); });
+    } else {
+        var page = (location.pathname.split('/').pop() || 'index.html').replace(/\.html?$/, '') || 'index';
+        if (PAGE_DICTS.indexOf(page) >= 0) files.push(page);
+    }
     var V = '20261116a';
 
     api.ready = Promise.all(files.map(function (f) {
