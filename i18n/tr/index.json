@@ -164,14 +164,10 @@
   "Логичен избор.": "Mantıklı seçim.",
   "EmoEat — емоционално хранене": "EmoEat — duygusal beslenme",
   "IrisMap — ирисов анализ": "IrisMap — iris analizi",
-  "Общите принципи и съвети са за всеки — значи конкретно за никого. Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Професионален екип от медицински специалисти стои зад мощни изчислителни алгоритми. Резултатът от всичко това остава за Теб!": "Genel ilke ve tavsiyeler herkes içindir — yani aslında hiç kimse için. Biz sana tamamen kişiselleştirilmiş bir plan hazırlıyoruz: vücuduna, sağlığına ve hedefine göre ne, ne kadar ve ne zaman yemen gerektiği. Güçlü hesaplama algoritmalarının arkasında profesyonel bir tıp uzmanları ekibi var. Ve tüm bunların sonucu sana kalıyor!",
   "Подновява се всяка седмица": "Her hafta yenilenir",
   "Не поредната интернет диета.": "İnternetteki diyetlerden biri değil.",
   "Система, съобразена изцяло с твоето тяло.": "Tamamen vücuduna göre kurulmuş bir sistem.",
   "Твой личен AI консултант": "Kişisel yapay zekâ danışmanın",
-  "Адаптираме всичко за теб": "Her şeyi sana göre uyarlıyoruz",
-  "Конкретни насоки за хранителни добавки и активности": "Takviyeler ve aktiviteler için net öneriler",
-  "Препоръки и активност, съобразени с Теб и твоята цел!": "Sana ve hedefine göre uyarlanmış öneriler ve aktiviteler!",
   "Хранене, медицина, спорт и психология. Зад всичко стои екип от специалисти.": "Beslenme, tıp, spor ve psikoloji. Hepsinin arkasında bir uzman ekibi var.",
   "Емоционално хранене: откъде идва гладът за определени храни. Резултатът влиза направо в плана ти.": "Duygusal yeme: belirli yiyeceklere duyulan isteğin nereden geldiği. Sonuç doğrudan planına eklenir.",
   "Ирисов анализ по снимка на окото. Резултатите от ирисовата карта влизат в плана като допълнителни данни.": "Göz fotoğrafından iris analizi. İris haritasının sonuçları planına ek veri olarak eklenir.",
@@ -179,7 +175,11 @@
   "Енергия, нутриенти и ограничения според здравето ти и приема на лекарства. Специалист преглежда резултата.": "Sağlığına ve kullandığın ilaçlara göre enerji, besin öğeleri ve kısıtlamalar. Sonucu bir uzman kontrol eder.",
   "Планът е в приложението — меню, препоръки, напомняния, консултант.": "Plan uygulamada — menü, öneriler, hatırlatmalar, danışman.",
   "Ние изчисляваме как.": "Nasıl olacağını biz hesaplarız.",
-  "приложение на телефона": "telefonundaki uygulama"
+  "приложение на телефона": "telefonundaki uygulama",
+  "Общите принципи и съвети са за всеки — значи конкретно за никого. Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.": "Genel ilke ve tavsiyeler herkes içindir — yani aslında hiç kimse için. Biz sana tamamen kişiselleştirilmiş bir plan hazırlıyoruz: vücuduna, sağlığına ve hedefine göre ne, ne kadar ve ne zaman yemen gerektiği. Hesaplamaların arkasında doktorlar ve diyetisyenlerden oluşan bir ekip var. Sonuç senin.",
+  "Адаптираме всичко към теб": "Her şeyi sana göre uyarlıyoruz",
+  "Конкретни насоки за хранителни добавки и движение": "Takviyeler ve hareket için net öneriler",
+  "Препоръки и активност, съобразени с теб и с целта ти.": "Sana ve hedefine göre uyarlanmış öneriler ve aktiviteler."
  },
  "keys": {
   "day.mock.0": "P",

@@ -164,14 +164,10 @@
   "Логичен избор.": "Alegere logică.",
   "EmoEat — емоционално хранене": "EmoEat — alimentație emoțională",
   "IrisMap — ирисов анализ": "IrisMap — analiza irisului",
-  "Общите принципи и съвети са за всеки — значи конкретно за никого. Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Професионален екип от медицински специалисти стои зад мощни изчислителни алгоритми. Резултатът от всичко това остава за Теб!": "Principiile și sfaturile generale sunt pentru toată lumea — adică pentru nimeni anume. Noi creăm un plan cu adevărat personalizat: ce, cât și când să mănânci, în funcție de corpul, sănătatea și obiectivul tău. În spatele unor algoritmi de calcul puternici stă o echipă profesionistă de specialiști medicali. Iar rezultatul tuturor acestora rămâne al tău!",
   "Подновява се всяка седмица": "Se reînnoiește în fiecare săptămână",
   "Не поредната интернет диета.": "Nu încă o dietă de pe internet.",
   "Система, съобразена изцяло с твоето тяло.": "Un sistem adaptat în întregime corpului tău.",
   "Твой личен AI консултант": "Consultantul tău personal AI",
-  "Адаптираме всичко за теб": "Adaptăm totul pentru tine",
-  "Конкретни насоки за хранителни добавки и активности": "Recomandări concrete pentru suplimente și activitate",
-  "Препоръки и активност, съобразени с Теб и твоята цел!": "Recomandări și activitate adaptate ție și obiectivului tău!",
   "Хранене, медицина, спорт и психология. Зад всичко стои екип от специалисти.": "Nutriție, medicină, sport și psihologie. În spatele tuturor stă o echipă de specialiști.",
   "Емоционално хранене: откъде идва гладът за определени храни. Резултатът влиза направо в плана ти.": "Mâncatul emoțional: de unde vine pofta pentru anumite alimente. Rezultatul intră direct în planul tău.",
   "Ирисов анализ по снимка на окото. Резултатите от ирисовата карта влизат в плана като допълнителни данни.": "Analiza irisului dintr-o fotografie a ochiului. Rezultatele hărții irisului intră în plan ca date suplimentare.",
@@ -179,7 +175,11 @@
   "Енергия, нутриенти и ограничения според здравето ти и приема на лекарства. Специалист преглежда резултата.": "Energie, nutrienți și restricții în funcție de sănătatea ta și de medicamentele pe care le iei. Un specialist verifică rezultatul.",
   "Планът е в приложението — меню, препоръки, напомняния, консултант.": "Planul este în aplicație — meniu, recomandări, mementouri, consultant.",
   "Ние изчисляваме как.": "Noi calculăm cum.",
-  "приложение на телефона": "o aplicație pe telefon"
+  "приложение на телефона": "o aplicație pe telefon",
+  "Общите принципи и съвети са за всеки — значи конкретно за никого. Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.": "Principiile și sfaturile generale sunt pentru toată lumea — adică pentru nimeni anume. Noi creăm un plan cu adevărat personalizat: ce, cât și când să mănânci, în funcție de corpul, sănătatea și obiectivul tău. În spatele calculelor stă o echipă de medici și dieteticieni. Rezultatul este al tău.",
+  "Адаптираме всичко към теб": "Adaptăm totul la tine",
+  "Конкретни насоки за хранителни добавки и движение": "Recomandări concrete pentru suplimente și mișcare",
+  "Препоръки и активност, съобразени с теб и с целта ти.": "Recomandări și activitate adaptate ție și obiectivului tău."
  },
  "keys": {
   "day.mock.0": "L",
