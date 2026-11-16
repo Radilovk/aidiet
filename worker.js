@@ -60609,34 +60609,48 @@ async function handleWordingSave(request, env) {
   } catch {
     return jsonResponse2({ error: "bad_json" }, 400);
   }
-  const s = (v, n) => String(v == null ? "" : v).slice(0, n);
+  const s = (v, n2) => String(v == null ? "" : v).slice(0, n2);
   const edits = (Array.isArray(body?.edits) ? body.edits : []).slice(0, 300).map((e) => ({ old: s(e?.old, 4e3), new: s(e?.new, 4e3), where: s(e?.where, 300) })).filter((e) => e.old !== e.new);
   const note = s(body?.note, 8e3);
   const id = `${Date.now()}:${crypto.randomUUID().slice(0, 8)}`;
-  const images = [];
-  for (const [n, im] of (Array.isArray(body?.images) ? body.images : []).slice(0, 12).entries()) {
-    const data = typeof im?.data === "string" && /^data:image\/(webp|jpeg|png);base64,/.test(im.data) && im.data.length < 12e6 ? im.data : "";
-    const url = /^https?:\/\//i.test(String(im?.url || "")) ? s(im.url, 1e3) : "";
-    const remove = !!im?.remove;
-    if (!data && !url && !remove) continue;
-    const rec2 = {
-      where: s(im?.where, 300),
-      oldSrc: s(im?.oldSrc, 500),
-      alt: s(im?.alt, 400),
-      url,
-      remove,
-      w: Number(im?.w) || 0,
-      h: Number(im?.h) || 0,
-      name: s(im?.name, 120)
-    };
-    if (data) {
-      rec2.key = `wording-img:${id}:${n}`;
-      rec2.type = data.slice(5, data.indexOf(";"));
-      await env.page_content.put(rec2.key, data);
+  const num2 = (v, lo, hi) => {
+    const x = Number(v);
+    return Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : null;
+  };
+  const slots = [];
+  let n = 0;
+  for (const sl of (Array.isArray(body?.slots) ? body.slots : []).slice(0, 12)) {
+    const items = [];
+    for (const it of (Array.isArray(sl?.items) ? sl.items : []).slice(0, 12)) {
+      const item2 = {
+        x: num2(it?.x, 0, 100) ?? 50,
+        y: num2(it?.y, 0, 100) ?? 50,
+        z: num2(it?.z, 1, 4) ?? 1,
+        alt: s(it?.alt, 400),
+        name: s(it?.name, 120)
+      };
+      const data = typeof it?.data === "string" && /^data:image\/(webp|jpeg|png);base64,/.test(it.data) && it.data.length < 12e6 ? it.data : "";
+      if (data) {
+        item2.key = `wording-img:${id}:${n++}`;
+        item2.type = data.slice(5, data.indexOf(";"));
+        await env.page_content.put(item2.key, data);
+      } else {
+        item2.src = s(it?.src, 1e3);
+        if (!item2.src) continue;
+      }
+      items.push(item2);
     }
-    images.push(rec2);
+    slots.push({
+      slot: s(sl?.slot, 60),
+      where: s(sl?.where, 300),
+      fx: s(sl?.fx, 20),
+      every: s(sl?.every, 4),
+      ratio: s(sl?.ratio, 10),
+      width: s(sl?.width, 4),
+      items
+    });
   }
-  if (!edits.length && !note.trim() && !images.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0440\u0435\u0434\u0430\u043A\u0446\u0438\u0438" }, 400);
+  if (!edits.length && !note.trim() && !slots.length) return jsonResponse2({ error: "\u041D\u044F\u043C\u0430 \u0440\u0435\u0434\u0430\u043A\u0446\u0438\u0438" }, 400);
   const rec = {
     id,
     at: (/* @__PURE__ */ new Date()).toISOString(),
@@ -60645,12 +60659,12 @@ async function handleWordingSave(request, env) {
     url: s(body?.url, 500),
     lang: s(body?.lang, 8),
     edits,
-    images,
+    slots,
     note,
     status: "new"
   };
   await env.page_content.put(`wording:${id}`, JSON.stringify(rec));
-  return jsonResponse2({ ok: true, id, count: edits.length, images: images.length });
+  return jsonResponse2({ ok: true, id, count: edits.length, slots: slots.length, images: n });
 }
 async function handleWordingList(request, env) {
   if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
